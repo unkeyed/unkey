@@ -83,60 +83,58 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		commitTimestamp := req.GetCommitTimestamp()
 
 		// Watch paths: skip if configured patterns don't match changed files
-		if len(buildSettings.WatchPaths) > 0 && len(req.GetChangedFiles()) > 0 {
-			if !match.MatchWatchPaths(buildSettings.WatchPaths, req.GetChangedFiles()) {
-				logger.Info("skipping deployment: watch paths don't match changed files",
-					"app_id", app.ID,
-					"watch_paths", buildSettings.WatchPaths,
-					"changed_files", req.GetChangedFiles(),
-				)
+		if !match.MatchWatchPaths(buildSettings.WatchPaths, req.GetChangedFiles()) {
+			logger.Info("skipping deployment: watch paths don't match changed files",
+				"app_id", app.ID,
+				"watch_paths", buildSettings.WatchPaths,
+				"changed_files", req.GetChangedFiles(),
+			)
 
-				// Create skipped deployment record for visibility
-				skippedID := uid.New(uid.DeploymentPrefix)
-				_ = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-					return db.Tx(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-						err := db.Query.InsertDeployment(txCtx, tx, db.InsertDeploymentParams{
-							ID:                            skippedID,
-							K8sName:                       uid.DNS1035(12),
-							WorkspaceID:                   project.WorkspaceID,
-							ProjectID:                     project.ID,
-							AppID:                         app.ID,
-							EnvironmentID:                 env.ID,
-							SentinelConfig:                runtimeSettings.SentinelConfig,
-							EncryptedEnvironmentVariables: []byte{},
-							Command:                       runtimeSettings.Command,
-							Status:                        db.DeploymentsStatusSkipped,
-							CreatedAt:                     now,
-							UpdatedAt:                     sql.NullInt64{Valid: false},
-							GitCommitSha:                  sql.NullString{String: req.GetAfter(), Valid: req.GetAfter() != ""},
-							GitBranch:                     sql.NullString{String: req.GetBranch(), Valid: req.GetBranch() != ""},
-							GitCommitMessage:              sql.NullString{String: commitMessage, Valid: commitMessage != ""},
-							GitCommitAuthorHandle:         sql.NullString{String: authorHandle, Valid: authorHandle != ""},
-							GitCommitAuthorAvatarUrl:      sql.NullString{String: authorAvatarURL, Valid: authorAvatarURL != ""},
-							GitCommitTimestamp:            sql.NullInt64{Int64: commitTimestamp, Valid: commitTimestamp != 0},
-							OpenapiSpec:                   sql.NullString{Valid: false},
-							CpuMillicores:                 runtimeSettings.CpuMillicores,
-							MemoryMib:                     runtimeSettings.MemoryMib,
-							Port:                          runtimeSettings.Port,
-							ShutdownSignal:                db.DeploymentsShutdownSignal(runtimeSettings.ShutdownSignal),
-							Healthcheck:                   runtimeSettings.Healthcheck,
-						})
-						if err != nil {
-							return err
-						}
-						return db.Query.InsertDeploymentStep(txCtx, tx, db.InsertDeploymentStepParams{
-							WorkspaceID:   app.WorkspaceID,
-							ProjectID:     app.ProjectID,
-							AppID:         app.ID,
-							EnvironmentID: env.ID,
-							DeploymentID:  skippedID,
-							Step:          db.DeploymentStepsStepQueued,
-							StartedAt:     uint64(now),
-						})
+			// Create skipped deployment record for visibility
+			skippedID := uid.New(uid.DeploymentPrefix)
+			_ = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				return db.Tx(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+					err := db.Query.InsertDeployment(txCtx, tx, db.InsertDeploymentParams{
+						ID:                            skippedID,
+						K8sName:                       uid.DNS1035(12),
+						WorkspaceID:                   project.WorkspaceID,
+						ProjectID:                     project.ID,
+						AppID:                         app.ID,
+						EnvironmentID:                 env.ID,
+						SentinelConfig:                runtimeSettings.SentinelConfig,
+						EncryptedEnvironmentVariables: []byte{},
+						Command:                       runtimeSettings.Command,
+						Status:                        db.DeploymentsStatusSkipped,
+						CreatedAt:                     now,
+						UpdatedAt:                     sql.NullInt64{Valid: false},
+						GitCommitSha:                  sql.NullString{String: req.GetAfter(), Valid: req.GetAfter() != ""},
+						GitBranch:                     sql.NullString{String: req.GetBranch(), Valid: req.GetBranch() != ""},
+						GitCommitMessage:              sql.NullString{String: commitMessage, Valid: commitMessage != ""},
+						GitCommitAuthorHandle:         sql.NullString{String: authorHandle, Valid: authorHandle != ""},
+						GitCommitAuthorAvatarUrl:      sql.NullString{String: authorAvatarURL, Valid: authorAvatarURL != ""},
+						GitCommitTimestamp:            sql.NullInt64{Int64: commitTimestamp, Valid: commitTimestamp != 0},
+						OpenapiSpec:                   sql.NullString{Valid: false},
+						CpuMillicores:                 runtimeSettings.CpuMillicores,
+						MemoryMib:                     runtimeSettings.MemoryMib,
+						Port:                          runtimeSettings.Port,
+						ShutdownSignal:                db.DeploymentsShutdownSignal(runtimeSettings.ShutdownSignal),
+						Healthcheck:                   runtimeSettings.Healthcheck,
 					})
-				}, restate.WithName("insert skipped deployment"))
-				continue
-			}
+					if err != nil {
+						return err
+					}
+					return db.Query.InsertDeploymentStep(txCtx, tx, db.InsertDeploymentStepParams{
+						WorkspaceID:   app.WorkspaceID,
+						ProjectID:     app.ProjectID,
+						AppID:         app.ID,
+						EnvironmentID: env.ID,
+						DeploymentID:  skippedID,
+						Step:          db.DeploymentStepsStepQueued,
+						StartedAt:     uint64(now),
+					})
+				})
+			}, restate.WithName("insert skipped deployment"))
+			continue
 		}
 
 		// Build secrets blob from env vars

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, Plus } from "@unkey/icons";
 import { Button, FormInput } from "@unkey/ui";
+import { useCallback, useRef } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
@@ -50,10 +51,30 @@ export const WatchPaths = () => {
     defaultValues: { paths: toFormPaths(defaultPaths) },
   });
 
-  const { fields, prepend, remove } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control,
     name: "paths",
   });
+
+  const inputRefs = useRef<Map<number, HTMLInputElement>>(new Map());
+  const setInputRef = useCallback((index: number, el: HTMLInputElement | null) => {
+    if (el) {
+      inputRefs.current.set(index, el);
+    } else {
+      inputRefs.current.delete(index);
+    }
+  }, []);
+
+  const removeAndFocus = useCallback(
+    (index: number) => {
+      remove(index);
+      const focusIndex = index > 0 ? index - 1 : 0;
+      requestAnimationFrame(() => {
+        inputRefs.current.get(focusIndex)?.focus();
+      });
+    },
+    [remove],
+  );
 
   const currentPaths = useWatch({ control, name: "paths" });
   const currentValues = fromFormPaths(currentPaths ?? []);
@@ -85,41 +106,49 @@ export const WatchPaths = () => {
     >
       <div className="flex flex-col gap-2 w-full">
         {fields.map((field, index) => {
-          const isFirst = index === 0;
           const isOnly = fields.length === 1;
+          const { ref: rhfRef, ...fieldProps } = register(`paths.${index}.value`);
           return (
             <div key={field.id} className="flex items-start gap-2">
               <FormInput
                 className="flex-1 [&_input]:h-9 [&_input]:font-mono"
                 placeholder="e.g. src/** or services/api/**"
                 error={errors.paths?.[index]?.value?.message}
-                {...register(`paths.${index}.value`)}
+                {...fieldProps}
+                ref={(el: HTMLInputElement | null) => {
+                  rhfRef(el);
+                  setInputRef(index, el);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    append({ value: "" });
+                  }
+                  if (e.key === "Backspace" && !currentPaths?.[index]?.value && !isOnly) {
+                    e.preventDefault();
+                    removeAndFocus(index);
+                  }
+                }}
               />
-              <div className="relative w-16 h-9 shrink-0">
-                <RemoveButton
-                  onClick={() => remove(index)}
-                  className={cn(
-                    "absolute left-0 transition-opacity duration-150",
-                    isOnly ? "opacity-0 pointer-events-none" : "opacity-100",
-                  )}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "absolute left-0 size-9 hover:bg-grayA-3 px-0 justify-center transition-all duration-150 rounded-lg",
-                    isOnly ? "translate-x-0" : "translate-x-9",
-                    isFirst ? "opacity-100" : "opacity-0 pointer-events-none",
-                  )}
-                  onClick={() => prepend({ value: "" })}
-                >
-                  <Plus iconSize="sm-regular" />
-                </Button>
-              </div>
+              <RemoveButton
+                onClick={() => removeAndFocus(index)}
+                className={cn(
+                  "shrink-0 transition-opacity duration-150",
+                  isOnly ? "opacity-0 pointer-events-none" : "opacity-100",
+                )}
+              />
             </div>
           );
         })}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="size-9 hover:bg-grayA-3 px-0 justify-center rounded-lg"
+          onClick={() => append({ value: "" })}
+        >
+          <Plus iconSize="sm-regular" />
+        </Button>
         <SettingDescription>
           Glob patterns (e.g. src/**, **/*.go). Deployments are skipped when no changed files match.
         </SettingDescription>
