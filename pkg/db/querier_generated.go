@@ -16,6 +16,24 @@ type Querier interface {
 	//  SET token = ?, authorization = ?, updated_at = ?
 	//  WHERE domain_id = ?
 	ClearAcmeChallengeTokens(ctx context.Context, db DBTX, arg ClearAcmeChallengeTokensParams) error
+	//CountInstancesByAppId
+	//
+	//  SELECT COUNT(*) as count
+	//  FROM instances i
+	//  JOIN deployments d ON i.deployment_id = d.id
+	//  WHERE d.app_id = ?
+	CountInstancesByAppId(ctx context.Context, db DBTX, appID string) (int64, error)
+	//CountSentinelsByAppId
+	//
+	//  SELECT COUNT(*) as count
+	//  FROM sentinels s
+	//  JOIN environments e ON s.environment_id = e.id
+	//  WHERE e.app_id = ?
+	CountSentinelsByAppId(ctx context.Context, db DBTX, appID string) (int64, error)
+	//CountSentinelsByProjectId
+	//
+	//  SELECT COUNT(*) as count FROM sentinels WHERE project_id = ?
+	CountSentinelsByProjectId(ctx context.Context, db DBTX, projectID string) (int64, error)
 	//DeleteAcmeChallengeByDomainID
 	//
 	//  DELETE FROM acme_challenges WHERE domain_id = ?
@@ -30,15 +48,59 @@ type Querier interface {
 	//  DELETE FROM keys_roles
 	//  WHERE key_id = ?
 	DeleteAllKeyRolesByKeyID(ctx context.Context, db DBTX, keyID string) error
+	//DeleteAppBuildSettingsByEnvironmentId
+	//
+	//  DELETE FROM app_build_settings WHERE environment_id = ?
+	DeleteAppBuildSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteAppById
+	//
+	//  DELETE FROM apps WHERE id = ?
+	DeleteAppById(ctx context.Context, db DBTX, id string) error
+	//DeleteAppEnvVarsByEnvironmentId
+	//
+	//  DELETE FROM app_environment_variables WHERE environment_id = ?
+	DeleteAppEnvVarsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteAppRegionalSettingsByEnvironmentId
+	//
+	//  DELETE FROM app_regional_settings WHERE environment_id = ?
+	DeleteAppRegionalSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteAppRuntimeSettingsByEnvironmentId
+	//
+	//  DELETE FROM app_runtime_settings WHERE environment_id = ?
+	DeleteAppRuntimeSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteCiliumNetworkPoliciesByEnvironmentId
+	//
+	//  DELETE FROM cilium_network_policies WHERE environment_id = ?
+	DeleteCiliumNetworkPoliciesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
 	//DeleteCustomDomainByID
 	//
 	//  DELETE FROM custom_domains WHERE id = ?
 	DeleteCustomDomainByID(ctx context.Context, db DBTX, id string) error
+	//DeleteCustomDomainsByEnvironmentId
+	//
+	//  DELETE FROM custom_domains WHERE environment_id = ?
+	DeleteCustomDomainsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteCustomDomainsByProjectId
+	//
+	//  DELETE FROM custom_domains WHERE project_id = ?
+	DeleteCustomDomainsByProjectId(ctx context.Context, db DBTX, projectID string) error
 	//DeleteDeploymentInstances
 	//
 	//  DELETE FROM instances
 	//  WHERE deployment_id = ? AND region_id = ?
 	DeleteDeploymentInstances(ctx context.Context, db DBTX, arg DeleteDeploymentInstancesParams) error
+	//DeleteDeploymentStepsByEnvironmentId
+	//
+	//  DELETE ds FROM deployment_steps ds
+	//  JOIN deployments d ON ds.deployment_id = d.id
+	//  WHERE d.environment_id = ?
+	DeleteDeploymentStepsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteDeploymentTopologiesByEnvironmentId
+	//
+	//  DELETE dt FROM deployment_topology dt
+	//  JOIN deployments d ON dt.deployment_id = d.id
+	//  WHERE d.environment_id = ?
+	DeleteDeploymentTopologiesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
 	//DeleteDeploymentTopologyByDeploymentId
 	//
 	//  DELETE FROM `deployment_topology`
@@ -51,10 +113,34 @@ type Querier interface {
 	//    AND region_id = ?
 	//    AND version = ?
 	DeleteDeploymentTopologyByDeploymentRegionVersion(ctx context.Context, db DBTX, arg DeleteDeploymentTopologyByDeploymentRegionVersionParams) error
+	//DeleteDeploymentsByEnvironmentId
+	//
+	//  DELETE FROM deployments WHERE environment_id = ?
+	DeleteDeploymentsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteEnvironmentById
+	//
+	//  DELETE FROM environments WHERE id = ?
+	DeleteEnvironmentById(ctx context.Context, db DBTX, id string) error
 	//DeleteFrontlineRouteByFQDN
 	//
 	//  DELETE FROM frontline_routes WHERE fully_qualified_domain_name = ?
 	DeleteFrontlineRouteByFQDN(ctx context.Context, db DBTX, fqdn string) error
+	//DeleteFrontlineRoutesByEnvironmentId
+	//
+	//  DELETE FROM frontline_routes WHERE environment_id = ?
+	DeleteFrontlineRoutesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteFrontlineRoutesByProjectId
+	//
+	//  DELETE FROM frontline_routes WHERE project_id = ?
+	DeleteFrontlineRoutesByProjectId(ctx context.Context, db DBTX, projectID string) error
+	//DeleteGithubRepoConnectionsByAppId
+	//
+	//  DELETE FROM github_repo_connections WHERE app_id = ?
+	DeleteGithubRepoConnectionsByAppId(ctx context.Context, db DBTX, appID string) error
+	//DeleteGithubRepoConnectionsByProjectId
+	//
+	//  DELETE FROM github_repo_connections WHERE project_id = ?
+	DeleteGithubRepoConnectionsByProjectId(ctx context.Context, db DBTX, projectID string) error
 	//DeleteIdentity
 	//
 	//  DELETE FROM identities
@@ -147,6 +233,10 @@ type Querier interface {
 	//  DELETE FROM permissions
 	//  WHERE id = ?
 	DeletePermission(ctx context.Context, db DBTX, permissionID string) error
+	//DeleteProjectById
+	//
+	//  DELETE FROM projects WHERE id = ?
+	DeleteProjectById(ctx context.Context, db DBTX, id string) error
 	//DeleteRatelimit
 	//
 	//  DELETE FROM `ratelimits` WHERE id = ?
@@ -162,6 +252,14 @@ type Querier interface {
 	//  DELETE FROM roles
 	//  WHERE id = ?
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
+	//DeleteSentinelsByEnvironmentId
+	//
+	//  DELETE FROM sentinels WHERE environment_id = ?
+	DeleteSentinelsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteSentinelsByProjectId
+	//
+	//  DELETE FROM sentinels WHERE project_id = ?
+	DeleteSentinelsByProjectId(ctx context.Context, db DBTX, projectID string) error
 	//EndDeploymentStep
 	//
 	//  UPDATE `deployment_steps`
@@ -1225,6 +1323,11 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertApp(ctx context.Context, db DBTX, arg InsertAppParams) error
+	//InsertAppEnvironmentVariable
+	//
+	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?)
+	InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error
 	//InsertAuditLog
 	//
 	//  INSERT INTO `audit_log` (
@@ -1898,6 +2001,10 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	//ListAppIdsByProject
+	//
+	//  SELECT id FROM apps WHERE project_id = ?
+	ListAppIdsByProject(ctx context.Context, db DBTX, projectID string) ([]string, error)
 	//ListAppsByProject
 	//
 	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
@@ -2003,6 +2110,10 @@ type Querier interface {
 	//      ELSE 'preview'
 	//    END
 	ListEnvVarsForRepoConnections(ctx context.Context, db DBTX, arg ListEnvVarsForRepoConnectionsParams) ([]ListEnvVarsForRepoConnectionsRow, error)
+	//ListEnvironmentIdsByApp
+	//
+	//  SELECT id FROM environments WHERE app_id = ?
+	ListEnvironmentIdsByApp(ctx context.Context, db DBTX, appID string) ([]string, error)
 	//ListExecutableChallenges
 	//
 	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc

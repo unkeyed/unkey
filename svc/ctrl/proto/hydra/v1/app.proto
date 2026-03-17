@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// AppService manages app lifecycle.
+// Key: app_id
+service AppService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // Delete removes an app and cleans up associated resources.
+  // Key: app_id
+  rpc Delete(DeleteAppRequest) returns (DeleteAppResponse) {}
+}
+
+message DeleteAppRequest {}
+
+message DeleteAppResponse {}

@@ -8,7 +8,7 @@ authors:
 
 Sentinel is Unkey's reverse proxy. It sits in front of customer deployments and applies a configurable list of policies to every HTTP request before forwarding it to the upstream. This RFC defines the middleware schema as protobuf configuration.
 
-The proto files live in <a href="https://github.com/unkeyed/unkey/blob/main/svc/sentinel/proto/middleware/v1/" target="_blank">`svc/sentinel/proto/middleware/v1/`</a>. This document covers the architecture of the middleware system, not individual policy types. Read the proto files for policy-specific documentation.
+The proto files live in [`svc/sentinel/proto/middleware/v1/`](https://github.com/unkeyed/unkey/blob/main/svc/sentinel/proto/middleware/v1/). This document covers the architecture of the middleware system, not individual policy types. Read the proto files for policy-specific documentation.
 
 ## Three Core Abstractions
 
@@ -124,7 +124,7 @@ The operator has full control over execution order. Authn policies should come b
 
 ## Error Responses
 
-When a policy rejects a request, sentinel returns a fixed JSON response using the same RFC 7807 Problem Details format as the Unkey API (see <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/openapi/spec/error/BaseError.yaml" target="_blank">`svc/api/openapi/spec/error/BaseError.yaml`</a>). The response body is not configurable. Every rejection uses the same structure:
+When a policy rejects a request, sentinel returns a fixed JSON response using the same RFC 7807 Problem Details format as the Unkey API (see [`svc/api/openapi/spec/error/BaseError.yaml`](https://github.com/unkeyed/unkey/blob/main/svc/api/openapi/spec/error/BaseError.yaml)). The response body is not configurable. Every rejection uses the same structure:
 
 ```json
 {
@@ -144,7 +144,7 @@ Custom error responses are not supported in this version. Status codes are what 
 
 ## Adding a New Policy Type
 
-1. Create a new `.proto` file in <a href="https://github.com/unkeyed/unkey/blob/main/svc/sentinel/proto/middleware/v1/" target="_blank">`svc/sentinel/proto/middleware/v1/`</a> with the policy's configuration message.
+1. Create a new `.proto` file in [`svc/sentinel/proto/middleware/v1/`](https://github.com/unkeyed/unkey/blob/main/svc/sentinel/proto/middleware/v1/) with the policy's configuration message.
 2. Import it in `middleware.proto` and add a field to the `oneof config` block.
 3. Implement the policy's execution logic in Go, conforming to the same interface as existing policies: receive the request context (which may contain a Principal), optionally short-circuit, or call next.
 4. If the policy is an authn method, it must produce a Principal. If it depends on authentication, it should read the Principal from context and reject if absent.
@@ -159,7 +159,7 @@ No changes to the match system, evaluation engine, or other policies are needed.
 
 ## Proto Location
 
-Proto directory: <a href="https://github.com/unkeyed/unkey/blob/main/svc/sentinel/proto/middleware/v1/" target="_blank">`svc/sentinel/proto/middleware/v1/`</a>.
+Proto directory: [`svc/sentinel/proto/middleware/v1/`](https://github.com/unkeyed/unkey/blob/main/svc/sentinel/proto/middleware/v1/).
 
 ```
 middleware.proto       ← Middleware + Policy (top-level container)
