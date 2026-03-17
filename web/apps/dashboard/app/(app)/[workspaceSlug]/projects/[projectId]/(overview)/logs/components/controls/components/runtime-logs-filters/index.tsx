@@ -30,8 +30,8 @@ const FILTER_ITEMS: FilterItemConfig[] = [
   {
     id: "environmentId",
     label: "Environment",
-    shortcut: "N",
-    shortcutLabel: "N",
+    shortcut: "E",
+    shortcutLabel: "E",
     component: <RuntimeLogsEnvironmentFilter />,
   },
   {

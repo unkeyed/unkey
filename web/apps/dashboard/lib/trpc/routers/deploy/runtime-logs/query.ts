@@ -53,6 +53,9 @@ export const queryRuntimeLogs = workspaceProcedure
         where: inArray(schema.instances.id, instanceIds),
         columns: { id: true, k8sName: true },
       });
+      if (instances.length === 0) {
+        return { logs: [], hasMore: false, total: 0 };
+      }
       k8sPodNames = instances.map((inst) => inst.k8sName);
       for (const inst of instances) {
         knownK8sToInstanceId.set(inst.k8sName, inst.id);
