@@ -243,6 +243,17 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create region: %w", err)
 		}
 
+		// The upsert is a no-op on duplicate (name, platform), so the existing row keeps
+		// its original ID. We must read back the actual ID to use in regional settings.
+		existingRegion, err := db.Query.FindRegionByPlatformAndName(ctx, tx, db.FindRegionByPlatformAndNameParams{
+			Platform: "dev",
+			Name:     "local",
+		})
+		if err != nil {
+			return fmt.Errorf("failed to find region after upsert: %w", err)
+		}
+		regionID = existingRegion.ID
+
 		// Create regional settings so deployments work without manually saving each environment
 		err = db.BulkQuery.UpsertAppRegionalSettings(ctx, tx, []db.UpsertAppRegionalSettingsParams{
 			{
