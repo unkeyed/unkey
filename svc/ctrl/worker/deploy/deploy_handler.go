@@ -451,13 +451,13 @@ func (w *Workflow) createTopologies(
 	if allocatedResources.TotalCpuMillicores > int64(quota.AllocatedCpuMillicoresTotal) {
 		return nil, fault.Wrap(
 			restate.TerminalError(fmt.Errorf("CPU quota exceeded: consumed %d, quota %d", allocatedResources.TotalCpuMillicores, quota.AllocatedCpuMillicoresTotal)),
-			fault.Public("CPU quota exceeded. Please reduce the requested CPUs or free up resources in your workspace."),
+			fault.Public("We are unable to deploy this application as you have exceeded your CPU quota."),
 		)
 	}
 	if allocatedResources.TotalMemoryMib > int64(quota.AllocatedMemoryMibTotal) {
 		return nil, fault.Wrap(
 			restate.TerminalError(fmt.Errorf("Memory quota exceeded: consumed %d, quota %d", allocatedResources.TotalMemoryMib, quota.AllocatedMemoryMibTotal)),
-			fault.Public("Memory quota exceeded. Please reduce the requested memory or free up resources in your workspace."),
+			fault.Public("We are unable to deploy this application as you have exceeded your Memory quota."),
 		)
 	}
 

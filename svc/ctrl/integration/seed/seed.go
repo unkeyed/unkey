@@ -192,6 +192,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		EnvironmentID: req.ID,
 		Dockerfile:    "Dockerfile",
 		DockerContext: ".",
+		WatchPaths:    nil,
 		CreatedAt:     now,
 		UpdatedAt:     sql.NullInt64{Valid: false},
 	})
@@ -275,6 +276,7 @@ func (s *Seeder) CreateAppWithSettings(ctx context.Context, req CreateAppRequest
 		EnvironmentID: environmentID,
 		Dockerfile:    "",
 		DockerContext: "",
+		WatchPaths:    nil,
 		CreatedAt:     now,
 		UpdatedAt:     sql.NullInt64{Valid: false},
 	})

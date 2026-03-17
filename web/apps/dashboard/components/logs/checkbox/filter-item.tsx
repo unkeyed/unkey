@@ -33,11 +33,6 @@ export const FilterItem = ({
   const itemRef = useRef<HTMLDivElement>(null); // Ref for the trigger div
   const contentRef = useRef<HTMLDivElement>(null); // Ref for the DroverContent
 
-  // Synchronize internal open state with the parent's isActive prop
-  useEffect(() => {
-    setOpen(isActive ?? false);
-  }, [isActive]);
-
   // Focus the trigger div when parent indicates it's focused in the main list
   // biome-ignore lint/correctness/useExhaustiveDependencies:  no need to react for label
   useEffect(() => {
@@ -129,7 +124,6 @@ export const FilterItem = ({
               <KeyboardButton
                 shortcut={shortcut}
                 role="presentation"
-                aria-haspopup="true"
                 title={`Press '${shortcut?.toUpperCase()}' to toggle ${label} options`}
               />
             )}

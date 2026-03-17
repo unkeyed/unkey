@@ -218,6 +218,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				EnvironmentID: previewEnvID,
 				Dockerfile:    "Dockerfile",
 				DockerContext: ".",
+				WatchPaths:    nil,
 				CreatedAt:     now,
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			},
@@ -227,6 +228,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				EnvironmentID: productionEnvID,
 				Dockerfile:    "Dockerfile",
 				DockerContext: ".",
+				WatchPaths:    nil,
 				CreatedAt:     now,
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			},
@@ -235,7 +237,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to create build settings: %w", err)
 		}
 
-		// Create local region
+		// Create local region (no-op if Krane's heartbeat already inserted it)
 		err = db.Query.UpsertRegion(ctx, tx, db.UpsertRegionParams{
 			ID:       regionID,
 			Name:     "local",

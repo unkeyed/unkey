@@ -425,6 +425,7 @@ CREATE TABLE `app_build_settings` (
 	`environment_id` varchar(128) NOT NULL,
 	`dockerfile` varchar(500) NOT NULL DEFAULT 'Dockerfile',
 	`docker_context` varchar(500) NOT NULL DEFAULT '.',
+	`watch_paths` json NOT NULL DEFAULT ('[]'),
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `app_build_settings_pk` PRIMARY KEY(`pk`),
@@ -508,7 +509,7 @@ CREATE TABLE `deployments` (
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
 	`healthcheck` json,
 	`github_deployment_id` bigint,
-	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed') NOT NULL DEFAULT 'pending',
+	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed','skipped') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployments_pk` PRIMARY KEY(`pk`),
@@ -696,7 +697,7 @@ CREATE TABLE `github_app_installations` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `github_app_installations_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `github_app_installations_installation_id_unique` UNIQUE(`installation_id`)
+	UNIQUE INDEX `workspace_installation_idx` (`workspace_id`,`installation_id`)
 );
 
 CREATE TABLE `github_repo_connections` (
