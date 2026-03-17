@@ -34,6 +34,7 @@ const (
 	DeploymentStatus_DEPLOYMENT_STATUS_FINALIZING  DeploymentStatus = 8
 	DeploymentStatus_DEPLOYMENT_STATUS_READY       DeploymentStatus = 5
 	DeploymentStatus_DEPLOYMENT_STATUS_FAILED      DeploymentStatus = 6
+	DeploymentStatus_DEPLOYMENT_STATUS_SKIPPED     DeploymentStatus = 9
 )
 
 // Enum value maps for DeploymentStatus.
@@ -48,6 +49,7 @@ var (
 		8: "DEPLOYMENT_STATUS_FINALIZING",
 		5: "DEPLOYMENT_STATUS_READY",
 		6: "DEPLOYMENT_STATUS_FAILED",
+		9: "DEPLOYMENT_STATUS_SKIPPED",
 	}
 	DeploymentStatus_value = map[string]int32{
 		"DEPLOYMENT_STATUS_UNSPECIFIED": 0,
@@ -59,6 +61,7 @@ var (
 		"DEPLOYMENT_STATUS_FINALIZING":  8,
 		"DEPLOYMENT_STATUS_READY":       5,
 		"DEPLOYMENT_STATUS_FAILED":      6,
+		"DEPLOYMENT_STATUS_SKIPPED":     9,
 	}
 )
 
@@ -1147,7 +1150,7 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x10RollbackResponse\"B\n" +
 	"\x0ePromoteRequest\x120\n" +
 	"\x14target_deployment_id\x18\x01 \x01(\tR\x12targetDeploymentId\"\x11\n" +
-	"\x0fPromoteResponse*\xb1\x02\n" +
+	"\x0fPromoteResponse*\xd0\x02\n" +
 	"\x10DeploymentStatus\x12!\n" +
 	"\x1dDEPLOYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19DEPLOYMENT_STATUS_PENDING\x10\x01\x12\x1e\n" +
@@ -1157,7 +1160,8 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x19DEPLOYMENT_STATUS_NETWORK\x10\x04\x12 \n" +
 	"\x1cDEPLOYMENT_STATUS_FINALIZING\x10\b\x12\x1b\n" +
 	"\x17DEPLOYMENT_STATUS_READY\x10\x05\x12\x1c\n" +
-	"\x18DEPLOYMENT_STATUS_FAILED\x10\x06*Z\n" +
+	"\x18DEPLOYMENT_STATUS_FAILED\x10\x06\x12\x1d\n" +
+	"\x19DEPLOYMENT_STATUS_SKIPPED\x10\t*Z\n" +
 	"\n" +
 	"SourceType\x12\x1b\n" +
 	"\x17SOURCE_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
