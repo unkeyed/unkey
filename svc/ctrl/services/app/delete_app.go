@@ -26,7 +26,7 @@ func (s *Service) DeleteApp(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	_, err := db.Query.FindAppById(ctx, s.db.RO(), req.Msg.GetAppId())
+	_, err := db.Query.FindAppById(ctx, s.db.RW(), req.Msg.GetAppId())
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("app not found: %s", req.Msg.GetAppId()))
