@@ -444,6 +444,7 @@ CREATE TABLE `app_runtime_settings` (
 	`healthcheck` json,
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
 	`sentinel_config` longblob NOT NULL,
+	`openapi_spec_path` varchar(512),
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `app_runtime_settings_pk` PRIMARY KEY(`pk`),
@@ -499,7 +500,6 @@ CREATE TABLE `deployments` (
 	`git_commit_author_avatar_url` varchar(512),
 	`git_commit_timestamp` bigint,
 	`sentinel_config` longblob NOT NULL,
-	`openapi_spec` longblob,
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
 	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
@@ -516,6 +516,21 @@ CREATE TABLE `deployments` (
 	CONSTRAINT `deployments_id_unique` UNIQUE(`id`),
 	CONSTRAINT `deployments_k8s_name_unique` UNIQUE(`k8s_name`),
 	CONSTRAINT `deployments_build_id_unique` UNIQUE(`build_id`)
+);
+
+CREATE TABLE `openapi_specs` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(128) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`deployment_id` varchar(128),
+	`portal_config_id` varchar(256),
+	`content` longblob NOT NULL,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `openapi_specs_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `openapi_specs_id_unique` UNIQUE(`id`),
+	CONSTRAINT `workspace_deployment_idx` UNIQUE(`workspace_id`,`deployment_id`),
+	CONSTRAINT `workspace_portal_config_idx` UNIQUE(`workspace_id`,`portal_config_id`)
 );
 
 CREATE TABLE `deployment_steps` (
@@ -669,7 +684,7 @@ CREATE TABLE `frontline_routes` (
 	`deployment_id` varchar(255) NOT NULL,
 	`environment_id` varchar(255) NOT NULL,
 	`fully_qualified_domain_name` varchar(256) NOT NULL,
-	`sticky` enum('none','branch','environment','live') NOT NULL DEFAULT 'none',
+	`sticky` enum('none','branch','environment','live','deployment') NOT NULL DEFAULT 'none',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `frontline_routes_pk` PRIMARY KEY(`pk`),
@@ -684,7 +699,7 @@ CREATE TABLE `github_app_installations` (
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `github_app_installations_pk` PRIMARY KEY(`pk`),
-	UNIQUE INDEX `workspace_installation_idx` (`workspace_id`,`installation_id`)
+	CONSTRAINT `workspace_installation_idx` UNIQUE(`workspace_id`,`installation_id`)
 );
 
 CREATE TABLE `github_repo_connections` (
