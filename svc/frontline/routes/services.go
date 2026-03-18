@@ -15,4 +15,7 @@ type Services struct {
 	Clock             clock.Clock
 	AcmeClient        ctrl.AcmeServiceClient
 	ErrorPageRenderer errorpage.Renderer
+	PprofEnabled      bool
+	PprofUsername     string
+	PprofPassword     string
 }

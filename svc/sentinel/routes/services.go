@@ -21,4 +21,7 @@ type Services struct {
 	MaxRequestBodySize int64
 	RequestTimeout     time.Duration
 	Engine             engine.Evaluator
+	PprofEnabled       bool
+	PprofUsername      string
+	PprofPassword      string
 }

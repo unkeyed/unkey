@@ -75,6 +75,10 @@ type Config struct {
 	// Gossip configures distributed cache invalidation. See [config.GossipConfig].
 	// When nil (section omitted), gossip is disabled and invalidation is local-only.
 	Gossip *config.GossipConfig `toml:"gossip"`
+
+	// Pprof configures Go pprof profiling endpoints at /debug/pprof/*.
+	// When nil or credentials are empty, pprof is disabled.
+	Pprof *config.PprofConfig `toml:"pprof"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through
