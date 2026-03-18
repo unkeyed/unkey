@@ -105,10 +105,11 @@ func (x *RunSyncResponse) GetKeysSynced() int32 {
 
 type SyncPartitionRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The partition index (0-based).
-	Partition     int32 `protobuf:"varint,1,opt,name=partition,proto3" json:"partition,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Total number of partitions. The partition index is derived from the
+	// Restate object key (e.g. "partition-3" → 3).
+	TotalPartitions int32 `protobuf:"varint,1,opt,name=total_partitions,json=totalPartitions,proto3" json:"total_partitions,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *SyncPartitionRequest) Reset() {
@@ -141,9 +142,9 @@ func (*SyncPartitionRequest) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_key_last_used_sync_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *SyncPartitionRequest) GetPartition() int32 {
+func (x *SyncPartitionRequest) GetTotalPartitions() int32 {
 	if x != nil {
-		return x.Partition
+		return x.TotalPartitions
 	}
 	return 0
 }
@@ -201,9 +202,9 @@ const file_hydra_v1_key_last_used_sync_proto_rawDesc = "" +
 	"\x0eRunSyncRequest\"2\n" +
 	"\x0fRunSyncResponse\x12\x1f\n" +
 	"\vkeys_synced\x18\x01 \x01(\x05R\n" +
-	"keysSynced\"4\n" +
-	"\x14SyncPartitionRequest\x12\x1c\n" +
-	"\tpartition\x18\x01 \x01(\x05R\tpartition\"8\n" +
+	"keysSynced\"A\n" +
+	"\x14SyncPartitionRequest\x12)\n" +
+	"\x10total_partitions\x18\x01 \x01(\x05R\x0ftotalPartitions\"8\n" +
 	"\x15SyncPartitionResponse\x12\x1f\n" +
 	"\vkeys_synced\x18\x01 \x01(\x05R\n" +
 	"keysSynced2`\n" +

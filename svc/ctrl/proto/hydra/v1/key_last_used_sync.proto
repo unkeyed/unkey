@@ -38,8 +38,9 @@ service KeyLastUsedPartitionService {
 }
 
 message SyncPartitionRequest {
-  // The partition index (0-based).
-  int32 partition = 1;
+  // Total number of partitions. The partition index is derived from the
+  // Restate object key (e.g. "partition-3" → 3).
+  int32 total_partitions = 1;
 }
 
 message SyncPartitionResponse {

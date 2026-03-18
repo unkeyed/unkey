@@ -3,6 +3,7 @@ package keylastusedsync
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -56,8 +57,12 @@ func (s *PartitionService) SyncPartition(
 	ctx restate.ObjectContext,
 	req *hydrav1.SyncPartitionRequest,
 ) (*hydrav1.SyncPartitionResponse, error) {
-	partition := int(req.GetPartition())
 	key := restate.Key(ctx)
+	partition, err := strconv.Atoi(key)
+	if err != nil {
+		return nil, fmt.Errorf("invalid partition key %q: %w", key, err)
+	}
+	totalPartitions := int(req.GetTotalPartitions())
 
 	// Read persisted cursor from Restate state
 	cursorTime, _ := restate.Get[int64](ctx, "cursor_time")
@@ -65,9 +70,8 @@ func (s *PartitionService) SyncPartition(
 	cursor := clickhouse.KeyLastUsedCursor{Time: cursorTime, KeyID: cursorKeyID}
 
 	logger.Info("partition sync starting",
-		"key", key,
 		"partition", partition,
-		"total_partitions", defaultPartitions,
+		"total_partitions", totalPartitions,
 		"cursor_time", cursor.Time,
 		"cursor_key_id", cursor.KeyID,
 	)
@@ -76,7 +80,7 @@ func (s *PartitionService) SyncPartition(
 
 	// Run the actual sync in a single RunAsync so the CH+MySQL work is a side effect
 	result, err := restate.Run(ctx, func(rc restate.RunContext) (syncResult, error) {
-		return runPartitionSync(rc, s.clickhouse, s.db, cursor, partition, defaultPartitions)
+		return runPartitionSync(rc, s.clickhouse, s.db, cursor, partition, totalPartitions)
 	}, restate.WithName("sync"))
 	if err != nil {
 		return nil, fmt.Errorf("partition %d sync: %w", partition, err)

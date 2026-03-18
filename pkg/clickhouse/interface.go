@@ -69,12 +69,9 @@ type Querier interface {
 	// Returns 0 (not an error) when the deployment has received no traffic.
 	GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error)
 
-	// GetKeyLastUsedBatch returns keys after the given cursor, ordered by (time, key_id).
-	// Used by the KeyLastUsedSync service to batch-sync last_used_at from ClickHouse to MySQL.
-	GetKeyLastUsedBatch(ctx context.Context, cursor KeyLastUsedCursor, limit int) ([]KeyLastUsed, error)
-
-	// GetKeyLastUsedBatchPartitioned is like GetKeyLastUsedBatch but only returns keys
-	// in a specific hash partition (cityHash64(key_id) % totalPartitions == partition).
+	// GetKeyLastUsedBatchPartitioned returns keys in a specific hash partition
+	// (cityHash64(key_id) % totalPartitions == partition) after the given cursor,
+	// ordered by (time, key_id). Used by the KeyLastUsedSync partition workers.
 	GetKeyLastUsedBatchPartitioned(ctx context.Context, cursor KeyLastUsedCursor, limit int, partition, totalPartitions int) ([]KeyLastUsed, error)
 }
 

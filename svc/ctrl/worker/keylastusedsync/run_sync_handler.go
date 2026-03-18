@@ -2,6 +2,7 @@ package keylastusedsync
 
 import (
 	"fmt"
+	"strconv"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -25,10 +26,9 @@ func (s *Service) RunSync(
 	type partitionFuture = restate.ResponseFuture[*hydrav1.SyncPartitionResponse]
 	futures := make([]partitionFuture, defaultPartitions)
 	for i := range defaultPartitions {
-		partitionKey := fmt.Sprintf("partition-%d", i)
-		client := hydrav1.NewKeyLastUsedPartitionServiceClient(ctx, partitionKey)
+		client := hydrav1.NewKeyLastUsedPartitionServiceClient(ctx, strconv.Itoa(i))
 		futures[i] = client.SyncPartition().RequestFuture(&hydrav1.SyncPartitionRequest{
-			Partition: int32(i), //nolint:gosec
+			TotalPartitions: int32(defaultPartitions), //nolint:gosec
 		})
 	}
 
