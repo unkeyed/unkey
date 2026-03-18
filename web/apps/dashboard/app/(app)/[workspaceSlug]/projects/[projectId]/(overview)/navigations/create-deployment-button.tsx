@@ -210,14 +210,14 @@ export const CreateDeploymentButton = ({
                   <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
                   <span className="truncate">{branch.name}</span>
                   {branch.lastPushDate && (
-                    <>
+                    <span>
                       <span className="text-gray-8">·</span>
                       <TimestampInfo
                         value={branch.lastPushDate}
                         displayType="relative"
                         className="text-gray-10 shrink-0"
                       />
-                    </>
+                    </span>
                   )}
                 </button>
               ))}

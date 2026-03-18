@@ -407,10 +407,9 @@ export const githubRouter = t.router({
         branches = activeBranches.map((b) => ({ name: b.name, lastPushDate: b.lastPushDate }));
         // Ensure the default branch is always included
         if (!branches.some((b) => b.name === input.defaultBranch)) {
-          const defaultEntry = activeBranches.find((b) => b.name === input.defaultBranch);
           branches.unshift({
             name: input.defaultBranch,
-            lastPushDate: defaultEntry?.lastPushDate ?? null,
+            lastPushDate: null,
           });
         }
       } else {
