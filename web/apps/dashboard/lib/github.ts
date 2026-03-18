@@ -186,6 +186,88 @@ export async function checkFileExists(
   return response.ok;
 }
 
+const repositoryEventSchema = z.object({
+  type: z.string(),
+  created_at: z.string(),
+  payload: z.object({
+    ref: z.string().optional(),
+    size: z.number().optional(),
+  }),
+});
+
+const repositoryEventsSchema = z.array(repositoryEventSchema);
+
+export type BranchActivity = {
+  name: string;
+  pushCount: number;
+  commitCount: number;
+  lastPushDate: string;
+};
+
+export async function getMostActiveBranches(
+  installationId: number,
+  owner: string,
+  repo: string,
+): Promise<BranchActivity[]> {
+  const { token } = await getInstallationAccessToken(installationId);
+
+  const allEvents: z.infer<typeof repositoryEventSchema>[] = [];
+  for (let page = 1; page <= 3; page++) {
+    const data = repositoryEventsSchema.parse(
+      await fetchGitHubApi(
+        `https://api.github.com/repos/${owner}/${repo}/events?per_page=100&page=${page}`,
+        token,
+      ),
+    );
+    allEvents.push(...data);
+    if (data.length < 100) {
+      break;
+    }
+  }
+
+  const pushEvents = allEvents.filter((e) => e.type === "PushEvent" && e.payload.ref);
+
+  const branchMap = new Map<string, { pushCount: number; commitCount: number; lastPushDate: string }>();
+
+  for (const event of pushEvents) {
+    const ref = event.payload.ref;
+    if (!ref) {
+      continue;
+    }
+    const branchName = ref.replace("refs/heads/", "");
+    const existing = branchMap.get(branchName);
+    const commits = event.payload.size ?? 0;
+
+    if (existing) {
+      existing.pushCount += 1;
+      existing.commitCount += commits;
+      if (event.created_at > existing.lastPushDate) {
+        existing.lastPushDate = event.created_at;
+      }
+    } else {
+      branchMap.set(branchName, {
+        pushCount: 1,
+        commitCount: commits,
+        lastPushDate: event.created_at,
+      });
+    }
+  }
+
+  const branches: BranchActivity[] = [];
+  for (const [name, data] of branchMap) {
+    branches.push({ name, ...data });
+  }
+
+  branches.sort((a, b) => {
+    if (a.commitCount !== b.commitCount) {
+      return b.commitCount - a.commitCount;
+    }
+    return b.lastPushDate.localeCompare(a.lastPushDate);
+  });
+
+  return branches.slice(0, 10);
+}
+
 export async function getRepositoryBranches(
   installationId: number,
   owner: string,
@@ -198,6 +280,17 @@ export async function getRepositoryBranches(
       `https://api.github.com/repos/${owner}/${repo}/branches?per_page=100`,
       token,
     ),
+  );
+}
+
+export async function getRepository(
+  installationId: number,
+  owner: string,
+  repo: string,
+): Promise<GitHubRepository> {
+  const { token } = await getInstallationAccessToken(installationId);
+  return gitHubRepositorySchema.parse(
+    await fetchGitHubApi(`https://api.github.com/repos/${owner}/${repo}`, token),
   );
 }
 

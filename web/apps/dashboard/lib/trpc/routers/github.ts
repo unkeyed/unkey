@@ -3,6 +3,8 @@ import { githubAppEnv } from "@/lib/env";
 import {
   checkFileExists,
   getInstallationRepositories,
+  getMostActiveBranches,
+  getRepository,
   getRepositoryBranches,
   getRepositoryById,
   getRepositoryTree,
@@ -73,11 +75,11 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
     defaultBranch: app?.defaultBranch ?? "main",
     repoConnection: app?.githubRepoConnection
       ? {
-          pk: app.githubRepoConnection.pk,
-          repositoryId: app.githubRepoConnection.repositoryId,
-          repositoryFullName: app.githubRepoConnection.repositoryFullName,
-          installationId: app.githubRepoConnection.installationId,
-        }
+        pk: app.githubRepoConnection.pk,
+        repositoryId: app.githubRepoConnection.repositoryId,
+        repositoryFullName: app.githubRepoConnection.repositoryFullName,
+        installationId: app.githubRepoConnection.installationId,
+      }
       : null,
     installations: project.workspace?.githubAppInstallations ?? [],
   };
@@ -371,9 +373,10 @@ export const githubRouter = t.router({
         });
       }
 
-      const [treeResult, branchesData] = await Promise.all([
+      const [treeResult, activeBranches, repoData] = await Promise.all([
         getRepositoryTree(input.installationId, input.owner, input.repo, input.defaultBranch),
-        getRepositoryBranches(input.installationId, input.owner, input.repo),
+        getMostActiveBranches(input.installationId, input.owner, input.repo),
+        getRepository(input.installationId, input.owner, input.repo),
       ]);
 
       let hasDockerfile: boolean;
@@ -393,9 +396,32 @@ export const githubRouter = t.router({
         );
       }
 
+      let branches: Array<{ name: string; lastPushDate: string | null }>;
+
+      if (activeBranches.length > 0) {
+        branches = activeBranches.map((b) => ({ name: b.name, lastPushDate: b.lastPushDate }));
+        // Ensure the default branch is always included
+        if (!branches.some((b) => b.name === input.defaultBranch)) {
+          const defaultEntry = activeBranches.find((b) => b.name === input.defaultBranch);
+          branches.unshift({
+            name: input.defaultBranch,
+            lastPushDate: defaultEntry?.lastPushDate ?? null,
+          });
+        }
+      } else {
+        // Fallback: no recent events, use alphabetical branches
+        const fallbackBranches = await getRepositoryBranches(
+          input.installationId,
+          input.owner,
+          input.repo,
+        );
+        branches = fallbackBranches.slice(0, 10).map((b) => ({ name: b.name, lastPushDate: null }));
+      }
+
       return {
         hasDockerfile,
-        branches: branchesData.map((b) => b.name),
+        branches,
+        pushedAt: repoData.pushed_at,
       };
     }),
 

@@ -17,6 +17,7 @@ export const createDeploy = workspaceProcedure
     z.object({
       projectId: z.string().min(1, "Project ID is required"),
       environmentSlug: z.string().min(1, "Environment slug is required"),
+      gitRef: z.string().optional(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -27,6 +28,8 @@ export const createDeploy = workspaceProcedure
         message: "ctrl service is not configured",
       });
     }
+
+
 
     const ctrl = createClient(
       DeployService,
@@ -72,11 +75,21 @@ export const createDeploy = workspaceProcedure
         });
       }
 
+      const ref = input.gitRef ? parseGitRef(input.gitRef) : undefined;
+      const isCommitSha = (r: string): boolean => /^[0-9a-f]{40}$/i.test(r);
+
       const result = await ctrl
         .createDeployment({
           projectId: input.projectId,
           appId: environment.appId,
           environmentSlug: input.environmentSlug,
+          ...(ref
+            ? {
+              gitCommit: isCommitSha(ref)
+                ? { commitSha: ref }
+                : { branch: ref },
+            }
+            : {}),
         })
         .catch((err) => {
           console.error(err);
@@ -114,3 +127,25 @@ export const createDeploy = workspaceProcedure
       });
     }
   });
+
+function parseGitRef(raw: string): string {
+  const trimmed = raw.trim();
+
+  // https://github.com/owner/repo/tree/branch-name (supports slashes in branch)
+  const treeMatch = trimmed.match(
+    /^https?:\/\/github\.com\/[^/]+\/[^/]+\/tree\/(.+)$/,
+  );
+  if (treeMatch) {
+    return treeMatch[1];
+  }
+
+  // https://github.com/owner/repo/commit/abc123...
+  const commitMatch = trimmed.match(
+    /^https?:\/\/github\.com\/[^/]+\/[^/]+\/commit\/([0-9a-f]+)$/i,
+  );
+  if (commitMatch) {
+    return commitMatch[1];
+  }
+
+  return trimmed;
+}
