@@ -200,7 +200,7 @@ const repositoryEventSchema = z.object({
 
 const repositoryEventsSchema = z.array(repositoryEventSchema);
 
-const MAX_BRANCHES = 10;
+export const MAX_BRANCHES = 10;
 
 export type BranchActivity = {
   name: string;
