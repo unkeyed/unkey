@@ -171,6 +171,7 @@ go_library(
         "frontline_route_delete_by_environment.sql_generated.go",
         "frontline_route_delete_by_fqdn.sql_generated.go",
         "frontline_route_delete_by_project.sql_generated.go",
+        "frontline_route_find_by_deployment_id_and_sticky.sql_generated.go",
         "generate.go",
         "github_repo_connection_delete_by_app.sql_generated.go",
         "github_repo_connection_delete_by_project.sql_generated.go",
