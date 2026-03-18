@@ -38,6 +38,10 @@ export { AssignedItemsCell } from "./components/cells";
 export type { AssignedItemsCellProps } from "./components/cells";
 export { HiddenValueCell } from "./components/cells";
 export type { HiddenValueCellProps } from "./components/cells";
+export { InvalidCountCell } from "./components/cells";
+export type { InvalidCountCellProps } from "./components/cells";
+export { OutcomePopoverCell } from "./components/cells";
+export type { OutcomePopoverCellProps } from "./components/cells";
 export { LastUpdatedCell } from "./components/cells";
 export type { LastUpdatedCellProps } from "./components/cells";
 export { RootKeyNameCell } from "./components/cells";
@@ -69,6 +73,7 @@ export type { PaginationFooterProps } from "./components/footer/pagination-foote
 export { EmptyState } from "./components/utils/empty-state";
 export type { EmptyStateProps } from "./components/utils/empty-state";
 export { EmptyRootKeys } from "./components/empty/empty-root-keys";
+export { EmptyApiRequests } from "./components/empty/empty-api-requests";
 export { RealtimeSeparator } from "./components/utils/realtime-separator";
 
 // Utils

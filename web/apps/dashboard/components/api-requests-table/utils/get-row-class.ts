@@ -1,19 +1,9 @@
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
+import type { StatusStyle } from "@unkey/ui";
 import { getErrorSeverity } from "./calculate-blocked-percentage";
 
-export type StatusStyle = {
-  base: string;
-  hover: string;
-  selected: string;
-  badge: {
-    default: string;
-    selected: string;
-  };
-  focusRing: string;
-};
-
-export const STATUS_STYLES = {
+export const SEVERITY_STYLES = {
   success: {
     base: "text-grayA-9",
     hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-grayA-3",
@@ -56,7 +46,7 @@ export const STATUS_STYLES = {
   },
 };
 
-export const categorizeSeverity = (outcome: string): keyof typeof STATUS_STYLES => {
+export const categorizeSeverity = (outcome: string): keyof typeof SEVERITY_STYLES => {
   switch (outcome) {
     // Critical errors
     case "INSUFFICIENT_PERMISSIONS":
@@ -84,13 +74,13 @@ export const getStatusStyle = (log: KeysOverviewLog): StatusStyle => {
 
   switch (severity) {
     case "high":
-      return STATUS_STYLES.error;
+      return SEVERITY_STYLES.error;
     case "moderate":
-      return STATUS_STYLES.moderate;
+      return SEVERITY_STYLES.moderate;
     case "low":
-      return STATUS_STYLES.warning;
+      return SEVERITY_STYLES.warning;
     default:
-      return STATUS_STYLES.success;
+      return SEVERITY_STYLES.success;
   }
 };
 

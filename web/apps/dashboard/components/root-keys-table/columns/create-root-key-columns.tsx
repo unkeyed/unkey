@@ -23,12 +23,12 @@ const RootKeysTableActions = dynamic(
 );
 
 export const ROOT_KEY_COLUMN_IDS = {
-  ROOT_KEY: "root_key",
-  KEY: "key",
-  PERMISSIONS: "permissions",
-  CREATED_AT: "created_at",
-  LAST_UPDATED: "last_updated",
-  ACTION: "action",
+  ROOT_KEY: { id: "root_key", accessorKey: "name", header: "Name" },
+  KEY: { id: "key", accessorKey: "key", header: "Key" },
+  PERMISSIONS: { id: "permissions", accessorKey: "permissions", header: "Permissions" },
+  CREATED_AT: { id: "created_at", accessorKey: "created_at", header: "Created At" },
+  LAST_UPDATED: { id: "last_updated", accessorKey: "last_updated", header: "Last Updated" },
+  ACTION: { id: "action", accessorKey: "action", header: "Action" },
 } as const;
 
 type CreateRootKeyColumnsOptions = {
@@ -41,11 +41,11 @@ export const createRootKeyColumns = ({
   onEditKey,
 }: CreateRootKeyColumnsOptions): DataTableColumnDef<RootKey>[] => [
   {
-    id: ROOT_KEY_COLUMN_IDS.ROOT_KEY,
-    accessorKey: "name",
+    id: ROOT_KEY_COLUMN_IDS.ROOT_KEY.id,
+    accessorKey: ROOT_KEY_COLUMN_IDS.ROOT_KEY.accessorKey,
     header: ({ header }) => (
-      <SortableHeader key={ROOT_KEY_COLUMN_IDS.ROOT_KEY} header={header}>
-        Name
+      <SortableHeader key={ROOT_KEY_COLUMN_IDS.ROOT_KEY.id} header={header}>
+        {ROOT_KEY_COLUMN_IDS.ROOT_KEY.header}
       </SortableHeader>
     ),
     meta: {
@@ -59,9 +59,9 @@ export const createRootKeyColumns = ({
     },
   },
   {
-    id: ROOT_KEY_COLUMN_IDS.KEY,
-    accessorKey: "start",
-    header: "Key",
+    id: ROOT_KEY_COLUMN_IDS.KEY.id,
+    accessorKey: ROOT_KEY_COLUMN_IDS.KEY.accessorKey,
+    header: ROOT_KEY_COLUMN_IDS.KEY.header,
     enableSorting: false,
     meta: {
       width: "18%",
@@ -87,8 +87,8 @@ export const createRootKeyColumns = ({
     },
   },
   {
-    id: ROOT_KEY_COLUMN_IDS.PERMISSIONS,
-    header: "Permissions",
+    id: ROOT_KEY_COLUMN_IDS.PERMISSIONS.id,
+    header: ROOT_KEY_COLUMN_IDS.PERMISSIONS.header,
     enableSorting: false,
     meta: {
       width: "15%",
@@ -104,12 +104,12 @@ export const createRootKeyColumns = ({
     },
   },
   {
-    id: ROOT_KEY_COLUMN_IDS.CREATED_AT,
-    accessorKey: "createdAt",
+    id: ROOT_KEY_COLUMN_IDS.CREATED_AT.id,
+    accessorKey: ROOT_KEY_COLUMN_IDS.CREATED_AT.accessorKey,
     sortDescFirst: true,
     header: ({ header }) => (
-      <SortableHeader key={ROOT_KEY_COLUMN_IDS.CREATED_AT} header={header}>
-        Created At
+      <SortableHeader key={ROOT_KEY_COLUMN_IDS.CREATED_AT.id} header={header}>
+        {ROOT_KEY_COLUMN_IDS.CREATED_AT.header}
       </SortableHeader>
     ),
     meta: {
@@ -126,11 +126,11 @@ export const createRootKeyColumns = ({
     },
   },
   {
-    id: ROOT_KEY_COLUMN_IDS.LAST_UPDATED,
-    accessorKey: "lastUpdatedAt",
+    id: ROOT_KEY_COLUMN_IDS.LAST_UPDATED.id,
+    accessorKey: ROOT_KEY_COLUMN_IDS.LAST_UPDATED.accessorKey,
     header: ({ header }) => (
-      <SortableHeader key={ROOT_KEY_COLUMN_IDS.LAST_UPDATED} header={header}>
-        Last Updated
+      <SortableHeader key={ROOT_KEY_COLUMN_IDS.LAST_UPDATED.id} header={header}>
+        {ROOT_KEY_COLUMN_IDS.LAST_UPDATED.header}
       </SortableHeader>
     ),
     meta: {
@@ -147,7 +147,7 @@ export const createRootKeyColumns = ({
     },
   },
   {
-    id: ROOT_KEY_COLUMN_IDS.ACTION,
+    id: ROOT_KEY_COLUMN_IDS.ACTION.id,
     header: "",
     meta: {
       width: "auto",
