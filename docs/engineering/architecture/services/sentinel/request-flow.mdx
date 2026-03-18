@@ -33,7 +33,7 @@ sequenceDiagram
             MW-->>F: JSON error + X-Unkey-Error-Source
         else Policy succeeds
             E-->>H: Principal
-            H->>H: Set X-Unkey-Principal header
+            H->>H: Set X-Unkey-Principal header if exists
         end
     end
 
@@ -82,7 +82,6 @@ If the middleware engine is nil (Redis unavailable), this step is skipped and re
 The request body is read into memory (up to 1 MB) for ClickHouse logging. A copy is set on the proxy request for forwarding.
 
 ### 6. Forward to instance
-
 
 The following headers are set on the proxied request to the instance:
 
