@@ -53,11 +53,11 @@ The same policy type can appear multiple times with different [match expressions
 For example, applying different rate limits to different paths:
 
 ```
-Policy 1: RateLimit  match: /v1/*           → 1000 req/min
-Policy 2: RateLimit  match: /v1/expensive/* → 10 req/min
+Policy 1: RateLimit  match: /v1/expensive/* → 10 req/min
+Policy 2: RateLimit  match: /v1/*           → 1000 req/min
 ```
 
-Because policies evaluate in order, place more specific match expressions before broader ones. A request to `/v1/expensive/foo` matches both policies, and the first match wins since a rejection stops evaluation.
+Policies are evaluated in order and all matching policies execute until one rejects. A request to `/v1/expensive/foo` matches both policies, so both rate limits apply independently. If the stricter limit rejects, evaluation stops and the broader policy never runs. Place more specific match expressions before broader ones so a rejection skips unnecessary work.
 
 ### Layering multiple concerns
 
