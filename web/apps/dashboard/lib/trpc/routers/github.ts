@@ -1,4 +1,4 @@
-import { db, eq, schema } from "@/lib/db";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import { githubAppEnv } from "@/lib/env";
 import {
   checkFileExists,
@@ -571,7 +571,18 @@ export const githubRouter = t.router({
 
       await db
         .delete(schema.githubRepoConnections)
-        .where(eq(schema.githubRepoConnections.installationId, input.installationId))
+        .where(
+          and(
+            eq(schema.githubRepoConnections.installationId, input.installationId),
+            inArray(
+              schema.githubRepoConnections.projectId,
+              db
+                .select({ id: schema.projects.id })
+                .from(schema.projects)
+                .where(eq(schema.projects.workspaceId, ctx.workspace.id)),
+            ),
+          ),
+        )
         .catch(() => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -581,7 +592,12 @@ export const githubRouter = t.router({
 
       await db
         .delete(schema.githubAppInstallations)
-        .where(eq(schema.githubAppInstallations.installationId, input.installationId))
+        .where(
+          and(
+            eq(schema.githubAppInstallations.installationId, input.installationId),
+            eq(schema.githubAppInstallations.workspaceId, ctx.workspace.id),
+          ),
+        )
         .catch(() => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",

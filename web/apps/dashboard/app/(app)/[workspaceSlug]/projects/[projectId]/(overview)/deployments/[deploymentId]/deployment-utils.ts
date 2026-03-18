@@ -10,6 +10,7 @@ const DEPLOYMENT_STATUSES: ReadonlySet<string> = new Set<DeploymentStatus>([
   "finalizing",
   "ready",
   "failed",
+  "skipped",
 ]);
 
 function isDeploymentStatus(value: string): value is DeploymentStatus {

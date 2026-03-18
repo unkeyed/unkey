@@ -60,6 +60,7 @@ import { listEnvVars } from "./deploy/env-vars/list";
 import { updateEnvVar } from "./deploy/env-vars/update";
 import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
 import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
+import { updateWatchPaths } from "./deploy/environment-settings/build/update-watch-paths";
 import { getEnvironmentSettings } from "./deploy/environment-settings/get";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
 import { getAvailableRegions } from "./deploy/environment-settings/get-available-regions";
@@ -428,6 +429,7 @@ export const router = t.router({
       build: t.router({
         updateDockerfile,
         updateDockerContext,
+        updateWatchPaths,
       }),
     }),
     environment: t.router({

@@ -7,6 +7,7 @@ export const DEPLOYMENT_STATUSES = [
   "finalizing",
   "ready",
   "failed",
+  "skipped",
 ] as const;
 
 export type DeploymentStatus = (typeof DEPLOYMENT_STATUSES)[number];

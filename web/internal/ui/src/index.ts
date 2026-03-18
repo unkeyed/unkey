@@ -36,4 +36,5 @@ export * from "./components/visually-hidden";
 export * from "./components/slider";
 export * from "./components/step-wizard";
 export * from "./hooks/use-mobile";
+export * from "./components/data-table";
 export * from "../css";

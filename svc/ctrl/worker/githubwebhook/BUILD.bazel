@@ -13,6 +13,7 @@ go_library(
         "//gen/proto/hydra/v1:hydra",
         "//pkg/db",
         "//pkg/logger",
+        "//pkg/match",
         "//pkg/uid",
         "@com_github_restatedev_sdk_go//:sdk-go",
         "@org_golang_google_protobuf//encoding/protojson",

@@ -30,6 +30,11 @@ const baseOptions: StatusOption[] = [
     status: "failed",
     display: "Failed",
   },
+  {
+    id: 5,
+    status: "skipped",
+    display: "Skipped",
+  },
 ];
 
 export const DeploymentStatusFilter = () => {
