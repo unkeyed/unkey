@@ -64,7 +64,10 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
 
     const chLogs = logsResult.val;
     const uniqueK8sNames = [...new Set(chLogs.map((log) => log.k8s_pod_name))];
-    const k8sNameToInstanceId = await resolveK8sNamesToInstanceIds(uniqueK8sNames);
+    const k8sNameToInstanceId = await resolveK8sNamesToInstanceIds(
+      uniqueK8sNames,
+      ctx.workspace.id,
+    );
 
     return {
       logs: chLogs.map((log) => ({

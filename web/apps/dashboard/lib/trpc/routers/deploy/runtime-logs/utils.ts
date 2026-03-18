@@ -1,4 +1,4 @@
-import { db, inArray, schema } from "@/lib/db";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import type { RuntimeLogsRequestSchema } from "@/lib/schemas/runtime-logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { RuntimeLogsRequest } from "@unkey/clickhouse/src/runtime-logs";
@@ -34,6 +34,7 @@ export function transformFilters(
 
 export async function resolveK8sNamesToInstanceIds(
   k8sPodNames: string[],
+  workspaceId: string,
 ): Promise<Map<string, string>> {
   const mapping = new Map<string, string>();
   if (k8sPodNames.length === 0) {
@@ -41,7 +42,10 @@ export async function resolveK8sNamesToInstanceIds(
   }
 
   const instances = await db.query.instances.findMany({
-    where: inArray(schema.instances.k8sName, k8sPodNames),
+    where: and(
+      inArray(schema.instances.k8sName, k8sPodNames),
+      eq(schema.instances.workspaceId, workspaceId),
+    ),
     columns: { id: true, k8sName: true },
   });
   for (const inst of instances) {

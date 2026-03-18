@@ -1,5 +1,5 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { db, inArray, schema } from "@/lib/db";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import {
   type RuntimeLogsResponseSchema,
   runtimeLogsRequestSchema,
@@ -50,7 +50,10 @@ export const queryRuntimeLogs = workspaceProcedure
     const knownK8sToInstanceId = new Map<string, string>();
     if (instanceIds.length > 0) {
       const instances = await db.query.instances.findMany({
-        where: inArray(schema.instances.id, instanceIds),
+        where: and(
+          inArray(schema.instances.id, instanceIds),
+          eq(schema.instances.workspaceId, ctx.workspace.id),
+        ),
         columns: { id: true, k8sName: true },
       });
       if (instances.length === 0) {
@@ -89,7 +92,7 @@ export const queryRuntimeLogs = workspaceProcedure
         chLogs.map((log) => log.k8s_pod_name).filter((name) => !knownK8sToInstanceId.has(name)),
       ),
     ];
-    const resolvedMapping = await resolveK8sNamesToInstanceIds(unknownK8sNames);
+    const resolvedMapping = await resolveK8sNamesToInstanceIds(unknownK8sNames, ctx.workspace.id);
     const k8sNameToInstanceId = new Map([...knownK8sToInstanceId, ...resolvedMapping]);
 
     const logs = chLogs.map((log) => ({
