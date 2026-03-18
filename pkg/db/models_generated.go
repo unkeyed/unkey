@@ -1382,7 +1382,7 @@ type OpenapiSpec struct {
 	WorkspaceID    string         `db:"workspace_id"`
 	DeploymentID   sql.NullString `db:"deployment_id"`
 	PortalConfigID sql.NullString `db:"portal_config_id"`
-	Spec           []byte         `db:"spec"`
+	Content        []byte         `db:"content"`
 	CreatedAt      int64          `db:"created_at"`
 	UpdatedAt      sql.NullInt64  `db:"updated_at"`
 }

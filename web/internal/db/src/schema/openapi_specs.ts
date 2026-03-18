@@ -13,7 +13,7 @@ export const openapiSpecs = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     deploymentId: varchar("deployment_id", { length: 128 }),
     portalConfigId: varchar("portal_config_id", { length: 256 }),
-    content: longblob("spec").notNull(),
+    content: longblob("content").notNull(),
     ...lifecycleDates,
   },
   (table) => [

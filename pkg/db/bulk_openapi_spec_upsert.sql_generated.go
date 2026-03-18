@@ -9,8 +9,8 @@ import (
 )
 
 // bulkUpsertOpenApiSpec is the base query for bulk insert
-const bulkUpsertOpenApiSpec = `INSERT INTO openapi_specs (workspace_id, deployment_id, portal_config_id, spec, created_at, updated_at) VALUES %s ON DUPLICATE KEY UPDATE
-    spec = VALUES(spec),
+const bulkUpsertOpenApiSpec = `INSERT INTO openapi_specs (workspace_id, deployment_id, portal_config_id, content, created_at, updated_at) VALUES %s ON DUPLICATE KEY UPDATE
+    content = VALUES(content),
     updated_at = VALUES(updated_at)`
 
 // UpsertOpenApiSpec performs bulk insert in a single query
@@ -34,7 +34,7 @@ func (q *BulkQueries) UpsertOpenApiSpec(ctx context.Context, db DBTX, args []Ups
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.DeploymentID)
 		allArgs = append(allArgs, arg.PortalConfigID)
-		allArgs = append(allArgs, arg.Spec)
+		allArgs = append(allArgs, arg.Content)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)
 	}

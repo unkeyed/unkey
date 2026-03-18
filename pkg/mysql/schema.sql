@@ -524,7 +524,7 @@ CREATE TABLE `openapi_specs` (
 	`workspace_id` varchar(256) NOT NULL,
 	`deployment_id` varchar(128),
 	`portal_config_id` varchar(256),
-	`spec` longblob NOT NULL,
+	`content` longblob NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `openapi_specs_pk` PRIMARY KEY(`pk`),
