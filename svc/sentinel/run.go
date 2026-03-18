@@ -172,9 +172,23 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(routerSvc.Close)
 
 	// Initialize middleware engine for KeyAuth and other sentinel policies.
-	// If Redis is unavailable, sentinel continues without middleware evaluation
-	// (deployments are proxied as pass-through).
-	middlewareEngine := initMiddlewareEngine(cfg, database, ch, clk, r)
+	// When Redis URL is empty: nil engine, pass-through (no policies expected).
+	// When Redis URL is set but fails: fail-closed (503) + background retry.
+	var middlewareEngine engine.Evaluator
+	if cfg.Redis.URL == "" {
+		logger.Info("redis URL not configured, middleware engine disabled")
+	} else {
+		eng, closers, initErr := initMiddlewareEngine(cfg, database, ch, clk)
+		if initErr != nil {
+			logger.Error("failed to initialize middleware engine, will retry in background", "error", initErr)
+			resilient := engine.NewResilientEvaluator(nil)
+			middlewareEngine = resilient
+			retryMiddlewareEngine(ctx, cfg, database, ch, clk, r, resilient)
+		} else {
+			r.Defer(closers...)
+			middlewareEngine = engine.NewResilientEvaluator(eng)
+		}
+	}
 
 	svcs := &routes.Services{
 		RouterService:      routerSvc,
@@ -228,31 +242,34 @@ func Run(ctx context.Context, cfg Config) error {
 }
 
 // initMiddlewareEngine creates the middleware engine backed by Redis.
-// Returns nil (pass-through mode) when Redis URL is empty or connection fails.
-func initMiddlewareEngine(cfg Config, database db.Database, ch clickhouse.ClickHouse, clk clock.Clock, r *runner.Runner) engine.Evaluator {
-	if cfg.Redis.URL == "" {
-		logger.Info("redis URL not configured, middleware engine disabled")
-		return nil
+// Returns the engine and a slice of closer functions to be deferred on success.
+// On failure, any resources created so far are closed before returning the error.
+func initMiddlewareEngine(cfg Config, database db.Database, ch clickhouse.ClickHouse, clk clock.Clock) (engine.Evaluator, []runner.CloseFunc, error) {
+	var closers []runner.CloseFunc
+
+	closeAll := func() {
+		for i := len(closers) - 1; i >= 0; i-- {
+			closers[i]()
+		}
 	}
 
 	redisCounter, err := counter.NewRedis(counter.RedisConfig{
 		RedisURL: cfg.Redis.URL,
 	})
 	if err != nil {
-		logger.Error("failed to connect to redis, middleware engine disabled", "error", err)
-		return nil
+		return nil, nil, fmt.Errorf("failed to connect to redis: %w", err)
 	}
-	r.Defer(redisCounter.Close)
+	closers = append(closers, redisCounter.Close)
 
 	rateLimiter, err := ratelimit.New(ratelimit.Config{
 		Clock:   clk,
 		Counter: redisCounter,
 	})
 	if err != nil {
-		logger.Error("failed to create rate limiter, middleware engine disabled", "error", err)
-		return nil
+		closeAll()
+		return nil, nil, fmt.Errorf("failed to create rate limiter: %w", err)
 	}
-	r.Defer(rateLimiter.Close)
+	closers = append(closers, rateLimiter.Close)
 
 	usageLimiter, err := usagelimiter.NewCounter(usagelimiter.CounterConfig{
 		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
@@ -275,10 +292,10 @@ func initMiddlewareEngine(cfg Config, database db.Database, ch clickhouse.ClickH
 		ReplayWorkers: 8,
 	})
 	if err != nil {
-		logger.Error("failed to create usage limiter, middleware engine disabled", "error", err)
-		return nil
+		closeAll()
+		return nil, nil, fmt.Errorf("failed to create usage limiter: %w", err)
 	}
-	r.Defer(usageLimiter.Close)
+	closers = append(closers, usageLimiter.Close)
 
 	keyCache, err := cache.New[string, db.CachedKeyData](cache.Config[string, db.CachedKeyData]{
 		Fresh:    10 * time.Second,
@@ -288,8 +305,8 @@ func initMiddlewareEngine(cfg Config, database db.Database, ch clickhouse.ClickH
 		Clock:    clk,
 	})
 	if err != nil {
-		logger.Error("failed to create key cache, middleware engine disabled", "error", err)
-		return nil
+		closeAll()
+		return nil, nil, fmt.Errorf("failed to create key cache: %w", err)
 	}
 
 	keyService, err := keys.New(keys.Config{
@@ -303,13 +320,54 @@ func initMiddlewareEngine(cfg Config, database db.Database, ch clickhouse.ClickH
 		QuotaCache:   nil,
 	})
 	if err != nil {
-		logger.Error("failed to create key service, middleware engine disabled", "error", err)
-		return nil
+		closeAll()
+		return nil, nil, fmt.Errorf("failed to create key service: %w", err)
 	}
 
 	logger.Info("middleware engine initialized")
-	return engine.New(engine.Config{
+	eng := engine.New(engine.Config{
 		KeyService: keyService,
 		Clock:      clk,
+	})
+	return eng, closers, nil
+}
+
+// retryMiddlewareEngine runs a background goroutine that retries initializing the
+// middleware engine with exponential backoff until it succeeds or the context is cancelled.
+func retryMiddlewareEngine(
+	ctx context.Context,
+	cfg Config,
+	database db.Database,
+	ch clickhouse.ClickHouse,
+	clk clock.Clock,
+	r *runner.Runner,
+	resilient *engine.ResilientEvaluator,
+) {
+	r.Go(func(ctx context.Context) error {
+		backoff := 1 * time.Second
+		const maxBackoff = 30 * time.Second
+
+		for {
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-time.After(backoff):
+			}
+
+			eng, closers, err := initMiddlewareEngine(cfg, database, ch, clk)
+			if err != nil {
+				logger.Error("middleware engine retry failed", "error", err, "next_retry", backoff.String())
+				backoff *= 2
+				if backoff > maxBackoff {
+					backoff = maxBackoff
+				}
+				continue
+			}
+
+			r.Defer(closers...)
+			resilient.SetEngine(eng)
+			logger.Info("middleware engine recovered after retry")
+			return nil
+		}
 	})
 }
