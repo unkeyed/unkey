@@ -17,6 +17,10 @@ const (
 	// prCommentRowMarkerFmt wraps each app/env's table row for find-and-replace.
 	// Keyed by app+env so a new deploy replaces the previous row for the same app.
 	prCommentRowMarkerFmt = "<!-- row:%s:%s -->"
+
+	// ghRetryDuration is the max retry duration for GitHub API calls via restate.
+	// PR comments are best-effort — fail fast rather than block the deploy.
+	ghRetryDuration = 5 * time.Second
 )
 
 // findResult bundles the comment ID and body for restate.Run serialisation.
@@ -29,17 +33,7 @@ type findResult struct {
 // app/env combination. Multiple deploy workflows for the same PR each manage
 // their own row. All GitHub API calls are fire-and-forget.
 type prCommentReporter struct {
-	github         githubclient.GitHubClient
-	installationID int64
-	repo           string
-	branch         string
-	commitSHA      string
-	deploymentID   string
-	projectSlug    string
-	appSlug        string
-	envSlug        string
-	logURL         string
-	environmentURL string
+	prCommentReporterConfig
 
 	prNumber  int
 	commentID int64
@@ -60,41 +54,39 @@ type prCommentReporterConfig struct {
 }
 
 func newPRCommentReporter(cfg prCommentReporterConfig) *prCommentReporter {
-	return &prCommentReporter{
-		github:         cfg.GitHub,
-		installationID: cfg.InstallationID,
-		repo:           cfg.Repo,
-		branch:         cfg.Branch,
-		commitSHA:      cfg.CommitSHA,
-		deploymentID:   cfg.DeploymentID,
-		projectSlug:    cfg.ProjectSlug,
-		appSlug:        cfg.AppSlug,
-		envSlug:        cfg.EnvSlug,
-		logURL:         cfg.LogURL,
-		environmentURL: cfg.EnvironmentURL,
-	}
+	return &prCommentReporter{prCommentReporterConfig: cfg}
+}
+
+func (r *prCommentReporter) findComment(ctx restate.ObjectSharedContext, name string) (findResult, error) {
+	return restate.Run(ctx, func(_ restate.RunContext) (findResult, error) {
+		id, body, err := r.GitHub.FindBotComment(r.InstallationID, r.Repo, r.prNumber, prCommentMainMarker)
+		return findResult{ID: id, Body: body}, err
+	}, restate.WithName(name), restate.WithMaxRetryDuration(ghRetryDuration))
+}
+
+func (r *prCommentReporter) updateComment(ctx restate.ObjectSharedContext, body string, name string) {
+	_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
+		return r.GitHub.UpdateIssueComment(r.InstallationID, r.Repo, r.commentID, body)
+	}, restate.WithName(name), restate.WithMaxRetryDuration(ghRetryDuration))
 }
 
 func (r *prCommentReporter) Create(ctx restate.ObjectSharedContext) {
-	if r.installationID == 0 || r.repo == "" || r.branch == "" {
+	if r.InstallationID == 0 || r.Repo == "" || r.Branch == "" {
 		return
 	}
 
 	prNumber, err := restate.Run(ctx, func(_ restate.RunContext) (int, error) {
-		return r.github.FindPullRequestForBranch(r.installationID, r.repo, r.branch)
-	}, restate.WithName("find PR for branch"), restate.WithMaxRetryDuration(30*time.Second))
+		return r.GitHub.FindPullRequestForBranch(r.InstallationID, r.Repo, r.Branch)
+	}, restate.WithName("find PR for branch"), restate.WithMaxRetryDuration(ghRetryDuration))
 	if err != nil || prNumber == 0 {
 		if err != nil {
-			logger.Error("failed to find PR for branch", "error", err, "branch", r.branch)
+			logger.Error("failed to find PR for branch", "error", err, "branch", r.Branch)
 		}
 		return
 	}
 	r.prNumber = prNumber
 
-	existing, err := restate.Run(ctx, func(_ restate.RunContext) (findResult, error) {
-		id, body, findErr := r.github.FindBotComment(r.installationID, r.repo, r.prNumber, prCommentMainMarker)
-		return findResult{ID: id, Body: body}, findErr
-	}, restate.WithName("find existing deploy comment"), restate.WithMaxRetryDuration(30*time.Second))
+	existing, err := r.findComment(ctx, "find existing deploy comment")
 	if err != nil {
 		logger.Error("failed to search for existing deploy comment", "error", err)
 	}
@@ -103,17 +95,14 @@ func (r *prCommentReporter) Create(ctx restate.ObjectSharedContext) {
 
 	if existing.ID != 0 {
 		r.commentID = existing.ID
-		body := r.upsertRow(existing.Body, row)
-		_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
-			return r.github.UpdateIssueComment(r.installationID, r.repo, r.commentID, body)
-		}, restate.WithName("add row to deploy comment"), restate.WithMaxRetryDuration(30*time.Second))
+		r.updateComment(ctx, r.upsertRow(existing.Body, row), "add row to deploy comment")
 		return
 	}
 
 	body := r.buildFullComment(row)
 	commentID, createErr := restate.Run(ctx, func(_ restate.RunContext) (int64, error) {
-		return r.github.CreateIssueComment(r.installationID, r.repo, r.prNumber, body)
-	}, restate.WithName("create deploy comment"), restate.WithMaxRetryDuration(30*time.Second))
+		return r.GitHub.CreateIssueComment(r.InstallationID, r.Repo, r.prNumber, body)
+	}, restate.WithName("create deploy comment"), restate.WithMaxRetryDuration(ghRetryDuration))
 	if createErr != nil {
 		logger.Error("failed to create PR comment", "error", createErr, "pr", r.prNumber)
 		return
@@ -129,38 +118,32 @@ func (r *prCommentReporter) Report(ctx restate.ObjectSharedContext, state string
 	row := r.buildRow(stateLabel(state))
 
 	// Re-read current body so we don't clobber other apps' rows.
-	current, err := restate.Run(ctx, func(_ restate.RunContext) (findResult, error) {
-		id, body, findErr := r.github.FindBotComment(r.installationID, r.repo, r.prNumber, prCommentMainMarker)
-		return findResult{ID: id, Body: body}, findErr
-	}, restate.WithName("read deploy comment"), restate.WithMaxRetryDuration(30*time.Second))
+	current, err := r.findComment(ctx, "read deploy comment")
 	if err != nil || current.ID == 0 {
 		return
 	}
 
-	body := r.upsertRow(current.Body, row)
-	_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
-		return r.github.UpdateIssueComment(r.installationID, r.repo, r.commentID, body)
-	}, restate.WithName(fmt.Sprintf("update deploy comment: %s", state)), restate.WithMaxRetryDuration(30*time.Second))
+	r.updateComment(ctx, r.upsertRow(current.Body, row), fmt.Sprintf("update deploy comment: %s", state))
 }
 
 func (r *prCommentReporter) rowMarker() string {
-	return fmt.Sprintf(prCommentRowMarkerFmt, r.appSlug, r.envSlug)
+	return fmt.Sprintf(prCommentRowMarkerFmt, r.AppSlug, r.EnvSlug)
 }
 
 func (r *prCommentReporter) buildRow(status string) string {
-	nameLabel := r.projectSlug
-	if r.appSlug != "default" {
-		nameLabel += " / " + r.appSlug
+	nameLabel := r.ProjectSlug
+	if r.AppSlug != "default" {
+		nameLabel += " / " + r.AppSlug
 	}
 
 	preview := "—"
-	if r.environmentURL != "" {
-		preview = fmt.Sprintf("[Visit Preview](%s)", r.environmentURL)
+	if r.EnvironmentURL != "" {
+		preview = fmt.Sprintf("[Visit Preview](%s)", r.EnvironmentURL)
 	}
 
 	return fmt.Sprintf("| %s **%s** (%s) | %s | %s | [Inspect](%s) | %s |",
-		r.rowMarker(), nameLabel, r.envSlug, status,
-		preview, r.logURL,
+		r.rowMarker(), nameLabel, r.EnvSlug, status,
+		preview, r.LogURL,
 		time.Now().UTC().Format("Jan 2, 2006 3:04pm"))
 }
 
@@ -181,12 +164,10 @@ func (r *prCommentReporter) upsertRow(body string, newRow string) string {
 	marker := r.rowMarker()
 	lines := strings.Split(body, "\n")
 
-	if strings.Contains(body, marker) {
-		for i, line := range lines {
-			if strings.Contains(line, marker) {
-				lines[i] = newRow
-				return strings.Join(lines, "\n")
-			}
+	for i, line := range lines {
+		if strings.Contains(line, marker) {
+			lines[i] = newRow
+			return strings.Join(lines, "\n")
 		}
 	}
 
@@ -197,6 +178,7 @@ func (r *prCommentReporter) upsertRow(body string, newRow string) string {
 			lastRowIdx = i
 		}
 	}
+
 	if lastRowIdx >= 0 {
 		result := make([]string, 0, len(lines)+1)
 		result = append(result, lines[:lastRowIdx+1]...)

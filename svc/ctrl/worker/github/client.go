@@ -390,7 +390,8 @@ type ghPullRequest struct {
 
 // ghIssueComment is the subset of GitHub's issue comment response that we need.
 type ghIssueComment struct {
-	ID int64 `json:"id"`
+	ID   int64  `json:"id"`
+	Body string `json:"body"`
 }
 
 // FindPullRequestForBranch returns the PR number for the given branch head,
@@ -458,12 +459,7 @@ func (c *Client) FindBotComment(installationID int64, repo string, prNumber int,
 	// Paginate through comments looking for our marker (most recent first)
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/issues/%d/comments?per_page=100&direction=desc", repo, prNumber)
 
-	type ghCommentWithBody struct {
-		ID   int64  `json:"id"`
-		Body string `json:"body"`
-	}
-
-	comments, err := request[[]ghCommentWithBody](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
+	comments, err := request[[]ghIssueComment](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
 	if err != nil {
 		return 0, "", err
 	}
