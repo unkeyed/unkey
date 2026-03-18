@@ -83,6 +83,10 @@ KeyAuth authenticates requests using Unkey API keys. It is the only policy type 
 ```
 </Tab>
 <Tab title="Query parameter">
+<Warning>
+  Placing API keys in query parameters is dangerous and should only be used as a last resort for trusted-internal services. Query strings are logged by proxies, CDNs, and web servers, cached by browsers and intermediaries, saved in browser history, and leaked to third parties via the `Referer` header. Prefer the `Authorization` header (`bearer` or `header` location) whenever possible.
+</Warning>
+
 ```json
 {
   "policies": [
@@ -131,7 +135,7 @@ Sentinel supports three key extraction locations:
 | --------------- | --------------------------------------------------------------------------- |
 | Bearer          | Reads the `Authorization` header and strips the `Bearer ` prefix (case-insensitive) |
 | Header          | Reads a named header. Optionally strips a prefix (case-insensitive)         |
-| Query parameter | Reads a named query parameter                                               |
+| Query parameter | Reads a named query parameter. **Security risk:** query strings are recorded in server logs, proxy logs, CDN logs, browser history, and `Referer` headers. Use only as a last resort for trusted-internal traffic; prefer `bearer` or `header` locations. |
 
 When multiple locations are configured, sentinel tries each in order and uses the first non-empty result.
 
