@@ -1,14 +1,36 @@
 ---
-title: "OpenAPI request validation"
-description: "OpenAPI schema validation policy"
+title: "OpenAPI validation"
+description: "OpenAPI request validation (schema only)"
 ---
 
-OpenAPI request validation rejects requests that do not match an OpenAPI 3.0 or 3.1 specification before they reach the upstream.
+OpenAPI validation rejects requests that do not conform to an OpenAPI 3.0 or 3.1 specification before they reach the upstream instance.
+
+<Note>
+OpenAPI validation is defined in the policy schema but is not executed by the sentinel engine yet.
+</Note>
 
 ## Fields
 
-- `spec_yaml`: OpenAPI specification as raw YAML bytes.
+<ResponseField name="spec_yaml" type="bytes">
+  The OpenAPI specification as raw YAML bytes. Sentinel parses the spec at evaluation time and validates the request path, method, parameters, and request body against it.
+</ResponseField>
 
-## Implementation status
+## Example
 
-OpenAPI request validation is defined in the policy schema but is not executed by the sentinel engine yet.
+```json
+{
+  "policies": [
+    {
+      "id": "schema-validation",
+      "name": "Validate requests against OpenAPI spec",
+      "enabled": true,
+      "match": [
+        { "path": { "path": { "prefix": "/v1/" } } }
+      ],
+      "openapi": {
+        "spec_yaml": "openapi: '3.0.3'\ninfo:\n  title: My API\n  version: '1.0'\npaths:\n  /v1/keys:\n    post:\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              type: object\n              required: [name]\n              properties:\n                name:\n                  type: string\n"
+      }
+    }
+  ]
+}
+```

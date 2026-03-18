@@ -20,9 +20,7 @@
               "contributing/local/development",
               {
                 "group": "Tooling",
-                "pages": [
-                  "contributing/tooling/bazel"
-                ]
+                "pages": ["contributing/tooling/bazel"]
               }
             ]
           },
@@ -52,9 +50,7 @@
         "groups": [
           {
             "group": "Overview",
-            "pages": [
-              "architecture/index"
-            ]
+            "pages": ["architecture/index"]
           },
           {
             "group": "Services",
@@ -126,16 +122,11 @@
                 "group": "Sentinel",
                 "pages": [
                   "architecture/services/sentinel/overview",
+                  "architecture/services/sentinel/request-flow",
                   "architecture/services/sentinel/configuration",
-                  {
-                    "group": "Middleware",
-                    "pages": [
-                      "architecture/services/sentinel/middleware/index",
-                      "architecture/services/sentinel/middleware/observability",
-                      "architecture/services/sentinel/middleware/logging",
-                      "architecture/services/sentinel/middleware/error-handling"
-                    ]
-                  },
+                  "architecture/services/sentinel/deployment",
+                  "architecture/services/sentinel/failure-modes",
+
                   {
                     "group": "Policies",
                     "pages": [
@@ -161,9 +152,7 @@
                   {
                     "group": "Configuration",
                     "root": "architecture/services/vault/configuration",
-                    "pages": [
-                      "architecture/services/vault/configuration"
-                    ]
+                    "pages": ["architecture/services/vault/configuration"]
                   }
                 ]
               }
@@ -193,10 +182,7 @@
       },
       {
         "tab": "Company",
-        "pages": [
-          "company/index",
-          "company/meetings"
-        ]
+        "pages": ["company/index", "company/meetings"]
       },
       {
         "tab": "Infra",
