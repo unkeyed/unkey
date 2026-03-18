@@ -19,5 +19,5 @@ func (s *Service) loadOpenApiSpec(ctx context.Context, deploymentID string) (str
 		return "", fault.Wrap(err)
 	}
 
-	return string(spec.Spec), nil
+	return string(spec.Content), nil
 }
