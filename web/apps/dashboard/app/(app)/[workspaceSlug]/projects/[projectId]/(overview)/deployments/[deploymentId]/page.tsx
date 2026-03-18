@@ -6,6 +6,7 @@ import { ProjectContentWrapper } from "../../../components/project-content-wrapp
 import { useProjectData } from "../../data-provider";
 import { DeploymentInfo } from "./(deployment-progress)/deployment-info";
 import { DeploymentProgress } from "./(deployment-progress)/deployment-progress";
+import { SkippedDeploymentView } from "./(deployment-progress)/skipped-deployment-view";
 import { DeploymentNetworkSection } from "./(overview)/components/sections/deployment-network-section";
 import { deriveStatusFromSteps } from "./deployment-utils";
 import { useDeployment } from "./layout-provider";
@@ -15,15 +16,20 @@ export default function DeploymentOverview() {
   const { refetchDomains } = useProjectData();
 
   const ready = deployment.status === "ready";
+  const skipped = deployment.status === "skipped";
 
   const stepsQuery = trpc.deploy.deployment.steps.useQuery(
     { deploymentId: deployment.id },
-    { refetchInterval: ready ? false : 1_000, refetchOnWindowFocus: false },
+    {
+      refetchInterval: ready || skipped ? false : 1_000,
+      refetchOnWindowFocus: false,
+      enabled: !skipped,
+    },
   );
 
   const derivedStatus = useMemo(
-    () => deriveStatusFromSteps(stepsQuery.data, deployment.status),
-    [stepsQuery.data, deployment.status],
+    () => (skipped ? "skipped" as const : deriveStatusFromSteps(stepsQuery.data, deployment.status)),
+    [stepsQuery.data, deployment.status, skipped],
   );
 
   useEffect(() => {
@@ -36,7 +42,11 @@ export default function DeploymentOverview() {
   return (
     <ProjectContentWrapper centered>
       <DeploymentInfo statusOverride={derivedStatus} />
-      {ready ? (
+      {skipped ? (
+        <div key="skipped" className="animate-fade-slide-in">
+          <SkippedDeploymentView />
+        </div>
+      ) : ready ? (
         <div key="ready" className="flex flex-col gap-5 animate-fade-slide-in">
           <DeploymentDomainsCard />
           <DeploymentNetworkSection />
