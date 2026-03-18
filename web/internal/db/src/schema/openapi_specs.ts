@@ -9,15 +9,17 @@ export const openapiSpecs = mysqlTable(
   "openapi_specs",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    id: varchar("id", { length: 128 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     deploymentId: varchar("deployment_id", { length: 128 }),
     portalConfigId: varchar("portal_config_id", { length: 256 }),
-
-    spec: longblob("spec").notNull(),
-
+    content: longblob("spec").notNull(),
     ...lifecycleDates,
   },
-  (table) => [uniqueIndex("openapi_specs_deployment_id_unique").on(table.deploymentId)],
+  (table) => [
+    uniqueIndex("workspace_deployment_idx").on(table.workspaceId, table.deploymentId),
+    uniqueIndex("workspace_portal_config_idx").on(table.workspaceId, table.portalConfigId),
+  ],
 );
 
 export const openapiSpecsRelations = relations(openapiSpecs, ({ one }) => ({
