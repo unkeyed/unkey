@@ -185,6 +185,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:             cfg.Region,
 		ClickHouse:         ch,
 		MaxRequestBodySize: maxRequestBodySize,
+		RequestTimeout:     cfg.RequestTimeout,
 		Engine:             middlewareEngine,
 	}
 
