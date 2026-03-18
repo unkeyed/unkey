@@ -1,6 +1,7 @@
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { githubAppEnv } from "@/lib/env";
 import {
+  type BranchActivity,
   checkFileExists,
   getInstallationRepositories,
   getMostActiveBranches,
@@ -375,7 +376,10 @@ export const githubRouter = t.router({
 
       const [treeResult, activeBranches, repoData] = await Promise.all([
         getRepositoryTree(input.installationId, input.owner, input.repo, input.defaultBranch),
-        getMostActiveBranches(input.installationId, input.owner, input.repo),
+        // If the events API fails, fall back to an empty list so the branch fallback logic kicks in
+        getMostActiveBranches(input.installationId, input.owner, input.repo).catch(
+          (): BranchActivity[] => [],
+        ),
         getRepository(input.installationId, input.owner, input.repo),
       ]);
 
@@ -409,13 +413,14 @@ export const githubRouter = t.router({
           });
         }
       } else {
-        // Fallback: no recent events, use alphabetical branches
+        // Fallback: no recent events, use alphabetical branches (capped at 10)
         const fallbackBranches = await getRepositoryBranches(
           input.installationId,
           input.owner,
           input.repo,
+          10,
         );
-        branches = fallbackBranches.slice(0, 10).map((b) => ({ name: b.name, lastPushDate: null }));
+        branches = fallbackBranches.map((b) => ({ name: b.name, lastPushDate: null }));
       }
 
       return {

@@ -69,6 +69,7 @@ export const ProjectNavigation = ({
     ? getDeploymentById(currentDeploymentId)
     : undefined;
 
+  // Close the redeploy dialog when the active deployment changes (e.g. navigation)
   const prevDeploymentIdRef = useRef(currentDeploymentId);
   if (prevDeploymentIdRef.current !== currentDeploymentId) {
     prevDeploymentIdRef.current = currentDeploymentId;

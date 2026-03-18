@@ -215,7 +215,7 @@ export const CreateDeploymentButton = ({
                       <TimestampInfo
                         value={branch.lastPushDate}
                         displayType="relative"
-                        className="text-gray-9 shrink-0"
+                        className="text-gray-10 shrink-0"
                       />
                     </>
                   )}

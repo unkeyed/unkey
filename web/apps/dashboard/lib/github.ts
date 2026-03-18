@@ -194,6 +194,7 @@ const repositoryEventSchema = z.object({
       ref: z.string().optional(),
       size: z.number().optional(),
     })
+    // GitHub event payloads vary by type; passthrough avoids parse failures on extra fields
     .passthrough(),
 });
 
@@ -215,16 +216,23 @@ export async function getMostActiveBranches(
 
   const allEvents: z.infer<typeof repositoryEventSchema>[] = [];
   for (let page = 1; page <= 3; page++) {
-    const raw = await fetchGitHubApi(
-      `https://api.github.com/repos/${owner}/${repo}/events?per_page=100&page=${page}`,
-      token,
-    );
-    const parsed = repositoryEventsSchema.safeParse(raw);
-    if (!parsed.success) {
-      break;
-    }
-    allEvents.push(...parsed.data);
-    if (parsed.data.length < 100) {
+    try {
+      const raw = await fetchGitHubApi(
+        `https://api.github.com/repos/${owner}/${repo}/events?per_page=100&page=${page}`,
+        token,
+      );
+      // safeParse so malformed responses don't blow up the whole flow
+      const parsed = repositoryEventsSchema.safeParse(raw);
+      if (!parsed.success) {
+        break;
+      }
+      allEvents.push(...parsed.data);
+      // Fewer results than the page size means we've reached the last page
+      if (parsed.data.length < 100) {
+        break;
+      }
+    } catch {
+      // GitHub API errors (rate limit, 404, etc.) — return whatever we collected so far
       break;
     }
   }
@@ -279,12 +287,13 @@ export async function getRepositoryBranches(
   installationId: number,
   owner: string,
   repo: string,
+  perPage = 100,
 ): Promise<Array<{ name: string }>> {
   const { token } = await getInstallationAccessToken(installationId);
 
   return repositoryBranchesSchema.parse(
     await fetchGitHubApi(
-      `https://api.github.com/repos/${owner}/${repo}/branches?per_page=100`,
+      `https://api.github.com/repos/${owner}/${repo}/branches?per_page=${perPage}`,
       token,
     ),
   );

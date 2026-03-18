@@ -74,6 +74,7 @@ export const createDeploy = workspaceProcedure
       }
 
       const ref = input.gitRef ? parseGitRef(input.gitRef) : undefined;
+      // Only full 40-char SHAs are treated as commits; abbreviated SHAs are not supported
       const isCommitSha = (r: string): boolean => /^[0-9a-f]{40}$/i.test(r);
 
       const result = await ctrl
@@ -124,7 +125,7 @@ export const createDeploy = workspaceProcedure
     }
   });
 
-function parseGitRef(raw: string): string {
+export function parseGitRef(raw: string): string {
   const trimmed = raw.trim();
 
   // https://github.com/owner/repo/tree/branch-name (supports slashes in branch)
