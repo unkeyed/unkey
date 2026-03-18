@@ -7,7 +7,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/middleware"
 	acme "github.com/unkeyed/unkey/svc/frontline/routes/acme"
-	internalHealth "github.com/unkeyed/unkey/svc/frontline/routes/internal_health"
 	proxy "github.com/unkeyed/unkey/svc/frontline/routes/proxy"
 )
 
@@ -24,11 +23,6 @@ func Register(srv *zen.Server, svc *Services) {
 		withObservability,
 		withTimeout,
 	}
-
-	srv.RegisterRoute(
-		[]zen.Middleware{withLogging},
-		&internalHealth.Handler{},
-	)
 
 	if svc.Pprof != nil {
 		srv.RegisterRoute(
@@ -55,12 +49,6 @@ func Register(srv *zen.Server, svc *Services) {
 // RegisterChallengeServer registers routes for the HTTP challenge server (Let's Encrypt ACME)
 func RegisterChallengeServer(srv *zen.Server, svc *Services) {
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
-
-	// Health check endpoint
-	srv.RegisterRoute(
-		[]zen.Middleware{withLogging},
-		&internalHealth.Handler{},
-	)
 
 	// Catches /.well-known/acme-challenge/{token} so we can forward to ctrl plane.
 	srv.RegisterRoute(

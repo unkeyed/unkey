@@ -1,9 +1,0 @@
-load("@rules_go//go:def.bzl", "go_library")
-
-go_library(
-    name = "internal_health",
-    srcs = ["handler.go"],
-    importpath = "github.com/unkeyed/unkey/svc/sentinel/routes/internal_health",
-    visibility = ["//visibility:public"],
-    deps = ["//pkg/zen"],
-)
