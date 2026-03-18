@@ -385,6 +385,7 @@ func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.Apply
 	// the majority available.
 	var pdbSpec policyv1.PodDisruptionBudgetSpec
 	if sentinel.GetReplicas() <= 1 {
+		//nolint:exhaustruct
 		pdbSpec = policyv1.PodDisruptionBudgetSpec{
 			MinAvailable: ptr.P(intstr.FromInt(1)),
 			Selector: &metav1.LabelSelector{
@@ -392,6 +393,7 @@ func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.Apply
 			},
 		}
 	} else {
+		//nolint:exhaustruct
 		pdbSpec = policyv1.PodDisruptionBudgetSpec{
 			MaxUnavailable: ptr.P(intstr.FromInt(1)),
 			Selector: &metav1.LabelSelector{
