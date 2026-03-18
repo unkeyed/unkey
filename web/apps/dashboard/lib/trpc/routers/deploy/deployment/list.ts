@@ -22,12 +22,16 @@ export const listDeployments = workspaceProcedure
           gitCommitAuthorAvatarUrl: true,
           gitCommitTimestamp: true,
           status: true,
-          openapiSpec: true,
           cpuMillicores: true,
           memoryMib: true,
           createdAt: true,
         },
         with: {
+          openapiSpec: {
+            columns: {
+              pk: true,
+            },
+          },
           instances: {
             columns: {
               id: true,

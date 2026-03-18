@@ -4,6 +4,14 @@ import (
 	"context"
 )
 
+// FindKeyCreditsFunc looks up the remaining credits for a key.
+// Returns the remaining credits and whether a limit is configured.
+// When hasLimit is false, the key exists but has no credit limit (unlimited).
+type FindKeyCreditsFunc func(ctx context.Context, keyID string) (remaining int32, hasLimit bool, err error)
+
+// DecrementKeyCreditsFunc atomically decrements the credits for a key by the given cost.
+type DecrementKeyCreditsFunc func(ctx context.Context, keyID string, cost int32) error
+
 // Service defines the interface for usage limiting operations. It enforces
 // credit-based rate limits on API keys by tracking and decrementing available
 // credits. Implementations may use direct database queries or distributed

@@ -497,6 +497,7 @@ const (
 	DeploymentsStatusFinalizing DeploymentsStatus = "finalizing"
 	DeploymentsStatusReady      DeploymentsStatus = "ready"
 	DeploymentsStatusFailed     DeploymentsStatus = "failed"
+	DeploymentsStatusSkipped    DeploymentsStatus = "skipped"
 )
 
 func (e *DeploymentsStatus) Scan(src interface{}) error {
@@ -541,6 +542,7 @@ const (
 	FrontlineRoutesStickyBranch      FrontlineRoutesSticky = "branch"
 	FrontlineRoutesStickyEnvironment FrontlineRoutesSticky = "environment"
 	FrontlineRoutesStickyLive        FrontlineRoutesSticky = "live"
+	FrontlineRoutesStickyDeployment  FrontlineRoutesSticky = "deployment"
 )
 
 func (e *FrontlineRoutesSticky) Scan(src interface{}) error {
@@ -973,14 +975,15 @@ type App struct {
 }
 
 type AppBuildSetting struct {
-	Pk            uint64        `db:"pk"`
-	WorkspaceID   string        `db:"workspace_id"`
-	AppID         string        `db:"app_id"`
-	EnvironmentID string        `db:"environment_id"`
-	Dockerfile    string        `db:"dockerfile"`
-	DockerContext string        `db:"docker_context"`
-	CreatedAt     int64         `db:"created_at"`
-	UpdatedAt     sql.NullInt64 `db:"updated_at"`
+	Pk            uint64          `db:"pk"`
+	WorkspaceID   string          `db:"workspace_id"`
+	AppID         string          `db:"app_id"`
+	EnvironmentID string          `db:"environment_id"`
+	Dockerfile    string          `db:"dockerfile"`
+	DockerContext string          `db:"docker_context"`
+	WatchPaths    json.RawMessage `db:"watch_paths"`
+	CreatedAt     int64           `db:"created_at"`
+	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
 
 type AppEnvironmentVariable struct {
@@ -1011,19 +1014,20 @@ type AppRegionalSetting struct {
 }
 
 type AppRuntimeSetting struct {
-	Pk             uint64                           `db:"pk"`
-	WorkspaceID    string                           `db:"workspace_id"`
-	AppID          string                           `db:"app_id"`
-	EnvironmentID  string                           `db:"environment_id"`
-	Port           int32                            `db:"port"`
-	CpuMillicores  int32                            `db:"cpu_millicores"`
-	MemoryMib      int32                            `db:"memory_mib"`
-	Command        json.RawMessage                  `db:"command"`
-	Healthcheck    json.RawMessage                  `db:"healthcheck"`
-	ShutdownSignal AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
-	SentinelConfig []byte                           `db:"sentinel_config"`
-	CreatedAt      int64                            `db:"created_at"`
-	UpdatedAt      sql.NullInt64                    `db:"updated_at"`
+	Pk              uint64                           `db:"pk"`
+	WorkspaceID     string                           `db:"workspace_id"`
+	AppID           string                           `db:"app_id"`
+	EnvironmentID   string                           `db:"environment_id"`
+	Port            int32                            `db:"port"`
+	CpuMillicores   int32                            `db:"cpu_millicores"`
+	MemoryMib       int32                            `db:"memory_mib"`
+	Command         json.RawMessage                  `db:"command"`
+	Healthcheck     json.RawMessage                  `db:"healthcheck"`
+	ShutdownSignal  AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
+	SentinelConfig  []byte                           `db:"sentinel_config"`
+	OpenapiSpecPath sql.NullString                   `db:"openapi_spec_path"`
+	CreatedAt       int64                            `db:"created_at"`
+	UpdatedAt       sql.NullInt64                    `db:"updated_at"`
 }
 
 type AuditLog struct {
@@ -1160,7 +1164,6 @@ type Deployment struct {
 	GitCommitAuthorAvatarUrl      sql.NullString            `db:"git_commit_author_avatar_url"`
 	GitCommitTimestamp            sql.NullInt64             `db:"git_commit_timestamp"`
 	SentinelConfig                []byte                    `db:"sentinel_config"`
-	OpenapiSpec                   sql.NullString            `db:"openapi_spec"`
 	CpuMillicores                 int32                     `db:"cpu_millicores"`
 	MemoryMib                     int32                     `db:"memory_mib"`
 	DesiredState                  DeploymentsDesiredState   `db:"desired_state"`
@@ -1169,6 +1172,7 @@ type Deployment struct {
 	Port                          int32                     `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
 	Healthcheck                   json.RawMessage           `db:"healthcheck"`
+	GithubDeploymentID            sql.NullInt64             `db:"github_deployment_id"`
 	Status                        DeploymentsStatus         `db:"status"`
 	CreatedAt                     int64                     `db:"created_at"`
 	UpdatedAt                     sql.NullInt64             `db:"updated_at"`
@@ -1368,6 +1372,17 @@ type KeysRole struct {
 	WorkspaceID string        `db:"workspace_id"`
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
+}
+
+type OpenapiSpec struct {
+	Pk             uint64         `db:"pk"`
+	ID             string         `db:"id"`
+	WorkspaceID    string         `db:"workspace_id"`
+	DeploymentID   sql.NullString `db:"deployment_id"`
+	PortalConfigID sql.NullString `db:"portal_config_id"`
+	Content        []byte         `db:"content"`
+	CreatedAt      int64          `db:"created_at"`
+	UpdatedAt      sql.NullInt64  `db:"updated_at"`
 }
 
 type Permission struct {

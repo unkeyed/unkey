@@ -1,0 +1,443 @@
+"use client";
+import { flexRender } from "@tanstack/react-table";
+import {
+  Fragment,
+  type KeyboardEvent,
+  type ReactElement,
+  type ReactNode,
+  type Ref,
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useIsMobile } from "../../hooks/use-mobile";
+import { cn } from "../../lib/utils";
+import { LoadMoreFooter } from "./components/footer/load-more-footer";
+import { SkeletonRow } from "./components/rows/skeleton-row";
+import { EmptyState } from "./components/utils/empty-state";
+import { RealtimeSeparator } from "./components/utils/realtime-separator";
+import { DEFAULT_CONFIG, MOBILE_TABLE_HEIGHT } from "./constants/constants";
+import { useDataTable } from "./hooks/use-data-table";
+import { useRealtimeData } from "./hooks/use-realtime-data";
+import { useTableHeight } from "./hooks/use-table-height";
+import type { DataTableProps } from "./types";
+import { calculateColumnWidth } from "./utils/column-width";
+
+export type DataTableRef = {
+  parentRef: HTMLDivElement | null;
+  containerRef: HTMLDivElement | null;
+};
+
+/**
+ * Main DataTable component with TanStack Table + TanStack Virtual
+ */
+function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableRef>) {
+  const {
+    data: historicData,
+    realtimeData = [],
+    columns,
+    getRowId,
+    sorting,
+    onSortingChange,
+    rowSelection,
+    onRowSelectionChange,
+    onRowClick,
+    onRowMouseEnter,
+    onRowMouseLeave,
+    selectedItem,
+    config: userConfig,
+    emptyState,
+    loadMoreFooterProps,
+    rowClassName,
+    selectedClassName,
+    fixedHeight: fixedHeightProp,
+    enableKeyboardNav = true,
+    enableSorting = true,
+    enableRowSelection = false,
+    manualSorting = false,
+    isLoading = false,
+    renderSkeletonRow,
+  } = props;
+
+  // Merge configs
+  const config = useMemo(() => ({ ...DEFAULT_CONFIG, ...userConfig }), [userConfig]);
+  const isGridLayout = config.layout === "grid";
+
+  // Refs
+  const parentRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Roving tabindex: track which row is the current tab stop
+  const [focusedRowIndex, setFocusedRowIndex] = useState(0);
+
+  // Mobile detection
+  const isMobile = useIsMobile({ defaultValue: false });
+
+  // Height calculation
+  const calculatedHeight = useTableHeight(containerRef);
+  const fixedHeight = fixedHeightProp ?? calculatedHeight;
+
+  // Real-time data merging
+  const tableDataHelper = useRealtimeData(getRowId, realtimeData, historicData);
+
+  // TanStack Table
+  const table = useDataTable({
+    data: tableDataHelper.data,
+    columns,
+    getRowId,
+    enableSorting,
+    enableRowSelection,
+    manualSorting,
+    sorting,
+    onSortingChange,
+    rowSelection,
+    onRowSelectionChange,
+  });
+
+  // Expose refs
+  useImperativeHandle(
+    ref,
+    () => ({
+      parentRef: parentRef.current,
+      containerRef: containerRef.current,
+    }),
+    [],
+  );
+
+  // Calculate column widths
+  const colWidths = useMemo(
+    () => columns.map((col) => calculateColumnWidth(col.meta?.width)),
+    [columns],
+  );
+
+  // Build a Set of realtime row IDs for separator boundary detection
+  const realtimeIds = useMemo(() => new Set(realtimeData.map(getRowId)), [realtimeData, getRowId]);
+
+  // Keyboard navigation handler
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLTableRowElement>, rowIndex: number) => {
+      if (!enableKeyboardNav) {
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onRowClick?.(null);
+        const activeElement = document.activeElement as HTMLElement;
+        activeElement?.blur();
+      }
+
+      if (event.key === "ArrowDown" || event.key === "j") {
+        event.preventDefault();
+        const nextIndex = rowIndex + 1;
+        const nextElement = parentRef.current?.querySelector(
+          `[data-row-index="${nextIndex}"]`,
+        ) as HTMLElement | null;
+
+        if (nextElement) {
+          setFocusedRowIndex(nextIndex);
+          nextElement.focus();
+        }
+      }
+
+      if (event.key === "ArrowUp" || event.key === "k") {
+        event.preventDefault();
+        const prevIndex = rowIndex - 1;
+        const prevElement = parentRef.current?.querySelector(
+          `[data-row-index="${prevIndex}"]`,
+        ) as HTMLElement | null;
+        if (prevElement) {
+          setFocusedRowIndex(prevIndex);
+          prevElement.focus();
+        }
+      }
+    },
+    [enableKeyboardNav, onRowClick],
+  );
+
+  // CSS classes
+  const hasPadding = config.containerPadding !== "px-0";
+
+  const tableClassName = cn(
+    "w-full",
+    isGridLayout ? "border-collapse" : "border-separate border-spacing-0",
+    config.tableLayout === "fixed" ? "table-fixed" : "table-auto",
+  );
+
+  const containerClassName = cn(
+    "overflow-auto relative pb-4 bg-white dark:bg-black",
+    config.containerPadding || "px-2",
+  );
+
+  // Empty state
+  if (!isLoading && historicData.length === 0 && realtimeData.length === 0) {
+    return (
+      <div
+        className="w-full flex flex-col h-full"
+        style={{ height: `${fixedHeight}px` }}
+        ref={containerRef}
+      >
+        <table className={tableClassName}>
+          <colgroup>
+            {columns.map((col, idx) => (
+              <col key={col.id ?? idx} style={{ width: colWidths[idx] }} />
+            ))}
+          </colgroup>
+          <thead className="sticky top-0 z-10 bg-white dark:bg-black">
+            <tr>
+              {table.getHeaderGroups()[0]?.headers.map((header) => (
+                <th
+                  key={header.id}
+                  className={cn(
+                    "text-sm font-medium text-accent-12 py-1 text-left",
+                    header.column.columnDef.meta?.headerClassName,
+                    header.column.columnDef.meta?.cellClassName,
+                  )}
+                >
+                  {header.isPlaceholder ? null : (
+                    <div className="truncate text-accent-12">
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                    </div>
+                  )}
+                </th>
+              ))}
+            </tr>
+            <tr>
+              <th colSpan={columns.length} className="p-0">
+                <div className="w-full border-t border-gray-4" />
+              </th>
+            </tr>
+          </thead>
+        </table>
+        {emptyState ? (
+          <div className="flex-1 flex items-center justify-center">{emptyState}</div>
+        ) : (
+          <EmptyState />
+        )}
+      </div>
+    );
+  }
+
+  // Main render
+  return (
+    <div className="w-full flex flex-col" ref={containerRef}>
+      <div
+        ref={parentRef}
+        className={containerClassName}
+        style={isMobile ? { height: MOBILE_TABLE_HEIGHT } : { height: `${fixedHeight}px` }}
+      >
+        <table className={tableClassName}>
+          <colgroup>
+            {columns.map((col, idx) => (
+              <col key={col.id ?? idx} style={{ width: colWidths[idx] }} />
+            ))}
+          </colgroup>
+
+          {/* Header */}
+          <thead className="sticky top-0 z-10 bg-white dark:bg-black">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    className={cn(
+                      "text-sm font-medium text-accent-12 py-1 text-left relative",
+                      header.column.columnDef.meta?.headerClassName,
+                      header.column.columnDef.meta?.cellClassName,
+                    )}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
+            <tr>
+              <th colSpan={columns.length} className="p-0">
+                <div className="relative w-full">
+                  <div
+                    className={cn(
+                      "absolute border-t border-gray-4",
+                      hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+                    )}
+                  />
+                </div>
+              </th>
+            </tr>
+          </thead>
+
+          {/* Body */}
+          <tbody>
+            {/* Render all rows directly without virtualization */}
+            {isLoading
+              ? // Loading skeleton rows
+                Array.from({ length: config.loadingRows }).map((_, index) => (
+                  <tr
+                    key={`skeleton-${
+                      // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows have no stable id
+                      index
+                    }`}
+                    className={cn(config.rowBorders && "border-b border-gray-4")}
+                    style={{ height: `${config.rowHeight}px` }}
+                  >
+                    {renderSkeletonRow ? (
+                      renderSkeletonRow({
+                        columns,
+                        rowHeight: config.rowHeight,
+                      })
+                    ) : (
+                      <SkeletonRow columns={columns} rowHeight={config.rowHeight} />
+                    )}
+                  </tr>
+                ))
+              : // Data rows — iterate TanStack's sorted row model for correct ordering
+                (() => {
+                  let separatorInserted = realtimeData.length === 0;
+                  return table.getRowModel().rows.flatMap((tableRow, index) => {
+                    const typedItem = tableRow.original;
+                    const rowId = tableRow.id;
+                    const isSelected = selectedItem ? getRowId(selectedItem) === rowId : false;
+                    const elements: ReactNode[] = [];
+
+                    // Insert separator at boundary between realtime and historic items
+                    if (!separatorInserted && !realtimeIds.has(rowId)) {
+                      separatorInserted = true;
+                      elements.push(
+                        <Fragment key="separator">
+                          <tr style={{ height: "4px" }} />
+                          <tr>
+                            <td colSpan={columns.length} className="p-0">
+                              <RealtimeSeparator />
+                            </td>
+                          </tr>
+                        </Fragment>,
+                      );
+                    }
+
+                    const visibleCells = tableRow.getVisibleCells();
+
+                    // Grid layout (no spacing)
+                    if (isGridLayout) {
+                      elements.push(
+                        <tr
+                          key={rowId}
+                          tabIndex={focusedRowIndex === index ? 0 : -1}
+                          data-row-index={index}
+                          aria-selected={isSelected}
+                          onClick={() => {
+                            setFocusedRowIndex(index);
+                            onRowClick?.(typedItem);
+                          }}
+                          onMouseEnter={() => onRowMouseEnter?.(typedItem)}
+                          onMouseLeave={() => onRowMouseLeave?.()}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              onRowClick?.(typedItem);
+                            } else {
+                              handleKeyDown(e, index);
+                            }
+                          }}
+                          className={cn(
+                            "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
+                            config.rowBorders && "border-b border-gray-4",
+                            rowClassName?.(typedItem),
+                            selectedClassName?.(typedItem, isSelected),
+                          )}
+                          style={{ height: `${config.rowHeight}px` }}
+                        >
+                          {visibleCells.map((cell, idx) => (
+                            <td
+                              key={cell.id}
+                              className={cn(
+                                "text-xs align-middle whitespace-nowrap pr-4",
+                                idx === 0 ? "rounded-l-md" : "",
+                                idx === visibleCells.length - 1 ? "rounded-r-md" : "",
+                                cell.column.columnDef.meta?.cellClassName,
+                              )}
+                            >
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </td>
+                          ))}
+                        </tr>,
+                      );
+                    } else {
+                      // Classic layout (with spacing)
+                      elements.push(
+                        <Fragment key={rowId}>
+                          {(config.rowSpacing ?? 4) > 0 && (
+                            <tr style={{ height: `${config.rowSpacing ?? 4}px` }} />
+                          )}
+                          <tr
+                            tabIndex={focusedRowIndex === index ? 0 : -1}
+                            data-row-index={index}
+                            aria-selected={isSelected}
+                            onClick={() => {
+                              setFocusedRowIndex(index);
+                              onRowClick?.(typedItem);
+                            }}
+                            onMouseEnter={() => onRowMouseEnter?.(typedItem)}
+                            onMouseLeave={() => onRowMouseLeave?.()}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                onRowClick?.(typedItem);
+                              } else {
+                                handleKeyDown(e, index);
+                              }
+                            }}
+                            className={cn(
+                              "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
+                              config.rowBorders && "border-b border-gray-4",
+                              rowClassName?.(typedItem),
+                              selectedClassName?.(typedItem, isSelected),
+                            )}
+                            style={{ height: `${config.rowHeight}px` }}
+                          >
+                            {visibleCells.map((cell, idx) => (
+                              <td
+                                key={cell.id}
+                                className={cn(
+                                  "text-xs align-middle whitespace-nowrap pr-4",
+                                  idx === 0 ? "rounded-l-md" : "",
+                                  idx === visibleCells.length - 1 ? "rounded-r-md" : "",
+                                  cell.column.columnDef.meta?.cellClassName,
+                                )}
+                              >
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              </td>
+                            ))}
+                          </tr>
+                        </Fragment>,
+                      );
+                    }
+
+                    return elements;
+                  });
+                })()}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Legacy load more footer */}
+      {loadMoreFooterProps && (
+        <LoadMoreFooter
+          {...loadMoreFooterProps}
+          totalVisible={tableDataHelper.data.length}
+          totalCount={tableDataHelper.getTotalLength()}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Exported DataTable component with proper generic type support
+ */
+export const DataTable = forwardRef(DataTableInner) as <TData>(
+  props: DataTableProps<TData> & { ref?: Ref<DataTableRef> },
+) => ReactElement;

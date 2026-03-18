@@ -320,7 +320,7 @@ type Querier interface {
 	FindAppRegionalSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRegionalSettingsByAppAndEnvParams) ([]FindAppRegionalSettingsByAppAndEnvRow, error)
 	//FindAppRuntimeSettingsByAppAndEnv
 	//
-	//  SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.sentinel_config, app_runtime_settings.created_at, app_runtime_settings.updated_at
+	//  SELECT app_runtime_settings.pk, app_runtime_settings.workspace_id, app_runtime_settings.app_id, app_runtime_settings.environment_id, app_runtime_settings.port, app_runtime_settings.cpu_millicores, app_runtime_settings.memory_mib, app_runtime_settings.command, app_runtime_settings.healthcheck, app_runtime_settings.shutdown_signal, app_runtime_settings.sentinel_config, app_runtime_settings.openapi_spec_path, app_runtime_settings.created_at, app_runtime_settings.updated_at
 	//  FROM app_runtime_settings
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
@@ -329,8 +329,8 @@ type Querier interface {
 	//
 	//  SELECT
 	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
-	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
+	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.watch_paths, abs.created_at, abs.updated_at,
+	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 	//  FROM apps a
 	//  INNER JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = ?
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
@@ -406,11 +406,11 @@ type Querier interface {
 	FindCustomDomainWithCertByDomain(ctx context.Context, db DBTX, domain string) (FindCustomDomainWithCertByDomainRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, healthcheck, github_deployment_id, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, healthcheck, github_deployment_id, status, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentByK8sName
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, healthcheck, github_deployment_id, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, healthcheck, github_deployment_id, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, db DBTX, k8sName string) (Deployment, error)
 	// Returns all regions where a deployment is configured.
 	// Used for fan-out: when a deployment changes, emit state_change to each region.
@@ -1026,6 +1026,10 @@ type Querier interface {
 	//  FROM roles r
 	//  WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
 	FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
+	//FindOpenApiSpecByDeploymentID
+	//
+	//  SELECT pk, id, workspace_id, deployment_id, portal_config_id, content, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
+	FindOpenApiSpecByDeploymentID(ctx context.Context, db DBTX, deploymentID sql.NullString) (OpenapiSpec, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
@@ -1480,7 +1484,6 @@ type Querier interface {
 	//      git_commit_author_handle,
 	//      git_commit_author_avatar_url,
 	//      git_commit_timestamp,
-	//      openapi_spec,
 	//      encrypted_environment_variables,
 	//      command,
 	//      status,
@@ -1493,7 +1496,6 @@ type Querier interface {
 	//      updated_at
 	//  )
 	//  VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2033,7 +2035,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.github_deployment_id, d.status, d.created_at, d.updated_at,
+	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.github_deployment_id, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
@@ -2045,7 +2047,7 @@ type Querier interface {
 	ListDeploymentTopologyByRegion(ctx context.Context, db DBTX, arg ListDeploymentTopologyByRegionParams) ([]ListDeploymentTopologyByRegionRow, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, healthcheck, github_deployment_id, status, created_at, updated_at FROM `deployments`
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, healthcheck, github_deployment_id, status, created_at, updated_at FROM `deployments`
 	//  WHERE environment_id = ?
 	//    AND status = ?
 	//    AND created_at < ?
@@ -2056,7 +2058,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.github_deployment_id, d.status, d.created_at, d.updated_at,
+	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.github_deployment_id, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
@@ -2425,8 +2427,8 @@ type Querier interface {
 	//      p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
 	//      e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
 	//      a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
-	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.created_at, abs.updated_at,
-	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.sentinel_config, ars.created_at, ars.updated_at
+	//      abs.pk, abs.workspace_id, abs.app_id, abs.environment_id, abs.dockerfile, abs.docker_context, abs.watch_paths, abs.created_at, abs.updated_at,
+	//      ars.pk, ars.workspace_id, ars.app_id, ars.environment_id, ars.port, ars.cpu_millicores, ars.memory_mib, ars.command, ars.healthcheck, ars.shutdown_signal, ars.sentinel_config, ars.openapi_spec_path, ars.created_at, ars.updated_at
 	//  FROM github_repo_connections gc
 	//  INNER JOIN apps a ON a.id = gc.app_id
 	//  INNER JOIN projects p ON p.id = gc.project_id
@@ -2764,12 +2766,6 @@ type Querier interface {
 	//  SET image = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentImage(ctx context.Context, db DBTX, arg UpdateDeploymentImageParams) error
-	//UpdateDeploymentOpenapiSpec
-	//
-	//  UPDATE deployments
-	//  SET openapi_spec = ?, updated_at = ?
-	//  WHERE id = ?
-	UpdateDeploymentOpenapiSpec(ctx context.Context, db DBTX, arg UpdateDeploymentOpenapiSpecParams) error
 	//UpdateDeploymentStatus
 	//
 	//  UPDATE deployments
@@ -2933,9 +2929,11 @@ type Querier interface {
 	//      environment_id,
 	//      dockerfile,
 	//      docker_context,
+	//      watch_paths,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2947,6 +2945,7 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//      dockerfile = VALUES(dockerfile),
 	//      docker_context = VALUES(docker_context),
+	//      watch_paths = VALUES(watch_paths),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppBuildSettings(ctx context.Context, db DBTX, arg UpsertAppBuildSettingsParams) error
 	//UpsertAppRegionalSettings
@@ -2985,9 +2984,11 @@ type Querier interface {
 	//      healthcheck,
 	//      shutdown_signal,
 	//      sentinel_config,
+	//      openapi_spec_path,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -3009,6 +3010,7 @@ type Querier interface {
 	//      healthcheck = VALUES(healthcheck),
 	//      shutdown_signal = VALUES(shutdown_signal),
 	//      sentinel_config = VALUES(sentinel_config),
+	//      openapi_spec_path = VALUES(openapi_spec_path),
 	//      updated_at = VALUES(updated_at)
 	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsParams) error
 	// Upserts a cluster by region_id. If the cluster already exists, updates the heartbeat timestamp.
@@ -3123,6 +3125,15 @@ type Querier interface {
 	//      workspace_id = VALUES(workspace_id),
 	//      store_encrypted_keys = VALUES(store_encrypted_keys)
 	UpsertKeySpace(ctx context.Context, db DBTX, arg UpsertKeySpaceParams) error
+	//UpsertOpenApiSpec
+	//
+	//  INSERT INTO openapi_specs (workspace_id, deployment_id, portal_config_id, content, created_at, updated_at)
+	//  VALUES (?, ?, ?,
+	//          ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      content = VALUES(content),
+	//      updated_at = VALUES(updated_at)
+	UpsertOpenApiSpec(ctx context.Context, db DBTX, arg UpsertOpenApiSpecParams) error
 	//UpsertQuota
 	//
 	//  INSERT INTO quota (

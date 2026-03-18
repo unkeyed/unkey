@@ -10,6 +10,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -75,6 +76,66 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		buildSettings := row.AppBuildSetting
 		repo := row.GithubRepoConnection
 
+		now := time.Now().UnixMilli()
+		commitMessage := req.GetCommitMessage()
+		authorHandle := req.GetCommitAuthorHandle()
+		authorAvatarURL := req.GetCommitAuthorAvatarUrl()
+		commitTimestamp := req.GetCommitTimestamp()
+
+		// Watch paths: skip if configured patterns don't match changed files
+		if !match.MatchWatchPaths(buildSettings.WatchPaths, req.GetChangedFiles()) {
+			logger.Info("skipping deployment: watch paths don't match changed files",
+				"app_id", app.ID,
+				"watch_paths", buildSettings.WatchPaths,
+				"changed_files", req.GetChangedFiles(),
+			)
+
+			// Create skipped deployment record for visibility
+			skippedID := uid.New(uid.DeploymentPrefix)
+			_ = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				return db.Tx(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+					err := db.Query.InsertDeployment(txCtx, tx, db.InsertDeploymentParams{
+						ID:                            skippedID,
+						K8sName:                       uid.DNS1035(12),
+						WorkspaceID:                   project.WorkspaceID,
+						ProjectID:                     project.ID,
+						AppID:                         app.ID,
+						EnvironmentID:                 env.ID,
+						SentinelConfig:                runtimeSettings.SentinelConfig,
+						EncryptedEnvironmentVariables: []byte{},
+						Command:                       runtimeSettings.Command,
+						Status:                        db.DeploymentsStatusSkipped,
+						CreatedAt:                     now,
+						UpdatedAt:                     sql.NullInt64{Valid: false},
+						GitCommitSha:                  sql.NullString{String: req.GetAfter(), Valid: req.GetAfter() != ""},
+						GitBranch:                     sql.NullString{String: req.GetBranch(), Valid: req.GetBranch() != ""},
+						GitCommitMessage:              sql.NullString{String: commitMessage, Valid: commitMessage != ""},
+						GitCommitAuthorHandle:         sql.NullString{String: authorHandle, Valid: authorHandle != ""},
+						GitCommitAuthorAvatarUrl:      sql.NullString{String: authorAvatarURL, Valid: authorAvatarURL != ""},
+						GitCommitTimestamp:            sql.NullInt64{Int64: commitTimestamp, Valid: commitTimestamp != 0},
+						CpuMillicores:                 runtimeSettings.CpuMillicores,
+						MemoryMib:                     runtimeSettings.MemoryMib,
+						Port:                          runtimeSettings.Port,
+						ShutdownSignal:                db.DeploymentsShutdownSignal(runtimeSettings.ShutdownSignal),
+						Healthcheck:                   runtimeSettings.Healthcheck,
+					})
+					if err != nil {
+						return err
+					}
+					return db.Query.InsertDeploymentStep(txCtx, tx, db.InsertDeploymentStepParams{
+						WorkspaceID:   app.WorkspaceID,
+						ProjectID:     app.ProjectID,
+						AppID:         app.ID,
+						EnvironmentID: env.ID,
+						DeploymentID:  skippedID,
+						Step:          db.DeploymentStepsStepQueued,
+						StartedAt:     uint64(now),
+					})
+				})
+			}, restate.WithName("insert skipped deployment"))
+			continue
+		}
+
 		// Build secrets blob from env vars
 		appEnvVars := envVarsByApp[app.ID]
 		secretsBlob := []byte{}
@@ -95,12 +156,6 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 
 		// Create deployment record
 		deploymentID := uid.New(uid.DeploymentPrefix)
-		now := time.Now().UnixMilli()
-
-		commitMessage := req.GetCommitMessage()
-		authorHandle := req.GetCommitAuthorHandle()
-		authorAvatarURL := req.GetCommitAuthorAvatarUrl()
-		commitTimestamp := req.GetCommitTimestamp()
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return db.Tx(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
@@ -123,7 +178,6 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 					GitCommitAuthorHandle:         sql.NullString{String: authorHandle, Valid: authorHandle != ""},
 					GitCommitAuthorAvatarUrl:      sql.NullString{String: authorAvatarURL, Valid: authorAvatarURL != ""},
 					GitCommitTimestamp:            sql.NullInt64{Int64: commitTimestamp, Valid: commitTimestamp != 0},
-					OpenapiSpec:                   sql.NullString{Valid: false},
 					CpuMillicores:                 runtimeSettings.CpuMillicores,
 					MemoryMib:                     runtimeSettings.MemoryMib,
 					Port:                          runtimeSettings.Port,
@@ -147,9 +201,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 					return err
 				}
 				return nil
-
 			})
-
 		}, restate.WithName("insert deployment"))
 		if err != nil {
 			logger.Error("failed to insert deployment", "appId", app.ID, "error", err)

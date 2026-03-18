@@ -37,6 +37,7 @@ const schema = z.object({
   // Build settings
   dockerfile: z.string(),
   dockerContext: z.string(),
+  watchPaths: z.array(z.string()).default([]),
   // Runtime settings
   port: z.number().int(),
   cpuMillicores: z.number().int(),
@@ -122,6 +123,7 @@ function flattenSettingsResponse(
     environmentId,
     dockerfile: build?.dockerfile ?? "Dockerfile",
     dockerContext: build?.dockerContext ?? ".",
+    watchPaths: build?.watchPaths ?? [],
     port: runtime?.port ?? 8080,
     cpuMillicores: runtime?.cpuMillicores ?? 256,
     memoryMib: runtime?.memoryMib ?? 256,
@@ -166,6 +168,15 @@ export function buildSettingsMutations(
       trpcClient.deploy.environmentSettings.build.updateDockerContext.mutate({
         environmentId,
         dockerContext: modified.dockerContext,
+      }),
+    );
+  }
+
+  if (changed(original.watchPaths, modified.watchPaths)) {
+    mutations.push(
+      trpcClient.deploy.environmentSettings.build.updateWatchPaths.mutate({
+        environmentId,
+        watchPaths: modified.watchPaths,
       }),
     );
   }

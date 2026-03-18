@@ -20,6 +20,7 @@ properties:
       - FINALIZING
       - READY
       - FAILED
+      - SKIPPED
     example: "READY"
     x-speakeasy-unknown-values: allow
   errorMessage:

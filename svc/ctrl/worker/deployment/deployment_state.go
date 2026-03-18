@@ -153,7 +153,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 			})
 		}, restate.WithName(fmt.Sprintf("updating topology desired status in %s", region.ID)))
 		if err != nil {
-			return nil, fmt.Errorf("failed to update topology desired status in %s: %w", region, err)
+			return nil, fmt.Errorf("failed to update topology desired status in %s: %w", region.ID, err)
 		}
 	}
 

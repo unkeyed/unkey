@@ -5,13 +5,13 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { shortenId } from "@/lib/shorten-id";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { BookBookmark, Dots, Focus, Key } from "@unkey/icons";
+import { HiddenValueCell } from "@unkey/ui";
 import { Button, Checkbox, Empty, InfoTooltip, Loading } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import React, { useCallback, useMemo, useState } from "react";
 import { VerificationBarChart } from "./components/bar-chart";
-import { HiddenValueCell } from "./components/hidden-value";
 import { LastUsedCell } from "./components/last-used";
 import { SelectionControls } from "./components/selection-controls";
 import {

@@ -6,6 +6,7 @@ import { SettingCardGroup } from "@unkey/ui";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
+import { WatchPaths } from "./components/build-settings/watch-paths-settings";
 
 import { Command } from "./components/runtime-settings/command";
 import { Cpu } from "./components/runtime-settings/cpu";
@@ -39,6 +40,7 @@ export const DeploymentSettings = ({
         <GitHub readOnly={githubReadOnly} />
         <RootDirectory />
         <Dockerfile />
+        <WatchPaths />
       </SettingCardGroup>
       <SettingsGroup
         icon={<CircleHalfDottedClock iconSize="md-medium" />}
