@@ -39,12 +39,14 @@ Policies are composable building blocks. The policy list is not a set of indepen
 
 ### Auth sets context for downstream policies
 
-Auth policies (KeyAuth, JWTAuth, BasicAuth) produce a [Principal](/architecture/services/sentinel/policies/principal) containing a subject and claims. Downstream policies can reference this principal. For example, a RateLimit policy can use the authenticated subject as its bucket key, giving each user their own rate limit window instead of a shared one.
+Auth policies produce a [Principal](/architecture/services/sentinel/policies/principal) containing a subject and claims. Today only KeyAuth is implemented; JWTAuth and BasicAuth are defined in the protobuf schema but not yet executed by the engine (see [implementation status](#implementation-status)). Downstream policies will be able to reference this principal. For example, a RateLimit policy could use the authenticated subject as its bucket key, giving each user their own rate limit window instead of a shared one.
 
 ```
 Policy 1: KeyAuth        → authenticates the request, sets Principal
-Policy 2: RateLimit      → rate limits per Principal.subject
+Policy 2: RateLimit      → rate limits per Principal.subject  (not yet implemented)
 ```
+
+<Note>The examples in this section illustrate the composability model. Only KeyAuth executes today; other policy types are shown to demonstrate the design.</Note>
 
 ### Same policy type, different match expressions
 
