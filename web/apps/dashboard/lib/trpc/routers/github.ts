@@ -2,6 +2,7 @@ import { and, db, eq, inArray, schema } from "@/lib/db";
 import { githubAppEnv } from "@/lib/env";
 import {
   type BranchActivity,
+  MAX_BRANCHES,
   checkFileExists,
   getInstallationRepositories,
   getMostActiveBranches,
@@ -413,12 +414,12 @@ export const githubRouter = t.router({
           });
         }
       } else {
-        // Fallback: no recent events, use alphabetical branches (capped at 10)
+        // Fallback: no recent events, use alphabetical branches
         const fallbackBranches = await getRepositoryBranches(
           input.installationId,
           input.owner,
           input.repo,
-          10,
+          MAX_BRANCHES,
         );
         branches = fallbackBranches.map((b) => ({ name: b.name, lastPushDate: null }));
       }

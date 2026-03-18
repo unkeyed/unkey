@@ -200,6 +200,8 @@ const repositoryEventSchema = z.object({
 
 const repositoryEventsSchema = z.array(repositoryEventSchema);
 
+const MAX_BRANCHES = 10;
+
 export type BranchActivity = {
   name: string;
   pushCount: number;
@@ -280,7 +282,7 @@ export async function getMostActiveBranches(
     return b.lastPushDate.localeCompare(a.lastPushDate);
   });
 
-  return branches.slice(0, 10);
+  return branches.slice(0, MAX_BRANCHES);
 }
 
 export async function getRepositoryBranches(
