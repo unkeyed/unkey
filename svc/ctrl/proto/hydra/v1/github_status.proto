@@ -1,0 +1,71 @@
+syntax = "proto3";
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// GitHubStatusService is a Restate virtual object keyed by deployment ID that
+// owns all GitHub deployment status reporting (Deployments API + PR comments).
+// Any service can fire-and-forget status updates to it without needing GitHub
+// credentials or state about the deployment.
+service GitHubStatusService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // Init sets up the virtual object with deployment context and creates the
+  // GitHub deployment + PR comment. Called once by the deploy workflow after
+  // the build step completes.
+  rpc Init(GitHubStatusInitRequest) returns (GitHubStatusInitResponse) {}
+
+  // ReportStatus updates both the GitHub deployment status and the PR comment.
+  // Fire-and-forget — errors are logged, never propagated.
+  rpc ReportStatus(GitHubStatusReportRequest) returns (GitHubStatusReportResponse) {}
+}
+
+// GitHubDeploymentState maps to the GitHub Deployments API status values.
+// See: https://docs.github.com/en/rest/deployments/statuses#create-a-deployment-status
+enum GitHubDeploymentState {
+  GITHUB_DEPLOYMENT_STATE_UNSPECIFIED = 0;
+  GITHUB_DEPLOYMENT_STATE_PENDING = 1;
+  GITHUB_DEPLOYMENT_STATE_IN_PROGRESS = 2;
+  GITHUB_DEPLOYMENT_STATE_SUCCESS = 3;
+  GITHUB_DEPLOYMENT_STATE_FAILURE = 4;
+  GITHUB_DEPLOYMENT_STATE_ERROR = 5;
+  GITHUB_DEPLOYMENT_STATE_INACTIVE = 6;
+  GITHUB_DEPLOYMENT_STATE_QUEUED = 7;
+}
+
+// GitHubStatusInitRequest carries all context the virtual object needs to
+// create the GitHub deployment and PR comment. The deploy workflow populates
+// this after the build step so the commit SHA is resolved.
+message GitHubStatusInitRequest {
+  int64 installation_id = 1;
+  string repo = 2;
+  string commit_sha = 3;
+  string branch = 4;
+
+  string environment_label = 5;
+  string environment_url = 6;
+  string log_url = 7;
+  bool is_production = 8;
+
+  string project_slug = 9;
+  string app_slug = 10;
+  string env_slug = 11;
+
+  // PR number if known; 0 triggers a branch-based lookup.
+  int32 pr_number = 12;
+
+  // Reuse an existing GitHub deployment (e.g. created during approval flow).
+  // If > 0, Init skips CreateDeployment and uses this ID directly.
+  int64 existing_github_deployment_id = 13;
+}
+
+message GitHubStatusInitResponse {}
+
+message GitHubStatusReportRequest {
+  GitHubDeploymentState state = 1;
+  string description = 2;
+}
+
+message GitHubStatusReportResponse {}
