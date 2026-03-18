@@ -1,48 +1,187 @@
 ---
 title: "Policies"
-description: "Policy schema and evaluation model"
+description: "Policy engine and evaluation model"
 ---
 
-Sentinel evaluates middleware policies before proxying traffic to deployment instances. Policies live in the deployment's `sentinel_config` payload and are parsed from JSON into the `sentinel.v1.Config` proto.
+Sentinel evaluates middleware policies before proxying traffic to deployment instances. Policies are stored in the deployment's `sentinel_config` column as a JSON-serialized `sentinel.v1.Config` protobuf.
 
-## Flow
+## Evaluation flow
 
 ```mermaid
 sequenceDiagram
-  actor Client
+  actor Frontline
   participant Sentinel
   participant Engine
   participant Router
-  participant Upstream
+  participant Instance
 
-  Client->>Sentinel: Request with X-Deployment-Id
+  Frontline->>Sentinel: Request with X-Deployment-Id
   Sentinel->>Router: GetDeployment + SelectInstance
   Sentinel->>Engine: Parse and evaluate policies
   Engine-->>Sentinel: Principal (optional)
-  Sentinel->>Upstream: Proxy request
+  Sentinel->>Instance: Proxy request with X-Unkey-Principal
 ```
 
 ## Evaluation model
 
-Policies are evaluated in order. Disabled policies are skipped, and match expressions must all pass for a policy to run. If a policy rejects a request, evaluation stops and sentinel returns a structured error response.
+Policies are evaluated in declaration order. For each policy:
 
-The engine currently executes only the KeyAuth policy. Other policy types exist in the schema for forward compatibility, but the engine skips unknown policy types. The first authentication policy that succeeds sets the principal for the request, and subsequent auth policies are ignored.
+1. Skip if `enabled` is false.
+2. Evaluate all match expressions. All expressions must match (AND semantics). If any expression does not match, the policy is skipped.
+3. Execute the policy. If it rejects the request (invalid key, rate limited, insufficient permissions), evaluation stops and sentinel returns a structured error response.
+4. If the policy is an auth policy and succeeds, it sets the `Principal` for the request. Subsequent auth policies are skipped.
+
+Unknown policy types are silently skipped for forward compatibility. This means a sentinel running an older version can load a config that references a new policy type without breaking.
+
+## Composability
+
+Policies are composable building blocks. The policy list is not a set of independent checks but an ordered pipeline where earlier policies can establish context that later policies consume.
+
+### Auth sets context for downstream policies
+
+Auth policies (KeyAuth, JWTAuth, BasicAuth) produce a [Principal](/architecture/services/sentinel/policies/principal) containing a subject and claims. Downstream policies can reference this principal. For example, a RateLimit policy can use the authenticated subject as its bucket key, giving each user their own rate limit window instead of a shared one.
+
+```
+Policy 1: KeyAuth        → authenticates the request, sets Principal
+Policy 2: RateLimit      → rate limits per Principal.subject
+```
+
+### Same policy type, different match expressions
+
+The same policy type can appear multiple times with different [match expressions](/architecture/services/sentinel/policies/match-expressions). This enables path-specific or method-specific rules without requiring a single policy to handle every case.
+
+For example, applying different rate limits to different paths:
+
+```
+Policy 1: RateLimit  match: /v1/*           → 1000 req/min
+Policy 2: RateLimit  match: /v1/expensive/* → 10 req/min
+```
+
+Because policies evaluate in order, place more specific match expressions before broader ones. A request to `/v1/expensive/foo` matches both policies, and the first match wins since a rejection stops evaluation.
+
+### Layering multiple concerns
+
+A typical production configuration layers auth, rate limiting, and validation:
+
+```
+Policy 1: IP rules   match: all             → block known bad IPs
+Policy 2: KeyAuth    match: all             → authenticate, set Principal
+Policy 3: RateLimit  match: /v1/*           → 1000 req/min per subject
+Policy 4: RateLimit  match: /v1/expensive/* → 10 req/min per subject
+Policy 5: OpenAPI    match: all             → validate request shape
+```
+
+Each policy can reject the request independently. A blocked IP never reaches auth. An invalid key never reaches rate limiting. A rate-limited request never reaches schema validation. Order matters.
+
+## Full config example
+
+The `sentinel_config` column on a deployment stores a JSON-serialized `sentinel.v1.Config` protobuf. Here is a complete example that blocks bad IPs, authenticates with KeyAuth, and applies two rate limit tiers:
+
+```json
+{
+  "policies": [
+    {
+      "id": "block-bad-ips",
+      "name": "Block known bad IPs",
+      "enabled": true,
+      "match": [],
+      "ip_rules": {
+        "deny": ["198.51.100.0/24"],
+        "allow": []
+      }
+    },
+    {
+      "id": "api-auth",
+      "name": "Authenticate API keys",
+      "enabled": true,
+      "match": [],
+      "keyauth": {
+        "key_space_ids": ["ks_abc123"],
+        "locations": [
+          { "bearer": {} }
+        ],
+        "permission_query": "api.read"
+      }
+    },
+    {
+      "id": "search-ratelimit",
+      "name": "Strict limit on search",
+      "enabled": true,
+      "match": [
+        { "path": { "path": { "prefix": "/v1/search" } } },
+        { "method": { "methods": ["GET"] } }
+      ],
+      "ratelimit": {
+        "limit": 10,
+        "window_ms": 60000,
+        "key": { "authenticated_subject": {} }
+      }
+    },
+    {
+      "id": "global-ratelimit",
+      "name": "Default rate limit",
+      "enabled": true,
+      "match": [
+        { "path": { "path": { "prefix": "/v1/" } } }
+      ],
+      "ratelimit": {
+        "limit": 1000,
+        "window_ms": 60000,
+        "key": { "authenticated_subject": {} }
+      }
+    }
+  ]
+}
+```
+
+What happens for `GET /v1/search?q=test` with a valid API key:
+
+1. `block-bad-ips` runs (match is empty, so it applies to all requests). Client IP is not in the deny list, so the request passes.
+2. `api-auth` runs. Extracts the Bearer token, verifies it against keyspace `ks_abc123`, checks the `api.read` permission, and sets the Principal.
+3. `search-ratelimit` runs. Both match expressions pass (path starts with `/v1/search` AND method is GET). Rate limits the request at 10/min using the authenticated subject as the bucket key.
+4. `global-ratelimit` match also passes (path starts with `/v1/`), but the request was already rate-limited by policy 3. Both policies evaluate independently.
+
+What happens for `POST /v1/keys` with an invalid key:
+
+1. `block-bad-ips` passes.
+2. `api-auth` rejects the request with 401. Evaluation stops. Policies 3 and 4 never run.
+
+## Implementation status
+
+The engine executes only KeyAuth. Other policy types are defined in the protobuf schema and can be configured, but the engine skips them at evaluation time.
+
+| Policy                                                                 | Implemented |
+| ---------------------------------------------------------------------- | ----------- |
+| [KeyAuth](/architecture/services/sentinel/policies/keyauth)            | Yes         |
+| [JWTAuth](/architecture/services/sentinel/policies/jwtauth)            | Schema only |
+| [BasicAuth](/architecture/services/sentinel/policies/basicauth)        | Schema only |
+| [RateLimit](/architecture/services/sentinel/policies/ratelimit)        | Schema only |
+| [IP rules](/architecture/services/sentinel/policies/ip-rules)          | Schema only |
+| [OpenAPI validation](/architecture/services/sentinel/policies/openapi) | Schema only |
 
 ## Shared types
 
-- [Policy schema](/architecture/services/sentinel/policies/policy)
-- [Match expressions](/architecture/services/sentinel/policies/match-expressions)
-- [Principal](/architecture/services/sentinel/policies/principal)
+- [Policy schema](/architecture/services/sentinel/policies/policy) for the `sentinel.v1.Policy` message structure
+- [Match expressions](/architecture/services/sentinel/policies/match-expressions) for request matching rules
+- [Principal](/architecture/services/sentinel/policies/principal) for the authenticated identity shape
 
-## Policy types
+## Config parsing
 
-- [KeyAuth](/architecture/services/sentinel/policies/keyauth)
-- [JWTAuth](/architecture/services/sentinel/policies/jwtauth)
-- [BasicAuth](/architecture/services/sentinel/policies/basicauth)
-- [RateLimit](/architecture/services/sentinel/policies/ratelimit)
-- [IP rules](/architecture/services/sentinel/policies/ip-rules)
-- [OpenAPI request validation](/architecture/services/sentinel/policies/openapi)
+The engine handles these edge cases when parsing `sentinel_config`:
 
-## Pass-through mode
+| Input                    | Behavior                                                 |
+| ------------------------ | -------------------------------------------------------- |
+| `nil` or empty bytes     | Pass-through (no policies)                               |
+| `{}` (empty JSON object) | Pass-through (legacy compatibility)                      |
+| Valid JSON with policies | Parse and evaluate                                       |
+| Invalid JSON             | Error with code `Sentinel.Internal.InvalidConfiguration` |
 
-If the middleware engine is disabled, sentinel skips policy evaluation and proxies requests directly. This happens when Redis is not configured or the engine fails to initialize.
+## Adding a new policy type
+
+1. Define the policy proto in `svc/sentinel/proto/policies/v1/`.
+2. Add the new type to the `config` oneof in `policy.proto`.
+3. Add a case in the evaluation switch in `svc/sentinel/engine/engine.go`.
+4. Implement the executor (follow `keyauth.go` as a reference).
+5. Run `make generate` to regenerate protobuf code.
+
+Old sentinel versions that do not recognize the new policy type skip it silently, so rollouts are safe.

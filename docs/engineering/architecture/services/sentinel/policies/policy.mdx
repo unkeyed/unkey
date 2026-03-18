@@ -1,18 +1,56 @@
 ---
 title: "Policy schema"
-description: "Policy structure and configuration model"
+description: "The sentinel.v1.Policy message structure"
 ---
 
-The `sentinel.v1.Policy` message is the unit of middleware configuration for a deployment. Each policy combines match expressions with exactly one policy configuration.
+The `sentinel.v1.Policy` message is the unit of middleware configuration. Each policy combines match expressions with exactly one policy configuration.
 
 ## Fields
 
-- `id`: Stable identifier used for logs, metrics, and troubleshooting.
-- `name`: Human-friendly label.
-- `enabled`: When false, sentinel skips the policy.
-- `match`: List of match expressions. All entries must match for the policy to run.
-- `config`: One of the policy configurations, such as KeyAuth or RateLimit.
+<ResponseField name="id" type="string">
+  Stable identifier used in logs, metrics, and troubleshooting. Must be unique within a deployment's policy list.
+</ResponseField>
 
-## Evaluation model
+<ResponseField name="name" type="string">
+  Human-readable label for display in the dashboard and logs.
+</ResponseField>
 
-Policies are evaluated in order. If a policy rejects a request, evaluation stops and sentinel returns a structured error response. Unknown policy types are skipped for forward compatibility.
+<ResponseField name="enabled" type="bool">
+  When false, sentinel skips this policy during evaluation. Defaults to true if not set. This lets you disable a misbehaving policy during an incident without removing it from the config.
+</ResponseField>
+
+<ResponseField name="match" type="MatchExpr[]">
+  List of match expressions. All entries must match for the policy to execute (AND semantics). An empty list matches all requests. See [match expressions](/architecture/services/sentinel/policies/match-expressions).
+</ResponseField>
+
+<ResponseField name="config" type="oneof">
+  Exactly one policy configuration. Options: `keyauth`, `jwtauth`, `basicauth`, `ratelimit`, `ip_rules`, `openapi`.
+</ResponseField>
+
+## Example
+
+A minimal policy that authenticates all requests:
+
+```json
+{
+  "policies": [
+    {
+      "id": "api-auth",
+      "name": "Authenticate all requests",
+      "enabled": true,
+      "match": [],
+      "keyauth": {
+        "key_space_ids": ["ks_abc123"],
+        "locations": [{ "bearer": {} }]
+      }
+    }
+  ]
+}
+```
+
+## Evaluation behavior
+
+- Policies are evaluated in declaration order.
+- If a policy rejects the request, evaluation stops immediately.
+- Unknown `config` types are skipped (forward compatibility).
+- Disabled policies are skipped without evaluating match expressions.
