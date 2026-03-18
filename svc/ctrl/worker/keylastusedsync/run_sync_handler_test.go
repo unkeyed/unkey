@@ -221,7 +221,7 @@ func TestRunSync_Performance(t *testing.T) {
 // for a subset of keys and run sync — only those keys should be processed.
 //
 // In prod, the orchestrator should be keyed with a fixed key like "global" so
-// the partition objects (partition-0 .. partition-7) keep their cursor state.
+// the partition objects (0 .. 7) keep their cursor state.
 func TestRunSync_IncrementalUpdate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping incremental test in short mode")
@@ -244,7 +244,7 @@ func TestRunSync_IncrementalUpdate(t *testing.T) {
 	ksID := existingKey.KeyAuthID
 
 	// Record current last_used_at for our subset before inserting new data
-	const updateCount = 10_000
+	const updateCount = 50_000
 	updateKeys := keyIDs[:updateCount]
 
 	oldTimestamps := make(map[string]int64, updateCount)

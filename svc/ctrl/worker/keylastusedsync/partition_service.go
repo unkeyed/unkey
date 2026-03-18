@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -19,7 +18,7 @@ import (
 const batchSize = 25_000
 
 // PartitionService implements the KeyLastUsedPartitionService Restate virtual object.
-// Each instance is keyed by partition ID (e.g. "partition-0") and persists its own
+// Each instance is keyed by partition index (e.g. "0") and persists its own
 // cursor in Restate state so that subsequent invocations only process new data.
 type PartitionService struct {
 	hydrav1.UnimplementedKeyLastUsedPartitionServiceServer
@@ -50,9 +49,17 @@ func NewPartitionService(cfg PartitionConfig) (*PartitionService, error) {
 	}, nil
 }
 
+// batchResult is the journaled output of a single CH→MySQL batch.
+// Returned from each restate.Run so Restate can replay without re-executing.
+type batchResult struct {
+	Synced      int32  `json:"synced"`
+	CursorTime  int64  `json:"cursor_time"`
+	CursorKeyID string `json:"cursor_key_id"`
+}
+
 // SyncPartition reads keys from ClickHouse for this partition and batch-updates MySQL.
-// The cursor is persisted in Restate state between invocations so that only new data
-// is processed on subsequent runs.
+// Each batch is a separate restate.Run so that on failure, only the last incomplete
+// batch is retried. The cursor is persisted after each batch.
 func (s *PartitionService) SyncPartition(
 	ctx restate.ObjectContext,
 	req *hydrav1.SyncPartitionRequest,
@@ -76,154 +83,106 @@ func (s *PartitionService) SyncPartition(
 		"cursor_key_id", cursor.KeyID,
 	)
 
-	var synced int32
+	var totalSynced int32
+	start := time.Now()
 
-	// Run the actual sync in a single RunAsync so the CH+MySQL work is a side effect
-	result, err := restate.Run(ctx, func(rc restate.RunContext) (syncResult, error) {
-		return runPartitionSync(rc, s.clickhouse, s.db, cursor, partition, totalPartitions)
-	}, restate.WithName("sync"))
-	if err != nil {
-		return nil, fmt.Errorf("partition %d sync: %w", partition, err)
-	}
+	for batchNum := 0; ; batchNum++ {
+		currentCursor := cursor
 
-	synced = result.Synced
+		result, runErr := restate.Run(ctx, func(rc restate.RunContext) (batchResult, error) {
+			chStart := time.Now()
+			batch, fetchErr := s.clickhouse.GetKeyLastUsedBatchPartitioned(rc, currentCursor, batchSize, partition, totalPartitions)
+			if fetchErr != nil {
+				return batchResult{}, fmt.Errorf("fetch partition %d: %w", partition, fetchErr)
+			}
+			chDur := time.Since(chStart)
 
-	// Persist the new cursor for the next invocation
-	if result.Synced > 0 {
-		restate.Set(ctx, "cursor_time", result.CursorTime)
-		restate.Set(ctx, "cursor_key_id", result.CursorKeyID)
+			if len(batch) == 0 {
+				return batchResult{}, nil
+			}
+
+			myStart := time.Now()
+			if updateErr := updateLastUsedBatch(rc, s.db, batch); updateErr != nil {
+				return batchResult{}, fmt.Errorf("update partition %d: %w", partition, updateErr)
+			}
+			myDur := time.Since(myStart)
+
+			last := batch[len(batch)-1]
+
+			logger.Info("partition batch complete",
+				"partition", partition,
+				"batch", batchNum,
+				"batch_keys", len(batch),
+				"ch_query", chDur,
+				"mysql_update", myDur,
+				"elapsed", time.Since(start),
+			)
+
+			return batchResult{
+				Synced:      int32(len(batch)), //nolint:gosec
+				CursorTime:  last.Time,
+				CursorKeyID: last.KeyID,
+			}, nil
+		}, restate.WithName(fmt.Sprintf("batch-%d", batchNum)))
+		if runErr != nil {
+			return nil, fmt.Errorf("partition %d batch %d: %w", partition, batchNum, runErr)
+		}
+
+		if result.Synced == 0 {
+			break
+		}
+
+		totalSynced += result.Synced
+		cursor = clickhouse.KeyLastUsedCursor{Time: result.CursorTime, KeyID: result.CursorKeyID}
+
+		// Persist cursor after each batch — on crash we resume from here
+		restate.Set(ctx, "cursor_time", cursor.Time)
+		restate.Set(ctx, "cursor_key_id", cursor.KeyID)
+
+		if result.Synced < int32(batchSize) { //nolint:gosec
+			break
+		}
 	}
 
 	logger.Info("partition sync complete",
-		"key", key,
 		"partition", partition,
-		"keys_synced", synced,
-		"new_cursor_time", result.CursorTime,
-		"new_cursor_key_id", result.CursorKeyID,
+		"keys_synced", totalSynced,
+		"cursor_time", cursor.Time,
+		"cursor_key_id", cursor.KeyID,
+		"elapsed", time.Since(start),
 	)
 
 	return &hydrav1.SyncPartitionResponse{
-		KeysSynced: synced,
+		KeysSynced: totalSynced,
 	}, nil
 }
 
-// syncResult carries the output of a partition sync back through Restate's Run.
-type syncResult struct {
-	Synced      int32  `json:"synced"`
-	CursorTime  int64  `json:"cursor_time"`
-	CursorKeyID string `json:"cursor_key_id"`
-}
-
-// runPartitionSync pages through ClickHouse for the given partition and batch-updates MySQL.
-func runPartitionSync(
-	ctx context.Context,
-	ch clickhouse.ClickHouse,
-	database db.Database,
-	cursor clickhouse.KeyLastUsedCursor,
-	partition, totalPartitions int,
-) (syncResult, error) {
-	var synced int32
-	currentCursor := cursor
-	batchNum := 0
-	start := time.Now()
-
-	for {
-		chStart := time.Now()
-		batch, err := ch.GetKeyLastUsedBatchPartitioned(ctx, currentCursor, batchSize, partition, totalPartitions)
-		if err != nil {
-			return syncResult{}, fmt.Errorf("fetch partition %d: %w", partition, err)
-		}
-		chDur := time.Since(chStart)
-
-		if len(batch) == 0 {
-			break
-		}
-
-		myStart := time.Now()
-		if err := updateLastUsedBatch(ctx, database, batch); err != nil {
-			return syncResult{}, fmt.Errorf("update partition %d: %w", partition, err)
-		}
-		myDur := time.Since(myStart)
-
-		synced += int32(len(batch)) //nolint:gosec
-		batchNum++
-
-		// Advance cursor to the last element — results are ordered by (time, key_id)
-		last := batch[len(batch)-1]
-		currentCursor = clickhouse.KeyLastUsedCursor{Time: last.Time, KeyID: last.KeyID}
-
-		logger.Info("partition batch complete",
-			"partition", partition,
-			"batch", batchNum,
-			"batch_keys", len(batch),
-			"total_synced", synced,
-			"ch_query", chDur,
-			"mysql_update", myDur,
-			"elapsed", time.Since(start),
-		)
-
-		if len(batch) < batchSize {
-			break
-		}
-	}
-
-	return syncResult{
-		Synced:      synced,
-		CursorTime:  currentCursor.Time,
-		CursorKeyID: currentCursor.KeyID,
-	}, nil
-}
-
-// maxKeysPerUpdate is the max keys in a single UPDATE statement.
-// Kept small (2K) so row locks are held briefly and 8 concurrent partition
-// writers don't cause lock wait timeouts. 2K × 6 = 12K placeholders.
-const maxKeysPerUpdate = 2_000
-
-// updateLastUsedBatch builds and executes CASE-WHEN UPDATEs to set last_used_at
-// for multiple keys at once, chunking to stay within MySQL's placeholder limit.
-// Only updates when the new value is actually newer (idempotent).
+// updateLastUsedBatch updates last_used_at for each key using a prepared statement
+// in a single transaction. Each UPDATE hits the primary key index directly —
+// much faster than CASE-WHEN expressions with thousands of branches.
 func updateLastUsedBatch(ctx context.Context, database db.Database, batch []clickhouse.KeyLastUsed) error {
-	for i := 0; i < len(batch); i += maxKeysPerUpdate {
-		end := min(i+maxKeysPerUpdate, len(batch))
-		if err := updateLastUsedChunk(ctx, database, batch[i:end]); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func updateLastUsedChunk(ctx context.Context, database db.Database, chunk []clickhouse.KeyLastUsed) error {
-	if len(chunk) == 0 {
+	if len(batch) == 0 {
 		return nil
 	}
 
-	args := make([]any, 0, len(chunk)*6)
-
-	var queryBuilder strings.Builder
-	queryBuilder.WriteString("UPDATE `keys` SET last_used_at = CASE id ")
-
-	for _, r := range chunk {
-		queryBuilder.WriteString("WHEN ? THEN ? ")
-		args = append(args, r.KeyID, r.Time)
+	tx, err := database.RW().Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
 	}
-	queryBuilder.WriteString("ELSE last_used_at END WHERE id IN (")
+	defer func() { _ = tx.Rollback() }()
 
-	for i, r := range chunk {
-		if i > 0 {
-			queryBuilder.WriteString(", ")
+	stmt, err := tx.PrepareContext(ctx,
+		"UPDATE `keys` SET last_used_at = ? WHERE id = ? AND (last_used_at IS NULL OR last_used_at < ?)")
+	if err != nil {
+		return fmt.Errorf("prepare: %w", err)
+	}
+	defer func() { _ = stmt.Close() }()
+
+	for _, r := range batch {
+		if _, err := stmt.ExecContext(ctx, r.Time, r.KeyID, r.Time); err != nil {
+			return fmt.Errorf("update key %s: %w", r.KeyID, err)
 		}
-		queryBuilder.WriteString("?")
-		args = append(args, r.KeyID)
 	}
 
-	queryBuilder.WriteString(") AND (last_used_at IS NULL OR last_used_at < CASE id ")
-
-	for _, r := range chunk {
-		queryBuilder.WriteString("WHEN ? THEN ? ")
-		args = append(args, r.KeyID, r.Time)
-	}
-	queryBuilder.WriteString("ELSE last_used_at END)")
-
-	_, err := database.RW().ExecContext(ctx, queryBuilder.String(), args...)
-	return err
+	return tx.Commit()
 }

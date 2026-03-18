@@ -27,7 +27,7 @@ message RunSyncResponse {
 
 // KeyLastUsedPartitionService processes a single hash partition of the keyspace.
 //
-// Keyed by partition identifier (e.g. "partition-0").
+// Keyed by partition index (e.g. "0", "1", ... "7").
 // Persists a cursor in Restate state so subsequent runs only process new data.
 service KeyLastUsedPartitionService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
@@ -39,7 +39,7 @@ service KeyLastUsedPartitionService {
 
 message SyncPartitionRequest {
   // Total number of partitions. The partition index is derived from the
-  // Restate object key (e.g. "partition-3" → 3).
+  // Restate object key (e.g. "3").
   int32 total_partitions = 1;
 }
 
