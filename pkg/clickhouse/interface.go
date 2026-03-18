@@ -72,6 +72,10 @@ type Querier interface {
 	// GetKeyLastUsedBatch returns keys after the given cursor, ordered by (time, key_id).
 	// Used by the KeyLastUsedSync service to batch-sync last_used_at from ClickHouse to MySQL.
 	GetKeyLastUsedBatch(ctx context.Context, cursor KeyLastUsedCursor, limit int) ([]KeyLastUsed, error)
+
+	// GetKeyLastUsedBatchPartitioned is like GetKeyLastUsedBatch but only returns keys
+	// in a specific hash partition (cityHash64(key_id) % totalPartitions == partition).
+	GetKeyLastUsedBatchPartitioned(ctx context.Context, cursor KeyLastUsedCursor, limit int, partition, totalPartitions int) ([]KeyLastUsed, error)
 }
 
 type ClickHouse interface {

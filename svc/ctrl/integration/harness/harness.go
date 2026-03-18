@@ -216,9 +216,13 @@ func New(t *testing.T, opts ...Option) *Harness {
 	require.NoError(t, err)
 
 	keyLastUsedSyncSvc, err := keylastusedsync.New(keylastusedsync.Config{
+		Heartbeat: healthcheck.NewNoop(),
+	})
+	require.NoError(t, err)
+
+	keyLastUsedPartitionSvc, err := keylastusedsync.NewPartitionService(keylastusedsync.PartitionConfig{
 		DB:         database,
 		Clickhouse: chClient,
-		Heartbeat:  healthcheck.NewNoop(),
 	})
 	require.NoError(t, err)
 
@@ -233,6 +237,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 	restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc))
 	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
 	restateSrv.Bind(hydrav1.NewKeyLastUsedSyncServiceServer(keyLastUsedSyncSvc))
+	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc))
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploymentSvc))
 

@@ -70,6 +70,11 @@ func (n *noop) GetKeyLastUsedBatch(ctx context.Context, cursor KeyLastUsedCursor
 	return nil, nil
 }
 
+// GetKeyLastUsedBatchPartitioned implements the Querier interface but always returns an empty slice.
+func (n *noop) GetKeyLastUsedBatchPartitioned(ctx context.Context, cursor KeyLastUsedCursor, limit int, partition, totalPartitions int) ([]KeyLastUsed, error) {
+	return nil, nil
+}
+
 func (n *noop) Conn() ch.Conn {
 	return nil
 }

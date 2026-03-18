@@ -15,13 +15,11 @@ import (
 
 // KeyLastUsedSyncServiceClient is the client API for hydra.v1.KeyLastUsedSyncService service.
 //
-// KeyLastUsedSyncService syncs key last-used timestamps from ClickHouse to MySQL.
+// KeyLastUsedSyncService is the orchestrator that fans out to partition workers.
 //
 // Keyed by run identifier (e.g. "sync-2026-02-27-14") for idempotency.
-// Uses Restate state to track a high-water mark for resumability if interrupted.
 type KeyLastUsedSyncServiceClient interface {
-	// RunSync reads the latest verification timestamps from the ClickHouse
-	// key_last_used_v1 table and batch-updates MySQL keys.last_used_at.
+	// RunSync fans out SyncPartition calls to each partition worker and collects results.
 	//
 	// Key: run identifier (e.g. "sync-2026-02-27-14")
 	RunSync(opts ...sdk_go.ClientOption) sdk_go.Client[*RunSyncRequest, *RunSyncResponse]
@@ -53,8 +51,7 @@ func (c *keyLastUsedSyncServiceClient) RunSync(opts ...sdk_go.ClientOption) sdk_
 //
 // This client is used to call the service from outside of a Restate context.
 type KeyLastUsedSyncServiceIngressClient interface {
-	// RunSync reads the latest verification timestamps from the ClickHouse
-	// key_last_used_v1 table and batch-updates MySQL keys.last_used_at.
+	// RunSync fans out SyncPartition calls to each partition worker and collects results.
 	//
 	// Key: run identifier (e.g. "sync-2026-02-27-14")
 	RunSync() ingress.Requester[*RunSyncRequest, *RunSyncResponse]
@@ -83,13 +80,11 @@ func (c *keyLastUsedSyncServiceIngressClient) RunSync() ingress.Requester[*RunSy
 // All implementations should embed UnimplementedKeyLastUsedSyncServiceServer
 // for forward compatibility.
 //
-// KeyLastUsedSyncService syncs key last-used timestamps from ClickHouse to MySQL.
+// KeyLastUsedSyncService is the orchestrator that fans out to partition workers.
 //
 // Keyed by run identifier (e.g. "sync-2026-02-27-14") for idempotency.
-// Uses Restate state to track a high-water mark for resumability if interrupted.
 type KeyLastUsedSyncServiceServer interface {
-	// RunSync reads the latest verification timestamps from the ClickHouse
-	// key_last_used_v1 table and batch-updates MySQL keys.last_used_at.
+	// RunSync fans out SyncPartition calls to each partition worker and collects results.
 	//
 	// Key: run identifier (e.g. "sync-2026-02-27-14")
 	RunSync(ctx sdk_go.ObjectContext, req *RunSyncRequest) (*RunSyncResponse, error)
@@ -125,5 +120,114 @@ func NewKeyLastUsedSyncServiceServer(srv KeyLastUsedSyncServiceServer, opts ...s
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.KeyLastUsedSyncService", sOpts...)
 	router = router.Handler("RunSync", sdk_go.NewObjectHandler(srv.RunSync))
+	return router
+}
+
+// KeyLastUsedPartitionServiceClient is the client API for hydra.v1.KeyLastUsedPartitionService service.
+//
+// KeyLastUsedPartitionService processes a single hash partition of the keyspace.
+//
+// Keyed by partition identifier (e.g. "partition-0").
+// Persists a cursor in Restate state so subsequent runs only process new data.
+type KeyLastUsedPartitionServiceClient interface {
+	// SyncPartition reads keys from ClickHouse for this partition and batch-updates MySQL.
+	// The cursor is persisted in Restate state between invocations.
+	SyncPartition(opts ...sdk_go.ClientOption) sdk_go.Client[*SyncPartitionRequest, *SyncPartitionResponse]
+}
+
+type keyLastUsedPartitionServiceClient struct {
+	ctx     sdk_go.Context
+	key     string
+	options []sdk_go.ClientOption
+}
+
+func NewKeyLastUsedPartitionServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.ClientOption) KeyLastUsedPartitionServiceClient {
+	cOpts := append([]sdk_go.ClientOption{sdk_go.WithProtoJSON}, opts...)
+	return &keyLastUsedPartitionServiceClient{
+		ctx,
+		key,
+		cOpts,
+	}
+}
+func (c *keyLastUsedPartitionServiceClient) SyncPartition(opts ...sdk_go.ClientOption) sdk_go.Client[*SyncPartitionRequest, *SyncPartitionResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*SyncPartitionRequest](sdk_go.Object[*SyncPartitionResponse](c.ctx, "hydra.v1.KeyLastUsedPartitionService", c.key, "SyncPartition", cOpts...))
+}
+
+// KeyLastUsedPartitionServiceIngressClient is the ingress client API for hydra.v1.KeyLastUsedPartitionService service.
+//
+// This client is used to call the service from outside of a Restate context.
+type KeyLastUsedPartitionServiceIngressClient interface {
+	// SyncPartition reads keys from ClickHouse for this partition and batch-updates MySQL.
+	// The cursor is persisted in Restate state between invocations.
+	SyncPartition() ingress.Requester[*SyncPartitionRequest, *SyncPartitionResponse]
+}
+
+type keyLastUsedPartitionServiceIngressClient struct {
+	client      *ingress.Client
+	serviceName string
+	key         string
+}
+
+func NewKeyLastUsedPartitionServiceIngressClient(client *ingress.Client, key string) KeyLastUsedPartitionServiceIngressClient {
+	return &keyLastUsedPartitionServiceIngressClient{
+		client,
+		"hydra.v1.KeyLastUsedPartitionService",
+		key,
+	}
+}
+
+func (c *keyLastUsedPartitionServiceIngressClient) SyncPartition() ingress.Requester[*SyncPartitionRequest, *SyncPartitionResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*SyncPartitionRequest, *SyncPartitionResponse](c.client, c.serviceName, "SyncPartition", &c.key, &codec)
+}
+
+// KeyLastUsedPartitionServiceServer is the server API for hydra.v1.KeyLastUsedPartitionService service.
+// All implementations should embed UnimplementedKeyLastUsedPartitionServiceServer
+// for forward compatibility.
+//
+// KeyLastUsedPartitionService processes a single hash partition of the keyspace.
+//
+// Keyed by partition identifier (e.g. "partition-0").
+// Persists a cursor in Restate state so subsequent runs only process new data.
+type KeyLastUsedPartitionServiceServer interface {
+	// SyncPartition reads keys from ClickHouse for this partition and batch-updates MySQL.
+	// The cursor is persisted in Restate state between invocations.
+	SyncPartition(ctx sdk_go.ObjectContext, req *SyncPartitionRequest) (*SyncPartitionResponse, error)
+}
+
+// UnimplementedKeyLastUsedPartitionServiceServer should be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedKeyLastUsedPartitionServiceServer struct{}
+
+func (UnimplementedKeyLastUsedPartitionServiceServer) SyncPartition(ctx sdk_go.ObjectContext, req *SyncPartitionRequest) (*SyncPartitionResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method SyncPartition not implemented"), 501)
+}
+func (UnimplementedKeyLastUsedPartitionServiceServer) testEmbeddedByValue() {}
+
+// UnsafeKeyLastUsedPartitionServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to KeyLastUsedPartitionServiceServer will
+// result in compilation errors.
+type UnsafeKeyLastUsedPartitionServiceServer interface {
+	mustEmbedUnimplementedKeyLastUsedPartitionServiceServer()
+}
+
+func NewKeyLastUsedPartitionServiceServer(srv KeyLastUsedPartitionServiceServer, opts ...sdk_go.ServiceDefinitionOption) sdk_go.ServiceDefinition {
+	// If the following call panics, it indicates UnimplementedKeyLastUsedPartitionServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
+	router := sdk_go.NewObject("hydra.v1.KeyLastUsedPartitionService", sOpts...)
+	router = router.Handler("SyncPartition", sdk_go.NewObjectHandler(srv.SyncPartition))
 	return router
 }

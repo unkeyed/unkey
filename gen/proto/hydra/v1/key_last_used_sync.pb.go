@@ -61,10 +61,7 @@ func (*RunSyncRequest) Descriptor() ([]byte, []int) {
 type RunSyncResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Number of keys whose last_used_at was synced in this invocation
-	KeysSynced int32 `protobuf:"varint,1,opt,name=keys_synced,json=keysSynced,proto3" json:"keys_synced,omitempty"`
-	// True when more keys remain to be synced. The caller should
-	// re-invoke with the same key until this is false.
-	HasMore       bool `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
+	KeysSynced    int32 `protobuf:"varint,1,opt,name=keys_synced,json=keysSynced,proto3" json:"keys_synced,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -106,11 +103,94 @@ func (x *RunSyncResponse) GetKeysSynced() int32 {
 	return 0
 }
 
-func (x *RunSyncResponse) GetHasMore() bool {
+type SyncPartitionRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The partition index (0-based).
+	Partition     int32 `protobuf:"varint,1,opt,name=partition,proto3" json:"partition,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SyncPartitionRequest) Reset() {
+	*x = SyncPartitionRequest{}
+	mi := &file_hydra_v1_key_last_used_sync_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SyncPartitionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SyncPartitionRequest) ProtoMessage() {}
+
+func (x *SyncPartitionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_key_last_used_sync_proto_msgTypes[2]
 	if x != nil {
-		return x.HasMore
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
 	}
-	return false
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SyncPartitionRequest.ProtoReflect.Descriptor instead.
+func (*SyncPartitionRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_key_last_used_sync_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *SyncPartitionRequest) GetPartition() int32 {
+	if x != nil {
+		return x.Partition
+	}
+	return 0
+}
+
+type SyncPartitionResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Number of keys synced by this partition.
+	KeysSynced    int32 `protobuf:"varint,1,opt,name=keys_synced,json=keysSynced,proto3" json:"keys_synced,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SyncPartitionResponse) Reset() {
+	*x = SyncPartitionResponse{}
+	mi := &file_hydra_v1_key_last_used_sync_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SyncPartitionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SyncPartitionResponse) ProtoMessage() {}
+
+func (x *SyncPartitionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_key_last_used_sync_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SyncPartitionResponse.ProtoReflect.Descriptor instead.
+func (*SyncPartitionResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_key_last_used_sync_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *SyncPartitionResponse) GetKeysSynced() int32 {
+	if x != nil {
+		return x.KeysSynced
+	}
+	return 0
 }
 
 var File_hydra_v1_key_last_used_sync_proto protoreflect.FileDescriptor
@@ -118,13 +198,19 @@ var File_hydra_v1_key_last_used_sync_proto protoreflect.FileDescriptor
 const file_hydra_v1_key_last_used_sync_proto_rawDesc = "" +
 	"\n" +
 	"!hydra/v1/key_last_used_sync.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\x10\n" +
-	"\x0eRunSyncRequest\"M\n" +
+	"\x0eRunSyncRequest\"2\n" +
 	"\x0fRunSyncResponse\x12\x1f\n" +
 	"\vkeys_synced\x18\x01 \x01(\x05R\n" +
-	"keysSynced\x12\x19\n" +
-	"\bhas_more\x18\x02 \x01(\bR\ahasMore2`\n" +
+	"keysSynced\"4\n" +
+	"\x14SyncPartitionRequest\x12\x1c\n" +
+	"\tpartition\x18\x01 \x01(\x05R\tpartition\"8\n" +
+	"\x15SyncPartitionResponse\x12\x1f\n" +
+	"\vkeys_synced\x18\x01 \x01(\x05R\n" +
+	"keysSynced2`\n" +
 	"\x16KeyLastUsedSyncService\x12@\n" +
-	"\aRunSync\x12\x18.hydra.v1.RunSyncRequest\x1a\x19.hydra.v1.RunSyncResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x9a\x01\n" +
+	"\aRunSync\x12\x18.hydra.v1.RunSyncRequest\x1a\x19.hydra.v1.RunSyncResponse\"\x00\x1a\x04\x98\x80\x01\x012w\n" +
+	"\x1bKeyLastUsedPartitionService\x12R\n" +
+	"\rSyncPartition\x12\x1e.hydra.v1.SyncPartitionRequest\x1a\x1f.hydra.v1.SyncPartitionResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x9a\x01\n" +
 	"\fcom.hydra.v1B\x14KeyLastUsedSyncProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -139,16 +225,20 @@ func file_hydra_v1_key_last_used_sync_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_key_last_used_sync_proto_rawDescData
 }
 
-var file_hydra_v1_key_last_used_sync_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_hydra_v1_key_last_used_sync_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_hydra_v1_key_last_used_sync_proto_goTypes = []any{
-	(*RunSyncRequest)(nil),  // 0: hydra.v1.RunSyncRequest
-	(*RunSyncResponse)(nil), // 1: hydra.v1.RunSyncResponse
+	(*RunSyncRequest)(nil),        // 0: hydra.v1.RunSyncRequest
+	(*RunSyncResponse)(nil),       // 1: hydra.v1.RunSyncResponse
+	(*SyncPartitionRequest)(nil),  // 2: hydra.v1.SyncPartitionRequest
+	(*SyncPartitionResponse)(nil), // 3: hydra.v1.SyncPartitionResponse
 }
 var file_hydra_v1_key_last_used_sync_proto_depIdxs = []int32{
 	0, // 0: hydra.v1.KeyLastUsedSyncService.RunSync:input_type -> hydra.v1.RunSyncRequest
-	1, // 1: hydra.v1.KeyLastUsedSyncService.RunSync:output_type -> hydra.v1.RunSyncResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: hydra.v1.KeyLastUsedPartitionService.SyncPartition:input_type -> hydra.v1.SyncPartitionRequest
+	1, // 2: hydra.v1.KeyLastUsedSyncService.RunSync:output_type -> hydra.v1.RunSyncResponse
+	3, // 3: hydra.v1.KeyLastUsedPartitionService.SyncPartition:output_type -> hydra.v1.SyncPartitionResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -165,9 +255,9 @@ func file_hydra_v1_key_last_used_sync_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_key_last_used_sync_proto_rawDesc), len(file_hydra_v1_key_last_used_sync_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_hydra_v1_key_last_used_sync_proto_goTypes,
 		DependencyIndexes: file_hydra_v1_key_last_used_sync_proto_depIdxs,

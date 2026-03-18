@@ -371,21 +371,28 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
 	logger.Info("KeyRefillService enabled")
 
-	// Key last used sync service for syncing last_used_at from ClickHouse to MySQL
+	// Key last used sync: orchestrator + partition services
 	var keyLastUsedSyncHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
 	if cfg.Heartbeat.KeyLastUsedSyncURL != "" {
 		keyLastUsedSyncHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL)
 	}
 
 	keyLastUsedSyncSvc, err := keylastusedsync.New(keylastusedsync.Config{
-		DB:         database,
-		Clickhouse: ch,
-		Heartbeat:  keyLastUsedSyncHeartbeat,
+		Heartbeat: keyLastUsedSyncHeartbeat,
 	})
 	if err != nil {
 		return fmt.Errorf("create key last used sync service: %w", err)
 	}
 	restateSrv.Bind(hydrav1.NewKeyLastUsedSyncServiceServer(keyLastUsedSyncSvc))
+
+	keyLastUsedPartitionSvc, err := keylastusedsync.NewPartitionService(keylastusedsync.PartitionConfig{
+		DB:         database,
+		Clickhouse: ch,
+	})
+	if err != nil {
+		return fmt.Errorf("create key last used partition service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc))
 	logger.Info("KeyLastUsedSyncService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint

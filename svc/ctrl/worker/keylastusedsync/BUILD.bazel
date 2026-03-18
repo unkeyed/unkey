@@ -1,8 +1,9 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "keylastusedsync",
     srcs = [
+        "partition_service.go",
         "run_sync_handler.go",
         "service.go",
     ],
@@ -16,5 +17,19 @@ go_library(
         "//pkg/healthcheck",
         "//pkg/logger",
         "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)
+
+go_test(
+    name = "keylastusedsync_test",
+    srcs = ["run_sync_handler_test.go"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/db",
+        "//pkg/hash",
+        "//pkg/uid",
+        "//svc/ctrl/integration/harness",
+        "//svc/ctrl/integration/seed",
+        "@com_github_stretchr_testify//require",
     ],
 )
