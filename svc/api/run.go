@@ -174,16 +174,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
 		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
-			limit, findErr := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
+			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
 				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
 			})
-			if findErr != nil {
-				return 0, false, findErr
+			if err != nil {
+				return 0, false, err
 			}
-			if !limit.Valid {
-				return 0, false, nil
-			}
-			return limit.Int32, true, nil
+			return limit.Int32, limit.Valid, nil
 		},
 		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int32) error {
 			return db.Query.UpdateKeyCreditsDecrement(ctx, database.RW(), db.UpdateKeyCreditsDecrementParams{
