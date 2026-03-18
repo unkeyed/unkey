@@ -8,11 +8,10 @@ import {
   ArrowDottedRotateAnticlockwise,
   ChevronExpandY,
   Cube,
-  DoubleChevronLeft
+  DoubleChevronLeft,
 } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import dynamic from "next/dynamic";
-import { useParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { useProjectData } from "../data-provider";
 import { useBreadcrumbConfig } from "./use-breadcrumb-config";
@@ -69,6 +68,14 @@ export const ProjectNavigation = ({
   const selectedDeployment = currentDeploymentId
     ? getDeploymentById(currentDeploymentId)
     : undefined;
+
+  const prevDeploymentIdRef = useRef(currentDeploymentId);
+  if (prevDeploymentIdRef.current !== currentDeploymentId) {
+    prevDeploymentIdRef.current = currentDeploymentId;
+    if (isRedeployOpen) {
+      setIsRedeployOpen(false);
+    }
+  }
 
   const anchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -240,9 +247,7 @@ export const ProjectNavigation = ({
           </Navbar.Breadcrumbs.Link>
         ))}
       </Navbar.Breadcrumbs>
-      <Navbar.Actions>
-        {renderActions()}
-      </Navbar.Actions>
+      <Navbar.Actions>{renderActions()}</Navbar.Actions>
     </Navbar>
   );
 };

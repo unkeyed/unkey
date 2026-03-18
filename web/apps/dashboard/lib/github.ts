@@ -189,10 +189,12 @@ export async function checkFileExists(
 const repositoryEventSchema = z.object({
   type: z.string(),
   created_at: z.string(),
-  payload: z.object({
-    ref: z.string().optional(),
-    size: z.number().optional(),
-  }),
+  payload: z
+    .object({
+      ref: z.string().optional(),
+      size: z.number().optional(),
+    })
+    .passthrough(),
 });
 
 const repositoryEventsSchema = z.array(repositoryEventSchema);
@@ -213,21 +215,26 @@ export async function getMostActiveBranches(
 
   const allEvents: z.infer<typeof repositoryEventSchema>[] = [];
   for (let page = 1; page <= 3; page++) {
-    const data = repositoryEventsSchema.parse(
-      await fetchGitHubApi(
-        `https://api.github.com/repos/${owner}/${repo}/events?per_page=100&page=${page}`,
-        token,
-      ),
+    const raw = await fetchGitHubApi(
+      `https://api.github.com/repos/${owner}/${repo}/events?per_page=100&page=${page}`,
+      token,
     );
-    allEvents.push(...data);
-    if (data.length < 100) {
+    const parsed = repositoryEventsSchema.safeParse(raw);
+    if (!parsed.success) {
+      break;
+    }
+    allEvents.push(...parsed.data);
+    if (parsed.data.length < 100) {
       break;
     }
   }
 
   const pushEvents = allEvents.filter((e) => e.type === "PushEvent" && e.payload.ref);
 
-  const branchMap = new Map<string, { pushCount: number; commitCount: number; lastPushDate: string }>();
+  const branchMap = new Map<
+    string,
+    { pushCount: number; commitCount: number; lastPushDate: string }
+  >();
 
   for (const event of pushEvents) {
     const ref = event.payload.ref;

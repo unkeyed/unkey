@@ -1,19 +1,19 @@
 "use client";
 
 import { NavbarActionButton } from "@/components/navigation/action-button";
+import { queryClient } from "@/lib/collections/client";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CodeBranch, Plus } from "@unkey/icons";
 import { Button, FormInput, TimestampInfo, toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
+import { useParams, useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { RepoDisplay } from "../../../_components/list/repo-display";
 import { useProjectData } from "../data-provider";
-import { queryClient } from "@/lib/collections/client";
-import { useParams, useRouter } from "next/navigation";
 
 const DynamicDialogContainer = dynamic(
   () =>
@@ -96,7 +96,7 @@ export const CreateDeploymentButton = ({
   const createDeployment = trpc.deploy.deployment.create.useMutation({
     async onSuccess(data) {
       toast.success("Deployment has been created");
-      reset()
+      reset();
       setIsOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
       router.push(
@@ -157,8 +157,12 @@ export const CreateDeploymentButton = ({
               />
               {repoDetails.data?.pushedAt ? (
                 <span className="text-xs text-gray-10">
-                  Last pushed {" "}
-                  <TimestampInfo value={repoDetails.data.pushedAt} displayType="relative" className="font-medium underline decoration-dotted text-gray-12" />
+                  Last pushed{" "}
+                  <TimestampInfo
+                    value={repoDetails.data.pushedAt}
+                    displayType="relative"
+                    className="font-medium underline decoration-dotted text-gray-12"
+                  />
                 </span>
               ) : repoDetails.isLoading ? (
                 <div className="h-4 w-16 bg-grayA-3 rounded animate-pulse" />
@@ -192,7 +196,7 @@ export const CreateDeploymentButton = ({
                     key={`skeleton-${
                       // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders
                       i
-                      }`}
+                    }`}
                     className="h-7 w-20 bg-gray-3 rounded-md animate-pulse"
                   />
                 ))}
@@ -208,7 +212,11 @@ export const CreateDeploymentButton = ({
                   {branch.lastPushDate && (
                     <>
                       <span className="text-gray-8">·</span>
-                      <TimestampInfo value={branch.lastPushDate} displayType="relative" className="text-gray-9 shrink-0" />
+                      <TimestampInfo
+                        value={branch.lastPushDate}
+                        displayType="relative"
+                        className="text-gray-9 shrink-0"
+                      />
                     </>
                   )}
                 </button>

@@ -29,8 +29,6 @@ export const createDeploy = workspaceProcedure
       });
     }
 
-
-
     const ctrl = createClient(
       DeployService,
       createConnectTransport({
@@ -85,10 +83,8 @@ export const createDeploy = workspaceProcedure
           environmentSlug: input.environmentSlug,
           ...(ref
             ? {
-              gitCommit: isCommitSha(ref)
-                ? { commitSha: ref }
-                : { branch: ref },
-            }
+                gitCommit: isCommitSha(ref) ? { commitSha: ref } : { branch: ref },
+              }
             : {}),
         })
         .catch((err) => {
@@ -132,16 +128,14 @@ function parseGitRef(raw: string): string {
   const trimmed = raw.trim();
 
   // https://github.com/owner/repo/tree/branch-name (supports slashes in branch)
-  const treeMatch = trimmed.match(
-    /^https?:\/\/github\.com\/[^/]+\/[^/]+\/tree\/(.+)$/,
-  );
+  const treeMatch = trimmed.match(/^https?:\/\/github\.com\/[^/]+\/[^/]+\/tree\/(.+)$/);
   if (treeMatch) {
     return treeMatch[1];
   }
 
-  // https://github.com/owner/repo/commit/abc123...
+  // https://github.com/owner/repo/commit/<40-char SHA>
   const commitMatch = trimmed.match(
-    /^https?:\/\/github\.com\/[^/]+\/[^/]+\/commit\/([0-9a-f]+)$/i,
+    /^https?:\/\/github\.com\/[^/]+\/[^/]+\/commit\/([0-9a-f]{40})$/i,
   );
   if (commitMatch) {
     return commitMatch[1];

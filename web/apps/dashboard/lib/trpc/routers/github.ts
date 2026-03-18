@@ -75,11 +75,11 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
     defaultBranch: app?.defaultBranch ?? "main",
     repoConnection: app?.githubRepoConnection
       ? {
-        pk: app.githubRepoConnection.pk,
-        repositoryId: app.githubRepoConnection.repositoryId,
-        repositoryFullName: app.githubRepoConnection.repositoryFullName,
-        installationId: app.githubRepoConnection.installationId,
-      }
+          pk: app.githubRepoConnection.pk,
+          repositoryId: app.githubRepoConnection.repositoryId,
+          repositoryFullName: app.githubRepoConnection.repositoryFullName,
+          installationId: app.githubRepoConnection.installationId,
+        }
       : null,
     installations: project.workspace?.githubAppInstallations ?? [],
   };

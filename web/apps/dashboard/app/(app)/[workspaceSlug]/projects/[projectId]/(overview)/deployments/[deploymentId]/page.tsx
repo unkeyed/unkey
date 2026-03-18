@@ -28,7 +28,8 @@ export default function DeploymentOverview() {
   );
 
   const derivedStatus = useMemo(
-    () => (skipped ? "skipped" as const : deriveStatusFromSteps(stepsQuery.data, deployment.status)),
+    () =>
+      skipped ? ("skipped" as const) : deriveStatusFromSteps(stepsQuery.data, deployment.status),
     [stepsQuery.data, deployment.status, skipped],
   );
 
