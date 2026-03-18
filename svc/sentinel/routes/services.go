@@ -18,4 +18,7 @@ type Services struct {
 	ClickHouse         clickhouse.ClickHouse
 	MaxRequestBodySize int64
 	Engine             engine.Evaluator
+	PprofEnabled       bool
+	PprofUsername      string
+	PprofPassword      string
 }
