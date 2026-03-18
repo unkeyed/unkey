@@ -40,6 +40,7 @@ import (
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/openapi"
 	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
@@ -196,6 +197,21 @@ func Run(ctx context.Context, cfg Config) error {
 	}), restate.WithIngressPrivate(true)))
 
 	restateSrv.Bind(hydrav1.NewVersioningServiceServer(versioning.New(), restate.WithIngressPrivate(true)))
+
+	restateSrv.Bind(hydrav1.NewOpenapiServiceServer(openapi.New(openapi.Config{
+		DB: database,
+	}), restate.WithIngressPrivate(true),
+		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~1 hour total.
+		// Scraping is best-effort (fire-and-forget from deploy); bound retries to avoid
+		// wasting resources on permanently broken endpoints.
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialInterval(1*time.Minute),
+			restate.WithExponentiationFactor(2.0),
+			restate.WithMaxInterval(10*time.Minute),
+			restate.WithMaxAttempts(10),
+			restate.KillOnMaxAttempts(),
+		),
+	))
 
 	restateSrv.Bind(hydrav1.NewGitHubWebhookServiceServer(githubwebhook.New(githubwebhook.Config{
 		DB: database,

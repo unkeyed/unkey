@@ -1,0 +1,26 @@
+syntax = "proto3";
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// OpenapiService scrapes OpenAPI specifications from running user deployments
+// after a successful deploy. Each deployment ID is unique and scraping is
+// fire-and-forget idempotent work, so no per-key serialisation is needed.
+service OpenapiService {
+  option (dev.restate.sdk.go.service_type) = SERVICE;
+
+  // ScrapeSpec looks up the deployment-specific public FQDN and the configured
+  // openapi_spec_path from app_runtime_settings, then fetches the spec and
+  // persists the result in the openapi_specs table.
+  // Returns success when scraping is disabled, the endpoint is absent (404),
+  // or no non-sticky route exists — not all deployments expose an OpenAPI spec.
+  rpc ScrapeSpec(ScrapeSpecRequest) returns (ScrapeSpecResponse) {}
+}
+
+message ScrapeSpecRequest {
+  string deployment_id = 1;
+}
+
+message ScrapeSpecResponse {}
