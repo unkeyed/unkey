@@ -12,7 +12,7 @@ import {
   InternalDevTreeGenerator,
   LiveIndicator,
   NodeDetailsPanel,
-  OriginNode,
+  type OriginNode as OriginNodeType,
   ProjectDetails,
   SKELETON_TREE,
   SentinelNode,
@@ -25,6 +25,7 @@ import {
   isSkeletonNode,
 } from "./unkey-flow";
 import { InstanceNode } from "./unkey-flow/components/nodes/instance-node";
+import { OriginNode } from "./unkey-flow/components/nodes/origin-node";
 
 interface DeploymentNetworkViewProps {
   showProjectDetails?: boolean;
@@ -54,55 +55,51 @@ export function DeploymentNetworkView({
   const toggleSentinel = useCallback((id: string) => {
     setCollapsedSentinelIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      next[next.has(id) ? "delete" : "add"](id);
       return next;
     });
   }, []);
 
+  // Triggers auto collapse for sentinels with more than 3 children
   useEffect(() => {
     if (hasAutoCollapsed.current || !defaultTree) {
       return;
     }
     hasAutoCollapsed.current = true;
-    const toCollapse = new Set<string>();
-    if (isOriginNode(defaultTree)) {
-      for (const child of defaultTree.children ?? []) {
-        if (
-          isSentinelNode(child) &&
-          (child.children ?? []).filter(isInstanceNode).length > COLLAPSE_THRESHOLD
-        ) {
-          toCollapse.add(child.id);
-        }
-      }
-    }
+
+    const toCollapse = computeAutoCollapsedSentinels(defaultTree);
     if (toCollapse.size > 0) {
       setCollapsedSentinelIds(toCollapse);
     }
-  }, [defaultTree]);
+  }, [currentTree]);
 
   const { visibleTree, sentinelChildrenMap } = useMemo(() => {
     const map = new Map<string, InstanceNodeType[]>();
 
-    function collapse(node: DeploymentNode): DeploymentNode {
-      if (isOriginNode(node)) {
-        return { ...node, children: node.children?.map((c) => collapse(c)) };
+    const originNode = currentTree as OriginNodeType;
+    const newChildren = (originNode.children ?? []).map((sentinel) => {
+      // Required for narrowing down the type. There is no way children of originNode not being SentinelNode
+      if (!isSentinelNode(sentinel)) {
+        return sentinel;
       }
-      if (isSentinelNode(node)) {
-        const instanceChildren = (node.children ?? []).filter(isInstanceNode);
-        map.set(node.id, instanceChildren);
 
-        return collapsedSentinelIds.has(node.id) && instanceChildren.length > COLLAPSE_THRESHOLD
-          ? { ...node, children: instanceChildren.slice(0, 1) }
-          : node;
+      const instanceChildren = sentinel.children ?? [];
+      map.set(sentinel.id, instanceChildren);
+
+      const isCollapsed = collapsedSentinelIds.has(sentinel.id);
+      const exceedsThreshold = instanceChildren.length > COLLAPSE_THRESHOLD;
+
+      if (isCollapsed && exceedsThreshold) {
+        return { ...sentinel, children: instanceChildren.slice(0, 1) };
       }
-      return node;
-    }
 
-    return { visibleTree: collapse(currentTree), sentinelChildrenMap: map };
+      return sentinel;
+    });
+
+    return {
+      visibleTree: { ...originNode, children: newChildren },
+      sentinelChildrenMap: map,
+    };
   }, [currentTree, collapsedSentinelIds]);
 
   const renderDeploymentNode = useCallback(
@@ -146,6 +143,7 @@ export function DeploymentNetworkView({
               }}
             >
               {instances
+                // We render the first child below as the first card thats why we drop the first one here
                 .slice(1)
                 .reverse()
                 .map((inst, i) => (
@@ -217,4 +215,15 @@ export function DeploymentNetworkView({
       />
     </InfiniteCanvas>
   );
+}
+
+function computeAutoCollapsedSentinels(tree: OriginNodeType): Set<string> {
+  const ids = (tree.children ?? [])
+    // This is purely needed for proper type inference
+    .filter(isSentinelNode)
+    // If instance nodes exceeds threshold then we mark that sentinel as collapsed
+    .filter((s) => (s.children ?? []).filter(isInstanceNode).length > COLLAPSE_THRESHOLD)
+    .map((s) => s.id);
+
+  return new Set(ids);
 }
