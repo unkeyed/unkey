@@ -2,7 +2,6 @@ package usagelimiter
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/buffer"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/counter"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/repeat"
@@ -34,8 +32,8 @@ type CreditChange struct {
 
 // RedisConfig holds configuration options for the Redis usage limiter.
 type RedisConfig struct {
-	// DB is the database connection for fallback and replay operations
-	DB db.Database
+	FindKeyCredits      FindKeyCreditsFunc
+	DecrementKeyCredits DecrementKeyCreditsFunc
 
 	// Counter is the counter implementation to use.
 	Counter counter.Counter
@@ -47,8 +45,9 @@ type RedisConfig struct {
 // counterService implements usage limiting using the counter interface
 // This provides truly atomic operations via Redis INCRBY commands
 type counterService struct {
-	db      db.Database
-	counter counter.Counter
+	findKeyCredits      FindKeyCreditsFunc
+	decrementKeyCredits DecrementKeyCreditsFunc
+	counter             counter.Counter
 
 	// Fallback to direct DB implementation when Redis fails
 	dbFallback Service
@@ -67,8 +66,8 @@ var _ Service = (*counterService)(nil)
 
 // CounterConfig holds configuration options for the counter-based usage limiter
 type CounterConfig struct {
-	// DB is the database connection for fallback and replay operations
-	DB db.Database
+	FindKeyCredits      FindKeyCreditsFunc
+	DecrementKeyCredits DecrementKeyCreditsFunc
 
 	// Counter is the distributed counter implementation to use
 	Counter counter.Counter
@@ -103,7 +102,8 @@ type CounterConfig struct {
 func NewCounter(config CounterConfig) (Service, error) {
 	if err := assert.All(
 		assert.NotNil(config.Counter),
-		assert.NotNil(config.DB),
+		assert.NotNil(config.FindKeyCredits),
+		assert.NotNil(config.DecrementKeyCredits),
 	); err != nil {
 		return nil, err
 	}
@@ -115,17 +115,19 @@ func NewCounter(config CounterConfig) (Service, error) {
 
 	// Create the direct DB fallback service
 	dbFallback, err := New(Config{
-		DB: config.DB,
+		FindKeyCredits:      config.FindKeyCredits,
+		DecrementKeyCredits: config.DecrementKeyCredits,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create DB fallback: %w", err)
 	}
 
 	s := &counterService{
-		db:         config.DB,
-		counter:    config.Counter,
-		dbFallback: dbFallback,
-		ttl:        ttl,
+		findKeyCredits:      config.FindKeyCredits,
+		decrementKeyCredits: config.DecrementKeyCredits,
+		counter:             config.Counter,
+		dbFallback:          dbFallback,
+		ttl:                 ttl,
 		replayBuffer: buffer.New[CreditChange](buffer.Config{
 			Name:     "usagelimiter_replays",
 			Capacity: 10_000,
@@ -227,26 +229,20 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	ctx, span := tracing.Start(ctx, "usagelimiter.counter.initializeFromDatabase")
 	defer span.End()
 
-	limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
-		return db.Query.FindKeyCredits(ctx, s.db.RO(), req.KeyID)
-	})
+	remaining, hasLimit, err := s.findKeyCredits(ctx, req.KeyID)
 	if err != nil {
-		if db.IsNotFound(err) {
-			return UsageResponse{Valid: false, Remaining: 0}, nil
-		}
-
 		return UsageResponse{Valid: false, Remaining: 0}, err
 	}
 
 	// This usage limiter should only be called for keys with limits
-	// Unlimited keys (limit.Valid == false) should be handled at the key validator level
-	if !limit.Valid {
+	// Unlimited keys (hasLimit == false) should be handled at the key validator level
+	if !hasLimit {
 		// Return valid anyway to not break existing behavior, but this is a logic error
 		return UsageResponse{Valid: true, Remaining: -1}, nil
 	}
 
 	// Determine what value to initialize Redis with - never use negative values
-	currentCredits := int64(limit.Int32)
+	currentCredits := int64(remaining)
 	hasSufficientCredits := currentCredits >= int64(req.Cost)
 
 	// Initialize Redis with appropriate value (current credits if insufficient, decremented if sufficient)
@@ -275,14 +271,14 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	}
 
 	// Another node already initialized the key, check if we have enough after decrement
-	remaining, exists, success, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
+	remainingCounter, exists, success, err := s.counter.DecrementIfExists(ctx, redisKey, int64(req.Cost))
 	if err != nil || !exists {
 		logger.Debug("failed to decrement after initialization attempt", "error", err, "exists", exists, "keyID", req.KeyID)
 		return s.dbFallback.Limit(ctx, req)
 	}
 
 	// Process the decrement result using explicit success flag
-	return s.handleResult(req, remaining, success), nil
+	return s.handleResult(req, remainingCounter, success), nil
 }
 
 // replayRequests processes buffered credit changes and updates the database
@@ -305,10 +301,7 @@ func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) er
 	}()
 
 	_, err := s.dbCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
-		return nil, db.Query.UpdateKeyCreditsDecrement(ctx, s.db.RW(), db.UpdateKeyCreditsDecrementParams{
-			ID:      change.KeyID,
-			Credits: sql.NullInt32{Int32: change.Cost, Valid: true},
-		})
+		return nil, s.decrementKeyCredits(ctx, change.KeyID, change.Cost)
 	})
 	if err != nil {
 		metrics.UsagelimiterReplayOperations.WithLabelValues("error").Inc()

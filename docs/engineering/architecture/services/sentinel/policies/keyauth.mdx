@@ -3,20 +3,177 @@ title: "KeyAuth"
 description: "API key authentication policy"
 ---
 
-KeyAuth authenticates requests using Unkey API keys and produces a principal on success. It is the only policy type currently executed by the sentinel engine.
+KeyAuth authenticates requests using Unkey API keys. It is the only policy type executed by the sentinel engine.
 
 ## Fields
 
-- `key_space_ids`: List of key space IDs that the key must belong to.
-- `locations`: Ordered list of key extraction locations.
-- `permission_query`: Optional RBAC query evaluated against key permissions.
+<ResponseField name="key_space_ids" type="string[]">
+  List of keyspace IDs the key must belong to. If the key belongs to a keyspace not in this list, authentication fails with `Sentinel.Auth.InvalidKey`.
+</ResponseField>
 
-## Runtime behavior
+<ResponseField name="locations" type="KeyLocation[]">
+  Ordered list of locations to extract the API key from. Sentinel tries each location in order and uses the first non-empty key. If omitted, defaults to extracting a Bearer token from the `Authorization` header.
+</ResponseField>
 
-Key extraction tries each configured location in order. If no locations are configured, sentinel extracts a Bearer token from the `Authorization` header. The key is hashed and verified through the KeyService, which enforces key status, usage limits, and rate limits.
+<ResponseField name="permission_query" type="string">
+  Optional RBAC query evaluated against the key's permissions. If the key does not satisfy the query, authentication fails with `Sentinel.Auth.InsufficientPermissions`.
+</ResponseField>
 
-On success, sentinel writes a `sentinel.v1.Principal` and sets `X-Unkey-Principal`. It also writes `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` headers when rate limit data is available, even if the request is rejected.
+## Examples
 
-## Implementation status
+<Tabs>
+<Tab title="Bearer token (default)">
+```json
+{
+  "policies": [
+    {
+      "id": "api-auth",
+      "name": "Authenticate API keys",
+      "enabled": true,
+      "match": [],
+      "keyauth": {
+        "key_space_ids": ["ks_abc123"],
+        "locations": [
+          { "bearer": {} }
+        ]
+      }
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Custom header">
+```json
+{
+  "policies": [
+    {
+      "id": "api-auth",
+      "name": "Authenticate via X-API-Key header",
+      "enabled": true,
+      "match": [],
+      "keyauth": {
+        "key_space_ids": ["ks_abc123"],
+        "locations": [
+          { "header": { "name": "X-API-Key" } }
+        ]
+      }
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Header with prefix stripping">
+```json
+{
+  "policies": [
+    {
+      "id": "api-auth",
+      "name": "Authenticate with prefix stripping",
+      "enabled": true,
+      "match": [],
+      "keyauth": {
+        "key_space_ids": ["ks_abc123"],
+        "locations": [
+          { "header": { "name": "Authorization", "strip_prefix": "ApiKey " } }
+        ]
+      }
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Query parameter">
+<Warning>
+  Placing API keys in query parameters is dangerous and should only be used as a last resort for trusted-internal services. Query strings are logged by proxies, CDNs, and web servers, cached by browsers and intermediaries, saved in browser history, and leaked to third parties via the `Referer` header. Prefer the `Authorization` header (`bearer` or `header` location) whenever possible.
+</Warning>
 
-KeyAuth is implemented in the middleware engine and executed during request processing.
+```json
+{
+  "policies": [
+    {
+      "id": "api-auth",
+      "name": "Authenticate via query param",
+      "enabled": true,
+      "match": [],
+      "keyauth": {
+        "key_space_ids": ["ks_abc123"],
+        "locations": [
+          { "query_param": { "name": "api_key" } }
+        ]
+      }
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="With permissions">
+```json
+{
+  "policies": [
+    {
+      "id": "api-auth",
+      "name": "Authenticate with RBAC",
+      "enabled": true,
+      "match": [],
+      "keyauth": {
+        "key_space_ids": ["ks_abc123"],
+        "locations": [{ "bearer": {} }],
+        "permission_query": "(api.keys.read OR api.keys.list) AND billing.read"
+      }
+    }
+  ]
+}
+```
+</Tab>
+</Tabs>
+
+## Key extraction
+
+Sentinel supports three key extraction locations:
+
+| Location        | Behavior                                                                    |
+| --------------- | --------------------------------------------------------------------------- |
+| Bearer          | Reads the `Authorization` header and strips the `Bearer ` prefix (case-insensitive) |
+| Header          | Reads a named header. Optionally strips a prefix (case-insensitive)         |
+| Query parameter | Reads a named query parameter. **Security risk:** query strings are recorded in server logs, proxy logs, CDN logs, browser history, and `Referer` headers. Use only as a last resort for trusted-internal traffic; prefer `bearer` or `header` locations. |
+
+When multiple locations are configured, sentinel tries each in order and uses the first non-empty result.
+
+## Verification flow
+
+1. Extract the key from the request using configured locations.
+2. Hash the key using SHA-256.
+3. Look up the hash in the key cache (fresh: 10s, stale: 10min, max: 100k entries).
+4. Validate key status. Keys that are not found, disabled, expired, or belong to a disabled workspace are rejected.
+5. Verify the key belongs to one of the configured `key_space_ids`.
+6. Parse the permission query (if configured) and build verify options.
+7. Call `verifier.Verify()` with 1 credit deduction per request.
+8. Write rate limit headers (regardless of success or failure).
+9. Check post-verification status (rate limit, usage exceeded, permissions).
+10. Build and return the principal on success.
+
+## Response headers
+
+KeyAuth writes rate limit headers on every response, including rejected requests:
+
+| Header                | Value                                                      |
+| --------------------- | ---------------------------------------------------------- |
+| `X-RateLimit-Limit`     | Rate limit ceiling                                         |
+| `X-RateLimit-Remaining` | Remaining requests in the window                           |
+| `X-RateLimit-Reset`     | Unix timestamp when the window resets                      |
+| `Retry-After`           | Seconds until retry (only on 429 responses, minimum 1 second) |
+
+## Error responses
+
+| Scenario                       | Status | Code                                     |
+| ------------------------------ | ------ | ---------------------------------------- |
+| No key found in request        | 401    | `Sentinel.Auth.MissingCredentials`       |
+| Key not found in database      | 401    | `Sentinel.Auth.InvalidKey`               |
+| Key disabled                   | 401    | `Sentinel.Auth.InvalidKey`               |
+| Key expired                    | 401    | `Sentinel.Auth.InvalidKey`               |
+| Key not in allowed keyspace    | 401    | `Sentinel.Auth.InvalidKey`               |
+| Workspace disabled             | 401    | `Sentinel.Auth.InvalidKey`               |
+| Permission query not satisfied | 403    | `Sentinel.Auth.InsufficientPermissions`  |
+| Rate limit exceeded            | 429    | `Sentinel.Auth.RateLimited`             |
+| Usage limit exceeded           | 429    | `Sentinel.Auth.RateLimited`             |
+| Invalid permission query syntax| 500    | `Sentinel.Internal.InvalidConfiguration` |

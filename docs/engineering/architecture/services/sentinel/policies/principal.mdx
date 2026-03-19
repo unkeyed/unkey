@@ -1,16 +1,84 @@
 ---
 title: "Principal"
-description: "Authenticated identity produced by policies"
+description: "Authenticated identity from auth policies"
 ---
 
-`sentinel.v1.Principal` is the shared identity shape produced by authentication policies. It decouples authentication from downstream enforcement.
+`sentinel.v1.Principal` is the shared identity shape produced by authentication policies. It decouples the authentication mechanism from downstream authorization decisions.
 
 ## Fields
 
-- `subject`: The authenticated identity string.
-- `type`: The authentication method that produced the principal.
-- `claims`: Arbitrary key-value metadata provided by the auth policy.
+<ResponseField name="subject" type="string">
+  The authenticated identity string. For KeyAuth, this is the external ID (if present) or the key ID.
+</ResponseField>
+
+<ResponseField name="type" type="PrincipalType">
+  The authentication method that produced this principal. Values: `PRINCIPAL_TYPE_API_KEY`, `PRINCIPAL_TYPE_BASIC`, `PRINCIPAL_TYPE_JWT`.
+</ResponseField>
+
+<ResponseField name="claims" type="map<string, string>">
+  Key-value metadata from the auth policy. Contents vary by policy type.
+</ResponseField>
+
+## What a principal looks like
+
+<Tabs>
+<Tab title="KeyAuth principal">
+```json
+{
+  "subject": "user_abc123",
+  "type": "PRINCIPAL_TYPE_API_KEY",
+  "claims": {
+    "key_id": "key_xyz",
+    "key_space_id": "ks_abc123",
+    "api_id": "api_456",
+    "workspace_id": "ws_789",
+    "external_id": "user_abc123",
+    "meta": "{\"plan\": \"pro\"}"
+  }
+}
+```
+</Tab>
+<Tab title="JWT principal">
+```json
+{
+  "subject": "auth0|abc123",
+  "type": "PRINCIPAL_TYPE_JWT",
+  "claims": {
+    "email": "user@example.com",
+    "org_id": "org_456"
+  }
+}
+```
+</Tab>
+<Tab title="BasicAuth principal">
+```json
+{
+  "subject": "admin",
+  "type": "PRINCIPAL_TYPE_BASIC",
+  "claims": {}
+}
+```
+</Tab>
+</Tabs>
+
+## KeyAuth claims
+
+When produced by a KeyAuth policy, the principal includes these claims:
+
+| Claim          | Description                                    |
+| -------------- | ---------------------------------------------- |
+| `key_id`       | Unkey key identifier                           |
+| `key_space_id` | Keyspace the key belongs to                    |
+| `api_id`       | API identifier                                 |
+| `workspace_id` | Workspace identifier                           |
+| `name`         | Key name (if set)                              |
+| `identity_id`  | Identity ID (if set)                           |
+| `external_id`  | External ID (if set)                           |
+| `meta`         | Key metadata JSON (if set)                     |
+| `expires`      | Expiration time in RFC 3339 format (if set)    |
 
 ## Header propagation
 
-Sentinel serializes the principal to JSON and sets it on `X-Unkey-Principal`. The proxy handler strips any incoming `X-Unkey-Principal` header to prevent spoofing.
+Sentinel serializes the principal to JSON and sets it on the `X-Unkey-Principal` header before forwarding the request to the instance. The instance can read this header to make authorization decisions without re-verifying the API key.
+
+The proxy handler strips any incoming `X-Unkey-Principal` header before policy evaluation to prevent clients from spoofing an authenticated identity.

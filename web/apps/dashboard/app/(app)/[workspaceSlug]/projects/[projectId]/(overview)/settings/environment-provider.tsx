@@ -10,6 +10,7 @@ import { useProjectData } from "../data-provider";
 type EnvironmentContextType = {
   settings: EnvironmentSettings;
   variant: "settings" | "onboarding";
+  isSaving: boolean;
 };
 
 export const EnvironmentContext = createContext<EnvironmentContextType | null>(null);
@@ -44,7 +45,7 @@ export const EnvironmentSettingsProvider = ({ children }: PropsWithChildren) => 
   }
 
   return (
-    <EnvironmentContext.Provider value={{ settings, variant: "settings" }}>
+    <EnvironmentContext.Provider value={{ settings, variant: "settings", isSaving: false }}>
       {children}
     </EnvironmentContext.Provider>
   );

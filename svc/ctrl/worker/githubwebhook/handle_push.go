@@ -113,7 +113,6 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 						GitCommitAuthorHandle:         sql.NullString{String: authorHandle, Valid: authorHandle != ""},
 						GitCommitAuthorAvatarUrl:      sql.NullString{String: authorAvatarURL, Valid: authorAvatarURL != ""},
 						GitCommitTimestamp:            sql.NullInt64{Int64: commitTimestamp, Valid: commitTimestamp != 0},
-						OpenapiSpec:                   sql.NullString{Valid: false},
 						CpuMillicores:                 runtimeSettings.CpuMillicores,
 						MemoryMib:                     runtimeSettings.MemoryMib,
 						Port:                          runtimeSettings.Port,
@@ -179,7 +178,6 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 					GitCommitAuthorHandle:         sql.NullString{String: authorHandle, Valid: authorHandle != ""},
 					GitCommitAuthorAvatarUrl:      sql.NullString{String: authorAvatarURL, Valid: authorAvatarURL != ""},
 					GitCommitTimestamp:            sql.NullInt64{Int64: commitTimestamp, Valid: commitTimestamp != 0},
-					OpenapiSpec:                   sql.NullString{Valid: false},
 					CpuMillicores:                 runtimeSettings.CpuMillicores,
 					MemoryMib:                     runtimeSettings.MemoryMib,
 					Port:                          runtimeSettings.Port,
@@ -203,9 +201,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 					return err
 				}
 				return nil
-
 			})
-
 		}, restate.WithName("insert deployment"))
 		if err != nil {
 			logger.Error("failed to insert deployment", "appId", app.ID, "error", err)

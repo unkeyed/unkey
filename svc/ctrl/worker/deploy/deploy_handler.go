@@ -53,7 +53,6 @@ const (
 // Returns terminal errors for validation failures and retryable errors for
 // transient system failures.
 func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (_ *hydrav1.DeployResponse, retErr error) {
-
 	err := assert.All(
 		assert.NotEmpty(req.GetDeploymentId(), "deployment_id is required"),
 	)
@@ -113,7 +112,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Starting ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment, func(stepCtx restate.ObjectContext) error {
-
 		workspace, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
 			var ws db.Workspace
 			err := db.TxRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
@@ -169,7 +167,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}
 
 		return nil
-
 	})
 	if err != nil {
 		return nil, err
@@ -191,7 +188,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Deploy ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepDeploying, deployment, func(stepCtx restate.ObjectContext) error {
-
 		topologies, err := w.createTopologies(stepCtx, compensation, workspace, deployment)
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Regional deployment targets could not be prepared."))
@@ -210,7 +206,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}
 		return nil
 	})
-
 	if err != nil {
 		statusReporter.Report(ctx, "failure", "Deployment to regions failed")
 		return nil, err
@@ -220,7 +215,6 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Network ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.ObjectContext) error {
-
 		return w.configureRouting(stepCtx, workspace, project, app, environment, deployment)
 	})
 	if err != nil {
@@ -256,6 +250,14 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	logger.Info("deployment workflow completed",
 		"deployment_id", deployment.ID,
 		"status", "succeeded",
+	)
+
+	// Scrape OpenAPI spec asynchronously. The handler reads the configured path
+	// from app_runtime_settings; deployment succeeds regardless of scrape outcome.
+	hydrav1.NewOpenapiServiceClient(ctx).ScrapeSpec().Send(
+		&hydrav1.ScrapeSpecRequest{
+			DeploymentId: deployment.ID,
+		},
 	)
 
 	return &hydrav1.DeployResponse{}, nil
@@ -451,13 +453,13 @@ func (w *Workflow) createTopologies(
 	if allocatedResources.TotalCpuMillicores > int64(quota.AllocatedCpuMillicoresTotal) {
 		return nil, fault.Wrap(
 			restate.TerminalError(fmt.Errorf("CPU quota exceeded: consumed %d, quota %d", allocatedResources.TotalCpuMillicores, quota.AllocatedCpuMillicoresTotal)),
-			fault.Public("CPU quota exceeded. Please reduce the requested CPUs or free up resources in your workspace."),
+			fault.Public("We are unable to deploy this application as you have exceeded your CPU quota."),
 		)
 	}
 	if allocatedResources.TotalMemoryMib > int64(quota.AllocatedMemoryMibTotal) {
 		return nil, fault.Wrap(
 			restate.TerminalError(fmt.Errorf("Memory quota exceeded: consumed %d, quota %d", allocatedResources.TotalMemoryMib, quota.AllocatedMemoryMibTotal)),
-			fault.Public("Memory quota exceeded. Please reduce the requested memory or free up resources in your workspace."),
+			fault.Public("We are unable to deploy this application as you have exceeded your Memory quota."),
 		)
 	}
 
@@ -565,7 +567,6 @@ func (w *Workflow) ensureSentinels(
 			}
 
 			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-
 				region, err := db.Query.FindRegionById(runCtx, w.db.RO(), topology.RegionID)
 				if err != nil {
 					return fmt.Errorf("failed to find region by id %s: %w", topology.RegionID, err)
@@ -598,7 +599,6 @@ func (w *Workflow) ensureSentinels(
 					return err
 				}
 				return nil
-
 			}, restate.WithName("ensure sentinel exists in db"))
 			if err != nil {
 				return fault.Wrap(err, fault.Public("Traffic proxy could not be created for a region."))
@@ -638,6 +638,7 @@ func (w *Workflow) configureRouting(
 		w.defaultDomain,
 		// TODO: source type is hardcoded to CLI_UPLOAD regardless of actual source type
 		ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
+		deployment.ID,
 	)
 
 	existingRouteIDs := make([]string, 0)
@@ -684,7 +685,6 @@ func (w *Workflow) configureRouting(
 	}
 
 	routeIDs, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
-
 		// using a transaction here to ensure we read a consistent set of sticky routes that won't change under us as we promote this deployment.
 		// This is important to prevent a race
 		return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) ([]string, error) {
@@ -717,7 +717,6 @@ func (w *Workflow) configureRouting(
 			}
 			return routeIDs, nil
 		})
-
 	}, restate.WithName("finding sticky routes"))
 	if err != nil {
 		return fault.Wrap(
