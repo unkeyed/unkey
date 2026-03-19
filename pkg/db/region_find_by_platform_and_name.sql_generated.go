@@ -11,7 +11,7 @@ import (
 
 const findRegionByPlatformAndName = `-- name: FindRegionByPlatformAndName :one
 SELECT
- pk, id, name, platform
+ pk, id, name, platform, is_schedulable
 FROM regions
 WHERE platform = ? AND name = ? LIMIT 1
 `
@@ -24,7 +24,7 @@ type FindRegionByPlatformAndNameParams struct {
 // FindRegionByPlatformAndName
 //
 //	SELECT
-//	 pk, id, name, platform
+//	 pk, id, name, platform, is_schedulable
 //	FROM regions
 //	WHERE platform = ? AND name = ? LIMIT 1
 func (q *Queries) FindRegionByPlatformAndName(ctx context.Context, db DBTX, arg FindRegionByPlatformAndNameParams) (Region, error) {
@@ -35,6 +35,7 @@ func (q *Queries) FindRegionByPlatformAndName(ctx context.Context, db DBTX, arg 
 		&i.ID,
 		&i.Name,
 		&i.Platform,
+		&i.IsSchedulable,
 	)
 	return i, err
 }

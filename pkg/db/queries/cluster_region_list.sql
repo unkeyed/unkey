@@ -1,2 +1,2 @@
 -- name: ListRegions :many
-SELECT id, name, platform FROM regions;
+SELECT id, name, platform, is_schedulable FROM regions;

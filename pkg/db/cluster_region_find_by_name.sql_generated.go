@@ -10,7 +10,7 @@ import (
 )
 
 const findRegionByNameAndPlatform = `-- name: FindRegionByNameAndPlatform :one
-SELECT pk, id, name, platform FROM regions WHERE name = ? AND platform = ?
+SELECT pk, id, name, platform, is_schedulable FROM regions WHERE name = ? AND platform = ?
 `
 
 type FindRegionByNameAndPlatformParams struct {
@@ -20,7 +20,7 @@ type FindRegionByNameAndPlatformParams struct {
 
 // FindRegionByNameAndPlatform
 //
-//	SELECT pk, id, name, platform FROM regions WHERE name = ? AND platform = ?
+//	SELECT pk, id, name, platform, is_schedulable FROM regions WHERE name = ? AND platform = ?
 func (q *Queries) FindRegionByNameAndPlatform(ctx context.Context, db DBTX, arg FindRegionByNameAndPlatformParams) (Region, error) {
 	row := db.QueryRowContext(ctx, findRegionByNameAndPlatform, arg.Name, arg.Platform)
 	var i Region
@@ -29,6 +29,7 @@ func (q *Queries) FindRegionByNameAndPlatform(ctx context.Context, db DBTX, arg 
 		&i.ID,
 		&i.Name,
 		&i.Platform,
+		&i.IsSchedulable,
 	)
 	return i, err
 }

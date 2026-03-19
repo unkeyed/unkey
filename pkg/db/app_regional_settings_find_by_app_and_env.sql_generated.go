@@ -18,6 +18,7 @@ FROM app_regional_settings ars
 JOIN regions r ON r.id = ars.region_id
 WHERE ars.app_id = ?
   AND ars.environment_id = ?
+  AND r.is_schedulable = true
 `
 
 type FindAppRegionalSettingsByAppAndEnvParams struct {
@@ -41,6 +42,7 @@ type FindAppRegionalSettingsByAppAndEnvRow struct {
 //	JOIN regions r ON r.id = ars.region_id
 //	WHERE ars.app_id = ?
 //	  AND ars.environment_id = ?
+//	  AND r.is_schedulable = true
 func (q *Queries) FindAppRegionalSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRegionalSettingsByAppAndEnvParams) ([]FindAppRegionalSettingsByAppAndEnvRow, error) {
 	rows, err := db.QueryContext(ctx, findAppRegionalSettingsByAppAndEnv, arg.AppID, arg.EnvironmentID)
 	if err != nil {

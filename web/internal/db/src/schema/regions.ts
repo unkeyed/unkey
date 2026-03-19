@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { clusters } from "./clusters";
 
 export const regions = mysqlTable(
@@ -11,6 +11,9 @@ export const regions = mysqlTable(
     name: varchar("name", { length: 64 }).notNull(),
     // e.g. aws, gcp, azure, local, etc.
     platform: varchar("platform", { length: 64 }).notNull(),
+    // Whether this region is available for users to schedule deployments to.
+    // Defaults to false — must be manually enabled in the database.
+    isSchedulable: boolean("is_schedulable").notNull().default(false),
   },
   (table) => [uniqueIndex("unique_region_per_platform").on(table.name, table.platform)],
 );
