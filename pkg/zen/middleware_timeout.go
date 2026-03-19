@@ -42,12 +42,10 @@ func WithTimeout(timeout time.Duration) Middleware {
 				)
 			}
 
-			// Server-side timeout — only reclassify if no downstream middleware
-			// has already categorized the error (e.g. proxy error handling).
+			// Server-side timeout - always reclassify regardless of any wrapped codes.
+			// App code may have wrapped context.DeadlineExceeded with ServiceUnavailable,
+			// but it's still a timeout, not a 500.
 			if errors.Is(err, context.DeadlineExceeded) {
-				if _, hasCode := fault.GetCode(err); hasCode {
-					return err
-				}
 				return fault.Wrap(err,
 					fault.Code(codes.User.BadRequest.RequestTimeout.URN()),
 					fault.Internal("The request exceeded the maximum processing time"),
