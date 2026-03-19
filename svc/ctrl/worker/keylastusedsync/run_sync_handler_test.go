@@ -186,9 +186,11 @@ func TestRunSync_Performance(t *testing.T) {
 	}
 
 	// Reset last_used_at so the sync has work to do
-	_, err := h.DB.RW().ExecContext(ctx, "UPDATE `keys` SET last_used_at = NULL WHERE id LIKE 'key_%'")
+	t.Logf("Resetting last_used_at for all keys...")
+	resetStart := time.Now()
+	_, err := h.DB.RW().ExecContext(ctx, "UPDATE `keys` SET last_used_at = NULL")
 	require.NoError(t, err)
-	t.Logf("Reset last_used_at for all test keys")
+	t.Logf("Reset complete in %s", time.Since(resetStart))
 
 	// ── Run sync — single invocation with partitioned fan-out ────────────
 	t.Logf("Running sync (partitioned fan-out)...")

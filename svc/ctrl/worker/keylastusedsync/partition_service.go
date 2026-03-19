@@ -2,9 +2,9 @@ package keylastusedsync
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -105,7 +105,7 @@ func (s *PartitionService) SyncPartition(
 			}
 
 			myStart := time.Now()
-			if updateErr := updateLastUsedBatch(rc, s.db, batch); updateErr != nil {
+			if updateErr := updateLastUsedBatch(rc, s.db, partition, batch); updateErr != nil {
 				return batchResult{}, fmt.Errorf("update partition %d: %w", partition, updateErr)
 			}
 			myDur := time.Since(myStart)
@@ -160,20 +160,70 @@ func (s *PartitionService) SyncPartition(
 	}, nil
 }
 
-func updateLastUsedBatch(ctx context.Context, database db.Database, batch []clickhouse.KeyLastUsed) error {
+func updateLastUsedBatch(ctx context.Context, database db.Database, partition int, batch []clickhouse.KeyLastUsed) error {
 	if len(batch) == 0 {
 		return nil
 	}
-	return db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
-		for _, r := range batch {
-			err := db.Query.UpdateKeyLastUsed(ctx, tx, db.UpdateKeyLastUsedParams{
-				ID:         r.KeyID,
-				LastUsedAt: sql.NullInt64{Valid: true, Int64: r.Time},
-			})
-			if err != nil {
-				return fmt.Errorf("update key %s: %w", r.KeyID, err)
-			}
+	// CASE/WHEN bulk UPDATE: one SQL statement per chunk instead of one per key.
+	// Benchmarked at ~44K keys/sec (chunk=100) vs ~5K keys/sec for individual UPDATEs.
+	const chunkSize = 100
+	rw := database.RW()
+	batchStart := time.Now()
+	for start := 0; start < len(batch); start += chunkSize {
+		end := min(start+chunkSize, len(batch))
+		chunk := batch[start:end]
+
+		if err := buildAndExecCaseUpdate(ctx, rw, chunk); err != nil {
+			return fmt.Errorf("update chunk at offset %d: %w", start, err)
 		}
-		return nil
-	})
+
+		if end%5000 == 0 {
+			logger.Info("update progress",
+				"partition", partition,
+				"keys", end,
+				"total", len(batch),
+				"elapsed", time.Since(batchStart),
+			)
+		}
+	}
+	return nil
+}
+
+// buildAndExecCaseUpdate builds and executes a single UPDATE statement like:
+//
+//	UPDATE `keys` SET last_used_at = CASE id
+//	  WHEN 'key1' THEN 1710000000
+//	  WHEN 'key2' THEN 1710000001
+//	END
+//	WHERE id IN ('key1','key2')
+//	  AND (last_used_at IS NULL OR last_used_at < CASE id WHEN 'key1' THEN 1710000000 ... END)
+func buildAndExecCaseUpdate(ctx context.Context, rw db.DBTX, chunk []clickhouse.KeyLastUsed) error {
+	var b strings.Builder
+	// Pre-allocate: each key needs 3 args (CASE, IN, filter CASE)
+	args := make([]any, 0, len(chunk)*5+1)
+
+	// SET clause
+	b.WriteString("UPDATE `keys` SET last_used_at = CASE id ")
+	for _, r := range chunk {
+		b.WriteString("WHEN ? THEN ? ")
+		args = append(args, r.KeyID, r.Time)
+	}
+	b.WriteString("END WHERE id IN (")
+	for i, r := range chunk {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteByte('?')
+		args = append(args, r.KeyID)
+	}
+	// Only update if new value is actually newer
+	b.WriteString(") AND (last_used_at IS NULL OR last_used_at < CASE id ")
+	for _, r := range chunk {
+		b.WriteString("WHEN ? THEN ? ")
+		args = append(args, r.KeyID, r.Time)
+	}
+	b.WriteString("END)")
+
+	_, err := rw.ExecContext(ctx, b.String(), args...)
+	return err
 }
