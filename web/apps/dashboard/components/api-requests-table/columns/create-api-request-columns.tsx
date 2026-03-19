@@ -25,9 +25,9 @@ export const API_REQUEST_COLUMN_IDS = {
   KEY_ID: { id: "key_id", accessorKey: "key_id", header: "ID" },
   NAME: { id: "name", accessorKey: "name", header: "Name" },
   EXTERNAL_ID: { id: "external_id", accessorKey: "external_id", header: "External ID" },
-  VALID: { id: "valid", accessorKey: "valid", header: "Valid" },
-  INVALID: { id: "invalid", accessorKey: "invalid", header: "Invalid" },
-  LAST_USED: { id: "lastUsed", accessorKey: "lastUsed", header: "Last Used" },
+  VALID: { id: "valid", accessorKey: "valid_count", header: "Valid" },
+  INVALID: { id: "invalid", accessorKey: "error_count", header: "Invalid" },
+  LAST_USED: { id: "time", accessorKey: "time", header: "Last Used" },
 } as const;
 
 type CreateLogsColumnsOptions = {
@@ -97,7 +97,7 @@ export const createApiRequestColumns = ({
         <div className="flex gap-3 items-center tabular-nums">
           <Badge
             className={cn(
-              "px-[1.5 rounded-md font-mono whitespace-nowrap",
+              "px-1.5 rounded-md font-mono whitespace-nowrap",
               selectedLog?.key_id === log.key_id
                 ? SEVERITY_STYLES.success.badge.selected
                 : SEVERITY_STYLES.success.badge.default,
@@ -111,8 +111,8 @@ export const createApiRequestColumns = ({
     },
   },
   {
-    id: "invalid",
-    accessorKey: "error_count",
+    id: API_REQUEST_COLUMN_IDS.INVALID.id,
+    accessorKey: API_REQUEST_COLUMN_IDS.INVALID.accessorKey,
     header: ({ header }) => (
       <SortableHeader key={API_REQUEST_COLUMN_IDS.INVALID.id} header={header}>
         {API_REQUEST_COLUMN_IDS.INVALID.header}
@@ -139,8 +139,8 @@ export const createApiRequestColumns = ({
     },
   },
   {
-    id: "time",
-    accessorKey: "time",
+    id: API_REQUEST_COLUMN_IDS.LAST_USED.id,
+    accessorKey: API_REQUEST_COLUMN_IDS.LAST_USED.accessorKey,
     header: ({ header }) => (
       <SortableHeader key={API_REQUEST_COLUMN_IDS.LAST_USED.id} header={header}>
         {API_REQUEST_COLUMN_IDS.LAST_USED.header}
