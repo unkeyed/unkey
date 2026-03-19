@@ -7,13 +7,15 @@ Unkey is the API development platform that handles the infrastructure you'd rath
 
 <CardGroup cols={3}>
   <Card title="API Keys" icon="key">
-    Issue, verify, and revoke keys with metadata, expiration, and usage limits built in.
+    Issue, verify, and revoke keys with metadata, expiration, and usage limits
+    built in.
   </Card>
   <Card title="Rate Limiting" icon="gauge-high">
     Protect any endpoint from abuse — standalone or attached to API keys.
   </Card>
   <Card title="Usage Tracking" icon="chart-line">
-    Know who's using your API, how much, and when — with analytics out of the box.
+    Know who's using your API, how much, and when — with analytics out of the
+    box.
   </Card>
 </CardGroup>
 
@@ -21,15 +23,16 @@ Unkey is the API development platform that handles the infrastructure you'd rath
 
 Building API infrastructure from scratch means managing databases, Redis clusters, edge caching, and analytics pipelines. Unkey handles all of that so you can focus on your actual product.
 
-| DIY Approach | With Unkey |
-|--------------|------------|
-| Set up key storage, hashing, rotation | `unkey.keys.create()` |
-| Deploy Redis for rate limiting | `unkey.ratelimit.limit()` |
-| Build usage tracking & dashboards | Built-in analytics |
-| Manage infrastructure globally | Globally distributed |
+| DIY Approach                          | With Unkey                |
+| ------------------------------------- | ------------------------- |
+| Set up key storage, hashing, rotation | `unkey.keys.create()`     |
+| Deploy Redis for rate limiting        | `unkey.ratelimit.limit()` |
+| Build usage tracking & dashboards     | Built-in analytics        |
+| Manage infrastructure globally        | Globally distributed      |
 
 <Note>
-Unkey never stores your API keys in plain text. We hash them before storage, so even if our database were compromised, your keys stay safe.
+  Unkey never stores your API keys in plain text. We hash them before storage,
+  so even if our database were compromised, your keys stay safe.
 </Note>
 
 ## What can you build?
@@ -95,18 +98,10 @@ Unkey never stores your API keys in plain text. We hash them before storage, so 
 ## Get started
 
 <CardGroup cols={2}>
-  <Card
-    title="Quickstart"
-    icon="rocket"
-    href="/quickstart/quickstart"
-  >
+  <Card title="Quickstart" icon="rocket" href="/quickstart/quickstart">
     Create your first API and verify a key in under 5 minutes.
   </Card>
-  <Card
-    title="Framework guides"
-    icon="code"
-    href="/quickstart/apis/nextjs"
-  >
+  <Card title="Framework guides" icon="code" href="/quickstart/apis/nextjs">
     Step-by-step guides for Next.js, Bun, Express, Hono, and more.
   </Card>
 </CardGroup>
@@ -114,16 +109,28 @@ Unkey never stores your API keys in plain text. We hash them before storage, so 
 ## Choose your path
 
 <CardGroup cols={2}>
-  <Card title="I need API key authentication" icon="key" href="/apis/introduction">
+  <Card
+    title="I need API key authentication"
+    icon="key"
+    href="/platform/apis/introduction"
+  >
     Issue keys to users, verify on requests, track usage per key.
   </Card>
-  <Card title="I need rate limiting" icon="gauge-high" href="/ratelimiting/introduction">
+  <Card
+    title="I need rate limiting"
+    icon="gauge-high"
+    href="/platform/ratelimiting/introduction"
+  >
     Protect endpoints from abuse without managing Redis infrastructure.
   </Card>
   <Card title="I need both" icon="bolt" href="/quickstart/quickstart">
     Start with API keys — rate limiting can be added per-key or standalone.
   </Card>
-  <Card title="I'm migrating from another solution" icon="arrows-rotate" href="/migrations/introduction">
+  <Card
+    title="I'm migrating from another solution"
+    icon="arrows-rotate"
+    href="/platform/migrations/introduction"
+  >
     Bring existing keys to Unkey without disrupting your users.
   </Card>
 </CardGroup>

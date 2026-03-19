@@ -5,7 +5,6 @@ description: "The authentication key was not found"
 
 <Danger>`err:unkey:authentication:key_not_found`</Danger>
 
-
 ```json Example
 {
   "meta": {
@@ -25,6 +24,7 @@ description: "The authentication key was not found"
 This error occurs when you've provided a properly formatted API key in your request to the Unkey API, but the key doesn't exist in Unkey's system. The key might have been deleted, revoked, or you might be using an incorrect key.
 
 Common causes include:
+
 - Using an API key that has been deleted
 - Using an API key from a different workspace or environment
 - Typographical errors when entering the key
@@ -70,5 +70,6 @@ curl -X POST https://api.unkey.com/v2/keys.listKeys \
 - **Using demo keys**: Using example keys from documentation
 
 ## Related Errors
+
 - [err:unkey:authentication:missing](./missing) - When no authentication credentials are provided
 - [err:unkey:authentication:malformed](./malformed) - When the API key is provided but formatted incorrectly

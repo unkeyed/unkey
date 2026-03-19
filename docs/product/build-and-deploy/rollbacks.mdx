@@ -1,0 +1,16 @@
+---
+title: Rollbacks & promotions
+description: Instantly revert to a previous deployment or promote a specific build to production with zero-downtime route switching.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+## TODO
+
+- How rollback works: atomic route switching to a previous deployment
+- Promoting a specific deployment to receive production traffic
+- Zero-downtime switching — old deployment stays running until routes are reassigned
+- The `isRolledBack` flag: what it means and how it affects subsequent pushes
+- Rolling forward vs rolling back: when to use each approach

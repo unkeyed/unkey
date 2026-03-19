@@ -3,20 +3,21 @@ title: "Root Keys"
 description: "Manage your Unkey workspace with root keys"
 ---
 
-Root keys authenticate *your* requests to the Unkey API. They're used to create API keys, manage identities, configure rate limits, and perform other administrative operations.
+Root keys authenticate _your_ requests to the Unkey API. They're used to create API keys, manage identities, configure rate limits, and perform other administrative operations.
 
 <Warning>
-Root keys have powerful permissions. Never expose them in client-side code, commit them to git, or share them publicly.
+  Root keys have powerful permissions. Never expose them in client-side code,
+  commit them to git, or share them publicly.
 </Warning>
 
 ## Root keys vs API keys
 
-| | Root Keys | API Keys |
-|---|---|---|
-| **Purpose** | Manage Unkey resources | Authenticate your users |
-| **Who uses it** | You (the developer) | Your customers |
-| **Permissions** | Create/update/delete keys, manage APIs | Access your API endpoints |
-| **Where stored** | Your server's environment variables | Given to customers |
+|                  | Root Keys                              | API Keys                  |
+| ---------------- | -------------------------------------- | ------------------------- |
+| **Purpose**      | Manage Unkey resources                 | Authenticate your users   |
+| **Who uses it**  | You (the developer)                    | Your customers            |
+| **Permissions**  | Create/update/delete keys, manage APIs | Access your API endpoints |
+| **Where stored** | Your server's environment variables    | Given to customers        |
 
 ## Create a root key
 
@@ -26,26 +27,27 @@ Navigate to [Settings → Root Keys](https://app.unkey.com/settings/root-keys) i
 </Step>
 
 <Step title="Click 'Create New Root Key'">
-<Frame>
-<img src="/images/root-keys/rootkey-modal-start.png"/>
-</Frame>
+  <Frame>
+    <img src="/images/root-keys/rootkey-modal-start.png" />
+  </Frame>
 </Step>
 
 <Step title="Configure permissions">
 Give the key a descriptive name and select only the permissions it needs.
 
 <Frame>
-<img src="/images/root-keys/rootkey-create.png"/>
+  <img src="/images/root-keys/rootkey-create.png" />
 </Frame>
 
 **Common permission sets:**
 
-| Use case | Permissions needed |
-|----------|-------------------|
-| Verify keys only | `api.*.read_key` |
-| Create keys for users | `api.*.create_key`, `api.*.read_key` |
-| Full key management | `api.*.create_key`, `api.*.read_key`, `api.*.update_key`, `api.*.delete_key` |
-| Rate limit overrides | `ratelimit.*.set_override` |
+| Use case              | Permissions needed                                                           |
+| --------------------- | ---------------------------------------------------------------------------- |
+| Verify keys only      | `api.*.read_key`                                                             |
+| Create keys for users | `api.*.create_key`, `api.*.read_key`                                         |
+| Full key management   | `api.*.create_key`, `api.*.read_key`, `api.*.update_key`, `api.*.delete_key` |
+| Rate limit overrides  | `ratelimit.*.set_override`                                                   |
+
 </Step>
 
 <Step title="Copy and store securely">
@@ -54,7 +56,7 @@ Copy the key immediately — you won't see it again. Unkey only stores a hash.
 </Note>
 
 <Frame>
-<img src="/images/root-keys/copy.png"/>
+  <img src="/images/root-keys/copy.png" />
 </Frame>
 
 Store it in your environment variables:
@@ -62,6 +64,7 @@ Store it in your environment variables:
 ```bash .env
 UNKEY_ROOT_KEY=unkey_...
 ```
+
 </Step>
 </Steps>
 
@@ -73,14 +76,14 @@ Only grant the permissions each root key actually needs. A key that only verifie
 </Accordion>
 
 <Accordion title="Use separate keys for different services">
-Create dedicated root keys for each service or environment:
-- `production-api-server` — verify and create keys
-- `admin-dashboard` — full management access
-- `billing-service` — update key credits only
+  Create dedicated root keys for each service or environment: -
+  `production-api-server` — verify and create keys - `admin-dashboard` — full
+  management access - `billing-service` — update key credits only
 </Accordion>
 
 <Accordion title="Rotate keys periodically">
-Even without a breach, rotate root keys every few months as a security practice. Create a new key, update your services, then delete the old one.
+  Even without a breach, rotate root keys every few months as a security
+  practice. Create a new key, update your services, then delete the old one.
 </Accordion>
 
 <Accordion title="Never log root keys">
@@ -96,16 +99,21 @@ Act immediately:
 2. **Create a new key** — Generate a replacement with the same permissions
 3. **Update your services** — Deploy the new key to your environment
 4. **Check audit logs** — Review [Audit Logs](https://app.unkey.com/audit) for any unauthorized activity
-5. **Rotate affected API keys** — If you suspect API keys were created or modified, consider [rerolling](/apis/features/rerolling-key) them
+5. **Rotate affected API keys** — If you suspect API keys were created or modified, consider [rerolling](/platform/apis/features/rerolling-key) them
 
 <Tip>
-Enable [GitHub secret scanning](/security/github-scanning) to get automatic alerts if your root key is accidentally committed.
+  Enable [GitHub secret scanning](/security/github-scanning) to get automatic
+  alerts if your root key is accidentally committed.
 </Tip>
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="GitHub Secret Scanning" icon="github" href="/security/github-scanning">
+  <Card
+    title="GitHub Secret Scanning"
+    icon="github"
+    href="/security/github-scanning"
+  >
     Get alerts for leaked keys
   </Card>
   <Card title="Audit Logs" icon="scroll" href="/audit-log/introduction">

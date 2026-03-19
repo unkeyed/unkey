@@ -1,7 +1,6 @@
 ---
 title: Overview
-description: 'Track every change to your API keys, permissions, and configuration'
-
+description: "Track every change to your API keys, permissions, and configuration"
 ---
 
 Audit logs capture every mutation in your workspace — key creation, permission changes, revocations, and more. They're essential for security compliance, debugging, and understanding who changed what and when.
@@ -10,13 +9,16 @@ Audit logs capture every mutation in your workspace — key creation, permission
 
 <CardGroup cols={2}>
   <Card title="Security investigations" icon="magnifying-glass">
-    When something goes wrong, trace exactly what happened and who was responsible.
+    When something goes wrong, trace exactly what happened and who was
+    responsible.
   </Card>
   <Card title="Compliance requirements" icon="file-shield">
-    SOC 2, HIPAA, and other frameworks require audit trails for sensitive operations.
+    SOC 2, HIPAA, and other frameworks require audit trails for sensitive
+    operations.
   </Card>
   <Card title="Team visibility" icon="users">
-    Know when team members create, modify, or revoke keys — especially in shared workspaces.
+    Know when team members create, modify, or revoke keys — especially in shared
+    workspaces.
   </Card>
   <Card title="Debugging" icon="bug">
     Figure out why a key stopped working or when a permission was changed.
@@ -27,14 +29,14 @@ Audit logs capture every mutation in your workspace — key creation, permission
 
 Every mutation is logged automatically:
 
-| Category | Events |
-|----------|--------|
-| **Keys** | Create, update, revoke, delete, verify (failures) |
-| **APIs** | Create, update, delete |
+| Category        | Events                                                 |
+| --------------- | ------------------------------------------------------ |
+| **Keys**        | Create, update, revoke, delete, verify (failures)      |
+| **APIs**        | Create, update, delete                                 |
 | **Permissions** | Create, update, delete, attach to key, remove from key |
-| **Roles** | Create, update, delete, assign, unassign |
-| **Rate limits** | Create namespace, update limits, set overrides |
-| **Workspace** | Member added, member removed, settings changed |
+| **Roles**       | Create, update, delete, assign, unassign               |
+| **Rate limits** | Create namespace, update limits, set overrides         |
+| **Workspace**   | Member added, member removed, settings changed         |
 
 ## Accessing audit logs
 
@@ -42,25 +44,25 @@ Every mutation is logged automatically:
 2. Click **Audit Logs** in the left navigation
 
 <Frame>
-<img src="/audit-log/audit-log.png"/>
+  <img src="/audit-log/audit-log.png" />
 </Frame>
 
 ## Reading the log
 
 Each entry shows:
 
-| Field | Description |
-|-------|-------------|
-| **Time** | When the change occurred |
-| **Actor** | Who made the change — a user (dashboard) or root key (API) |
-| **Action** | The operation: `Create`, `Update`, `Delete`, etc. |
-| **Event** | What was affected: key, permission, API, etc. |
-| **Description** | Human-readable summary |
+| Field           | Description                                                |
+| --------------- | ---------------------------------------------------------- |
+| **Time**        | When the change occurred                                   |
+| **Actor**       | Who made the change — a user (dashboard) or root key (API) |
+| **Action**      | The operation: `Create`, `Update`, `Delete`, etc.          |
+| **Event**       | What was affected: key, permission, API, etc.              |
+| **Description** | Human-readable summary                                     |
 
 Click any row to see full details, including the complete request/response payloads:
 
 <Frame>
-<img src="/audit-log/audit-workspace-details.png"/>
+  <img src="/audit-log/audit-workspace-details.png" />
 </Frame>
 
 ## Filtering logs
@@ -75,10 +77,10 @@ Use the filters at the top of the audit log page to narrow down:
 
 Audit logs are retained based on your plan:
 
-| Plan | Retention |
-|------|-----------|
-| Free | 7 days |
-| Pro | 90 days |
+| Plan       | Retention                |
+| ---------- | ------------------------ |
+| Free       | 7 days                   |
+| Pro        | 90 days                  |
 | Enterprise | Custom (up to unlimited) |
 
 Need longer retention? [Contact us](mailto:support@unkey.com) about enterprise options.

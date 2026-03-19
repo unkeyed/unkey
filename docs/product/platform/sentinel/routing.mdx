@@ -1,0 +1,16 @@
+---
+title: Routing
+description: How Sentinel resolves deployments and selects instances for incoming requests.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+## TODO
+
+- Domain-based routing: how Sentinel resolves which deployment serves a request
+- Domain types: commit (immutable), branch (sticky), environment (sticky), live/production (sticky)
+- How sticky domains are reassigned when a new deployment goes live
+- Path-based routing rules within a single domain
+- Traffic splitting and canary deployment patterns (if supported)

@@ -5,7 +5,6 @@ description: "A service is temporarily unavailable"
 
 <Danger>`err:unkey:application:service_unavailable`</Danger>
 
-
 ```json Example
 {
   "meta": {
@@ -25,6 +24,7 @@ description: "A service is temporarily unavailable"
 This error occurs when a component of the Unkey platform is temporarily unavailable or unable to process your request. Unlike an unexpected error, this is a known state where the system has detected that it cannot currently provide the requested service.
 
 Possible causes of this error:
+
 - Scheduled maintenance
 - High load or capacity issues
 - Dependent service outages
@@ -69,17 +69,17 @@ while [ $attempt -lt $max_attempts ]; do
       "apiId": "api_123abc",
       "name": "My API Key"
     }')
-    
+
   http_code=$(echo "$response" | tail -n1)
   body=$(echo "$response" | sed '$ d')
-  
+
   if [ $http_code -eq 503 ]; then
     attempt=$((attempt+1))
     if [ $attempt -eq $max_attempts ]; then
       echo "Service still unavailable after $max_attempts attempts"
       exit 1
     fi
-    
+
     echo "Service unavailable, retrying in $backoff_time seconds... (Attempt $attempt/$max_attempts)"
     sleep $backoff_time
     backoff_time=$((backoff_time*2))
@@ -98,5 +98,6 @@ done
 - Include the `requestId` from the error response when contacting support
 
 ## Related Errors
+
 - [err:unkey:application:unexpected_error](./unexpected_error) - When an unhandled error occurs
 - [err:unkey:authorization:workspace_disabled](../authorization/workspace_disabled) - When the workspace is disabled (a different type of unavailability)

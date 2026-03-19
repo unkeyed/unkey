@@ -1,0 +1,16 @@
+---
+title: Deployment lifecycle
+description: How deployments progress through build, deploy, and network stages before receiving traffic.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+## TODO
+
+- Deployment states: pending → queued → building → deploying → network → ready (or failed)
+- Desired states: running, standby, archived — and what each means
+- What happens at each stage of the pipeline
+- Failed deployments: error surfacing, logs, and retry behavior
+- Preview deployment auto-cleanup: idle deployments (0 requests in 6 hours) are automatically archived

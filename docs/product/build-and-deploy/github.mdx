@@ -1,0 +1,16 @@
+---
+title: GitHub integration
+description: Automatically trigger builds and deployments from git push events with branch-to-environment mapping.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+## TODO
+
+- Connecting a GitHub repository to an Unkey project
+- How push events trigger builds and deployments via webhooks
+- Branch-to-environment mapping: default branch → production, all other branches → preview
+- Commit-level deployments: every push creates an immutable deployment with a commit domain
+- Webhook security and troubleshooting failed triggers

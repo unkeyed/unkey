@@ -1,0 +1,16 @@
+---
+title: Wildcard domains
+description: Every deployment automatically receives a *.unkey.app domain for instant access without DNS configuration.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+## TODO
+
+- Every deployment automatically gets a `*.unkey.app` subdomain — no DNS setup required
+- Domain types: commit domains (immutable, tied to a specific build), branch domains, environment domains
+- Immutable vs sticky: commit domains never change, branch/environment domains follow the latest deployment
+- URL format and naming conventions
+- Using wildcard domains for preview environments and PR reviews

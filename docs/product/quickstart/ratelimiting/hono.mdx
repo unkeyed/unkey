@@ -86,7 +86,7 @@ const app = new Hono();
 const limiter = new Ratelimit({
   rootKey: process.env.UNKEY_ROOT_KEY!,
   namespace: "hono-api",
-  limit: 10,       // 10 requests...
+  limit: 10, // 10 requests...
   duration: "60s", // ...per minute
 });
 
@@ -98,9 +98,8 @@ app.get("/", (c) => {
 // Rate-limited route
 app.get("/api/data", async (c) => {
   // 1. Identify the user
-  const identifier = c.req.header("x-user-id") 
-    ?? c.req.header("x-forwarded-for")
-    ?? "anonymous";
+  const identifier =
+    c.req.header("x-user-id") ?? c.req.header("x-forwarded-for") ?? "anonymous";
 
   // 2. Check the rate limit
   const { success, remaining, reset } = await limiter.limit(identifier);
@@ -111,10 +110,7 @@ app.get("/api/data", async (c) => {
   c.header("X-RateLimit-Reset", reset.toString());
 
   if (!success) {
-    return c.json(
-      { error: "Too many requests. Try again later." },
-      429
-    );
+    return c.json({ error: "Too many requests. Try again later." }, 429);
   }
 
   // 4. Request allowed
@@ -170,12 +166,12 @@ First 10 requests succeed. Requests 11+ get:
 
 `limiter.limit()` returns:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `success` | `boolean` | `true` if allowed, `false` if rate limited |
-| `remaining` | `number` | Requests left in current window |
-| `reset` | `number` | Unix timestamp (ms) when window resets |
-| `limit` | `number` | The configured limit |
+| Field       | Type      | Description                                |
+| ----------- | --------- | ------------------------------------------ |
+| `success`   | `boolean` | `true` if allowed, `false` if rate limited |
+| `remaining` | `number`  | Requests left in current window            |
+| `reset`     | `number`  | Unix timestamp (ms) when window resets     |
+| `limit`     | `number`  | The configured limit                       |
 
 ## Using as middleware
 
@@ -193,9 +189,8 @@ const limiter = new Ratelimit({
 });
 
 export async function rateLimit(c: Context, next: Next) {
-  const identifier = c.req.header("x-user-id") 
-    ?? c.req.header("x-forwarded-for") 
-    ?? "anonymous";
+  const identifier =
+    c.req.header("x-user-id") ?? c.req.header("x-forwarded-for") ?? "anonymous";
 
   const { success, remaining, reset } = await limiter.limit(identifier);
 
@@ -247,7 +242,7 @@ const apiLimiter = new Ratelimit({
 
 const authLimiter = new Ratelimit({
   rootKey: process.env.UNKEY_ROOT_KEY!,
-  namespace: "auth", 
+  namespace: "auth",
   limit: 5,
   duration: "60s",
 });
@@ -264,7 +259,7 @@ For Cloudflare Workers, access env through the context:
 ```ts
 app.get("/api/data", async (c) => {
   const limiter = new Ratelimit({
-    rootKey: c.env.UNKEY_ROOT_KEY,  // Access from c.env
+    rootKey: c.env.UNKEY_ROOT_KEY, // Access from c.env
     namespace: "api",
     limit: 10,
     duration: "60s",
@@ -276,6 +271,7 @@ app.get("/api/data", async (c) => {
 ```
 
 Set your secret with wrangler:
+
 ```bash
 npx wrangler secret put UNKEY_ROOT_KEY
 ```
@@ -283,13 +279,21 @@ npx wrangler secret put UNKEY_ROOT_KEY
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="How it works" icon="bolt" href="/ratelimiting/modes">
+  <Card title="How it works" icon="bolt" href="/platform/ratelimiting/modes">
     Understand the architecture
   </Card>
-  <Card title="Per-user overrides" icon="sliders" href="/ratelimiting/overrides">
+  <Card
+    title="Per-user overrides"
+    icon="sliders"
+    href="/platform/ratelimiting/overrides"
+  >
     Give specific users higher limits
   </Card>
-  <Card title="SDK Reference" icon="book" href="/libraries/ts/ratelimit/ratelimit">
+  <Card
+    title="SDK Reference"
+    icon="book"
+    href="/libraries/ts/ratelimit/ratelimit"
+  >
     All configuration options
   </Card>
   <Card title="Add API key auth" icon="key" href="/quickstart/apis/hono">
@@ -301,14 +305,13 @@ npx wrangler secret put UNKEY_ROOT_KEY
 
 <AccordionGroup>
   <Accordion title="Rate limit not applying?">
-    - Verify `UNKEY_ROOT_KEY` is set correctly
-    - For Workers: use `c.env.UNKEY_ROOT_KEY`, not `process.env`
-    - Check your root key has `ratelimit.*.limit` permission
+    - Verify `UNKEY_ROOT_KEY` is set correctly - For Workers: use
+    `c.env.UNKEY_ROOT_KEY`, not `process.env` - Check your root key has
+    `ratelimit.*.limit` permission
   </Accordion>
-  
+
   <Accordion title="Environment not loading locally?">
-    - For Node.js: Install `dotenv` and add `import 'dotenv/config'`
-    - For Bun: `.env` loads automatically
-    - Restart the dev server after changes
+    - For Node.js: Install `dotenv` and add `import 'dotenv/config'` - For Bun:
+    `.env` loads automatically - Restart the dev server after changes
   </Accordion>
 </AccordionGroup>
