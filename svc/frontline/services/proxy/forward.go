@@ -135,6 +135,12 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 
 	// If error was captured, return it to middleware for consistent error handling
 	if err := wrapper.Error(); err != nil {
+		// If the error already has a fault code (e.g. from extractSentinelError
+		// in ModifyResponse), preserve it instead of overwriting with a generic
+		// proxy error.
+		if _, hasCode := fault.GetCode(err); hasCode {
+			return err
+		}
 		urn, message := categorizeProxyError(err)
 		return fault.Wrap(err,
 			fault.Code(urn),

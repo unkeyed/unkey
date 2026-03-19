@@ -67,7 +67,7 @@ func ParseMiddleware(raw []byte) ([]*sentinelv1.Policy, error) {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InvalidConfiguration.URN()),
 			fault.Internal(fmt.Sprintf("unable to unmarshal sentinel policies: %s", string(raw))),
-			fault.Public("The policy configuration is invalid. Please check your sentinel config."),
+			fault.Public("The policy configuration is invalid. Please check your sentinel config or contact support at support@unkey.com."),
 		)
 	}
 

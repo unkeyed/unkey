@@ -109,7 +109,7 @@ func getErrorPageInfo(urn codes.URN) errorPageInfo {
 	case codes.Sentinel.Internal.InvalidConfiguration.URN():
 		return errorPageInfo{
 			Status:  http.StatusInternalServerError,
-			Message: "The sentinel is misconfigured. Please contact support.",
+			Message: "The sentinel is misconfigured. Please contact support at support@unkey.com.",
 		}
 
 	// Sentinel Auth Errors
