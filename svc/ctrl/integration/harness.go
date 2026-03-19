@@ -133,7 +133,6 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		GitCommitAuthorHandle:         sql.NullString{Valid: false},
 		GitCommitAuthorAvatarUrl:      sql.NullString{Valid: false},
 		GitCommitTimestamp:            sql.NullInt64{Valid: false},
-		OpenapiSpec:                   sql.NullString{Valid: false},
 		EncryptedEnvironmentVariables: []byte(""),
 		Status:                        db.DeploymentsStatusReady,
 		CpuMillicores:                 100,

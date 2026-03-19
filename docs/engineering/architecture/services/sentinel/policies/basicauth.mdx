@@ -1,18 +1,43 @@
 ---
 title: "BasicAuth"
-description: "HTTP Basic authentication policy"
+description: "HTTP Basic auth policy (schema only)"
 ---
 
-BasicAuth validates HTTP Basic credentials and produces a principal on success. Credentials are configured as static username and BCrypt password hash pairs.
+BasicAuth validates HTTP Basic credentials against a static list of username and BCrypt password hash pairs.
+
+<Note>
+BasicAuth is defined in the policy schema but is not executed by the sentinel engine yet.
+</Note>
 
 ## Fields
 
-- `credentials`: List of username and password hash pairs.
+<ResponseField name="credentials" type="Credential[]">
+  List of allowed credentials. Each entry contains a `username` and a `password_hash` (BCrypt).
+</ResponseField>
 
-## Runtime behavior
+## Example
 
-Sentinel compares the request's Basic credentials against the configured list and produces a principal with type `PRINCIPAL_TYPE_BASIC` when a match succeeds.
+```json
+{
+  "policies": [
+    {
+      "id": "basic-auth",
+      "name": "Basic auth for internal tools",
+      "enabled": true,
+      "match": [
+        { "path": { "path": { "prefix": "/internal/" } } }
+      ],
+      "basicauth": {
+        "credentials": [
+          {
+            "username": "admin",
+            "password_hash": "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
 
-## Implementation status
-
-BasicAuth is defined in the policy schema but is not executed by the sentinel engine yet.
+Produces a principal with type `PRINCIPAL_TYPE_BASIC` on success. The principal subject is set to the matched username.

@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import { useState } from "react";
+import { memo, useState } from "react";
 import {
   type Control,
   Controller,
@@ -34,10 +34,10 @@ type EnvVarRowProps = {
   register: UseFormRegister<EnvVarsFormValues>;
   trigger: UseFormTrigger<EnvVarsFormValues>;
   onAdd: () => void;
-  onRemove: () => void;
+  onRemove: (index: number) => void;
 };
 
-export const EnvVarRow = ({
+export const EnvVarRow = memo(function EnvVarRow({
   index,
   isFirst,
   isOnly,
@@ -50,7 +50,7 @@ export const EnvVarRow = ({
   trigger,
   onAdd,
   onRemove,
-}: EnvVarRowProps) => {
+}: EnvVarRowProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   // Watch this specific row's data - fixes index shift bug on delete
@@ -141,7 +141,7 @@ export const EnvVarRow = ({
       </div>
       <div className="relative w-16 h-9 shrink-0">
         <RemoveButton
-          onClick={onRemove}
+          onClick={() => onRemove(index)}
           className={cn(
             "absolute left-0 transition-opacity duration-150",
             isOnly ? "opacity-0 pointer-events-none" : "opacity-100",
@@ -163,4 +163,4 @@ export const EnvVarRow = ({
       </div>
     </div>
   );
-};
+});

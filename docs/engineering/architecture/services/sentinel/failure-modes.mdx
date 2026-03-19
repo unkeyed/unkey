@@ -1,0 +1,178 @@
+---
+title: "Failure modes"
+description: "Failure scenarios, responses, and diagnosis"
+---
+
+Use this page to look up an error code or symptom you're seeing and find out what caused it and what to do.
+
+## Error code reference
+
+Find the error code from the response body, logs, or traces, then look it up here.
+
+### `Sentinel.Routing.DeploymentNotFound` (404)
+
+The `X-Deployment-Id` header references a deployment that does not exist, or the deployment belongs to a different environment.
+
+Sentinel returns 404 (not 403) for both cases to avoid leaking whether a deployment exists in another environment.
+
+**What to check:**
+1. Verify the deployment ID in the request exists in the sentinel's environment in MySQL.
+2. If the deployment was recently moved or recreated, the deployment cache may be stale (fresh: 30s, stale: up to 5min). Wait or check that gossip is propagating invalidation events.
+
+### `Sentinel.Routing.NoRunningInstances` (503)
+
+All instances for the deployment in this region are down, scaling to zero, or not yet ready.
+
+**What to check:**
+1. Sentinel logs include the total instance count versus running count for this deployment.
+2. Check Krane logs for the deployment controller to see instance status.
+3. The instance cache has a 10s fresh TTL. A recently started instance may not appear for up to 10 seconds.
+
+### `Sentinel.Proxy.ServiceUnavailable` (503)
+
+The selected instance is not accepting connections (`ECONNREFUSED`), the host is unreachable (`EHOSTUNREACH`), or DNS resolution failed.
+
+**What to check:**
+1. Check the target instance pod logs (the instance address is included in the error context).
+2. Verify the instance container is running and listening on its port.
+3. For DNS failures, check cluster DNS health (`kube-dns` or `coredns` pods).
+
+### `Sentinel.Proxy.BadGateway` (502)
+
+The instance accepted the connection but the request failed. Common causes: connection reset mid-request (`ECONNRESET`), application crash, OOM kill, or pod replacement during a rollout.
+
+**What to check:**
+1. Check the instance pod logs and events for OOM kills or restarts.
+2. If this correlates with a deployment rollout, it may be transient.
+
+### `Sentinel.Proxy.SentinelTimeout` (504)
+
+The instance did not respond within the transport dial timeout (10s), or a context deadline was exceeded.
+
+**What to check:**
+1. Check instance latency in ClickHouse or Prometheus.
+2. Check whether the instance is under heavy load or blocked on a downstream dependency.
+
+<Note>
+Sentinel has no request-level timeout. Server read/write timeouts are both 0. The only timeout is the 10s dial timeout. An instance that accepts the connection but never responds holds the goroutine indefinitely. Tracked in [#5366](https://github.com/unkeyed/unkey/issues/5366).
+</Note>
+
+### `Sentinel.Proxy.ProxyForwardFailed` (502)
+
+Generic proxy failure that did not match a more specific error category.
+
+**What to check:**
+1. Check sentinel logs for the full error message and instance address.
+2. Check cluster networking (CNI, CiliumNetworkPolicies).
+
+### `Sentinel.Internal.InvalidConfiguration` (500)
+
+The deployment's `sentinel_config` column contains malformed JSON or invalid protobuf, or a KeyAuth policy has an unparseable permission query.
+
+**What to check:**
+1. Query the deployment record in MySQL and inspect `sentinel_config`.
+2. Validate it parses as a `sentinel.v1.Config` protobuf.
+
+### `Sentinel.Internal.InternalServerError` (500)
+
+Unexpected error in sentinel. Check sentinel logs for the full stack trace.
+
+### `Sentinel.Auth.MissingCredentials` (401)
+
+No API key found in the request. The KeyAuth policy checked all configured extraction locations (Bearer token, header, query param) and found nothing.
+
+**What to check:**
+1. Verify the client is sending the key in the expected location.
+2. Check the KeyAuth policy's `locations` config on the deployment.
+
+### `Sentinel.Auth.InvalidKey` (401)
+
+The API key was found but failed verification. Covers: key not in database, key disabled, key expired, workspace disabled, or key not in any of the configured `key_space_ids`.
+
+**What to check:**
+1. Verify the key exists and is enabled in the Unkey dashboard or database.
+2. Check the key's keyspace matches one of the policy's `key_space_ids`.
+
+### `Sentinel.Auth.InsufficientPermissions` (403)
+
+The key is valid but does not satisfy the policy's `permission_query`.
+
+**What to check:**
+1. Check the key's assigned permissions against the RBAC query in the KeyAuth policy.
+
+### `Sentinel.Auth.RateLimited` (429)
+
+The key exceeded its rate limit or usage limit. Rate limit headers are included in the response regardless of success or failure.
+
+**What to check:**
+1. Read `X-RateLimit-Remaining` and `X-RateLimit-Reset` from the response.
+2. Check if the limit is per-key or per-deployment in the policy config.
+
+### `User.BadRequest.MissingRequiredHeader` (400)
+
+The `X-Deployment-Id` header is missing. This header is set by Frontline, so this typically indicates Frontline did not route the request correctly.
+
+**What to check:**
+1. Verify the request is reaching sentinel through Frontline, not directly.
+
+### `User.BadRequest.ClientClosedRequest` (499)
+
+The client disconnected before sentinel finished proxying the response. This is a client-side issue (categorized as `user` error type in metrics), not a platform problem.
+
+## Startup failures
+
+These appear in sentinel logs at boot time, before the pod starts serving traffic.
+
+### `"failed to connect to redis, middleware engine disabled"`
+
+Redis is unreachable or not configured. The middleware engine is nil and all policy evaluation is skipped.
+
+<Warning>
+This is a critical security issue. Customers who configure auth policies expect enforcement. A Redis outage silently bypasses all policies, turning sentinel into an open proxy. Tracked in [#5365](https://github.com/unkeyed/unkey/issues/5365).
+</Warning>
+
+**What to check:**
+1. Verify the `redis.url` in the sentinel config.
+2. Check Redis pod health in the cluster.
+3. There is no way to distinguish pass-through traffic from authenticated traffic in Prometheus metrics.
+
+### `"Failed to create gossip cluster"`
+
+Gossip initialization failed. Sentinel continues with local-only caches.
+
+**Impact:** Cache invalidation events do not propagate between sentinel nodes. Deployment and instance changes rely on TTL expiration (up to 5 minutes for deployments).
+
+**What to check:**
+1. Verify CiliumNetworkPolicy allows port 7946 (TCP and UDP) between sentinel pods.
+2. Check that the gossip headless Service exists and resolves to pod IPs.
+3. Look for gossip join/leave events in peer sentinel logs.
+
+## Cache behavior
+
+When routing changes are not taking effect, the cause is usually cache staleness.
+
+| Cache      | Fresh      | Stale      | Max entries |
+| ---------- | ---------- | ---------- | ----------- |
+| Deployment | 30 seconds | 5 minutes  | 1,000       |
+| Instance   | 10 seconds | 60 seconds | 1,000       |
+| Key        | 10 seconds | 10 minutes | 100,000     |
+
+During the stale window, sentinel serves old data while refreshing in the background. Without gossip enabled, deployment changes can take up to 5 minutes to propagate.
+
+If a sentinel serves more than 1,000 deployments, cache eviction increases miss rates and database load.
+
+## Where to look
+
+| Signal                     | Where to find it                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------------------- |
+| Error code                 | Response body JSON (`error.code`), trace span attributes                                    |
+| Error type                 | Prometheus `error_type` label (`none`, `user`, `customer`, `platform`)                      |
+| Request details            | ClickHouse `SentinelRequest` table (30-day TTL, Authorization header redacted)              |
+| Latency breakdown          | `Server-Timing` response header, ClickHouse `SentinelLatency` / `InstanceLatency` fields   |
+| Request rate and errors    | Prometheus `sentinel_requests_total` (labels: status_code, error_type, environment, region) |
+| Request duration           | Prometheus `sentinel_request_duration_seconds`                                              |
+| In-flight requests         | Prometheus `sentinel_active_requests`                                                       |
+| Distributed trace          | Span `sentinel.proxy` with request_id, status_code, error_type attributes                   |
+| Instance-level failures    | Error context includes instance address, check pod logs for that address                    |
+| Gossip health              | Join/leave events in sentinel structured logs                                               |
+| Sentinel pod health        | Krane `ReportSentinelStatus` logs, `kubectl get deploy -n sentinel`                         |

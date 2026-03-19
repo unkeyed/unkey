@@ -65,7 +65,21 @@ func newTestHarness(t *testing.T) *testHarness {
 	t.Cleanup(func() { _ = rateLimiter.Close() })
 
 	usageLimiter, err := usagelimiter.NewCounter(usagelimiter.CounterConfig{
-		DB:            database,
+		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
+			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
+				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
+			})
+			if err != nil {
+				return 0, false, err
+			}
+			return limit.Int32, limit.Valid, nil
+		},
+		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int32) error {
+			return db.Query.UpdateKeyCreditsDecrement(ctx, database.RW(), db.UpdateKeyCreditsDecrementParams{
+				ID:      keyID,
+				Credits: sql.NullInt32{Int32: cost, Valid: true},
+			})
+		},
 		Counter:       redisCounter,
 		TTL:           60 * time.Second,
 		ReplayWorkers: 2,
