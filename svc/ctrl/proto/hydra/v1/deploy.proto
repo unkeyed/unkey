@@ -16,9 +16,7 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // routes atomically through the routing service.
 //
 // ScaleDownIdlePreviewDeployments runs on a cron to find preview deployments that have
-// received no traffic for 6 hours and sets them to standby. SetDeploymentDesiredState
-// targets a single deployment, typically sent with a 30-minute delay after a new
-// deployment replaces it.
+// received no traffic for 6 hours and sets them to standby.
 service DeployService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
@@ -44,11 +42,6 @@ service DeployService {
   // deployment to standby that has received zero requests in the last 6 hours.
   // Intended to be called by a cron job.
   rpc ScaleDownIdlePreviewDeployments(ScaleDownIdlePreviewDeploymentsRequest) returns (ScaleDownIdlePreviewDeploymentsResponse) {}
-
-  // UpdateGitHubDeploymentStatus updates a GitHub Deployment's status.
-  // Called from the API service after approve/reject so the worker (which has
-  // GitHub App credentials) performs the actual API call.
-  rpc UpdateGitHubDeploymentStatus(UpdateGitHubDeploymentStatusRequest) returns (UpdateGitHubDeploymentStatusResponse) {}
 }
 
 message ScaleDownIdlePreviewDeploymentsRequest {}
@@ -121,24 +114,3 @@ message PromoteRequest {
 }
 
 message PromoteResponse {}
-
-// GitHubDeploymentState maps to the GitHub Deployments API status values.
-// See: https://docs.github.com/en/rest/deployments/statuses#create-a-deployment-status
-enum GitHubDeploymentState {
-  GITHUB_DEPLOYMENT_STATE_UNSPECIFIED = 0;
-  GITHUB_DEPLOYMENT_STATE_PENDING = 1;
-  GITHUB_DEPLOYMENT_STATE_IN_PROGRESS = 2;
-  GITHUB_DEPLOYMENT_STATE_SUCCESS = 3;
-  GITHUB_DEPLOYMENT_STATE_FAILURE = 4;
-  GITHUB_DEPLOYMENT_STATE_ERROR = 5;
-  GITHUB_DEPLOYMENT_STATE_INACTIVE = 6;
-  GITHUB_DEPLOYMENT_STATE_QUEUED = 7;
-}
-
-message UpdateGitHubDeploymentStatusRequest {
-  string deployment_id = 1;
-  GitHubDeploymentState state = 2;
-  string description = 3;
-}
-
-message UpdateGitHubDeploymentStatusResponse {}

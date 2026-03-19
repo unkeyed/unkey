@@ -383,6 +383,95 @@ func (c *Client) ListCommitFiles(installationID int64, repo string, sha string) 
 	return filenames, nil
 }
 
+// ghPullRequest is the subset of GitHub's pull request response that we need.
+type ghPullRequest struct {
+	Number int `json:"number"`
+}
+
+// ghIssueComment is the subset of GitHub's issue comment response that we need.
+type ghIssueComment struct {
+	ID   int64  `json:"id"`
+	Body string `json:"body"`
+}
+
+// FindPullRequestForBranch returns the PR number for the given branch head,
+// or 0 if no open PR exists.
+func (c *Client) FindPullRequestForBranch(installationID int64, repo string, branch string) (int, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return 0, err
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/pulls?state=open&head=%s:%s&per_page=1",
+		repo, strings.Split(repo, "/")[0], url.PathEscape(branch))
+
+	prs, err := request[[]ghPullRequest](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(prs) == 0 {
+		return 0, nil
+	}
+	return prs[0].Number, nil
+}
+
+// CreateIssueComment posts a new comment on a PR/issue and returns the comment ID.
+func (c *Client) CreateIssueComment(installationID int64, repo string, prNumber int, body string) (int64, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return 0, err
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/issues/%d/comments", repo, prNumber)
+
+	comment, err := request[ghIssueComment](c.httpClient, http.MethodPost, apiURL, headers, map[string]string{
+		"body": body,
+	}, http.StatusCreated)
+	if err != nil {
+		return 0, err
+	}
+	return comment.ID, nil
+}
+
+// UpdateIssueComment updates an existing PR/issue comment by ID.
+func (c *Client) UpdateIssueComment(installationID int64, repo string, commentID int64, body string) error {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return err
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/issues/comments/%d", repo, commentID)
+
+	return doRequest(c.httpClient, http.MethodPatch, apiURL, headers, map[string]string{
+		"body": body,
+	}, http.StatusOK)
+}
+
+// FindBotComment searches PR comments for one containing the given marker string.
+// Returns the comment ID and body, or (0, "", nil) if not found.
+func (c *Client) FindBotComment(installationID int64, repo string, prNumber int, marker string) (int64, string, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return 0, "", err
+	}
+
+	// Paginate through comments looking for our marker (most recent first)
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/issues/%d/comments?per_page=100&direction=desc", repo, prNumber)
+
+	comments, err := request[[]ghIssueComment](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
+	if err != nil {
+		return 0, "", err
+	}
+
+	for _, c := range comments {
+		if strings.Contains(c.Body, marker) {
+			return c.ID, c.Body, nil
+		}
+	}
+	return 0, "", nil
+}
+
 // IsCollaborator checks whether a GitHub user is a collaborator on a repository.
 // Results are cached for 5 minutes to avoid redundant API calls for the same user.
 func (c *Client) IsCollaborator(installationID int64, repo string, username string) (bool, error) {

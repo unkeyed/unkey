@@ -181,11 +181,14 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
-	// Create the status reporter after buildImage so that branch-only deploys
-	// have a resolved GitCommitSha (buildImage mutates the deployment pointer).
-	statusReporter := w.createStatusReporter(ctx, deployment, project, app, environment, workspace)
+	// Create the GitHub status reporter V0 after buildImage so that branch-only
+	// deploys have a resolved GitCommitSha (buildImage mutates the deployment pointer).
+	ghStatus := w.initGitHubStatus(ctx, deployment, project, app, environment, workspace)
 
-	statusReporter.Report(ctx, "in_progress", "Deploying to regions...")
+	ghStatus.ReportStatus().Send(&hydrav1.GitHubStatusReportRequest{
+		State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_IN_PROGRESS,
+		Description: "Deploying to regions...",
+	})
 
 	// --- Deploy ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepDeploying, deployment, func(stepCtx restate.ObjectContext) error {
@@ -208,18 +211,27 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil
 	})
 	if err != nil {
-		statusReporter.Report(ctx, "failure", "Deployment to regions failed")
+		ghStatus.ReportStatus().Send(&hydrav1.GitHubStatusReportRequest{
+			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_FAILURE,
+			Description: "Deployment to regions failed",
+		})
 		return nil, err
 	}
 
-	statusReporter.Report(ctx, "in_progress", "Configuring routing...")
+	ghStatus.ReportStatus().Send(&hydrav1.GitHubStatusReportRequest{
+		State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_IN_PROGRESS,
+		Description: "Configuring routing...",
+	})
 
 	// --- Network ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.ObjectContext) error {
 		return w.configureRouting(stepCtx, workspace, project, app, environment, deployment)
 	})
 	if err != nil {
-		statusReporter.Report(ctx, "failure", "Routing configuration failed")
+		ghStatus.ReportStatus().Send(&hydrav1.GitHubStatusReportRequest{
+			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_FAILURE,
+			Description: "Routing configuration failed",
+		})
 		return nil, err
 	}
 
@@ -242,11 +254,17 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil
 	})
 	if err != nil {
-		statusReporter.Report(ctx, "failure", "Finalization failed")
+		ghStatus.ReportStatus().Send(&hydrav1.GitHubStatusReportRequest{
+			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_FAILURE,
+			Description: "Finalization failed",
+		})
 		return nil, err
 	}
 
-	statusReporter.Report(ctx, "success", "Deployment is live")
+	ghStatus.ReportStatus().Send(&hydrav1.GitHubStatusReportRequest{
+		State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_SUCCESS,
+		Description: "Deployment is live",
+	})
 
 	logger.Info("deployment workflow completed",
 		"deployment_id", deployment.ID,
@@ -913,4 +931,81 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID st
 
 	logger.Info("deployments ready", "deployment_id", deploymentID)
 	return nil
+}
+
+// initGitHubStatus looks up the repo connection and fires a GitHubStatusService.Init
+// call. Returns the client so callers can send subsequent ReportStatus calls.
+// If no GitHub repo is connected, the returned client still works — Init is a
+// no-op when installation_id is 0, and ReportStatus no-ops when state is empty.
+func (w *Workflow) initGitHubStatus(
+	ctx restate.ObjectContext,
+	deployment db.Deployment,
+	project db.Project,
+	app db.App,
+	environment db.Environment,
+	workspace db.Workspace,
+) hydrav1.GitHubStatusServiceClient {
+	ghStatus := hydrav1.NewGitHubStatusServiceClient(ctx, deployment.ID)
+
+	repoConn, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.GithubRepoConnection, error) {
+		return db.Query.FindGithubRepoConnectionByAppId(runCtx, w.db.RO(), deployment.AppID)
+	}, restate.WithName("find github repo connection"))
+	if err != nil {
+		logger.Info("no github repo connection, skipping deployment status reporting",
+			"app_id", deployment.AppID,
+			"error", err,
+		)
+		return ghStatus
+	}
+
+	envLabel := formatEnvironmentLabel(project.Slug, app.Slug, environment.Slug)
+	prefix := formatDomainPrefix(project.Slug, app.Slug)
+	envURL := fmt.Sprintf("https://%s-%s-%s.%s", prefix, environment.Slug, workspace.Slug, w.defaultDomain)
+	logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s", w.dashboardURL, workspace.Slug, project.ID, deployment.ID)
+
+	var existingGHDeploymentID int64
+	if deployment.GithubDeploymentID.Valid {
+		existingGHDeploymentID = deployment.GithubDeploymentID.Int64
+	}
+
+	var prNumber int32
+	if deployment.PrNumber.Valid {
+		prNumber = int32(deployment.PrNumber.Int64)
+	}
+
+	ghStatus.Init().Send(&hydrav1.GitHubStatusInitRequest{
+		InstallationId:             repoConn.InstallationID,
+		Repo:                       repoConn.RepositoryFullName,
+		CommitSha:                  deployment.GitCommitSha.String,
+		Branch:                     deployment.GitBranch.String,
+		EnvironmentLabel:           envLabel,
+		EnvironmentUrl:             envURL,
+		LogUrl:                     logURL,
+		IsProduction:               environment.Slug == "production",
+		ProjectSlug:                project.Slug,
+		AppSlug:                    app.Slug,
+		EnvSlug:                    environment.Slug,
+		PrNumber:                   prNumber,
+		ExistingGithubDeploymentId: existingGHDeploymentID,
+	})
+
+	return ghStatus
+}
+
+// formatEnvironmentLabel builds a human-readable label like "project - env"
+// or "project/app - env" for non-default apps.
+func formatEnvironmentLabel(projectSlug, appSlug, envSlug string) string {
+	if appSlug != "default" {
+		return projectSlug + "/" + appSlug + " - " + envSlug
+	}
+	return projectSlug + " - " + envSlug
+}
+
+// formatDomainPrefix builds the domain prefix like "project" or "project-app"
+// for non-default apps.
+func formatDomainPrefix(projectSlug, appSlug string) string {
+	if appSlug != "default" {
+		return projectSlug + "-" + appSlug
+	}
+	return projectSlug
 }

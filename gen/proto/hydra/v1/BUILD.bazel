@@ -17,6 +17,8 @@ go_library(
         "deployment_restate.pb.go",
         "environment.pb.go",
         "environment_restate.pb.go",
+        "github_status.pb.go",
+        "github_status_restate.pb.go",
         "github_webhook.pb.go",
         "github_webhook_restate.pb.go",
         "key_refill.pb.go",

@@ -34,6 +34,20 @@ type GitHubClient interface {
 
 	// ListCommitFiles returns the list of filenames changed in a specific commit.
 	ListCommitFiles(installationID int64, repo string, sha string) ([]string, error)
+
+	// FindPullRequestForBranch returns the PR number for the given branch,
+	// or 0 if no open PR exists.
+	FindPullRequestForBranch(installationID int64, repo string, branch string) (int, error)
+
+	// CreateIssueComment posts a new comment on a PR/issue and returns the comment ID.
+	CreateIssueComment(installationID int64, repo string, prNumber int, body string) (int64, error)
+
+	// UpdateIssueComment updates an existing PR/issue comment by ID.
+	UpdateIssueComment(installationID int64, repo string, commentID int64, body string) error
+
+	// FindBotComment searches PR comments for one containing the given marker string.
+	// Returns the comment ID and body, or 0 if not found.
+	FindBotComment(installationID int64, repo string, prNumber int, marker string) (int64, string, error)
 }
 
 // CommitInfo holds metadata about a single Git commit retrieved from the GitHub API.

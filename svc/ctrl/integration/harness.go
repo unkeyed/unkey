@@ -140,11 +140,11 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
+		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
 		CreatedAt:                     h.Now(),
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 		Command:                       nil,
-		PrNumber:                      sql.NullInt64{Valid: false},
-		ForkRepositoryFullName:        sql.NullString{Valid: false},
 	})
 	require.NoError(h.t, err)
 
