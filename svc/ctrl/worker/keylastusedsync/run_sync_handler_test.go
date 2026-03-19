@@ -417,7 +417,7 @@ func checkExistingPerfData(t *testing.T, ctx context.Context, h *harness.Harness
 	if err != nil {
 		return nil, false
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	keyIDs := make([]string, 0, keyCount)
 	for rows.Next() {
