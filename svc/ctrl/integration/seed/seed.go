@@ -348,6 +348,8 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGINT,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
+		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
 	})
 	require.NoError(s.t, err)
 

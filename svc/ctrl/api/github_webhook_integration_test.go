@@ -56,7 +56,7 @@ func TestGitHubWebhook_Push_TriggersHandlePush(t *testing.T) {
 	}
 }
 
-func TestGitHubWebhook_Push_IgnoresFork(t *testing.T) {
+func TestGitHubWebhook_Push_ProcessesFork(t *testing.T) {
 	pushRequests := make(chan *hydrav1.HandlePushRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
 		Services: []restate.ServiceDefinition{hydrav1.NewGitHubWebhookServiceServer(&mockGitHubWebhookService{requests: pushRequests})},
@@ -68,9 +68,12 @@ func TestGitHubWebhook_Push_IgnoresFork(t *testing.T) {
 	_ = resp.Body.Close()
 
 	select {
-	case <-pushRequests:
-		t.Fatal("expected no HandlePush invocation for fork event")
-	case <-time.After(1 * time.Second):
+	case req := <-pushRequests:
+		require.Equal(t, int64(101), req.GetInstallationId())
+		require.Equal(t, int64(202), req.GetRepositoryId())
+		require.Equal(t, testRepoFullName, req.GetRepositoryFullName())
+	case <-time.After(10 * time.Second):
+		t.Fatal("expected HandlePush invocation for fork with app installed")
 	}
 }
 

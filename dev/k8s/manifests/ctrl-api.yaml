@@ -24,6 +24,8 @@ data:
 
     [github]
     webhook_secret = "${UNKEY_GITHUB_APP_WEBHOOK_SECRET}"
+    app_id = ${UNKEY_GITHUB_APP_ID}
+    private_key_pem = """${UNKEY_GITHUB_PRIVATE_KEY_PEM}"""
 
 ---
 apiVersion: apps/v1
@@ -69,6 +71,18 @@ spec:
                 secretKeyRef:
                   name: github-credentials
                   key: UNKEY_GITHUB_APP_WEBHOOK_SECRET
+                  optional: true
+            - name: UNKEY_GITHUB_PRIVATE_KEY_PEM
+              valueFrom:
+                secretKeyRef:
+                  name: github-credentials
+                  key: UNKEY_GITHUB_PRIVATE_KEY_PEM
+                  optional: true
+            - name: UNKEY_GITHUB_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: github-credentials
+                  key: UNKEY_GITHUB_APP_ID
                   optional: true
           volumeMounts:
             - name: config

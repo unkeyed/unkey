@@ -18,15 +18,17 @@ var _ ctrl.DeployServiceClient = (*MockDeploymentClient)(nil)
 //
 // This mock is safe for concurrent use. All call recording is protected by a mutex.
 type MockDeploymentClient struct {
-	mu                    sync.Mutex
-	CreateDeploymentFunc  func(context.Context, *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error)
-	GetDeploymentFunc     func(context.Context, *ctrlv1.GetDeploymentRequest) (*ctrlv1.GetDeploymentResponse, error)
-	RollbackFunc          func(context.Context, *ctrlv1.RollbackRequest) (*ctrlv1.RollbackResponse, error)
-	PromoteFunc           func(context.Context, *ctrlv1.PromoteRequest) (*ctrlv1.PromoteResponse, error)
-	CreateDeploymentCalls []*ctrlv1.CreateDeploymentRequest
-	GetDeploymentCalls    []*ctrlv1.GetDeploymentRequest
-	RollbackCalls         []*ctrlv1.RollbackRequest
-	PromoteCalls          []*ctrlv1.PromoteRequest
+	mu                       sync.Mutex
+	CreateDeploymentFunc     func(context.Context, *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error)
+	GetDeploymentFunc        func(context.Context, *ctrlv1.GetDeploymentRequest) (*ctrlv1.GetDeploymentResponse, error)
+	RollbackFunc             func(context.Context, *ctrlv1.RollbackRequest) (*ctrlv1.RollbackResponse, error)
+	PromoteFunc              func(context.Context, *ctrlv1.PromoteRequest) (*ctrlv1.PromoteResponse, error)
+	CreateDeploymentCalls    []*ctrlv1.CreateDeploymentRequest
+	GetDeploymentCalls       []*ctrlv1.GetDeploymentRequest
+	RollbackCalls            []*ctrlv1.RollbackRequest
+	PromoteCalls             []*ctrlv1.PromoteRequest
+	AuthorizeDeploymentFunc  func(context.Context, *ctrlv1.AuthorizeDeploymentRequest) (*ctrlv1.AuthorizeDeploymentResponse, error)
+	AuthorizeDeploymentCalls []*ctrlv1.AuthorizeDeploymentRequest
 }
 
 func (m *MockDeploymentClient) CreateDeployment(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
@@ -67,4 +69,14 @@ func (m *MockDeploymentClient) Promote(ctx context.Context, req *ctrlv1.PromoteR
 		return m.PromoteFunc(ctx, req)
 	}
 	return &ctrlv1.PromoteResponse{}, nil
+}
+
+func (m *MockDeploymentClient) AuthorizeDeployment(ctx context.Context, req *ctrlv1.AuthorizeDeploymentRequest) (*ctrlv1.AuthorizeDeploymentResponse, error) {
+	m.mu.Lock()
+	m.AuthorizeDeploymentCalls = append(m.AuthorizeDeploymentCalls, req)
+	m.mu.Unlock()
+	if m.AuthorizeDeploymentFunc != nil {
+		return m.AuthorizeDeploymentFunc(ctx, req)
+	}
+	return &ctrlv1.AuthorizeDeploymentResponse{}, nil
 }

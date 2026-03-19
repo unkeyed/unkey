@@ -214,7 +214,9 @@ func Run(ctx context.Context, cfg Config) error {
 	))
 
 	restateSrv.Bind(hydrav1.NewGitHubWebhookServiceServer(githubwebhook.New(githubwebhook.Config{
-		DB: database,
+		DB:           database,
+		GitHub:       ghClient,
+		DashboardURL: cfg.DashboardURL,
 	})))
 
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{
