@@ -100,6 +100,25 @@ spec:
     - toEntities:
         - world
 ---
+# 3b. Allow unkey namespace to reach krane-managed deployment pods directly
+# LOCAL DEV ONLY: in production ctrl-worker fetches specs via the public FQDN
+# (HTTPS through frontline) and never contacts deployment pods directly.
+# Here, *.unkey.local FQDNs are not publicly routable, so ctrl-worker falls back
+# to plain HTTP directly to the pod IP, this policy permits that traffic.
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: allow-unkey-to-deployments
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: krane
+      app.kubernetes.io/component: deployment
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: unkey
+---
 # 4. Allow traffic to reach sentinels
 # In dev: allow from unkey namespace (no frontline)
 # In prod: allow from frontline namespace

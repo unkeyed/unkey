@@ -1,15 +1,85 @@
 ---
 title: "IP rules"
-description: "CIDR-based allow and deny policy"
+description: "CIDR allow and deny lists (schema only)"
 ---
 
-IP rules define allow and deny lists for client IP addresses based on CIDR ranges. Deny entries take precedence over allow entries.
+IP rules define allow and deny lists for client IP addresses based on CIDR ranges.
+
+<Note>
+IP rules are defined in the policy schema but are not executed by the sentinel engine yet.
+</Note>
 
 ## Fields
 
-- `allow`: Allowed CIDR ranges.
-- `deny`: Denied CIDR ranges.
+<ResponseField name="allow" type="string[]">
+  CIDR ranges to allow (for example, `10.0.0.0/8`, `192.168.1.0/24`). Use `/32` for individual IPv4 addresses and `/128` for individual IPv6 addresses.
+</ResponseField>
 
-## Implementation status
+<ResponseField name="deny" type="string[]">
+  CIDR ranges to deny. Deny entries take precedence over allow entries.
+</ResponseField>
 
-IP rules are defined in the policy schema but are not executed by the sentinel engine yet.
+## Examples
+
+<Tabs>
+<Tab title="Deny list">
+```json
+{
+  "policies": [
+    {
+      "id": "block-bad-ips",
+      "name": "Block known bad IPs",
+      "enabled": true,
+      "match": [],
+      "ip_rules": {
+        "deny": ["198.51.100.0/24", "203.0.113.42/32"],
+        "allow": []
+      }
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Allow list">
+```json
+{
+  "policies": [
+    {
+      "id": "corporate-only",
+      "name": "Allow corporate network only",
+      "enabled": true,
+      "match": [],
+      "ip_rules": {
+        "allow": ["10.0.0.0/8", "172.16.0.0/12"],
+        "deny": []
+      }
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Combined">
+```json
+{
+  "policies": [
+    {
+      "id": "ip-policy",
+      "name": "Allow corporate, block specific hosts",
+      "enabled": true,
+      "match": [],
+      "ip_rules": {
+        "allow": ["10.0.0.0/8"],
+        "deny": ["10.0.99.0/24"]
+      }
+    }
+  ]
+}
+```
+
+Deny takes precedence. IPs in `10.0.99.0/24` are blocked even though they fall within the `10.0.0.0/8` allow range.
+</Tab>
+</Tabs>
+
+## Evaluation order
+
+Deny rules are checked first. If the client IP matches any deny entry, the request is rejected regardless of allow entries. If deny rules do not match and allow rules are configured, the client IP must match at least one allow entry.
