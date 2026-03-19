@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,7 +28,7 @@ type forwardConfig struct {
 	transport    http.RoundTripper
 }
 
-func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
+func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardConfig) error {
 	sess.ResponseWriter().Header().Set(HeaderFrontlineID, s.instanceID)
 	sess.ResponseWriter().Header().Set(HeaderRegion, fmt.Sprintf("%s::%s", s.platform, s.region))
 	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
@@ -130,8 +131,8 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 		},
 	}
 
-	// Proxy the request with wrapped writer
-	proxy.ServeHTTP(wrapper, sess.Request())
+	// Proxy the request with the middleware context (carries timeout deadline)
+	proxy.ServeHTTP(wrapper, sess.Request().WithContext(ctx))
 
 	// If error was captured, return it to middleware for consistent error handling
 	if err := wrapper.Error(); err != nil {
@@ -141,7 +142,7 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 		if _, hasCode := fault.GetCode(err); hasCode {
 			return err
 		}
-		urn, message := categorizeProxyError(err)
+		urn, message := categorizeProxyError(err, cfg.logTarget)
 		return fault.Wrap(err,
 			fault.Code(urn),
 			fault.Internal(fmt.Sprintf("proxy error forwarding to %s %s", cfg.logTarget, cfg.targetURL.String())),

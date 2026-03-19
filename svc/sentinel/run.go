@@ -194,8 +194,8 @@ func Run(ctx context.Context, cfg Config) error {
 		Flags:              nil,
 		EnableH2C:          true,
 		MaxRequestBodySize: maxRequestBodySize,
-		ReadTimeout:        0,
-		WriteTimeout:       0,
+		ReadTimeout:        -1,
+		WriteTimeout:       -1,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)

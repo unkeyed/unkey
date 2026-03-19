@@ -253,8 +253,8 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.HttpPort > 0 {
 		httpsSrv, httpsErr := zen.New(zen.Config{
 			TLS:                tlsConfig,
-			ReadTimeout:        0,
-			WriteTimeout:       0,
+			ReadTimeout:        -1,
+			WriteTimeout:       -1,
 			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
@@ -295,8 +295,8 @@ func Run(ctx context.Context, cfg Config) error {
 			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
-			ReadTimeout:        0,
-			WriteTimeout:       0,
+			ReadTimeout:        -1,
+			WriteTimeout:       -1,
 		})
 		if httpErr != nil {
 			return fmt.Errorf("unable to create HTTP server: %w", httpErr)
