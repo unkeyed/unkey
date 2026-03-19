@@ -4,7 +4,7 @@ import { useKeysOverviewLogsQuery } from "@/components/api-requests-table/hooks/
 import type { SortFields } from "@/components/api-requests-table/schema/keys-overview.schema";
 import { getRowClassName } from "@/components/api-requests-table/utils/get-row-class";
 import { useSort } from "@/components/logs/hooks/use-sort";
-import type { SortingState } from "@tanstack/react-table";
+import type { RowSelectionState, SortingState } from "@tanstack/react-table";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { DataTable, type DataTableConfig, EmptyApiRequests } from "@unkey/ui";
 import { useCallback, useMemo } from "react";
@@ -33,8 +33,13 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
   const handleNavigate = useCallback(() => setSelectedLog(null), [setSelectedLog]);
 
   const columns = useMemo(
-    () => createApiRequestColumns({ selectedLog, apiId, onNavigate: handleNavigate }),
-    [selectedLog, apiId, handleNavigate],
+    () => createApiRequestColumns({ apiId, onNavigate: handleNavigate }),
+    [apiId, handleNavigate],
+  );
+
+  const rowSelection = useMemo<RowSelectionState>(
+    () => (selectedLog ? { [selectedLog.request_id]: true } : {}),
+    [selectedLog],
   );
 
   const sorting: SortingState = useMemo(
@@ -69,6 +74,8 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
       sorting={sorting}
       onSortingChange={handleSortingChange}
       manualSorting={true}
+      enableRowSelection={true}
+      rowSelection={rowSelection}
       config={TABLE_CONFIG}
       loadMoreFooterProps={{
         hide: true,

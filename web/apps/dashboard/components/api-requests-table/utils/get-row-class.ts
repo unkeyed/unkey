@@ -46,28 +46,6 @@ export const SEVERITY_STYLES = {
   },
 };
 
-export const categorizeSeverity = (outcome: string): keyof typeof SEVERITY_STYLES => {
-  switch (outcome) {
-    // Critical errors
-    case "INSUFFICIENT_PERMISSIONS":
-    case "FORBIDDEN":
-      return "error";
-
-    // Moderate errors
-    case "RATE_LIMITED":
-    case "USAGE_EXCEEDED":
-      return "moderate";
-
-    // Warnings
-    case "DISABLED":
-    case "EXPIRED":
-      return "warning";
-
-    default:
-      return "success";
-  }
-};
-
 // Get status style based on error severity
 export const getStatusStyle = (log: KeysOverviewLog): StatusStyle => {
   const severity = getErrorSeverity(log);
@@ -81,23 +59,6 @@ export const getStatusStyle = (log: KeysOverviewLog): StatusStyle => {
       return SEVERITY_STYLES.warning;
     default:
       return SEVERITY_STYLES.success;
-  }
-};
-
-export const getOutcomeBadgeClass = (outcome: string): string => {
-  const severity = categorizeSeverity(outcome);
-
-  switch (severity) {
-    case "error":
-      return "bg-error-4 text-error-11";
-    case "moderate":
-      return "bg-orange-4 text-orange-11";
-    case "warning":
-      return "bg-warning-4 text-warning-11";
-    case "success":
-      return "bg-accent-4 text-accent-11";
-    default:
-      return "bg-gray-4 text-gray-11";
   }
 };
 

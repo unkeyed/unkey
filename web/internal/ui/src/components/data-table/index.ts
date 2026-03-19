@@ -40,7 +40,7 @@ export { HiddenValueCell } from "./components/cells";
 export type { HiddenValueCellProps } from "./components/cells";
 export { InvalidCountCell } from "./components/cells";
 export type { InvalidCountCellProps } from "./components/cells";
-export { OutcomePopoverCell } from "./components/cells";
+export { OutcomePopoverCell, formatOutcomeName, getOutcomeColor } from "./components/cells";
 export type { OutcomePopoverCellProps } from "./components/cells";
 export { LastUpdatedCell } from "./components/cells";
 export type { LastUpdatedCellProps } from "./components/cells";

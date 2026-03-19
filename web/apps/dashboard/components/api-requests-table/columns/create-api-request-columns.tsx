@@ -31,13 +31,11 @@ export const API_REQUEST_COLUMN_IDS = {
 } as const;
 
 type CreateLogsColumnsOptions = {
-  selectedLog: KeysOverviewLog | null;
   apiId: string;
   onNavigate?: () => void;
 };
 
 export const createApiRequestColumns = ({
-  selectedLog,
   apiId,
   onNavigate,
 }: CreateLogsColumnsOptions): DataTableColumnDef<KeysOverviewLog>[] => [
@@ -92,13 +90,14 @@ export const createApiRequestColumns = ({
     },
     cell: ({ row }) => {
       const log = row.original;
+      const isSelected = row.getIsSelected();
       const successPercentage = getSuccessPercentage(log);
       return (
         <div className="flex gap-3 items-center tabular-nums">
           <Badge
             className={cn(
               "px-1.5 rounded-md font-mono whitespace-nowrap",
-              selectedLog?.key_id === log.key_id
+              isSelected
                 ? SEVERITY_STYLES.success.badge.selected
                 : SEVERITY_STYLES.success.badge.default,
             )}
@@ -123,16 +122,15 @@ export const createApiRequestColumns = ({
     },
     cell: ({ row }) => {
       const log = row.original;
+      const isSelected = row.getIsSelected();
       const style = getStatusStyle(log);
       const errorPercentage = getErrorPercentage(log);
       return (
         <InvalidCountCell
           count={log.error_count}
           outcomeCounts={log.outcome_counts}
-          isSelected={selectedLog?.key_id === log.key_id}
-          badgeClassName={
-            selectedLog?.key_id === log.key_id ? style.badge.selected : style.badge.default
-          }
+          isSelected={isSelected}
+          badgeClassName={isSelected ? style.badge.selected : style.badge.default}
           title={`${log.error_count.toLocaleString()} Invalid requests (${errorPercentage.toFixed(1)}%)`}
         />
       );
@@ -149,14 +147,14 @@ export const createApiRequestColumns = ({
     meta: {
       width: "15%",
     },
-    cell: ({ row }) => {
+    cell: ({ row, table }) => {
       const log = row.original;
       return (
         <TimestampInfo
           value={log.time}
           className={cn(
             "font-mono group-hover:underline decoration-dotted",
-            selectedLog && selectedLog.request_id !== log.request_id && "pointer-events-none",
+            table.getIsSomeRowsSelected() && !row.getIsSelected() && "pointer-events-none",
           )}
         />
       );
