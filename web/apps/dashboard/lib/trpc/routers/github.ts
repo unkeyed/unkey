@@ -1,7 +1,12 @@
-import { db, eq, schema } from "@/lib/db";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import { githubAppEnv } from "@/lib/env";
 import {
+  type BranchActivity,
+  MAX_BRANCHES,
+  checkFileExists,
   getInstallationRepositories,
+  getMostActiveBranches,
+  getRepository,
   getRepositoryBranches,
   getRepositoryById,
   getRepositoryTree,
@@ -25,13 +30,14 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
       },
       with: {
         apps: {
-          columns: { id: true },
+          columns: { id: true, defaultBranch: true },
           with: {
             githubRepoConnection: {
               columns: {
                 pk: true,
                 repositoryId: true,
                 repositoryFullName: true,
+                installationId: true,
               },
             },
           },
@@ -68,11 +74,13 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
 
   return {
     appId: app?.id ?? null,
+    defaultBranch: app?.defaultBranch ?? "main",
     repoConnection: app?.githubRepoConnection
       ? {
           pk: app.githubRepoConnection.pk,
           repositoryId: app.githubRepoConnection.repositoryId,
           repositoryFullName: app.githubRepoConnection.repositoryFullName,
+          installationId: app.githubRepoConnection.installationId,
         }
       : null,
     installations: project.workspace?.githubAppInstallations ?? [],
@@ -209,6 +217,38 @@ export const githubRouter = t.router({
       };
     }),
 
+  getRepoTree: workspaceProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
+      if (!githubContext?.repoConnection) {
+        return { tree: null };
+      }
+
+      const { repositoryFullName, installationId } = githubContext.repoConnection;
+      const [owner, repo] = repositoryFullName.split("/");
+      if (!owner || !repo) {
+        return { tree: null };
+      }
+
+      try {
+        const result = await getRepositoryTree(
+          installationId,
+          owner,
+          repo,
+          githubContext.defaultBranch,
+        );
+
+        if (result.truncated) {
+          return { tree: null };
+        }
+
+        return { tree: result.tree };
+      } catch {
+        return { tree: null };
+      }
+    }),
+
   getInstallations: workspaceProcedure
     .input(
       z.object({
@@ -335,18 +375,58 @@ export const githubRouter = t.router({
         });
       }
 
-      const [tree, branchesData] = await Promise.all([
+      const [treeResult, activeBranches, repoData] = await Promise.all([
         getRepositoryTree(input.installationId, input.owner, input.repo, input.defaultBranch),
-        getRepositoryBranches(input.installationId, input.owner, input.repo),
+        // If the events API fails, fall back to an empty list so the branch fallback logic kicks in
+        getMostActiveBranches(input.installationId, input.owner, input.repo).catch(
+          (): BranchActivity[] => [],
+        ),
+        getRepository(input.installationId, input.owner, input.repo),
       ]);
 
-      const hasDockerfile = tree.some(
-        (entry) => entry.type === "blob" && entry.path.split("/").pop() === "Dockerfile",
-      );
+      let hasDockerfile: boolean;
+      if (treeResult.truncated) {
+        // Tree was truncated by GitHub — scanning the partial tree may miss files.
+        // Fall back to a targeted existence check for the root Dockerfile.
+        hasDockerfile = await checkFileExists(
+          input.installationId,
+          input.owner,
+          input.repo,
+          input.defaultBranch,
+          "Dockerfile",
+        );
+      } else {
+        hasDockerfile = treeResult.tree.some(
+          (entry) => entry.type === "blob" && entry.path.split("/").pop() === "Dockerfile",
+        );
+      }
+
+      let branches: Array<{ name: string; lastPushDate: string | null }>;
+
+      if (activeBranches.length > 0) {
+        branches = activeBranches.map((b) => ({ name: b.name, lastPushDate: b.lastPushDate }));
+        // Ensure the default branch is always included
+        if (!branches.some((b) => b.name === input.defaultBranch)) {
+          branches.unshift({
+            name: input.defaultBranch,
+            lastPushDate: null,
+          });
+        }
+      } else {
+        // Fallback: no recent events, use alphabetical branches
+        const fallbackBranches = await getRepositoryBranches(
+          input.installationId,
+          input.owner,
+          input.repo,
+          MAX_BRANCHES,
+        );
+        branches = fallbackBranches.map((b) => ({ name: b.name, lastPushDate: null }));
+      }
 
       return {
         hasDockerfile,
-        branches: branchesData.map((b) => b.name),
+        branches,
+        pushedAt: repoData.pushed_at,
       };
     }),
 
@@ -522,7 +602,18 @@ export const githubRouter = t.router({
 
       await db
         .delete(schema.githubRepoConnections)
-        .where(eq(schema.githubRepoConnections.installationId, input.installationId))
+        .where(
+          and(
+            eq(schema.githubRepoConnections.installationId, input.installationId),
+            inArray(
+              schema.githubRepoConnections.projectId,
+              db
+                .select({ id: schema.projects.id })
+                .from(schema.projects)
+                .where(eq(schema.projects.workspaceId, ctx.workspace.id)),
+            ),
+          ),
+        )
         .catch(() => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -532,7 +623,12 @@ export const githubRouter = t.router({
 
       await db
         .delete(schema.githubAppInstallations)
-        .where(eq(schema.githubAppInstallations.installationId, input.installationId))
+        .where(
+          and(
+            eq(schema.githubAppInstallations.installationId, input.installationId),
+            eq(schema.githubAppInstallations.workspaceId, ctx.workspace.id),
+          ),
+        )
         .catch(() => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",

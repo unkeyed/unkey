@@ -204,6 +204,7 @@ const RegionsSingle = () => {
         options={buildRegionComboboxOptions(unselectedRegions)}
         value=""
         onSelect={addRegion}
+        closeOnSelect={false}
         placeholder={
           currentRegions.length === 0 ? (
             <span className="text-grayA-8 w-full text-left">Select a region</span>
@@ -395,6 +396,7 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
           options={buildRegionComboboxOptions(unselectedProdRegions)}
           value=""
           onSelect={addProdRegion}
+          closeOnSelect={false}
           placeholder={
             currentProdRegions.length === 0 ? (
               <span className="text-grayA-8 w-full text-left">Select a region</span>
@@ -417,6 +419,7 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
           options={buildRegionComboboxOptions(unselectedPreviewRegions)}
           value=""
           onSelect={addPreviewRegion}
+          closeOnSelect={false}
           placeholder={
             currentPreviewRegions.length === 0 ? (
               <span className="text-grayA-8 w-full text-left">Select a region</span>

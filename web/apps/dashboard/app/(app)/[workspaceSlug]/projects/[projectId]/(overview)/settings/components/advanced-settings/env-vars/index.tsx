@@ -4,9 +4,10 @@ import { collection } from "@/lib/collections";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Nodes2 } from "@unkey/icons";
-import { toast } from "@unkey/ui";
-import { useEffect, useMemo, useRef } from "react";
+import { FormInput, toast } from "@unkey/ui";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
 import { useEnvironmentSettings } from "../../../environment-provider";
@@ -70,6 +71,7 @@ export const EnvVars = () => {
   );
 };
 
+const ROW_HEIGHT = 44; // h-9 (36px) + gap-2 (8px)
 const EnvVarsForm = ({
   defaultValues,
   defaultEnvironmentId,
@@ -90,6 +92,7 @@ const EnvVarsForm = ({
     control,
     reset,
     trigger,
+    getValues,
   } = useForm<EnvVarsFormValues>({
     resolver: zodResolver(envVarsSchema),
     mode: "onChange",
@@ -105,8 +108,59 @@ const EnvVarsForm = ({
     }
   }, [defaultValues, reset]);
 
-  const { ref, isDragging } = useDropZone(reset, defaultEnvironmentId);
+  const { ref, isDragging } = useDropZone(reset, trigger, getValues, defaultEnvironmentId);
+
   const { fields, prepend, remove } = useFieldArray({ control, name: "envVars" });
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearch = useDeferredValue(searchQuery);
+
+  const filteredIndices = useMemo(() => {
+    if (!deferredSearch) {
+      return fields.map((_, i) => i);
+    }
+    const query = deferredSearch.toLowerCase();
+    return fields.reduce<number[]>((acc, _, i) => {
+      const values = getValues(`envVars.${i}`);
+      if (values?.key?.toLowerCase().includes(query)) {
+        acc.push(i);
+      }
+      return acc;
+    }, []);
+  }, [fields, deferredSearch, getValues]);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const triggerTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const debouncedTrigger = useCallback(() => {
+    clearTimeout(triggerTimerRef.current);
+    triggerTimerRef.current = setTimeout(() => {
+      trigger("envVars");
+    }, 100);
+  }, [trigger]);
+
+  useEffect(() => {
+    return () => clearTimeout(triggerTimerRef.current);
+  }, []);
+
+  const virtualizer = useVirtualizer({
+    count: filteredIndices.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 5,
+  });
+
+  const handleAdd = useCallback(() => {
+    prepend(createEmptyRow(defaultEnvironmentId));
+  }, [prepend, defaultEnvironmentId]);
+
+  const handleRemove = useCallback(
+    (index: number) => {
+      remove(index);
+      debouncedTrigger();
+    },
+    [remove, debouncedTrigger],
+  );
 
   const onSubmit = async (values: EnvVarsFormValues) => {
     const { toDelete, toCreate, toUpdate } = computeEnvVarsDiff(
@@ -179,7 +233,25 @@ const EnvVarsForm = ({
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
       ref={ref}
+      contentRef={scrollContainerRef}
       className={cn("relative", isDragging && "bg-primary/5")}
+      stickyHeader={
+        fields.length > 1 ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-gray-11">
+              Drag & drop your <span className="font-mono font-medium text-gray-12">.env</span> file
+              or paste <span className="font-mono font-medium text-gray-12">env</span> vars (⌘V /
+              Ctrl+V)
+            </p>
+            <FormInput
+              placeholder="Search by key..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="[&_input]:h-8 [&_input]:text-xs mb-2"
+            />
+          </div>
+        ) : undefined
+      }
     >
       <div
         className={cn(
@@ -188,10 +260,13 @@ const EnvVarsForm = ({
         )}
       />
       <div className="flex flex-col gap-2 w-full">
-        <p className="text-xs text-gray-11 mb-2">
-          Drag & drop your <span className="font-mono font-medium text-gray-12">.env</span> file or
-          paste <span className="font-mono font-medium text-gray-12">env</span> vars (⌘V / Ctrl+V)
-        </p>
+        {fields.length <= 1 && (
+          <p className="text-xs text-gray-11 mb-2">
+            Drag & drop your <span className="font-mono font-medium text-gray-12">.env</span> file
+            or paste <span className="font-mono font-medium text-gray-12">env</span> vars (⌘V /
+            Ctrl+V)
+          </p>
+        )}
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -202,26 +277,49 @@ const EnvVarsForm = ({
             <div className="w-16 shrink-0" />
           </div>
 
-          {fields.map((field, index) => (
-            <EnvVarRow
-              key={field.id}
-              index={index}
-              isFirst={index === 0}
-              isOnly={fields.length === 1}
-              keyError={errors.envVars?.[index]?.key?.message}
-              environmentError={errors.envVars?.[index]?.environmentId?.message}
-              defaultEnvVars={defaultValues.envVars}
-              environments={environments}
-              control={control}
-              register={register}
-              trigger={trigger}
-              onAdd={() => prepend(createEmptyRow(defaultEnvironmentId))}
-              onRemove={() => {
-                remove(index);
-                trigger("envVars");
-              }}
-            />
-          ))}
+          <div
+            className="relative w-full min-h-[200px]"
+            style={{ height: virtualizer.getTotalSize() }}
+          >
+            {filteredIndices.length === 0 && searchQuery ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <p className="text-sm text-gray-9">
+                  No variables matching &ldquo;{searchQuery}&rdquo;
+                </p>
+              </div>
+            ) : (
+              virtualizer.getVirtualItems().map((virtualRow) => {
+                const fieldIndex = filteredIndices[virtualRow.index];
+                const field = fields[fieldIndex];
+                const index = fieldIndex;
+                return (
+                  <div
+                    key={field.id}
+                    className="absolute left-0 w-full"
+                    style={{
+                      height: ROW_HEIGHT,
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                  >
+                    <EnvVarRow
+                      index={index}
+                      isFirst={index === 0}
+                      isOnly={fields.length === 1}
+                      keyError={errors.envVars?.[index]?.key?.message}
+                      environmentError={errors.envVars?.[index]?.environmentId?.message}
+                      defaultEnvVars={defaultValues.envVars}
+                      environments={environments}
+                      control={control}
+                      register={register}
+                      trigger={trigger}
+                      onAdd={handleAdd}
+                      onRemove={handleRemove}
+                    />
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
     </FormSettingCard>

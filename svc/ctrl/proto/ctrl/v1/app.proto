@@ -1,0 +1,29 @@
+syntax = "proto3";
+package ctrl.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
+
+service AppService {
+  // Create a new app within a project
+  rpc CreateApp(CreateAppRequest) returns (CreateAppResponse) {}
+
+  // Delete an app and all associated resources
+  rpc DeleteApp(DeleteAppRequest) returns (DeleteAppResponse) {}
+}
+
+message CreateAppRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string name = 3;
+  string slug = 4;
+}
+
+message CreateAppResponse {
+  string id = 1;
+}
+
+message DeleteAppRequest {
+  string app_id = 1;
+}
+
+message DeleteAppResponse {}

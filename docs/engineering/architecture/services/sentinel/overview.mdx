@@ -1,27 +1,54 @@
 ---
 title: "Overview"
-description: "Per-environment gateway for routing and limits"
+description: "Per-environment reverse proxy and gateway"
+mode: "wide"
 ---
 
-Sentinel is the per-environment gateway. It routes requests from frontline to the correct deployment and enforces middleware policies before requests reach the workload.
+Sentinel is the per-environment reverse proxy in Unkey's request path. It sits between Frontline (the shared multi-tenant edge) and the deployment instances running customer workloads.
 
-Each environment gets its own sentinel. Frontline forwards traffic based on domain routing, and sentinel uses the deployment ID in the request to select an instance in the same region.
+Every environment gets its own sentinel. Frontline resolves the hostname to a deployment and forwards the request to the sentinel responsible for that environment. Sentinel then selects an instance, evaluates middleware policies, and proxies the request.
 
-Sentinel runs in a pass-through mode when middleware is disabled, but it still handles routing, logging, and error responses.
+## Architecture position
+
+```
+Client (HTTPS)
+     │
+     ▼
+Frontline (regional, multi-tenant)
+  TLS termination, hostname routing
+     │  h2c
+     ▼
+Sentinel (per-app-environment, per-region)
+  Instance selection, policy evaluation, telemetry
+     │  HTTP/1.1
+     ▼
+Instance (customer workload)
+```
+
+Frontline is shared across all environments and handles TLS termination and hostname-to-deployment resolution. Sentinel is the boundary where single-tenant logic begins.
 
 ## Responsibilities
 
-- Resolve `X-Deployment-Id` to a deployment and running instance.
-- Evaluate middleware policies, such as KeyAuth, before proxying.
-- Forward requests to the selected instance and stream responses back.
-- Record request telemetry to ClickHouse and Prometheus when enabled.
+- Resolve the `X-Deployment-Id` header to a deployment and a running instance in the same region
+- Evaluate middleware policies (KeyAuth, rate limiting, IP rules) before proxying
+- Forward requests to the selected instance and stream responses back
+- Record request telemetry to ClickHouse and expose Prometheus metrics
+- Categorize proxy errors and return structured error responses
 
-## Related docs
+## Why sentinel is a separate service
 
-- [Frontline ingress](/architecture/services/frontline/ingress)
+Sentinel exists as a distinct service from Frontline for five reasons:
 
-## Routing and caching
+1. **Isolation.** A misconfigured policy or a misbehaving deployment affects only its own environment. Frontline stays thin and stable.
+2. **Scaling.** Frontline scales with total ingress traffic across all customers. Sentinel scales with a single environment's traffic and policy complexity. These are different axes.
+3. **Cache efficiency.** A per-tenant sentinel only caches deployments, instances, and keys for its own environment. The working set is small enough to prewarm on startup and keep entirely in memory, resulting in high cache hit rates. A shared gateway would need to cache data across all tenants, leading to lower hit rates, more eviction, and higher tail latency from cache misses.
+4. **Separation of concerns.** Frontline owns TLS, DNS routing, and regional failover. Sentinel owns the middleware engine, instance selection, and per-request telemetry. Keeping these apart reduces the blast radius of changes to either.
+5. **Security boundary.** Sentinel validates that a deployment belongs to its environment (returns 404, not 403, to avoid leaking information). It strips client-supplied `X-Unkey-Principal` headers to prevent principal spoofing.
 
-Sentinel uses the router service to fetch deployment and instance data from MySQL. Deployments and instance lists are cached with stale-while-revalidate semantics to keep routing fast while allowing data to refresh in the background. When gossip is enabled, invalidation events propagate across sentinel nodes so caches stay consistent across the cluster.
+## Related pages
 
-Instances are filtered by region and status. If no running instances exist, sentinel returns a service unavailable error. If a deployment belongs to a different environment, sentinel returns a not found error to avoid leaking data across environments.
+- [Request flow](/architecture/services/sentinel/request-flow) for the full lifecycle of a proxied request
+- [Configuration](/architecture/services/sentinel/configuration) for all config fields and defaults
+- [Deployment](/architecture/services/sentinel/deployment) for how Krane manages sentinel in Kubernetes
+- [Failure modes](/architecture/services/sentinel/failure-modes) for what can go wrong and how to diagnose it
+- [Frontline ingress](/architecture/services/frontline/ingress) for the layer that sits in front of sentinel

@@ -123,6 +123,9 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		sendOpts = append(sendOpts, restate.WithIdempotencyKey(deliveryID))
 	}
 
+	// Collect all unique changed files across all commits
+	changedFiles := collectChangedFiles(payload.Commits)
+
 	_, err := client.HandlePush().Send(ctx, &hydrav1.HandlePushRequest{
 		InstallationId:        payload.Installation.ID,
 		RepositoryId:          payload.Repository.ID,
@@ -134,6 +137,7 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		CommitAuthorAvatarUrl: gitCommit.AuthorAvatarURL,
 		CommitTimestamp:       gitCommit.Timestamp.UnixMilli(),
 		DeliveryId:            deliveryID,
+		ChangedFiles:          changedFiles,
 	}, sendOpts...)
 	if err != nil {
 		logger.Error("failed to send HandlePush to Restate",
@@ -176,6 +180,9 @@ func extractGitCommitInfo(payload *pushPayload) githubclient.CommitInfo {
 			Message:   c.Message,
 			Timestamp: c.Timestamp,
 			Author:    c.Author,
+			Added:     c.Added,
+			Removed:   c.Removed,
+			Modified:  c.Modified,
 		}
 	}
 
@@ -183,16 +190,47 @@ func extractGitCommitInfo(payload *pushPayload) githubclient.CommitInfo {
 		return githubclient.CommitInfoFromRaw("", "", "", "", "")
 	}
 
-	authorHandle := headCommit.Author.Username
+	// Use the first commit's author as the originator (PR creator).
+	// For a merged PR, head_commit is the merge commit whose author is the
+	// merger; commits[0] is the original PR work commit whose author is the
+	// PR creator. For a direct push, commits[0] == head_commit so this is
+	// equivalent.
+	authorCommit := headCommit
+	if len(payload.Commits) > 0 {
+		authorCommit = &payload.Commits[0]
+	}
+
+	authorHandle := authorCommit.Author.Username
 	if authorHandle == "" {
-		authorHandle = headCommit.Author.Name
+		authorHandle = authorCommit.Author.Name
 	}
 
 	return githubclient.CommitInfoFromRaw(
 		headCommit.ID,
 		headCommit.Message,
 		authorHandle,
-		payload.Sender.AvatarURL,
+		fmt.Sprintf("https://github.com/%s.png", authorHandle),
 		headCommit.Timestamp,
 	)
+}
+
+// collectChangedFiles deduplicates file paths from all commits in a push.
+func collectChangedFiles(commits []pushCommit) []string {
+	seen := make(map[string]struct{})
+	for _, c := range commits {
+		for _, f := range c.Added {
+			seen[f] = struct{}{}
+		}
+		for _, f := range c.Removed {
+			seen[f] = struct{}{}
+		}
+		for _, f := range c.Modified {
+			seen[f] = struct{}{}
+		}
+	}
+	files := make([]string, 0, len(seen))
+	for f := range seen {
+		files = append(files, f)
+	}
+	return files
 }

@@ -1,6 +1,6 @@
 ---
 title: "Configuration"
-description: "Configuration model and required settings for the sentinel service"
+description: "Config fields, defaults, and dependencies"
 ---
 
 import ConfigToml from "/snippets/config-toml.mdx";
@@ -9,15 +9,16 @@ import ConfigToml from "/snippets/config-toml.mdx";
 
 <ConfigToml />
 
-The config schema maps to <a href="https://github.com/unkeyed/unkey/blob/main/svc/sentinel/config.go" target="_blank">`svc/sentinel/config.go`</a>.
+The config schema maps to [`svc/sentinel/config.go`](https://github.com/unkeyed/unkey/blob/main/svc/sentinel/config.go).
 
-Minimal config example:
+Full config example:
 
 ```toml
 sentinel_id = "${POD_NAME}"
 workspace_id = "${UNKEY_WORKSPACE_ID}"
 environment_id = "${UNKEY_ENVIRONMENT_ID}"
-region = "us-east-1.aws"
+platform = "aws"
+region = "us-east-1"
 http_port = 8080
 
 [database]
@@ -29,83 +30,112 @@ url = "${UNKEY_CLICKHOUSE_URL}"
 
 [redis]
 url = "${UNKEY_REDIS_URL}"
+
+[gossip]
+bind_addr = "0.0.0.0"
+lan_port = 7946
+wan_port = 7947
+lan_seeds = ["sentinel-gossip.sentinel.svc.cluster.local:7946"]
+secret_key = ""
+
+[observability.tracing]
+sample_rate = 0.25
+
+[observability.logging]
+sample_rate = 1.0
+slow_threshold = "1s"
+
+[observability.metrics]
+prometheus_port = 9090
 ```
 
+## Field reference
+
 <ResponseField name="sentinel_id" type="string">
-  Sentinel instance identifier used for logging and tracing.
+  Identifies this sentinel instance in logs, traces, and ClickHouse records. Auto-generated if
+  omitted.
 </ResponseField>
 
 <ResponseField name="workspace_id" type="string" required>
-  Workspace served by this sentinel.
+  Workspace this sentinel serves. Validation rejects empty values.
 </ResponseField>
 
 <ResponseField name="environment_id" type="string" required>
-  Environment served by this sentinel.
+  Environment this sentinel serves. Sentinel validates that resolved deployments belong to this
+  environment and returns 404 for mismatches.
+</ResponseField>
+
+<ResponseField name="platform" type="string" required>
+  Underlying cloud platform identifier (for example, `aws`).
 </ResponseField>
 
 <ResponseField name="region" type="string" required>
-  Region identifier. Must match `local.dev`, `us-east-1.aws`, `us-east-2.aws`,
-  `us-west-1.aws`, `us-west-2.aws`, or `eu-central-1.aws`.
+  Geographic region identifier (for example, `us-east-1`). Used for instance selection (sentinel
+  only routes to instances in the same region) and as a label on metrics and traces.
 </ResponseField>
 
 <ResponseField name="http_port" type="int" default="8080">
-  HTTP server port. Krane-managed deployments set this to `8040`.
+  TCP port the HTTP server binds to. Range: 1-65535. Krane-managed deployments set this to `8040`.
 </ResponseField>
 
 <ResponseField name="database" type="object" required>
-  MySQL configuration.
+  MySQL configuration. Sentinel fails to start without a valid primary DSN.
   <Expandable title="Fields">
     <ResponseField name="database.primary" type="string" required>
-      Primary DSN.
+      Primary MySQL DSN. Used for all writes and reads when no replica is configured.
     </ResponseField>
     <ResponseField name="database.readonly_replica" type="string">
-      Optional read replica DSN.
+      Read replica MySQL DSN. When configured, read queries are routed to this connection.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="clickhouse" type="object">
-  ClickHouse analytics config. When omitted or empty, sentinel uses a no-op
-  analytics backend.
+  ClickHouse analytics configuration. When omitted or when the URL is empty, sentinel uses a no-op
+  analytics backend and no request telemetry is recorded.
   <Expandable title="Fields">
     <ResponseField name="clickhouse.url" type="string">
-      ClickHouse URL.
+      ClickHouse connection string. Example:
+      `clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true`
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="redis" type="object">
-  Redis configuration for rate limiting and usage limiting. When omitted or
-  empty, the middleware engine is disabled and requests are proxied as
-  pass-through.
+  Redis configuration for rate limiting, usage limiting, and key caching. When omitted or when the
+  URL is empty, the middleware engine is disabled and sentinel operates in pass-through mode (no
+  policy evaluation).
   <Expandable title="Fields">
     <ResponseField name="redis.url" type="string">
-      Redis URL.
+      Redis connection string. Example: `redis://default:password@redis:6379`
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="gossip" type="object">
-  Gossip-based cache invalidation. When omitted, invalidation is local-only.
+  Gossip-based distributed cache invalidation. When omitted, sentinel uses local-only caches and
+  relies on TTL expiration for data freshness. With gossip enabled, peer sentinel nodes broadcast
+  invalidation events for faster cache convergence.
   <Expandable title="Fields">
     <ResponseField name="gossip.bind_addr" type="string" default="0.0.0.0">
-      Bind address.
+      Address to bind the gossip listener.
     </ResponseField>
     <ResponseField name="gossip.lan_port" type="int" default="7946">
-      LAN port.
+      LAN gossip port (TCP + UDP).
     </ResponseField>
     <ResponseField name="gossip.wan_port" type="int" default="7947">
-      WAN port.
+      WAN gossip port.
     </ResponseField>
     <ResponseField name="gossip.lan_seeds" type="string[]">
-      LAN seed addresses.
+      Seed addresses for LAN cluster discovery. Typically points to the gossip headless Service
+      created by Krane.
     </ResponseField>
     <ResponseField name="gossip.wan_seeds" type="string[]">
-      WAN seed addresses.
+      Seed addresses for WAN cluster discovery.
     </ResponseField>
     <ResponseField name="gossip.secret_key" type="string" required>
-      Secret key for gossip encryption. Sentinel sets this to `nil` at runtime
-      because gossip traffic is restricted by CiliumNetworkPolicy.
+      Encryption key for gossip traffic. Sentinel sets this to `nil` at runtime because gossip
+      traffic is restricted by CiliumNetworkPolicy within the environment.
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -114,22 +144,20 @@ url = "${UNKEY_REDIS_URL}"
   Tracing, logging, and metrics configuration.
   <Expandable title="Fields">
     <ResponseField name="observability.tracing.sample_rate" type="float" default="0.25">
-      Trace sampling rate.
+      OpenTelemetry trace sampling rate (0.0 to 1.0).
     </ResponseField>
     <ResponseField name="observability.logging.sample_rate" type="float" default="1.0">
-      Log sampling rate.
+      Structured log sampling rate.
     </ResponseField>
     <ResponseField name="observability.logging.slow_threshold" type="duration" default="1s">
-      Slow log threshold.
+      Requests slower than this threshold are logged at a higher level.
     </ResponseField>
     <ResponseField name="observability.metrics.prometheus_port" type="int" default="0">
-      Prometheus port. Set to 0 to disable.
+      Port for the Prometheus `/metrics` endpoint. Set to 0 or omit to disable the metrics server.
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-## Environment variables
+## Environment variable injection
 
-Sentinel configuration is rendered as TOML and injected via the `UNKEY_CONFIG_DATA` environment variable by the krane sentinel controller.
-
-In Kubernetes, deployments also load secrets from the `database`, `otel`, and `redis` secrets in the `sentinel` namespace.
+Krane renders the TOML configuration at apply time and injects it via the `UNKEY_CONFIG_DATA` environment variable. Database credentials, Redis URLs, and ClickHouse URLs come from Kubernetes Secrets in the `sentinel` namespace, which Krane templates into the TOML.

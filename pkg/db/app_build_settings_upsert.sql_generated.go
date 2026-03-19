@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const upsertAppBuildSettings = `-- name: UpsertAppBuildSettings :exec
@@ -17,9 +19,11 @@ INSERT INTO app_build_settings (
     environment_id,
     dockerfile,
     docker_context,
+    watch_paths,
     created_at,
     updated_at
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -31,17 +35,19 @@ INSERT INTO app_build_settings (
 ON DUPLICATE KEY UPDATE
     dockerfile = VALUES(dockerfile),
     docker_context = VALUES(docker_context),
+    watch_paths = VALUES(watch_paths),
     updated_at = VALUES(updated_at)
 `
 
 type UpsertAppBuildSettingsParams struct {
-	WorkspaceID   string        `db:"workspace_id"`
-	AppID         string        `db:"app_id"`
-	EnvironmentID string        `db:"environment_id"`
-	Dockerfile    string        `db:"dockerfile"`
-	DockerContext string        `db:"docker_context"`
-	CreatedAt     int64         `db:"created_at"`
-	UpdatedAt     sql.NullInt64 `db:"updated_at"`
+	WorkspaceID   string             `db:"workspace_id"`
+	AppID         string             `db:"app_id"`
+	EnvironmentID string             `db:"environment_id"`
+	Dockerfile    string             `db:"dockerfile"`
+	DockerContext string             `db:"docker_context"`
+	WatchPaths    dbtype.StringSlice `db:"watch_paths"`
+	CreatedAt     int64              `db:"created_at"`
+	UpdatedAt     sql.NullInt64      `db:"updated_at"`
 }
 
 // UpsertAppBuildSettings
@@ -52,9 +58,11 @@ type UpsertAppBuildSettingsParams struct {
 //	    environment_id,
 //	    dockerfile,
 //	    docker_context,
+//	    watch_paths,
 //	    created_at,
 //	    updated_at
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -66,6 +74,7 @@ type UpsertAppBuildSettingsParams struct {
 //	ON DUPLICATE KEY UPDATE
 //	    dockerfile = VALUES(dockerfile),
 //	    docker_context = VALUES(docker_context),
+//	    watch_paths = VALUES(watch_paths),
 //	    updated_at = VALUES(updated_at)
 func (q *Queries) UpsertAppBuildSettings(ctx context.Context, db DBTX, arg UpsertAppBuildSettingsParams) error {
 	_, err := db.ExecContext(ctx, upsertAppBuildSettings,
@@ -74,6 +83,7 @@ func (q *Queries) UpsertAppBuildSettings(ctx context.Context, db DBTX, arg Upser
 		arg.EnvironmentID,
 		arg.Dockerfile,
 		arg.DockerContext,
+		arg.WatchPaths,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

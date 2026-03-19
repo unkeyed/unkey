@@ -51,6 +51,7 @@ import { searchDeployments } from "./deploy/deployment/llm-search";
 import { promote } from "./deploy/deployment/promote";
 import { redeploy } from "./deploy/deployment/redeploy";
 import { rollback } from "./deploy/deployment/rollback";
+import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
 import { createEnvVars } from "./deploy/env-vars/create";
 import { decryptEnvVar } from "./deploy/env-vars/decrypt";
@@ -59,6 +60,7 @@ import { listEnvVars } from "./deploy/env-vars/list";
 import { updateEnvVar } from "./deploy/env-vars/update";
 import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
 import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
+import { updateWatchPaths } from "./deploy/environment-settings/build/update-watch-paths";
 import { getEnvironmentSettings } from "./deploy/environment-settings/get";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
 import { getAvailableRegions } from "./deploy/environment-settings/get-available-regions";
@@ -426,6 +428,7 @@ export const router = t.router({
       build: t.router({
         updateDockerfile,
         updateDockerContext,
+        updateWatchPaths,
       }),
     }),
     environment: t.router({
@@ -450,6 +453,7 @@ export const router = t.router({
     deployment: t.router({
       list: listDeployments,
       buildSteps: getDeploymentBuildSteps,
+      runtimeLogs: getDeploymentRuntimeLogs,
       steps: getDeploymentSteps,
       search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,

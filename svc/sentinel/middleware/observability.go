@@ -172,9 +172,11 @@ func categorizeErrorType(urn codes.URN, statusCode int, hasError bool) string {
 			codes.Sentinel.Internal.InvalidConfiguration.URN(),
 			codes.Sentinel.Routing.DeploymentNotFound.URN(),
 			codes.Sentinel.Routing.InstanceSelectionFailed.URN(),
-			codes.Sentinel.Proxy.ServiceUnavailable.URN(),
 			codes.Sentinel.Routing.NoRunningInstances.URN():
 			return "platform"
+
+		case codes.Sentinel.Proxy.ServiceUnavailable.URN():
+			return "customer"
 
 		case codes.User.BadRequest.ClientClosedRequest.URN(),
 			codes.User.BadRequest.MissingRequiredHeader.URN():

@@ -42,8 +42,8 @@ type dockerSourceInfo struct {
 // apps deploy HEAD of their default branch, non-git apps reuse the live
 // deployment's Docker image.
 //
-// The workflow runs asynchronously keyed by project ID, so only one deployment
-// per project executes at a time. Returns the deployment ID and initial status.
+// The workflow runs asynchronously keyed by workspace ID, so only one deployment
+// per workspace executes at a time during beta. Returns the deployment ID and initial status.
 func (s *Service) CreateDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateDeploymentRequest],
@@ -241,7 +241,6 @@ func (s *Service) CreateDeployment(
 		ProjectID:                     project.ID,
 		AppID:                         app.ID,
 		EnvironmentID:                 env.Environment.ID,
-		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
 		SentinelConfig:                appRuntimeSettings.SentinelConfig,
 		EncryptedEnvironmentVariables: secretsBlob,
 		Command:                       appRuntimeSettings.Command,
@@ -273,8 +272,8 @@ func (s *Service) CreateDeployment(
 		"environment", env.Environment.ID,
 	)
 
-	// Send deployment request asynchronously, keyed by project ID
-	invocation, err := s.deploymentClient(project.ID).
+	// Send deployment request asynchronously, keyed by workspace ID
+	invocation, err := s.deploymentClient(workspaceID).
 		Deploy().
 		Send(ctx, deployReq)
 	if err != nil {

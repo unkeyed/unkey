@@ -69,10 +69,7 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
         />
 
         {log.attributes && (
-          <LogSection
-            title="Attributes"
-            details={<pre className="text-xs">{JSON.stringify(log.attributes, null, 2)}</pre>}
-          />
+          <LogSection title="Attributes" details={JSON.stringify(log.attributes, null, 2)} />
         )}
       </SharedLogDetails.CustomSections>
     </SharedLogDetails>

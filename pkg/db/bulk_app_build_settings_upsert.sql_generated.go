@@ -9,9 +9,10 @@ import (
 )
 
 // bulkUpsertAppBuildSettings is the base query for bulk insert
-const bulkUpsertAppBuildSettings = `INSERT INTO app_build_settings ( workspace_id, app_id, environment_id, dockerfile, docker_context, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertAppBuildSettings = `INSERT INTO app_build_settings ( workspace_id, app_id, environment_id, dockerfile, docker_context, watch_paths, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
     dockerfile = VALUES(dockerfile),
     docker_context = VALUES(docker_context),
+    watch_paths = VALUES(watch_paths),
     updated_at = VALUES(updated_at)`
 
 // UpsertAppBuildSettings performs bulk insert in a single query
@@ -24,7 +25,7 @@ func (q *BulkQueries) UpsertAppBuildSettings(ctx context.Context, db DBTX, args 
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertAppBuildSettings, strings.Join(valueClauses, ", "))
@@ -37,6 +38,7 @@ func (q *BulkQueries) UpsertAppBuildSettings(ctx context.Context, db DBTX, args 
 		allArgs = append(allArgs, arg.EnvironmentID)
 		allArgs = append(allArgs, arg.Dockerfile)
 		allArgs = append(allArgs, arg.DockerContext)
+		allArgs = append(allArgs, arg.WatchPaths)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)
 	}
