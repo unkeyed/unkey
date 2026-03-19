@@ -71,7 +71,7 @@ export function DeploymentNetworkView({
     if (toCollapse.size > 0) {
       setCollapsedSentinelIds(toCollapse);
     }
-  }, [currentTree]);
+  }, [defaultTree]);
 
   const { visibleTree, sentinelChildrenMap } = useMemo(() => {
     const map = new Map<string, InstanceNodeType[]>();
