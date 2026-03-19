@@ -281,16 +281,3 @@ func extractSentinelError(resp *http.Response, statusCode int) (codes.URN, strin
 
 	return fallbackURN, fallbackMessage
 }
-
-func statusClass(code int) string {
-	switch {
-	case code >= 500:
-		return "5xx"
-	case code >= 400:
-		return "4xx"
-	case code >= 300:
-		return "3xx"
-	default:
-		return "2xx"
-	}
-}
