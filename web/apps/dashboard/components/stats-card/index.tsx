@@ -24,7 +24,7 @@ export const StatsCard = ({
   icon = <ProgressBar className="text-accent-11" />,
 }: StatsCardProps) => {
   return (
-    <div className="flex flex-col border border-gray-4 rounded-xl overflow-hidden">
+    <div className="flex flex-col border border-gray-4 rounded-xl overflow-hidden bg-gray-1">
       <div className="h-[140px]">{chart}</div>
       <Link href={linkPath} prefetch>
         <div className="p-4 md:p-6 border-t border-gray-4 flex flex-col gap-2">
