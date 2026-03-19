@@ -213,7 +213,18 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
 	}
-	r.RegisterHealth(srv.Mux())
+	r.RegisterHealth(srv.Mux(), "/_unkey/internal/health")
+	r.AddReadinessCheck("database", func(ctx context.Context) error {
+		return database.RW().PingContext(ctx)
+	})
+	if resilientEngine, ok := middlewareEngine.(*engine.ResilientEvaluator); ok {
+		r.AddReadinessCheck("engine", func(_ context.Context) error {
+			if !resilientEngine.Ready() {
+				return fmt.Errorf("middleware engine not connected")
+			}
+			return nil
+		})
+	}
 	r.DeferCtx(srv.Shutdown)
 
 	routes.Register(srv, svcs)
