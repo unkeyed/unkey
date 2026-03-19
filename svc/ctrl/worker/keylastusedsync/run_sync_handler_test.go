@@ -203,7 +203,7 @@ func TestRunSync_Performance(t *testing.T) {
 	t.Logf("Sync complete: %d keys in %s (%.0f keys/sec)",
 		resp.GetKeysSynced(), syncDuration, float64(resp.GetKeysSynced())/syncDuration.Seconds())
 
-	require.Equal(t, int32(totalKeys), resp.GetKeysSynced())
+	require.Equal(t, int32(len(keyIDs)), resp.GetKeysSynced())
 
 	// ── Spot-check ───────────────────────────────────────────────────────
 	const sampleSize = 1000
