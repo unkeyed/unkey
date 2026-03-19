@@ -288,17 +288,25 @@ func TestRunSync_IncrementalUpdate(t *testing.T) {
 	require.LessOrEqual(t, resp.GetKeysSynced(), int32(updateCount*2),
 		"incremental sync should only process the newly inserted keys, not the full dataset")
 
-	// Verify the updated keys have the newer timestamp
+	// Verify the updated keys have the newer timestamp and actually changed
 	for _, kid := range updateKeys {
 		k, kErr := db.Query.FindKeyByID(ctx, h.DB.RO(), kid)
 		require.NoError(t, kErr)
 		require.True(t, k.LastUsedAt.Valid)
 		require.GreaterOrEqual(t, k.LastUsedAt.Int64, newerTime,
 			"key %s should have the newer timestamp after incremental sync", kid)
+		require.Greater(t, k.LastUsedAt.Int64, oldTimestamps[kid],
+			"key %s last_used_at should have advanced from %d", kid, oldTimestamps[kid])
 	}
 
-	t.Logf("Incremental sync verified: %d keys synced, all %d updated keys have newer timestamps",
-		resp.GetKeysSynced(), updateCount)
+	// The real cursor resume proof: synced count should be much less than total keys.
+	// If cursors reset to zero, all keys would be re-scanned from ClickHouse.
+	totalKeys := int32(len(keyIDs))
+	require.Less(t, resp.GetKeysSynced(), totalKeys,
+		"incremental sync should process fewer keys than total (%d) — proves cursor resume", totalKeys)
+
+	t.Logf("Incremental sync verified: %d/%d keys synced, all %d updated keys have newer timestamps",
+		resp.GetKeysSynced(), totalKeys, updateCount)
 }
 
 // newDevComposeHarness connects to the already-running dev docker compose
@@ -433,6 +441,9 @@ func checkExistingPerfData(t *testing.T, ctx context.Context, h *harness.Harness
 			return nil, false
 		}
 		keyIDs = append(keyIDs, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false
 	}
 
 	return keyIDs, len(keyIDs) >= 1_500_000

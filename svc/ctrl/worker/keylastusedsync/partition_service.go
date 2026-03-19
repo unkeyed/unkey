@@ -77,11 +77,30 @@ func (s *PartitionService) SyncPartition(
 		return nil, fmt.Errorf("invalid partition key %q: %w", key, err)
 	}
 	totalPartitions := int(req.GetTotalPartitions())
+	if totalPartitions <= 0 {
+		return nil, fmt.Errorf("invalid total_partitions: %d", totalPartitions)
+	}
+	if partition < 0 || partition >= totalPartitions {
+		return nil, fmt.Errorf("partition %d out of range [0, %d)", partition, totalPartitions)
+	}
 
-	// Read persisted cursor from Restate state
+	// Read persisted cursor from Restate state.
+	// If totalPartitions changed since the last run, the cursor is invalid
+	// (hash ranges shifted), so we reset to a full re-sync.
 	cursorTime, _ := restate.Get[int64](ctx, "cursor_time")
 	cursorKeyID, _ := restate.Get[string](ctx, "cursor_key_id")
+	prevTotalPartitions, _ := restate.Get[int](ctx, "total_partitions")
+
 	cursor := clickhouse.KeyLastUsedCursor{Time: cursorTime, KeyID: cursorKeyID}
+	if prevTotalPartitions != totalPartitions {
+		logger.Info("total_partitions changed, resetting cursor",
+			"partition", partition,
+			"prev_total_partitions", prevTotalPartitions,
+			"new_total_partitions", totalPartitions,
+		)
+		cursor = clickhouse.KeyLastUsedCursor{Time: 0, KeyID: ""}
+		restate.Set(ctx, "total_partitions", totalPartitions)
+	}
 
 	logger.Info("partition sync starting",
 		"partition", partition,
