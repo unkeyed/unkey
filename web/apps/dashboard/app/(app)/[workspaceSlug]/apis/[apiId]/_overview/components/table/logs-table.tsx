@@ -61,7 +61,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
   );
 
   const getRowClassNameMemoized = useCallback(
-    (log: KeysOverviewLog) => getRowClassName(log, selectedLog as KeysOverviewLog),
+    (log: KeysOverviewLog) => getRowClassName(log, selectedLog),
     [selectedLog],
   );
 

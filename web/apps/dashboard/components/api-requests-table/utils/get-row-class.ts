@@ -62,7 +62,7 @@ export const getStatusStyle = (log: KeysOverviewLog): StatusStyle => {
   }
 };
 
-export const getRowClassName = (log: KeysOverviewLog, selectedLog: KeysOverviewLog) => {
+export const getRowClassName = (log: KeysOverviewLog, selectedLog: KeysOverviewLog | null) => {
   const style = getStatusStyle(log);
   const isSelected = log.key_id === selectedLog?.key_id;
 

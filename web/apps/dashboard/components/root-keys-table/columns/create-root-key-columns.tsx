@@ -24,7 +24,7 @@ const RootKeysTableActions = dynamic(
 
 export const ROOT_KEY_COLUMN_IDS = {
   ROOT_KEY: { id: "root_key", accessorKey: "name", header: "Name" },
-  KEY: { id: "key", accessorKey: "key", header: "Key" },
+  KEY: { id: "key", accessorKey: "start", header: "Key" },
   PERMISSIONS: { id: "permissions", accessorKey: "permissions", header: "Permissions" },
   CREATED_AT: { id: "created_at", accessorKey: "created_at", header: "Created At" },
   LAST_UPDATED: { id: "last_updated", accessorKey: "last_updated", header: "Last Updated" },
