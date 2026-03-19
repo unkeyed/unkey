@@ -314,6 +314,13 @@ func newDevComposeHarness(t *testing.T) *harness.Harness {
 		restateAdmin   = "http://localhost:9070"
 	)
 
+	// Skip if dev compose isn't running (e.g. CI)
+	probeConn, probeErr := net.DialTimeout("tcp", "localhost:9070", 2*time.Second)
+	if probeErr != nil {
+		t.Skip("skipping: dev compose not running (Restate admin not reachable on localhost:9070)")
+	}
+	_ = probeConn.Close()
+
 	ctx := context.Background()
 
 	// Connect to MySQL
