@@ -145,8 +145,6 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		CreatedAt:                     h.Now(),
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 		Command:                       nil,
-		PrNumber:                      sql.NullInt64{Valid: false},
-		ForkRepositoryFullName:        sql.NullString{Valid: false},
 	})
 	require.NoError(h.t, err)
 
