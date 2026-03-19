@@ -49,7 +49,7 @@ export const authorizeDeployment = workspaceProcedure
       await insertAuditLogs(db, {
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
-        event: "deployment.create",
+        event: "deployment.authorize",
         description: `Authorized deployment ${input.deploymentId} for ${deployment.project.name}`,
         resources: [
           {
@@ -67,11 +67,10 @@ export const authorizeDeployment = workspaceProcedure
         throw error;
       }
 
-      const message = error instanceof Error ? error.message : String(error);
       console.error("Authorize deployment request failed:", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: `Failed to authorize deployment: ${message}`,
+        message: "Failed to authorize deployment",
       });
     }
   });

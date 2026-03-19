@@ -16,6 +16,13 @@ type Querier interface {
 	//  SET token = ?, authorization = ?, updated_at = ?
 	//  WHERE domain_id = ?
 	ClearAcmeChallengeTokens(ctx context.Context, db DBTX, arg ClearAcmeChallengeTokensParams) error
+	//CompareAndSwapDeploymentStatus
+	//
+	//  UPDATE deployments
+	//  SET status = ?, updated_at = ?
+	//  WHERE id = ?
+	//  AND status = ?
+	CompareAndSwapDeploymentStatus(ctx context.Context, db DBTX, arg CompareAndSwapDeploymentStatusParams) (sql.Result, error)
 	//CountInstancesByAppId
 	//
 	//  SELECT COUNT(*) as count

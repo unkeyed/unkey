@@ -51,6 +51,26 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find repo connection: %w", err))
 	}
 
+	// Atomically transition from awaiting_approval → pending to prevent
+	// concurrent authorization requests from triggering duplicate deploys.
+	casResult, err := db.Query.CompareAndSwapDeploymentStatus(ctx, s.db.RW(), db.CompareAndSwapDeploymentStatusParams{
+		ID:             deploymentID,
+		ExpectedStatus: db.DeploymentsStatusAwaitingApproval,
+		NewStatus:      db.DeploymentsStatusPending,
+		UpdatedAt:      sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update deployment status: %w", err))
+	}
+	rowsAffected, err := casResult.RowsAffected()
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to check rows affected: %w", err))
+	}
+	if rowsAffected == 0 {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("deployment %s is no longer awaiting approval (concurrent update)", deploymentID))
+	}
+
 	commitSHA := ""
 	if deployment.GitCommitSha.Valid {
 		commitSHA = deployment.GitCommitSha.String
@@ -77,21 +97,23 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 
 	_, sendErr := s.deploymentClient(deployment.ProjectID).Deploy().Send(ctx, deployReq)
 	if sendErr != nil {
+		// Revert status back to awaiting_approval since the deploy failed.
+		if _, revertErr := db.Query.CompareAndSwapDeploymentStatus(ctx, s.db.RW(), db.CompareAndSwapDeploymentStatusParams{
+			ID:             deploymentID,
+			ExpectedStatus: db.DeploymentsStatusPending,
+			NewStatus:      db.DeploymentsStatusAwaitingApproval,
+			UpdatedAt:      sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		}); revertErr != nil {
+			logger.Error("failed to revert deployment status after deploy failure",
+				"deployment_id", deploymentID,
+				"error", revertErr,
+			)
+		}
 		logger.Error("failed to trigger deploy workflow after authorization",
 			"deployment_id", deploymentID,
 			"error", sendErr,
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger deploy workflow: %w", sendErr))
-	}
-
-	// Update status to pending only after the workflow has been triggered successfully.
-	err = db.Query.UpdateDeploymentStatus(ctx, s.db.RW(), db.UpdateDeploymentStatusParams{
-		ID:        deploymentID,
-		Status:    db.DeploymentsStatusPending,
-		UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
-	})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update deployment status: %w", err))
 	}
 
 	// Update commit status on GitHub
