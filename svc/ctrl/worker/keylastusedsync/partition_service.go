@@ -2,12 +2,14 @@ package keylastusedsync
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strconv"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -36,12 +38,13 @@ type PartitionConfig struct {
 
 // NewPartitionService creates a new partition service.
 func NewPartitionService(cfg PartitionConfig) (*PartitionService, error) {
-	if cfg.DB == nil {
-		return nil, fmt.Errorf("DB must not be nil")
+	if err := assert.All(
+		assert.NotNil(cfg.DB, "DB must not be nil"),
+		assert.NotNil(cfg.Clickhouse, "Clickhouse must not be nil"),
+	); err != nil {
+		return nil, err
 	}
-	if cfg.Clickhouse == nil {
-		return nil, fmt.Errorf("Clickhouse must not be nil")
-	}
+
 	return &PartitionService{
 		UnimplementedKeyLastUsedPartitionServiceServer: hydrav1.UnimplementedKeyLastUsedPartitionServiceServer{},
 		db:         cfg.DB,
@@ -157,32 +160,20 @@ func (s *PartitionService) SyncPartition(
 	}, nil
 }
 
-// updateLastUsedBatch updates last_used_at for each key using a prepared statement
-// in a single transaction. Each UPDATE hits the primary key index directly —
-// much faster than CASE-WHEN expressions with thousands of branches.
 func updateLastUsedBatch(ctx context.Context, database db.Database, batch []clickhouse.KeyLastUsed) error {
 	if len(batch) == 0 {
 		return nil
 	}
-
-	tx, err := database.RW().Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("begin tx: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	stmt, err := tx.PrepareContext(ctx,
-		"UPDATE `keys` SET last_used_at = ? WHERE id = ? AND (last_used_at IS NULL OR last_used_at < ?)")
-	if err != nil {
-		return fmt.Errorf("prepare: %w", err)
-	}
-	defer func() { _ = stmt.Close() }()
-
-	for _, r := range batch {
-		if _, err := stmt.ExecContext(ctx, r.Time, r.KeyID, r.Time); err != nil {
-			return fmt.Errorf("update key %s: %w", r.KeyID, err)
+	return db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
+		for _, r := range batch {
+			err := db.Query.UpdateKeyLastUsed(ctx, tx, db.UpdateKeyLastUsedParams{
+				ID:         r.KeyID,
+				LastUsedAt: sql.NullInt64{Valid: true, Int64: r.Time},
+			})
+			if err != nil {
+				return fmt.Errorf("update key %s: %w", r.KeyID, err)
+			}
 		}
-	}
-
-	return tx.Commit()
+		return nil
+	})
 }

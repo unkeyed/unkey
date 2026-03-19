@@ -106,7 +106,7 @@ func (x *RunSyncResponse) GetKeysSynced() int32 {
 type SyncPartitionRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Total number of partitions. The partition index is derived from the
-	// Restate object key (e.g. "partition-3" → 3).
+	// Restate object key (e.g. "3").
 	TotalPartitions int32 `protobuf:"varint,1,opt,name=total_partitions,json=totalPartitions,proto3" json:"total_partitions,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache

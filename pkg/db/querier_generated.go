@@ -2890,6 +2890,13 @@ type Querier interface {
 	//      updated_at_m = ?
 	//  WHERE id = ?
 	UpdateKeyHashAndMigration(ctx context.Context, db DBTX, arg UpdateKeyHashAndMigrationParams) error
+	//UpdateKeyLastUsed
+	//
+	//  UPDATE `keys`
+	//  SET last_used_at = ?
+	//  WHERE id = ?
+	//    AND (last_used_at IS NULL OR last_used_at < ?)
+	UpdateKeyLastUsed(ctx context.Context, db DBTX, arg UpdateKeyLastUsedParams) error
 	//UpdateKeySpaceKeyEncryption
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?

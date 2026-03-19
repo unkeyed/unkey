@@ -127,7 +127,7 @@ func NewKeyLastUsedSyncServiceServer(srv KeyLastUsedSyncServiceServer, opts ...s
 //
 // KeyLastUsedPartitionService processes a single hash partition of the keyspace.
 //
-// Keyed by partition identifier (e.g. "partition-0").
+// Keyed by partition index (e.g. "0", "1", ... "7").
 // Persists a cursor in Restate state so subsequent runs only process new data.
 type KeyLastUsedPartitionServiceClient interface {
 	// SyncPartition reads keys from ClickHouse for this partition and batch-updates MySQL.
@@ -191,7 +191,7 @@ func (c *keyLastUsedPartitionServiceIngressClient) SyncPartition() ingress.Reque
 //
 // KeyLastUsedPartitionService processes a single hash partition of the keyspace.
 //
-// Keyed by partition identifier (e.g. "partition-0").
+// Keyed by partition index (e.g. "0", "1", ... "7").
 // Persists a cursor in Restate state so subsequent runs only process new data.
 type KeyLastUsedPartitionServiceServer interface {
 	// SyncPartition reads keys from ClickHouse for this partition and batch-updates MySQL.
