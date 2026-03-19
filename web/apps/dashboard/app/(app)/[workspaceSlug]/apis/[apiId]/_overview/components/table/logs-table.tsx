@@ -1,6 +1,7 @@
 "use client";
 import { createApiRequestColumns } from "@/components/api-requests-table/columns/create-api-request-columns";
 import { useKeysOverviewLogsQuery } from "@/components/api-requests-table/hooks/use-keys-overview-query";
+import { sortFields } from "@/components/api-requests-table/schema/keys-overview.schema";
 import type { SortFields } from "@/components/api-requests-table/schema/keys-overview.schema";
 import { getRowClassName } from "@/components/api-requests-table/utils/get-row-class";
 import { useSort } from "@/components/logs/hooks/use-sort";
@@ -53,9 +54,14 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
   const handleSortingChange = useCallback(
     (updater: SortingState | ((old: SortingState) => SortingState)) => {
       const next = typeof updater === "function" ? updater(sorting) : updater;
-      setSorts(
-        next.map((s) => ({ column: s.id as SortFields, direction: s.desc ? "desc" : "asc" })),
-      );
+      const validated = next.flatMap((s) => {
+        const result = sortFields.safeParse(s.id);
+        if (!result.success) {
+          return [];
+        }
+        return [{ column: result.data, direction: s.desc ? ("desc" as const) : ("asc" as const) }];
+      });
+      setSorts(validated);
     },
     [sorting, setSorts],
   );

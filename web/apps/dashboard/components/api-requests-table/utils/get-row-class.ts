@@ -64,7 +64,7 @@ export const getStatusStyle = (log: KeysOverviewLog): StatusStyle => {
 
 export const getRowClassName = (log: KeysOverviewLog, selectedLog: KeysOverviewLog | null) => {
   const style = getStatusStyle(log);
-  const isSelected = log.key_id === selectedLog?.key_id;
+  const isSelected = log.request_id === selectedLog?.request_id;
 
   return cn(
     style.base,
