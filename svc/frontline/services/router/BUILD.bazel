@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "doc.go",
         "interface.go",
+        "metrics.go",
         "service.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/frontline/services/router",
@@ -16,5 +17,7 @@ go_library(
         "//pkg/fault",
         "//pkg/mysql",
         "//svc/frontline/internal/db",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/promauto",
     ],
 )
