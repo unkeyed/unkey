@@ -43,7 +43,10 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
   );
 
   const sorting: SortingState = useMemo(
-    () => sorts.map((s) => ({ id: s.column, desc: s.direction === "desc" })),
+    () =>
+      sorts.length > 0
+        ? sorts.map((s) => ({ id: s.column, desc: s.direction === "desc" }))
+        : [{ id: "time", desc: true }],
     [sorts],
   );
 

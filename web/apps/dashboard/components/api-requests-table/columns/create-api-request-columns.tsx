@@ -139,6 +139,7 @@ export const createApiRequestColumns = ({
   {
     id: API_REQUEST_COLUMN_IDS.LAST_USED.id,
     accessorKey: API_REQUEST_COLUMN_IDS.LAST_USED.accessorKey,
+    sortDescFirst: true,
     header: ({ header }) => (
       <SortableHeader key={API_REQUEST_COLUMN_IDS.LAST_USED.id} header={header}>
         {API_REQUEST_COLUMN_IDS.LAST_USED.header}
