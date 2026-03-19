@@ -54,7 +54,6 @@ properties:
     type: integer
     format: int64
     minimum: 0
-    maximum: 9223372036854775807
     description: Unix timestamp in milliseconds when key was last used for verification.
     example: 1701425400000
     x-go-type-skip-optional-pointer: true

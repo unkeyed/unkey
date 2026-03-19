@@ -254,7 +254,7 @@ func TestRunSync_IncrementalUpdate(t *testing.T) {
 		oldTimestamps[kid] = k.LastUsedAt.Int64 // may be 0 if NULL, that's fine
 	}
 
-	// ── Insert newer CH data for only 10K keys ──────────────────────────
+	// ── Insert newer CH data for only 50K keys ──────────────────────────
 	newerTime := time.Now().UnixMilli()
 	t.Logf("Inserting newer ClickHouse data for %d keys (time=%d)...", updateCount, newerTime)
 
@@ -281,7 +281,7 @@ func TestRunSync_IncrementalUpdate(t *testing.T) {
 	t.Logf("Incremental sync complete: %d keys in %s (expected ~%d)",
 		resp.GetKeysSynced(), time.Since(syncStart), updateCount)
 
-	// Should have synced roughly the 10K updated keys, not all 1.5M+
+	// Should have synced roughly the 50K updated keys, not all 1.5M+
 	require.Greater(t, resp.GetKeysSynced(), int32(0), "should have synced some keys")
 	require.LessOrEqual(t, resp.GetKeysSynced(), int32(updateCount*2),
 		"incremental sync should only process the newly inserted keys, not the full dataset")
