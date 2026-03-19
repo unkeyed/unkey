@@ -116,6 +116,8 @@ func convertDbStatusToProto(status db.DeploymentsStatus) ctrlv1.DeploymentStatus
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED
 	case db.DeploymentsStatusSkipped:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_SKIPPED
+	case db.DeploymentsStatusAwaitingApproval:
+		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_AWAITING_APPROVAL
 	default:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
 	}

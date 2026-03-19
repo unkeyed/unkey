@@ -38,6 +38,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/openapi"
@@ -191,6 +192,11 @@ func Run(ctx context.Context, cfg Config) error {
 		DB: database,
 	}), restate.WithIngressPrivate(true)))
 
+	restateSrv.Bind(hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{
+		GitHub: ghClient,
+		DB:     database,
+	}), restate.WithIngressPrivate(true)))
+
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		DB:            database,
 		DefaultDomain: cfg.DefaultDomain,
@@ -214,7 +220,9 @@ func Run(ctx context.Context, cfg Config) error {
 	))
 
 	restateSrv.Bind(hydrav1.NewGitHubWebhookServiceServer(githubwebhook.New(githubwebhook.Config{
-		DB: database,
+		DB:           database,
+		GitHub:       ghClient,
+		DashboardURL: cfg.DashboardURL,
 	})))
 
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{

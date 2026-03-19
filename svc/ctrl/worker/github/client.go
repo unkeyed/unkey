@@ -64,15 +64,23 @@ type ClientConfig struct {
 // Ensure Client implements GitHubClient
 var _ GitHubClient = (*Client)(nil)
 
+// collaboratorKey uniquely identifies a user+repo pair for cache lookups.
+type collaboratorKey struct {
+	installationID int64
+	repo           string
+	username       string
+}
+
 // Client provides access to GitHub API using App authentication.
 //
 // Client handles JWT generation for App-level authentication and installation
 // token retrieval for repository-level operations. It is safe for concurrent use.
 type Client struct {
-	config     ClientConfig
-	httpClient *http.Client
-	signer     jwt.Signer[jwt.RegisteredClaims]
-	tokenCache cache.Cache[int64, InstallationToken]
+	config            ClientConfig
+	httpClient        *http.Client
+	signer            jwt.Signer[jwt.RegisteredClaims]
+	tokenCache        cache.Cache[int64, InstallationToken]
+	collaboratorCache cache.Cache[collaboratorKey, bool]
 }
 
 // NewClient creates a [Client] with the given configuration. Returns an error if
@@ -94,11 +102,23 @@ func NewClient(config ClientConfig) (*Client, error) {
 		return nil, err
 	}
 
+	collaboratorCache, err := cache.New(cache.Config[collaboratorKey, bool]{
+		Fresh:    5 * time.Minute,
+		Stale:    1 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "github_collaborator",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
-		config:     config,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
-		signer:     signer,
-		tokenCache: tokenCache,
+		config:            config,
+		httpClient:        &http.Client{Timeout: 30 * time.Second},
+		signer:            signer,
+		tokenCache:        tokenCache,
+		collaboratorCache: collaboratorCache,
 	}, nil
 }
 
@@ -310,4 +330,176 @@ func (c *Client) CreateDeploymentStatus(installationID int64, repo string, deplo
 	}
 
 	return doRequest(c.httpClient, http.MethodPost, apiURL, headers, payload, http.StatusCreated)
+}
+
+// CreateCommitStatus creates a commit status on a SHA using the Status API.
+// Clicking "Details" in the PR goes directly to targetURL (unlike Check Runs
+// which show an intermediate GitHub page).
+func (c *Client) CreateCommitStatus(installationID int64, repo string, sha string, state string, targetURL string, description string, context string) error {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return err
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/statuses/%s", repo, url.PathEscape(sha))
+
+	return doRequest(c.httpClient, http.MethodPost, apiURL, headers, map[string]string{
+		"state":       state,
+		"target_url":  targetURL,
+		"description": description,
+		"context":     context,
+	}, http.StatusCreated)
+}
+
+// ghCommitFile is the subset of GitHub's commit file object that we need.
+type ghCommitFile struct {
+	Filename string `json:"filename"`
+}
+
+// ghCommitWithFiles extends ghCommitResponse with the files array returned by
+// GET /repos/{owner}/{repo}/commits/{sha}.
+type ghCommitWithFiles struct {
+	Files []ghCommitFile `json:"files"`
+}
+
+// ListCommitFiles returns the list of filenames changed in a specific commit.
+func (c *Client) ListCommitFiles(installationID int64, repo string, sha string) ([]string, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return nil, err
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(sha))
+
+	commit, err := request[ghCommitWithFiles](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
+	if err != nil {
+		return nil, err
+	}
+
+	filenames := make([]string, len(commit.Files))
+	for i, f := range commit.Files {
+		filenames[i] = f.Filename
+	}
+	return filenames, nil
+}
+
+// ghPullRequest is the subset of GitHub's pull request response that we need.
+type ghPullRequest struct {
+	Number int `json:"number"`
+}
+
+// ghIssueComment is the subset of GitHub's issue comment response that we need.
+type ghIssueComment struct {
+	ID   int64  `json:"id"`
+	Body string `json:"body"`
+}
+
+// FindPullRequestForBranch returns the PR number for the given branch head,
+// or 0 if no open PR exists.
+func (c *Client) FindPullRequestForBranch(installationID int64, repo string, branch string) (int, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return 0, err
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/pulls?state=open&head=%s:%s&per_page=1",
+		repo, strings.Split(repo, "/")[0], url.PathEscape(branch))
+
+	prs, err := request[[]ghPullRequest](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(prs) == 0 {
+		return 0, nil
+	}
+	return prs[0].Number, nil
+}
+
+// CreateIssueComment posts a new comment on a PR/issue and returns the comment ID.
+func (c *Client) CreateIssueComment(installationID int64, repo string, prNumber int, body string) (int64, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return 0, err
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/issues/%d/comments", repo, prNumber)
+
+	comment, err := request[ghIssueComment](c.httpClient, http.MethodPost, apiURL, headers, map[string]string{
+		"body": body,
+	}, http.StatusCreated)
+	if err != nil {
+		return 0, err
+	}
+	return comment.ID, nil
+}
+
+// UpdateIssueComment updates an existing PR/issue comment by ID.
+func (c *Client) UpdateIssueComment(installationID int64, repo string, commentID int64, body string) error {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return err
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/issues/comments/%d", repo, commentID)
+
+	return doRequest(c.httpClient, http.MethodPatch, apiURL, headers, map[string]string{
+		"body": body,
+	}, http.StatusOK)
+}
+
+// FindBotComment searches PR comments for one containing the given marker string.
+// Returns the comment ID and body, or (0, "", nil) if not found.
+func (c *Client) FindBotComment(installationID int64, repo string, prNumber int, marker string) (int64, string, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return 0, "", err
+	}
+
+	// Paginate through comments looking for our marker (most recent first)
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/issues/%d/comments?per_page=100&direction=desc", repo, prNumber)
+
+	comments, err := request[[]ghIssueComment](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
+	if err != nil {
+		return 0, "", err
+	}
+
+	for _, c := range comments {
+		if strings.Contains(c.Body, marker) {
+			return c.ID, c.Body, nil
+		}
+	}
+	return 0, "", nil
+}
+
+// IsCollaborator checks whether a GitHub user is a collaborator on a repository.
+// Results are cached for 5 minutes to avoid redundant API calls for the same user.
+func (c *Client) IsCollaborator(installationID int64, repo string, username string) (bool, error) {
+	key := collaboratorKey{installationID: installationID, repo: repo, username: username}
+
+	value, _, err := c.collaboratorCache.SWR(
+		context.Background(),
+		key,
+		func(_ context.Context) (bool, error) {
+			headers, err := c.ghHeaders(installationID)
+			if err != nil {
+				return false, err
+			}
+
+			apiURL := fmt.Sprintf("https://api.github.com/repos/%s/collaborators/%s", repo, url.PathEscape(username))
+
+			return statusCheck(c.httpClient, http.MethodGet, apiURL, headers, http.StatusNoContent)
+		},
+		func(err error) cache.Op {
+			if err != nil {
+				return cache.Noop
+			}
+			return cache.WriteValue
+		},
+	)
+	if err != nil {
+		return false, err
+	}
+
+	return value, nil
 }

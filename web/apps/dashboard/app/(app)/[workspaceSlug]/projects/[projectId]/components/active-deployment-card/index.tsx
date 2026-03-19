@@ -10,6 +10,14 @@ import { StatusIndicator } from "../../components/status-indicator";
 import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-empty";
 import { ActiveDeploymentCardSkeleton } from "./components/skeleton";
 
+function GitHubLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="hover:opacity-80">
+      {children}
+    </a>
+  );
+}
+
 type Props = {
   deploymentId: string | null;
   statusBadge?: React.ReactNode;
@@ -23,8 +31,13 @@ export const ActiveDeploymentCard = ({
   trailingContent,
   expandableContent,
 }: Props) => {
-  const { getDeploymentById, isDeploymentsLoading } = useProjectData();
+  const { getDeploymentById, isDeploymentsLoading, project } = useProjectData();
   const deployment = deploymentId ? getDeploymentById(deploymentId) : undefined;
+  const repoFullName = project?.repositoryFullName;
+  // For fork PRs, the branch lives on the fork repo, not the base repo
+  const branchRepo = deployment?.forkRepositoryFullName || repoFullName;
+  // Commits are always accessible on the base repo
+  const commitRepo = repoFullName;
 
   if (isDeploymentsLoading) {
     return <ActiveDeploymentCardSkeleton />;
@@ -72,16 +85,38 @@ export const ActiveDeploymentCard = ({
               className="text-grayA-9 text-xs"
             />
             <div className="flex items-center gap-1.5">
-              <InfoChip icon={CodeBranch}>
-                <span className="text-grayA-9 text-xs truncate max-w-32">
-                  {deployment.gitBranch}
-                </span>
-              </InfoChip>
-              <InfoChip icon={CodeCommit}>
-                <span className="text-grayA-9 text-xs">
-                  {(deployment.gitCommitSha ?? "").slice(0, 7)}
-                </span>
-              </InfoChip>
+              {deployment.gitBranch && branchRepo ? (
+                <GitHubLink href={`https://github.com/${branchRepo}/tree/${deployment.gitBranch}`}>
+                  <InfoChip icon={CodeBranch}>
+                    <span className="text-grayA-9 text-xs truncate max-w-32">
+                      {deployment.gitBranch}
+                    </span>
+                  </InfoChip>
+                </GitHubLink>
+              ) : deployment.gitBranch ? (
+                <InfoChip icon={CodeBranch}>
+                  <span className="text-grayA-9 text-xs truncate max-w-32">
+                    {deployment.gitBranch}
+                  </span>
+                </InfoChip>
+              ) : null}
+              {deployment.gitCommitSha && commitRepo ? (
+                <GitHubLink
+                  href={`https://github.com/${commitRepo}/commit/${deployment.gitCommitSha}`}
+                >
+                  <InfoChip icon={CodeCommit}>
+                    <span className="text-grayA-9 text-xs">
+                      {deployment.gitCommitSha.slice(0, 7)}
+                    </span>
+                  </InfoChip>
+                </GitHubLink>
+              ) : deployment.gitCommitSha ? (
+                <InfoChip icon={CodeCommit}>
+                  <span className="text-grayA-9 text-xs">
+                    {deployment.gitCommitSha.slice(0, 7)}
+                  </span>
+                </InfoChip>
+              ) : null}
             </div>
           </div>
           {trailingContent}

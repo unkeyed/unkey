@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { DeploymentDomainsCard } from "../../../components/deployment-domains-card";
 import { ProjectContentWrapper } from "../../../components/project-content-wrapper";
 import { useProjectData } from "../../data-provider";
+import { DeploymentApproval } from "./(deployment-progress)/deployment-approval";
 import { DeploymentInfo } from "./(deployment-progress)/deployment-info";
 import { DeploymentProgress } from "./(deployment-progress)/deployment-progress";
 import { SkippedDeploymentView } from "./(deployment-progress)/skipped-deployment-view";
@@ -17,11 +18,12 @@ export default function DeploymentOverview() {
 
   const ready = deployment.status === "ready";
   const skipped = deployment.status === "skipped";
+  const awaitingApproval = deployment.status === "awaiting_approval";
 
   const stepsQuery = trpc.deploy.deployment.steps.useQuery(
     { deploymentId: deployment.id },
     {
-      refetchInterval: ready || skipped ? false : 1_000,
+      refetchInterval: ready || skipped || awaitingApproval ? false : 1_000,
       refetchOnWindowFocus: false,
       enabled: !skipped,
     },
@@ -39,6 +41,17 @@ export default function DeploymentOverview() {
       refetchDomains();
     }
   }, [ready, refetchDomains, stepsQuery.refetch]);
+
+  if (awaitingApproval) {
+    return (
+      <ProjectContentWrapper centered>
+        <DeploymentInfo statusOverride={derivedStatus} />
+        <div className="animate-fade-slide-in">
+          <DeploymentApproval deployment={deployment} />
+        </div>
+      </ProjectContentWrapper>
+    );
+  }
 
   return (
     <ProjectContentWrapper centered>

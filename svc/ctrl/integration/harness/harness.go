@@ -173,6 +173,7 @@ func New(t *testing.T) *Harness {
 		DB:            database,
 		Clickhouse:    chClient,
 		DefaultDomain: "test.example.com",
+		DashboardURL:  "https://app.unkey.com",
 		Vault:         vaultClient,
 		SentinelImage: "test-sentinel:latest",
 
@@ -181,7 +182,6 @@ func New(t *testing.T) *Harness {
 		RegistryConfig:                  deploy.RegistryConfig{URL: "", Username: "", Password: ""},
 		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
 		AllowUnauthenticatedDeployments: false,
-		DashboardURL:                    "http://localhost:3000",
 	})
 
 	keyRefillSvc, err := keyrefill.New(keyrefill.Config{
