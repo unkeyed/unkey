@@ -208,14 +208,18 @@ func (s *ClickHouseSeeder) insertVerificationsForKeyChunk(
 			baseTime := now - int64(len(keyIDs)-i-keyIdx)*int64(eventsPerKey)
 			for j := range eventsPerKey {
 				v := schema.KeyVerification{
-					RequestID:   fmt.Sprintf("perf-%d-%d", i+keyIdx, j),
-					Time:        baseTime + int64(j),
-					WorkspaceID: workspaceID,
-					KeySpaceID:  keySpaceID,
-					KeyID:       keyID,
-					Region:      "us-east-1",
-					Outcome:     "VALID",
-					Tags:        []string{},
+					RequestID:    fmt.Sprintf("perf-%d-%d", i+keyIdx, j),
+					Time:         baseTime + int64(j),
+					WorkspaceID:  workspaceID,
+					KeySpaceID:   keySpaceID,
+					KeyID:        keyID,
+					IdentityID:   "",
+					ExternalID:   "",
+					Region:       "us-east-1",
+					Outcome:      "VALID",
+					Tags:         []string{},
+					SpentCredits: 0,
+					Latency:      0,
 				}
 				if err = batch.AppendStruct(&v); err != nil {
 					return fmt.Errorf("append at key %d event %d: %w", i+keyIdx, j, err)

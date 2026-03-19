@@ -22,12 +22,16 @@ go_library(
 
 go_test(
     name = "keylastusedsync_test",
-    srcs = ["run_sync_handler_test.go"],
+    srcs = [
+        "run_sync_handler_test.go",
+        "update_bench_test.go",
+    ],
     deps = [
         ":keylastusedsync",
         "//gen/proto/hydra/v1:hydra",
         "//pkg/clickhouse",
         "//pkg/db",
+        "//pkg/dockertest",
         "//pkg/hash",
         "//pkg/healthcheck",
         "//pkg/restate/admin",
@@ -35,6 +39,7 @@ go_test(
         "//svc/ctrl/integration/harness",
         "//svc/ctrl/integration/seed",
         "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
+        "@com_github_go_sql_driver_mysql//:mysql",
         "@com_github_restatedev_sdk_go//ingress",
         "@com_github_restatedev_sdk_go//server",
         "@com_github_stretchr_testify//require",

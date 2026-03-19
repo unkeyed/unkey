@@ -19,6 +19,10 @@ import (
 // Larger batches reduce CH round trips (the main bottleneck).
 const batchSize = 25_000
 
+// updateChunkSize is the number of keys per CASE/WHEN UPDATE statement.
+// Benchmarked at ~44K keys/sec with chunk=100 vs ~5K keys/sec for individual UPDATEs.
+const updateChunkSize = 100
+
 // PartitionService implements the KeyLastUsedPartitionService Restate virtual object.
 // Each instance is keyed by partition index (e.g. "0") and persists its own
 // cursor in Restate state so that subsequent invocations only process new data.
@@ -101,11 +105,11 @@ func (s *PartitionService) SyncPartition(
 			chDur := time.Since(chStart)
 
 			if len(batch) == 0 {
-				return batchResult{}, nil
+				return batchResult{Synced: 0, CursorTime: 0, CursorKeyID: ""}, nil
 			}
 
 			myStart := time.Now()
-			if updateErr := updateLastUsedBatch(rc, s.db, partition, batch); updateErr != nil {
+			if updateErr := s.updateLastUsedBatch(rc, partition, batch); updateErr != nil {
 				return batchResult{}, fmt.Errorf("update partition %d: %w", partition, updateErr)
 			}
 			myDur := time.Since(myStart)
@@ -160,20 +164,17 @@ func (s *PartitionService) SyncPartition(
 	}, nil
 }
 
-func updateLastUsedBatch(ctx context.Context, database db.Database, partition int, batch []clickhouse.KeyLastUsed) error {
+func (s *PartitionService) updateLastUsedBatch(ctx context.Context, partition int, batch []clickhouse.KeyLastUsed) error {
 	if len(batch) == 0 {
 		return nil
 	}
-	// CASE/WHEN bulk UPDATE: one SQL statement per chunk instead of one per key.
-	// Benchmarked at ~44K keys/sec (chunk=100) vs ~5K keys/sec for individual UPDATEs.
-	const chunkSize = 100
-	rw := database.RW()
+	rw := s.db.RW()
 	batchStart := time.Now()
-	for start := 0; start < len(batch); start += chunkSize {
-		end := min(start+chunkSize, len(batch))
+	for start := 0; start < len(batch); start += updateChunkSize {
+		end := min(start+updateChunkSize, len(batch))
 		chunk := batch[start:end]
 
-		if err := buildAndExecCaseUpdate(ctx, rw, chunk); err != nil {
+		if err := s.execCaseUpdate(ctx, rw, chunk); err != nil {
 			return fmt.Errorf("update chunk at offset %d: %w", start, err)
 		}
 
@@ -197,7 +198,7 @@ func updateLastUsedBatch(ctx context.Context, database db.Database, partition in
 //	END
 //	WHERE id IN ('key1','key2')
 //	  AND (last_used_at IS NULL OR last_used_at < CASE id WHEN 'key1' THEN 1710000000 ... END)
-func buildAndExecCaseUpdate(ctx context.Context, rw db.DBTX, chunk []clickhouse.KeyLastUsed) error {
+func (s *PartitionService) execCaseUpdate(ctx context.Context, rw db.DBTX, chunk []clickhouse.KeyLastUsed) error {
 	var b strings.Builder
 	// Pre-allocate: each key needs 3 args (CASE, IN, filter CASE)
 	args := make([]any, 0, len(chunk)*5+1)

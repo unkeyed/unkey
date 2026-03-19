@@ -262,7 +262,6 @@ go_library(
         "key_update_credits_refill.sql_generated.go",
         "key_update_credits_set.sql_generated.go",
         "key_update_hash_and_migration.sql_generated.go",
-        "key_update_last_used.sql_generated.go",
         "models_generated.go",
         "network_policy_list_by_versions.sql_generated.go",
         "network_policy_list_desired.sql_generated.go",
