@@ -9,6 +9,7 @@ import {
   Hammer2,
   LayerFront,
   Pulse,
+  ShieldAlert,
   Sparkle3,
 } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons/src/props";
@@ -92,6 +93,13 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
+  },
+  awaiting_approval: {
+    icon: ShieldAlert,
+    label: "Awaiting Approval",
+    bgColor: "bg-warningA-3",
+    textColor: "text-warningA-11",
+    iconColor: "text-warning-11",
   },
 };
 

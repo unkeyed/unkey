@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
 import { Check, CircleHalfDottedClock, TriangleWarning2 } from "@unkey/icons";
 import { Badge, Loading, SettingCard } from "@unkey/ui";
+import { GlowIcon } from "../../../../components/glow-icon";
 
 type DeploymentStepProps = {
   icon: React.ReactNode;
@@ -32,28 +33,13 @@ export function DeploymentStep({
       <SettingCard
         truncateDescription
         icon={
-          <div className="relative w-full h-full">
-            <div
-              className={cn(
-                "absolute inset-[-4px] rounded-[10px] blur-[14px]",
-                isError
-                  ? "bg-linear-to-l from-error-7 to-error-8"
-                  : "bg-linear-to-l from-feature-8 to-info-9",
-                showGlow ? "animate-pulse opacity-20" : "opacity-0 transition-opacity duration-300",
-              )}
-            />
-            <div
-              className={cn(
-                "w-full h-full rounded-[10px] flex items-center justify-center shrink-0",
-                isError
-                  ? "relative bg-errorA-3 dark:text-error-11 text-error-11"
-                  : showGlow &&
-                      "relative dark:bg-white dark:text-black bg-black text-white shadow-md shadow-black/40",
-              )}
-            >
-              {icon}
-            </div>
-          </div>
+          <GlowIcon
+            icon={icon}
+            variant={isError ? "error" : "feature"}
+            glow={showGlow}
+            transition
+            className="w-full h-full"
+          />
         }
         title={
           <div className="flex items-center gap-2">

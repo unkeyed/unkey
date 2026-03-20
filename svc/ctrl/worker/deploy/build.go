@@ -96,6 +96,7 @@ type gitBuildParams struct {
 	AppID          string
 	DeploymentID   string
 	WorkspaceID    string
+	PrNumber       int64
 }
 
 // buildDockerImageFromGit builds a container image from a GitHub repository using Depot.
@@ -201,12 +202,17 @@ func (w *Workflow) buildDockerImageFromGit(
 			contextPath = ""
 		}
 
-		// Build git context URL with commit SHA
+		// Build git context URL with commit SHA or PR ref.
 		// Format: https://github.com/owner/repo.git#<ref>:<subdir>
-		// Note: BuildKit requires full 40-char SHA for reliable builds
-		gitContextURL := fmt.Sprintf("https://github.com/%s.git#%s", params.Repository, params.CommitSHA)
+		// For fork PRs, use refs/pull/<number>/head so BuildKit can fetch
+		// the fork's commits from the base repo.
+		ref := params.CommitSHA
+		if params.PrNumber > 0 {
+			ref = fmt.Sprintf("refs/pull/%d/head", params.PrNumber)
+		}
+		gitContextURL := fmt.Sprintf("https://github.com/%s.git#%s", params.Repository, ref)
 		if contextPath != "" {
-			gitContextURL = fmt.Sprintf("https://github.com/%s.git#%s:%s", params.Repository, params.CommitSHA, contextPath)
+			gitContextURL = fmt.Sprintf("https://github.com/%s.git#%s:%s", params.Repository, ref, contextPath)
 		}
 
 		logger.Info("Starting build execution",
