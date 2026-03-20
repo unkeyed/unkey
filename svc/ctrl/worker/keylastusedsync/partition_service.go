@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/retry"
 )
 
 // batchSize is the number of keys to fetch from ClickHouse per batch.
@@ -204,8 +205,13 @@ func (s *PartitionService) updateLastUsedBatch(ctx context.Context, partition in
 	rw := s.db.RW()
 	batchStart := time.Now()
 	done := 0
+	retrier := retry.New(
+		retry.Attempts(10),
+		retry.Backoff(func(n int) time.Duration { return time.Duration(n*5) * time.Millisecond }),
+		retry.ShouldRetry(db.IsTransientError),
+	)
 	for ts, keyIDs := range groups {
-		if _, err := db.WithRetryContext(ctx, func() (struct{}, error) {
+		if _, err := retry.DoWithResultContext(retrier, ctx, func() (struct{}, error) {
 			return struct{}{}, db.Query.UpdateKeysLastUsed(ctx, rw, db.UpdateKeysLastUsedParams{
 				LastUsedAt: uint64(ts), //nolint:gosec
 				KeyIds:     keyIDs,
