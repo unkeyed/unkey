@@ -93,76 +93,76 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	currentRoles, err := db.Query.ListRolesByKeyID(ctx, h.DB.RO(), req.KeyId)
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve current roles."),
-		)
-	}
-
-	currentRoleIDs := make(map[string]bool)
-	for _, role := range currentRoles {
-		currentRoleIDs[role.ID] = true
-	}
-
-	foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, h.DB.RO(), db.FindManyRolesByNamesWithPermsParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Names:       req.Roles,
-	})
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve roles."),
-		)
-	}
-
-	foundMap := make(map[string]struct{})
-	for _, role := range foundRoles {
-		foundMap[role.ID] = struct{}{}
-		foundMap[role.Name] = struct{}{}
-	}
-
-	for _, role := range req.Roles {
-		_, exists := foundMap[role]
-		if !exists {
-			return fault.New("role not found",
-				fault.Code(codes.Data.Role.NotFound.URN()),
-				fault.Public(fmt.Sprintf("Role '%s' was not found.", role)),
-			)
-		}
-	}
-
-	requestedRoleIDs := make(map[string]bool)
-	requestedRoleMap := make(map[string]db.FindManyRolesByNamesWithPermsRow)
-	for _, role := range foundRoles {
-		requestedRoleIDs[role.ID] = true
-		requestedRoleMap[role.ID] = role
-	}
-
-	// Determine roles to remove and add
-	rolesToRemove := make([]db.ListRolesByKeyIDRow, 0)
-	for _, role := range currentRoles {
-		if !requestedRoleIDs[role.ID] {
-			rolesToRemove = append(rolesToRemove, role)
-		}
-	}
-
-	rolesToAdd := make([]db.FindManyRolesByNamesWithPermsRow, 0)
-	for _, role := range foundRoles {
-		if !currentRoleIDs[role.ID] {
-			rolesToAdd = append(rolesToAdd, role)
-		}
-	}
-
-	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	foundRoles, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) ([]db.FindManyRolesByNamesWithPermsRow, error) {
 		// Lock the key row to prevent concurrent modifications and deadlocks
 		_, err := db.Query.LockKeyForUpdate(ctx, tx, req.KeyId)
 		if err != nil {
-			return fault.Wrap(err,
+			return nil, fault.Wrap(err,
 				fault.Internal("unable to lock key"),
 				fault.Public("We're unable to update the key."),
 			)
+		}
+
+		// All reads happen inside the transaction after acquiring the lock
+		// to prevent TOCTOU races with concurrent requests.
+		foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, tx, db.FindManyRolesByNamesWithPermsParams{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Names:       req.Roles,
+		})
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve roles."),
+			)
+		}
+
+		foundMap := make(map[string]struct{})
+		for _, role := range foundRoles {
+			foundMap[role.ID] = struct{}{}
+			foundMap[role.Name] = struct{}{}
+		}
+
+		for _, role := range req.Roles {
+			_, exists := foundMap[role]
+			if !exists {
+				return nil, fault.New("role not found",
+					fault.Code(codes.Data.Role.NotFound.URN()),
+					fault.Public(fmt.Sprintf("Role '%s' was not found.", role)),
+				)
+			}
+		}
+
+		requestedRoleIDs := make(map[string]bool)
+		for _, role := range foundRoles {
+			requestedRoleIDs[role.ID] = true
+		}
+
+		currentRoles, err := db.Query.ListRolesByKeyID(ctx, tx, req.KeyId)
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve current roles."),
+			)
+		}
+
+		currentRoleIDs := make(map[string]bool)
+		for _, role := range currentRoles {
+			currentRoleIDs[role.ID] = true
+		}
+
+		// Determine roles to remove and add
+		rolesToRemove := make([]db.ListRolesByKeyIDRow, 0)
+		for _, role := range currentRoles {
+			if !requestedRoleIDs[role.ID] {
+				rolesToRemove = append(rolesToRemove, role)
+			}
+		}
+
+		rolesToAdd := make([]db.FindManyRolesByNamesWithPermsRow, 0)
+		for _, role := range foundRoles {
+			if !currentRoleIDs[role.ID] {
+				rolesToAdd = append(rolesToAdd, role)
+			}
 		}
 
 		var auditLogs []auditlog.AuditLog
@@ -207,7 +207,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RoleIds: roleIds,
 			})
 			if err != nil {
-				return fault.Wrap(err,
+				return nil, fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"),
 					fault.Public("Failed to remove role assignment."),
@@ -257,7 +257,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			err = db.BulkQuery.InsertKeyRoles(ctx, tx, keyRolesToInsert)
 			if err != nil {
-				return fault.Wrap(err,
+				return nil, fault.Wrap(err,
 					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 					fault.Internal("database error"),
 					fault.Public("Failed to add role assignment."),
@@ -267,10 +267,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		return nil
+		return foundRoles, nil
 	})
 	if err != nil {
 		return err
