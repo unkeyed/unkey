@@ -27,7 +27,6 @@ go_library(
         "//pkg/db",
         "//pkg/fault",
         "//pkg/logger",
-        "//pkg/mysql",
         "//pkg/ptr",
         "//pkg/uid",
         "//svc/ctrl/worker/github",
