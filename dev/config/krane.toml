@@ -1,5 +1,6 @@
 region = "local"
 platform = "dev"
+is_schedulable = true
 
 [control_plane]
 url = "http://ctrl-api:7091"

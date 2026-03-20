@@ -36,9 +36,10 @@ func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.Hea
 	now := time.Now().UnixMilli()
 
 	err := db.Query.UpsertRegion(ctx, s.db.RW(), db.UpsertRegionParams{
-		ID:       uid.New(uid.RegionPrefix),
-		Name:     regionName,
-		Platform: platform,
+		ID:            uid.New(uid.RegionPrefix),
+		Name:          regionName,
+		Platform:      platform,
+		IsSchedulable: req.Msg.GetIsSchedulable(),
 	})
 	if err != nil {
 		logger.Error("failed to upsert region", "error", err, "platform", platform, "region_name", regionName)

@@ -3176,14 +3176,18 @@ type Querier interface {
 	//      ratelimit_api_limit = VALUES(ratelimit_api_limit),
 	//      ratelimit_api_duration = VALUES(ratelimit_api_duration)
 	UpsertQuota(ctx context.Context, db DBTX, arg UpsertQuotaParams) error
-	// Inserts a region or does nothing if it already exists.
+	// Inserts a region with the provided is_schedulable value, or does nothing if
+	// the region already exists. This preserves any manual is_schedulable override
+	// made directly in the database (e.g. disabling a broken region).
 	//
 	//  INSERT INTO regions (
 	//  	id,
 	//  	name,
-	//  	platform
+	//  	platform,
+	//  	is_schedulable
 	//  )
 	//  VALUES (
+	//  	?,
 	//  	?,
 	//  	?,
 	//  	?

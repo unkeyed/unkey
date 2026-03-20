@@ -173,8 +173,9 @@ func Run(ctx context.Context, cfg Config) error {
 	// Start heartbeat loop to register this cluster with the control plane
 	stopHeartbeat := repeat.Every(30*time.Second, func() {
 		if _, err := cluster.Heartbeat(ctx, &ctrlv1.HeartbeatRequest{
-			Region:   cfg.Region,
-			Platform: cfg.Platform,
+			Region:        cfg.Region,
+			Platform:      cfg.Platform,
+			IsSchedulable: cfg.IsSchedulable,
 		}); err != nil {
 			logger.Warn("heartbeat failed", "error", err)
 		}
