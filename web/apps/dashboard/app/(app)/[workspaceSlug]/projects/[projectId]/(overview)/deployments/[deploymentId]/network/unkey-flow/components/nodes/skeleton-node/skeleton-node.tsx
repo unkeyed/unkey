@@ -1,9 +1,12 @@
-import { DEFAULT_NODE_WIDTH } from "../types";
+import { DEFAULT_NODE_HEIGHT, DEFAULT_NODE_WIDTH } from "../types";
 
 export const SkeletonNode = () => {
   return (
-    <div className={`relative rounded-[14px] w-[${DEFAULT_NODE_WIDTH}px]`}>
-      <div className="relative z-20 h-[100px] border border-grayA-4 rounded-[14px] flex flex-col bg-white dark:bg-black shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]">
+    <div className="relative rounded-[14px]" style={{ width: DEFAULT_NODE_WIDTH }}>
+      <div
+        className="relative z-20 border border-grayA-4 rounded-[14px] flex flex-col bg-white dark:bg-black shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]"
+        style={{ height: DEFAULT_NODE_HEIGHT }}
+      >
         {/* Header */}
         <div
           className="border-b border-grayA-4 rounded-t-[14px] px-3 py-2.5 flex"

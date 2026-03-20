@@ -81,6 +81,8 @@ const REGION_INFO: Record<SentinelNode["metadata"]["flagCode"], RegionInfo> = {
 } as const;
 
 const DEFAULT_NODE_WIDTH = 230;
+const DEFAULT_NODE_HEIGHT = 70;
+const COLLAPSE_THRESHOLD = 3;
 type NodeSize = { width: number; height: number };
 /**
  * Since our nodes are custom-made, we can optimize layout through static heights and widths.
@@ -88,9 +90,9 @@ type NodeSize = { width: number; height: number };
  */
 const NODE_SIZES: Record<DeploymentNode["metadata"]["type"], NodeSize> = {
   origin: { width: 70, height: 20 },
-  sentinel: { width: DEFAULT_NODE_WIDTH, height: 70 },
-  instance: { width: DEFAULT_NODE_WIDTH, height: 70 },
-  skeleton: { width: DEFAULT_NODE_WIDTH, height: 70 },
+  sentinel: { width: DEFAULT_NODE_WIDTH, height: DEFAULT_NODE_HEIGHT },
+  instance: { width: DEFAULT_NODE_WIDTH, height: DEFAULT_NODE_HEIGHT },
+  skeleton: { width: DEFAULT_NODE_WIDTH, height: DEFAULT_NODE_HEIGHT },
 } as const;
 
 export type {
@@ -109,6 +111,8 @@ export {
   isSentinelNode,
   isInstanceNode,
   isSkeletonNode,
+  COLLAPSE_THRESHOLD,
+  DEFAULT_NODE_HEIGHT,
   DEFAULT_NODE_WIDTH,
   REGION_INFO,
   NODE_SIZES,

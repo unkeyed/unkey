@@ -7,9 +7,10 @@ import { HealthBanner } from "./health-banner";
 
 type NodeWrapperProps = PropsWithChildren<{
   health: HealthStatus;
+  showBanner?: boolean;
 }>;
 
-export function NodeWrapper({ health, children }: NodeWrapperProps) {
+export function NodeWrapper({ health, children, showBanner = true }: NodeWrapperProps) {
   const isDisabled = health === "disabled";
   const { ring, glow } = getHealthStyles(health);
 
@@ -27,7 +28,7 @@ export function NodeWrapper({ health, children }: NodeWrapperProps) {
             ),
       )}
     >
-      <HealthBanner healthStatus={health} />
+      {showBanner && <HealthBanner healthStatus={health} />}
       <div
         className={cn(
           "w-[282px] h-[100px] border border-grayA-4 rounded-[14px] flex flex-col bg-white dark:bg-black shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]",
