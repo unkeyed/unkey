@@ -97,10 +97,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Lock the key row to prevent concurrent modifications and deadlocks
 		_, err := db.Query.LockKeyForUpdate(ctx, tx, req.KeyId)
 		if err != nil {
+			if db.IsNotFound(err) {
+				return nil, fault.New("key not found",
+					fault.Code(codes.Data.Key.NotFound.URN()),
+					fault.Internal("key not found"),
+					fault.Public("The specified key was not found."),
+				)
+			}
 			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("unable to lock key"),
 				fault.Public("We're unable to update the key."),
 			)
+		}
 		}
 
 		// All reads happen inside the transaction after acquiring the lock
