@@ -68,6 +68,11 @@ type Querier interface {
 	// deployment within a recent time window, used to detect idle deployments for scale-down.
 	// Returns 0 (not an error) when the deployment has received no traffic.
 	GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error)
+
+	// GetKeyLastUsedBatchPartitioned returns keys in a specific hash partition
+	// (cityHash64(key_id) % totalPartitions == partition) after the given cursor,
+	// ordered by (time, key_id). Used by the KeyLastUsedSync partition workers.
+	GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error)
 }
 
 type ClickHouse interface {

@@ -166,6 +166,11 @@ type HeartbeatConfig struct {
 	// When set, a heartbeat is sent after successful key refill runs.
 	// Optional - if empty, no heartbeat is sent.
 	KeyRefillURL string `toml:"key_refill_url"`
+
+	// KeyLastUsedSyncURL is the Checkly heartbeat URL for key last-used sync runs.
+	// When set, a heartbeat is sent after successful sync runs.
+	// Optional - if empty, no heartbeat is sent.
+	KeyLastUsedSyncURL string `toml:"key_last_used_sync_url"`
 }
 
 // SlackConfig holds Slack webhook URLs for notifications.

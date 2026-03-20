@@ -40,6 +40,7 @@ import (
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/openapi"
 	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
@@ -369,6 +370,38 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
 	logger.Info("KeyRefillService enabled")
+
+	// Key last used sync: orchestrator + partition services
+	var keyLastUsedSyncHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.Heartbeat.KeyLastUsedSyncURL != "" {
+		keyLastUsedSyncHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL)
+	}
+
+	keyLastUsedSyncSvc, err := keylastusedsync.New(keylastusedsync.Config{
+		Heartbeat: keyLastUsedSyncHeartbeat,
+	})
+	if err != nil {
+		return fmt.Errorf("create key last used sync service: %w", err)
+	}
+	// Retry quickly (deadlocks resolve fast), but cap attempts since this runs on a schedule.
+	keyLastUsedRetryPolicy := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewKeyLastUsedSyncServiceServer(keyLastUsedSyncSvc, keyLastUsedRetryPolicy))
+
+	keyLastUsedPartitionSvc, err := keylastusedsync.NewPartitionService(keylastusedsync.PartitionConfig{
+		DB:         database,
+		Clickhouse: ch,
+	})
+	if err != nil {
+		return fmt.Errorf("create key last used partition service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, keyLastUsedRetryPolicy))
+	logger.Info("KeyLastUsedSyncService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
