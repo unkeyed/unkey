@@ -1465,10 +1465,11 @@ type RatelimitOverride struct {
 }
 
 type Region struct {
-	Pk       uint64 `db:"pk"`
-	ID       string `db:"id"`
-	Name     string `db:"name"`
-	Platform string `db:"platform"`
+	Pk          uint64 `db:"pk"`
+	ID          string `db:"id"`
+	Name        string `db:"name"`
+	Platform    string `db:"platform"`
+	CanSchedule bool   `db:"can_schedule"`
 }
 
 type Role struct {

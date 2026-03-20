@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,7 +28,7 @@ type forwardConfig struct {
 	transport    http.RoundTripper
 }
 
-func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
+func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardConfig) error {
 	sess.ResponseWriter().Header().Set(HeaderFrontlineID, s.instanceID)
 	sess.ResponseWriter().Header().Set(HeaderRegion, fmt.Sprintf("%s::%s", s.platform, s.region))
 	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
@@ -96,20 +97,15 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 
 			// 5xx from sentinel → fault error → frontline observability handles content negotiation
 			if resp.StatusCode >= 500 {
-				urn := codes.Frontline.Proxy.BadGateway.URN()
-				switch resp.StatusCode {
-				case http.StatusServiceUnavailable:
-					urn = codes.Frontline.Proxy.ServiceUnavailable.URN()
-				case http.StatusGatewayTimeout:
-					urn = codes.Frontline.Proxy.GatewayTimeout.URN()
-				case http.StatusBadGateway:
-					urn = codes.Frontline.Proxy.BadGateway.URN()
-				}
+				// Try to extract the original error code from sentinel's JSON response
+				// so we preserve the specific error (e.g. InvalidConfiguration → 500)
+				// instead of blindly mapping everything to 502.
+				urn, publicMessage := extractSentinelError(resp, resp.StatusCode)
 
 				return fault.New(
 					fmt.Sprintf("sentinel returned %d", resp.StatusCode),
 					fault.Code(urn),
-					fault.Public(http.StatusText(resp.StatusCode)),
+					fault.Public(publicMessage),
 				)
 			}
 
@@ -135,12 +131,18 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 		},
 	}
 
-	// Proxy the request with wrapped writer
-	proxy.ServeHTTP(wrapper, sess.Request())
+	// Proxy the request with the middleware context (carries timeout deadline)
+	proxy.ServeHTTP(wrapper, sess.Request().WithContext(ctx))
 
 	// If error was captured, return it to middleware for consistent error handling
 	if err := wrapper.Error(); err != nil {
-		urn, message := categorizeProxyError(err)
+		// If the error already has a fault code (e.g. from extractSentinelError
+		// in ModifyResponse), preserve it instead of overwriting with a generic
+		// proxy error.
+		if _, hasCode := fault.GetCode(err); hasCode {
+			return err
+		}
+		urn, message := categorizeProxyError(err, cfg.logTarget)
 		return fault.Wrap(err,
 			fault.Code(urn),
 			fault.Internal(fmt.Sprintf("proxy error forwarding to %s %s", cfg.logTarget, cfg.targetURL.String())),
@@ -232,4 +234,51 @@ func rewriteSentinelErrorAsHTML(resp *http.Response, requestID string, renderer 
 	resp.Header.Set("Content-Length", fmt.Sprintf("%d", len(htmlBody)))
 
 	return nil
+}
+
+// extractSentinelError reads sentinel's JSON error response to extract the original
+// error code and message. This preserves sentinel's specific error codes (e.g.
+// InvalidConfiguration → 500) instead of replacing them all with BadGateway (502).
+// Falls back to generic frontline codes based on HTTP status when the body can't be parsed.
+func extractSentinelError(resp *http.Response, statusCode int) (codes.URN, string) {
+	fallbackURN := codes.Frontline.Proxy.BadGateway.URN()
+	switch statusCode {
+	case http.StatusServiceUnavailable:
+		fallbackURN = codes.Frontline.Proxy.ServiceUnavailable.URN()
+	case http.StatusGatewayTimeout:
+		fallbackURN = codes.Frontline.Proxy.GatewayTimeout.URN()
+	case http.StatusBadGateway:
+		fallbackURN = codes.Frontline.Proxy.BadGateway.URN()
+	}
+	fallbackMessage := http.StatusText(statusCode)
+
+	if resp.Body == nil {
+		return fallbackURN, fallbackMessage
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	if err != nil || len(body) == 0 {
+		resp.Body = io.NopCloser(bytes.NewReader(nil))
+		return fallbackURN, fallbackMessage
+	}
+
+	// Put body back so downstream can still read it
+	resp.Body = io.NopCloser(bytes.NewReader(body))
+
+	var parsed sentinelError
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return fallbackURN, fallbackMessage
+	}
+
+	if parsed.Error.Code != "" {
+		urn := codes.URN(parsed.Error.Code)
+		message := parsed.Error.Message
+		if message == "" {
+			message = fallbackMessage
+		}
+		return urn, message
+	}
+
+	return fallbackURN, fallbackMessage
 }
