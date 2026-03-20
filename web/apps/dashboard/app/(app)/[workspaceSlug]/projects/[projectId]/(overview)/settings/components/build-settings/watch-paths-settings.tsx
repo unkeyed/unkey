@@ -16,7 +16,7 @@ import { SettingDescription } from "../shared/setting-description";
 const watchPathsSchema = z.object({
   paths: z.array(
     z.object({
-      value: z.string().min(1, "Pattern cannot be empty"),
+      value: z.string(),
     }),
   ),
 });
@@ -45,6 +45,7 @@ export const WatchPaths = () => {
     handleSubmit,
     formState: { isValid, isSubmitting, errors },
     control,
+    reset,
   } = useForm<WatchPathsForm>({
     resolver: zodResolver(watchPathsSchema),
     mode: "onChange",
@@ -91,9 +92,20 @@ export const WatchPaths = () => {
     updateAllEnvironments((draft) => {
       draft.watchPaths = watchPaths;
     });
+    reset({ paths: toFormPaths(watchPaths) });
   };
 
-  const displayValue = defaultPaths.length > 0 ? defaultPaths.join(", ") : "All files (no filter)";
+  const displayValue =
+    defaultPaths.length > 0 ? (
+      <span className="flex items-center gap-1 truncate">
+        <span className="truncate">{defaultPaths[0]}</span>
+        {defaultPaths.length > 1 && (
+          <span className="shrink-0 text-gray-9">+{defaultPaths.length - 1}</span>
+        )}
+      </span>
+    ) : (
+      "All files (no filter)"
+    );
 
   return (
     <FormSettingCard
