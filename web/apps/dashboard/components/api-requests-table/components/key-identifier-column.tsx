@@ -1,4 +1,8 @@
 "use client";
+import {
+  getErrorPercentage,
+  getErrorSeverity,
+} from "@/components/api-requests-table/utils/calculate-blocked-percentage";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { shortenId } from "@/lib/shorten-id";
 import { cn } from "@/lib/utils";
@@ -7,8 +11,7 @@ import { TriangleWarning2 } from "@unkey/icons";
 import { InfoTooltip, Loading } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Suspense, useCallback, useState } from "react";
-import { getErrorPercentage, getErrorSeverity } from "../utils/calculate-blocked-percentage";
+import { useCallback, useState } from "react";
 
 type KeyIdentifierColumnProps = {
   log: KeysOverviewLog;
@@ -64,7 +67,7 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
         `/${workspace.slug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`,
       );
     },
-    [apiId, log.key_id, log.key_details?.key_auth_id, onNavigate, router.push, workspace.slug],
+    [apiId, log.key_id, log.key_details?.key_auth_id, onNavigate, router, workspace.slug],
   );
 
   return (
@@ -75,7 +78,7 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
         position={{ side: "right", align: "center" }}
       >
         {isNavigating ? (
-          <div className="size-[12px] items-center justify-center flex">
+          <div className="size-3 items-center justify-center flex">
             <Loading size={18} />
           </div>
         ) : (
@@ -84,18 +87,16 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
           </div>
         )}
       </InfoTooltip>
-      <Suspense fallback={<Loading type="spinner" />}>
-        <Link
-          title={`View details for ${log.key_id}`}
-          className="font-mono group-hover:underline decoration-dotted"
-          href={`/${workspace.slug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
-          onClick={handleLinkClick}
-        >
-          <div className="font-mono font-medium truncate flex items-center">
-            {shortenId(log.key_id)}
-          </div>
-        </Link>
-      </Suspense>
+      <Link
+        title={`View details for ${log.key_id}`}
+        className="font-mono group-hover:underline decoration-dotted"
+        href={`/${workspace.slug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
+        onClick={handleLinkClick}
+      >
+        <div className="font-mono font-medium truncate flex items-center">
+          {shortenId(log.key_id)}
+        </div>
+      </Link>
     </div>
   );
 };

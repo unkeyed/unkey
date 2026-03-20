@@ -1,6 +1,6 @@
+import { MAX_KEYID_COUNT } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/components/charts/bar-chart/query-timeseries.schema";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
-import { MAX_KEYID_COUNT } from "../charts/bar-chart/query-timeseries.schema";
 
 export const sortFields = z.enum(["time", "valid", "invalid"]);
 export type SortFields = z.infer<typeof sortFields>;
