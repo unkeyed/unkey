@@ -12,8 +12,8 @@ export const regions = mysqlTable(
     // e.g. aws, gcp, azure, local, etc.
     platform: varchar("platform", { length: 64 }).notNull(),
     // Whether this region is available for users to schedule deployments to.
-    // Defaults to false — must be manually enabled in the database or via krane config.
-    canSchedule: boolean("can_schedule").notNull().default(false),
+    // Defaults to true — set to false to hide a region from scheduling.
+    canSchedule: boolean("can_schedule").notNull().default(true),
   },
   (table) => [uniqueIndex("unique_region_per_platform").on(table.name, table.platform)],
 );

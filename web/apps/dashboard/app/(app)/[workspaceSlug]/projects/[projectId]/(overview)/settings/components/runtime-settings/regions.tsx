@@ -30,19 +30,15 @@ export const Regions = () => {
 };
 
 const buildRegionComboboxOptions = (
-  regions: Array<{ id: string; name: string; canSchedule: boolean }>,
+  regions: Array<{ id: string; name: string }>,
 ): ComboboxOption[] =>
   regions.map((region) => ({
     value: region.name,
     searchValue: region.name,
-    disabled: !region.canSchedule,
     label: (
       <div className="flex items-center gap-2">
         <RegionFlag flagCode={mapRegionToFlag(region.name)} size="xs" className="[&_img]:size-3" />
         <span className="text-gray-11 text-xs font-mono">{region.name}</span>
-        {!region.canSchedule && (
-          <span className="text-[10px] text-warning-11 ml-auto">Unavailable</span>
-        )}
       </div>
     ),
   }));
@@ -174,7 +170,9 @@ const RegionsSingle = () => {
 
   const currentRegions = useWatch({ control, name: "regions" });
   const allRegions = availableRegions ?? [];
-  const unselectedRegions = allRegions.filter((r) => !currentRegions.includes(r.name));
+  const unselectedRegions = allRegions.filter(
+    (r) => r.canSchedule && !currentRegions.includes(r.name),
+  );
   const unschedulableRegions = useMemo(
     () => new Set(allRegions.filter((r) => !r.canSchedule).map((r) => r.name)),
     [allRegions],
@@ -321,9 +319,11 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
   const currentPreviewRegions = useWatch({ control, name: "previewRegions" });
 
   const allRegions = availableRegions ?? [];
-  const unselectedProdRegions = allRegions.filter((r) => !currentProdRegions.includes(r.name));
+  const unselectedProdRegions = allRegions.filter(
+    (r) => r.canSchedule && !currentProdRegions.includes(r.name),
+  );
   const unselectedPreviewRegions = allRegions.filter(
-    (r) => !currentPreviewRegions.includes(r.name),
+    (r) => r.canSchedule && !currentPreviewRegions.includes(r.name),
   );
   const unschedulableRegions = useMemo(
     () => new Set(allRegions.filter((r) => !r.canSchedule).map((r) => r.name)),

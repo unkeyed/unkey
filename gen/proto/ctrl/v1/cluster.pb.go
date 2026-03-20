@@ -1516,13 +1516,7 @@ type HeartbeatRequest struct {
 	// region is the geographic region name (e.g. "us-east-1").
 	Region string `protobuf:"bytes,1,opt,name=region,proto3" json:"region,omitempty"`
 	// platform is the infrastructure provider (e.g. "aws", "gcp", "local").
-	Platform string `protobuf:"bytes,2,opt,name=platform,proto3" json:"platform,omitempty"`
-	// can_schedule controls whether users can schedule new deployments to this
-	// region. When false the region still exists but is hidden from the UI and
-	// excluded from deployment topology creation. Defaults to false in the DB
-	// schema; krane agents can set this to true via config to auto-enable the
-	// region on heartbeat.
-	CanSchedule   bool `protobuf:"varint,3,opt,name=can_schedule,json=canSchedule,proto3" json:"can_schedule,omitempty"`
+	Platform      string `protobuf:"bytes,2,opt,name=platform,proto3" json:"platform,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1569,13 +1563,6 @@ func (x *HeartbeatRequest) GetPlatform() string {
 		return x.Platform
 	}
 	return ""
-}
-
-func (x *HeartbeatRequest) GetCanSchedule() bool {
-	if x != nil {
-		return x.CanSchedule
-	}
-	return false
 }
 
 type HeartbeatResponse struct {
@@ -1899,11 +1886,10 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\f_healthcheck\"R\n" +
 	"\x10DeleteDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
-	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\"i\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\"F\n" +
 	"\x10HeartbeatRequest\x12\x16\n" +
 	"\x06region\x18\x01 \x01(\tR\x06region\x12\x1a\n" +
-	"\bplatform\x18\x02 \x01(\tR\bplatform\x12!\n" +
-	"\fcan_schedule\x18\x03 \x01(\bR\vcanSchedule\"\x13\n" +
+	"\bplatform\x18\x02 \x01(\tR\bplatform\"\x13\n" +
 	"\x11HeartbeatResponse*]\n" +
 	"\x06Health\x12\x16\n" +
 	"\x12HEALTH_UNSPECIFIED\x10\x00\x12\x12\n" +

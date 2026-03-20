@@ -9,7 +9,7 @@ import (
 )
 
 // bulkUpsertRegion is the base query for bulk insert
-const bulkUpsertRegion = `INSERT INTO regions ( id, name, platform, can_schedule ) VALUES %s ON DUPLICATE KEY UPDATE name = name`
+const bulkUpsertRegion = `INSERT INTO regions ( id, name, platform ) VALUES %s ON DUPLICATE KEY UPDATE name = name`
 
 // UpsertRegion performs bulk insert in a single query
 func (q *BulkQueries) UpsertRegion(ctx context.Context, db DBTX, args []UpsertRegionParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) UpsertRegion(ctx context.Context, db DBTX, args []UpsertRe
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertRegion, strings.Join(valueClauses, ", "))
@@ -32,7 +32,6 @@ func (q *BulkQueries) UpsertRegion(ctx context.Context, db DBTX, args []UpsertRe
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.Name)
 		allArgs = append(allArgs, arg.Platform)
-		allArgs = append(allArgs, arg.CanSchedule)
 	}
 
 	// Execute the bulk insert
