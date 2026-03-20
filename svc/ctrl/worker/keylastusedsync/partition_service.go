@@ -221,7 +221,7 @@ func (s *PartitionService) updateLastUsedBatch(ctx context.Context, partition in
 //	  WHEN 'key2' THEN 1710000001
 //	END
 //	WHERE id IN ('key1','key2')
-//	  AND (last_used_at IS NULL OR last_used_at < CASE id WHEN 'key1' THEN 1710000000 ... END)
+//	  AND last_used_at < CASE id WHEN 'key1' THEN 1710000000 ... END
 func (s *PartitionService) execCaseUpdate(ctx context.Context, rw db.DBTX, chunk []clickhouse.KeyLastUsed) error {
 	var b strings.Builder
 	// Pre-allocate: each key needs 3 args (CASE, IN, filter CASE)
@@ -241,13 +241,13 @@ func (s *PartitionService) execCaseUpdate(ctx context.Context, rw db.DBTX, chunk
 		b.WriteByte('?')
 		args = append(args, r.KeyID)
 	}
-	// Only update if new value is actually newer
-	b.WriteString(") AND (last_used_at IS NULL OR last_used_at < CASE id ")
+	// Only update if new value is actually newer (default is 0, so this covers unset keys too)
+	b.WriteString(") AND last_used_at < CASE id ")
 	for _, r := range chunk {
 		b.WriteString("WHEN ? THEN ? ")
 		args = append(args, r.KeyID, r.Time)
 	}
-	b.WriteString("END)")
+	b.WriteString("END")
 
 	_, err := rw.ExecContext(ctx, b.String(), args...)
 	return err

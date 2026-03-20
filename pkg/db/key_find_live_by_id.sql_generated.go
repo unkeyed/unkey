@@ -127,7 +127,7 @@ type FindLiveKeyByIDRow struct {
 	RatelimitLimit     sql.NullInt32  `db:"ratelimit_limit"`
 	RatelimitDuration  sql.NullInt64  `db:"ratelimit_duration"`
 	Environment        sql.NullString `db:"environment"`
-	LastUsedAt         sql.NullInt64  `db:"last_used_at"`
+	LastUsedAt         uint64         `db:"last_used_at"`
 	PendingMigrationID sql.NullString `db:"pending_migration_id"`
 	Api                Api            `db:"api"`
 	KeyAuth            KeyAuth        `db:"key_auth"`

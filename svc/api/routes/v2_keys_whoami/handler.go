@@ -118,7 +118,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		KeyId:       keyData.Key.ID,
 		Start:       keyData.Key.Start,
 		Plaintext:   "",
-		LastUsed:    keyData.Key.LastUsedAt.Int64,
+		LastUsed:    int64(keyData.Key.LastUsedAt),
 	}
 
 	if keyData.Key.Expires.Valid {
