@@ -383,7 +383,15 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("create key last used sync service: %w", err)
 	}
-	restateSrv.Bind(hydrav1.NewKeyLastUsedSyncServiceServer(keyLastUsedSyncSvc))
+	// Retry quickly (deadlocks resolve fast), but cap attempts since this runs on a schedule.
+	keyLastUsedRetryPolicy := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewKeyLastUsedSyncServiceServer(keyLastUsedSyncSvc, keyLastUsedRetryPolicy))
 
 	keyLastUsedPartitionSvc, err := keylastusedsync.NewPartitionService(keylastusedsync.PartitionConfig{
 		DB:         database,
@@ -392,7 +400,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("create key last used partition service: %w", err)
 	}
-	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc))
+	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, keyLastUsedRetryPolicy))
 	logger.Info("KeyLastUsedSyncService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
