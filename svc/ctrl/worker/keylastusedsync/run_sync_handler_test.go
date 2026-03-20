@@ -189,7 +189,7 @@ func TestRunSync_Performance(t *testing.T) {
 	// Reset last_used_at so the sync has work to do
 	t.Logf("Resetting last_used_at for all keys...")
 	resetStart := time.Now()
-	_, err := h.DB.RW().ExecContext(ctx, "UPDATE `keys` SET last_used_at = NULL")
+	_, err := h.DB.RW().ExecContext(ctx, "UPDATE `keys` SET last_used_at = 0")
 	require.NoError(t, err)
 	t.Logf("Reset complete in %s", time.Since(resetStart))
 
