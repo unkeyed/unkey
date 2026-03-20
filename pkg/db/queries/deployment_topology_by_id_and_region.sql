@@ -18,11 +18,22 @@ SELECT
     d.command,
     d.port,
     d.shutdown_signal,
-    d.healthcheck
+    d.healthcheck,
+    d.git_commit_sha,
+    d.git_branch,
+    d.git_commit_message,
+    p.slug AS project_slug,
+    a.slug AS app_slug,
+    e.slug AS environment_slug,
+    grc.repository_full_name AS git_repo
 FROM `deployment_topology` dt
 INNER JOIN `deployments` d ON dt.deployment_id = d.id
 INNER JOIN `workspaces` w ON d.workspace_id = w.id
 INNER JOIN `regions` r ON dt.region_id = r.id
+INNER JOIN `projects` p ON d.project_id = p.id
+INNER JOIN `apps` a ON d.app_id = a.id
+INNER JOIN `environments` e ON d.environment_id = e.id
+LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
 WHERE  r.name = sqlc.arg(region)
     AND dt.deployment_id = sqlc.arg(deployment_id)
 LIMIT 1;

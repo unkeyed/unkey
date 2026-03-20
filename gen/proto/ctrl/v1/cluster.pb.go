@@ -1297,9 +1297,18 @@ type ApplyDeployment struct {
 	Healthcheck []byte `protobuf:"bytes,17,opt,name=healthcheck,proto3,oneof" json:"healthcheck,omitempty"`
 	// app_id identifies the app within the project.
 	// Used for pod labels so Vector can extract it into runtime logs.
-	AppId         string `protobuf:"bytes,18,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	AppId string `protobuf:"bytes,18,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	// Runtime environment variable fields for user workloads.
+	AppSlug          *string `protobuf:"bytes,19,opt,name=app_slug,json=appSlug,proto3,oneof" json:"app_slug,omitempty"`
+	ProjectSlug      *string `protobuf:"bytes,20,opt,name=project_slug,json=projectSlug,proto3,oneof" json:"project_slug,omitempty"`
+	EnvironmentSlug  *string `protobuf:"bytes,21,opt,name=environment_slug,json=environmentSlug,proto3,oneof" json:"environment_slug,omitempty"`
+	Region           *string `protobuf:"bytes,22,opt,name=region,proto3,oneof" json:"region,omitempty"`
+	GitCommitSha     *string `protobuf:"bytes,23,opt,name=git_commit_sha,json=gitCommitSha,proto3,oneof" json:"git_commit_sha,omitempty"`
+	GitBranch        *string `protobuf:"bytes,24,opt,name=git_branch,json=gitBranch,proto3,oneof" json:"git_branch,omitempty"`
+	GitRepo          *string `protobuf:"bytes,25,opt,name=git_repo,json=gitRepo,proto3,oneof" json:"git_repo,omitempty"`
+	GitCommitMessage *string `protobuf:"bytes,26,opt,name=git_commit_message,json=gitCommitMessage,proto3,oneof" json:"git_commit_message,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ApplyDeployment) Reset() {
@@ -1447,6 +1456,62 @@ func (x *ApplyDeployment) GetHealthcheck() []byte {
 func (x *ApplyDeployment) GetAppId() string {
 	if x != nil {
 		return x.AppId
+	}
+	return ""
+}
+
+func (x *ApplyDeployment) GetAppSlug() string {
+	if x != nil && x.AppSlug != nil {
+		return *x.AppSlug
+	}
+	return ""
+}
+
+func (x *ApplyDeployment) GetProjectSlug() string {
+	if x != nil && x.ProjectSlug != nil {
+		return *x.ProjectSlug
+	}
+	return ""
+}
+
+func (x *ApplyDeployment) GetEnvironmentSlug() string {
+	if x != nil && x.EnvironmentSlug != nil {
+		return *x.EnvironmentSlug
+	}
+	return ""
+}
+
+func (x *ApplyDeployment) GetRegion() string {
+	if x != nil && x.Region != nil {
+		return *x.Region
+	}
+	return ""
+}
+
+func (x *ApplyDeployment) GetGitCommitSha() string {
+	if x != nil && x.GitCommitSha != nil {
+		return *x.GitCommitSha
+	}
+	return ""
+}
+
+func (x *ApplyDeployment) GetGitBranch() string {
+	if x != nil && x.GitBranch != nil {
+		return *x.GitBranch
+	}
+	return ""
+}
+
+func (x *ApplyDeployment) GetGitRepo() string {
+	if x != nil && x.GitRepo != nil {
+		return *x.GitRepo
+	}
+	return ""
+}
+
+func (x *ApplyDeployment) GetGitCommitMessage() string {
+	if x != nil && x.GitCommitMessage != nil {
+		return *x.GitCommitMessage
 	}
 	return ""
 }
@@ -1860,7 +1925,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"memory_mib\x18\n" +
 	" \x01(\x03R\tmemoryMib\"+\n" +
 	"\x0eDeleteSentinel\x12\x19\n" +
-	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xf1\x04\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xac\b\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
@@ -1881,9 +1946,26 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x04port\x18\x0e \x01(\x05R\x04port\x12'\n" +
 	"\x0fshutdown_signal\x18\x0f \x01(\tR\x0eshutdownSignal\x12%\n" +
 	"\vhealthcheck\x18\x11 \x01(\fH\x01R\vhealthcheck\x88\x01\x01\x12\x15\n" +
-	"\x06app_id\x18\x12 \x01(\tR\x05appIdB\v\n" +
+	"\x06app_id\x18\x12 \x01(\tR\x05appId\x12\x1e\n" +
+	"\bapp_slug\x18\x13 \x01(\tH\x02R\aappSlug\x88\x01\x01\x12&\n" +
+	"\fproject_slug\x18\x14 \x01(\tH\x03R\vprojectSlug\x88\x01\x01\x12.\n" +
+	"\x10environment_slug\x18\x15 \x01(\tH\x04R\x0fenvironmentSlug\x88\x01\x01\x12\x1b\n" +
+	"\x06region\x18\x16 \x01(\tH\x05R\x06region\x88\x01\x01\x12)\n" +
+	"\x0egit_commit_sha\x18\x17 \x01(\tH\x06R\fgitCommitSha\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"git_branch\x18\x18 \x01(\tH\aR\tgitBranch\x88\x01\x01\x12\x1e\n" +
+	"\bgit_repo\x18\x19 \x01(\tH\bR\agitRepo\x88\x01\x01\x121\n" +
+	"\x12git_commit_message\x18\x1a \x01(\tH\tR\x10gitCommitMessage\x88\x01\x01B\v\n" +
 	"\t_build_idB\x0e\n" +
-	"\f_healthcheck\"R\n" +
+	"\f_healthcheckB\v\n" +
+	"\t_app_slugB\x0f\n" +
+	"\r_project_slugB\x13\n" +
+	"\x11_environment_slugB\t\n" +
+	"\a_regionB\x11\n" +
+	"\x0f_git_commit_shaB\r\n" +
+	"\v_git_branchB\v\n" +
+	"\t_git_repoB\x15\n" +
+	"\x13_git_commit_message\"R\n" +
 	"\x10DeleteDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\"F\n" +

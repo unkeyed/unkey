@@ -320,6 +320,16 @@ message ApplyDeployment {
   // app_id identifies the app within the project.
   // Used for pod labels so Vector can extract it into runtime logs.
   string app_id = 18;
+
+  // Runtime environment variable fields for user workloads.
+  optional string app_slug = 19;
+  optional string project_slug = 20;
+  optional string environment_slug = 21;
+  optional string region = 22;
+  optional string git_commit_sha = 23;
+  optional string git_branch = 24;
+  optional string git_repo = 25;
+  optional string git_commit_message = 26;
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.
