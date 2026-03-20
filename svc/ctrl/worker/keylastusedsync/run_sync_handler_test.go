@@ -76,7 +76,9 @@ func TestRunSync_Integration(t *testing.T) {
 			key, keyErr := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyID)
 			require.NoError(t, keyErr)
 			require.Greater(t, key.LastUsedAt, uint64(0), "key %s should have last_used_at set", keyID)
-			require.Equal(t, chRows[i].Time, int64(key.LastUsedAt))
+			// Timestamps are truncated to minute granularity
+			expectedMinute := (chRows[i].Time / 60_000) * 60_000
+			require.Equal(t, expectedMinute, int64(key.LastUsedAt))
 		}
 	})
 
@@ -111,7 +113,8 @@ func TestRunSync_Integration(t *testing.T) {
 		// Verify
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), resp.KeyID)
 		require.NoError(t, err)
-		require.Equal(t, newerTime, int64(key.LastUsedAt))
+		newerMinute := (newerTime / 60_000) * 60_000
+		require.Equal(t, newerMinute, int64(key.LastUsedAt))
 
 		// Now manually set MySQL to an even newer timestamp
 		evenNewer := newerTime + 999999
@@ -290,7 +293,8 @@ func TestRunSync_IncrementalUpdate(t *testing.T) {
 		k, kErr := db.Query.FindKeyByID(ctx, h.DB.RO(), kid)
 		require.NoError(t, kErr)
 		require.Greater(t, k.LastUsedAt, uint64(0))
-		require.GreaterOrEqual(t, int64(k.LastUsedAt), newerTime,
+		newerMinute := (newerTime / 60_000) * 60_000
+		require.GreaterOrEqual(t, int64(k.LastUsedAt), newerMinute,
 			"key %s should have the newer timestamp after incremental sync", kid)
 		require.Greater(t, int64(k.LastUsedAt), oldTimestamps[kid],
 			"key %s last_used_at should have advanced from %d", kid, oldTimestamps[kid])

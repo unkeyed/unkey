@@ -2894,6 +2894,13 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
+	//UpdateKeysLastUsed
+	//
+	//  UPDATE `keys`
+	//  SET last_used_at = ?
+	//  WHERE id IN (/*SLICE:key_ids*/?)
+	//    AND last_used_at < ?
+	UpdateKeysLastUsed(ctx context.Context, db DBTX, arg UpdateKeysLastUsedParams) error
 	//UpdateProjectDepotID
 	//
 	//  UPDATE projects

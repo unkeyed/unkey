@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -19,9 +18,10 @@ import (
 // Larger batches reduce CH round trips (the main bottleneck).
 const batchSize = 25_000
 
-// updateChunkSize is the number of keys per CASE/WHEN UPDATE statement.
-// Benchmarked at ~44K keys/sec with chunk=100 vs ~5K keys/sec for individual UPDATEs.
-const updateChunkSize = 100
+// minuteMillis is used to truncate timestamps to minute granularity.
+// Keys used in the same minute get the same last_used_at, allowing simple
+// bulk UPDATEs grouped by timestamp instead of per-key CASE/WHEN.
+const minuteMillis = 60_000
 
 // PartitionService implements the KeyLastUsedPartitionService Restate virtual object.
 // Each instance is keyed by partition index (e.g. "0") and persists its own
@@ -92,15 +92,15 @@ func (s *PartitionService) SyncPartition(
 	prevTotalPartitions, _ := restate.Get[int](ctx, "total_partitions")
 
 	cursor := clickhouse.KeyLastUsedCursor{Time: cursorTime, KeyID: cursorKeyID}
-	if prevTotalPartitions != totalPartitions {
+	if prevTotalPartitions > 0 && prevTotalPartitions != totalPartitions {
 		logger.Info("total_partitions changed, resetting cursor",
 			"partition", partition,
 			"prev_total_partitions", prevTotalPartitions,
 			"new_total_partitions", totalPartitions,
 		)
 		cursor = clickhouse.KeyLastUsedCursor{Time: 0, KeyID: ""}
-		restate.Set(ctx, "total_partitions", totalPartitions)
 	}
+	restate.Set(ctx, "total_partitions", totalPartitions)
 
 	logger.Info("partition sync starting",
 		"partition", partition,
@@ -192,63 +192,37 @@ func (s *PartitionService) updateLastUsedBatch(ctx context.Context, partition in
 	if len(batch) == 0 {
 		return nil
 	}
+
+	// Group keys by minute-truncated timestamp. Keys used in the same minute
+	// share a single UPDATE ... WHERE id IN (...) statement.
+	groups := make(map[int64][]string)
+	for _, r := range batch {
+		minute := (r.Time / minuteMillis) * minuteMillis
+		groups[minute] = append(groups[minute], r.KeyID)
+	}
+
 	rw := s.db.RW()
 	batchStart := time.Now()
-	for start := 0; start < len(batch); start += updateChunkSize {
-		end := min(start+updateChunkSize, len(batch))
-		chunk := batch[start:end]
-
-		if err := s.execCaseUpdate(ctx, rw, chunk); err != nil {
-			return fmt.Errorf("update chunk at offset %d: %w", start, err)
+	done := 0
+	for ts, keyIDs := range groups {
+		if _, err := db.WithRetryContext(ctx, func() (struct{}, error) {
+			return struct{}{}, db.Query.UpdateKeysLastUsed(ctx, rw, db.UpdateKeysLastUsedParams{
+				LastUsedAt: uint64(ts), //nolint:gosec
+				KeyIds:     keyIDs,
+			})
+		}); err != nil {
+			return fmt.Errorf("update minute %d: %w", ts, err)
 		}
-
-		if end%5000 == 0 {
+		done += len(keyIDs)
+		if done%5000 < len(keyIDs) {
 			logger.Info("update progress",
 				"partition", partition,
-				"keys", end,
+				"keys", done,
 				"total", len(batch),
+				"groups", len(groups),
 				"elapsed", time.Since(batchStart),
 			)
 		}
 	}
 	return nil
-}
-
-// buildAndExecCaseUpdate builds and executes a single UPDATE statement like:
-//
-//	UPDATE `keys` SET last_used_at = CASE id
-//	  WHEN 'key1' THEN 1710000000
-//	  WHEN 'key2' THEN 1710000001
-//	END
-//	WHERE id IN ('key1','key2')
-//	  AND last_used_at < CASE id WHEN 'key1' THEN 1710000000 ... END
-func (s *PartitionService) execCaseUpdate(ctx context.Context, rw db.DBTX, chunk []clickhouse.KeyLastUsed) error {
-	var b strings.Builder
-	// Pre-allocate: each key needs 3 args (CASE, IN, filter CASE)
-	args := make([]any, 0, len(chunk)*5+1)
-
-	// SET clause
-	b.WriteString("UPDATE `keys` SET last_used_at = CASE id ")
-	for _, r := range chunk {
-		b.WriteString("WHEN ? THEN ? ")
-		args = append(args, r.KeyID, r.Time)
-	}
-	b.WriteString("END WHERE id IN (")
-	for i, r := range chunk {
-		if i > 0 {
-			b.WriteByte(',')
-		}
-		b.WriteByte('?')
-		args = append(args, r.KeyID)
-	}
-	// Only update if new value is actually newer (default is 0, so this covers unset keys too)
-	b.WriteString(") AND last_used_at < CASE id ")
-	for _, r := range chunk {
-		b.WriteString("WHEN ? THEN ? ")
-		args = append(args, r.KeyID, r.Time)
-	}
-	b.WriteString("END")
-
-	_, err := rw.ExecContext(ctx, b.String(), args...)
-	return err
 }
