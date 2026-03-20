@@ -2351,7 +2351,7 @@ components:
                     example: 1701425400000
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
-                lastUsed:
+                lastUsedAt:
                     type: integer
                     format: int64
                     minimum: 0
