@@ -37,6 +37,8 @@ type InstanceNode = BaseNode & {
     type: "instance";
     description: string;
     replicas: number;
+    message?: string;
+    failureReason?: string;
   } & BaseMetrics;
 };
 
