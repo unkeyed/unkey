@@ -1,5 +1,5 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { db } from "@/lib/db";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import {
   type RuntimeLogsResponseSchema,
   runtimeLogsRequestSchema,
@@ -7,7 +7,7 @@ import {
 } from "@/lib/schemas/runtime-logs.schema";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { transformFilters } from "./utils";
+import { resolveK8sNamesToInstanceIds, transformFilters } from "./utils";
 
 export const queryRuntimeLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -43,9 +43,32 @@ export const queryRuntimeLogs = workspaceProcedure
       });
     }
 
+    // Resolve instanceIds to k8sPodNames for ClickHouse filtering,
+    // and build the reverse map to avoid a redundant DB query later.
+    const instanceIds = input.instanceId?.filters?.map((f) => f.value) ?? [];
+    let k8sPodNames: string[] = [];
+    const knownK8sToInstanceId = new Map<string, string>();
+    if (instanceIds.length > 0) {
+      const instances = await db.query.instances.findMany({
+        where: and(
+          inArray(schema.instances.id, instanceIds),
+          eq(schema.instances.workspaceId, ctx.workspace.id),
+        ),
+        columns: { id: true, k8sName: true },
+      });
+      if (instances.length === 0) {
+        return { logs: [], hasMore: false, total: 0 };
+      }
+      k8sPodNames = instances.map((inst) => inst.k8sName);
+      for (const inst of instances) {
+        knownK8sToInstanceId.set(inst.k8sName, inst.id);
+      }
+    }
+
     const transformedInputs = transformFilters(input);
     const { logsQuery, totalQuery } = await clickhouse.runtimeLogs.logs({
       ...transformedInputs,
+      k8sPodNames,
       workspaceId: ctx.workspace.id,
       projectId: project.id,
       deploymentId: input.deploymentId ?? null,
@@ -62,7 +85,25 @@ export const queryRuntimeLogs = workspaceProcedure
       });
     }
 
-    const logs = logsResult.val;
+    const chLogs = logsResult.val;
+
+    const unknownK8sNames = [
+      ...new Set(
+        chLogs.map((log) => log.k8s_pod_name).filter((name) => !knownK8sToInstanceId.has(name)),
+      ),
+    ];
+    const resolvedMapping = await resolveK8sNamesToInstanceIds(unknownK8sNames, ctx.workspace.id);
+    const k8sNameToInstanceId = new Map([...knownK8sToInstanceId, ...resolvedMapping]);
+
+    const logs = chLogs.map((log) => ({
+      time: log.time,
+      severity: log.severity,
+      message: log.message,
+      deployment_id: log.deployment_id,
+      region: log.region,
+      instance_id: k8sNameToInstanceId.get(log.k8s_pod_name) ?? "—",
+      attributes: log.attributes,
+    }));
 
     const response: RuntimeLogsResponseSchema = {
       logs,

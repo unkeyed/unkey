@@ -13,7 +13,9 @@ export const runtimeLogsRequestSchema = z.object({
   startTime: z.int(),
   endTime: z.int(),
   severity: z.array(z.string()).nullable(),
+  region: z.array(z.string()).nullable(),
   message: z.string().nullable(),
+  k8sPodNames: z.array(z.string()),
   cursorTime: z.int().nullable(),
 });
 
@@ -25,6 +27,7 @@ export const runtimeLog = z.object({
   message: z.string(),
   deployment_id: z.string(),
   region: z.string(),
+  k8s_pod_name: z.string(),
   attributes: z.record(z.string(), z.unknown()).nullable(),
 });
 
@@ -52,9 +55,25 @@ export function getRuntimeLogs(ch: Querier) {
       )
 
     AND (
+      CASE
+        WHEN length({region: Array(String)}) > 0 THEN
+          region IN {region: Array(String)}
+        ELSE TRUE
+      END
+    )
+
+    AND (
       {message: Nullable(String)} IS NULL
       OR {message: Nullable(String)} = ''
       OR positionCaseInsensitive(message, assumeNotNull({message: Nullable(String)})) > 0
+    )
+
+    AND (
+      CASE
+        WHEN length({k8sPodNames: Array(String)}) > 0 THEN
+          k8s_pod_name IN {k8sPodNames: Array(String)}
+        ELSE TRUE
+      END
     )
     `;
 
@@ -71,7 +90,7 @@ export function getRuntimeLogs(ch: Querier) {
       query: `
         SELECT
           time, severity, message, deployment_id,
-          region, attributes
+          region, k8s_pod_name, attributes
         FROM ${TABLE}
         WHERE ${filterConditions}
           AND ({cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)})

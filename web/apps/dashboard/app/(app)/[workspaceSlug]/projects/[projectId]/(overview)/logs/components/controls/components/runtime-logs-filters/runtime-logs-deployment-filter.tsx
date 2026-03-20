@@ -23,9 +23,9 @@ export const RuntimeLogsDeploymentFilter = () => {
       checkPath="slug"
       selectionMode="multiple"
       renderOptionContent={(checkbox) => (
-        <div className="text-accent-12 text-xs">
-          <span className="font-medium">{checkbox.gitBranch}</span>
-          <span className="text-accent-9 ml-1 font-mono">{checkbox.slug.slice(0, 8)}</span>
+        <div className="text-accent-12 text-xs flex items-center gap-4.5">
+          <span className="text-accent-9">{checkbox.gitBranch}</span>
+          <span className="font-mono">{checkbox.slug}</span>
         </div>
       )}
       createFilterValue={(option) => ({

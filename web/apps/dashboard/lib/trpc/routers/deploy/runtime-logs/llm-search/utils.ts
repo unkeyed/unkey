@@ -244,6 +244,56 @@ Result: [
   }
 ]
 
+# Region, Instance, and Deployment Filtering
+Query: "errors from us-east-1"
+Result: [
+  {
+    field: "severity",
+    filters: [
+      { operator: "is", value: "ERROR" }
+    ]
+  },
+  {
+    field: "region",
+    filters: [
+      { operator: "is", value: "us-east-1" }
+    ]
+  }
+]
+
+Query: "logs from instance abc123 in the last hour"
+Result: [
+  {
+    field: "instanceId",
+    filters: [
+      { operator: "is", value: "abc123" }
+    ]
+  },
+  {
+    field: "since",
+    filters: [{
+      operator: "is",
+      value: "1h"
+    }]
+  }
+]
+
+Query: "errors from deployment dep-xyz"
+Result: [
+  {
+    field: "severity",
+    filters: [
+      { operator: "is", value: "ERROR" }
+    ]
+  },
+  {
+    field: "deploymentId",
+    filters: [
+      { operator: "is", value: "dep-xyz" }
+    ]
+  }
+]
+
 Remember:
 ${operatorsByField}
 - For relative time queries, support:
@@ -252,6 +302,9 @@ ${operatorsByField}
   • Nx[d] for days (e.g., 1d, 7d)
 - severity must be exactly one of: ERROR, WARN, INFO, DEBUG (case-sensitive)
 - message operator "contains" for substring matching, "is" for exact match
+- deploymentId: exact deployment ID string
+- region: exact region name string (e.g., "us-east-1", "eu-west-1")
+- instanceId: exact instance ID string
 - since and startTime/endTime are mutually exclusive - prefer since for relative time
 - For multiple time ranges mentioned, use the longest duration
 
@@ -264,6 +317,9 @@ Special handling rules:
 6. For "last hour", use "1h" for since
 7. For message filtering, extract quoted strings or key terms
 8. When seeing "failed", "failure", "crash", "panic" → use contains on message field
+9. For queries mentioning a region name, use the "region" field with "is" operator
+10. For queries mentioning a deployment ID, use the "deploymentId" field with "is" operator
+11. For queries mentioning an instance ID, use the "instanceId" field with "is" operator
 
 Error Handling Rules:
 1. Invalid time formats: Convert to nearest supported range (e.g., "1w" → "7d")

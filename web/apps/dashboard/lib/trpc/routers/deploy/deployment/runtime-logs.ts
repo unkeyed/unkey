@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { resolveK8sNamesToInstanceIds } from "../runtime-logs/utils";
 
 export const getDeploymentRuntimeLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -14,7 +15,15 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
   )
   .output(
     z.object({
-      logs: z.array(z.object({ time: z.number(), severity: z.string(), message: z.string() })),
+      logs: z.array(
+        z.object({
+          time: z.number(),
+          severity: z.string(),
+          message: z.string(),
+          instance_id: z.string(),
+          region: z.string(),
+        }),
+      ),
     }),
   )
   .query(async ({ ctx, input }) => {
@@ -39,7 +48,9 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
       startTime: deployment.createdAt,
       endTime: Date.now(),
       severity: [],
+      region: [],
       message: null,
+      k8sPodNames: [],
       cursorTime: null,
     });
 
@@ -51,11 +62,20 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
       });
     }
 
+    const chLogs = logsResult.val;
+    const uniqueK8sNames = [...new Set(chLogs.map((log) => log.k8s_pod_name))];
+    const k8sNameToInstanceId = await resolveK8sNamesToInstanceIds(
+      uniqueK8sNames,
+      ctx.workspace.id,
+    );
+
     return {
-      logs: logsResult.val.map((log) => ({
+      logs: chLogs.map((log) => ({
         time: log.time,
         severity: log.severity,
         message: log.message,
+        instance_id: k8sNameToInstanceId.get(log.k8s_pod_name) ?? "—",
+        region: log.region,
       })),
     };
   });
