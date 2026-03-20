@@ -11,7 +11,7 @@ import (
 
 const findRegionById = `-- name: FindRegionById :one
 SELECT
- pk, id, name, platform, is_schedulable
+ pk, id, name, platform, can_schedule
 FROM regions
 WHERE id = ? LIMIT 1
 `
@@ -19,7 +19,7 @@ WHERE id = ? LIMIT 1
 // FindRegionById
 //
 //	SELECT
-//	 pk, id, name, platform, is_schedulable
+//	 pk, id, name, platform, can_schedule
 //	FROM regions
 //	WHERE id = ? LIMIT 1
 func (q *Queries) FindRegionById(ctx context.Context, db DBTX, regionID string) (Region, error) {
@@ -30,7 +30,7 @@ func (q *Queries) FindRegionById(ctx context.Context, db DBTX, regionID string) 
 		&i.ID,
 		&i.Name,
 		&i.Platform,
-		&i.IsSchedulable,
+		&i.CanSchedule,
 	)
 	return i, err
 }

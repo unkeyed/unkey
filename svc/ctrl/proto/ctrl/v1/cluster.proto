@@ -342,12 +342,12 @@ message HeartbeatRequest {
   // platform is the infrastructure provider (e.g. "aws", "gcp", "local").
   string platform = 2;
 
-  // is_schedulable controls whether users can schedule new deployments to this
+  // can_schedule controls whether users can schedule new deployments to this
   // region. When false the region still exists but is hidden from the UI and
   // excluded from deployment topology creation. Defaults to false in the DB
   // schema; krane agents can set this to true via config to auto-enable the
   // region on heartbeat.
-  bool is_schedulable = 3;
+  bool can_schedule = 3;
 }
 
 message HeartbeatResponse {}

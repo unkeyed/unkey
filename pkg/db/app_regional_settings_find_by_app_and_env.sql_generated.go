@@ -13,12 +13,12 @@ const findAppRegionalSettingsByAppAndEnv = `-- name: FindAppRegionalSettingsByAp
 SELECT
 	ars.region_id,
 	r.name AS region_name,
-	ars.replicas
+	ars.replicas,
+	r.can_schedule AS region_can_schedule
 FROM app_regional_settings ars
 JOIN regions r ON r.id = ars.region_id
 WHERE ars.app_id = ?
   AND ars.environment_id = ?
-  AND r.is_schedulable = true
 `
 
 type FindAppRegionalSettingsByAppAndEnvParams struct {
@@ -27,9 +27,10 @@ type FindAppRegionalSettingsByAppAndEnvParams struct {
 }
 
 type FindAppRegionalSettingsByAppAndEnvRow struct {
-	RegionID   string `db:"region_id"`
-	RegionName string `db:"region_name"`
-	Replicas   int32  `db:"replicas"`
+	RegionID          string `db:"region_id"`
+	RegionName        string `db:"region_name"`
+	Replicas          int32  `db:"replicas"`
+	RegionCanSchedule bool   `db:"region_can_schedule"`
 }
 
 // FindAppRegionalSettingsByAppAndEnv
@@ -37,12 +38,12 @@ type FindAppRegionalSettingsByAppAndEnvRow struct {
 //	SELECT
 //		ars.region_id,
 //		r.name AS region_name,
-//		ars.replicas
+//		ars.replicas,
+//		r.can_schedule AS region_can_schedule
 //	FROM app_regional_settings ars
 //	JOIN regions r ON r.id = ars.region_id
 //	WHERE ars.app_id = ?
 //	  AND ars.environment_id = ?
-//	  AND r.is_schedulable = true
 func (q *Queries) FindAppRegionalSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRegionalSettingsByAppAndEnvParams) ([]FindAppRegionalSettingsByAppAndEnvRow, error) {
 	rows, err := db.QueryContext(ctx, findAppRegionalSettingsByAppAndEnv, arg.AppID, arg.EnvironmentID)
 	if err != nil {
@@ -52,7 +53,12 @@ func (q *Queries) FindAppRegionalSettingsByAppAndEnv(ctx context.Context, db DBT
 	var items []FindAppRegionalSettingsByAppAndEnvRow
 	for rows.Next() {
 		var i FindAppRegionalSettingsByAppAndEnvRow
-		if err := rows.Scan(&i.RegionID, &i.RegionName, &i.Replicas); err != nil {
+		if err := rows.Scan(
+			&i.RegionID,
+			&i.RegionName,
+			&i.Replicas,
+			&i.RegionCanSchedule,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

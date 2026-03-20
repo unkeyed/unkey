@@ -1,6 +1,6 @@
-import { and, db, eq, inArray, notInArray } from "@/lib/db";
+import { and, db, eq, notInArray } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { appRegionalSettings, environments, regions } from "@unkey/db/src/schema";
+import { appRegionalSettings, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 
@@ -21,20 +21,6 @@ export const updateRegions = workspaceProcedure
     });
     if (!env) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Environment not found" });
-    }
-
-    // Validate that all requested regions are schedulable
-    const schedulableRegions = await db.query.regions.findMany({
-      where: and(inArray(regions.id, input.regionIds), eq(regions.isSchedulable, true)),
-      columns: { id: true },
-    });
-    const schedulableIds = new Set(schedulableRegions.map((r) => r.id));
-    const invalidIds = input.regionIds.filter((id) => !schedulableIds.has(id));
-    if (invalidIds.length > 0) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: `The following regions are not available for scheduling: ${invalidIds.join(", ")}`,
-      });
     }
 
     const existingSettings = await db.query.appRegionalSettings.findMany({

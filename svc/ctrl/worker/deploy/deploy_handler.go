@@ -444,10 +444,26 @@ func (w *Workflow) createTopologies(
 		)
 	}
 
+	// Filter out regions that are not schedulable and log when we skip one.
+	schedulable := make([]db.FindAppRegionalSettingsByAppAndEnvRow, 0, len(regionalSettings))
+	for _, rs := range regionalSettings {
+		if !rs.RegionCanSchedule {
+			logger.Warn("skipping non-schedulable region",
+				"region_id", rs.RegionID,
+				"region_name", rs.RegionName,
+				"app_id", deployment.AppID,
+				"environment_id", deployment.EnvironmentID,
+			)
+			continue
+		}
+		schedulable = append(schedulable, rs)
+	}
+	regionalSettings = schedulable
+
 	if len(regionalSettings) == 0 {
 		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("no regions configured for app %s in environment %s", deployment.AppID, deployment.EnvironmentID), 400),
-			fault.Public("No regions configured. Please configure at least one region before deploying."),
+			restate.TerminalError(fmt.Errorf("no schedulable regions configured for app %s in environment %s", deployment.AppID, deployment.EnvironmentID), 400),
+			fault.Public("No schedulable regions configured. Please configure at least one schedulable region before deploying."),
 		)
 	}
 

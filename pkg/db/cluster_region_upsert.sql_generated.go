@@ -14,7 +14,7 @@ INSERT INTO regions (
 	id,
 	name,
 	platform,
-	is_schedulable
+	can_schedule
 )
 VALUES (
 	?,
@@ -26,21 +26,21 @@ ON DUPLICATE KEY UPDATE name = name
 `
 
 type UpsertRegionParams struct {
-	ID            string `db:"id"`
-	Name          string `db:"name"`
-	Platform      string `db:"platform"`
-	IsSchedulable bool   `db:"is_schedulable"`
+	ID          string `db:"id"`
+	Name        string `db:"name"`
+	Platform    string `db:"platform"`
+	CanSchedule bool   `db:"can_schedule"`
 }
 
-// Inserts a region with the provided is_schedulable value, or does nothing if
-// the region already exists. This preserves any manual is_schedulable override
+// Inserts a region with the provided can_schedule value, or does nothing if
+// the region already exists. This preserves any manual can_schedule override
 // made directly in the database (e.g. disabling a broken region).
 //
 //	INSERT INTO regions (
 //		id,
 //		name,
 //		platform,
-//		is_schedulable
+//		can_schedule
 //	)
 //	VALUES (
 //		?,
@@ -54,7 +54,7 @@ func (q *Queries) UpsertRegion(ctx context.Context, db DBTX, arg UpsertRegionPar
 		arg.ID,
 		arg.Name,
 		arg.Platform,
-		arg.IsSchedulable,
+		arg.CanSchedule,
 	)
 	return err
 }

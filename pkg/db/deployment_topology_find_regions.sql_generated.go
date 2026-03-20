@@ -10,7 +10,7 @@ import (
 )
 
 const findDeploymentRegions = `-- name: FindDeploymentRegions :many
-SELECT r.pk, r.id, r.name, r.platform, r.is_schedulable
+SELECT r.pk, r.id, r.name, r.platform, r.can_schedule
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `regions` + "`" + ` r ON dt.region_id = r.id
 WHERE dt.deployment_id = ?
@@ -19,7 +19,7 @@ WHERE dt.deployment_id = ?
 // Returns all regions where a deployment is configured.
 // Used for fan-out: when a deployment changes, emit state_change to each region.
 //
-//	SELECT r.pk, r.id, r.name, r.platform, r.is_schedulable
+//	SELECT r.pk, r.id, r.name, r.platform, r.can_schedule
 //	FROM `deployment_topology` dt
 //	INNER JOIN `regions` r ON dt.region_id = r.id
 //	WHERE dt.deployment_id = ?
@@ -37,7 +37,7 @@ func (q *Queries) FindDeploymentRegions(ctx context.Context, db DBTX, deployment
 			&i.ID,
 			&i.Name,
 			&i.Platform,
-			&i.IsSchedulable,
+			&i.CanSchedule,
 		); err != nil {
 			return nil, err
 		}

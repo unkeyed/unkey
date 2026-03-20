@@ -326,12 +326,12 @@ type Querier interface {
 	//  SELECT
 	//  	ars.region_id,
 	//  	r.name AS region_name,
-	//  	ars.replicas
+	//  	ars.replicas,
+	//  	r.can_schedule AS region_can_schedule
 	//  FROM app_regional_settings ars
 	//  JOIN regions r ON r.id = ars.region_id
 	//  WHERE ars.app_id = ?
 	//    AND ars.environment_id = ?
-	//    AND r.is_schedulable = true
 	FindAppRegionalSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRegionalSettingsByAppAndEnvParams) ([]FindAppRegionalSettingsByAppAndEnvRow, error)
 	//FindAppRuntimeSettingsByAppAndEnv
 	//
@@ -430,7 +430,7 @@ type Querier interface {
 	// Returns all regions where a deployment is configured.
 	// Used for fan-out: when a deployment changes, emit state_change to each region.
 	//
-	//  SELECT r.pk, r.id, r.name, r.platform, r.is_schedulable
+	//  SELECT r.pk, r.id, r.name, r.platform, r.can_schedule
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `regions` r ON dt.region_id = r.id
 	//  WHERE dt.deployment_id = ?
@@ -1157,18 +1157,18 @@ type Querier interface {
 	//FindRegionById
 	//
 	//  SELECT
-	//   pk, id, name, platform, is_schedulable
+	//   pk, id, name, platform, can_schedule
 	//  FROM regions
 	//  WHERE id = ? LIMIT 1
 	FindRegionById(ctx context.Context, db DBTX, regionID string) (Region, error)
 	//FindRegionByNameAndPlatform
 	//
-	//  SELECT pk, id, name, platform, is_schedulable FROM regions WHERE name = ? AND platform = ?
+	//  SELECT pk, id, name, platform, can_schedule FROM regions WHERE name = ? AND platform = ?
 	FindRegionByNameAndPlatform(ctx context.Context, db DBTX, arg FindRegionByNameAndPlatformParams) (Region, error)
 	//FindRegionByPlatformAndName
 	//
 	//  SELECT
-	//   pk, id, name, platform, is_schedulable
+	//   pk, id, name, platform, can_schedule
 	//  FROM regions
 	//  WHERE platform = ? AND name = ? LIMIT 1
 	FindRegionByPlatformAndName(ctx context.Context, db DBTX, arg FindRegionByPlatformAndNameParams) (Region, error)
@@ -1230,7 +1230,7 @@ type Querier interface {
 	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
 	//FindSentinelsByEnvironmentID
 	//
-	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.version, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.is_schedulable FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
+	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.version, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error)
 	//FindWorkspaceByID
 	//
@@ -2441,7 +2441,7 @@ type Querier interface {
 	ListRatelimitsByKeyIDs(ctx context.Context, db DBTX, keyIds []sql.NullString) ([]ListRatelimitsByKeyIDsRow, error)
 	//ListRegions
 	//
-	//  SELECT id, name, platform, is_schedulable FROM regions
+	//  SELECT id, name, platform, can_schedule FROM regions
 	ListRegions(ctx context.Context, db DBTX) ([]ListRegionsRow, error)
 	//ListRepoConnectionDeployContexts
 	//
@@ -3176,15 +3176,15 @@ type Querier interface {
 	//      ratelimit_api_limit = VALUES(ratelimit_api_limit),
 	//      ratelimit_api_duration = VALUES(ratelimit_api_duration)
 	UpsertQuota(ctx context.Context, db DBTX, arg UpsertQuotaParams) error
-	// Inserts a region with the provided is_schedulable value, or does nothing if
-	// the region already exists. This preserves any manual is_schedulable override
+	// Inserts a region with the provided can_schedule value, or does nothing if
+	// the region already exists. This preserves any manual can_schedule override
 	// made directly in the database (e.g. disabling a broken region).
 	//
 	//  INSERT INTO regions (
 	//  	id,
 	//  	name,
 	//  	platform,
-	//  	is_schedulable
+	//  	can_schedule
 	//  )
 	//  VALUES (
 	//  	?,

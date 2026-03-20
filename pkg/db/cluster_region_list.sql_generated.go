@@ -10,19 +10,19 @@ import (
 )
 
 const listRegions = `-- name: ListRegions :many
-SELECT id, name, platform, is_schedulable FROM regions
+SELECT id, name, platform, can_schedule FROM regions
 `
 
 type ListRegionsRow struct {
-	ID            string `db:"id"`
-	Name          string `db:"name"`
-	Platform      string `db:"platform"`
-	IsSchedulable bool   `db:"is_schedulable"`
+	ID          string `db:"id"`
+	Name        string `db:"name"`
+	Platform    string `db:"platform"`
+	CanSchedule bool   `db:"can_schedule"`
 }
 
 // ListRegions
 //
-//	SELECT id, name, platform, is_schedulable FROM regions
+//	SELECT id, name, platform, can_schedule FROM regions
 func (q *Queries) ListRegions(ctx context.Context, db DBTX) ([]ListRegionsRow, error) {
 	rows, err := db.QueryContext(ctx, listRegions)
 	if err != nil {
@@ -36,7 +36,7 @@ func (q *Queries) ListRegions(ctx context.Context, db DBTX) ([]ListRegionsRow, e
 			&i.ID,
 			&i.Name,
 			&i.Platform,
-			&i.IsSchedulable,
+			&i.CanSchedule,
 		); err != nil {
 			return nil, err
 		}
