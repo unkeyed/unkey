@@ -210,14 +210,19 @@ func (s *PartitionService) updateLastUsedBatch(ctx context.Context, partition in
 		retry.Backoff(func(n int) time.Duration { return time.Duration(n*5) * time.Millisecond }),
 		retry.ShouldRetry(db.IsTransientError),
 	)
+	const maxKeysPerUpdate = 500
 	for ts, keyIDs := range groups {
-		if _, err := retry.DoWithResultContext(retrier, ctx, func() (struct{}, error) {
-			return struct{}{}, db.Query.UpdateKeysLastUsed(ctx, rw, db.UpdateKeysLastUsedParams{
-				LastUsedAt: uint64(ts), //nolint:gosec
-				KeyIds:     keyIDs,
-			})
-		}); err != nil {
-			return fmt.Errorf("update minute %d: %w", ts, err)
+		for start := 0; start < len(keyIDs); start += maxKeysPerUpdate {
+			end := min(start+maxKeysPerUpdate, len(keyIDs))
+			chunk := keyIDs[start:end]
+			if _, err := retry.DoWithResultContext(retrier, ctx, func() (struct{}, error) {
+				return struct{}{}, db.Query.UpdateKeysLastUsed(ctx, rw, db.UpdateKeysLastUsedParams{
+					LastUsedAt: uint64(ts), //nolint:gosec
+					KeyIds:     chunk,
+				})
+			}); err != nil {
+				return fmt.Errorf("update minute %d: %w", ts, err)
+			}
 		}
 		done += len(keyIDs)
 		if done%5000 < len(keyIDs) {
