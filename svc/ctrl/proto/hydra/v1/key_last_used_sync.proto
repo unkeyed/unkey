@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// KeyLastUsedSyncService is the orchestrator that fans out to partition workers.
+//
+// Stateless — use an idempotency key on the caller side if deduplication is needed.
+// Partition state (cursors) lives in KeyLastUsedPartitionService VOs.
+service KeyLastUsedSyncService {
+  option (dev.restate.sdk.go.service_type) = SERVICE;
+
+  // RunSync fans out SyncPartition calls to each partition worker and collects results.
+  rpc RunSync(RunSyncRequest) returns (RunSyncResponse) {}
+}
+
+message RunSyncRequest {}
+
+message RunSyncResponse {
+  // Number of keys whose last_used_at was synced in this invocation
+  int32 keys_synced = 1;
+}
+
+// KeyLastUsedPartitionService processes a single hash partition of the keyspace.
+//
+// Keyed by partition index (e.g. "0", "1", ... "7").
+// Persists a cursor in Restate state so subsequent runs only process new data.
+service KeyLastUsedPartitionService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // SyncPartition reads keys from ClickHouse for this partition and batch-updates MySQL.
+  // The cursor is persisted in Restate state between invocations.
+  rpc SyncPartition(SyncPartitionRequest) returns (SyncPartitionResponse) {}
+}
+
+message SyncPartitionRequest {
+  // Total number of partitions. The partition index is derived from the
+  // Restate object key (e.g. "3").
+  int32 total_partitions = 1;
+}
+
+message SyncPartitionResponse {
+  // Number of keys synced by this partition.
+  int32 keys_synced = 1;
+}
