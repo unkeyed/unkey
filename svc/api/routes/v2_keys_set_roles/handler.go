@@ -110,7 +110,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("We're unable to update the key."),
 			)
 		}
-		}
 
 		// All reads happen inside the transaction after acquiring the lock
 		// to prevent TOCTOU races with concurrent requests.
