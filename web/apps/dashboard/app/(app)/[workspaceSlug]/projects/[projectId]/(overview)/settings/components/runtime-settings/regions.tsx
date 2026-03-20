@@ -8,6 +8,7 @@ import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Location2, XMark } from "@unkey/icons";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 import { useContext, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -46,39 +47,60 @@ const RegionTags = ({
   regions,
   onRemove,
   canRemove,
+  unschedulableRegions,
 }: {
   regions: string[];
   onRemove: (region: string) => void;
   canRemove: boolean;
+  unschedulableRegions?: Set<string>;
 }) => (
-  <div className="w-full flex flex-wrap gap-1.5 py-0.5">
-    {regions.map((r) => (
-      <span
-        key={r}
-        className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-grayA-3 border border-grayA-4 text-xs text-accent-12"
-      >
-        <RegionFlag
-          flagCode={mapRegionToFlag(r)}
-          size="xs"
-          shape="circle"
-          className="[&_img]:size-3"
-        />
-        {r}
-        {canRemove && (
-          //biome-ignore lint/a11y/useKeyWithClickEvents: we can't use button here otherwise we'll nest two buttons
+  <TooltipProvider>
+    <div className="w-full flex flex-wrap gap-1.5 py-0.5">
+      {regions.map((r) => {
+        const isUnschedulable = unschedulableRegions?.has(r);
+        const tag = (
           <span
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove(r);
-            }}
-            className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
+            key={r}
+            className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs ${
+              isUnschedulable
+                ? "bg-warning-3 border border-warning-6 text-warning-11"
+                : "bg-grayA-3 border border-grayA-4 text-accent-12"
+            }`}
           >
-            <XMark iconSize="sm-regular" />
+            <RegionFlag
+              flagCode={mapRegionToFlag(r)}
+              size="xs"
+              shape="circle"
+              className="[&_img]:size-3"
+            />
+            {r}
+            {canRemove && (
+              //biome-ignore lint/a11y/useKeyWithClickEvents: we can't use button here otherwise we'll nest two buttons
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(r);
+                }}
+                className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
+              >
+                <XMark iconSize="sm-regular" />
+              </span>
+            )}
           </span>
-        )}
-      </span>
-    ))}
-  </div>
+        );
+
+        if (isUnschedulable) {
+          return (
+            <Tooltip key={r}>
+              <TooltipTrigger asChild>{tag}</TooltipTrigger>
+              <TooltipContent>This region is currently unavailable for scheduling</TooltipContent>
+            </Tooltip>
+          );
+        }
+        return tag;
+      })}
+    </div>
+  </TooltipProvider>
 );
 
 const RegionDisplayValue = ({ regions }: { regions: string[] }) => {
@@ -148,7 +170,13 @@ const RegionsSingle = () => {
 
   const currentRegions = useWatch({ control, name: "regions" });
   const allRegions = availableRegions ?? [];
-  const unselectedRegions = allRegions.filter((r) => !currentRegions.includes(r.name));
+  const unselectedRegions = allRegions.filter(
+    (r) => r.canSchedule && !currentRegions.includes(r.name),
+  );
+  const unschedulableRegions = useMemo(
+    () => new Set(allRegions.filter((r) => !r.canSchedule).map((r) => r.name)),
+    [allRegions],
+  );
 
   const onSubmit = async (values: RegionsSingleFormValues) => {
     collection.environmentSettings.update(environmentId, (draft) => {
@@ -213,6 +241,7 @@ const RegionsSingle = () => {
               regions={currentRegions}
               onRemove={removeRegion}
               canRemove={currentRegions.length > 1}
+              unschedulableRegions={unschedulableRegions}
             />
           )
         }
@@ -290,9 +319,15 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
   const currentPreviewRegions = useWatch({ control, name: "previewRegions" });
 
   const allRegions = availableRegions ?? [];
-  const unselectedProdRegions = allRegions.filter((r) => !currentProdRegions.includes(r.name));
+  const unselectedProdRegions = allRegions.filter(
+    (r) => r.canSchedule && !currentProdRegions.includes(r.name),
+  );
   const unselectedPreviewRegions = allRegions.filter(
-    (r) => !currentPreviewRegions.includes(r.name),
+    (r) => r.canSchedule && !currentPreviewRegions.includes(r.name),
+  );
+  const unschedulableRegions = useMemo(
+    () => new Set(allRegions.filter((r) => !r.canSchedule).map((r) => r.name)),
+    [allRegions],
   );
 
   const onSubmit = async (values: RegionsDualFormValues) => {
@@ -405,6 +440,7 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
                 regions={currentProdRegions}
                 onRemove={removeProdRegion}
                 canRemove={currentProdRegions.length > 1}
+                unschedulableRegions={unschedulableRegions}
               />
             )
           }
@@ -428,6 +464,7 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
                 regions={currentPreviewRegions}
                 onRemove={removePreviewRegion}
                 canRemove={currentPreviewRegions.length > 1}
+                unschedulableRegions={unschedulableRegions}
               />
             )
           }
