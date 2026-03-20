@@ -109,46 +109,43 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	identityRow, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
-		Identity:    req.Identity,
-		Deleted:     false,
-	})
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("identity not found",
-				fault.Code(codes.Data.Identity.NotFound.URN()),
-				fault.Internal("identity not found"), fault.Public("This identity does not exist."),
-			)
-		}
-
-		return fault.Wrap(err,
-			fault.Internal("unable to find identity"),
-			fault.Public("We're unable to retrieve the identity."),
-		)
-	}
-
-	// Parse existing ratelimits from JSON
-	var existingRatelimits []db.RatelimitInfo
-	if ratelimitBytes, ok := identityRow.Ratelimits.([]byte); ok && ratelimitBytes != nil {
-		_ = json.Unmarshal(ratelimitBytes, &existingRatelimits) // Ignore error, default to empty array
-	}
-
 	type txResult struct {
 		identity        db.FindIdentityRow
 		finalRatelimits []openapi.RatelimitResponse
 	}
 
 	result, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (txResult, error) {
-		// Lock the identity row to prevent concurrent modifications and deadlocks.
-		// This is necessary because UpdateIdentity is only called when req.Meta != nil,
-		// so without this lock, concurrent ratelimit updates could deadlock.
-		_, err := db.Query.LockIdentityForUpdate(ctx, tx, identityRow.ID)
+		// All reads happen inside the transaction after acquiring the lock
+		// to prevent TOCTOU races with concurrent requests.
+		identityRow, err := db.Query.FindIdentity(ctx, tx, db.FindIdentityParams{
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Identity:    req.Identity,
+			Deleted:     false,
+		})
+		if err != nil {
+			if db.IsNotFound(err) {
+				return txResult{}, fault.New("identity not found",
+					fault.Code(codes.Data.Identity.NotFound.URN()),
+					fault.Internal("identity not found"), fault.Public("This identity does not exist."),
+				)
+			}
+			return txResult{}, fault.Wrap(err,
+				fault.Internal("unable to find identity"),
+				fault.Public("We're unable to retrieve the identity."),
+			)
+		}
+
+		_, err = db.Query.LockIdentityForUpdate(ctx, tx, identityRow.ID)
 		if err != nil {
 			return txResult{}, fault.Wrap(err,
 				fault.Internal("unable to lock identity"),
 				fault.Public("We're unable to update the identity."),
 			)
+		}
+
+		var existingRatelimits []db.RatelimitInfo
+		if ratelimitBytes, ok := identityRow.Ratelimits.([]byte); ok && ratelimitBytes != nil {
+			_ = json.Unmarshal(ratelimitBytes, &existingRatelimits)
 		}
 
 		auditLogs := []auditlog.AuditLog{
