@@ -72,7 +72,7 @@ type Querier interface {
 	// GetKeyLastUsedBatchPartitioned returns keys in a specific hash partition
 	// (cityHash64(key_id) % totalPartitions == partition) after the given cursor,
 	// ordered by (time, key_id). Used by the KeyLastUsedSync partition workers.
-	GetKeyLastUsedBatchPartitioned(ctx context.Context, cursor KeyLastUsedCursor, limit int, partition, totalPartitions int) ([]KeyLastUsed, error)
+	GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error)
 }
 
 type ClickHouse interface {

@@ -16,11 +16,10 @@ const defaultPartitions = 8
 // worker and collects results. Each partition is a separate Restate virtual object
 // with its own key, journal, and persisted cursor state.
 func (s *Service) RunSync(
-	ctx restate.ObjectContext,
+	ctx restate.Context,
 	_ *hydrav1.RunSyncRequest,
 ) (*hydrav1.RunSyncResponse, error) {
-	runKey := restate.Key(ctx)
-	logger.Info("running key last used sync", "run", runKey, "partitions", defaultPartitions)
+	logger.Info("running key last used sync", "partitions", defaultPartitions)
 
 	// Fan out to partition services — each is an independent virtual object
 	type partitionFuture = restate.ResponseFuture[*hydrav1.SyncPartitionResponse]
@@ -43,7 +42,6 @@ func (s *Service) RunSync(
 	}
 
 	logger.Info("key last used sync complete",
-		"run", runKey,
 		"keys_synced", totalSynced,
 	)
 

@@ -117,7 +117,12 @@ func (s *PartitionService) SyncPartition(
 
 		result, runErr := restate.Run(ctx, func(rc restate.RunContext) (batchResult, error) {
 			chStart := time.Now()
-			batch, fetchErr := s.clickhouse.GetKeyLastUsedBatchPartitioned(rc, currentCursor, batchSize, partition, totalPartitions)
+			batch, fetchErr := s.clickhouse.GetKeyLastUsedBatchPartitioned(rc, clickhouse.GetKeyLastUsedBatchRequest{
+				Cursor:          currentCursor,
+				Limit:           batchSize,
+				Partition:       partition,
+				TotalPartitions: totalPartitions,
+			})
 			if fetchErr != nil {
 				return batchResult{}, fmt.Errorf("fetch partition %d: %w", partition, fetchErr)
 			}

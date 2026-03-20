@@ -17,25 +17,22 @@ import (
 //
 // KeyLastUsedSyncService is the orchestrator that fans out to partition workers.
 //
-// Keyed by run identifier (e.g. "sync-2026-02-27-14") for idempotency.
+// Stateless — use an idempotency key on the caller side if deduplication is needed.
+// Partition state (cursors) lives in KeyLastUsedPartitionService VOs.
 type KeyLastUsedSyncServiceClient interface {
 	// RunSync fans out SyncPartition calls to each partition worker and collects results.
-	//
-	// Key: run identifier (e.g. "sync-2026-02-27-14")
 	RunSync(opts ...sdk_go.ClientOption) sdk_go.Client[*RunSyncRequest, *RunSyncResponse]
 }
 
 type keyLastUsedSyncServiceClient struct {
 	ctx     sdk_go.Context
-	key     string
 	options []sdk_go.ClientOption
 }
 
-func NewKeyLastUsedSyncServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.ClientOption) KeyLastUsedSyncServiceClient {
+func NewKeyLastUsedSyncServiceClient(ctx sdk_go.Context, opts ...sdk_go.ClientOption) KeyLastUsedSyncServiceClient {
 	cOpts := append([]sdk_go.ClientOption{sdk_go.WithProtoJSON}, opts...)
 	return &keyLastUsedSyncServiceClient{
 		ctx,
-		key,
 		cOpts,
 	}
 }
@@ -44,7 +41,7 @@ func (c *keyLastUsedSyncServiceClient) RunSync(opts ...sdk_go.ClientOption) sdk_
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*RunSyncRequest](sdk_go.Object[*RunSyncResponse](c.ctx, "hydra.v1.KeyLastUsedSyncService", c.key, "RunSync", cOpts...))
+	return sdk_go.WithRequestType[*RunSyncRequest](sdk_go.Service[*RunSyncResponse](c.ctx, "hydra.v1.KeyLastUsedSyncService", "RunSync", cOpts...))
 }
 
 // KeyLastUsedSyncServiceIngressClient is the ingress client API for hydra.v1.KeyLastUsedSyncService service.
@@ -52,28 +49,24 @@ func (c *keyLastUsedSyncServiceClient) RunSync(opts ...sdk_go.ClientOption) sdk_
 // This client is used to call the service from outside of a Restate context.
 type KeyLastUsedSyncServiceIngressClient interface {
 	// RunSync fans out SyncPartition calls to each partition worker and collects results.
-	//
-	// Key: run identifier (e.g. "sync-2026-02-27-14")
 	RunSync() ingress.Requester[*RunSyncRequest, *RunSyncResponse]
 }
 
 type keyLastUsedSyncServiceIngressClient struct {
 	client      *ingress.Client
 	serviceName string
-	key         string
 }
 
-func NewKeyLastUsedSyncServiceIngressClient(client *ingress.Client, key string) KeyLastUsedSyncServiceIngressClient {
+func NewKeyLastUsedSyncServiceIngressClient(client *ingress.Client) KeyLastUsedSyncServiceIngressClient {
 	return &keyLastUsedSyncServiceIngressClient{
 		client,
 		"hydra.v1.KeyLastUsedSyncService",
-		key,
 	}
 }
 
 func (c *keyLastUsedSyncServiceIngressClient) RunSync() ingress.Requester[*RunSyncRequest, *RunSyncResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*RunSyncRequest, *RunSyncResponse](c.client, c.serviceName, "RunSync", &c.key, &codec)
+	return ingress.NewRequester[*RunSyncRequest, *RunSyncResponse](c.client, c.serviceName, "RunSync", nil, &codec)
 }
 
 // KeyLastUsedSyncServiceServer is the server API for hydra.v1.KeyLastUsedSyncService service.
@@ -82,12 +75,11 @@ func (c *keyLastUsedSyncServiceIngressClient) RunSync() ingress.Requester[*RunSy
 //
 // KeyLastUsedSyncService is the orchestrator that fans out to partition workers.
 //
-// Keyed by run identifier (e.g. "sync-2026-02-27-14") for idempotency.
+// Stateless — use an idempotency key on the caller side if deduplication is needed.
+// Partition state (cursors) lives in KeyLastUsedPartitionService VOs.
 type KeyLastUsedSyncServiceServer interface {
 	// RunSync fans out SyncPartition calls to each partition worker and collects results.
-	//
-	// Key: run identifier (e.g. "sync-2026-02-27-14")
-	RunSync(ctx sdk_go.ObjectContext, req *RunSyncRequest) (*RunSyncResponse, error)
+	RunSync(ctx sdk_go.Context, req *RunSyncRequest) (*RunSyncResponse, error)
 }
 
 // UnimplementedKeyLastUsedSyncServiceServer should be embedded to have
@@ -97,7 +89,7 @@ type KeyLastUsedSyncServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedKeyLastUsedSyncServiceServer struct{}
 
-func (UnimplementedKeyLastUsedSyncServiceServer) RunSync(ctx sdk_go.ObjectContext, req *RunSyncRequest) (*RunSyncResponse, error) {
+func (UnimplementedKeyLastUsedSyncServiceServer) RunSync(ctx sdk_go.Context, req *RunSyncRequest) (*RunSyncResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method RunSync not implemented"), 501)
 }
 func (UnimplementedKeyLastUsedSyncServiceServer) testEmbeddedByValue() {}
@@ -118,8 +110,8 @@ func NewKeyLastUsedSyncServiceServer(srv KeyLastUsedSyncServiceServer, opts ...s
 		t.testEmbeddedByValue()
 	}
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
-	router := sdk_go.NewObject("hydra.v1.KeyLastUsedSyncService", sOpts...)
-	router = router.Handler("RunSync", sdk_go.NewObjectHandler(srv.RunSync))
+	router := sdk_go.NewService("hydra.v1.KeyLastUsedSyncService", sOpts...)
+	router = router.Handler("RunSync", sdk_go.NewServiceHandler(srv.RunSync))
 	return router
 }
 

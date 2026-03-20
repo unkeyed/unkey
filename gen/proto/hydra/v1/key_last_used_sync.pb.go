@@ -209,7 +209,7 @@ const file_hydra_v1_key_last_used_sync_proto_rawDesc = "" +
 	"\vkeys_synced\x18\x01 \x01(\x05R\n" +
 	"keysSynced2`\n" +
 	"\x16KeyLastUsedSyncService\x12@\n" +
-	"\aRunSync\x12\x18.hydra.v1.RunSyncRequest\x1a\x19.hydra.v1.RunSyncResponse\"\x00\x1a\x04\x98\x80\x01\x012w\n" +
+	"\aRunSync\x12\x18.hydra.v1.RunSyncRequest\x1a\x19.hydra.v1.RunSyncResponse\"\x00\x1a\x04\x98\x80\x01\x002w\n" +
 	"\x1bKeyLastUsedPartitionService\x12R\n" +
 	"\rSyncPartition\x12\x1e.hydra.v1.SyncPartitionRequest\x1a\x1f.hydra.v1.SyncPartitionResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x9a\x01\n" +
 	"\fcom.hydra.v1B\x14KeyLastUsedSyncProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"

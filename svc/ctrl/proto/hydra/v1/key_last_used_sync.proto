@@ -8,13 +8,12 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 
 // KeyLastUsedSyncService is the orchestrator that fans out to partition workers.
 //
-// Keyed by run identifier (e.g. "sync-2026-02-27-14") for idempotency.
+// Stateless — use an idempotency key on the caller side if deduplication is needed.
+// Partition state (cursors) lives in KeyLastUsedPartitionService VOs.
 service KeyLastUsedSyncService {
-  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+  option (dev.restate.sdk.go.service_type) = SERVICE;
 
   // RunSync fans out SyncPartition calls to each partition worker and collects results.
-  //
-  // Key: run identifier (e.g. "sync-2026-02-27-14")
   rpc RunSync(RunSyncRequest) returns (RunSyncResponse) {}
 }
 

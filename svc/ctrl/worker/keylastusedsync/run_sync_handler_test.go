@@ -67,7 +67,7 @@ func TestRunSync_Integration(t *testing.T) {
 		h.ClickHouseSeed.InsertKeyLastUsed(h.Ctx, chRows)
 
 		// Run the sync
-		resp, err := callRunSync(h, fmt.Sprintf("test-basic-%s", uid.New("", 8)))
+		resp, err := callRunSync(h)
 		require.NoError(t, err)
 		require.Equal(t, int32(3), resp.GetKeysSynced())
 
@@ -105,8 +105,7 @@ func TestRunSync_Integration(t *testing.T) {
 		}})
 
 		// Sync once
-		runKey := fmt.Sprintf("test-idempotent-%s", uid.New("", 8))
-		_, err := callRunSync(h, runKey)
+		_, err := callRunSync(h)
 		require.NoError(t, err)
 
 		// Verify
@@ -122,9 +121,8 @@ func TestRunSync_Integration(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		// Re-sync with a new key (CH still has newerTime which is older than evenNewer)
-		runKey2 := fmt.Sprintf("test-idempotent2-%s", uid.New("", 8))
-		_, err = callRunSync(h, runKey2)
+		// Re-sync (CH still has newerTime which is older than evenNewer)
+		_, err = callRunSync(h)
 		require.NoError(t, err)
 
 		// MySQL should still have the newer value
@@ -195,8 +193,7 @@ func TestRunSync_Performance(t *testing.T) {
 	// ── Run sync — single invocation with partitioned fan-out ────────────
 	t.Logf("Running sync (partitioned fan-out)...")
 	syncStart := time.Now()
-	runKey := fmt.Sprintf("perf-%s", uid.New("", 8))
-	resp, syncErr := callRunSyncCtx(ctx, h, runKey)
+	resp, syncErr := callRunSyncCtx(ctx, h)
 	require.NoError(t, syncErr)
 
 	syncDuration := time.Since(syncStart)
@@ -277,7 +274,7 @@ func TestRunSync_IncrementalUpdate(t *testing.T) {
 	// ── Run sync — cursors carry over from the perf test ────────────────
 	t.Logf("Running incremental sync (same 'global' key, cursors carry over)...")
 	syncStart := time.Now()
-	resp, err := callRunSyncCtx(ctx, h, "global")
+	resp, err := callRunSyncCtx(ctx, h)
 	require.NoError(t, err)
 
 	t.Logf("Incremental sync complete: %d keys in %s (expected ~%d)",
@@ -517,12 +514,12 @@ func bulkInsertMySQLKeys(t *testing.T, ctx context.Context, database db.Database
 	return keyIDs
 }
 
-func callRunSync(h *harness.Harness, runKey string) (*hydrav1.RunSyncResponse, error) {
-	client := hydrav1.NewKeyLastUsedSyncServiceIngressClient(h.Restate, runKey)
+func callRunSync(h *harness.Harness) (*hydrav1.RunSyncResponse, error) {
+	client := hydrav1.NewKeyLastUsedSyncServiceIngressClient(h.Restate)
 	return client.RunSync().Request(h.Ctx, &hydrav1.RunSyncRequest{})
 }
 
-func callRunSyncCtx(ctx context.Context, h *harness.Harness, runKey string) (*hydrav1.RunSyncResponse, error) {
-	client := hydrav1.NewKeyLastUsedSyncServiceIngressClient(h.Restate, runKey)
+func callRunSyncCtx(ctx context.Context, h *harness.Harness) (*hydrav1.RunSyncResponse, error) {
+	client := hydrav1.NewKeyLastUsedSyncServiceIngressClient(h.Restate)
 	return client.RunSync().Request(ctx, &hydrav1.RunSyncRequest{})
 }
