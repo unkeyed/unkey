@@ -39,7 +39,7 @@ func (h *Handler) Path() string {
 }
 
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
-	req := sess.Request()
+	req := sess.Request().WithContext(ctx)
 
 	tracking, ok := SentinelTrackingFromContext(ctx)
 	if !ok {

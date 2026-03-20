@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
@@ -61,11 +62,12 @@ func ParseMiddleware(raw []byte) ([]*sentinelv1.Policy, error) {
 	}
 
 	cfg := &sentinelv1.Config{}
-	if err := protojson.Unmarshal(raw, cfg); err != nil {
+	unmarshalOpts := protojson.UnmarshalOptions{DiscardUnknown: true}
+	if err := unmarshalOpts.Unmarshal(raw, cfg); err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InvalidConfiguration.URN()),
-			fault.Internal("unable to unmarshal sentinel policies"),
-			fault.Public("The policy datastructure is invalid"),
+			fault.Internal(fmt.Sprintf("unable to unmarshal sentinel policies: %s", string(raw))),
+			fault.Public("The policy configuration is invalid. Please check your sentinel config or contact support at support@unkey.com."),
 		)
 	}
 

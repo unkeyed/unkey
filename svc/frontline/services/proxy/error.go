@@ -7,10 +7,12 @@ import (
 	"os"
 	"syscall"
 
+	"fmt"
+
 	"github.com/unkeyed/unkey/pkg/codes"
 )
 
-func categorizeProxyError(err error) (codes.URN, string) {
+func categorizeProxyError(err error, target string) (codes.URN, string) {
 	if errors.Is(err, context.Canceled) {
 		return codes.User.BadRequest.ClientClosedRequest.URN(),
 			"The client closed the connection before the request completed."
@@ -18,29 +20,29 @@ func categorizeProxyError(err error) (codes.URN, string) {
 
 	if errors.Is(err, context.DeadlineExceeded) || os.IsTimeout(err) {
 		return codes.Frontline.Proxy.GatewayTimeout.URN(),
-			"The request took too long to process. Please try again later."
+			fmt.Sprintf("The %s did not respond in time. Please try again later.", target)
 	}
 
 	var netErr *net.OpError
 	if errors.As(err, &netErr) {
 		if netErr.Timeout() {
 			return codes.Frontline.Proxy.GatewayTimeout.URN(),
-				"The request took too long to process. Please try again later."
+				fmt.Sprintf("The %s did not respond in time. Please try again later.", target)
 		}
 
 		if errors.Is(netErr.Err, syscall.ECONNREFUSED) {
 			return codes.Frontline.Proxy.ServiceUnavailable.URN(),
-				"The service is temporarily unavailable. Please try again later."
+				fmt.Sprintf("The %s refused the connection. It may be restarting — please try again in a few seconds.", target)
 		}
 
 		if errors.Is(netErr.Err, syscall.ECONNRESET) {
 			return codes.Frontline.Proxy.BadGateway.URN(),
-				"Connection was reset by the backend service. Please try again."
+				fmt.Sprintf("The %s reset the connection unexpectedly. Please try again.", target)
 		}
 
 		if errors.Is(netErr.Err, syscall.EHOSTUNREACH) {
 			return codes.Frontline.Proxy.ServiceUnavailable.URN(),
-				"The service is unreachable. Please try again later."
+				fmt.Sprintf("The %s is unreachable. Please try again later or contact support at support@unkey.com.", target)
 		}
 	}
 
@@ -48,7 +50,7 @@ func categorizeProxyError(err error) (codes.URN, string) {
 	if errors.As(err, &dnsErr) {
 		if dnsErr.IsNotFound {
 			return codes.Frontline.Proxy.ServiceUnavailable.URN(),
-				"The service could not be found. Please check your configuration."
+				fmt.Sprintf("DNS resolution failed for the %s. Please check your configuration or contact support at support@unkey.com.", target)
 		}
 		if dnsErr.IsTimeout {
 			return codes.Frontline.Proxy.GatewayTimeout.URN(),
@@ -57,5 +59,5 @@ func categorizeProxyError(err error) (codes.URN, string) {
 	}
 
 	return codes.Frontline.Proxy.BadGateway.URN(),
-		"Unable to connect to. Please try again in a few moments."
+		fmt.Sprintf("Failed to connect to the %s. Please try again or contact support at support@unkey.com.", target)
 }

@@ -15,7 +15,7 @@ func Register(srv *zen.Server, svc *Services) {
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
 	withPanicRecovery := zen.WithPanicRecovery()
 	withObservability := middleware.WithObservability(svc.Region, svc.ErrorPageRenderer)
-	withTimeout := zen.WithTimeout(5 * time.Minute)
+	withTimeout := zen.WithTimeout(15 * time.Minute)
 
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,

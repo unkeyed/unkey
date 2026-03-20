@@ -1,6 +1,8 @@
 package sentinel
 
 import (
+	"time"
+
 	"github.com/unkeyed/unkey/pkg/config"
 )
 
@@ -65,6 +67,10 @@ type Config struct {
 	// Redis configures the Redis connection for rate limiting and usage limiting.
 	// Required when sentinel middleware policies use KeyAuth with auto-applied rate limits.
 	Redis RedisConfig `toml:"redis"`
+
+	// RequestTimeout is the maximum duration for proxied requests before the
+	// context is cancelled and a 504 is returned. Defaults to 15 minutes.
+	RequestTimeout time.Duration `toml:"request_timeout" config:"default=15m"`
 
 	// Gossip configures distributed cache invalidation. See [config.GossipConfig].
 	// When nil (section omitted), gossip is disabled and invalidation is local-only.
