@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/uid"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
@@ -185,7 +186,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	// deploys have a resolved GitCommitSha (buildImage mutates the deployment pointer).
 	ghStatus := w.initGitHubStatus(ctx, deployment, project, app, environment, workspace)
 
-	ghStatus.ReportStatus().Send(&hydrav1.GitHubStatusReportRequest{
+	ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
 		State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_IN_PROGRESS,
 		Description: "Deploying to regions...",
 	})
@@ -211,14 +212,14 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil
 	})
 	if err != nil {
-		ghStatus.ReportStatus().Send(&hydrav1.GitHubStatusReportRequest{
+		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
 			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_FAILURE,
 			Description: "Deployment to regions failed",
 		})
 		return nil, err
 	}
 
-	ghStatus.ReportStatus().Send(&hydrav1.GitHubStatusReportRequest{
+	ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
 		State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_IN_PROGRESS,
 		Description: "Configuring routing...",
 	})
@@ -228,7 +229,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return w.configureRouting(stepCtx, workspace, project, app, environment, deployment)
 	})
 	if err != nil {
-		ghStatus.ReportStatus().Send(&hydrav1.GitHubStatusReportRequest{
+		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
 			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_FAILURE,
 			Description: "Routing configuration failed",
 		})
@@ -254,14 +255,14 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil
 	})
 	if err != nil {
-		ghStatus.ReportStatus().Send(&hydrav1.GitHubStatusReportRequest{
+		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
 			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_FAILURE,
 			Description: "Finalization failed",
 		})
 		return nil, err
 	}
 
-	ghStatus.ReportStatus().Send(&hydrav1.GitHubStatusReportRequest{
+	ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
 		State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_SUCCESS,
 		Description: "Deployment is live",
 	})
@@ -933,10 +934,25 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID st
 	return nil
 }
 
+// ghStatusReporter wraps a GitHubStatusServiceClient and silently skips all
+// Restate calls when no GitHub repo connection exists, avoiding wasteful
+// network round-trips for deployments without a connected repository.
+type ghStatusReporter struct {
+	client    hydrav1.GitHubStatusServiceClient
+	connected bool
+}
+
+func (r *ghStatusReporter) ReportStatus(req *hydrav1.GitHubStatusReportRequest) {
+	if !r.connected {
+		return
+	}
+
+	r.client.ReportStatus().Send(req)
+}
+
 // initGitHubStatus looks up the repo connection and fires a GitHubStatusService.Init
-// call. Returns the client so callers can send subsequent ReportStatus calls.
-// If no GitHub repo is connected, the returned client still works — Init is a
-// no-op when installation_id is 0, and ReportStatus no-ops when state is empty.
+// call. Returns a reporter so callers can send subsequent ReportStatus calls.
+// If no GitHub repo is connected, the reporter silently discards all calls.
 func (w *Workflow) initGitHubStatus(
 	ctx restate.ObjectContext,
 	deployment db.Deployment,
@@ -944,19 +960,35 @@ func (w *Workflow) initGitHubStatus(
 	app db.App,
 	environment db.Environment,
 	workspace db.Workspace,
-) hydrav1.GitHubStatusServiceClient {
-	ghStatus := hydrav1.NewGitHubStatusServiceClient(ctx, deployment.ID)
+) *ghStatusReporter {
+	reporter := &ghStatusReporter{
+		client:    hydrav1.NewGitHubStatusServiceClient(ctx, deployment.ID),
+		connected: false,
+	}
 
 	repoConn, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.GithubRepoConnection, error) {
 		return db.Query.FindGithubRepoConnectionByAppId(runCtx, w.db.RO(), deployment.AppID)
 	}, restate.WithName("find github repo connection"))
 	if err != nil {
+		if !mysql.IsNotFound(err) {
+			logger.Warn("failed to look up github repo connection, skipping deployment status reporting",
+				"app_id", deployment.AppID,
+				"error", err,
+			)
+		}
+
+		return reporter
+	}
+
+	if repoConn.InstallationID == 0 {
 		logger.Info("no github repo connection, skipping deployment status reporting",
 			"app_id", deployment.AppID,
 			"error", err,
 		)
-		return ghStatus
+		return reporter
 	}
+
+	reporter.connected = true
 
 	envLabel := formatEnvironmentLabel(project.Slug, app.Slug, environment.Slug)
 	prefix := formatDomainPrefix(project.Slug, app.Slug)
@@ -973,7 +1005,7 @@ func (w *Workflow) initGitHubStatus(
 		prNumber = int32(deployment.PrNumber.Int64)
 	}
 
-	ghStatus.Init().Send(&hydrav1.GitHubStatusInitRequest{
+	reporter.client.Init().Send(&hydrav1.GitHubStatusInitRequest{
 		InstallationId:             repoConn.InstallationID,
 		Repo:                       repoConn.RepositoryFullName,
 		CommitSha:                  deployment.GitCommitSha.String,
@@ -989,7 +1021,7 @@ func (w *Workflow) initGitHubStatus(
 		ExistingGithubDeploymentId: existingGHDeploymentID,
 	})
 
-	return ghStatus
+	return reporter
 }
 
 // formatEnvironmentLabel builds a human-readable label like "project - env"
