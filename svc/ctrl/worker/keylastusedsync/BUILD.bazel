@@ -16,6 +16,7 @@ go_library(
         "//pkg/db",
         "//pkg/healthcheck",
         "//pkg/logger",
+        "//pkg/retry",
         "@com_github_restatedev_sdk_go//:sdk-go",
     ],
 )

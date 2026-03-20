@@ -88,9 +88,18 @@ func (s *PartitionService) SyncPartition(
 	// Read persisted cursor from Restate state.
 	// If totalPartitions changed since the last run, the cursor is invalid
 	// (hash ranges shifted), so we reset to a full re-sync.
-	cursorTime, _ := restate.Get[int64](ctx, "cursor_time")
-	cursorKeyID, _ := restate.Get[string](ctx, "cursor_key_id")
-	prevTotalPartitions, _ := restate.Get[int](ctx, "total_partitions")
+	cursorTime, err := restate.Get[int64](ctx, "cursor_time")
+	if err != nil {
+		return nil, fmt.Errorf("get cursor_time: %w", err)
+	}
+	cursorKeyID, err := restate.Get[string](ctx, "cursor_key_id")
+	if err != nil {
+		return nil, fmt.Errorf("get cursor_key_id: %w", err)
+	}
+	prevTotalPartitions, err := restate.Get[int](ctx, "total_partitions")
+	if err != nil {
+		return nil, fmt.Errorf("get total_partitions: %w", err)
+	}
 
 	cursor := clickhouse.KeyLastUsedCursor{Time: cursorTime, KeyID: cursorKeyID}
 	if prevTotalPartitions > 0 && prevTotalPartitions != totalPartitions {
@@ -105,9 +114,7 @@ func (s *PartitionService) SyncPartition(
 
 	logger.Info("partition sync starting",
 		"partition", partition,
-		"total_partitions", totalPartitions,
 		"cursor_time", cursor.Time,
-		"cursor_key_id", cursor.KeyID,
 	)
 
 	var totalSynced int32
@@ -117,7 +124,6 @@ func (s *PartitionService) SyncPartition(
 		currentCursor := cursor
 
 		result, runErr := restate.Run(ctx, func(rc restate.RunContext) (batchResult, error) {
-			chStart := time.Now()
 			batch, fetchErr := s.clickhouse.GetKeyLastUsedBatchPartitioned(rc, clickhouse.GetKeyLastUsedBatchRequest{
 				Cursor:          currentCursor,
 				Limit:           batchSize,
@@ -127,28 +133,16 @@ func (s *PartitionService) SyncPartition(
 			if fetchErr != nil {
 				return batchResult{}, fmt.Errorf("fetch partition %d: %w", partition, fetchErr)
 			}
-			chDur := time.Since(chStart)
 
 			if len(batch) == 0 {
 				return batchResult{Synced: 0, CursorTime: 0, CursorKeyID: ""}, nil
 			}
 
-			myStart := time.Now()
 			if updateErr := s.updateLastUsedBatch(rc, partition, batch); updateErr != nil {
 				return batchResult{}, fmt.Errorf("update partition %d: %w", partition, updateErr)
 			}
-			myDur := time.Since(myStart)
 
 			last := batch[len(batch)-1]
-
-			logger.Info("partition batch complete",
-				"partition", partition,
-				"batch", batchNum,
-				"batch_keys", len(batch),
-				"ch_query", chDur,
-				"mysql_update", myDur,
-				"elapsed", time.Since(start),
-			)
 
 			return batchResult{
 				Synced:      int32(len(batch)), //nolint:gosec
@@ -179,8 +173,6 @@ func (s *PartitionService) SyncPartition(
 	logger.Info("partition sync complete",
 		"partition", partition,
 		"keys_synced", totalSynced,
-		"cursor_time", cursor.Time,
-		"cursor_key_id", cursor.KeyID,
 		"elapsed", time.Since(start),
 	)
 
@@ -203,8 +195,6 @@ func (s *PartitionService) updateLastUsedBatch(ctx context.Context, partition in
 	}
 
 	rw := s.db.RW()
-	batchStart := time.Now()
-	done := 0
 	retrier := retry.New(
 		retry.Attempts(10),
 		retry.Backoff(func(n int) time.Duration { return time.Duration(n*5) * time.Millisecond }),
@@ -215,24 +205,14 @@ func (s *PartitionService) updateLastUsedBatch(ctx context.Context, partition in
 		for start := 0; start < len(keyIDs); start += maxKeysPerUpdate {
 			end := min(start+maxKeysPerUpdate, len(keyIDs))
 			chunk := keyIDs[start:end]
-			if _, err := retry.DoWithResultContext(retrier, ctx, func() (struct{}, error) {
-				return struct{}{}, db.Query.UpdateKeysLastUsed(ctx, rw, db.UpdateKeysLastUsedParams{
+			if err := retrier.DoContext(ctx, func() error {
+				return db.Query.UpdateKeysLastUsed(ctx, rw, db.UpdateKeysLastUsedParams{
 					LastUsedAt: uint64(ts), //nolint:gosec
 					KeyIds:     chunk,
 				})
 			}); err != nil {
 				return fmt.Errorf("update minute %d: %w", ts, err)
 			}
-		}
-		done += len(keyIDs)
-		if done%5000 < len(keyIDs) {
-			logger.Info("update progress",
-				"partition", partition,
-				"keys", done,
-				"total", len(batch),
-				"groups", len(groups),
-				"elapsed", time.Since(batchStart),
-			)
 		}
 	}
 	return nil
