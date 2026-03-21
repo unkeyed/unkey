@@ -3,6 +3,7 @@ package githubwebhook
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -117,9 +118,40 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			)
 
 			// Create skipped deployment record for visibility
-			_, _ = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+			deploymentID, insertErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 				return insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, db.DeploymentsStatusSkipped)
 			}, restate.WithName("insert skipped deployment"))
+			if insertErr != nil {
+				logger.Error("failed to insert skipped deployment", "appId", app.ID, "error", insertErr)
+				continue
+			}
+
+			// Create a commit status so the skip is visible in the PR checks.
+			workspace, wsErr := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
+				return db.Query.FindWorkspaceByID(runCtx, s.db.RO(), project.WorkspaceID)
+			}, restate.WithName("find workspace for skip status"), restate.WithMaxRetryDuration(30*time.Second))
+			if wsErr != nil {
+				logger.Error("failed to find workspace for skip status", "error", wsErr, "deployment_id", deploymentID)
+				continue
+			}
+
+			logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s",
+				s.dashboardURL, workspace.Slug, project.ID, deploymentID,
+			)
+
+			checkName := fmt.Sprintf("Unkey Deploy / %s / %s", app.Slug, env.Slug)
+			_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
+				return s.github.CreateCheckRun(
+					repo.InstallationID,
+					req.GetRepositoryFullName(),
+					req.GetAfter(),
+					checkName,
+					"neutral",
+					"Skipped — no matching watch paths",
+					logURL,
+				)
+			}, restate.WithName("check run: skipped"), restate.WithMaxRetryDuration(30*time.Second))
+
 			continue
 		}
 
