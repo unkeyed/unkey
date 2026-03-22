@@ -16,7 +16,7 @@ import { DeploymentSelect } from "./components/deployment-select";
 
 export default function DiffPage() {
   const { projectId, project } = useProjectData();
-  const liveDeploymentId = project?.liveDeploymentId;
+  const currentDeploymentId = project?.currentDeploymentId;
   const searchParams = useSearchParams();
 
   const [selectedFromDeployment, setSelectedFromDeployment] = useState<string>("");
@@ -61,13 +61,13 @@ export default function DiffPage() {
     }
 
     // Otherwise, fall back to live deployment if no params
-    if (liveDeploymentId) {
-      const exists = sortedDeployments.some((d) => d.deployment.id === liveDeploymentId);
+    if (currentDeploymentId) {
+      const exists = sortedDeployments.some((d) => d.deployment.id === currentDeploymentId);
       if (exists) {
-        setSelectedFromDeployment(liveDeploymentId);
+        setSelectedFromDeployment(currentDeploymentId);
       }
     }
-  }, [liveDeploymentId, sortedDeployments, deployments.isLoading, searchParams]);
+  }, [currentDeploymentId, sortedDeployments, deployments.isLoading, searchParams]);
 
   const {
     data: diffData,
@@ -163,9 +163,9 @@ export default function DiffPage() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <h3 className="text-grayA-12 font-medium text-sm">No deployments selected</h3>
-                <p className="text-grayA-9 text-xs max-w-[280px] leading-relaxed">
+                <p className="text-grayA-9 text-xs max-w-70 leading-relaxed">
                   Select two deployments above to compare their OpenAPI specifications and see what
                   changed between versions.
                 </p>
@@ -195,7 +195,7 @@ export default function DiffPage() {
                         />
                       </div>
                     </div>
-                    <div className="space-y-2">
+                    <div className="flex flex-col gap-2">
                       <h3 className="text-error-11 font-medium text-sm">
                         Unable to compare deployments
                       </h3>

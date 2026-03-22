@@ -49,7 +49,7 @@ type ProductHelperProps = {
 };
 const ProductHelper: React.FC<ProductHelperProps> = ({ currentProduct }) => {
   return (
-    <div className="space-y-1">
+    <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2">
         <h3 className="font-semibold text-gray-12">{currentProduct?.name || "Free Plan"}</h3>
         <span className="text-xs bg-info-3 text-info-11 px-2 py-0.5 rounded-full">Active</span>

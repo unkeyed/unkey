@@ -26,7 +26,7 @@ export const RegionBadges = ({ regions, repository }: RegionBadgesProps) => {
       {remainingCount > 0 && (
         <InfoTooltip
           content={
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               {remainingRegions.map((region) => (
                 <div key={region} className="text-xs font-medium flex items-center gap-1.5">
                   <div className="w-1 h-1 bg-gray-8 rounded-full" />

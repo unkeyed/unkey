@@ -3,115 +3,114 @@
 import type { ComboboxOption } from "@/components/ui/combobox";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { collection } from "@/lib/collections";
+import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Location2, XMark } from "@unkey/icons";
-import { useEffect } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import { useContext, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
-import { useEnvironmentSettings } from "../../environment-provider";
+import { EnvironmentContext, useEnvironmentSettings } from "../../environment-provider";
+import { useMultiEnvironmentSettings } from "../../hooks/use-multi-environment-settings";
+import { EnvironmentSliderSection } from "../shared/environment-slider-section";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
-
-const regionsSchema = z.object({
-  regions: z.array(z.string()).min(1, "Select at least one region"),
-});
-
-type RegionsFormValues = z.infer<typeof regionsSchema>;
+import { SettingDescription } from "../shared/setting-description";
 
 export const Regions = () => {
-  const { settings, autoSave } = useEnvironmentSettings();
-  const { environmentId, regionConfig } = settings;
-  const defaultRegions = Object.keys(regionConfig);
+  const envContext = useContext(EnvironmentContext);
 
-  const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery(
-    undefined,
-    { enabled: Boolean(environmentId) },
-  );
+  if (envContext?.variant === "onboarding") {
+    return <RegionsSingle />;
+  }
 
-  return (
-    <RegionsForm
-      environmentId={environmentId}
-      defaultRegions={defaultRegions}
-      availableRegions={availableRegions ?? []}
-      autoSave={autoSave}
-    />
-  );
+  return <RegionsDual />;
 };
 
-type RegionsFormProps = {
-  environmentId: string;
-  defaultRegions: string[];
-  availableRegions: string[];
-  autoSave?: boolean;
-};
+const buildRegionComboboxOptions = (
+  regions: Array<{ id: string; name: string }>,
+): ComboboxOption[] =>
+  regions.map((region) => ({
+    value: region.name,
+    searchValue: region.name,
+    label: (
+      <div className="flex items-center gap-2">
+        <RegionFlag flagCode={mapRegionToFlag(region.name)} size="xs" className="[&_img]:size-3" />
+        <span className="text-gray-11 text-xs font-mono">{region.name}</span>
+      </div>
+    ),
+  }));
 
-const RegionsForm: React.FC<RegionsFormProps> = ({
-  environmentId,
-  defaultRegions,
-  availableRegions,
-  autoSave,
-}) => {
-  const {
-    handleSubmit,
-    setValue,
-    formState: { isValid, isSubmitting },
-    control,
-    reset,
-  } = useForm<RegionsFormValues>({
-    resolver: zodResolver(regionsSchema),
-    mode: "onChange",
-    defaultValues: { regions: defaultRegions },
-  });
+const RegionTags = ({
+  regions,
+  onRemove,
+  canRemove,
+  unschedulableRegions,
+}: {
+  regions: string[];
+  onRemove: (region: string) => void;
+  canRemove: boolean;
+  unschedulableRegions?: Set<string>;
+}) => (
+  <TooltipProvider>
+    <div className="w-full flex flex-wrap gap-1.5 py-0.5">
+      {regions.map((r) => {
+        const isUnschedulable = unschedulableRegions?.has(r);
+        const tag = (
+          <span
+            key={r}
+            className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs ${
+              isUnschedulable
+                ? "bg-warning-3 border border-warning-6 text-warning-11"
+                : "bg-grayA-3 border border-grayA-4 text-accent-12"
+            }`}
+          >
+            <RegionFlag
+              flagCode={mapRegionToFlag(r)}
+              size="xs"
+              shape="circle"
+              className="[&_img]:size-3"
+            />
+            {r}
+            {canRemove && (
+              //biome-ignore lint/a11y/useKeyWithClickEvents: we can't use button here otherwise we'll nest two buttons
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(r);
+                }}
+                className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
+              >
+                <XMark iconSize="sm-regular" />
+              </span>
+            )}
+          </span>
+        );
 
-  useEffect(() => {
-    reset({ regions: defaultRegions });
-  }, [defaultRegions, reset]);
+        if (isUnschedulable) {
+          return (
+            <Tooltip key={r}>
+              <TooltipTrigger asChild>{tag}</TooltipTrigger>
+              <TooltipContent>This region is currently unavailable for scheduling</TooltipContent>
+            </Tooltip>
+          );
+        }
+        return tag;
+      })}
+    </div>
+  </TooltipProvider>
+);
 
-  const currentRegions = useWatch({ control, name: "regions" });
-
-  const unselectedRegions = availableRegions.filter((r) => !currentRegions.includes(r));
-
-  const onSubmit = async (values: RegionsFormValues) => {
-    collection.environmentSettings.update(environmentId, (draft) => {
-      const newConfig: Record<string, number> = {};
-      const defaultCount = Object.values(draft.regionConfig)[0] ?? 1;
-      for (const region of values.regions) {
-        newConfig[region] = draft.regionConfig[region] ?? defaultCount;
-      }
-      draft.regionConfig = newConfig;
-    });
-  };
-
-  const addRegion = (region: string) => {
-    if (region && !currentRegions.includes(region)) {
-      setValue("regions", [...currentRegions, region], { shouldValidate: true });
-    }
-  };
-
-  const removeRegion = (region: string) => {
-    setValue(
-      "regions",
-      currentRegions.filter((r) => r !== region),
-      { shouldValidate: true },
-    );
-  };
-
-  const hasChanges =
-    currentRegions.length !== defaultRegions.length ||
-    currentRegions.some((r) => !defaultRegions.includes(r));
-
-  const saveState = resolveSaveState([
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
-  ]);
-
-  const displayValue =
-    defaultRegions.length === 0 ? null : defaultRegions.length <= 2 ? (
+const RegionDisplayValue = ({ regions }: { regions: string[] }) => {
+  if (regions.length === 0) {
+    return null;
+  }
+  if (regions.length <= 2) {
+    return (
       <span className="flex items-center gap-1.5">
-        {defaultRegions.map((r, i) => (
+        {regions.map((r, i) => (
           <span key={r} className="flex items-center gap-1.5">
             {i > 0 && <span className="text-grayA-4">|</span>}
             <span className="flex items-center gap-1">
@@ -126,80 +125,372 @@ const RegionsForm: React.FC<RegionsFormProps> = ({
           </span>
         ))}
       </span>
-    ) : (
-      <span className="flex items-center gap-1">
-        {defaultRegions.map((r) => (
-          <RegionFlag key={r} flagCode={mapRegionToFlag(r)} size="xs" shape="circle" />
-        ))}
-      </span>
     );
+  }
+  return (
+    <span className="flex items-center gap-1">
+      {regions.map((r) => (
+        <RegionFlag key={r} flagCode={mapRegionToFlag(r)} size="xs" shape="circle" />
+      ))}
+    </span>
+  );
+};
 
-  const comboboxOptions: ComboboxOption[] = unselectedRegions.map((region) => ({
-    value: region,
-    searchValue: region,
-    label: (
-      <div className="flex items-center gap-2">
-        <RegionFlag flagCode={mapRegionToFlag(region)} size="xs" className="[&_img]:size-3" />
-        <span className="text-gray-11 text-xs font-mono">{region}</span>
-      </div>
-    ),
-  }));
+const regionsSingleSchema = z.object({
+  regions: z.array(z.string()).min(1, "Select at least one region"),
+});
+
+type RegionsSingleFormValues = z.infer<typeof regionsSingleSchema>;
+
+const RegionsSingle = () => {
+  const { settings, variant } = useEnvironmentSettings();
+  const { environmentId, regions: settingsRegions } = settings;
+  const defaultRegions = useMemo(() => settingsRegions.map((r) => r.name), [settingsRegions]);
+
+  const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery(
+    undefined,
+    { enabled: Boolean(environmentId) },
+  );
+
+  const {
+    handleSubmit,
+    setValue,
+    formState: { isValid, isSubmitting },
+    control,
+    reset,
+  } = useForm<RegionsSingleFormValues>({
+    resolver: zodResolver(regionsSingleSchema),
+    mode: "onChange",
+    defaultValues: { regions: defaultRegions },
+  });
+
+  useEffect(() => {
+    reset({ regions: defaultRegions });
+  }, [defaultRegions, reset]);
+
+  const currentRegions = useWatch({ control, name: "regions" });
+  const allRegions = availableRegions ?? [];
+  const unselectedRegions = allRegions.filter(
+    (r) => r.canSchedule && !currentRegions.includes(r.name),
+  );
+  const unschedulableRegions = useMemo(
+    () => new Set(allRegions.filter((r) => !r.canSchedule).map((r) => r.name)),
+    [allRegions],
+  );
+
+  const onSubmit = async (values: RegionsSingleFormValues) => {
+    collection.environmentSettings.update(environmentId, (draft) => {
+      const defaultReplicas = draft.regions.at(0)?.replicas ?? 1;
+      draft.regions = values.regions.map((name) => {
+        const existing = draft.regions.find((r) => r.name === name);
+        if (existing) {
+          return existing;
+        }
+        const available = (availableRegions ?? []).find((r) => r.name === name);
+        return { id: available?.id ?? name, name, replicas: defaultReplicas };
+      });
+    });
+  };
+
+  const addRegion = (regionName: string) => {
+    if (regionName && !currentRegions.includes(regionName)) {
+      setValue("regions", [...currentRegions, regionName], { shouldValidate: true });
+    }
+  };
+
+  const removeRegion = (regionName: string) => {
+    setValue(
+      "regions",
+      currentRegions.filter((r) => r !== regionName),
+      { shouldValidate: true },
+    );
+  };
+
+  const hasChanges =
+    currentRegions.length !== defaultRegions.length ||
+    currentRegions.some((r) => !defaultRegions.includes(r));
+
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [!isValid, { status: "disabled" }],
+    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+  ]);
 
   return (
     <FormSettingCard
       icon={<Location2 className="text-gray-12" iconSize="xl-medium" />}
       title="Regions"
       description="Geographic regions where your project will run"
-      displayValue={displayValue}
+      displayValue={<RegionDisplayValue regions={defaultRegions} />}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      autoSave={autoSave}
+      autoSave={variant === "onboarding"}
     >
       <FormCombobox
-        label="Regions"
-        description="Traffic is routed to the nearest selected region. Changes apply on next deploy."
         optional
         className="w-[480px]"
-        options={comboboxOptions}
+        options={buildRegionComboboxOptions(unselectedRegions)}
         value=""
         onSelect={addRegion}
+        closeOnSelect={false}
         placeholder={
           currentRegions.length === 0 ? (
             <span className="text-grayA-8 w-full text-left">Select a region</span>
           ) : (
-            <div className="w-full flex flex-wrap gap-1.5 py-0.5">
-              {currentRegions.map((r) => (
-                <span
-                  key={r}
-                  className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-grayA-3 border border-grayA-4 text-xs text-accent-12"
-                >
-                  <RegionFlag
-                    flagCode={mapRegionToFlag(r)}
-                    size="xs"
-                    shape="circle"
-                    className="[&_img]:size-3"
-                  />
-                  {r}
-                  {currentRegions.length > 1 && (
-                    //biome-ignore lint/a11y/useKeyWithClickEvents: we can't use button here otherwise we'll nest two buttons
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeRegion(r);
-                      }}
-                      className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
-                    >
-                      <XMark iconSize="sm-regular" />
-                    </span>
-                  )}
-                </span>
-              ))}
-            </div>
+            <RegionTags
+              regions={currentRegions}
+              onRemove={removeRegion}
+              canRemove={currentRegions.length > 1}
+              unschedulableRegions={unschedulableRegions}
+            />
           )
         }
         searchPlaceholder="Search regions..."
         emptyMessage={<div className="mt-2">No regions available.</div>}
       />
+
+      <SettingDescription>
+        Traffic is routed to the nearest selected region. Changes apply on next deploy.
+      </SettingDescription>
     </FormSettingCard>
   );
 };
+
+const regionsDualSchema = z.object({
+  productionRegions: z.array(z.string()).min(1, "Select at least one region"),
+  previewRegions: z.array(z.string()).min(1, "Select at least one region"),
+});
+
+type RegionsDualFormValues = z.infer<typeof regionsDualSchema>;
+
+const RegionsDual = () => {
+  const multiSettings = useMultiEnvironmentSettings();
+
+  if (!multiSettings) {
+    return null;
+  }
+
+  return <RegionsDualInner production={multiSettings.production} preview={multiSettings.preview} />;
+};
+
+type RegionsDualInnerProps = {
+  production: EnvironmentSettings;
+  preview: EnvironmentSettings;
+};
+
+const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
+  const defaultProdRegions = useMemo(
+    () => production.regions.map((r) => r.name),
+    [production.regions],
+  );
+  const defaultPreviewRegions = useMemo(
+    () => preview.regions.map((r) => r.name),
+    [preview.regions],
+  );
+
+  const { data: availableRegions } = trpc.deploy.environmentSettings.getAvailableRegions.useQuery(
+    undefined,
+    { enabled: Boolean(production.environmentId) },
+  );
+
+  const {
+    handleSubmit,
+    setValue,
+    formState: { isValid, isSubmitting },
+    control,
+    reset,
+  } = useForm<RegionsDualFormValues>({
+    resolver: zodResolver(regionsDualSchema),
+    mode: "onChange",
+    defaultValues: {
+      productionRegions: defaultProdRegions,
+      previewRegions: defaultPreviewRegions,
+    },
+  });
+
+  useEffect(() => {
+    reset({
+      productionRegions: defaultProdRegions,
+      previewRegions: defaultPreviewRegions,
+    });
+  }, [defaultProdRegions, defaultPreviewRegions, reset]);
+
+  const currentProdRegions = useWatch({ control, name: "productionRegions" });
+  const currentPreviewRegions = useWatch({ control, name: "previewRegions" });
+
+  const allRegions = availableRegions ?? [];
+  const unselectedProdRegions = allRegions.filter(
+    (r) => r.canSchedule && !currentProdRegions.includes(r.name),
+  );
+  const unselectedPreviewRegions = allRegions.filter(
+    (r) => r.canSchedule && !currentPreviewRegions.includes(r.name),
+  );
+  const unschedulableRegions = useMemo(
+    () => new Set(allRegions.filter((r) => !r.canSchedule).map((r) => r.name)),
+    [allRegions],
+  );
+
+  const onSubmit = async (values: RegionsDualFormValues) => {
+    const prodChanged =
+      values.productionRegions.length !== defaultProdRegions.length ||
+      values.productionRegions.some((r) => !defaultProdRegions.includes(r));
+
+    const prevChanged =
+      values.previewRegions.length !== defaultPreviewRegions.length ||
+      values.previewRegions.some((r) => !defaultPreviewRegions.includes(r));
+
+    if (prodChanged) {
+      collection.environmentSettings.update(production.environmentId, (draft) => {
+        const defaultReplicas = draft.regions[0]?.replicas ?? 1;
+        draft.regions = values.productionRegions.map((name) => {
+          const existing = draft.regions.find((r) => r.name === name);
+          if (existing) {
+            return existing;
+          }
+          const available = (availableRegions ?? []).find((r) => r.name === name);
+          return { id: available?.id ?? name, name, replicas: defaultReplicas };
+        });
+      });
+    }
+
+    if (prevChanged) {
+      collection.environmentSettings.update(preview.environmentId, (draft) => {
+        const defaultReplicas = draft.regions[0]?.replicas ?? 1;
+        draft.regions = values.previewRegions.map((name) => {
+          const existing = draft.regions.find((r) => r.name === name);
+          if (existing) {
+            return existing;
+          }
+          const available = (availableRegions ?? []).find((r) => r.name === name);
+          return { id: available?.id ?? name, name, replicas: defaultReplicas };
+        });
+      });
+    }
+  };
+
+  const prodHasChanges =
+    currentProdRegions.length !== defaultProdRegions.length ||
+    currentProdRegions.some((r) => !defaultProdRegions.includes(r));
+  const previewHasChanges =
+    currentPreviewRegions.length !== defaultPreviewRegions.length ||
+    currentPreviewRegions.some((r) => !defaultPreviewRegions.includes(r));
+  const hasChanges = prodHasChanges || previewHasChanges;
+
+  const saveState = resolveSaveState([
+    [isSubmitting, { status: "saving" }],
+    [!isValid, { status: "disabled" }],
+    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
+  ]);
+
+  const addProdRegion = (region: string) => {
+    if (region && !currentProdRegions.includes(region)) {
+      setValue("productionRegions", [...currentProdRegions, region], { shouldValidate: true });
+    }
+  };
+
+  const removeProdRegion = (region: string) => {
+    setValue(
+      "productionRegions",
+      currentProdRegions.filter((r) => r !== region),
+      { shouldValidate: true },
+    );
+  };
+
+  const addPreviewRegion = (region: string) => {
+    if (region && !currentPreviewRegions.includes(region)) {
+      setValue("previewRegions", [...currentPreviewRegions, region], { shouldValidate: true });
+    }
+  };
+
+  const removePreviewRegion = (region: string) => {
+    setValue(
+      "previewRegions",
+      currentPreviewRegions.filter((r) => r !== region),
+      { shouldValidate: true },
+    );
+  };
+
+  return (
+    <FormSettingCard
+      icon={<Location2 className="text-gray-12" iconSize="xl-medium" />}
+      title="Regions"
+      description="Geographic regions where your project will run"
+      displayValue={
+        <div className="flex items-center gap-3">
+          <EnvironmentDisplayValue label="Production" regions={defaultProdRegions} />
+          <span className="text-gray-8">|</span>
+          <EnvironmentDisplayValue label="Preview" regions={defaultPreviewRegions} />
+        </div>
+      }
+      onSubmit={handleSubmit(onSubmit)}
+      saveState={saveState}
+    >
+      <EnvironmentSliderSection label="Production">
+        <FormCombobox
+          className="w-[480px]"
+          options={buildRegionComboboxOptions(unselectedProdRegions)}
+          value=""
+          onSelect={addProdRegion}
+          closeOnSelect={false}
+          placeholder={
+            currentProdRegions.length === 0 ? (
+              <span className="text-grayA-8 w-full text-left">Select a region</span>
+            ) : (
+              <RegionTags
+                regions={currentProdRegions}
+                onRemove={removeProdRegion}
+                canRemove={currentProdRegions.length > 1}
+                unschedulableRegions={unschedulableRegions}
+              />
+            )
+          }
+          searchPlaceholder="Search regions..."
+          emptyMessage={<div className="mt-2">No regions available.</div>}
+        />
+      </EnvironmentSliderSection>
+
+      <EnvironmentSliderSection label="Preview">
+        <FormCombobox
+          className="w-[480px]"
+          options={buildRegionComboboxOptions(unselectedPreviewRegions)}
+          value=""
+          onSelect={addPreviewRegion}
+          closeOnSelect={false}
+          placeholder={
+            currentPreviewRegions.length === 0 ? (
+              <span className="text-grayA-8 w-full text-left">Select a region</span>
+            ) : (
+              <RegionTags
+                regions={currentPreviewRegions}
+                onRemove={removePreviewRegion}
+                canRemove={currentPreviewRegions.length > 1}
+                unschedulableRegions={unschedulableRegions}
+              />
+            )
+          }
+          searchPlaceholder="Search regions..."
+          emptyMessage={<div className="mt-2">No regions available.</div>}
+        />
+      </EnvironmentSliderSection>
+
+      <SettingDescription>
+        Traffic is routed to the nearest selected region. Changes apply on next deploy.
+      </SettingDescription>
+    </FormSettingCard>
+  );
+};
+
+const EnvironmentDisplayValue = ({ label, regions }: { label: string; regions: string[] }) => (
+  <div className="flex items-center gap-1.5">
+    <span className="text-gray-11 text-xs font-normal">{label}</span>
+    {regions.map((r) => (
+      <RegionFlag
+        key={r}
+        flagCode={mapRegionToFlag(r)}
+        size="xs"
+        shape="circle"
+        className="[&_img]:size-3"
+      />
+    ))}
+  </div>
+);

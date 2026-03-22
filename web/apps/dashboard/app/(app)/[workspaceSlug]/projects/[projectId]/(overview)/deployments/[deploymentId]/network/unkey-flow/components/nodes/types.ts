@@ -25,7 +25,7 @@ type OriginNode = BaseNode & {
 type SentinelNode = BaseNode & {
   metadata: {
     type: "sentinel";
-    flagCode: "us" | "de" | "au" | "jp" | "in" | "br";
+    flagCode: "us" | "de" | "au" | "jp" | "in" | "br" | "local";
     instances: number;
     replicas: number;
   } & BaseMetrics;
@@ -77,6 +77,7 @@ const REGION_INFO: Record<SentinelNode["metadata"]["flagCode"], RegionInfo> = {
   jp: { name: "AP Northeast", location: "Tokyo" },
   in: { name: "AP South", location: "Mumbai" },
   br: { name: "SA East", location: "São Paulo" },
+  local: { name: "Local", location: "Local" },
 } as const;
 
 const DEFAULT_NODE_WIDTH = 230;

@@ -34,9 +34,22 @@ func (s *Service) WatchCiliumNetworkPolicies(
 		return err
 	}
 
-	region := req.Msg.GetRegion()
-	if err := assert.NotEmpty(region, "region is required"); err != nil {
+	regionName := req.Header().Get("X-Krane-Region")
+	platform := req.Header().Get("X-Krane-Platform")
+	if err := assert.All(
+		assert.NotEmpty(regionName, "region is required"),
+		assert.NotEmpty(platform, "platform is required"),
+	); err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	region, err := db.Query.FindRegionByNameAndPlatform(ctx, s.db.RO(), db.FindRegionByNameAndPlatformParams{
+		Name:     regionName,
+		Platform: platform,
+	})
+	if err != nil {
+		logger.Error("failed to find region for WatchCiliumNetworkPolicies", "error", err, "region", regionName, "platform", platform)
+		return connect.NewError(connect.CodeInternal, err)
 	}
 
 	versionCursor := req.Msg.GetVersionLastSeen()
@@ -48,7 +61,7 @@ func (s *Service) WatchCiliumNetworkPolicies(
 		default:
 		}
 
-		states, err := s.fetchCiliumNetworkPolicyStates(ctx, region, versionCursor)
+		states, err := s.fetchCiliumNetworkPolicyStates(ctx, region.ID, versionCursor)
 		if err != nil {
 			logger.Error("failed to fetch cilium network policy states", "error", err)
 			return connect.NewError(connect.CodeInternal, err)
@@ -71,9 +84,9 @@ func (s *Service) WatchCiliumNetworkPolicies(
 
 // fetchCiliumNetworkPolicyStates queries the database for policies in the given region with
 // versions greater than afterVersion, returning up to 100 results.
-func (s *Service) fetchCiliumNetworkPolicyStates(ctx context.Context, region string, afterVersion uint64) ([]*ctrlv1.CiliumNetworkPolicyState, error) {
+func (s *Service) fetchCiliumNetworkPolicyStates(ctx context.Context, regionID string, afterVersion uint64) ([]*ctrlv1.CiliumNetworkPolicyState, error) {
 	rows, err := db.Query.ListCiliumNetworkPoliciesByRegion(ctx, s.db.RO(), db.ListCiliumNetworkPoliciesByRegionParams{
-		Region:       region,
+		RegionID:     regionID,
 		Afterversion: afterVersion,
 		Limit:        100,
 	})

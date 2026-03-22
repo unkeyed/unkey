@@ -131,7 +131,7 @@ export const PermissionField = ({
   const isComboboxLoading = isLoading || (isSearching && searchValue.trim().length > 0);
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <FormCombobox
         optional
         label="Assign permissions"

@@ -14,53 +14,43 @@ export const queryRuntimeLogs = workspaceProcedure
   .input(runtimeLogsRequestSchema)
   .output(runtimeLogsResponseSchema)
   .query(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.id, ctx.workspace.id), isNull(table.deletedAtM)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "Failed to retrieve logs due to an error. If this issue persists, please contact support@unkey.com.",
-        });
-      });
-
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.com.",
-      });
-    }
-
     const project = await db.query.projects.findFirst({
       where: (table, { and, eq }) =>
-        and(eq(table.id, input.projectId), eq(table.workspaceId, workspace.id)),
+        and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
       columns: { id: true },
       with: {
-        activeDeployment: {
-          columns: {
-            environmentId: true,
-          },
+        environments: {
+          columns: { id: true, appId: true },
         },
       },
     });
 
-    if (!project?.activeDeployment?.environmentId) {
+    if (!project) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Project not found or access denied",
       });
     }
 
+    const environment = input.environmentId
+      ? project.environments.find((e) => e.id === input.environmentId)
+      : project.environments[0];
+
+    if (!environment) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "No environment found for this project",
+      });
+    }
+
     const transformedInputs = transformFilters(input);
     const { logsQuery, totalQuery } = await clickhouse.runtimeLogs.logs({
       ...transformedInputs,
-      workspaceId: workspace.id,
+      workspaceId: ctx.workspace.id,
       projectId: project.id,
       deploymentId: input.deploymentId ?? null,
-      environmentId: input.environmentId ?? project.activeDeployment?.environmentId,
+      environmentId: environment.id,
+      appId: environment.appId,
     });
 
     const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);

@@ -12,11 +12,11 @@ export const deleteEnvVar = workspaceProcedure
   .mutation(async ({ ctx, input }) => {
     try {
       const result = await db
-        .delete(schema.environmentVariables)
+        .delete(schema.appEnvironmentVariables)
         .where(
           and(
-            eq(schema.environmentVariables.id, input.envVarId),
-            eq(schema.environmentVariables.workspaceId, ctx.workspace.id),
+            eq(schema.appEnvironmentVariables.id, input.envVarId),
+            eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
           ),
         );
 

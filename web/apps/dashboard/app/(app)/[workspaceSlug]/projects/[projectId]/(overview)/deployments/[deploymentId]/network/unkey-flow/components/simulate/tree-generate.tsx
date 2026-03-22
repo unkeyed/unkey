@@ -129,7 +129,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
           <XMark iconSize="sm-medium" />
         </Button>
       </div>
-      <div className="p-3 space-y-3 max-h-[600px] overflow-y-auto">
+      <div className="flex flex-col gap-3 max-h-150 overflow-y-auto p-3">
         {/* Loading State */}
         {generateMutation.isLoading && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
@@ -138,7 +138,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
         )}
 
         {/* Presets */}
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <div className="text-xs font-medium text-gray-11">Presets</div>
           <div className="grid grid-cols-1 gap-2">
             {Object.entries(PRESETS).map(([key, preset]) => (
@@ -158,11 +158,11 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
         </div>
 
         {/* Custom Configuration */}
-        <div className="space-y-3 pt-3 border-t border-grayA-4">
+        <div className="flex flex-col gap-3 pt-3 border-t border-grayA-4">
           <div className="text-xs font-medium text-gray-11">Custom</div>
 
           {/* Sentinels*/}
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             <div className="text-xs text-gray-11">Sentinels: {customConfig.sentinels}</div>
             <input
               type="range"
@@ -181,9 +181,9 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
           </div>
 
           {/* Layout Direction Controls */}
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <div className="text-xs text-gray-11">Layout Direction</div>
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-11 w-20">Sentinels:</span>
                 <select
@@ -222,7 +222,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
           </div>
 
           {/* Instances per sentinel */}
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             <div className="text-xs text-gray-11">
               Instances per sentinel: {customConfig.instancesPerSentinel.min}-
               {customConfig.instancesPerSentinel.max}

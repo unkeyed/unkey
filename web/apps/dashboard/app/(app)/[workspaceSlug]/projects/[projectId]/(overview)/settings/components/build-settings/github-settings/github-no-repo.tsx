@@ -6,9 +6,11 @@ import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel
 
 export const GitHubNoRepo = ({
   projectId,
+  appId,
   installUrl,
 }: {
   projectId: string;
+  appId: string;
   installUrl: string;
 }) => {
   const utils = trpc.useUtils();
@@ -27,6 +29,7 @@ export const GitHubNoRepo = ({
     onSuccess: async () => {
       toast.success("Repository connected");
       await utils.github.getInstallations.invalidate();
+      await utils.github.getRepoTree.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -52,6 +55,7 @@ export const GitHubNoRepo = ({
     }
     selectRepoMutation.mutate({
       projectId,
+      appId,
       repositoryId: repo.id,
       repositoryFullName: repo.fullName,
       installationId: repo.installationId,

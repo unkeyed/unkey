@@ -13,6 +13,7 @@ const listGithubRepoConnections = `-- name: ListGithubRepoConnections :many
 SELECT
     pk,
     project_id,
+    app_id,
     installation_id,
     repository_id,
     repository_full_name,
@@ -33,6 +34,7 @@ type ListGithubRepoConnectionsParams struct {
 //	SELECT
 //	    pk,
 //	    project_id,
+//	    app_id,
 //	    installation_id,
 //	    repository_id,
 //	    repository_full_name,
@@ -53,6 +55,7 @@ func (q *Queries) ListGithubRepoConnections(ctx context.Context, db DBTX, arg Li
 		if err := rows.Scan(
 			&i.Pk,
 			&i.ProjectID,
+			&i.AppID,
 			&i.InstallationID,
 			&i.RepositoryID,
 			&i.RepositoryFullName,

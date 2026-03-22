@@ -65,12 +65,12 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
   return (
     <SettingCard
       title={
-        <div className="inline-flex gap-2">
+        <div className="inline-flex gap-2 items-center">
           <span>Delete Protection</span>{" "}
           <StatusBadge
             variant={api.deleteProtection ? "enabled" : "disabled"}
             text={api.deleteProtection ? "Enabled" : "Disabled"}
-            icon={<TriangleWarning2 iconSize="sm-thin" />}
+            icon={<TriangleWarning2 iconSize="sm-regular" />}
           />
         </div>
       }
@@ -150,7 +150,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
             />
           </p>
           <form id="delete-protection-form" onSubmit={handleSubmit(onSubmit)}>
-            <div className="space-y-1">
+            <div className="flex flex-col gap-1">
               <p className="text-gray-11 text-[13px]">
                 Type <span className="text-gray-12 font-medium">{api.name}</span> to confirm
               </p>

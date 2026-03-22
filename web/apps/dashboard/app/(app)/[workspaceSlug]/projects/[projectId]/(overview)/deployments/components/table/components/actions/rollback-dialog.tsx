@@ -12,14 +12,14 @@ type RollbackDialogProps = {
   isOpen: boolean;
   onClose: () => void;
   targetDeployment: Deployment;
-  liveDeployment: Deployment;
+  currentDeployment: Deployment;
 };
 
 export const RollbackDialog = ({
   isOpen,
   onClose,
   targetDeployment,
-  liveDeployment,
+  currentDeployment,
 }: RollbackDialogProps) => {
   const utils = trpc.useUtils();
 
@@ -86,15 +86,19 @@ export const RollbackDialog = ({
         </Button>
       }
     >
-      <div className="space-y-9">
+      <div className="flex flex-col gap-9">
         <DeploymentSection
-          title="Live Deployment"
-          deployment={liveDeployment}
-          isLive={true}
+          title="Current Deployment"
+          deployment={currentDeployment}
+          isCurrent={true}
           showSignal={true}
         />
         <DomainsSection domains={domains.data} />
-        <DeploymentSection title="Target Deployment" deployment={targetDeployment} isLive={false} />
+        <DeploymentSection
+          title="Target Deployment"
+          deployment={targetDeployment}
+          isCurrent={false}
+        />
       </div>
     </DialogContainer>
   );

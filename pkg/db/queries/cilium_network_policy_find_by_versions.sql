@@ -3,6 +3,6 @@
 -- Used by WatchCiliumNetworkPolicies to stream policy state changes to krane agents.
 SELECT *
 FROM `cilium_network_policies`
-WHERE region = sqlc.arg(region) AND version > sqlc.arg(afterVersion)
+WHERE region_id = sqlc.arg(region_id) AND version > sqlc.arg(afterVersion)
 ORDER BY version ASC
 LIMIT ?;

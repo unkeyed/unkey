@@ -15,15 +15,17 @@ INSERT INTO cilium_network_policies (
     id,
     workspace_id,
     project_id,
+    app_id,
     environment_id,
     deployment_id,
     k8s_name,
     k8s_namespace,
-    region,
+    region_id,
     policy,
     version,
     created_at
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -42,11 +44,12 @@ type InsertCiliumNetworkPolicyParams struct {
 	ID            string          `db:"id"`
 	WorkspaceID   string          `db:"workspace_id"`
 	ProjectID     string          `db:"project_id"`
+	AppID         string          `db:"app_id"`
 	EnvironmentID string          `db:"environment_id"`
 	DeploymentID  string          `db:"deployment_id"`
 	K8sName       string          `db:"k8s_name"`
 	K8sNamespace  string          `db:"k8s_namespace"`
-	Region        string          `db:"region"`
+	RegionID      string          `db:"region_id"`
 	Policy        json.RawMessage `db:"policy"`
 	Version       uint64          `db:"version"`
 	CreatedAt     int64           `db:"created_at"`
@@ -58,15 +61,17 @@ type InsertCiliumNetworkPolicyParams struct {
 //	    id,
 //	    workspace_id,
 //	    project_id,
+//	    app_id,
 //	    environment_id,
 //	    deployment_id,
 //	    k8s_name,
 //	    k8s_namespace,
-//	    region,
+//	    region_id,
 //	    policy,
 //	    version,
 //	    created_at
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -84,11 +89,12 @@ func (q *Queries) InsertCiliumNetworkPolicy(ctx context.Context, db DBTX, arg In
 		arg.ID,
 		arg.WorkspaceID,
 		arg.ProjectID,
+		arg.AppID,
 		arg.EnvironmentID,
 		arg.DeploymentID,
 		arg.K8sName,
 		arg.K8sNamespace,
-		arg.Region,
+		arg.RegionID,
 		arg.Policy,
 		arg.Version,
 		arg.CreatedAt,

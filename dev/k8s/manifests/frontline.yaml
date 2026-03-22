@@ -6,18 +6,18 @@ metadata:
   namespace: unkey
 data:
   unkey.toml: |
-    region = "local.dev"
+    platform = "dev"
+    region = "local"
     challenge_port = 7070
     http_port = 7443
     apex_domain = "unkey.local"
     ctrl_addr = "http://ctrl-api:7091"
+    database_url = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
     [tls]
     cert_file = "/certs/unkey.local.crt"
     key_file = "/certs/unkey.local.key"
 
-    [database]
-    primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
     [gossip]
     lan_port = 7946

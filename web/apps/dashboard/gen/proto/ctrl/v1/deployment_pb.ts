@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/deployment.proto.
  */
 export const file_ctrl_v1_deployment: GenFile = /*@__PURE__*/
-  fileDesc("ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEi2AEKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0EhIKCnByb2plY3RfaWQYASABKAkSGAoQZW52aXJvbm1lbnRfc2x1ZxgCIAEoCRIUCgxkb2NrZXJfaW1hZ2UYAyABKAkSLwoKZ2l0X2NvbW1pdBgEIAEoCzIWLmN0cmwudjEuR2l0Q29tbWl0SW5mb0gAiAEBEhgKC2tleXNwYWNlX2lkGAUgASgJSAGIAQESDwoHY29tbWFuZBgGIAMoCUINCgtfZ2l0X2NvbW1pdEIOCgxfa2V5c3BhY2VfaWQikAEKDUdpdENvbW1pdEluZm8SEgoKY29tbWl0X3NoYRgBIAEoCRIWCg5jb21taXRfbWVzc2FnZRgCIAEoCRIVCg1hdXRob3JfaGFuZGxlGAMgASgJEhkKEWF1dGhvcl9hdmF0YXJfdXJsGAQgASgJEhEKCXRpbWVzdGFtcBgFIAEoAxIOCgZicmFuY2gYBiABKAkiXAoYQ3JlYXRlRGVwbG95bWVudFJlc3BvbnNlEhUKDWRlcGxveW1lbnRfaWQYASABKAkSKQoGc3RhdHVzGAIgASgOMhkuY3RybC52MS5EZXBsb3ltZW50U3RhdHVzIi0KFEdldERlcGxveW1lbnRSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkiQAoVR2V0RGVwbG95bWVudFJlc3BvbnNlEicKCmRlcGxveW1lbnQYASABKAsyEy5jdHJsLnYxLkRlcGxveW1lbnQiiAUKCkRlcGxveW1lbnQSCgoCaWQYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSFgoOZW52aXJvbm1lbnRfaWQYBCABKAkSFgoOZ2l0X2NvbW1pdF9zaGEYBSABKAkSEgoKZ2l0X2JyYW5jaBgGIAEoCRIpCgZzdGF0dXMYByABKA4yGS5jdHJsLnYxLkRlcGxveW1lbnRTdGF0dXMSFQoNZXJyb3JfbWVzc2FnZRgIIAEoCRJMChVlbnZpcm9ubWVudF92YXJpYWJsZXMYCSADKAsyLS5jdHJsLnYxLkRlcGxveW1lbnQuRW52aXJvbm1lbnRWYXJpYWJsZXNFbnRyeRIjCgh0b3BvbG9neRgKIAEoCzIRLmN0cmwudjEuVG9wb2xvZ3kSEgoKY3JlYXRlZF9hdBgLIAEoAxISCgp1cGRhdGVkX2F0GAwgASgDEhEKCWhvc3RuYW1lcxgNIAMoCRIXCg9yb290ZnNfaW1hZ2VfaWQYDiABKAkSEAoIYnVpbGRfaWQYDyABKAkSJgoFc3RlcHMYECADKAsyFy5jdHJsLnYxLkRlcGxveW1lbnRTdGVwEhoKEmdpdF9jb21taXRfbWVzc2FnZRgRIAEoCRIgChhnaXRfY29tbWl0X2F1dGhvcl9oYW5kbGUYEiABKAkSJAocZ2l0X2NvbW1pdF9hdXRob3JfYXZhdGFyX3VybBgTIAEoCRIcChRnaXRfY29tbWl0X3RpbWVzdGFtcBgUIAEoAxo7ChlFbnZpcm9ubWVudFZhcmlhYmxlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiXAoORGVwbG95bWVudFN0ZXASDgoGc3RhdHVzGAEgASgJEg8KB21lc3NhZ2UYAiABKAkSFQoNZXJyb3JfbWVzc2FnZRgDIAEoCRISCgpjcmVhdGVkX2F0GAQgASgDIqcBCghUb3BvbG9neRIWCg5jcHVfbWlsbGljb3JlcxgBIAEoBRISCgptZW1vcnlfbWliGAIgASgFEigKB3JlZ2lvbnMYAyADKAsyFy5jdHJsLnYxLlJlZ2lvbmFsQ29uZmlnEhwKFGlkbGVfdGltZW91dF9zZWNvbmRzGAQgASgFEhkKEWhlYWx0aF9jaGVja19wYXRoGAUgASgJEgwKBHBvcnQYBiABKAUiTgoOUmVnaW9uYWxDb25maWcSDgoGcmVnaW9uGAEgASgJEhUKDW1pbl9pbnN0YW5jZXMYAiABKAUSFQoNbWF4X2luc3RhbmNlcxgDIAEoBSJNCg9Sb2xsYmFja1JlcXVlc3QSHAoUc291cmNlX2RlcGxveW1lbnRfaWQYASABKAkSHAoUdGFyZ2V0X2RlcGxveW1lbnRfaWQYAiABKAkiEgoQUm9sbGJhY2tSZXNwb25zZSIuCg5Qcm9tb3RlUmVxdWVzdBIcChR0YXJnZXRfZGVwbG95bWVudF9pZBgBIAEoCSIRCg9Qcm9tb3RlUmVzcG9uc2Uq7wEKEERlcGxveW1lbnRTdGF0dXMSIQodREVQTE9ZTUVOVF9TVEFUVVNfVU5TUEVDSUZJRUQQABIdChlERVBMT1lNRU5UX1NUQVRVU19QRU5ESU5HEAESHgoaREVQTE9ZTUVOVF9TVEFUVVNfQlVJTERJTkcQAhIfChtERVBMT1lNRU5UX1NUQVRVU19ERVBMT1lJTkcQAxIdChlERVBMT1lNRU5UX1NUQVRVU19ORVRXT1JLEAQSGwoXREVQTE9ZTUVOVF9TVEFUVVNfUkVBRFkQBRIcChhERVBMT1lNRU5UX1NUQVRVU19GQUlMRUQQBipaCgpTb3VyY2VUeXBlEhsKF1NPVVJDRV9UWVBFX1VOU1BFQ0lGSUVEEAASEwoPU09VUkNFX1RZUEVfR0lUEAESGgoWU09VUkNFX1RZUEVfQ0xJX1VQTE9BRBACMr8CCg1EZXBsb3lTZXJ2aWNlElkKEENyZWF0ZURlcGxveW1lbnQSIC5jdHJsLnYxLkNyZWF0ZURlcGxveW1lbnRSZXF1ZXN0GiEuY3RybC52MS5DcmVhdGVEZXBsb3ltZW50UmVzcG9uc2UiABJQCg1HZXREZXBsb3ltZW50Eh0uY3RybC52MS5HZXREZXBsb3ltZW50UmVxdWVzdBoeLmN0cmwudjEuR2V0RGVwbG95bWVudFJlc3BvbnNlIgASQQoIUm9sbGJhY2sSGC5jdHJsLnYxLlJvbGxiYWNrUmVxdWVzdBoZLmN0cmwudjEuUm9sbGJhY2tSZXNwb25zZSIAEj4KB1Byb21vdGUSFy5jdHJsLnYxLlByb21vdGVSZXF1ZXN0GhguY3RybC52MS5Qcm9tb3RlUmVzcG9uc2UiAEKOAQoLY29tLmN0cmwudjFCD0RlcGxveW1lbnRQcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
+  fileDesc("ChhjdHJsL3YxL2RlcGxveW1lbnQucHJvdG8SB2N0cmwudjEi6AEKF0NyZWF0ZURlcGxveW1lbnRSZXF1ZXN0EhIKCnByb2plY3RfaWQYASABKAkSGAoQZW52aXJvbm1lbnRfc2x1ZxgCIAEoCRIUCgxkb2NrZXJfaW1hZ2UYAyABKAkSLwoKZ2l0X2NvbW1pdBgEIAEoCzIWLmN0cmwudjEuR2l0Q29tbWl0SW5mb0gAiAEBEhgKC2tleXNwYWNlX2lkGAUgASgJSAGIAQESDwoHY29tbWFuZBgGIAMoCRIOCgZhcHBfaWQYByABKAlCDQoLX2dpdF9jb21taXRCDgoMX2tleXNwYWNlX2lkIpABCg1HaXRDb21taXRJbmZvEhIKCmNvbW1pdF9zaGEYASABKAkSFgoOY29tbWl0X21lc3NhZ2UYAiABKAkSFQoNYXV0aG9yX2hhbmRsZRgDIAEoCRIZChFhdXRob3JfYXZhdGFyX3VybBgEIAEoCRIRCgl0aW1lc3RhbXAYBSABKAMSDgoGYnJhbmNoGAYgASgJIlwKGENyZWF0ZURlcGxveW1lbnRSZXNwb25zZRIVCg1kZXBsb3ltZW50X2lkGAEgASgJEikKBnN0YXR1cxgCIAEoDjIZLmN0cmwudjEuRGVwbG95bWVudFN0YXR1cyItChRHZXREZXBsb3ltZW50UmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIkAKFUdldERlcGxveW1lbnRSZXNwb25zZRInCgpkZXBsb3ltZW50GAEgASgLMhMuY3RybC52MS5EZXBsb3ltZW50IpgFCgpEZXBsb3ltZW50EgoKAmlkGAEgASgJEhQKDHdvcmtzcGFjZV9pZBgCIAEoCRISCgpwcm9qZWN0X2lkGAMgASgJEhYKDmVudmlyb25tZW50X2lkGAQgASgJEg4KBmFwcF9pZBgVIAEoCRIWCg5naXRfY29tbWl0X3NoYRgFIAEoCRISCgpnaXRfYnJhbmNoGAYgASgJEikKBnN0YXR1cxgHIAEoDjIZLmN0cmwudjEuRGVwbG95bWVudFN0YXR1cxIVCg1lcnJvcl9tZXNzYWdlGAggASgJEkwKFWVudmlyb25tZW50X3ZhcmlhYmxlcxgJIAMoCzItLmN0cmwudjEuRGVwbG95bWVudC5FbnZpcm9ubWVudFZhcmlhYmxlc0VudHJ5EiMKCHRvcG9sb2d5GAogASgLMhEuY3RybC52MS5Ub3BvbG9neRISCgpjcmVhdGVkX2F0GAsgASgDEhIKCnVwZGF0ZWRfYXQYDCABKAMSEQoJaG9zdG5hbWVzGA0gAygJEhcKD3Jvb3Rmc19pbWFnZV9pZBgOIAEoCRIQCghidWlsZF9pZBgPIAEoCRImCgVzdGVwcxgQIAMoCzIXLmN0cmwudjEuRGVwbG95bWVudFN0ZXASGgoSZ2l0X2NvbW1pdF9tZXNzYWdlGBEgASgJEiAKGGdpdF9jb21taXRfYXV0aG9yX2hhbmRsZRgSIAEoCRIkChxnaXRfY29tbWl0X2F1dGhvcl9hdmF0YXJfdXJsGBMgASgJEhwKFGdpdF9jb21taXRfdGltZXN0YW1wGBQgASgDGjsKGUVudmlyb25tZW50VmFyaWFibGVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJcCg5EZXBsb3ltZW50U3RlcBIOCgZzdGF0dXMYASABKAkSDwoHbWVzc2FnZRgCIAEoCRIVCg1lcnJvcl9tZXNzYWdlGAMgASgJEhIKCmNyZWF0ZWRfYXQYBCABKAMipwEKCFRvcG9sb2d5EhYKDmNwdV9taWxsaWNvcmVzGAEgASgFEhIKCm1lbW9yeV9taWIYAiABKAUSKAoHcmVnaW9ucxgDIAMoCzIXLmN0cmwudjEuUmVnaW9uYWxDb25maWcSHAoUaWRsZV90aW1lb3V0X3NlY29uZHMYBCABKAUSGQoRaGVhbHRoX2NoZWNrX3BhdGgYBSABKAkSDAoEcG9ydBgGIAEoBSJOCg5SZWdpb25hbENvbmZpZxIOCgZyZWdpb24YASABKAkSFQoNbWluX2luc3RhbmNlcxgCIAEoBRIVCg1tYXhfaW5zdGFuY2VzGAMgASgFIk0KD1JvbGxiYWNrUmVxdWVzdBIcChRzb3VyY2VfZGVwbG95bWVudF9pZBgBIAEoCRIcChR0YXJnZXRfZGVwbG95bWVudF9pZBgCIAEoCSISChBSb2xsYmFja1Jlc3BvbnNlIi4KDlByb21vdGVSZXF1ZXN0EhwKFHRhcmdldF9kZXBsb3ltZW50X2lkGAEgASgJIhEKD1Byb21vdGVSZXNwb25zZSIzChpBdXRob3JpemVEZXBsb3ltZW50UmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIh0KG0F1dGhvcml6ZURlcGxveW1lbnRSZXNwb25zZSr5AgoQRGVwbG95bWVudFN0YXR1cxIhCh1ERVBMT1lNRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEh0KGURFUExPWU1FTlRfU1RBVFVTX1BFTkRJTkcQARIeChpERVBMT1lNRU5UX1NUQVRVU19TVEFSVElORxAHEh4KGkRFUExPWU1FTlRfU1RBVFVTX0JVSUxESU5HEAISHwobREVQTE9ZTUVOVF9TVEFUVVNfREVQTE9ZSU5HEAMSHQoZREVQTE9ZTUVOVF9TVEFUVVNfTkVUV09SSxAEEiAKHERFUExPWU1FTlRfU1RBVFVTX0ZJTkFMSVpJTkcQCBIbChdERVBMT1lNRU5UX1NUQVRVU19SRUFEWRAFEhwKGERFUExPWU1FTlRfU1RBVFVTX0ZBSUxFRBAGEh0KGURFUExPWU1FTlRfU1RBVFVTX1NLSVBQRUQQCRInCiNERVBMT1lNRU5UX1NUQVRVU19BV0FJVElOR19BUFBST1ZBTBAKKloKClNvdXJjZVR5cGUSGwoXU09VUkNFX1RZUEVfVU5TUEVDSUZJRUQQABITCg9TT1VSQ0VfVFlQRV9HSVQQARIaChZTT1VSQ0VfVFlQRV9DTElfVVBMT0FEEAIyowMKDURlcGxveVNlcnZpY2USWQoQQ3JlYXRlRGVwbG95bWVudBIgLmN0cmwudjEuQ3JlYXRlRGVwbG95bWVudFJlcXVlc3QaIS5jdHJsLnYxLkNyZWF0ZURlcGxveW1lbnRSZXNwb25zZSIAElAKDUdldERlcGxveW1lbnQSHS5jdHJsLnYxLkdldERlcGxveW1lbnRSZXF1ZXN0Gh4uY3RybC52MS5HZXREZXBsb3ltZW50UmVzcG9uc2UiABJBCghSb2xsYmFjaxIYLmN0cmwudjEuUm9sbGJhY2tSZXF1ZXN0GhkuY3RybC52MS5Sb2xsYmFja1Jlc3BvbnNlIgASPgoHUHJvbW90ZRIXLmN0cmwudjEuUHJvbW90ZVJlcXVlc3QaGC5jdHJsLnYxLlByb21vdGVSZXNwb25zZSIAEmIKE0F1dGhvcml6ZURlcGxveW1lbnQSIy5jdHJsLnYxLkF1dGhvcml6ZURlcGxveW1lbnRSZXF1ZXN0GiQuY3RybC52MS5BdXRob3JpemVEZXBsb3ltZW50UmVzcG9uc2UiAEKOAQoLY29tLmN0cmwudjFCD0RlcGxveW1lbnRQcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message ctrl.v1.CreateDeploymentRequest
@@ -55,6 +55,13 @@ export type CreateDeploymentRequest = Message<"ctrl.v1.CreateDeploymentRequest">
    * @generated from field: repeated string command = 6;
    */
   command: string[];
+
+  /**
+   * App ID to deploy. Required.
+   *
+   * @generated from field: string app_id = 7;
+   */
+  appId: string;
 };
 
 /**
@@ -191,6 +198,11 @@ export type Deployment = Message<"ctrl.v1.Deployment"> & {
    * @generated from field: string environment_id = 4;
    */
   environmentId: string;
+
+  /**
+   * @generated from field: string app_id = 21;
+   */
+  appId: string;
 
   /**
    * Source information
@@ -475,6 +487,36 @@ export const PromoteResponseSchema: GenMessage<PromoteResponse> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_deployment, 12);
 
 /**
+ * @generated from message ctrl.v1.AuthorizeDeploymentRequest
+ */
+export type AuthorizeDeploymentRequest = Message<"ctrl.v1.AuthorizeDeploymentRequest"> & {
+  /**
+   * @generated from field: string deployment_id = 1;
+   */
+  deploymentId: string;
+};
+
+/**
+ * Describes the message ctrl.v1.AuthorizeDeploymentRequest.
+ * Use `create(AuthorizeDeploymentRequestSchema)` to create a new message.
+ */
+export const AuthorizeDeploymentRequestSchema: GenMessage<AuthorizeDeploymentRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_deployment, 13);
+
+/**
+ * @generated from message ctrl.v1.AuthorizeDeploymentResponse
+ */
+export type AuthorizeDeploymentResponse = Message<"ctrl.v1.AuthorizeDeploymentResponse"> & {
+};
+
+/**
+ * Describes the message ctrl.v1.AuthorizeDeploymentResponse.
+ * Use `create(AuthorizeDeploymentResponseSchema)` to create a new message.
+ */
+export const AuthorizeDeploymentResponseSchema: GenMessage<AuthorizeDeploymentResponse> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_deployment, 14);
+
+/**
  * Deployment status enum
  *
  * @generated from enum ctrl.v1.DeploymentStatus
@@ -489,6 +531,11 @@ export enum DeploymentStatus {
    * @generated from enum value: DEPLOYMENT_STATUS_PENDING = 1;
    */
   PENDING = 1,
+
+  /**
+   * @generated from enum value: DEPLOYMENT_STATUS_STARTING = 7;
+   */
+  STARTING = 7,
 
   /**
    * @generated from enum value: DEPLOYMENT_STATUS_BUILDING = 2;
@@ -506,6 +553,11 @@ export enum DeploymentStatus {
   NETWORK = 4,
 
   /**
+   * @generated from enum value: DEPLOYMENT_STATUS_FINALIZING = 8;
+   */
+  FINALIZING = 8,
+
+  /**
    * @generated from enum value: DEPLOYMENT_STATUS_READY = 5;
    */
   READY = 5,
@@ -514,6 +566,16 @@ export enum DeploymentStatus {
    * @generated from enum value: DEPLOYMENT_STATUS_FAILED = 6;
    */
   FAILED = 6,
+
+  /**
+   * @generated from enum value: DEPLOYMENT_STATUS_SKIPPED = 9;
+   */
+  SKIPPED = 9,
+
+  /**
+   * @generated from enum value: DEPLOYMENT_STATUS_AWAITING_APPROVAL = 10;
+   */
+  AWAITING_APPROVAL = 10,
 }
 
 /**
@@ -594,6 +656,16 @@ export const DeployService: GenService<{
     methodKind: "unary";
     input: typeof PromoteRequestSchema;
     output: typeof PromoteResponseSchema;
+  },
+  /**
+   * Authorize deployment for an external contributor's push on a branch
+   *
+   * @generated from rpc ctrl.v1.DeployService.AuthorizeDeployment
+   */
+  authorizeDeployment: {
+    methodKind: "unary";
+    input: typeof AuthorizeDeploymentRequestSchema;
+    output: typeof AuthorizeDeploymentResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ctrl_v1_deployment, 0);

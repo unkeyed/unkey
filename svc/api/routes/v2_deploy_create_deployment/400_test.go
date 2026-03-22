@@ -38,7 +38,8 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("missing dockerImage", func(t *testing.T) {
 		req := handler.Request{
-			ProjectId:       setup.Project.ID,
+			Project:         setup.Project.Slug,
+			App:             "default",
 			Branch:          "main",
 			EnvironmentSlug: "production",
 			// DockerImage not provided
@@ -53,8 +54,25 @@ func TestBadRequests(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
-	t.Run("missing projectId", func(t *testing.T) {
+	t.Run("missing project", func(t *testing.T) {
 		req := handler.Request{
+			App:             "default",
+			Branch:          "main",
+			EnvironmentSlug: "production",
+			DockerImage:     "nginx:latest",
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+
+		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+	})
+
+	t.Run("missing app", func(t *testing.T) {
+		req := handler.Request{
+			Project:         setup.Project.Slug,
 			Branch:          "main",
 			EnvironmentSlug: "production",
 			DockerImage:     "nginx:latest",
@@ -70,7 +88,8 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("missing branch", func(t *testing.T) {
 		req := handler.Request{
-			ProjectId:       setup.Project.ID,
+			Project:         setup.Project.Slug,
+			App:             "default",
 			EnvironmentSlug: "production",
 			DockerImage:     "nginx:latest",
 		}
@@ -87,7 +106,8 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("missing environmentSlug", func(t *testing.T) {
 		req := handler.Request{
-			ProjectId:   setup.Project.ID,
+			Project:     setup.Project.Slug,
+			App:         "default",
 			Branch:      "main",
 			DockerImage: "nginx:latest",
 		}
@@ -109,7 +129,8 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ProjectId:       setup.Project.ID,
+			Project:         setup.Project.Slug,
+			App:             "default",
 			Branch:          "main",
 			EnvironmentSlug: "production",
 			DockerImage:     "nginx:latest",
@@ -127,7 +148,8 @@ func TestBadRequests(t *testing.T) {
 		}
 
 		req := handler.Request{
-			ProjectId:       setup.Project.ID,
+			Project:         setup.Project.Slug,
+			App:             "default",
 			Branch:          "main",
 			EnvironmentSlug: "production",
 			DockerImage:     "nginx:latest",
@@ -138,9 +160,28 @@ func TestBadRequests(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("empty projectId", func(t *testing.T) {
+	t.Run("empty project", func(t *testing.T) {
 		req := handler.Request{
-			ProjectId:       "",
+			Project:         "",
+			App:             "default",
+			Branch:          "main",
+			EnvironmentSlug: "production",
+			DockerImage:     "nginx:latest",
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+
+		require.Equal(t, 400, res.Status, "expected 400, sent: %+v, received: %s", req, res.RawBody)
+		require.NotNil(t, res.Body)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
+		require.Equal(t, http.StatusBadRequest, res.Body.Error.Status)
+		require.NotEmpty(t, res.Body.Meta.RequestId)
+	})
+
+	t.Run("empty app", func(t *testing.T) {
+		req := handler.Request{
+			Project:         setup.Project.Slug,
+			App:             "",
 			Branch:          "main",
 			EnvironmentSlug: "production",
 			DockerImage:     "nginx:latest",
@@ -157,7 +198,8 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("empty branch", func(t *testing.T) {
 		req := handler.Request{
-			ProjectId:       setup.Project.ID,
+			Project:         setup.Project.Slug,
+			App:             "default",
 			Branch:          "",
 			EnvironmentSlug: "production",
 			DockerImage:     "nginx:latest",
@@ -174,7 +216,8 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("empty environmentSlug", func(t *testing.T) {
 		req := handler.Request{
-			ProjectId:       setup.Project.ID,
+			Project:         setup.Project.Slug,
+			App:             "default",
 			Branch:          "main",
 			EnvironmentSlug: "",
 			DockerImage:     "nginx:latest",
@@ -191,7 +234,8 @@ func TestBadRequests(t *testing.T) {
 
 	t.Run("empty dockerImage", func(t *testing.T) {
 		req := handler.Request{
-			ProjectId:       setup.Project.ID,
+			Project:         setup.Project.Slug,
+			App:             "default",
 			Branch:          "main",
 			EnvironmentSlug: "production",
 			DockerImage:     "",

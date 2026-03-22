@@ -12,13 +12,14 @@ import (
 
 const listDesiredDeploymentTopology = `-- name: ListDesiredDeploymentTopology :many
 SELECT
-    dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
-    d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.status, d.created_at, d.updated_at,
+    dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+    d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.status, d.created_at, d.updated_at,
     w.k8s_namespace
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
-WHERE (? = '' OR dt.region = ?)
+INNER JOIN ` + "`" + `regions` + "`" + ` r ON dt.region_id = r.id
+WHERE (? = '' OR r.name = ?)
     AND d.desired_state = ?
     AND dt.deployment_id > ?
 ORDER BY dt.deployment_id ASC
@@ -42,13 +43,14 @@ type ListDesiredDeploymentTopologyRow struct {
 // Used during bootstrap to stream all running deployments to krane.
 //
 //	SELECT
-//	    dt.pk, dt.workspace_id, dt.deployment_id, dt.region, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
-//	    d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.openapi_spec, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.status, d.created_at, d.updated_at,
+//	    dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+//	    d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.status, d.created_at, d.updated_at,
 //	    w.k8s_namespace
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
 //	INNER JOIN `workspaces` w ON d.workspace_id = w.id
-//	WHERE (? = '' OR dt.region = ?)
+//	INNER JOIN `regions` r ON dt.region_id = r.id
+//	WHERE (? = '' OR r.name = ?)
 //	    AND d.desired_state = ?
 //	    AND dt.deployment_id > ?
 //	ORDER BY dt.deployment_id ASC
@@ -72,7 +74,7 @@ func (q *Queries) ListDesiredDeploymentTopology(ctx context.Context, db DBTX, ar
 			&i.DeploymentTopology.Pk,
 			&i.DeploymentTopology.WorkspaceID,
 			&i.DeploymentTopology.DeploymentID,
-			&i.DeploymentTopology.Region,
+			&i.DeploymentTopology.RegionID,
 			&i.DeploymentTopology.DesiredReplicas,
 			&i.DeploymentTopology.Version,
 			&i.DeploymentTopology.DesiredStatus,
@@ -84,6 +86,7 @@ func (q *Queries) ListDesiredDeploymentTopology(ctx context.Context, db DBTX, ar
 			&i.Deployment.WorkspaceID,
 			&i.Deployment.ProjectID,
 			&i.Deployment.EnvironmentID,
+			&i.Deployment.AppID,
 			&i.Deployment.Image,
 			&i.Deployment.BuildID,
 			&i.Deployment.GitCommitSha,
@@ -93,7 +96,6 @@ func (q *Queries) ListDesiredDeploymentTopology(ctx context.Context, db DBTX, ar
 			&i.Deployment.GitCommitAuthorAvatarUrl,
 			&i.Deployment.GitCommitTimestamp,
 			&i.Deployment.SentinelConfig,
-			&i.Deployment.OpenapiSpec,
 			&i.Deployment.CpuMillicores,
 			&i.Deployment.MemoryMib,
 			&i.Deployment.DesiredState,
@@ -102,6 +104,9 @@ func (q *Queries) ListDesiredDeploymentTopology(ctx context.Context, db DBTX, ar
 			&i.Deployment.Port,
 			&i.Deployment.ShutdownSignal,
 			&i.Deployment.Healthcheck,
+			&i.Deployment.PrNumber,
+			&i.Deployment.ForkRepositoryFullName,
+			&i.Deployment.GithubDeploymentID,
 			&i.Deployment.Status,
 			&i.Deployment.CreatedAt,
 			&i.Deployment.UpdatedAt,

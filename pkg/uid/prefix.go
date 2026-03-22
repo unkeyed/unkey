@@ -18,13 +18,17 @@ const (
 	RatelimitPrefix           Prefix = "rl"
 	AuditLogPrefix            Prefix = "log"
 	InstancePrefix            Prefix = "ins"
-	SentinelPrefix            Prefix = "se"
+	SentinelPrefix            Prefix = "s"
 	CiliumNetworkPolicyPrefix Prefix = "net"
+	ClusterPrefix             Prefix = "cls"
+	RegionPrefix              Prefix = "rgn"
 	OrgPrefix                 Prefix = "org"
 
 	// Control plane prefixes
+	OpenApiSpecPrefix    Prefix = "oas"
 	ProjectPrefix        Prefix = "proj"
 	EnvironmentPrefix    Prefix = "env"
+	AppPrefix            Prefix = "app"
 	DomainPrefix         Prefix = "dom"
 	DeploymentPrefix     Prefix = "d"
 	FrontlineRoutePrefix Prefix = "flr"

@@ -32,13 +32,23 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 	if err := s.authenticate(req); err != nil {
 		return nil, err
 	}
-	region := req.Header().Get("X-Krane-Region")
+	regionName := req.Header().Get("X-Krane-Region")
+	platform := req.Header().Get("X-Krane-Platform")
 
-	err := assert.All(
-		assert.NotEmpty(region, "region is required"),
-	)
+	if err := assert.All(
+		assert.NotEmpty(regionName, "region is required"),
+		assert.NotEmpty(platform, "platform is required"),
+	); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	// TODO: cache this lookup to avoid hitting the database on every status report
+	region, err := db.Query.FindRegionByPlatformAndName(ctx, s.db.RO(), db.FindRegionByPlatformAndNameParams{
+		Platform: platform,
+		Name:     regionName,
+	})
 	if err != nil {
-		return nil, err
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
@@ -51,9 +61,9 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					return err
 				}
 
-				staleInstances, err := db.Query.FindInstancesByDeploymentIdAndRegion(ctx, tx, db.FindInstancesByDeploymentIdAndRegionParams{
-					Deploymentid: deployment.ID,
-					Region:       region,
+				staleInstances, err := db.Query.FindInstancesByDeploymentIdAndRegionID(ctx, tx, db.FindInstancesByDeploymentIdAndRegionIDParams{
+					DeploymentID: deployment.ID,
+					RegionID:     region.ID,
 				})
 				if err != nil {
 					return err
@@ -67,8 +77,8 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 				for _, staleInstance := range staleInstances {
 					if _, ok := wantInstanceNames[staleInstance.K8sName]; !ok {
 						err = db.Query.DeleteInstance(ctx, tx, db.DeleteInstanceParams{
-							K8sName: staleInstance.K8sName,
-							Region:  region,
+							K8sName:  staleInstance.K8sName,
+							RegionID: region.ID,
 						})
 						if err != nil {
 							return err
@@ -82,7 +92,8 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 						DeploymentID:  deployment.ID,
 						WorkspaceID:   deployment.WorkspaceID,
 						ProjectID:     deployment.ProjectID,
-						Region:        region,
+						AppID:         deployment.AppID,
+						RegionID:      region.ID,
 						K8sName:       instance.GetK8SName(),
 						Address:       instance.GetAddress(),
 						CpuMillicores: int32(instance.GetCpuMillicores()),
@@ -105,7 +116,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 				err = db.Query.DeleteDeploymentInstances(ctx, tx, db.DeleteDeploymentInstancesParams{
 					DeploymentID: deployment.ID,
-					Region:       region,
+					RegionID:     region.ID,
 				})
 				if err != nil {
 					return err

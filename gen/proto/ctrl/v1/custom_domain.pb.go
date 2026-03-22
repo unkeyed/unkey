@@ -83,6 +83,7 @@ type AddCustomDomainRequest struct {
 	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	EnvironmentId string                 `protobuf:"bytes,3,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
 	Domain        string                 `protobuf:"bytes,4,opt,name=domain,proto3" json:"domain,omitempty"`
+	AppId         string                 `protobuf:"bytes,5,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -141,6 +142,13 @@ func (x *AddCustomDomainRequest) GetEnvironmentId() string {
 func (x *AddCustomDomainRequest) GetDomain() string {
 	if x != nil {
 		return x.Domain
+	}
+	return ""
+}
+
+func (x *AddCustomDomainRequest) GetAppId() string {
+	if x != nil {
+		return x.AppId
 	}
 	return ""
 }
@@ -409,13 +417,14 @@ var File_ctrl_v1_custom_domain_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_custom_domain_proto_rawDesc = "" +
 	"\n" +
-	"\x1bctrl/v1/custom_domain.proto\x12\actrl.v1\"\x99\x01\n" +
+	"\x1bctrl/v1/custom_domain.proto\x12\actrl.v1\"\xb0\x01\n" +
 	"\x16AddCustomDomainRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x02 \x01(\tR\tprojectId\x12%\n" +
 	"\x0eenvironment_id\x18\x03 \x01(\tR\renvironmentId\x12\x16\n" +
-	"\x06domain\x18\x04 \x01(\tR\x06domain\"\x8e\x01\n" +
+	"\x06domain\x18\x04 \x01(\tR\x06domain\x12\x15\n" +
+	"\x06app_id\x18\x05 \x01(\tR\x05appId\"\x8e\x01\n" +
 	"\x17AddCustomDomainResponse\x12\x1b\n" +
 	"\tdomain_id\x18\x01 \x01(\tR\bdomainId\x12!\n" +
 	"\ftarget_cname\x18\x02 \x01(\tR\vtargetCname\x123\n" +

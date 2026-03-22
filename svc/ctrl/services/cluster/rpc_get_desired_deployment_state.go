@@ -20,8 +20,8 @@ import (
 // (for archived or standby states) based on the deployment_topology's desired_state in the
 // database. Unhandled desired states result in CodeInternal.
 //
-// Returns CodeUnauthenticated if bearer token is invalid, CodeInvalidArgument if the
-// X-Krane-Region header is missing, CodeNotFound if no deployment exists with the given
+// Returns CodeUnauthenticated if bearer token is invalid, CodeInvalidArgument if
+// region or platform is missing, CodeNotFound if no deployment exists with the given
 // ID in the specified region, or CodeInternal for database errors or unhandled states.
 func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredDeploymentStateRequest]) (*connect.Response[ctrlv1.DeploymentState], error) {
 
@@ -30,7 +30,11 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 	}
 
 	region := req.Header().Get("X-Krane-Region")
-	if err := assert.NotEmpty(region, "region is required"); err != nil {
+	platform := req.Header().Get("X-Krane-Platform")
+	if err := assert.All(
+		assert.NotEmpty(region, "region is required"),
+		assert.NotEmpty(platform, "platform is required"),
+	); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
@@ -70,6 +74,7 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 			WorkspaceId:                   deployment.WorkspaceID,
 			ProjectId:                     deployment.ProjectID,
 			EnvironmentId:                 deployment.EnvironmentID,
+			AppId:                         deployment.AppID,
 			Replicas:                      deployment.DesiredReplicas,
 			Image:                         deployment.Image.String,
 			CpuMillicores:                 int64(deployment.CpuMillicores),

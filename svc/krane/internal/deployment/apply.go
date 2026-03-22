@@ -2,7 +2,6 @@ package deployment
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -63,22 +62,51 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return err
 	}
 
+	// Ensure registry pull secret exists in the namespace
+	if err := c.ensureRegistryPullSecret(ctx, req.GetK8SNamespace()); err != nil {
+		return fmt.Errorf("failed to ensure registry pull secret: %w", err)
+	}
+
+	// Decrypt secrets at deploy time
+	plaintext, err := c.decryptSecrets(ctx, req.GetEncryptedEnvironmentVariables(), req.GetEnvironmentId())
+	if err != nil {
+		return fmt.Errorf("failed to decrypt secrets: %w", err)
+	}
+
+	hasSecrets := len(plaintext) > 0
+
 	usedLabels := labels.New().
 		WorkspaceID(req.GetWorkspaceId()).
 		ProjectID(req.GetProjectId()).
+		AppID(req.GetAppId()).
 		EnvironmentID(req.GetEnvironmentId()).
 		DeploymentID(req.GetDeploymentId()).
 		BuildID(req.GetBuildId()).
 		ManagedByKrane().
-		ComponentDeployment().
-		Inject()
+		ComponentDeployment()
 
 	container := corev1.Container{
 		Image:           req.GetImage(),
 		Name:            "deployment",
 		ImagePullPolicy: corev1.PullIfNotPresent,
-		Command:         req.GetCommand(),
-		Env:             buildDeploymentEnv(req),
+		Env: []corev1.EnvVar{
+			{Name: "PORT", Value: strconv.Itoa(int(req.GetPort()))},
+			{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
+			{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
+			{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
+			{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
+			// Override kubelet-injected K8s service env vars with empty strings.
+			// These can't be suppressed via enableServiceLinks, but setting them
+			// explicitly prevents leaking cluster internals to customer code.
+			{Name: "KUBERNETES_SERVICE_HOST", Value: ""},
+			{Name: "KUBERNETES_SERVICE_PORT", Value: ""},
+			{Name: "KUBERNETES_SERVICE_PORT_HTTPS", Value: ""},
+			{Name: "KUBERNETES_PORT", Value: ""},
+			{Name: "KUBERNETES_PORT_443_TCP", Value: ""},
+			{Name: "KUBERNETES_PORT_443_TCP_PROTO", Value: ""},
+			{Name: "KUBERNETES_PORT_443_TCP_PORT", Value: ""},
+			{Name: "KUBERNETES_PORT_443_TCP_ADDR", Value: ""},
+		},
 		Ports: []corev1.ContainerPort{{
 			ContainerPort: req.GetPort(),
 			Name:          "deployment",
@@ -121,6 +149,32 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		}
 	}
 
+	// Mount the deployment secret as env vars if present
+	if hasSecrets {
+		container.EnvFrom = []corev1.EnvFromSource{{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: deploymentResourcePrefix(req.GetDeploymentId())},
+			},
+		}}
+	}
+
+	podSpec := corev1.PodSpec{
+		RuntimeClassName:             ptr.P(runtimeClassGvisor),
+		RestartPolicy:                corev1.RestartPolicyAlways,
+		AutomountServiceAccountToken: ptr.P(false),
+		EnableServiceLinks:           ptr.P(false),
+		Tolerations:                  []corev1.Toleration{untrustedToleration},
+		TopologySpreadConstraints:    deploymentTopologySpread(req.GetDeploymentId()),
+		Affinity:                     deploymentAffinity(req.GetEnvironmentId()),
+		Containers:                   []corev1.Container{container},
+	}
+
+	if hasSecrets {
+		podSpec.ServiceAccountName = deploymentResourcePrefix(req.GetDeploymentId())
+	}
+
+	podSpec.ImagePullSecrets = c.imagePullSecrets
+
 	desired := &appsv1.ReplicaSet{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
@@ -142,16 +196,22 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 					GenerateName: fmt.Sprintf("%s-", req.GetK8SName()),
 					Labels:       usedLabels,
 				},
-				Spec: corev1.PodSpec{
-					RuntimeClassName:          ptr.P(runtimeClassGvisor),
-					RestartPolicy:             corev1.RestartPolicyAlways,
-					Tolerations:               []corev1.Toleration{untrustedToleration},
-					TopologySpreadConstraints: deploymentTopologySpread(req.GetDeploymentId()),
-					Affinity:                  deploymentAffinity(req.GetEnvironmentId()),
-					Containers:                []corev1.Container{container},
-				},
+				Spec: podSpec,
 			},
 		},
+	}
+
+	// Create the Secret and ServiceAccount before the ReplicaSet so they
+	// exist by the time pods are scheduled. This prevents the
+	// "serviceaccount not found" race condition. We patch ownerReferences
+	// onto them after the RS is created so K8s still garbage-collects them.
+	if hasSecrets {
+		if err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext); err != nil {
+			return fmt.Errorf("failed to ensure deployment secret: %w", err)
+		}
+		if err := c.ensureDeploymentServiceAccount(ctx, req.GetK8SNamespace(), req.GetDeploymentId()); err != nil {
+			return fmt.Errorf("failed to ensure deployment service account: %w", err)
+		}
 	}
 
 	client := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace())
@@ -168,6 +228,23 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return fmt.Errorf("failed to apply replicaset: %w", err)
 	}
 
+	// Patch ownerReferences onto the Secret and SA so K8s garbage-collects
+	// them when the ReplicaSet is deleted.
+	if hasSecrets {
+		ownerRef := metav1.OwnerReference{
+			APIVersion:         "apps/v1",
+			Kind:               "ReplicaSet",
+			Name:               applied.Name,
+			UID:                applied.UID,
+			Controller:         ptr.P(true),
+			BlockOwnerDeletion: ptr.P(true),
+		}
+		resName := deploymentResourcePrefix(req.GetDeploymentId())
+		if err := c.patchOwnerRef(ctx, req.GetK8SNamespace(), resName, ownerRef); err != nil {
+			return fmt.Errorf("failed to patch owner references: %w", err)
+		}
+	}
+
 	status, err := c.buildDeploymentStatus(ctx, applied)
 	if err != nil {
 		return err
@@ -180,28 +257,6 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	}
 
 	return nil
-}
-
-// buildDeploymentEnv constructs the environment variables injected into deployment
-// containers. It includes the PORT, workspace/project/environment/deployment IDs,
-// and optionally the base64-encoded encrypted environment variables if present.
-func buildDeploymentEnv(req *ctrlv1.ApplyDeployment) []corev1.EnvVar {
-	env := []corev1.EnvVar{
-		{Name: "PORT", Value: strconv.Itoa(int(req.GetPort()))},
-		{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
-		{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
-		{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
-		{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
-	}
-
-	if len(req.GetEncryptedEnvironmentVariables()) > 0 {
-		env = append(env, corev1.EnvVar{
-			Name:  "UNKEY_ENCRYPTED_ENV",
-			Value: base64.StdEncoding.EncodeToString(req.GetEncryptedEnvironmentVariables()),
-		})
-	}
-
-	return env
 }
 
 // buildProbeHandler creates the K8s probe handler based on the healthcheck method.

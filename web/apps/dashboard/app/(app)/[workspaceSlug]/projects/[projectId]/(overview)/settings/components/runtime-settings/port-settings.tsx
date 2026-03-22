@@ -1,19 +1,20 @@
-import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { NumberInput } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
+import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const portSchema = z.object({
-  port: z.number().int().min(2000).max(54000),
+  port: z.number().int().min(1).max(65535),
 });
 
 export const Port = () => {
-  const { settings, autoSave } = useEnvironmentSettings();
-  const { environmentId, port: defaultValue } = settings;
+  const { settings, variant } = useEnvironmentSettings();
+  const { port: defaultValue } = settings;
+  const updateAllEnvironments = useUpdateAllEnvironments();
 
   const {
     register,
@@ -35,7 +36,7 @@ export const Port = () => {
   ]);
 
   const onSubmit = async (values: z.infer<typeof portSchema>) => {
-    collection.environmentSettings.update(environmentId, (draft) => {
+    updateAllEnvironments((draft) => {
       draft.port = values.port;
     });
   };
@@ -48,17 +49,21 @@ export const Port = () => {
       displayValue={String(defaultValue)}
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      autoSave={autoSave}
+      autoSave={variant === "onboarding"}
     >
       <FormInput
         required
         type="number"
+        onWheelCapture={(e) => {
+          //@ts-expect-error there is no other way to prevent scroll here
+          e.target.blur();
+        }}
         className="w-[480px]"
         label="Port"
         description="Port your application listens on. Changes apply on next deploy."
         placeholder="8080"
-        min={2000}
-        max={54000}
+        min={1}
+        max={65535}
         error={errors.port?.message}
         variant={errors.port ? "error" : "default"}
         {...register("port", { valueAsNumber: true })}

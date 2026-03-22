@@ -6,80 +6,78 @@ import type { Deployment, Environment } from "@/lib/collections";
 import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { getDeploymentActionEligibility } from "./deployment-action-eligibility";
 import { PromotionDialog } from "./promotion-dialog";
 import { RedeployDialog } from "./redeploy-dialog";
 import { RollbackDialog } from "./rollback-dialog";
 
 type DeploymentListTableActionsProps = {
-  liveDeployment?: Deployment;
   selectedDeployment: Deployment;
   environment?: Environment;
 };
 
 export const DeploymentListTableActions = ({
-  liveDeployment,
   selectedDeployment,
   environment,
 }: DeploymentListTableActionsProps) => {
-  const workspace = useWorkspaceNavigation();
-  const { getDomainsForDeployment } = useProjectData();
-  const data = getDomainsForDeployment(selectedDeployment.id).map((domain) => ({
-    host: domain.fullyQualifiedDomainName,
-  }));
-
   const router = useRouter();
+  const workspace = useWorkspaceNavigation();
+  const { getDeploymentById, project } = useProjectData();
+
+  const currentDeploymentId = project?.currentDeploymentId ?? null;
+  const isRolledBack = Boolean(project?.isRolledBack);
+  const currentDeployment = getDeploymentById(currentDeploymentId ?? "");
+  const hasCurrentDeployment = currentDeployment !== undefined;
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: its okay
   const menuItems = useMemo((): MenuItem[] => {
-    const canRollbackAndRollback =
-      liveDeployment &&
-      environment?.slug === "production" &&
-      selectedDeployment.status === "ready" &&
-      selectedDeployment.id !== liveDeployment.id;
-
-    const canRedeploy =
-      selectedDeployment.status === "ready" || selectedDeployment.status === "failed";
+    const { canRollback, canPromote, canRedeploy } = getDeploymentActionEligibility({
+      selectedDeployment,
+      currentDeploymentId,
+      isRolledBack,
+      environmentSlug: environment?.slug ?? null,
+    });
 
     return [
       {
         id: "rollback",
         label: "Rollback",
         icon: <ArrowDottedRotateAnticlockwise iconSize="md-regular" />,
-        disabled: !canRollbackAndRollback,
-        ActionComponent:
-          liveDeployment && canRollbackAndRollback
-            ? (props) => (
-                <RollbackDialog
-                  {...props}
-                  liveDeployment={liveDeployment}
-                  targetDeployment={selectedDeployment}
-                />
-              )
-            : undefined,
+        disabled: !canRollback || !hasCurrentDeployment,
+        ActionComponent: hasCurrentDeployment
+          ? (props) => (
+              <RollbackDialog
+                {...props}
+                currentDeployment={currentDeployment}
+                targetDeployment={selectedDeployment}
+              />
+            )
+          : undefined,
       },
       {
         id: "Promote",
         label: "Promote",
         icon: <ChevronUp iconSize="md-regular" />,
-        disabled: !canRollbackAndRollback,
-        ActionComponent:
-          liveDeployment && canRollbackAndRollback
-            ? (props) => (
-                <PromotionDialog
-                  {...props}
-                  liveDeployment={liveDeployment}
-                  targetDeployment={selectedDeployment}
-                />
-              )
-            : undefined,
+        disabled: !canPromote || !hasCurrentDeployment,
+        ActionComponent: hasCurrentDeployment
+          ? (props) => (
+              <PromotionDialog
+                {...props}
+                currentDeployment={currentDeployment}
+                targetDeployment={selectedDeployment}
+                isConfirmingRollback={isRolledBack && selectedDeployment.id === currentDeploymentId}
+              />
+            )
+          : undefined,
       },
       {
         id: "redeploy",
         label: "Redeploy",
         icon: <ArrowDottedRotateAnticlockwise iconSize="md-regular" />,
         disabled: !canRedeploy,
-        ActionComponent: canRedeploy
-          ? (props) => <RedeployDialog {...props} selectedDeployment={selectedDeployment} />
-          : undefined,
+        ActionComponent: (props) => (
+          <RedeployDialog {...props} selectedDeployment={selectedDeployment} />
+        ),
       },
       {
         id: "sentinel-logs",
@@ -103,9 +101,10 @@ export const DeploymentListTableActions = ({
   }, [
     selectedDeployment.id,
     selectedDeployment.status,
-    liveDeployment?.id,
+    currentDeploymentId,
+    isRolledBack,
     environment?.slug,
-    data,
+    hasCurrentDeployment,
   ]);
 
   return <TableActionPopover items={menuItems} />;

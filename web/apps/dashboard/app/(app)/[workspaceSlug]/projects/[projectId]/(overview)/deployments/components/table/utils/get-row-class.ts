@@ -40,7 +40,7 @@ export const ROLLED_BACK_STYLES = {
   focusRing: "focus:ring-warning-7",
 };
 
-export const LIVE_STATUS_STYLES = {
+export const CURRENT_STATUS_STYLES = {
   base: "text-grayA-9 bg-feature-2",
   hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-feature-3",
   badge: {
@@ -51,18 +51,18 @@ export const LIVE_STATUS_STYLES = {
 
 export const getRowClassName = (
   { deployment }: { deployment: Deployment; environment: Environment },
-  liveDeploymentId: string | null,
+  currentDeploymentId: string | null,
   isRolledBack: boolean,
 ) => {
   const isFailed = deployment.status === "failed";
-  const isLive = liveDeploymentId === deployment.id;
+  const isCurrent = currentDeploymentId === deployment.id;
 
   const style = isFailed
     ? FAILED_STATUS_STYLES
-    : isLive && isRolledBack
+    : isCurrent && isRolledBack
       ? ROLLED_BACK_STYLES
-      : isLive
-        ? LIVE_STATUS_STYLES
+      : isCurrent
+        ? CURRENT_STATUS_STYLES
         : STATUS_STYLES;
 
   return cn(

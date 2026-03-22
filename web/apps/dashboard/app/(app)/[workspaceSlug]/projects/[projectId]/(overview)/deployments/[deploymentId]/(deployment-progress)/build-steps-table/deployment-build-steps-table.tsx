@@ -55,6 +55,7 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps }) => {
       expandedIds={expandedIds}
       onExpandedChange={setExpandedIds}
       fixedHeight={256}
+      autoScrollToBottom
       isExpandable={(step) => step.has_logs}
       renderExpanded={(step) => <BuildStepLogsExpanded step={step} />}
       config={{

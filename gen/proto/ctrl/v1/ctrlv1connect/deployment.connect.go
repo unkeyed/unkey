@@ -43,6 +43,9 @@ const (
 	DeployServiceRollbackProcedure = "/ctrl.v1.DeployService/Rollback"
 	// DeployServicePromoteProcedure is the fully-qualified name of the DeployService's Promote RPC.
 	DeployServicePromoteProcedure = "/ctrl.v1.DeployService/Promote"
+	// DeployServiceAuthorizeDeploymentProcedure is the fully-qualified name of the DeployService's
+	// AuthorizeDeployment RPC.
+	DeployServiceAuthorizeDeploymentProcedure = "/ctrl.v1.DeployService/AuthorizeDeployment"
 )
 
 // DeployServiceClient is a client for the ctrl.v1.DeployService service.
@@ -56,6 +59,8 @@ type DeployServiceClient interface {
 	Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error)
 	// Promote the deployment to the live environment
 	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
+	// Authorize deployment for an external contributor's push on a branch
+	AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error)
 }
 
 // NewDeployServiceClient constructs a client for the ctrl.v1.DeployService service. By default, it
@@ -93,15 +98,22 @@ func NewDeployServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(deployServiceMethods.ByName("Promote")),
 			connect.WithClientOptions(opts...),
 		),
+		authorizeDeployment: connect.NewClient[v1.AuthorizeDeploymentRequest, v1.AuthorizeDeploymentResponse](
+			httpClient,
+			baseURL+DeployServiceAuthorizeDeploymentProcedure,
+			connect.WithSchema(deployServiceMethods.ByName("AuthorizeDeployment")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // deployServiceClient implements DeployServiceClient.
 type deployServiceClient struct {
-	createDeployment *connect.Client[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse]
-	getDeployment    *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
-	rollback         *connect.Client[v1.RollbackRequest, v1.RollbackResponse]
-	promote          *connect.Client[v1.PromoteRequest, v1.PromoteResponse]
+	createDeployment    *connect.Client[v1.CreateDeploymentRequest, v1.CreateDeploymentResponse]
+	getDeployment       *connect.Client[v1.GetDeploymentRequest, v1.GetDeploymentResponse]
+	rollback            *connect.Client[v1.RollbackRequest, v1.RollbackResponse]
+	promote             *connect.Client[v1.PromoteRequest, v1.PromoteResponse]
+	authorizeDeployment *connect.Client[v1.AuthorizeDeploymentRequest, v1.AuthorizeDeploymentResponse]
 }
 
 // CreateDeployment calls ctrl.v1.DeployService.CreateDeployment.
@@ -124,6 +136,11 @@ func (c *deployServiceClient) Promote(ctx context.Context, req *connect.Request[
 	return c.promote.CallUnary(ctx, req)
 }
 
+// AuthorizeDeployment calls ctrl.v1.DeployService.AuthorizeDeployment.
+func (c *deployServiceClient) AuthorizeDeployment(ctx context.Context, req *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error) {
+	return c.authorizeDeployment.CallUnary(ctx, req)
+}
+
 // DeployServiceHandler is an implementation of the ctrl.v1.DeployService service.
 type DeployServiceHandler interface {
 	// Create a new deployment from a docker image or by auto-detecting
@@ -135,6 +152,8 @@ type DeployServiceHandler interface {
 	Rollback(context.Context, *connect.Request[v1.RollbackRequest]) (*connect.Response[v1.RollbackResponse], error)
 	// Promote the deployment to the live environment
 	Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error)
+	// Authorize deployment for an external contributor's push on a branch
+	AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error)
 }
 
 // NewDeployServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -168,6 +187,12 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(deployServiceMethods.ByName("Promote")),
 		connect.WithHandlerOptions(opts...),
 	)
+	deployServiceAuthorizeDeploymentHandler := connect.NewUnaryHandler(
+		DeployServiceAuthorizeDeploymentProcedure,
+		svc.AuthorizeDeployment,
+		connect.WithSchema(deployServiceMethods.ByName("AuthorizeDeployment")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ctrl.v1.DeployService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DeployServiceCreateDeploymentProcedure:
@@ -178,6 +203,8 @@ func NewDeployServiceHandler(svc DeployServiceHandler, opts ...connect.HandlerOp
 			deployServiceRollbackHandler.ServeHTTP(w, r)
 		case DeployServicePromoteProcedure:
 			deployServicePromoteHandler.ServeHTTP(w, r)
+		case DeployServiceAuthorizeDeploymentProcedure:
+			deployServiceAuthorizeDeploymentHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -201,4 +228,8 @@ func (UnimplementedDeployServiceHandler) Rollback(context.Context, *connect.Requ
 
 func (UnimplementedDeployServiceHandler) Promote(context.Context, *connect.Request[v1.PromoteRequest]) (*connect.Response[v1.PromoteResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.Promote is not implemented"))
+}
+
+func (UnimplementedDeployServiceHandler) AuthorizeDeployment(context.Context, *connect.Request[v1.AuthorizeDeploymentRequest]) (*connect.Response[v1.AuthorizeDeploymentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.DeployService.AuthorizeDeployment is not implemented"))
 }

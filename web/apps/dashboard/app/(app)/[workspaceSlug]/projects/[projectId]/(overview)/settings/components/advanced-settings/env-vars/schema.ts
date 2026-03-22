@@ -3,10 +3,7 @@ import { z } from "zod";
 export const envVarEntrySchema = z.object({
   id: z.string().optional(),
   environmentId: z.string().min(1, "Environment is required"),
-  key: z
-    .string()
-    .min(1, "Key is required")
-    .regex(/^[A-Za-z_][A-Za-z0-9_]*$/, "Must start with a letter or underscore"),
+  key: z.string().min(1, "Key is required"),
   value: z.string(),
   secret: z.boolean(),
 });
@@ -16,22 +13,29 @@ export const envVarsSchema = z.object({
     .array(envVarEntrySchema)
     .min(1)
     .superRefine((vars, ctx) => {
-      const seen = new Map<string, number>();
+      const groups = new Map<string, number[]>();
       for (let i = 0; i < vars.length; i++) {
         const v = vars[i];
         if (!v.key) {
           continue;
         }
         const compound = `${v.environmentId}::${v.key}`;
-        const prevIndex = seen.get(compound);
-        if (prevIndex !== undefined) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Duplicate key in the same environment",
-            path: [i, "key"],
-          });
+        const indices = groups.get(compound);
+        if (indices) {
+          indices.push(i);
         } else {
-          seen.set(compound, i);
+          groups.set(compound, [i]);
+        }
+      }
+      for (const indices of groups.values()) {
+        if (indices.length > 1) {
+          for (const i of indices) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Duplicate key in the same environment",
+              path: [i, "key"],
+            });
+          }
         }
       }
     }),

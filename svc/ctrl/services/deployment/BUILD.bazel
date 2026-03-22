@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "deployment",
     srcs = [
+        "authorize_deployment.go",
         "create_deployment.go",
         "doc.go",
         "get_deployment.go",
@@ -19,6 +20,7 @@ go_library(
         "//pkg/db",
         "//pkg/logger",
         "//pkg/uid",
+        "//svc/ctrl/worker/github",
         "@com_connectrpc_connect//:connect",
         "@com_github_restatedev_sdk_go//ingress",
         "@org_golang_google_protobuf//encoding/protojson",

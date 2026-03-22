@@ -37,10 +37,10 @@ type ciliumPolicySpec struct {
 // its own policies so that old deployments (serving traffic via SHA URLs) are not broken
 // when a new deployment changes the port.
 func (w *Workflow) ensureCiliumNetworkPolicy(
-	ctx restate.WorkflowSharedContext,
+	ctx restate.ObjectContext,
 	workspace db.Workspace,
-	project db.FindProjectByIdRow,
-	environment db.FindEnvironmentByIdRow,
+	project db.Project,
+	environment db.Environment,
 	topologies []db.InsertDeploymentTopologyParams,
 	deployment db.Deployment,
 ) error {
@@ -56,7 +56,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 	// Key by region:k8s_name so we can distinguish ingress vs egress per region.
 	existingByKey := make(map[string]db.CiliumNetworkPolicy)
 	for _, policy := range existingPolicies {
-		key := policy.Region + ":" + policy.K8sName
+		key := policy.RegionID + ":" + policy.K8sName
 		existingByKey[key] = policy
 	}
 
@@ -64,7 +64,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 		specs := buildPolicySpecs(workspace, environment, deployment)
 
 		for _, spec := range specs {
-			lookupKey := topo.Region + ":" + spec.k8sName
+			lookupKey := topo.RegionID + ":" + spec.k8sName
 			existing, hasExisting := existingByKey[lookupKey]
 
 			// Build the policy payload with the correct ID label before comparing.
@@ -89,12 +89,17 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 				continue
 			}
 
-			policyVersion, err := hydrav1.NewVersioningServiceClient(ctx, topo.Region).NextVersion().Request(&hydrav1.NextVersionRequest{})
+			policyVersion, err := hydrav1.NewVersioningServiceClient(ctx, topo.RegionID).NextVersion().Request(&hydrav1.NextVersionRequest{})
 			if err != nil {
 				return fmt.Errorf("failed to get next version for cilium policy %s: %w", spec.k8sName, err)
 			}
 
 			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+
+				region, err := db.Query.FindRegionById(runCtx, w.db.RO(), topo.RegionID)
+				if err != nil {
+					return fmt.Errorf("failed to find region %s for cilium policy %s: %w", topo.RegionID, spec.k8sName, err)
+				}
 
 				if hasExisting {
 					return db.Query.UpdateCiliumNetworkPolicyByEnvironmentRegionAndName(runCtx, w.db.RW(), db.UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams{
@@ -102,7 +107,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 						Version:       policyVersion.GetVersion(),
 						UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 						EnvironmentID: environment.ID,
-						Region:        topo.Region,
+						RegionID:      region.ID,
 						K8sName:       spec.k8sName,
 					})
 				}
@@ -111,11 +116,12 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 					ID:            policyID,
 					WorkspaceID:   workspace.ID,
 					ProjectID:     project.ID,
+					AppID:         deployment.AppID,
 					EnvironmentID: environment.ID,
 					DeploymentID:  deployment.ID,
 					K8sName:       spec.k8sName,
 					K8sNamespace:  spec.k8sNamespace,
-					Region:        topo.Region,
+					RegionID:      region.ID,
 					Policy:        policyPayload,
 					Version:       policyVersion.GetVersion(),
 					CreatedAt:     time.Now().UnixMilli(),
@@ -137,7 +143,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 // buildPolicySpecs returns the ingress and egress policy specs for a deployment.
 func buildPolicySpecs(
 	workspace db.Workspace,
-	environment db.FindEnvironmentByIdRow,
+	environment db.Environment,
 	deployment db.Deployment,
 ) []ciliumPolicySpec {
 	portStr := fmt.Sprintf("%d", deployment.Port)

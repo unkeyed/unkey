@@ -77,7 +77,7 @@ export function createPermissionOptions({
                 Permission Details
               </div>
               {/* Content */}
-              <div className="px-4 py-3 space-y-3">
+              <div className="flex flex-col px-4 py-3 gap-3">
                 <div>
                   <div className="text-xs font-medium text-gray-11 mb-1">Permission ID</div>
                   <div className="text-xs text-gray-12 font-mono break-all">{permission.id}</div>

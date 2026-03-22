@@ -208,7 +208,7 @@ export const KeyRbacDialog = ({
               </div>
             }
           >
-            <div className="space-y-5 px-2 py-1">
+            <div className="flex flex-col gap-5 px-2 py-1">
               <KeyInfo
                 keyDetails={{
                   id: existingKey.id,

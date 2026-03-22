@@ -26,7 +26,7 @@ export function TurnstileChallenge({ email, onSuccess, onError }: TurnstileChall
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <div className="text-center">
         <h3 className="text-lg font-semibold text-white">Security Verification</h3>
         <p className="text-sm text-gray-400 mt-2">
@@ -39,7 +39,7 @@ export function TurnstileChallenge({ email, onSuccess, onError }: TurnstileChall
         <div className="relative w-[300px] h-[65px]">
           {isWidgetLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-800/90 backdrop-blur-xs rounded-sm border border-gray-600 z-10">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <div className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-white rounded-full" />
                 <span className="text-sm text-gray-300">Loading verification...</span>
               </div>

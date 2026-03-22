@@ -12,7 +12,7 @@ import { useProductSelection } from "@/hooks/use-product-selection";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import type { IconProps } from "@unkey/icons";
-import { ChevronExpandY, CloudUp, Nodes } from "@unkey/icons";
+import { Check, ChevronExpandY, CloudUp, Nodes } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
@@ -70,7 +70,7 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
     <button
       type="button"
       className={cn(
-        "flex items-center rounded-lg bg-background border-gray-6 border hover:bg-background-subtle cursor-pointer ring-0 focus:ring-0 focus:outline-none text-content transition-colors",
+        "flex items-center rounded-md bg-background border-gray-6 border hover:bg-grayA-3 cursor-pointer ring-0 focus:ring-0 focus:outline-none text-content transition-colors",
         isCollapsed
           ? "justify-center w-10 h-8 p-0"
           : "justify-between w-[200px] h-8 gap-2 px-2 flex-1",
@@ -82,9 +82,9 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
           isCollapsed ? "justify-center" : "",
         )}
       >
-        <Icon className="w-5 h-5 shrink-0 text-gray-11" />
+        <Icon className="w-5 h-5 shrink-0 text-accent-12" iconSize="sm-medium" />
         {!isCollapsed && (
-          <span className="text-sm font-medium text-gray-12 truncate w-full text-left">
+          <span className="text-[13px] font-medium text-accent-12 truncate w-full text-left">
             {currentProduct.name}
           </span>
         )}
@@ -103,31 +103,41 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
     >
       {products.map((prod) => {
         const ProdIcon = prod.icon;
+        const isSelected = prod.id === product;
         return (
           <DropdownMenuItem
             key={prod.id}
-            className="flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-2"
+            className={cn(
+              "flex items-center justify-between gap-2.5 p-2.5 cursor-pointer hover:bg-grayA-3",
+              isSelected && "bg-grayA-2",
+            )}
             disabled={prod.disabled}
             onClick={() => {
               switchProduct(prod.id);
             }}
           >
-            <ProdIcon className="w-5 h-5 shrink-0 text-gray-11 mt-0.5" />
-            <div className="flex flex-col">
-              <span
-                className={cn(
-                  "text-sm",
-                  prod.id === product ? "font-medium text-gray-12" : "text-gray-11",
+            <div className="flex items-center gap-2.5">
+              <ProdIcon
+                className={cn("size-5 shrink-0", isSelected ? "text-accent-12" : "text-gray-11")}
+                iconSize="sm-medium"
+              />
+              <div className="flex flex-col">
+                <span
+                  className={cn(
+                    "text-[13px] font-medium",
+                    isSelected ? "text-accent-12" : "text-gray-12",
+                  )}
+                >
+                  {prod.name}
+                </span>
+                {prod.disabled ? (
+                  <span className="text-xs text-warning-10">In Private Beta</span>
+                ) : (
+                  <span className="text-xs text-gray-11">{prod.description}</span>
                 )}
-              >
-                {prod.name}
-              </span>
-              {prod.disabled ? (
-                <span className="text-xs text-warning-10">In Private Beta</span>
-              ) : (
-                <span className="text-xs text-gray-10">{prod.description}</span>
-              )}
+              </div>
             </div>
+            {isSelected && <Check className="w-4 h-4 text-accent-11" iconSize="sm-medium" />}
           </DropdownMenuItem>
         );
       })}
@@ -137,7 +147,7 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
   if (isCollapsed) {
     return (
       <TooltipProvider>
-        <Tooltip open={!isDropdownOpen}>
+        <Tooltip>
           <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
@@ -153,7 +163,7 @@ export const ProductSwitcher: React.FC<ProductSwitcherProps> = ({
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
       {dropdownContent}
     </DropdownMenu>

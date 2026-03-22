@@ -12,24 +12,26 @@ type PromotionDialogProps = {
   isOpen: boolean;
   onClose: () => void;
   targetDeployment: Deployment;
-  liveDeployment: Deployment;
+  currentDeployment: Deployment;
+  isConfirmingRollback: boolean;
 };
 
 export const PromotionDialog = ({
   isOpen,
   onClose,
   targetDeployment,
-  liveDeployment,
+  currentDeployment,
+  isConfirmingRollback,
 }: PromotionDialogProps) => {
   const utils = trpc.useUtils();
   const domains = useLiveQuery(
     (q) =>
       q
         .from({ domain: collection.domains })
-        .where(({ domain }) => eq(domain.projectId, liveDeployment.projectId))
+        .where(({ domain }) => eq(domain.projectId, currentDeployment.projectId))
         .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
-        .where(({ domain }) => eq(domain.deploymentId, liveDeployment.id)),
-    [liveDeployment.projectId, liveDeployment.id],
+        .where(({ domain }) => eq(domain.deploymentId, currentDeployment.id)),
+    [currentDeployment.projectId, currentDeployment.id],
   );
   const promote = trpc.deploy.deployment.promote.useMutation({
     onSuccess: () => {
@@ -69,8 +71,12 @@ export const PromotionDialog = ({
     <DialogContainer
       isOpen={isOpen}
       onOpenChange={onClose}
-      title="Promotion to version"
-      subTitle="Switch the active deployment to a target stable version"
+      title={isConfirmingRollback ? "Confirm Rollback" : "Promotion to version"}
+      subTitle={
+        isConfirmingRollback
+          ? "Confirm the rollback and re-enable automatic deployments"
+          : "Switch the active deployment to a target stable version"
+      }
       footer={
         <Button
           variant="primary"
@@ -80,23 +86,38 @@ export const PromotionDialog = ({
           loading={promote.isLoading}
           className="w-full rounded-lg"
         >
-          Promote to
-          {targetDeployment.gitCommitSha
-            ? shortenId(targetDeployment.gitCommitSha)
-            : targetDeployment.id}
+          {isConfirmingRollback
+            ? "Confirm Rollback"
+            : `Promote to ${targetDeployment.gitCommitSha ? shortenId(targetDeployment.gitCommitSha) : targetDeployment.id}`}
         </Button>
       }
     >
-      <div className="space-y-9">
-        <DeploymentSection
-          title="Live Deployment"
-          deployment={liveDeployment}
-          isLive={true}
-          showSignal={true}
-        />
-        <DomainsSection domains={domains.data} />
-        <DeploymentSection title="Target Deployment" deployment={targetDeployment} isLive={false} />
-      </div>
+      {isConfirmingRollback ? (
+        <div className="flex flex-col gap-9">
+          <DeploymentSection
+            title="Current Deployment"
+            deployment={currentDeployment}
+            isCurrent={true}
+            showSignal={true}
+          />
+          <DomainsSection domains={domains.data} />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-9">
+          <DeploymentSection
+            title="Current Deployment"
+            deployment={currentDeployment}
+            isCurrent={true}
+            showSignal={true}
+          />
+          <DomainsSection domains={domains.data} />
+          <DeploymentSection
+            title="Target Deployment"
+            deployment={targetDeployment}
+            isCurrent={false}
+          />
+        </div>
+      )}
     </DialogContainer>
   );
 };

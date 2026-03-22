@@ -111,6 +111,7 @@ func (s *Service) ensureInfraDomain(ctx context.Context, domain string, restate 
 			ID:                 domainID,
 			WorkspaceID:        InfraWorkspaceID,
 			ProjectID:          InfraWorkspaceID,
+			AppID:              InfraWorkspaceID,
 			EnvironmentID:      InfraWorkspaceID,
 			Domain:             domain,
 			ChallengeType:      db.CustomDomainsChallengeTypeDNS01,

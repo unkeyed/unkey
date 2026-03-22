@@ -16,24 +16,22 @@ INSERT INTO projects (
     workspace_id,
     name,
     slug,
-    default_branch,
     delete_protection,
     created_at,
     updated_at
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?
 )
 `
 
 type InsertProjectParams struct {
-	ID               string         `db:"id"`
-	WorkspaceID      string         `db:"workspace_id"`
-	Name             string         `db:"name"`
-	Slug             string         `db:"slug"`
-	DefaultBranch    sql.NullString `db:"default_branch"`
-	DeleteProtection sql.NullBool   `db:"delete_protection"`
-	CreatedAt        int64          `db:"created_at"`
-	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+	ID               string        `db:"id"`
+	WorkspaceID      string        `db:"workspace_id"`
+	Name             string        `db:"name"`
+	Slug             string        `db:"slug"`
+	DeleteProtection sql.NullBool  `db:"delete_protection"`
+	CreatedAt        int64         `db:"created_at"`
+	UpdatedAt        sql.NullInt64 `db:"updated_at"`
 }
 
 // InsertProject
@@ -43,12 +41,11 @@ type InsertProjectParams struct {
 //	    workspace_id,
 //	    name,
 //	    slug,
-//	    default_branch,
 //	    delete_protection,
 //	    created_at,
 //	    updated_at
 //	) VALUES (
-//	    ?, ?, ?, ?, ?, ?, ?, ?
+//	    ?, ?, ?, ?, ?, ?, ?
 //	)
 func (q *Queries) InsertProject(ctx context.Context, db DBTX, arg InsertProjectParams) error {
 	_, err := db.ExecContext(ctx, insertProject,
@@ -56,7 +53,6 @@ func (q *Queries) InsertProject(ctx context.Context, db DBTX, arg InsertProjectP
 		arg.WorkspaceID,
 		arg.Name,
 		arg.Slug,
-		arg.DefaultBranch,
 		arg.DeleteProtection,
 		arg.CreatedAt,
 		arg.UpdatedAt,

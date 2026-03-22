@@ -34,18 +34,19 @@ type RegistryConfig struct {
 // between container orchestration (Krane), database updates, domain routing, and sentinel
 // configuration to ensure consistent deployment state.
 //
-// The workflow uses Restate virtual objects keyed by project ID to ensure that only one
-// deployment operation runs per project at any time, preventing race conditions during
-// concurrent deploy/rollback/promote operations.
+// The workflow uses Restate virtual objects keyed by app ID to ensure that only one
+// deployment operation runs per app at any time, preventing race conditions during
+// concurrent deploy/rollback/promote operations while allowing parallel deploys
+// across different apps within the same project.
 type Workflow struct {
 	hydrav1.UnimplementedDeployServiceServer
 	db db.Database
 
-	defaultDomain    string
-	vault            vault.VaultServiceClient
-	sentinelImage    string
-	availableRegions []string
-	github           githubclient.GitHubClient
+	defaultDomain string
+	vault         vault.VaultServiceClient
+	sentinelImage string
+
+	github githubclient.GitHubClient
 
 	// Build dependencies
 	depotConfig                     DepotConfig
@@ -53,6 +54,7 @@ type Workflow struct {
 	buildPlatform                   BuildPlatform
 	clickhouse                      clickhouse.ClickHouse
 	allowUnauthenticatedDeployments bool
+	dashboardURL                    string
 }
 
 var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
@@ -70,9 +72,6 @@ type Config struct {
 
 	// SentinelImage is the Docker image used for sentinel containers.
 	SentinelImage string
-
-	// AvailableRegions is the list of available regions for deployments.
-	AvailableRegions []string
 
 	// GitHub provides access to GitHub API for downloading tarballs.
 	GitHub githubclient.GitHubClient
@@ -92,6 +91,10 @@ type Config struct {
 	// AllowUnauthenticatedDeployments controls whether builds can skip GitHub authentication.
 	// Set to true only for local development with public repositories.
 	AllowUnauthenticatedDeployments bool
+
+	// DashboardURL is the base URL of the dashboard for constructing log URLs
+	// in GitHub deployment statuses (e.g., "https://app.unkey.com").
+	DashboardURL string
 }
 
 // New creates a new deployment workflow instance.
@@ -102,12 +105,13 @@ func New(cfg Config) *Workflow {
 		defaultDomain:                    cfg.DefaultDomain,
 		vault:                            cfg.Vault,
 		sentinelImage:                    cfg.SentinelImage,
-		availableRegions:                 cfg.AvailableRegions,
-		github:                           cfg.GitHub,
-		depotConfig:                      cfg.DepotConfig,
-		registryConfig:                   cfg.RegistryConfig,
-		buildPlatform:                    cfg.BuildPlatform,
-		clickhouse:                       cfg.Clickhouse,
-		allowUnauthenticatedDeployments:  cfg.AllowUnauthenticatedDeployments,
+
+		github:                          cfg.GitHub,
+		depotConfig:                     cfg.DepotConfig,
+		registryConfig:                  cfg.RegistryConfig,
+		buildPlatform:                   cfg.BuildPlatform,
+		clickhouse:                      cfg.Clickhouse,
+		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
+		dashboardURL:                    cfg.DashboardURL,
 	}
 }

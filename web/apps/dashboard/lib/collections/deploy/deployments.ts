@@ -4,6 +4,7 @@ import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
+import { DEPLOYMENT_STATUSES } from "./deployment-status";
 import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
 
 const schema = z.object({
@@ -16,14 +17,20 @@ const schema = z.object({
   gitCommitAuthorHandle: z.string().nullable(),
   gitCommitAuthorAvatarUrl: z.string(),
   gitCommitTimestamp: z.number().int().nullable(),
+  prNumber: z.number().int().nullable(),
+  forkRepositoryFullName: z.string().nullable(),
   // OpenAPI
   hasOpenApiSpec: z.boolean(),
   // Deployment status
-  status: z.enum(["pending", "building", "deploying", "network", "ready", "failed"]),
+  status: z.enum(DEPLOYMENT_STATUSES),
   instances: z.array(
     z.object({
       id: z.string(),
-      region: z.string(),
+      region: z.object({
+        id: z.string(),
+        name: z.string(),
+        platform: z.string(),
+      }),
       flagCode: z.enum(flagCodes),
     }),
   ),

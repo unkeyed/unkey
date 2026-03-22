@@ -1,7 +1,12 @@
-import { db, eq, schema } from "@/lib/db";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import { githubAppEnv } from "@/lib/env";
 import {
+  type BranchActivity,
+  MAX_BRANCHES,
+  checkFileExists,
   getInstallationRepositories,
+  getMostActiveBranches,
+  getRepository,
   getRepositoryBranches,
   getRepositoryById,
   getRepositoryTree,
@@ -24,11 +29,17 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
         id: true,
       },
       with: {
-        githubRepoConnection: {
-          columns: {
-            pk: true,
-            repositoryId: true,
-            repositoryFullName: true,
+        apps: {
+          columns: { id: true, defaultBranch: true },
+          with: {
+            githubRepoConnection: {
+              columns: {
+                pk: true,
+                repositoryId: true,
+                repositoryFullName: true,
+                installationId: true,
+              },
+            },
           },
         },
         workspace: {
@@ -57,12 +68,19 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
     return null;
   }
 
+  // Prefer the first app that already has a github connection, otherwise pick any app
+  const connectedApp = project.apps.find((a) => a.githubRepoConnection != null);
+  const app = connectedApp ?? project.apps[0] ?? null;
+
   return {
-    repoConnection: project.githubRepoConnection
+    appId: app?.id ?? null,
+    defaultBranch: app?.defaultBranch ?? "main",
+    repoConnection: app?.githubRepoConnection
       ? {
-          pk: project.githubRepoConnection.pk,
-          repositoryId: project.githubRepoConnection.repositoryId,
-          repositoryFullName: project.githubRepoConnection.repositoryFullName,
+          pk: app.githubRepoConnection.pk,
+          repositoryId: app.githubRepoConnection.repositoryId,
+          repositoryFullName: app.githubRepoConnection.repositoryFullName,
+          installationId: app.githubRepoConnection.installationId,
         }
       : null,
     installations: project.workspace?.githubAppInstallations ?? [],
@@ -199,6 +217,38 @@ export const githubRouter = t.router({
       };
     }),
 
+  getRepoTree: workspaceProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
+      if (!githubContext?.repoConnection) {
+        return { tree: null };
+      }
+
+      const { repositoryFullName, installationId } = githubContext.repoConnection;
+      const [owner, repo] = repositoryFullName.split("/");
+      if (!owner || !repo) {
+        return { tree: null };
+      }
+
+      try {
+        const result = await getRepositoryTree(
+          installationId,
+          owner,
+          repo,
+          githubContext.defaultBranch,
+        );
+
+        if (result.truncated) {
+          return { tree: null };
+        }
+
+        return { tree: result.tree };
+      } catch {
+        return { tree: null };
+      }
+    }),
+
   getInstallations: workspaceProcedure
     .input(
       z.object({
@@ -215,6 +265,7 @@ export const githubRouter = t.router({
       }
 
       return {
+        appId: githubContext.appId,
         installations: githubContext.installations,
         repoConnection: githubContext.repoConnection,
       };
@@ -283,7 +334,14 @@ export const githubRouter = t.router({
         }
       }
 
-      allRepos.sort((a, b) => a.fullName.localeCompare(b.fullName));
+      allRepos.sort((a, b) => {
+        const aTime = a.pushedAt ? new Date(a.pushedAt).getTime() : 0;
+        const bTime = b.pushedAt ? new Date(b.pushedAt).getTime() : 0;
+        if (aTime !== bTime) {
+          return bTime - aTime;
+        }
+        return a.fullName.localeCompare(b.fullName);
+      });
 
       return { repositories: allRepos };
     }),
@@ -317,18 +375,58 @@ export const githubRouter = t.router({
         });
       }
 
-      const [tree, branchesData] = await Promise.all([
+      const [treeResult, activeBranches, repoData] = await Promise.all([
         getRepositoryTree(input.installationId, input.owner, input.repo, input.defaultBranch),
-        getRepositoryBranches(input.installationId, input.owner, input.repo),
+        // If the events API fails, fall back to an empty list so the branch fallback logic kicks in
+        getMostActiveBranches(input.installationId, input.owner, input.repo).catch(
+          (): BranchActivity[] => [],
+        ),
+        getRepository(input.installationId, input.owner, input.repo),
       ]);
 
-      const hasDockerfile = tree.some(
-        (entry) => entry.type === "blob" && entry.path.split("/").pop() === "Dockerfile",
-      );
+      let hasDockerfile: boolean;
+      if (treeResult.truncated) {
+        // Tree was truncated by GitHub — scanning the partial tree may miss files.
+        // Fall back to a targeted existence check for the root Dockerfile.
+        hasDockerfile = await checkFileExists(
+          input.installationId,
+          input.owner,
+          input.repo,
+          input.defaultBranch,
+          "Dockerfile",
+        );
+      } else {
+        hasDockerfile = treeResult.tree.some(
+          (entry) => entry.type === "blob" && entry.path.split("/").pop() === "Dockerfile",
+        );
+      }
+
+      let branches: Array<{ name: string; lastPushDate: string | null }>;
+
+      if (activeBranches.length > 0) {
+        branches = activeBranches.map((b) => ({ name: b.name, lastPushDate: b.lastPushDate }));
+        // Ensure the default branch is always included
+        if (!branches.some((b) => b.name === input.defaultBranch)) {
+          branches.unshift({
+            name: input.defaultBranch,
+            lastPushDate: null,
+          });
+        }
+      } else {
+        // Fallback: no recent events, use alphabetical branches
+        const fallbackBranches = await getRepositoryBranches(
+          input.installationId,
+          input.owner,
+          input.repo,
+          MAX_BRANCHES,
+        );
+        branches = fallbackBranches.map((b) => ({ name: b.name, lastPushDate: null }));
+      }
 
       return {
         hasDockerfile,
-        branches: branchesData.map((b) => b.name),
+        branches,
+        pushedAt: repoData.pushed_at,
       };
     }),
 
@@ -336,6 +434,7 @@ export const githubRouter = t.router({
     .input(
       z.object({
         projectId: z.string(),
+        appId: z.string().optional(),
         repositoryId: z.number().int(),
         repositoryFullName: z.string(),
         installationId: z.number().int(),
@@ -362,6 +461,23 @@ export const githubRouter = t.router({
         });
       }
 
+      // Resolve appId: use provided value or find the default app for the project
+      let appId = input.appId;
+      if (!appId) {
+        const app = await db.query.apps.findFirst({
+          where: (table, { eq, and }) =>
+            and(eq(table.projectId, input.projectId), eq(table.slug, "default")),
+          columns: { id: true },
+        });
+        if (!app) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "No default app found for this project",
+          });
+        }
+        appId = app.id;
+      }
+
       const verifiedRepo = await getRepositoryById(input.installationId, input.repositoryId).catch(
         () => {
           throw new TRPCError({
@@ -382,6 +498,7 @@ export const githubRouter = t.router({
         .insert(schema.githubRepoConnections)
         .values({
           projectId: input.projectId,
+          appId,
           installationId: input.installationId,
           repositoryId: verifiedRepo.id,
           repositoryFullName: verifiedRepo.full_name,
@@ -403,38 +520,47 @@ export const githubRouter = t.router({
           });
         });
 
+      // Persist the repo's default branch to the app so branch→environment
+      // resolution uses the actual GitHub default instead of hardcoded "main".
+      if (verifiedRepo.default_branch) {
+        await db
+          .update(schema.apps)
+          .set({ defaultBranch: verifiedRepo.default_branch, updatedAt: Date.now() })
+          .where(eq(schema.apps.id, appId));
+      }
+
       return { success: true };
     }),
 
   disconnectRepo: workspaceProcedure
     .input(
       z.object({
-        projectId: z.string(),
+        appId: z.string(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const project = await db.query.projects
+      const app = await db.query.apps
         .findFirst({
           where: (table, { and, eq }) =>
-            and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
+            and(eq(table.id, input.appId), eq(table.workspaceId, ctx.workspace.id)),
         })
         .catch(() => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to load project",
+            message: "Failed to load app",
           });
         });
 
-      if (!project) {
+      if (!app) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Project not found",
+          message: "App not found",
         });
       }
 
       await db
         .delete(schema.githubRepoConnections)
-        .where(eq(schema.githubRepoConnections.projectId, input.projectId))
+        .where(eq(schema.githubRepoConnections.appId, input.appId))
         .catch(() => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -476,7 +602,18 @@ export const githubRouter = t.router({
 
       await db
         .delete(schema.githubRepoConnections)
-        .where(eq(schema.githubRepoConnections.installationId, input.installationId))
+        .where(
+          and(
+            eq(schema.githubRepoConnections.installationId, input.installationId),
+            inArray(
+              schema.githubRepoConnections.projectId,
+              db
+                .select({ id: schema.projects.id })
+                .from(schema.projects)
+                .where(eq(schema.projects.workspaceId, ctx.workspace.id)),
+            ),
+          ),
+        )
         .catch(() => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -486,7 +623,12 @@ export const githubRouter = t.router({
 
       await db
         .delete(schema.githubAppInstallations)
-        .where(eq(schema.githubAppInstallations.installationId, input.installationId))
+        .where(
+          and(
+            eq(schema.githubAppInstallations.installationId, input.installationId),
+            eq(schema.githubAppInstallations.workspaceId, ctx.workspace.id),
+          ),
+        )
         .catch(() => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",

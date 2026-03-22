@@ -1,6 +1,6 @@
 import { and, db, eq, inArray } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { environmentVariables, environments } from "@unkey/db/src/schema";
+import { appEnvironmentVariables, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
@@ -10,6 +10,7 @@ const envVarOutputSchema = z.object({
   value: z.string(),
   type: z.enum(["recoverable", "writeonly"]),
   description: z.string().nullable(),
+  createdAt: z.number(),
 });
 
 const environmentOutputSchema = z.object({
@@ -25,7 +26,7 @@ export const listEnvVars = workspaceProcedure
   )
   .query(async ({ ctx, input }) => {
     try {
-      // Fetch all environments for this project
+      // Fetch all environments for this project (needed for slugs and appId)
       const envs = await db.query.environments.findMany({
         where: and(
           eq(environments.workspaceId, ctx.workspace.id),
@@ -34,20 +35,30 @@ export const listEnvVars = workspaceProcedure
         columns: {
           id: true,
           slug: true,
+          appId: true,
         },
       });
 
-      const envIds = envs.map((e) => e.id);
-
-      if (envIds.length === 0) {
+      if (envs.length === 0) {
         return {};
       }
 
-      // Fetch all environment variables in one query
-      const allVariables = await db.query.environmentVariables.findMany({
+      // Collect unique app IDs from environments
+      const appIds = [...new Set(envs.map((e) => e.appId))];
+
+      if (appIds.length === 0) {
+        const result: Record<string, z.infer<typeof environmentOutputSchema>> = {};
+        for (const env of envs) {
+          result[env.slug] = { id: env.id, variables: [] };
+        }
+        return result;
+      }
+
+      // Fetch all app environment variables in one query
+      const allVariables = await db.query.appEnvironmentVariables.findMany({
         where: and(
-          eq(environmentVariables.workspaceId, ctx.workspace.id),
-          inArray(environmentVariables.environmentId, envIds),
+          eq(appEnvironmentVariables.workspaceId, ctx.workspace.id),
+          inArray(appEnvironmentVariables.appId, appIds),
         ),
         columns: {
           id: true,
@@ -56,6 +67,7 @@ export const listEnvVars = workspaceProcedure
           value: true,
           type: true,
           description: true,
+          createdAt: true,
         },
       });
 
@@ -73,6 +85,7 @@ export const listEnvVars = workspaceProcedure
             value: "••••••••",
             type: v.type,
             description: v.description,
+            createdAt: v.createdAt,
           })),
         };
       }

@@ -4,11 +4,11 @@ import { SelectedConfig } from "../../shared/selected-config";
 import { GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel } from "./shared";
 
 export const GitHubConnected = ({
-  projectId,
+  appId,
   installUrl,
   repoFullName,
 }: {
-  projectId: string;
+  appId: string;
   installUrl: string;
   repoFullName: string;
 }) => {
@@ -18,6 +18,7 @@ export const GitHubConnected = ({
     onSuccess: async () => {
       toast.success("Repository disconnected");
       await utils.github.getInstallations.invalidate();
+      await utils.github.getRepoTree.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -47,7 +48,7 @@ export const GitHubConnected = ({
             className="px-3 rounded-lg"
             variant="primary"
             color="danger"
-            onClick={() => disconnectRepoMutation.mutate({ projectId })}
+            onClick={() => disconnectRepoMutation.mutate({ appId })}
             loading={disconnectRepoMutation.isLoading}
           >
             Disconnect

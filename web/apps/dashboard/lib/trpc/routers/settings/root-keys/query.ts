@@ -1,5 +1,5 @@
-import { rootKeysQueryPayload } from "@/app/(app)/[workspaceSlug]/settings/root-keys/components/table/query-logs.schema";
-import { and, count, db, desc, eq, exists, isNull, like, lt, or, schema } from "@/lib/db";
+import { rootKeysQueryPayload } from "@/components/root-keys-table/schema/query-logs.schema";
+import { and, asc, count, db, desc, eq, exists, isNull, like, or, schema } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -27,7 +27,6 @@ const RootKeysResponse = z.object({
   keys: z.array(RootKeyResponse),
   hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z.int().optional(),
 });
 
 type PermissionResponse = z.infer<typeof PermissionResponse>;
@@ -35,22 +34,18 @@ type RootKeysResponse = z.infer<typeof RootKeysResponse>;
 export type RootKey = z.infer<typeof RootKeyResponse>;
 
 export const LIMIT = 50;
+export const MAX_LIMIT = 200;
 
 export const queryRootKeys = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(rootKeysQueryPayload)
   .output(RootKeysResponse)
   .query(async ({ ctx, input }) => {
-    // Build base conditions
+    // Build base conditions (used for both count and fetch)
     const baseConditions = [
       eq(schema.keys.forWorkspaceId, ctx.workspace.id),
       isNull(schema.keys.deletedAtM),
     ];
-
-    // Add cursor condition for pagination
-    if (input.cursor && typeof input.cursor === "number") {
-      baseConditions.push(lt(schema.keys.createdAtM, input.cursor));
-    }
 
     // Build filter conditions
     const filterConditions = [];
@@ -132,20 +127,37 @@ export const queryRootKeys = workspaceProcedure
       }
     }
 
-    // Combine all conditions
-    const allConditions =
+    // Count conditions: base + filters only (total must reflect all matching keys)
+    const countConditions =
       filterConditions.length > 0 ? [...baseConditions, ...filterConditions] : baseConditions;
+
+    // Fetch conditions: base + filters
+    const fetchConditions =
+      filterConditions.length > 0 ? [...baseConditions, ...filterConditions] : baseConditions;
+
+    // Build ORDER BY based on sort input
+    const SORT_COLUMN_MAP = {
+      name: schema.keys.name,
+      createdAt: schema.keys.createdAtM,
+      lastUpdatedAt: schema.keys.updatedAtM,
+    } as const;
+    const sortColumn = SORT_COLUMN_MAP[input.sortBy ?? "createdAt"];
+    const sortFn = input.sortOrder === "asc" ? asc : desc;
+
+    const page = input.page ?? 1;
+    const pageSize = Math.min(input.limit ?? LIMIT, MAX_LIMIT);
 
     try {
       const [totalResult, keysResult] = await Promise.all([
         db
           .select({ count: count() })
           .from(schema.keys)
-          .where(and(...allConditions)),
+          .where(and(...countConditions)),
         db.query.keys.findMany({
-          where: and(...allConditions),
-          orderBy: [desc(schema.keys.createdAtM)],
-          limit: LIMIT + 1, // Get one extra to check if there are more
+          where: and(...fetchConditions),
+          orderBy: [sortFn(sortColumn), sortFn(schema.keys.id)],
+          limit: pageSize,
+          offset: (page - 1) * pageSize,
           columns: {
             id: true,
             start: true,
@@ -171,12 +183,8 @@ export const queryRootKeys = workspaceProcedure
         }),
       ]);
 
-      // Check if we have more results
-      const hasMore = keysResult.length > LIMIT;
-      const keysWithoutExtra = hasMore ? keysResult.slice(0, LIMIT) : keysResult;
-
       // Transform the data to flatten permissions and add summary
-      const keys = keysWithoutExtra.map((key) => {
+      const keys = keysResult.map((key) => {
         const permissions = key.permissions
           .map((p) => p.permission)
           .filter(Boolean)
@@ -198,11 +206,11 @@ export const queryRootKeys = workspaceProcedure
         };
       });
 
+      const totalCount = totalResult[0]?.count ?? 0;
       const response: RootKeysResponse = {
         keys,
-        hasMore,
-        total: totalResult[0]?.count ?? 0,
-        nextCursor: keys.length > 0 ? keys[keys.length - 1].createdAt : undefined,
+        hasMore: page * pageSize < totalCount,
+        total: totalCount,
       };
 
       return response;
@@ -259,6 +267,9 @@ function categorizePermissions(permissions: PermissionResponse[]) {
         break;
       case "identity":
         category = "Identities";
+        break;
+      case "project":
+        category = "Projects";
         break;
       default:
         category = "Other";

@@ -2,12 +2,14 @@ package router
 
 import (
 	"context"
+	"fmt"
 
 	internalCaches "github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/mysql"
+	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 )
 
 // regionProximity maps regions to their closest regions in order of proximity.
@@ -41,16 +43,18 @@ var regionProximity = map[string][]string{
 }
 
 type service struct {
+	platform                    string
 	region                      string
-	db                          db.Database
-	frontlineRouteCache         cache.Cache[string, db.FrontlineRoute]
-	sentinelsByEnvironmentCache cache.Cache[string, []db.Sentinel]
+	db                          db.Querier
+	frontlineRouteCache         cache.Cache[string, db.FindFrontlineRouteByFQDNRow]
+	sentinelsByEnvironmentCache cache.Cache[string, []db.FindHealthyRoutableSentinelsByEnvironmentIDRow]
 }
 
 var _ Service = (*service)(nil)
 
 func New(cfg Config) (*service, error) {
 	return &service{
+		platform:                    cfg.Platform,
 		region:                      cfg.Region,
 		db:                          cfg.DB,
 		frontlineRouteCache:         cfg.FrontlineRouteCache,
@@ -58,12 +62,12 @@ func New(cfg Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.FrontlineRoute, []db.Sentinel, error) {
-	route, routeHit, err := s.frontlineRouteCache.SWR(ctx, hostname, func(ctx context.Context) (db.FrontlineRoute, error) {
-		return db.Query.FindFrontlineRouteByFQDN(ctx, s.db.RO(), hostname)
+func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.FindFrontlineRouteByFQDNRow, []db.FindHealthyRoutableSentinelsByEnvironmentIDRow, error) {
+	route, routeHit, err := s.frontlineRouteCache.SWR(ctx, hostname, func(ctx context.Context) (db.FindFrontlineRouteByFQDNRow, error) {
+		return s.db.FindFrontlineRouteByFQDN(ctx, hostname)
 	}, internalCaches.DefaultFindFirstOp)
 
-	if err != nil && !db.IsNotFound(err) {
+	if err != nil && !mysql.IsNotFound(err) {
 		return nil, nil, fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.ConfigLoadFailed.URN()),
 			fault.Internal("error loading frontline route"),
@@ -71,18 +75,18 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.Fr
 		)
 	}
 
-	if db.IsNotFound(err) || routeHit == cache.Null {
+	if mysql.IsNotFound(err) || routeHit == cache.Null {
 		return nil, nil, fault.New("no frontline route for hostname: "+hostname,
 			fault.Code(codes.Frontline.Routing.ConfigNotFound.URN()),
 			fault.Public("Domain not configured"),
 		)
 	}
 
-	sentinels, _, err := s.sentinelsByEnvironmentCache.SWR(ctx, route.EnvironmentID, func(ctx context.Context) ([]db.Sentinel, error) {
-		return db.Query.FindSentinelsByEnvironmentID(ctx, s.db.RO(), route.EnvironmentID)
+	sentinels, _, err := s.sentinelsByEnvironmentCache.SWR(ctx, route.EnvironmentID, func(ctx context.Context) ([]db.FindHealthyRoutableSentinelsByEnvironmentIDRow, error) {
+		return s.db.FindHealthyRoutableSentinelsByEnvironmentID(ctx, route.EnvironmentID)
 	}, internalCaches.DefaultFindFirstOp)
 
-	if err != nil && !db.IsNotFound(err) {
+	if err != nil && !mysql.IsNotFound(err) {
 		return nil, nil, fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.ConfigLoadFailed.URN()),
 			fault.Internal("error loading sentinels"),
@@ -93,21 +97,21 @@ func (s *service) LookupByHostname(ctx context.Context, hostname string) (*db.Fr
 	return &route, sentinels, nil
 }
 
-func (s *service) SelectSentinel(route *db.FrontlineRoute, sentinels []db.Sentinel) (*RouteDecision, error) {
+func (s *service) SelectSentinel(route *db.FindFrontlineRouteByFQDNRow, rows []db.FindHealthyRoutableSentinelsByEnvironmentIDRow) (*RouteDecision, error) {
 	decision := &RouteDecision{
-		DeploymentID:     route.DeploymentID,
-		LocalSentinel:    nil,
-		NearestNLBRegion: "",
+		DeploymentID:             route.DeploymentID,
+		LocalSentinelAddress:     "",
+		NearestNLBRegionPlatform: "",
 	}
 
-	healthyByRegion := make(map[string]*db.Sentinel)
-	for i := range sentinels {
-		gw := &sentinels[i]
-		if gw.Health != db.SentinelsHealthHealthy {
+	healthyByRegion := make(map[string]string)
+	for _, row := range rows {
+		if row.RegionName == "" || row.RegionPlatform == "" {
 			continue
 		}
 
-		healthyByRegion[gw.Region] = gw
+		key := fmt.Sprintf("%s.%s", row.RegionName, row.RegionPlatform)
+		healthyByRegion[key] = row.K8sAddress
 	}
 
 	if len(healthyByRegion) == 0 {
@@ -118,21 +122,25 @@ func (s *service) SelectSentinel(route *db.FrontlineRoute, sentinels []db.Sentin
 		)
 	}
 
-	if localGw, ok := healthyByRegion[s.region]; ok {
-		decision.LocalSentinel = localGw
+	localRegionPlatform := fmt.Sprintf("%s.%s", s.region, s.platform)
+	if localAddress, ok := healthyByRegion[localRegionPlatform]; ok {
+		decision.LocalSentinelAddress = localAddress
 		return decision, nil
 	}
 
-	nearestRegion := s.findNearestRegion(healthyByRegion)
+	nearestRegion := s.findNearestRegionPlatform(healthyByRegion)
 	if nearestRegion != "" {
-		decision.NearestNLBRegion = nearestRegion
+		decision.NearestNLBRegionPlatform = nearestRegion
 	}
 
 	return decision, nil
 }
 
-func (s *service) findNearestRegion(healthyByRegion map[string]*db.Sentinel) string {
-	proximityList, exists := regionProximity[s.region]
+func (s *service) findNearestRegionPlatform(healthyByRegion map[string]string) string {
+
+	self := fmt.Sprintf("%s.%s", s.region, s.platform)
+
+	proximityList, exists := regionProximity[self]
 	if exists {
 		for _, region := range proximityList {
 			if _, ok := healthyByRegion[region]; ok {

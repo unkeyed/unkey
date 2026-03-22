@@ -41,12 +41,8 @@ export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, cla
       >
         <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
           <Avatar className="size-6 rounded-full border border-grayA-6">
-            {user?.avatarUrl ? (
-              <AvatarImage src={user.avatarUrl} alt="Profile picture" className="rounded-full" />
-            ) : null}
-            <AvatarFallback className="bg-gray-2 rounded-full size-6">
-              {user ? (user?.fullName ?? "U").slice(0, 1).toUpperCase() : null}
-            </AvatarFallback>
+            {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt="Profile picture" />}
+            <AvatarFallback name={user?.email ?? "Username"} />
           </Avatar>
         </div>
       </DropdownMenuTrigger>

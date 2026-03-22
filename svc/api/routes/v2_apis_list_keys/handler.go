@@ -288,6 +288,7 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) op
 		Ratelimits:  nil,
 		Name:        keyData.Key.Name.String,
 		UpdatedAt:   keyData.Key.UpdatedAtM.Int64,
+		LastUsedAt:  int64(keyData.Key.LastUsedAt),
 		Credits:     nil,
 		Expires:     0,
 		Identity:    nil,

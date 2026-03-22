@@ -21,17 +21,31 @@ export const listDeployments = workspaceProcedure
           gitCommitAuthorHandle: true,
           gitCommitAuthorAvatarUrl: true,
           gitCommitTimestamp: true,
+          prNumber: true,
+          forkRepositoryFullName: true,
           status: true,
-          openapiSpec: true,
           cpuMillicores: true,
           memoryMib: true,
           createdAt: true,
         },
         with: {
+          openapiSpec: {
+            columns: {
+              pk: true,
+            },
+          },
           instances: {
             columns: {
               id: true,
-              region: true,
+            },
+            with: {
+              region: {
+                columns: {
+                  id: true,
+                  name: true,
+                  platform: true,
+                },
+              },
             },
           },
         },
@@ -41,8 +55,13 @@ export const listDeployments = workspaceProcedure
 
       return deployments.map(({ openapiSpec, ...deployment }) => ({
         ...deployment,
-        instances: deployment.instances.map((i) => ({ ...i, flagCode: mapRegionToFlag(i.region) })),
-        gitBranch: deployment.gitBranch ?? "main",
+        instances: deployment.instances.map((i) => ({
+          ...i,
+          flagCode: mapRegionToFlag(i.region.name),
+        })),
+        gitBranch: deployment.gitBranch ?? "",
+        prNumber: deployment.prNumber ?? null,
+        forkRepositoryFullName: deployment.forkRepositoryFullName ?? null,
         gitCommitAuthorAvatarUrl:
           deployment.gitCommitAuthorAvatarUrl ?? "https://github.com/identicons/dummy-user.png",
         hasOpenApiSpec: Boolean(openapiSpec),

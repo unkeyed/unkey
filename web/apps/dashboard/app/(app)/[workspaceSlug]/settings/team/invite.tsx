@@ -136,7 +136,7 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
             control={control}
             name="role"
             render={({ field }) => (
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <div className="text-gray-11 text-[13px] flex items-center">Role</div>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <SelectTrigger className="h-9">

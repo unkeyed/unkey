@@ -2,30 +2,27 @@ package api
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
+	restate "github.com/restatedev/sdk-go"
 	restateingress "github.com/restatedev/sdk-go/ingress"
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/uid"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const maxWebhookBodySize = 2 * 1024 * 1024 // 2 MB
 
-// GitHubWebhook handles incoming GitHub App webhook events and triggers
-// deployment workflows via Restate. It validates webhook signatures using
-// the configured secret before processing any events.
+// GitHubWebhook handles incoming GitHub App webhook events by validating
+// signatures and dispatching to the GitHubWebhookService in Restate.
+// The HTTP handler performs no DB access — all processing happens durably
+// inside the Restate virtual object.
 type GitHubWebhook struct {
-	db            db.Database
 	restate       *restateingress.Client
 	webhookSecret string
 }
@@ -60,6 +57,7 @@ func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxWebhookBodySize))
+
 	if err != nil {
 		logger.Warn("GitHub webhook rejected: failed to read body", "error", err)
 		http.Error(w, "failed to read body", http.StatusBadRequest)
@@ -74,9 +72,13 @@ func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info("GitHub webhook signature verified", "event", event)
 
+	deliveryID := r.Header.Get("X-GitHub-Delivery")
+
 	switch event {
 	case "push":
-		s.handlePush(r.Context(), w, body)
+		s.handlePush(r.Context(), w, body, deliveryID)
+	case "pull_request":
+		s.handlePullRequest(r.Context(), w, body, deliveryID)
 	case "installation":
 		logger.Info("Installation event received")
 		w.WriteHeader(http.StatusOK)
@@ -84,22 +86,17 @@ func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logger.Info("Unhandled event type", "event", event)
 		w.WriteHeader(http.StatusOK)
 	}
+
 }
 
-// handlePush processes push events by creating a deployment record and
-// starting the deploy workflow. Maps branches to environments: the project's
-// default branch deploys to production, all others to preview.
-func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, body []byte) {
+// handlePush parses the push payload, extracts commit metadata, and sends
+// a HandlePush request to the GitHubWebhookService in Restate. No DB access
+// happens here — the Restate service handles all processing durably.
+func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, body []byte, deliveryID string) {
 	var payload pushPayload
 	if err := json.Unmarshal(body, &payload); err != nil {
 		logger.Error("failed to parse push payload", "error", err)
 		http.Error(w, "failed to parse push payload", http.StatusBadRequest)
-		return
-	}
-
-	if payload.Repository.Fork {
-		logger.Info("Ignoring push from forked repository", "repository", payload.Repository.FullName)
-		w.WriteHeader(http.StatusOK)
 		return
 	}
 
@@ -110,150 +107,127 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		return
 	}
 
-	repoConnections, err := db.Query.ListGithubRepoConnections(ctx, s.db.RO(), db.ListGithubRepoConnectionsParams{
-		InstallationID: payload.Installation.ID,
-		RepositoryID:   payload.Repository.ID,
-	})
+	// Extract commit metadata from the payload
+	gitCommit := extractGitCommitInfo(&payload)
+
+	// Key by installation_id:repo_id for per-repository serialization.
+	// Colon delimiter because Restate interprets slashes as path separators.
+	objectKey := fmt.Sprintf("%d:%d", payload.Installation.ID, payload.Repository.ID)
+	client := hydrav1.NewGitHubWebhookServiceIngressClient(s.restate, objectKey)
+
+	var sendOpts []restate.IngressSendOption
+	if deliveryID != "" {
+		sendOpts = append(sendOpts, restate.WithIdempotencyKey(deliveryID))
+	}
+
+	// Collect all unique changed files across all commits
+	changedFiles := collectChangedFiles(payload.Commits)
+
+	_, err := client.HandlePush().Send(ctx, &hydrav1.HandlePushRequest{
+		InstallationId:        payload.Installation.ID,
+		RepositoryId:          payload.Repository.ID,
+		RepositoryFullName:    payload.Repository.FullName,
+		Branch:                branch,
+		After:                 payload.After,
+		CommitMessage:         gitCommit.Message,
+		CommitAuthorHandle:    gitCommit.AuthorHandle,
+		CommitAuthorAvatarUrl: gitCommit.AuthorAvatarURL,
+		CommitTimestamp:       gitCommit.Timestamp.UnixMilli(),
+		DeliveryId:            deliveryID,
+		ChangedFiles:          changedFiles,
+		SenderLogin:           payload.Sender.Login,
+	}, sendOpts...)
 	if err != nil {
-		logger.Error("failed to find repo connections", "error", err, "repository", payload.Repository.FullName)
-		http.Error(w, "failed to find repo connections", http.StatusInternalServerError)
+		logger.Error("failed to send HandlePush to Restate",
+			"error", err,
+			"delivery_id", deliveryID,
+			"repository", payload.Repository.FullName,
+		)
+		http.Error(w, "failed to enqueue webhook processing", http.StatusInternalServerError)
 		return
 	}
 
-	for _, repo := range repoConnections {
+	logger.Info("GitHub push webhook enqueued to Restate",
+		"delivery_id", deliveryID,
+		"repository", payload.Repository.FullName,
+		"branch", branch,
+		"commit_sha", payload.After,
+	)
 
-		project, err := db.Query.FindProjectById(ctx, s.db.RO(), repo.ProjectID)
-		if err != nil {
-			if db.IsNotFound(err) {
-				logger.Info("No project found for repo connection", "projectId", repo.ProjectID)
-				continue
-			}
-			logger.Error("failed to find project", "error", err, "projectId", repo.ProjectID)
-			http.Error(w, "failed to find project", http.StatusInternalServerError)
-			return
-		}
+	w.WriteHeader(http.StatusOK)
+}
 
-		defaultBranch := "main"
-		if project.DefaultBranch.Valid && project.DefaultBranch.String != "" {
-			defaultBranch = project.DefaultBranch.String
-		}
-
-		// Determine environment based on branch
-		envSlug := "preview"
-		if branch == defaultBranch {
-			envSlug = "production"
-		}
-
-		envSettings, err := db.Query.FindEnvironmentWithSettingsByProjectIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentWithSettingsByProjectIdAndSlugParams{
-			WorkspaceID: project.WorkspaceID,
-			ProjectID:   project.ID,
-			Slug:        envSlug,
-		})
-		if err != nil {
-			logger.Error("failed to find environment", "error", err, "projectId", project.ID, "envSlug", envSlug)
-			http.Error(w, "failed to find environment", http.StatusInternalServerError)
-			return
-		}
-		env := envSettings.Environment
-
-		// Fetch environment variables and build secrets blob
-		envVars, err := db.Query.FindEnvironmentVariablesByEnvironmentId(ctx, s.db.RO(), env.ID)
-		if err != nil {
-			logger.Error("failed to fetch environment variables", "error", err)
-			http.Error(w, "failed to fetch environment variables", http.StatusInternalServerError)
-			return
-		}
-
-		secretsBlob := []byte{}
-		if len(envVars) > 0 {
-			secretsConfig := &ctrlv1.SecretsConfig{
-				Secrets: make(map[string]string, len(envVars)),
-			}
-			for _, ev := range envVars {
-				secretsConfig.Secrets[ev.Key] = ev.Value
-			}
-
-			secretsBlob, err = protojson.Marshal(secretsConfig)
-			if err != nil {
-				logger.Error("failed to marshal secrets config", "error", err)
-				http.Error(w, "failed to marshal secrets", http.StatusInternalServerError)
-				return
-			}
-		}
-
-		// Create deployment record
-		deploymentID := uid.New(uid.DeploymentPrefix)
-		now := time.Now().UnixMilli()
-		gitCommit := s.extractGitCommitInfo(&payload)
-
-		err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
-			ID:                            deploymentID,
-			K8sName:                       uid.DNS1035(12),
-			WorkspaceID:                   project.WorkspaceID,
-			ProjectID:                     project.ID,
-			EnvironmentID:                 env.ID,
-			SentinelConfig:                envSettings.EnvironmentRuntimeSetting.SentinelConfig,
-			EncryptedEnvironmentVariables: secretsBlob,
-			Command:                       envSettings.EnvironmentRuntimeSetting.Command,
-			Status:                        db.DeploymentsStatusPending,
-			CreatedAt:                     now,
-			UpdatedAt:                     sql.NullInt64{Valid: false},
-			GitCommitSha:                  sql.NullString{String: payload.After, Valid: payload.After != ""},
-			GitBranch:                     sql.NullString{String: branch, Valid: branch != ""},
-			GitCommitMessage:              sql.NullString{String: gitCommit.Message, Valid: gitCommit.Message != ""},
-			GitCommitAuthorHandle:         sql.NullString{String: gitCommit.AuthorHandle, Valid: gitCommit.AuthorHandle != ""},
-			GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommit.AuthorAvatarURL, Valid: gitCommit.AuthorAvatarURL != ""},
-			GitCommitTimestamp:            sql.NullInt64{Int64: gitCommit.Timestamp.UnixMilli(), Valid: !gitCommit.Timestamp.IsZero()},
-			OpenapiSpec:                   sql.NullString{Valid: false},
-			CpuMillicores:                 envSettings.EnvironmentRuntimeSetting.CpuMillicores,
-			MemoryMib:                     envSettings.EnvironmentRuntimeSetting.MemoryMib,
-			Port:                          envSettings.EnvironmentRuntimeSetting.Port,
-			ShutdownSignal:                db.DeploymentsShutdownSignal(envSettings.EnvironmentRuntimeSetting.ShutdownSignal),
-			Healthcheck:                   envSettings.EnvironmentRuntimeSetting.Healthcheck,
-		})
-		if err != nil {
-			logger.Error("failed to insert deployment", "error", err)
-			http.Error(w, "failed to create deployment", http.StatusInternalServerError)
-			return
-		}
-
-		logger.Info("Created deployment record",
-			"deployment_id", deploymentID,
-			"project_id", project.ID,
-			"repository", payload.Repository.FullName,
-			"commit_sha", payload.After,
-			"branch", branch,
-			"environment", envSlug,
-		)
-
-		// Start deploy workflow with GitSource
-		deployClient := hydrav1.NewDeployServiceIngressClient(s.restate, deploymentID)
-		invocation, err := deployClient.Deploy().Send(ctx, &hydrav1.DeployRequest{
-			DeploymentId: deploymentID,
-			Source: &hydrav1.DeployRequest_Git{
-				Git: &hydrav1.GitSource{
-					InstallationId: repo.InstallationID,
-					Repository:     payload.Repository.FullName,
-					CommitSha:      payload.After,
-					ContextPath:    envSettings.EnvironmentBuildSetting.DockerContext,
-					DockerfilePath: envSettings.EnvironmentBuildSetting.Dockerfile,
-				},
-			},
-		})
-		if err != nil {
-			logger.Error("failed to start deployment workflow", "error", err)
-			http.Error(w, "failed to start workflow", http.StatusInternalServerError)
-			return
-		}
-
-		logger.Info("Deployment workflow started",
-			"invocation_id", invocation.Id,
-			"deployment_id", deploymentID,
-			"project_id", project.ID,
-			"repository", payload.Repository.FullName,
-			"commit_sha", payload.After,
-		)
+// handlePullRequest handles pull_request events from forks. Same-repo PRs are
+// skipped because the push event already handles those. Fork PRs are dispatched
+// through the same HandlePush RPC with IsForkPr=true.
+func (s *GitHubWebhook) handlePullRequest(ctx context.Context, w http.ResponseWriter, body []byte, deliveryID string) {
+	var payload pullRequestPayload
+	if err := json.Unmarshal(body, &payload); err != nil {
+		logger.Error("failed to parse pull_request payload", "error", err)
+		http.Error(w, "failed to parse pull_request payload", http.StatusBadRequest)
+		return
 	}
+
+	// Only care about new commits (opened or new pushes to the PR)
+	if payload.Action != "opened" && payload.Action != "synchronize" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Same-repo PRs are already handled by the push event — skip to avoid double-deploy
+	if payload.PullRequest.Head.Repo.ID == payload.PullRequest.Base.Repo.ID {
+		logger.Info("Ignoring same-repo pull request, push event handles this",
+			"action", payload.Action,
+		)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	pr := payload.PullRequest
+	baseRepo := pr.Base.Repo
+
+	objectKey := fmt.Sprintf("%d:%d", payload.Installation.ID, baseRepo.ID)
+	client := hydrav1.NewGitHubWebhookServiceIngressClient(s.restate, objectKey)
+
+	var sendOpts []restate.IngressSendOption
+	if deliveryID != "" {
+		sendOpts = append(sendOpts, restate.WithIdempotencyKey(deliveryID))
+	}
+
+	authorHandle := pr.User.Login
+	_, err := client.HandlePush().Send(ctx, &hydrav1.HandlePushRequest{
+		InstallationId:         payload.Installation.ID,
+		RepositoryId:           baseRepo.ID,
+		RepositoryFullName:     baseRepo.FullName,
+		Branch:                 pr.Head.Ref,
+		After:                  pr.Head.SHA,
+		CommitMessage:          pr.Title,
+		CommitAuthorHandle:     authorHandle,
+		CommitAuthorAvatarUrl:  fmt.Sprintf("https://github.com/%s.png", authorHandle),
+		CommitTimestamp:        time.Now().UnixMilli(),
+		DeliveryId:             deliveryID,
+		SenderLogin:            payload.Sender.Login,
+		IsForkPr:               true,
+		PrNumber:               payload.Number,
+		ForkRepositoryFullName: pr.Head.Repo.FullName,
+	}, sendOpts...)
+	if err != nil {
+		logger.Error("failed to send HandlePush for fork PR to Restate",
+			"error", err,
+			"delivery_id", deliveryID,
+			"repository", baseRepo.FullName,
+		)
+		http.Error(w, "failed to enqueue webhook processing", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info("GitHub fork PR webhook enqueued to Restate",
+		"delivery_id", deliveryID,
+		"repository", baseRepo.FullName,
+		"branch", pr.Head.Ref,
+		"commit_sha", pr.Head.SHA,
+		"pr_action", payload.Action,
+	)
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -270,7 +244,7 @@ func extractBranchFromRef(ref string) string {
 
 // extractGitCommitInfo extracts commit metadata from the push payload,
 // preferring HeadCommit when available and falling back to the first commit.
-func (s *GitHubWebhook) extractGitCommitInfo(payload *pushPayload) githubclient.CommitInfo {
+func extractGitCommitInfo(payload *pushPayload) githubclient.CommitInfo {
 	headCommit := payload.HeadCommit
 	if headCommit == nil && len(payload.Commits) > 0 {
 		c := payload.Commits[0]
@@ -279,6 +253,9 @@ func (s *GitHubWebhook) extractGitCommitInfo(payload *pushPayload) githubclient.
 			Message:   c.Message,
 			Timestamp: c.Timestamp,
 			Author:    c.Author,
+			Added:     c.Added,
+			Removed:   c.Removed,
+			Modified:  c.Modified,
 		}
 	}
 
@@ -286,16 +263,47 @@ func (s *GitHubWebhook) extractGitCommitInfo(payload *pushPayload) githubclient.
 		return githubclient.CommitInfoFromRaw("", "", "", "", "")
 	}
 
-	authorHandle := headCommit.Author.Username
+	// Use the first commit's author as the originator (PR creator).
+	// For a merged PR, head_commit is the merge commit whose author is the
+	// merger; commits[0] is the original PR work commit whose author is the
+	// PR creator. For a direct push, commits[0] == head_commit so this is
+	// equivalent.
+	authorCommit := headCommit
+	if len(payload.Commits) > 0 {
+		authorCommit = &payload.Commits[0]
+	}
+
+	authorHandle := authorCommit.Author.Username
 	if authorHandle == "" {
-		authorHandle = headCommit.Author.Name
+		authorHandle = authorCommit.Author.Name
 	}
 
 	return githubclient.CommitInfoFromRaw(
 		headCommit.ID,
 		headCommit.Message,
 		authorHandle,
-		payload.Sender.AvatarURL,
+		fmt.Sprintf("https://github.com/%s.png", authorHandle),
 		headCommit.Timestamp,
 	)
+}
+
+// collectChangedFiles deduplicates file paths from all commits in a push.
+func collectChangedFiles(commits []pushCommit) []string {
+	seen := make(map[string]struct{})
+	for _, c := range commits {
+		for _, f := range c.Added {
+			seen[f] = struct{}{}
+		}
+		for _, f := range c.Removed {
+			seen[f] = struct{}{}
+		}
+		for _, f := range c.Modified {
+			seen[f] = struct{}{}
+		}
+	}
+	files := make([]string, 0, len(seen))
+	for f := range seen {
+		files = append(files, f)
+	}
+	return files
 }
