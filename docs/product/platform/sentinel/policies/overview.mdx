@@ -1,0 +1,105 @@
+---
+title: Policies
+description: Policies are configurable rules that the Sentinel evaluates on every request before forwarding it to your service.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+A policy is a rule that the Sentinel evaluates on incoming requests. Each policy combines a condition (which requests to match) with an action (what to do). Policies are the building blocks for all of the Sentinel's request processing, including [authentication](/platform/sentinel/authentication), rate limiting, and access control.
+
+## Policy structure
+
+Every policy has four components:
+
+| Field     | Description                                                                   |
+| --------- | ----------------------------------------------------------------------------- |
+| `name`    | Human-readable label for identification                                        |
+| `enabled` | Toggle to disable the policy without removing it                               |
+| `match`   | Conditions that determine which requests the policy applies to                 |
+| `config`  | The action to perform (authentication, rate limiting, IP rules, or validation) |
+
+You can disable a policy by setting `enabled` to `false`. This is useful during incidents when you need to bypass a misbehaving policy without deleting its configuration or triggering a redeploy.
+
+## Evaluation order
+
+The Sentinel evaluates policies in the order they appear in the configuration:
+
+1. Skip the policy if `enabled` is `false`.
+2. Evaluate all match conditions. Skip the policy if any condition doesn't match the request.
+3. Execute the policy action. If the action rejects the request, return an error response immediately.
+4. Move to the next policy.
+
+If all matching policies pass, the Sentinel forwards the request to your service.
+
+Order matters. Place authentication policies before policies that depend on an authenticated identity (for example, rate limiting by authenticated subject).
+
+## Match expressions
+
+<Note>
+  Match expressions are coming soon. Policies configured through the dashboard apply to all requests. Contact [support@unkey.com](mailto:support@unkey.com) for custom match expression configuration.
+</Note>
+
+Match expressions control which requests a policy applies to. A policy can have multiple match conditions, and all conditions must match for the policy to run (AND logic). An empty match list applies the policy to all requests.
+
+### Available match types
+
+| Type            | Matches on               | Example use case                                  |
+| --------------- | ------------------------ | ------------------------------------------------- |
+| Path            | URL path                 | Apply auth to `/api/v1` paths only                 |
+| Method          | HTTP method              | Rate limit `POST` requests but not `GET`           |
+| Header          | Request header and value | Enforce policies when `X-Custom-Header` is present |
+| Query parameter | URL query parameter      | Match requests with a specific `version` parameter |
+
+All string matching supports three modes:
+
+- **Exact**: The value must match exactly (for example, `/healthz`)
+- **Prefix**: The value must start with the specified string (for example, `/api/v1`)
+- **Regex**: The value must match an RE2 regular expression (for example, `^/users/[0-9]+$`)
+
+Each mode supports optional case-insensitive matching.
+
+### Combine conditions
+
+To create AND conditions, add multiple match expressions to a single policy. All expressions must match for the policy to run.
+
+To create OR conditions, create separate policies with the same action but different match expressions.
+
+## Policy types
+
+| Type                                                                   | Status      | Description                                                |
+| ---------------------------------------------------------------------- | ----------- | ---------------------------------------------------------- |
+| [API key authentication](/platform/sentinel/policies/api-key)          | Available   | Verify Unkey API keys and forward identity to your service  |
+| [Logging](/platform/sentinel/policies/logging)                         | Available   | Record full HTTP requests and responses for debugging        |
+| [JWT authentication](/platform/sentinel/policies/jwt)                  | Coming soon | Validate Bearer JWTs using JWKS, OIDC, or PEM public keys  |
+| [Basic authentication](/platform/sentinel/policies/basic)              | Coming soon | Verify HTTP Basic credentials                               |
+| [Rate limiting](/platform/sentinel/policies/rate-limiting)             | Coming soon | Enforce per-IP, per-key, or per-subject rate limits         |
+| [IP rules](/platform/sentinel/policies/ip-rules)                       | Coming soon | Allow or deny requests based on CIDR ranges                 |
+| [OpenAPI validation](/platform/sentinel/policies/openapi-validation)   | Coming soon | Validate requests against an OpenAPI 3.0/3.1 specification |
+
+## Error response format
+
+When a policy rejects a request, the Sentinel returns a structured JSON error following the RFC 7807 Problem Details format:
+
+```json
+{
+  "meta": { "requestId": "req_abc123" },
+  "error": {
+    "title": "Unauthorized",
+    "detail": "API key is invalid or expired",
+    "status": 401,
+    "type": "https://unkey.com/docs/errors/sentinel/unauthorized"
+  }
+}
+```
+
+The `type` URI is stable per error kind and suitable for programmatic handling. Each policy type maps to a standard HTTP status code:
+
+| Policy type                               | Rejection status |
+| ----------------------------------------- | ---------------- |
+| Authentication (missing or invalid)       | 401              |
+| Authentication (insufficient permissions) | 403              |
+| Rate limiting                             | 429              |
+| IP rules                                  | 403              |
+| OpenAPI validation                        | 400              |

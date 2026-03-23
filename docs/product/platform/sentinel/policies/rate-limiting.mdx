@@ -1,0 +1,55 @@
+---
+title: Rate limiting
+description: Enforce rate limits on any matching route with the Sentinel.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+The rate limiting policy enforces request limits on any route that matches the policy's [match expressions](/platform/sentinel/policies/overview#match-expressions). Requests that exceed a configured limit receive a `429` response, protecting your service from traffic spikes and abuse.
+
+Each rate limit policy specifies a maximum number of requests within a time window (for example, 100 requests per 60 seconds) and a subject that identifies the entity being limited.
+
+## Rate limit subjects
+
+The subject determines how the Sentinel groups requests for counting:
+
+| Subject               | Description                                                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------------- |
+| Remote IP             | Limit by client IP address                                                                         |
+| Header value          | Limit by a specific request header (for example, `X-Tenant-Id`)                                   |
+| Authenticated subject | Limit by the authenticated [Principal's](/platform/sentinel/authentication#the-principal) identity  |
+| URL path              | Create separate limits per endpoint                                                                |
+| Principal claim       | Limit by a specific claim from the Principal (for example, `org_id` for per-organization limits)   |
+
+## Response headers
+
+When the Sentinel evaluates a rate limit, it includes the rate limit state in the response headers:
+
+| Header                  | Description                                                |
+| ----------------------- | ---------------------------------------------------------- |
+| `X-RateLimit-Limit`     | Maximum number of requests allowed in the window            |
+| `X-RateLimit-Remaining` | Requests remaining in the current window                    |
+| `X-RateLimit-Reset`     | Unix timestamp (seconds) when the window resets             |
+| `Retry-After`           | Seconds until the client can retry (only present on `429`)  |
+
+These headers appear on both successful and rate-limited responses, so your clients can monitor their usage proactively.
+
+## Exceeded rate limit behavior
+
+When a rate limit is exceeded, the Sentinel returns HTTP status `429 Too Many Requests` with the `Retry-After` header and a JSON error body:
+
+```json
+{
+  "meta": { "requestId": "req_abc123" },
+  "error": {
+    "title": "Rate Limited",
+    "detail": "Rate limit exceeded. Please try again later.",
+    "status": 429,
+    "type": "https://unkey.com/docs/errors/sentinel/rate-limited"
+  }
+}
+```
+
+Your service never sees rate-limited requests.

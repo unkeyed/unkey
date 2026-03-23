@@ -6,7 +6,7 @@
     "primary": "#666666"
   },
   "contextual": {
-    "options": ["copy", "view", "chatgpt", "claude", "perplexity"]
+    "options": ["copy", "view", "chatgpt", "claude"]
   },
   "favicon": "/unkey.png",
   "fonts": {
@@ -129,10 +129,20 @@
                 "group": "Sentinel",
                 "pages": [
                   "platform/sentinel/overview",
-                  "platform/sentinel/routing",
                   "platform/sentinel/authentication",
-                  "platform/sentinel/rate-limiting",
-                  "platform/sentinel/policies"
+                  {
+                    "group": "Policies",
+                    "pages": [
+                      "platform/sentinel/policies/overview",
+                      "platform/sentinel/policies/api-key",
+                      "platform/sentinel/policies/logging",
+                      "platform/sentinel/policies/jwt",
+                      "platform/sentinel/policies/basic",
+                      "platform/sentinel/policies/rate-limiting",
+                      "platform/sentinel/policies/ip-rules",
+                      "platform/sentinel/policies/openapi-validation"
+                    ]
+                  }
                 ]
               },
               {

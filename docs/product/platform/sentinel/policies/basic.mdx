@@ -1,0 +1,36 @@
+---
+title: Basic authentication
+description: Verify HTTP Basic credentials with the Sentinel.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+<Note>
+  Basic authentication is coming soon.
+</Note>
+
+The Basic authentication policy verifies HTTP Basic credentials (RFC 7617). On success, it produces a [Principal](/platform/sentinel/authentication#the-principal) with the matched username as the subject.
+
+## How it works
+
+The Sentinel decodes the `Authorization: Basic` header, extracts the username and password, and compares the password against a configured list of bcrypt-hashed credentials. Plaintext passwords are never stored in the configuration.
+
+## Configuration
+
+Each entry in the credentials list contains:
+
+| Field           | Description                                          |
+| --------------- | ---------------------------------------------------- |
+| Username        | Expected username (exact match, case-sensitive)       |
+| Password hash   | Bcrypt hash of the expected password                  |
+
+## Principal output
+
+Basic authentication produces a Principal with:
+
+- **subject**: The matched username
+- **claims**: Empty (no additional metadata)
+
+The Principal uses the same format as all authentication policies. See [Authentication](/platform/sentinel/authentication) for how to read it in your application.

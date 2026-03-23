@@ -1,0 +1,38 @@
+---
+title: IP rules
+description: Allow or deny requests based on client IP address ranges with the Sentinel.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+<Note>
+  IP rules are coming soon.
+</Note>
+
+The IP rules policy controls access based on client IP addresses using CIDR ranges. Use it to restrict your API to known networks or block specific addresses.
+
+## How it works
+
+IP rules evaluate two lists against the client's IP address:
+
+| List  | Description                                                         |
+| ----- | ------------------------------------------------------------------- |
+| Allow | CIDR ranges permitted to access the service                          |
+| Deny  | CIDR ranges blocked from accessing the service                       |
+
+Deny rules are evaluated first. If the client IP matches a deny entry, the request is rejected with `403` regardless of the allow list. If an allow list is configured and the client IP doesn't match any entry, the request is also rejected.
+
+## Client IP resolution
+
+The Sentinel derives the client IP from the `X-Forwarded-For` header using a trusted proxy configuration. This ensures accurate IP detection when your service runs behind load balancers or CDNs.
+
+## Configuration examples
+
+Block a specific address while allowing a corporate network:
+
+| List  | CIDR range         |
+| ----- | ------------------ |
+| Allow | `10.0.0.0/8`      |
+| Deny  | `10.0.1.100/32`   |

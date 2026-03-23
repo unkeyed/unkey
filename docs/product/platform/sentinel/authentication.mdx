@@ -1,16 +1,94 @@
 ---
 title: Authentication
-description: Enforce API key, JWT, and Basic authentication at the gateway layer with Sentinel policies.
+description: How the Sentinel authenticates requests and forwards verified identity information to your service.
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-## TODO
+Authentication policies verify credentials before requests reach your service. On success, the policy produces a Principal, a verified identity object that the Sentinel forwards to your application. Your service receives the authenticated identity in a request header without performing its own credential checks.
 
-- Supported authentication methods: API key, JWT, Basic auth
-- Configuring an authentication policy on a route
-- How Sentinel verifies credentials before forwarding to your service
-- Identity headers injected into the proxied request
-- Combining gateway-level auth with application-level auth
+The Sentinel supports [API key authentication](/platform/sentinel/policies/api-key) today, with [JWT](/platform/sentinel/policies/jwt) and [Basic authentication](/platform/sentinel/policies/basic) coming soon. All authentication methods produce the same Principal, so your application code won't need to change when you switch methods.
+
+## The Principal
+
+{/* TODO: Overhaul this entire Principal section. The current format and structure is not what we want long term. */}
+
+A Principal represents the authenticated entity making the request. It has two fields:
+
+| Field     | Description                                                                                |
+| --------- | ------------------------------------------------------------------------------------------ |
+| `subject` | A string identifying the authenticated entity (key ID or the identity's external ID)        |
+| `claims`  | Key-value metadata from the authentication source (key name, custom metadata, identity info) |
+
+Only one Principal exists per request. If multiple authentication policies match, the first successful one sets the Principal and subsequent authentication policies are skipped.
+
+### How the Sentinel forwards the Principal
+
+After all policies pass, the Sentinel serializes the Principal as JSON and sets the `X-Unkey-Principal` header on the proxied request. The Sentinel always strips any client-supplied `X-Unkey-Principal` header before policy evaluation, preventing clients from forging identity information.
+
+<Warning>
+  Your service must only be reachable through the Sentinel for this header to be trustworthy. If clients can bypass the Sentinel and reach your service directly, they could set this header themselves.
+</Warning>
+
+### Principal format
+
+A key without a linked identity produces a Principal where the key ID is the subject:
+
+```json
+{
+  "subject": "key_3xMpL9kF2nR",
+  "claims": {
+    "key_id": "key_3xMpL9kF2nR",
+    "name": "ACME Production Key",
+    "meta": {}
+  }
+}
+```
+
+A key linked to an identity produces a Principal where the identity's external ID is the subject:
+
+```json
+{
+  "subject": "user_42",
+  "claims": {
+    "key_id": "key_3xMpL9kF2nR",
+    "name": "ACME Production Key",
+    "meta": {},
+    "identity": {
+      "id": "id_xyz789",
+      "externalId": "user_42",
+      "meta": {}
+    }
+  }
+}
+```
+
+When no authentication policy is configured or the request has no credentials, the header is absent. Check for header presence to distinguish authenticated from anonymous requests.
+
+### Read the Principal in your application
+
+Parse the `X-Unkey-Principal` header as JSON to access the authenticated identity:
+
+```ts
+app.get("/api/resource", (req, res) => {
+  const header = req.headers["x-unkey-principal"];
+
+  if (!header) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const principal = JSON.parse(header);
+  console.log(principal.subject);
+  console.log(principal.claims);
+
+  res.json({ data: "..." });
+});
+```
+
+Use `subject` for authorization decisions, database lookups, or audit logging. The `claims` object contains metadata from the key and, if linked, the identity.
+
+### Downstream policies
+
+Other policies can use the Principal for their own decisions. For example, a [rate limit policy](/platform/sentinel/policies/rate-limiting) can throttle requests per authenticated subject, and an API key policy can enforce [permissions](/platform/apis/features/authorization/introduction) in the Sentinel. This decoupling means you can swap authentication methods without reconfiguring downstream policies.

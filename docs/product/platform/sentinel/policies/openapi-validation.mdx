@@ -1,0 +1,29 @@
+---
+title: OpenAPI validation
+description: Validate incoming requests against an OpenAPI specification with the Sentinel.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+<Note>
+  OpenAPI validation is coming soon.
+</Note>
+
+The OpenAPI validation policy checks incoming requests against an OpenAPI 3.0 or 3.1 specification. Requests that don't conform to the spec are rejected with `400` before reaching your service.
+
+## What gets validated
+
+The Sentinel validates the following parts of each request against your spec:
+
+- Path parameters
+- Query parameters
+- Request headers
+- Request body (content type and schema)
+
+Requests that don't match any defined operation in the spec are rejected. Response validation is not performed by the Sentinel.
+
+## Configuration
+
+Provide your OpenAPI specification as a YAML document in the policy configuration. The spec is parsed once when the policy loads.
