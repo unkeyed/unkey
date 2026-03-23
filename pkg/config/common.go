@@ -115,13 +115,13 @@ type ControlConfig struct {
 	Token string `toml:"token" config:"required"`
 }
 
-// PprofConfig controls the Go pprof profiling endpoints served at /debug/pprof/*.
-// Pprof is enabled when this section is present in the config file and disabled
-// when omitted (the field is a pointer on the Config).
+// PprofConfig controls the Go pprof profiling endpoints.
+// The path prefix is set per-service (e.g. /debug/pprof/* for the API,
+// /_unkey/internal/pprof/* for frontline and sentinel).
+// Pprof is enabled only when both Username and Password are non-empty;
+// otherwise the endpoints are not registered.
 type PprofConfig struct {
-	// Username is the Basic Auth username for pprof endpoints. When both
-	// Username and Password are empty, pprof endpoints are served without
-	// authentication — only appropriate in development environments.
+	// Username is the Basic Auth username for pprof endpoints.
 	Username string `toml:"username"`
 
 	// Password is the Basic Auth password for pprof endpoints.

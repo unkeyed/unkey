@@ -76,7 +76,7 @@ type Config struct {
 	// When nil (section omitted), gossip is disabled and invalidation is local-only.
 	Gossip *config.GossipConfig `toml:"gossip"`
 
-	// Pprof configures Go pprof profiling endpoints at /debug/pprof/*.
+	// Pprof configures Go pprof profiling endpoints at /_unkey/internal/pprof/*.
 	// When nil or credentials are empty, pprof is disabled.
 	Pprof *config.PprofConfig `toml:"pprof"`
 }

@@ -242,7 +242,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr))
 
-	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != ""
+	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != "" && cfg.Pprof.Password != ""
 	var pprofUsername, pprofPassword string
 	if pprofEnabled {
 		pprofUsername = cfg.Pprof.Username

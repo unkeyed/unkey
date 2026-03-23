@@ -176,7 +176,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// (deployments are proxied as pass-through).
 	middlewareEngine := initMiddlewareEngine(cfg, database, ch, clk, r)
 
-	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != ""
+	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != "" && cfg.Pprof.Password != ""
 	var pprofUsername, pprofPassword string
 	if pprofEnabled {
 		pprofUsername = cfg.Pprof.Username
