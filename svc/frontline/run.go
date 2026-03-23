@@ -241,7 +241,9 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr))
+
 	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != ""
+
 	svcs := &routes.Services{
 		Region:            cfg.Region,
 		RouterService:     routerSvc,
@@ -251,6 +253,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ErrorPageRenderer: errorpage.NewRenderer(),
 		PprofEnabled:      pprofEnabled,
 	}
+
 	if pprofEnabled {
 		svcs.PprofUsername = cfg.Pprof.Username
 		svcs.PprofPassword = cfg.Pprof.Password
