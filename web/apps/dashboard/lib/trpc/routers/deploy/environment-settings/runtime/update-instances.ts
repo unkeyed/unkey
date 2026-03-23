@@ -18,26 +18,22 @@ export const updateInstances = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    try {
-      await db
-        .update(appRegionalSettings)
-        .set({
-          replicas: input.replicasPerRegion,
-        })
-        .where(
-          and(
-            eq(appRegionalSettings.workspaceId, ctx.workspace.id),
-            eq(appRegionalSettings.environmentId, input.environmentId),
-          ),
-        );
-    } catch (err) {
-      if (err instanceof TRPCError) {
-        throw err;
-      }
-      console.error(err);
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Unable to update instances.",
+    await db
+      .update(appRegionalSettings)
+      .set({
+        replicas: input.replicasPerRegion,
+      })
+      .where(
+        and(
+          eq(appRegionalSettings.workspaceId, ctx.workspace.id),
+          eq(appRegionalSettings.environmentId, input.environmentId),
+        ),
+      )
+      .catch((err) => {
+        console.error(err);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Unable to update instances.",
+        });
       });
-    }
   });

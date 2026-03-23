@@ -54,10 +54,10 @@ export const getEnvironmentSettings = workspaceProcedure
         regionalSettings,
       };
     } catch (err) {
+      console.error(err);
       if (err instanceof TRPCError) {
         throw err;
       }
-      console.error(err);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Unable to load environment.",
