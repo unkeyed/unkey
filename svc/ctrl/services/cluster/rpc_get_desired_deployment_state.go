@@ -84,8 +84,6 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 			Command:                       deployment.Command,
 			Port:                          deployment.Port,
 			ShutdownSignal:                string(deployment.ShutdownSignal),
-			AppSlug:                       &deployment.AppSlug,
-			ProjectSlug:                   &deployment.ProjectSlug,
 			EnvironmentSlug:               &deployment.EnvironmentSlug,
 			Region:                        &deployment.Region,
 		}

@@ -155,8 +155,6 @@ func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow)
 			Command:                       row.Deployment.Command,
 			Port:                          row.Deployment.Port,
 			ShutdownSignal:                string(row.Deployment.ShutdownSignal),
-			AppSlug:                       &row.AppSlug,
-			ProjectSlug:                   &row.ProjectSlug,
 			EnvironmentSlug:               &row.EnvironmentSlug,
 			Region:                        &row.RegionName,
 		}

@@ -322,8 +322,6 @@ message ApplyDeployment {
   string app_id = 18;
 
   // Runtime environment variable fields for user workloads.
-  optional string app_slug = 19;
-  optional string project_slug = 20;
   optional string environment_slug = 21;
   optional string region = 22;
   optional string git_commit_sha = 23;

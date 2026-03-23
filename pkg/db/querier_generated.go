@@ -460,16 +460,12 @@ type Querier interface {
 	//      d.git_commit_sha,
 	//      d.git_branch,
 	//      d.git_commit_message,
-	//      p.slug AS project_slug,
-	//      a.slug AS app_slug,
 	//      e.slug AS environment_slug,
 	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
 	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
 	//  INNER JOIN `regions` r ON dt.region_id = r.id
-	//  INNER JOIN `projects` p ON d.project_id = p.id
-	//  INNER JOIN `apps` a ON d.app_id = a.id
 	//  INNER JOIN `environments` e ON d.environment_id = e.id
 	//  LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
 	//  WHERE  r.name = ?
@@ -2071,8 +2067,6 @@ type Querier interface {
 	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
 	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace,
-	//      p.slug AS project_slug,
-	//      a.slug AS app_slug,
 	//      e.slug AS environment_slug,
 	//      r.name AS region_name,
 	//      grc.repository_full_name AS git_repo
@@ -2080,8 +2074,6 @@ type Querier interface {
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
 	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
 	//  INNER JOIN `regions` r ON dt.region_id = r.id
-	//  INNER JOIN `projects` p ON d.project_id = p.id
-	//  INNER JOIN `apps` a ON d.app_id = a.id
 	//  INNER JOIN `environments` e ON d.environment_id = e.id
 	//  LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
 	//  WHERE r.id = ? AND dt.version > ?
