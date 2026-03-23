@@ -5,7 +5,7 @@ description: Adding a new EKS region.
 
 End-to-end guide for adding a new AWS region to the Unkey EKS infrastructure.
 
-Assumes familiarity with Kubernetes, AWS, and the existing repo layout. For architecture details see the main [README](../../README.md).
+Assumes familiarity with Kubernetes, AWS, and the existing repo layout.
 
 ---
 
@@ -14,10 +14,10 @@ Assumes familiarity with Kubernetes, AWS, and the existing repo layout. For arch
 Before starting, ensure you have:
 
 - **AWS credentials** configured (`AWS_PROFILE`) with permissions for EKS, IAM, Route53, Secrets Manager, and ELB
-- **CLI tools** installed: `awscli`, `eksctl`, `kubectl`, `helm`, `argocd` (see [README Prerequisites](../../README.md#prerequisites))
+- **CLI tools** installed: `awscli`, `eksctl`, `kubectl`, `helm`, `argocd`
 - **GitHub App credentials** for ArgoCD repository access
 - **Route53 hosted zones** created for `<environment>.aws.unkey.com` and `aws.unkey.cloud`
-- **CIDR allocation** — confirm the target region has an entry in [`networks`](networks). The generator script will refuse to run if the CIDR is missing.
+- **CIDR allocation** — confirm the target region has an entry in [`networks`](/infra/clusters/networks). The generator script will refuse to run if the CIDR is missing.
 
 ---
 
@@ -69,7 +69,7 @@ git diff
 
 Things to verify:
 
-- VPC CIDR matches the [networks](networks) assignment
+- VPC CIDR matches the [networks](/infra/clusters/networks) assignment
 - Hostnames and domain patterns look correct
 - gossip WAN seeds have a `TODO` comment (expected — you'll fill them in at Step 6)
 
@@ -313,7 +313,7 @@ ENVIRONMENT=production001 ./scripts/setup-global-accelerator.sh
 Error: No CIDR found for 'production001-xx-xxxx-1'
 ```
 
-The region isn't in the `CIDR_MAP` in `generate-region-config.sh`. Add it there and in [networks](networks).
+The region isn't in the `CIDR_MAP` in `generate-region-config.sh`. Add it there and in [networks](/infra/clusters/networks).
 
 ### Node groups not scheduling pods
 

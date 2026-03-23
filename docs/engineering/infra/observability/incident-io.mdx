@@ -84,7 +84,7 @@ Each environment's Alertmanager points to a different incident.io alert source. 
 | Production | Checkly (Production) | `https://api.incident.io/v2/alert_events/checkly/01HZ7GE7CASMF15RWV1QFCMKTQ` |
 | Staging | Checkly (Staging) | `https://api.incident.io/v2/alert_events/checkly/01KKZJERF1HQFJRE3XWFZ0NV19` |
 
-The base values file (`values.yaml`) defaults to the staging Alertmanager source. Production environment files override this to point to the production source. Checkly sources are configured via webhook alert channels in the Checkly UI — see [Checkly](checkly).
+The base values file (`values.yaml`) defaults to the staging Alertmanager source. Production environment files override this to point to the production source. Checkly sources are configured via webhook alert channels in the Checkly UI — see [Checkly](/infra/observability/checkly).
 
 ## API reference
 
