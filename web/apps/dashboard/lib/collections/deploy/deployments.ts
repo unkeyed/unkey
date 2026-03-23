@@ -17,6 +17,8 @@ const schema = z.object({
   gitCommitAuthorHandle: z.string().nullable(),
   gitCommitAuthorAvatarUrl: z.string(),
   gitCommitTimestamp: z.number().int().nullable(),
+  prNumber: z.number().int().nullable(),
+  forkRepositoryFullName: z.string().nullable(),
   // OpenAPI
   hasOpenApiSpec: z.boolean(),
   // Deployment status

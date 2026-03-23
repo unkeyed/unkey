@@ -103,6 +103,30 @@ func doRequest(client *http.Client, method string, url string, headers map[strin
 	return nil
 }
 
+// statusCheck executes an HTTP request and returns true if the response status matches expectedStatus.
+// Returns (false, nil) for non-matching statuses, (false, error) for transport errors.
+func statusCheck(client *http.Client, method string, url string, headers map[string]string, expectedStatus int) (bool, error) {
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return false, fault.Wrap(err, fault.Internal("failed to create request"))
+	}
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return false, fault.Wrap(err, fault.Internal(fmt.Sprintf("%s %s failed", method, url)))
+	}
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+	}()
+
+	return resp.StatusCode == expectedStatus, nil
+}
+
 // githubHeaders returns common GitHub API headers with the given bearer token.
 func githubHeaders(token string) map[string]string {
 	h := map[string]string{

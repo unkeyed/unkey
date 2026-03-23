@@ -1,0 +1,9 @@
+---
+title: unkey_admin
+---
+
+Has `default_roles_all: true` set in ClickHouse Cloud config, so it automatically inherits every role without explicit grants.
+
+```sql
+CREATE USER IF NOT EXISTS unkey_admin IDENTIFIED WITH sha256_password BY '<password>';
+```
