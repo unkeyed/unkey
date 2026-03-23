@@ -23,7 +23,7 @@ go_library(
         "//pkg/zen/validation",
         "//svc/api/internal/middleware",
         "//svc/api/routes/openapi",
-        "//svc/api/routes/pprof",
+        "//pkg/pprof",
         "//svc/api/routes/reference",
         "//svc/api/routes/v2_analytics_get_verifications",
         "//svc/api/routes/v2_apis_create_api",

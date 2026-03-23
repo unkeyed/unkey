@@ -122,8 +122,8 @@ type PprofConfig struct {
 	// Username is the Basic Auth username for pprof endpoints. When both
 	// Username and Password are empty, pprof endpoints are served without
 	// authentication — only appropriate in development environments.
-	Username string `toml:"username" config:"required"`
+	Username string `toml:"username"`
 
 	// Password is the Basic Auth password for pprof endpoints.
-	Password string `toml:"password" config:"required"`
+	Password string `toml:"password"`
 }

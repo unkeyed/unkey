@@ -12,7 +12,7 @@ go_library(
         "//pkg/clickhouse",
         "//pkg/clock",
         "//pkg/zen",
-        "//svc/api/routes/pprof",
+        "//pkg/pprof",
         "//svc/sentinel/engine",
         "//svc/sentinel/middleware",
         "//svc/sentinel/routes/internal_health",

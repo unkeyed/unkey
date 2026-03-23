@@ -177,6 +177,11 @@ func Run(ctx context.Context, cfg Config) error {
 	middlewareEngine := initMiddlewareEngine(cfg, database, ch, clk, r)
 
 	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != ""
+	var pprofUsername, pprofPassword string
+	if pprofEnabled {
+		pprofUsername = cfg.Pprof.Username
+		pprofPassword = cfg.Pprof.Password
+	}
 	svcs := &routes.Services{
 		RouterService:      routerSvc,
 		Clock:              clk,
@@ -189,10 +194,8 @@ func Run(ctx context.Context, cfg Config) error {
 		RequestTimeout:     cfg.RequestTimeout,
 		Engine:             middlewareEngine,
 		PprofEnabled:       pprofEnabled,
-	}
-	if pprofEnabled {
-		svcs.PprofUsername = cfg.Pprof.Username
-		svcs.PprofPassword = cfg.Pprof.Password
+		PprofUsername:      pprofUsername,
+		PprofPassword:      pprofPassword,
 	}
 
 	srv, err := zen.New(zen.Config{

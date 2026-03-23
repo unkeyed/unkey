@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/zen"
-	pprofRoute "github.com/unkeyed/unkey/svc/api/routes/pprof"
+	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/svc/frontline/middleware"
 	acme "github.com/unkeyed/unkey/svc/frontline/routes/acme"
 	internalHealth "github.com/unkeyed/unkey/svc/frontline/routes/internal_health"
@@ -36,6 +36,7 @@ func Register(srv *zen.Server, svc *Services) {
 			&pprofRoute.Handler{
 				Username: svc.PprofUsername,
 				Password: svc.PprofPassword,
+				Prefix:   "/_unkey/internal",
 			},
 		)
 	}

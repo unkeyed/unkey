@@ -12,7 +12,7 @@ go_library(
         "//gen/rpc/ctrl",
         "//pkg/clock",
         "//pkg/zen",
-        "//svc/api/routes/pprof",
+        "//pkg/pprof",
         "//svc/frontline/internal/errorpage",
         "//svc/frontline/middleware",
         "//svc/frontline/routes/acme",
