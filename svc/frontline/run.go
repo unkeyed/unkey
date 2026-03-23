@@ -242,13 +242,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr))
 
-	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != "" && cfg.Pprof.Password != ""
-	var pprofUsername, pprofPassword string
-	if pprofEnabled {
-		pprofUsername = cfg.Pprof.Username
-		pprofPassword = cfg.Pprof.Password
-	}
-
 	svcs := &routes.Services{
 		Region:            cfg.Region,
 		RouterService:     routerSvc,
@@ -256,9 +249,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clock:             clk,
 		AcmeClient:        acmeClient,
 		ErrorPageRenderer: errorpage.NewRenderer(),
-		PprofEnabled:      pprofEnabled,
-		PprofUsername:     pprofUsername,
-		PprofPassword:     pprofPassword,
+		Pprof:             cfg.Pprof,
 	}
 
 	// Start HTTPS frontline server (main proxy server)

@@ -3,8 +3,8 @@ package routes
 import (
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/zen"
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
+	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/middleware"
 	acme "github.com/unkeyed/unkey/svc/frontline/routes/acme"
 	internalHealth "github.com/unkeyed/unkey/svc/frontline/routes/internal_health"
@@ -30,12 +30,12 @@ func Register(srv *zen.Server, svc *Services) {
 		&internalHealth.Handler{},
 	)
 
-	if svc.PprofEnabled {
+	if svc.Pprof != nil {
 		srv.RegisterRoute(
 			[]zen.Middleware{withLogging},
 			&pprofRoute.Handler{
-				Username: svc.PprofUsername,
-				Password: svc.PprofPassword,
+				Username: svc.Pprof.Username,
+				Password: svc.Pprof.Password,
 				Prefix:   "/_unkey/internal",
 			},
 		)

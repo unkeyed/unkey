@@ -5,6 +5,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/svc/sentinel/engine"
 	"github.com/unkeyed/unkey/svc/sentinel/services/router"
 )
@@ -21,7 +22,6 @@ type Services struct {
 	MaxRequestBodySize int64
 	RequestTimeout     time.Duration
 	Engine             engine.Evaluator
-	PprofEnabled       bool
-	PprofUsername      string
-	PprofPassword      string
+	// Pprof enables pprof profiling endpoints when non-nil.
+	Pprof *config.PprofConfig
 }

@@ -176,12 +176,6 @@ func Run(ctx context.Context, cfg Config) error {
 	// (deployments are proxied as pass-through).
 	middlewareEngine := initMiddlewareEngine(cfg, database, ch, clk, r)
 
-	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != "" && cfg.Pprof.Password != ""
-	var pprofUsername, pprofPassword string
-	if pprofEnabled {
-		pprofUsername = cfg.Pprof.Username
-		pprofPassword = cfg.Pprof.Password
-	}
 	svcs := &routes.Services{
 		RouterService:      routerSvc,
 		Clock:              clk,
@@ -193,9 +187,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MaxRequestBodySize: maxRequestBodySize,
 		RequestTimeout:     cfg.RequestTimeout,
 		Engine:             middlewareEngine,
-		PprofEnabled:       pprofEnabled,
-		PprofUsername:      pprofUsername,
-		PprofPassword:      pprofPassword,
+		Pprof:              cfg.Pprof,
 	}
 
 	srv, err := zen.New(zen.Config{

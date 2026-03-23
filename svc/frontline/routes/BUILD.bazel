@@ -11,8 +11,9 @@ go_library(
     deps = [
         "//gen/rpc/ctrl",
         "//pkg/clock",
-        "//pkg/zen",
+        "//pkg/config",
         "//pkg/pprof",
+        "//pkg/zen",
         "//svc/frontline/internal/errorpage",
         "//svc/frontline/middleware",
         "//svc/frontline/routes/acme",

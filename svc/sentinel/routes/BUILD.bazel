@@ -11,8 +11,9 @@ go_library(
     deps = [
         "//pkg/clickhouse",
         "//pkg/clock",
-        "//pkg/zen",
+        "//pkg/config",
         "//pkg/pprof",
+        "//pkg/zen",
         "//svc/sentinel/engine",
         "//svc/sentinel/middleware",
         "//svc/sentinel/routes/internal_health",
