@@ -122,8 +122,8 @@ function flattenSettingsResponse(
 ): EnvironmentSettings {
   return {
     environmentId,
-    dockerfile: build?.dockerfile ?? "Dockerfile",
-    dockerContext: build?.dockerContext ?? ".",
+    dockerfile: build?.dockerfile || "Dockerfile",
+    dockerContext: build?.dockerContext || ".",
     watchPaths: build?.watchPaths ?? [],
     port: runtime?.port ?? 8080,
     cpuMillicores: runtime?.cpuMillicores ?? 256,

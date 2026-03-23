@@ -10,7 +10,6 @@ import (
 )
 
 type Handler struct {
-	Region        string
 	RouterService router.Service
 	ProxyService  proxy.Service
 	Clock         clock.Clock
@@ -24,29 +23,14 @@ func (h *Handler) Path() string {
 	return "/{path...}"
 }
 
-// Handle routes incoming requests to either:
-// 1. Local sentinel (if healthy sentinel in current region) - forwards with X-Unkey-Deployment-Id
-// 2. Remote region (if no local sentinel) - forwards to nearest region
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
-	start := h.Clock.Now()
-	ctx = proxy.WithRequestStartTime(ctx, start)
+	ctx = proxy.WithRequestStartTime(ctx, h.Clock.Now())
 	hostname := proxy.ExtractHostname(sess.Request().Host)
 
-	route, sentinels, err := h.RouterService.LookupByHostname(ctx, hostname)
+	decision, err := h.RouterService.Route(ctx, hostname)
 	if err != nil {
 		return err
 	}
 
-	// Find Local sentinel or nearest NLB
-	decision, err := h.RouterService.SelectSentinel(route, sentinels)
-	if err != nil {
-		return err
-	}
-
-	// We obviously prefer a local sentinel if available
-	if decision.LocalSentinelAddress != "" {
-		return h.ProxyService.ForwardToSentinel(ctx, sess, decision.LocalSentinelAddress, decision.DeploymentID)
-	}
-
-	return h.ProxyService.ForwardToRegion(ctx, sess, decision.NearestNLBRegionPlatform)
+	return h.ProxyService.Forward(ctx, sess, decision)
 }
