@@ -28,7 +28,7 @@ type forwardConfig struct {
 	targetURL    *url.URL
 	startTime    time.Time
 	directorFunc func(*http.Request)
-	logTarget    string
+	destination  string
 	transport    http.RoundTripper
 }
 
@@ -77,7 +77,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			if resp.Header.Get("X-Unkey-Error-Source") == "sentinel" {
 				source = "sentinel"
 			}
-			proxyBackendResponseTotal.WithLabelValues(cfg.logTarget, source, statusClass(resp.StatusCode)).Inc()
+			proxyBackendResponseTotal.WithLabelValues(cfg.destination, source, statusClass(resp.StatusCode)).Inc()
 
 			totalTime := s.clock.Now().Sub(cfg.startTime)
 			if !proxyStartTime.IsZero() {
@@ -107,7 +107,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 
 			// 5xx from sentinel → fault error → frontline observability handles content negotiation
 			if resp.StatusCode >= 500 {
-				proxyForwardTotal.WithLabelValues(cfg.logTarget, "backend_5xx").Inc()
+				proxyForwardTotal.WithLabelValues(cfg.destination, "backend_5xx").Inc()
 
 				// Try to extract the original error code from sentinel's JSON response
 				// so we preserve the specific error (e.g. InvalidConfiguration → 500)
@@ -134,7 +134,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
 				ecw.SetError(err)
 
-				logger.Warn(fmt.Sprintf("proxy error forwarding to %s", cfg.logTarget),
+				logger.Warn(fmt.Sprintf("proxy error forwarding to %s", cfg.destination),
 					"error", err.Error(),
 					"target", cfg.targetURL.String(),
 					"hostname", r.Host,
@@ -146,7 +146,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	// Proxy the request with the middleware context (carries timeout deadline)
 	backendStart := s.clock.Now()
 	proxy.ServeHTTP(wrapper, sess.Request().WithContext(ctx))
-	proxyBackendDuration.WithLabelValues(cfg.logTarget).Observe(s.clock.Now().Sub(backendStart).Seconds())
+	proxyBackendDuration.WithLabelValues(cfg.destination).Observe(s.clock.Now().Sub(backendStart).Seconds())
 
 	// If error was captured, return it to middleware for consistent error handling
 	if err := wrapper.Error(); err != nil {
@@ -156,16 +156,16 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 		if _, hasCode := fault.GetCode(err); hasCode {
 			return err
 		}
-		proxyForwardTotal.WithLabelValues(cfg.logTarget, categorizeProxyErrorType(err)).Inc()
-		urn, message := categorizeProxyError(err, cfg.logTarget)
+		proxyForwardTotal.WithLabelValues(cfg.destination, categorizeProxyErrorType(err)).Inc()
+		urn, message := categorizeProxyError(err, cfg.destination)
 		return fault.Wrap(err,
 			fault.Code(urn),
-			fault.Internal(fmt.Sprintf("proxy error forwarding to %s %s", cfg.logTarget, cfg.targetURL.String())),
+			fault.Internal(fmt.Sprintf("proxy error forwarding to %s %s", cfg.destination, cfg.targetURL.String())),
 			fault.Public(message),
 		)
 	}
 
-	proxyForwardTotal.WithLabelValues(cfg.logTarget, "none").Inc()
+	proxyForwardTotal.WithLabelValues(cfg.destination, "none").Inc()
 
 	return nil
 }

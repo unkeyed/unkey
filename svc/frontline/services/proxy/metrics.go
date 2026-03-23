@@ -6,17 +6,17 @@ import (
 )
 
 var (
-	// proxyForwardTotal tracks proxy forwarding attempts by target type and outcome.
+	// proxyForwardTotal tracks proxy forwarding attempts by destination type and outcome.
 	// "error" label values: "none", "timeout", "conn_refused", "conn_reset",
-	// "dns_failure", "client_canceled", "sentinel_5xx", "other".
+	// "dns_failure", "client_canceled", "backend_5xx", "other".
 	proxyForwardTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline_proxy",
 			Name:      "forward_total",
-			Help:      "Total proxy forward attempts by target and error type.",
+			Help:      "Total proxy forward attempts by destination and error type.",
 		},
-		[]string{"target", "error"},
+		[]string{"destination", "error"},
 	)
 
 	// proxyBackendDuration tracks the time from when the proxy sends the request
@@ -27,10 +27,10 @@ var (
 			Namespace: "unkey",
 			Subsystem: "frontline_proxy",
 			Name:      "backend_duration_seconds",
-			Help:      "Backend response time by target type (sentinel or region).",
-			Buckets:   prometheus.DefBuckets,
+			Help:      "Backend response time by destination type (sentinel or region).",
+			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
 		},
-		[]string{"target"},
+		[]string{"destination"},
 	)
 
 	// proxyHopsTotal tracks cross-region hop counts on incoming requests.
@@ -46,7 +46,7 @@ var (
 		},
 	)
 
-	// proxyBackendResponseTotal tracks HTTP status codes returned by backends.
+	// proxyBackendResponseTotal tracks HTTP status codes returned by destinations.
 	// The "source" label distinguishes WHO produced the response:
 	//   "sentinel" = sentinel itself errored (X-Unkey-Error-Source: sentinel)
 	//   "upstream" = customer pod response proxied through sentinel
@@ -59,8 +59,8 @@ var (
 			Namespace: "unkey",
 			Subsystem: "frontline_proxy",
 			Name:      "backend_response_total",
-			Help:      "Backend HTTP response status classes by target and error source.",
+			Help:      "Backend HTTP response status classes by destination and error source.",
 		},
-		[]string{"target", "source", "status_class"},
+		[]string{"destination", "source", "status_class"},
 	)
 )

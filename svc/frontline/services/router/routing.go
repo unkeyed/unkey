@@ -83,6 +83,7 @@ func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db
 
 	nearestRegion := s.findNearestRegionPlatform(healthyByRegion)
 	if nearestRegion == "" {
+		routingErrorsTotal.WithLabelValues("no_reachable_region").Inc()
 		return RouteDecision{}, fault.New("no reachable region from "+s.regionPlatform,
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal("healthy sentinels exist but no region is reachable"),

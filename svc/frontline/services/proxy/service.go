@@ -133,7 +133,7 @@ func (s *service) forwardToSentinel(ctx context.Context, sess *zen.Session, sent
 		targetURL:    targetURL,
 		startTime:    startTime,
 		directorFunc: s.makeSentinelDirector(sess, deploymentID, startTime),
-		logTarget:    "sentinel",
+		destination:  "sentinel",
 		transport:    s.h2cTransport,
 	})
 }
@@ -173,7 +173,7 @@ func (s *service) forwardToRegion(ctx context.Context, sess *zen.Session, target
 		targetURL:    targetURL,
 		startTime:    startTime,
 		directorFunc: s.makeRegionDirector(sess, startTime),
-		logTarget:    "region",
+		destination:  "region",
 		transport:    s.transport,
 	})
 }

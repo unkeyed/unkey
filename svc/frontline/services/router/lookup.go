@@ -65,6 +65,7 @@ func (s *service) getInstances(ctx context.Context, deploymentID string) ([]db.I
 	}, internalCaches.DefaultFindFirstOp)
 
 	if err != nil && !mysql.IsNotFound(err) {
+		routingErrorsTotal.WithLabelValues("instance_load_failed").Inc()
 		return nil, fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.ConfigLoadFailed.URN()),
 			fault.Internal("error loading instances"),
