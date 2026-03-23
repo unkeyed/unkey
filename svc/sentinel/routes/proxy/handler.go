@@ -161,9 +161,10 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 				tracking.ResponseHeaders = resp.Header
 
 				// Record upstream metrics
-				upstreamResponseTotal.WithLabelValues(upstreamStatusClass(resp.StatusCode)).Inc()
+				statusClass := upstreamStatusClass(resp.StatusCode)
+				upstreamResponseTotal.WithLabelValues(statusClass).Inc()
 				if !tracking.InstanceStart.IsZero() {
-					upstreamDuration.Observe(tracking.InstanceEnd.Sub(tracking.InstanceStart).Seconds())
+					upstreamDuration.WithLabelValues(statusClass).Observe(tracking.InstanceEnd.Sub(tracking.InstanceStart).Seconds())
 				}
 
 				// Capture response body for logging

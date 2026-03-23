@@ -6,23 +6,25 @@ import (
 )
 
 var (
-	// upstreamResponseTotal counts upstream responses by status class.
 	upstreamResponseTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "sentinel_upstream_response_total",
-			Help: "Total number of upstream responses by status class.",
+			Namespace: "unkey",
+			Subsystem: "sentinel_upstream",
+			Name:      "response_total",
+			Help:      "Total number of upstream responses by status class.",
 		},
 		[]string{"status_class"},
 	)
 
-	// upstreamDuration tracks backend (customer pod) response latency,
-	// excluding sentinel overhead.
-	upstreamDuration = promauto.NewHistogram(
+	upstreamDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    "sentinel_upstream_duration_seconds",
-			Help:    "Backend response latency in seconds, excluding sentinel overhead.",
-			Buckets: prometheus.DefBuckets,
+			Namespace: "unkey",
+			Subsystem: "sentinel_upstream",
+			Name:      "duration_seconds",
+			Help:      "Backend response latency in seconds by status class, excluding sentinel overhead.",
+			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
 		},
+		[]string{"status_class"},
 	)
 )
 

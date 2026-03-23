@@ -12,14 +12,12 @@ import (
 )
 
 var (
-	// sentinelProxyErrorsTotal counts proxy errors by error type.
-	//
-	// Labels:
-	//   - "error_type": "timeout", "conn_refused", "conn_reset", "dns_failure", "client_canceled", "other"
 	sentinelProxyErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "sentinel_proxy_errors_total",
-			Help: "Total number of proxy errors by error type.",
+			Namespace: "unkey",
+			Subsystem: "sentinel_proxy",
+			Name:      "errors_total",
+			Help:      "Total number of proxy errors by error type.",
 		},
 		[]string{"error_type"},
 	)
