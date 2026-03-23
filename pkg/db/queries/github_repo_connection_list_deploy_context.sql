@@ -11,6 +11,7 @@ INNER JOIN apps a ON a.id = gc.app_id
 INNER JOIN projects p ON p.id = gc.project_id
 INNER JOIN environments e ON e.app_id = a.id
   AND e.slug = CASE
+    WHEN CAST(sqlc.arg(is_fork_pr) AS SIGNED) = 1 THEN 'preview'
     WHEN sqlc.arg(branch) = COALESCE(NULLIF(a.default_branch, ''), 'main')
     THEN 'production'
     ELSE 'preview'

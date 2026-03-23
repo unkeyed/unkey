@@ -26,9 +26,7 @@ import (
 // routes atomically through the routing service.
 //
 // ScaleDownIdlePreviewDeployments runs on a cron to find preview deployments that have
-// received no traffic for 6 hours and sets them to standby. SetDeploymentDesiredState
-// targets a single deployment, typically sent with a 30-minute delay after a new
-// deployment replaces it.
+// received no traffic for 6 hours and sets them to standby.
 type DeployServiceClient interface {
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
@@ -171,9 +169,7 @@ func (c *deployServiceIngressClient) ScaleDownIdlePreviewDeployments() ingress.R
 // routes atomically through the routing service.
 //
 // ScaleDownIdlePreviewDeployments runs on a cron to find preview deployments that have
-// received no traffic for 6 hours and sets them to standby. SetDeploymentDesiredState
-// targets a single deployment, typically sent with a 30-minute delay after a new
-// deployment replaces it.
+// received no traffic for 6 hours and sets them to standby.
 type DeployServiceServer interface {
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and

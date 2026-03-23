@@ -50,13 +50,19 @@ type newDomain struct {
 // generated domains. Currently the only app slug is "default" which adds no
 // useful information to the domain and just makes URLs longer. Remove this
 // exclusion and always include appSlug once the dashboard supports renaming apps.
-func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, branchName, apex string, source ctrlv1.SourceType, deploymentID string) []newDomain {
+func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, branchName, forkOwner, apex string, source ctrlv1.SourceType, deploymentID string) []newDomain {
 	// Build the project-app prefix for domain names.
 	// Skip "default" app slug since it's not configurable yet and would just
 	// add noise to URLs (e.g. "myproject-default-..." vs "myproject-...").
 	prefix := projectSlug
 	if appSlug != "default" {
 		prefix = projectSlug + "-" + appSlug
+	}
+
+	// Fork PRs include the fork owner in the domain to distinguish from same-repo
+	// deployments (e.g. "myproject-fork-contributor-git-abc1234-acme.unkey.app").
+	if forkOwner != "" {
+		prefix = prefix + "-fork-" + sluggify(forkOwner)
 	}
 
 	// Deploying via CLI often sends the same git sha, and we want to make them unique,

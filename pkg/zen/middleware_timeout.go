@@ -42,9 +42,9 @@ func WithTimeout(timeout time.Duration) Middleware {
 				)
 			}
 
-			// Server-side timeout - always reclassify regardless of any wrapped codes
+			// Server-side timeout - always reclassify regardless of any wrapped codes.
 			// App code may have wrapped context.DeadlineExceeded with ServiceUnavailable,
-			// but it's still a timeout, not a 500
+			// but it's still a timeout, not a 500.
 			if errors.Is(err, context.DeadlineExceeded) {
 				return fault.Wrap(err,
 					fault.Code(codes.User.BadRequest.RequestTimeout.URN()),

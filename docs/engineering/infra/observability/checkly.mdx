@@ -1,0 +1,104 @@
+---
+title: Checkly Alerts
+description: Configuration and management of alerts in checklyhq.com
+---
+
+Synthetic monitoring for the Unkey API. Checkly runs checks from real locations worldwide and alerts via incident.io when something fails.
+
+## Checks
+
+### API checks
+
+These run every minute from multiple regions, hitting the production API and validating the response.
+
+| Check | Endpoint | Locations | Degraded | Max |
+|-------|----------|-----------|----------|-----|
+| `/v2/keys.verifyKey` | `POST https://api.unkey.com/v2/keys.verifyKey` | 22 | 500ms | 10s |
+| `/v2/ratelimit.limit` | `POST https://api.unkey.com/v2/ratelimit.limit` | 7 | 100ms | 1s |
+| `/v2/liveness` | `GET https://api.unkey.com/v2/liveness` | 22 | 5s | 20s |
+
+- **Degraded**: response time above this threshold marks the check as degraded (not failed)
+- **Max**: response time above this is a failure
+
+All three use run-based escalation with a threshold of 1 — a single failed run triggers the alert. Alerts go to incident.io via the webhook channel.
+
+### Heartbeat checks
+
+Heartbeats work the other way around — instead of Checkly calling an endpoint, a service pings Checkly on a schedule. If Checkly doesn't hear back within the expected window, it alerts.
+
+#### Production
+
+| Check | What it monitors | Period | Grace | Alert channel |
+|-------|-----------------|--------|-------|---------------|
+| Certificate Workflow | Restate cert renewal cron job | 1 day | 2 hours | Incident.io (Production) |
+| Workflows: Refill | Restate key refill cron job | 1 day | 1 hour | none |
+| Workflows: Count Keys | Restate count keys job | 5 min | 1 min | none |
+| Quota Check | Restate quota check cron job | 1 day | 1 hour | none |
+
+"Workflows: Refill", "Workflows: Count Keys", and "Quota Check" don't have alert channel subscriptions — they'll show as failed in the Checkly dashboard but won't page anyone.
+
+#### Staging
+
+| Check | What it monitors | Period | Grace | Alert channel |
+|-------|-----------------|--------|-------|---------------|
+| Certificate Workflow (Staging) | Staging cert renewal cron job | 1 day | 2 hours | Incident.io (Staging) |
+| Key Refill (Staging) | Staging key refill cron job | 1 day | 1 hour | Incident.io (Staging) |
+| Quota Check (Staging) | Staging quota check cron job | 1 day | 1 hour | Incident.io (Staging) |
+
+Staging heartbeat ping URLs (configure in the staging Restate CronJobs):
+
+| Check | Ping URL |
+|-------|----------|
+| Certificate Workflow (Staging) | `https://ping.checklyhq.com/2b65541f-7de4-4fa6-8c07-44105fac729a` |
+| Quota Check (Staging) | `https://ping.checklyhq.com/e3979a6b-18d5-4e79-ad0d-9ea36044b922` |
+| Key Refill (Staging) | `https://ping.checklyhq.com/8077fc90-3c4a-453a-9b40-ed10c69f7bf7` |
+
+Each CronJob needs to ping its URL after a successful run — a `curl -s "${PING_URL}"` at the end of the job script.
+
+## Alert channels
+
+Two webhook alert channels, one per environment. Both send failure and recovery events (`sendFailure: true`, `sendRecovery: true`). Degraded events are not sent. The payload template includes the check ID as the deduplication key, so incident.io groups alerts per check and auto-resolves when the recovery comes in.
+
+| Channel | ID | incident.io source | URL |
+|---------|----|--------------------|-----|
+| Incident.io (Production) | `218874` | Checkly (Production) | `https://api.incident.io/v2/alert_events/checkly/01HZ7GE7CASMF15RWV1QFCMKTQ` |
+| Incident.io (Staging) | `273211` | Checkly (Staging) | `https://api.incident.io/v2/alert_events/checkly/01KKZJERF1HQFJRE3XWFZ0NV19` |
+
+The authorization token for each webhook is the corresponding incident.io alert source's `secret_token`. If you need to rotate one, get the new token from https://app.incident.io/unkey/settings/alert-sources, then update the webhook header in Checkly's alert channel settings.
+
+## How it routes through incident.io
+
+- **Production checks** → Checkly (Production) source → Production Alerts route → pages on-call
+- **Staging checks** → Checkly (Staging) source → Staging Notifications route → Slack #alerts only, no page
+
+See [incident.io](/infra/observability/incident-io) for the full routing table.
+
+## Environment variables
+
+| Variable | Purpose |
+|----------|---------|
+| `UNKEY_KEY` | API key used by checks to authenticate with the Unkey API |
+| `UNKEY_ROOT_KEY` | Root key used by checks that need elevated access |
+
+Both are marked as secrets in Checkly — the API won't return their values. If you need to rotate them, update them in the Checkly UI under Account Settings → Environment Variables.
+
+## Backups
+
+```bash
+CHECKLY_API_KEY="cu_..." CHECKLY_ACCOUNT_ID="bff70c2d-4206-4e3f-a447-4eeacd4eb03e" ./contrib/backup-checkly.sh
+```
+
+Restore:
+
+```bash
+CHECKLY_API_KEY="cu_..." CHECKLY_ACCOUNT_ID="bff70c2d-4206-4e3f-a447-4eeacd4eb03e" ./contrib/restore-checkly.sh
+```
+
+## Adding a new check
+
+Easiest through the Checkly UI at https://app.checkly.com. After creating it:
+
+1. Subscribe it to the right alert channel:
+   - Production checks → `218874` (Incident.io Production) — pages on-call
+   - Staging checks → `273211` (Incident.io Staging) — Slack only
+2. Run the backup script and commit the updated `backups/checkly/checks.json`

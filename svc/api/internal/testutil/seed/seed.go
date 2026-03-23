@@ -694,6 +694,8 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
+		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
 		CreatedAt:                     createdAt,
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 	})

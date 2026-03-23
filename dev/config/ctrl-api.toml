@@ -14,3 +14,5 @@ admin_url = "http://restate:9070"
 
 [github]
 webhook_secret = "${UNKEY_GITHUB_APP_WEBHOOK_SECRET}"
+app_id = ${UNKEY_GITHUB_APP_ID}
+private_key_pem = """${UNKEY_GITHUB_PRIVATE_KEY_PEM}"""

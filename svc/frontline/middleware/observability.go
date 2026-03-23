@@ -244,7 +244,7 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 		return errorPageInfo{
 			Status:  http.StatusNotFound,
 			Title:   http.StatusText(http.StatusNotFound),
-			Message: "No deployment found for this hostname. Please check your domain configuration or contact support.",
+			Message: "No deployment found for this hostname. Please check your domain configuration or contact support at support@unkey.com.",
 		}
 	case codes.Frontline.Proxy.BadGateway.URN(),
 		codes.Frontline.Proxy.ProxyForwardFailed.URN():
@@ -264,6 +264,57 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Status:  http.StatusGatewayTimeout,
 			Title:   http.StatusText(http.StatusGatewayTimeout),
 			Message: "The request took too long to process. Please try again later.",
+		}
+
+	// Sentinel errors passed through from upstream — preserve the original status/message.
+	case codes.Sentinel.Routing.DeploymentNotFound.URN():
+		return errorPageInfo{
+			Status:  http.StatusNotFound,
+			Title:   http.StatusText(http.StatusNotFound),
+			Message: "The requested deployment could not be found.",
+		}
+	case codes.Sentinel.Routing.NoRunningInstances.URN():
+		return errorPageInfo{
+			Status:  http.StatusServiceUnavailable,
+			Title:   http.StatusText(http.StatusServiceUnavailable),
+			Message: "No running instances are available to handle this request.",
+		}
+	case codes.Sentinel.Routing.InstanceSelectionFailed.URN():
+		return errorPageInfo{
+			Status:  http.StatusInternalServerError,
+			Title:   http.StatusText(http.StatusInternalServerError),
+			Message: "Failed to select an instance to handle your request.",
+		}
+	case codes.Sentinel.Proxy.SentinelTimeout.URN():
+		return errorPageInfo{
+			Status:  http.StatusGatewayTimeout,
+			Title:   http.StatusText(http.StatusGatewayTimeout),
+			Message: "The request took too long to process. Please try again later.",
+		}
+	case codes.Sentinel.Proxy.BadGateway.URN(),
+		codes.Sentinel.Proxy.ProxyForwardFailed.URN():
+		return errorPageInfo{
+			Status:  http.StatusBadGateway,
+			Title:   http.StatusText(http.StatusBadGateway),
+			Message: "Unable to connect to an instance. Please try again in a few moments.",
+		}
+	case codes.Sentinel.Proxy.ServiceUnavailable.URN():
+		return errorPageInfo{
+			Status:  http.StatusServiceUnavailable,
+			Title:   http.StatusText(http.StatusServiceUnavailable),
+			Message: "The service is temporarily unavailable. Please try again later.",
+		}
+	case codes.Sentinel.Internal.InvalidConfiguration.URN():
+		return errorPageInfo{
+			Status:  http.StatusInternalServerError,
+			Title:   http.StatusText(http.StatusInternalServerError),
+			Message: "The sentinel is misconfigured. Please contact support at support@unkey.com.",
+		}
+	case codes.Sentinel.Internal.InternalServerError.URN():
+		return errorPageInfo{
+			Status:  http.StatusInternalServerError,
+			Title:   http.StatusText(http.StatusInternalServerError),
+			Message: "An unexpected error occurred. Please try again later.",
 		}
 	default:
 		return errorPageInfo{

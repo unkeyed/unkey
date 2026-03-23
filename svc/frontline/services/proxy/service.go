@@ -121,7 +121,7 @@ func (s *service) ForwardToSentinel(ctx context.Context, sess *zen.Session, sent
 		)
 	}
 
-	return s.forward(sess, forwardConfig{
+	return s.forward(ctx, sess, forwardConfig{
 		targetURL:    targetURL,
 		startTime:    startTime,
 		directorFunc: s.makeSentinelDirector(sess, deploymentID, startTime),
@@ -157,7 +157,7 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 		)
 	}
 
-	return s.forward(sess, forwardConfig{
+	return s.forward(ctx, sess, forwardConfig{
 		targetURL:    targetURL,
 		startTime:    startTime,
 		directorFunc: s.makeRegionDirector(sess, startTime),

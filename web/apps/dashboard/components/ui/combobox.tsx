@@ -62,6 +62,8 @@ export type ComboboxOption = {
   value: string;
   searchValue?: string;
   selectedLabel?: React.ReactNode;
+  /** When true the option is visible but not selectable and rendered at reduced opacity. */
+  disabled?: boolean;
 };
 
 type ComboboxProps = {
@@ -226,14 +228,21 @@ export function Combobox({
                 <CommandItem
                   key={option.value}
                   value={option.searchValue || option.value}
+                  disabled={option.disabled}
                   onSelect={() => {
+                    if (option.disabled) {
+                      return;
+                    }
                     onSelect(option.value);
                     setSearch("");
                     if (closeOnSelect) {
                       setOpen(false);
                     }
                   }}
-                  className="flex items-center py-1 mt-0"
+                  className={cn(
+                    "flex items-center py-1 mt-0",
+                    option.disabled && "opacity-50 cursor-not-allowed",
+                  )}
                 >
                   {option.label}
                   <Check

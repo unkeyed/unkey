@@ -42,9 +42,11 @@ import { addCustomDomain } from "./deploy/custom-domains/add";
 import { deleteCustomDomain } from "./deploy/custom-domains/delete";
 import { listCustomDomains } from "./deploy/custom-domains/list";
 import { retryVerification } from "./deploy/custom-domains/retry";
+import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { createDeploy } from "./deploy/deployment/create-deploy";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
+import { getById as getDeploymentById } from "./deploy/deployment/getById";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
@@ -69,6 +71,7 @@ import { updateCpu } from "./deploy/environment-settings/runtime/update-cpu";
 import { updateHealthcheck } from "./deploy/environment-settings/runtime/update-healthcheck";
 import { updateInstances } from "./deploy/environment-settings/runtime/update-instances";
 import { updateMemory } from "./deploy/environment-settings/runtime/update-memory";
+import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/update-openapi-spec-path";
 import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
 import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
@@ -425,6 +428,7 @@ export const router = t.router({
         updateHealthcheck,
         updateRegions,
         updateInstances,
+        updateOpenapiSpecPath,
       }),
       build: t.router({
         updateDockerfile,
@@ -453,6 +457,7 @@ export const router = t.router({
     }),
     deployment: t.router({
       list: listDeployments,
+      getById: getDeploymentById,
       buildSteps: getDeploymentBuildSteps,
       runtimeLogs: getDeploymentRuntimeLogs,
       steps: getDeploymentSteps,
@@ -462,6 +467,7 @@ export const router = t.router({
       promote,
       redeploy,
       create: createDeploy,
+      authorize: authorizeDeployment,
     }),
     sentinelLogs: t.router({
       query: querySentinelLogs,

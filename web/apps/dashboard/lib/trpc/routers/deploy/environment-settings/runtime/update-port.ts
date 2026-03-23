@@ -8,7 +8,7 @@ export const updatePort = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),
-      port: z.number().int().min(2000).max(54000),
+      port: z.number().int().min(1).max(65535),
     }),
   )
   .mutation(async ({ ctx, input }) => {

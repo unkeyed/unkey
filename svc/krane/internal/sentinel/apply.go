@@ -143,6 +143,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 		Redis: sentinelcfg.RedisConfig{
 			URL: "${UNKEY_REDIS_URL}",
 		},
+		RequestTimeout: 15 * time.Minute,
 		Observability: config.Observability{
 			Logging: &config.LoggingConfig{
 				SampleRate:    1.0,
@@ -379,6 +380,29 @@ func sentinelTopologySpread(sentinelID string) []corev1.TopologySpreadConstraint
 func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel, deployment *appsv1.Deployment) error {
 	client := c.clientSet.PolicyV1().PodDisruptionBudgets(NamespaceSentinel)
 
+	// For single-replica sentinels, use MinAvailable=1 to prevent eviction of the
+	// last pod during voluntary disruptions (node drains). For multi-replica
+	// sentinels, use MaxUnavailable=1 to allow rolling disruptions while keeping
+	// the majority available.
+	var pdbSpec policyv1.PodDisruptionBudgetSpec
+	if sentinel.GetReplicas() <= 1 {
+		//nolint:exhaustruct
+		pdbSpec = policyv1.PodDisruptionBudgetSpec{
+			MinAvailable: ptr.P(intstr.FromInt(1)),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels.New().SentinelID(sentinel.GetSentinelId()),
+			},
+		}
+	} else {
+		//nolint:exhaustruct
+		pdbSpec = policyv1.PodDisruptionBudgetSpec{
+			MaxUnavailable: ptr.P(intstr.FromInt(1)),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels.New().SentinelID(sentinel.GetSentinelId()),
+			},
+		}
+	}
+
 	//nolint:exhaustruct // k8s API types have many optional fields
 	desired := &policyv1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
@@ -405,12 +429,7 @@ func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.Apply
 				},
 			},
 		},
-		Spec: policyv1.PodDisruptionBudgetSpec{
-			MaxUnavailable: ptr.P(intstr.FromInt(1)),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels.New().SentinelID(sentinel.GetSentinelId()),
-			},
-		},
+		Spec: pdbSpec,
 	}
 
 	patch, err := json.Marshal(desired)

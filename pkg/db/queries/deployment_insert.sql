@@ -21,6 +21,8 @@ INSERT INTO `deployments` (
     port,
     shutdown_signal,
     healthcheck,
+    pr_number,
+    fork_repository_full_name,
     created_at,
     updated_at
 )
@@ -46,6 +48,8 @@ VALUES (
     sqlc.arg(port),
     sqlc.arg(shutdown_signal),
     sqlc.arg(healthcheck),
+    sqlc.arg(pr_number),
+    sqlc.arg(fork_repository_full_name),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)
 );

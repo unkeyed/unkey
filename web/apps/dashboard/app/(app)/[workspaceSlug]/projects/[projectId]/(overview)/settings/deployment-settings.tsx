@@ -19,6 +19,7 @@ import { Regions } from "./components/runtime-settings/regions";
 import { CustomDomains } from "./components/advanced-settings/custom-domains";
 import { EnvVars } from "./components/advanced-settings/env-vars";
 
+import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
 import { Keyspaces } from "./components/sentinel-settings/keyspaces";
 import { SettingsGroup } from "./components/shared/settings-group";
 
@@ -69,6 +70,7 @@ export const DeploymentSettings = ({
         <SettingCardGroup>
           <EnvVars />
           <CustomDomains />
+          <OpenapiSpecPath />
         </SettingCardGroup>
       </SettingsGroup>
       <SettingsGroup

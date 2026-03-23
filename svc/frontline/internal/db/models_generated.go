@@ -489,15 +489,16 @@ func (ns NullDeploymentsShutdownSignal) Value() (driver.Value, error) {
 type DeploymentsStatus string
 
 const (
-	DeploymentsStatusPending    DeploymentsStatus = "pending"
-	DeploymentsStatusStarting   DeploymentsStatus = "starting"
-	DeploymentsStatusBuilding   DeploymentsStatus = "building"
-	DeploymentsStatusDeploying  DeploymentsStatus = "deploying"
-	DeploymentsStatusNetwork    DeploymentsStatus = "network"
-	DeploymentsStatusFinalizing DeploymentsStatus = "finalizing"
-	DeploymentsStatusReady      DeploymentsStatus = "ready"
-	DeploymentsStatusFailed     DeploymentsStatus = "failed"
-	DeploymentsStatusSkipped    DeploymentsStatus = "skipped"
+	DeploymentsStatusPending          DeploymentsStatus = "pending"
+	DeploymentsStatusStarting         DeploymentsStatus = "starting"
+	DeploymentsStatusBuilding         DeploymentsStatus = "building"
+	DeploymentsStatusDeploying        DeploymentsStatus = "deploying"
+	DeploymentsStatusNetwork          DeploymentsStatus = "network"
+	DeploymentsStatusFinalizing       DeploymentsStatus = "finalizing"
+	DeploymentsStatusReady            DeploymentsStatus = "ready"
+	DeploymentsStatusFailed           DeploymentsStatus = "failed"
+	DeploymentsStatusSkipped          DeploymentsStatus = "skipped"
+	DeploymentsStatusAwaitingApproval DeploymentsStatus = "awaiting_approval"
 )
 
 func (e *DeploymentsStatus) Scan(src interface{}) error {
@@ -1172,6 +1173,8 @@ type Deployment struct {
 	Port                          int32                     `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
 	Healthcheck                   json.RawMessage           `db:"healthcheck"`
+	PrNumber                      sql.NullInt64             `db:"pr_number"`
+	ForkRepositoryFullName        sql.NullString            `db:"fork_repository_full_name"`
 	GithubDeploymentID            sql.NullInt64             `db:"github_deployment_id"`
 	Status                        DeploymentsStatus         `db:"status"`
 	CreatedAt                     int64                     `db:"created_at"`
@@ -1323,6 +1326,7 @@ type Key struct {
 	RatelimitLimit     sql.NullInt32  `db:"ratelimit_limit"`
 	RatelimitDuration  sql.NullInt64  `db:"ratelimit_duration"`
 	Environment        sql.NullString `db:"environment"`
+	LastUsedAt         uint64         `db:"last_used_at"`
 	PendingMigrationID sql.NullString `db:"pending_migration_id"`
 }
 
@@ -1461,10 +1465,11 @@ type RatelimitOverride struct {
 }
 
 type Region struct {
-	Pk       uint64 `db:"pk"`
-	ID       string `db:"id"`
-	Name     string `db:"name"`
-	Platform string `db:"platform"`
+	Pk          uint64 `db:"pk"`
+	ID          string `db:"id"`
+	Name        string `db:"name"`
+	Platform    string `db:"platform"`
+	CanSchedule bool   `db:"can_schedule"`
 }
 
 type Role struct {
