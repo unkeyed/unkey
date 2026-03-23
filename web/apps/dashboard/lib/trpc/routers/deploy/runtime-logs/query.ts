@@ -7,7 +7,12 @@ import {
 } from "@/lib/schemas/runtime-logs.schema";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { resolveK8sNamesToInstanceIds, transformFilters } from "./utils";
+import {
+  resolveK8sNamesToInstanceIds,
+  toInstanceKey,
+  transformFilters,
+  uniqueK8sRegionEntries,
+} from "./utils";
 
 export const queryRuntimeLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -48,6 +53,7 @@ export const queryRuntimeLogs = workspaceProcedure
     const instanceIds = input.instanceId?.filters?.map((f) => f.value) ?? [];
     let k8sPodNames: string[] = [];
     const knownK8sToInstanceId = new Map<string, string>();
+
     if (instanceIds.length > 0) {
       const instances = await db.query.instances.findMany({
         where: and(
@@ -55,13 +61,16 @@ export const queryRuntimeLogs = workspaceProcedure
           eq(schema.instances.workspaceId, ctx.workspace.id),
         ),
         columns: { id: true, k8sName: true },
+        with: { region: { columns: { name: true } } },
       });
+
       if (instances.length === 0) {
         return { logs: [], hasMore: false, total: 0 };
       }
+
       k8sPodNames = instances.map((inst) => inst.k8sName);
       for (const inst of instances) {
-        knownK8sToInstanceId.set(inst.k8sName, inst.id);
+        knownK8sToInstanceId.set(toInstanceKey(inst.k8sName, inst.region.name), inst.id);
       }
     }
 
@@ -87,12 +96,8 @@ export const queryRuntimeLogs = workspaceProcedure
 
     const chLogs = logsResult.val;
 
-    const unknownK8sNames = [
-      ...new Set(
-        chLogs.map((log) => log.k8s_pod_name).filter((name) => !knownK8sToInstanceId.has(name)),
-      ),
-    ];
-    const resolvedMapping = await resolveK8sNamesToInstanceIds(unknownK8sNames, ctx.workspace.id);
+    const unknownEntries = uniqueK8sRegionEntries(chLogs, knownK8sToInstanceId);
+    const resolvedMapping = await resolveK8sNamesToInstanceIds(unknownEntries, ctx.workspace.id);
     const k8sNameToInstanceId = new Map([...knownK8sToInstanceId, ...resolvedMapping]);
 
     const logs = chLogs.map((log) => ({
@@ -101,7 +106,7 @@ export const queryRuntimeLogs = workspaceProcedure
       message: log.message,
       deployment_id: log.deployment_id,
       region: log.region,
-      instance_id: k8sNameToInstanceId.get(log.k8s_pod_name) ?? "—",
+      instance_id: k8sNameToInstanceId.get(toInstanceKey(log.k8s_pod_name, log.region)) ?? "—",
       attributes: log.attributes,
     }));
 

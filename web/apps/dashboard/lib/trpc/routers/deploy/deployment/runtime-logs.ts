@@ -3,7 +3,11 @@ import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { resolveK8sNamesToInstanceIds } from "../runtime-logs/utils";
+import {
+  resolveK8sNamesToInstanceIds,
+  toInstanceKey,
+  uniqueK8sRegionEntries,
+} from "../runtime-logs/utils";
 
 export const getDeploymentRuntimeLogs = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -63,9 +67,8 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
     }
 
     const chLogs = logsResult.val;
-    const uniqueK8sNames = [...new Set(chLogs.map((log) => log.k8s_pod_name))];
     const k8sNameToInstanceId = await resolveK8sNamesToInstanceIds(
-      uniqueK8sNames,
+      uniqueK8sRegionEntries(chLogs),
       ctx.workspace.id,
     );
 
@@ -74,7 +77,7 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
         time: log.time,
         severity: log.severity,
         message: log.message,
-        instance_id: k8sNameToInstanceId.get(log.k8s_pod_name) ?? "—",
+        instance_id: k8sNameToInstanceId.get(toInstanceKey(log.k8s_pod_name, log.region)) ?? "—",
         region: log.region,
       })),
     };
