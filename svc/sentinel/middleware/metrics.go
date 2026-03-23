@@ -15,8 +15,8 @@ var (
 	sentinelProxyErrorsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
-			Subsystem: "sentinel_proxy",
-			Name:      "errors_total",
+			Subsystem: "sentinel",
+			Name:      "proxy_errors_total",
 			Help:      "Total number of proxy errors by error type.",
 		},
 		[]string{"error_type"},
