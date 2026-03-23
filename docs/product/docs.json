@@ -1,9 +1,9 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "colors": {
-    "dark": "#999999",
+    "dark": "#666666",
     "light": "#999999",
-    "primary": "#999999"
+    "primary": "#666666"
   },
   "contextual": {
     "options": ["copy", "view", "chatgpt", "claude", "perplexity"]
@@ -63,22 +63,38 @@
             "icon": "grid-2",
             "pages": [
               {
-                "group": "Projects",
-                "pages": ["platform/projects/overview"]
+                "group": "Analytics",
+                "pages": [
+                  "platform/analytics/overview",
+                  {
+                    "expanded": false,
+                    "group": "Reference",
+                    "pages": [
+                      "platform/analytics/getting-started",
+                      "platform/analytics/quick-reference",
+                      "platform/analytics/query-examples",
+                      "platform/analytics/schema-reference",
+                      "platform/analytics/query-restrictions",
+                      "platform/analytics/troubleshooting"
+                    ]
+                  }
+                ]
               },
               {
                 "group": "Apps",
                 "pages": ["platform/apps/overview", "platform/apps/settings"]
               },
               {
-                "group": "APIs",
-                "pages": ["platform/apis/overview"]
+                "group": "Identities",
+                "pages": [
+                  "platform/identities/overview",
+                  "platform/identities/ratelimits"
+                ]
               },
               {
                 "group": "Keys",
                 "pages": [
                   "platform/apis/keys",
-                  "platform/apis/introduction",
                   "platform/apis/features/ratelimiting/overview",
                   "platform/apis/features/remaining",
                   "platform/apis/features/refill",
@@ -106,20 +122,8 @@
                 ]
               },
               {
-                "group": "Rate Limiting",
-                "pages": [
-                  "platform/ratelimiting/introduction",
-                  "platform/ratelimiting/modes",
-                  "platform/ratelimiting/overrides",
-                  "platform/ratelimiting/automated-overrides"
-                ]
-              },
-              {
-                "group": "Identities",
-                "pages": [
-                  "platform/identities/overview",
-                  "platform/identities/ratelimits"
-                ]
+                "group": "Projects",
+                "pages": ["platform/projects/overview"]
               },
               {
                 "group": "Sentinel",
@@ -132,21 +136,12 @@
                 ]
               },
               {
-                "group": "Analytics",
+                "group": "Workspaces",
                 "pages": [
-                  "platform/analytics/overview",
-                  {
-                    "expanded": false,
-                    "group": "Reference",
-                    "pages": [
-                      "platform/analytics/getting-started",
-                      "platform/analytics/quick-reference",
-                      "platform/analytics/query-examples",
-                      "platform/analytics/schema-reference",
-                      "platform/analytics/query-restrictions",
-                      "platform/analytics/troubleshooting"
-                    ]
-                  }
+                  "platform/workspaces/overview",
+                  "platform/workspaces/billing",
+                  "platform/workspaces/quotas",
+                  "platform/workspaces/team-members"
                 ]
               }
             ]
@@ -157,13 +152,13 @@
             "group": "Build & Deploy",
             "icon": "rocket",
             "pages": [
-              "build-and-deploy/overview",
               "builds/overview",
               "build-and-deploy/deployments",
+              "build-and-deploy/overview",
+              "environments/overview",
+              "build-and-deploy/github",
               "build-and-deploy/regions",
               "build-and-deploy/rollbacks",
-              "build-and-deploy/github",
-              "environments/overview",
               "platform/variables/overview"
             ]
           },
@@ -173,11 +168,10 @@
             "group": "Networking",
             "icon": "network-wired",
             "pages": [
-              "networking/overview",
-              "networking/public-networking",
+              "networking/domains",
               "networking/private-networking",
-              "networking/wildcard-domains",
-              "networking/domains"
+              "networking/public-networking",
+              "networking/wildcard-domains"
             ]
           },
           {
@@ -198,83 +192,6 @@
           },
           {
             "expanded": false,
-            "group": "Cookbook",
-            "icon": "book-open",
-            "pages": [
-              "cookbook/index",
-              {
-                "expanded": false,
-                "group": "Recipes",
-                "pages": [
-                  {
-                    "group": "TypeScript",
-                    "pages": [
-                      "cookbook/nextjs-api-routes",
-                      "cookbook/express-middleware",
-                      "cookbook/cloudflare-workers"
-                    ]
-                  },
-                  {
-                    "group": "Go",
-                    "pages": [
-                      "cookbook/go-stdlib-middleware",
-                      "cookbook/go-gin-middleware",
-                      "cookbook/go-echo-middleware"
-                    ]
-                  },
-                  {
-                    "group": "Python",
-                    "pages": [
-                      "cookbook/fastapi-auth",
-                      "cookbook/python-fastapi-ratelimit",
-                      "cookbook/python-flask-auth"
-                    ]
-                  },
-                  {
-                    "group": "General",
-                    "pages": [
-                      "cookbook/per-user-ratelimit",
-                      "cookbook/endpoint-ratelimit",
-                      "cookbook/usage-billing",
-                      "cookbook/tiered-subscriptions"
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "expanded": false,
-            "group": "Framework Guides",
-            "icon": "code",
-            "pages": [
-              {
-                "expanded": false,
-                "group": "API Key Authentication",
-                "pages": [
-                  "quickstart/apis/nextjs",
-                  "quickstart/apis/express",
-                  "quickstart/apis/bun",
-                  "quickstart/apis/hono",
-                  "quickstart/apis/go",
-                  "quickstart/apis/python"
-                ]
-              },
-              {
-                "expanded": false,
-                "group": "Rate Limiting",
-                "pages": [
-                  "quickstart/ratelimiting/nextjs",
-                  "quickstart/ratelimiting/express",
-                  "quickstart/ratelimiting/bun",
-                  "quickstart/ratelimiting/hono"
-                ]
-              },
-              "quickstart/identities/shared-ratelimits"
-            ]
-          },
-          {
-            "expanded": false,
             "group": "Security",
             "icon": "shield",
             "pages": [
@@ -288,6 +205,70 @@
                   "platform/apis/features/whitelist",
                   "security/github-scanning",
                   "security/delete-protection"
+                ]
+              }
+            ]
+          },
+          {
+            "expanded": false,
+            "group": "External APIs",
+            "icon": "key",
+            "pages": [
+              "platform/apis/overview",
+              "platform/apis/introduction",
+              {
+                "group": "Framework Guides",
+                "pages": [
+                  "quickstart/apis/nextjs",
+                  "quickstart/apis/express",
+                  "quickstart/apis/bun",
+                  "quickstart/apis/hono",
+                  "quickstart/apis/go",
+                  "quickstart/apis/python"
+                ]
+              },
+              {
+                "group": "Cookbook",
+                "pages": [
+                  "cookbook/nextjs-api-routes",
+                  "cookbook/express-middleware",
+                  "cookbook/cloudflare-workers",
+                  "cookbook/go-stdlib-middleware",
+                  "cookbook/go-gin-middleware",
+                  "cookbook/go-echo-middleware",
+                  "cookbook/fastapi-auth",
+                  "cookbook/python-flask-auth",
+                  "cookbook/usage-billing",
+                  "cookbook/tiered-subscriptions"
+                ]
+              }
+            ]
+          },
+          {
+            "expanded": false,
+            "group": "Ratelimiting",
+            "icon": "gauge",
+            "pages": [
+              "platform/ratelimiting/introduction",
+              "platform/ratelimiting/modes",
+              "platform/ratelimiting/overrides",
+              "platform/ratelimiting/automated-overrides",
+              "quickstart/identities/shared-ratelimits",
+              {
+                "group": "Framework Guides",
+                "pages": [
+                  "quickstart/ratelimiting/nextjs",
+                  "quickstart/ratelimiting/express",
+                  "quickstart/ratelimiting/bun",
+                  "quickstart/ratelimiting/hono"
+                ]
+              },
+              {
+                "group": "Cookbook",
+                "pages": [
+                  "cookbook/per-user-ratelimit",
+                  "cookbook/endpoint-ratelimit",
+                  "cookbook/python-fastapi-ratelimit"
                 ]
               }
             ]
@@ -539,17 +520,13 @@
       "source": "/apis/features/analytics"
     },
     {
-      "destination": "/docs/apis/features/authorization/introduction",
-      "source": "/docs/security/permissions"
+      "destination": "/platform/apis/features/authorization/introduction",
+      "source": "/security/permissions"
     },
     {
-      "destination": "/docs/apis/features/authorization/introduction",
-      "source": "/docs/security/roles"
-    },
-    {
-      "destination": "/docs/api-reference/overview",
-      "source": "/docs/api-reference/overview"
+      "destination": "/platform/apis/features/authorization/introduction",
+      "source": "/security/roles"
     }
   ],
-  "theme": "willow"
+  "theme": "maple"
 }

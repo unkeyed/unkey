@@ -7,10 +7,97 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-## TODO
+Custom domains let you serve your app from your own domain name (for example, `api.acme.com`) instead of a `*.unkey.app` subdomain. Unkey handles TLS certificate provisioning and renewal automatically.
 
-- Adding a custom domain to your app
-- Two-step verification process: TXT record for ownership, then CNAME for routing
-- Automatic certificate provisioning via ACME (HTTP-01 and DNS-01 challenges)
-- 24-hour verification timeout and retry behavior
-- DNS configuration examples for common providers
+## Add a custom domain
+
+<Steps>
+<Step title="Open domain settings">
+
+Navigate to your project in the dashboard and click **Settings**. Scroll to the **Custom domains** section.
+
+</Step>
+
+<Step title="Enter your domain">
+
+Select the environment and enter the fully qualified domain name you want to use (for example, `api.acme.com`).
+
+<Frame>
+  <img src="/networking/custom-domain-add.png" alt="Custom domains settings showing environment and domain input" />
+</Frame>
+
+</Step>
+
+<Step title="Add the DNS records">
+
+Unkey generates two DNS records to add at your DNS provider:
+
+<Frame>
+  <img src="/networking/custom-domain-verify.png" alt="DNS records to add for domain verification showing TXT and CNAME entries" />
+</Frame>
+
+A **TXT** record proves ownership of the domain. A **CNAME** record routes traffic to your deployment. Each domain receives a unique CNAME target.
+
+Add both records at your DNS provider. Unkey checks for them automatically and verifies within minutes once the records propagate.
+
+</Step>
+</Steps>
+
+<Warning>
+  Both DNS records must be verified within 24 hours. If verification doesn't complete in time, the domain enters a failed state. Remove the domain and add it again to restart the process.
+</Warning>
+
+## Certificate provisioning
+
+After DNS verification succeeds, Unkey provisions a TLS certificate from Let's Encrypt using an ACME HTTP-01 challenge. Frontline serves the challenge token automatically during this process.
+
+Certificates renew before expiration without any action from you.
+
+<Note>
+  If Let's Encrypt rate limits are reached, certificate issuance retries automatically with backoff. This can add up to two hours of delay in rare cases.
+</Note>
+
+## DNS provider examples
+
+<Tabs>
+<Tab title="Cloudflare">
+1. Open your domain in the Cloudflare dashboard.
+2. Click **DNS** in the sidebar.
+3. Click **Add record**.
+4. Add the TXT record with name `_unkey.{your-subdomain}` and the verification value.
+5. Add the CNAME record with name `{your-subdomain}` and the target from your Unkey dashboard.
+6. Set the CNAME proxy status to **DNS only** (gray cloud) so Unkey can terminate TLS directly.
+</Tab>
+
+<Tab title="Route53">
+1. Open your hosted zone in the Route53 console.
+2. Click **Create record**.
+3. Add the TXT record with name `_unkey.{your-subdomain}` and the verification value wrapped in quotes.
+4. Add the CNAME record with name `{your-subdomain}` and the target from your Unkey dashboard.
+</Tab>
+
+<Tab title="Vercel">
+1. Open your domain in the Vercel dashboard under **Settings** > **Domains**.
+2. Click **Manage** next to your domain.
+3. Navigate to the **DNS Records** tab.
+4. Add the TXT record with name `_unkey.{your-subdomain}` and the verification value.
+5. Add the CNAME record with name `{your-subdomain}` and the target from your Unkey dashboard.
+</Tab>
+
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+<Accordion title="Domain stuck in verifying">
+Confirm your DNS records have propagated. TXT records can take up to 48 hours to propagate, depending on your DNS provider. You can check propagation with:
+
+```bash
+dig TXT _unkey.api.acme.com
+```
+</Accordion>
+
+<Accordion title="Certificate not issued after verification">
+Certificate provisioning starts automatically after both DNS records are verified. If the certificate isn't issued within 30 minutes, check that your CNAME proxy status is set to **DNS only** (not proxied) at your DNS provider.
+</Accordion>
+</AccordionGroup>
