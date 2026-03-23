@@ -214,6 +214,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:                     database,
 		FrontlineRouteCache:    cache.FrontlineRoutes,
 		SentinelsByEnvironment: cache.SentinelsByEnvironment,
+		InstancesByDeployment:  cache.InstancesByDeployment,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create router service: %w", err)
