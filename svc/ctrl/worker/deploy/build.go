@@ -96,7 +96,9 @@ type gitBuildParams struct {
 	AppID          string
 	DeploymentID   string
 	WorkspaceID    string
-	PrNumber       int64
+	PrNumber                      int64
+	EncryptedEnvironmentVariables []byte
+	EnvironmentID                 string
 }
 
 // buildDockerImageFromGit builds a container image from a GitHub repository using Depot.
@@ -143,6 +145,12 @@ func (w *Workflow) buildDockerImageFromGit(
 				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
 			}
 			ghToken = token
+		}
+
+		// Decrypt env vars in-memory so they can be injected as a BuildKit secret.
+		envVars, err := w.decryptEnvVars(runCtx, params.EncryptedEnvironmentVariables, params.EnvironmentID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt env vars for build: %w", err)
 		}
 
 		depotBuild, err := build.NewBuild(runCtx, &cliv1.CreateBuildRequest{
@@ -231,9 +239,9 @@ func (w *Workflow) buildDockerImageFromGit(
 		// Choose solver options based on authentication mode
 		var solverOptions client.SolveOpt
 		if w.allowUnauthenticatedDeployments {
-			solverOptions = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName)
+			solverOptions = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, envVars)
 		} else {
-			solverOptions = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token)
+			solverOptions = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, envVars)
 		}
 
 		_, err = buildClient.Solve(runCtx, nil, solverOptions, buildStatusCh)
@@ -255,12 +263,47 @@ func (w *Workflow) buildDockerImageFromGit(
 	}, restate.WithName("build docker image from git"))
 }
 
+// buildEnvFileSecret serializes env vars into a .env-formatted byte slice
+// for injection as a BuildKit secret. Returns nil if there are no env vars.
+func buildEnvFileSecret(envVars map[string]string) []byte {
+	if len(envVars) == 0 {
+		return nil
+	}
+	var buf strings.Builder
+	for k, v := range envVars {
+		buf.WriteString(k)
+		buf.WriteByte('=')
+		buf.WriteString(v)
+		buf.WriteByte('\n')
+	}
+	return []byte(buf.String())
+}
+
 // buildSolverOptions constructs the BuildKit solver configuration for URL-based
 // contexts, including registry auth and image export settings. Use
 // [Workflow.buildGitSolverOptions] when the context requires GitHub credentials.
 func (w *Workflow) buildSolverOptions(
 	platform, contextURL, dockerfilePath, imageName string,
+	envVars map[string]string,
 ) client.SolveOpt {
+	sessionAttachables := []session.Attachable{
+		//nolint: exhaustruct
+		authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
+			ConfigFile: &configfile.ConfigFile{
+				AuthConfigs: map[string]types.AuthConfig{
+					w.registryConfig.URL: {
+						Username: w.registryConfig.Username,
+						Password: w.registryConfig.Password,
+					},
+				},
+			},
+		}),
+	}
+
+	if envFile := buildEnvFileSecret(envVars); envFile != nil {
+		sessionAttachables = append(sessionAttachables, secretsprovider.FromMap(map[string][]byte{"env": envFile}))
+	}
+
 	return client.SolveOpt{
 		Frontend: "dockerfile.v0",
 		FrontendAttrs: map[string]string{
@@ -268,20 +311,7 @@ func (w *Workflow) buildSolverOptions(
 			"context":  contextURL,
 			"filename": dockerfilePath,
 		},
-
-		Session: []session.Attachable{
-			//nolint: exhaustruct
-			authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
-				ConfigFile: &configfile.ConfigFile{
-					AuthConfigs: map[string]types.AuthConfig{
-						w.registryConfig.URL: {
-							Username: w.registryConfig.Username,
-							Password: w.registryConfig.Password,
-						},
-					},
-				},
-			}),
-		},
+		Session: sessionAttachables,
 		//nolint: exhaustruct
 		Exports: []client.ExportEntry{
 			{
@@ -300,7 +330,15 @@ func (w *Workflow) buildSolverOptions(
 // It includes GitHub token authentication via the secrets provider.
 func (w *Workflow) buildGitSolverOptions(
 	platform, gitContextURL, dockerfilePath, imageName, githubToken string,
+	envVars map[string]string,
 ) client.SolveOpt {
+	secrets := map[string][]byte{
+		"GIT_AUTH_TOKEN.github.com": []byte(githubToken),
+	}
+	if envFile := buildEnvFileSecret(envVars); envFile != nil {
+		secrets["env"] = envFile
+	}
+
 	return client.SolveOpt{
 		Frontend: "dockerfile.v0",
 		FrontendAttrs: map[string]string{
@@ -321,10 +359,7 @@ func (w *Workflow) buildGitSolverOptions(
 					},
 				},
 			}),
-			// Provide GitHub token for BuildKit to authenticate when fetching the git repo
-			secretsprovider.FromMap(map[string][]byte{
-				"GIT_AUTH_TOKEN.github.com": []byte(githubToken),
-			}),
+			secretsprovider.FromMap(secrets),
 		},
 		//nolint: exhaustruct
 		Exports: []client.ExportEntry{
