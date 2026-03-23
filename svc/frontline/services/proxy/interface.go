@@ -13,10 +13,8 @@ import (
 
 // Service defines the interface for proxying requests based on routing decisions.
 type Service interface {
-	// Forward dispatches a request based on the routing decision:
-	// - Local sentinel (h2c) if decision.IsLocal()
-	// - Remote region (HTTPS NLB) otherwise
-	Forward(ctx context.Context, sess *zen.Session, decision *router.RouteDecision) error
+	// Forward dispatches a request based on the routing decision.
+	Forward(ctx context.Context, sess *zen.Session, decision router.RouteDecision) error
 }
 
 // Config holds configuration for the proxy service.

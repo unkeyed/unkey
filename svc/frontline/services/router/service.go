@@ -32,15 +32,15 @@ func New(cfg Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) Route(ctx context.Context, hostname string) (*RouteDecision, error) {
+func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, error) {
 	route, sentinels, err := s.lookupByHostname(ctx, hostname)
 	if err != nil {
-		return nil, err
+		return RouteDecision{}, err
 	}
 
 	instances, err := s.getInstances(ctx, route.DeploymentID)
 	if err != nil {
-		return nil, err
+		return RouteDecision{}, err
 	}
 
 	return s.selectSentinel(route, sentinels, instances)

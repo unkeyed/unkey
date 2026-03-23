@@ -111,11 +111,11 @@ func New(cfg Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) Forward(ctx context.Context, sess *zen.Session, decision *router.RouteDecision) error {
-	if decision.IsLocal() {
-		return s.forwardToSentinel(ctx, sess, decision.LocalSentinelAddress, decision.DeploymentID)
+func (s *service) Forward(ctx context.Context, sess *zen.Session, decision router.RouteDecision) error {
+	if decision.Destination == router.DestinationLocalSentinel {
+		return s.forwardToSentinel(ctx, sess, decision.Address, decision.DeploymentID)
 	}
-	return s.forwardToRegion(ctx, sess, decision.RemoteRegionPlatform)
+	return s.forwardToRegion(ctx, sess, decision.Address)
 }
 
 func (s *service) forwardToSentinel(ctx context.Context, sess *zen.Session, sentinelAddress string, deploymentID string) error {

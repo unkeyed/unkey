@@ -52,6 +52,10 @@ func (s *service) lookupByHostname(ctx context.Context, hostname string) (db.Fin
 		)
 	}
 
+	if sentinels == nil {
+		sentinels = []db.FindHealthyRoutableSentinelsByEnvironmentIDRow{}
+	}
+
 	return route, sentinels, nil
 }
 
@@ -66,6 +70,10 @@ func (s *service) getInstances(ctx context.Context, deploymentID string) ([]db.I
 			fault.Internal("error loading instances"),
 			fault.Public("Failed to load instance configuration"),
 		)
+	}
+
+	if instances == nil {
+		instances = []db.Instance{}
 	}
 
 	return instances, nil

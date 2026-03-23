@@ -36,13 +36,7 @@ var regionProximity = map[string][]string{
 	"local.dev": {},
 }
 
-func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db.FindHealthyRoutableSentinelsByEnvironmentIDRow, instances []db.Instance) (*RouteDecision, error) {
-	decision := &RouteDecision{
-		DeploymentID:         route.DeploymentID,
-		LocalSentinelAddress: "",
-		RemoteRegionPlatform: "",
-	}
-
+func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db.FindHealthyRoutableSentinelsByEnvironmentIDRow, instances []db.Instance) (RouteDecision, error) {
 	hasRunningInstance := false
 	for _, inst := range instances {
 		if inst.Status == db.InstancesStatusRunning {
@@ -52,7 +46,7 @@ func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db
 	}
 
 	if len(instances) > 0 && !hasRunningInstance {
-		return nil, fault.New("no running instances",
+		return RouteDecision{}, fault.New("no running instances",
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal("no running instances for deployment"),
 			fault.Public("Service temporarily unavailable"),
@@ -70,7 +64,7 @@ func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db
 	}
 
 	if len(healthyByRegion) == 0 {
-		return nil, fault.New("no healthy sentinels",
+		return RouteDecision{}, fault.New("no healthy sentinels",
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal("no healthy sentinels for environment"),
 			fault.Public("Service temporarily unavailable"),
@@ -78,16 +72,27 @@ func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db
 	}
 
 	if localAddress, ok := healthyByRegion[s.regionPlatform]; ok {
-		decision.LocalSentinelAddress = localAddress
-		return decision, nil
+		return RouteDecision{
+			DeploymentID: route.DeploymentID,
+			Destination:  DestinationLocalSentinel,
+			Address:      localAddress,
+		}, nil
 	}
 
 	nearestRegion := s.findNearestRegionPlatform(healthyByRegion)
-	if nearestRegion != "" {
-		decision.RemoteRegionPlatform = nearestRegion
+	if nearestRegion == "" {
+		return RouteDecision{}, fault.New("no reachable region from "+s.regionPlatform,
+			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
+			fault.Internal("healthy sentinels exist but no region is reachable"),
+			fault.Public("Service temporarily unavailable"),
+		)
 	}
 
-	return decision, nil
+	return RouteDecision{
+		DeploymentID: route.DeploymentID,
+		Destination:  DestinationRemoteRegion,
+		Address:      nearestRegion,
+	}, nil
 }
 
 func (s *service) findNearestRegionPlatform(healthyByRegion map[string]string) string {
