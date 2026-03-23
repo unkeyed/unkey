@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
+import type { BadgeProps } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type React from "react";
 import { useMemo, useState } from "react";
@@ -90,24 +91,14 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
     setExpandedPaths(newExpanded);
   };
 
-  const getSeverityIcon = (level: number) => {
-    if (level === 3) {
-      return <TriangleWarning iconSize="sm-regular" className="text-errorA-11" />;
-    }
-    if (level === 2) {
-      return <CircleWarning iconSize="sm-regular" className="text-warningA-11" />;
-    }
-    return <CircleInfo iconSize="sm-regular" className="text-grayA-9" />;
-  };
-
   const getSeverityColor = (level: number) => {
     if (level === 3) {
-      return "border border-error-6 bg-errorA-2";
+      return "bg-errorA-2";
     }
     if (level === 2) {
-      return "border border-warning-6 bg-warningA-2";
+      return "bg-warningA-2";
     }
-    return "border border-gray-4 bg-grayA-1";
+    return "bg-grayA-2";
   };
 
   if (!changelog || changelog.length === 0) {
@@ -122,9 +113,9 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
             />
           </div>
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <h3 className="text-grayA-12 font-medium text-sm">No noteworthy changes</h3>
-          <p className="text-grayA-9 text-xs max-w-[280px] leading-relaxed">
+          <p className="text-grayA-9 text-xs max-w-70 leading-relaxed">
             The specifications for <span className="text-grayA-11">{fromDeployment} </span>
             and <span className="text-grayA-11">{toDeployment} </span>
             are functionally identical.
@@ -136,10 +127,10 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
   return (
     <>
       {/* Stats header */}
-      <div className="px-3 pb-3">
+      <div className="px-6 pt-5 pb-4">
         <div className="flex justify-between items-center">
           <div className="flex flex-col gap-1">
-            <div className="text-accent-12 font-medium text-[13px]">API Changes</div>
+            <div className="text-grayA-12 font-medium text-[13px]">API Changes</div>
             <div className="text-grayA-9 text-xs">
               {stats.total} changes • {stats.paths.length} endpoints
             </div>
@@ -164,7 +155,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
       </div>
 
       {/* Filters */}
-      <div className="px-3 pb-2 flex gap-2.5 items-center">
+      <div className="px-4 pb-4 flex gap-2.5 items-center">
         <Input
           type="text"
           value={filters.searchQuery}
@@ -232,24 +223,21 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
       </div>
 
       {/* Changes list */}
-      <div className="px-3 pb-3">
+      <div className="px-4 pb-6">
         {filteredChanges.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-xs text-grayA-9">No changes match filters</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-2">
             {Object.entries(groupedChanges).map(([path, operations]) => {
               const isExpanded = expandedPaths.has(path);
               return (
-                <div
-                  key={path}
-                  className="border border-gray-4 rounded-md overflow-hidden bg-white dark:bg-black"
-                >
+                <div key={path} className="border border-gray-4 rounded-md overflow-hidden">
                   <button
                     type="button"
                     onClick={() => togglePathExpansion(path)}
-                    className="w-full flex items-center justify-between py-2 px-3 text-left bg-grayA-1 hover:bg-grayA-2 transition-colors"
+                    className="w-full flex items-center justify-between py-3 px-4 text-left bg-grayA-1 hover:bg-grayA-2 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <ChevronDown
@@ -267,7 +255,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                       </span>
                       <div className="flex items-center gap-1.5">
                         {Object.keys(operations).map((op) => (
-                          <Badge key={op} variant="secondary" size="sm" className="text-[10px]">
+                          <Badge key={op} variant={getMethodVariant(op)} size="sm">
                             {op}
                           </Badge>
                         ))}
@@ -275,27 +263,19 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                     </div>
                   </button>
                   {isExpanded && (
-                    <div className="border-t border-gray-4 bg-grayA-1 animate-in slide-in-from-top-2 duration-200">
+                    <div className="animate-in slide-in-from-top-2 duration-200 px-3 pt-2 pb-3 flex flex-col gap-3">
                       {Object.entries(operations).map(([operation, changes]) => (
-                        <div
-                          key={operation}
-                          className="py-2 px-3 border-b border-gray-4 last:border-b-0"
-                        >
-                          <div className="flex items-center gap-2.5 mb-2">
-                            <Badge variant="secondary" size="sm" className="text-[10px]">
-                              {operation}
-                            </Badge>
-                          </div>
-                          <div className="space-y-1">
+                        <div key={operation}>
+                          <div className="flex flex-col gap-1">
                             {changes.map((change, index) => (
                               <div
                                 key={`${change.id}-${index}`}
-                                className={`px-2 py-1.5 rounded-sm ${getSeverityColor(change.level)}`}
+                                className={cn(
+                                  "px-2 py-1.5 rounded-sm",
+                                  getSeverityColor(change.level),
+                                )}
                               >
                                 <div className="flex items-start gap-2.5">
-                                  <div className="shrink-0 mt-0.5">
-                                    {getSeverityIcon(change.level)}
-                                  </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-xs text-grayA-12">{change.text}</p>
                                     <div className="mt-1 flex items-center gap-2 flex-wrap">
@@ -326,3 +306,19 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
     </>
   );
 };
+
+function getMethodVariant(method: string): BadgeProps["variant"] {
+  switch (method.toUpperCase()) {
+    case "GET":
+      return "primary";
+    case "POST":
+      return "success";
+    case "DELETE":
+      return "error";
+    case "PUT":
+    case "PATCH":
+      return "warning";
+    default:
+      return "secondary";
+  }
+}

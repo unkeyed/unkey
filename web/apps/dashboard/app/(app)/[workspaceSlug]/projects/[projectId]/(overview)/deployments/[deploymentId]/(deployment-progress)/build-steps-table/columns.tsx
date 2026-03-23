@@ -4,6 +4,7 @@ import { formatLatency } from "@/lib/utils/metric-formatters";
 import type { BuildStep, BuildStepLog } from "@unkey/clickhouse/src/build-steps";
 import { Bolt, CaretRight, TriangleWarning } from "@unkey/icons";
 import { InfoTooltip, TimestampInfo } from "@unkey/ui";
+import { TruncatedCell } from "../truncated-cell";
 
 export type BuildStepRow = BuildStep & {
   logs?: Omit<BuildStepLog, "step_id">[];
@@ -62,12 +63,11 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
     key: "name",
     width: "250px",
     render: (step) => (
-      <div
-        className="font-mono text-xs truncate max-w-75 flex items-center gap-2 text-gray-12"
-        title={step.name}
-      >
-        <span className="truncate">{step.name}</span>
-      </div>
+      <TruncatedCell
+        text={step.name}
+        threshold={50}
+        className="flex items-center gap-2 text-gray-12 truncate"
+      />
     ),
   },
   {
@@ -77,11 +77,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
       if (!step.error) {
         return null;
       }
-      return (
-        <span className="block truncate font-mono max-w-[300px]" title={step.error}>
-          {step.error}
-        </span>
-      );
+      return <TruncatedCell text={step.error} threshold={100} />;
     },
   },
   {
@@ -90,7 +86,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
     render: (step) => {
       const duration = step.completed_at - step.started_at;
       return (
-        <span className="px-[6px] font-mono whitespace-nowrap tabular-nums">
+        <span className="px-1.5 font-mono whitespace-nowrap tabular-nums">
           {formatLatency(duration)}
         </span>
       );

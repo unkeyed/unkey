@@ -29,7 +29,7 @@ const getDiffStatus = (data?: GetOpenApiDiffResponse): DiffStatus => {
 export const OpenApiDiff = () => {
   const params = useParams();
   const { projectId, project } = useProjectData();
-  const liveDeploymentId = project?.liveDeploymentId;
+  const currentDeploymentId = project?.currentDeploymentId;
 
   const query = useLiveQuery(
     (q) =>
@@ -41,23 +41,23 @@ export const OpenApiDiff = () => {
         .select((c) => ({
           id: c.deployment.id,
         })),
-    [projectId, liveDeploymentId],
+    [projectId, currentDeploymentId],
   );
 
-  const newDeployment = query.data?.find((d) => d.id !== liveDeploymentId);
+  const newDeployment = query.data?.find((d) => d.id !== currentDeploymentId);
 
   const diff = trpc.deploy.deployment.getOpenApiDiff.useQuery(
     {
       newDeploymentId: newDeployment?.id ?? "",
-      oldDeploymentId: liveDeploymentId ?? "",
+      oldDeploymentId: currentDeploymentId ?? "",
     },
-    { enabled: false },
+    { enabled: Boolean(newDeployment?.id) && Boolean(currentDeploymentId) },
   );
 
   // @ts-expect-error I have no idea why this whines about type diff
   const status = getDiffStatus(diff.data);
 
-  if (newDeployment && !liveDeploymentId) {
+  if (newDeployment && !currentDeploymentId) {
     return (
       <div className="rounded-[10px] flex items-center border border-gray-5 h-[52px] w-full max-w-md">
         <div className="bg-grayA-2 rounded-l-[10px] border-r border-grayA-3 h-full w-[52px] flex items-center justify-center shrink-0">
@@ -77,7 +77,7 @@ export const OpenApiDiff = () => {
     return null;
   }
 
-  const diffUrl = `/${params?.workspaceSlug}/projects/${params?.projectId}/openapi-diff?from=${liveDeploymentId}&to=${newDeployment.id}`;
+  const diffUrl = `/${params?.workspaceSlug}/projects/${params?.projectId}/openapi-diff?from=${currentDeploymentId}&to=${newDeployment.id}`;
   return (
     <Link href={diffUrl} className="hover:opacity-80 transition-opacity block">
       <div className="gap-4 items-center flex w-full">
@@ -88,7 +88,7 @@ export const OpenApiDiff = () => {
           <div className="flex flex-col flex-1 px-3">
             <div className="text-grayA-9 text-xs">from</div>
             <div className="text-accent-12 font-medium text-xs">
-              {shortenId(liveDeploymentId ?? "")}
+              {shortenId(currentDeploymentId ?? "")}
             </div>
           </div>
         </div>

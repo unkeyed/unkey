@@ -175,9 +175,9 @@ export const UpsertPermissionDialog = ({
               </div>
             }
           >
-            <div className="space-y-5 px-2 py-1">
+            <div className="flex flex-col gap-5 px-2 py-1">
               <FormInput
-                className="[&_input:first-of-type]:h-[36px]"
+                className="[&_input:first-of-type]:h-9"
                 placeholder="Manage Domains"
                 label="Name"
                 maxLength={512}
@@ -189,7 +189,7 @@ export const UpsertPermissionDialog = ({
               />
 
               <FormInput
-                className="[&_input:first-of-type]:h-[36px]"
+                className="[&_input:first-of-type]:h-9"
                 placeholder="manage.domains"
                 label="Slug"
                 maxLength={128}
@@ -201,7 +201,7 @@ export const UpsertPermissionDialog = ({
               />
 
               <FormTextarea
-                className="[&_input:first-of-type]:h-[36px]"
+                className="[&_input:first-of-type]:h-9"
                 label="Description"
                 placeholder="Allows user to create, update, and delete domain configurations and DNS records"
                 maxLength={512}

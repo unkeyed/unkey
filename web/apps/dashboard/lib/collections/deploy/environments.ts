@@ -9,6 +9,7 @@ const schema = z.object({
   id: z.string(),
   projectId: z.string(),
   slug: z.string(),
+  appId: z.string(),
 });
 
 export type Environment = z.infer<typeof schema>;

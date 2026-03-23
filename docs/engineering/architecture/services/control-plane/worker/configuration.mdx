@@ -7,7 +7,7 @@ import ConfigToml from "/snippets/config-toml.mdx";
 
 <ConfigToml />
 
-The config schema maps to <a href="https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/config.go" target="_blank">`svc/ctrl/worker/config.go`</a>.
+The config schema maps to [`svc/ctrl/worker/config.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/config.go).
 
 The control plane worker is configured via a TOML file: `unkey run ctrl worker --config=unkey.toml`.
 
@@ -38,7 +38,6 @@ These fields must be set for production deployments.
 | `default_domain` | string | `unkey.app` | Used for sentinel bootstrapping.
 | `build_platform` | string | `linux/amd64` | Build platform, format `linux/{arch}`.
 | `sentinel_image` | string | `ghcr.io/unkeyed/unkey:local` | Sentinel image override.
-| `available_regions` | list | - | Regions allowed for deployments.
 | `acme` | object | - | ACME config for cert issuance.
 | `depot` | object | - | Depot.dev config for builds.
 | `registry` | object | - | Registry credentials for builds.
@@ -126,7 +125,6 @@ instance_id = "${POD_NAME}"
 default_domain = "${UNKEY_DEFAULT_DOMAIN}"
 build_platform = "linux/amd64"
 sentinel_image = "ghcr.io/unkeyed/unkey:v2.0.77"
-available_regions = ["eu-central-1.aws", "us-east-1.aws"]
 cname_domain = "${UNKEY_CNAME_DOMAIN}"
 
 [database]

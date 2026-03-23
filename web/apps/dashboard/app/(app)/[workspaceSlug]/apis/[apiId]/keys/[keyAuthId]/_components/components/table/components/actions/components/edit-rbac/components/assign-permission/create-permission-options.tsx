@@ -55,7 +55,7 @@ export function createPermissionOptions({
             side="right"
             align="start"
             sideOffset={30}
-            className="drop-shadow-2xl transform-gpu border border-grayA-4 overflow-hidden rounded-[10px] p-0 bg-white dark:bg-black w-[320px] z-100"
+            className="drop-shadow-2xl transform-gpu border border-grayA-4 overflow-hidden rounded-[10px] p-0 bg-white dark:bg-black w-80 z-100"
           >
             <div className="flex flex-col h-full">
               {/* Header */}
@@ -63,7 +63,7 @@ export function createPermissionOptions({
                 Permission Details
               </div>
               {/* Content */}
-              <div className="px-4 py-3 space-y-3">
+              <div className="flex flex-col gap-3 px-4 py-3">
                 <div>
                   <div className="text-xs font-medium text-gray-11 mb-1">Permission ID</div>
                   <div className="text-xs text-gray-12 font-mono break-all">{permission.id}</div>

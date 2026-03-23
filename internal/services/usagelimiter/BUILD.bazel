@@ -17,7 +17,6 @@ go_library(
         "//pkg/buffer",
         "//pkg/circuitbreaker",
         "//pkg/counter",
-        "//pkg/db",
         "//pkg/logger",
         "//pkg/otel/tracing",
         "//pkg/repeat",

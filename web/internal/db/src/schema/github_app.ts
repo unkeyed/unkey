@@ -1,15 +1,22 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { apps } from "./apps";
 import { projects } from "./projects";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
-export const githubAppInstallations = mysqlTable("github_app_installations", {
-  pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-  workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-  installationId: bigint("installation_id", { mode: "number" }).notNull().unique(),
-  ...lifecycleDates,
-});
+export const githubAppInstallations = mysqlTable(
+  "github_app_installations",
+  {
+    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    installationId: bigint("installation_id", { mode: "number" }).notNull(),
+    ...lifecycleDates,
+  },
+  (table) => [
+    uniqueIndex("workspace_installation_idx").on(table.workspaceId, table.installationId),
+  ],
+);
 
 export const githubAppInstallationsRelations = relations(githubAppInstallations, ({ one }) => ({
   workspace: one(workspaces, {
@@ -22,7 +29,8 @@ export const githubRepoConnections = mysqlTable(
   "github_repo_connections",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    projectId: varchar("project_id", { length: 64 }).notNull().unique(),
+    projectId: varchar("project_id", { length: 64 }).notNull(),
+    appId: varchar("app_id", { length: 64 }).notNull().unique(),
     installationId: bigint("installation_id", {
       mode: "number",
     }).notNull(),
@@ -39,6 +47,10 @@ export const githubRepoConnectionsRelations = relations(githubRepoConnections, (
   project: one(projects, {
     fields: [githubRepoConnections.projectId],
     references: [projects.id],
+  }),
+  app: one(apps, {
+    fields: [githubRepoConnections.appId],
+    references: [apps.id],
   }),
   installation: one(githubAppInstallations, {
     fields: [githubRepoConnections.installationId],

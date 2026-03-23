@@ -103,8 +103,8 @@ export const KeyRbacDialog = ({
     watch,
   } = methods;
 
-  const watchedRoleIds = watch("roleIds");
-  const watchedDirectPermissionIds = watch("directPermissionIds");
+  const watchedRoleIds = watch("roleIds", []);
+  const watchedDirectPermissionIds = watch("directPermissionIds", []);
 
   // Calculate all effective permissions for GrantedAccess component
   const allEffectivePermissionIds = useMemo(() => {
@@ -208,7 +208,7 @@ export const KeyRbacDialog = ({
               </div>
             }
           >
-            <div className="space-y-5 px-2 py-1">
+            <div className="flex flex-col gap-5 px-2 py-1">
               <KeyInfo
                 keyDetails={{
                   id: existingKey.id,

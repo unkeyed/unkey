@@ -24,23 +24,47 @@ type newDomain struct {
 
 // buildDomains generates the list of domains that should be assigned to a deployment.
 //
-// The function creates three types of domains:
+// The function creates three or four types of domains:
 //
-// 1. Per-commit domain: `<project>-git-<sha>-<workspace>.<apex>`
+// 1. Per-commit domain: `<prefix>-git-<sha>-<workspace>.<apex>`
 //   - Never reassigned, provides stable URL for specific commit
 //   - For CLI uploads, adds random suffix to prevent collisions
 //
-// 2. Per-branch domain: `<project>-git-<branch>-<workspace>.<apex>`
+// 2. Per-branch domain: `<prefix>-git-<branch>-<workspace>.<apex>`
 //   - Sticky to branch, always points to latest deployment of that branch
 //   - Branch name is sluggified for URL safety
 //
-// 3. Per-environment domain: `<project>-<environment>-<workspace>.<apex>`
+// 3. Per-environment domain: `<prefix>-<environment>-<workspace>.<apex>`
 //   - Sticky to environment, points to latest deployment in that environment
 //   - Can be rolled back to previous deployment
 //
-// The sticky behavior ensures branch and environment domains automatically update to point
-// to new deployments, while commit domains remain immutable.
-func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchName, apex string, source ctrlv1.SourceType) []newDomain {
+// 4. Per-live domain (production only): `<prefix>-<workspace>.<apex>`
+//   - Sticky to live, points to the active production deployment
+//
+// 5. Per-deployment domain: `<prefix>-dep-<deploymentID>-<workspace>.<apex>`
+//   - Never reassigned, provides a stable deployment-specific URL
+//
+// Where <prefix> is `<project>-<app>` for custom app slugs, or just `<project>`
+// when the app slug is "default" (see TODO above).
+// TODO: Once users can configure custom app slugs, include the app slug in all
+// generated domains. Currently the only app slug is "default" which adds no
+// useful information to the domain and just makes URLs longer. Remove this
+// exclusion and always include appSlug once the dashboard supports renaming apps.
+func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, branchName, forkOwner, apex string, source ctrlv1.SourceType, deploymentID string) []newDomain {
+	// Build the project-app prefix for domain names.
+	// Skip "default" app slug since it's not configurable yet and would just
+	// add noise to URLs (e.g. "myproject-default-..." vs "myproject-...").
+	prefix := projectSlug
+	if appSlug != "default" {
+		prefix = projectSlug + "-" + appSlug
+	}
+
+	// Fork PRs include the fork owner in the domain to distinguish from same-repo
+	// deployments (e.g. "myproject-fork-contributor-git-abc1234-acme.unkey.app").
+	if forkOwner != "" {
+		prefix = prefix + "-fork-" + sluggify(forkOwner)
+	}
+
 	// Deploying via CLI often sends the same git sha, and we want to make them unique,
 	// to prevent changes from overwriting each other.
 	randomSuffix := ""
@@ -59,7 +83,7 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 		short += randomSuffix
 		domains = append(domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-git-%s-%s.%s", projectSlug, short, workspaceSlug, apex),
+				domain: fmt.Sprintf("%s-git-%s-%s.%s", prefix, short, workspaceSlug, apex),
 				//nolint: exhaustruct
 				sticky: db.FrontlineRoutesStickyNone,
 			},
@@ -70,7 +94,7 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 		domains = append(
 			domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-git-%s-%s.%s", projectSlug, sluggify(branchName), workspaceSlug, apex),
+				domain: fmt.Sprintf("%s-git-%s-%s.%s", prefix, sluggify(branchName), workspaceSlug, apex),
 				sticky: db.FrontlineRoutesStickyBranch,
 			},
 		)
@@ -79,18 +103,27 @@ func buildDomains(workspaceSlug, projectSlug, environmentSlug, gitSha, branchNam
 	domains = append(
 		domains,
 		newDomain{
-			domain: fmt.Sprintf("%s-%s-%s.%s", projectSlug, environmentSlug, workspaceSlug, apex),
+			domain: fmt.Sprintf("%s-%s-%s.%s", prefix, environmentSlug, workspaceSlug, apex),
 			sticky: db.FrontlineRoutesStickyEnvironment,
 		},
 	)
-	if environmentSlug == "production" {
 
+	if environmentSlug == "production" {
 		domains = append(domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-%s.%s", projectSlug, workspaceSlug, apex),
+				domain: fmt.Sprintf("%s-%s.%s", prefix, workspaceSlug, apex),
 				sticky: db.FrontlineRoutesStickyLive,
 			})
 	}
+
+	// deployment-specific domain for stable public access.
+	sanitizedDeploymentID := strings.ReplaceAll(deploymentID, "_", "-")
+	domains = append(domains, newDomain{
+		domain: fmt.Sprintf("%s-dep-%s-%s.%s", prefix, sanitizedDeploymentID, workspaceSlug, apex),
+		//nolint: exhaustruct
+		sticky: db.FrontlineRoutesStickyDeployment,
+	})
+
 	return domains
 }
 

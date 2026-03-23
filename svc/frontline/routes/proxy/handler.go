@@ -44,9 +44,9 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	}
 
 	// We obviously prefer a local sentinel if available
-	if decision.LocalSentinel != nil {
-		return h.ProxyService.ForwardToSentinel(ctx, sess, decision.LocalSentinel, decision.DeploymentID)
+	if decision.LocalSentinelAddress != "" {
+		return h.ProxyService.ForwardToSentinel(ctx, sess, decision.LocalSentinelAddress, decision.DeploymentID)
 	}
 
-	return h.ProxyService.ForwardToRegion(ctx, sess, decision.NearestNLBRegion)
+	return h.ProxyService.ForwardToRegion(ctx, sess, decision.NearestNLBRegionPlatform)
 }

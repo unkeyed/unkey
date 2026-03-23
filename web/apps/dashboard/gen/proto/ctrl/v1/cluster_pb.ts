@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/cluster.proto.
  */
 export const file_ctrl_v1_cluster: GenFile = /*@__PURE__*/
-  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiTgohV2F0Y2hDaWxpdW1OZXR3b3JrUG9saWNpZXNSZXF1ZXN0Eg4KBnJlZ2lvbhgBIAEoCRIZChF2ZXJzaW9uX2xhc3Rfc2VlbhgCIAEoBCJ1ChhBcHBseUNpbGl1bU5ldHdvcmtQb2xpY3kSFQoNazhzX25hbWVzcGFjZRgBIAEoCRIQCghrOHNfbmFtZRgCIAEoCRIgChhjaWxpdW1fbmV0d29ya19wb2xpY3lfaWQYAyABKAkSDgoGcG9saWN5GAQgASgMIkQKGURlbGV0ZUNpbGl1bU5ldHdvcmtQb2xpY3kSFQoNazhzX25hbWVzcGFjZRgBIAEoCRIQCghrOHNfbmFtZRgCIAEoCSKeAQoYQ2lsaXVtTmV0d29ya1BvbGljeVN0YXRlEg8KB3ZlcnNpb24YAyABKAQSMgoFYXBwbHkYASABKAsyIS5jdHJsLnYxLkFwcGx5Q2lsaXVtTmV0d29ya1BvbGljeUgAEjQKBmRlbGV0ZRgCIAEoCzIiLmN0cmwudjEuRGVsZXRlQ2lsaXVtTmV0d29ya1BvbGljeUgAQgcKBXN0YXRlIk0KKUdldERlc2lyZWRDaWxpdW1OZXR3b3JrUG9saWN5U3RhdGVSZXF1ZXN0EiAKGGNpbGl1bV9uZXR3b3JrX3BvbGljeV9pZBgBIAEoCSI1Ch5HZXREZXNpcmVkU2VudGluZWxTdGF0ZVJlcXVlc3QSEwoLc2VudGluZWxfaWQYASABKAkiOQogR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZVJlcXVlc3QSFQoNZGVwbG95bWVudF9pZBgBIAEoCSK3BAodUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QSPwoGdXBkYXRlGAEgASgLMi0uY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdC5VcGRhdGVIABI/CgZkZWxldGUYAiABKAsyLS5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LkRlbGV0ZUgAGu0CCgZVcGRhdGUSEAoIazhzX25hbWUYASABKAkSSQoJaW5zdGFuY2VzGAIgAygLMjYuY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdC5VcGRhdGUuSW5zdGFuY2UahQIKCEluc3RhbmNlEhAKCGs4c19uYW1lGAEgASgJEg8KB2FkZHJlc3MYAiABKAkSFgoOY3B1X21pbGxpY29yZXMYAyABKAMSEgoKbWVtb3J5X21pYhgEIAEoAxJNCgZzdGF0dXMYBSABKA4yPS5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LlVwZGF0ZS5JbnN0YW5jZS5TdGF0dXMiWwoGU3RhdHVzEhYKElNUQVRVU19VTlNQRUNJRklFRBAAEhIKDlNUQVRVU19QRU5ESU5HEAESEgoOU1RBVFVTX1JVTk5JTkcQAhIRCg1TVEFUVVNfRkFJTEVEEAMaGgoGRGVsZXRlEhAKCGs4c19uYW1lGAEgASgJQggKBmNoYW5nZSIgCh5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVzcG9uc2UibAobUmVwb3J0U2VudGluZWxTdGF0dXNSZXF1ZXN0EhAKCGs4c19uYW1lGAEgASgJEhoKEmF2YWlsYWJsZV9yZXBsaWNhcxgCIAEoBRIfCgZoZWFsdGgYAyABKA4yDy5jdHJsLnYxLkhlYWx0aCIeChxSZXBvcnRTZW50aW5lbFN0YXR1c1Jlc3BvbnNlIkQKF1dhdGNoRGVwbG95bWVudHNSZXF1ZXN0Eg4KBnJlZ2lvbhgBIAEoCRIZChF2ZXJzaW9uX2xhc3Rfc2VlbhgCIAEoBCJCChVXYXRjaFNlbnRpbmVsc1JlcXVlc3QSDgoGcmVnaW9uGAEgASgJEhkKEXZlcnNpb25fbGFzdF9zZWVuGAIgASgEIn0KDVNlbnRpbmVsU3RhdGUSDwoHdmVyc2lvbhgDIAEoBBInCgVhcHBseRgBIAEoCzIWLmN0cmwudjEuQXBwbHlTZW50aW5lbEgAEikKBmRlbGV0ZRgCIAEoCzIXLmN0cmwudjEuRGVsZXRlU2VudGluZWxIAEIHCgVzdGF0ZSKDAQoPRGVwbG95bWVudFN0YXRlEg8KB3ZlcnNpb24YAyABKAQSKQoFYXBwbHkYASABKAsyGC5jdHJsLnYxLkFwcGx5RGVwbG95bWVudEgAEisKBmRlbGV0ZRgCIAEoCzIZLmN0cmwudjEuRGVsZXRlRGVwbG95bWVudEgAQgcKBXN0YXRlIsUBCg1BcHBseVNlbnRpbmVsEhAKCGs4c19uYW1lGAEgASgJEhQKDHdvcmtzcGFjZV9pZBgCIAEoCRISCgpwcm9qZWN0X2lkGAMgASgJEhYKDmVudmlyb25tZW50X2lkGAQgASgJEhMKC3NlbnRpbmVsX2lkGAUgASgJEg0KBWltYWdlGAYgASgJEhAKCHJlcGxpY2FzGAcgASgFEhYKDmNwdV9taWxsaWNvcmVzGAggASgDEhIKCm1lbW9yeV9taWIYCSABKAMiIgoORGVsZXRlU2VudGluZWwSEAoIazhzX25hbWUYASABKAkijwMKD0FwcGx5RGVwbG95bWVudBIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJEhQKDHdvcmtzcGFjZV9pZBgDIAEoCRISCgpwcm9qZWN0X2lkGAQgASgJEhYKDmVudmlyb25tZW50X2lkGAUgASgJEhUKDWRlcGxveW1lbnRfaWQYBiABKAkSDQoFaW1hZ2UYByABKAkSEAoIcmVwbGljYXMYCCABKAUSFgoOY3B1X21pbGxpY29yZXMYCSABKAMSEgoKbWVtb3J5X21pYhgKIAEoAxIVCghidWlsZF9pZBgLIAEoCUgAiAEBEicKH2VuY3J5cHRlZF9lbnZpcm9ubWVudF92YXJpYWJsZXMYDCABKAwSDwoHY29tbWFuZBgNIAMoCRIMCgRwb3J0GA4gASgFEhcKD3NodXRkb3duX3NpZ25hbBgPIAEoCRIYCgtoZWFsdGhjaGVjaxgRIAEoDEgBiAEBQgsKCV9idWlsZF9pZEIOCgxfaGVhbHRoY2hlY2siOwoQRGVsZXRlRGVwbG95bWVudBIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJKl0KBkhlYWx0aBIWChJIRUFMVEhfVU5TUEVDSUZJRUQQABISCg5IRUFMVEhfSEVBTFRIWRABEhQKEEhFQUxUSF9VTkhFQUxUSFkQAhIRCg1IRUFMVEhfUEFVU0VEEAMyqAYKDkNsdXN0ZXJTZXJ2aWNlElAKEFdhdGNoRGVwbG95bWVudHMSIC5jdHJsLnYxLldhdGNoRGVwbG95bWVudHNSZXF1ZXN0GhguY3RybC52MS5EZXBsb3ltZW50U3RhdGUwARJKCg5XYXRjaFNlbnRpbmVscxIeLmN0cmwudjEuV2F0Y2hTZW50aW5lbHNSZXF1ZXN0GhYuY3RybC52MS5TZW50aW5lbFN0YXRlMAESWgoXR2V0RGVzaXJlZFNlbnRpbmVsU3RhdGUSJy5jdHJsLnYxLkdldERlc2lyZWRTZW50aW5lbFN0YXRlUmVxdWVzdBoWLmN0cmwudjEuU2VudGluZWxTdGF0ZRJjChRSZXBvcnRTZW50aW5lbFN0YXR1cxIkLmN0cmwudjEuUmVwb3J0U2VudGluZWxTdGF0dXNSZXF1ZXN0GiUuY3RybC52MS5SZXBvcnRTZW50aW5lbFN0YXR1c1Jlc3BvbnNlEmAKGUdldERlc2lyZWREZXBsb3ltZW50U3RhdGUSKS5jdHJsLnYxLkdldERlc2lyZWREZXBsb3ltZW50U3RhdGVSZXF1ZXN0GhguY3RybC52MS5EZXBsb3ltZW50U3RhdGUSaQoWUmVwb3J0RGVwbG95bWVudFN0YXR1cxImLmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QaJy5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXNwb25zZRJtChpXYXRjaENpbGl1bU5ldHdvcmtQb2xpY2llcxIqLmN0cmwudjEuV2F0Y2hDaWxpdW1OZXR3b3JrUG9saWNpZXNSZXF1ZXN0GiEuY3RybC52MS5DaWxpdW1OZXR3b3JrUG9saWN5U3RhdGUwARJ7CiJHZXREZXNpcmVkQ2lsaXVtTmV0d29ya1BvbGljeVN0YXRlEjIuY3RybC52MS5HZXREZXNpcmVkQ2lsaXVtTmV0d29ya1BvbGljeVN0YXRlUmVxdWVzdBohLmN0cmwudjEuQ2lsaXVtTmV0d29ya1BvbGljeVN0YXRlQosBCgtjb20uY3RybC52MUIMQ2x1c3RlclByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z");
+  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiTgohV2F0Y2hDaWxpdW1OZXR3b3JrUG9saWNpZXNSZXF1ZXN0Eg4KBnJlZ2lvbhgBIAEoCRIZChF2ZXJzaW9uX2xhc3Rfc2VlbhgCIAEoBCJ1ChhBcHBseUNpbGl1bU5ldHdvcmtQb2xpY3kSFQoNazhzX25hbWVzcGFjZRgBIAEoCRIQCghrOHNfbmFtZRgCIAEoCRIgChhjaWxpdW1fbmV0d29ya19wb2xpY3lfaWQYAyABKAkSDgoGcG9saWN5GAQgASgMIkQKGURlbGV0ZUNpbGl1bU5ldHdvcmtQb2xpY3kSFQoNazhzX25hbWVzcGFjZRgBIAEoCRIQCghrOHNfbmFtZRgCIAEoCSKeAQoYQ2lsaXVtTmV0d29ya1BvbGljeVN0YXRlEg8KB3ZlcnNpb24YAyABKAQSMgoFYXBwbHkYASABKAsyIS5jdHJsLnYxLkFwcGx5Q2lsaXVtTmV0d29ya1BvbGljeUgAEjQKBmRlbGV0ZRgCIAEoCzIiLmN0cmwudjEuRGVsZXRlQ2lsaXVtTmV0d29ya1BvbGljeUgAQgcKBXN0YXRlIk0KKUdldERlc2lyZWRDaWxpdW1OZXR3b3JrUG9saWN5U3RhdGVSZXF1ZXN0EiAKGGNpbGl1bV9uZXR3b3JrX3BvbGljeV9pZBgBIAEoCSI1Ch5HZXREZXNpcmVkU2VudGluZWxTdGF0ZVJlcXVlc3QSEwoLc2VudGluZWxfaWQYASABKAkiOQogR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZVJlcXVlc3QSFQoNZGVwbG95bWVudF9pZBgBIAEoCSK3BAodUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QSPwoGdXBkYXRlGAEgASgLMi0uY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdC5VcGRhdGVIABI/CgZkZWxldGUYAiABKAsyLS5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LkRlbGV0ZUgAGu0CCgZVcGRhdGUSEAoIazhzX25hbWUYASABKAkSSQoJaW5zdGFuY2VzGAIgAygLMjYuY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdC5VcGRhdGUuSW5zdGFuY2UahQIKCEluc3RhbmNlEhAKCGs4c19uYW1lGAEgASgJEg8KB2FkZHJlc3MYAiABKAkSFgoOY3B1X21pbGxpY29yZXMYAyABKAMSEgoKbWVtb3J5X21pYhgEIAEoAxJNCgZzdGF0dXMYBSABKA4yPS5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LlVwZGF0ZS5JbnN0YW5jZS5TdGF0dXMiWwoGU3RhdHVzEhYKElNUQVRVU19VTlNQRUNJRklFRBAAEhIKDlNUQVRVU19QRU5ESU5HEAESEgoOU1RBVFVTX1JVTk5JTkcQAhIRCg1TVEFUVVNfRkFJTEVEEAMaGgoGRGVsZXRlEhAKCGs4c19uYW1lGAEgASgJQggKBmNoYW5nZSIgCh5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVzcG9uc2UibAobUmVwb3J0U2VudGluZWxTdGF0dXNSZXF1ZXN0EhAKCGs4c19uYW1lGAEgASgJEhoKEmF2YWlsYWJsZV9yZXBsaWNhcxgCIAEoBRIfCgZoZWFsdGgYAyABKA4yDy5jdHJsLnYxLkhlYWx0aCIeChxSZXBvcnRTZW50aW5lbFN0YXR1c1Jlc3BvbnNlIkQKF1dhdGNoRGVwbG95bWVudHNSZXF1ZXN0Eg4KBnJlZ2lvbhgBIAEoCRIZChF2ZXJzaW9uX2xhc3Rfc2VlbhgCIAEoBCJCChVXYXRjaFNlbnRpbmVsc1JlcXVlc3QSDgoGcmVnaW9uGAEgASgJEhkKEXZlcnNpb25fbGFzdF9zZWVuGAIgASgEIn0KDVNlbnRpbmVsU3RhdGUSDwoHdmVyc2lvbhgDIAEoBBInCgVhcHBseRgBIAEoCzIWLmN0cmwudjEuQXBwbHlTZW50aW5lbEgAEikKBmRlbGV0ZRgCIAEoCzIXLmN0cmwudjEuRGVsZXRlU2VudGluZWxIAEIHCgVzdGF0ZSKDAQoPRGVwbG95bWVudFN0YXRlEg8KB3ZlcnNpb24YAyABKAQSKQoFYXBwbHkYASABKAsyGC5jdHJsLnYxLkFwcGx5RGVwbG95bWVudEgAEisKBmRlbGV0ZRgCIAEoCzIZLmN0cmwudjEuRGVsZXRlRGVwbG95bWVudEgAQgcKBXN0YXRlItUBCg1BcHBseVNlbnRpbmVsEhAKCGs4c19uYW1lGAEgASgJEhQKDHdvcmtzcGFjZV9pZBgCIAEoCRISCgpwcm9qZWN0X2lkGAMgASgJEg4KBmFwcF9pZBgEIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgFIAEoCRITCgtzZW50aW5lbF9pZBgGIAEoCRINCgVpbWFnZRgHIAEoCRIQCghyZXBsaWNhcxgIIAEoBRIWCg5jcHVfbWlsbGljb3JlcxgJIAEoAxISCgptZW1vcnlfbWliGAogASgDIiIKDkRlbGV0ZVNlbnRpbmVsEhAKCGs4c19uYW1lGAEgASgJIp8DCg9BcHBseURlcGxveW1lbnQSFQoNazhzX25hbWVzcGFjZRgBIAEoCRIQCghrOHNfbmFtZRgCIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAyABKAkSEgoKcHJvamVjdF9pZBgEIAEoCRIWCg5lbnZpcm9ubWVudF9pZBgFIAEoCRIVCg1kZXBsb3ltZW50X2lkGAYgASgJEg0KBWltYWdlGAcgASgJEhAKCHJlcGxpY2FzGAggASgFEhYKDmNwdV9taWxsaWNvcmVzGAkgASgDEhIKCm1lbW9yeV9taWIYCiABKAMSFQoIYnVpbGRfaWQYCyABKAlIAIgBARInCh9lbmNyeXB0ZWRfZW52aXJvbm1lbnRfdmFyaWFibGVzGAwgASgMEg8KB2NvbW1hbmQYDSADKAkSDAoEcG9ydBgOIAEoBRIXCg9zaHV0ZG93bl9zaWduYWwYDyABKAkSGAoLaGVhbHRoY2hlY2sYESABKAxIAYgBARIOCgZhcHBfaWQYEiABKAlCCwoJX2J1aWxkX2lkQg4KDF9oZWFsdGhjaGVjayI7ChBEZWxldGVEZXBsb3ltZW50EhUKDWs4c19uYW1lc3BhY2UYASABKAkSEAoIazhzX25hbWUYAiABKAkiNAoQSGVhcnRiZWF0UmVxdWVzdBIOCgZyZWdpb24YASABKAkSEAoIcGxhdGZvcm0YAiABKAkiEwoRSGVhcnRiZWF0UmVzcG9uc2UqXQoGSGVhbHRoEhYKEkhFQUxUSF9VTlNQRUNJRklFRBAAEhIKDkhFQUxUSF9IRUFMVEhZEAESFAoQSEVBTFRIX1VOSEVBTFRIWRACEhEKDUhFQUxUSF9QQVVTRUQQAzLsBgoOQ2x1c3RlclNlcnZpY2USUAoQV2F0Y2hEZXBsb3ltZW50cxIgLmN0cmwudjEuV2F0Y2hEZXBsb3ltZW50c1JlcXVlc3QaGC5jdHJsLnYxLkRlcGxveW1lbnRTdGF0ZTABEkoKDldhdGNoU2VudGluZWxzEh4uY3RybC52MS5XYXRjaFNlbnRpbmVsc1JlcXVlc3QaFi5jdHJsLnYxLlNlbnRpbmVsU3RhdGUwARJaChdHZXREZXNpcmVkU2VudGluZWxTdGF0ZRInLmN0cmwudjEuR2V0RGVzaXJlZFNlbnRpbmVsU3RhdGVSZXF1ZXN0GhYuY3RybC52MS5TZW50aW5lbFN0YXRlEmMKFFJlcG9ydFNlbnRpbmVsU3RhdHVzEiQuY3RybC52MS5SZXBvcnRTZW50aW5lbFN0YXR1c1JlcXVlc3QaJS5jdHJsLnYxLlJlcG9ydFNlbnRpbmVsU3RhdHVzUmVzcG9uc2USYAoZR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZRIpLmN0cmwudjEuR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZVJlcXVlc3QaGC5jdHJsLnYxLkRlcGxveW1lbnRTdGF0ZRJpChZSZXBvcnREZXBsb3ltZW50U3RhdHVzEiYuY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdBonLmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1Jlc3BvbnNlEm0KGldhdGNoQ2lsaXVtTmV0d29ya1BvbGljaWVzEiouY3RybC52MS5XYXRjaENpbGl1bU5ldHdvcmtQb2xpY2llc1JlcXVlc3QaIS5jdHJsLnYxLkNpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZTABEnsKIkdldERlc2lyZWRDaWxpdW1OZXR3b3JrUG9saWN5U3RhdGUSMi5jdHJsLnYxLkdldERlc2lyZWRDaWxpdW1OZXR3b3JrUG9saWN5U3RhdGVSZXF1ZXN0GiEuY3RybC52MS5DaWxpdW1OZXR3b3JrUG9saWN5U3RhdGUSQgoJSGVhcnRiZWF0EhkuY3RybC52MS5IZWFydGJlYXRSZXF1ZXN0GhouY3RybC52MS5IZWFydGJlYXRSZXNwb25zZUKLAQoLY29tLmN0cmwudjFCDENsdXN0ZXJQcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message ctrl.v1.WatchCiliumNetworkPoliciesRequest
@@ -576,36 +576,43 @@ export type ApplySentinel = Message<"ctrl.v1.ApplySentinel"> & {
   projectId: string;
 
   /**
+   * app_id identifies the app within the project.
+   *
+   * @generated from field: string app_id = 4;
+   */
+  appId: string;
+
+  /**
    * environment_id in which the sentinel should exist.
    *
-   * @generated from field: string environment_id = 4;
+   * @generated from field: string environment_id = 5;
    */
   environmentId: string;
 
   /**
    * sentinel_id is the unique identifier for this sentinel globally
    *
-   * @generated from field: string sentinel_id = 5;
+   * @generated from field: string sentinel_id = 6;
    */
   sentinelId: string;
 
   /**
-   * @generated from field: string image = 6;
+   * @generated from field: string image = 7;
    */
   image: string;
 
   /**
-   * @generated from field: int32 replicas = 7;
+   * @generated from field: int32 replicas = 8;
    */
   replicas: number;
 
   /**
-   * @generated from field: int64 cpu_millicores = 8;
+   * @generated from field: int64 cpu_millicores = 9;
    */
   cpuMillicores: bigint;
 
   /**
-   * @generated from field: int64 memory_mib = 9;
+   * @generated from field: int64 memory_mib = 10;
    */
   memoryMib: bigint;
 };
@@ -767,6 +774,14 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
    * @generated from field: optional bytes healthcheck = 17;
    */
   healthcheck?: Uint8Array;
+
+  /**
+   * app_id identifies the app within the project.
+   * Used for pod labels so Vector can extract it into runtime logs.
+   *
+   * @generated from field: string app_id = 18;
+   */
+  appId: string;
 };
 
 /**
@@ -803,6 +818,49 @@ export type DeleteDeployment = Message<"ctrl.v1.DeleteDeployment"> & {
  */
 export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 18);
+
+/**
+ * HeartbeatRequest is sent periodically by krane agents to register their
+ * presence. The control plane uses this to populate regions and
+ * clusters tables.
+ *
+ * @generated from message ctrl.v1.HeartbeatRequest
+ */
+export type HeartbeatRequest = Message<"ctrl.v1.HeartbeatRequest"> & {
+  /**
+   * region is the geographic region name (e.g. "us-east-1").
+   *
+   * @generated from field: string region = 1;
+   */
+  region: string;
+
+  /**
+   * platform is the infrastructure provider (e.g. "aws", "gcp", "local").
+   *
+   * @generated from field: string platform = 2;
+   */
+  platform: string;
+};
+
+/**
+ * Describes the message ctrl.v1.HeartbeatRequest.
+ * Use `create(HeartbeatRequestSchema)` to create a new message.
+ */
+export const HeartbeatRequestSchema: GenMessage<HeartbeatRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 19);
+
+/**
+ * @generated from message ctrl.v1.HeartbeatResponse
+ */
+export type HeartbeatResponse = Message<"ctrl.v1.HeartbeatResponse"> & {
+};
+
+/**
+ * Describes the message ctrl.v1.HeartbeatResponse.
+ * Use `create(HeartbeatResponseSchema)` to create a new message.
+ */
+export const HeartbeatResponseSchema: GenMessage<HeartbeatResponse> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 20);
 
 /**
  * Health represents the health state of a resource (sentinel, deployment instance, etc.)
@@ -940,6 +998,18 @@ export const ClusterService: GenService<{
     methodKind: "unary";
     input: typeof GetDesiredCiliumNetworkPolicyStateRequestSchema;
     output: typeof CiliumNetworkPolicyStateSchema;
+  },
+  /**
+   * Heartbeat is called periodically by krane agents to register their cluster
+   * and region with the control plane. This populates the regions and
+   * clusters tables, making regions dynamically discoverable.
+   *
+   * @generated from rpc ctrl.v1.ClusterService.Heartbeat
+   */
+  heartbeat: {
+    methodKind: "unary";
+    input: typeof HeartbeatRequestSchema;
+    output: typeof HeartbeatResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ctrl_v1_cluster, 0);

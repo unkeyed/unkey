@@ -10,30 +10,30 @@ import (
 )
 
 const listDesiredNetworkPolicies = `-- name: ListDesiredNetworkPolicies :many
-SELECT pk, id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, version, created_at, updated_at
 FROM ` + "`" + `cilium_network_policies` + "`" + `
-WHERE (? = '' OR region = ?) AND id > ?
+WHERE (? = '' OR region_id = ?) AND id > ?
 ORDER BY id ASC
 LIMIT ?
 `
 
 type ListDesiredNetworkPoliciesParams struct {
-	Region           string `db:"region"`
+	RegionID         string `db:"region_id"`
 	PaginationCursor string `db:"pagination_cursor"`
 	Limit            int32  `db:"limit"`
 }
 
 // ListDesiredNetworkPolicies
 //
-//	SELECT pk, id, workspace_id, project_id, environment_id, deployment_id, k8s_name, k8s_namespace, region, policy, version, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, version, created_at, updated_at
 //	FROM `cilium_network_policies`
-//	WHERE (? = '' OR region = ?) AND id > ?
+//	WHERE (? = '' OR region_id = ?) AND id > ?
 //	ORDER BY id ASC
 //	LIMIT ?
 func (q *Queries) ListDesiredNetworkPolicies(ctx context.Context, db DBTX, arg ListDesiredNetworkPoliciesParams) ([]CiliumNetworkPolicy, error) {
 	rows, err := db.QueryContext(ctx, listDesiredNetworkPolicies,
-		arg.Region,
-		arg.Region,
+		arg.RegionID,
+		arg.RegionID,
 		arg.PaginationCursor,
 		arg.Limit,
 	)
@@ -49,11 +49,12 @@ func (q *Queries) ListDesiredNetworkPolicies(ctx context.Context, db DBTX, arg L
 			&i.ID,
 			&i.WorkspaceID,
 			&i.ProjectID,
+			&i.AppID,
 			&i.EnvironmentID,
 			&i.DeploymentID,
 			&i.K8sName,
 			&i.K8sNamespace,
-			&i.Region,
+			&i.RegionID,
 			&i.Policy,
 			&i.Version,
 			&i.CreatedAt,

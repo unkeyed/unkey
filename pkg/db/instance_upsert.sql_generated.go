@@ -15,7 +15,8 @@ INSERT INTO instances (
 	deployment_id,
 	workspace_id,
 	project_id,
-	region,
+	app_id,
+	region_id,
 	k8s_name,
 	address,
 	cpu_millicores,
@@ -23,6 +24,7 @@ INSERT INTO instances (
 	status
 )
 VALUES (
+	?,
 	?,
 	?,
 	?,
@@ -46,7 +48,8 @@ type UpsertInstanceParams struct {
 	DeploymentID  string          `db:"deployment_id"`
 	WorkspaceID   string          `db:"workspace_id"`
 	ProjectID     string          `db:"project_id"`
-	Region        string          `db:"region"`
+	AppID         string          `db:"app_id"`
+	RegionID      string          `db:"region_id"`
 	K8sName       string          `db:"k8s_name"`
 	Address       string          `db:"address"`
 	CpuMillicores int32           `db:"cpu_millicores"`
@@ -61,7 +64,8 @@ type UpsertInstanceParams struct {
 //		deployment_id,
 //		workspace_id,
 //		project_id,
-//		region,
+//		app_id,
+//		region_id,
 //		k8s_name,
 //		address,
 //		cpu_millicores,
@@ -69,6 +73,7 @@ type UpsertInstanceParams struct {
 //		status
 //	)
 //	VALUES (
+//		?,
 //		?,
 //		?,
 //		?,
@@ -91,7 +96,8 @@ func (q *Queries) UpsertInstance(ctx context.Context, db DBTX, arg UpsertInstanc
 		arg.DeploymentID,
 		arg.WorkspaceID,
 		arg.ProjectID,
-		arg.Region,
+		arg.AppID,
+		arg.RegionID,
 		arg.K8sName,
 		arg.Address,
 		arg.CpuMillicores,

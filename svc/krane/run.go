@@ -10,12 +10,15 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/unkeyed/unkey/gen/proto/krane/v1/kranev1connect"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
@@ -23,8 +26,6 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
-	"github.com/unkeyed/unkey/svc/krane/secrets"
-	"github.com/unkeyed/unkey/svc/krane/secrets/token"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -32,25 +33,10 @@ import (
 
 // Run starts the krane agent server with the provided configuration.
 //
-// This function initializes all required services including Kubernetes client,
-// vault service for secrets management, gRPC servers for API endpoints, and
-// Prometheus metrics server. It blocks until the context is cancelled or a
-// fatal error occurs.
-//
-// The function performs these steps in order:
-// 1. Validates the configuration
-// 2. Creates structured logger with instance metadata
-// 3. Initializes vault service if master keys and S3 config are provided
-// 4. Creates Kubernetes client using in-cluster configuration
-// 5. Sets up gRPC server with SchedulerService handler
-// 6. Registers SecretsService handler if vault is configured
-// 7. Starts Prometheus metrics server if port is configured
-// 8. Blocks until context cancellation or signal
-// 9. Performs graceful shutdown of all services
-//
-// Returns an error if configuration validation fails, service initialization
-// fails, or during shutdown. Context cancellation results in clean shutdown
-// with nil error.
+// It initializes Kubernetes clients, vault for secrets decryption, controller
+// loops (cilium, deployment, sentinel), an HTTP health endpoint, and optional
+// Prometheus metrics. It blocks until the context is cancelled or a fatal error
+// occurs.
 func Run(ctx context.Context, cfg Config) error {
 	err := cfg.Validate()
 	if err != nil {
@@ -90,14 +76,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
-	defer r.Recover()
-
-	r.DeferCtx(shutdownGrafana)
-
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
 		URL:         cfg.Control.URL,
 		BearerToken: cfg.Control.Token,
 		Region:      cfg.Region,
+		Platform:    cfg.Platform,
 	})
 
 	inClusterConfig, err := rest.InClusterConfig()
@@ -115,43 +98,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create k8s dynamic client: %w", err)
 	}
 
-	// Start the cilium controller (independent control loop)
-	ciliumCtrl := cilium.New(cilium.Config{
-		ClientSet:     clientset,
-		DynamicClient: dynamicClient,
-		Cluster:       cluster,
-		Region:        cfg.Region,
-	})
-	if err := ciliumCtrl.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start cilium controller: %w", err)
-	}
-	r.Defer(ciliumCtrl.Stop)
-
-	// Start the deployment controller (independent control loop)
-	deploymentCtrl := deployment.New(deployment.Config{
-		ClientSet:     clientset,
-		DynamicClient: dynamicClient,
-		Cluster:       cluster,
-		Region:        cfg.Region,
-	})
-	if err := deploymentCtrl.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start deployment controller: %w", err)
-	}
-	r.Defer(deploymentCtrl.Stop)
-
-	// Start the sentinel controller (independent control loop)
-	sentinelCtrl := sentinel.New(sentinel.Config{
-		ClientSet:     clientset,
-		DynamicClient: dynamicClient,
-		Cluster:       cluster,
-		Region:        cfg.Region,
-	})
-	if err := sentinelCtrl.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start sentinel controller: %w", err)
-	}
-	r.Defer(sentinelCtrl.Stop)
-
-	// Create vault client for secrets decryption
+	// Create vault client for deploy-time secret decryption
 	var vaultClient vault.VaultServiceClient
 	if cfg.Vault.URL != "" {
 		vaultClient = vault.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
@@ -164,25 +111,79 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
 	}
 
+	// Start the cilium controller (independent control loop)
+	ciliumCtrl := cilium.New(cilium.Config{
+		ClientSet:     clientset,
+		DynamicClient: dynamicClient,
+		Cluster:       cluster,
+		Region:        cfg.Region,
+	})
+	if err := ciliumCtrl.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start cilium controller: %w", err)
+	}
+	r.Defer(ciliumCtrl.Stop)
+
+	// Build registry config for pull secret creation
+	var registryCfg *deployment.RegistryConfig
+	if cfg.Registry != nil {
+		registryCfg = deployment.NewRegistryConfig(cfg.Registry.URL, cfg.Registry.Username, cfg.Registry.Password)
+	}
+
+	// Cache for deduplicating deployment status reports. Entries auto-expire
+	// so deleted ReplicaSets don't leak memory.
+	fingerprintCache, err := cache.New(cache.Config[string, string]{
+		Fresh:    5 * time.Minute,
+		Stale:    10 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "deployment_fingerprints",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create fingerprint cache: %w", err)
+	}
+
+	// Start the deployment controller (independent control loop)
+	deploymentCtrl := deployment.New(deployment.Config{
+		ClientSet:     clientset,
+		DynamicClient: dynamicClient,
+		Cluster:       cluster,
+		Region:        cfg.Region,
+		Vault:         vaultClient,
+		Registry:      registryCfg,
+		Fingerprints:  fingerprintCache,
+	})
+	if err := deploymentCtrl.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start deployment controller: %w", err)
+	}
+	r.Defer(deploymentCtrl.Stop)
+
+	// Start the sentinel controller (independent control loop)
+	sentinelCtrl := sentinel.New(sentinel.Config{
+		ClientSet:     clientset,
+		DynamicClient: dynamicClient,
+		Cluster:       cluster,
+		Region:        cfg.Region,
+		Platform:      cfg.Platform,
+	})
+	if err := sentinelCtrl.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start sentinel controller: %w", err)
+	}
+	r.Defer(sentinelCtrl.Stop)
+
+	// Start heartbeat loop to register this cluster with the control plane
+	stopHeartbeat := repeat.Every(30*time.Second, func() {
+		if _, err := cluster.Heartbeat(ctx, &ctrlv1.HeartbeatRequest{
+			Region:   cfg.Region,
+			Platform: cfg.Platform,
+		}); err != nil {
+			logger.Warn("heartbeat failed", "error", err)
+		}
+	})
+	r.Defer(func() error { stopHeartbeat(); return nil })
+
 	// Create the connect handler
 	mux := http.NewServeMux()
 	r.RegisterHealth(mux)
-
-	tokenValidator := token.NewK8sValidator(token.K8sValidatorConfig{
-		Clientset: clientset,
-	})
-
-	// Register secrets service if vault is configured
-	if vaultClient != nil {
-		secretsSvc := secrets.New(secrets.Config{
-			Vault:          vaultClient,
-			TokenValidator: tokenValidator,
-		})
-		mux.Handle(kranev1connect.NewSecretsServiceHandler(secretsSvc))
-		logger.Info("Secrets service registered")
-	} else {
-		logger.Info("Secrets service not enabled (missing vault configuration)")
-	}
 
 	addr := fmt.Sprintf(":%d", cfg.RPCPort)
 	server := &http.Server{

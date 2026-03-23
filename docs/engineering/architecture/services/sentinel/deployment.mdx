@@ -1,0 +1,87 @@
+---
+title: "Deployment"
+description: "Namespace, resources, and pod lifecycle"
+---
+
+Sentinel runs as a Kubernetes Deployment managed by Krane. For details on how Krane manages sentinel state, see the [Krane documentation](/architecture/services/krane/overview).
+
+## When sentinels are created
+
+Sentinels are created as part of the deployment workflow in the control plane worker (`svc/ctrl/worker/deploy/deploy_handler.go`). During the deploying phase, the `ensureSentinels` step checks whether each target region already has a sentinel for the environment. If a region has no sentinel, the workflow inserts one into the database.
+
+Once the sentinel record exists in the database, Krane picks it up via its `WatchSentinels` stream and applies the corresponding Kubernetes resources.
+
+## Where sentinels run
+
+All sentinel pods run in a dedicated `sentinel` Kubernetes namespace, separate from customer workloads and other Unkey services. This namespace contains:
+
+- Sentinel Deployments (one per environment per region)
+- Services for routing traffic to sentinel pods
+- Gossip headless Services and CiliumNetworkPolicies for cache invalidation
+- Secrets for database, ClickHouse, and Redis credentials
+
+Sentinel pods are scheduled onto dedicated `sentinel` node class nodes using a toleration for the `node-class=sentinel:NoSchedule` taint. This keeps sentinel workloads isolated from customer instance pods at the node level, preventing resource contention between the proxy layer and the workloads it routes to.
+
+## Kubernetes resources
+
+Each sentinel consists of five resources, all created via server-side apply:
+
+| Resource            | Scope           | Purpose                                                  |
+| ------------------- | --------------- | -------------------------------------------------------- |
+| Deployment          | Per sentinel    | Sentinel pods with rolling update strategy               |
+| ClusterIP Service   | Per sentinel    | Routes traffic to sentinel pods on port 8040             |
+| PodDisruptionBudget | Per sentinel    | Keeps at least one pod available during disruptions      |
+| Headless Service    | Per environment | Gossip peer discovery (resolves to pod IPs on port 7946) |
+| CiliumNetworkPolicy | Per environment | Allows gossip traffic between sentinel pods              |
+
+The environment-scoped resources (headless Service, CiliumNetworkPolicy) are shared across all sentinels in an environment and are not owned by any single Deployment.
+
+### Deployment spec
+
+| Setting           | Value                                               |
+| ----------------- | --------------------------------------------------- |
+| Strategy          | RollingUpdate                                       |
+| Max Unavailable   | 0                                                   |
+| Max Surge         | 1                                                   |
+| Min Ready Seconds | 30                                                  |
+| Topology Spread   | maxSkew=1 across availability zones, ScheduleAnyway |
+| Ports             | 8040 (HTTP), 7946 (gossip TCP+UDP)                  |
+
+## Probes
+
+| Probe     | Value                                      |
+| --------- | ------------------------------------------ |
+| Liveness  | `GET /_unkey/internal/health` on port 8040 |
+| Readiness | `GET /_unkey/internal/health` on port 8040 |
+
+Two consecutive failures remove the pod from the Service endpoints, stopping traffic from reaching it.
+
+<Note>
+  Both probes hit the same trivial endpoint that returns 200 unconditionally without checking
+  dependencies. A sentinel with a dead database connection or unavailable Redis reports as healthy.
+  This needs to be migrated to proper liveness and readiness checks like our other services:
+  liveness must verify the process is alive, readiness must verify sentinel can actually serve
+  traffic (database reachable, middleware engine initialized). Tracked in
+  [#5367](https://github.com/unkeyed/unkey/issues/5367).
+</Note>
+
+## Labels
+
+All sentinel resources carry these labels:
+
+| Label                          | Value          |
+| ------------------------------ | -------------- |
+| `app.kubernetes.io/managed-by` | `krane`        |
+| `app.kubernetes.io/component`  | `sentinel`     |
+| `unkey.com/workspace.id`       | Workspace ID   |
+| `unkey.com/project.id`         | Project ID     |
+| `unkey.com/app.id`             | App ID         |
+| `unkey.com/environment.id`     | Environment ID |
+| `unkey.com/sentinel.id`        | Sentinel ID    |
+
+## Cache prewarming
+
+On startup, the router service loads all deployments with status `READY` in the environment and prefetches their instances. This avoids cold-start latency spikes on the first requests after a pod restart.
+
+
+

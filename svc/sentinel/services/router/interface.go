@@ -17,6 +17,7 @@ type Config struct {
 	DB            db.Database
 	Clock         clock.Clock
 	EnvironmentID string
+	Platform      string
 	Region        string
 
 	// Broadcaster for distributed cache invalidation via gossip.

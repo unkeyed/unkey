@@ -17,7 +17,7 @@ SET policy = ?,
     version = ?,
     updated_at = ?
 WHERE environment_id = ?
-  AND region = ?
+  AND region_id = ?
   AND k8s_name = ?
 `
 
@@ -26,7 +26,7 @@ type UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams struct {
 	Version       uint64          `db:"version"`
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 	EnvironmentID string          `db:"environment_id"`
-	Region        string          `db:"region"`
+	RegionID      string          `db:"region_id"`
 	K8sName       string          `db:"k8s_name"`
 }
 
@@ -37,7 +37,7 @@ type UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams struct {
 //	    version = ?,
 //	    updated_at = ?
 //	WHERE environment_id = ?
-//	  AND region = ?
+//	  AND region_id = ?
 //	  AND k8s_name = ?
 func (q *Queries) UpdateCiliumNetworkPolicyByEnvironmentRegionAndName(ctx context.Context, db DBTX, arg UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams) error {
 	_, err := db.ExecContext(ctx, updateCiliumNetworkPolicyByEnvironmentRegionAndName,
@@ -45,7 +45,7 @@ func (q *Queries) UpdateCiliumNetworkPolicyByEnvironmentRegionAndName(ctx contex
 		arg.Version,
 		arg.UpdatedAt,
 		arg.EnvironmentID,
-		arg.Region,
+		arg.RegionID,
 		arg.K8sName,
 	)
 	return err

@@ -13,8 +13,16 @@ export const deploymentSteps = mysqlTable(
     projectId: varchar("project_id", { length: 128 }).notNull(),
     environmentId: varchar("environment_id", { length: 128 }).notNull(),
     deploymentId: varchar("deployment_id", { length: 128 }).notNull(),
+    appId: varchar("app_id", { length: 64 }).notNull(),
 
-    step: mysqlEnum("step", ["queued", "building", "deploying", "network"])
+    step: mysqlEnum("step", [
+      "queued",
+      "starting",
+      "building",
+      "deploying",
+      "network",
+      "finalizing",
+    ])
       .notNull()
       .default("queued"),
 
@@ -27,7 +35,6 @@ export const deploymentSteps = mysqlTable(
   },
   (table) => [
     index("workspace_idx").on(table.workspaceId),
-    index("deployment_idx").on(table.deploymentId),
     uniqueIndex("unique_step_per_deployment").on(table.deploymentId, table.step),
   ],
 );

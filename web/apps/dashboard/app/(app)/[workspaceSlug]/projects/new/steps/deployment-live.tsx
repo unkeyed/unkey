@@ -1,13 +1,15 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { trpc } from "@/lib/trpc/client";
 import { Check } from "@unkey/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ProjectDataProvider } from "../../[projectId]/(overview)/data-provider";
 import { DeploymentInfo } from "../../[projectId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-info";
 import { DeploymentProgress } from "../../[projectId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-progress";
+import { deriveStatusFromSteps } from "../../[projectId]/(overview)/deployments/[deploymentId]/deployment-utils";
 import {
   DeploymentLayoutProvider,
   useDeployment,
@@ -37,6 +39,16 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
   const router = useRouter();
   const ready = deployment.status === "ready";
   const [countdown, setCountdown] = useState(REDIRECT_DELAY_SECONDS);
+
+  const stepsQuery = trpc.deploy.deployment.steps.useQuery(
+    { deploymentId: deployment.id },
+    { refetchInterval: ready ? false : 1_000, refetchOnWindowFocus: false },
+  );
+
+  const derivedStatus = useMemo(
+    () => deriveStatusFromSteps(stepsQuery.data, deployment.status),
+    [stepsQuery.data, deployment.status],
+  );
 
   const deploymentUrl = `/${workspace.slug}/projects/${projectId}/deployments/${deployment.id}`;
 
@@ -92,8 +104,8 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
         }
       />
       <div className="w-[900px] space-y-6">
-        <DeploymentInfo />
-        <DeploymentProgress />
+        <DeploymentInfo statusOverride={derivedStatus} />
+        <DeploymentProgress stepsData={stepsQuery.data} />
       </div>
     </div>
   );

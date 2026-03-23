@@ -1,12 +1,7 @@
-import { insertAuditLogs } from "@/lib/audit";
-import { createClient } from "@connectrpc/connect";
-import { createConnectTransport } from "@connectrpc/connect-web";
-
-// Import service definition that you want to connect to.
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
-
+import { insertAuditLogs } from "@/lib/audit";
+import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -19,29 +14,7 @@ export const promote = workspaceProcedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    // Validate that ctrl service URL is configured
-    const { CTRL_URL, CTRL_API_KEY } = env();
-    if (!CTRL_URL || !CTRL_API_KEY) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "ctrl service is not configured",
-      });
-    }
-
-    // Here we make the client itself, combining the service
-    // definition with the transport.
-    const ctrl = createClient(
-      DeployService,
-      createConnectTransport({
-        baseUrl: CTRL_URL,
-        interceptors: [
-          (next) => (req) => {
-            req.header.set("Authorization", `Bearer ${CTRL_API_KEY}`);
-            return next(req);
-          },
-        ],
-      }),
-    );
+    const ctrl = createCtrlClient(DeployService);
 
     try {
       // Verify the target deployment exists and belongs to this workspace
@@ -57,7 +30,6 @@ export const promote = workspaceProcedure
             columns: {
               id: true,
               name: true,
-              liveDeploymentId: true,
             },
           },
         },

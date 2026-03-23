@@ -155,7 +155,10 @@ type GitSource struct {
 	DockerfilePath string `protobuf:"bytes,5,opt,name=dockerfile_path,json=dockerfilePath,proto3" json:"dockerfile_path,omitempty"`
 	// Branch name used to resolve commit_sha when it is empty. The deploy worker
 	// calls GitHub to look up the HEAD commit of this branch.
-	Branch        string `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`
+	Branch string `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`
+	// PR number for fork PRs. When set, BuildKit fetches refs/pull/<number>/head
+	// from the base repo instead of using commit_sha directly.
+	PrNumber      int64 `protobuf:"varint,7,opt,name=pr_number,json=prNumber,proto3" json:"pr_number,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -230,6 +233,13 @@ func (x *GitSource) GetBranch() string {
 		return x.Branch
 	}
 	return ""
+}
+
+func (x *GitSource) GetPrNumber() int64 {
+	if x != nil {
+		return x.PrNumber
+	}
+	return 0
 }
 
 type DeployRequest struct {
@@ -557,7 +567,7 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"&ScaleDownIdlePreviewDeploymentsRequest\")\n" +
 	"'ScaleDownIdlePreviewDeploymentsResponse\"#\n" +
 	"\vDockerImage\x12\x14\n" +
-	"\x05image\x18\x01 \x01(\tR\x05image\"\xd7\x01\n" +
+	"\x05image\x18\x01 \x01(\tR\x05image\"\xf4\x01\n" +
 	"\tGitSource\x12'\n" +
 	"\x0finstallation_id\x18\x01 \x01(\x03R\x0einstallationId\x12\x1e\n" +
 	"\n" +
@@ -567,7 +577,8 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"commit_sha\x18\x03 \x01(\tR\tcommitSha\x12!\n" +
 	"\fcontext_path\x18\x04 \x01(\tR\vcontextPath\x12'\n" +
 	"\x0fdockerfile_path\x18\x05 \x01(\tR\x0edockerfilePath\x12\x16\n" +
-	"\x06branch\x18\x06 \x01(\tR\x06branch\"\xf2\x01\n" +
+	"\x06branch\x18\x06 \x01(\tR\x06branch\x12\x1b\n" +
+	"\tpr_number\x18\a \x01(\x03R\bprNumber\"\xf2\x01\n" +
 	"\rDeployRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12#\n" +
 	"\vkey_auth_id\x18\x02 \x01(\tH\x01R\tkeyAuthId\x88\x01\x01\x12'\n" +
@@ -588,7 +599,7 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x06Deploy\x12\x17.hydra.v1.DeployRequest\x1a\x18.hydra.v1.DeployResponse\"\x00\x12C\n" +
 	"\bRollback\x12\x19.hydra.v1.RollbackRequest\x1a\x1a.hydra.v1.RollbackResponse\"\x00\x12@\n" +
 	"\aPromote\x12\x18.hydra.v1.PromoteRequest\x1a\x19.hydra.v1.PromoteResponse\"\x00\x12\x88\x01\n" +
-	"\x1fScaleDownIdlePreviewDeployments\x120.hydra.v1.ScaleDownIdlePreviewDeploymentsRequest\x1a1.hydra.v1.ScaleDownIdlePreviewDeploymentsResponse\"\x00\x1a\x04\x98\x80\x01\x02B\x91\x01\n" +
+	"\x1fScaleDownIdlePreviewDeployments\x120.hydra.v1.ScaleDownIdlePreviewDeploymentsRequest\x1a1.hydra.v1.ScaleDownIdlePreviewDeploymentsResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x91\x01\n" +
 	"\fcom.hydra.v1B\vDeployProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (

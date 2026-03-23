@@ -3,6 +3,7 @@
 import { ChevronRight } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../lib/utils";
+import { InfoTooltip } from "./info-tooltip";
 
 export type ChevronState = "hidden" | "interactive" | "disabled";
 
@@ -20,6 +21,7 @@ type SettingCardProps = {
   expandable?: React.ReactNode;
   defaultExpanded?: boolean;
   chevronState?: ChevronState;
+  truncateDescription?: boolean;
 };
 
 const SettingCardGroupContext = React.createContext(false);
@@ -47,6 +49,7 @@ function SettingCard({
   expandable,
   defaultExpanded = false,
   chevronState,
+  truncateDescription = false,
 }: SettingCardProps) {
   const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
   const contentRef = React.useRef<HTMLDivElement>(null);
@@ -167,9 +170,23 @@ function SettingCard({
             <div className="font-medium text-gray-12 text-[13px] leading-4 tracking-normal">
               {title}
             </div>
-            <div className="font-normal text-gray-9 text-xs leading-4 tracking-normal">
-              {description}
-            </div>
+            <InfoTooltip
+              asChild
+              content={
+                <div className="whitespace-pre-wrap text-xs break-all max-w-xs">{description}</div>
+              }
+              position={{ side: "bottom", align: "start" }}
+              disabled={!truncateDescription}
+            >
+              <div
+                className={cn(
+                  "font-normal text-gray-9 text-xs leading-4 tracking-normal max-w-[600px]",
+                  truncateDescription && "truncate",
+                )}
+              >
+                {description}
+              </div>
+            </InfoTooltip>
           </div>
         </div>
         <div className={cn("flex w-full items-center gap-4", contentWidth)}>

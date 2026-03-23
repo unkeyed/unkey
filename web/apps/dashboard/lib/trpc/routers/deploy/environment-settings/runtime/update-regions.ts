@@ -1,5 +1,6 @@
-import { and, db, eq } from "@/lib/db";
-import { environmentRuntimeSettings } from "@unkey/db/src/schema";
+import { and, db, eq, notInArray } from "@/lib/db";
+import { TRPCError } from "@trpc/server";
+import { appRegionalSettings, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 
@@ -7,30 +8,52 @@ export const updateRegions = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),
-      regions: z.array(z.string()).min(1),
+      regionIds: z.array(z.string()).min(1),
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const existing = await db.query.environmentRuntimeSettings.findFirst({
+    const env = await db.query.environments.findFirst({
       where: and(
-        eq(environmentRuntimeSettings.workspaceId, ctx.workspace.id),
-        eq(environmentRuntimeSettings.environmentId, input.environmentId),
+        eq(environments.id, input.environmentId),
+        eq(environments.workspaceId, ctx.workspace.id),
+      ),
+      columns: { appId: true },
+    });
+    if (!env) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Environment not found" });
+    }
+
+    const existingSettings = await db.query.appRegionalSettings.findMany({
+      where: and(
+        eq(appRegionalSettings.workspaceId, ctx.workspace.id),
+        eq(appRegionalSettings.environmentId, input.environmentId),
       ),
     });
 
-    const currentConfig = (existing?.regionConfig as Record<string, number>) ?? {};
-    const regionConfig: Record<string, number> = {};
-    for (const region of input.regions) {
-      regionConfig[region] = currentConfig[region] ?? 1;
-    }
+    const defaultReplicas = existingSettings.at(0)?.replicas ?? 1;
 
     await db
-      .update(environmentRuntimeSettings)
-      .set({ regionConfig })
+      .delete(appRegionalSettings)
       .where(
         and(
-          eq(environmentRuntimeSettings.workspaceId, ctx.workspace.id),
-          eq(environmentRuntimeSettings.environmentId, input.environmentId),
+          eq(appRegionalSettings.workspaceId, ctx.workspace.id),
+          eq(appRegionalSettings.environmentId, input.environmentId),
+          notInArray(appRegionalSettings.regionId, input.regionIds),
         ),
       );
+
+    const existingRegionIds = new Set(existingSettings.map((s) => s.regionId));
+    const toInsert = input.regionIds
+      .filter((regionId) => !existingRegionIds.has(regionId))
+      .map((regionId) => ({
+        workspaceId: ctx.workspace.id,
+        appId: env.appId,
+        environmentId: input.environmentId,
+        regionId,
+        replicas: defaultReplicas,
+      }));
+
+    if (toInsert.length > 0) {
+      await db.insert(appRegionalSettings).values(toInsert);
+    }
   });

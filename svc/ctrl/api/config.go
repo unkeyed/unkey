@@ -23,11 +23,19 @@ type RestateConfig struct {
 }
 
 // GitHubConfig holds GitHub App integration settings for webhook-triggered
-// deployments.
+// deployments and deployment authorization.
 type GitHubConfig struct {
 	// WebhookSecret is the secret used to verify webhook signatures.
 	// Configured in the GitHub App webhook settings.
 	WebhookSecret string `toml:"webhook_secret"`
+
+	// AppID is the GitHub App ID for authentication.
+	// Required for deployment authorization (fetching branch HEAD).
+	AppID int64 `toml:"app_id"`
+
+	// PrivateKeyPEM is the GitHub App private key in PEM format.
+	// Required for deployment authorization (fetching branch HEAD).
+	PrivateKeyPEM string `toml:"private_key_pem"`
 }
 
 // Config holds the complete configuration for the control plane API server.
@@ -63,10 +71,6 @@ type Config struct {
 	// AuthToken is the authentication token for control plane API access.
 	// Used by clients and services to authenticate with this control plane.
 	AuthToken string `toml:"auth_token" config:"required,nonempty"`
-
-	// AvailableRegions is a list of available regions for deployments.
-	// Typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
-	AvailableRegions []string `toml:"available_regions"`
 
 	// DefaultDomain is the fallback domain for system operations.
 	// Used for wildcard certificate bootstrapping. When set, the API will

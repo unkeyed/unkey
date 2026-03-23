@@ -73,7 +73,8 @@ func (c *ControlPlaneClient) CreateDeployment(ctx context.Context, dockerImage s
 	}
 
 	reqBody := components.V2DeployCreateDeploymentRequestBody{
-		ProjectID:       c.opts.ProjectID,
+		Project:         c.opts.Project,
+		App:             c.opts.App,
 		Branch:          c.opts.Branch,
 		EnvironmentSlug: c.opts.Environment,
 		DockerImage:     dockerImage,

@@ -38,7 +38,7 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
         name: values.name,
         slug: values.slug,
         repositoryFullName: null,
-        liveDeploymentId: null,
+        currentDeploymentId: null,
         isRolledBack: false,
         id: "will-be-replace-by-server",
         latestDeploymentId: null,
@@ -48,7 +48,6 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
         commitTimestamp: Date.now(),
         commitTitle: "will-be-replace-by-server",
         domain: "will-be-replace-by-server",
-        regions: [],
       });
       await tx.isPersisted.promise;
       onProjectCreated((tx.metadata as { projectId: string }).projectId);

@@ -22,11 +22,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
+	"github.com/unkeyed/unkey/svc/ctrl/services/app"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 	"github.com/unkeyed/unkey/svc/ctrl/services/ctrl"
 	"github.com/unkeyed/unkey/svc/ctrl/services/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
+	"github.com/unkeyed/unkey/svc/ctrl/services/project"
+	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -133,6 +136,21 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create challenge cache: %w", err)
 	}
 
+	// Create GitHub client for deployment authorization (optional)
+	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
+	if cfg.GitHub.AppID != 0 && cfg.GitHub.PrivateKeyPEM != "" {
+		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
+			AppID:         cfg.GitHub.AppID,
+			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
+			WebhookSecret: cfg.GitHub.WebhookSecret,
+		})
+		if ghErr != nil {
+			return fmt.Errorf("failed to create GitHub client: %w", ghErr)
+		}
+		ghClient = client
+		logger.Info("GitHub client initialized for deployment authorization")
+	}
+
 	// Create the connect handler
 	mux := http.NewServeMux()
 
@@ -142,6 +160,7 @@ func Run(ctx context.Context, cfg Config) error {
 	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deployment.New(deployment.Config{
 		Database: database,
 		Restate:  restateClient,
+		GitHub:   ghClient,
 	})))
 
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database)))
@@ -157,10 +176,21 @@ func Run(ctx context.Context, cfg Config) error {
 		RestateAdmin: restateAdminClient,
 		CnameDomain:  cfg.CnameDomain,
 	})))
+	appSvc := app.New(app.Config{
+		Database: database,
+		Restate:  restateClient,
+		Bearer:   cfg.AuthToken,
+	})
+	mux.Handle(ctrlv1connect.NewAppServiceHandler(appSvc))
+	mux.Handle(ctrlv1connect.NewProjectServiceHandler(project.New(project.Config{
+		Database:   database,
+		Restate:    restateClient,
+		AppService: appSvc,
+		Bearer:     cfg.AuthToken,
+	})))
 
 	if cfg.GitHub.WebhookSecret != "" {
 		mux.Handle("POST /webhooks/github", &GitHubWebhook{
-			db:            database,
 			restate:       restateClient,
 			webhookSecret: cfg.GitHub.WebhookSecret,
 		})
@@ -218,7 +248,6 @@ func Run(ctx context.Context, cfg Config) error {
 			database:       database,
 			defaultDomain:  cfg.DefaultDomain,
 			regionalDomain: cfg.RegionalDomain,
-			regions:        cfg.AvailableRegions,
 		}
 		r.Go(func(ctx context.Context) error {
 			certBootstrap.run(ctx)

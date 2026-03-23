@@ -12,15 +12,16 @@ import (
 
 const insertCustomDomain = `-- name: InsertCustomDomain :exec
 INSERT INTO custom_domains (
-    id, workspace_id, project_id, environment_id, domain,
+    id, workspace_id, project_id, app_id, environment_id, domain,
     challenge_type, verification_status, verification_token, target_cname, invocation_id, created_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertCustomDomainParams struct {
 	ID                 string                          `db:"id"`
 	WorkspaceID        string                          `db:"workspace_id"`
 	ProjectID          string                          `db:"project_id"`
+	AppID              string                          `db:"app_id"`
 	EnvironmentID      string                          `db:"environment_id"`
 	Domain             string                          `db:"domain"`
 	ChallengeType      CustomDomainsChallengeType      `db:"challenge_type"`
@@ -34,14 +35,15 @@ type InsertCustomDomainParams struct {
 // InsertCustomDomain
 //
 //	INSERT INTO custom_domains (
-//	    id, workspace_id, project_id, environment_id, domain,
+//	    id, workspace_id, project_id, app_id, environment_id, domain,
 //	    challenge_type, verification_status, verification_token, target_cname, invocation_id, created_at
-//	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 func (q *Queries) InsertCustomDomain(ctx context.Context, db DBTX, arg InsertCustomDomainParams) error {
 	_, err := db.ExecContext(ctx, insertCustomDomain,
 		arg.ID,
 		arg.WorkspaceID,
 		arg.ProjectID,
+		arg.AppID,
 		arg.EnvironmentID,
 		arg.Domain,
 		arg.ChallengeType,

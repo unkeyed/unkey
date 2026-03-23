@@ -25,13 +25,17 @@ const (
 
 // Defines values for V2DeployGetDeploymentResponseDataStatus.
 const (
-	BUILDING    V2DeployGetDeploymentResponseDataStatus = "BUILDING"
-	DEPLOYING   V2DeployGetDeploymentResponseDataStatus = "DEPLOYING"
-	FAILED      V2DeployGetDeploymentResponseDataStatus = "FAILED"
-	NETWORK     V2DeployGetDeploymentResponseDataStatus = "NETWORK"
-	PENDING     V2DeployGetDeploymentResponseDataStatus = "PENDING"
-	READY       V2DeployGetDeploymentResponseDataStatus = "READY"
-	UNSPECIFIED V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
+	AWAITINGAPPROVAL V2DeployGetDeploymentResponseDataStatus = "AWAITING_APPROVAL"
+	BUILDING         V2DeployGetDeploymentResponseDataStatus = "BUILDING"
+	DEPLOYING        V2DeployGetDeploymentResponseDataStatus = "DEPLOYING"
+	FAILED           V2DeployGetDeploymentResponseDataStatus = "FAILED"
+	FINALIZING       V2DeployGetDeploymentResponseDataStatus = "FINALIZING"
+	NETWORK          V2DeployGetDeploymentResponseDataStatus = "NETWORK"
+	PENDING          V2DeployGetDeploymentResponseDataStatus = "PENDING"
+	READY            V2DeployGetDeploymentResponseDataStatus = "READY"
+	SKIPPED          V2DeployGetDeploymentResponseDataStatus = "SKIPPED"
+	STARTING         V2DeployGetDeploymentResponseDataStatus = "STARTING"
+	UNSPECIFIED      V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
 )
 
 // Defines values for V2KeysUpdateCreditsRequestBodyOperation.
@@ -212,6 +216,9 @@ type KeyResponseData struct {
 
 	// KeyId Unique identifier for this key.
 	KeyId string `json:"keyId"`
+
+	// LastUsedAt Unix timestamp in milliseconds when key was last used for verification. This is an approximated value, accurate to within 5 minutes.
+	LastUsedAt int64 `json:"lastUsedAt,omitempty"`
 
 	// Meta Custom metadata associated with this key.
 	Meta map[string]interface{} `json:"meta,omitempty"`
@@ -679,6 +686,9 @@ type V2ApisListKeysResponseData = []KeyResponseData
 
 // V2DeployCreateDeploymentRequestBody Create a deployment from a pre-built Docker image
 type V2DeployCreateDeploymentRequestBody struct {
+	// App App slug within the project
+	App string `json:"app"`
+
 	// Branch Git branch name
 	Branch string `json:"branch"`
 
@@ -694,8 +704,8 @@ type V2DeployCreateDeploymentRequestBody struct {
 	// KeyspaceId Optional keyspace ID for authentication context
 	KeyspaceId *string `json:"keyspaceId,omitempty"`
 
-	// ProjectId Unkey project ID
-	ProjectId string `json:"projectId"`
+	// Project Project slug
+	Project string `json:"project"`
 }
 
 // V2DeployCreateDeploymentResponseBody defines model for V2DeployCreateDeploymentResponseBody.

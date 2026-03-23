@@ -4,6 +4,7 @@ INSERT INTO `deployments` (
     k8s_name,
     workspace_id,
     project_id,
+    app_id,
     environment_id,
     git_commit_sha,
     git_branch,
@@ -12,7 +13,6 @@ INSERT INTO `deployments` (
     git_commit_author_handle,
     git_commit_author_avatar_url,
     git_commit_timestamp,
-    openapi_spec,
     encrypted_environment_variables,
     command,
     status,
@@ -21,6 +21,8 @@ INSERT INTO `deployments` (
     port,
     shutdown_signal,
     healthcheck,
+    pr_number,
+    fork_repository_full_name,
     created_at,
     updated_at
 )
@@ -29,6 +31,7 @@ VALUES (
     sqlc.arg(k8s_name),
     sqlc.arg(workspace_id),
     sqlc.arg(project_id),
+    sqlc.arg(app_id),
     sqlc.arg(environment_id),
     sqlc.arg(git_commit_sha),
     sqlc.arg(git_branch),
@@ -37,7 +40,6 @@ VALUES (
     sqlc.arg(git_commit_author_handle),
     sqlc.arg(git_commit_author_avatar_url),
     sqlc.arg(git_commit_timestamp),
-    sqlc.arg(openapi_spec),
     sqlc.arg(encrypted_environment_variables),
     sqlc.arg(command),
     sqlc.arg(status),
@@ -46,6 +48,8 @@ VALUES (
     sqlc.arg(port),
     sqlc.arg(shutdown_signal),
     sqlc.arg(healthcheck),
+    sqlc.arg(pr_number),
+    sqlc.arg(fork_repository_full_name),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)
 );

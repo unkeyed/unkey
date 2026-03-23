@@ -100,16 +100,24 @@ func convertDbStatusToProto(status db.DeploymentsStatus) ctrlv1.DeploymentStatus
 	switch status {
 	case db.DeploymentsStatusPending:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING
+	case db.DeploymentsStatusStarting:
+		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_STARTING
 	case db.DeploymentsStatusBuilding:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_BUILDING
 	case db.DeploymentsStatusDeploying:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_DEPLOYING
 	case db.DeploymentsStatusNetwork:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_NETWORK
+	case db.DeploymentsStatusFinalizing:
+		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FINALIZING
 	case db.DeploymentsStatusReady:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_READY
 	case db.DeploymentsStatusFailed:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_FAILED
+	case db.DeploymentsStatusSkipped:
+		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_SKIPPED
+	case db.DeploymentsStatusAwaitingApproval:
+		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_AWAITING_APPROVAL
 	default:
 		return ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_UNSPECIFIED
 	}

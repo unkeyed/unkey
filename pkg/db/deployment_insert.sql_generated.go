@@ -18,6 +18,7 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     k8s_name,
     workspace_id,
     project_id,
+    app_id,
     environment_id,
     git_commit_sha,
     git_branch,
@@ -26,7 +27,6 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     git_commit_author_handle,
     git_commit_author_avatar_url,
     git_commit_timestamp,
-    openapi_spec,
     encrypted_environment_variables,
     command,
     status,
@@ -35,10 +35,14 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     port,
     shutdown_signal,
     healthcheck,
+    pr_number,
+    fork_repository_full_name,
     created_at,
     updated_at
 )
 VALUES (
+    ?,
+    ?,
     ?,
     ?,
     ?,
@@ -70,6 +74,7 @@ type InsertDeploymentParams struct {
 	K8sName                       string                    `db:"k8s_name"`
 	WorkspaceID                   string                    `db:"workspace_id"`
 	ProjectID                     string                    `db:"project_id"`
+	AppID                         string                    `db:"app_id"`
 	EnvironmentID                 string                    `db:"environment_id"`
 	GitCommitSha                  sql.NullString            `db:"git_commit_sha"`
 	GitBranch                     sql.NullString            `db:"git_branch"`
@@ -78,7 +83,6 @@ type InsertDeploymentParams struct {
 	GitCommitAuthorHandle         sql.NullString            `db:"git_commit_author_handle"`
 	GitCommitAuthorAvatarUrl      sql.NullString            `db:"git_commit_author_avatar_url"`
 	GitCommitTimestamp            sql.NullInt64             `db:"git_commit_timestamp"`
-	OpenapiSpec                   sql.NullString            `db:"openapi_spec"`
 	EncryptedEnvironmentVariables []byte                    `db:"encrypted_environment_variables"`
 	Command                       dbtype.StringSlice        `db:"command"`
 	Status                        DeploymentsStatus         `db:"status"`
@@ -87,6 +91,8 @@ type InsertDeploymentParams struct {
 	Port                          int32                     `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
 	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
+	PrNumber                      sql.NullInt64             `db:"pr_number"`
+	ForkRepositoryFullName        sql.NullString            `db:"fork_repository_full_name"`
 	CreatedAt                     int64                     `db:"created_at"`
 	UpdatedAt                     sql.NullInt64             `db:"updated_at"`
 }
@@ -98,6 +104,7 @@ type InsertDeploymentParams struct {
 //	    k8s_name,
 //	    workspace_id,
 //	    project_id,
+//	    app_id,
 //	    environment_id,
 //	    git_commit_sha,
 //	    git_branch,
@@ -106,7 +113,6 @@ type InsertDeploymentParams struct {
 //	    git_commit_author_handle,
 //	    git_commit_author_avatar_url,
 //	    git_commit_timestamp,
-//	    openapi_spec,
 //	    encrypted_environment_variables,
 //	    command,
 //	    status,
@@ -115,10 +121,14 @@ type InsertDeploymentParams struct {
 //	    port,
 //	    shutdown_signal,
 //	    healthcheck,
+//	    pr_number,
+//	    fork_repository_full_name,
 //	    created_at,
 //	    updated_at
 //	)
 //	VALUES (
+//	    ?,
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -149,6 +159,7 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.K8sName,
 		arg.WorkspaceID,
 		arg.ProjectID,
+		arg.AppID,
 		arg.EnvironmentID,
 		arg.GitCommitSha,
 		arg.GitBranch,
@@ -157,7 +168,6 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.GitCommitAuthorHandle,
 		arg.GitCommitAuthorAvatarUrl,
 		arg.GitCommitTimestamp,
-		arg.OpenapiSpec,
 		arg.EncryptedEnvironmentVariables,
 		arg.Command,
 		arg.Status,
@@ -166,6 +176,8 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.Port,
 		arg.ShutdownSignal,
 		arg.Healthcheck,
+		arg.PrNumber,
+		arg.ForkRepositoryFullName,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

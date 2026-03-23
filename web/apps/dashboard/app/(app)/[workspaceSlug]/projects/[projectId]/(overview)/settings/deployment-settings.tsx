@@ -6,6 +6,7 @@ import { SettingCardGroup } from "@unkey/ui";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
+import { WatchPaths } from "./components/build-settings/watch-paths-settings";
 
 import { Command } from "./components/runtime-settings/command";
 import { Cpu } from "./components/runtime-settings/cpu";
@@ -18,6 +19,7 @@ import { Regions } from "./components/runtime-settings/regions";
 import { CustomDomains } from "./components/advanced-settings/custom-domains";
 import { EnvVars } from "./components/advanced-settings/env-vars";
 
+import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
 import { Keyspaces } from "./components/sentinel-settings/keyspaces";
 import { SettingsGroup } from "./components/shared/settings-group";
 
@@ -39,6 +41,7 @@ export const DeploymentSettings = ({
         <GitHub readOnly={githubReadOnly} />
         <RootDirectory />
         <Dockerfile />
+        <WatchPaths />
       </SettingCardGroup>
       <SettingsGroup
         icon={<CircleHalfDottedClock iconSize="md-medium" />}
@@ -67,6 +70,7 @@ export const DeploymentSettings = ({
         <SettingCardGroup>
           <EnvVars />
           <CustomDomains />
+          <OpenapiSpecPath />
         </SettingCardGroup>
       </SettingsGroup>
       <SettingsGroup

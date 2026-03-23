@@ -344,17 +344,22 @@ components:
         V2DeployCreateDeploymentRequestBody:
             type: object
             required:
-                - projectId
+                - project
+                - app
                 - branch
                 - environmentSlug
                 - dockerImage
             properties:
-                projectId:
+                project:
                     type: string
                     minLength: 1
-                    description: Unkey project ID
-                    example: "proj_123abc"
-                    pattern: "^proj_[a-zA-Z0-9]+$"
+                    description: Project slug
+                    example: "my-project"
+                app:
+                    type: string
+                    minLength: 1
+                    description: App slug within the project
+                    example: "default"
                 keyspaceId:
                     type: string
                     description: Optional keyspace ID for authentication context
@@ -2346,6 +2351,14 @@ components:
                     example: 1701425400000
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
+                lastUsedAt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: Unix timestamp in milliseconds when key was last used for verification. This is an approximated value, accurate to within 5 minutes.
+                    example: 1701425400000
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 expires:
                     type: integer
                     format: int64
@@ -2570,11 +2583,15 @@ components:
                     enum:
                         - UNSPECIFIED
                         - PENDING
+                        - STARTING
                         - BUILDING
                         - DEPLOYING
                         - NETWORK
+                        - FINALIZING
                         - READY
                         - FAILED
+                        - SKIPPED
+                        - AWAITING_APPROVAL
                     example: "READY"
                     x-speakeasy-unknown-values: allow
                 errorMessage:

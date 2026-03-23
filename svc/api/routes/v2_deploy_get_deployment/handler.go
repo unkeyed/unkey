@@ -117,16 +117,24 @@ func dbStatusToOpenAPI(status db.DeploymentsStatus) openapi.V2DeployGetDeploymen
 	switch status {
 	case db.DeploymentsStatusPending:
 		return openapi.PENDING
+	case db.DeploymentsStatusStarting:
+		return openapi.STARTING
 	case db.DeploymentsStatusBuilding:
 		return openapi.BUILDING
 	case db.DeploymentsStatusDeploying:
 		return openapi.DEPLOYING
 	case db.DeploymentsStatusNetwork:
 		return openapi.NETWORK
+	case db.DeploymentsStatusFinalizing:
+		return openapi.FINALIZING
 	case db.DeploymentsStatusReady:
 		return openapi.READY
 	case db.DeploymentsStatusFailed:
 		return openapi.FAILED
+	case db.DeploymentsStatusSkipped:
+		return openapi.SKIPPED
+	case db.DeploymentsStatusAwaitingApproval:
+		return openapi.AWAITINGAPPROVAL
 	default:
 		return openapi.UNSPECIFIED
 	}

@@ -1,0 +1,9 @@
+---
+title: apiv2
+---
+
+```sql
+CREATE USER IF NOT EXISTS apiv2 IDENTIFIED WITH sha256_password BY '<password>';
+
+GRANT insertonly_role, readonly_role TO apiv2;
+```

@@ -93,14 +93,14 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 	}
 
 	apiConfig := Config{
-		InstanceID:       "test",
-		Region:           "local",
-		HttpPort:         ctrlPort,
-		PrometheusPort:   0,
-		AuthToken:        "",
-		AvailableRegions: []string{"local.dev"},
-		DefaultDomain:    "",
-		RegionalDomain:   "",
+		InstanceID:     "test",
+		Region:         "local",
+		HttpPort:       ctrlPort,
+		PrometheusPort: 0,
+		AuthToken:      "",
+
+		DefaultDomain:  "",
+		RegionalDomain: "",
 		Database: config.DatabaseConfig{
 			Primary:         mysqlCfg.DSN,
 			ReadonlyReplica: "",
@@ -174,6 +174,14 @@ func (h *webhookHarness) CreateProject(ctx context.Context, req seed.CreateProje
 
 func (h *webhookHarness) CreateEnvironment(ctx context.Context, req seed.CreateEnvironmentRequest) db.Environment {
 	return h.Seed.CreateEnvironment(ctx, req)
+}
+
+func (h *webhookHarness) CreateApp(ctx context.Context, req seed.CreateAppRequest) db.App {
+	return h.Seed.CreateApp(ctx, req)
+}
+
+func (h *webhookHarness) CreateAppWithSettings(ctx context.Context, req seed.CreateAppRequest, environmentID string) db.App {
+	return h.Seed.CreateAppWithSettings(ctx, req, environmentID)
 }
 
 type restateRegistration struct {

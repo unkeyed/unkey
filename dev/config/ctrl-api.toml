@@ -2,7 +2,6 @@ instance_id = "ctrl-api-dev"
 region = "local"
 http_port = 7091
 auth_token = "your-local-dev-key"
-available_regions = ["local.dev"]
 default_domain = "unkey.local"
 cname_domain = "unkey.local"
 
@@ -15,3 +14,5 @@ admin_url = "http://restate:9070"
 
 [github]
 webhook_secret = "${UNKEY_GITHUB_APP_WEBHOOK_SECRET}"
+app_id = ${UNKEY_GITHUB_APP_ID}
+private_key_pem = """${UNKEY_GITHUB_PRIVATE_KEY_PEM}"""

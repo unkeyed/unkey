@@ -136,7 +136,7 @@ export const PlanSelectionModal = ({
         onAttemptClose={() => {}}
         footer={<div className="w-full flex flex-col gap-3" />}
       >
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           <div className="animate-pulse flex gap-2">
             <div className="h-16 bg-grayA-3 rounded-lg" />
             <div className="h-16 bg-grayA-3 rounded-lg" />
@@ -189,8 +189,8 @@ export const PlanSelectionModal = ({
         </div>
       }
     >
-      <div className="space-y-4">
-        <div className="space-y-3">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {/* Paid Plans */}
           {products.map((product) => (
             <label

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -12,11 +12,12 @@ export const ciliumNetworkPolicies = mysqlTable(
     id: varchar("id", { length: 64 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
+    appId: varchar("app_id", { length: 64 }).notNull(),
     environmentId: varchar("environment_id", { length: 255 }).notNull(),
     deploymentId: varchar("deployment_id", { length: 128 }).notNull(),
     k8sName: varchar("k8s_name", { length: 64 }).notNull(),
     k8sNamespace: varchar("k8s_namespace", { length: 255 }).notNull(),
-    region: varchar("region", { length: 255 }).notNull(),
+    regionId: varchar("region_id", { length: 64 }).notNull(),
 
     // json representation of the policy
     policy: json("policy").notNull(),
@@ -30,8 +31,8 @@ export const ciliumNetworkPolicies = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
-    uniqueIndex("one_deployment_per_region").on(table.deploymentId, table.region, table.k8sName),
-    uniqueIndex("unique_version_per_region").on(table.region, table.version),
+    index("idx_deployment_region").on(table.deploymentId, table.regionId),
+    uniqueIndex("unique_version_per_region").on(table.regionId, table.version),
   ],
 );
 

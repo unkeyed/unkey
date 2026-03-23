@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"time"
+
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/sentinel/engine"
@@ -17,5 +19,6 @@ type Services struct {
 	Region             string
 	ClickHouse         clickhouse.ClickHouse
 	MaxRequestBodySize int64
+	RequestTimeout     time.Duration
 	Engine             engine.Evaluator
 }

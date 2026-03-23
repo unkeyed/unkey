@@ -100,6 +100,11 @@ export type VirtualTableProps<TTableData> = {
    * Height of expanded content in pixels (default: 400)
    */
   expandedRowHeight?: number;
+  /**
+   * When true, auto-scrolls to the bottom of the table on each data update,
+   * unless the user has manually scrolled up.
+   */
+  autoScrollToBottom?: boolean;
 };
 
 export type SeparatorItem = {

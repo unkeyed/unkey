@@ -9,7 +9,8 @@ import { useProjectData } from "../data-provider";
 
 type EnvironmentContextType = {
   settings: EnvironmentSettings;
-  autoSave?: boolean;
+  variant: "settings" | "onboarding";
+  isSaving: boolean;
 };
 
 export const EnvironmentContext = createContext<EnvironmentContextType | null>(null);
@@ -43,7 +44,11 @@ export const EnvironmentSettingsProvider = ({ children }: PropsWithChildren) => 
     return null;
   }
 
-  return <EnvironmentContext.Provider value={{ settings }}>{children}</EnvironmentContext.Provider>;
+  return (
+    <EnvironmentContext.Provider value={{ settings, variant: "settings", isSaving: false }}>
+      {children}
+    </EnvironmentContext.Provider>
+  );
 };
 
 export function useEnvironmentSettings(): EnvironmentContextType {

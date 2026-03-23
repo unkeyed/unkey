@@ -89,7 +89,7 @@ export function EmailSignIn() {
         <button
           type="button"
           onClick={() => setTurnstileChallenge(null)}
-          className="text-sm text-gray-400 hover:text-white underline"
+          className="text-sm text-gray-400 hover:text-white underline cursor-pointer"
         >
           Try a different email
         </button>
@@ -110,14 +110,14 @@ export function EmailSignIn() {
             autoCapitalize="none"
             autoComplete="email"
             autoCorrect="off"
-            className="h-10 dark bg-black! w-full"
+            className="h-10 dark bg-black! w-full [&_input]:text-white!"
             onChange={(e) => setCurrentEmail(e.target.value)}
           />
         </div>
       </div>
       <button
         type="submit"
-        className="relative flex items-center justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-black"
+        className="relative flex items-center cursor-pointer justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-black"
         disabled={isLoading || !isFormValid}
       >
         {clientReady && isLoading ? (

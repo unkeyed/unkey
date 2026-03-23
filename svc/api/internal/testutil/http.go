@@ -82,7 +82,7 @@ func NewHarness(t *testing.T) *Harness {
 
 	redisUrl := dockertest.Redis(t)
 
-	db, err := db.New(db.Config{
+	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlDSN,
 		ReadOnlyDSN: "",
 	})
@@ -131,7 +131,21 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
-		DB:      db,
+		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
+			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
+				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
+			})
+			if err != nil {
+				return 0, false, err
+			}
+			return limit.Int32, limit.Valid, nil
+		},
+		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int32) error {
+			return db.Query.UpdateKeyCreditsDecrement(ctx, database.RW(), db.UpdateKeyCreditsDecrementParams{
+				ID:      keyID,
+				Credits: sql.NullInt32{Int32: cost, Valid: true},
+			})
+		},
 		Counter: ctr,
 		TTL:     60 * time.Second,
 	})
@@ -143,7 +157,7 @@ func NewHarness(t *testing.T) *Harness {
 	// Create analytics connection manager
 	analyticsConnManager, err := analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
 		SettingsCache: caches.ClickhouseSetting,
-		Database:      db,
+		Database:      database,
 		Clock:         clk,
 		BaseURL:       chDSN,
 		Vault:         v,
@@ -151,17 +165,17 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	// Create seeder
-	seeder := seed.New(t, db, v)
+	seeder := seed.New(t, database, v)
 
 	seeder.Seed(context.Background())
 
 	audit, err := auditlogs.New(auditlogs.Config{
-		DB: db,
+		DB: database,
 	})
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		DB:           db,
+		DB:           database,
 		KeyCache:     caches.VerificationKeyByHash,
 		QuotaCache:   caches.WorkspaceQuota,
 		RateLimiter:  ratelimitService,
@@ -181,7 +195,7 @@ func NewHarness(t *testing.T) *Harness {
 		Ratelimit:                  ratelimitService,
 		Vault:                      v,
 		ClickHouse:                 ch,
-		DB:                         db,
+		DB:                         database,
 		seeder:                     seeder,
 		Clock:                      clk,
 		AnalyticsConnectionManager: analyticsConnManager,
@@ -263,6 +277,11 @@ func (h *Harness) CreateProject(req seed.CreateProjectRequest) db.Project {
 	return h.seeder.CreateProject(context.Background(), req)
 }
 
+// CreateApp creates an app within a project.
+func (h *Harness) CreateApp(req seed.CreateAppRequest) db.App {
+	return h.seeder.CreateApp(context.Background(), req)
+}
+
 // CreateEnvironment creates an environment within a project.
 func (h *Harness) CreateEnvironment(req seed.CreateEnvironmentRequest) db.Environment {
 	return h.seeder.CreateEnvironment(h.t.Context(), req)
@@ -278,6 +297,7 @@ type DeploymentTestSetup struct {
 	Workspace   db.Workspace
 	RootKey     string
 	Project     db.Project
+	App         db.App
 	Environment db.Environment
 }
 
@@ -337,8 +357,16 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		Name:             config.ProjectName,
 		ID:               uid.New(uid.ProjectPrefix),
 		Slug:             config.ProjectSlug,
-		DefaultBranch:    "",
 		DeleteProtection: false,
+	})
+
+	app := h.CreateApp(seed.CreateAppRequest{
+		ID:            uid.New(uid.AppPrefix),
+		WorkspaceID:   workspace.ID,
+		ProjectID:     project.ID,
+		Name:          "Default",
+		Slug:          "default",
+		DefaultBranch: "main",
 	})
 
 	var environment db.Environment
@@ -347,6 +375,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 			ID:               uid.New(uid.EnvironmentPrefix),
 			WorkspaceID:      workspace.ID,
 			ProjectID:        project.ID,
+			AppID:            app.ID,
 			Slug:             config.EnvironmentSlug,
 			Description:      config.EnvironmentSlug + " environment",
 			DeleteProtection: false,
@@ -358,6 +387,7 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		Workspace:   workspace,
 		RootKey:     rootKey,
 		Project:     project,
+		App:         app,
 		Environment: environment,
 	}
 }

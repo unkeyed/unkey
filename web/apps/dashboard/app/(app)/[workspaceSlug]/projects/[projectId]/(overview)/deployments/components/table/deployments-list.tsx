@@ -11,11 +11,11 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
+import { DeploymentStatusBadge } from "../../../../components/deployment-status-badge";
 import { Avatar } from "../../../../components/git-avatar";
 import { StatusIndicator } from "../../../../components/status-indicator";
 import { useProjectData } from "../../../data-provider";
 import { useDeployments } from "../../hooks/use-deployments";
-import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { DomainList } from "./components/domain_list";
 import { EnvStatusBadge } from "./components/env-status-badge";
 import {
@@ -41,8 +41,8 @@ const DeploymentListTableActions = dynamic(
 
 export const DeploymentsList = () => {
   const { deployments } = useDeployments();
-  const { project, getDeploymentById } = useProjectData();
-  const liveDeploymentId = project?.liveDeploymentId;
+  const { project } = useProjectData();
+  const currentDeploymentId = project?.currentDeploymentId;
 
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
@@ -65,8 +65,8 @@ export const DeploymentsList = () => {
         width: "12%",
         headerClassName: "pl-[18px]",
         render: ({ deployment, environment }) => {
-          const isLive = liveDeploymentId === deployment.id;
-          const iconContainer = <StatusIndicator withSignal={isLive} />;
+          const isCurrent = currentDeploymentId === deployment.id;
+          const iconContainer = <StatusIndicator withSignal={isCurrent} />;
           return (
             <div className="flex flex-col items-start px-4.5 py-1.5">
               <div className="flex gap-3 items-center w-full">
@@ -81,12 +81,12 @@ export const DeploymentsList = () => {
                     >
                       {shortenId(deployment.id)}
                     </div>
-                    {isLive ? (
+                    {isCurrent ? (
                       <div className="shrink-0">
                         {project?.isRolledBack ? (
                           <EnvStatusBadge variant="rolledBack" text="Rolled Back" />
                         ) : (
-                          <EnvStatusBadge variant="live" text="Current" />
+                          <EnvStatusBadge variant="current" text="Current" />
                         )}
                       </div>
                     ) : null}
@@ -164,17 +164,28 @@ export const DeploymentsList = () => {
                   </>
                 )}
               </div>
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-center max-w-50">
                 <div className="size-5 rounded flex items-center justify-center border border-grayA-3 bg-grayA-3">
                   <CodeBranch iconSize="sm-regular" className="text-gray-12" />
                 </div>
                 <div className="min-w-0">
-                  <div className="font-mono truncate text-[13px] text-accent-12">
-                    {deployment.gitBranch}
+                  <div className="flex items-center gap-1.5 font-mono text-[13px]">
+                    <span className="truncate text-accent-12 max-w-25" title={deployment.gitBranch}>
+                      {deployment.gitBranch}
+                    </span>
+                    <span className="text-gray-6 shrink-0">·</span>
+                    <span className="text-gray-9 shrink-0">
+                      {deployment.gitCommitSha?.slice(0, 7)}
+                    </span>
                   </div>
-                  <div className="font-mono text-xs text-gray-9">
-                    {deployment.gitCommitSha?.slice(0, 7)}
-                  </div>
+                  {deployment.gitCommitMessage ? (
+                    <div
+                      className="truncate text-xs text-gray-9 max-w-50"
+                      title={deployment.gitCommitMessage}
+                    >
+                      {deployment.gitCommitMessage}
+                    </div>
+                  ) : null}
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -215,14 +226,10 @@ export const DeploymentsList = () => {
           deployment: Deployment;
           environment?: Environment;
         }) => {
-          const liveDeployment = project?.liveDeploymentId
-            ? getDeploymentById(project?.liveDeploymentId)
-            : undefined;
           return (
             <div className="pl-5">
               <DeploymentListTableActions
                 selectedDeployment={deployment}
-                liveDeployment={liveDeployment}
                 environment={environment}
               />
             </div>
@@ -247,7 +254,7 @@ export const DeploymentsList = () => {
       }}
       keyExtractor={(deployment) => deployment.id}
       rowClassName={(deployment) =>
-        getRowClassName(deployment, liveDeploymentId ?? null, project?.isRolledBack ?? false)
+        getRowClassName(deployment, currentDeploymentId ?? null, project?.isRolledBack ?? false)
       }
       emptyState={
         <div className="w-full flex justify-center items-center h-full">

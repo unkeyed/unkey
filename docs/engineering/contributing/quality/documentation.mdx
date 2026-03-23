@@ -25,11 +25,13 @@ Before submitting documentation, verify each item.
 - [ ] Package has a `doc.go` if it has non-trivial behavior
 - [ ] Non-obvious behavior is documented (edge cases, nil handling, concurrency)
 - [ ] The why is explained for design choices that are not self-evident
+- [ ] Every named SQL query has a doc comment block
 
 **Quality**
 - [ ] Doc comments start with the symbol name
 - [ ] Uses prose, not bullet lists, unless items are parallel
 - [ ] Depth matches complexity
+- [ ] SQL comments add non-obvious context instead of restating obvious clauses
 - [ ] Cross-references use bracket syntax: `[TypeName]`, `[FuncName]`
 - [ ] No stale documentation from copy-paste or refactoring
 
@@ -38,6 +40,7 @@ Before submitting documentation, verify each item.
 - [ ] For value plus error returns, you checked what value returns on failure
 - [ ] For unmarshal operations, you verified whether partial values return
 - [ ] Examples compile and run
+- [ ] SQL comment examples match real query behavior (ordering, fallback, joins)
 
 ## Writing style
 
@@ -150,6 +153,45 @@ func (r *RateLimiter) Allow(ctx context.Context, identifier string, cost int) (b
 **Performance**: Mention non-obvious characteristics that affect usage decisions.
 
 **Context**: Document context behavior only if it is non-standard.
+
+## SQL query documentation
+
+Named SQL queries are part of the public contract between application code and the database. Treat query comments like API documentation.
+
+For SQL query docs, explain why this query exists, how it resolves non-obvious behavior, and what guarantees callers can rely on. Do not just restate the `SELECT` clause.
+
+Keep SQL comments concise. In most cases, two to five lines are enough. If a comment is longer than the query, each sentence must carry non-obvious information such as fallback guarantees, deterministic ordering, intentional join behavior, or performance tradeoffs.
+
+Avoid duplicate explanations. If the SQL already makes behavior obvious, for example `AND s.health = 'healthy'`, do not repeat that in prose unless you are documenting a non-obvious guarantee that depends on it.
+
+For selection queries with fallback logic, document deterministic behavior explicitly. If exact matching must win over wildcard matching, explain how SQL enforces it, for example with `ORDER BY` and not candidate list order.
+
+For query docs that are not obvious from a quick read, include a small concrete example with inputs and the expected returned row. This is required for logic that depends on ordering, fallback, or tie-breaking.
+
+Document performance-sensitive choices when they are intentional, for example using `LIMIT 1` to avoid transferring large payload rows that are not selected.
+
+```sql
+-- name: FindBestCertificateByCandidates :one
+-- FindBestCertificateByCandidates returns one certificate row for the provided
+-- hostnames, preferring an exact hostname over wildcard matches.
+-- MySQL does not preserve IN-list order, so exact-first behavior is enforced by
+-- ORDER BY against exact_hostname, not by candidate position.
+--
+-- Example: with candidates ['api.example.com', '*.example.com'] and
+-- exact_hostname 'api.example.com', this query returns 'api.example.com' when
+-- both rows exist. If only '*.example.com' exists, it returns the wildcard row.
+--
+-- LIMIT 1 avoids returning non-selected certificate and key payload rows.
+SELECT
+  hostname,
+  workspace_id,
+  certificate,
+  encrypted_private_key
+FROM certificates
+WHERE hostname IN (sqlc.slice('hostnames'))
+ORDER BY hostname = sqlc.arg(exact_hostname) DESC
+LIMIT 1;
+```
 
 ## What not to document
 

@@ -7,15 +7,15 @@ import { createDetailSections } from "./sections";
 export const ProjectDetailsContent = () => {
   const { getDomainsForDeployment, project, getDeploymentById } = useProjectData();
 
-  const deployment = project?.liveDeploymentId
-    ? getDeploymentById(project.liveDeploymentId)
+  const deployment = project?.currentDeploymentId
+    ? getDeploymentById(project.currentDeploymentId)
     : undefined;
 
   const data = project && deployment ? { project, deployment } : undefined;
 
   // Get domains from provider and transform
-  const domainsData = data?.project.liveDeploymentId
-    ? getDomainsForDeployment(data.project.liveDeploymentId)
+  const domainsData = data?.project.currentDeploymentId
+    ? getDomainsForDeployment(data.project.currentDeploymentId)
         .map((d) => ({
           domain: d.fullyQualifiedDomainName,
           environment: d.sticky,
@@ -66,7 +66,7 @@ export const ProjectDetailsContent = () => {
                   side: "bottom",
                 }}
                 content={
-                  <div className="space-y-2 max-w-[300px] py-2">
+                  <div className="flex flex-col gap-2 max-w-75 py-2">
                     {gitShaAndBranchNameDomains.map((d) => (
                       <div key={d.domain} className="text-xs font-medium flex items-center gap-1.5">
                         <div className="w-1 h-1 bg-gray-8 rounded-full shrink-0" />

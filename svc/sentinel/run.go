@@ -2,6 +2,7 @@ package sentinel
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -68,6 +69,7 @@ func Run(ctx context.Context, cfg Config) error {
 		slog.String("sentinelID", cfg.SentinelID),
 		slog.String("workspaceID", cfg.WorkspaceID),
 		slog.String("environmentID", cfg.EnvironmentID),
+		slog.String("platform", cfg.Platform),
 		slog.String("region", cfg.Region),
 		slog.String("version", version.Version),
 	))
@@ -159,6 +161,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:            database,
 		Clock:         clk,
 		EnvironmentID: cfg.EnvironmentID,
+		Platform:      cfg.Platform,
 		Region:        cfg.Region,
 		Broadcaster:   broadcaster,
 		NodeID:        cfg.SentinelID,
@@ -182,6 +185,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:             cfg.Region,
 		ClickHouse:         ch,
 		MaxRequestBodySize: maxRequestBodySize,
+		RequestTimeout:     cfg.RequestTimeout,
 		Engine:             middlewareEngine,
 	}
 
@@ -190,8 +194,8 @@ func Run(ctx context.Context, cfg Config) error {
 		Flags:              nil,
 		EnableH2C:          true,
 		MaxRequestBodySize: maxRequestBodySize,
-		ReadTimeout:        0,
-		WriteTimeout:       0,
+		ReadTimeout:        -1,
+		WriteTimeout:       -1,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
@@ -250,7 +254,21 @@ func initMiddlewareEngine(cfg Config, database db.Database, ch clickhouse.ClickH
 	r.Defer(rateLimiter.Close)
 
 	usageLimiter, err := usagelimiter.NewCounter(usagelimiter.CounterConfig{
-		DB:            database,
+		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
+			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
+				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
+			})
+			if err != nil {
+				return 0, false, err
+			}
+			return limit.Int32, limit.Valid, nil
+		},
+		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int32) error {
+			return db.Query.UpdateKeyCreditsDecrement(ctx, database.RW(), db.UpdateKeyCreditsDecrementParams{
+				ID:      keyID,
+				Credits: sql.NullInt32{Int32: cost, Valid: true},
+			})
+		},
 		Counter:       redisCounter,
 		TTL:           60 * time.Second,
 		ReplayWorkers: 8,

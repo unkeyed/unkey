@@ -13,11 +13,15 @@ properties:
     enum:
       - UNSPECIFIED
       - PENDING
+      - STARTING
       - BUILDING
       - DEPLOYING
       - NETWORK
+      - FINALIZING
       - READY
       - FAILED
+      - SKIPPED
+      - AWAITING_APPROVAL
     example: "READY"
     x-speakeasy-unknown-values: allow
   errorMessage:

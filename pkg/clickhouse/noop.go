@@ -65,6 +65,11 @@ func (n *noop) GetDeploymentRequestCount(ctx context.Context, req GetDeploymentR
 	return 0, nil
 }
 
+// GetKeyLastUsedBatchPartitioned implements the Querier interface but always returns an empty slice.
+func (n *noop) GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error) {
+	return nil, nil
+}
+
 func (n *noop) Conn() ch.Conn {
 	return nil
 }

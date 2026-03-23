@@ -86,15 +86,22 @@ type Config struct {
 func New(config Config) (*Server, error) {
 	mux := http.NewServeMux()
 
-	// Set default timeouts if not provided
+	// Set default timeouts if not provided.
+	// Services that use middleware-level timeouts (WithTimeout) and need
+	// long-lived connections (proxies, streaming) should explicitly pass
+	// negative values to disable server-level timeouts.
 	readTimeout := config.ReadTimeout
 	if readTimeout == 0 {
 		readTimeout = 10 * time.Second
+	} else if readTimeout < 0 {
+		readTimeout = 0
 	}
 
 	writeTimeout := config.WriteTimeout
 	if writeTimeout == 0 {
 		writeTimeout = 20 * time.Second
+	} else if writeTimeout < 0 {
+		writeTimeout = 0
 	}
 
 	// Wrap handler with h2c if enabled for HTTP/2 cleartext support

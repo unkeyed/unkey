@@ -13,9 +13,9 @@ export const GeneralSetup = () => {
   } = useFormContext<FormValues>();
 
   return (
-    <div className="space-y-5 px-2 py-1 ">
+    <div className="flex flex-col gap-y-5 px-2 py-1 ">
       <FormInput
-        className="[&_input:first-of-type]:h-[36px]"
+        className="[&_input:first-of-type]:h-9"
         placeholder="Enter name"
         label="Name"
         maxLength={256}

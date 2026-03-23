@@ -7,7 +7,8 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 
 // DeployService orchestrates the lifecycle of application deployments as
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
-// any step after a crash.
+// any step after a crash. Workflows are keyed by app_id to allow concurrent
+// deployments across different apps within the same project.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -15,11 +16,9 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // routes atomically through the routing service.
 //
 // ScaleDownIdlePreviewDeployments runs on a cron to find preview deployments that have
-// received no traffic for 6 hours and sets them to standby. SetDeploymentDesiredState
-// targets a single deployment, typically sent with a 30-minute delay after a new
-// deployment replaces it.
+// received no traffic for 6 hours and sets them to standby.
 service DeployService {
-  option (dev.restate.sdk.go.service_type) = WORKFLOW;
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
   // Deploy executes the full deployment workflow: build (if git source), provision
   // containers across regions, wait for health, configure domain routing, and
@@ -74,6 +73,10 @@ message GitSource {
   // Branch name used to resolve commit_sha when it is empty. The deploy worker
   // calls GitHub to look up the HEAD commit of this branch.
   string branch = 6;
+
+  // PR number for fork PRs. When set, BuildKit fetches refs/pull/<number>/head
+  // from the base repo instead of using commit_sha directly.
+  int64 pr_number = 7;
 }
 
 message DeployRequest {

@@ -9,7 +9,7 @@ import { CustomDomainRow } from "../../settings/components/advanced-settings/cus
 import { AddCustomDomain } from "./add-custom-domain";
 
 type CustomDomainsSectionProps = {
-  environments: Array<{ id: string; slug: string }>;
+  environments: Array<{ id: string; slug: string; appId: string }>;
 };
 
 export function CustomDomainsSection({ environments }: CustomDomainsSectionProps) {

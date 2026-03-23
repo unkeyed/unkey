@@ -91,6 +91,7 @@ export const FormCombobox = React.forwardRef<HTMLDivElement, FormComboboxProps>(
           <FormDescription
             description={description}
             error={error}
+            variant={variant}
             descriptionId={descriptionId}
             errorId={errorId}
           />

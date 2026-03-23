@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -15,19 +14,26 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
 
 const testRepoFullName = "acme/repo"
 
-func TestGitHubWebhook_Push_TriggersDeployWorkflow(t *testing.T) {
-	deployRequests := make(chan *hydrav1.DeployRequest, 1)
+// mockGitHubWebhookService captures HandlePushRequests sent by the thin HTTP handler.
+type mockGitHubWebhookService struct {
+	hydrav1.UnimplementedGitHubWebhookServiceServer
+	requests chan *hydrav1.HandlePushRequest
+}
+
+func (m *mockGitHubWebhookService) HandlePush(_ restate.ObjectContext, req *hydrav1.HandlePushRequest) (*hydrav1.HandlePushResponse, error) {
+	m.requests <- req
+	return &hydrav1.HandlePushResponse{}, nil
+}
+
+func TestGitHubWebhook_Push_TriggersHandlePush(t *testing.T) {
+	pushRequests := make(chan *hydrav1.HandlePushRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
-		Services: []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(&mockDeployService{requests: deployRequests})},
+		Services: []restate.ServiceDefinition{hydrav1.NewGitHubWebhookServiceServer(&mockGitHubWebhookService{requests: pushRequests})},
 	})
-	projectID := insertRepoConnection(t, harness, testRepoFullName, 101, 202)
 
 	resp, err := sendWebhook(fmt.Sprintf("%s/webhooks/github", harness.CtrlURL), mustMarshal(t, newTestPushPayload(testRepoFullName, false)), harness.Secret)
 	require.NoError(t, err)
@@ -35,25 +41,26 @@ func TestGitHubWebhook_Push_TriggersDeployWorkflow(t *testing.T) {
 	_ = resp.Body.Close()
 
 	select {
-	case req := <-deployRequests:
-		require.NotEmpty(t, req.GetDeploymentId())
-		gitSource := req.GetGit()
-		require.NotNil(t, gitSource, "expected GitSource in deploy request")
-		require.Equal(t, int64(101), gitSource.GetInstallationId())
-		require.Equal(t, testRepoFullName, gitSource.GetRepository())
-		require.Equal(t, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", gitSource.GetCommitSha())
-		_ = projectID // projectID is stored in the deployment record, not passed to workflow
+	case req := <-pushRequests:
+		require.Equal(t, int64(101), req.GetInstallationId())
+		require.Equal(t, int64(202), req.GetRepositoryId())
+		require.Equal(t, testRepoFullName, req.GetRepositoryFullName())
+		require.Equal(t, "main", req.GetBranch())
+		require.Equal(t, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", req.GetAfter())
+		require.Equal(t, "Merge pull request #1 from pr-creator/feat", req.GetCommitMessage())
+		require.Equal(t, "pr-creator", req.GetCommitAuthorHandle())
+		require.Equal(t, "https://github.com/pr-creator.png", req.GetCommitAuthorAvatarUrl())
+		require.NotZero(t, req.GetCommitTimestamp())
 	case <-time.After(10 * time.Second):
-		t.Fatal("expected deploy workflow invocation")
+		t.Fatal("expected HandlePush invocation")
 	}
 }
 
-func TestGitHubWebhook_Push_IgnoresFork(t *testing.T) {
-	deployRequests := make(chan *hydrav1.DeployRequest, 1)
+func TestGitHubWebhook_Push_ProcessesFork(t *testing.T) {
+	pushRequests := make(chan *hydrav1.HandlePushRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
-		Services: []restate.ServiceDefinition{hydrav1.NewDeploymentServiceServer(&mockDeploymentService{requests: deployRequests})},
+		Services: []restate.ServiceDefinition{hydrav1.NewGitHubWebhookServiceServer(&mockGitHubWebhookService{requests: pushRequests})},
 	})
-	_ = insertRepoConnection(t, harness, testRepoFullName, 101, 202)
 
 	resp, err := sendWebhook(fmt.Sprintf("%s/webhooks/github", harness.CtrlURL), mustMarshal(t, newTestPushPayload(testRepoFullName, true)), harness.Secret)
 	require.NoError(t, err)
@@ -61,18 +68,20 @@ func TestGitHubWebhook_Push_IgnoresFork(t *testing.T) {
 	_ = resp.Body.Close()
 
 	select {
-	case <-deployRequests:
-		t.Fatal("expected no deploy workflow invocation for fork event")
-	case <-time.After(1 * time.Second):
+	case req := <-pushRequests:
+		require.Equal(t, int64(101), req.GetInstallationId())
+		require.Equal(t, int64(202), req.GetRepositoryId())
+		require.Equal(t, testRepoFullName, req.GetRepositoryFullName())
+	case <-time.After(10 * time.Second):
+		t.Fatal("expected HandlePush invocation for fork with app installed")
 	}
 }
 
 func TestGitHubWebhook_InvalidSignature(t *testing.T) {
-	deployRequests := make(chan *hydrav1.DeployRequest, 1)
+	pushRequests := make(chan *hydrav1.HandlePushRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
-		Services: []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(&mockDeployService{requests: deployRequests})},
+		Services: []restate.ServiceDefinition{hydrav1.NewGitHubWebhookServiceServer(&mockGitHubWebhookService{requests: pushRequests})},
 	})
-	_ = insertRepoConnection(t, harness, testRepoFullName, 101, 202)
 
 	resp, err := sendWebhook(fmt.Sprintf("%s/webhooks/github", harness.CtrlURL), mustMarshal(t, newTestPushPayload(testRepoFullName, false)), "wrong-secret")
 	require.NoError(t, err)
@@ -80,48 +89,10 @@ func TestGitHubWebhook_InvalidSignature(t *testing.T) {
 	_ = resp.Body.Close()
 
 	select {
-	case <-deployRequests:
-		t.Fatal("unexpected deploy workflow invocation")
+	case <-pushRequests:
+		t.Fatal("unexpected HandlePush invocation")
 	case <-time.After(1 * time.Second):
 	}
-}
-
-func insertRepoConnection(t *testing.T, harness *webhookHarness, repoFullName string, installationID, repositoryID int64) string {
-	t.Helper()
-
-	projectID := uid.New("prj")
-	project := harness.Seed.CreateProject(harness.ctx, seed.CreateProjectRequest{
-		ID:               projectID,
-		WorkspaceID:      harness.Seed.Resources.UserWorkspace.ID,
-		Name:             "test-project",
-		Slug:             uid.New("slug"),
-		DefaultBranch:    "main",
-		DeleteProtection: false,
-	})
-
-	// Create production environment (required for webhook handler to find environment by slug)
-	harness.Seed.CreateEnvironment(harness.ctx, seed.CreateEnvironmentRequest{
-		ID:               uid.New("env"),
-		WorkspaceID:      harness.Seed.Resources.UserWorkspace.ID,
-		ProjectID:        project.ID,
-		Slug:             "production",
-		Description:      "",
-		SentinelConfig:   []byte("{}"),
-		DeleteProtection: false,
-	})
-
-	createdAt := time.Now().UnixMilli()
-	params := db.InsertGithubRepoConnectionParams{
-		ProjectID:          project.ID,
-		InstallationID:     installationID,
-		RepositoryID:       repositoryID,
-		RepositoryFullName: repoFullName,
-		CreatedAt:          createdAt,
-		UpdatedAt:          sql.NullInt64{Valid: false},
-	}
-	require.NoError(t, db.Query.InsertGithubRepoConnection(harness.ctx, harness.DB.RW(), params))
-
-	return project.ID
 }
 
 func sendWebhook(url string, body []byte, secret string) (*http.Response, error) {
@@ -138,20 +109,26 @@ func sendWebhook(url string, body []byte, secret string) (*http.Response, error)
 }
 
 func newTestPushPayload(repoFullName string, fork bool) pushPayload {
-	commit := pushCommit{
-		ID:        "c1",
-		Message:   "hello\nworld",
+	prCommit := pushCommit{
+		ID:        "c0",
+		Message:   "feat: original PR work",
 		Timestamp: "2024-01-01T00:00:00Z",
-		Author:    pushCommitAuthor{Name: "n", Username: "u"},
+		Author:    pushCommitAuthor{Name: "pr-creator", Username: "pr-creator"},
+	}
+	mergeCommit := pushCommit{
+		ID:        "c1",
+		Message:   "Merge pull request #1 from pr-creator/feat\n\nfeat: original PR work",
+		Timestamp: "2024-01-01T00:01:00Z",
+		Author:    pushCommitAuthor{Name: "merger", Username: "merger"},
 	}
 	return pushPayload{
 		Ref:          "refs/heads/main",
 		After:        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 		Installation: pushInstallation{ID: 101},
 		Repository:   pushRepository{ID: 202, FullName: repoFullName, Fork: fork},
-		Commits:      []pushCommit{commit},
-		HeadCommit:   &commit,
-		Sender:       pushSender{Login: "u", AvatarURL: "https://avatar"},
+		Commits:      []pushCommit{prCommit, mergeCommit},
+		HeadCommit:   &mergeCommit,
+		Sender:       pushSender{Login: "merger", AvatarURL: "https://avatar"},
 	}
 }
 

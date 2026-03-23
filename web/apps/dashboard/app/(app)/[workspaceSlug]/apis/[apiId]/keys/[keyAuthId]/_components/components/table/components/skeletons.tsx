@@ -60,7 +60,7 @@ export const LastUsedColumnSkeleton = () => (
 
 export const StatusColumnSkeleton = () => (
   <div
-    className="flex w-[100px] items-center h-[22px] space-x-2 px-1.5 py-1 rounded-md bg-grayA-3 animate-pulse"
+    className="flex w-25 items-center h-5.5 gap-2 px-1.5 py-1 rounded-md bg-grayA-3 animate-pulse"
     aria-busy="true"
     aria-live="polite"
   >

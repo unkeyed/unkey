@@ -1,17 +1,10 @@
 "use client";
 
+import type { QuickNavItem } from "@/components/navbar-popover";
 import type { Navbar } from "@/components/navigation/navbar";
 import { shortenId } from "@/lib/shorten-id";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import type { ComponentPropsWithoutRef } from "react";
-
-export type QuickNavItem = {
-  id: string;
-  label: string;
-  href: string;
-  disabled?: boolean;
-  disabledTooltip?: string;
-};
 
 export type BreadcrumbItem = ComponentPropsWithoutRef<typeof Navbar.Breadcrumbs.Link> & {
   /** Unique identifier for the breadcrumb item */
@@ -78,6 +71,12 @@ export const useBreadcrumbConfig = ({
       label: "Settings",
       href: `${basePath}/${projectId}/settings`,
       segment: "settings",
+    },
+    {
+      id: "openapi-diff",
+      label: "OpenAPI Diff",
+      href: `${basePath}/${projectId}/openapi-diff`,
+      segment: "openapi-diff",
     },
   ];
 

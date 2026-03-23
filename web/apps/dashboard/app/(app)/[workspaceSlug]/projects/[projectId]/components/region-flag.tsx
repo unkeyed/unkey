@@ -1,9 +1,8 @@
 import type { FlagCode } from "@/lib/trpc/routers/deploy/network/utils";
 import { cn } from "@/lib/utils";
-
+import BoringAvatar from "boring-avatars";
 type RegionFlagSize = "xs" | "sm" | "md" | "lg";
 type RegionFlagShape = "rounded" | "circle";
-
 type RegionFlagProps = {
   flagCode: FlagCode;
   size?: RegionFlagSize;
@@ -47,7 +46,6 @@ export function RegionFlag({
 }: RegionFlagProps) {
   const config = sizeConfig[size];
   const hasExplicitPadding = config.padding !== "";
-
   return (
     <div
       className={cn(
@@ -60,7 +58,11 @@ export function RegionFlag({
         className,
       )}
     >
-      <img src={`/images/flags/${flagCode}.svg`} alt={flagCode} className={config.flag} />
+      {flagCode === "local" ? (
+        <BoringAvatar size="100%" variant="marble" />
+      ) : (
+        <img src={`/images/flags/${flagCode}.svg`} alt={flagCode} className={config.flag} />
+      )}
     </div>
   );
 }

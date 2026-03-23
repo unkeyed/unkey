@@ -96,7 +96,7 @@ export const MetadataSetup = ({ overrideEnabled = false, entityType }: MetadataS
   const descriptions = ENTITY_DESCRIPTIONS[entityType];
 
   return (
-    <div className="space-y-5 px-2 py-1">
+    <div className="flex flex-col gap-5 px-2 py-1">
       {!overrideEnabled && (
         <ProtectionSwitch
           description={descriptions.switch}
@@ -107,7 +107,7 @@ export const MetadataSetup = ({ overrideEnabled = false, entityType }: MetadataS
           {...register("metadata.enabled")}
         />
       )}
-      <div className="space-y-2 h-fit duration-300">
+      <div className="flex flex-col gap-2 h-fit duration-300">
         <FormTextarea
           placeholder={JSON.stringify(EXAMPLE_JSON, null, 2)}
           label="Metadata"
