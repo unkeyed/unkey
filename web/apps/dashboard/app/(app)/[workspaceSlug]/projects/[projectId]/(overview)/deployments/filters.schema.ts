@@ -55,7 +55,7 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
       if (value === "skipped") {
         return "bg-gray-9";
       }
-      if (value === "idle") {
+      if (value === "stopped") {
         return "bg-gray-9";
       }
       return "bg-info-9"; // building
