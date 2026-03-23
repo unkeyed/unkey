@@ -499,6 +499,7 @@ const (
 	DeploymentsStatusFailed           DeploymentsStatus = "failed"
 	DeploymentsStatusSkipped          DeploymentsStatus = "skipped"
 	DeploymentsStatusAwaitingApproval DeploymentsStatus = "awaiting_approval"
+	DeploymentsStatusIdle             DeploymentsStatus = "idle"
 )
 
 func (e *DeploymentsStatus) Scan(src interface{}) error {

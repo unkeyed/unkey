@@ -36,6 +36,7 @@ const (
 	DeploymentStatus_DEPLOYMENT_STATUS_FAILED            DeploymentStatus = 6
 	DeploymentStatus_DEPLOYMENT_STATUS_SKIPPED           DeploymentStatus = 9
 	DeploymentStatus_DEPLOYMENT_STATUS_AWAITING_APPROVAL DeploymentStatus = 10
+	DeploymentStatus_DEPLOYMENT_STATUS_IDLE              DeploymentStatus = 11
 )
 
 // Enum value maps for DeploymentStatus.
@@ -52,6 +53,7 @@ var (
 		6:  "DEPLOYMENT_STATUS_FAILED",
 		9:  "DEPLOYMENT_STATUS_SKIPPED",
 		10: "DEPLOYMENT_STATUS_AWAITING_APPROVAL",
+		11: "DEPLOYMENT_STATUS_IDLE",
 	}
 	DeploymentStatus_value = map[string]int32{
 		"DEPLOYMENT_STATUS_UNSPECIFIED":       0,
@@ -65,6 +67,7 @@ var (
 		"DEPLOYMENT_STATUS_FAILED":            6,
 		"DEPLOYMENT_STATUS_SKIPPED":           9,
 		"DEPLOYMENT_STATUS_AWAITING_APPROVAL": 10,
+		"DEPLOYMENT_STATUS_IDLE":              11,
 	}
 )
 
@@ -1236,7 +1239,7 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x0fPromoteResponse\"A\n" +
 	"\x1aAuthorizeDeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x1d\n" +
-	"\x1bAuthorizeDeploymentResponse*\xf9\x02\n" +
+	"\x1bAuthorizeDeploymentResponse*\x95\x03\n" +
 	"\x10DeploymentStatus\x12!\n" +
 	"\x1dDEPLOYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19DEPLOYMENT_STATUS_PENDING\x10\x01\x12\x1e\n" +
@@ -1249,7 +1252,8 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x18DEPLOYMENT_STATUS_FAILED\x10\x06\x12\x1d\n" +
 	"\x19DEPLOYMENT_STATUS_SKIPPED\x10\t\x12'\n" +
 	"#DEPLOYMENT_STATUS_AWAITING_APPROVAL\x10\n" +
-	"*Z\n" +
+	"\x12\x1a\n" +
+	"\x16DEPLOYMENT_STATUS_IDLE\x10\v*Z\n" +
 	"\n" +
 	"SourceType\x12\x1b\n" +
 	"\x17SOURCE_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +

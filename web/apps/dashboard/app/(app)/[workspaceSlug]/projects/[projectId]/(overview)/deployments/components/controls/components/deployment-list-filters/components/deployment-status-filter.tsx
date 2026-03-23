@@ -35,6 +35,11 @@ const baseOptions: StatusOption[] = [
     status: "skipped",
     display: "Skipped",
   },
+  {
+    id: 6,
+    status: "idle",
+    display: "Idle",
+  },
 ];
 
 export const DeploymentStatusFilter = () => {

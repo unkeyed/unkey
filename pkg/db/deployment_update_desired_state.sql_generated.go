@@ -12,12 +12,13 @@ import (
 
 const updateDeploymentDesiredState = `-- name: UpdateDeploymentDesiredState :exec
 UPDATE deployments
-SET desired_state = ?, updated_at = ?
+SET desired_state = ?, status = ?, updated_at = ?
 WHERE id = ?
 `
 
 type UpdateDeploymentDesiredStateParams struct {
 	DesiredState DeploymentsDesiredState `db:"desired_state"`
+	Status       DeploymentsStatus       `db:"status"`
 	UpdatedAt    sql.NullInt64           `db:"updated_at"`
 	ID           string                  `db:"id"`
 }
@@ -25,9 +26,14 @@ type UpdateDeploymentDesiredStateParams struct {
 // UpdateDeploymentDesiredState
 //
 //	UPDATE deployments
-//	SET desired_state = ?, updated_at = ?
+//	SET desired_state = ?, status = ?, updated_at = ?
 //	WHERE id = ?
 func (q *Queries) UpdateDeploymentDesiredState(ctx context.Context, db DBTX, arg UpdateDeploymentDesiredStateParams) error {
-	_, err := db.ExecContext(ctx, updateDeploymentDesiredState, arg.DesiredState, arg.UpdatedAt, arg.ID)
+	_, err := db.ExecContext(ctx, updateDeploymentDesiredState,
+		arg.DesiredState,
+		arg.Status,
+		arg.UpdatedAt,
+		arg.ID,
+	)
 	return err
 }

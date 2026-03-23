@@ -27,7 +27,6 @@ type transition struct {
 // before the delay elapses, the new nonce overwrites the old one, causing the
 // previous delayed call to no-op on nonce mismatch.
 func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, req *hydrav1.ScheduleDesiredStateChangeRequest) (*hydrav1.ScheduleDesiredStateChangeResponse, error) {
-
 	nonce := restate.UUID(ctx).String()
 
 	t := transition{
@@ -60,7 +59,6 @@ func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, re
 // database representation, updates the deployment's desired state and all
 // topology entries, and clears the stored transition.
 func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydrav1.ChangeDesiredStateRequest) (*hydrav1.ChangeDesiredStateResponse, error) {
-
 	deploymentID := restate.Key(ctx)
 
 	t, err := restate.Get[*transition](ctx, transitionKey)
@@ -77,16 +75,21 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	}
 
 	var desiredState db.DeploymentsDesiredState
+	var deploymentStatus db.DeploymentsStatus
 	var topologyDesiredStatus db.DeploymentTopologyDesiredStatus
+
 	switch req.GetState() {
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING:
 		desiredState = db.DeploymentsDesiredStateRunning
+		deploymentStatus = db.DeploymentsStatusReady
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusRunning
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY:
 		desiredState = db.DeploymentsDesiredStateStandby
+		deploymentStatus = db.DeploymentsStatusIdle
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_ARCHIVED:
 		desiredState = db.DeploymentsDesiredStateArchived
+		deploymentStatus = db.DeploymentsStatusIdle
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_UNSPECIFIED:
 		return nil, restate.TerminalErrorf("invalid state: %s", req.GetState())
@@ -95,7 +98,6 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-
 		return db.Tx(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 			deployment, err := db.Query.FindDeploymentById(txCtx, tx, deploymentID)
 			if err != nil {
@@ -113,17 +115,16 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 			err = db.Query.UpdateDeploymentDesiredState(txCtx, tx, db.UpdateDeploymentDesiredStateParams{
 				ID:           deploymentID,
 				DesiredState: desiredState,
+				Status:       deploymentStatus,
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 			if err != nil {
 				return err
 			}
+
 			return nil
-
 		})
-
 	}, restate.WithName("updating desired state"))
-
 	if err != nil {
 		return nil, err
 	}

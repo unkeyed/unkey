@@ -2762,7 +2762,7 @@ type Querier interface {
 	//UpdateDeploymentDesiredState
 	//
 	//  UPDATE deployments
-	//  SET desired_state = ?, updated_at = ?
+	//  SET desired_state = ?, status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentDesiredState(ctx context.Context, db DBTX, arg UpdateDeploymentDesiredStateParams) error
 	//UpdateDeploymentGitMetadata

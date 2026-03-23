@@ -22,6 +22,7 @@ properties:
       - FAILED
       - SKIPPED
       - AWAITING_APPROVAL
+      - IDLE
     example: "READY"
     x-speakeasy-unknown-values: allow
   errorMessage:

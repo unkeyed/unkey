@@ -3,6 +3,7 @@ import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-statu
 import {
   Ban,
   CircleCheck,
+  CircleHalfDottedClock,
   CircleWarning,
   CloudUp,
   Earth,
@@ -100,6 +101,13 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     bgColor: "bg-warningA-3",
     textColor: "text-warningA-11",
     iconColor: "text-warning-11",
+  },
+  idle: {
+    icon: CircleHalfDottedClock,
+    label: "Idle",
+    bgColor: "bg-grayA-3",
+    textColor: "text-grayA-11",
+    iconColor: "text-gray-11",
   },
 };
 
