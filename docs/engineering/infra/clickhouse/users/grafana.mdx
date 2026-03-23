@@ -1,0 +1,10 @@
+---
+title: grafana
+---
+
+```sql
+CREATE USER IF NOT EXISTS grafana IDENTIFIED WITH sha256_password BY '<password>';
+
+GRANT grafana_readonly, readonly_role TO grafana;
+SET DEFAULT ROLE grafana_readonly, readonly_role TO grafana;
+```

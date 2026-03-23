@@ -1,0 +1,137 @@
+---
+title: Deleting an EKS Cluster
+description: Tearing down an EKS cluster cleanly.
+---
+
+Guide for tearing down an EKS cluster cleanly, especially when Global Accelerator or ArgoCD are involved.
+
+---
+
+## Prerequisites
+
+- `AWS_PROFILE` set with appropriate permissions
+- `kubectl` context pointing at the cluster to delete
+- The cluster name and region
+
+---
+
+## Step 1: Remove Global Accelerator endpoint groups
+
+**Do this BEFORE deleting the cluster.** GA keeps ENIs in the VPC subnets as long as an endpoint group exists for the region. If you delete the cluster first, the orphaned ENIs block VPC/subnet deletion and CloudFormation gets stuck.
+
+GA API is always in `us-west-2` regardless of where the endpoints are.
+
+```bash
+# List all accelerators
+aws globalaccelerator list-accelerators --region us-west-2 \
+  --query 'Accelerators[*].[Name,AcceleratorArn]' --output table
+
+# For each accelerator, find listeners
+aws globalaccelerator list-listeners --region us-west-2 \
+  --accelerator-arn <accelerator-arn> \
+  --query 'Listeners[*].ListenerArn' --output text
+
+# For each listener, find endpoint groups in the target region
+aws globalaccelerator list-endpoint-groups --region us-west-2 \
+  --listener-arn <listener-arn> \
+  --query 'EndpointGroups[?EndpointGroupRegion==`<region>`].[EndpointGroupArn]' --output text
+
+# Delete the endpoint group
+aws globalaccelerator delete-endpoint-group --region us-west-2 \
+  --endpoint-group-arn <endpoint-group-arn>
+```
+
+**Important:** GA is slow to release ENIs after endpoint group deletion (5-20 minutes). If you skip this step and get stuck, you cannot manually detach GA-owned ENIs (`ela-attach` type) -- you must delete the endpoint group and wait.
+
+---
+
+## Step 2: Stop ArgoCD
+
+ArgoCD will recreate load balancers and other resources as fast as you delete them. You must shut it down before proceeding.
+
+```bash
+# Kill all ApplicationSets (stops new apps from being created)
+kubectl delete applicationsets --all -n argocd --force --grace-period=0
+
+# Remove finalizers from all Applications (prevents hanging deletes)
+kubectl get applications -n argocd -o name | xargs -I {} kubectl patch {} -n argocd --type merge -p '{"metadata":{"finalizers":null}}'
+
+# Delete all Applications
+kubectl delete applications --all -n argocd --force --grace-period=0
+
+# Scale down ArgoCD so it can't do anything
+kubectl scale deploy --all -n argocd --replicas=0
+```
+
+---
+
+## Step 3: Delete the cluster
+
+```bash
+eksctl delete cluster --name <cluster-name> --region <region>
+```
+
+This handles nodegroups, CloudFormation stacks, and VPC resources automatically.
+
+### If CloudFormation gets stuck
+
+If `eksctl delete cluster` fails because the EKS cluster is already gone but the CloudFormation stack remains:
+
+```bash
+# Check stack status
+aws cloudformation describe-stacks \
+  --stack-name eksctl-<cluster-name>-cluster \
+  --region <region> \
+  --query 'Stacks[0].StackStatus' --output text
+
+# If stuck, check what resources are blocking
+aws cloudformation list-stack-resources \
+  --stack-name eksctl-<cluster-name>-cluster \
+  --region <region> \
+  --query 'StackResourceSummaries[?ResourceStatus!=`DELETE_COMPLETE`].[LogicalResourceId,ResourceStatus,ResourceType]' \
+  --output table
+
+# If subnets are stuck, check for orphaned ENIs
+aws ec2 describe-network-interfaces --region <region> \
+  --filters Name=vpc-id,Values=<vpc-id> \
+  --query 'NetworkInterfaces[*].[NetworkInterfaceId,Status,Description]' --output table
+```
+
+If you see `GlobalAccelerator configured ENI` entries, go back to Step 1 -- you missed an endpoint group.
+
+To delete the stack manually after the blocker is resolved:
+
+```bash
+aws cloudformation delete-stack \
+  --stack-name eksctl-<cluster-name>-cluster \
+  --region <region>
+
+# Wait for completion
+aws cloudformation wait stack-delete-complete \
+  --stack-name eksctl-<cluster-name>-cluster \
+  --region <region>
+```
+
+---
+
+## Step 4: Clean up
+
+After the cluster and stacks are fully deleted:
+
+- Remove the kubectl context: `kubectl config delete-context <context-name>`
+- Remove any DNS records that ExternalDNS created (or let TTLs expire)
+- Re-add the GA endpoint group when the replacement cluster is ready
+
+---
+
+## Correct order for cluster replacement
+
+When replacing a cluster in a region fronted by Global Accelerator:
+
+1. Create the **new** cluster
+2. Wait for new load balancers to provision
+3. Update the GA endpoint group to point to the **new** LB ARNs
+4. Stop ArgoCD on the old cluster (Step 2 above)
+5. Delete the old cluster (Step 3 above)
+
+This avoids any GA ENI issues entirely because the endpoint group always points to a live LB.
