@@ -45,6 +45,11 @@ type BulkQuerier interface {
 	UpsertKeySpace(ctx context.Context, db DBTX, args []UpsertKeySpaceParams) error
 	UpsertOpenApiSpec(ctx context.Context, db DBTX, args []UpsertOpenApiSpecParams) error
 	InsertPermissions(ctx context.Context, db DBTX, args []InsertPermissionParams) error
+	UpsertPortalBranding(ctx context.Context, db DBTX, args []UpsertPortalBrandingParams) error
+	InsertPortalConfigs(ctx context.Context, db DBTX, args []InsertPortalConfigParams) error
+	InsertPortalFrontlineRoutes(ctx context.Context, db DBTX, args []InsertPortalFrontlineRouteParams) error
+	InsertPortalSessions(ctx context.Context, db DBTX, args []InsertPortalSessionParams) error
+	InsertPortalSessionTokens(ctx context.Context, db DBTX, args []InsertPortalSessionTokenParams) error
 	InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error
 	UpsertQuota(ctx context.Context, db DBTX, args []UpsertQuotaParams) error
 	InsertRatelimitNamespaces(ctx context.Context, db DBTX, args []InsertRatelimitNamespaceParams) error

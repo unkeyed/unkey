@@ -29,16 +29,16 @@ ORDER BY created_at ASC
 `
 
 type FindFrontlineRoutesForRollbackParams struct {
-	EnvironmentID string                  `db:"environment_id"`
+	EnvironmentID sql.NullString          `db:"environment_id"`
 	Sticky        []FrontlineRoutesSticky `db:"sticky"`
 }
 
 type FindFrontlineRoutesForRollbackRow struct {
 	ID                       string                `db:"id"`
-	ProjectID                string                `db:"project_id"`
-	EnvironmentID            string                `db:"environment_id"`
+	ProjectID                sql.NullString        `db:"project_id"`
+	EnvironmentID            sql.NullString        `db:"environment_id"`
 	FullyQualifiedDomainName string                `db:"fully_qualified_domain_name"`
-	DeploymentID             string                `db:"deployment_id"`
+	DeploymentID             sql.NullString        `db:"deployment_id"`
 	Sticky                   FrontlineRoutesSticky `db:"sticky"`
 	CreatedAt                int64                 `db:"created_at"`
 	UpdatedAt                sql.NullInt64         `db:"updated_at"`

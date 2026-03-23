@@ -539,6 +539,48 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 	return string(ns.DeploymentsStatus), nil
 }
 
+type FrontlineRoutesRouteType string
+
+const (
+	FrontlineRoutesRouteTypeDeployment FrontlineRoutesRouteType = "deployment"
+	FrontlineRoutesRouteTypePortal     FrontlineRoutesRouteType = "portal"
+)
+
+func (e *FrontlineRoutesRouteType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = FrontlineRoutesRouteType(s)
+	case string:
+		*e = FrontlineRoutesRouteType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for FrontlineRoutesRouteType: %T", src)
+	}
+	return nil
+}
+
+type NullFrontlineRoutesRouteType struct {
+	FrontlineRoutesRouteType FrontlineRoutesRouteType
+	Valid                    bool // Valid is true if FrontlineRoutesRouteType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullFrontlineRoutesRouteType) Scan(value interface{}) error {
+	if value == nil {
+		ns.FrontlineRoutesRouteType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.FrontlineRoutesRouteType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullFrontlineRoutesRouteType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.FrontlineRoutesRouteType), nil
+}
+
 type FrontlineRoutesSticky string
 
 const (
@@ -1233,16 +1275,19 @@ type Environment struct {
 }
 
 type FrontlineRoute struct {
-	Pk                       uint64                `db:"pk"`
-	ID                       string                `db:"id"`
-	ProjectID                string                `db:"project_id"`
-	AppID                    string                `db:"app_id"`
-	DeploymentID             string                `db:"deployment_id"`
-	EnvironmentID            string                `db:"environment_id"`
-	FullyQualifiedDomainName string                `db:"fully_qualified_domain_name"`
-	Sticky                   FrontlineRoutesSticky `db:"sticky"`
-	CreatedAt                int64                 `db:"created_at"`
-	UpdatedAt                sql.NullInt64         `db:"updated_at"`
+	Pk                       uint64                   `db:"pk"`
+	ID                       string                   `db:"id"`
+	RouteType                FrontlineRoutesRouteType `db:"route_type"`
+	ProjectID                sql.NullString           `db:"project_id"`
+	AppID                    sql.NullString           `db:"app_id"`
+	DeploymentID             sql.NullString           `db:"deployment_id"`
+	EnvironmentID            sql.NullString           `db:"environment_id"`
+	PortalConfigID           sql.NullString           `db:"portal_config_id"`
+	PathPrefix               sql.NullString           `db:"path_prefix"`
+	FullyQualifiedDomainName string                   `db:"fully_qualified_domain_name"`
+	Sticky                   FrontlineRoutesSticky    `db:"sticky"`
+	CreatedAt                int64                    `db:"created_at"`
+	UpdatedAt                sql.NullInt64            `db:"updated_at"`
 }
 
 type GithubAppInstallation struct {
@@ -1401,6 +1446,55 @@ type Permission struct {
 	Description dbtype.NullString `db:"description"`
 	CreatedAtM  int64             `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64     `db:"updated_at_m"`
+}
+
+type PortalBranding struct {
+	Pk             uint64         `db:"pk"`
+	PortalConfigID string         `db:"portal_config_id"`
+	LogoUrl        sql.NullString `db:"logo_url"`
+	PrimaryColor   sql.NullString `db:"primary_color"`
+	SecondaryColor sql.NullString `db:"secondary_color"`
+	CreatedAt      int64          `db:"created_at"`
+	UpdatedAt      sql.NullInt64  `db:"updated_at"`
+}
+
+type PortalConfiguration struct {
+	Pk          uint64         `db:"pk"`
+	ID          string         `db:"id"`
+	WorkspaceID string         `db:"workspace_id"`
+	AppID       sql.NullString `db:"app_id"`
+	KeyAuthID   sql.NullString `db:"key_auth_id"`
+	Enabled     bool           `db:"enabled"`
+	ReturnUrl   sql.NullString `db:"return_url"`
+	CreatedAt   int64          `db:"created_at"`
+	UpdatedAt   sql.NullInt64  `db:"updated_at"`
+}
+
+type PortalSession struct {
+	Pk             uint64          `db:"pk"`
+	ID             string          `db:"id"`
+	WorkspaceID    string          `db:"workspace_id"`
+	PortalConfigID string          `db:"portal_config_id"`
+	ExternalID     string          `db:"external_id"`
+	Metadata       []byte          `db:"metadata"`
+	Permissions    json.RawMessage `db:"permissions"`
+	Preview        bool            `db:"preview"`
+	ExpiresAt      int64           `db:"expires_at"`
+	CreatedAt      int64           `db:"created_at"`
+}
+
+type PortalSessionToken struct {
+	Pk             uint64          `db:"pk"`
+	ID             string          `db:"id"`
+	WorkspaceID    string          `db:"workspace_id"`
+	PortalConfigID string          `db:"portal_config_id"`
+	ExternalID     string          `db:"external_id"`
+	Metadata       []byte          `db:"metadata"`
+	Permissions    json.RawMessage `db:"permissions"`
+	Preview        bool            `db:"preview"`
+	ExchangedAt    sql.NullInt64   `db:"exchanged_at"`
+	ExpiresAt      int64           `db:"expires_at"`
+	CreatedAt      int64           `db:"created_at"`
 }
 
 type Project struct {
