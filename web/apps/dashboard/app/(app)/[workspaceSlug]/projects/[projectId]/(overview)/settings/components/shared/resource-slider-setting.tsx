@@ -11,6 +11,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { EnvironmentContext, useEnvironmentSettings } from "../../environment-provider";
 import { useMultiEnvironmentSettings } from "../../hooks/use-multi-environment-settings";
+import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { EnvironmentDisplayValue } from "./environment-display-value";
 import { EnvironmentSliderSection } from "./environment-slider-section";
 import { FormSettingCard, type SaveState, resolveSaveState } from "./form-setting-card";
@@ -84,6 +85,7 @@ type SingleFormValues = z.infer<typeof singleSchema>;
 
 const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
   const { settings, variant } = useEnvironmentSettings();
+  const updateAllEnvironments = useUpdateAllEnvironments();
   const defaultValue = config.readValue(settings);
 
   const {
@@ -105,7 +107,7 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
   const currentValue = useWatch({ control, name: "value" });
 
   const onSubmit = async (values: SingleFormValues) => {
-    collection.environmentSettings.update(settings.environmentId, (draft) => {
+    updateAllEnvironments((draft) => {
       config.writeValue(draft, values.value);
     });
   };
@@ -155,7 +157,7 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
                   if (v !== undefined) {
                     const newValue = sp.toFormValue(v);
                     if (newValue !== defaultValue) {
-                      collection.environmentSettings.update(settings.environmentId, (draft) => {
+                      updateAllEnvironments((draft) => {
                         config.writeValue(draft, newValue);
                       });
                     }

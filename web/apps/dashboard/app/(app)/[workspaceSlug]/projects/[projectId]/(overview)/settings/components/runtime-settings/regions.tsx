@@ -15,6 +15,7 @@ import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
 import { EnvironmentContext, useEnvironmentSettings } from "../../environment-provider";
 import { useMultiEnvironmentSettings } from "../../hooks/use-multi-environment-settings";
+import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
 import { EnvironmentSliderSection } from "../shared/environment-slider-section";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { SettingDescription } from "../shared/setting-description";
@@ -144,6 +145,7 @@ type RegionsSingleFormValues = z.infer<typeof regionsSingleSchema>;
 
 const RegionsSingle = () => {
   const { settings, variant } = useEnvironmentSettings();
+  const updateAllEnvironments = useUpdateAllEnvironments();
   const { environmentId, regions: settingsRegions } = settings;
   const defaultRegions = useMemo(() => settingsRegions.map((r) => r.name), [settingsRegions]);
 
@@ -179,7 +181,7 @@ const RegionsSingle = () => {
   );
 
   const onSubmit = async (values: RegionsSingleFormValues) => {
-    collection.environmentSettings.update(environmentId, (draft) => {
+    updateAllEnvironments((draft) => {
       const defaultReplicas = draft.regions.at(0)?.replicas ?? 1;
       draft.regions = values.regions.map((name) => {
         const existing = draft.regions.find((r) => r.name === name);
