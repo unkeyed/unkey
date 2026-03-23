@@ -8,8 +8,8 @@ import {
   useSettingsIsSaving,
 } from "@/lib/collections/deploy/environment-settings";
 import { trpc } from "@/lib/trpc/client";
-import { toast } from "@unkey/ui";
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import { toast } from "@unkey/ui";
 import { type PropsWithChildren, useEffect, useMemo, useRef } from "react";
 import { EnvironmentContext } from "../../../[projectId]/(overview)/settings/environment-provider";
 
@@ -132,4 +132,3 @@ function useInitializeSettings(
     }
   }, [environments, availableRegions]);
 }
-
