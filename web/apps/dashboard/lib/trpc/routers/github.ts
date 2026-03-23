@@ -1,8 +1,12 @@
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { githubAppEnv } from "@/lib/env";
 import {
+  type BranchActivity,
+  MAX_BRANCHES,
   checkFileExists,
   getInstallationRepositories,
+  getMostActiveBranches,
+  getRepository,
   getRepositoryBranches,
   getRepositoryById,
   getRepositoryTree,
@@ -371,9 +375,13 @@ export const githubRouter = t.router({
         });
       }
 
-      const [treeResult, branchesData] = await Promise.all([
+      const [treeResult, activeBranches, repoData] = await Promise.all([
         getRepositoryTree(input.installationId, input.owner, input.repo, input.defaultBranch),
-        getRepositoryBranches(input.installationId, input.owner, input.repo),
+        // If the events API fails, fall back to an empty list so the branch fallback logic kicks in
+        getMostActiveBranches(input.installationId, input.owner, input.repo).catch(
+          (): BranchActivity[] => [],
+        ),
+        getRepository(input.installationId, input.owner, input.repo),
       ]);
 
       let hasDockerfile: boolean;
@@ -393,9 +401,32 @@ export const githubRouter = t.router({
         );
       }
 
+      let branches: Array<{ name: string; lastPushDate: string | null }>;
+
+      if (activeBranches.length > 0) {
+        branches = activeBranches.map((b) => ({ name: b.name, lastPushDate: b.lastPushDate }));
+        // Ensure the default branch is always included
+        if (!branches.some((b) => b.name === input.defaultBranch)) {
+          branches.unshift({
+            name: input.defaultBranch,
+            lastPushDate: null,
+          });
+        }
+      } else {
+        // Fallback: no recent events, use alphabetical branches
+        const fallbackBranches = await getRepositoryBranches(
+          input.installationId,
+          input.owner,
+          input.repo,
+          MAX_BRANCHES,
+        );
+        branches = fallbackBranches.map((b) => ({ name: b.name, lastPushDate: null }));
+      }
+
       return {
         hasDockerfile,
-        branches: branchesData.map((b) => b.name),
+        branches,
+        pushedAt: repoData.pushed_at,
       };
     }),
 

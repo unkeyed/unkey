@@ -1,9 +1,7 @@
 import { CustomDomainService } from "@/gen/proto/ctrl/v1/custom_domain_pb";
+import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { createClient } from "@connectrpc/connect";
-import { createConnectTransport } from "@connectrpc/connect-web";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -16,13 +14,7 @@ export const deleteCustomDomain = workspaceProcedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const { CTRL_URL, CTRL_API_KEY } = env();
-    if (!CTRL_URL || !CTRL_API_KEY) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "ctrl service is not configured",
-      });
-    }
+    const ctrl = createCtrlClient(CustomDomainService);
 
     // Verify project belongs to workspace
     const project = await db.query.projects.findFirst({
@@ -59,19 +51,6 @@ export const deleteCustomDomain = workspaceProcedure
         message: "Domain not found for project",
       });
     }
-
-    const ctrl = createClient(
-      CustomDomainService,
-      createConnectTransport({
-        baseUrl: CTRL_URL,
-        interceptors: [
-          (next) => (req) => {
-            req.header.set("Authorization", `Bearer ${CTRL_API_KEY}`);
-            return next(req);
-          },
-        ],
-      }),
-    );
 
     try {
       await ctrl.deleteCustomDomain({

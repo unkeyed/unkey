@@ -79,6 +79,12 @@ export const deployments = mysqlTable(
     // HTTP healthcheck configuration (null = no healthcheck)
     healthcheck: json("healthcheck").$type<import("./app_runtime_settings").Healthcheck>(),
 
+    // PR number (for fork PRs, used to build refs/pull/N/head for BuildKit)
+    prNumber: bigint("pr_number", { mode: "number" }),
+
+    // Fork repository full name (e.g. "contributor/repo") for linking to the fork
+    forkRepositoryFullName: varchar("fork_repository_full_name", { length: 256 }),
+
     // GitHub Deployment ID for status reporting
     githubDeploymentId: bigint("github_deployment_id", { mode: "number" }),
 
@@ -93,6 +99,7 @@ export const deployments = mysqlTable(
       "ready",
       "failed",
       "skipped",
+      "awaiting_approval",
     ])
       .notNull()
       .default("pending"),

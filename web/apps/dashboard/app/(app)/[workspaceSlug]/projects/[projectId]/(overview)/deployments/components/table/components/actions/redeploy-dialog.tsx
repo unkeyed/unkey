@@ -23,6 +23,7 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
   const redeploy = trpc.deploy.deployment.redeploy.useMutation({
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+      onClose();
       router.push(
         `/${workspace.slug}/projects/${selectedDeployment.projectId}/deployments/${data.deploymentId}`,
       );

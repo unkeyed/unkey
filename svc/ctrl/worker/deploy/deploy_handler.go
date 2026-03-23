@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -180,11 +181,14 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, err
 	}
 
-	// Create the status reporter after buildImage so that branch-only deploys
-	// have a resolved GitCommitSha (buildImage mutates the deployment pointer).
-	statusReporter := w.createStatusReporter(ctx, deployment, project, app, environment, workspace)
+	// Create the GitHub status reporter V0 after buildImage so that branch-only
+	// deploys have a resolved GitCommitSha (buildImage mutates the deployment pointer).
+	ghStatus := w.initGitHubStatus(ctx, deployment, project, app, environment, workspace)
 
-	statusReporter.Report(ctx, "in_progress", "Deploying to regions...")
+	ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
+		State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_IN_PROGRESS,
+		Description: "Deploying to regions...",
+	})
 
 	// --- Deploy ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepDeploying, deployment, func(stepCtx restate.ObjectContext) error {
@@ -207,18 +211,27 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil
 	})
 	if err != nil {
-		statusReporter.Report(ctx, "failure", "Deployment to regions failed")
+		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
+			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_FAILURE,
+			Description: "Deployment to regions failed",
+		})
 		return nil, err
 	}
 
-	statusReporter.Report(ctx, "in_progress", "Configuring routing...")
+	ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
+		State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_IN_PROGRESS,
+		Description: "Configuring routing...",
+	})
 
 	// --- Network ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.ObjectContext) error {
 		return w.configureRouting(stepCtx, workspace, project, app, environment, deployment)
 	})
 	if err != nil {
-		statusReporter.Report(ctx, "failure", "Routing configuration failed")
+		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
+			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_FAILURE,
+			Description: "Routing configuration failed",
+		})
 		return nil, err
 	}
 
@@ -241,11 +254,17 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil
 	})
 	if err != nil {
-		statusReporter.Report(ctx, "failure", "Finalization failed")
+		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
+			State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_FAILURE,
+			Description: "Finalization failed",
+		})
 		return nil, err
 	}
 
-	statusReporter.Report(ctx, "success", "Deployment is live")
+	ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
+		State:       hydrav1.GitHubDeploymentState_GITHUB_DEPLOYMENT_STATE_SUCCESS,
+		Description: "Deployment is live",
+	})
 
 	logger.Info("deployment workflow completed",
 		"deployment_id", deployment.ID,
@@ -341,6 +360,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 			AppID:          deployment.AppID,
 			DeploymentID:   deployment.ID,
 			WorkspaceID:    deployment.WorkspaceID,
+			PrNumber:       source.Git.GetPrNumber(),
 		})
 		if err != nil {
 			// fault.Public set inside buildDockerImageFromGit is lost because
@@ -424,10 +444,26 @@ func (w *Workflow) createTopologies(
 		)
 	}
 
+	// Filter out regions that are not schedulable and log when we skip one.
+	schedulable := make([]db.FindAppRegionalSettingsByAppAndEnvRow, 0, len(regionalSettings))
+	for _, rs := range regionalSettings {
+		if !rs.RegionCanSchedule {
+			logger.Warn("skipping non-schedulable region",
+				"region_id", rs.RegionID,
+				"region_name", rs.RegionName,
+				"app_id", deployment.AppID,
+				"environment_id", deployment.EnvironmentID,
+			)
+			continue
+		}
+		schedulable = append(schedulable, rs)
+	}
+	regionalSettings = schedulable
+
 	if len(regionalSettings) == 0 {
 		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("no regions configured for app %s in environment %s", deployment.AppID, deployment.EnvironmentID), 400),
-			fault.Public("No regions configured. Please configure at least one region before deploying."),
+			restate.TerminalError(fmt.Errorf("no schedulable regions configured for app %s in environment %s", deployment.AppID, deployment.EnvironmentID), 400),
+			fault.Public("No schedulable regions configured. Please configure at least one schedulable region before deploying."),
 		)
 	}
 
@@ -628,6 +664,14 @@ func (w *Workflow) configureRouting(
 	environment db.Environment,
 	deployment db.Deployment,
 ) error {
+	// Extract the fork owner from "owner/repo" for domain naming.
+	forkOwner := ""
+	if deployment.ForkRepositoryFullName.Valid {
+		if parts := strings.SplitN(deployment.ForkRepositoryFullName.String, "/", 2); len(parts) == 2 && parts[0] != "" {
+			forkOwner = parts[0]
+		}
+	}
+
 	allDomains := buildDomains(
 		workspace.Slug,
 		project.Slug,
@@ -635,6 +679,7 @@ func (w *Workflow) configureRouting(
 		environment.Slug,
 		deployment.GitCommitSha.String,
 		deployment.GitBranch.String,
+		forkOwner,
 		w.defaultDomain,
 		// TODO: source type is hardcoded to CLI_UPLOAD regardless of actual source type
 		ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
@@ -902,4 +947,119 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID st
 
 	logger.Info("deployments ready", "deployment_id", deploymentID)
 	return nil
+}
+
+// ghStatusReporter wraps a GitHubStatusServiceClient and silently skips all
+// Restate calls when no GitHub repo connection exists, avoiding wasteful
+// network round-trips for deployments without a connected repository.
+type ghStatusReporter struct {
+	client    hydrav1.GitHubStatusServiceClient
+	connected bool
+}
+
+func (r *ghStatusReporter) ReportStatus(req *hydrav1.GitHubStatusReportRequest) {
+	if !r.connected {
+		return
+	}
+
+	r.client.ReportStatus().Send(req)
+}
+
+// initGitHubStatus looks up the repo connection and fires a GitHubStatusService.Init
+// call. Returns a reporter so callers can send subsequent ReportStatus calls.
+// If no GitHub repo is connected, the reporter silently discards all calls.
+func (w *Workflow) initGitHubStatus(
+	ctx restate.ObjectContext,
+	deployment db.Deployment,
+	project db.Project,
+	app db.App,
+	environment db.Environment,
+	workspace db.Workspace,
+) *ghStatusReporter {
+	reporter := &ghStatusReporter{
+		client:    hydrav1.NewGitHubStatusServiceClient(ctx, deployment.ID),
+		connected: false,
+	}
+
+	repoConn, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.GithubRepoConnection, error) {
+		found, findErr := db.Query.FindGithubRepoConnectionByAppId(runCtx, w.db.RO(), deployment.AppID)
+		if findErr != nil {
+			if db.IsNotFound(findErr) {
+				// No connection — return zero value, not an error.
+				// Returning an error here would cause Restate to retry forever.
+				return db.GithubRepoConnection{}, nil //nolint:exhaustruct
+			}
+			return db.GithubRepoConnection{}, findErr //nolint:exhaustruct
+		}
+		return found, nil
+	}, restate.WithName("find github repo connection"))
+	if err != nil {
+		logger.Warn("failed to look up github repo connection, skipping deployment status reporting",
+			"app_id", deployment.AppID,
+			"error", err,
+		)
+
+		return reporter
+	}
+
+	if repoConn.InstallationID == 0 {
+		logger.Info("no github repo connection, skipping deployment status reporting",
+			"app_id", deployment.AppID,
+		)
+
+		return reporter
+	}
+
+	reporter.connected = true
+
+	envLabel := formatEnvironmentLabel(project.Slug, app.Slug, environment.Slug)
+	prefix := formatDomainPrefix(project.Slug, app.Slug)
+	envURL := fmt.Sprintf("https://%s-%s-%s.%s", prefix, environment.Slug, workspace.Slug, w.defaultDomain)
+	logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s", w.dashboardURL, workspace.Slug, project.ID, deployment.ID)
+
+	var existingGHDeploymentID int64
+	if deployment.GithubDeploymentID.Valid {
+		existingGHDeploymentID = deployment.GithubDeploymentID.Int64
+	}
+
+	var prNumber int32
+	if deployment.PrNumber.Valid {
+		prNumber = int32(deployment.PrNumber.Int64)
+	}
+
+	reporter.client.Init().Send(&hydrav1.GitHubStatusInitRequest{
+		InstallationId:             repoConn.InstallationID,
+		Repo:                       repoConn.RepositoryFullName,
+		CommitSha:                  deployment.GitCommitSha.String,
+		Branch:                     deployment.GitBranch.String,
+		EnvironmentLabel:           envLabel,
+		EnvironmentUrl:             envURL,
+		LogUrl:                     logURL,
+		IsProduction:               environment.Slug == "production",
+		ProjectSlug:                project.Slug,
+		AppSlug:                    app.Slug,
+		EnvSlug:                    environment.Slug,
+		PrNumber:                   prNumber,
+		ExistingGithubDeploymentId: existingGHDeploymentID,
+	})
+
+	return reporter
+}
+
+// formatEnvironmentLabel builds a human-readable label like "project - env"
+// or "project/app - env" for non-default apps.
+func formatEnvironmentLabel(projectSlug, appSlug, envSlug string) string {
+	if appSlug != "default" {
+		return projectSlug + "/" + appSlug + " - " + envSlug
+	}
+	return projectSlug + " - " + envSlug
+}
+
+// formatDomainPrefix builds the domain prefix like "project" or "project-app"
+// for non-default apps.
+func formatDomainPrefix(projectSlug, appSlug string) string {
+	if appSlug != "default" {
+		return projectSlug + "-" + appSlug
+	}
+	return projectSlug
 }

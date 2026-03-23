@@ -12,6 +12,7 @@ go_library(
         "errors.go",
         "flush.go",
         "interface.go",
+        "key_last_used.go",
         "noop.go",
         "select.go",
         "user.go",

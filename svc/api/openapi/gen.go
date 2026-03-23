@@ -25,16 +25,17 @@ const (
 
 // Defines values for V2DeployGetDeploymentResponseDataStatus.
 const (
-	BUILDING    V2DeployGetDeploymentResponseDataStatus = "BUILDING"
-	DEPLOYING   V2DeployGetDeploymentResponseDataStatus = "DEPLOYING"
-	FAILED      V2DeployGetDeploymentResponseDataStatus = "FAILED"
-	FINALIZING  V2DeployGetDeploymentResponseDataStatus = "FINALIZING"
-	NETWORK     V2DeployGetDeploymentResponseDataStatus = "NETWORK"
-	PENDING     V2DeployGetDeploymentResponseDataStatus = "PENDING"
-	READY       V2DeployGetDeploymentResponseDataStatus = "READY"
-	SKIPPED     V2DeployGetDeploymentResponseDataStatus = "SKIPPED"
-	STARTING    V2DeployGetDeploymentResponseDataStatus = "STARTING"
-	UNSPECIFIED V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
+	AWAITINGAPPROVAL V2DeployGetDeploymentResponseDataStatus = "AWAITING_APPROVAL"
+	BUILDING         V2DeployGetDeploymentResponseDataStatus = "BUILDING"
+	DEPLOYING        V2DeployGetDeploymentResponseDataStatus = "DEPLOYING"
+	FAILED           V2DeployGetDeploymentResponseDataStatus = "FAILED"
+	FINALIZING       V2DeployGetDeploymentResponseDataStatus = "FINALIZING"
+	NETWORK          V2DeployGetDeploymentResponseDataStatus = "NETWORK"
+	PENDING          V2DeployGetDeploymentResponseDataStatus = "PENDING"
+	READY            V2DeployGetDeploymentResponseDataStatus = "READY"
+	SKIPPED          V2DeployGetDeploymentResponseDataStatus = "SKIPPED"
+	STARTING         V2DeployGetDeploymentResponseDataStatus = "STARTING"
+	UNSPECIFIED      V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
 )
 
 // Defines values for V2KeysUpdateCreditsRequestBodyOperation.
@@ -215,6 +216,9 @@ type KeyResponseData struct {
 
 	// KeyId Unique identifier for this key.
 	KeyId string `json:"keyId"`
+
+	// LastUsedAt Unix timestamp in milliseconds when key was last used for verification. This is an approximated value, accurate to within 5 minutes.
+	LastUsedAt int64 `json:"lastUsedAt,omitempty"`
 
 	// Meta Custom metadata associated with this key.
 	Meta map[string]interface{} `json:"meta,omitempty"`

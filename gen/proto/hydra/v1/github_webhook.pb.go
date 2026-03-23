@@ -23,20 +23,24 @@ const (
 )
 
 type HandlePushRequest struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	InstallationId        int64                  `protobuf:"varint,1,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
-	RepositoryId          int64                  `protobuf:"varint,2,opt,name=repository_id,json=repositoryId,proto3" json:"repository_id,omitempty"`
-	RepositoryFullName    string                 `protobuf:"bytes,3,opt,name=repository_full_name,json=repositoryFullName,proto3" json:"repository_full_name,omitempty"`
-	Branch                string                 `protobuf:"bytes,4,opt,name=branch,proto3" json:"branch,omitempty"`
-	After                 string                 `protobuf:"bytes,5,opt,name=after,proto3" json:"after,omitempty"` // commit SHA
-	CommitMessage         string                 `protobuf:"bytes,6,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
-	CommitAuthorHandle    string                 `protobuf:"bytes,7,opt,name=commit_author_handle,json=commitAuthorHandle,proto3" json:"commit_author_handle,omitempty"`
-	CommitAuthorAvatarUrl string                 `protobuf:"bytes,8,opt,name=commit_author_avatar_url,json=commitAuthorAvatarUrl,proto3" json:"commit_author_avatar_url,omitempty"`
-	CommitTimestamp       int64                  `protobuf:"varint,9,opt,name=commit_timestamp,json=commitTimestamp,proto3" json:"commit_timestamp,omitempty"`
-	DeliveryId            string                 `protobuf:"bytes,10,opt,name=delivery_id,json=deliveryId,proto3" json:"delivery_id,omitempty"`
-	ChangedFiles          []string               `protobuf:"bytes,11,rep,name=changed_files,json=changedFiles,proto3" json:"changed_files,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	InstallationId         int64                  `protobuf:"varint,1,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	RepositoryId           int64                  `protobuf:"varint,2,opt,name=repository_id,json=repositoryId,proto3" json:"repository_id,omitempty"`
+	RepositoryFullName     string                 `protobuf:"bytes,3,opt,name=repository_full_name,json=repositoryFullName,proto3" json:"repository_full_name,omitempty"`
+	Branch                 string                 `protobuf:"bytes,4,opt,name=branch,proto3" json:"branch,omitempty"`
+	After                  string                 `protobuf:"bytes,5,opt,name=after,proto3" json:"after,omitempty"` // commit SHA
+	CommitMessage          string                 `protobuf:"bytes,6,opt,name=commit_message,json=commitMessage,proto3" json:"commit_message,omitempty"`
+	CommitAuthorHandle     string                 `protobuf:"bytes,7,opt,name=commit_author_handle,json=commitAuthorHandle,proto3" json:"commit_author_handle,omitempty"`
+	CommitAuthorAvatarUrl  string                 `protobuf:"bytes,8,opt,name=commit_author_avatar_url,json=commitAuthorAvatarUrl,proto3" json:"commit_author_avatar_url,omitempty"`
+	CommitTimestamp        int64                  `protobuf:"varint,9,opt,name=commit_timestamp,json=commitTimestamp,proto3" json:"commit_timestamp,omitempty"`
+	DeliveryId             string                 `protobuf:"bytes,10,opt,name=delivery_id,json=deliveryId,proto3" json:"delivery_id,omitempty"`
+	ChangedFiles           []string               `protobuf:"bytes,11,rep,name=changed_files,json=changedFiles,proto3" json:"changed_files,omitempty"`
+	SenderLogin            string                 `protobuf:"bytes,12,opt,name=sender_login,json=senderLogin,proto3" json:"sender_login,omitempty"`                                      // GitHub login of the push sender
+	IsForkPr               bool                   `protobuf:"varint,13,opt,name=is_fork_pr,json=isForkPr,proto3" json:"is_fork_pr,omitempty"`                                            // true when triggered by a fork pull_request event
+	PrNumber               int64                  `protobuf:"varint,14,opt,name=pr_number,json=prNumber,proto3" json:"pr_number,omitempty"`                                              // PR number for fork PRs; 0 for direct pushes
+	ForkRepositoryFullName string                 `protobuf:"bytes,15,opt,name=fork_repository_full_name,json=forkRepositoryFullName,proto3" json:"fork_repository_full_name,omitempty"` // fork repo (e.g. "contributor/repo"); empty for direct pushes
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *HandlePushRequest) Reset() {
@@ -146,6 +150,34 @@ func (x *HandlePushRequest) GetChangedFiles() []string {
 	return nil
 }
 
+func (x *HandlePushRequest) GetSenderLogin() string {
+	if x != nil {
+		return x.SenderLogin
+	}
+	return ""
+}
+
+func (x *HandlePushRequest) GetIsForkPr() bool {
+	if x != nil {
+		return x.IsForkPr
+	}
+	return false
+}
+
+func (x *HandlePushRequest) GetPrNumber() int64 {
+	if x != nil {
+		return x.PrNumber
+	}
+	return 0
+}
+
+func (x *HandlePushRequest) GetForkRepositoryFullName() string {
+	if x != nil {
+		return x.ForkRepositoryFullName
+	}
+	return ""
+}
+
 type HandlePushResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -186,7 +218,7 @@ var File_hydra_v1_github_webhook_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_github_webhook_proto_rawDesc = "" +
 	"\n" +
-	"\x1dhydra/v1/github_webhook.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xc4\x03\n" +
+	"\x1dhydra/v1/github_webhook.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xdd\x04\n" +
 	"\x11HandlePushRequest\x12'\n" +
 	"\x0finstallation_id\x18\x01 \x01(\x03R\x0einstallationId\x12#\n" +
 	"\rrepository_id\x18\x02 \x01(\x03R\frepositoryId\x120\n" +
@@ -200,7 +232,12 @@ const file_hydra_v1_github_webhook_proto_rawDesc = "" +
 	"\vdelivery_id\x18\n" +
 	" \x01(\tR\n" +
 	"deliveryId\x12#\n" +
-	"\rchanged_files\x18\v \x03(\tR\fchangedFiles\"\x14\n" +
+	"\rchanged_files\x18\v \x03(\tR\fchangedFiles\x12!\n" +
+	"\fsender_login\x18\f \x01(\tR\vsenderLogin\x12\x1c\n" +
+	"\n" +
+	"is_fork_pr\x18\r \x01(\bR\bisForkPr\x12\x1b\n" +
+	"\tpr_number\x18\x0e \x01(\x03R\bprNumber\x129\n" +
+	"\x19fork_repository_full_name\x18\x0f \x01(\tR\x16forkRepositoryFullName\"\x14\n" +
 	"\x12HandlePushResponse2g\n" +
 	"\x14GitHubWebhookService\x12I\n" +
 	"\n" +

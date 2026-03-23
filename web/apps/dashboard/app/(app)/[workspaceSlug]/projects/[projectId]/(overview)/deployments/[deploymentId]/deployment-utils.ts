@@ -11,6 +11,7 @@ const DEPLOYMENT_STATUSES: ReadonlySet<string> = new Set<DeploymentStatus>([
   "ready",
   "failed",
   "skipped",
+  "awaiting_approval",
 ]);
 
 function isDeploymentStatus(value: string): value is DeploymentStatus {
@@ -21,6 +22,11 @@ export function deriveStatusFromSteps(
   steps: StepsData | undefined,
   fallback: string,
 ): DeploymentStatus {
+  // awaiting_approval is authoritative from the DB — steps can't derive it
+  if (fallback === "awaiting_approval") {
+    return "awaiting_approval";
+  }
+
   if (!steps) {
     return isDeploymentStatus(fallback) ? fallback : "pending";
   }
