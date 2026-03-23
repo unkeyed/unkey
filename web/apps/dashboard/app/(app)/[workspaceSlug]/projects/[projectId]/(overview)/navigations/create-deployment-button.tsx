@@ -189,7 +189,7 @@ export const CreateDeploymentButton = ({
           </form>
 
           {repositoryFullName && (
-            <div className="flex flex-col divide-y divide-gray-4 max-h-[200px] overflow-y-auto rounded-md border border-gray-4">
+            <div className="flex flex-col divide-y divide-gray-4 rounded-md border border-gray-4">
               {repoDetails.isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <div
