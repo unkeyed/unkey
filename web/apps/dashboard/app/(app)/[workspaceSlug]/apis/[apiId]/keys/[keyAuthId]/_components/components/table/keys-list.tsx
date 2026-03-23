@@ -229,8 +229,7 @@ export const KeysList = ({
         render: (key) => {
           return (
             <LastUsedCell
-              keyId={key.id}
-              keyAuthId={keyspaceId}
+              lastUsedAt={key.last_used_at}
               isSelected={selectedKey?.id === key.id}
             />
           );

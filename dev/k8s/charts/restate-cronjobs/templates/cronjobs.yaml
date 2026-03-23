@@ -1,0 +1,40 @@
+{{- $url := .Values.restateIngressUrl }}
+{{- range $name, $job := .Values.jobs }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: restate-{{ $name }}
+  namespace: unkey
+spec:
+  schedule: {{ $job.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: caller
+              image: curlimages/curl:8.5.0
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  cpu: 10m
+                  memory: 32Mi
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  curl -sfi --connect-timeout 10 --max-time 30 -X POST \
+                    "{{ $url }}/{{ $job.urlPath }}" \
+                    -H "Content-Type: application/json" \
+                    -H "idempotency-key: {{ $job.idempotencyKey }}" \
+                    -d '{}'
+{{- end }}
