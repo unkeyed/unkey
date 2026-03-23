@@ -30,12 +30,12 @@ const (
 	DEPLOYING        V2DeployGetDeploymentResponseDataStatus = "DEPLOYING"
 	FAILED           V2DeployGetDeploymentResponseDataStatus = "FAILED"
 	FINALIZING       V2DeployGetDeploymentResponseDataStatus = "FINALIZING"
-	IDLE             V2DeployGetDeploymentResponseDataStatus = "IDLE"
 	NETWORK          V2DeployGetDeploymentResponseDataStatus = "NETWORK"
 	PENDING          V2DeployGetDeploymentResponseDataStatus = "PENDING"
 	READY            V2DeployGetDeploymentResponseDataStatus = "READY"
 	SKIPPED          V2DeployGetDeploymentResponseDataStatus = "SKIPPED"
 	STARTING         V2DeployGetDeploymentResponseDataStatus = "STARTING"
+	STOPPED          V2DeployGetDeploymentResponseDataStatus = "STOPPED"
 	UNSPECIFIED      V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
 )
 

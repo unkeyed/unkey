@@ -102,9 +102,9 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     textColor: "text-warningA-11",
     iconColor: "text-warning-11",
   },
-  idle: {
+  stopped: {
     icon: CircleHalfDottedClock,
-    label: "Idle",
+    label: "Stopped",
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",

@@ -85,11 +85,11 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusRunning
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY:
 		desiredState = db.DeploymentsDesiredStateStandby
-		deploymentStatus = db.DeploymentsStatusIdle
+		deploymentStatus = db.DeploymentsStatusStopped
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_ARCHIVED:
 		desiredState = db.DeploymentsDesiredStateArchived
-		deploymentStatus = db.DeploymentsStatusIdle
+		deploymentStatus = db.DeploymentsStatusStopped
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_UNSPECIFIED:
 		return nil, restate.TerminalErrorf("invalid state: %s", req.GetState())

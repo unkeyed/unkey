@@ -100,7 +100,7 @@ export const deployments = mysqlTable(
       "failed",
       "skipped",
       "awaiting_approval",
-      "idle",
+      "stopped",
     ])
       .notNull()
       .default("pending"),

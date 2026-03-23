@@ -17,7 +17,7 @@ export function getDeploymentActionEligibility(
   ctx: DeploymentActionContext,
 ): DeploymentActionEligibility {
   const status = ctx.selectedDeployment.status;
-  const isActionable = status === "ready"
+  const isActionable = status === "ready";
   const isProduction = ctx.environmentSlug === "production";
   const hasCurrent = ctx.currentDeploymentId !== null;
   const isCurrent = hasCurrent && ctx.currentDeploymentId === ctx.selectedDeployment.id;
@@ -27,7 +27,7 @@ export function getDeploymentActionEligibility(
   // Promote: same as rollback, but also allowed on the current deployment when rolled back.
   const canPromote = isProduction && isActionable && hasCurrent && (!isCurrent || ctx.isRolledBack);
   // Redeploy: available for ready, idle, or failed deployments regardless of environment
-  const canRedeploy = isActionable || status === "idle" || status === "failed";
+  const canRedeploy = isActionable || status === "stopped" || status === "failed";
 
   return { canRollback, canPromote, canRedeploy };
 }

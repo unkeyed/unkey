@@ -128,7 +128,10 @@ export const DeploymentsList = () => {
         header: "",
         width: "15%",
         render: ({ deployment }: { deployment: Deployment }) => {
-          const hideResources = deployment.status === "failed" || deployment.status === "skipped" || deployment.status === "idle";
+          const hideResources =
+            deployment.status === "failed" ||
+            deployment.status === "skipped" ||
+            deployment.status === "stopped";
           const cpu = hideResources ? null : formatCpuParts(deployment.cpuMillicores);
           const mem = hideResources ? null : formatMemoryParts(deployment.memoryMib);
           return (
