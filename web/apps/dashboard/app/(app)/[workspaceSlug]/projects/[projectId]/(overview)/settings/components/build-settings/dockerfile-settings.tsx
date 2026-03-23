@@ -32,7 +32,7 @@ export const Dockerfile = () => {
     defaultValues: { dockerfile: defaultValue },
   });
 
-  const currentDockerfile = useWatch({ control, name: "dockerfile" });
+  const currentDockerfile = useWatch({ control, name: "dockerfile", defaultValue });
 
   const validation = validateDockerfilePath(currentDockerfile, dockerContext);
   const caseMatch =
