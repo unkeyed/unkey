@@ -18,7 +18,6 @@ go_library(
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/hash",
-        "//pkg/prometheus/timer",
         "//pkg/rbac",
         "//pkg/zen",
         "@com_github_prometheus_client_golang//prometheus",

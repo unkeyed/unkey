@@ -17,7 +17,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/prometheus/timer"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/sentinel/engine"
 )
@@ -228,16 +227,16 @@ func (s *service) prewarm(ctx context.Context) {
 }
 
 func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.Deployment, error) {
-	t := timer.New()
+	t := time.Now()
 
 	deployment, hit, err := s.deploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) (db.Deployment, error) {
 		return db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
 	}, caches.DefaultFindFirstOp)
 
-	sentinelRoutingDuration.WithLabelValues("get_deployment").Observe(t.Seconds())
+	sentinelRoutingDuration.WithLabelValues("get_deployment").Observe(time.Since(t).Seconds())
 
 	if err != nil && !db.IsNotFound(err) {
-		sentinelInstanceSelectionTotal.WithLabelValues("error").Inc()
+		sentinelDeploymentLookupTotal.WithLabelValues("error").Inc()
 		return db.Deployment{}, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
 			fault.Internal("failed to get deployment"),
@@ -245,7 +244,7 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 	}
 
 	if hit == cache.Null || db.IsNotFound(err) {
-		sentinelInstanceSelectionTotal.WithLabelValues("deployment_not_found").Inc()
+		sentinelDeploymentLookupTotal.WithLabelValues("not_found").Inc()
 		return db.Deployment{}, fault.New("deployment not found",
 			fault.Code(codes.Sentinel.Routing.DeploymentNotFound.URN()),
 			fault.Internal("no deployment found for ID or wrong environment"),
@@ -260,7 +259,7 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 			"sentinelEnv", s.environmentID,
 		)
 
-		sentinelInstanceSelectionTotal.WithLabelValues("deployment_not_found").Inc()
+		sentinelDeploymentLookupTotal.WithLabelValues("not_found").Inc()
 		// Return as not found to avoid leaking information about deployments in other environments
 		return db.Deployment{}, fault.New("deployment not found",
 			fault.Code(codes.Sentinel.Routing.DeploymentNotFound.URN()),
@@ -273,7 +272,7 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 }
 
 func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.Instance, error) {
-	t := timer.New()
+	t := time.Now()
 
 	instances, hit, err := s.instancesCache.SWR(ctx, deploymentID, func(ctx context.Context) ([]db.Instance, error) {
 
@@ -295,7 +294,7 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 		)
 	}, caches.DefaultFindFirstOp)
 
-	sentinelRoutingDuration.WithLabelValues("select_instance").Observe(t.Seconds())
+	sentinelRoutingDuration.WithLabelValues("select_instance").Observe(time.Since(t).Seconds())
 
 	if err != nil {
 		sentinelInstanceSelectionTotal.WithLabelValues("error").Inc()

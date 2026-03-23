@@ -44,6 +44,9 @@ func categorizeProxyErrorTypeForMetrics(err error) string {
 		if errors.Is(netErr.Err, syscall.ECONNRESET) {
 			return "conn_reset"
 		}
+		if errors.Is(netErr.Err, syscall.EHOSTUNREACH) {
+			return "service_unavailable"
+		}
 	}
 
 	var dnsErr *net.DNSError

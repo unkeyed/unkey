@@ -6,10 +6,24 @@ import (
 )
 
 var (
+	// sentinelDeploymentLookupTotal counts deployment lookup outcomes.
+	//
+	// Labels:
+	//   outcome: "not_found", "error"
+	sentinelDeploymentLookupTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "sentinel",
+			Name:      "routing_deployment_lookup_total",
+			Help:      "Total number of deployment lookup attempts by outcome.",
+		},
+		[]string{"outcome"},
+	)
+
 	// sentinelInstanceSelectionTotal counts instance selection outcomes.
 	//
 	// Labels:
-	//   outcome: "success", "no_instances", "no_running_instances", "deployment_not_found", "error"
+	//   outcome: "success", "no_instances", "no_running_instances", "error"
 	sentinelInstanceSelectionTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",

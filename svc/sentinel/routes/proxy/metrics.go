@@ -36,7 +36,11 @@ func upstreamStatusClass(code int) string {
 		return "4xx"
 	case code >= 300:
 		return "3xx"
-	default:
+	case code >= 200:
 		return "2xx"
+	case code >= 100:
+		return "1xx"
+	default:
+		return "other"
 	}
 }

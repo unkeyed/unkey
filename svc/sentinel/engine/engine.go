@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/prometheus/timer"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -114,9 +114,9 @@ func (e *Engine) Evaluate(
 				continue
 			}
 
-			t := timer.New()
+			t := time.Now()
 			principal, execErr := e.keyAuth.Execute(ctx, sess, req, cfg.Keyauth)
-			sentinelEngineEvaluationDuration.WithLabelValues("keyauth").Observe(t.Seconds())
+			sentinelEngineEvaluationDuration.WithLabelValues("keyauth").Observe(time.Since(t).Seconds())
 
 			if execErr != nil {
 				sentinelEngineEvaluationsTotal.WithLabelValues("keyauth", classifyKeyauthError(execErr)).Inc()

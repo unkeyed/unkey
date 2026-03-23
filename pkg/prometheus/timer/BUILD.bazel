@@ -1,8 +1,0 @@
-load("@rules_go//go:def.bzl", "go_library")
-
-go_library(
-    name = "timer",
-    srcs = ["timer.go"],
-    importpath = "github.com/unkeyed/unkey/pkg/prometheus/timer",
-    visibility = ["//visibility:public"],
-)
