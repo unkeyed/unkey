@@ -36,6 +36,8 @@ import (
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deployqueue"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deployschedule"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
@@ -192,6 +194,13 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
 		DB: database,
 	}), restate.WithIngressPrivate(true)))
+
+	restateSrv.Bind(hydrav1.NewDeploySchedulerServiceServer(deployschedule.New(deployschedule.Config{
+		DB: database,
+	})))
+	restateSrv.Bind(hydrav1.NewDeployQueueServiceServer(deployqueue.New(deployqueue.Config{
+		DB: database,
+	})))
 
 	restateSrv.Bind(hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{
 		GitHub: ghClient,

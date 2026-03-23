@@ -163,19 +163,26 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			continue
 		}
 
-		deployClient := hydrav1.NewDeployServiceClient(ctx, app.WorkspaceID)
-		deployClient.Deploy().Send(&hydrav1.DeployRequest{
+		hydrav1.NewDeploySchedulerServiceClient(ctx, app.WorkspaceID).Enqueue().Send(&hydrav1.SchedulerEnqueueRequest{
+			AppId:        app.ID,
+			WorkspaceId:  app.WorkspaceID,
 			DeploymentId: deploymentID,
-			Source: &hydrav1.DeployRequest_Git{
-				Git: &hydrav1.GitSource{
-					InstallationId: repo.InstallationID,
-					Repository:     repo.RepositoryFullName,
-					CommitSha:      req.GetAfter(),
-					ContextPath:    row.AppBuildSetting.DockerContext,
-					DockerfilePath: row.AppBuildSetting.Dockerfile,
-					PrNumber:       req.GetPrNumber(),
+			DeployRequest: &hydrav1.DeployRequest{
+				DeploymentId: deploymentID,
+				Source: &hydrav1.DeployRequest_Git{
+					Git: &hydrav1.GitSource{
+						InstallationId: repo.InstallationID,
+						Repository:     repo.RepositoryFullName,
+						CommitSha:      req.GetAfter(),
+						ContextPath:    row.AppBuildSetting.DockerContext,
+						DockerfilePath: row.AppBuildSetting.Dockerfile,
+						PrNumber:       req.GetPrNumber(),
+					},
 				},
 			},
+			IsProduction: env.Slug == "production",
+			Branch:       req.GetBranch(),
+			QueueKey:     app.ID + ":" + req.GetBranch(),
 		})
 
 		logger.Info("deployment workflow started",

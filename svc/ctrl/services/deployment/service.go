@@ -18,10 +18,16 @@ type Service struct {
 	github  githubclient.GitHubClient
 }
 
+// schedulerClient creates a typed Restate ingress client for the
+// DeploySchedulerService keyed by workspace ID.
+func (s *Service) schedulerClient(workspaceID string) hydrav1.DeploySchedulerServiceIngressClient {
+	return hydrav1.NewDeploySchedulerServiceIngressClient(s.restate, workspaceID)
+}
+
 // deploymentClient creates a typed Restate ingress client for the DeployService
-// keyed by workspace ID to run 1 concurrent build per workspace during beta.
-func (s *Service) deploymentClient(workspaceID string) hydrav1.DeployServiceIngressClient {
-	return hydrav1.NewDeployServiceIngressClient(s.restate, workspaceID)
+// keyed by app_id:branch for per-branch serialization.
+func (s *Service) deploymentClient(key string) hydrav1.DeployServiceIngressClient {
+	return hydrav1.NewDeployServiceIngressClient(s.restate, key)
 }
 
 // Config holds the configuration for creating a new [Service].

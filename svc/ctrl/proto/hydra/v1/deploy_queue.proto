@@ -1,0 +1,57 @@
+syntax = "proto3";
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+import "hydra/v1/deploy.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// DeployQueueService manages per-branch deployment queues. Each instance is
+// keyed by a composite key (app_id:branch), ensuring that deployments to the
+// same app+branch are serialized while different branches run in parallel.
+//
+// The queue handles:
+//   - Priority ordering (production > preview, FIFO within each tier)
+//   - Superseding: new deploys for the same branch cancel older queued/active ones
+//   - Build slot coordination with the workspace DeploySchedulerService
+//
+// Keyed by app_id:branch (composite).
+service DeployQueueService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // Enqueue adds a deploy request to the queue. Since the key is app_id:branch,
+  // all entries in a given queue are for the same branch. New entries supersede
+  // all older queued entries (marked as superseded in DB). If an active deploy
+  // exists, its Restate invocation is cancelled via the admin API.
+  rpc Enqueue(QueueEnqueueRequest) returns (QueueEnqueueResponse) {}
+
+  // ProcessNext pops the highest-priority item from the queue, requests a build
+  // slot from the workspace scheduler, and dispatches the deploy if granted.
+  // If no slot is available, the entry is pushed back and the scheduler will
+  // call ProcessNext later when a slot opens.
+  rpc ProcessNext(ProcessNextRequest) returns (ProcessNextResponse) {}
+
+  // OnDeployComplete is called by the deploy workflow when it finishes (success,
+  // failure, or cancellation). Clears the active deploy, releases the build slot,
+  // and triggers ProcessNext for the next queued item.
+  rpc OnDeployComplete(OnDeployCompleteRequest) returns (OnDeployCompleteResponse) {}
+}
+
+message QueueEnqueueRequest {
+  string workspace_id = 1;
+  string deployment_id = 2;
+  DeployRequest deploy_request = 3;
+  bool is_production = 4;
+  string branch = 5;
+}
+
+message QueueEnqueueResponse {}
+
+message ProcessNextRequest {}
+message ProcessNextResponse {}
+
+message OnDeployCompleteRequest {
+  string deployment_id = 1;
+}
+
+message OnDeployCompleteResponse {}

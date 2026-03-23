@@ -34,9 +34,13 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
 	}
 
-	// Call the Restate workflow using workspace ID as the key
-	// This ensures only one operation per workspace can run at a time during beta
-	_, err = s.deploymentClient(targetDeployment.WorkspaceID).
+	// Call the Restate workflow using app_id:branch as the key.
+	// Promote bypasses the queue — it operates on already-deployed artifacts.
+	branch := ""
+	if targetDeployment.GitBranch.Valid {
+		branch = targetDeployment.GitBranch.String
+	}
+	_, err = s.deploymentClient(targetDeployment.AppID+":"+branch).
 		Promote().
 		Request(ctx, &hydrav1.PromoteRequest{
 			TargetDeploymentId: req.Msg.GetTargetDeploymentId(),

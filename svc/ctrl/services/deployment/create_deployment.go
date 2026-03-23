@@ -274,12 +274,21 @@ func (s *Service) CreateDeployment(
 		"environment", env.Environment.ID,
 	)
 
-	// Send deployment request asynchronously, keyed by workspace ID
-	invocation, err := s.deploymentClient(workspaceID).
-		Deploy().
-		Send(ctx, deployReq)
+	// Send deployment request through the deploy scheduler for queuing,
+	// priority, and concurrency control.
+	_, err = s.schedulerClient(workspaceID).
+		Enqueue().
+		Send(ctx, &hydrav1.SchedulerEnqueueRequest{
+			AppId:         app.ID,
+			WorkspaceId:   workspaceID,
+			DeploymentId:  deploymentID,
+			DeployRequest: deployReq,
+			IsProduction:  env.Environment.Slug == "production",
+			Branch:        gitBranch,
+			QueueKey:      app.ID + ":" + gitBranch,
+		})
 	if err != nil {
-		logger.Error("failed to start deployment workflow", "error", err)
+		logger.Error("failed to enqueue deployment", "error", err)
 
 		updateErr := db.Query.UpdateDeploymentStatus(ctx, s.db.RW(), db.UpdateDeploymentStatusParams{
 			ID:        deploymentID,
@@ -290,12 +299,11 @@ func (s *Service) CreateDeployment(
 			logger.Error("failed to mark deployment as failed", "deployment_id", deploymentID, "error", updateErr)
 		}
 
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unable to start workflow: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unable to enqueue deployment: %w", err))
 	}
 
-	logger.Info("deployment workflow started",
+	logger.Info("deployment enqueued",
 		"deployment_id", deploymentID,
-		"invocation_id", invocation.Id,
 	)
 
 	return connect.NewResponse(&ctrlv1.CreateDeploymentResponse{

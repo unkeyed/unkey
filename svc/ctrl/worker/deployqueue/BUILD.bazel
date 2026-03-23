@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "deployqueue",
+    srcs = [
+        "enqueue_handler.go",
+        "on_deploy_complete_handler.go",
+        "process_next_handler.go",
+        "service.go",
+        "state.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/deployqueue",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/db",
+        "//pkg/logger",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)

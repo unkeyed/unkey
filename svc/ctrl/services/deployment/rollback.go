@@ -35,9 +35,13 @@ func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.Roll
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
 	}
 
-	// Call the Restate workflow using workspace ID as the key
-	// This ensures only one rollback per workspace can run at a time during beta
-	_, err = s.deploymentClient(sourceDeployment.WorkspaceID).
+	// Call the Restate workflow using app_id:branch as the key.
+	// Rollback bypasses the queue — it operates on already-deployed artifacts.
+	branch := ""
+	if sourceDeployment.GitBranch.Valid {
+		branch = sourceDeployment.GitBranch.String
+	}
+	_, err = s.deploymentClient(sourceDeployment.AppID+":"+branch).
 		Rollback().
 		Request(ctx, &hydrav1.RollbackRequest{
 			SourceDeploymentId: req.Msg.GetSourceDeploymentId(),

@@ -95,7 +95,19 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		},
 	}
 
-	_, sendErr := s.deploymentClient(deployment.ProjectID).Deploy().Send(ctx, deployReq)
+	branch := ""
+	if deployment.GitBranch.Valid {
+		branch = deployment.GitBranch.String
+	}
+	_, sendErr := s.schedulerClient(deployment.WorkspaceID).Enqueue().Send(ctx, &hydrav1.SchedulerEnqueueRequest{
+		AppId:         deployment.AppID,
+		WorkspaceId:   deployment.WorkspaceID,
+		DeploymentId:  deploymentID,
+		DeployRequest: deployReq,
+		IsProduction:  false, // Fork PRs always go to preview
+		Branch:        branch,
+		QueueKey:      deployment.AppID + ":" + branch,
+	})
 	if sendErr != nil {
 		// Revert status back to awaiting_approval since the deploy failed.
 		if _, revertErr := db.Query.CompareAndSwapDeploymentStatus(ctx, s.db.RW(), db.CompareAndSwapDeploymentStatusParams{

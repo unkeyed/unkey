@@ -76,6 +76,10 @@ export const quotas = mysqlTable("quota", {
   })
     .notNull()
     .default(20480 /* 20 GiB */),
+
+  // maxConcurrentBuilds defines the maximum number of deployments that can build at the same time.
+  // Controls how many app+branch combinations can run builds concurrently.
+  maxConcurrentBuilds: int("max_concurrent_builds", { unsigned: true }).notNull().default(3),
 });
 export const quotasRelations = relations(quotas, ({ one }) => ({
   workspace: one(workspaces, {

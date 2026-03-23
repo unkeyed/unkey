@@ -34,6 +34,8 @@ go_library(
         "//svc/ctrl/worker/customdomain",
         "//svc/ctrl/worker/deploy",
         "//svc/ctrl/worker/deployment",
+        "//svc/ctrl/worker/deployqueue",
+        "//svc/ctrl/worker/deployschedule",
         "//svc/ctrl/worker/environment",
         "//svc/ctrl/worker/github",
         "//svc/ctrl/worker/githubstatus",

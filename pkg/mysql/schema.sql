@@ -296,6 +296,7 @@ CREATE TABLE `quota` (
 	`ratelimit_api_duration` int unsigned,
 	`allocated_cpu_millicores_total` int unsigned NOT NULL DEFAULT 10240,
 	`allocated_memory_mib_total` int unsigned NOT NULL DEFAULT 20480,
+	`max_concurrent_builds` int unsigned NOT NULL DEFAULT 3,
 	CONSTRAINT `quota_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `quota_workspace_id_unique` UNIQUE(`workspace_id`)
 );
@@ -512,7 +513,8 @@ CREATE TABLE `deployments` (
 	`pr_number` bigint,
 	`fork_repository_full_name` varchar(256),
 	`github_deployment_id` bigint,
-	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed','skipped','awaiting_approval') NOT NULL DEFAULT 'pending',
+	`restate_invocation_id` varchar(256),
+	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed','skipped','awaiting_approval','superseded') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployments_pk` PRIMARY KEY(`pk`),

@@ -1,0 +1,62 @@
+syntax = "proto3";
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+import "hydra/v1/deploy.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// DeploySchedulerService manages workspace-level build concurrency. It receives
+// deploy requests from callers (handle_push, create_deployment) and routes them
+// to per-branch DeployQueueService instances. It also manages build slot
+// allocation: each workspace has a configurable maximum number of concurrent
+// builds, and the scheduler ensures this limit is respected.
+//
+// Keyed by workspace_id.
+service DeploySchedulerService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // Enqueue routes a deploy request to the per-branch DeployQueueService.
+  // This is the main entry point for all new deployments.
+  rpc Enqueue(SchedulerEnqueueRequest) returns (SchedulerEnqueueResponse) {}
+
+  // RequestBuildSlot is called by DeployQueueService before starting a build.
+  // Returns granted=true if a slot is available, false if the queue key was
+  // added to the waitlist. When a slot becomes available, the scheduler calls
+  // ProcessNext on the waiting queue.
+  rpc RequestBuildSlot(RequestBuildSlotRequest) returns (RequestBuildSlotResponse) {}
+
+  // ReleaseBuildSlot is called by DeployQueueService when a deploy finishes
+  // (success, failure, or superseded). Frees the slot and dispatches the next
+  // waiting queue if any.
+  rpc ReleaseBuildSlot(ReleaseBuildSlotRequest) returns (ReleaseBuildSlotResponse) {}
+}
+
+message SchedulerEnqueueRequest {
+  string app_id = 1;
+  string workspace_id = 2;
+  string deployment_id = 3;
+  DeployRequest deploy_request = 4;
+  bool is_production = 5;
+  string branch = 6;
+  // Composite key for the DeployQueueService (app_id:branch).
+  string queue_key = 7;
+}
+
+message SchedulerEnqueueResponse {}
+
+message RequestBuildSlotRequest {
+  // Composite key (app_id:branch) identifying the queue requesting a slot.
+  string queue_key = 1;
+  bool is_production = 2;
+}
+
+message RequestBuildSlotResponse {
+  bool granted = 1;
+}
+
+message ReleaseBuildSlotRequest {
+  string queue_key = 1;
+}
+
+message ReleaseBuildSlotResponse {}

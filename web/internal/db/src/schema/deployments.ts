@@ -88,6 +88,10 @@ export const deployments = mysqlTable(
     // GitHub Deployment ID for status reporting
     githubDeploymentId: bigint("github_deployment_id", { mode: "number" }),
 
+    // Restate invocation ID for the deploy workflow. Stored so the UI can
+    // cancel in-progress deployments via the Restate admin API.
+    restateInvocationId: varchar("restate_invocation_id", { length: 256 }),
+
     // Deployment status
     status: mysqlEnum("status", [
       "pending",
@@ -100,6 +104,7 @@ export const deployments = mysqlTable(
       "failed",
       "skipped",
       "awaiting_approval",
+      "superseded",
     ])
       .notNull()
       .default("pending"),
