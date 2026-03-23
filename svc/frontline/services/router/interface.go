@@ -7,21 +7,26 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 )
 
+type Destination string
+
+const (
+	DestinationLocalSentinel Destination = "sentinel"
+	DestinationRemoteRegion  Destination = "region"
+)
+
 type RouteDecision struct {
-	// LocalSentinelAddress is set if there's a healthy sentinel in the local region.
-	LocalSentinelAddress string
-
-	// NearestNLBRegionPlatform is set if we need to forward to another region's NLB
-	// The format must be dns compatible and is typically "<region>.<platform>"
-	NearestNLBRegionPlatform string
-
-	// DeploymentID to pass in X-Unkey-Deployment-Id header
 	DeploymentID string
+	Destination  Destination
+	// Address is the K8s sentinel address (local) or "region.platform" string (remote).
+	Address string
 }
 
 type Service interface {
-	LookupByHostname(ctx context.Context, hostname string) (*db.FindFrontlineRouteByFQDNRow, []db.FindHealthyRoutableSentinelsByEnvironmentIDRow, error)
-	SelectSentinel(route *db.FindFrontlineRouteByFQDNRow, sentinels []db.FindHealthyRoutableSentinelsByEnvironmentIDRow) (*RouteDecision, error)
+	// Route determines where to forward a request based on hostname.
+	Route(ctx context.Context, hostname string) (RouteDecision, error)
+
+	// ValidateHostname checks if a hostname has a configured frontline route.
+	ValidateHostname(ctx context.Context, hostname string) error
 }
 
 type Config struct {
@@ -30,4 +35,5 @@ type Config struct {
 	DB                     db.Querier
 	FrontlineRouteCache    cache.Cache[string, db.FindFrontlineRouteByFQDNRow]
 	SentinelsByEnvironment cache.Cache[string, []db.FindHealthyRoutableSentinelsByEnvironmentIDRow]
+	InstancesByDeployment  cache.Cache[string, []db.Instance]
 }
