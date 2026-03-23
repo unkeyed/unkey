@@ -49,16 +49,7 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
       if (value === "failed") {
         return "bg-error-9";
       }
-      if (value === "pending") {
-        return "bg-gray-9";
-      }
-      if (value === "skipped") {
-        return "bg-gray-9";
-      }
-      if (value === "stopped") {
-        return "bg-gray-9";
-      }
-      return "bg-info-9"; // building
+      return "bg-info-9";
     },
   },
   environment: {
