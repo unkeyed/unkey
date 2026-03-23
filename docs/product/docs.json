@@ -255,6 +255,13 @@
             ]
           },
           {
+            "group": "Contributing",
+            "icon": "wrench",
+            "pages": [
+              "contributing/database-migrations"
+            ]
+          },
+          {
             "group": "Errors",
             "icon": "triangle-exclamation",
             "pages": [
