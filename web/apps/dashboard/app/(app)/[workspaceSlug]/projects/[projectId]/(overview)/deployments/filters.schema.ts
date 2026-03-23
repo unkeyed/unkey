@@ -13,7 +13,7 @@ const GROUPED_DEPLOYMENT_STATUSES = [
   "pending",
   "deploying", // represents all deploying states
   "ready",
-  "idle",
+  "stopped",
   "failed",
   "skipped",
 ] as const;
@@ -97,8 +97,8 @@ export const expandGroupedStatus = (groupedStatus: GroupedDeploymentStatus): Dep
       return ["failed"];
     case "skipped":
       return ["skipped"];
-    case "idle":
-      return ["idle"];
+    case "stopped":
+      return ["stopped"];
     default:
       throw new Error(`Unknown grouped status: ${groupedStatus}`);
   }

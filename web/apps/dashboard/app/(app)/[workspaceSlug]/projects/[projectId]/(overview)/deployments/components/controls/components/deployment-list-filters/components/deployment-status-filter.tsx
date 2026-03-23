@@ -37,8 +37,8 @@ const baseOptions: StatusOption[] = [
   },
   {
     id: 6,
-    status: "idle",
-    display: "Idle",
+    status: "stopped",
+    display: "Stopped",
   },
 ];
 
