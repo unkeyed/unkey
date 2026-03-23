@@ -4,11 +4,11 @@ import { appRuntimeSettings, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 
-export const updatePort = workspaceProcedure
+export const updateOpenapiSpecPath = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),
-      port: z.number().int().min(1).max(65535),
+      openapiSpecPath: z.string().max(512).nullable(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -29,10 +29,12 @@ export const updatePort = workspaceProcedure
         workspaceId: ctx.workspace.id,
         appId: env.appId,
         environmentId: input.environmentId,
-        port: input.port,
+        openapiSpecPath: input.openapiSpecPath,
         sentinelConfig: "{}",
         createdAt: Date.now(),
         updatedAt: Date.now(),
       })
-      .onDuplicateKeyUpdate({ set: { port: input.port, updatedAt: Date.now() } });
+      .onDuplicateKeyUpdate({
+        set: { openapiSpecPath: input.openapiSpecPath, updatedAt: Date.now() },
+      });
   });

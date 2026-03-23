@@ -189,35 +189,40 @@ export const CreateDeploymentButton = ({
           </form>
 
           {repositoryFullName && (
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col divide-y divide-gray-4 rounded-md border border-gray-4">
               {repoDetails.isLoading &&
-                Array.from({ length: 3 }).map((_, i) => (
+                Array.from({ length: 5 }).map((_, i) => (
                   <div
                     key={`skeleton-${
                       // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders
                       i
                     }`}
-                    className="h-7 w-20 bg-gray-3 rounded-md animate-pulse"
-                  />
+                    className="flex items-center justify-between px-3 py-2 h-[36.5px]"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-4 w-4 bg-gray-3 rounded animate-pulse" />
+                      <span className="h-4 w-24 bg-gray-3 rounded animate-pulse" />
+                    </span>
+                    <span className="h-3 w-12 bg-gray-3 rounded animate-pulse" />
+                  </div>
                 ))}
               {branches.map((branch) => (
                 <button
                   key={branch.name}
                   type="button"
                   onClick={() => setValue("name", branch.name, { shouldValidate: true })}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-3 rounded-md text-xs text-grayA-11 hover:bg-gray-4 transition-colors cursor-pointer"
+                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors cursor-pointer text-[13px] text-grayA-11"
                 >
-                  <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
-                  <span className="truncate">{branch.name}</span>
+                  <span className="flex items-center gap-1.5 min-w-0 max-w-[300px]">
+                    <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
+                    <span className="truncate">{branch.name}</span>
+                  </span>
                   {branch.lastPushDate && (
-                    <span>
-                      <span className="text-gray-8">·</span>
-                      <TimestampInfo
-                        value={branch.lastPushDate}
-                        displayType="relative"
-                        className="text-gray-10 shrink-0"
-                      />
-                    </span>
+                    <TimestampInfo
+                      value={branch.lastPushDate}
+                      displayType="relative"
+                      className="text-gray-11 shrink-0 ml-3"
+                    />
                   )}
                 </button>
               ))}
