@@ -154,3 +154,21 @@ pnpm --dir=web test
 make fmt
 make build
 ```
+
+## Troubleshooting
+
+### Failure: resource\_exhausted: too many requests
+
+If you receive an error message similar to below, make sure you authenticate your terminal with buf, you can sign up for a free account at: [https://buf.build/home](https://buf.build/home)
+
+```shellscript
+Failure: resource_exhausted: too many requestssh
+
+Please see https://buf.build/docs/bsr/rate-limits/ for details about BSR rate limiting.
+svc/sentinel/proto/generate.go:4: running "go": exit status 1
+Failure: resource_exhausted: too many requests
+
+Please see https://buf.build/docs/bsr/rate-limits/ for details about BSR rate limiting.
+svc/vault/proto/generate.go:3: running "go": exit status 1
+make: *** [generate] Error 1
+```
