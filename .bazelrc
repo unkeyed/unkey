@@ -17,10 +17,6 @@ common --experimental_disk_cache_gc_max_size=100G
  ============================================================
 # Build & Test performance
 # ============================================================
-# Increase action parallelism
-build --jobs=auto
-test --jobs=auto
-
 # Keep going on errors to maximize cache population
 build --keep_going
 test --keep_going
