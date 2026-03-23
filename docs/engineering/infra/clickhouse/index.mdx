@@ -1,0 +1,28 @@
+---
+title: Users & Roles
+---
+
+Overview of ClickHouse users, roles, and their permissions.
+
+Users managed by ClickHouse (`*-internal`, `default`) and SQL console users (`sql-console*`) are not documented here.... they are provisioned automatically.
+Workspace users (`ws_*`) are also excluded, cuz we create them ourselves.
+
+## Users
+
+| User | Purpose | Roles / Grants |
+|------|---------|----------------|
+| [`grafana`](./users/grafana) | Grafana dashboards | `grafana_readonly`, `readonly_role` |
+| [`apiv2`](./users/apiv2) | API v2 service | `insertonly_role`, `readonly_role` |
+| [`sentinel`](./users/sentinel) | Sentinel service | direct grants (see script) |
+| [`vector`](./users/vector) | Runtime logs | INSERT on `runtime_logs_raw_v1` |
+| [`github`](./users/github) | GitHub integrations | `readonly_role` |
+| [`vercel_dashboard`](./users/vercel_dashboard) | Vercel dashboard | `readonly_role` |
+| [`unkey_admin`](./users/unkey_admin) | Admin access | all roles |
+
+## Roles
+
+| Role | Purpose |
+|------|---------|
+| [`readonly_role`](./roles/readonly_role) | `SELECT` on `default.*` |
+| [`insertonly_role`](./roles/insertonly_role) | `INSERT` on `default.*` |
+| [`grafana_readonly`](./roles/grafana_readonly) | Column-level `SELECT` on `system.*` tables |
