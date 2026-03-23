@@ -5,7 +5,7 @@ description: "Fast lookup for common analytics query patterns and table selectio
 
 # Analytics Quick Reference
 
-## Essential Query Patterns
+## Essential query patterns
 
 ### Usage Analytics
 
@@ -153,7 +153,7 @@ ORDER BY time ASC
   See [Query Examples - WITH FILL](/analytics/query-examples#filling-gaps-in-time-series-with-fill) for hourly, daily, and monthly examples with outcome breakdowns.
 </Tip>
 
-## Table Selection Guide
+## Table selection guide
 
 Choose the right table based on your time range:
 
@@ -172,7 +172,7 @@ Choose the right table based on your time range:
 - Add `LIMIT` clauses to prevent large result sets
 - Filter before grouping when possible
 
-## Common Filters
+## Common filters
 
 <Note>
   **Automatic filtering:** All queries are automatically filtered based on your root key permissions:
@@ -233,7 +233,7 @@ WHERE outcome != 'VALID'
 WHERE outcome IN ('RATE_LIMITED', 'USAGE_EXCEEDED')
 ```
 
-## Need More Functions?
+## Need more functions?
 
 → [ClickHouse Function Reference](https://clickhouse.com/docs/en/sql-reference/functions)  
 → [ClickHouse SQL Documentation](https://clickhouse.com/docs/en/sql-reference)

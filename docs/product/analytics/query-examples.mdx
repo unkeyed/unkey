@@ -5,7 +5,7 @@ description: "Common SQL patterns for analytics and billing"
 
 This guide provides SQL query examples for common analytics scenarios covering all the use cases from the legacy API and more. All examples use ClickHouse SQL syntax and work with the `/v2/analytics.getVerifications` endpoint.
 
-## Using Queries in API Requests
+## Using queries in API requests
 
 When making API requests, you need to format the SQL query as a JSON string on a single line. Here's how:
 
@@ -32,7 +32,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   JSON format you can copy directly into your API requests.
 </Tip>
 
-## Usage Analytics
+## Usage analytics
 
 **Use this for:** High-level usage metrics, health monitoring, and trend analysis.
 
@@ -209,7 +209,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
-## Usage by User
+## Usage by user
 
 **Use this for:** Understanding user behavior, identifying power users, tracking user activity over time.
 
@@ -326,7 +326,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
-## API Analytics
+## API analytics
 
 **Use this for:** Comparing API performance, usage across different APIs, API-specific analysis.
 
@@ -413,7 +413,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
-## Key Analytics
+## Key analytics
 
 **Use this for:** Individual API key analysis, identifying problematic keys, key-specific usage patterns.
 
@@ -502,7 +502,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
-## Tag-Based Analytics
+## Tag-based analytics
 
 **Use this for:** Custom metadata filtering, endpoint analysis, user segmentation using tags.
 
@@ -637,7 +637,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
-## Billing & Usage-Based Pricing
+## Billing & usage-based pricing
 
 **Use this for:** Usage-based billing implementation, credit tracking, user tier calculation.
 
@@ -758,7 +758,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
-## Advanced Queries
+## Advanced queries
 
 **Use this for:** Complex analytical patterns, cohort analysis, moving averages, advanced insights.
 
@@ -835,7 +835,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
-## Using Aggregated Tables
+## Using aggregated tables
 
 For better performance on large time ranges, use pre-aggregated tables:
 
@@ -917,7 +917,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
-## Filling Gaps in Time Series (WITH FILL)
+## Filling gaps in time series (WITH FILL)
 
 When querying time series data, you may have periods with no activity that result in missing time points. ClickHouse's `WITH FILL` clause ensures all time periods are included in results, filling gaps with zeros.
 
@@ -1069,7 +1069,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
   `WITH FILL` only works when grouping by time alone. For outcome breakdowns, use `sumIf()` to pivot outcomes into separate columns as shown above.
 </Note>
 
-## Tips for Efficient Queries
+## Tips for efficient queries
 
 1. **Always filter by time** - Use indexes by including time filters
 2. **Use aggregated tables** - Hourly/daily/monthly tables for longer ranges

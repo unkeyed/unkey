@@ -85,7 +85,7 @@ If you want to customize how `withUnkey` processes incoming requests, you can do
 
 ### `getKey`
 
-By default, withUnkey will look for a bearer token located in the `authorization` header. If you want to customize this, you can do so by passing a getter
+By default, withUnkey looks for a bearer token in the `Authorization` header. If you want to customize this, you can do so by passing a getter
 in the configuration object:
 
 ```ts

@@ -10,7 +10,7 @@ Unkey Analytics stores verification events across multiple time-series tables fo
   spanning long time periods to improve performance.
 </Tip>
 
-## Raw Events Table
+## Raw events table
 
 The `key_verifications_v1` table contains individual verification events as they occur.
 
@@ -44,7 +44,7 @@ The `outcome` column contains one of these values:
 | `FORBIDDEN`                | Operation not allowed for this key      |
 | `USAGE_EXCEEDED`           | Key has exceeded usage limit            |
 
-## Aggregated Tables
+## Aggregated tables
 
 Pre-aggregated tables provide better query performance for long time ranges. Each aggregated table includes outcome counts.
 
@@ -76,7 +76,7 @@ Pre-aggregated tables provide better query performance for long time ranges. Eac
 
 `key_verifications_per_month_v1` - Aggregated by month. Same columns as per-minute table.
 
-## Filtering by API and User
+## Filtering by API and user
 
 You can use your familiar identifiers directly in queries:
 
@@ -107,7 +107,7 @@ WHERE key_space_id IN ('ks_1234', 'ks_5678')
   AND external_id IN ('user_abc', 'user_xyz')
 ```
 
-## Working with Tags
+## Working with tags
 
 Tags are stored as `Array(String)` and require array functions to query.
 
@@ -156,7 +156,7 @@ WHERE time >= now() - INTERVAL 24 HOUR
 GROUP BY path
 ```
 
-## Time Functions
+## Time functions
 
 Timestamps are stored differently depending on the table:
 
@@ -233,7 +233,7 @@ WHERE time >= 1704067200000  -- Jan 1, 2024 00:00:00 UTC
   AND time < 1735689600000   -- Jan 1, 2025 00:00:00 UTC
 ```
 
-## Common ClickHouse Functions
+## Common ClickHouse functions
 
 ### Aggregate Functions
 
@@ -284,14 +284,14 @@ WHERE time >= 1704067200000  -- Jan 1, 2024 00:00:00 UTC
 | `if()`   | If-then-else    | `SELECT if(outcome = 'VALID', 1, 0)`                            |
 | `CASE`   | Multi-condition | `CASE WHEN outcome = 'VALID' THEN 'success' ELSE 'failure' END` |
 
-## Performance Tips
+## Performance tips
 
 1. **Always filter by time** - Use time-based WHERE clauses to leverage indexes
 2. **Use aggregated tables** - Query hourly/daily/month tables for long ranges
 3. **Limit result sets** - Add LIMIT clauses to prevent large results
 4. **Filter before grouping** - Use WHERE instead of HAVING when possible
 5. **Avoid SELECT \*** - Only select columns you need
-## Query Limits
+## Query limits
 
 | Resource         | Limit      | Error Code                    |
 | ---------------- | ---------- | ----------------------------- |

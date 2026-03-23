@@ -5,7 +5,7 @@ description: "Protect your Next.js API routes with Unkey authentication"
 
 Two approaches: use the `@unkey/nextjs` wrapper for simplicity, or manual verification for full control.
 
-## Option 1: Using @unkey/nextjs (Recommended)
+## Option 1: Using @unkey/nextjs (recommended)
 
 The simplest way to protect Next.js API routes.
 
@@ -97,7 +97,7 @@ export const POST = withUnkey(
 
 ---
 
-## Option 2: Manual Verification
+## Option 2: Manual verification
 
 For full control over the authentication flow.
 
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
 
 ---
 
-## Reusable Middleware Pattern
+## Reusable middleware pattern
 
 Create a helper for consistent auth across routes:
 
@@ -230,7 +230,7 @@ export const GET = withAuth(async (_req, auth) => {
 
 ---
 
-## Check Permissions
+## Check permissions
 
 Require specific permissions for sensitive endpoints:
 
@@ -293,7 +293,7 @@ export async function POST(req: NextRequest) {
 
 ---
 
-## Environment Setup
+## Environment setup
 
 ```bash .env.local
 # Required for verification and key management

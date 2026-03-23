@@ -23,7 +23,7 @@ Unkey Analytics provides a powerful SQL interface to query your API key verifica
   **Automatic filtering:** All queries are scoped to your workspace automatically. If your root key is scoped to a specific API (`api.<api_id>.read_analytics`), queries are also filtered to that API's `key_space_id`.
 </Note>
 
-## How it Works
+## How it works
 
 Every key verification request is automatically stored and aggregated across multiple time-series tables:
 
@@ -43,7 +43,7 @@ You can query these tables using standard SQL to:
 - Filter by region, tags, or custom criteria
 - Calculate metrics for billing or monitoring
 
-## Available Data
+## Available data
 
 Every verification event contains:
 
@@ -60,7 +60,7 @@ Every verification event contains:
 | `tags`          | Array(String) | Custom tags added during verification                                                                                                      |
 | `spent_credits` | Int64         | Number of credits spent on this verification (0 if no credits were spent)                                                                  |
 
-## Use Cases
+## Use cases
 
 <CardGroup cols={3}>
   <Card

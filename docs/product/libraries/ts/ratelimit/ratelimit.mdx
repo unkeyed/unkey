@@ -70,15 +70,15 @@ if (!ratelimit.success){
 Everything we do is built for scale and stability.
 We built on some of the world's most stable platforms ([Planetscale](https://planetscale.com/) and [Cloudflare](https://www.cloudflare.com)) and run an extensive test suite before and after every deployment.
 
-Even so, we would be fools if we wouldn't explain how you can put in safe guards along the way.
+Even so, we'd be foolish not to explain how you can add safeguards along the way.
 
 
-In case of severe network degredations or other unforseen events, you might want to put an upper bound on how long you are willing to wait for a response from unkey.
-By default the SDK will reject a request if it hasn't received a response from unkey within 5 seconds. You can tune this via the `timeout` config in the constructor (see below).
+For severe network degradations or other unforeseen events, you might want to set an upper bound on how long you wait for a response from Unkey.
+By default the SDK rejects a request if it hasn't received a response from Unkey within 5 seconds. You can tune this via the `timeout` config in the constructor (see below).
 
 The SDK captures most errors and handles them on its own, but we also encourage you to add a `onError` handler to configure what happens in case something goes wrong.
 
-Both `fallback` property of the `timeout` config and `onError` config are callback functions. They receive the original request identifier as one of their parameters, which you can use to determine whether to reject the request.
+Both the `fallback` property of the `timeout` config and `onError` are callback functions. They receive the original request identifier as a parameter. Use it to decide whether to reject the request.
 
 ```ts
 import { Ratelimit } from "@unkey/ratelimit"

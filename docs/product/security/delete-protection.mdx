@@ -1,9 +1,7 @@
 ---
 title: Delete Protection
-description: Prevents an resource from being deleted when enabled.
+description: Prevents a resource from being deleted when enabled.
 ---
-
-# Delete Protection
 
 Delete Protection is a safety feature that prevents accidental deletion of a resource. When enabled, it blocks all deletion attempts through both the dashboard and API.
 
@@ -15,7 +13,7 @@ Delete Protection is a safety feature that prevents accidental deletion of a res
 - Requiring explicit confirmation to disable protection
 - Blocking deletion attempts through both UI and API
 
-## Supported Resources
+## Supported resources
 
 Currently, Delete Protection is available for:
 
@@ -35,7 +33,7 @@ More resources will be added in future updates.
 <img src="/images/delete-protection.png" alt="Delete Protection confirmation dialog showing the Enable API Delete Protection button"/>
 </Frame>
 
-Once enabled, the API cannot be deleted until protection is explicitly disabled.
+Once enabled, you can't delete the API until you disable protection.
 
 ## Disabling API Delete Protection
 
@@ -44,7 +42,7 @@ Once enabled, the API cannot be deleted until protection is explicitly disabled.
 3. Type the API name to confirm
 4. Click "Disable API Delete Protection" to remove protection
 
-## Resource Behavior
+## Resource behavior
 
 When Delete Protection is enabled:
 
@@ -52,7 +50,7 @@ When Delete Protection is enabled:
 - The resource returns a `DELETE_PROTECTED` error
 - The error includes a link to this documentation
 
-### Example API Error Response
+### Example API error response
 
 ```json
 {
@@ -65,7 +63,7 @@ When Delete Protection is enabled:
 }
 ```
 
-## Best Practices
+## Best practices
 
 1. **Enable for Production resources**: Always enable Delete Protection for resources in production
 2. **Use for Critical resources**: Protect resources that contain important data or configurations
@@ -75,11 +73,11 @@ When Delete Protection is enabled:
 
 ## Limitations
 
-- Delete Protection only prevents deletion of the resource
-- It does not prevent modifications to the resource
-- It does not prevent deletion of children of a resource, like keys or ratelimits that belong to a protected resource
-- Protection can be disabled by any user with appropriate permissions
+- Delete Protection only prevents you from deleting the resource
+- It doesn't prevent you from modifying the resource
+- It doesn't prevent you from deleting children of a resource, like keys or rate limits under a protected resource
+- Anyone with appropriate permissions can disable protection
 
-## Related Errors
+## Related errors
 
 - [DELETE_PROTECTED](https://www.unkey.com/docs/api-reference/errors/code/DELETE_PROTECTED) - Returned when attempting to delete a protected API

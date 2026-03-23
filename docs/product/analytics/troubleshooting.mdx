@@ -30,7 +30,7 @@ description: "Common issues and solutions for analytics queries"
 
 **Try these optimizations:**
 
-### Use Aggregated Tables
+### Use aggregated tables
 
 ```sql
 -- Instead of raw table for long ranges:
@@ -41,7 +41,7 @@ SELECT COUNT(*) FROM key_verifications_v1 WHERE time >= now() - INTERVAL 7 DAY
 SELECT SUM(count) FROM key_verifications_per_day_v1 WHERE time >= now() - INTERVAL 7 DAY
 ```
 
-### Add Time Filters First
+### Add time filters first
 
 ```sql
 -- Always filter by time early (uses indexes)
@@ -49,7 +49,7 @@ WHERE time >= now() - INTERVAL 7 DAY
   AND external_id = 'user_123'  -- Additional filters after time
 ```
 
-### Limit Result Size
+### Limit result size
 
 ```sql
 -- Prevent large result sets
@@ -65,7 +65,7 @@ LIMIT 100  -- Add LIMIT for large datasets
 
 **Common fixes:**
 
-### Missing Property 'query'
+### Missing property 'query'
 
 ```json
 // Wrong field name
@@ -77,27 +77,27 @@ LIMIT 100  -- Add LIMIT for large datasets
 
 See [invalid_input](/errors/unkey/application/invalid_input) for API request format issues.
 
-### Permission Denied
+### Permission denied
 
 - Ensure your root key has `api.*.read_analytics` or `api.<api_id>.read_analytics`
 - Check key is not expired or revoked
 - Verify workspace ID matches your key's permissions
   See [forbidden](/errors/unkey/authorization/forbidden) for permission issues.
 
-### Invalid Function Error
+### Invalid function error
 
 - Check [Query Restrictions](/analytics/query-restrictions#function-allow-list) for allowed functions
 - Some ClickHouse functions are blocked for security
 - Use alternative approaches from [Quick Reference](/analytics/quick-reference)
 - See [invalid_analytics_function](/errors/user/bad_request/invalid_analytics_function) for details
 
-### Invalid Table Error
+### Invalid table error
 
 - Only analytics tables are accessible (no `system.*` or `information_schema.*`)
 - Use table names from [Schema Reference](/analytics/schema-reference)
 - See [invalid_analytics_table](/errors/user/bad_request/invalid_analytics_table) for details
 
-### Query Not Supported
+### Query not supported
 
 - Only SELECT queries are allowed in analytics
 - INSERT, UPDATE, DELETE, etc. are blocked
@@ -107,7 +107,7 @@ See [invalid_input](/errors/unkey/application/invalid_input) for API request for
 
 **Optimization tips:**
 
-### Choose Right Table
+### Choose right table
 
 - `< 1 hour`: `key_verifications_v1` (raw)
 - `< 24 hours`: `key_verifications_per_minute_v1`
@@ -115,7 +115,7 @@ See [invalid_input](/errors/unkey/application/invalid_input) for API request for
 - `< 1 year`: `key_verifications_per_day_v1`
 - `> 1 year`: `key_verifications_per_month_v1`
 
-### Filter Before Grouping
+### Filter before grouping
 
 ```sql
 -- Less efficient

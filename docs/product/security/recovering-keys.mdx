@@ -22,7 +22,7 @@ Vault is our secure storage for secrets, such as keys. It follows a few principl
 - A leak of the main encryption keys does not expose secrets
 
 An attacker would need access to the vault, the main database and the main encryption keys to decrypt the secrets.
-In order to make this even harder, we rotate the encryption keys regularly and do not run vault on the same servers as the main database to prevent an attacker from getting access to all the required information at once.
+We rotate encryption keys regularly and run Vault on separate servers from the main database. An attacker would need access to all systems simultaneously.
 
 To learn more about how it works under the hood, you can head over to our [engineering docs](https://engineering.unkey.dev/services/vault).
 
@@ -48,7 +48,7 @@ Send us the email from the email address associated with your workspace and incl
 
 </Steps>
 <Note>
-  Please note that this is not retroactively applied. Existing keys were never stored and cannot be recovered. Only keys created after opting in to recovery can be recovered.
+  This doesn't apply retroactively. Existing keys were never stored and cannot be recovered. Only keys created after opting in to recovery can be recovered.
 </Note>
 
 

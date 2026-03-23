@@ -5,9 +5,9 @@ description: Create your first identity and key with Unkey
 
 
 
-This quickstart will guide you through creating your first identity with shared ratelimits and a key that is connected to the identity.
+This quickstart walks you through creating your first identity with shared rate limits and connecting a key to it.
 
-The example is written in TypeScript, purposefully using the `fetch` API to make requests as transparent as possible. You can use any language or library to make requests to the Unkey API.
+This example uses TypeScript with the `fetch` API to keep requests as transparent as possible. You can use any language or library to make requests to the Unkey API.
 
 
 
@@ -32,11 +32,11 @@ The root key requires the following permissions:
 
  
  
-### Create an Identity
+### Create an identity
 
 To create an identity, you need to make a request to the `/v2/identities.createIdentity` endpoint. You can specify an `externalId` and `meta` object to store additional information about the identity.
 
-Unkey does not care what the `externalId` is, but it must be unique for each identity. Commonly used are user or organization ids. The `meta` object can be used to store any additional information you want to associate with the identity.
+Unkey does not care what the `externalId` is, but it must be unique for each identity. You typically use a user or organization ID. The `meta` object stores any additional information you want to associate with the identity.
 
 ```ts
 const externalId = "user_1234abc";
@@ -60,7 +60,7 @@ const { identityId } = await createIdentityResponse.json<{
 }>();
 ```
 
-### Retrieve an Identity
+### Retrieve an identity
 
 Let's retrieve the identity to make sure it got created successfully
 
@@ -85,7 +85,7 @@ const identity = await getIdentityResponse.json<{
 ```
 
 
-### Create a Key
+### Create a key
 
 Let's create a key and connect it to the identity
 
@@ -110,7 +110,7 @@ const key = await createKeyResponse.json<{
 }>();
 ```
 
-### Verify the Key
+### Verify the key
  
  When you verify the key, you will receive the identity that the key is connected to and can act accordingly in your API handler.
  
@@ -135,9 +135,9 @@ const verified = await verifyKeyResponse.json<{
     };
 }>();
 ```
-### Ratelimits
+### Rate limits
 
-Ratelimits can be set on the identity level. Ratelimits set on the identity level are shared across all keys connected to the identity.
+You can set rate limits on the identity level. Rate limits set on the identity are shared across all keys connected to it.
 
 ```ts
 
@@ -171,11 +171,11 @@ const updateRes = await fetch("https://api.unkey.com/v2/identities.updateIdentit
 });
 ```
   
-### Verify the Key with Ratelimits
+### Verify the key with rate limits
   
-   Now let's verify the key again and specify the limits
+   Now verify the key again and specify the limits.
   
- In this case, we pretend like a user is requesting to use 200 tokens. We specify the `requests` ratelimit to enforce a limit of 10 requests per day and the `tokens` ratelimit to enforce a limit of 1000 tokens per minute. Additionally we specify the cost of the tokens to be 200.
+ This example simulates a user requesting 200 tokens. The `requests` rate limit enforces 10 requests per day. The `tokens` rate limit enforces 1000 tokens per minute, with a cost of 200 per request.
 
 ```ts
 const verifiedWithRatelimitsResponse = await fetch(`https://api.unkey.com/v2/keys.verifyKey`, {
@@ -209,7 +209,7 @@ const verifiedWithRatelimits = await verifiedWithRatelimitsResponse.json<{
   
 ```
 
-That's it, you have successfully created an identity and key with shared ratelimits. You can now use the key to verify requests and enforce ratelimits in your API handler.
+That's it, you have successfully created an identity and key with shared rate limits. You can now use the key to verify requests and enforce rate limits in your API handler.
 
 
 

@@ -5,15 +5,15 @@ description: "Attach rate limits directly to API keys"
 
 Unkey's ratelimiting system controls the number of requests a key can make within a given timeframe. This prevents abuse, protects your API from being overwhelmed, and enables usage-based billing models.
 
-## Multi-Ratelimit System
+## Multi-rate limit system
 
-Unkey supports multiple named ratelimits per key, providing fine-grained control over different aspects of your API usage. You can define separate limits for different operations, time windows, and use cases within a single key.
+You can attach multiple named rate limits to each key for fine-grained control. Define separate limits for different operations, time windows, and use cases on a single key.
 
-The system offers two types of ratelimits: auto-apply ratelimits that check automatically during verification, and manual ratelimits that require explicit specification in requests.
+You get two types of rate limits: auto-apply rate limits that Unkey checks automatically during verification, and manual rate limits that you specify explicitly in requests.
 
-## Auto-Apply vs Manual Ratelimits
+## Auto-apply vs manual rate limits
 
-Auto-apply ratelimits (`autoApply: true`) are checked automatically during every key verification without needing explicit specification. These work well for general usage limits that should always be enforced.
+Unkey checks auto-apply rate limits (`autoApply: true`) automatically on every key verification — you don't need to specify them in requests. These work well for general usage limits that should always be enforced.
 
 ```bash
 # Create a key with auto-apply ratelimit
@@ -43,7 +43,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
   }'
 ```
 
-Manual ratelimits (`autoApply: false`) must be explicitly specified in verification requests. Use these for operation-specific limits that only apply to certain endpoints.
+You must explicitly specify manual rate limits (`autoApply: false`) in verification requests. Use these for operation-specific limits that only apply to certain endpoints.
 
 ```bash
 # Create a key with manual ratelimit
@@ -80,7 +80,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 
 ## Configuration
 
-Configure ratelimits on a per-key or per-identity basis through the dashboard or API. Each ratelimit requires a unique name, limit count, and duration in milliseconds.
+You can configure rate limits on a per-key or per-identity basis through the dashboard or API. Each rate limit requires a unique name, limit count, and duration in milliseconds.
 
 ```bash
 curl -X POST https://api.unkey.com/v2/keys.createKey \
@@ -105,11 +105,11 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
   }'
 ```
 
-You can apply different costs to operations by specifying a cost parameter during verification. This allows resource-intensive operations to consume more of the rate limit than simple operations.
+You can apply different costs to operations by specifying a cost parameter during verification, so resource-intensive operations consume more of the rate limit than simple ones.
 
-## Identity-Level Ratelimits
+## Identity-level rate limits
 
-Configure ratelimits at the identity level to share limits across multiple keys. Identity ratelimits work alongside key-level ratelimits, with key-level settings taking precedence for naming conflicts.
+You can configure rate limits at the identity level to share limits across multiple keys. Identity rate limits work alongside key-level rate limits, with key-level settings taking precedence for naming conflicts.
 
 ```bash
 curl -X POST https://api.unkey.com/v2/identities.createIdentity \
@@ -127,4 +127,4 @@ curl -X POST https://api.unkey.com/v2/identities.createIdentity \
   }'
 ```
 
-This approach works well for user-based quotas where multiple API keys should share the same usage limits.
+Use this when you need user-based quotas where multiple API keys share the same usage limits.

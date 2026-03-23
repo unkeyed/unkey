@@ -5,7 +5,7 @@ description: "Production-ready API key middleware for Echo"
 
 This recipe shows how to create robust API key authentication middleware for the [Echo web framework](https://echo.labstack.com/).
 
-## Complete Middleware Implementation
+## Complete middleware implementation
 
 ```go
 package main
@@ -219,7 +219,7 @@ func main() {
 }
 ```
 
-## Custom Configuration
+## Custom configuration
 
 Create configurable middleware:
 
@@ -294,7 +294,7 @@ e.GET("/api/public", func(c echo.Context) error {
     })
 }, UnkeyAuthWithConfig(AuthConfig{Optional: true}))
 
-## Group-Level Middleware
+## Group-level middleware
 
 Apply middleware to route groups:
 

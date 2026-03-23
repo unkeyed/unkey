@@ -5,7 +5,7 @@ description: RBAC in the almost-real world
 
 Let's look at an example app for allowing your users to manage domains.
 
-As part of the API, your users will be able to perform CRUD operations against domains or individual dns records.
+As part of the API, your users will be able to create, read, update, and delete (CRUD) domains or individual DNS records.
 
 <Steps>
 <Step titleSize="h2" title="Creating permissions">
@@ -34,7 +34,7 @@ Create them in your `Authorization/Permissions` page. Use the button in the uppe
 
 We define the following roles:
 - `admin`: An admin can do everything.
-- `dns.manager`: Can create, read, update and delete dns records but not access the domain itself.
+- `dns.manager`: Can create, read, update, and delete DNS records but not access the domain itself.
 - `read-only`: Can read domain or dns record information.
 
 Create them in your `Authorization/Roles` page. Use the button in the upper right. `+ Create new role`
@@ -79,13 +79,13 @@ Now that we have permissions and roles in place, we can connect them to keys.
 <Tabs>
 <Tab title="Dashboard">
 
-1. In the sidebar, click on one of your APIs
-2. Next click on keys in the expanded API you selected.
+1. In the sidebar, click one of your APIs.
+2. Next, click **Keys** in the expanded API you selected.
     <Frame>
       <img src="/apis/features/authorization/api-keys-navigation.png" alt="Breadcrumb Navigation"/>
     </Frame>
 
-3. On the key you want to use, click on the action menu (`...`) at the end of that table row.
+3. On the key you want to use, click the action menu (`...`) at the end of that table row.
 4. Select `Manage roles and permissions..` 
 
 

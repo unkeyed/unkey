@@ -5,7 +5,7 @@ description: "Limits, quotas, and permissions for analytics queries"
 
 This page explains the restrictions, resource limits, and permissions for analytics queries.
 
-### Only SELECT Allowed
+### Only SELECT allowed
 
 Only `SELECT` queries are permitted. All other SQL statement types return a `query_not_supported` error.
 
@@ -21,15 +21,15 @@ Only `SELECT` queries are permitted. All other SQL statement types return a `que
 
 **Not allowed:** `INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`, `CREATE`, `TRUNCATE`, `GRANT`, `REVOKE`
 
-### Table Access Control
+### Table access control
 
 Only explicitly allowed analytics tables are accessible. Any attempt to access tables not on the allow list (including `system.*` or `information_schema.*`) will return an `invalid_table` error.
 
-### Function Allow List
+### Function allow list
 
 Only explicitly approved functions are allowed. Any function not on this list will be rejected with an `invalid_function` error.
 
-#### Allowed Functions
+#### Allowed functions
 
 <AccordionGroup>
 
@@ -73,11 +73,11 @@ Only explicitly approved functions are allowed. Any function not on this list wi
   inclusion.
 </Note>
 
-## Resource Limits
+## Resource limits
 
 To ensure fair usage and prevent abuse, queries are subject to resource limits:
 
-### Execution Limits
+### Execution limits
 
 | Resource                        | Limit                 | Purpose                       |
 | ------------------------------- | --------------------- | ----------------------------- |
@@ -86,7 +86,7 @@ To ensure fair usage and prevent abuse, queries are subject to resource limits:
 | Max memory usage                | 1 GB                  | Prevent memory exhaustion     |
 | Max result rows                 | 10 million            | Limit result set size         |
 
-### Query Quotas
+### Query quotas
 
 | Quota                 | Limit | Window   |
 | --------------------- | ----- | -------- |
@@ -98,7 +98,7 @@ To ensure fair usage and prevent abuse, queries are subject to resource limits:
   requirements and expected query volume.
 </Note>
 
-### Error Codes
+### Error codes
 
 When limits are exceeded, you'll receive specific error codes:
 

@@ -11,7 +11,7 @@ A production-ready middleware pattern for Express applications.
 npm install @unkey/api express
 ```
 
-## Basic Middleware
+## Basic middleware
 
 ```typescript middleware/auth.ts
 import { Unkey } from "@unkey/api";
@@ -65,7 +65,7 @@ export async function unkeyAuth(
 }
 ```
 
-## Use the Middleware
+## Use the middleware
 
 ```typescript app.ts
 import express from "express";
@@ -110,7 +110,7 @@ app.listen(3000);
 
 ---
 
-## With Rate Limit Headers
+## With rate limit headers
 
 Include rate limit info in response headers:
 
@@ -161,7 +161,7 @@ export async function unkeyAuth(
 
 ---
 
-## Permission-Based Access
+## Permission-based access
 
 Create middleware that requires specific permissions:
 
@@ -219,7 +219,7 @@ app.get("/api/invoices", requirePermission("billing.read"), getInvoices);
 
 ---
 
-## Configurable Middleware Factory
+## Configurable middleware factory
 
 Create a flexible middleware that can be configured per-route:
 
@@ -285,7 +285,7 @@ export const adminAuth = createAuthMiddleware({
 
 ---
 
-## Error Handling
+## Error handling
 
 Graceful degradation when Unkey is unavailable:
 
@@ -334,7 +334,7 @@ export async function unkeyAuth(
 
 ---
 
-## TypeScript Setup
+## TypeScript setup
 
 ```typescript types/express.d.ts
 import { V2KeysVerifyKeyResponseData } from "@unkey/api/models/components";

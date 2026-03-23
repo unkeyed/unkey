@@ -5,13 +5,13 @@ description: "How Unkey protects you from leaked root keys"
 
 Unkey has partnered with GitHub to scan repositories for leaked keys.
 
-GitHub Secret Scanning uses regular expressions to scan repositories for keys matching Unkey root keys. If a key is found, GitHub will notify Unkey, and we will validate the key and notify users via email. To ensure the production environment remains up and running, we do not disable the key.
+GitHub Secret Scanning uses regular expressions to scan repositories for keys matching Unkey root keys. If GitHub finds a key, it notifies Unkey. We validate the key and notify you via email. To keep your production environment running, we do not disable the key.
 
-This is a service that is automatic and requires nothing from you to function. However, outside of GitHub, we will not be able to inform you if a key has leaked.
+This works automatically — you don't need to set anything up. However, outside of GitHub, we can't detect leaked keys.
 
 Learn more: [GitHub Secret Scanning](https://docs.github.com/en/code-security/secret-scanning) 
 
-## Sources Scanned
+## Sources scanned
 
 - content
 - commit

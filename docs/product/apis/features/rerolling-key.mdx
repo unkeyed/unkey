@@ -3,11 +3,11 @@ title: "Key Rerolling"
 description: "Rotate API keys while preserving their configuration and permissions"
 ---
 
-## What is Key Rerolling?
+## What is key rerolling?
 
-Key rerolling (or key rotation) is the process of generating a new API key token while preserving all the configuration from an existing key. This is a critical security practice that allows you to regularly rotate credentials without disrupting your application's permissions or settings.
+Key rerolling (or key rotation) generates a new API key token while preserving all configuration from the existing key. Rotate credentials regularly without disrupting your application's permissions or settings.
 
-## Why Reroll Keys?
+## Why reroll keys?
 
 Key rerolling serves several important purposes:
 
@@ -16,9 +16,9 @@ Key rerolling serves several important purposes:
 - **Proactive Security**: Regularly rotate keys as a preventive measure
 - **Graceful Migration**: Overlap periods allow zero-downtime key transitions
 
-## How Key Rerolling Works
+## How key rerolling works
 
-### What Gets Copied
+### What gets copied
 
 When you reroll a key, the new key is an exact copy of the original in terms of configuration:
 
@@ -32,7 +32,7 @@ When you reroll a key, the new key is an exact copy of the original in terms of 
 - Recovery/encryption settings
 - API association
 
-### What's New
+### What's new
 
 The rerolled key gets fresh values for:
 
@@ -40,7 +40,7 @@ The rerolled key gets fresh values for:
 - API key token (the actual secret)
 - Creation timestamp
 
-### What Happens to the Original Key
+### What happens to the original key
 
 The original key remains active for a configurable grace period:
 
@@ -48,7 +48,7 @@ The original key remains active for a configurable grace period:
 - Set to `0` for immediate revocation
 - Common grace periods: 1 hour (3600000ms), 24 hours (86400000ms), 7 days (604800000ms)
 
-## Making a Reroll Request
+## Making a reroll request
 
 To reroll a key, make a `POST` request to `/v2/keys.rerollKey`:
 
@@ -63,7 +63,7 @@ curl --request POST \
   }'
 ```
 
-### Request Parameters
+### Request parameters
 
 - `keyId` (required): The database identifier of the key to reroll (NOT the API key token)
 - `expiration` (required): Duration in milliseconds until the original key is revoked
@@ -83,12 +83,12 @@ curl --request POST \
 ```
 
 <warning>
-  **Security Critical**: The `key` field contains the actual API key token. This is the only time you'll receive it - Unkey stores only a hashed version. Never log or expose this value. Transmit it directly to the end user via secure channels only.
+  **Security Critical**: The `key` field contains the actual API key token. This is the only time you'll receive it — Unkey stores only a hashed version. Never log or expose this value. Send it to your user through a secure channel.
 </warning>
 
-## Common Use Cases
+## Common use cases
 
-### Zero-Downtime Key Rotation
+### Zero-downtime key rotation
 
 For production systems that can't afford downtime:
 
@@ -109,7 +109,7 @@ curl --request POST \
   }'
 ```
 
-### Emergency Key Replacement
+### Emergency key replacement
 
 When a key is compromised and needs immediate revocation:
 
@@ -125,7 +125,7 @@ curl --request POST \
   }'
 ```
 
-## Analytics and Usage Tracking
+## Analytics and usage tracking
 
 An important aspect of key rerolling is that analytics remain consistent:
 
@@ -134,7 +134,7 @@ An important aspect of key rerolling is that analytics remain consistent:
 - This allows you to track usage across both individual keys and the overall identity
 - Historical data from the original key remains accessible
 
-## Required Permissions
+## Required permissions
 
 Your root key needs the following permissions to reroll keys:
 

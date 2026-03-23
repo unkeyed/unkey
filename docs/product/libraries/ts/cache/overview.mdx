@@ -32,7 +32,7 @@ There are a few annoying things about this code:
 - Only checks a single cache
 
 Most people would build a small wrapper around this to make it easier to use and so did we:
-This library is the result of a rewrite of our own caching layer after some developers were starting to replicate it. It's used in production by Unkey any others.
+This library is a rewrite of our own caching layer after some users started replicating it. It's used in production by Unkey and others.
 
 ## Features
 
@@ -376,7 +376,7 @@ const namespace = new Namespace<User>(ctx, {
 Different caches have different characteristics, some may be fast but volatile, others may be slow but persistent. By using a tiered cache, you can combine the best of both worlds.
 In almost every case, you want to use a fast in-memory cache as the first tier. There is no reason not to use it, as it doesn't add any latency to your application.
 
-The goal of this implementation is that it's invisible to the user. Everything behaves like a single cache.
+The goal is that this is invisible to you. Everything behaves like a single cache.
 You can add as many tiers as you want.
 
 
@@ -474,7 +474,7 @@ main();
 
 ### Stale-While-Revalidate
 
-To make data fetching as easy as possible, the cache offers a `swr` method, that acts as a pull through cache. If the data is fresh, it will be returned from the cache, if it's stale it will be returned from the cache and a background refresh will be triggered and if it's not in the cache, the data will be synchronously fetched from the origin.
+To make data fetching as easy as possible, the cache offers a `swr` method, that acts as a pull through cache. If the data is fresh, it returns from the cache. If stale, it returns the cached value and triggers a background refresh. If not in the cache, it fetches synchronously from the origin.
 
 
 
@@ -668,7 +668,7 @@ Ensure that the `Map` is instantiated in a persistent scope of your application.
 
 #### Cloudflare
 
-The Cloudflare store uses cloudflare's [`Cache` API](https://developers.cloudflare.com/workers/runtime-apis/cache/) to store cache values. This is a remote cache that is shared across all instances of your worker but isolated per datacenter. It's still pretty fast, but needs a network request to access the cache.
+The Cloudflare store uses Cloudflare's [`Cache` API](https://developers.cloudflare.com/workers/runtime-apis/cache/) to store cache values. This is a remote cache that is shared across all instances of your worker but isolated per datacenter. It's still pretty fast, but needs a network request to access the cache.
 
 ```ts
 import { CloudflareStore } from "@unkey/cache/stores";

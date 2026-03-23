@@ -3,7 +3,7 @@ title: Getting Started
 description: "Request access and run your first analytics query"
 ---
 
-## Request Access
+## Request access
 
 <Warning>
   **Analytics is currently in private beta and available by request only.**
@@ -33,11 +33,11 @@ Analytics queries require a root key with analytics permissions. Create one in y
   to version control.
 </Warning>
 
-## Your First Query
+## Your first query
 
 Once you have access, execute your first analytics query using the `/v2/analytics.getVerifications` endpoint.
 
-### Count Total Verifications
+### Count total verifications
 
 Count the total number of key verifications in the last 7 days across all your APIs to get a high-level view of your overall usage volume.
 
@@ -59,7 +59,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
-### Break Down by Outcome
+### Break down by outcome
 
 Group verifications by their outcome (`VALID`, `RATE_LIMITED`, `USAGE_EXCEEDED`, etc.) over the last 24 hours to understand the distribution of successful vs. failed requests.
 
@@ -85,7 +85,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
 
 </CodeGroup>
 
-### Top Users by Usage
+### Top users by usage
 
 Identify your most active users by counting their total verifications over the last 30 days to spot power users or potential abuse patterns.
 
@@ -128,7 +128,7 @@ Use `SUM(count)` instead of `COUNT(*)` with aggregated tables. They scan far few
   ready-to-use queries covering billing, monitoring, and analytics use cases.
 </Tip>
 
-## Understanding the Response
+## Understanding the response
 
 Analytics queries return data as an array of objects:
 
@@ -147,7 +147,7 @@ Analytics queries return data as an array of objects:
 
 Each object in the `data` array contains fields from your SELECT clause. The field names match the column names or aliases you specified in your query.
 
-## Filtering by API or User
+## Filtering by API or user
 
 You can filter queries to specific APIs or users. Use `key_space_id` to filter by API (find this identifier in your API settings) and `external_id` to filter by user. These fields support standard SQL operators: `=`, `!=`, `IN`, `NOT IN`, `<`, `>`, etc.
 

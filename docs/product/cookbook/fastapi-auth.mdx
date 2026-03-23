@@ -11,7 +11,7 @@ A clean, reusable pattern using FastAPI's dependency injection system.
 pip install unkey.py fastapi uvicorn
 ```
 
-## Basic Dependency
+## Basic dependency
 
 ```python dependencies/auth.py
 from fastapi import HTTPException, Security
@@ -52,7 +52,7 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
     return result
 ```
 
-## Use in Routes
+## Use in routes
 
 ```python main.py
 from fastapi import FastAPI, Depends
@@ -77,7 +77,7 @@ async def get_users(auth = Depends(verify_api_key)):
 
 ---
 
-## Typed Response Model
+## Typed response model
 
 Create a Pydantic model for the auth result:
 
@@ -133,7 +133,7 @@ async def verify_api_key(api_key: str = Security(api_key_header)) -> AuthResult:
 
 ---
 
-## Permission-Based Access
+## Permission-based access
 
 Create dependencies for different permission levels:
 
@@ -197,7 +197,7 @@ async def delete_user(user_id: str, auth = Depends(require_admin)):
 
 ---
 
-## Rate Limit Headers
+## Rate limit headers
 
 Return rate limit info in response headers:
 
@@ -237,7 +237,7 @@ async def verify_api_key(
 
 ---
 
-## Async Client
+## Async client
 
 For better performance with async FastAPI:
 
@@ -280,7 +280,7 @@ app = FastAPI(lifespan=lifespan)
 
 ---
 
-## Full Example
+## Full example
 
 ```python main.py
 from fastapi import FastAPI, Depends, HTTPException, Security, Response
