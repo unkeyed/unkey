@@ -6,13 +6,16 @@ import (
 )
 
 var (
-	// proxyForwardTotal tracks proxy forwarding attempts by destination type and outcome.
-	// "error" label values: "none", "timeout", "conn_refused", "conn_reset",
-	// "dns_failure", "client_canceled", "backend_5xx", "other".
+	// proxyForwardTotal tracks proxy forwarding attempts by destination and outcome.
+	//
+	// Labels:
+	//   destination: "sentinel" (local h2c forward) or "region" (cross-region HTTPS forward)
+	//   error: "none", "timeout", "conn_refused", "conn_reset",
+	//          "dns_failure", "client_canceled", "backend_5xx", "other"
 	proxyForwardTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
-			Subsystem: "frontline_proxy",
+			Subsystem: "frontline",
 			Name:      "forward_total",
 			Help:      "Total proxy forward attempts by destination and error type.",
 		},
@@ -22,12 +25,15 @@ var (
 	// proxyBackendDuration tracks the time from when the proxy sends the request
 	// to the backend until it gets a response (or error). This isolates backend
 	// latency from frontline's own routing overhead.
+	//
+	// Labels:
+	//   destination: "sentinel" (local h2c forward) or "region" (cross-region HTTPS forward)
 	proxyBackendDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
-			Subsystem: "frontline_proxy",
+			Subsystem: "frontline",
 			Name:      "backend_duration_seconds",
-			Help:      "Backend response time by destination type (sentinel or region).",
+			Help:      "Backend response time by destination type.",
 			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
 		},
 		[]string{"destination"},
@@ -39,25 +45,23 @@ var (
 	proxyHopsTotal = promauto.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
-			Subsystem: "frontline_proxy",
+			Subsystem: "frontline",
 			Name:      "hops",
 			Help:      "Distribution of frontline hop counts on cross-region requests.",
 			Buckets:   []float64{0, 1, 2, 3},
 		},
 	)
 
-	// proxyBackendResponseTotal tracks HTTP status codes returned by destinations.
-	// The "source" label distinguishes WHO produced the response:
-	//   "sentinel" = sentinel itself errored (X-Unkey-Error-Source: sentinel)
-	//   "upstream" = customer pod response proxied through sentinel
+	// proxyBackendResponseTotal tracks HTTP status codes returned by backends.
 	//
-	// Example alerts:
-	//   rate(backend_response_total{source="sentinel",status_class="5xx"}[5m]) > 0 → sentinels crashing
-	//   rate(backend_response_total{source="upstream",status_class="5xx"}[5m]) > X  → customer pods unhealthy
+	// Labels:
+	//   destination: "sentinel" (local h2c forward) or "region" (cross-region HTTPS forward)
+	//   source: "sentinel" (sentinel itself errored) or "upstream" (customer pod response)
+	//   status_class: "2xx", "3xx", "4xx", "5xx"
 	proxyBackendResponseTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
-			Subsystem: "frontline_proxy",
+			Subsystem: "frontline",
 			Name:      "backend_response_total",
 			Help:      "Backend HTTP response status classes by destination and error source.",
 		},

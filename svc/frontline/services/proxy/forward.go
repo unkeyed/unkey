@@ -60,12 +60,21 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	}()
 
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
+
+	var backendStart time.Time
+	observeBackendDuration := func() {
+		if !backendStart.IsZero() {
+			proxyBackendDuration.WithLabelValues(cfg.destination).Observe(s.clock.Now().Sub(backendStart).Seconds())
+		}
+	}
+
 	// nolint:exhaustruct
 	proxy := &httputil.ReverseProxy{
 		Transport:     cfg.transport,
 		FlushInterval: -1, // flush immediately for streaming
 		Director: func(req *http.Request) {
 			proxyStartTime = s.clock.Now()
+			backendStart = proxyStartTime
 
 			req.URL.Scheme = cfg.targetURL.Scheme
 			req.URL.Host = cfg.targetURL.Host
@@ -73,6 +82,8 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			cfg.directorFunc(req)
 		},
 		ModifyResponse: func(resp *http.Response) error {
+			observeBackendDuration()
+
 			source := "upstream"
 			if resp.Header.Get("X-Unkey-Error-Source") == "sentinel" {
 				source = "sentinel"
@@ -130,6 +141,8 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
+			observeBackendDuration()
+
 			// Capture the error for middleware to handle
 			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
 				ecw.SetError(err)
@@ -144,9 +157,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	}
 
 	// Proxy the request with the middleware context (carries timeout deadline)
-	backendStart := s.clock.Now()
 	proxy.ServeHTTP(wrapper, sess.Request().WithContext(ctx))
-	proxyBackendDuration.WithLabelValues(cfg.destination).Observe(s.clock.Now().Sub(backendStart).Seconds())
 
 	// If error was captured, return it to middleware for consistent error handling
 	if err := wrapper.Error(); err != nil {

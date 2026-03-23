@@ -38,7 +38,6 @@ func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, er
 
 	route, sentinels, err := s.lookupByHostname(ctx, hostname)
 	if err != nil {
-		routingErrorsTotal.WithLabelValues("config_not_found").Inc()
 		return RouteDecision{}, err
 	}
 
