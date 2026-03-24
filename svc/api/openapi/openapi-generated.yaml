@@ -6647,19 +6647,19 @@ paths:
                         Session token created successfully. Redirect the end user to the returned URL.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
                 "403":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
@@ -6671,7 +6671,7 @@ paths:
                     description: Too Many Requests
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
@@ -6708,13 +6708,13 @@ paths:
                         Session exchanged successfully. Use the returned token for subsequent API calls.
                 "400":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
                     description: Bad request
                 "401":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized — session is invalid, expired, or already exchanged
@@ -6726,7 +6726,7 @@ paths:
                     description: Too Many Requests
                 "500":
                     content:
-                        application/json:
+                        application/problem+json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
