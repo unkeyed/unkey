@@ -228,10 +228,7 @@ export const KeysList = ({
         width: "15%", // Keep at 15%
         render: (key) => {
           return (
-            <LastUsedCell
-              lastUsedAt={key.last_used_at}
-              isSelected={selectedKey?.id === key.id}
-            />
+            <LastUsedCell lastUsedAt={key.last_used_at} isSelected={selectedKey?.id === key.id} />
           );
         },
       },
