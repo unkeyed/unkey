@@ -1,4 +1,3 @@
-
 -- name: StopDeploymentIfNoInstances :exec
 UPDATE deployments d
 LEFT JOIN instances i ON i.deployment_id = d.id
