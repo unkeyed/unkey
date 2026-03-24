@@ -21,7 +21,7 @@ func (s *service) GetPortalSession(ctx context.Context, sess *zen.Session, token
 
 	if token == "" {
 		return nil, fault.New("empty session token",
-			fault.Code(codes.Auth.Authentication.Missing.URN()),
+			fault.Code(codes.Portal.Session.TokenMissing.URN()),
 			fault.Internal("portal session token is empty"),
 			fault.Public("A valid portal session token is required."),
 		)
@@ -39,7 +39,7 @@ func (s *service) GetPortalSession(ctx context.Context, sess *zen.Session, token
 		if err != nil {
 			if db.IsNotFound(err) {
 				return nil, fault.New("invalid or expired portal session",
-					fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+					fault.Code(codes.Portal.Session.SessionNotFound.URN()),
 					fault.Internal("portal session not found or expired"),
 					fault.Public("The portal session is invalid or has expired."),
 				)
@@ -53,7 +53,7 @@ func (s *service) GetPortalSession(ctx context.Context, sess *zen.Session, token
 
 		if hit == cache.Null {
 			return nil, fault.New("invalid or expired portal session",
-				fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+				fault.Code(codes.Portal.Session.SessionNotFound.URN()),
 				fault.Internal("portal session not found (cached null)"),
 				fault.Public("The portal session is invalid or has expired."),
 			)
@@ -63,7 +63,7 @@ func (s *service) GetPortalSession(ctx context.Context, sess *zen.Session, token
 		if err != nil {
 			if db.IsNotFound(err) {
 				return nil, fault.New("invalid or expired portal session",
-					fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+					fault.Code(codes.Portal.Session.SessionNotFound.URN()),
 					fault.Internal("portal session not found or expired"),
 					fault.Public("The portal session is invalid or has expired."),
 				)

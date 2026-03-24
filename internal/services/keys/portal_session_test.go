@@ -22,7 +22,7 @@ func TestGetPortalSession_EmptyToken_ReturnsError(t *testing.T) {
 
 	code, ok := fault.GetCode(err)
 	require.True(t, ok)
-	require.Equal(t, codes.Auth.Authentication.Missing.URN(), code)
+	require.Equal(t, codes.Portal.Session.TokenMissing.URN(), code)
 }
 
 func TestPortalSessionInfo_FieldsExist(t *testing.T) {

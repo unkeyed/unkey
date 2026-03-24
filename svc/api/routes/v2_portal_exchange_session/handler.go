@@ -73,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if txErr != nil {
 			if db.IsNotFound(txErr) {
 				return zero, fault.New("invalid or expired session",
-					fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+					fault.Code(codes.Portal.Session.SessionNotFound.URN()),
 					fault.Internal("session token not found, already exchanged, or expired"),
 					fault.Public("Session is invalid, expired, or has already been used."),
 				)
@@ -110,7 +110,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if rowsAffected == 0 {
 			return zero, fault.New("session already exchanged",
-				fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+				fault.Code(codes.Portal.Session.SessionAlreadyExchanged.URN()),
 				fault.Internal("concurrent exchange: token already used"),
 				fault.Public("Session is invalid, expired, or has already been used."),
 			)
