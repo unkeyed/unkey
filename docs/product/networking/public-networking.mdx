@@ -28,7 +28,7 @@ After terminating TLS, Frontline resolves the requested domain to a deployment. 
 Frontline forwards the request to Sentinel, the application gateway. Sentinel runs the policies configured for the deployment before the request reaches your code:
 
 - [Authentication](/platform/sentinel/authentication) verifies the caller's identity
-- [Rate limiting](/platform/sentinel/rate-limiting) enforces request quotas
+- [Rate limiting](/platform/sentinel/policies/rate-limiting) enforces request quotas
 - [Custom policies](/platform/sentinel/policies) apply additional rules
 
 Requests that fail a policy receive an error response from Sentinel without reaching your app.

@@ -214,6 +214,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:                     database,
 		FrontlineRouteCache:    cache.FrontlineRoutes,
 		SentinelsByEnvironment: cache.SentinelsByEnvironment,
+		InstancesByDeployment:  cache.InstancesByDeployment,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create router service: %w", err)
@@ -240,6 +241,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr))
+
 	svcs := &routes.Services{
 		Region:            cfg.Region,
 		RouterService:     routerSvc,
@@ -247,6 +249,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clock:             clk,
 		AcmeClient:        acmeClient,
 		ErrorPageRenderer: errorpage.NewRenderer(),
+		Pprof:             cfg.Pprof,
 	}
 
 	// Start HTTPS frontline server (main proxy server)

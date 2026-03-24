@@ -155,6 +155,21 @@ func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow)
 			Command:                       row.Deployment.Command,
 			Port:                          row.Deployment.Port,
 			ShutdownSignal:                string(row.Deployment.ShutdownSignal),
+			EnvironmentSlug:               &row.EnvironmentSlug,
+			Region:                        &row.RegionName,
+		}
+
+		if row.Deployment.GitCommitSha.Valid {
+			apply.GitCommitSha = &row.Deployment.GitCommitSha.String
+		}
+		if row.Deployment.GitBranch.Valid {
+			apply.GitBranch = &row.Deployment.GitBranch.String
+		}
+		if row.Deployment.GitCommitMessage.Valid {
+			apply.GitCommitMessage = &row.Deployment.GitCommitMessage.String
+		}
+		if row.GitRepo.Valid {
+			apply.GitRepo = &row.GitRepo.String
 		}
 
 		if row.Deployment.Healthcheck.Valid {

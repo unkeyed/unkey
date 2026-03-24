@@ -1,0 +1,4 @@
+apiVersion: v2
+name: restate-cronjobs
+version: 0.1.0
+description: Scheduled tasks that call Restate handlers

@@ -187,6 +187,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MaxRequestBodySize: maxRequestBodySize,
 		RequestTimeout:     cfg.RequestTimeout,
 		Engine:             middlewareEngine,
+		Pprof:              cfg.Pprof,
 	}
 
 	srv, err := zen.New(zen.Config{
