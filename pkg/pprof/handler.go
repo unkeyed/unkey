@@ -14,6 +14,10 @@ import (
 type Handler struct {
 	Username string
 	Password string
+	// Prefix is the path prefix before /pprof/{path...}.
+	// For example "/debug" results in "/debug/pprof/{path...}",
+	// "/_unkey/internal" results in "/_unkey/internal/pprof/{path...}".
+	Prefix string
 }
 
 // Method returns the HTTP method this route responds to
@@ -23,7 +27,7 @@ func (h *Handler) Method() string {
 
 // Path returns the URL path pattern this route matches
 func (h *Handler) Path() string {
-	return "/debug/pprof/{path...}"
+	return h.Prefix + "/pprof/{path...}"
 }
 
 // Handle processes the HTTP request and delegates to pprof handlers

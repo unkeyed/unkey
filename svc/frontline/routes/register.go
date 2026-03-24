@@ -3,6 +3,7 @@ package routes
 import (
 	"time"
 
+	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/middleware"
 	acme "github.com/unkeyed/unkey/svc/frontline/routes/acme"
@@ -28,6 +29,17 @@ func Register(srv *zen.Server, svc *Services) {
 		[]zen.Middleware{withLogging},
 		&internalHealth.Handler{},
 	)
+
+	if svc.Pprof != nil {
+		srv.RegisterRoute(
+			[]zen.Middleware{withLogging},
+			&pprofRoute.Handler{
+				Username: svc.Pprof.Username,
+				Password: svc.Pprof.Password,
+				Prefix:   "/_unkey/internal",
+			},
+		)
+	}
 
 	// Catches all requests and routes them to the sentinel or some other region.
 	srv.RegisterRoute(
