@@ -1,0 +1,17 @@
+restateIngressUrl: "http://restate.unkey.svc.cluster.local:8080"
+
+jobs:
+  key-last-used-sync:
+    schedule: "* * * * *"
+    urlPath: "hydra.v1.KeyLastUsedSyncService/RunSync/send"
+    idempotencyKey: "key-last-used-sync-$(date -u +%Y-%m-%dT%H:%M)"
+
+  key-refill:
+    schedule: "0 0 * * *"
+    urlPath: "hydra.v1.KeyRefillService/$(date -u +%Y-%m-%d)/RunRefill/send"
+    idempotencyKey: "key-refill-$(date -u +%Y-%m-%d)"
+
+  quota-check:
+    schedule: "0 15 * * *"
+    urlPath: "hydra.v1.QuotaCheckService/$(date -u +%Y-%m)/RunCheck/send"
+    idempotencyKey: "quota-check-$(date -u +%Y-%m-%d)"

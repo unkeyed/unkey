@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/services/router"
 	"golang.org/x/net/http2"
 )
 
@@ -110,7 +111,14 @@ func New(cfg Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) ForwardToSentinel(ctx context.Context, sess *zen.Session, sentinelAddress string, deploymentID string) error {
+func (s *service) Forward(ctx context.Context, sess *zen.Session, decision router.RouteDecision) error {
+	if decision.Destination == router.DestinationLocalSentinel {
+		return s.forwardToSentinel(ctx, sess, decision.Address, decision.DeploymentID)
+	}
+	return s.forwardToRegion(ctx, sess, decision.Address)
+}
+
+func (s *service) forwardToSentinel(ctx context.Context, sess *zen.Session, sentinelAddress string, deploymentID string) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
 	targetURL, err := url.Parse(fmt.Sprintf("http://%s", sentinelAddress))
@@ -130,7 +138,7 @@ func (s *service) ForwardToSentinel(ctx context.Context, sess *zen.Session, sent
 	})
 }
 
-func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegionPlatform string) error {
+func (s *service) forwardToRegion(ctx context.Context, sess *zen.Session, targetRegionPlatform string) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
 	if hopCountStr := sess.Request().Header.Get(HeaderFrontlineHops); hopCountStr != "" {

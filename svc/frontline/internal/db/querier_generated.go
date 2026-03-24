@@ -60,6 +60,14 @@ type Querier interface {
 	//  WHERE s.environment_id = ?
 	//    AND s.health = 'healthy'
 	FindHealthyRoutableSentinelsByEnvironmentID(ctx context.Context, environmentID string) ([]FindHealthyRoutableSentinelsByEnvironmentIDRow, error)
+	// FindInstancesByDeploymentID returns all instances for a given deployment.
+	// Used by the router to determine which regions have running instances
+	// for instance-aware routing decisions.
+	//
+	//  SELECT pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, status
+	//  FROM instances
+	//  WHERE deployment_id = ?
+	FindInstancesByDeploymentID(ctx context.Context, deploymentID string) ([]Instance, error)
 }
 
 var _ Querier = (*Queries)(nil)

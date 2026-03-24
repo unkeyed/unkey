@@ -1,4 +1,3 @@
-import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChartActivity2 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
@@ -6,27 +5,12 @@ import { useRef, useState } from "react";
 import { STATUS_STYLES } from "../utils/get-row-class";
 
 export const LastUsedCell = ({
-  keyAuthId,
-  keyId,
+  lastUsedAt,
   isSelected,
 }: {
-  keyAuthId: string;
-  keyId: string;
+  lastUsedAt: number;
   isSelected: boolean;
 }) => {
-  const { data, isLoading, isError } = trpc.api.keys.latestVerification.useQuery(
-    {
-      keyAuthId,
-      keyId,
-    },
-    {
-      trpc: {
-        context: {
-          skipBatch: true,
-        },
-      },
-    },
-  );
   const badgeRef = useRef<HTMLElement>(null) as React.RefObject<HTMLElement>;
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -35,11 +19,7 @@ export const LastUsedCell = ({
       ref={badgeRef}
       className={cn(
         "px-1.5 rounded-md flex gap-2 items-center max-w-min h-[22px] border-none cursor-pointer",
-        isError
-          ? "bg-error-3 text-error-11 border border-error-5"
-          : isSelected
-            ? STATUS_STYLES.badge.selected
-            : STATUS_STYLES.badge.default,
+        isSelected ? STATUS_STYLES.badge.selected : STATUS_STYLES.badge.default,
       )}
       onMouseOver={() => {
         setShowTooltip(true);
@@ -52,18 +32,10 @@ export const LastUsedCell = ({
         <ChartActivity2 iconSize="sm-regular" />
       </div>
       <div className="truncate">
-        {isLoading ? (
-          <div className="flex items-center w-full gap-1">
-            <div className="h-2 w-2 bg-grayA-5 rounded-full animate-pulse" />
-            <div className="h-2 w-12 bg-grayA-5 rounded-sm animate-pulse" />
-            <div className="h-2 w-12 bg-grayA-5 rounded-sm animate-pulse" />
-          </div>
-        ) : isError ? (
-          "Failed to load"
-        ) : data?.lastVerificationTime ? (
+        {lastUsedAt > 0 ? (
           <TimestampInfo
             displayType="relative"
-            value={data.lastVerificationTime}
+            value={lastUsedAt}
             className="truncate"
             triggerRef={badgeRef}
             open={showTooltip}
