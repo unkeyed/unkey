@@ -16,6 +16,7 @@ enum DeploymentStatus {
   DEPLOYMENT_STATUS_FAILED = 6;
   DEPLOYMENT_STATUS_SKIPPED = 9;
   DEPLOYMENT_STATUS_AWAITING_APPROVAL = 10;
+  DEPLOYMENT_STATUS_STOPPED = 11;
 }
 
 // Source type for deployment creation

@@ -13,6 +13,7 @@ const GROUPED_DEPLOYMENT_STATUSES = [
   "pending",
   "deploying", // represents all deploying states
   "ready",
+  "stopped",
   "failed",
   "skipped",
 ] as const;
@@ -48,13 +49,7 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
       if (value === "failed") {
         return "bg-error-9";
       }
-      if (value === "pending") {
-        return "bg-gray-9";
-      }
-      if (value === "skipped") {
-        return "bg-gray-9";
-      }
-      return "bg-info-9"; // building
+      return "bg-info-9";
     },
   },
   environment: {
@@ -93,6 +88,8 @@ export const expandGroupedStatus = (groupedStatus: GroupedDeploymentStatus): Dep
       return ["failed"];
     case "skipped":
       return ["skipped"];
+    case "stopped":
+      return ["stopped"];
     default:
       throw new Error(`Unknown grouped status: ${groupedStatus}`);
   }
