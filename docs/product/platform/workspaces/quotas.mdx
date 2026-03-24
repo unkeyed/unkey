@@ -1,10 +1,70 @@
 ---
-title: Quotas
-description: Understand workspace quotas and usage limits.
+title: Limits
+description: Understand workspace limits and how they are enforced.
 ---
 
-## TODO
+Every workspace has limits that define its operational boundaries. Limits control how many API requests you can make, how long Unkey retains your data, and how many resources your deployments can consume.
 
-- Quotas and usage limits per plan
-- How quotas are enforced
-- Requesting quota increases
+When you [upgrade your plan](/platform/workspaces/billing#upgrade-your-plan), Unkey updates your workspace limits immediately. When you [downgrade or cancel](/platform/workspaces/billing#downgrade-or-cancel), limits revert to Free plan defaults at the end of the billing period.
+
+
+<Tip>
+  Visit [unkey.com/pricing](https://unkey.com/pricing) for the latest plan limits and pricing.
+</Tip>
+
+<Note>
+  If you need limits beyond what the available plans offer, contact [support@unkey.com](mailto:support@unkey.com) to discuss custom arrangements.
+</Note>
+
+## Requests per month
+
+How many billable API operations your workspace can perform per billing month. This includes key verifications and rate limit checks.
+
+Requests are not blocked when you exceed this limit. Unkey sends email notifications as your workspace approaches and exceeds the threshold, prompting you to upgrade.
+
+The billing page and sidebar display your usage as a percentage of this limit, combining key verifications and rate limit operations for the current billing month.
+
+## Log retention
+
+How long Unkey keeps operational logs for your workspace. Operational logs include request logs, verification logs, and other runtime data visible in the dashboard.
+
+Logs older than the retention period are automatically deleted and cannot be recovered.
+
+## Audit log retention
+
+How long Unkey keeps audit logs. Audit logs record security-relevant events such as key creation, key deletion, permission changes, and workspace setting updates.
+
+Audit logs older than the retention period are automatically deleted and cannot be recovered.
+
+## Team members
+
+Whether your workspace supports multiple users with different roles.
+
+Workspaces on the Free plan are restricted to a single user and cannot invite team members. Upgrading to any paid plan enables [team collaboration](/platform/workspaces/team-members), including invitations, role management, and multiple admins.
+
+## CPU allocation
+
+How much CPU your workspace can allocate across all running deployments at the same time.
+
+If a new deployment would push the workspace's total CPU usage beyond the limit, Unkey rejects the deployment. To free up capacity, scale down or remove existing deployments.
+
+## Memory allocation
+
+How much memory your workspace can allocate across all running deployments at the same time.
+
+If a new deployment would push the workspace's total memory usage beyond the limit, Unkey rejects the deployment. To free up capacity, scale down or remove existing deployments.
+
+## Workspace API rate limit
+
+Some plans include a workspace-level API rate limit that caps the number of requests your workspace can make within a time window. This is separate from the monthly request limit and operates on a shorter window (for example, requests per second).
+
+When the rate limit is exceeded, the Unkey API returns a `429 Too Many Requests` response. Responses include standard rate limit headers:
+
+| Header                  | Description                                              |
+| ----------------------- | -------------------------------------------------------- |
+| `RateLimit-Limit`       | Maximum requests allowed in the window                    |
+| `RateLimit-Remaining`   | Requests remaining in the current window                  |
+| `RateLimit-Reset`       | Seconds until the window resets                           |
+| `Retry-After`           | Seconds until the client can retry (only present on 429)  |
+
+If no workspace rate limit is configured, these headers are omitted and requests are not rate-limited at the workspace level.

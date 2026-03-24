@@ -179,9 +179,17 @@
                 ]
               },
               {
+                "group": "Root Keys",
+                "pages": [
+                  "platform/root-keys/overview",
+                  "platform/root-keys/permissions"
+                ]
+              },
+              {
                 "group": "Workspaces",
                 "pages": [
                   "platform/workspaces/overview",
+                  "platform/workspaces/settings",
                   "platform/workspaces/billing",
                   "platform/workspaces/quotas",
                   "platform/workspaces/team-members"
@@ -243,7 +251,6 @@
                 "expanded": false,
                 "group": "Topics",
                 "pages": [
-                  "security/root-keys",
                   "security/recovering-keys",
                   "platform/apis/features/whitelist",
                   "security/github-scanning",

@@ -1,11 +1,46 @@
 ---
-title: Workspaces
-description: What a workspace is and how it relates to projects and apps.
+title: Overview
+description: What a workspace is and how it relates to projects, apps, and team members.
 ---
 
-## TODO
+A workspace is the highest level of separation in Unkey. All resources you create belong to exactly one workspace, and nothing is shared between workspaces.
 
-- What a workspace is and how it relates to projects and apps
-- Creating a workspace
-- Workspace settings and configuration
-- Switching between workspaces
+Each workspace isolates:
+
+- **[Billing](/platform/workspaces/billing)**: every workspace has its own Stripe subscription, payment method, and invoices. Usage in one workspace does not affect another.
+- **[Team members](/platform/workspaces/team-members)**: each workspace has its own set of members and roles. Being an admin in one workspace does not grant access to another.
+- **[Limits](/platform/workspaces/quotas)**: request limits, data retention, and resource allocations are tracked per workspace.
+- **[APIs](/apis/overview) and keys**: keyspaces, API keys, identities, roles, and permissions are scoped to the workspace that created them.
+- **[Projects](/platform/projects/overview)**: deploy projects, apps, environments, and deployments belong to a single workspace.
+- **[Root keys](/platform/root-keys/overview)**: API credentials for programmatic access are issued per workspace and only grant access to that workspace's resources.
+
+Most teams use a single workspace. Create separate workspaces when you need hard isolation between billing accounts or teams (for example, separate workspaces for different business units or clients).
+
+## Slug and ID
+
+Every workspace has two identifiers:
+
+- **Slug** is the URL handle you choose when creating the workspace (for example, `acme`). It appears in all dashboard URLs (`app.unkey.com/acme/...`) and must be globally unique. The slug accepts lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen. The slug cannot be changed after creation.
+- **Workspace ID** is a system-generated identifier prefixed with `ws_` (for example, `ws_abc123`). Use this when calling the Unkey API. You can copy it from **Settings > General**.
+
+## Create a workspace
+
+1. Navigate to the workspace creation page at `app.unkey.com/new`.
+2. Enter a workspace name (3 to 50 characters).
+3. Set a slug. Unkey auto-generates one from the name, but you can edit it.
+4. Click **Create workspace**.
+
+After creation, Unkey redirects you to the workspace dashboard. The workspace starts on the Free plan with [default limits](/platform/workspaces/quotas#free-plan-defaults).
+
+## Switch between workspaces
+
+If you belong to multiple workspaces, use the workspace switcher in the sidebar to move between them.
+
+<Frame>
+  <img className="block dark:hidden" src="/platform/workspaces/workspace-switcher-light.png" alt="Workspace switcher" />
+  <img className="hidden dark:block" src="/platform/workspaces/workspace-switcher-dark.png" alt="Workspace switcher" />
+</Frame>
+
+## Delete a workspace
+
+To delete a workspace, contact [support@unkey.com](mailto:support@unkey.com).
