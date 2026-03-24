@@ -149,7 +149,6 @@ func New(config Config) (*Server, error) {
 				return &Session{
 					logRequestToClickHouse: true,
 					WorkspaceID:            "",
-					ExternalID:             "",
 					requestID:              "",
 					internalError:          "",
 					w:                      nil,
