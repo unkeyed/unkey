@@ -27,6 +27,10 @@ data:
     [vault]
     url = "http://vault:8060"
     token = "vault-test-token-123"
+
+    [pprof]
+    username = "admin"
+    password = "password"
 ---
 apiVersion: apps/v1
 kind: Deployment
