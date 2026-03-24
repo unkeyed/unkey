@@ -507,6 +507,10 @@ type Querier interface {
 	//
 	//  SELECT pk, id, route_type, project_id, app_id, deployment_id, environment_id, portal_config_id, path_prefix, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?
 	FindFrontlineRouteByFQDN(ctx context.Context, db DBTX, fullyQualifiedDomainName string) (FrontlineRoute, error)
+	//FindFrontlineRouteByPortalConfigID
+	//
+	//  SELECT pk, id, route_type, project_id, app_id, deployment_id, environment_id, portal_config_id, path_prefix, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE portal_config_id = ? AND route_type = 'portal' LIMIT 1
+	FindFrontlineRouteByPortalConfigID(ctx context.Context, db DBTX, portalConfigID sql.NullString) (FrontlineRoute, error)
 	//FindFrontlineRouteForPromotion
 	//
 	//  SELECT
@@ -1119,6 +1123,10 @@ type Querier interface {
 	//
 	//  SELECT pk, id, workspace_id, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations WHERE id = ?
 	FindPortalConfigByID(ctx context.Context, db DBTX, id string) (PortalConfiguration, error)
+	//FindPortalConfigByWorkspaceID
+	//
+	//  SELECT pk, id, workspace_id, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations WHERE workspace_id = ? LIMIT 1
+	FindPortalConfigByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (PortalConfiguration, error)
 	//FindProjectById
 	//
 	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
