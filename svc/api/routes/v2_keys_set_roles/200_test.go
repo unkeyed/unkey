@@ -420,8 +420,7 @@ func TestSetRolesConcurrent(t *testing.T) {
 	err := g.Wait()
 	require.NoError(t, err, "All concurrent updates should succeed without deadlock")
 
-	// Verify the key has roles (exact count depends on race conditions)
 	finalRoles, err := db.Query.ListRolesByKeyID(t.Context(), h.DB.RO(), keyResponse.KeyID)
 	require.NoError(t, err)
-	require.NotEmpty(t, finalRoles)
+	require.Len(t, finalRoles, 1, "last-writer-wins should leave exactly 1 role")
 }

@@ -94,7 +94,8 @@
                           "architecture/services/control-plane/worker/workflows/routing",
                           "architecture/services/control-plane/worker/workflows/certificates",
                           "architecture/services/control-plane/worker/workflows/custom-domains",
-                          "architecture/services/control-plane/worker/workflows/github-app"
+                          "architecture/services/control-plane/worker/workflows/github-app",
+                          "architecture/services/control-plane/worker/workflows/key-last-used-sync"
                         ]
                       }
                     ]

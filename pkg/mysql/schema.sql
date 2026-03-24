@@ -512,7 +512,7 @@ CREATE TABLE `deployments` (
 	`pr_number` bigint,
 	`fork_repository_full_name` varchar(256),
 	`github_deployment_id` bigint,
-	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed','skipped','awaiting_approval') NOT NULL DEFAULT 'pending',
+	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed','skipped','awaiting_approval','stopped') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployments_pk` PRIMARY KEY(`pk`),

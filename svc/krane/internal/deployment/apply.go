@@ -91,10 +91,16 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Env: []corev1.EnvVar{
 			{Name: "PORT", Value: strconv.Itoa(int(req.GetPort()))},
-			{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
-			{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
-			{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
 			{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
+			{Name: "UNKEY_ENVIRONMENT_SLUG", Value: req.GetEnvironmentSlug()},
+			{Name: "UNKEY_REGION", Value: req.GetRegion()},
+			{Name: "UNKEY_GIT_COMMIT_SHA", Value: req.GetGitCommitSha()},
+			{Name: "UNKEY_GIT_BRANCH", Value: req.GetGitBranch()},
+			{Name: "UNKEY_GIT_REPO", Value: req.GetGitRepo()},
+			{Name: "UNKEY_GIT_COMMIT_MESSAGE", Value: req.GetGitCommitMessage()},
+			{Name: "UNKEY_INSTANCE_ID", ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.name"},
+			}},
 			// Override kubelet-injected K8s service env vars with empty strings.
 			// These can't be suppressed via enableServiceLinks, but setting them
 			// explicitly prevents leaking cluster internals to customer code.
