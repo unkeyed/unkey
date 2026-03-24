@@ -150,6 +150,31 @@ When you verify a key, Unkey returns:
 | `identity` | `object?` | Identity info if `externalId` was set when creating the key |
 | `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
 
+<Note>
+The `lastUsedAt` field described below is not returned by `keys.verifyKey`. It is available on `keys.getKey`, `keys.whoami`, and `apis.listKeys`.
+</Note>
+
+## Key last-used tracking
+
+The `keys.getKey`, `keys.whoami`, and `apis.listKeys` endpoints return a `lastUsedAt` field: a Unix timestamp in milliseconds indicating when the key was last used for verification. If the key has never been used, the field is omitted from the response.
+
+This value is approximate, accurate to within five minutes. Use it to identify stale keys and clean up unused credentials.
+
+```ts TypeScript
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
+
+const { data } = await unkey.keys.getKey({ keyId: "key_123" });
+
+if (data.lastUsedAt) {
+  const daysSinceUse = (Date.now() - data.lastUsedAt) / (1000 * 60 * 60 * 24);
+  console.log(`Key last used ${Math.floor(daysSinceUse)} days ago`);
+} else {
+  console.log("Key has never been used");
+}
+```
+
 ## Features
 
 Unkey keys support much more than basic authentication:
@@ -170,7 +195,7 @@ Unkey keys support much more than basic authentication:
   <Card title="Permissions" icon="user-shield" href="/apis/features/authorization/introduction">
     Attach roles and permissions for fine-grained access control.
   </Card>
-  <Card title="Analytics" icon="chart-line" href="/apis/features/analytics">
+  <Card title="Analytics" icon="chart-line" href="/analytics/overview">
     See usage patterns, top consumers, and verification trends.
   </Card>
 </CardGroup>
