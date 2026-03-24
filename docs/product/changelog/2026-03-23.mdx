@@ -1,0 +1,60 @@
+---
+title: "March 23, 2026"
+description: "Key last-used tracking, deployment approvals, watch paths, on-demand deploys, and more."
+---
+
+## New features
+
+### Key last-used tracking
+
+You can now see when each API key was last used for verification. A new `lastUsed` field is available in the [key verification API response](/api-reference/v2/overview), so you can identify stale keys and clean up unused credentials.
+
+### Deployment approval for external contributors
+
+Deployments triggered by non-collaborators (such as fork-based pull requests) now require explicit approval from a project member before they proceed. A GitHub Check Run appears on the PR, and you can approve or dismiss the deployment directly from the Unkey dashboard.
+
+### Watch paths
+
+You can now configure glob patterns (e.g., `src/**`, `**/*.go`) in your deployment settings to control which file changes trigger builds. When no files in a push match your watch paths, the deployment is skipped — and the dashboard shows a dedicated skipped view explaining why.
+
+### On-demand deployments
+
+You can now trigger a deployment manually from the dashboard by selecting a branch and commit SHA from your connected repository. This is useful when you need to redeploy without pushing a new commit.
+
+### Deployment status on GitHub PRs
+
+Deployment progress is now reported directly to GitHub. You'll see status updates on your commits via the GitHub Deployments API, and a summary comment is posted to your pull request with a table showing the status of each app and environment.
+
+### Delete projects
+
+You can now delete projects from the dashboard. This removes the project and all associated apps, environments, and deployments.
+
+## Updates
+
+### Improved root keys table
+
+The root keys settings page now uses a paginated, sortable table with keyboard navigation and improved loading states.
+
+### Dockerfile path autocomplete
+
+The deployment settings UI now detects Dockerfiles in your connected repository and offers autocomplete suggestions. It also validates paths in real time and suggests corrections for case mismatches.
+
+### Friendlier build error messages
+
+When a Docker build fails, the dashboard now shows a human-readable error message instead of raw BuildKit output. Common issues like empty Dockerfiles, missing files, and syntax errors include actionable guidance and a link to settings.
+
+### Custom domain prioritization
+
+Custom domains now appear first in the deployment domains list. Verified custom domains take priority over platform-generated domains, making it easier to find your production URLs.
+
+### Environment variable improvements
+
+Pasting environment variables now appends to your existing list instead of replacing it. You can also search through your variables by key name, and duplicate key validation now highlights all conflicting rows.
+
+## Bug fixes
+
+- Deployment errors now return specific error codes instead of generic 502 responses.
+- Build and runtime settings (Dockerfile, port, command, healthcheck) now sync across all environments in a project.
+- The workspace switcher dropdown no longer takes up excessive space when you only have one workspace.
+- The CLI now correctly parses flags that appear after positional arguments (e.g., `deploy nginx:latest --project=local`).
+- Fixed several onboarding flow issues, including a regression where settings were being applied twice.

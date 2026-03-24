@@ -5,6 +5,8 @@ go_library(
     srcs = [
         "doc.go",
         "interface.go",
+        "lookup.go",
+        "routing.go",
         "service.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/frontline/services/router",

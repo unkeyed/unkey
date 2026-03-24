@@ -1,0 +1,10 @@
+---
+title: readonly_role
+description: Read-only access to the default database
+---
+
+```sql
+CREATE ROLE IF NOT EXISTS readonly_role;
+
+GRANT SELECT ON default.* TO readonly_role;
+```

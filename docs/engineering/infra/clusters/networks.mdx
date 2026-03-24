@@ -1,0 +1,92 @@
+---
+title: Network CIDR Assignments
+description: VPC CIDR allocations for all regions.
+---
+
+Last updated: 2026-02-26
+
+## Address Space Layout
+
+```
+10.0 – 10.10   Legacy (decommission)
+10.12 – 10.16  EKS production        production account    /18 per VPC
+10.20 – 10.24  Talos (future)         production account    /18 per VPC
+10.28 – 10.29  Staging                sandbox account       /20 per VPC
+```
+
+EKS starts at `10.12`, Talos at `10.20` (+8 offset), same slot within each `/16`.
+
+---
+
+## Quick Reference
+
+| Region          | EKS Prod `/18`    | Talos Prod `/18`   | Staging `/20`      |
+|-----------------|-------------------|--------------------|--------------------|
+| us-east-1       | `10.12.0.0/18`    | `10.20.0.0/18`     | `10.28.0.0/20`     |
+| us-east-2       | `10.12.64.0/18`   | `10.20.64.0/18`    | `10.28.16.0/20`    |
+| us-west-1       | `10.12.128.0/18`  | `10.20.128.0/18`   | `10.28.32.0/20`    |
+| us-west-2       | `10.12.192.0/18`  | `10.20.192.0/18`   | `10.28.48.0/20`    |
+| ca-central-1    | `10.16.64.0/18`   | `10.24.64.0/18`    | `10.28.64.0/20`    |
+| eu-central-1    | `10.13.0.0/18`    | `10.21.0.0/18`     | `10.28.80.0/20`    |
+| eu-north-1      | `10.13.64.0/18`   | `10.21.64.0/18`    | `10.28.96.0/20`    |
+| eu-west-1       | `10.13.128.0/18`  | `10.21.128.0/18`   | `10.28.112.0/20`   |
+| eu-west-2       | `10.13.192.0/18`  | `10.21.192.0/18`   | `10.28.128.0/20`   |
+| eu-west-3       | `10.16.0.0/18`    | `10.24.0.0/18`     | `10.28.144.0/20`   |
+| sa-east-1       | `10.16.128.0/18`  | `10.24.128.0/18`   | `10.28.160.0/20`   |
+| ap-south-1      | `10.14.0.0/18`    | `10.22.0.0/18`     | `10.28.176.0/20`   |
+| ap-south-2      | `10.14.64.0/18`   | `10.22.64.0/18`    | `10.28.192.0/20`   |
+| ap-southeast-1  | `10.14.128.0/18`  | `10.22.128.0/18`   | `10.28.208.0/20`   |
+| ap-southeast-2  | `10.14.192.0/18`  | `10.22.192.0/18`   | `10.28.224.0/20`   |
+| ap-northeast-1  | `10.15.0.0/18`    | `10.23.0.0/18`     | `10.28.240.0/20`   |
+| ap-northeast-2  | `10.15.64.0/18`   | `10.23.64.0/18`    | `10.29.0.0/20`     |
+| ap-northeast-3  | `10.15.128.0/18`  | `10.23.128.0/18`   | `10.29.16.0/20`    |
+
+### EKS `/16` grouping
+
+| `/16`   | Group              | Regions                                              |
+|---------|--------------------|------------------------------------------------------|
+| `10.12` | US                 | us-east-1, us-east-2, us-west-1, us-west-2          |
+| `10.13` | EU                 | eu-central-1, eu-north-1, eu-west-1, eu-west-2      |
+| `10.14` | AP South/Southeast | ap-south-1, ap-south-2, ap-southeast-1, ap-southeast-2 |
+| `10.15` | AP Northeast       | ap-northeast-1, ap-northeast-2, ap-northeast-3      |
+| `10.16` | Overflow           | eu-west-3, ca-central-1, sa-east-1                  |
+
+Talos mirrors this at `10.20`–`10.24`. Staging packs all 18 regions into `10.28`–`10.29` using `/20`s.
+
+---
+
+## Existing VPCs (to be replaced)
+
+### Production Account (`unkey-production001-admin`)
+
+| Region          | VPC CIDR          | VPC ID                    | Name                       | Replacement         |
+|-----------------|-------------------|---------------------------|----------------------------|---------------------|
+| us-east-1       | `10.10.128.0/18`  | `vpc-00432dcffcbd4d56c`   | production001-us-east-1    | `10.12.0.0/18`      |
+| eu-central-1    | `10.10.192.0/18`  | `vpc-013b486366778d41d`   | production001-eu-central-1 | `10.13.0.0/18`      |
+| us-east-1       | `10.0.0.0/20`     | `vpc-0bba852b9d4ab2c97`   | api-vpc                    | delete              |
+| us-east-1       | `10.1.0.0/20`     | `vpc-066b62ae05602bd12`   | api-automode-vpc           | delete              |
+| us-east-1       | `10.2.0.0/20`     | `vpc-0586cfeec90f9affb`   | agent-vpc                  | delete              |
+| us-east-2       | `10.1.48.0/20`    | `vpc-0be5283678cc479a8`   | k8s-automode-us-east-2     | `10.12.64.0/18`     |
+| us-west-2       | `10.1.16.0/20`    | `vpc-0a95c3ac9a9cb4847`   | k8s-automode-us-west-2     | `10.12.192.0/18`    |
+| eu-central-1    | `10.1.32.0/20`    | `vpc-09f2b8338c705b83a`   | api-automode-vpc           | delete              |
+| ap-south-1      | `10.0.64.0/20`    | `vpc-07b45693f07c78a3a`   | api-vpc                    | delete              |
+| ap-south-1      | `10.1.64.0/20`    | `vpc-012a5e19a2f349e57`   | k8s-automode-ap-south-1    | `10.14.0.0/18`      |
+| ap-northeast-1  | `10.1.112.0/20`   | `vpc-0a0d7cc9ddc75af38`   | k8s-am-ap-northeast-1      | `10.15.0.0/18`      |
+| ap-southeast-2  | `10.1.96.0/20`    | `vpc-02aae9d6999f28763`   | k8s-am-ap-southeast-2      | `10.14.192.0/18`    |
+| sa-east-1       | `10.1.128.0/20`   | `vpc-033dc3007b9e4490f`   | k8s-am-sa-east-1           | `10.16.128.0/18`    |
+
+### Sandbox Account (`unkey-sandbox-admin`)
+
+| Region        | VPC CIDR          | VPC ID                    | Name                       | Replacement         |
+|---------------|-------------------|---------------------------|----------------------------|---------------------|
+| eu-central-1  | `10.10.0.0/20`    | `vpc-0ea9d0fa5b1774bbd`   | staging-eu-central-1       | `10.28.80.0/20`     |
+| us-west-2     | `10.10.32.0/20`   | `vpc-06cf32c205d4de0b2`   | staging-us-west-2          | `10.28.48.0/20`     |
+| us-east-1     | `10.0.0.0/16`     | `vpc-08e66ce4f301d7787`   | eksctl-staging-us-east-1   | delete (orphaned)   |
+| us-west-1     | `10.1.0.0/16`     | `vpc-04515147037b05454`   | eksctl-staging-us-west-1   | delete (orphaned)   |
+
+### AWS Profiles
+
+| Account    | Profile                        | Purpose                |
+|------------|--------------------------------|------------------------|
+| Production | `unkey-production001-admin`    | EKS + Talos clusters   |
+| Sandbox    | `unkey-sandbox-admin`          | Staging clusters       |

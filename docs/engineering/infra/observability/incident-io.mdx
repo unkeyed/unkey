@@ -1,0 +1,122 @@
+---
+title: incident.io
+description: Alert routing config and API usage.
+---
+
+Alert routing lives in incident.io, not in this repo. If you need to create or modify alert routes, you'll need an API key.
+
+## Creating an API key
+
+1. Go to https://app.incident.io/unkey/settings/api-keys/create
+2. Give it a descriptive name (e.g. "Alert route updates - yourname")
+3. Enable these scopes:
+   - **View data, like public incidents and organization settings**
+   - **Create and manage on-call resources**
+4. Create the key and save it somewhere safe
+
+That's enough for reading and modifying alert routes. Please revoke it when you're done — don't leave keys sitting around.
+
+## Current alert routes
+
+| Route | Source | Condition | Escalation | Slack |
+|-------|--------|-----------|------------|-------|
+| Production Alerts | Alertmanager (Prod), Checkly (Prod), sev0@, Grafana Cloud | `severity=critical` (Alertmanager only) | Engineering On-Call | #alerts |
+| Production Warnings | Alertmanager (Prod) | `severity=warning` | None | #alerts |
+| Unrouted Alerts | Alertmanager (Prod) | Labels missing `severity` key | None | #alerts |
+| Database Alerts | PlanetScale | `branch=main` | Engineering On-Call | #alerts |
+| Staging Notifications | Alertmanager (Staging), Checkly (Staging) | — | None | #alerts |
+| Informational | Axiom, Status Page Views | — | None | #alerts |
+
+## Secrets
+
+Alertmanager authenticates with incident.io using per-source tokens. Each alert source in incident.io has a `secret_token` — Alertmanager sends this in every webhook payload to prove it's legit.
+
+### Where the tokens live
+
+| Secret | Where | What |
+|--------|-------|------|
+| `unkey/alertmanager-incident-io` | AWS Secrets Manager (production) | Contains `alert_source_token` — the token for the Alertmanager (Production) source |
+| `unkey/alertmanager-incident-io` | AWS Secrets Manager (staging) | Same key name, different value — the token for the Alertmanager (Staging) source |
+
+These are pulled into each cluster as a Kubernetes secret (`alertmanager-incidentio`) by External Secrets Operator. The ExternalSecret is defined in `eks-cluster/helm-chart/observability/templates/incidentio-external-secret.yaml`.
+
+Alertmanager reads the token from a file mount at `/etc/alertmanager/secrets/alertmanager-incidentio/token`.
+
+### Where to find the tokens
+
+If you need to rotate or re-create a token:
+
+1. Go to https://app.incident.io/unkey/settings/alert-sources
+2. Click the source (e.g. "Alertmanager (Production)")
+3. The `secret_token` is shown in the source config
+
+Then update the AWS secret:
+
+```bash
+aws secretsmanager put-secret-value \
+  --secret-id "unkey/alertmanager-incident-io" \
+  --secret-string "{\"alert_source_token\": \"${NEW_TOKEN}\"}" \
+  --region us-east-1 \
+  --profile "${AWS_PROFILE}"
+```
+
+External Secrets polls every hour (`refreshInterval: 1h`). To force an immediate sync:
+
+```bash
+kubectl annotate externalsecret alertmanager-incidentio -n monitoring \
+  force-sync=$(date +%s) --overwrite
+```
+
+Then restart Alertmanager to pick up the new token:
+
+```bash
+kubectl delete pod -n monitoring -l app.kubernetes.io/name=alertmanager
+```
+
+### Alert source URLs
+
+Each environment's Alertmanager points to a different incident.io alert source. The URL is in the Alertmanager config under `incidentio_configs`:
+
+| Environment | Alert source | URL |
+|-------------|-------------|-----|
+| Production | Alertmanager (Production) | `https://api.incident.io/v2/alert_events/alertmanager/01KHSNW67SZJ1KGWEMA9C0GPT7` |
+| Staging | Alertmanager (Staging) | `https://api.incident.io/v2/alert_events/alertmanager/01KH7FNXWPMH6KPCQTYJJY947G` |
+| Production | Checkly (Production) | `https://api.incident.io/v2/alert_events/checkly/01HZ7GE7CASMF15RWV1QFCMKTQ` |
+| Staging | Checkly (Staging) | `https://api.incident.io/v2/alert_events/checkly/01KKZJERF1HQFJRE3XWFZ0NV19` |
+
+The base values file (`values.yaml`) defaults to the staging Alertmanager source. Production environment files override this to point to the production source. Checkly sources are configured via webhook alert channels in the Checkly UI — see [Checkly](/infra/observability/checkly).
+
+## API reference
+
+The incident.io API docs are at https://docs.incident.io/api-reference/introduction. The alert routes endpoints you'll mostly use:
+
+- `GET /v2/alert_routes/{id}` — get a route's full config (including the `version` field you need for updates)
+- `PUT /v2/alert_routes/{id}` — update a route (requires `version: current_version + 1`)
+- `POST /v2/alert_routes` — create a new route
+- `GET /v2/alert_routes?page_size=25` — list all routes
+
+The PUT version field is annoying — the list endpoint returns stale version numbers, so always fetch from the detail endpoint before updating.
+
+## Backing up route configs
+
+Before making changes, dump the current state so you can restore if something goes wrong. There's a script for this:
+
+```bash
+INCIDENT_IO_TOKEN="inc_..." ./contrib/backup-incident-io.sh
+```
+
+By default it writes to `backups/incident.io/`. You can pass a different directory as the first argument:
+
+```bash
+INCIDENT_IO_TOKEN="inc_..." ./contrib/backup-incident-io.sh /tmp/my-backup
+```
+
+Backups are JSON and should be committed to the repo so we have a record of the state.
+
+### Restoring
+
+```bash
+INCIDENT_IO_TOKEN="inc_..." ./contrib/restore-incident-io.sh
+```
+
+It reads from `backups/incident.io/` by default (or pass a different directory), shows you what it's about to restore, and asks for confirmation before overwriting anything. It handles the version bookkeeping automatically.

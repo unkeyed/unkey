@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "luma",
+  "theme": "aspen",
   "name": "engineering",
   "colors": {
     "primary": "#8B6914",
@@ -94,7 +94,8 @@
                           "architecture/services/control-plane/worker/workflows/routing",
                           "architecture/services/control-plane/worker/workflows/certificates",
                           "architecture/services/control-plane/worker/workflows/custom-domains",
-                          "architecture/services/control-plane/worker/workflows/github-app"
+                          "architecture/services/control-plane/worker/workflows/github-app",
+                          "architecture/services/control-plane/worker/workflows/key-last-used-sync"
                         ]
                       }
                     ]
@@ -188,28 +189,72 @@
         "tab": "Infra",
         "groups": [
           {
-            "group": "Infra Repo",
-            "expanded": true,
+            "group": "Infra",
+            "pages": ["infra/index","infra/infra-work"]
+          },
+          {
+            "group": "Clusters",
             "pages": [
-              "infra/alerting",
-              "infra/argocd-debugging",
-              "infra/aws-secrets",
-              "infra/cluster-create-new",
-              "infra/cluster-delete",
-              "infra/howto-schedule",
-              "infra/incident-io",
-              "infra/infra-work",
-              "infra/networks",
+              "infra/clusters/kubeconfig",
+              "infra/clusters/create-region",
+              "infra/clusters/delete-cluster",
+              "infra/clusters/networks",
+              "infra/clusters/scheduling"
+            ]
+          },
+          {
+            "group": "Observability",
+            "pages": [
+              "infra/observability/alerting",
+              "infra/observability/checkly",
+              "infra/observability/incident-io"
+            ]
+          },
+          {
+            "group": "Deployments",
+            "pages": [
+              "infra/deployments/argocd-debugging",
+              "infra/deployments/cronjobs"
+            ]
+          },
+          {
+            "group": "Secrets",
+            "pages": ["infra/secrets/aws-secrets"]
+          },
+          {
+            "group": "ClickHouse",
+            "pages": [
+              "infra/clickhouse/index",
               {
-                "group": "legacy-2025",
+                "group": "Roles",
                 "pages": [
-                  "infra/legacy-2025/github-oidc",
-                  "infra/legacy-2025/githubactionsdeployrole-setup",
-                  "infra/legacy-2025/pulumi-iac-esc",
-                  "infra/legacy-2025/pulumi-infrastructure-architecture",
-                  "infra/legacy-2025/pulumi-workflow"
+                  "infra/clickhouse/roles/grafana-readonly",
+                  "infra/clickhouse/roles/insertonly-role",
+                  "infra/clickhouse/roles/readonly-role"
+                ]
+              },
+              {
+                "group": "Users",
+                "pages": [
+                  "infra/clickhouse/users/apiv2",
+                  "infra/clickhouse/users/github",
+                  "infra/clickhouse/users/grafana",
+                  "infra/clickhouse/users/sentinel",
+                  "infra/clickhouse/users/unkey-admin",
+                  "infra/clickhouse/users/vector",
+                  "infra/clickhouse/users/vercel-dashboard"
                 ]
               }
+            ]
+          },
+          {
+            "group": "Legacy (2025)",
+            "pages": [
+              "infra/legacy-2025/github-oidc",
+              "infra/legacy-2025/github-actions-deploy-role-setup",
+              "infra/legacy-2025/pulumi-iac-esc",
+              "infra/legacy-2025/pulumi-infrastructure-architecture",
+              "infra/legacy-2025/pulumi-workflow"
             ]
           }
         ]
@@ -217,7 +262,7 @@
     ]
   },
   "styling": {
-    "eyebrows": "section",
+    "eyebrows": "breadcrumbs",
     "codeblocks": {
       "theme": "kanagawa-wave"
     }
@@ -239,11 +284,6 @@
         "href": "https://github.com/unkeyed/unkey"
       }
     ]
-  },
-  "redirects": [
-    {
-      "source": "/architecture/services/sentinel/policies",
-      "destination": "/architecture/services/sentinel/policies/index"
-    }
-  ]
+  }
+
 }

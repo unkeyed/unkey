@@ -1,0 +1,88 @@
+---
+title: grafana_readonly
+---
+
+Principle of least privilege: only the specific columns Grafana actually queries are granted, not full table access.
+If a new Grafana dashboard needs additional columns, add them here explicitly.
+```sql
+CREATE ROLE IF NOT EXISTS grafana_readonly;
+
+-- Cluster topology
+GRANT SELECT(
+    cluster, shard_num, replica_num, host_name, host_address,
+    port, is_local, errors_count, slowdowns_count
+) ON system.clusters TO grafana_readonly;
+
+-- Ongoing merges
+GRANT SELECT(
+    database, `table`, elapsed, progress, is_mutation, partition_id,
+    result_part_path, source_part_paths, num_parts,
+    total_size_bytes_compressed, bytes_read_uncompressed,
+    bytes_written_uncompressed, columns_written, memory_usage, thread_id
+) ON system.merges TO grafana_readonly;
+
+-- Mutations
+GRANT SELECT(
+    database, `table`, mutation_id, parts_to_do_names,
+    command, create_time, is_done,
+    latest_failed_part, latest_fail_time, latest_fail_reason
+) ON system.mutations TO grafana_readonly;
+
+-- Replication status
+GRANT SELECT(
+    database, `table`, queue_size, absolute_delay,
+    is_leader, is_readonly, inserts_in_queue, merges_in_queue
+) ON system.replicas TO grafana_readonly;
+
+-- Disk usage
+GRANT SELECT(name, path, free_space, total_space)
+  ON system.disks TO grafana_readonly;
+
+-- Part metadata
+GRANT SELECT(
+    database, `table`, partition, partition_id, bytes_on_disk,
+    data_uncompressed_bytes, rows, active, modification_time, name,
+    part_type, level, disk_name, path, marks, refcount,
+    min_block_number, max_block_number
+) ON system.parts TO grafana_readonly;
+
+-- Detached parts
+GRANT SELECT(database, `table`, partition_id, name, disk, level)
+  ON system.detached_parts TO grafana_readonly;
+
+-- Dictionary health
+GRANT SELECT(source, type, status)
+  ON system.dictionaries TO grafana_readonly;
+
+-- Metric logs (accessed via merge('system', '^metric_log'))
+-- Full SELECT needed because merge() table function requires table-level access
+GRANT SELECT ON system.metric_log TO grafana_readonly;
+GRANT SELECT ON system.metric_log_1 TO grafana_readonly;
+GRANT SELECT ON system.metric_log_2 TO grafana_readonly;
+GRANT SELECT ON system.metric_log_3 TO grafana_readonly;
+
+-- Async metric logs (accessed via merge('system', '^asynchronous_metric_log'))
+GRANT SELECT ON system.asynchronous_metric_log TO grafana_readonly;
+GRANT SELECT ON system.asynchronous_metric_log_1 TO grafana_readonly;
+GRANT SELECT ON system.asynchronous_metric_log_2 TO grafana_readonly;
+GRANT SELECT ON system.asynchronous_metric_log_3 TO grafana_readonly;
+
+-- Query log (performance dashboards)
+GRANT SELECT(
+    event_time, query_start_time, query_duration_ms, type,
+    initial_user, query_kind, query_id, query, normalized_query_hash,
+    memory_usage, read_rows, read_bytes, written_rows, written_bytes,
+    result_rows, result_bytes
+) ON system.query_log TO grafana_readonly;
+
+-- Remote access for clusterAllReplicas() queries
+GRANT REMOTE ON *.* TO grafana_readonly;
+
+-- ============================================================
+-- Assign to the grafana user and set as default
+-- ============================================================
+
+-- CREATE USER grafana IDENTIFIED WITH sha256_password BY '<password>';
+GRANT grafana_readonly TO grafana;
+SET DEFAULT ROLE grafana_readonly, readonly_role TO grafana;
+```

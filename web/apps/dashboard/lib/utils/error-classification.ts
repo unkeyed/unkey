@@ -16,6 +16,7 @@ export const EXPECTED_TRPC_CODES = [
   "NOT_FOUND",
   "TOO_MANY_REQUESTS",
   "BAD_REQUEST", // For validation errors
+  "CONFLICT", // For duplicate resource errors (e.g. workspace slug already exists)
 ] as const;
 
 /**
@@ -28,6 +29,7 @@ export const ERROR_SEVERITY_MAP = {
   NOT_FOUND: "info",
   TOO_MANY_REQUESTS: "warn",
   BAD_REQUEST: "warn",
+  CONFLICT: "warn",
   INTERNAL_SERVER_ERROR: "error",
 } as const;
 

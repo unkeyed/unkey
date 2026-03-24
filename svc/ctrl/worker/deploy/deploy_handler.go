@@ -15,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/uid"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
@@ -983,15 +982,22 @@ func (w *Workflow) initGitHubStatus(
 	}
 
 	repoConn, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.GithubRepoConnection, error) {
-		return db.Query.FindGithubRepoConnectionByAppId(runCtx, w.db.RO(), deployment.AppID)
+		found, findErr := db.Query.FindGithubRepoConnectionByAppId(runCtx, w.db.RO(), deployment.AppID)
+		if findErr != nil {
+			if db.IsNotFound(findErr) {
+				// No connection — return zero value, not an error.
+				// Returning an error here would cause Restate to retry forever.
+				return db.GithubRepoConnection{}, nil //nolint:exhaustruct
+			}
+			return db.GithubRepoConnection{}, findErr //nolint:exhaustruct
+		}
+		return found, nil
 	}, restate.WithName("find github repo connection"))
 	if err != nil {
-		if !mysql.IsNotFound(err) {
-			logger.Warn("failed to look up github repo connection, skipping deployment status reporting",
-				"app_id", deployment.AppID,
-				"error", err,
-			)
-		}
+		logger.Warn("failed to look up github repo connection, skipping deployment status reporting",
+			"app_id", deployment.AppID,
+			"error", err,
+		)
 
 		return reporter
 	}
@@ -999,8 +1005,8 @@ func (w *Workflow) initGitHubStatus(
 	if repoConn.InstallationID == 0 {
 		logger.Info("no github repo connection, skipping deployment status reporting",
 			"app_id", deployment.AppID,
-			"error", err,
 		)
+
 		return reporter
 	}
 
