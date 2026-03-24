@@ -1,6 +1,6 @@
 ---
 title: "March 23, 2026"
-description: "Key last-used tracking, deployment approvals, watch paths, on-demand deploys, and more."
+description: "Key last-used tracking, deployment approvals, watch paths, on-demand deploys, build-time env vars, and more."
 ---
 
 ## New features
@@ -24,6 +24,23 @@ You can now trigger a deployment manually from the dashboard by selecting a bran
 ### Deployment status on GitHub PRs
 
 Deployment progress is now reported directly to GitHub. You'll see status updates on your commits via the GitHub Deployments API, and a summary comment is posted to your pull request with a table showing the status of each app and environment.
+
+### Build-time environment variables
+
+Environment variables configured in the dashboard are now available during Docker image builds. Your variables are securely decrypted and mounted as a BuildKit secret, so you can access them in your Dockerfile without exposing them in the image layer history.
+
+To use build-time environment variables, mount the secret in your Dockerfile:
+
+```dockerfile
+RUN --mount=type=secret,id=env,target=/run/secrets/.env \
+    cat /run/secrets/.env
+```
+
+The file is formatted as a standard `.env` file with one `KEY=VALUE` pair per line. Multiline values (such as PEM certificates) are not supported in build-time variables.
+
+<Note>
+  Build-time variables are only available during the build step. They are not persisted in the final image and do not appear in your container's runtime environment. To use variables at runtime, configure them in your app's environment settings as before.
+</Note>
 
 ### Delete projects
 
