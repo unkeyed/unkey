@@ -39,6 +39,11 @@ type Session struct {
 	// and must set it before the metrics middleware finishes.
 	WorkspaceID string
 
+	// ExternalID identifies the end user in a portal session.
+	// Set by portalSessionAuth when a request is authenticated via a portal session token.
+	// Empty for non-portal requests (root key auth, regular key auth).
+	ExternalID string
+
 	requestBody    []byte
 	responseStatus int
 	responseBody   []byte
@@ -117,6 +122,12 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 // Returns an empty string if no authenticated workspace ID is available.
 func (s *Session) AuthorizedWorkspaceID() string {
 	return s.WorkspaceID
+}
+
+// AuthorizedExternalID returns the external user ID for portal-authenticated requests.
+// Returns an empty string for non-portal requests.
+func (s *Session) AuthorizedExternalID() string {
+	return s.ExternalID
 }
 
 // DisableClickHouseLogging prevents this request from being logged to ClickHouse.
@@ -515,6 +526,9 @@ func (s *Session) reset() {
 
 	s.w = nil
 	s.r = nil
+
+	s.WorkspaceID = ""
+	s.ExternalID = ""
 
 	s.requestBody = nil
 	s.responseStatus = 0

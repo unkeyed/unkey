@@ -21,6 +21,21 @@ type KeyService interface {
 
 	// CreateKey generates a new secure API key
 	CreateKey(ctx context.Context, req CreateKeyRequest) (CreateKeyResponse, error)
+
+	// GetPortalSession validates a portal session token and returns session info
+	// for scoping existing handlers by workspace and external user identity.
+	GetPortalSession(ctx context.Context, sess *zen.Session, token string) (*PortalSessionInfo, error)
+}
+
+// PortalSessionInfo contains the resolved identity from a portal browser session.
+// It provides workspace and user scoping for existing API handlers.
+type PortalSessionInfo struct {
+	WorkspaceID    string
+	ExternalID     string
+	PortalConfigID string
+	Permissions    []string
+	Metadata       map[string]any
+	Preview        bool
 }
 
 // VerifyResponse contains the result of a successful key verification.
