@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/unkeyed/unkey/internal/services/caches"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -25,20 +27,53 @@ func (s *service) GetPortalSession(ctx context.Context, sess *zen.Session, token
 		)
 	}
 
-	row, err := db.Query.FindValidPortalSession(ctx, s.db.RO(), token)
-	if err != nil {
-		if db.IsNotFound(err) {
+	// Use cache if available, otherwise fall back to direct DB query.
+	// The cache is optional because not all services (e.g., sentinel) need portal sessions.
+	var row db.PortalSession
+	var err error
+	if s.portalSessionCache != nil {
+		var hit cache.CacheHit
+		row, hit, err = s.portalSessionCache.SWR(ctx, token, func(ctx context.Context) (db.PortalSession, error) {
+			return db.Query.FindValidPortalSession(ctx, s.db.RO(), token)
+		}, caches.DefaultFindFirstOp)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return nil, fault.New("invalid or expired portal session",
+					fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+					fault.Internal("portal session not found or expired"),
+					fault.Public("The portal session is invalid or has expired."),
+				)
+			}
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error finding portal session"),
+				fault.Public("Failed to validate portal session."),
+			)
+		}
+
+		if hit == cache.Null {
 			return nil, fault.New("invalid or expired portal session",
 				fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
-				fault.Internal("portal session not found or expired"),
+				fault.Internal("portal session not found (cached null)"),
 				fault.Public("The portal session is invalid or has expired."),
 			)
 		}
-		return nil, fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error finding portal session"),
-			fault.Public("Failed to validate portal session."),
-		)
+	} else {
+		row, err = db.Query.FindValidPortalSession(ctx, s.db.RO(), token)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return nil, fault.New("invalid or expired portal session",
+					fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+					fault.Internal("portal session not found or expired"),
+					fault.Public("The portal session is invalid or has expired."),
+				)
+			}
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error finding portal session"),
+				fault.Public("Failed to validate portal session."),
+			)
+		}
 	}
 
 	var permissions []string
