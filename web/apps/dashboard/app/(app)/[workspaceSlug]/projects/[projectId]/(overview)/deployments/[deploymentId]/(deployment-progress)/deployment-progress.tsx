@@ -38,6 +38,20 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
 
   const { getDomainsForDeployment, projectId } = useProjectData();
 
+  // Fetch instance errors for the failed deployment banner.
+  // Only enabled when the deployment has failed so we don't waste queries on healthy deploys.
+  const { data: deploymentTree } = trpc.deploy.network.get.useQuery(
+    { deploymentId: deployment.id },
+    { enabled: isFailed },
+  );
+  const instanceErrors = isFailed
+    ? (deploymentTree?.children ?? [])
+        .flatMap((sentinel) => ("children" in sentinel && sentinel.children) ? sentinel.children : [])
+        .filter((inst) => inst.metadata.type === "instance" && "message" in inst.metadata && inst.metadata.message)
+        .map((inst) => (inst.metadata as { message: string }).message)
+        .filter((msg, i, arr) => arr.indexOf(msg) === i) // dedupe
+    : [];
+
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
     if (isFailed) {
@@ -210,6 +224,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
           redeployOpen={redeployOpen}
           onRedeployClose={() => setRedeployOpen(false)}
           deployment={deployment}
+          instanceErrors={instanceErrors}
         />
       )}
       {network?.completed && (
