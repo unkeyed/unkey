@@ -21,6 +21,11 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+// errInvalidSecretsConfig is returned when the encrypted environment variables
+// blob cannot be parsed. This is a permanent error — the data is malformed and
+// retrying will not help.
+var errInvalidSecretsConfig = errors.New("invalid secrets config")
+
 const (
 	// sentinelNamespace isolates sentinel resources from tenant namespaces to
 	// simplify RBAC and keep routing infrastructure separate from workloads.
@@ -1077,7 +1082,7 @@ func (w *Workflow) decryptEnvVars(ctx context.Context, encrypted []byte, environ
 
 	var secretsConfig ctrlv1.SecretsConfig
 	if err := protojson.Unmarshal(encrypted, &secretsConfig); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal secrets config: %w", err)
+		return nil, fmt.Errorf("%w: %w", errInvalidSecretsConfig, err)
 	}
 
 	bulkRes, err := w.vault.DecryptBulk(ctx, &vaultv1.DecryptBulkRequest{
