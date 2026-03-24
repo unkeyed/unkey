@@ -1,4 +1,4 @@
-package keys
+package portal
 
 import (
 	"context"
@@ -9,13 +9,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-func TestGetPortalSession_EmptyToken_ReturnsError(t *testing.T) {
+func TestGetSession_EmptyToken_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	s := &service{}
+	svc := &service{}
 	ctx := context.Background()
 
-	info, err := s.GetPortalSession(ctx, nil, "")
+	info, err := svc.GetSession(ctx, "")
 
 	require.Error(t, err)
 	require.Nil(t, info)
@@ -25,10 +25,10 @@ func TestGetPortalSession_EmptyToken_ReturnsError(t *testing.T) {
 	require.Equal(t, codes.Portal.Session.TokenMissing.URN(), code)
 }
 
-func TestPortalSessionInfo_FieldsExist(t *testing.T) {
+func TestSessionInfo_FieldsExist(t *testing.T) {
 	t.Parallel()
 
-	info := PortalSessionInfo{
+	info := SessionInfo{
 		WorkspaceID:    "ws_123",
 		ExternalID:     "user_456",
 		PortalConfigID: "pc_789",
@@ -45,10 +45,10 @@ func TestPortalSessionInfo_FieldsExist(t *testing.T) {
 	require.True(t, info.Preview)
 }
 
-func TestPortalSessionInfo_NilPermissionsAndMetadata(t *testing.T) {
+func TestSessionInfo_NilPermissionsAndMetadata(t *testing.T) {
 	t.Parallel()
 
-	info := PortalSessionInfo{
+	info := SessionInfo{
 		WorkspaceID:    "ws_123",
 		ExternalID:     "user_456",
 		PortalConfigID: "pc_789",

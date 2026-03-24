@@ -20,7 +20,6 @@ type Config struct {
 
 	KeyCache   cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
 	QuotaCache cache.Cache[string, db.Quotas]        // Cache for workspace quota lookups
-	PortalSessionCache cache.Cache[string, db.PortalSession] // Cache for portal session lookups
 }
 
 type service struct {
@@ -36,23 +35,19 @@ type service struct {
 
 	// workspace_id -> quota (for workspace rate limiting)
 	quotaCache cache.Cache[string, db.Quotas]
-
-	// session token -> portal session data
-	portalSessionCache cache.Cache[string, db.PortalSession]
 }
 
 // New creates a new keys service instance with the provided configuration.
 func New(config Config) (*service, error) {
 	return &service{
-		db:                 config.DB,
-		rbac:               config.RBAC,
-		rateLimiter:        config.RateLimiter,
-		usageLimiter:       config.UsageLimiter,
-		clickhouse:         config.Clickhouse,
-		region:             config.Region,
-		keyCache:           config.KeyCache,
-		quotaCache:         config.QuotaCache,
-		portalSessionCache: config.PortalSessionCache,
+		db:           config.DB,
+		rbac:         config.RBAC,
+		rateLimiter:  config.RateLimiter,
+		usageLimiter: config.UsageLimiter,
+		clickhouse:   config.Clickhouse,
+		region:       config.Region,
+		keyCache:     config.KeyCache,
+		quotaCache:   config.QuotaCache,
 	}, nil
 }
 

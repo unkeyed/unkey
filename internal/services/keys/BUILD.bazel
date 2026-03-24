@@ -9,7 +9,6 @@ go_library(
         "get_migrated.go",
         "interface.go",
         "options.go",
-        "portal_session.go",
         "service.go",
         "status.go",
         "validation.go",
@@ -47,7 +46,6 @@ go_test(
     srcs = [
         "create_test.go",
         "get_test.go",
-        "portal_session_test.go",
     ],
     embed = [":keys"],
     deps = [
