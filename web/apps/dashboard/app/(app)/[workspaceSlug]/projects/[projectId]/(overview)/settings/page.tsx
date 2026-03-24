@@ -1,5 +1,6 @@
 "use client";
 
+import { DeleteProject } from "./components/delete-project";
 import { DeploymentSettings } from "./deployment-settings";
 import { EnvironmentSettingsProvider } from "./environment-provider";
 import { PendingRedeployBanner } from "./pending-redeploy-banner";
@@ -17,6 +18,7 @@ export default function SettingsPage() {
         <DeploymentSettings />
       </div>
       <PendingRedeployBanner />
+      <DeleteProject />
     </EnvironmentSettingsProvider>
   );
 }

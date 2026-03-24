@@ -313,8 +313,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("Control plane clients initialized", "url", cfg.Control.URL)
 
+	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != "" && cfg.Pprof.Password != ""
 	var pprofUsername, pprofPassword string
-	if cfg.Pprof != nil {
+	if pprofEnabled {
 		pprofUsername = cfg.Pprof.Username
 		pprofPassword = cfg.Pprof.Password
 	}
@@ -329,7 +330,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Caches:               caches,
 		Vault:                vaultClient,
 		CtrlDeploymentClient: ctrlDeploymentClient,
-		PprofEnabled:         cfg.Pprof != nil,
+		PprofEnabled:         pprofEnabled,
 		PprofUsername:        pprofUsername,
 		PprofPassword:        pprofPassword,
 

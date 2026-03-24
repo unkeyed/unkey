@@ -16,7 +16,7 @@ import { SettingDescription } from "../shared/setting-description";
 const watchPathsSchema = z.object({
   paths: z.array(
     z.object({
-      value: z.string().min(1, "Pattern cannot be empty"),
+      value: z.string(),
     }),
   ),
 });
@@ -45,6 +45,7 @@ export const WatchPaths = () => {
     handleSubmit,
     formState: { isValid, isSubmitting, errors },
     control,
+    reset,
   } = useForm<WatchPathsForm>({
     resolver: zodResolver(watchPathsSchema),
     mode: "onChange",
@@ -76,6 +77,11 @@ export const WatchPaths = () => {
     [remove],
   );
 
+  const appendAndFocus = useCallback(() => {
+    append({ value: "" });
+    inputRefs.current.get(fields.length)?.focus();
+  }, [append, fields.length]);
+
   const currentPaths = useWatch({ control, name: "paths" });
   const currentValues = fromFormPaths(currentPaths ?? []);
   const hasChanges = changed(defaultPaths, currentValues);
@@ -91,9 +97,20 @@ export const WatchPaths = () => {
     updateAllEnvironments((draft) => {
       draft.watchPaths = watchPaths;
     });
+    reset({ paths: toFormPaths(watchPaths) });
   };
 
-  const displayValue = defaultPaths.length > 0 ? defaultPaths.join(", ") : "All files (no filter)";
+  const displayValue =
+    defaultPaths.length > 0 ? (
+      <span className="flex items-center gap-1 truncate">
+        <span className="truncate">{defaultPaths[0]}</span>
+        {defaultPaths.length > 1 && (
+          <span className="shrink-0 text-gray-9">+{defaultPaths.length - 1}</span>
+        )}
+      </span>
+    ) : (
+      "All files (no filter)"
+    );
 
   return (
     <FormSettingCard
@@ -106,7 +123,6 @@ export const WatchPaths = () => {
     >
       <div className="flex flex-col gap-2 w-full">
         {fields.map((field, index) => {
-          const isOnly = fields.length === 1;
           const { ref: rhfRef, ...fieldProps } = register(`paths.${index}.value`);
           return (
             <div key={field.id} className="flex items-start gap-2">
@@ -122,9 +138,9 @@ export const WatchPaths = () => {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    append({ value: "" });
+                    appendAndFocus();
                   }
-                  if (e.key === "Backspace" && !currentPaths?.[index]?.value && !isOnly) {
+                  if (e.key === "Backspace" && !currentPaths?.[index]?.value) {
                     e.preventDefault();
                     removeAndFocus(index);
                   }
@@ -132,18 +148,15 @@ export const WatchPaths = () => {
               />
               <RemoveButton
                 onClick={() => removeAndFocus(index)}
-                className={cn(
-                  "shrink-0 transition-opacity duration-150",
-                  isOnly ? "opacity-0 pointer-events-none" : "opacity-100",
-                )}
+                className={cn("shrink-0 transition-opacity duration-150")}
               />
             </div>
           );
         })}
         <button
           type="button"
-          className="flex items-center gap-1.5 text-gray-9 hover:text-gray-11 text-sm transition-colors w-fit"
-          onClick={() => append({ value: "" })}
+          className="flex items-center gap-1.5 text-gray-11 hover:text-gray-12 text-sm transition-colors w-fit cursor-pointer"
+          onClick={appendAndFocus}
         >
           <Plus iconSize="sm-regular" />
           Add pattern

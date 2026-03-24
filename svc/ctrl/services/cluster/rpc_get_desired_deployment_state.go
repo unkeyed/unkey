@@ -84,6 +84,21 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 			Command:                       deployment.Command,
 			Port:                          deployment.Port,
 			ShutdownSignal:                string(deployment.ShutdownSignal),
+			EnvironmentSlug:               &deployment.EnvironmentSlug,
+			Region:                        &deployment.Region,
+		}
+
+		if deployment.GitCommitSha.Valid {
+			apply.GitCommitSha = &deployment.GitCommitSha.String
+		}
+		if deployment.GitBranch.Valid {
+			apply.GitBranch = &deployment.GitBranch.String
+		}
+		if deployment.GitCommitMessage.Valid {
+			apply.GitCommitMessage = &deployment.GitCommitMessage.String
+		}
+		if deployment.GitRepo.Valid {
+			apply.GitRepo = &deployment.GitRepo.String
 		}
 
 		if deployment.Healthcheck.Valid {

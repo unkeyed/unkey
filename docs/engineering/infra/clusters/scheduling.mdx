@@ -1,0 +1,72 @@
+---
+title: Scheduling Workloads
+description: Node groups, taints, and pod scheduling.
+---
+
+## Nodegroups
+
+| Name | Instance Type | Purpose | Taint |
+|------|---------------|---------|-------|
+| `unkey` | c7a.xlarge | Infrastructure, control plane, Unkey services | `node-class=unkey:NoSchedule` |
+| `untrusted` | c7a.4xlarge | Untrusted customer workloads (isolated) | `node-class=untrusted:NoSchedule` |
+
+All nodegroups are tainted. Pods must have correct `nodeSelector` and `tolerations`.
+
+## YAML Configuration
+
+### unkey
+
+Infrastructure and Unkey services (ArgoCD, cert-manager, control, gw, krane, restate, etc.)
+
+```yaml
+spec:
+  nodeSelector:
+    node-class: unkey
+  tolerations:
+    - key: node-class
+      operator: Equal
+      value: unkey
+      effect: NoSchedule
+```
+
+### untrusted
+
+Untrusted customer workloads only. No persistent volumes, no AWS identity.
+
+```yaml
+spec:
+  nodeSelector:
+    node-class: untrusted
+  tolerations:
+    - key: node-class
+      operator: Equal
+      value: untrusted
+      effect: NoSchedule
+```
+
+Only `kube-proxy` and `vpc-cni` run on untrusted nodes.
+
+## Troubleshooting
+
+Pod stuck in pending? Check nodeSelector and tolerations:
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+Look for:
+- `0/X nodes are available: X node(s) had taints that the pod didn't tolerate`
+- `0/X nodes are available: X node(s) didn't match Pod's node affinity/selector`
+
+Other useful commands:
+
+```bash
+# nodes with labels
+kubectl get nodes --show-labels
+
+# taints on a node
+kubectl describe node <node-name> | grep -A5 Taints
+
+# pods on a specific node
+kubectl get pods -A -o wide --field-selector spec.nodeName=<node-name>
+```
