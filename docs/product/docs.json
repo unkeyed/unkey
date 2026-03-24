@@ -71,6 +71,7 @@
             "group": "Changelog",
             "icon": "clock-rotate-left",
             "pages": [
+              "changelog/2026-03-24",
               "changelog/2026-03-23"
             ]
           },

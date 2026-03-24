@@ -1,0 +1,14 @@
+---
+title: "March 24, 2026"
+description: "Stopped status for idle deployments."
+---
+
+## New features
+
+### Stopped status for idle deployments
+
+Deployments that have been spun down now show a **Stopped** status instead of remaining in their previous state. When all instances of a deployment are removed and its desired state is standby or archived, the deployment automatically transitions to `stopped`.
+
+You can see the stopped status in the dashboard deployment list, filter deployments by it, and redeploy stopped deployments directly.
+
+The `STOPPED` status is also returned by the [deployment API](/api-reference/v2/overview), so you can programmatically detect when a deployment has been idled.
