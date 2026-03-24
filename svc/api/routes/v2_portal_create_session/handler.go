@@ -59,22 +59,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	if req.ExternalID == "" {
-		return fault.New("externalId is required",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("missing externalId"),
-			fault.Public("externalId is required."),
-		)
-	}
-
-	if len(req.Permissions) == 0 {
-		return fault.New("permissions is required",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("missing permissions"),
-			fault.Public("permissions array is required."),
-		)
-	}
-
 	workspaceID := auth.AuthorizedWorkspaceID
 
 	portalConfig, err := db.Query.FindPortalConfigByWorkspaceID(ctx, h.DB.RO(), workspaceID)
