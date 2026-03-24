@@ -34,7 +34,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
 		ID:          portalConfigID,
 		WorkspaceID: workspaceID,
-		KeyAuthID:   sql.NullString{Valid: true, String: "ks_test"},
+		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
 		Enabled:     true,
 		CreatedAt:   now,
 	})
@@ -44,7 +44,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		ID:                       uid.New(uid.FrontlineRoutePrefix),
 		PortalConfigID:           sql.NullString{Valid: true, String: portalConfigID},
 		PathPrefix:               sql.NullString{Valid: true, String: "/portal"},
-		FullyQualifiedDomainName: "test.unkey.com",
+		FullyQualifiedDomainName: fmt.Sprintf("test-400-%s.unkey.com", uid.New(uid.TestPrefix)),
 		CreatedAt:                now,
 	})
 	require.NoError(t, err)

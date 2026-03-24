@@ -279,10 +279,10 @@ func (s *Service) onVerificationSuccess(
 
 		return restate.Void{}, db.Query.InsertFrontlineRoute(stepCtx, s.db.RW(), db.InsertFrontlineRouteParams{
 			ID:                       uid.New(uid.FrontlineRoutePrefix),
-			ProjectID:                dom.ProjectID,
-			AppID:                    dom.AppID,
-			DeploymentID:             deploymentID,
-			EnvironmentID:            dom.EnvironmentID,
+			ProjectID:                sql.NullString{Valid: true, String: dom.ProjectID},
+			AppID:                    sql.NullString{Valid: true, String: dom.AppID},
+			DeploymentID:             sql.NullString{Valid: deploymentID != "", String: deploymentID},
+			EnvironmentID:            sql.NullString{Valid: true, String: dom.EnvironmentID},
 			FullyQualifiedDomainName: dom.Domain,
 			Sticky:                   db.FrontlineRoutesStickyLive,
 			CreatedAt:                now,

@@ -38,8 +38,10 @@ func TestCreateSessionUnauthorized(t *testing.T) {
 		headers := http.Header{
 			"Content-Type": {"application/json"},
 		}
-		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
-		require.Equal(t, 401, res.Status)
+		// OpenAPI validation middleware returns 400 for missing required security header
+		// before the handler runs. This matches the pattern across all v2 endpoints.
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)
 	})
 }

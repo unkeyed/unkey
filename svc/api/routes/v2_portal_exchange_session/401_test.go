@@ -31,7 +31,7 @@ func TestExchangeSessionUnauthorized(t *testing.T) {
 	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
 		ID:          portalConfigID,
 		WorkspaceID: workspaceID,
-		KeyAuthID:   sql.NullString{Valid: true, String: "ks_test"},
+		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
 		Enabled:     true,
 		CreatedAt:   now,
 	})

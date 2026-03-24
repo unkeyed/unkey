@@ -29,12 +29,12 @@ func TestCreateSessionSuccess(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	portalConfigID := uid.New(uid.PortalConfigPrefix)
 	now := time.Now().UnixMilli()
-	fqdn := "test-success.unkey.com"
+	fqdn := fmt.Sprintf("test-success-%s.unkey.com", uid.New(uid.TestPrefix))
 
 	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
 		ID:          portalConfigID,
 		WorkspaceID: workspaceID,
-		KeyAuthID:   sql.NullString{Valid: true, String: "ks_test"},
+		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
 		Enabled:     true,
 		CreatedAt:   now,
 	})

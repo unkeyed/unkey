@@ -41,7 +41,7 @@ func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, er
 		return RouteDecision{}, err
 	}
 
-	instances, err := s.getInstances(ctx, route.DeploymentID)
+	instances, err := s.getInstances(ctx, route.DeploymentID.String)
 	if err != nil {
 		routingErrorsTotal.WithLabelValues("instance_load_failed").Inc()
 		return RouteDecision{}, err

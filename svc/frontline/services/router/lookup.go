@@ -42,8 +42,8 @@ func (s *service) lookupByHostname(ctx context.Context, hostname string) (db.Fin
 		return db.FindFrontlineRouteByFQDNRow{}, nil, err
 	}
 
-	sentinels, _, err := s.sentinelsByEnvironmentCache.SWR(ctx, route.EnvironmentID, func(ctx context.Context) ([]db.FindHealthyRoutableSentinelsByEnvironmentIDRow, error) {
-		return s.db.FindHealthyRoutableSentinelsByEnvironmentID(ctx, route.EnvironmentID)
+	sentinels, _, err := s.sentinelsByEnvironmentCache.SWR(ctx, route.EnvironmentID.String, func(ctx context.Context) ([]db.FindHealthyRoutableSentinelsByEnvironmentIDRow, error) {
+		return s.db.FindHealthyRoutableSentinelsByEnvironmentID(ctx, route.EnvironmentID.String)
 	}, internalCaches.DefaultFindFirstOp)
 
 	if err != nil && !mysql.IsNotFound(err) {

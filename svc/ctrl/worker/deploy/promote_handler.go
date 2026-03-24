@@ -132,7 +132,7 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 	// Get all frontlineRoutes for promotion
 	frontlineRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRouteForPromotionRow, error) {
 		return db.Query.FindFrontlineRouteForPromotion(stepCtx, w.db.RO(), db.FindFrontlineRouteForPromotionParams{
-			EnvironmentID: targetDeployment.EnvironmentID,
+			EnvironmentID: sql.NullString{Valid: true, String: targetDeployment.EnvironmentID},
 			Sticky: []db.FrontlineRoutesSticky{
 				db.FrontlineRoutesStickyLive,
 				db.FrontlineRoutesStickyEnvironment,
