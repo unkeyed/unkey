@@ -25,6 +25,14 @@ You can now trigger a deployment manually from the dashboard by selecting a bran
 
 Deployment progress is now reported directly to GitHub. You'll see status updates on your commits via the GitHub Deployments API, and a summary comment is posted to your pull request with a table showing the status of each app and environment.
 
+### Stopped status for idle deployments
+
+Deployments that have been scaled down to zero instances now show a **Stopped** status instead of remaining in their previous state. This happens automatically when a deployment with an idle timeout is spun down because it has no running instances — for example, when the deployment's desired state is `standby` or `archived`.
+
+You can filter deployments by the `Stopped` status in the dashboard to see which deployments are currently idle. Stopped deployments resume automatically when they receive traffic.
+
+The `STOPPED` status is also available in the [API response](/api-reference/v2/overview) when retrieving deployment details.
+
 ### Delete projects
 
 You can now delete projects from the dashboard. This removes the project and all associated apps, environments, and deployments.
