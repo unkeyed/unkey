@@ -2,7 +2,6 @@ package keys
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -76,26 +75,22 @@ func (s *service) GetPortalSession(ctx context.Context, sess *zen.Session, token
 		}
 	}
 
-	var permissions []string
-	if row.Permissions != nil {
-		if err := json.Unmarshal(row.Permissions, &permissions); err != nil {
-			return nil, fault.Wrap(err,
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("failed to unmarshal portal session permissions"),
-				fault.Public("An internal error occurred."),
-			)
-		}
+	permissions, err := db.UnmarshalNullableJSONTo[[]string](row.Permissions)
+	if err != nil {
+		return nil, fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("failed to unmarshal portal session permissions"),
+			fault.Public("An internal error occurred."),
+		)
 	}
 
-	var metadata map[string]any
-	if row.Metadata != nil {
-		if err := json.Unmarshal(row.Metadata, &metadata); err != nil {
-			return nil, fault.Wrap(err,
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("failed to unmarshal portal session metadata"),
-				fault.Public("An internal error occurred."),
-			)
-		}
+	metadata, err := db.UnmarshalNullableJSONTo[map[string]any](row.Metadata)
+	if err != nil {
+		return nil, fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("failed to unmarshal portal session metadata"),
+			fault.Public("An internal error occurred."),
+		)
 	}
 
 	sess.WorkspaceID = row.WorkspaceID
