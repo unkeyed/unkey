@@ -1,6 +1,6 @@
 ---
 title: Policies
-description: Policies are configurable rules that the Sentinel evaluates on every request before forwarding it to your service.
+description: Policies are configurable rules that the Sentinel evaluates on every request before forwarding it to your app.
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
@@ -31,7 +31,7 @@ The Sentinel evaluates policies in the order they appear in the configuration:
 3. Execute the policy action. If the action rejects the request, return an error response immediately.
 4. Move to the next policy.
 
-If all matching policies pass, the Sentinel forwards the request to your service.
+If all matching policies pass, the Sentinel forwards the request to your app.
 
 Order matters. Place authentication policies before policies that depend on an authenticated identity (for example, rate limiting by authenticated subject).
 
@@ -70,10 +70,9 @@ To create OR conditions, create separate policies with the same action but diffe
 
 | Type                                                                   | Status      | Description                                                |
 | ---------------------------------------------------------------------- | ----------- | ---------------------------------------------------------- |
-| [API key authentication](/platform/sentinel/policies/api-key)          | Available   | Verify Unkey API keys and forward identity to your service  |
+| [API key authentication](/platform/sentinel/policies/api-key)          | Available   | Verify Unkey API keys and forward identity to your app  |
 | [Logging](/platform/sentinel/policies/logging)                         | Available   | Record full HTTP requests and responses for debugging        |
 | [JWT authentication](/platform/sentinel/policies/jwt)                  | Coming soon | Validate Bearer JWTs using JWKS, OIDC, or PEM public keys  |
-| [Basic authentication](/platform/sentinel/policies/basic)              | Coming soon | Verify HTTP Basic credentials                               |
 | [Rate limiting](/platform/sentinel/policies/rate-limiting)             | Coming soon | Enforce per-IP, per-key, or per-subject rate limits         |
 | [IP rules](/platform/sentinel/policies/ip-rules)                       | Coming soon | Allow or deny requests based on CIDR ranges                 |
 | [OpenAPI validation](/platform/sentinel/policies/openapi-validation)   | Coming soon | Validate requests against an OpenAPI 3.0/3.1 specification |

@@ -5,6 +5,19 @@
     "light": "#999999",
     "primary": "#666666"
   },
+  "styling": {
+    "eyebrows": "breadcrumbs",
+    "codeblocks": {
+      "theme": "kanagawa-wave"
+    }
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "background": {
+    "decoration": "gradient"
+  },
+ 
   "contextual": {
     "options": ["copy", "view", "chatgpt", "claude"]
   },
@@ -81,10 +94,6 @@
                 ]
               },
               {
-                "group": "Apps",
-                "pages": ["platform/apps/overview", "platform/apps/settings"]
-              },
-              {
                 "group": "Identities",
                 "pages": [
                   "platform/identities/overview",
@@ -123,13 +132,38 @@
               },
               {
                 "group": "Projects",
-                "pages": ["platform/projects/overview"]
+                "pages": [
+                  "platform/projects/overview",
+                  "platform/projects/settings"
+                ]
+              },
+              {
+                "group": "Apps",
+                "pages": [
+                  "platform/apps/overview",
+                  "platform/apps/settings"
+                ]
               },
               {
                 "group": "Sentinel",
                 "pages": [
                   "platform/sentinel/overview",
-                  "platform/sentinel/authentication",
+                  {
+                    "group": "Authentication",
+                    "pages": [
+                      "platform/sentinel/authentication",
+                      "platform/sentinel/principal/overview",
+                      {
+                        "group": "Sources",
+                        "pages": [
+                          "platform/sentinel/principal/sources/api-key",
+                          "platform/sentinel/principal/sources/jwt"
+                        ]
+                      },
+                      "platform/sentinel/principal/examples",
+                      "platform/sentinel/principal/local-development"
+                    ]
+                  },
                   {
                     "group": "Policies",
                     "pages": [
@@ -137,7 +171,6 @@
                       "platform/sentinel/policies/api-key",
                       "platform/sentinel/policies/logging",
                       "platform/sentinel/policies/jwt",
-                      "platform/sentinel/policies/basic",
                       "platform/sentinel/policies/rate-limiting",
                       "platform/sentinel/policies/ip-rules",
                       "platform/sentinel/policies/openapi-validation"

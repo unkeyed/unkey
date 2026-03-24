@@ -7,7 +7,7 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-The rate limiting policy enforces request limits on any route that matches the policy's [match expressions](/platform/sentinel/policies/overview#match-expressions). Requests that exceed a configured limit receive a `429` response, protecting your service from traffic spikes and abuse.
+The rate limiting policy enforces request limits on any route that matches the policy's [match expressions](/platform/sentinel/policies/overview#match-expressions). Requests that exceed a configured limit receive a `429` response, protecting your app from traffic spikes and abuse.
 
 Each rate limit policy specifies a maximum number of requests within a time window (for example, 100 requests per 60 seconds) and a subject that identifies the entity being limited.
 
@@ -19,9 +19,9 @@ The subject determines how the Sentinel groups requests for counting:
 | --------------------- | ------------------------------------------------------------------------------------------------- |
 | Remote IP             | Limit by client IP address                                                                         |
 | Header value          | Limit by a specific request header (for example, `X-Tenant-Id`)                                   |
-| Authenticated subject | Limit by the authenticated [Principal's](/platform/sentinel/authentication#the-principal) identity  |
+| Authenticated subject | Limit by the authenticated [Principal's](/platform/sentinel/principal/overview) `subject` field     |
 | URL path              | Create separate limits per endpoint                                                                |
-| Principal claim       | Limit by a specific claim from the Principal (for example, `org_id` for per-organization limits)   |
+| Source field           | Limit by a field from the Principal's source (for example, `source.key.meta.org_id` for per-organization limits) |
 
 ## Response headers
 
@@ -52,4 +52,4 @@ When a rate limit is exceeded, the Sentinel returns HTTP status `429 Too Many Re
 }
 ```
 
-Your service never sees rate-limited requests.
+Your app never sees rate-limited requests.

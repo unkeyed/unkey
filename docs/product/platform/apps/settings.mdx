@@ -1,16 +1,228 @@
 ---
 title: App settings
-description: Configure build, runtime, networking, and Sentinel settings for an app. Settings are scoped to an environment and take effect on the next deployment.
+description: Configure build, runtime, and advanced settings for an app. Settings are scoped per environment and take effect on the next deployment.
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-## TODO
+App settings control how Unkey builds and runs your service. Each [app](/platform/apps/overview) has its own settings, and most settings are scoped per environment so production and preview can differ. You can configure these during project creation or update them from the **Settings** tab in your project dashboard.
 
-- Build settings: Dockerfile path, build context, build arguments
-- Runtime settings: exposed port, health check endpoint, resource limits
-- Networking settings: public vs private, attached domains
-- Sentinel settings: which policies apply to this app
-- How settings are scoped per environment and take effect on next deployment
+<Note>
+  Most settings take effect on the next deployment. After saving changes, trigger a new deployment to apply them.
+</Note>
+
+## Build settings
+
+Build settings determine how Unkey turns your source code into a container image.
+
+### GitHub repository
+
+Connect a GitHub repository to trigger automatic deployments on push events. Pushes to the default branch deploy to production, and pushes to other branches deploy to preview environments. See [GitHub integration](/build-and-deploy/github) for details.
+
+### Root directory
+
+The build context directory where `COPY` and `ADD` commands in your Dockerfile are relative to. Defaults to the repository root (`.`).
+
+Set this when your Dockerfile lives in a subdirectory, for example `services/api`.
+
+### Dockerfile
+
+The path to the Dockerfile used for building your application. Unkey auto-detects Dockerfiles in your build context. If your Dockerfile has a non-standard name or location, select it from the dropdown or enter a custom path.
+
+Defaults to `Dockerfile` in the root directory.
+
+### Watch paths
+
+Glob patterns that control which file changes trigger a deployment. When configured, Unkey skips deployments if none of the changed files match any pattern.
+
+Leave empty to deploy on all changes. Examples:
+
+- `src/**` deploys only when files in the `src` directory change
+- `**/*.go` deploys only when Go files change
+
+You can add multiple patterns. A deployment triggers if any pattern matches a changed file.
+
+## Runtime settings
+
+Runtime settings control the resources and behavior of your running instances.
+
+### Regions
+
+Geographic regions where your app runs. You must select at least one region. Traffic routes to the nearest healthy region automatically. See [Regions](/build-and-deploy/regions) for the full list of available regions.
+
+Production and preview environments can have different region configurations.
+
+### Instances
+
+The number of instances running in each region. Defaults to 1.
+
+<Note>
+  During the beta, the maximum is 4 instances per region. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
+</Note>
+
+### Autoscaling
+
+<Note>
+  Autoscaling is not yet available in the dashboard. Contact [support@unkey.com](mailto:support@unkey.com) to configure autoscaling for your app.
+</Note>
+
+Unkey can automatically adjust the number of instances based on load. When configured, autoscaling uses these thresholds to decide when to add or remove instances:
+
+| Setting           | Description                                                        |
+| ----------------- | ------------------------------------------------------------------ |
+| Minimum replicas  | The fewest instances to keep running, even under zero load          |
+| Maximum replicas  | The most instances to scale to under peak load                      |
+| CPU threshold     | Target CPU utilization percentage that triggers scaling (0-100)     |
+| Memory threshold  | Target memory utilization percentage that triggers scaling (0-100)  |
+| RPS threshold     | Target requests-per-second percentage that triggers scaling (0-100) |
+
+When any threshold is exceeded, Unkey adds instances up to the maximum. When utilization drops below the threshold, Unkey removes instances down to the minimum.
+
+### CPU
+
+CPU allocation for each instance. Available options:
+
+| Option    | Millicores |
+| --------- | ---------- |
+| 1/4 vCPU  | 256        |
+| 1/2 vCPU  | 512        |
+| 1 vCPU    | 1,024      |
+| 2 vCPU    | 2,048      |
+
+Defaults to 1/4 vCPU.
+
+<Note>
+  During the beta, the maximum is 2 vCPU. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
+</Note>
+
+### Memory
+
+Memory allocation for each instance. Available options:
+
+- 256 MiB (default)
+- 512 MiB
+- 1 GiB
+- 2 GiB
+- 4 GiB
+
+<Note>
+  During the beta, the maximum is 4 GiB. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
+</Note>
+
+### Port
+
+The port your application listens on. Defaults to 8080. Must be between 1 and 65,535.
+
+### Command
+
+The command to start your application. This overrides the default `CMD` in your Dockerfile. Leave empty to use your image's default command.
+
+Arguments are split on whitespace. Example: `npm start`.
+
+### Shutdown signal
+
+The signal Unkey sends to your application when stopping an instance during deployments or scale-down. Defaults to `SIGTERM`.
+
+Supported signals:
+
+- `SIGTERM` (default)
+- `SIGINT`
+- `SIGQUIT`
+- `SIGKILL`
+
+Your application should handle the configured signal to shut down gracefully (close connections, flush buffers, finish in-progress requests). If the process doesn't exit within the shutdown timeout, Unkey sends `SIGKILL`.
+
+<Note>
+  The shutdown signal is not yet configurable in the dashboard. Contact [support@unkey.com](mailto:support@unkey.com) to change it from the default `SIGTERM`.
+</Note>
+
+### Health check
+
+An endpoint Unkey uses to verify your instances are healthy. When configured, Unkey sends periodic HTTP requests to the specified path and uses the response to determine instance health.
+
+| Setting           | Description                                                  | Default |
+| ----------------- | ------------------------------------------------------------ | ------- |
+| Method            | `GET` or `POST`                                               | `GET`   |
+| Path              | The endpoint path (must start with `/`)                       | -       |
+| Interval          | How often to check (for example, `30s`, `2m`, `1h`)           | -       |
+| Timeout           | How long to wait for a response before marking the check failed | 5s      |
+| Failure threshold | Consecutive failures before marking the instance unhealthy    | 3       |
+| Initial delay     | Time to wait after instance start before the first check      | 0s      |
+
+The health check endpoint must return a `2xx` status code to pass. After the failure threshold is reached, Unkey marks the instance as unhealthy and stops routing traffic to it.
+
+Health checks are optional. If you don't configure one, Unkey relies on process-level health monitoring.
+
+<Note>
+  Timeout, failure threshold, and initial delay are not yet configurable in the dashboard. Contact [support@unkey.com](mailto:support@unkey.com) to adjust these values.
+</Note>
+
+## Sentinel settings
+
+Sentinel settings control how [the Sentinel](/platform/sentinel/overview) processes requests before they reach your app.
+
+### Keyspaces
+
+Select one or more keyspaces to enforce API key authentication. When configured, the Sentinel verifies API keys against the selected keyspaces before requests reach your application. Requests with missing or invalid keys receive a `401` response.
+
+See [API key authentication](/platform/sentinel/policies/api-key) for details on how verification works and what your application receives via the [Principal header](/platform/sentinel/authentication#the-principal).
+
+### Policy configuration
+
+Each Sentinel policy has these fields:
+
+| Field     | Description                                                   |
+| --------- | ------------------------------------------------------------- |
+| Name      | Human-readable label for identification                        |
+| Enabled   | Toggle to disable the policy without removing its configuration |
+
+Keyspace authentication is the only policy type configurable from the dashboard. For other policy types (rate limiting, IP rules, OpenAPI validation), see [Policies](/platform/sentinel/policies/overview) and contact [support@unkey.com](mailto:support@unkey.com) for configuration.
+
+## Environment variables
+
+Encrypted key-value pairs injected into your instances at runtime. Variables are scoped to a specific environment, so production and preview can have different values.
+
+Each variable has a visibility type:
+
+| Type          | Description                                                                  |
+| ------------- | ---------------------------------------------------------------------------- |
+| Recoverable   | The value can be read back from the dashboard after saving                    |
+| Write-only    | The value is hidden after saving and cannot be retrieved from the dashboard   |
+
+Use write-only for secrets like API keys and database passwords. Use recoverable for non-sensitive configuration like feature flags and service URLs.
+
+You can add variables one at a time, paste them in bulk, or drag and drop a `.env` file. See [Variables](/platform/variables/overview) for details.
+
+## Networking settings
+
+### Custom domains
+
+Serve your deployment from your own domain name. Each custom domain is scoped to an environment and requires DNS verification before it becomes active.
+
+See [Custom domains](/networking/domains) for setup instructions, including DNS record configuration and verification.
+
+### OpenAPI spec path
+
+The server path where your application serves its OpenAPI specification (for example, `/openapi.yaml` or `/api/spec.json`). When set, Unkey fetches the spec from your running deployment for use with [OpenAPI validation](/platform/sentinel/policies/openapi-validation) and API documentation.
+
+Maximum length is 512 characters. Leave empty to disable spec discovery.
+
+## App-level settings
+
+These settings apply to the app itself, not to a specific environment.
+
+### Default branch
+
+The Git branch that maps to the production environment. Defaults to `main`. Unkey updates this automatically when you connect a GitHub repository.
+
+Pushes to the default branch trigger production deployments. Pushes to any other branch trigger preview deployments.
+
+### Delete protection
+
+When enabled, prevents the app from being deleted. You must disable delete protection before you can delete the app.
+
+<Note>
+  Delete protection is not yet configurable in the dashboard. Contact [support@unkey.com](mailto:support@unkey.com) to enable it.
+</Note>

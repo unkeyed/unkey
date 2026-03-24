@@ -1,16 +1,84 @@
 ---
 title: Apps
-description: An app is a deployable unit in Unkey Deploy that packages your source code, build configuration, and runtime settings into a single entity you can deploy and manage.
+description: An app is a deployable service within a project. Each app has its own environments, build configuration, and runtime settings.
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-## TODO
+An app represents a single deployable service within a [project](/platform/projects/overview). Each app has its own [environments](/environments/overview), build configuration, runtime settings, and deployment history. If you're familiar with Railway, an app fills a similar role to a Railway service.
 
-- What an app is — a deployable unit within a project
-- Creating an app and linking it to a Dockerfile
-- How apps relate to projects (many apps per project)
-- App-level configuration vs environment-level overrides
-- The app lifecycle: create, deploy, scale, archive
+## How apps fit in
+
+Apps sit between projects and environments in the Unkey Deploy hierarchy:
+
+```
+Workspace
+  └── Project (one per codebase)
+        └── App (one per service)
+              ├── Environments (production, preview)
+              │     ├── Deployments
+              │     ├── Variables
+              │     └── Custom domains
+              └── Settings (build, runtime, Sentinel)
+```
+
+A project can contain multiple apps. Each app has its own pair of default environments (production and preview), its own [build and runtime settings](/platform/apps/settings), and its own [Sentinel configuration](/platform/sentinel/overview).
+
+## Default app
+
+When you create a project, Unkey creates a default app automatically. For projects with a single service, this is all you need. The dashboard manages the default app transparently, so you interact with it through your project's **Settings** and **Deployments** tabs without selecting an app.
+
+## Multiple apps
+
+A project can contain multiple apps when your codebase produces more than one deployable service. For example, a monorepo might have an API server and a background worker that share the same repository but build and deploy independently.
+
+Each app in a multi-app project has:
+
+- Its own Dockerfile and build context
+- Its own runtime settings (CPU, memory, port, health check)
+- Its own environments and deployment history
+- Its own Sentinel policies
+
+<Note>
+  The dashboard does not yet support creating or managing multiple apps within a project. You can deploy to a specific app using the CLI. Contact [support@unkey.com](mailto:support@unkey.com) if you need multi-app projects configured.
+</Note>
+
+## Deploy to an app
+
+When deploying with the CLI, you can target a specific app using the `--app` flag:
+
+```bash
+unkey deploy ghcr.io/acme/api:v1.0.0 \
+  --project=acme-platform \
+  --app=api \
+  --env=production
+```
+
+The `--app` flag defaults to `default`, so you can omit it for single-app projects. You can also set the `UNKEY_APP` environment variable instead of passing the flag each time.
+
+## Environments
+
+Each app gets two environments when created:
+
+| Environment    | Purpose                                                        |
+| -------------- | -------------------------------------------------------------- |
+| **Production** | Serves live traffic. Gets three [Sentinel](/platform/sentinel/overview) replicas for high availability. |
+| **Preview**    | For testing branches before merging. Gets one Sentinel replica. |
+
+Environments are scoped to an app, not to the project. This means each app in a multi-app project has its own independent production and preview environments with separate [variables](/platform/variables/overview) and [custom domains](/networking/domains).
+
+See [Environments](/environments/overview) for details on how environments work.
+
+## Current deployment and rollbacks
+
+Each app tracks which deployment is live. When a deployment reaches the ready state, it becomes the current deployment, and [sticky domains](/networking/wildcard-domains) (live and environment-scoped) point to it automatically.
+
+You can [roll back](/build-and-deploy/rollbacks) to a previous deployment, which atomically switches traffic to the older version. The app tracks its rollback state so the dashboard can show whether you're running the latest deployment or a rolled-back version.
+
+## GitHub integration
+
+Each app can connect to a GitHub repository. Pushes to the default branch trigger production deployments, and pushes to other branches trigger preview deployments. See [GitHub integration](/build-and-deploy/github) for setup instructions.
+
+In a multi-app project, each app connects to the same repository but can use different Dockerfiles and [watch paths](/platform/apps/settings#watch-paths) to build independently.

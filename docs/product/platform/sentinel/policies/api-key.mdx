@@ -1,13 +1,13 @@
 ---
 title: API key authentication
-description: Verify Unkey API keys with the Sentinel and forward the authenticated identity to your service.
+description: Verify Unkey API keys with the Sentinel and forward the authenticated identity to your app.
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-The API key authentication policy verifies Unkey API keys before requests reach your service. On success, it produces a [Principal](/platform/sentinel/authentication#the-principal) containing the key's identity and metadata.
+The API key authentication policy verifies Unkey API keys before requests reach your app. On success, it produces a [Principal](/platform/sentinel/principal/overview) containing the key's identity, metadata, roles, and permissions.
 
 ## Configure API key authentication
 
@@ -18,7 +18,7 @@ To enable API key authentication for your deployment:
 3. Select one or more keyspaces to enforce.
 4. Save your changes.
 
-Once configured, the Sentinel verifies every incoming request against the selected keyspaces. Requests without a valid API key receive a `401` response and never reach your service.
+Once configured, the Sentinel verifies every incoming request against the selected keyspaces. Requests without a valid API key receive a `401` response and never reach your app.
 
 ## How verification works
 
@@ -31,7 +31,7 @@ The Sentinel extracts the API key from the `Authorization` header (as a Bearer t
 5. **Rate limits.** All rate limit configurations attached to the key are evaluated. See [rate limiting](/platform/sentinel/policies/rate-limiting) for details on response headers and behavior.
 6. **Permissions.** If a permission query is configured, the key must satisfy it.
 
-If all checks pass, the Sentinel produces a Principal and forwards the request with the `X-Unkey-Principal` header. See [Authentication](/platform/sentinel/authentication) for the header format and how to read it in your application.
+If all checks pass, the Sentinel produces a [Principal](/platform/sentinel/principal/overview) and forwards the request with the `X-Unkey-Principal` header. See the [API key source](/platform/sentinel/principal/sources/api-key) for the full list of fields your app receives, including roles, permissions, and key metadata.
 
 ## Additional configuration
 

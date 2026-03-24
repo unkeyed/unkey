@@ -11,7 +11,9 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
   JWT authentication is coming soon.
 </Note>
 
-The JWT authentication policy validates Bearer tokens from the `Authorization` header. On success, it produces a [Principal](/platform/sentinel/authentication#the-principal) from the token's claims, so your service receives a verified identity without validating tokens itself.
+The JWT authentication policy validates Bearer tokens from the `Authorization` header. On success, it produces a [Principal](/platform/sentinel/principal/overview) containing the full decoded token, so your app receives a verified identity without validating tokens itself. The Sentinel forwards the entire JWT payload as-is, preserving original claim names and types.
+
+This works with any identity provider that issues JWTs, including WorkOS, Clerk, and Auth0. See the [JWT source](/platform/sentinel/principal/sources/jwt) page for example payloads from each provider.
 
 ## Key verification methods
 
@@ -30,16 +32,17 @@ JWT authentication supports three ways to verify token signatures:
 | Issuer              | Required. Validate that the token's `iss` claim matches this value                                |
 | Audiences           | Validate that the token's `aud` claim contains at least one of the specified values               |
 | Algorithms          | Allowed signing algorithms (defaults to RS256). Prevents algorithm confusion attacks               |
-| Subject claim       | Which claim to use as the Principal's subject (defaults to `sub`)                                  |
-| Forward claims      | Additional claims to extract into the Principal's claims map                                       |
+| Subject claim       | Which claim to use as the Principal's `subject` (defaults to `sub`)                                |
 | Allow anonymous     | Allow requests without a Bearer token through (produces no Principal)                              |
 | Clock skew          | Tolerance in milliseconds for `exp` and `nbf` validation                                          |
 
 ## Principal output
 
-JWT authentication produces a Principal with:
+JWT authentication produces a [Principal](/platform/sentinel/principal/overview) with:
 
-- **subject**: The value of the configured subject claim (default: `sub`)
-- **claims**: Selected token claims as configured in the forward claims list
+- **`subject`**: The value of the configured subject claim (default: `sub`)
+- **`source.jwt.header`**: The decoded token header (`alg`, `typ`, `kid`)
+- **`source.jwt.payload`**: The full decoded token payload with all claims as-is
+- **`source.jwt.signature`**: The raw signature string from the token
 
-The Principal uses the same format as all authentication policies. See [Authentication](/platform/sentinel/authentication) for how to read it in your application.
+The Sentinel forwards every claim from the token without renaming or filtering. See the [JWT source](/platform/sentinel/principal/sources/jwt) for field details and provider-specific examples.

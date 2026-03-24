@@ -1,13 +1,13 @@
 ---
 title: Sentinel
-description: A Sentinel is a reverse proxy that sits in front of your deployment, enforcing policies on every request before it reaches your service.
+description: A Sentinel is a reverse proxy that sits in front of your deployment, enforcing policies on every request before it reaches your app.
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-A Sentinel is a reverse proxy that sits in front of your deployment. If you're familiar with API gateways, a Sentinel fills the same role: it processes every inbound request, enforces [policies](/platform/sentinel/policies/overview) like authentication and rate limiting, and only forwards traffic that passes all checks to your service.
+A Sentinel is a reverse proxy that sits in front of your deployment. If you're familiar with API gateways, a Sentinel fills the same role: it processes every inbound request, enforces [policies](/platform/sentinel/policies/overview) like authentication and rate limiting, and only forwards traffic that passes all checks to your app.
 
 ## Environment isolation
 
@@ -22,11 +22,11 @@ The Sentinel routes requests to instances in the same region. When multiple inst
 
 ## Policy enforcement
 
-When a request arrives at your deployment's URL, the Sentinel evaluates all configured [policies](/platform/sentinel/policies/overview) in order. If every policy passes, the Sentinel selects a healthy instance and forwards the request. If any policy rejects the request, the Sentinel returns an error response and your service never sees it.
+When a request arrives at your deployment's URL, the Sentinel evaluates all configured [policies](/platform/sentinel/policies/overview) in order. If every policy passes, the Sentinel selects a healthy instance and forwards the request. If any policy rejects the request, the Sentinel returns an error response and your app never sees it.
 
 All of the Sentinel's request processing is built on [policies](/platform/sentinel/policies/overview). The most common ones are:
 
-- [**Authentication**](/platform/sentinel/authentication): Verifies API keys before your code runs, and forwards the authenticated identity to your service via a request header
+- [**Authentication**](/platform/sentinel/authentication): Verifies API keys before your code runs, and forwards the authenticated identity to your app via a request header
 - [**Rate limiting**](/platform/sentinel/policies/rate-limiting): Enforces rate limits on specific routes or subjects, rejecting excess traffic before it reaches your instances
 - [**Logging**](/platform/sentinel/policies/logging): Records the full HTTP request and response, including headers and body, for debugging and observability
 
@@ -45,4 +45,4 @@ To configure API key authentication:
 3. Select one or more keyspaces to enforce.
 4. Save your changes.
 
-See [Authentication](/platform/sentinel/authentication) for details on the Principal header your service receives after successful verification.
+See [Authentication](/platform/sentinel/authentication) for details on the Principal header your app receives after successful verification.
