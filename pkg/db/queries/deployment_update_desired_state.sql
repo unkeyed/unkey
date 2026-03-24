@@ -1,4 +1,4 @@
 -- name: UpdateDeploymentDesiredState :exec
 UPDATE deployments
-SET desired_state = ?, status = ?, updated_at = ?
+SET desired_state = ?, updated_at = ?
 WHERE id = ?;

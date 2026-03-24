@@ -2641,6 +2641,15 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	SoftDeleteWorkspace(ctx context.Context, db DBTX, arg SoftDeleteWorkspaceParams) (sql.Result, error)
+	//StopDeploymentIfNoInstances
+	//
+	//  UPDATE deployments d
+	//  LEFT JOIN instances i ON i.deployment_id = d.id
+	//  SET d.status = 'stopped', d.updated_at = ?
+	//  WHERE d.id = ?
+	//    AND d.desired_state IN ('standby', 'archived')
+	//    AND i.deployment_id IS NULL
+	StopDeploymentIfNoInstances(ctx context.Context, db DBTX, arg StopDeploymentIfNoInstancesParams) error
 	//SumAllocatedResourcesByWorkspaceID
 	//
 	//  SELECT
@@ -2762,7 +2771,7 @@ type Querier interface {
 	//UpdateDeploymentDesiredState
 	//
 	//  UPDATE deployments
-	//  SET desired_state = ?, status = ?, updated_at = ?
+	//  SET desired_state = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentDesiredState(ctx context.Context, db DBTX, arg UpdateDeploymentDesiredStateParams) error
 	//UpdateDeploymentGitMetadata
