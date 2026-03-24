@@ -135,6 +135,8 @@ func dbStatusToOpenAPI(status db.DeploymentsStatus) openapi.V2DeployGetDeploymen
 		return openapi.SKIPPED
 	case db.DeploymentsStatusAwaitingApproval:
 		return openapi.AWAITINGAPPROVAL
+	case db.DeploymentsStatusStopped:
+		return openapi.STOPPED
 	default:
 		return openapi.UNSPECIFIED
 	}

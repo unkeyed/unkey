@@ -2592,6 +2592,7 @@ components:
                         - FAILED
                         - SKIPPED
                         - AWAITING_APPROVAL
+                        - STOPPED
                     example: "READY"
                     x-speakeasy-unknown-values: allow
                 errorMessage:
