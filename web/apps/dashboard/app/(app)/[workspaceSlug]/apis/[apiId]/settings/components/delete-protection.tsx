@@ -76,11 +76,9 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
           </div>
         }
         description={
-          api.deleteProtection ? (
-            <p>Disabling this allows the API, along with all keys and data, to be deleted.</p>
-          ) : (
-            <p>Enabling this prevents the API from being deleted.</p>
-          )
+          api.deleteProtection
+            ? "Disabling this allows the API, along with all keys and data, to be deleted."
+            : "Enabling this prevents the API from being deleted."
         }
         action={{
           label: api.deleteProtection ? "Disable" : "Enable",

@@ -69,16 +69,18 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   return (
     <>
       <SettingsZoneRow
-        title="Delete API"
+        title={
+          <div className="inline-flex gap-2">
+            <span>Delete API</span>
+            {api.deleteProtection && (
+              <StatusBadge variant="locked" text="Locked" icon={<Lock iconSize="sm-thin" />} />
+            )}
+          </div>
+        }
         description={
-          api.deleteProtection ? (
-            <span>
-              <StatusBadge variant="locked" text="Locked" icon={<Lock iconSize="sm-thin" />} /> This
-              action is locked by Delete Protection.
-            </span>
-          ) : (
-            "Permanently deletes this API, including all keys and data. This action cannot be undone."
-          )
+          api.deleteProtection
+            ? "Permanently deletes this API, including all keys and data. This action is locked by Delete Protection."
+            : "Permanently deletes this API, including all keys and data. This action cannot be undone."
         }
         action={{
           label: "Delete API",
