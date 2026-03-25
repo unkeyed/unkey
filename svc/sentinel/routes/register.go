@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/sentinel/middleware"
 	internalHealth "github.com/unkeyed/unkey/svc/sentinel/routes/internal_health"
@@ -41,6 +42,17 @@ func Register(srv *zen.Server, svc *Services) {
 		MaxIdleConns:        200,
 		MaxIdleConnsPerHost: 50,
 		IdleConnTimeout:     90 * time.Second,
+	}
+
+	if svc.Pprof != nil {
+		srv.RegisterRoute(
+			[]zen.Middleware{withLogging},
+			&pprofRoute.Handler{
+				Username: svc.Pprof.Username,
+				Password: svc.Pprof.Password,
+				Prefix:   "/_unkey/internal",
+			},
+		)
 	}
 
 	srv.RegisterRoute(

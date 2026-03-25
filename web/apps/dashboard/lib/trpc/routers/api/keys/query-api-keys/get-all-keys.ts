@@ -320,6 +320,7 @@ export async function getAllKeys({
         identity: identityData,
         updated_at_m: key.updatedAtM,
         start: key.start,
+        last_used_at: key.lastUsedAt,
         metadata: key.meta,
         key: {
           credits: {

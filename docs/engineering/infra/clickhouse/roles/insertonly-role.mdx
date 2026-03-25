@@ -1,0 +1,10 @@
+---
+title: insertonly_role
+---
+
+
+```sql
+CREATE ROLE IF NOT EXISTS insertonly_role;
+
+GRANT INSERT ON default.* TO insertonly_role;
+```

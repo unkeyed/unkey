@@ -21,25 +21,31 @@ import (
 var (
 	frontlineRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "frontline_requests_total",
-			Help: "Total number of requests processed by frontline",
+			Namespace: "unkey",
+			Subsystem: "frontline",
+			Name:      "requests_total",
+			Help:      "Total number of requests processed by frontline",
 		},
 		[]string{"status_code", "error_type", "region"},
 	)
 
 	frontlineRequestDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    "frontline_request_duration_seconds",
-			Help:    "Request duration in seconds",
-			Buckets: prometheus.DefBuckets,
+			Namespace: "unkey",
+			Subsystem: "frontline",
+			Name:      "request_duration_seconds",
+			Help:      "Request duration in seconds",
+			Buckets:   prometheus.DefBuckets,
 		},
 		[]string{"status_code", "error_type", "region"},
 	)
 
 	frontlineActiveRequests = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "frontline_active_requests",
-			Help: "Number of requests currently being processed",
+			Namespace: "unkey",
+			Subsystem: "frontline",
+			Name:      "active_requests",
+			Help:      "Number of requests currently being processed",
 		},
 		[]string{"region"},
 	)

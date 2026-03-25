@@ -42,7 +42,6 @@ export const getKeysTableActionItems = (
     {
       id: "copy",
       label: "Copy key ID",
-      className: "mt-1",
       icon: <Clone iconSize="md-medium" />,
       onClick: () => {
         navigator.clipboard
@@ -62,8 +61,27 @@ export const getKeysTableActionItems = (
       label: "Edit External ID...",
       icon: <ArrowOppositeDirectionY iconSize="md-medium" />,
       ActionComponent: (props) => <EditExternalId {...props} keyDetails={key} />,
-      divider: true,
     },
+    ...(key.identity?.external_id
+      ? [
+          {
+            id: "copy-external-id",
+            label: "Copy External ID",
+            icon: <Clone iconSize="md-medium" />,
+            onClick: () => {
+              navigator.clipboard
+                // Empty case cannot happen since this will only render if identity exists
+                .writeText(key.identity?.external_id ?? "")
+                .then(() => toast.success("External ID copied to clipboard"))
+                .catch((error) => {
+                  console.error("Failed to copy to clipboard:", error);
+                  toast.error("Failed to copy to clipboard");
+                });
+            },
+            divider: true,
+          },
+        ]
+      : []),
     {
       id: key.enabled ? "disable-key" : "enable-key",
       label: key.enabled ? "Disable Key..." : "Enable Key...",

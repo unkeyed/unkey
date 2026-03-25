@@ -83,6 +83,13 @@ export const ExternalIdField = ({
     ];
   }, [allIdentities, currentIdentity, value]);
 
+  const selectedExternalId = useMemo(() => {
+    if (!value) {
+      return undefined;
+    }
+    return allIdentitiesWithCurrent.find((id) => id.id === value)?.externalId;
+  }, [allIdentitiesWithCurrent, value]);
+
   const handleCreateIdentity = () => {
     if (trimmedSearchValue) {
       createIdentity.mutate({
@@ -239,6 +246,7 @@ export const ExternalIdField = ({
             : "Loading available identities..."
           : undefined
       }
+      copyValue={selectedExternalId}
     />
   );
 };

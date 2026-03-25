@@ -11,14 +11,20 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/uid"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	"google.golang.org/protobuf/encoding/protojson"
 )
+
+// errInvalidSecretsConfig is returned when the encrypted environment variables
+// blob cannot be parsed. This is a permanent error — the data is malformed and
+// retrying will not help.
+var errInvalidSecretsConfig = errors.New("invalid secrets config")
 
 const (
 	// sentinelNamespace isolates sentinel resources from tenant namespaces to
@@ -352,16 +358,18 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		}
 
 		build, err := w.buildDockerImageFromGit(ctx, gitBuildParams{
-			InstallationID: source.Git.GetInstallationId(),
-			Repository:     source.Git.GetRepository(),
-			CommitSHA:      commitSHA,
-			ContextPath:    source.Git.GetContextPath(),
-			DockerfilePath: source.Git.GetDockerfilePath(),
-			ProjectID:      deployment.ProjectID,
-			AppID:          deployment.AppID,
-			DeploymentID:   deployment.ID,
-			WorkspaceID:    deployment.WorkspaceID,
-			PrNumber:       source.Git.GetPrNumber(),
+			InstallationID:                source.Git.GetInstallationId(),
+			Repository:                    source.Git.GetRepository(),
+			CommitSHA:                     commitSHA,
+			ContextPath:                   source.Git.GetContextPath(),
+			DockerfilePath:                source.Git.GetDockerfilePath(),
+			ProjectID:                     deployment.ProjectID,
+			AppID:                         deployment.AppID,
+			DeploymentID:                  deployment.ID,
+			WorkspaceID:                   deployment.WorkspaceID,
+			PrNumber:                      source.Git.GetPrNumber(),
+			EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
+			EnvironmentID:                 deployment.EnvironmentID,
 		})
 		if err != nil {
 			// fault.Public set inside buildDockerImageFromGit is lost because
@@ -983,15 +991,22 @@ func (w *Workflow) initGitHubStatus(
 	}
 
 	repoConn, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.GithubRepoConnection, error) {
-		return db.Query.FindGithubRepoConnectionByAppId(runCtx, w.db.RO(), deployment.AppID)
+		found, findErr := db.Query.FindGithubRepoConnectionByAppId(runCtx, w.db.RO(), deployment.AppID)
+		if findErr != nil {
+			if db.IsNotFound(findErr) {
+				// No connection — return zero value, not an error.
+				// Returning an error here would cause Restate to retry forever.
+				return db.GithubRepoConnection{}, nil //nolint:exhaustruct
+			}
+			return db.GithubRepoConnection{}, findErr //nolint:exhaustruct
+		}
+		return found, nil
 	}, restate.WithName("find github repo connection"))
 	if err != nil {
-		if !mysql.IsNotFound(err) {
-			logger.Warn("failed to look up github repo connection, skipping deployment status reporting",
-				"app_id", deployment.AppID,
-				"error", err,
-			)
-		}
+		logger.Warn("failed to look up github repo connection, skipping deployment status reporting",
+			"app_id", deployment.AppID,
+			"error", err,
+		)
 
 		return reporter
 	}
@@ -999,8 +1014,8 @@ func (w *Workflow) initGitHubStatus(
 	if repoConn.InstallationID == 0 {
 		logger.Info("no github repo connection, skipping deployment status reporting",
 			"app_id", deployment.AppID,
-			"error", err,
 		)
+
 		return reporter
 	}
 
@@ -1056,4 +1071,27 @@ func formatDomainPrefix(projectSlug, appSlug string) string {
 		return projectSlug + "-" + appSlug
 	}
 	return projectSlug
+}
+
+// decryptEnvVars decrypts the encrypted environment variables blob via Vault
+// and returns the plaintext key-value pairs. Returns nil if there are no env vars.
+func (w *Workflow) decryptEnvVars(ctx context.Context, encrypted []byte, environmentID string) (map[string]string, error) {
+	if len(encrypted) == 0 {
+		return nil, nil
+	}
+
+	var secretsConfig ctrlv1.SecretsConfig
+	if err := protojson.Unmarshal(encrypted, &secretsConfig); err != nil {
+		return nil, fmt.Errorf("%w: %w", errInvalidSecretsConfig, err)
+	}
+
+	bulkRes, err := w.vault.DecryptBulk(ctx, &vaultv1.DecryptBulkRequest{
+		Keyring: environmentID,
+		Items:   secretsConfig.GetSecrets(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to bulk decrypt env vars: %w", err)
+	}
+
+	return bulkRes.GetItems(), nil
 }

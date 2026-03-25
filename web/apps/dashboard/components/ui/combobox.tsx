@@ -84,6 +84,8 @@ type ComboboxProps = {
   closeOnSelect?: boolean;
   /** Allow typing a custom value that isn't in the options list */
   creatable?: boolean;
+  /** Hide the chevron icon in the trigger */
+  hideChevron?: boolean;
   /** Additional accessibility attributes */
   "aria-describedby"?: string;
   "aria-invalid"?: boolean;
@@ -106,6 +108,7 @@ export function Combobox({
   variant = "default",
   id,
   creatable = false,
+  hideChevron = false,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
   "aria-required": ariaRequired,
@@ -156,7 +159,7 @@ export function Combobox({
               comboboxTriggerVariants({ variant }),
               "px-3 py-0",
               leftIcon && "pl-9",
-              "pr-9", // Always have space for the chevron icon
+              !hideChevron && "pr-9", // Space for the chevron icon when visible
               "h-auto justify-between font-normal w-full [&_svg]:size-3",
               className,
             )}
@@ -171,7 +174,7 @@ export function Combobox({
             ) : (
               <div className="text-left w-full">{placeholder}</div>
             )}
-            <ChevronExpandY className="absolute right-3" iconSize="sm-regular" />
+            {!hideChevron && <ChevronExpandY className="absolute right-3" iconSize="sm-regular" />}
           </Button>
         </PopoverTrigger>
       </div>

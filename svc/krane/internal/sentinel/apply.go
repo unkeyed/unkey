@@ -153,6 +153,10 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 			Metrics: nil,
 		},
 		Gossip: nil,
+		Pprof: &config.PprofConfig{
+			Username: "${UNKEY_PPROF_USERNAME}",
+			Password: "${UNKEY_PPROF_PASSWORD}",
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -232,6 +236,14 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 								SecretRef: &corev1.SecretEnvSource{
 									LocalObjectReference: corev1.LocalObjectReference{
 										Name: "redis",
+									},
+									Optional: ptr.P(true),
+								},
+							},
+							{
+								SecretRef: &corev1.SecretEnvSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "pprof",
 									},
 									Optional: ptr.P(true),
 								},

@@ -243,7 +243,7 @@ export const createApiKeyColumns = ({
     cell: ({ row }) => {
       const key = row.original;
       return (
-        <LastUsedCell keyId={key.id} keyAuthId={keyspaceId} isSelected={key.id === selectedKeyId} />
+        <LastUsedCell lastUsedAt={key.last_used_at} isSelected={key.id === selectedKeyId} />
       );
     },
   },
