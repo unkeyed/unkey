@@ -12,7 +12,7 @@
     }
   },
   "icons": {
-    "library": "lucide"
+    "library": "fontawesome"
   },
   "background": {
     "decoration": "gradient"
