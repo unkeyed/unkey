@@ -239,6 +239,7 @@ export const ExternalIdField = ({
             : "Loading available identities..."
           : undefined
       }
+      copyValue={disabled && currentIdentity?.externalId ? currentIdentity.externalId : undefined}
     />
   );
 };
