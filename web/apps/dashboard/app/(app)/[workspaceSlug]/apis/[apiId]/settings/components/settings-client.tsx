@@ -1,14 +1,13 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { SettingCardGroup, SettingsDangerZone } from "@unkey/ui";
+import { SettingCardGroup, SettingsDangerZone, SettingsShell } from "@unkey/ui";
 import { CopyApiId } from "./copy-api-id";
 import { CopyKeySpaceId } from "./copy-key-space-id";
 import { DefaultBytes } from "./default-bytes";
 import { DefaultPrefix } from "./default-prefix";
 import { DeleteApi } from "./delete-api";
 import { DeleteProtection } from "./delete-protection";
-import { Shell } from "./shell";
 import { SettingsClientSkeleton } from "./skeleton";
 import { UpdateApiName } from "./update-api-name";
 import { UpdateIpWhitelist } from "./update-ip-whitelist";
@@ -56,7 +55,7 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
   };
 
   return (
-    <Shell>
+    <SettingsShell>
       <div className="flex flex-col gap-2 items-center">
         <span className="font-semibold text-gray-12 leading-8 text-lg">API Settings</span>
         <span className="leading-4 text-gray-11 text-[13px]">
@@ -85,6 +84,6 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
         <DeleteProtection api={api} />
         <DeleteApi api={api} keys={keyAuthForComponents.sizeApprox} />
       </SettingsDangerZone>
-    </Shell>
+    </SettingsShell>
   );
 };

@@ -10,13 +10,13 @@ import {
   SettingCard,
   SettingCardGroup,
   SettingsDangerZone,
+  SettingsShell,
   SettingsZoneRow,
   toast,
 } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { CreateNamespaceButton } from "../../../_components/create-namespace-button";
 import { DeleteNamespaceDialog } from "../../_components/namespace-delete-dialog";
-import { Shell } from "./shell";
 import { SettingsClientSkeleton } from "./skeleton";
 
 type Props = {
@@ -84,7 +84,7 @@ export const SettingsClient = ({ namespaceId }: Props) => {
 
   return (
     <>
-      <Shell>
+      <SettingsShell>
         <div className="flex flex-col gap-2 items-center">
           <span className="font-semibold text-gray-12 leading-8 text-lg">Ratelimit Settings</span>
           <span className="leading-4 text-gray-11 text-[13px]">
@@ -152,7 +152,7 @@ export const SettingsClient = ({ namespaceId }: Props) => {
             }}
           />
         </SettingsDangerZone>
-      </Shell>
+      </SettingsShell>
       <DeleteNamespaceDialog
         namespace={namespace}
         onOpenChange={setIsNamespaceNameDeleteModalOpen}

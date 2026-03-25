@@ -1,7 +1,14 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Empty, SettingCard, SettingCardGroup, SettingsDangerZone } from "@unkey/ui";
+import {
+  Button,
+  Empty,
+  SettingCard,
+  SettingCardGroup,
+  SettingsDangerZone,
+  SettingsShell,
+} from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type Stripe from "stripe";
@@ -11,7 +18,6 @@ import { CancelPlan } from "./components/cancel-plan";
 import { CurrentPlanCard } from "./components/current-plan-card";
 import { FreeTierAlert } from "./components/free-tier-alert";
 import { PlanSelectionModal } from "./components/plan-selection-modal";
-import { Shell } from "./components/shell";
 import { SubscriptionStatus } from "./components/subscription-status";
 import { Usage } from "./components/usage";
 
@@ -39,7 +45,7 @@ export const Client: React.FC = () => {
     return (
       <div className="animate-pulse">
         <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
-        <Shell>
+        <SettingsShell>
           <div className="flex flex-col gap-2 items-center">
             <span className="font-semibold text-gray-12 leading-8 text-lg">Billing</span>
             <span className="leading-4 text-gray-11 text-[13px]">
@@ -49,7 +55,7 @@ export const Client: React.FC = () => {
           <div className="w-full h-[150px] bg-grayA-3 rounded-lg mt-1" />
           <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
           <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
-        </Shell>
+        </SettingsShell>
       </div>
     );
   }
@@ -88,7 +94,7 @@ export const Client: React.FC = () => {
   return (
     <div>
       <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
-      <Shell>
+      <SettingsShell>
         {subscription ? (
           <SubscriptionStatus
             workspaceSlug={workspace.slug}
@@ -173,7 +179,7 @@ export const Client: React.FC = () => {
             <CancelPlan />
           </SettingsDangerZone>
         ) : null}
-      </Shell>
+      </SettingsShell>
     </div>
   );
 };

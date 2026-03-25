@@ -344,4 +344,26 @@ function SettingsZoneRow({
 
 SettingsZoneRow.displayName = "SettingsZoneRow";
 
-export { SettingCard, SettingCardGroup, SettingsDangerZone, SettingsZone, SettingsZoneRow };
+function SettingsShell({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <main
+      className={cn(
+        "w-225 flex flex-col justify-center items-center gap-6 mx-auto my-14",
+        className,
+      )}
+    >
+      {children}
+    </main>
+  );
+}
+
+SettingsShell.displayName = "SettingsShell";
+
+export {
+  SettingCard,
+  SettingCardGroup,
+  SettingsDangerZone,
+  SettingsShell,
+  SettingsZone,
+  SettingsZoneRow,
+};
