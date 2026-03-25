@@ -3,7 +3,12 @@
 import { Plus } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 
-export function EnvVarsHeader() {
+type EnvVarsHeaderProps = {
+  isAddOpen: boolean;
+  onToggleAdd: () => void;
+};
+
+export function EnvVarsHeader({ isAddOpen, onToggleAdd }: EnvVarsHeaderProps) {
   return (
     <div className="flex items-start justify-between">
       <div className="flex flex-col gap-0.5">
@@ -12,12 +17,7 @@ export function EnvVarsHeader() {
           Store API keys, tokens, and config securely. Changes apply on next deploy.
         </p>
       </div>
-      <Button
-        size="md"
-        onClick={() => {
-          // TODO: wire up add action
-        }}
-      >
+      <Button size="md" onClick={onToggleAdd} variant={isAddOpen ? "outline" : "primary"}>
         <Plus iconSize="sm-regular" />
         Add Environment Variable
       </Button>
