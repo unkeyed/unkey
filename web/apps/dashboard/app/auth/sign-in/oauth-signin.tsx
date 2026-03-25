@@ -8,13 +8,16 @@ import * as React from "react";
 import { signInViaOAuth } from "../actions";
 import { OAuthButton } from "../oauth-button";
 import { LastUsed, useLastUsed } from "./last_used";
+import { isSafeRedirectPath } from "./redirect-utils";
 
 export const OAuthSignIn: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
   const [lastUsed, setLastUsed] = useLastUsed();
   const [clientReady, setClientReady] = React.useState(false);
   const searchParams = useSearchParams();
-  const redirectUrlComplete = searchParams?.get("redirect") ?? "/apis";
+  const rawRedirect = searchParams?.get("redirect");
+  const redirectUrlComplete =
+    rawRedirect && isSafeRedirectPath(rawRedirect) ? rawRedirect : "/apis";
 
   // Set clientReady to true after hydration is complete
   React.useEffect(() => {

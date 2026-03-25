@@ -343,9 +343,11 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
 }
 
 // Organization Selection
+export type OrgSelectionSuccess = NavigationResponse & { workspaceSlug?: string };
+
 export async function completeOrgSelection(
   orgId: string,
-): Promise<NavigationResponse | AuthErrorResponse> {
+): Promise<OrgSelectionSuccess | AuthErrorResponse> {
   const tempSession = (await cookies()).get(PENDING_SESSION_COOKIE);
   if (!tempSession) {
     return {
@@ -372,6 +374,23 @@ export async function completeOrgSelection(
     } catch (_error) {
       // Ignore cookie setting errors
     }
+
+    // Look up the workspace slug for the selected org so the client can
+    // rewrite deep-link URLs that contain a different workspace slug.
+    let workspaceSlug: string | undefined;
+    try {
+      const { db } = await import("@/lib/db");
+      const workspace = await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+        columns: { slug: true },
+      });
+      workspaceSlug = workspace?.slug ?? undefined;
+    } catch {
+      // Non-critical — fall back to default redirect
+    }
+
+    return { ...result, workspaceSlug };
   }
   // Don't clear pending session on error - let user try again or close modal
 

@@ -14,11 +14,12 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type React from "react";
 import { useCallback, useContext, useMemo, useState } from "react";
 import { clearPendingAuth, completeOrgSelection } from "../actions";
 import { SignInContext } from "../context/signin-context";
+import { resolveRedirectUrl } from "./redirect-utils";
 
 interface OrgSelectorProps {
   organizations: Organization[];
@@ -32,6 +33,8 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
   }
   const { setError } = context;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams?.get("redirect");
 
   const sortedOrgs = useMemo(() => {
     // Sort: recently created first (as proxy for recently used until we track that)
@@ -83,8 +86,11 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
           return false;
         }
 
-        // On success, redirect to the dashboard
-        router.push(result.redirectTo);
+        // On success, redirect to the original deep link or dashboard
+        // Rewrite the workspace slug in the redirect URL to match the selected workspace
+        // Use window.location.href for a full page load to avoid stale client state
+        const resolvedUrl = resolveRedirectUrl(redirectParam, result.workspaceSlug);
+        window.location.href = resolvedUrl || result.redirectTo;
         return true;
       } catch (error) {
         const errorMessage =
@@ -99,7 +105,7 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
         return false;
       }
     },
-    [isLoading, setError, router],
+    [isLoading, setError, router, redirectParam],
   );
 
   const handleSubmit = useCallback(async () => {

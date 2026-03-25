@@ -73,15 +73,28 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     const { session, headers } = await authMiddleware(req);
 
     if (!session) {
-      return NextResponse.redirect(new URL(SIGN_IN_URL, url));
+      const signInUrl = new URL(SIGN_IN_URL, url);
+      const currentPath = url.pathname + url.search;
+      if (currentPath && currentPath !== "/") {
+        signInUrl.searchParams.set("redirect", currentPath);
+      }
+      return NextResponse.redirect(signInUrl);
     }
+
+    // Set the current path as a header so server components can read it for redirect purposes
+    headers.set("x-current-path", url.pathname + url.search);
 
     return NextResponse.next({
       headers: headers,
     });
   } catch (error) {
     console.error("Middleware error:", error);
-    return NextResponse.redirect(new URL(SIGN_IN_URL, url));
+    const signInUrl = new URL(SIGN_IN_URL, url);
+    const currentPath = url.pathname + url.search;
+    if (currentPath && currentPath !== "/") {
+      signInUrl.searchParams.set("redirect", currentPath);
+    }
+    return NextResponse.redirect(signInUrl);
   }
 }
 

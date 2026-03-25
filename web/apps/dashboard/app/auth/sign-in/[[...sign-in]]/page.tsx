@@ -22,6 +22,7 @@ import { EmailSignIn } from "../email-signin";
 import { EmailVerify } from "../email-verify";
 import { OAuthSignIn } from "../oauth-signin";
 import { OrgSelector } from "../org-selector";
+import { resolveRedirectUrl } from "../redirect-utils";
 
 function SignInContent() {
   const {
@@ -39,6 +40,7 @@ function SignInContent() {
   const verifyParam = searchParams?.get("verify");
   const invitationToken = searchParams?.get("invitation_token");
   const invitationEmail = searchParams?.get("email");
+  const redirectParam = searchParams?.get("redirect");
   const [lastUsedOrgId, setLastUsedOrgId] = useState<string | undefined>(undefined);
   // Add clientReady state to handle hydration
   const [clientReady, setClientReady] = useState(false);
@@ -92,8 +94,10 @@ function SignInContent() {
             setIsAutoSelecting(false);
             return;
           }
-          // On success, redirect to the dashboard
-          router.push(result.redirectTo);
+          // On success, redirect to the original deep link or dashboard
+          // Use window.location.href for a full page load to avoid stale client state
+          const resolvedUrl = resolveRedirectUrl(redirectParam, result.workspaceSlug);
+          window.location.href = resolvedUrl || result.redirectTo;
         })
         .catch((_err) => {
           // Clear last used workspace on error
@@ -110,7 +114,7 @@ function SignInContent() {
       hasAttemptedAutoOrgSelection.current = true;
       setIsLoading(false);
     }
-  }, [clientReady, hasPendingAuth, setError, lastUsedOrgId, router]);
+  }, [clientReady, hasPendingAuth, setError, lastUsedOrgId, redirectParam]);
 
   // Handle auto sign-in with invitation token and email
   useEffect(() => {
