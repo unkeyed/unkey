@@ -102,9 +102,8 @@ func NewRedis(config RedisConfig) (Counter, error) {
 	pingCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	_, err = rdb.Ping(pingCtx).Result()
-	if err != nil {
-		return nil, fmt.Errorf("failed to ping redis: %w", err)
+	if _, pingErr := rdb.Ping(pingCtx).Result(); pingErr != nil {
+		logger.Warn("redis ping failed at startup, will reconnect lazily", "error", pingErr)
 	}
 
 	return &redisCounter{

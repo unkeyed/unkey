@@ -117,12 +117,6 @@ func getErrorPageInfo(urn codes.URN) errorPageInfo {
 			Status:  http.StatusInternalServerError,
 			Message: "The sentinel is misconfigured. Please contact support at support@unkey.com.",
 		}
-	case codes.Sentinel.Internal.EngineUnavailable.URN():
-		return errorPageInfo{
-			Status:  http.StatusServiceUnavailable,
-			Message: "The middleware engine is temporarily unavailable. Please retry.",
-		}
-
 	// Sentinel Auth Errors
 	case codes.Sentinel.Auth.MissingCredentials.URN():
 		return errorPageInfo{
@@ -181,7 +175,6 @@ func categorizeErrorType(urn codes.URN, statusCode int, hasError bool) string {
 
 		case codes.Sentinel.Internal.InternalServerError.URN(),
 			codes.Sentinel.Internal.InvalidConfiguration.URN(),
-			codes.Sentinel.Internal.EngineUnavailable.URN(),
 			codes.Sentinel.Routing.DeploymentNotFound.URN(),
 			codes.Sentinel.Routing.InstanceSelectionFailed.URN(),
 			codes.Sentinel.Routing.NoRunningInstances.URN():

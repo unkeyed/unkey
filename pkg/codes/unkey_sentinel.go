@@ -34,9 +34,6 @@ type sentinelInternal struct {
 
 	// InvalidConfiguration represents a 500 error - invalid sentinel configuration
 	InvalidConfiguration Code
-
-	// EngineUnavailable represents a 503 error - middleware engine is temporarily unavailable
-	EngineUnavailable Code
 }
 
 // sentinelAuth defines errors related to sentinel authentication and authorization.
@@ -88,7 +85,6 @@ var Sentinel = UnkeySentinelErrors{
 	Internal: sentinelInternal{
 		InternalServerError:  Code{SystemUnkey, CategoryInternalServerError, "internal_server_error"},
 		InvalidConfiguration: Code{SystemUnkey, CategoryInternalServerError, "invalid_configuration"},
-		EngineUnavailable:    Code{SystemUnkey, CategoryServiceUnavailable, "engine_unavailable"},
 	},
 	Auth: sentinelAuth{
 		MissingCredentials:      Code{SystemSentinel, CategoryUnauthorized, "missing_credentials"},
