@@ -30,6 +30,39 @@ export function isSafeRedirectPath(url: string): boolean {
   return true;
 }
 
+const REDIRECT_STORAGE_KEY = "unkey_auth_redirect";
+
+/**
+ * Persists a validated redirect URL to sessionStorage.
+ * Called once when the sign-in page first loads with a redirect param.
+ */
+export function saveRedirectUrl(url: string): void {
+  if (isSafeRedirectPath(url)) {
+    try {
+      sessionStorage.setItem(REDIRECT_STORAGE_KEY, url);
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing edge cases)
+    }
+  }
+}
+
+/**
+ * Reads and clears the stored redirect URL from sessionStorage.
+ * Returns null if nothing is stored or the value fails validation.
+ */
+export function consumeRedirectUrl(): string | null {
+  try {
+    const url = sessionStorage.getItem(REDIRECT_STORAGE_KEY);
+    sessionStorage.removeItem(REDIRECT_STORAGE_KEY);
+    if (url && isSafeRedirectPath(url)) {
+      return url;
+    }
+  } catch {
+    // sessionStorage unavailable
+  }
+  return null;
+}
+
 /**
  * Rewrites the workspace slug in a redirect URL to match the selected workspace.
  * URLs follow the pattern /:workspaceSlug/rest/of/path.

@@ -19,7 +19,7 @@ import type React from "react";
 import { useCallback, useContext, useMemo, useState } from "react";
 import { clearPendingAuth, completeOrgSelection } from "../actions";
 import { SignInContext } from "../context/signin-context";
-import { resolveRedirectUrl } from "./redirect-utils";
+import { consumeRedirectUrl, resolveRedirectUrl } from "./redirect-utils";
 
 interface OrgSelectorProps {
   organizations: Organization[];
@@ -89,7 +89,9 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
         // On success, redirect to the original deep link or dashboard
         // Rewrite the workspace slug in the redirect URL to match the selected workspace
         // Use window.location.href for a full page load to avoid stale client state
-        const resolvedUrl = resolveRedirectUrl(redirectParam, result.workspaceSlug);
+        // Fall back to sessionStorage if the URL param was lost (Safari)
+        const deepLink = redirectParam || consumeRedirectUrl();
+        const resolvedUrl = resolveRedirectUrl(deepLink, result.workspaceSlug);
         window.location.href = resolvedUrl || result.redirectTo;
         return true;
       } catch (error) {

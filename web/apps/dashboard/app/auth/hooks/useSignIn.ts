@@ -20,7 +20,7 @@ import {
   verifyTurnstileAndRetry,
 } from "../actions";
 import { SignInContext } from "../context/signin-context";
-import { isSafeRedirectPath } from "../sign-in/redirect-utils";
+import { consumeRedirectUrl, isSafeRedirectPath } from "../sign-in/redirect-utils";
 
 function isAuthErrorResponse(result: VerificationResult): result is AuthErrorResponse {
   return !result.success && "message" in result;
@@ -141,8 +141,11 @@ export function useSignIn() {
       });
 
       // Preserve the redirect param for deep link support, validated to prevent open redirects
+      // Fall back to sessionStorage if the URL param was lost (Safari)
       const rawRedirect = searchParams?.get("redirect");
-      const redirectParam = rawRedirect && isSafeRedirectPath(rawRedirect) ? rawRedirect : null;
+      const redirectParam =
+        (rawRedirect && isSafeRedirectPath(rawRedirect) ? rawRedirect : null) ||
+        consumeRedirectUrl();
 
       // Determine where to redirect based on the verification result
       const redirectUrl = (() => {

@@ -22,7 +22,7 @@ import { EmailSignIn } from "../email-signin";
 import { EmailVerify } from "../email-verify";
 import { OAuthSignIn } from "../oauth-signin";
 import { OrgSelector } from "../org-selector";
-import { resolveRedirectUrl } from "../redirect-utils";
+import { consumeRedirectUrl, resolveRedirectUrl, saveRedirectUrl } from "../redirect-utils";
 
 function SignInContent() {
   const {
@@ -44,6 +44,15 @@ function SignInContent() {
   const [lastUsedOrgId, setLastUsedOrgId] = useState<string | undefined>(undefined);
   // Add clientReady state to handle hydration
   const [clientReady, setClientReady] = useState(false);
+
+  // Persist the redirect URL to sessionStorage so it survives the full auth
+  // flow (OAuth redirects, org selection) even in browsers like Safari that
+  // can lose URL params across redirect chains.
+  useEffect(() => {
+    if (redirectParam) {
+      saveRedirectUrl(redirectParam);
+    }
+  }, [redirectParam]);
   const hasAttemptedSignIn = useRef(false);
   const hasAttemptedAutoOrgSelection = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -96,7 +105,9 @@ function SignInContent() {
           }
           // On success, redirect to the original deep link or dashboard
           // Use window.location.href for a full page load to avoid stale client state
-          const resolvedUrl = resolveRedirectUrl(redirectParam, result.workspaceSlug);
+          // Fall back to sessionStorage if the URL param was lost (Safari)
+          const deepLink = redirectParam || consumeRedirectUrl();
+          const resolvedUrl = resolveRedirectUrl(deepLink, result.workspaceSlug);
           window.location.href = resolvedUrl || result.redirectTo;
         })
         .catch((_err) => {
