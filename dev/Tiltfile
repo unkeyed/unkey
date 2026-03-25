@@ -276,6 +276,18 @@ local_resource(
 
 
 
+# Portal - runs locally with HMR (optional, trigger manually)
+local_resource(
+    'portal',
+    serve_cmd='cd ../web && pnpm --filter=@unkey/portal dev',
+    deps=[],
+    resource_deps=['planetscale', 'api'],
+    labels=['unkey'],
+    auto_init=False,
+    readiness_probe=probe(http_get=http_get_action(port=3100, path='/'), period_secs=5, failure_threshold=30),
+    links=['http://localhost:3100'],
+)
+
 # Dashboard - runs locally with HMR
 # Injects GitHub App env vars from dev/.env.github and dev/.github-private-key.pem
 local_resource(

@@ -64,6 +64,7 @@
             "pages": [
               "introduction",
               "quickstart/quickstart",
+              "quickstart/portal",
               "glossary"
             ]
           },
