@@ -19,7 +19,7 @@ export function TriangleWarning2({ iconSize = "xl-thin", ...props }: IconProps) 
     <svg
       height={pixelSize}
       width={pixelSize}
-      viewBox="0 0 18 18"
+      viewBox="1 0 18 18"
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
