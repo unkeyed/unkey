@@ -180,7 +180,7 @@
               "architecture/rfcs/0012-stricter-linter",
               "architecture/rfcs/0013-custom-domains",
               "architecture/rfcs/0014-sentinel-middleware",
-              "architecture/rfcs/0014-sentinel-middleware-copied-1"
+              "architecture/rfcs/0015-service-discovery"
             ]
           }
         ]
@@ -197,7 +197,10 @@
         "groups": [
           {
             "group": "Infra",
-            "pages": ["infra/index","infra/infra-work"]
+            "pages": [
+              "infra/index",
+              "infra/infra-work"
+            ]
           },
           {
             "group": "Clusters",
@@ -226,7 +229,9 @@
           },
           {
             "group": "Secrets",
-            "pages": ["infra/secrets/aws-secrets"]
+            "pages": [
+              "infra/secrets/aws-secrets"
+            ]
           },
           {
             "group": "ClickHouse",

@@ -1,8 +1,6 @@
 ---
 title: "0015 Service Discovery"
 description: "Service discovery for our own services as well as customers"
-date:
-
 authors: ["Andreas Thomas"]
 ---
 
@@ -23,9 +21,9 @@ At a high level the architecture is pretty simple, we would deploy a new statele
   ![Clean Shot 2026 03 25 At 10 11 55@2x](/images/CleanShot2026-03-25at10.11.55@2x.png)
 </Frame>
 
-Each `servicediscovery` is listening on `sd.<cluster>.<region>.<account>.aws.unkey.cloud` . These are well known and can be provided to each servicediscovery pod as env variables.\
+Each `servicediscovery` is listening on `sd.<cluster>.<region>.<account>.aws.unkey.cloud` . These are well known and can be provided to each servicediscovery pod as env variables.\\
 
-### servicediscovery lifecycle 
+### servicediscovery lifecycle
 
 When an `sd` pod comes up, it reads the addresses of its peers from environment variables or `unkey.toml` and bootstraps itself by joining the `sd` gossip cluster. From then on it watches the k8s api to find out about all current relevant pods in its own region and gossips with its peers so that every `sd` service has a global view of every pod running. We do not need to persist this durably, cause we can always rebuild the state from the k8s api.
 
