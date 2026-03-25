@@ -1,0 +1,40 @@
+---
+title: "March 25, 2026"
+description: "Build-time environment variables, OpenAPI diff viewer, idle deployments, and reliability improvements."
+---
+
+## New features
+
+### Build-time environment variables
+
+Your environment variables are now available during Docker image builds. Variables configured in your deployment settings are securely decrypted and injected as BuildKit secrets, accessible at `/run/secrets/.env` in your Dockerfile. This means you can install private packages, pull credentials, or configure build steps that depend on environment-specific values — without baking secrets into your image layers.
+
+### OpenAPI diff viewer
+
+You can now compare OpenAPI specs between two deployments from the dashboard. Select any two deployments to see a side-by-side diff of your API surface, with method-specific badges and filtering. You can also configure the OpenAPI spec path in your environment settings so the diff viewer knows where to find your spec.
+
+### Idle deployment state
+
+Deployments that are being spun down now show an `idle` status in the dashboard and API instead of appearing as still running. This gives you a clearer picture of which deployments are actively serving traffic.
+
+## Updates
+
+### Additional runtime environment variables
+
+Deployed workloads now also receive `UNKEY_APP_SLUG`, `UNKEY_PROJECT_SLUG`, and `UNKEY_REPLICA_ID` as runtime environment variables, giving you more context about the running deployment for logging and debugging.
+
+### Improved branch list layout
+
+The branch list in the dashboard now displays as a clean vertical list instead of a masonry-style grid, making it easier to scan and navigate.
+
+### Watch paths display improvements
+
+When you have multiple watch paths configured, the UI now shows the first path with a "+N" indicator for additional paths. Long path names no longer break the layout, and the form resets properly after saving changes.
+
+## Bug fixes
+
+- Fixed an issue where project settings (Dockerfile, port, CPU, memory, regions) weren't persisted when creating a new project.
+- Dockerfile detection no longer shows a false warning when a valid Dockerfile exists.
+- You can now remove the last remaining watch path from your configuration.
+- Fixed race conditions in concurrent key role assignments that could cause inconsistent state.
+- Resolved 503 errors that occurred when routing traffic to regions without running deployment instances.
