@@ -88,7 +88,6 @@ export const FormCombobox = React.forwardRef<HTMLDivElement, FormComboboxProps>(
             id={inputId}
             variant={inputVariant}
             wrapperClassName={wrapperClassName}
-            hideChevron={Boolean(copyValue)}
             aria-describedby={error ? errorId : description ? descriptionId : undefined}
             aria-invalid={!!error}
             aria-required={required}
@@ -98,7 +97,7 @@ export const FormCombobox = React.forwardRef<HTMLDivElement, FormComboboxProps>(
             <CopyButton
               value={copyValue}
               variant="ghost"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 size-6 text-gray-12"
+              className="absolute right-8 top-1/2 -translate-y-1/2 size-6 text-gray-12 [&_svg]:stroke-9"
               src="form-combobox"
             />
           )}

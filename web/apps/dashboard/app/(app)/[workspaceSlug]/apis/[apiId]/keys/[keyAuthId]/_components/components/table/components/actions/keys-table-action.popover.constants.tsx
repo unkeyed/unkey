@@ -62,7 +62,7 @@ export const getKeysTableActionItems = (
       icon: <ArrowOppositeDirectionY iconSize="md-medium" />,
       ActionComponent: (props) => <EditExternalId {...props} keyDetails={key} />,
     },
-    ...(key.identity_id
+    ...(key.identity?.external_id
       ? [
           {
             id: "copy-external-id",
@@ -71,7 +71,7 @@ export const getKeysTableActionItems = (
             onClick: () => {
               navigator.clipboard
                 // Empty case cannot happen since this will only render if identity exists
-                .writeText(key.identity_id ?? "")
+                .writeText(key.identity?.external_id ?? "")
                 .then(() => toast.success("External ID copied to clipboard"))
                 .catch((error) => {
                   console.error("Failed to copy to clipboard:", error);
