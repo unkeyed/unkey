@@ -3,6 +3,8 @@ package api
 type pushPayload struct {
 	Ref          string           `json:"ref"`
 	After        string           `json:"after"`
+	Created      bool             `json:"created"`
+	Deleted      bool             `json:"deleted"`
 	Installation pushInstallation `json:"installation"`
 	Repository   pushRepository   `json:"repository"`
 	Commits      []pushCommit     `json:"commits"`

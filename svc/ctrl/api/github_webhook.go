@@ -79,6 +79,9 @@ func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.handlePush(r.Context(), w, body, deliveryID)
 	case "pull_request":
 		s.handlePullRequest(r.Context(), w, body, deliveryID)
+	case "create", "delete":
+		logger.Info("Branch lifecycle event ignored", "event", event)
+		w.WriteHeader(http.StatusOK)
 	case "installation":
 		logger.Info("Installation event received")
 		w.WriteHeader(http.StatusOK)
@@ -97,6 +100,19 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 	if err := json.Unmarshal(body, &payload); err != nil {
 		logger.Error("failed to parse push payload", "error", err)
 		http.Error(w, "failed to parse push payload", http.StatusBadRequest)
+		return
+	}
+
+	// Branch deletions and restorations don't need deployments.
+	// Deleted branches have no code to build; restored branches are
+	// just re-created refs pointing at an existing commit.
+	if payload.Deleted || payload.Created {
+		logger.Info("Ignoring branch delete/restore push",
+			"ref", payload.Ref,
+			"deleted", payload.Deleted,
+			"created", payload.Created,
+		)
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 
