@@ -264,6 +264,16 @@ k8s_resource(
 
 
 
+# Heimdall (resource metering agent)
+k8s_yaml('k8s/manifests/heimdall.yaml')
+k8s_resource(
+  'heimdall',
+  resource_deps=['clickhouse', 'build-unkey', 'rbac'],
+  labels=['unkey'],
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_AUTO
+)
+
 # Sentinel image (same Go binary, used by ctrl to spawn sentinels)
 # Build locally and load into minikube
 local_resource(

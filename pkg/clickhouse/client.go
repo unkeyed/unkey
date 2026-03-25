@@ -29,7 +29,9 @@ type clickhouse struct {
 	ratelimits       *batch.BatchProcessor[schema.Ratelimit]
 	buildSteps       *batch.BatchProcessor[schema.BuildStepV1]
 	buildStepLogs    *batch.BatchProcessor[schema.BuildStepLogV1]
-	sentinelRequests *batch.BatchProcessor[schema.SentinelRequest]
+	sentinelRequests    *batch.BatchProcessor[schema.SentinelRequest]
+	containerResources  *batch.BatchProcessor[schema.ContainerResource]
+	lifecycleEvents     *batch.BatchProcessor[schema.DeploymentLifecycleEvent]
 }
 
 var (
@@ -215,6 +217,37 @@ func New(config Config) (*clickhouse, error) {
 		},
 	})
 
+	// Billing-critical: Drop: false blocks instead of losing data
+	c.containerResources = batch.New(batch.Config[schema.ContainerResource]{
+		Name:          "container_resources_v1",
+		Drop:          false,
+		BatchSize:     10_000,
+		BufferSize:    50_000,
+		FlushInterval: 5 * time.Second,
+		Consumers:     1,
+		Flush: func(ctx context.Context, rows []schema.ContainerResource) {
+			table := "default.container_resources_raw_v1"
+			if err := flush(c, ctx, table, rows); err != nil {
+				logger.Error("failed to flush batch", "table", table, "error", err.Error())
+			}
+		},
+	})
+
+	c.lifecycleEvents = batch.New(batch.Config[schema.DeploymentLifecycleEvent]{
+		Name:          "lifecycle_events_v1",
+		Drop:          false,
+		BatchSize:     1_000,
+		BufferSize:    10_000,
+		FlushInterval: 5 * time.Second,
+		Consumers:     1,
+		Flush: func(ctx context.Context, rows []schema.DeploymentLifecycleEvent) {
+			table := "default.deployment_lifecycle_events_v1"
+			if err := flush(c, ctx, table, rows); err != nil {
+				logger.Error("failed to flush batch", "table", table, "error", err.Error())
+			}
+		},
+	})
+
 	return c, nil
 }
 
@@ -313,6 +346,14 @@ func (c *clickhouse) BufferSentinelRequest(req schema.SentinelRequest) {
 	c.sentinelRequests.Buffer(req)
 }
 
+func (c *clickhouse) BufferContainerResource(req schema.ContainerResource) {
+	c.containerResources.Buffer(req)
+}
+
+func (c *clickhouse) BufferDeploymentLifecycleEvent(req schema.DeploymentLifecycleEvent) {
+	c.lifecycleEvents.Buffer(req)
+}
+
 func (c *clickhouse) Conn() ch.Conn {
 	return c.conn
 }
@@ -378,6 +419,8 @@ func (c *clickhouse) Close() error {
 	c.buildSteps.Close()
 	c.buildStepLogs.Close()
 	c.sentinelRequests.Close()
+	c.containerResources.Close()
+	c.lifecycleEvents.Close()
 
 	err := c.conn.Close()
 	if err != nil {

@@ -45,6 +45,16 @@ func (n *noop) BufferSentinelRequest(req schema.SentinelRequest) {
 	// Intentionally empty - discards the event
 }
 
+// BufferContainerResource implements the Bufferer interface but discards the event.
+func (n *noop) BufferContainerResource(req schema.ContainerResource) {
+	// Intentionally empty - discards the event
+}
+
+// BufferDeploymentLifecycleEvent implements the Bufferer interface but discards the event.
+func (n *noop) BufferDeploymentLifecycleEvent(req schema.DeploymentLifecycleEvent) {
+	// Intentionally empty - discards the event
+}
+
 // GetBillableVerifications implements the Bufferer interface but always returns 0.
 func (n *noop) GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error) {
 	return 0, nil
