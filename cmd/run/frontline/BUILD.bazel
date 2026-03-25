@@ -1,13 +1,14 @@
 load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "sentinel",
+    name = "frontline",
     srcs = ["main.go"],
-    importpath = "github.com/unkeyed/unkey/cmd/sentinel",
+    importpath = "github.com/unkeyed/unkey/cmd/run/frontline",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/cli",
         "//pkg/config",
-        "//svc/sentinel",
+        "//pkg/uid",
+        "//svc/frontline",
     ],
 )

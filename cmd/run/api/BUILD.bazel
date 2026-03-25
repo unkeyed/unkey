@@ -1,14 +1,16 @@
 load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "vault",
+    name = "api",
     srcs = ["main.go"],
-    importpath = "github.com/unkeyed/unkey/cmd/vault",
+    importpath = "github.com/unkeyed/unkey/cmd/run/api",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/cli",
+        "//pkg/clock",
         "//pkg/config",
+        "//pkg/tls",
         "//pkg/uid",
-        "//svc/vault",
+        "//svc/api",
     ],
 )
