@@ -21,7 +21,7 @@ If we go with multiple clusters, we would have these:
 
 - One cluster where all frontlines gossip with each other, mostly about `frontline-route` invalidations
 - One cluster where all apis gossip, mostly about config invalidations such as keys or ratelimits
-- One cluster **per **a environment for sentinels, mostly about key config changes
+- One cluster \*\*per \*\*a environment for sentinels, mostly about key config changes
 
 The problem with multiple clusters is that they do overlap sometimes, ie both sentinels and apis care about key config changes.
 
@@ -117,4 +117,5 @@ In addition to that, we need frontlines to be able to talk to each other, apis t
 
 This isn't relevant to service discovery directly, but for policies and general network layout
 
-At some point, we'll offer customers a persistent KV-store as a service, which will very likely be a multitenant-service running in each region. Customers can read and write to that, so their pods need to be able to talk to it. Whether KV-pods will gossip with each other or use a central store and just cache locally is still undecided.
+- At some point, we'll offer customers a persistent KV-store as a service, which will very likely be a multitenant-service running in each region. Customers can read and write to that, so their pods need to be able to talk to it. Whether KV-pods will gossip with each other or use a central store and just cache locally is still undecided.
+- Similar to KV, there will be other value-add services, such as queues or external databases via planetscale
