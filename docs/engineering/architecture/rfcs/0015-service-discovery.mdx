@@ -13,6 +13,18 @@ In order for us to use gossip though, we need a way to individually address pods
 1. allow requests across regions → aws VPC peering
 2. discovering pods across regions → see below
 
+## Gossip clusters
+
+There will probably be multiple clusters because not every service cares about every event. Although there is also a point to be made about running one super cluster and services simply ignore events they do not care about. I'm not really sure yet.\
+\
+If we go with multiple clusters, we would have these:
+
+- One cluster where all frontlines gossip with each other, mostly about `frontline-route` invalidations
+- One cluster where all apis gossip, mostly about config invalidations such as keys or ratelimits
+- One cluster **per **a environment for sentinels, mostly about key config changes
+
+The problem with multiple clusters is that they do overlap sometimes, ie both sentinels and apis care about key config changes.
+
 ## Architecture
 
 At a high level the architecture is pretty simple, we would deploy a new stateless (in the sense that it doesn't need a new persistent storage) service in each region, called `servicediscovery` . This service would watch the kubernetes api and maintains an in-memory state of all relevant pods. Relevant pods could be frontlines, unkey apis or sentinels, identified by their labels.
