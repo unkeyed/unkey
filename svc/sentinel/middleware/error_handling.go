@@ -48,6 +48,7 @@ func WithProxyErrorHandling() zen.Middleware {
 			}
 
 			// Categorize error and wrap with instance context
+			sentinelProxyErrorsTotal.WithLabelValues(categorizeProxyErrorTypeForMetrics(err)).Inc()
 			urn, message := categorizeProxyError(err)
 
 			var instanceID, instanceAddress, deploymentID string
