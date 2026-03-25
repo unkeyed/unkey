@@ -1,4 +1,4 @@
-import { AnimatedCounter } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/components/selection-controls";
+import { AnimatedCounter } from "@/components/api-keys-table/components/selection-controls";
 import { Trash, XMark } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";

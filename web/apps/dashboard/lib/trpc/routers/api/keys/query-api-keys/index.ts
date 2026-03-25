@@ -1,4 +1,4 @@
-import { keysQueryListPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/components/table/query-logs.schema";
+import { apiKeysQueryPayload as keysQueryListPayload } from "@/components/api-keys-table/schema/api-keys.schema";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
 import { getAllKeys } from "./get-all-keys";
@@ -6,19 +6,15 @@ import { keyDetailsResponseSchema } from "./schema";
 
 const KeysListResponse = z.object({
   keys: z.array(keyDetailsResponseSchema),
-  hasMore: z.boolean(),
-  nextCursor: z.string().nullish(),
   totalCount: z.number(),
 });
-
-type KeysListResponse = z.infer<typeof KeysListResponse>;
 
 export const queryKeysList = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(keysQueryListPayload)
   .output(KeysListResponse)
   .query(async ({ ctx, input }) => {
-    const { keys, hasMore, totalCount } = await getAllKeys({
+    const { keys, totalCount } = await getAllKeys({
       keyspaceId: input.keyAuthId,
       workspaceId: ctx.workspace.id,
       filters: {
@@ -28,17 +24,8 @@ export const queryKeysList = workspaceProcedure
         tags: input.tags,
       },
       limit: input.limit,
-      cursorKeyId: input.cursor ?? null,
+      page: input.page,
     });
 
-    const lastKeyId = keys.length > 0 ? keys[keys.length - 1].id : null;
-
-    const response: KeysListResponse = {
-      keys: keys,
-      hasMore,
-      totalCount,
-      nextCursor: hasMore && lastKeyId ? lastKeyId : undefined,
-    };
-
-    return response;
+    return { keys, totalCount };
   });

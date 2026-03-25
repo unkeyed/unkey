@@ -16,12 +16,11 @@ interface GetAllKeysInput {
     tags?: AllOperatorsUrlValue[] | null;
   };
   limit?: number;
-  cursorKeyId?: string | null;
+  page?: number;
 }
 
 interface GetAllKeysResult {
   keys: KeyDetails[];
-  hasMore: boolean;
   totalCount: number;
 }
 
@@ -36,7 +35,7 @@ export async function getAllKeys({
   workspaceId,
   filters = {},
   limit = 50,
-  cursorKeyId = null,
+  page = 1,
 }: GetAllKeysInput): Promise<GetAllKeysResult> {
   const { keyIds, names, identities: identityFilters, tags } = filters;
 
@@ -281,18 +280,7 @@ export async function getAllKeys({
 
     const totalCount = countResult?.count ?? 0;
     const keysQuery = await db.query.keys.findMany({
-      where: (key, helpers) => {
-        const { and, lt } = helpers;
-        // Get base filter conditions
-        const filterConditions = buildFilterConditions(key, helpers);
-
-        // Add cursor condition for pagination only
-        if (cursorKeyId) {
-          return and(filterConditions, lt(key.id, cursorKeyId));
-        }
-
-        return filterConditions;
-      },
+      where: (key, helpers) => buildFilterConditions(key, helpers),
       with: {
         ratelimits: {
           columns: {
@@ -309,14 +297,12 @@ export async function getAllKeys({
           },
         },
       },
-      limit: limit + 1, // Fetch one extra to determine if there are more results
+      limit,
+      offset: (page - 1) * limit,
       orderBy: (keys, { desc }) => desc(keys.id),
     });
 
-    // Determine if there are more results
-    const hasMore = keysQuery.length > limit;
-    // Remove the extra item if it exists
-    const keys = hasMore ? keysQuery.slice(0, limit) : keysQuery;
+    const keys = keysQuery;
 
     const transformedKeys: KeyDetails[] = keys.map((key) => {
       const identityData = key.identity
@@ -358,7 +344,6 @@ export async function getAllKeys({
 
     return {
       keys: transformedKeys,
-      hasMore,
       totalCount,
     };
   } catch (error) {
