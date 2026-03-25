@@ -67,6 +67,10 @@ type Config struct {
 	// Vault configures the encryption/decryption service. See [config.VaultConfig].
 	Vault config.VaultConfig `toml:"vault"`
 
+	// PortalAddr is the address of the portal service (e.g. "portal:3000").
+	// When empty, portal routes return 503 (portal service not configured).
+	PortalAddr string `toml:"portal_addr"`
+
 	// Gossip configures distributed cache invalidation. See [config.GossipConfig].
 	// When nil (section omitted), gossip is disabled and invalidation is local-only.
 	Gossip *config.GossipConfig `toml:"gossip"`

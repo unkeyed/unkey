@@ -12,30 +12,40 @@ import (
 
 const findFrontlineRouteByFQDN = `-- name: FindFrontlineRouteByFQDN :one
 SELECT
+  route_type,
   environment_id,
-  deployment_id
+  deployment_id,
+  portal_config_id,
+  path_prefix
 FROM frontline_routes
 WHERE fully_qualified_domain_name = ?
 `
 
 type FindFrontlineRouteByFQDNRow struct {
-	EnvironmentID sql.NullString `db:"environment_id"`
-	DeploymentID  sql.NullString `db:"deployment_id"`
+	RouteType      FrontlineRoutesRouteType `db:"route_type"`
+	EnvironmentID  sql.NullString           `db:"environment_id"`
+	DeploymentID   sql.NullString           `db:"deployment_id"`
+	PortalConfigID sql.NullString           `db:"portal_config_id"`
+	PathPrefix     sql.NullString           `db:"path_prefix"`
 }
 
-// FindFrontlineRouteByFQDN resolves a hostname to the environment and
-// deployment IDs frontline needs to route a request.
-// The projection intentionally stays narrow because this lookup is on the
-// request path and callers do not need the rest of the route row.
+// FindFrontlineRouteByFQDN resolves a hostname to the routing information
+// frontline needs to forward a request. For deployment routes this includes
+// environment and deployment IDs; for portal routes it includes the portal
+// config ID and path prefix. The route_type discriminator tells the caller
+// which set of nullable columns to use.
 //
 //	SELECT
+//	  route_type,
 //	  environment_id,
-//	  deployment_id
+//	  deployment_id,
+//	  portal_config_id,
+//	  path_prefix
 //	FROM frontline_routes
 //	WHERE fully_qualified_domain_name = ?
 func (q *Queries) FindFrontlineRouteByFQDN(ctx context.Context, fullyQualifiedDomainName string) (FindFrontlineRouteByFQDNRow, error) {
 	row := q.db.QueryRowContext(ctx, findFrontlineRouteByFQDN, fullyQualifiedDomainName)
 	var i FindFrontlineRouteByFQDNRow
-	err := row.Scan(&i.EnvironmentID, &i.DeploymentID)
+	err := row.Scan(&i.RouteType, &i.EnvironmentID, &i.DeploymentID, &i.PortalConfigID, &i.PathPrefix)
 	return i, err
 }
