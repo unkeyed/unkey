@@ -1,16 +1,83 @@
 ---
 title: Rollbacks & promotions
-description: Instantly revert to a previous deployment or promote a specific build to production with zero-downtime route switching.
+description: "Revert to a previous deployment or promote a specific version to production with zero downtime"
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-## TODO
+When a deployment causes issues, you can roll back to a previous version instantly. Rollbacks switch traffic atomically, so there's no downtime during the transition.
 
-- How rollback works: atomic route switching to a previous deployment
-- Promoting a specific deployment to receive production traffic
-- Zero-downtime switching — old deployment stays running until routes are reassigned
-- The `isRolledBack` flag: what it means and how it affects subsequent pushes
-- Rolling forward vs rolling back: when to use each approach
+## Roll back a deployment
+
+1. Open your project's **Deployments** tab.
+2. Click the three-dot menu on the deployment you want to revert to.
+3. Select **Rollback**.
+
+<Frame caption="Deployment context menu with rollback, promote, and redeploy options">
+  <img src="/build-and-deploy/rollback-menu-light.png" alt="Deployment context menu" className="block dark:hidden" />
+  <img src="/build-and-deploy/rollback-menu-dark.png" alt="Deployment context menu" className="hidden dark:block" />
+</Frame>
+
+4. Review the current deployment, affected domains, and target deployment in the confirmation dialog.
+5. Click **Rollback to target version**.
+
+<Frame caption="Rollback confirmation showing current and target deployments">
+  <img src="/build-and-deploy/rollback-modal-light.png" alt="Rollback confirmation dialog" className="block dark:hidden" />
+  <img src="/build-and-deploy/rollback-modal-dark.png" alt="Rollback confirmation dialog" className="hidden dark:block" />
+</Frame>
+
+Unkey reassigns the environment and branch domains to point to the target deployment immediately. The previous deployment stays running until routes are fully switched, so no requests are dropped.
+
+## What happens after a rollback
+
+After a rollback, the affected environment enters a rolled-back state. This only applies to the environment where you triggered the rollback (for example, production). Other environments are unaffected.
+
+In a rolled-back environment:
+
+- The target deployment is serving traffic.
+- New pushes to the branch still create deployments, but domains don't get reassigned to them automatically.
+- The dashboard indicates that the environment is running a rolled-back version.
+
+This prevents a new push from undoing your rollback. You stay on the rolled-back version until you explicitly promote a deployment.
+
+## Promote a deployment
+
+Promoting a deployment reassigns domains to point to it and restores normal behavior. After promoting, the next successful deployment from a push automatically receives traffic again.
+
+1. Open your project's **Deployments** tab.
+2. Click the three-dot menu on the deployment you want to promote.
+3. Select **Promote**.
+
+## Rolling forward vs rolling back
+
+| Approach         | When to use                                                            |
+| ---------------- | ---------------------------------------------------------------------- |
+| **Roll back**    | The issue is urgent and you need to restore service immediately        |
+| **Roll forward** | The fix is quick, and you'd rather push a new deployment with the correction |
+
+Rolling back is faster since it reuses an existing, known-good deployment. Rolling forward (pushing a fix) creates a new deployment and goes through the full build and deploy pipeline.
+
+<Tip>
+  In production, previous deployments move to standby after 30 minutes. In preview environments, deployments stay running until they've been idle (zero requests) for six hours. Standby deployments can still be used for rollbacks, but reactivation takes slightly longer than rolling back to a running deployment.
+</Tip>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Deployment lifecycle"
+    icon="arrows-spin"
+    href="/build-and-deploy/deployments"
+  >
+    How deployments progress from build to serving traffic
+  </Card>
+  <Card
+    title="Builds"
+    icon="hammer"
+    href="/builds/overview"
+  >
+    How Unkey builds your container images
+  </Card>
+</CardGroup>

@@ -1,16 +1,88 @@
 ---
 title: Environments
-description: An environment is an isolated deployment target that groups configuration, variables, and deployments for a specific stage of your workflow.
+description: "Isolated deployment targets that separate production traffic from preview builds"
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-## TODO
+An environment is an isolated deployment target within an [app](/platform/apps/overview). Each environment has its own deployments, [variables](/platform/variables/overview), [custom domains](/networking/domains), and [Sentinel policies](/platform/sentinel/overview).
 
-- What an environment is: an isolated deployment target (production, preview, or custom)
-- How environments are created automatically from branch-to-environment mapping
-- Environment-scoped configuration: variables, domains, Sentinel policies, replica counts
-- The relationship between environments and deployments (many deployments per environment)
-- Sticky environment domains that always point to the latest deployment in that environment
+## Production and preview
+
+Every app gets two environments:
+
+| Environment    | Purpose                                                                  |
+| -------------- | ------------------------------------------------------------------------ |
+| **Production** | Serves live traffic. Runs three Sentinel replicas for high availability. |
+| **Preview**    | For testing branches before merging. Runs one Sentinel replica.          |
+
+Unkey creates both environments automatically when you create a project. You don't need to set them up manually.
+
+<Note>
+  Custom environments beyond production and preview are not yet available.
+</Note>
+
+## Branch mapping
+
+When you connect a [GitHub repository](/build-and-deploy/github), Unkey maps branches to environments:
+
+- Pushes to the default branch (typically `main`) deploy to **production**.
+- Pushes to any other branch deploy to **preview**.
+
+Each push creates a new [deployment](/build-and-deploy/deployments) in the corresponding environment.
+
+## Environment-scoped configuration
+
+Configuration is scoped per environment, so production and preview can differ:
+
+- **Variables**: Different database URLs, API keys, and feature flags for each environment
+- **Custom domains**: Production might use `api.acme.com` while preview uses auto-generated domains
+- **Regions and instances**: Run production in multiple regions with higher instance counts, and preview in a single region
+- **Sentinel policies**: Apply stricter rate limits or authentication rules in production
+
+## Sticky domains
+
+Each environment has a sticky domain that always points to the latest deployment in that environment:
+
+```
+<project>-<app>-<environment>-<workspace>.unkey.app
+```
+
+When a new deployment reaches the Ready state, the environment domain updates automatically. You don't need to reconfigure DNS or update your clients.
+
+Production environments also get a live domain without the environment name:
+
+```
+<project>-<app>-<workspace>.unkey.app
+```
+
+See [Wildcard domains](/networking/wildcard-domains) for the full domain naming pattern.
+
+## Deployments per environment
+
+An environment can have many deployments, but only one is active at a time.
+
+In production, when a new deployment goes live, the previous one transitions to standby after 30 minutes. Standby deployments are available for [rollbacks](/build-and-deploy/rollbacks).
+
+In preview environments, deployments stay running as long as they receive traffic. Idle preview deployments (zero requests for six hours) are automatically archived to free up resources.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Variables"
+    icon="key"
+    href="/platform/variables/overview"
+  >
+    Configure environment-specific variables
+  </Card>
+  <Card
+    title="Custom domains"
+    icon="globe"
+    href="/networking/domains"
+  >
+    Serve your app from your own domain
+  </Card>
+</CardGroup>

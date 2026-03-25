@@ -68,7 +68,7 @@
         "groups": [
           {
             "group": "Getting Started",
-            "pages": ["introduction", "quickstart/quickstart", "glossary"]
+            "pages": ["introduction", "quickstart/quickstart", "quickstart/deploy", "glossary"]
           },
           {
             "expanded": false,
@@ -203,11 +203,11 @@
             "group": "Build & Deploy",
             "icon": "rocket",
             "pages": [
-              "builds/overview",
-              "build-and-deploy/deployments",
               "build-and-deploy/overview",
-              "environments/overview",
+              "build-and-deploy/deployments",
               "build-and-deploy/github",
+              "builds/overview",
+              "environments/overview",
               "build-and-deploy/regions",
               "build-and-deploy/rollbacks",
               "platform/variables/overview"

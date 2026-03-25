@@ -1,16 +1,134 @@
 ---
 title: Builds
-description: Understand how Unkey builds your source code into deployable container images.
+description: "How Unkey builds container images from your Dockerfile"
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-## TODO
+A build turns your source code into a container image that Unkey can deploy. Every deployment starts with a build, whether triggered by a GitHub push, the CLI, or the dashboard.
 
-- How builds work: Dockerfile-based container image builds using Depot (remote BuildKit)
-- Build caching: layer caching with up to 50 GB storage and 14-day TTL per project
-- Build logs: streaming output during build and how to debug failures
-- Build configuration: Dockerfile path, build context, build arguments
-- Multi-platform and architecture support
+## How builds work
+
+Unkey builds your application using your Dockerfile on remote build infrastructure. You don't need to set up Docker locally or manage build servers.
+
+The build process:
+
+1. Unkey fetches your source code (from GitHub or a CLI upload).
+2. A remote builder runs `docker build` using your Dockerfile.
+3. The resulting image is stored in Unkey's container registry.
+4. The image is deployed to your configured [regions](/build-and-deploy/regions).
+
+Build output streams to the **Deployments** tab in your project dashboard, so you can follow progress and diagnose failures in real time.
+
+## Dockerfile required
+
+Unkey requires a Dockerfile in your repository. There's no auto-detection or buildpack support.
+
+If your Dockerfile isn't in the repository root or has a non-standard name, configure the path in your [app settings](/platform/apps/settings#dockerfile).
+
+## Build configuration
+
+Configure build settings in the **Settings** tab of your project dashboard:
+
+| Setting            | Description                                                       | Default        |
+| ------------------ | ----------------------------------------------------------------- | -------------- |
+| **Root directory** | The build context directory, where `COPY` and `ADD` are relative to | `.` (repo root) |
+| **Dockerfile**     | Path to the Dockerfile within the root directory                   | `Dockerfile`   |
+
+See [App settings](/platform/apps/settings#build-settings) for the full reference.
+
+## Build-time environment variables
+
+Some builds need access to environment variables during the build step, for example to install private packages or generate code. All [variables](/platform/variables/overview) configured for the environment are available as Docker build secrets.
+
+Unkey mounts all your variables as a `.env` file at `/run/secrets/.env` inside the build container. To use them, add a `--mount=type=secret` flag to the `RUN` step that needs them. Copy the mount flag exactly as shown, the `id` and `target` values are set by Unkey.
+
+Here's a complete example for a Node.js app that needs environment variables during the build step:
+
+```dockerfile Dockerfile
+FROM node:lts-alpine AS builder
+
+WORKDIR /app
+COPY . .
+RUN npm install
+
+# Mount the secrets file and load variables into the shell
+RUN --mount=type=secret,id=env,target=/run/secrets/.env \
+    set -a && . /run/secrets/.env && set +a && \
+    pnpm build
+
+FROM node:lts-alpine
+WORKDIR /app
+COPY --from=builder /app .
+CMD ["node", "dist/index.js"]
+```
+
+The secrets file uses standard `.env` syntax, one variable per line:
+
+```bash /run/secrets/.env
+DATABASE_URL=postgres://prod-db.acme.com/api
+NPM_TOKEN=npm_abc123
+FEATURE_FLAG=true
+```
+
+The `set -a && . /run/secrets/.env && set +a` pattern loads every variable from the file into the shell environment for that `RUN` step. The secret file is not persisted in the final image.
+
+How you consume the file depends on your toolchain:
+
+- **Tools that expect environment variables** (npm, pip, go): use the `set -a` pattern above to load them into the shell.
+- **Frameworks that read `.env` files directly** (Node.js with dotenv, Ruby with dotenv): reference `/run/secrets/.env` in your build script instead of sourcing it.
+
+### Why secret mounts instead of ARG or ENV?
+
+Docker's `ARG` and `ENV` instructions are stored in the image layer history. Anyone with access to the image can extract them with `docker history` or `docker inspect`. Secret mounts avoid this problem: the file is available only during the `RUN` step and is never written to a layer.
+
+## Build infrastructure
+
+Each build runs on a dedicated 16-CPU, 32 GB machine isolated to your project. No build shares resources with another project.
+
+<Note>
+  During the beta, builds are limited to one at a time per workspace. If multiple pushes arrive while a build is running, they queue and run sequentially. Concurrent builds are planned for a future release.
+</Note>
+
+## Build caching
+
+Unkey caches Docker layers between builds. Subsequent builds reuse cached layers when possible, which significantly reduces build times for projects with stable base images and dependencies.
+
+## Prebuilt images
+
+If you build images in your own CI/CD pipeline, you can skip the build step entirely and deploy a prebuilt image with the CLI:
+
+```bash
+unkey deploy ghcr.io/acme/api:v1.0.0 --project=acme-platform
+```
+
+See the [CLI reference](/cli/overview) for all available flags.
+
+## Troubleshoot build failures
+
+When a build fails, check the build logs in the **Deployments** tab. Common issues:
+
+- **Missing Dockerfile**: Verify the Dockerfile path in your [app settings](/platform/apps/settings#dockerfile).
+- **Dependency installation failures**: Check that your base image includes the tools your Dockerfile needs.
+- **Context too large**: If your build context includes large files (node_modules, data files), add a `.dockerignore` to exclude them.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Deployment lifecycle"
+    icon="arrows-spin"
+    href="/build-and-deploy/deployments"
+  >
+    What happens after the build completes
+  </Card>
+  <Card
+    title="App settings"
+    icon="gear"
+    href="/platform/apps/settings"
+  >
+    Configure Dockerfile path, root directory, and watch paths
+  </Card>
+</CardGroup>
