@@ -2,7 +2,15 @@
 
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Button, CopyButton, SettingsDangerZone, Empty, Input, SettingCard, toast } from "@unkey/ui";
+import {
+  Button,
+  CopyButton,
+  Empty,
+  Input,
+  SettingCard,
+  SettingsDangerZone,
+  toast,
+} from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { CreateNamespaceButton } from "../../../_components/create-namespace-button";
 import { DeleteNamespaceDialog } from "../../_components/namespace-delete-dialog";

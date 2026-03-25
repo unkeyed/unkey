@@ -1,7 +1,7 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
-import { Button, SettingsDangerZone, Empty, SettingCard } from "@unkey/ui";
+import { Button, Empty, SettingCard, SettingCardGroup, SettingsDangerZone } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type Stripe from "stripe";
@@ -40,6 +40,12 @@ export const Client: React.FC = () => {
       <div className="animate-pulse">
         <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
         <Shell>
+          <div className="flex flex-col gap-2 items-center">
+            <span className="font-semibold text-gray-12 leading-8 text-lg">Billing</span>
+            <span className="leading-4 text-gray-11 text-[13px]">
+              Manage your subscription, usage, and payment methods.
+            </span>
+          </div>
           <div className="w-full h-[150px] bg-grayA-3 rounded-lg mt-1" />
           <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
           <div className="w-full h-[90px] bg-grayA-3 rounded-lg" />
@@ -68,8 +74,6 @@ export const Client: React.FC = () => {
   const subscription = billingInfo.subscription;
   const currentProductId = billingInfo.currentProductId;
 
-  // const allowUpdate = subscription && ["active", "trialing"].includes(subscription.status);
-
   const hasPaidSubscription = Boolean(
     subscription &&
       currentProductId &&
@@ -91,17 +95,41 @@ export const Client: React.FC = () => {
             status={subscription.status as Stripe.Subscription.Status}
           />
         ) : null}
+        <div className="flex flex-col gap-2 items-center">
+          <span className="font-semibold text-gray-12 leading-8 text-lg">Billing</span>
+          <span className="leading-4 text-gray-11 text-[13px]">
+            Manage your subscription, usage, and payment methods.
+          </span>
+        </div>
 
-        <CancelAlert cancelAt={subscription?.cancelAt} />
         {isFreeTier ? <FreeTierAlert /> : null}
-        <Usage quota={currentProduct?.quotas?.requestsPerMonth ?? MAX_QUOTA} />
 
         {workspace.stripeCustomerId ? (
-          <>
-            <CurrentPlanCard
-              currentProduct={currentProduct}
-              onChangePlan={() => setShowPlanModal(true)}
-            />
+          <div className="w-full">
+            <SettingCardGroup>
+              <CurrentPlanCard
+                currentProduct={currentProduct}
+                onChangePlan={() => setShowPlanModal(true)}
+              />
+              <Usage quota={currentProduct?.quotas?.requestsPerMonth ?? MAX_QUOTA} />
+              <SettingCard
+                title="Billing Portal"
+                description="Manage payment methods and see your invoices."
+              >
+                <div className="w-full flex h-full items-center justify-end gap-4">
+                  <Button
+                    variant="outline"
+                    className="py-2 px-3 text-gray-12 font-medium text-sm bg-grayA-2 hover:bg-grayA-3"
+                    aria-label="Open billing portal"
+                    onClick={() => {
+                      router.push(`/${workspace.slug}/settings/billing/stripe/portal`);
+                    }}
+                  >
+                    Open Portal
+                  </Button>
+                </div>
+              </SettingCard>
+            </SettingCardGroup>
 
             <PlanSelectionModal
               isOpen={showPlanModal}
@@ -111,50 +139,34 @@ export const Client: React.FC = () => {
               workspaceSlug={workspace.slug}
               isChangingPlan={Boolean(subscription)}
             />
-          </>
+          </div>
         ) : (
-          <SettingCard
-            title="Add payment method"
-            border="both"
-            description="Before upgrading, you need to add a payment method."
-            className="sm:w-full text-wrap w-full"
-            contentWidth="w-full"
-          >
-            <div className="flex justify-end w-full">
-              <Button
-                variant="primary"
-                aria-label="Add payment method"
-                onClick={() => {
-                  router.push(`/${workspace.slug}/settings/billing/stripe/checkout`);
-                }}
+          <div className="w-full">
+            <SettingCardGroup>
+              <SettingCard
+                title="Add payment method"
+                description="Before upgrading, you need to add a payment method."
+                contentWidth="w-full lg:w-[320px]"
               >
-                Add payment method
-              </Button>
-            </div>
-          </SettingCard>
+                <div className="flex justify-end w-full">
+                  <Button
+                    variant="outline"
+                    className="px-3 py-2 text-gray-12 font-medium text-[13px] bg-grayA-2 shadow-md hover:bg-grayA-3"
+                    aria-label="Add payment method"
+                    onClick={() => {
+                      router.push(`/${workspace.slug}/settings/billing/stripe/checkout`);
+                    }}
+                  >
+                    Add payment method
+                  </Button>
+                </div>
+              </SettingCard>
+              <Usage quota={currentProduct?.quotas?.requestsPerMonth ?? MAX_QUOTA} />
+            </SettingCardGroup>
+          </div>
         )}
-        {workspace.stripeCustomerId ? (
-          <SettingCard
-            title="Billing Portal"
-            border="both"
-            description="Manage Payment methods and see your invoices."
-            className="w-full"
-            contentWidth="w-full lg:w-[320px]"
-          >
-            <div className="w-full flex h-full items-center justify-end gap-4">
-              <Button
-                variant="outline"
-                size="lg"
-                aria-label="Open billing portal"
-                onClick={() => {
-                  router.push(`/${workspace.slug}/settings/billing/stripe/portal`);
-                }}
-              >
-                Open Portal
-              </Button>
-            </div>
-          </SettingCard>
-        ) : null}
+
+        <CancelAlert cancelAt={subscription?.cancelAt} />
 
         {allowCancel ? (
           <SettingsDangerZone>
