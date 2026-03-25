@@ -102,8 +102,6 @@ export const Usage: React.FC<{
         <p className="text-sm font-semibold text-gray-12">
           {formatNumber(current)} / {formatNumber(max)} ({percent}%)
         </p>
-
-        <ProgressCircle max={max} value={current} />
       </div>
     </SettingCard>
   );

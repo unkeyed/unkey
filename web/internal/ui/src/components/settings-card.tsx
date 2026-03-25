@@ -314,7 +314,7 @@ function SettingsZoneRow({
   description,
   action,
 }: {
-  title: string;
+  title: React.ReactNode;
   description: React.ReactNode;
   action: SettingsZoneAction;
 }) {
@@ -322,8 +322,8 @@ function SettingsZoneRow({
   const btnProps = zoneButtonProps[zoneVariant];
 
   return (
-    <div className="flex items-center justify-between px-4 py-5">
-      <div>
+    <div className="flex items-center justify-between p-4">
+      <div className="space-y-1">
         <p className="font-medium text-gray-12 text-sm">{title}</p>
         <p className="text-gray-11 text-[13px]">{description}</p>
       </div>

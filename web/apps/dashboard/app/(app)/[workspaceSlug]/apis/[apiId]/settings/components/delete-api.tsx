@@ -3,7 +3,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Lock } from "@unkey/icons";
-import { Button, DialogContainer, Input, SettingCard } from "@unkey/ui";
+import { Button, DialogContainer, Input, SettingsZoneRow } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
@@ -67,44 +67,25 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   }
 
   return (
-    <div>
-      <SettingCard
-        title={
-          <div className="inline-flex gap-2">
-            <span>Delete API </span>
-            {api.deleteProtection && (
-              <StatusBadge variant={"locked"} text={"Locked"} icon={<Lock iconSize="sm-thin" />} />
-            )}
-          </div>
-        }
+    <>
+      <SettingsZoneRow
+        title="Delete API"
         description={
           api.deleteProtection ? (
-            <div className="font-normal text-[13px]">
-              Permanently deletes this API, including all keys and data. This action is locked by
-              the <span className="font-medium text-accent-12">Delete Protection</span> feature.
-            </div>
+            <span>
+              <StatusBadge variant="locked" text="Locked" icon={<Lock iconSize="sm-thin" />} /> This
+              action is locked by Delete Protection.
+            </span>
           ) : (
-            <div className="font-normal text-[13px] max-w-[380px]">
-              Permanently deletes this API, including all keys and data. This action cannot be
-              undone.
-            </div>
+            "Permanently deletes this API, including all keys and data. This action cannot be undone."
           )
         }
-        border="none"
-        contentWidth="w-full lg:w-[420px]"
-      >
-        <div className="w-full flex justify-end">
-          <Button
-            variant="destructive"
-            size="lg"
-            className="shrink-0"
-            disabled={api.deleteProtection === true}
-            onClick={() => setOpen(true)}
-          >
-            Delete API
-          </Button>
-        </div>
-      </SettingCard>
+        action={{
+          label: "Delete API",
+          onClick: () => setOpen(true),
+          disabled: api.deleteProtection === true,
+        }}
+      />
       <DialogContainer
         isOpen={open}
         onOpenChange={setOpen}
@@ -150,6 +131,6 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           </div>
         </form>
       </DialogContainer>
-    </div>
+    </>
   );
 };
