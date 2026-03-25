@@ -2,7 +2,7 @@
 
 import { collection } from "@/lib/collections";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Button, CopyButton, Empty, Input, SettingCard, toast } from "@unkey/ui";
+import { Button, CopyButton, SettingsDangerZone, Empty, Input, SettingCard, toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { CreateNamespaceButton } from "../../../_components/create-namespace-button";
 import { DeleteNamespaceDialog } from "../../_components/namespace-delete-dialog";
@@ -131,31 +131,27 @@ export const SettingsClient = ({ namespaceId }: Props) => {
               </SettingCard>
             </div>
 
-            <div className="w-full">
+            <SettingsDangerZone>
               <SettingCard
                 title="Delete ratelimit"
-                description={
-                  <>
+                description="
                     Deletes this namespace along with all associated
-                    <br /> identifiers and data. This action cannot be undone.
-                  </>
-                }
-                border="both"
+                    identifiers and data. This action cannot be undone."
+                border="none"
                 contentWidth="w-full lg:w-[320px] h-full justify-end items-end"
               >
                 <div className="w-full flex justify-end lg:mt-3">
                   <Button
-                    className="w-fit px-3.5 rounded-lg"
-                    variant="outline"
-                    color="danger"
+                    variant="destructive"
                     size="lg"
+                    className="shrink-0"
                     onClick={() => setIsNamespaceNameDeleteModalOpen(true)}
                   >
                     Delete Namespace
                   </Button>
                 </div>
               </SettingCard>
-            </div>
+            </SettingsDangerZone>
           </div>
         </div>
       </div>

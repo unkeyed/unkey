@@ -1,7 +1,7 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Empty, SettingCard } from "@unkey/ui";
+import { Button, SettingsDangerZone, Empty, SettingCard } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type Stripe from "stripe";
@@ -156,7 +156,11 @@ export const Client: React.FC = () => {
           </SettingCard>
         ) : null}
 
-        {allowCancel ? <CancelPlan /> : null}
+        {allowCancel ? (
+          <SettingsDangerZone>
+            <CancelPlan />
+          </SettingsDangerZone>
+        ) : null}
       </Shell>
     </div>
   );

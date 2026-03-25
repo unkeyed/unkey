@@ -244,4 +244,20 @@ function findScrollParent(element: HTMLElement | null): HTMLElement | Window {
 
 SettingCard.displayName = "SettingCard";
 
-export { SettingCard, SettingCardGroup };
+function SettingsDangerZone({
+  children,
+  className,
+}: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("w-full", className)}>
+      <h2 className="font-semibold text-error-11 text-lg mb-4">Danger Zone</h2>
+      <div className="rounded-lg border border-error-7 overflow-hidden divide-y divide-error-7">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+SettingsDangerZone.displayName = "SettingsDangerZone";
+
+export { SettingCard, SettingCardGroup, SettingsDangerZone };

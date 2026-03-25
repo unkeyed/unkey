@@ -1,6 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
+import { SettingsDangerZone } from "@unkey/ui";
 import { CopyApiId } from "./copy-api-id";
 import { CopyKeySpaceId } from "./copy-key-space-id";
 import { DefaultBytes } from "./default-bytes";
@@ -72,10 +73,10 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
           <div>
             <UpdateIpWhitelist api={api} workspace={workspaceForComponents} />
           </div>
-          <div>
+          <SettingsDangerZone>
             <DeleteProtection api={api} />
             <DeleteApi api={api} keys={keyAuthForComponents.sizeApprox} />
-          </div>
+          </SettingsDangerZone>
         </div>
       </div>
     </div>

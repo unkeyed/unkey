@@ -81,33 +81,18 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
           <p>Enabling this prevents the API from being deleted.</p>
         )
       }
-      border="top"
-      className="border-b border-grayA-4"
+      border="none"
     >
       <div className="flex w-full gap-2 lg:items-center justify-end">
-        {api.deleteProtection ? (
-          <Button
-            type="button"
-            variant="outline"
-            color="warning"
-            className="h-full px-3.5 "
-            size="xlg"
-            onClick={() => setOpen(true)}
-          >
-            Disable Delete Protection
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            className="h-full px-3.5 "
-            variant="outline"
-            color="success"
-            size="xlg"
-            onClick={() => setOpen(true)}
-          >
-            Enable Delete Protection
-          </Button>
-        )}
+        <Button
+          type="button"
+          variant="destructive"
+          size="lg"
+          className="shrink-0"
+          onClick={() => setOpen(true)}
+        >
+          {api.deleteProtection ? "Disable Delete Protection" : "Enable Delete Protection"}
+        </Button>
       </div>
       <DialogContainer
         isOpen={open}
@@ -119,7 +104,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
               type="submit"
               form="delete-protection-form"
               variant="primary"
-              color={api.deleteProtection ? "warning" : "success"}
+              color={api.deleteProtection ? "warning" : "danger"}
               size="xlg"
               disabled={!isValid || isSubmitting}
               loading={isSubmitting}

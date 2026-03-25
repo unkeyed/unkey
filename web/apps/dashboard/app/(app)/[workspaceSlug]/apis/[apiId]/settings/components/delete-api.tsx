@@ -90,15 +90,14 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
             </div>
           )
         }
-        border="bottom"
+        border="none"
         contentWidth="w-full lg:w-[420px]"
       >
         <div className="w-full flex justify-end">
           <Button
-            variant="outline"
-            color="danger"
-            className="h-full px-3.5"
+            variant="destructive"
             size="lg"
+            className="shrink-0"
             disabled={api.deleteProtection === true}
             onClick={() => setOpen(true)}
           >

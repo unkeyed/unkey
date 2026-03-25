@@ -4,7 +4,7 @@ import { collection } from "@/lib/collections";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Button, DialogContainer, Input } from "@unkey/ui";
+import { Button, SettingsDangerZone, DialogContainer, Input } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -49,8 +49,7 @@ export function DeleteProject() {
   return (
     <>
       <div className="w-225 mx-auto mt-10 mb-14">
-        <h2 className="font-semibold text-error-11 text-lg mb-4">Danger Zone</h2>
-        <div className="rounded-lg border border-error-7 overflow-hidden">
+        <SettingsDangerZone>
           <div className="flex items-center justify-between px-6 py-5">
             <div>
               <p className="font-medium text-gray-12 text-sm">Delete this project</p>
@@ -67,7 +66,7 @@ export function DeleteProject() {
               Delete this project
             </Button>
           </div>
-        </div>
+        </SettingsDangerZone>
       </div>
 
       <DialogContainer
