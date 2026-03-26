@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -437,6 +438,9 @@ func TestSetRolesConcurrent(t *testing.T) {
 func TestValidationConcurrencyStress(t *testing.T) {
 	t.Parallel()
 
+	// Suppress logs — 10k requests produce too much output for Bazel.
+	logger.SetSampler(logger.TailSampler{SampleRate: 0})
+
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
@@ -479,7 +483,7 @@ func TestValidationConcurrencyStress(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	const totalRequests = 10_001
+	const totalRequests = 10_000
 	const concurrency = 500
 
 	var circularRefErrors atomic.Int64
