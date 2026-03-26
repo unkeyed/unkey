@@ -24,7 +24,6 @@ type OpenAPIValidator interface {
 }
 
 type Validator struct {
-	mu        sync.Mutex
 	validator validator.Validator
 }
 
@@ -54,7 +53,6 @@ func New() (*Validator, error) {
 	}
 
 	return &Validator{
-		mu:        sync.Mutex{},
 		validator: v,
 	}, nil
 }
@@ -63,16 +61,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	_, validationSpan := tracing.Start(ctx, "openapi.Validate")
 	defer validationSpan.End()
 
-	// libopenapi-validator has shared mutable state in its document model
-	// that isn't safe for concurrent access, producing spurious "circular
-	// reference detected during inline rendering" errors
-	// (see pb33f/libopenapi#488). Serializing calls eliminates the race.
-	//
-	// We're planning to move away from libopenapi-validator, so this
-	// is acceptable rather than investing in a proper fix.
-	v.mu.Lock()
 	valid, errors := v.validator.ValidateHttpRequestSync(r)
-	v.mu.Unlock()
 
 	if valid {
 		// nolint:exhaustruct

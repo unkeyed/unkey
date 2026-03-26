@@ -406,6 +406,14 @@ func TestSetRolesConcurrent(t *testing.T) {
 		roles[i] = role.Name
 	}
 
+	// Warm up the validator's schema cache with a single request so the
+	// concurrent burst doesn't race on first-time schema rendering.
+	warmup := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		KeyId: keyResponse.KeyID,
+		Roles: []string{roles[0]},
+	})
+	require.Equal(t, 200, warmup.Status, "warmup request should succeed")
+
 	g := errgroup.Group{}
 	for i := range numConcurrent {
 		g.Go(func() error {
@@ -482,6 +490,19 @@ func TestValidationConcurrencyStress(t *testing.T) {
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
+
+	// Warm up the validator's schema cache with a single request so the
+	// concurrent burst doesn't race on first-time schema rendering.
+	warmupBody, err := json.Marshal(handler.Request{
+		KeyId: keyResponse.KeyID,
+		Roles: []string{roles[0]},
+	})
+	require.NoError(t, err)
+	warmupReq := httptest.NewRequest(route.Method(), route.Path(), bytes.NewReader(warmupBody))
+	warmupReq.Header = headers.Clone()
+	warmupRR := httptest.NewRecorder()
+	h.Mux().ServeHTTP(warmupRR, warmupReq)
+	require.Equal(t, 200, warmupRR.Code, "warmup request should succeed")
 
 	const totalRequests = 100_000
 	const concurrency = 500
