@@ -54,6 +54,15 @@ export const KeysList = ({
     [onPageChange],
   );
 
+  const handleSortingChange = useCallback(
+    (updater: Parameters<typeof onSortingChange>[0]) => {
+      setSelectedKeys(new Set());
+      setNavigatingKeyId(null);
+      onSortingChange(updater);
+    },
+    [onSortingChange],
+  );
+
   const handleRowClick = useCallback((key: KeyDetails | null) => {
     setSelectedKey(key);
   }, []);
@@ -152,7 +161,7 @@ export const KeysList = ({
         rowClassName={getRowClassNameMemoized}
         renderSkeletonRow={renderApiKeySkeletonRow}
         sorting={sorting}
-        onSortingChange={onSortingChange}
+        onSortingChange={handleSortingChange}
         config={TABLE_CONFIG}
         emptyState={<EmptyApiKeys />}
       />
