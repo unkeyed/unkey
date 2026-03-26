@@ -20,7 +20,7 @@ export const apiKeysQueryPayload = z.object({
   keyIds: baseFilterArraySchema,
   tags: baseFilterArraySchema,
   page: z.number().int().min(1).optional().default(1),
-  limit: z.number().optional().default(PAGINATION_LIMIT),
+  limit: z.number().int().min(1).max(PAGINATION_LIMIT).optional().default(PAGINATION_LIMIT),
   sortBy: apiKeysSortFieldEnum.optional().default("id"),
   sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
 });

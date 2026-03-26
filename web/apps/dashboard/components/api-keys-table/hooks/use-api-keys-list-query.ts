@@ -47,7 +47,7 @@ export function useApiKeysListQuery({
 
   const sorting: SortingState = useMemo(() => {
     if (!sortParams || sortParams.length === 0) {
-      return [{ id: "key", desc: true }];
+      return [{ id: "last_used", desc: true }];
     }
     return sortParams.map((s) => ({
       id: SORT_FIELD_TO_COLUMN_ID[s.column] ?? s.column,
@@ -96,7 +96,7 @@ export function useApiKeysListQuery({
       page: normalizedPage,
       ...Object.fromEntries(keysListFilterFieldNames.map((field) => [field, []])),
       keyAuthId,
-      sortBy: sortParams?.[0]?.column ?? "id",
+      sortBy: sortParams?.[0]?.column ?? "lastUsedAt",
       sortOrder: sortParams?.[0]?.direction ?? "desc",
     };
 
@@ -106,8 +106,8 @@ export function useApiKeysListQuery({
       }
 
       const fieldConfig = keysListFilterFieldConfig[filter.field];
-      if (!fieldConfig.operators.includes(filter.operator)) {
-        throw new Error("Invalid operator");
+      if (!fieldConfig || !fieldConfig.operators.includes(filter.operator)) {
+        continue;
       }
 
       if (typeof filter.value === "string") {

@@ -305,7 +305,9 @@ export async function getAllKeys({
       offset: (page - 1) * limit,
       orderBy: (keys, helpers) => {
         const column = keys[sortBy];
-        return sortOrder === "desc" ? helpers.desc(column) : helpers.asc(column);
+        const primary = sortOrder === "desc" ? helpers.desc(column) : helpers.asc(column);
+        const tiebreaker = sortOrder === "desc" ? helpers.desc(keys.id) : helpers.asc(keys.id);
+        return [primary, tiebreaker];
       },
     });
 

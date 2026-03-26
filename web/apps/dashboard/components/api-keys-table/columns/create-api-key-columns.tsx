@@ -78,7 +78,7 @@ const KeyIdCell = ({
   const iconContainer = (
     <div
       className={cn(
-        "size-5 rounded-sm flex items-center justify-center cursor-pointer",
+        "size-5 rounded-sm flex items-center justify-center cursor-pointer relative",
         identity ? "bg-successA-3" : "bg-grayA-3",
         isKeySelected && "bg-brand-5",
       )}
@@ -91,23 +91,27 @@ const KeyIdCell = ({
         </div>
       ) : (
         <>
-          {!isKeySelected && !isHovered && (
-            // biome-ignore lint/complexity/noUselessFragments: conditional rendering requires fragment
-            <>
-              {identity ? (
-                <Focus iconSize="md-medium" className="text-successA-11" />
-              ) : (
-                <Key iconSize="md-medium" />
-              )}
-            </>
-          )}
-          {(isKeySelected || isHovered) && (
-            <Checkbox
-              checked={isKeySelected}
-              className="size-4 [&_svg]:size-3"
-              onCheckedChange={() => onToggleSelection(keyData.id)}
-            />
-          )}
+          <div
+            className={cn(
+              isKeySelected || isHovered ? "opacity-0 pointer-events-none" : "opacity-100",
+            )}
+          >
+            {identity ? (
+              <Focus iconSize="md-medium" className="text-successA-11" />
+            ) : (
+              <Key iconSize="md-medium" />
+            )}
+          </div>
+          <Checkbox
+            checked={isKeySelected}
+            className={cn(
+              "size-4 [&_svg]:size-3 absolute",
+              isKeySelected || isHovered
+                ? "opacity-100"
+                : "opacity-0 pointer-events-none focus-visible:opacity-100 focus-visible:pointer-events-auto",
+            )}
+            onCheckedChange={() => onToggleSelection(keyData.id)}
+          />
         </>
       )}
     </div>

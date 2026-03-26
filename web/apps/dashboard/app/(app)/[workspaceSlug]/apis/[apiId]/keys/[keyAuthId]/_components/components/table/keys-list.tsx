@@ -5,11 +5,11 @@ import {
   renderApiKeySkeletonRow,
   useApiKeysListQuery,
 } from "@/components/api-keys-table";
+import { EmptyApiKeys } from "@/components/api-keys-table/components/empty-api-keys";
 import { SelectionControls } from "@/components/api-keys-table/components/selection-controls";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { BookBookmark } from "@unkey/icons";
-import { Button, DataTable, Empty, PaginationFooter } from "@unkey/ui";
+import { DataTable, PaginationFooter } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 
 const TABLE_CONFIG = {
@@ -119,7 +119,7 @@ export const KeysList = ({
       createApiKeyColumns({
         keyspaceId,
         apiId,
-        workspaceSlug: workspace?.slug ?? "",
+        workspaceSlug: workspace?.slug,
         selectedKeyId: selectedKey?.id ?? null,
         navigatingKeyId,
         selectedKeys,
@@ -154,30 +154,7 @@ export const KeysList = ({
         sorting={sorting}
         onSortingChange={onSortingChange}
         config={TABLE_CONFIG}
-        emptyState={
-          <div className="w-full flex justify-center items-center h-full">
-            <Empty className="w-[400px] flex items-start">
-              <Empty.Icon className="w-auto" />
-              <Empty.Title>No API Keys Found</Empty.Title>
-              <Empty.Description className="text-left">
-                There are no API keys associated with this service yet. Create your first API key to
-                get started.
-              </Empty.Description>
-              <Empty.Actions className="mt-4 justify-start">
-                <a
-                  href="https://www.unkey.com/docs/introduction"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button size="md">
-                    <BookBookmark />
-                    Learn about Keys
-                  </Button>
-                </a>
-              </Empty.Actions>
-            </Empty>
-          </div>
-        }
+        emptyState={<EmptyApiKeys />}
       />
       <PaginationFooter
         page={page}
