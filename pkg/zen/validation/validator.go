@@ -79,7 +79,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	// quickfix is acceptable rather than investing in a proper fix.
 	var valid bool
 	var errors []*validatorerrs.ValidationError
-	for range 5 {
+	for range 1 {
 		valid, errors = v.validator.ValidateHttpRequest(r)
 		if valid || !hasCircularRefError(errors) {
 			break
