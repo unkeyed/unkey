@@ -79,7 +79,6 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
           automatically.
         </div>
       }
-      border="bottom"
       contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
     >
       <form
