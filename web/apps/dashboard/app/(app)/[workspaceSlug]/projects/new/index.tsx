@@ -15,6 +15,7 @@ export const Onboarding = () => {
   const { data: context, isLoading: contextLoading } =
     trpc.deploy.project.creationContext.useQuery();
   const isFirstProject = contextLoading || (context?.isFirstProject ?? true);
+  const hasGithubInstallation = context?.hasGithubInstallation === true;
   const searchParams = useSearchParams();
 
   // Step id to start the wizard at (e.g. "select-repo"). When the GitHub
@@ -48,24 +49,26 @@ export const Onboarding = () => {
             <CreateProjectStep onProjectCreated={setProjectId} />
           </div>
         </StepWizard.Step>
-        <StepWizard.Step id="connect-github" label="Connect GitHub">
-          {projectId ? (
-            <div className="flex flex-col items-center justify-center h-screen">
-              <OnboardingStepHeader
-                title={isFirstProject ? "Deploy your first project" : "Deploy your project"}
-                showIconRow
-                subtitle={
-                  <>
-                    Connect a GitHub repo and get a live URL in minutes.
-                    <br />
-                    Unkey handles builds, infra, scaling, and routing.
-                  </>
-                }
-              />
-              <ConnectGithubStep projectId={projectId} onBeforeNavigate={bypass} />
-            </div>
-          ) : null}
-        </StepWizard.Step>
+        {!hasGithubInstallation && (
+          <StepWizard.Step id="connect-github" label="Connect GitHub">
+            {projectId ? (
+              <div className="flex flex-col items-center justify-center h-screen">
+                <OnboardingStepHeader
+                  title={isFirstProject ? "Deploy your first project" : "Deploy your project"}
+                  showIconRow
+                  subtitle={
+                    <>
+                      Connect a GitHub repo and get a live URL in minutes.
+                      <br />
+                      Unkey handles builds, infra, scaling, and routing.
+                    </>
+                  }
+                />
+                <ConnectGithubStep projectId={projectId} onBeforeNavigate={bypass} />
+              </div>
+            ) : null}
+          </StepWizard.Step>
+        )}
         <StepWizard.Step id="select-repo" label="Select repository">
           {projectId ? (
             <div className="flex flex-col items-center justify-center mt-14">
@@ -79,7 +82,11 @@ export const Onboarding = () => {
                   </>
                 }
               />
-              <SelectRepo projectId={projectId} />{" "}
+              <SelectRepo
+                projectId={projectId}
+                onBeforeNavigate={bypass}
+                hasGithubInstallation={context?.hasGithubInstallation ?? false}
+              />
             </div>
           ) : null}
         </StepWizard.Step>
