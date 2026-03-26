@@ -367,8 +367,8 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 			}, restate.WithName("resolve commit metadata by sha"))
 			if resolveErr != nil {
 				return fault.Wrap(
-					restate.TerminalError(fmt.Errorf("failed to resolve metadata for commit %q: %w", commitSHA, resolveErr)),
-					fault.Public("Could not retrieve commit information from GitHub. Please check your repository connection."),
+					fmt.Errorf("failed to resolve metadata for commit %q: %w", commitSHA, resolveErr),
+					fault.Public("Could not retrieve commit information from GitHub."),
 				)
 			}
 
