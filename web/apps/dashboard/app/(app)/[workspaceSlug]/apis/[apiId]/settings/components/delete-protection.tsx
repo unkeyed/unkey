@@ -95,7 +95,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
               type="submit"
               form="delete-protection-form"
               variant="primary"
-              color={api.deleteProtection ? "warning" : "danger"}
+              color="danger"
               size="xlg"
               disabled={!isValid || isSubmitting}
               loading={isSubmitting}
