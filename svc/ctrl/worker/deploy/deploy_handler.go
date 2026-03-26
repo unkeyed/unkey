@@ -314,6 +314,12 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		// a GitTarget that specifies only a branch)
 		if commitSHA == "" && source.Git.GetBranch() != "" {
 			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
+				if w.allowUnauthenticatedDeployments {
+					return w.github.GetBranchHeadCommitPublic(
+						source.Git.GetRepository(),
+						source.Git.GetBranch(),
+					)
+				}
 				return w.github.GetBranchHeadCommit(
 					source.Git.GetInstallationId(),
 					source.Git.GetRepository(),
@@ -357,7 +363,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 
 		// When a SHA is known (either provided directly or just resolved from branch)
 		// but the deployment record is still missing git metadata, fetch it from GitHub.
-		if commitSHA != "" && !deployment.GitCommitMessage.Valid {
+		if commitSHA != "" && !deployment.GitCommitMessage.Valid && !w.allowUnauthenticatedDeployments {
 			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
 				return w.github.GetCommitBySHA(
 					source.Git.GetInstallationId(),
