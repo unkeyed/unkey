@@ -530,6 +530,12 @@ func (h *Harness) Resources() seed.Resources {
 	return h.seeder.Resources
 }
 
+// Mux returns the underlying HTTP mux for direct request handling in tests
+// that need to inspect raw responses without test-fatal JSON unmarshalling.
+func (h *Harness) Mux() http.Handler {
+	return h.srv.Mux()
+}
+
 // TestResponse wraps an HTTP response with typed body parsing for test assertions.
 type TestResponse[TBody any] struct {
 	Status  int
