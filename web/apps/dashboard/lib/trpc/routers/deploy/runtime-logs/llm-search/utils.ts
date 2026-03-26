@@ -18,7 +18,7 @@ export async function getStructuredSearchFromLLM(
         message: "OpenAI isn't configured correctly, please check your API key",
       });
     }
-    const completion = await openai.beta.chat.completions.parse({
+    const completion = await openai.chat.completions.parse({
       model: "gpt-5-mini-2025-08-07",
       n: 1,
       messages: [
