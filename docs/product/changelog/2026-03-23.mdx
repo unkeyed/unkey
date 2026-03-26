@@ -1,13 +1,13 @@
 ---
 title: "March 23, 2026"
-description: "Key last-used tracking, deployment approvals, watch paths, on-demand deploys, and more."
+description: "Key last-used tracking, deployment approvals, runtime environment variables, watch paths, on-demand deploys, and more."
 ---
 
 ## New features
 
 ### Key last-used tracking
 
-You can now see when each API key was last used for verification. A new `lastUsed` field is available in the [key verification API response](/api-reference/v2/overview), so you can identify stale keys and clean up unused credentials.
+You can now see when each API key was last used for verification. A new `lastUsedAt` field is returned by the `keys.getKey`, `keys.whoami`, and `apis.listKeys` [v2 API](/api-reference/v2/overview) endpoints as a Unix timestamp in milliseconds. The value is approximate, accurate to within a few minutes. Use it to identify stale keys and clean up unused credentials.
 
 ### Deployment approval for external contributors
 
@@ -28,6 +28,42 @@ Deployment progress is now reported directly to GitHub. You'll see status update
 ### Delete projects
 
 You can now delete projects from the dashboard. This removes the project and all associated apps, environments, and deployments.
+
+### Runtime environment variables for deployments
+
+Your deployed workloads now have access to a set of automatically injected environment variables that provide context about the running deployment. Use these to add metadata to your logs, identify which instance is handling a request, or gate behavior based on the current environment.
+
+| Variable | Description |
+| --- | --- |
+| `UNKEY_DEPLOYMENT_ID` | Unique identifier for the current deployment |
+| `UNKEY_ENVIRONMENT_SLUG` | Slug of the environment (e.g., `production`, `staging`) |
+| `UNKEY_REGION` | Region where the instance is running |
+| `UNKEY_INSTANCE_ID` | Unique identifier for the specific running instance (pod) |
+| `UNKEY_GIT_COMMIT_SHA` | Git commit SHA that triggered the deployment |
+| `UNKEY_GIT_BRANCH` | Git branch that triggered the deployment |
+| `UNKEY_GIT_REPO` | Full repository name (e.g., `org/repo`) |
+| `UNKEY_GIT_COMMIT_MESSAGE` | Commit message of the deployed commit |
+
+Git-related variables are populated automatically when your deployment is connected to a GitHub repository. `UNKEY_INSTANCE_ID` is unique per running instance, so you can use it to distinguish between replicas.
+
+```typescript
+// Example: structured logging with deployment context
+app.use((req, res, next) => {
+  console.log(JSON.stringify({
+    deployment: process.env.UNKEY_DEPLOYMENT_ID,
+    environment: process.env.UNKEY_ENVIRONMENT_SLUG,
+    region: process.env.UNKEY_REGION,
+    instance: process.env.UNKEY_INSTANCE_ID,
+    commit: process.env.UNKEY_GIT_COMMIT_SHA,
+    path: req.path,
+  }));
+  next();
+});
+```
+
+<Note>
+  The previous `UNKEY_WORKSPACE_ID`, `UNKEY_PROJECT_ID`, and `UNKEY_ENVIRONMENT_ID` variables have been replaced by the new set listed above.
+</Note>
 
 ## Updates
 

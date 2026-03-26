@@ -1,0 +1,59 @@
+---
+title: "March 26, 2026"
+description: "Build-time environment variables, OpenAPI diff viewer, idle deployments, and improved deployment triggers."
+---
+
+## New features
+
+### Build-time environment variables
+
+Your environment variables are now available during Docker image builds. Variables configured in your deployment settings are decrypted and mounted securely as BuildKit secrets, so you can reference them in your Dockerfile without exposing them in the image layer history. This is useful for installing private packages or pulling credentials needed at build time.
+
+To use a build-time variable, mount it as a secret in your `RUN` instruction:
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM node:20-alpine
+
+# Mount NPM_TOKEN as a secret during install — it won't appear in the image layers
+RUN --mount=type=secret,id=NPM_TOKEN \
+    NPM_TOKEN=$(cat /run/secrets/NPM_TOKEN) \
+    npm install --registry https://registry.npmjs.org/
+
+COPY . .
+RUN npm run build
+CMD ["node", "dist/index.js"]
+```
+
+<Note>
+  The secret ID must match the environment variable key you configured in your deployment settings. Secrets are only available during the build stage where they are mounted.
+</Note>
+
+### OpenAPI diff viewer
+
+A new OpenAPI Diff page lets you compare the OpenAPI spec between any two deployments. Select two deployments side-by-side to see added, removed, and changed endpoints with method-specific badges. Changes are categorized by severity — breaking, warning, or informational — so you can quickly identify regressions before promoting a deployment.
+
+To enable the diff viewer, set the path to your OpenAPI spec file (for example, `/openapi.yaml`) in your project's environment settings. Once configured, the project overview shows a compact diff indicator between your current and latest preview deployment, with a link to the full comparison page.
+
+### Idle deployment status
+
+Deployments that are scaled to zero now show an "idle" status in the dashboard instead of appearing as stopped or errored. This gives you a clearer picture of which deployments are still available but not actively running.
+
+## Updates
+
+### Smarter deployment triggers
+
+Branch creation and deletion events no longer trigger unnecessary deployments. Pushes to your main branch are also auto-approved without requiring manual intervention, since GitHub already enforces write-access verification. Fork-based pull requests still require explicit approval before deploying.
+
+### Faster key last-used display
+
+The keys table in the dashboard now loads last-used timestamps directly from the API response instead of making separate requests for each key. This means the "last used" column renders instantly without individual loading spinners.
+
+### Improved routing reliability
+
+Deployments are now routed only to regions that have running instances. Previously, requests could be forwarded to a region where no instances were active, resulting in 503 errors. The routing layer now verifies instance availability before selecting a target region.
+
+## Bug fixes
+
+- Concurrent requests to update key [roles and permissions](/apis/features/authorization/roles-and-permissions) no longer cause race conditions or deadlocks.
+- You can now copy the external ID from the keys table actions menu and edit it from the dialog without errors.

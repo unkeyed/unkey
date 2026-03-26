@@ -8,7 +8,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/svc/api/routes/v2_liveness"
 
-	pprofRoute "github.com/unkeyed/unkey/svc/api/routes/pprof"
+	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_delete_override"
 	v2RatelimitGetOverride "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_get_override"
@@ -105,9 +105,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		}
 
 		srv.RegisterRoute(pprofMiddlewares, &pprofRoute.Handler{
-
 			Username: svc.PprofUsername,
 			Password: svc.PprofPassword,
+			Prefix:   "/debug",
 		})
 	}
 

@@ -35,6 +35,7 @@ const (
 	READY            V2DeployGetDeploymentResponseDataStatus = "READY"
 	SKIPPED          V2DeployGetDeploymentResponseDataStatus = "SKIPPED"
 	STARTING         V2DeployGetDeploymentResponseDataStatus = "STARTING"
+	STOPPED          V2DeployGetDeploymentResponseDataStatus = "STOPPED"
 	UNSPECIFIED      V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
 )
 

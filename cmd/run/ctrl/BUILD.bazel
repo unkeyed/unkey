@@ -8,7 +8,7 @@ go_library(
         "main.go",
         "worker.go",
     ],
-    importpath = "github.com/unkeyed/unkey/cmd/ctrl",
+    importpath = "github.com/unkeyed/unkey/cmd/run/ctrl",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/cli",

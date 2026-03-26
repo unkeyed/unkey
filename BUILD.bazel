@@ -13,7 +13,6 @@ go_library(
     deps = [
         "//cmd/deploy",
         "//cmd/dev",
-        "//cmd/frontline",
         "//cmd/healthcheck",
         "//cmd/run",
         "//cmd/version",

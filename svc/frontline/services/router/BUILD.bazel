@@ -6,6 +6,7 @@ go_library(
         "doc.go",
         "interface.go",
         "lookup.go",
+        "metrics.go",
         "routing.go",
         "service.go",
     ],
@@ -18,5 +19,7 @@ go_library(
         "//pkg/fault",
         "//pkg/mysql",
         "//svc/frontline/internal/db",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/promauto",
     ],
 )

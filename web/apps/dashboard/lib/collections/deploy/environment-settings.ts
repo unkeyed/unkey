@@ -104,6 +104,16 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
 
 export type EnvironmentSettings = z.infer<typeof schema>;
 
+/** Default values for environment settings fields (excluding regions, which are runtime-dependent). */
+export const ENVIRONMENT_SETTINGS_DEFAULTS = {
+  dockerfile: "Dockerfile",
+  dockerContext: ".",
+  port: 8080,
+  cpuMillicores: 256,
+  memoryMib: 256,
+  shutdownSignal: "SIGTERM",
+} as const;
+
 type SettingsResponse = Awaited<ReturnType<typeof trpcClient.deploy.environmentSettings.get.query>>;
 
 function changed<T>(a: T, b: T): boolean {
@@ -120,14 +130,15 @@ function flattenSettingsResponse(
   runtime: SettingsResponse["runtimeSettings"],
   regional: SettingsResponse["regionalSettings"],
 ): EnvironmentSettings {
+  const d = ENVIRONMENT_SETTINGS_DEFAULTS;
   return {
     environmentId,
-    dockerfile: build?.dockerfile || "Dockerfile",
-    dockerContext: build?.dockerContext || ".",
+    dockerfile: build?.dockerfile || d.dockerfile,
+    dockerContext: build?.dockerContext || d.dockerContext,
     watchPaths: build?.watchPaths ?? [],
-    port: runtime?.port ?? 8080,
-    cpuMillicores: runtime?.cpuMillicores ?? 256,
-    memoryMib: runtime?.memoryMib ?? 256,
+    port: runtime?.port ?? d.port,
+    cpuMillicores: runtime?.cpuMillicores ?? d.cpuMillicores,
+    memoryMib: runtime?.memoryMib ?? d.memoryMib,
     command: runtime?.command ?? [],
     healthcheck: runtime?.healthcheck ?? null,
     regions: regional
@@ -137,7 +148,7 @@ function flattenSettingsResponse(
         name: r.region.name,
         replicas: r.replicas,
       })),
-    shutdownSignal: "SIGTERM",
+    shutdownSignal: d.shutdownSignal,
     sentinelConfig: runtime?.sentinelConfig,
     openapiSpecPath: runtime?.openapiSpecPath ?? null,
   };

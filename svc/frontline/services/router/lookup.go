@@ -17,6 +17,7 @@ func (s *service) findRoute(ctx context.Context, hostname string) (db.FindFrontl
 	}, internalCaches.DefaultFindFirstOp)
 
 	if err != nil && !mysql.IsNotFound(err) {
+		routingErrorsTotal.WithLabelValues("config_load_failed").Inc()
 		return db.FindFrontlineRouteByFQDNRow{}, fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.ConfigLoadFailed.URN()),
 			fault.Internal("error loading frontline route"),
@@ -25,6 +26,7 @@ func (s *service) findRoute(ctx context.Context, hostname string) (db.FindFrontl
 	}
 
 	if mysql.IsNotFound(err) || routeHit == cache.Null {
+		routingErrorsTotal.WithLabelValues("config_not_found").Inc()
 		return db.FindFrontlineRouteByFQDNRow{}, fault.New("no frontline route for hostname: "+hostname,
 			fault.Code(codes.Frontline.Routing.ConfigNotFound.URN()),
 			fault.Public("Domain not configured"),
@@ -45,6 +47,7 @@ func (s *service) lookupByHostname(ctx context.Context, hostname string) (db.Fin
 	}, internalCaches.DefaultFindFirstOp)
 
 	if err != nil && !mysql.IsNotFound(err) {
+		routingErrorsTotal.WithLabelValues("sentinel_load_failed").Inc()
 		return db.FindFrontlineRouteByFQDNRow{}, nil, fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.ConfigLoadFailed.URN()),
 			fault.Internal("error loading sentinels"),
