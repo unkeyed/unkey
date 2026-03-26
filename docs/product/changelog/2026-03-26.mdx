@@ -39,6 +39,10 @@ To enable the diff viewer, set the path to your OpenAPI spec file (for example, 
 
 Deployments that are scaled to zero now show an "idle" status in the dashboard instead of appearing as stopped or errored. This gives you a clearer picture of which deployments are still available but not actively running.
 
+### Environment selector for on-demand deployments
+
+When triggering a deployment manually from the dashboard, you can now choose which environment to deploy to. A dropdown lets you select the target environment — such as production, staging, or preview — instead of always deploying to the default. This gives you more control when redeploying or testing changes across environments.
+
 ## Updates
 
 ### Smarter deployment triggers
@@ -57,3 +61,5 @@ Deployments are now routed only to regions that have running instances. Previous
 
 - Concurrent requests to update key [roles and permissions](/apis/features/authorization/roles-and-permissions) no longer cause race conditions or deadlocks.
 - You can now copy the external ID from the keys table actions menu and edit it from the dialog without errors.
+- Deployment details now reliably display git metadata (commit message, author, and timestamp) even when the information was not available at the time the deployment was created.
+- Fixed an overflow issue in the deployments list where long commit messages could break the table layout.

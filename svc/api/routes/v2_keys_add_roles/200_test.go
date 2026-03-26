@@ -210,6 +210,14 @@ func TestAddRolesConcurrent(t *testing.T) {
 		roles[i] = role.Name
 	}
 
+	// Warm up the validator's schema cache with a single request so the
+	// concurrent burst doesn't race on first-time schema rendering.
+	warmup := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		KeyId: keyResponse.KeyID,
+		Roles: []string{roles[0]},
+	})
+	require.Equal(t, 200, warmup.Status, "warmup request should succeed")
+
 	g := errgroup.Group{}
 	for i := range numConcurrent {
 		g.Go(func() error {
