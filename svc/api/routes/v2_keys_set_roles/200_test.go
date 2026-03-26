@@ -483,7 +483,7 @@ func TestValidationConcurrencyStress(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	const totalRequests = 10_000
+	const totalRequests = 100_000
 	const concurrency = 500
 
 	var circularRefErrors atomic.Int64
