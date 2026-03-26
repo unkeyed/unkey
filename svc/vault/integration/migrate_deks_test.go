@@ -10,9 +10,9 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/vault/internal/keys"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"github.com/unkeyed/unkey/svc/vault/internal/vault"
+	"github.com/unkeyed/unkey/svc/vault/keys"
 )
 
 // TestMigrateDeks verifies that DEKs remain decryptable after KEK rotation.
