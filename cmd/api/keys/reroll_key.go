@@ -10,10 +10,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
-var rerollKeyCmd = &cli.Command{
-	Name:  "reroll-key",
-	Usage: "Generate a new API key while preserving the configuration from an existing key",
-	Description: `Generate a new API key while preserving the configuration from an existing key.
+func rerollKeyCmd() *cli.Command {
+	return &cli.Command{
+		Name:  "reroll-key",
+		Usage: "Generate a new API key while preserving the configuration from an existing key",
+		Description: `Generate a new API key while preserving the configuration from an existing key.
 
 This operation creates a fresh key with a new token while maintaining all settings from the original key:
 - Permissions and roles
@@ -47,34 +48,35 @@ Your root key must have:
 - api.*.encrypt_key or api.<api_id>.encrypt_key (only when the original key is recoverable)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/reroll-key` + util.Disclaimer,
-	Examples: []string{
-		"unkey api keys reroll-key --key-id=key_1234abcd --expiration=0",
-		"unkey api keys reroll-key --key-id=key_1234abcd --expiration=86400000",
-	},
-	Flags: []cli.Flag{
-		util.RootKeyFlag(),
-		util.APIURLFlag(),
-		util.ConfigFlag(),
-		util.OutputFlag(),
-		cli.String("key-id", "The key ID to reroll.", cli.Required()),
-		cli.Int64("expiration", "Milliseconds until the original key is revoked. 0 for immediate.", cli.Required()),
-	},
-	Action: func(ctx context.Context, cmd *cli.Command) error {
-		client, err := util.CreateClient(cmd)
-		if err != nil {
-			return err
-		}
+		Examples: []string{
+			"unkey api keys reroll-key --key-id=key_1234abcd --expiration=0",
+			"unkey api keys reroll-key --key-id=key_1234abcd --expiration=86400000",
+		},
+		Flags: []cli.Flag{
+			util.RootKeyFlag(),
+			util.APIURLFlag(),
+			util.ConfigFlag(),
+			util.OutputFlag(),
+			cli.String("key-id", "The key ID to reroll.", cli.Required()),
+			cli.Int64("expiration", "Milliseconds until the original key is revoked. 0 for immediate.", cli.Required()),
+		},
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			client, err := util.CreateClient(cmd)
+			if err != nil {
+				return err
+			}
 
-		start := time.Now()
-		req := components.V2KeysRerollKeyRequestBody{
-			KeyID:      cmd.String("key-id"),
-			Expiration: cmd.Int64("expiration"),
-		}
+			start := time.Now()
+			req := components.V2KeysRerollKeyRequestBody{
+				KeyID:      cmd.String("key-id"),
+				Expiration: cmd.Int64("expiration"),
+			}
 
-		res, err := client.Keys.RerollKey(ctx, req)
-		if err != nil {
-			return fmt.Errorf("%s", util.FormatError(err))
-		}
-		return util.Output(cmd, res.V2KeysRerollKeyResponseBody, time.Since(start))
-	},
+			res, err := client.Keys.RerollKey(ctx, req)
+			if err != nil {
+				return fmt.Errorf("%s", util.FormatError(err))
+			}
+			return util.Output(cmd, res.V2KeysRerollKeyResponseBody, time.Since(start))
+		},
+	}
 }

@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "keys",
@@ -27,5 +27,34 @@ go_library(
         "//pkg/cli",
         "//pkg/ptr",
         "@com_github_unkeyed_sdks_api_go_v2//models/components",
+    ],
+)
+
+go_test(
+    name = "keys_test",
+    srcs = [
+        "add_permissions_test.go",
+        "add_roles_test.go",
+        "create_key_test.go",
+        "delete_key_test.go",
+        "get_key_test.go",
+        "migrate_keys_test.go",
+        "remove_permissions_test.go",
+        "remove_roles_test.go",
+        "reroll_key_test.go",
+        "set_permissions_test.go",
+        "set_roles_test.go",
+        "update_credits_test.go",
+        "update_key_test.go",
+        "verify_key_test.go",
+        "whoami_test.go",
+    ],
+    embed = [":keys"],
+    deps = [
+        "//cmd/api/util",
+        "//pkg/ptr",
+        "//svc/api/openapi",
+        "@com_github_oapi_codegen_nullable//:nullable",
+        "@com_github_stretchr_testify//require",
     ],
 )

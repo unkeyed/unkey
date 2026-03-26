@@ -6,15 +6,17 @@ import (
 )
 
 // Cmd groups all identities.* subcommands.
-var Cmd = &cli.Command{
-	Name:        "identities",
-	Usage:       "Manage identities",
-	Description: "Create, read, update, and delete identities for grouping API keys." + util.Disclaimer,
-	Commands: []*cli.Command{
-		createIdentityCmd,
-		deleteIdentityCmd,
-		getIdentityCmd,
-		listIdentitiesCmd,
-		updateIdentityCmd,
-	},
+func Cmd() *cli.Command {
+	return &cli.Command{
+		Name:        "identities",
+		Usage:       "Manage identities",
+		Description: "Create, read, update, and delete identities for grouping API keys." + util.Disclaimer,
+		Commands: []*cli.Command{
+			createIdentityCmd(),
+			deleteIdentityCmd(),
+			getIdentityCmd(),
+			listIdentitiesCmd(),
+			updateIdentityCmd(),
+		},
+	}
 }

@@ -6,25 +6,27 @@ import (
 )
 
 // Cmd groups all keys.* subcommands.
-var Cmd = &cli.Command{
-	Name:        "keys",
-	Usage:       "Manage API keys",
-	Description: "Create, verify, update, delete, and manage permissions and roles for API keys." + util.Disclaimer,
-	Commands: []*cli.Command{
-		createKeyCmd,
-		deleteKeyCmd,
-		getKeyCmd,
-		verifyKeyCmd,
-		updateKeyCmd,
-		rerollKeyCmd,
-		whoamiCmd,
-		migrateKeysCmd,
-		addPermissionsCmd,
-		removePermissionsCmd,
-		setPermissionsCmd,
-		addRolesCmd,
-		removeRolesCmd,
-		setRolesCmd,
-		updateCreditsCmd,
-	},
+func Cmd() *cli.Command {
+	return &cli.Command{
+		Name:        "keys",
+		Usage:       "Manage API keys",
+		Description: "Create, verify, update, delete, and manage permissions and roles for API keys." + util.Disclaimer,
+		Commands: []*cli.Command{
+			createKeyCmd(),
+			deleteKeyCmd(),
+			getKeyCmd(),
+			verifyKeyCmd(),
+			updateKeyCmd(),
+			rerollKeyCmd(),
+			whoamiCmd(),
+			migrateKeysCmd(),
+			addPermissionsCmd(),
+			removePermissionsCmd(),
+			setPermissionsCmd(),
+			addRolesCmd(),
+			removeRolesCmd(),
+			setRolesCmd(),
+			updateCreditsCmd(),
+		},
+	}
 }

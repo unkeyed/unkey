@@ -10,10 +10,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
-var deleteAPICmd = &cli.Command{
-	Name:  "delete-api",
-	Usage: "Permanently delete an API namespace and immediately invalidate all associated keys",
-	Description: `Permanently delete an API namespace and immediately invalidate all associated keys.
+func deleteAPICmd() *cli.Command {
+	return &cli.Command{
+		Name:  "delete-api",
+		Usage: "Permanently delete an API namespace and immediately invalidate all associated keys",
+		Description: `Permanently delete an API namespace and immediately invalidate all associated keys.
 
 Use this for cleaning up development environments, retiring deprecated services, or removing unused resources.
 All keys in the namespace are immediately marked as deleted and will fail verification with code=NOT_FOUND.
@@ -26,30 +27,31 @@ Required permissions:
 - api.<api_id>.delete_api
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/delete-api-namespace` + util.Disclaimer,
-	Examples: []string{
-		"unkey api apis delete-api --api-id=api_1234abcd",
-	},
-	Flags: []cli.Flag{
-		util.RootKeyFlag(),
-		util.APIURLFlag(),
-		util.ConfigFlag(),
-		util.OutputFlag(),
-		cli.String("api-id", "The API ID to delete.", cli.Required()),
-	},
-	Action: func(ctx context.Context, cmd *cli.Command) error {
-		client, err := util.CreateClient(cmd)
-		if err != nil {
-			return err
-		}
+		Examples: []string{
+			"unkey api apis delete-api --api-id=api_1234abcd",
+		},
+		Flags: []cli.Flag{
+			util.RootKeyFlag(),
+			util.APIURLFlag(),
+			util.ConfigFlag(),
+			util.OutputFlag(),
+			cli.String("api-id", "The API ID to delete.", cli.Required()),
+		},
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			client, err := util.CreateClient(cmd)
+			if err != nil {
+				return err
+			}
 
-		start := time.Now()
-		res, err := client.Apis.DeleteAPI(ctx, components.V2ApisDeleteAPIRequestBody{
-			APIID: cmd.String("api-id"),
-		})
-		if err != nil {
-			return fmt.Errorf("%s", util.FormatError(err))
-		}
+			start := time.Now()
+			res, err := client.Apis.DeleteAPI(ctx, components.V2ApisDeleteAPIRequestBody{
+				APIID: cmd.String("api-id"),
+			})
+			if err != nil {
+				return fmt.Errorf("%s", util.FormatError(err))
+			}
 
-		return util.Output(cmd, res.V2ApisDeleteAPIResponseBody, time.Since(start))
-	},
+			return util.Output(cmd, res.V2ApisDeleteAPIResponseBody, time.Since(start))
+		},
+	}
 }

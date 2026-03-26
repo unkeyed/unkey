@@ -11,10 +11,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
-var getKeyCmd = &cli.Command{
-	Name:  "get-key",
-	Usage: "Retrieve detailed key information for dashboard interfaces and administrative purposes",
-	Description: `Retrieve detailed key information for dashboard interfaces and administrative purposes.
+func getKeyCmd() *cli.Command {
+	return &cli.Command{
+		Name:  "get-key",
+		Usage: "Retrieve detailed key information for dashboard interfaces and administrative purposes",
+		Description: `Retrieve detailed key information for dashboard interfaces and administrative purposes.
 
 Use this to build key management dashboards showing users their key details, status, permissions, and usage data. You can identify keys by keyId or the actual key string.
 
@@ -30,34 +31,35 @@ Additional permission required for decrypt functionality:
 - api.*.decrypt_key or api.<api_id>.decrypt_key
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/get-api-key` + util.Disclaimer,
-	Examples: []string{
-		"unkey api keys get-key --key-id=key_1234abcd",
-		"unkey api keys get-key --key-id=key_1234abcd --decrypt",
-	},
-	Flags: []cli.Flag{
-		util.RootKeyFlag(),
-		util.APIURLFlag(),
-		util.ConfigFlag(),
-		util.OutputFlag(),
-		cli.String("key-id", "The key ID to retrieve.", cli.Required()),
-		cli.Bool("decrypt", "Whether to include the plaintext key value in the response.", cli.Default(false)),
-	},
-	Action: func(ctx context.Context, cmd *cli.Command) error {
-		client, err := util.CreateClient(cmd)
-		if err != nil {
-			return err
-		}
+		Examples: []string{
+			"unkey api keys get-key --key-id=key_1234abcd",
+			"unkey api keys get-key --key-id=key_1234abcd --decrypt",
+		},
+		Flags: []cli.Flag{
+			util.RootKeyFlag(),
+			util.APIURLFlag(),
+			util.ConfigFlag(),
+			util.OutputFlag(),
+			cli.String("key-id", "The key ID to retrieve.", cli.Required()),
+			cli.Bool("decrypt", "Whether to include the plaintext key value in the response.", cli.Default(false)),
+		},
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			client, err := util.CreateClient(cmd)
+			if err != nil {
+				return err
+			}
 
-		start := time.Now()
-		req := components.V2KeysGetKeyRequestBody{
-			KeyID:   cmd.String("key-id"),
-			Decrypt: ptr.P(cmd.Bool("decrypt")),
-		}
+			start := time.Now()
+			req := components.V2KeysGetKeyRequestBody{
+				KeyID:   cmd.String("key-id"),
+				Decrypt: ptr.P(cmd.Bool("decrypt")),
+			}
 
-		res, err := client.Keys.GetKey(ctx, req)
-		if err != nil {
-			return fmt.Errorf("%s", util.FormatError(err))
-		}
-		return util.Output(cmd, res.V2KeysGetKeyResponseBody, time.Since(start))
-	},
+			res, err := client.Keys.GetKey(ctx, req)
+			if err != nil {
+				return fmt.Errorf("%s", util.FormatError(err))
+			}
+			return util.Output(cmd, res.V2KeysGetKeyResponseBody, time.Since(start))
+		},
+	}
 }

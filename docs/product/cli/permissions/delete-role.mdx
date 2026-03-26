@@ -1,0 +1,71 @@
+---
+title: "delete-role"
+description: "Remove a role from your workspace"
+---
+
+Remove a role from your workspace. This also removes the role from all assigned API keys.
+
+**Important:** This operation cannot be undone and immediately affects all API keys that had this role assigned. All keys with this role will lose the associated permissions, and access to resources protected by this role's permissions will be denied.
+
+**Required permissions:**
+- `rbac.*.delete_role`
+
+<Note>
+See the [API reference](/api-reference/v2/permissions/delete-role) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api permissions delete-role [flags]
+```
+
+## Flags
+
+<ParamField body="--role" type="string" required>
+The role ID or name to permanently delete. Must either be a valid role ID that begins with `role_` or a role name that exists within your workspace. Must be 3-255 characters and contain only letters, numbers, underscores, colons, hyphens, dots, and asterisks.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api permissions delete-role --role=role_dns_manager
+```
+```bash Delete by name
+unkey api permissions delete-role --role=admin
+```
+```bash JSON output for scripting
+unkey api permissions delete-role --role=role_dns_manager --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency:
+
+```
+req_2c9a0jf23l4k567 (took 38ms)
+
+{}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {}
+}
+```
