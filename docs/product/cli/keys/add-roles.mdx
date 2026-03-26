@@ -1,0 +1,97 @@
+---
+title: "add-roles"
+description: "Add roles to a key without affecting existing roles or permissions"
+---
+
+Add roles to a key without affecting existing roles or permissions.
+
+Use this for privilege upgrades, enabling new feature sets, or subscription changes that grant additional role-based capabilities. Direct permissions remain unchanged.
+
+**Important:** Changes take effect immediately with up to 30-second edge propagation.
+
+**Required permissions:**
+- `api.*.update_key` (to update keys in any API)
+- `api.<api_id>.update_key` (to update keys in a specific API)
+
+<Note>
+See the [API reference](/api-reference/v2/keys/add-key-roles) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api keys add-roles [flags]
+```
+
+## Flags
+
+<ParamField body="--key-id" type="string" required>
+The key ID to add roles to. This is the database identifier returned from `createKey` — do not confuse it with the actual API key string that users include in requests. Added roles supplement existing roles and permissions without replacing them. Role assignments take effect immediately but may take up to 30 seconds to propagate across all regions.
+</ParamField>
+
+<ParamField body="--roles" type="string[]" required>
+Comma-separated list of role names to add. Operations are idempotent — adding existing roles has no effect and causes no errors. All roles must already exist in the workspace; roles cannot be created automatically. Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api keys add-roles --key-id=key_1234abcd --roles=api_admin,billing_reader
+```
+```bash JSON output for scripting
+unkey api keys add-roles --key-id=key_1234abcd --roles=api_admin --output=json
+```
+```bash Add multiple roles after creating a key
+KEY_ID=$(unkey api keys create-key --api-id=api_1234abcd --output=json | jq -r '.data.keyId')
+unkey api keys add-roles --key-id=$KEY_ID --roles=api_admin,billing_reader
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the updated list of roles assigned to the key:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+[
+  {
+    "id": "role_1234abcd",
+    "name": "api_admin"
+  },
+  {
+    "id": "role_5678efgh",
+    "name": "billing_reader"
+  }
+]
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": [
+    {
+      "id": "role_1234abcd",
+      "name": "api_admin"
+    },
+    {
+      "id": "role_5678efgh",
+      "name": "billing_reader"
+    }
+  ]
+}
+```

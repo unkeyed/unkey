@@ -1,0 +1,176 @@
+---
+title: "verify-key"
+description: "Verify an API key's validity and permissions for request authentication"
+---
+
+Verify an API key's validity and permissions for request authentication.
+
+Use this command on every incoming request to your protected resources. It checks key validity, permissions, rate limits, and usage quotas in a single call.
+
+**Important:** Returns HTTP 200 for all verification outcomes -- check the `valid` field in response data to determine if the key is authorized. A 429 may be returned if the workspace exceeds its API rate limit.
+
+**Required permissions:**
+
+Your root key needs one of:
+- `api.*.verify_key` (verify keys in any API)
+- `api.<api_id>.verify_key` (verify keys in specific API)
+
+**Note:** If your root key has no verify permissions at all, you will receive a 403 Forbidden error. If your root key has verify permissions for a different API than the key you're verifying, you will receive a 200 response with `code: NOT_FOUND` to avoid leaking key existence.
+
+<Note>
+See the [API reference](/api-reference/v2/keys/verify-api-key) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api keys verify-key [flags]
+```
+
+## Flags
+
+<ParamField body="--key" type="string" required>
+The API key to verify, exactly as provided by your user. Include any prefix -- even small changes will cause verification to fail.
+</ParamField>
+
+<ParamField body="--tags" type="string[]">
+Metadata tags for analytics in `key=value` format. Attaches metadata for analytics and monitoring without affecting verification outcomes. Enables segmentation of API usage in dashboards by endpoint, client version, region, or custom dimensions. Avoid including sensitive data in tags as they may appear in logs and analytics reports.
+</ParamField>
+
+<ParamField body="--permissions" type="string">
+Permission query to check, supports `AND`/`OR` operators and parentheses for grouping. Examples: `"documents.read"`, `"documents.read AND documents.write"`, `"(documents.read OR documents.write) AND users.view"`. Verification fails if the key lacks the required permissions through direct assignment or role inheritance.
+</ParamField>
+
+<ParamField body="--credits-json" type="string">
+JSON object for credit consumption configuration. Controls credit deduction for usage-based billing and quota enforcement. Omitting this field uses the default cost of 1 credit per verification.
+
+<Expandable title="credits-json fields">
+<ResponseField name="cost" type="integer" required>
+Sets how many credits to deduct for this verification request. Use `0` for read-only operations or free tier access, higher values for premium features. Credits are deducted after all security checks pass. Min: `0`, max: `1000000000`.
+</ResponseField>
+</Expandable>
+</ParamField>
+
+<ParamField body="--ratelimits-json" type="string">
+JSON array of rate limit checks to enforce during verification. Omitting this field skips rate limit checks entirely, relying only on configured key rate limits. Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
+
+<Expandable title="ratelimits-json array item fields">
+<ResponseField name="name" type="string" required>
+References an existing rate limit by its name. Key rate limits take precedence over identifier-based limits.
+</ResponseField>
+<ResponseField name="cost" type="integer" default={1}>
+Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
+</ResponseField>
+<ResponseField name="limit" type="integer">
+Optionally override the maximum number of requests allowed within the specified interval.
+</ResponseField>
+<ResponseField name="duration" type="integer">
+Optionally override the duration of the rate limit window in milliseconds.
+</ResponseField>
+</Expandable>
+</ParamField>
+
+<ParamField body="--migration-id" type="string">
+Migration provider ID for on-demand key migration from your previous system. Reach out for migration support at support@unkey.dev.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic verification
+unkey api keys verify-key --key=sk_1234abcdef
+```
+```bash Check permissions
+unkey api keys verify-key --key=sk_1234abcdef --permissions='documents.read AND users.view'
+```
+```bash With analytics tags
+unkey api keys verify-key --key=sk_1234abcdef --tags=endpoint=/users/profile,method=GET
+```
+```bash With credit cost
+unkey api keys verify-key --key=sk_1234abcdef --credits-json='{"cost":5}'
+```
+```bash With rate limits
+unkey api keys verify-key --key=sk_1234abcdef --ratelimits-json='[{"name":"requests","limit":100,"duration":60000}]'
+```
+```bash JSON output for scripting
+unkey api keys verify-key --key=sk_1234abcdef --output=json
+```
+```bash Check valid field in scripts
+VALID=$(unkey api keys verify-key --key=$API_KEY --output=json | jq -r '.data.valid')
+if [ "$VALID" = "true" ]; then echo "Key is valid"; fi
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the verification result:
+
+```
+req_2c9a0jf23l4k567 (took 32ms)
+
+{
+  "valid": true,
+  "code": "VALID",
+  "keyId": "key_1234abcd",
+  "name": "user-dashboard-key",
+  "enabled": true,
+  "permissions": ["documents.read", "documents.write", "users.view"],
+  "roles": ["editor"],
+  "credits": 950,
+  "expires": 1735689600000
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {
+    "valid": true,
+    "code": "VALID",
+    "keyId": "key_1234abcd",
+    "name": "user-dashboard-key",
+    "enabled": true,
+    "permissions": ["documents.read", "documents.write", "users.view"],
+    "roles": ["editor"],
+    "credits": 950,
+    "expires": 1735689600000,
+    "meta": {
+      "userId": "user_12345",
+      "plan": "premium"
+    }
+  }
+}
+```
+
+When verification fails, the `valid` field is `false` and `code` indicates the reason:
+
+```json
+{
+  "meta": {
+    "requestId": "req_def456ghi789"
+  },
+  "data": {
+    "valid": false,
+    "code": "EXPIRED",
+    "keyId": "key_5678efgh",
+    "name": "temporary-access-key",
+    "enabled": true,
+    "expires": 1704067200000
+  }
+}
+```
+
+Possible `code` values: `VALID`, `NOT_FOUND`, `FORBIDDEN`, `INSUFFICIENT_PERMISSIONS`, `USAGE_EXCEEDED`, `RATE_LIMITED`, `DISABLED`, `EXPIRED`.

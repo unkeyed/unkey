@@ -1,0 +1,103 @@
+---
+title: "whoami"
+description: "Look up key details by providing the full API key string"
+---
+
+Look up key details by providing the full API key string.
+
+Use this to identify an unknown key, inspect its permissions, check expiration, or verify it belongs to the expected API. The key is matched by its hash, so you must provide the complete key exactly as issued -- even minor modifications will cause a not found error.
+
+**Important:** Never log, cache, or store API keys in your system as they provide full access to user resources.
+
+**Required permissions:**
+- `api.*.read_key` (to read keys from any API)
+- `api.<api_id>.read_key` (to read keys from a specific API)
+
+If your root key lacks permissions but the key exists, the API may return a 404 to prevent leaking the existence of a key to unauthorized clients. If you believe a key should exist but receive a 404, double check your root key has the correct permissions.
+
+<Note>
+See the [API reference](/api-reference/v2/keys/get-api-key-by-hash) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api keys whoami [flags]
+```
+
+## Flags
+
+<ParamField body="--key" type="string" required>
+The complete API key string, including any prefix. Must be provided exactly as issued -- even minor modifications will cause a not found error. Between 1 and 512 characters.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api keys whoami --key=sk_1234abcdef5678
+```
+```bash JSON output for scripting
+unkey api keys whoami --key=sk_1234abcdef5678 --output=json
+```
+```bash Extract the key ID
+KEY_ID=$(unkey api keys whoami --key=sk_1234abcdef5678 --output=json | jq -r '.data.keyId')
+echo $KEY_ID
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the key details:
+
+```
+req_1234abcd (took 52ms)
+
+{
+  "keyId": "key_1234abcd",
+  "start": "sk_prod",
+  "enabled": true,
+  "name": "Production API Key",
+  "createdAt": 1704067200000,
+  "permissions": [
+    "documents.read",
+    "documents.write"
+  ],
+  "roles": [
+    "editor"
+  ]
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_1234abcd"
+  },
+  "data": {
+    "keyId": "key_1234abcd",
+    "start": "sk_prod",
+    "enabled": true,
+    "name": "Production API Key",
+    "createdAt": 1704067200000,
+    "permissions": [
+      "documents.read",
+      "documents.write"
+    ],
+    "roles": [
+      "editor"
+    ]
+  }
+}
+```

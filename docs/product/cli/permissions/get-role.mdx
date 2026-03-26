@@ -1,0 +1,94 @@
+---
+title: "get-role"
+description: "Retrieve details about a specific role including its assigned permissions"
+---
+
+Retrieve details about a specific role including its assigned permissions.
+
+Use this to verify role configuration, check which permissions are currently assigned, or retrieve metadata for access review. Accepts either a role ID (starting with `role_`) or a role name.
+
+**Required permissions:**
+- `rbac.*.read_role` (to read roles in any workspace)
+
+<Note>
+See the [API reference](/api-reference/v2/permissions/get-role) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api permissions get-role [flags]
+```
+
+## Flags
+
+<ParamField body="--role" type="string" required>
+Role ID (starting with `role_`) or role name to retrieve. Must be 3-255 characters and contain only letters, numbers, dots, hyphens, underscores, colons, and asterisks. Returns complete role information including all assigned permissions.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash By role ID
+unkey api permissions get-role --role=role_1234567890abcdef
+```
+```bash By role name
+unkey api permissions get-role --role=my-role-name
+```
+```bash JSON output for scripting
+unkey api permissions get-role --role=role_1234567890abcdef --output=json
+```
+```bash Extract permissions from a role
+unkey api permissions get-role --role=support.readonly --output=json | jq '.data.permissions[].name'
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the role details:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+{
+  "id": "role_1234567890abcdef",
+  "name": "support.readonly",
+  "description": "Provides read-only access for customer support representatives",
+  "permissions": [
+    {
+      "id": "perm_abc123",
+      "name": "tickets.read"
+    }
+  ]
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {
+    "id": "role_1234567890abcdef",
+    "name": "support.readonly",
+    "description": "Provides read-only access for customer support representatives",
+    "permissions": [
+      {
+        "id": "perm_abc123",
+        "name": "tickets.read"
+      }
+    ]
+  }
+}
+```

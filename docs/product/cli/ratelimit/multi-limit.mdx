@@ -1,0 +1,140 @@
+---
+title: "multi-limit"
+description: "Check and enforce multiple rate limits in a single request"
+---
+
+Check and enforce multiple rate limits in a single request for any identifiers (user IDs, IP addresses, API clients, etc.).
+
+Use this to efficiently check multiple rate limits at once. Each rate limit check is independent and returns its own result with a top-level `passed` indicator showing if all checks succeeded.
+
+**Response Codes:** Rate limit checks return HTTP 200 regardless of whether limits are exceeded -- check the `passed` field to see if all limits passed, or the `success` field in each individual result. A 429 may be returned if the workspace exceeds its API rate limit. Other 4xx responses indicate auth, namespace existence/deletion, or validation errors (e.g., 410 Gone for deleted namespaces). 5xx responses indicate server errors.
+
+**Required permissions:**
+- `ratelimit.*.limit` (to check limits in any namespace)
+- `ratelimit.<namespace_id>.limit` (to check limits in all specific namespaces being checked)
+
+<Note>
+See the [API reference](/api-reference/v2/ratelimit/apply-multiple-rate-limit-checks) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api ratelimit multi-limit [flags]
+```
+
+## Flags
+
+<ParamField body="--limits-json" type="string" required>
+JSON array of rate limit check objects. Each object defines an independent rate limit check to perform.
+
+<Expandable title="properties" defaultOpen>
+  <ResponseField name="namespace" type="string" required>
+  The id or name of the namespace. Use namespaces to organize rate limits by concern, such as `api.requests` or `auth.login`. Must be 1-255 characters.
+  </ResponseField>
+
+  <ResponseField name="identifier" type="string" required>
+  Defines the scope of rate limiting by identifying the entity being limited. Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits. The same identifier can be used across different namespaces to apply multiple rate limit types. Must be 1-255 characters.
+  </ResponseField>
+
+  <ResponseField name="limit" type="integer" required>
+  Sets the maximum operations allowed within the duration window before requests are rejected. When this limit is reached, subsequent requests fail until the window resets. Range: 1-1,000,000.
+  </ResponseField>
+
+  <ResponseField name="duration" type="integer" required>
+  Sets the rate limit window duration in milliseconds after which the counter resets. Common values include 60000 (1 minute), 3600000 (1 hour), and 86400000 (24 hours). Range: 1,000-2,592,000,000 (1 second to 30 days).
+  </ResponseField>
+
+  <ResponseField name="cost" type="integer" default={1}>
+  Sets how much of the rate limit quota this request consumes, enabling weighted rate limiting. Use higher values for resource-intensive operations and 0 for tracking without limiting. Range: 0-1,000.
+  </ResponseField>
+</Expandable>
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format -- use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Multiple namespace checks
+unkey api ratelimit multi-limit \
+  --limits-json='[{"namespace":"api.requests","identifier":"user_abc123","limit":100,"duration":60000},{"namespace":"auth.login","identifier":"user_abc123","limit":5,"duration":60000}]'
+```
+```bash Weighted cost checks
+unkey api ratelimit multi-limit \
+  --limits-json='[{"namespace":"api.light_operations","identifier":"user_xyz789","limit":100,"duration":60000,"cost":1},{"namespace":"api.heavy_operations","identifier":"user_xyz789","limit":50,"duration":3600000,"cost":5}]'
+```
+```bash JSON output for scripting
+unkey api ratelimit multi-limit \
+  --limits-json='[{"namespace":"api.requests","identifier":"user_abc123","limit":100,"duration":60000}]' \
+  --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the multi-limit result:
+
+```
+req_01H9TQPP77V5E48E9SH0BG0ZQX (took 38ms)
+
+{
+  "passed": true,
+  "limits": [
+    {
+      "namespace": "api.requests",
+      "identifier": "user_abc123",
+      "limit": 100,
+      "remaining": 99,
+      "reset": 1714582980000,
+      "passed": true
+    },
+    {
+      "namespace": "auth.login",
+      "identifier": "user_abc123",
+      "limit": 5,
+      "remaining": 4,
+      "reset": 1714582980000,
+      "passed": true
+    }
+  ]
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQX"
+  },
+  "data": {
+    "passed": true,
+    "limits": [
+      {
+        "namespace": "api.requests",
+        "identifier": "user_abc123",
+        "limit": 100,
+        "remaining": 99,
+        "reset": 1714582980000,
+        "passed": true
+      },
+      {
+        "namespace": "auth.login",
+        "identifier": "user_abc123",
+        "limit": 5,
+        "remaining": 4,
+        "reset": 1714582980000,
+        "passed": true
+      }
+    ]
+  }
+}
+```
