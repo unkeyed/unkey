@@ -440,9 +440,10 @@ func TestSetRolesConcurrent(t *testing.T) {
 }
 
 // TestValidationConcurrencyStress hammers the OpenAPI validation middleware with
-// concurrent requests to surface the libopenapi "circular reference detected
-// during inline rendering" race condition. Without the retry in
-// pkg/zen/validation/validator.go this test fails nearly every run.
+// concurrent requests to verify the libopenapi "circular reference detected
+// during inline rendering" race condition doesn't occur. A warm-up request
+// populates the validator's schema cache before the concurrent burst.
+// See unkeyed/unkey#5478 for investigation details.
 func TestValidationConcurrencyStress(t *testing.T) {
 	t.Parallel()
 
