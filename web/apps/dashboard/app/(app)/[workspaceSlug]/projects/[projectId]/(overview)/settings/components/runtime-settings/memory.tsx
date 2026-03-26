@@ -2,10 +2,7 @@
 
 import { formatMemoryParts } from "@/lib/utils/deployment-formatters";
 import { ScanCode } from "@unkey/icons";
-import {
-  type ResourceSliderConfig,
-  ResourceSliderSetting,
-} from "../shared/resource-slider-setting";
+import { type ResourceSliderConfig, ResourceSliderSetting } from "../shared/resource-slider";
 
 const MEMORY_OPTIONS = [
   { label: "256 MiB", value: 256 },

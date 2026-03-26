@@ -11,6 +11,7 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import { useFieldArray, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
 import { useEnvironmentSettings } from "../../../environment-provider";
+import { WideContent } from "../../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
 import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyRow, envVarsSchema } from "./schema";
@@ -253,75 +254,77 @@ const EnvVarsForm = ({
         ) : undefined
       }
     >
-      <div
-        className={cn(
-          "absolute inset-2 rounded-lg border-2 border-dotted pointer-events-none transition-colors",
-          isDragging ? "border-successA-9" : "border-transparent",
-        )}
-      />
-      <div className="flex flex-col gap-2 w-full">
-        {fields.length <= 1 && (
-          <p className="text-xs text-gray-11 mb-2">
-            Drag & drop your <span className="font-mono font-medium text-gray-12">.env</span> file
-            or paste <span className="font-mono font-medium text-gray-12">env</span> vars (⌘V /
-            Ctrl+V)
-          </p>
-        )}
+      <WideContent>
+        <div
+          className={cn(
+            "absolute inset-2 rounded-lg border-2 border-dotted pointer-events-none transition-colors",
+            isDragging ? "border-successA-9" : "border-transparent",
+          )}
+        />
+        <div className="flex flex-col gap-2 w-full">
+          {fields.length <= 1 && (
+            <p className="text-xs text-gray-11 mb-2">
+              Drag & drop your <span className="font-mono font-medium text-gray-12">.env</span> file
+              or paste <span className="font-mono font-medium text-gray-12">env</span> vars (⌘V /
+              Ctrl+V)
+            </p>
+          )}
 
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <span className="w-[120px] shrink-0 text-[13px] text-gray-11">Environment</span>
-            <span className="flex-1 text-[13px] text-gray-11">Key</span>
-            <span className="flex-1 text-[13px] text-gray-11">Value</span>
-            <span className="w-16 text-left text-[13px] text-gray-11">Sensitive</span>
-            <div className="w-16 shrink-0" />
-          </div>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span className="w-[120px] shrink-0 text-[13px] text-gray-11">Environment</span>
+              <span className="flex-1 text-[13px] text-gray-11">Key</span>
+              <span className="flex-1 text-[13px] text-gray-11">Value</span>
+              <span className="w-16 text-left text-[13px] text-gray-11">Sensitive</span>
+              <div className="w-16 shrink-0" />
+            </div>
 
-          <div
-            className="relative w-full min-h-[200px]"
-            style={{ height: virtualizer.getTotalSize() }}
-          >
-            {filteredIndices.length === 0 && searchQuery ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <p className="text-sm text-gray-9">
-                  No variables matching &ldquo;{searchQuery}&rdquo;
-                </p>
-              </div>
-            ) : (
-              virtualizer.getVirtualItems().map((virtualRow) => {
-                const fieldIndex = filteredIndices[virtualRow.index];
-                const field = fields[fieldIndex];
-                const index = fieldIndex;
-                return (
-                  <div
-                    key={field.id}
-                    className="absolute left-0 w-full"
-                    style={{
-                      height: ROW_HEIGHT,
-                      transform: `translateY(${virtualRow.start}px)`,
-                    }}
-                  >
-                    <EnvVarRow
-                      index={index}
-                      isFirst={index === 0}
-                      isOnly={fields.length === 1}
-                      keyError={errors.envVars?.[index]?.key?.message}
-                      environmentError={errors.envVars?.[index]?.environmentId?.message}
-                      defaultEnvVars={defaultValues.envVars}
-                      environments={environments}
-                      control={control}
-                      register={register}
-                      trigger={trigger}
-                      onAdd={handleAdd}
-                      onRemove={handleRemove}
-                    />
-                  </div>
-                );
-              })
-            )}
+            <div
+              className="relative w-full min-h-[200px]"
+              style={{ height: virtualizer.getTotalSize() }}
+            >
+              {filteredIndices.length === 0 && searchQuery ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <p className="text-sm text-gray-9">
+                    No variables matching &ldquo;{searchQuery}&rdquo;
+                  </p>
+                </div>
+              ) : (
+                virtualizer.getVirtualItems().map((virtualRow) => {
+                  const fieldIndex = filteredIndices[virtualRow.index];
+                  const field = fields[fieldIndex];
+                  const index = fieldIndex;
+                  return (
+                    <div
+                      key={field.id}
+                      className="absolute left-0 w-full"
+                      style={{
+                        height: ROW_HEIGHT,
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                    >
+                      <EnvVarRow
+                        index={index}
+                        isFirst={index === 0}
+                        isOnly={fields.length === 1}
+                        keyError={errors.envVars?.[index]?.key?.message}
+                        environmentError={errors.envVars?.[index]?.environmentId?.message}
+                        defaultEnvVars={defaultValues.envVars}
+                        environments={environments}
+                        control={control}
+                        register={register}
+                        trigger={trigger}
+                        onAdd={handleAdd}
+                        onRemove={handleRemove}
+                      />
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </WideContent>
     </FormSettingCard>
   );
 };
