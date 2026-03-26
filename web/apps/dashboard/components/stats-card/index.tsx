@@ -35,14 +35,24 @@ export const StatsCard = ({
           <div className="flex flex-col grow min-w-0">
             <div className="flex gap-2 md:gap-3 items-center">
               <span className="shrink-0">{icon}</span>
-              <InfoTooltip variant="inverted" position={{ side: "top" }} content={name} triggerClassName="cursor-pointer">
+              <InfoTooltip
+                variant="inverted"
+                position={{ side: "top" }}
+                content={name}
+                triggerClassName="cursor-pointer"
+              >
                 <div className="text-accent-12 font-semibold truncate w-[220px] md:w-[280px] text-left">
                   {name}
                 </div>
               </InfoTooltip>
             </div>
             {secondaryId && (
-              <InfoTooltip variant="inverted" position={{ side: "top" }} content={secondaryId} triggerClassName="cursor-pointer">
+              <InfoTooltip
+                variant="inverted"
+                position={{ side: "top" }}
+                content={secondaryId}
+                triggerClassName="cursor-pointer"
+              >
                 <div className="text-left text-accent-11 text-xxs overflow-hidden text-ellipsis w-[240px] md:w-[300px]">
                   {secondaryId}
                 </div>
@@ -51,9 +61,7 @@ export const StatsCard = ({
           </div>
           {rightContent && <div className="shrink-0">{rightContent}</div>}
         </div>
-        <div className="flex items-center w-full justify-between gap-3 md:gap-4 mt-2">
-          {stats}
-        </div>
+        <div className="flex items-center w-full justify-between gap-3 md:gap-4 mt-2">{stats}</div>
       </div>
     </Link>
   );
