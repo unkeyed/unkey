@@ -21,12 +21,8 @@ func UserConfigPath() (string, error) {
 	return filepath.Join(home, ".unkey", "config.toml"), nil
 }
 
-// LoadUserConfig reads and parses ~/.unkey/config.toml.
-func LoadUserConfig() (UserConfig, error) {
-	path, err := UserConfigPath()
-	if err != nil {
-		return UserConfig{}, err
-	}
+// LoadUserConfig reads and parses the config file at the given path.
+func LoadUserConfig(path string) (UserConfig, error) {
 	return config.Load[UserConfig](path)
 }
 

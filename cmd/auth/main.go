@@ -10,6 +10,7 @@ import (
 	"golang.org/x/term"
 )
 
+// Cmd is the auth command for managing CLI authentication.
 var Cmd = &cli.Command{
 	Name:        "auth",
 	Usage:       "Manage authentication",

@@ -1,0 +1,106 @@
+---
+title: "list-roles"
+description: "Retrieve all roles in your workspace including their assigned permissions"
+---
+
+Retrieve all roles in your workspace including their assigned permissions. Results are paginated and sorted by their id.
+
+Use this to audit your access control setup, verify role-permission mappings, or build automation that reacts to your current RBAC configuration.
+
+**Required permissions:**
+- `rbac.*.read_role`
+
+<Note>
+See the [API reference](/api-reference/v2/permissions/list-roles) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api permissions list-roles [flags]
+```
+
+## Flags
+
+<ParamField body="--limit" type="integer">
+Maximum number of roles to return in a single response (1-100, default 100). Use smaller values for faster response times and better UI performance. Use larger values when you need to process many roles efficiently. Results exceeding this limit will be paginated with a cursor for continuation.
+</ParamField>
+
+<ParamField body="--cursor" type="string">
+Pagination cursor from a previous response to fetch the next page of roles. Include this when you need to retrieve additional roles beyond the first page. Each response containing more results will include a cursor value that can be used here. Leave empty or omit this flag to start from the beginning of the role list.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api permissions list-roles
+```
+```bash Limit results
+unkey api permissions list-roles --limit=50
+```
+```bash Paginate through results
+unkey api permissions list-roles --limit=50 --cursor=eyJrZXkiOiJyb2xlXzEyMzQifQ==
+```
+```bash JSON output for scripting
+unkey api permissions list-roles --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the list of roles and their permissions:
+
+```
+req_2c9a0jf23l4k567 (took 32ms)
+
+[
+  {
+    "id": "role_1234567890abcdef",
+    "name": "support.readonly",
+    "description": "Provides read-only access for customer support representatives",
+    "permissions": [
+      {
+        "id": "perm_abc123",
+        "name": "tickets.read"
+      }
+    ]
+  }
+]
+```
+
+With `--output=json`, the full response envelope is returned including pagination metadata:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": [
+    {
+      "id": "role_1234567890abcdef",
+      "name": "support.readonly",
+      "description": "Provides read-only access for customer support representatives",
+      "permissions": [
+        {
+          "id": "perm_abc123",
+          "name": "tickets.read"
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "cursor": "eyJrZXkiOiJyb2xlXzEyMzQiLCJ0cyI6MTY5OTM3ODgwMH0=",
+    "hasMore": true
+  }
+}
+```

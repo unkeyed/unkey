@@ -7,7 +7,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // Validator is an optional interface for cross-field or business-rule
@@ -32,8 +31,6 @@ func Load[T any](path string) (T, error) {
 	if err != nil {
 		return zero, fault.Wrap(err, fault.Internal("failed to read config file: "+path))
 	}
-
-	logger.Info("using config", "path", path)
 
 	return LoadBytes[T](data)
 }
