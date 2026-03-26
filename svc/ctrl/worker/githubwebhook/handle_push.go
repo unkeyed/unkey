@@ -72,7 +72,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	// per-commit file lists. Fetch changed files from the commit API so
 	// watch path matching works correctly instead of seeing an empty list.
 	changedFiles := req.GetChangedFiles()
-	if req.GetIsForkPr() && req.GetAfter() != "" {
+	if req.GetIsForkPr() && req.GetAfter() != "" && !s.allowUnauthenticatedDeployments {
 		logger.Info("fetching commit files for fork PR",
 			"commit_sha", req.GetAfter(),
 			"repo", req.GetRepositoryFullName(),
@@ -128,7 +128,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			continue
 		}
 
-		needsApproval := s.requiresApproval(ctx, req, repo)
+		needsApproval := !s.allowUnauthenticatedDeployments && s.requiresApproval(ctx, req, repo)
 
 		status := db.DeploymentsStatusPending
 		if needsApproval {
