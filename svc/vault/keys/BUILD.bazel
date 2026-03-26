@@ -6,8 +6,8 @@ go_library(
         "key.go",
         "master_key.go",
     ],
-    importpath = "github.com/unkeyed/unkey/svc/vault/internal/keys",
-    visibility = ["//svc/vault:__subpackages__"],
+    importpath = "github.com/unkeyed/unkey/svc/vault/keys",
+    visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/vault/v1:vault",
         "//pkg/uid",
