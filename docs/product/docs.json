@@ -255,6 +255,13 @@
             ]
           },
           {
+            "group": "CLI",
+            "icon": "terminal",
+            "pages": [
+              "cli/overview"
+            ]
+          },
+          {
             "group": "Migrations",
             "icon": "arrows-rotate",
             "pages": [

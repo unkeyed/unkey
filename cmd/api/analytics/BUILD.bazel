@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "analytics",
+    srcs = [
+        "get_verifications.go",
+        "root.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/cmd/api/analytics",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/api/util",
+        "//pkg/cli",
+        "@com_github_unkeyed_sdks_api_go_v2//models/components",
+    ],
+)

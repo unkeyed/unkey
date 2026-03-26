@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "ratelimit",
+    srcs = [
+        "delete_override.go",
+        "get_override.go",
+        "limit.go",
+        "list_overrides.go",
+        "multi_limit.go",
+        "root.go",
+        "set_override.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/cmd/api/ratelimit",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/api/util",
+        "//pkg/cli",
+        "@com_github_unkeyed_sdks_api_go_v2//models/components",
+    ],
+)
