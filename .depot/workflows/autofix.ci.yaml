@@ -1,0 +1,30 @@
+# Depot CI Migration
+# Source: .github/workflows/autofix.ci.yaml
+#
+# No changes were necessary.
+
+name: autofix.ci
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+permissions:
+  contents: read
+jobs:
+  detect_changes:
+    if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
+    uses: ./.github/workflows/job_detect_changes.yaml
+  autofix:
+    if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
+    runs-on: depot-ubuntu-24.04-4
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
+      - name: Setup Go
+        uses: ./.github/actions/setup-go
+      - name: Install dprint
+        run: curl -fsSL https://dprint.dev/install.sh | sh -s 0.51.1 && echo "$HOME/.dprint/bin" >> $GITHUB_PATH
+      - name: Format
+        run: make fmt
+      - uses: autofix-ci/action@635ffb0c9798bd160680f18fd73371e355b85f27 # v1.3.2
