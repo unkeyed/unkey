@@ -1,0 +1,75 @@
+---
+title: Variables
+description: "Encrypted key-value pairs injected into your app at runtime, scoped per environment"
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+Variables are encrypted key-value pairs that Unkey injects into your application as environment variables at runtime. Each variable is scoped to a specific [environment](/environments/overview), so production and preview can have different values.
+
+## Create variables
+
+1. Open your project's **Settings** tab.
+2. Select the environment (production or preview).
+3. Under **Environment variables**, click **Add variable**.
+4. Enter the key and value.
+5. Choose the visibility type.
+6. Save the changes.
+
+You can also paste multiple variables in bulk or drag and drop a `.env` file.
+
+{/* TODO: screenshot of variables UI */}
+
+## Visibility types
+
+Each variable has a visibility type that controls whether the value can be read back after saving:
+
+| Type           | Description                                                             |
+| -------------- | ----------------------------------------------------------------------- |
+| **Recoverable** | The value can be viewed in the dashboard after saving                   |
+| **Write-only** | The value is hidden after saving and cannot be retrieved from the dashboard |
+
+Use write-only for secrets like API keys, database passwords, and tokens. Use recoverable for non-sensitive configuration like feature flags, service URLs, and port numbers.
+
+{/* TODO: screenshot showing visibility type selection */}
+
+<Tip>
+  All variables are encrypted at rest regardless of visibility type. The distinction only affects whether the value is displayed in the dashboard.
+</Tip>
+
+## Environment scoping
+
+Variables are tied to a specific environment. This lets you use different configuration for production and preview without managing separate config files:
+
+| Variable         | Production                         | Preview                           |
+| ---------------- | ---------------------------------- | --------------------------------- |
+| `DATABASE_URL`   | `postgres://prod-db.acme.com/api`  | `postgres://dev-db.acme.com/api`  |
+| `LOG_LEVEL`      | `warn`                             | `debug`                           |
+| `FEATURE_V2_UI`  | `false`                            | `true`                            |
+
+## Variables and deployments
+
+Deployments are immutable. Variable changes don't affect running deployments. To apply updated variables, trigger a new deployment.
+
+This means you can update variables safely without worrying about side effects on running instances. The new values only take effect when the next deployment starts.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Environments"
+    icon="code-branch"
+    href="/environments/overview"
+  >
+    How environments isolate configuration and deployments
+  </Card>
+  <Card
+    title="App settings"
+    icon="gear"
+    href="/platform/apps/settings"
+  >
+    Full reference for build, runtime, and variable settings
+  </Card>
+</CardGroup>

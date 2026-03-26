@@ -5,7 +5,6 @@ description: "The associated workspace is disabled"
 
 <Danger>`err:unkey:authorization:workspace_disabled`</Danger>
 
-
 ```json Example
 {
   "meta": {
@@ -34,6 +33,7 @@ curl -X POST https://api.unkey.com/v2/keys.listKeys \
 ```
 
 A workspace might be disabled for various reasons:
+
 - Billing issues or unpaid invoices
 - Administrative action due to terms of service violations
 - At the workspace owner's request
@@ -65,6 +65,7 @@ Once the workspace is re-enabled, all API keys associated with it should become 
 - **Account transfer issues**: Workspaces may be temporarily disabled during ownership transfers
 
 ## Related Errors
+
 - [err:unkey:authorization:key_disabled](./key_disabled) - When the specific authentication key is disabled
 - [err:unkey:authorization:insufficient_permissions](./insufficient_permissions) - When the authenticated entity lacks sufficient permissions
 - [err:unkey:data:workspace_not_found](../data/workspace_not_found) - When the requested workspace doesn't exist

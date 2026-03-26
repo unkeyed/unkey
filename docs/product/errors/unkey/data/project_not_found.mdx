@@ -1,0 +1,43 @@
+---
+title: "project_not_found"
+description: "The requested project was not found"
+---
+
+<Danger>err:unkey:data:project_not_found</Danger>
+
+```json Example
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The requested project could not be found",
+    "status": 404,
+    "title": "Not Found",
+    "type": "https://unkey.com/docs/api-reference/errors-v2/unkey/data/project_not_found"
+  }
+}
+```
+
+## What Happened?
+
+This error occurs when you're trying to perform an operation on a project that doesn't exist in the Unkey system.
+
+Common scenarios that trigger this error:
+
+- Using an incorrect project ID in your requests
+- Referencing a project that has been deleted
+- Attempting to access a project in a workspace you don't have access to
+
+## How To Fix
+
+Verify that you're using the correct project ID and that the project still exists in your workspace:
+
+1. Check the project ID in the Unkey dashboard under **Projects**
+2. Verify the project has not been deleted
+3. Confirm you're working in the correct workspace
+
+## Related Errors
+
+- [err:unkey:data:api_not_found](./api_not_found) - When the requested API doesn't exist
+- [err:unkey:data:workspace_not_found](./workspace_not_found) - When the requested workspace doesn't exist

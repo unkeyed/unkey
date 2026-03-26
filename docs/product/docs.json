@@ -1,18 +1,25 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "colors": {
-    "dark": "#999999",
+    "dark": "#666666",
     "light": "#999999",
-    "primary": "#999999"
+    "primary": "#666666"
   },
+  "styling": {
+    "eyebrows": "breadcrumbs",
+    "codeblocks": {
+      "theme": "kanagawa-wave"
+    }
+  },
+  "icons": {
+    "library": "fontawesome"
+  },
+  "background": {
+    "decoration": "gradient"
+  },
+ 
   "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity"
-    ]
+    "options": ["copy", "view", "chatgpt", "claude"]
   },
   "favicon": "/unkey.png",
   "fonts": {
@@ -55,16 +62,167 @@
     }
   },
   "navigation": {
-    "dropdowns": [
+    "tabs": [
       {
-        "dropdown": "Documentation",
+        "tab": "Documentation",
         "groups": [
           {
             "group": "Getting Started",
+            "pages": ["introduction", "quickstart/quickstart", "quickstart/deploy", "glossary"]
+          },
+          {
+            "expanded": false,
+            "group": "Platform",
+            "icon": "grid-2",
             "pages": [
-              "introduction",
-              "quickstart/quickstart",
-              "glossary"
+              {
+                "group": "Analytics",
+                "pages": [
+                  "platform/analytics/overview",
+                  {
+                    "expanded": false,
+                    "group": "Reference",
+                    "pages": [
+                      "platform/analytics/getting-started",
+                      "platform/analytics/quick-reference",
+                      "platform/analytics/query-examples",
+                      "platform/analytics/schema-reference",
+                      "platform/analytics/query-restrictions",
+                      "platform/analytics/troubleshooting"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "Identities",
+                "pages": [
+                  "platform/identities/overview",
+                  "platform/identities/ratelimits"
+                ]
+              },
+              {
+                "group": "Keys",
+                "pages": [
+                  "platform/apis/keys",
+                  "platform/apis/features/ratelimiting/overview",
+                  "platform/apis/features/remaining",
+                  "platform/apis/features/refill",
+                  "platform/apis/features/temp-keys",
+                  {
+                    "group": "Authorization",
+                    "pages": [
+                      "platform/apis/features/authorization/introduction",
+                      "platform/apis/features/authorization/roles-and-permissions",
+                      "platform/apis/features/authorization/verifying",
+                      "platform/apis/features/authorization/example"
+                    ]
+                  },
+                  "platform/apis/features/revocation",
+                  "platform/apis/features/rerolling-key",
+                  "platform/apis/features/enabled",
+                  "platform/apis/features/environments",
+                  {
+                    "group": "Migrations",
+                    "pages": [
+                      "platform/migrations/introduction",
+                      "platform/migrations/keys"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "Projects",
+                "pages": [
+                  "platform/projects/overview",
+                  "platform/projects/settings"
+                ]
+              },
+              {
+                "group": "Apps",
+                "pages": [
+                  "platform/apps/overview",
+                  "platform/apps/settings"
+                ]
+              },
+              {
+                "group": "Sentinel",
+                "pages": [
+                  "platform/sentinel/overview",
+                  {
+                    "group": "Authentication",
+                    "pages": [
+                      "platform/sentinel/authentication",
+                      "platform/sentinel/principal/overview",
+                      {
+                        "group": "Sources",
+                        "pages": [
+                          "platform/sentinel/principal/sources/api-key",
+                          "platform/sentinel/principal/sources/jwt"
+                        ]
+                      },
+                      "platform/sentinel/principal/examples",
+                      "platform/sentinel/principal/local-development"
+                    ]
+                  },
+                  {
+                    "group": "Policies",
+                    "pages": [
+                      "platform/sentinel/policies/overview",
+                      "platform/sentinel/policies/api-key",
+                      "platform/sentinel/policies/logging",
+                      "platform/sentinel/policies/jwt",
+                      "platform/sentinel/policies/rate-limiting",
+                      "platform/sentinel/policies/ip-rules",
+                      "platform/sentinel/policies/openapi-validation"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "Root Keys",
+                "pages": [
+                  "platform/root-keys/overview",
+                  "platform/root-keys/permissions"
+                ]
+              },
+              {
+                "group": "Workspaces",
+                "pages": [
+                  "platform/workspaces/overview",
+                  "platform/workspaces/settings",
+                  "platform/workspaces/billing",
+                  "platform/workspaces/quotas",
+                  "platform/workspaces/team-members"
+                ]
+              }
+            ]
+          },
+
+          {
+            "expanded": false,
+            "group": "Build & Deploy",
+            "icon": "rocket",
+            "pages": [
+              "build-and-deploy/overview",
+              "build-and-deploy/deployments",
+              "build-and-deploy/github",
+              "builds/overview",
+              "environments/overview",
+              "build-and-deploy/regions",
+              "build-and-deploy/rollbacks",
+              "platform/variables/overview"
+            ]
+          },
+
+          {
+            "expanded": false,
+            "group": "Networking",
+            "icon": "network-wired",
+            "pages": [
+              "networking/domains",
+              "networking/private-networking",
+              "networking/public-networking",
+              "networking/wildcard-domains"
             ]
           },
           {
@@ -75,12 +233,48 @@
             ]
           },
           {
-            "group": "Framework Guides",
-            "icon": "code",
+            "expanded": false,
+            "group": "Observability",
+            "icon": "eye",
             "pages": [
+              "observability/overview",
+              "observability/logs",
+              "observability/metrics"
+            ]
+          },
+          {
+            "expanded": false,
+            "group": "CLI",
+            "icon": "terminal",
+            "pages": ["cli/overview"]
+          },
+          {
+            "expanded": false,
+            "group": "Security",
+            "icon": "shield",
+            "pages": [
+              "security/overview",
               {
                 "expanded": false,
-                "group": "API Key Authentication",
+                "group": "Topics",
+                "pages": [
+                  "security/recovering-keys",
+                  "platform/apis/features/whitelist",
+                  "security/github-scanning",
+                  "security/delete-protection"
+                ]
+              }
+            ]
+          },
+          {
+            "expanded": false,
+            "group": "External APIs",
+            "icon": "key",
+            "pages": [
+              "platform/apis/overview",
+              "platform/apis/introduction",
+              {
+                "group": "Framework Guides",
                 "pages": [
                   "quickstart/apis/nextjs",
                   "quickstart/apis/express",
@@ -91,8 +285,34 @@
                 ]
               },
               {
-                "expanded": false,
-                "group": "Rate Limiting",
+                "group": "Cookbook",
+                "pages": [
+                  "cookbook/nextjs-api-routes",
+                  "cookbook/express-middleware",
+                  "cookbook/cloudflare-workers",
+                  "cookbook/go-stdlib-middleware",
+                  "cookbook/go-gin-middleware",
+                  "cookbook/go-echo-middleware",
+                  "cookbook/fastapi-auth",
+                  "cookbook/python-flask-auth",
+                  "cookbook/usage-billing",
+                  "cookbook/tiered-subscriptions"
+                ]
+              }
+            ]
+          },
+          {
+            "expanded": false,
+            "group": "Ratelimiting",
+            "icon": "gauge",
+            "pages": [
+              "platform/ratelimiting/introduction",
+              "platform/ratelimiting/modes",
+              "platform/ratelimiting/overrides",
+              "platform/ratelimiting/automated-overrides",
+              "quickstart/identities/shared-ratelimits",
+              {
+                "group": "Framework Guides",
                 "pages": [
                   "quickstart/ratelimiting/nextjs",
                   "quickstart/ratelimiting/express",
@@ -100,144 +320,18 @@
                   "quickstart/ratelimiting/hono"
                 ]
               },
-              "quickstart/identities/shared-ratelimits"
-            ]
-          },
-          {
-            "group": "Cookbook",
-            "icon": "book-open",
-            "pages": [
-              "cookbook/index",
               {
-                "expanded": false,
-                "group": "Recipes",
+                "group": "Cookbook",
                 "pages": [
-                  {
-                    "group": "TypeScript",
-                    "pages": [
-                      "cookbook/nextjs-api-routes",
-                      "cookbook/express-middleware",
-                      "cookbook/cloudflare-workers"
-                    ]
-                  },
-                  {
-                    "group": "Go",
-                    "pages": [
-                      "cookbook/go-stdlib-middleware",
-                      "cookbook/go-gin-middleware",
-                      "cookbook/go-echo-middleware"
-                    ]
-                  },
-                  {
-                    "group": "Python",
-                    "pages": [
-                      "cookbook/fastapi-auth",
-                      "cookbook/python-fastapi-ratelimit",
-                      "cookbook/python-flask-auth"
-                    ]
-                  },
-                  {
-                    "group": "General",
-                    "pages": [
-                      "cookbook/per-user-ratelimit",
-                      "cookbook/endpoint-ratelimit",
-                      "cookbook/usage-billing",
-                      "cookbook/tiered-subscriptions"
-                    ]
-                  }
+                  "cookbook/per-user-ratelimit",
+                  "cookbook/endpoint-ratelimit",
+                  "cookbook/python-fastapi-ratelimit"
                 ]
               }
             ]
           },
           {
-            "group": "API Keys",
-            "icon": "key",
-            "pages": [
-              "apis/introduction",
-              "apis/features/ratelimiting/overview",
-              "apis/features/remaining",
-              "apis/features/refill",
-              "apis/features/temp-keys",
-              "apis/features/analytics",
-              {
-                "group": "Authorization",
-                "pages": [
-                  "apis/features/authorization/introduction",
-                  "apis/features/authorization/roles-and-permissions",
-                  "apis/features/authorization/verifying",
-                  "apis/features/authorization/example"
-                ]
-              },
-              "apis/features/revocation",
-              "apis/features/rerolling-key",
-              "apis/features/enabled",
-              "apis/features/environments"
-            ]
-          },
-          {
-            "group": "Rate Limiting",
-            "icon": "gauge-high",
-            "pages": [
-              "ratelimiting/introduction",
-              "ratelimiting/modes",
-              "ratelimiting/overrides",
-              "ratelimiting/automated-overrides"
-            ]
-          },
-          {
-            "group": "Identities",
-            "icon": "fingerprint",
-            "pages": [
-              "concepts/identities/overview",
-              "concepts/identities/ratelimits"
-            ]
-          },
-          {
-            "group": "Analytics",
-            "icon": "chart-line",
-            "pages": [
-              "analytics/overview",
-              {
-                "expanded": false,
-                "group": "Reference",
-                "pages": [
-                  "analytics/getting-started",
-                  "analytics/quick-reference",
-                  "analytics/query-examples",
-                  "analytics/schema-reference",
-                  "analytics/query-restrictions",
-                  "analytics/troubleshooting"
-                ]
-              }
-            ]
-          },
-          {
-            "group": "Audit Logs",
-            "icon": "scroll",
-            "pages": [
-              "audit-log/introduction",
-              "audit-log/types"
-            ]
-          },
-          {
-            "group": "Security",
-            "icon": "shield",
-            "pages": [
-              "security/overview",
-              {
-                "expanded": false,
-                "group": "Topics",
-                "pages": [
-                  "security/root-keys",
-                  "security/recovering-keys",
-                  "apis/features/whitelist",
-                  "security/github-scanning",
-                  "security/delete-protection"
-                ]
-              }
-            ]
-          },
-          {
+            "expanded": false,
             "group": "AI Code Gen",
             "icon": "robot",
             "pages": [
@@ -254,14 +348,13 @@
             ]
           },
           {
-            "group": "Migrations",
-            "icon": "arrows-rotate",
-            "pages": [
-              "migrations/introduction",
-              "migrations/keys"
-            ]
+            "expanded": false,
+            "group": "Audit Logs",
+            "icon": "scroll",
+            "pages": ["audit-log/introduction", "audit-log/types"]
           },
           {
+            "expanded": false,
             "group": "Errors",
             "icon": "triangle-exclamation",
             "pages": [
@@ -365,43 +458,29 @@
         "icon": "book-open"
       },
       {
-        "dropdown": "API Reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "api.unkey.com/v2",
+            "group": "api.unkey.com",
             "pages": [
-              "api-reference/v2/overview",
-              "api-reference/v2/auth",
-              "api-reference/v2/rpc",
-              "api-reference/v2/errors"
+              "api-reference/overview",
+              "api-reference/auth",
+              "api-reference/rpc",
+              "api-reference/errors"
             ]
           },
           {
             "group": "Endpoints",
             "openapi": {
-              "directory": "api-reference/v2",
+              "directory": "api-reference",
               "source": "https://spec.speakeasy.com/unkey/unkey/openapi-json-with-code-samples"
             }
-          },
-          {
-            "group": "v1 → v2 Migration",
-            "icon": "arrows-rotate",
-            "pages": [
-              "api-reference/v1/migration/index",
-              "api-reference/v1/migration/keys",
-              "api-reference/v1/migration/apis",
-              "api-reference/v1/migration/identities",
-              "api-reference/v1/migration/permissions",
-              "api-reference/v1/migration/ratelimiting",
-              "api-reference/v1/migration/analytics",
-              "api-reference/v1/migration/errors"
-            ]
           }
         ],
         "icon": "terminal"
       },
       {
-        "dropdown": "SDKs",
+        "tab": "SDKs",
         "groups": [
           {
             "group": "Official Libraries",
@@ -434,17 +513,11 @@
               },
               {
                 "group": "Go",
-                "pages": [
-                  "libraries/go/overview",
-                  "libraries/go/api"
-                ]
+                "pages": ["libraries/go/overview", "libraries/go/api"]
               },
               {
                 "group": "Python",
-                "pages": [
-                  "libraries/py/overview",
-                  "libraries/py/api"
-                ]
+                "pages": ["libraries/py/overview", "libraries/py/api"]
               }
             ]
           },
@@ -453,9 +526,7 @@
             "pages": [
               {
                 "group": "Nuxt",
-                "pages": [
-                  "libraries/nuxt/overview"
-                ]
+                "pages": ["libraries/nuxt/overview"]
               }
             ]
           }
@@ -486,7 +557,7 @@
       "source": "/quickstart/onboarding/onboarding-ratelimiting"
     },
     {
-      "destination": "/api-reference/v2/overview",
+      "destination": "/api-reference/overview",
       "source": "/api-reference"
     },
     {
@@ -502,40 +573,16 @@
       "source": "/integrations/vercel"
     },
     {
-      "destination": "/api-reference/v1/migration/index",
-      "source": "/api-reference/v1/overview"
-    },
-    {
-      "destination": "/api-reference/v1/migration/index",
-      "source": "/api-reference/v1/authentication"
-    },
-    {
-      "destination": "/api-reference/v1/migration/keys",
-      "source": "/api-reference/v1/keys/:path*"
-    },
-    {
-      "destination": "/api-reference/v1/migration/apis",
-      "source": "/api-reference/v1/apis/:path*"
-    },
-    {
-      "destination": "/api-reference/v1/migration/index",
-      "source": "/api-reference/v1/liveness"
-    },
-    {
-      "destination": "/analytics/overview",
+      "destination": "/platform/analytics/overview",
       "source": "/apis/features/analytics"
     },
     {
-      "destination": "/docs/apis/features/authorization/introduction",
-      "source": "/docs/security/permissions"
+      "destination": "/platform/apis/features/authorization/introduction",
+      "source": "/security/permissions"
     },
     {
-      "destination": "/docs/apis/features/authorization/introduction",
-      "source": "/docs/security/roles"
-    },
-    {
-      "destination": "/docs/api-reference/v2/overview",
-      "source": "/docs/api-reference/overview"
+      "destination": "/platform/apis/features/authorization/introduction",
+      "source": "/security/roles"
     }
   ],
   "theme": "maple"

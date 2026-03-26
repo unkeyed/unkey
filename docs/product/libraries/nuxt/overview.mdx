@@ -96,14 +96,14 @@ try {
     apiId: "api_7oKUUscTZy22jmVf9THxDA",
     prefix: "xyz",
     byteLength: 16,
-    externalId: "user_123",  // Link to your user
+    externalId: "user_123", // Link to your user
     meta: {
       hello: "world",
     },
-    expires: Date.now() + 30 * 24 * 60 * 60 * 1000,  // 30 days from now
+    expires: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
     ratelimit: {
       limit: 10,
-      duration: 1000,  // 10 requests per second
+      duration: 1000, // 10 requests per second
     },
   });
 
@@ -114,7 +114,6 @@ try {
 }
 ```
 
-
 ### Disable telemetry
 
 By default, Unkey collects anonymous telemetry data to help us understand how our SDKs are used.
@@ -122,5 +121,5 @@ By default, Unkey collects anonymous telemetry data to help us understand how ou
 If you wish to disable this, you can do so by passing a boolean flag to the constructor:
 
 ```ts
-const unkey = useUnkey({ disableTelemetry: true })
+const unkey = useUnkey({ disableTelemetry: true });
 ```

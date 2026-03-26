@@ -155,7 +155,7 @@ func GetUnkeyResult(c echo.Context) *components.V2KeysVerifyKeyResponseData {
 // Usage example
 func main() {
     e := echo.New()
-    
+
     // Middleware
     e.Use(middleware.Logger())
     e.Use(middleware.Recover())
@@ -223,7 +223,7 @@ func main() {
 
 Create configurable middleware:
 
-```go
+````go
 type AuthConfig struct {
     HeaderName string
     Prefix     string
@@ -241,7 +241,7 @@ func UnkeyAuthWithConfig(config AuthConfig) echo.MiddlewareFunc {
     return func(next echo.HandlerFunc) echo.HandlerFunc {
         return func(c echo.Context) error {
             authHeader := c.Request().Header.Get(config.HeaderName)
-            
+
             if authHeader == "" {
                 if config.Optional {
                     return next(c)
@@ -311,7 +311,7 @@ public.GET("/status", statusHandler)
 protected := v1.Group("/protected")
 protected.Use(RequirePermission("data:read"))
 protected.GET("/data", dataHandler)
-```
+````
 
 ## Testing
 

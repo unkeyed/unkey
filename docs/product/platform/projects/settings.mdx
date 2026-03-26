@@ -1,0 +1,18 @@
+---
+title: Settings
+description: Project settings are configured per app from the Settings tab in your project dashboard.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+The **Settings** tab in your project dashboard configures the [app](/platform/apps/overview) within your project. Each app has its own build, runtime, and advanced settings scoped per environment.
+
+For single-app projects (the default), you manage settings directly from the project dashboard. For multi-app projects, each app has independent configuration.
+
+See [App settings](/platform/apps/settings) for the full reference of configurable options, including:
+
+- [Build settings](/platform/apps/settings#build-settings) (GitHub repository, Dockerfile, root directory, watch paths)
+- [Runtime settings](/platform/apps/settings#runtime-settings) (regions, instances, CPU, memory, port, command, health check)
+- [Advanced configurations](/platform/apps/settings#advanced-configurations) (environment variables, custom domains, OpenAPI spec, Sentinel keyspaces)

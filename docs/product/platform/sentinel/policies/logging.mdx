@@ -1,0 +1,58 @@
+---
+title: Logging
+description: Record full HTTP requests and responses for debugging and observability.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+The logging policy records the full HTTP request and response for every matched request. Use it to debug issues, audit API usage, and understand traffic patterns without adding instrumentation to your application.
+
+## What gets logged
+
+The Sentinel captures the following for each request:
+
+**Request data**
+
+- HTTP method, host, path, and query string
+- Request headers (Authorization headers are redacted)
+- Request body
+
+**Response data**
+
+- Status code
+- Response headers
+- Response body
+
+**Metadata**
+
+- Request ID
+- Timestamp
+- Deployment and instance identifiers
+- Client IP address and user agent
+- Region
+
+**Latency breakdown**
+
+| Metric             | Description                                                  |
+| ------------------ | ------------------------------------------------------------ |
+| Total latency      | End-to-end time from when the Sentinel received the request   |
+| Instance latency   | Time your app spent processing the request                |
+| Sentinel latency   | Overhead added by the Sentinel (policy evaluation, routing)   |
+
+## View logs
+
+Logs are available in the **Requests** tab of your project in the Unkey dashboard. You can filter by:
+
+- Status code
+- HTTP method
+- Path
+- Deployment
+- Environment
+
+The dashboard supports live streaming for real-time monitoring.
+
+## Retention
+
+Logs are retained for 30 days.
