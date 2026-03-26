@@ -126,7 +126,7 @@ export const DefaultBranch = () => {
           />
           <div className="flex justify-end pt-1">
             <InfoTooltip
-              content={!hasChanges ? "No changes to save" : undefined}
+              content={hasChanges ? undefined : "No changes to save"}
               disabled={hasChanges}
               asChild
               variant="inverted"
