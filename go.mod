@@ -43,7 +43,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.95.1
 	github.com/bmatcuk/doublestar/v4 v4.9.1
-	github.com/cilium/cilium v1.18.6
+	github.com/cilium/cilium v1.18.8
 	github.com/curioswitch/go-reassign v0.3.0
 	github.com/depot/depot-go v0.5.2
 	github.com/docker/cli v29.2.0+incompatible
@@ -67,7 +67,6 @@ require (
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/restatedev/sdk-go v0.23.0
 	github.com/shirou/gopsutil/v4 v4.25.6
-	github.com/spiffe/go-spiffe/v2 v2.6.0
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
 	github.com/stretchr/testify v1.11.1
 	github.com/unkeyed/sdks/api/go/v2 v2.6.1
@@ -152,7 +151,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cilium/ebpf v0.19.0 // indirect
+	github.com/cilium/ebpf v0.20.1-0.20260218191617-ee67e7f43dd9 // indirect
 	github.com/cilium/hive v0.0.0-20250611195437-5a5dacdfb354 // indirect
 	github.com/cilium/proxy v0.0.0-20250623105955-2136f59a4ea1 // indirect
 	github.com/cilium/statedb v0.4.6 // indirect
@@ -347,7 +346,7 @@ require (
 	github.com/tonistiigi/units v0.0.0-20180711220420-6950e57a87ea // indirect
 	github.com/tonistiigi/vt100 v0.0.0-20240514184818-90bafcd6abab // indirect
 	github.com/vbatts/tar-split v0.12.2 // indirect
-	github.com/vishvananda/netlink v1.3.1 // indirect
+	github.com/vishvananda/netlink v1.3.2-0.20250926155043-cd3cb2e12c97 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
 	github.com/wI2L/jsondiff v0.7.0 // indirect
@@ -395,7 +394,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
-	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect
+	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
 	modernc.org/libc v1.66.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
