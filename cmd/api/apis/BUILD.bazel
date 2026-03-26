@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "apis",
+    srcs = [
+        "create_api.go",
+        "delete_api.go",
+        "get_api.go",
+        "list_keys.go",
+        "root.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/cmd/api/apis",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/api/util",
+        "//pkg/cli",
+        "//pkg/ptr",
+        "@com_github_unkeyed_sdks_api_go_v2//models/components",
+    ],
+)

@@ -1,0 +1,31 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "keys",
+    srcs = [
+        "add_permissions.go",
+        "add_roles.go",
+        "create_key.go",
+        "delete_key.go",
+        "get_key.go",
+        "migrate_keys.go",
+        "remove_permissions.go",
+        "remove_roles.go",
+        "reroll_key.go",
+        "root.go",
+        "set_permissions.go",
+        "set_roles.go",
+        "update_credits.go",
+        "update_key.go",
+        "verify_key.go",
+        "whoami.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/cmd/api/keys",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/api/util",
+        "//pkg/cli",
+        "//pkg/ptr",
+        "@com_github_unkeyed_sdks_api_go_v2//models/components",
+    ],
+)

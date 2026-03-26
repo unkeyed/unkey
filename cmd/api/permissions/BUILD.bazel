@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "permissions",
+    srcs = [
+        "create_permission.go",
+        "create_role.go",
+        "delete_permission.go",
+        "delete_role.go",
+        "get_permission.go",
+        "get_role.go",
+        "list_permissions.go",
+        "list_roles.go",
+        "root.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/cmd/api/permissions",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/api/util",
+        "//pkg/cli",
+        "@com_github_unkeyed_sdks_api_go_v2//models/components",
+    ],
+)
