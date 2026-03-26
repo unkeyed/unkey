@@ -1,0 +1,119 @@
+---
+title: Environment variables
+description: Configure runtime and build-time environment variables for your deployments
+---
+
+Environment variables let you pass configuration to your deployments without hardcoding values in your source code. Unkey supports two types: **runtime** variables available to your running application, and **build-time** variables available during Docker image builds.
+
+## Runtime variables
+
+Unkey automatically injects a set of environment variables into every running deployment. Use these to add context to your logs, identify instances, or gate behavior by environment.
+
+| Variable | Description |
+| --- | --- |
+| `UNKEY_DEPLOYMENT_ID` | Unique identifier for the current deployment |
+| `UNKEY_ENVIRONMENT_SLUG` | Slug of the environment (e.g., `production`, `staging`) |
+| `UNKEY_REGION` | Region where the instance is running |
+| `UNKEY_INSTANCE_ID` | Unique identifier for the specific running instance (pod) |
+| `UNKEY_GIT_COMMIT_SHA` | Git commit SHA that triggered the deployment |
+| `UNKEY_GIT_BRANCH` | Git branch that triggered the deployment |
+| `UNKEY_GIT_REPO` | Full repository name (e.g., `org/repo`) |
+| `UNKEY_GIT_COMMIT_MESSAGE` | Commit message of the deployed commit |
+
+Git-related variables are populated automatically when your deployment is connected to a GitHub repository. `UNKEY_INSTANCE_ID` is unique per running instance, so you can use it to distinguish between replicas.
+
+### Structured logging example
+
+```typescript
+app.use((req, res, next) => {
+  console.log(JSON.stringify({
+    deployment: process.env.UNKEY_DEPLOYMENT_ID,
+    environment: process.env.UNKEY_ENVIRONMENT_SLUG,
+    region: process.env.UNKEY_REGION,
+    instance: process.env.UNKEY_INSTANCE_ID,
+    commit: process.env.UNKEY_GIT_COMMIT_SHA,
+    path: req.path,
+  }));
+  next();
+});
+```
+
+### Custom variables
+
+You can also define your own environment variables in your deployment settings. These are encrypted at rest and injected alongside the automatic variables at runtime. To add or update variables, go to your project's environment settings in the dashboard.
+
+<Tip>
+  Pasting environment variables appends to your existing list instead of replacing it. You can search variables by key name, and duplicate keys are highlighted automatically.
+</Tip>
+
+## Build-time variables
+
+Variables configured in your deployment settings are also available during Docker image builds. They are decrypted and mounted as [BuildKit secrets](https://docs.docker.com/build/building/secrets/), so you can reference them in your Dockerfile without exposing them in the image layer history.
+
+This is useful when you need credentials at build time — for example, installing private packages from a registry that requires authentication.
+
+### Mounting a secret in your Dockerfile
+
+Use the `--mount=type=secret` flag in a `RUN` instruction to access a variable during the build:
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM node:20-alpine
+
+# Mount NPM_TOKEN as a secret during install — it won't appear in the image layers
+RUN --mount=type=secret,id=NPM_TOKEN \
+    NPM_TOKEN=$(cat /run/secrets/NPM_TOKEN) \
+    npm install --registry https://registry.npmjs.org/
+
+COPY . .
+RUN npm run build
+CMD ["node", "dist/index.js"]
+```
+
+<Note>
+  The secret ID in the `--mount` flag must match the environment variable key you configured in your deployment settings. Secrets are only available during the build stage where they are mounted.
+</Note>
+
+### Go module example
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM golang:1.22-alpine
+
+WORKDIR /app
+COPY go.mod go.sum ./
+
+# Use GOPRIVATE token to fetch private modules
+RUN --mount=type=secret,id=GOPRIVATE_TOKEN \
+    GOPRIVATE_TOKEN=$(cat /run/secrets/GOPRIVATE_TOKEN) \
+    git config --global url."https://${GOPRIVATE_TOKEN}@github.com/".insteadOf "https://github.com/" && \
+    go mod download
+
+COPY . .
+RUN go build -o /app/server ./cmd/server
+CMD ["/app/server"]
+```
+
+### Python example
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM python:3.12-slim
+
+WORKDIR /app
+COPY requirements.txt .
+
+# Use PIP_INDEX_URL with authentication for a private PyPI registry
+RUN --mount=type=secret,id=PIP_INDEX_URL \
+    PIP_INDEX_URL=$(cat /run/secrets/PIP_INDEX_URL) \
+    pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+CMD ["python", "main.py"]
+```
+
+## Best practices
+
+- **Never use `ARG` or `ENV` for secrets.** These are saved in the image metadata and can be extracted. Always use `--mount=type=secret` instead.
+- **Scope secrets to the stage that needs them.** In a multi-stage build, mount the secret only in the stage that requires it. Later stages won't have access.
+- **Use `UNKEY_ENVIRONMENT_SLUG` to switch behavior.** Rather than duplicating code, read the environment slug at runtime to choose configurations, database connections, or feature flags.

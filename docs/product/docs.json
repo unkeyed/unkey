@@ -239,6 +239,13 @@
             ]
           },
           {
+            "group": "Deployments",
+            "icon": "rocket",
+            "pages": [
+              "deployments/environment-variables"
+            ]
+          },
+          {
             "group": "AI Code Gen",
             "icon": "robot",
             "pages": [
