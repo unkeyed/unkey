@@ -40,11 +40,9 @@ describe("getKeysSystemPrompt", () => {
 
 describe("getKeysStructuredSearchFromLLM", () => {
   const mockOpenAI = {
-    beta: {
-      chat: {
-        completions: {
-          parse: vi.fn(),
-        },
+    chat: {
+      completions: {
+        parse: vi.fn(),
       },
     },
   };
@@ -67,7 +65,7 @@ describe("getKeysStructuredSearchFromLLM", () => {
         },
       ],
     };
-    mockOpenAI.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
+    mockOpenAI.chat.completions.parse.mockResolvedValueOnce(mockResponse);
 
     const result = await getKeysStructuredSearchFromLLM(
       mockOpenAI as any,
@@ -97,7 +95,7 @@ describe("getKeysStructuredSearchFromLLM", () => {
         },
       ],
     };
-    mockOpenAI.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
+    mockOpenAI.chat.completions.parse.mockResolvedValueOnce(mockResponse);
 
     const result = await getKeysStructuredSearchFromLLM(
       mockOpenAI as any,
@@ -124,7 +122,7 @@ describe("getKeysStructuredSearchFromLLM", () => {
         },
       ],
     };
-    mockOpenAI.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
+    mockOpenAI.chat.completions.parse.mockResolvedValueOnce(mockResponse);
 
     await expect(
       getKeysStructuredSearchFromLLM(mockOpenAI as any, "invalid query", 1706024400000),
@@ -132,7 +130,7 @@ describe("getKeysStructuredSearchFromLLM", () => {
   });
 
   it("should handle rate limit error", async () => {
-    mockOpenAI.beta.chat.completions.parse.mockRejectedValueOnce({
+    mockOpenAI.chat.completions.parse.mockRejectedValueOnce({
       response: { status: 429 },
     });
 
@@ -147,7 +145,7 @@ describe("getKeysStructuredSearchFromLLM", () => {
   });
 
   it("should handle general errors", async () => {
-    mockOpenAI.beta.chat.completions.parse.mockRejectedValueOnce(new Error("Unknown error"));
+    mockOpenAI.chat.completions.parse.mockRejectedValueOnce(new Error("Unknown error"));
 
     await expect(
       getKeysStructuredSearchFromLLM(mockOpenAI as any, "test query", 1706024400000),
