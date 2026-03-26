@@ -3,17 +3,14 @@ package validation
 import (
 	"context"
 	"net/http"
-	"strings"
 	"sync"
 
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
 	"github.com/pb33f/libopenapi-validator/config"
-	validatorerrs "github.com/pb33f/libopenapi-validator/errors"
 	"github.com/unkeyed/unkey/pkg/ctxutil"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/zen/metrics"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -64,28 +61,14 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	_, validationSpan := tracing.Start(ctx, "openapi.Validate")
 	defer validationSpan.End()
 
-	// libopenapi-validator can produce spurious "circular reference detected
-	// during inline rendering" errors under concurrent access. The upstream
-	// library added InlineRenderContext (pb33f/libopenapi#488) to isolate
-	// per-call cycle tracking, but the rendering pipeline still shares
-	// mutable document state (lazy SchemaProxy initialization, NodeBuilder
-	// reflection reads) that isn't fully synchronized. This manifests as
-	// a transient false-positive from SchemaProxy.marshalYAMLInlineInternal.
-	//
-	// Retry up to 3 times on that specific error — a subsequent attempt
-	// succeeds once the conflicting goroutine's lazy init has settled.
+	// Use the synchronous variant to avoid the internal goroutines that
+	// ValidateHttpRequest spawns — those contribute to the "circular
+	// reference detected during inline rendering" race condition under
+	// concurrent access (see pb33f/libopenapi#488).
 	//
 	// We're planning to move away from libopenapi-validator, so this
-	// quickfix is acceptable rather than investing in a proper fix.
-	var valid bool
-	var errors []*validatorerrs.ValidationError
-	for range 10 {
-		valid, errors = v.validator.ValidateHttpRequest(r)
-		if valid || !hasCircularRefError(errors) {
-			break
-		}
-		metrics.OpenAPIValidationRetryTotal.Inc()
-	}
+	// is acceptable rather than investing in a proper fix.
+	valid, errors := v.validator.ValidateHttpRequestSync(r)
 
 	if valid {
 		// nolint:exhaustruct
@@ -126,11 +109,3 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	return res, false
 }
 
-func hasCircularRefError(errors []*validatorerrs.ValidationError) bool {
-	for _, e := range errors {
-		if strings.Contains(e.Message, "circular reference detected") {
-			return true
-		}
-	}
-	return false
-}
