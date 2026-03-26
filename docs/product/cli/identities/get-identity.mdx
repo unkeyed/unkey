@@ -1,0 +1,101 @@
+---
+title: "get-identity"
+description: "Retrieve an identity by external ID or internal identity ID"
+---
+
+Retrieve an identity by external ID or internal identity ID. Returns metadata, rate limits, and other associated data.
+
+Use this to check if an identity exists, view configurations, or build management dashboards.
+
+**Required permissions:**
+- `identity.*.read_identity`
+
+<Note>
+See the [API reference](/api-reference/v2/identities/get-identity) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api identities get-identity [flags]
+```
+
+## Flags
+
+<ParamField body="--identity" type="string" required>
+The ID of the identity to retrieve. This can be either the externalId (from your own system that was used during identity creation) or the identityId (the internal ID returned by the identity service).
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api identities get-identity --identity=user_123
+```
+```bash JSON output for scripting
+unkey api identities get-identity --identity=user_123 --output=json
+```
+```bash Use an internal identity ID
+unkey api identities get-identity --identity=id_1234567890abcdef
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the identity:
+
+```
+req_01H9TQPP77V5E48E9SH0BG0ZQX (took 32ms)
+
+{
+  "id": "id_1234567890abcdef",
+  "externalId": "user_123",
+  "meta": {
+    "name": "Alice Smith",
+    "email": "alice@acme.com",
+    "plan": "premium"
+  },
+  "ratelimits": [
+    {
+      "name": "requests",
+      "limit": 1000,
+      "duration": 60000
+    }
+  ]
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQX"
+  },
+  "data": {
+    "id": "id_1234567890abcdef",
+    "externalId": "user_123",
+    "meta": {
+      "name": "Alice Smith",
+      "email": "alice@acme.com",
+      "plan": "premium"
+    },
+    "ratelimits": [
+      {
+        "name": "requests",
+        "limit": 1000,
+        "duration": 60000
+      }
+    ]
+  }
+}
+```

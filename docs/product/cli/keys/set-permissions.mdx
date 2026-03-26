@@ -1,0 +1,110 @@
+---
+title: "set-permissions"
+description: "Replace all permissions on a key with the specified set in a single atomic operation"
+---
+
+Replace all permissions on a key with the specified set in a single atomic operation.
+
+Use this to synchronize with external systems, reset permissions to a known state, or apply standardized permission templates. Permissions granted through roles remain unchanged.
+
+**Important:** Changes take effect immediately with up to 30-second edge propagation. This is a complete replacement operation -- all existing direct permissions not included in the provided list will be removed.
+
+**Required permissions:**
+- `api.*.update_key` (to update keys in any API)
+- `api.<api_id>.update_key` (to update keys in a specific API)
+
+<Note>
+See the [API reference](/api-reference/v2/keys/set-key-permissions) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api keys set-permissions [flags]
+```
+
+## Flags
+
+<ParamField body="--key-id" type="string" required>
+The key ID to set permissions on. This is the database identifier returned from `keys.createKey` (e.g., `key_2cGKbMxRyIzhCxo1Idjz8q`). Do not confuse this with the actual API key string that users include in requests.
+</ParamField>
+
+<ParamField body="--permissions" type="string[]" required>
+Comma-separated list of permissions. Replaces all existing direct permissions with this new set. Providing an empty value removes all direct permissions from the key. Permissions granted through roles are not affected. Any permissions that do not already exist will be auto-created if your root key has sufficient permissions.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api keys set-permissions --key-id=key_1234abcd --permissions=documents.read,documents.write,settings.view
+```
+```bash JSON output for scripting
+unkey api keys set-permissions --key-id=key_1234abcd --permissions=documents.read,documents.write --output=json
+```
+```bash Remove all direct permissions
+unkey api keys set-permissions --key-id=key_1234abcd --permissions=
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the updated list of direct permissions on the key:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+[
+  {
+    "id": "perm_1234567890abcdef",
+    "name": "documents.read",
+    "slug": "documents.read"
+  },
+  {
+    "id": "perm_abcdef1234567890",
+    "name": "documents.write",
+    "slug": "documents.write"
+  },
+  {
+    "id": "perm_567890abcdef1234",
+    "name": "settings.view",
+    "slug": "settings.view"
+  }
+]
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": [
+    {
+      "id": "perm_1234567890abcdef",
+      "name": "documents.read",
+      "slug": "documents.read"
+    },
+    {
+      "id": "perm_abcdef1234567890",
+      "name": "documents.write",
+      "slug": "documents.write"
+    },
+    {
+      "id": "perm_567890abcdef1234",
+      "name": "settings.view",
+      "slug": "settings.view"
+    }
+  ]
+}
+```

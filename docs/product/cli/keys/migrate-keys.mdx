@@ -1,0 +1,194 @@
+---
+title: "migrate-keys"
+description: "Migrate pre-hashed API keys from an existing provider into Unkey"
+---
+
+Migrate pre-hashed API keys from an existing provider into Unkey.
+
+Use this to move keys from another system without requiring users to rotate their credentials. You provide the already-hashed keys and Unkey stores them directly, so existing API keys continue to work after migration. The endpoint returns HTTP 200 even on partial success; hashes that could not be migrated are listed in the response.
+
+**Important:** You must obtain a `migrationId` from Unkey support before using this command. Keys that already exist in the system will appear in the `failed` array rather than causing the entire request to fail.
+
+**Required permissions:**
+
+Your root key must have one of the following permissions:
+- `api.*.create_key` (to migrate keys to any API)
+- `api.<api_id>.create_key` (to migrate keys to a specific API)
+
+<Note>
+See the [API reference](/api-reference/v2/keys/migrate-api-keys) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api keys migrate-keys [flags]
+```
+
+## Flags
+
+<ParamField body="--migration-id" type="string" required>
+Identifier of the configured migration provider/strategy to use (e.g., "your_company"). You will receive this from Unkey's support staff. Must be 3-255 characters.
+</ParamField>
+
+<ParamField body="--api-id" type="string" required>
+The ID of the API that the keys should be inserted into. Must be 3-255 characters.
+</ParamField>
+
+<ParamField body="--keys-json" type="string" required>
+JSON array of key migration objects. Each object describes a single key to migrate.
+
+<Expandable title="Key object properties">
+<ResponseField name="hash" type="string" required>
+The current hash of the key on your side. This is the pre-hashed value that Unkey will store directly. Must be at least 3 characters.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+Sets a human-readable identifier for internal organization and dashboard display. Never exposed to end users, only visible in management interfaces and API responses. Must be 1-255 characters.
+</ResponseField>
+
+<ResponseField name="externalId" type="string">
+Links this key to a user or entity in your system using your own identifier. Returned during verification to identify the key owner without additional database lookups. Must be 1-255 characters.
+</ResponseField>
+
+<ResponseField name="meta" type="object">
+Stores arbitrary JSON metadata returned during key verification for contextual information. Eliminates additional database lookups during verification. Avoid storing sensitive data here as it is returned in verification responses.
+</ResponseField>
+
+<ResponseField name="roles" type="string[]">
+Assigns existing roles to this key for permission management through role-based access control. Roles must already exist in your workspace before assignment.
+</ResponseField>
+
+<ResponseField name="permissions" type="string[]">
+Grants specific permissions directly to this key without requiring role membership. Wildcard permissions like `documents.*` grant access to all sub-permissions. Direct permissions supplement any permissions inherited from assigned roles.
+</ResponseField>
+
+<ResponseField name="expires" type="integer">
+Sets when this key automatically expires as a Unix timestamp in milliseconds. Verification fails with `code=EXPIRED` immediately after this time passes. Omitting this field creates a permanent key that never expires.
+</ResponseField>
+
+<ResponseField name="enabled" type="boolean" default="true">
+Controls whether the key is active immediately upon migration. When set to `false`, the key exists but all verification attempts fail with `code=DISABLED`.
+</ResponseField>
+
+<ResponseField name="credits" type="object">
+Controls usage-based limits through credit consumption with optional automatic refills.
+
+<Expandable title="credits properties">
+<ResponseField name="remaining" type="integer" required>
+Number of credits remaining. Use `null` for unlimited.
+</ResponseField>
+
+<ResponseField name="refill" type="object">
+Configuration for automatic credit refill behavior.
+
+<Expandable title="refill properties">
+<ResponseField name="interval" type="string" required>
+How often credits are automatically refilled. One of `daily` or `monthly`.
+</ResponseField>
+
+<ResponseField name="amount" type="integer" required>
+Number of credits to add during each refill cycle.
+</ResponseField>
+
+<ResponseField name="refillDay" type="integer">
+Day of the month for monthly refills (1-31). Only required when interval is `monthly`. For days beyond the month's length, refill occurs on the last day of the month.
+</ResponseField>
+</Expandable>
+</ResponseField>
+</Expandable>
+</ResponseField>
+
+<ResponseField name="ratelimits" type="object[]">
+Defines time-based rate limits that control request frequency. Multiple rate limits can control different operation types with separate thresholds and windows.
+
+<Expandable title="ratelimit properties">
+<ResponseField name="name" type="string" required>
+The name of this rate limit, used to identify which limit to check during key verification. Must be 3-128 characters.
+</ResponseField>
+
+<ResponseField name="limit" type="integer" required>
+The maximum number of operations allowed within the specified time window.
+</ResponseField>
+
+<ResponseField name="duration" type="integer" required>
+The duration for each rate limit window in milliseconds. Minimum 1000 (1 second).
+</ResponseField>
+
+<ResponseField name="autoApply" type="boolean" required>
+Whether this rate limit should be automatically applied when verifying a key.
+</ResponseField>
+</Expandable>
+</ResponseField>
+</Expandable>
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api keys migrate-keys \
+  --migration-id=your_company \
+  --api-id=api_123456789 \
+  --keys-json='[{"hash":"c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64","enabled":true}]'
+```
+```bash With metadata and roles
+unkey api keys migrate-keys \
+  --migration-id=your_company \
+  --api-id=api_123456789 \
+  --keys-json='[{"hash":"c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64","name":"Production API Key","externalId":"user_abc123","enabled":true,"meta":{"plan":"enterprise"},"roles":["admin"],"permissions":["api.read","api.write"]}]'
+```
+```bash JSON output for scripting
+unkey api keys migrate-keys \
+  --migration-id=your_company \
+  --api-id=api_123456789 \
+  --keys-json='[{"hash":"abc123","enabled":true}]' \
+  --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the migration results:
+
+```
+req_2c9a0jf23l4k567 (took 120ms)
+
+{
+  "migrated": [
+    {
+      "hash": "c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64",
+      "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q"
+    }
+  ],
+  "failed": []
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {
+    "migrated": [
+      {
+        "hash": "c4fbfe7c69a067cb0841dea343346a750a69908a08ea9656d2a8c19fb0823c64",
+        "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q"
+      }
+    ],
+    "failed": []
+  }
+}
+```

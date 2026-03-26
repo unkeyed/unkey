@@ -1,0 +1,120 @@
+---
+title: "limit"
+description: "Check and enforce rate limits for any identifier"
+---
+
+Check and enforce rate limits for any identifier (user ID, IP address, API client, etc.).
+
+Use this for rate limiting beyond API keys - limit users by ID, IPs by address, or any custom identifier. Supports namespace organization, variable costs, and custom overrides.
+
+**Important:** Rate limit checks return HTTP 200 regardless of whether the limit is exceeded -- check the `success` field in the response to determine if the request should be allowed.
+
+**Required permissions:**
+- `ratelimit.*.limit` (to check limits in any namespace)
+- `ratelimit.<namespace_id>.limit` (to check limits in a specific namespace)
+
+<Note>
+See the [API reference](/api-reference/v2/ratelimit/apply-rate-limiting) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api ratelimit limit [flags]
+```
+
+## Flags
+
+<ParamField body="--namespace" type="string" required>
+The id or name of the namespace. Use namespaces to organize rate limits by service or purpose, such as `api.requests` or `auth.login`. Must be 1-255 characters.
+</ParamField>
+
+<ParamField body="--identifier" type="string" required>
+The entity being rate limited. Use user IDs for per-user limits, IP addresses for anonymous limiting, or API key IDs for per-key limits. The same identifier can be used across different namespaces to apply multiple rate limit types. Must be 1-255 characters.
+</ParamField>
+
+<ParamField body="--limit" type="integer" required>
+Maximum operations allowed within the duration window before requests are rejected. When this limit is reached, subsequent requests fail until the window resets. Balance user experience with resource protection when setting limits for different user tiers.
+</ParamField>
+
+<ParamField body="--duration" type="integer" required>
+Rate limit window duration in milliseconds after which the counter resets. Shorter durations enable faster recovery but may be less effective against sustained abuse. Common values include `60000` (1 minute), `3600000` (1 hour), and `86400000` (24 hours).
+</ParamField>
+
+<ParamField body="--cost" type="integer">
+How much of the rate limit quota this request consumes, enabling weighted rate limiting. Defaults to `1`. Use higher values for resource-intensive operations and `0` for tracking without limiting. When accumulated cost exceeds the limit within the duration window, subsequent requests are rejected.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic rate limit check
+unkey api ratelimit limit --namespace=api.requests --identifier=user_abc123 --limit=100 --duration=60000
+```
+```bash IP-based rate limiting
+unkey api ratelimit limit --namespace=auth.login --identifier=203.0.113.42 --limit=5 --duration=60000
+```
+```bash Weighted cost for heavy operations
+unkey api ratelimit limit --namespace=api.heavy_operations --identifier=user_def456 --limit=50 --duration=3600000 --cost=5
+```
+```bash JSON output for scripting
+unkey api ratelimit limit --namespace=api.requests --identifier=user_abc123 --limit=100 --duration=60000 --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the rate limit result:
+
+```
+req_01H9TQPP77V5E48E9SH0BG0ZQX (took 32ms)
+
+{
+  "limit": 100,
+  "remaining": 99,
+  "reset": 1714582980000,
+  "success": true
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQX"
+  },
+  "data": {
+    "limit": 100,
+    "remaining": 99,
+    "reset": 1714582980000,
+    "success": true
+  }
+}
+```
+
+When a rate limit override is in effect, the response includes the override ID:
+
+```json
+{
+  "meta": {
+    "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQZ"
+  },
+  "data": {
+    "limit": 1000,
+    "remaining": 995,
+    "reset": 1714582980000,
+    "success": true,
+    "overrideId": "ovr_2cGKbMxRyIzhCxo1Idjz8q"
+  }
+}
+```

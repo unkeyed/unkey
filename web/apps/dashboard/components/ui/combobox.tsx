@@ -122,12 +122,20 @@ export function Combobox({
     [options, value],
   );
 
+  // When creatable and the current value isn't in options, inject it so cmdk shows it
+  const effectiveOptions = React.useMemo(() => {
+    if (creatable && value && !options.some((o) => o.value === value)) {
+      return [{ label: value, value }, ...options];
+    }
+    return options;
+  }, [creatable, value, options]);
+
   const showCreatableOption = React.useMemo(() => {
     if (!creatable || !search.trim()) {
       return false;
     }
-    return !options.some((o) => o.value === search.trim());
-  }, [creatable, search, options]);
+    return !effectiveOptions.some((o) => o.value === search.trim());
+  }, [creatable, search, effectiveOptions]);
 
   return (
     <Popover
@@ -181,8 +189,11 @@ export function Combobox({
       <PopoverContent
         className="p-0 w-full min-w-(--radix-popover-trigger-width) rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-200 overflow-visible"
         onOpenAutoFocus={(e) => {
-          // Prevent auto-focus to allow proper keyboard navigation
+          // Let the CommandInput receive focus so users can type immediately
           e.preventDefault();
+          if (e.currentTarget instanceof HTMLElement) {
+            e.currentTarget.querySelector<HTMLInputElement>("[cmdk-input]")?.focus();
+          }
         }}
       >
         <Command
@@ -205,6 +216,20 @@ export function Combobox({
             onKeyDown={(e) => {
               // Prevent propagation to Dialog but allow command list navigation
               e.stopPropagation();
+              // When creatable and Enter is pressed with no matching option, submit the typed value
+              if (creatable && e.key === "Enter" && search.trim()) {
+                const hasMatch = effectiveOptions.some(
+                  (o) => (o.searchValue || o.value).toLowerCase() === search.trim().toLowerCase(),
+                );
+                if (!hasMatch) {
+                  e.preventDefault();
+                  onSelect(search.trim());
+                  setSearch("");
+                  if (closeOnSelect) {
+                    setOpen(false);
+                  }
+                }
+              }
             }}
             placeholder={searchPlaceholder}
             className="text-xs placeholder:text-xs placeholder:text-accent-8"
@@ -222,12 +247,12 @@ export function Combobox({
                       setOpen(false);
                     }
                   }}
-                  className="flex items-center py-1 mt-0 text-gray-9"
+                  className="flex items-center py-1 mt-0 text-gray-9 text-xs"
                 >
                   Use "{search.trim()}"
                 </CommandItem>
               )}
-              {options.map((option) => (
+              {effectiveOptions.map((option) => (
                 <CommandItem
                   key={option.value}
                   value={option.searchValue || option.value}

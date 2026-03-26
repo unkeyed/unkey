@@ -266,6 +266,7 @@ export const githubRouter = t.router({
 
       return {
         appId: githubContext.appId,
+        defaultBranch: githubContext.defaultBranch,
         installations: githubContext.installations,
         repoConnection: githubContext.repoConnection,
       };
@@ -375,14 +376,23 @@ export const githubRouter = t.router({
         });
       }
 
-      const [treeResult, activeBranches, repoData] = await Promise.all([
-        getRepositoryTree(input.installationId, input.owner, input.repo, input.defaultBranch),
+      // Fetch repo metadata first to get the actual GitHub default branch for tree lookups.
+      // input.defaultBranch is the user-configured production branch which may not exist yet.
+      const [repoData, activeBranches] = await Promise.all([
+        getRepository(input.installationId, input.owner, input.repo),
         // If the events API fails, fall back to an empty list so the branch fallback logic kicks in
         getMostActiveBranches(input.installationId, input.owner, input.repo).catch(
           (): BranchActivity[] => [],
         ),
-        getRepository(input.installationId, input.owner, input.repo),
       ]);
+
+      const treeBranch = repoData.default_branch || input.defaultBranch;
+      const treeResult = await getRepositoryTree(
+        input.installationId,
+        input.owner,
+        input.repo,
+        treeBranch,
+      );
 
       let hasDockerfile: boolean;
       if (treeResult.truncated) {
@@ -392,7 +402,7 @@ export const githubRouter = t.router({
           input.installationId,
           input.owner,
           input.repo,
-          input.defaultBranch,
+          treeBranch,
           "Dockerfile",
         );
       } else {
@@ -567,6 +577,42 @@ export const githubRouter = t.router({
             message: "Failed to disconnect GitHub repository",
           });
         });
+
+      return { success: true };
+    }),
+
+  updateDefaultBranch: workspaceProcedure
+    .input(
+      z.object({
+        appId: z.string(),
+        defaultBranch: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const app = await db.query.apps
+        .findFirst({
+          where: (table, { and, eq }) =>
+            and(eq(table.id, input.appId), eq(table.workspaceId, ctx.workspace.id)),
+          columns: { id: true },
+        })
+        .catch(() => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to load app",
+          });
+        });
+
+      if (!app) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "App not found",
+        });
+      }
+
+      await db
+        .update(schema.apps)
+        .set({ defaultBranch: input.defaultBranch, updatedAt: Date.now() })
+        .where(eq(schema.apps.id, input.appId));
 
       return { success: true };
     }),

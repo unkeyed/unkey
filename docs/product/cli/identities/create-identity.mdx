@@ -1,0 +1,109 @@
+---
+title: "create-identity"
+description: "Create an identity to group multiple API keys under a single entity"
+---
+
+Create an identity to group multiple API keys under a single entity. Identities enable shared rate limits and metadata across all associated keys.
+
+Perfect for users with multiple devices, organizations with multiple API keys, or when you need unified rate limiting across different services.
+
+**Important:** External IDs must be unique within your workspace. Attempting to create an identity with a duplicate external ID returns a `409 Conflict` error.
+
+**Required permissions:**
+- `identity.*.create_identity`
+
+<Note>
+See the [API reference](/api-reference/v2/identities/create-identity) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api identities create-identity [flags]
+```
+
+## Flags
+
+<ParamField body="--external-id" type="string" required>
+Your system's unique identifier for the user, organization, or entity. Must be unique across your workspace --- duplicate external IDs return a `409 Conflict` error. This identifier links Unkey identities to your authentication system, database records, or tenant structure. Accepts letters, numbers, underscores, dots, and hyphens (1--255 characters).
+</ParamField>
+
+<ParamField body="--meta-json" type="string">
+JSON object of arbitrary metadata stored on the identity. This metadata is returned during key verification, eliminating additional database lookups for contextual information. Useful for subscription details, feature flags, user preferences, and organization information. Avoid storing sensitive data as it is returned in verification responses.
+
+<Expandable title="JSON structure">
+<ResponseField name="<key>" type="any">
+Arbitrary key-value pairs. Values can be strings, numbers, booleans, arrays, or nested objects. Maximum of 100 properties. Keep total size under 10KB for optimal verification latency.
+</ResponseField>
+</Expandable>
+</ParamField>
+
+<ParamField body="--ratelimits-json" type="string">
+JSON array of shared rate limit configurations for all keys under this identity. Rate limit counters are shared across all keys belonging to this identity, preventing abuse by users with multiple keys. Each named limit can have different thresholds and windows. Maximum of 50 rate limit configurations.
+
+<Expandable title="Array item properties">
+<ResponseField name="name" type="string" required>
+The name of this rate limit, used to identify which limit to check during key verification. Use descriptive names like `api_requests`, `heavy_operations`, or `downloads`. Must be 3--128 characters.
+</ResponseField>
+<ResponseField name="limit" type="integer" required>
+The maximum number of operations allowed within the specified time window. When reached, verification requests fail with `code=RATE_LIMITED` until the window resets.
+</ResponseField>
+<ResponseField name="duration" type="integer" required>
+The duration for each rate limit window in milliseconds. Common values: `1000` (1 second), `60000` (1 minute), `3600000` (1 hour), `86400000` (24 hours). Minimum `1000`.
+</ResponseField>
+<ResponseField name="autoApply" type="boolean" default={false}>
+Whether this rate limit should be automatically applied when verifying a key. Defaults to `false`.
+</ResponseField>
+</Expandable>
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api identities create-identity --external-id=user_123
+```
+```bash With metadata
+unkey api identities create-identity --external-id=user_123 --meta-json='{"email":"alice@acme.com","name":"Alice Smith","plan":"premium"}'
+```
+```bash With rate limits
+unkey api identities create-identity --external-id=user_123 --ratelimits-json='[{"name":"requests","limit":1000,"duration":60000,"autoApply":false}]'
+```
+```bash JSON output for scripting
+unkey api identities create-identity --external-id=user_123 --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the created identity:
+
+```
+req_01H9TQPP77V5E48E9SH0BG0ZQX (took 45ms)
+
+{
+  "identityId": "id_1234567890abcdef"
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQX"
+  },
+  "data": {
+    "identityId": "id_1234567890abcdef"
+  }
+}
+```
