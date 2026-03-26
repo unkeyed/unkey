@@ -34,6 +34,7 @@ go_test(
         ":v2_keys_set_roles",
         "//pkg/db",
         "//pkg/hash",
+        "//pkg/logger",
         "//pkg/ptr",
         "//pkg/uid",
         "//svc/api/internal/testutil",

@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/vault/internal/keys"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
+	"github.com/unkeyed/unkey/svc/vault/keys"
 )
 
 func setupTestService(t *testing.T) *Service {

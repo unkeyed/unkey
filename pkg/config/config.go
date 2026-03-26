@@ -7,7 +7,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/logger"
 )
 
 // Validator is an optional interface for cross-field or business-rule
@@ -32,8 +31,6 @@ func Load[T any](path string) (T, error) {
 	if err != nil {
 		return zero, fault.Wrap(err, fault.Internal("failed to read config file: "+path))
 	}
-
-	logger.Info("using config", "path", path)
 
 	return LoadBytes[T](data)
 }
@@ -68,4 +65,32 @@ func LoadBytes[T any](data []byte) (T, error) {
 	}
 
 	return cfg, errors.Join(errs...)
+}
+
+// Save encodes cfg as TOML and writes it to path, creating parent directories
+// with mode 0700 if they don't exist. The file is written with mode 0600.
+func Save[T any](path string, cfg T) (retErr error) {
+	if filepath.Ext(path) != ".toml" {
+		return fault.New("failed to save config: only .toml files are supported")
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fault.Wrap(err, fault.Internal("failed to create config directory"))
+	}
+
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		return fault.Wrap(err, fault.Internal("failed to open config file: "+path))
+	}
+	defer func() {
+		if closeErr := f.Close(); retErr == nil {
+			retErr = closeErr
+		}
+	}()
+
+	if err := toml.NewEncoder(f).Encode(cfg); err != nil {
+		return fault.Wrap(err, fault.Internal("failed to encode TOML config"))
+	}
+
+	return nil
 }

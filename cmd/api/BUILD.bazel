@@ -2,15 +2,17 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "api",
-    srcs = ["main.go"],
+    srcs = ["root.go"],
     importpath = "github.com/unkeyed/unkey/cmd/api",
     visibility = ["//visibility:public"],
     deps = [
+        "//cmd/api/analytics",
+        "//cmd/api/apis",
+        "//cmd/api/identities",
+        "//cmd/api/keys",
+        "//cmd/api/permissions",
+        "//cmd/api/ratelimit",
+        "//cmd/api/util",
         "//pkg/cli",
-        "//pkg/clock",
-        "//pkg/config",
-        "//pkg/tls",
-        "//pkg/uid",
-        "//svc/api",
     ],
 )

@@ -1,12 +1,14 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
-import { Button, SettingCard, toast } from "@unkey/ui";
+import { TriangleWarning2 } from "@unkey/icons";
+import { Button, DialogContainer, SettingsZoneRow, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { Confirm } from "./confirmation";
+import { useState } from "react";
 
 export const CancelPlan: React.FC = () => {
   const trpcUtils = trpc.useUtils();
   const router = useRouter();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const cancelSubscription = trpc.stripe.cancelSubscription.useMutation({
     onSuccess: async () => {
@@ -20,6 +22,7 @@ export const CancelPlan: React.FC = () => {
         trpcUtils.stripe.getBillingInfo.refetch(),
       ]);
       router.refresh();
+      setIsDialogOpen(false);
       toast.info("Subscription cancelled");
     },
     onError: (err) => {
@@ -28,25 +31,51 @@ export const CancelPlan: React.FC = () => {
   });
 
   return (
-    <SettingCard
-      title="Cancel Subscription"
-      description="Cancelling your subscription will downgrade your workspace to the free tier."
-      border="both"
-      className="w-full"
-      contentWidth="w-full lg:w-[320px]"
-    >
-      <div className="w-full flex h-full items-center justify-end gap-4">
-        <Confirm
-          title="Cancel plan"
-          description="Canceling your plan will downgrade your workspace to the free tier at the end of the current period. You can resume your subscription until then."
-          onConfirm={() => cancelSubscription.mutateAsync()}
-          trigger={(onClick) => (
-            <Button variant="outline" color="danger" size="lg" onClick={onClick}>
-              Cancel Plan
+    <>
+      <SettingsZoneRow
+        title="Cancel subscription"
+        description="Cancelling your subscription will downgrade your workspace to the free tier."
+        action={{
+          label: "Cancel Plan",
+          onClick: () => setIsDialogOpen(true),
+        }}
+      />
+
+      <DialogContainer
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        title="Cancel subscription"
+        subTitle="Downgrade your workspace to the free tier"
+        footer={
+          <div className="w-full flex flex-col gap-2 items-center justify-center">
+            <Button
+              type="button"
+              variant="primary"
+              color="danger"
+              size="xlg"
+              className="w-full rounded-lg"
+              loading={cancelSubscription.isLoading}
+              onClick={() => cancelSubscription.mutate()}
+            >
+              Cancel subscription
             </Button>
-          )}
-        />
-      </div>
-    </SettingCard>
+            <div className="text-gray-9 text-xs">
+              You can resume your subscription until the end of the billing period
+            </div>
+          </div>
+        }
+      >
+        <div className="rounded-xl bg-errorA-2 dark:bg-black border border-errorA-3 flex items-center gap-4 px-[22px] py-6">
+          <div className="bg-error-9 size-8 rounded-full flex items-center justify-center shrink-0">
+            <TriangleWarning2 iconSize="sm-regular" className="text-white" />
+          </div>
+          <div className="text-error-12 text-[13px] leading-6">
+            <span className="font-medium">Warning:</span> cancelling your subscription will
+            downgrade your workspace to the free tier at the end of the current billing period. You
+            will lose access to paid features and usage limits will be reduced.
+          </div>
+        </div>
+      </DialogContainer>
+    </>
   );
 };

@@ -1,0 +1,82 @@
+---
+title: "create-role"
+description: "Create a new role to group related permissions for easier management"
+---
+
+Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys.
+
+**Important:** Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
+
+**Required permissions:**
+- `rbac.*.create_role`
+
+<Note>
+See the [API reference](/api-reference/v2/permissions/create-role) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api permissions create-role [flags]
+```
+
+## Flags
+
+<ParamField body="--name" type="string" required>
+The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like `admin`, `editor`, or `billing_manager`. Must be 1-512 characters, start with a letter, and contain only letters, numbers, dots, hyphens, and underscores.
+</ParamField>
+
+<ParamField body="--description" type="string">
+Provides comprehensive documentation of what this role encompasses and what access it grants. Include information about the intended use case, what permissions should be assigned, and any important considerations. This internal documentation helps team members understand role boundaries and security implications. Not visible to end users. Maximum 512 characters.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api permissions create-role --name=content.editor --description="Can read and write content"
+```
+```bash Without description
+unkey api permissions create-role --name=api.reader
+```
+```bash JSON output for scripting
+unkey api permissions create-role --name=admin.billing --description="Full billing access" --output=json
+```
+```bash Pipe the role ID to another command
+ROLE_ID=$(unkey api permissions create-role --name=support.readonly --output=json | jq -r '.data.roleId')
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the created role:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+{
+  "roleId": "role_5678efgh9012wxyz"
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {
+    "roleId": "role_5678efgh9012wxyz"
+  }
+}
+```
