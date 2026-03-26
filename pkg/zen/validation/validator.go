@@ -54,6 +54,7 @@ func New() (*Validator, error) {
 	}
 
 	return &Validator{
+		mu:        sync.Mutex{},
 		validator: v,
 	}, nil
 }
