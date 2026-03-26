@@ -20,27 +20,33 @@ import (
 var (
 	sentinelRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "sentinel_requests_total",
-			Help: "Total number of requests processed by sentinel",
+			Namespace: "unkey",
+			Subsystem: "sentinel",
+			Name:      "requests_total",
+			Help:      "Total number of requests processed by sentinel",
 		},
-		[]string{"status_code", "error_type", "environment_id", "region"},
+		[]string{"status_code", "error_type", "region"},
 	)
 
 	sentinelRequestDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    "sentinel_request_duration_seconds",
-			Help:    "Request duration in seconds",
-			Buckets: prometheus.DefBuckets,
+			Namespace: "unkey",
+			Subsystem: "sentinel",
+			Name:      "request_duration_seconds",
+			Help:      "Request duration in seconds",
+			Buckets:   prometheus.DefBuckets,
 		},
-		[]string{"status_code", "error_type", "environment_id", "region"},
+		[]string{"status_code", "error_type", "region"},
 	)
 
 	sentinelActiveRequests = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "sentinel_active_requests",
-			Help: "Number of requests currently being processed",
+			Namespace: "unkey",
+			Subsystem: "sentinel",
+			Name:      "active_requests",
+			Help:      "Number of requests currently being processed",
 		},
-		[]string{"environment_id", "region"},
+		[]string{"region"},
 	)
 )
 
@@ -220,8 +226,8 @@ func WithObservability(environmentID, region string) zen.Middleware {
 			)
 			defer span.End()
 
-			sentinelActiveRequests.WithLabelValues(environmentID, region).Inc()
-			defer sentinelActiveRequests.WithLabelValues(environmentID, region).Dec()
+			sentinelActiveRequests.WithLabelValues(region).Inc()
+			defer sentinelActiveRequests.WithLabelValues(region).Dec()
 
 			err := next(ctx, s)
 
@@ -304,8 +310,8 @@ func WithObservability(environmentID, region string) zen.Middleware {
 				"region", region,
 			)
 
-			sentinelRequestsTotal.WithLabelValues(statusStr, errorType, environmentID, region).Inc()
-			sentinelRequestDuration.WithLabelValues(statusStr, errorType, environmentID, region).Observe(duration)
+			sentinelRequestsTotal.WithLabelValues(statusStr, errorType, region).Inc()
+			sentinelRequestDuration.WithLabelValues(statusStr, errorType, region).Observe(duration)
 
 			return nil
 		}

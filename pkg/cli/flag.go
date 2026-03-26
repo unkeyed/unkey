@@ -179,8 +179,8 @@ func (f *IntFlag) Parse(value string) error {
 // Value returns the current integer value
 func (f *IntFlag) Value() int { return f.value }
 
-// HasValue returns true if the flag has a non-zero value or came from environment
-func (f *IntFlag) HasValue() bool { return f.value != 0 || f.hasEnvValue }
+// HasValue returns true if the flag was explicitly set or came from environment.
+func (f *IntFlag) HasValue() bool { return f.set || f.hasEnvValue }
 
 // Int64Flag represents an int64 command line flag
 type Int64Flag struct {
@@ -211,8 +211,8 @@ func (f *Int64Flag) Parse(value string) error {
 // Value returns the current int64 value
 func (f *Int64Flag) Value() int64 { return f.value }
 
-// HasValue returns true if the flag has a non-zero value or came from environment
-func (f *Int64Flag) HasValue() bool { return f.value != 0 || f.hasEnvValue }
+// HasValue returns true if the flag was explicitly set or came from environment.
+func (f *Int64Flag) HasValue() bool { return f.set || f.hasEnvValue }
 
 // FloatFlag represents a float64 command line flag
 type FloatFlag struct {
@@ -243,8 +243,8 @@ func (f *FloatFlag) Parse(value string) error {
 // Value returns the current float64 value
 func (f *FloatFlag) Value() float64 { return f.value }
 
-// HasValue returns true if the flag has a non-zero value or came from environment
-func (f *FloatFlag) HasValue() bool { return f.value != 0.0 || f.hasEnvValue }
+// HasValue returns true if the flag was explicitly set or came from environment.
+func (f *FloatFlag) HasValue() bool { return f.set || f.hasEnvValue }
 
 // StringSliceFlag represents a string slice command line flag
 type StringSliceFlag struct {

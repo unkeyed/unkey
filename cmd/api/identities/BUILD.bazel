@@ -1,0 +1,38 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "identities",
+    srcs = [
+        "create_identity.go",
+        "delete_identity.go",
+        "get_identity.go",
+        "list_identities.go",
+        "root.go",
+        "update_identity.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/cmd/api/identities",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/api/util",
+        "//pkg/cli",
+        "@com_github_unkeyed_sdks_api_go_v2//models/components",
+    ],
+)
+
+go_test(
+    name = "identities_test",
+    srcs = [
+        "create_identity_test.go",
+        "delete_identity_test.go",
+        "get_identity_test.go",
+        "list_identities_test.go",
+        "update_identity_test.go",
+    ],
+    embed = [":identities"],
+    deps = [
+        "//cmd/api/util",
+        "//pkg/ptr",
+        "//svc/api/openapi",
+        "@com_github_stretchr_testify//require",
+    ],
+)
