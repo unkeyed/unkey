@@ -1,11 +1,14 @@
 "use client";
 
+import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { DeleteProject } from "./components/delete-project";
 import { DeploymentSettings } from "./deployment-settings";
 import { EnvironmentSettingsProvider } from "./environment-provider";
 import { PendingRedeployBanner } from "./pending-redeploy-banner";
 
 export default function SettingsPage() {
+  const { bypass } = usePreventLeave();
+
   return (
     <EnvironmentSettingsProvider>
       <div className="w-225 flex flex-col justify-center items-center gap-6 mx-auto my-14">
@@ -15,7 +18,7 @@ export default function SettingsPage() {
             Review the defaults. Edit anything you'd like to adjust.
           </span>
         </div>
-        <DeploymentSettings />
+        <DeploymentSettings onBeforeNavigate={bypass} />
       </div>
       <PendingRedeployBanner />
       <DeleteProject />
