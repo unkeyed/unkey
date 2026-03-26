@@ -1,10 +1,15 @@
 package handler_test
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -423,4 +428,94 @@ func TestSetRolesConcurrent(t *testing.T) {
 	finalRoles, err := db.Query.ListRolesByKeyID(t.Context(), h.DB.RO(), keyResponse.KeyID)
 	require.NoError(t, err)
 	require.Len(t, finalRoles, 1, "last-writer-wins should leave exactly 1 role")
+}
+
+// TestValidationConcurrencyStress hammers the OpenAPI validation middleware with
+// concurrent requests to surface the libopenapi "circular reference detected
+// during inline rendering" race condition. Without the retry in
+// pkg/zen/validation/validator.go this test fails nearly every run.
+func TestValidationConcurrencyStress(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+
+	keyResponse := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+		Name:        ptr.P("validation-stress-test-key"),
+	})
+
+	// Create a pool of roles so each request uses a different one,
+	// defeating any schema cache that might hide the race.
+	const numRoles = 100
+	roles := make([]string, numRoles)
+	for i := range numRoles {
+		r := h.CreateRole(seed.CreateRoleRequest{
+			WorkspaceID: workspace.ID,
+			Name:        fmt.Sprintf("stress.role.%d", i),
+			Description: ptr.P(fmt.Sprintf("Stress test role %d", i)),
+		})
+		roles[i] = r.Name
+	}
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	const totalRequests = 10_000
+	const concurrency = 500
+
+	var circularRefErrors atomic.Int64
+
+	g := errgroup.Group{}
+	g.SetLimit(concurrency)
+
+	for i := range totalRequests {
+		g.Go(func() error {
+			body, err := json.Marshal(handler.Request{
+				KeyId: keyResponse.KeyID,
+				Roles: []string{roles[i%numRoles]},
+			})
+			if err != nil {
+				return err
+			}
+
+			httpReq := httptest.NewRequest(route.Method(), route.Path(), bytes.NewReader(body))
+			httpReq.Header = headers.Clone()
+			rr := httptest.NewRecorder()
+
+			h.Mux().ServeHTTP(rr, httpReq)
+
+			if rr.Code == 400 && strings.Contains(rr.Body.String(), "circular reference") {
+				circularRefErrors.Add(1)
+			}
+
+			return nil
+		})
+	}
+
+	require.NoError(t, g.Wait())
+
+	count := circularRefErrors.Load()
+	t.Logf("Results: %d/%d requests hit circular reference error", count, totalRequests)
+	require.Zero(t, count,
+		"No requests should fail with the spurious circular reference error (got %d/%d)",
+		count, totalRequests)
 }

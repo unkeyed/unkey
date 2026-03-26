@@ -96,6 +96,18 @@ var (
 		[]string{"method", "path", "status"},
 	)
 
+	// OpenAPIValidationRetryTotal tracks how often the OpenAPI validator hits the
+	// transient "circular reference detected" race condition and retries.
+	// See pb33f/libopenapi#488 for upstream context.
+	OpenAPIValidationRetryTotal = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "openapi",
+			Name:      "validation_retry_total",
+			Help:      "Total number of OpenAPI validation retries due to spurious circular reference errors.",
+		},
+	)
+
 	// HTTPRequestBodySize tracks the distribution of HTTP request body sizes as a histogram,
 	// labeled by method, path, and status. This helps monitor payload sizes and identify potentially
 	// problematic large requests.
