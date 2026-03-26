@@ -1,0 +1,94 @@
+---
+title: "get-override"
+description: "Retrieve the configuration of a specific rate limit override by its identifier"
+---
+
+Retrieve the configuration of a specific rate limit override by its identifier.
+
+Use this to inspect override configurations, audit rate limiting policies, or debug rate limiting behavior.
+
+**Important:** The identifier must match exactly as specified when creating the override, including wildcard patterns. This is case-sensitive -- for example, if the override was created for `premium_*`, you must use `premium_*` here, not a specific ID like `premium_user1`.
+
+**Required permissions:**
+- `ratelimit.*.read_override` (to read overrides in any namespace)
+- `ratelimit.<namespace_id>.read_override` (to read overrides in a specific namespace)
+
+<Note>
+See the [API reference](/api-reference/v2/ratelimit/get-ratelimit-override) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api ratelimit get-override [flags]
+```
+
+## Flags
+
+<ParamField body="--namespace" type="string" required>
+The id or name of the namespace containing the override. Must be 1-255 characters.
+</ParamField>
+
+<ParamField body="--identifier" type="string" required>
+The exact identifier pattern of the override to retrieve. This must match exactly as it was specified when creating the override, including any wildcards (`*`) that were part of the original pattern. Must be 1-255 characters.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Specific identifier
+unkey api ratelimit get-override --namespace=api.requests --identifier=premium_user_123
+```
+```bash Wildcard pattern
+unkey api ratelimit get-override --namespace=api.requests --identifier="premium_*"
+```
+```bash JSON output for scripting
+unkey api ratelimit get-override --namespace=api.requests --identifier=premium_user_123 --output=json
+```
+```bash Pipe override limit to another command
+LIMIT=$(unkey api ratelimit get-override --namespace=api.requests --identifier=premium_user_123 --output=json | jq -r '.data.limit')
+echo "Current limit: $LIMIT"
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the override configuration:
+
+```
+req_2cGKbMxRyIzhCxo1Idjz8q (took 45ms)
+
+{
+  "overrideId": "ovr_1234567890abcdef",
+  "namespaceId": "ns_1234567890abcdef",
+  "identifier": "premium_user_123",
+  "limit": 1000,
+  "duration": 60000
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2cGKbMxRyIzhCxo1Idjz8q"
+  },
+  "data": {
+    "overrideId": "ovr_1234567890abcdef",
+    "namespaceId": "ns_1234567890abcdef",
+    "identifier": "premium_user_123",
+    "limit": 1000,
+    "duration": 60000
+  }
+}
+```

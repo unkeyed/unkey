@@ -1,0 +1,107 @@
+---
+title: "get-key"
+description: "Retrieve detailed key information for dashboard interfaces and administrative purposes"
+---
+
+Retrieve detailed key information for dashboard interfaces and administrative purposes.
+
+Use this to build key management dashboards showing users their key details, status, permissions, and usage data. You can identify keys by `keyId` or the actual key string.
+
+**Important:** Set `decrypt: true` only in secure contexts to retrieve plaintext key values from recoverable keys.
+
+**Required permissions:**
+- `api.*.read_key` or `api.<api_id>.read_key` (to read key information)
+- `api.*.decrypt_key` or `api.<api_id>.decrypt_key` (additionally required when using `--decrypt`)
+
+<Note>
+See the [API reference](/api-reference/v2/keys/get-api-key) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api keys get-key [flags]
+```
+
+## Flags
+
+<ParamField body="--key-id" type="string" required>
+The database identifier of the key to retrieve, returned from `keys.createKey`. Do not confuse this with the actual API key string that users include in requests. Find this ID in creation responses, key listings, dashboard, or verification responses.
+</ParamField>
+
+<ParamField body="--decrypt" type="boolean" default="false">
+Whether to include the plaintext key value in the response. Only works for keys created with `recoverable=true` and requires the `decrypt_key` permission. Returned keys must be handled securely -- never logged, cached, or stored insecurely.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api keys get-key --key-id=key_1234abcd
+```
+```bash With decryption
+unkey api keys get-key --key-id=key_1234abcd --decrypt
+```
+```bash JSON output for scripting
+unkey api keys get-key --key-id=key_1234abcd --output=json
+```
+```bash Pipe key details to jq
+unkey api keys get-key --key-id=key_1234abcd --output=json | jq '.data.permissions'
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the key details:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+{
+  "keyId": "key_1234abcd",
+  "start": "sk_prod",
+  "enabled": true,
+  "name": "Production API Key",
+  "createdAt": 1704067200000,
+  "permissions": [
+    "documents.read",
+    "documents.write"
+  ],
+  "roles": [
+    "editor"
+  ]
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {
+    "keyId": "key_1234abcd",
+    "start": "sk_prod",
+    "enabled": true,
+    "name": "Production API Key",
+    "createdAt": 1704067200000,
+    "permissions": [
+      "documents.read",
+      "documents.write"
+    ],
+    "roles": [
+      "editor"
+    ]
+  }
+}
+```

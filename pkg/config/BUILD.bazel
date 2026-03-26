@@ -12,7 +12,6 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/fault",
-        "//pkg/logger",
         "@com_github_burntsushi_toml//:toml",
     ],
 )
@@ -20,7 +19,10 @@ go_library(
 go_test(
     name = "config_test",
     size = "small",
-    srcs = ["config_test.go"],
+    srcs = [
+        "config_test.go",
+        "save_test.go",
+    ],
     embed = [":config"],
     deps = ["@com_github_stretchr_testify//require"],
 )

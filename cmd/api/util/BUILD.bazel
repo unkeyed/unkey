@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "util",
+    srcs = [
+        "client.go",
+        "errors.go",
+        "flags.go",
+        "output.go",
+        "testharness.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/cmd/api/util",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/cli",
+        "@com_github_unkeyed_sdks_api_go_v2//:go",
+        "@com_github_unkeyed_sdks_api_go_v2//models/apierrors",
+    ],
+)
+
+go_test(
+    name = "util_test",
+    srcs = ["errors_test.go"],
+    embed = [":util"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

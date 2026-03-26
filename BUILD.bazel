@@ -11,6 +11,8 @@ go_library(
     importpath = "github.com/unkeyed/unkey",
     visibility = ["//visibility:private"],
     deps = [
+        "//cmd/api",
+        "//cmd/auth",
         "//cmd/deploy",
         "//cmd/dev",
         "//cmd/healthcheck",

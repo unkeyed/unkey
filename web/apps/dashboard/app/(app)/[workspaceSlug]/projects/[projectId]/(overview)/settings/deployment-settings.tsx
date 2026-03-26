@@ -3,6 +3,7 @@
 import { CircleHalfDottedClock, Gear, StackPerspective2 } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
 
+import { DefaultBranch } from "./components/build-settings/default-branch-settings";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
@@ -39,6 +40,7 @@ export const DeploymentSettings = ({
     <div className="flex flex-col gap-6">
       <SettingCardGroup>
         <GitHub readOnly={githubReadOnly} />
+        <DefaultBranch />
         <RootDirectory />
         <Dockerfile />
         <WatchPaths />
