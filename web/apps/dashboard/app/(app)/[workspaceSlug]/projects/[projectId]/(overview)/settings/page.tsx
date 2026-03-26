@@ -1,7 +1,7 @@
 "use client";
 
-import { SettingsShell } from "@unkey/ui";
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
+import { SettingsShell } from "@unkey/ui";
 import { DeleteProject } from "./components/delete-project";
 import { DeploymentSettings } from "./deployment-settings";
 import { EnvironmentSettingsProvider } from "./environment-provider";
