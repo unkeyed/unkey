@@ -5,9 +5,10 @@ import { OnboardingLinks } from "../onboarding-links";
 
 type ConnectGithubStepProps = {
   projectId: string;
+  onBeforeNavigate?: () => void;
 };
 
-export const ConnectGithubStep = ({ projectId }: ConnectGithubStepProps) => {
+export const ConnectGithubStep = ({ projectId, onBeforeNavigate }: ConnectGithubStepProps) => {
   const installUrl = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(JSON.stringify({ projectId }))}`;
 
   return (
@@ -22,7 +23,12 @@ export const ConnectGithubStep = ({ projectId }: ConnectGithubStepProps) => {
             Add a repo from your GitHub account
           </span>
         </div>
-        <a href={installUrl} rel="noopener noreferrer" className="ml-auto">
+        <a
+          href={installUrl}
+          rel="noopener noreferrer"
+          className="ml-auto"
+          onClick={onBeforeNavigate}
+        >
           <Button
             variant="outline"
             className="rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"

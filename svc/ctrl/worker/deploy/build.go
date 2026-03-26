@@ -31,7 +31,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 const (
@@ -137,12 +136,10 @@ func (w *Workflow) buildDockerImageFromGit(
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
 		// Get GitHub installation token for BuildKit to fetch the repo
-		var ghToken githubclient.InstallationToken
-		token, err := w.github.GetInstallationToken(params.InstallationID)
+		ghToken, err := w.github.GetInstallationToken(params.InstallationID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
 		}
-		ghToken = token
 
 		// Decrypt env vars in-memory so they can be injected as a BuildKit secret.
 		envVars, err := w.decryptEnvVars(runCtx, params.EncryptedEnvironmentVariables, params.EnvironmentID)

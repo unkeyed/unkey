@@ -1,4 +1,5 @@
 "use client";
+import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { trpc } from "@/lib/trpc/client";
 import { StepWizard } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
@@ -25,6 +26,8 @@ export const Onboarding = () => {
 
   const [projectId, setProjectId] = useState<string | null>(initialProjectId ?? null);
   const [deploymentId, setDeploymentId] = useState<string | null>(null);
+
+  const { bypass } = usePreventLeave(!deploymentId);
 
   return (
     <div>
@@ -59,7 +62,7 @@ export const Onboarding = () => {
                   </>
                 }
               />
-              <ConnectGithubStep projectId={projectId} />
+              <ConnectGithubStep projectId={projectId} onBeforeNavigate={bypass} />
             </div>
           ) : null}
         </StepWizard.Step>
