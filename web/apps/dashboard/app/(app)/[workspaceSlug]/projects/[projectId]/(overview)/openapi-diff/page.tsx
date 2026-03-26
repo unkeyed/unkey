@@ -3,7 +3,7 @@
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { ArrowRight, Magnifier } from "@unkey/icons";
-import { Loading } from "@unkey/ui";
+import { Loading, SettingsShell } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Card } from "../components/card";
@@ -84,7 +84,7 @@ export default function DiffPage() {
   const showContent = selectedFromDeployment && selectedToDeployment;
 
   return (
-    <div className="w-225 flex flex-col justify-center items-center gap-6 mx-auto my-14">
+    <SettingsShell>
       <div className="flex flex-col gap-2 items-center">
         <span className="font-semibold text-gray-12 leading-8 text-lg">Compare Deployments</span>
         <span className="leading-4 text-gray-11 text-[13px]">
@@ -202,6 +202,6 @@ export default function DiffPage() {
           )}
         </div>
       </Card>
-    </div>
+    </SettingsShell>
   );
 }

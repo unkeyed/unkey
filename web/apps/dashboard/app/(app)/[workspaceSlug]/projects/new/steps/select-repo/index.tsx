@@ -4,16 +4,23 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Check, Github, Magnifier, XMark } from "@unkey/icons";
 import { Button, Input, toast, useStepWizard } from "@unkey/ui";
 import { useMemo, useRef, useState } from "react";
+import { OnboardingLinks } from "../../onboarding-links";
 import { RepoListItem } from "./repo-list-item";
 import { SelectRepoSkeleton } from "./skeleton";
 
 export const SelectRepo = ({
   projectId,
+  onBeforeNavigate,
+  hasGithubInstallation,
 }: {
   projectId: string;
+  onBeforeNavigate?: () => void;
+  hasGithubInstallation: boolean;
 }) => {
   const { next } = useStepWizard();
   const trpcUtils = trpc.useUtils();
+  const installUrl = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(JSON.stringify({ projectId }))}`;
+
   const [selectedOwner, setSelectedOwner] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isBannerDismissed, setIsBannerDismissed] = useState(false);
@@ -210,6 +217,26 @@ export const SelectRepo = ({
             <p className="text-[15px] text-accent-12 font-semibold">No repositories found</p>
           </div>
         ))}
+
+      {hasGithubInstallation && (
+        <>
+          <div className="my-8" />
+          <div className="flex flex-col items-center gap-4 mb-8">
+            <a href={installUrl} rel="noopener noreferrer" onClick={onBeforeNavigate}>
+              <span className="text-sm text-gray-11">
+                Can't find your repo? Add more from{" "}
+                <span className="font-medium text-gray-12 underline underline-offset-2 decoration-grayA-6 hover:decoration-gray-12 transition-colors decoration-dotted">
+                  GitHub
+                </span>
+                .
+              </span>
+            </a>
+          </div>
+          <div className="w-full items-center justify-center flex">
+            <OnboardingLinks />
+          </div>
+        </>
+      )}
     </div>
   );
 };
