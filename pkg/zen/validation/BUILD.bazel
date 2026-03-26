@@ -9,6 +9,7 @@ go_library(
         "//pkg/ctxutil",
         "//pkg/fault",
         "//pkg/otel/tracing",
+        "//pkg/zen/metrics",
         "//svc/api/openapi",
         "@com_github_pb33f_libopenapi//:libopenapi",
         "@com_github_pb33f_libopenapi_validator//:libopenapi-validator",

@@ -13,7 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ctxutil"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	// "github.com/unkeyed/unkey/pkg/zen/metrics"
+	"github.com/unkeyed/unkey/pkg/zen/metrics"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -77,17 +77,15 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	//
 	// We're planning to move away from libopenapi-validator, so this
 	// quickfix is acceptable rather than investing in a proper fix.
-	// FIX DISABLED FOR TESTING — uncomment the retry loop to re-enable
-	valid, errors := v.validator.ValidateHttpRequest(r)
-	// var valid bool
-	// var errors []*validatorerrs.ValidationError
-	// for range 3 {
-	// 	valid, errors = v.validator.ValidateHttpRequest(r)
-	// 	if valid || !hasCircularRefError(errors) {
-	// 		break
-	// 	}
-	// 	metrics.OpenAPIValidationRetryTotal.Inc()
-	// }
+	var valid bool
+	var errors []*validatorerrs.ValidationError
+	for range 3 {
+		valid, errors = v.validator.ValidateHttpRequest(r)
+		if valid || !hasCircularRefError(errors) {
+			break
+		}
+		metrics.OpenAPIValidationRetryTotal.Inc()
+	}
 
 	if valid {
 		// nolint:exhaustruct
