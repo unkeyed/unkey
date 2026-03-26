@@ -20,7 +20,7 @@ export default function SettingsPage() {
           </span>
         </div>
         <DeploymentSettings onBeforeNavigate={bypass} />
-      </div>
+      </SettingsShell>
       <PendingRedeployBanner />
       <DeleteProject />
     </EnvironmentSettingsProvider>
