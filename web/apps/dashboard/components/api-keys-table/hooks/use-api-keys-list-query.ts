@@ -3,14 +3,28 @@ import {
   keysListFilterFieldNames,
 } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/hooks/use-filters";
+import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { trpc } from "@/lib/trpc/client";
+import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { ApiKeysQueryPayload } from "../schema/api-keys.schema";
+import type { ApiKeysQueryPayload, ApiKeysSortField } from "../schema/api-keys.schema";
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
 const PREFETCH_PAGES_AHEAD = 2;
+
+// Maps TanStack column IDs to server sort field names (and reverse)
+const COLUMN_ID_TO_SORT_FIELD: Record<string, ApiKeysSortField> = {
+  key: "id",
+  value: "start",
+  last_used: "lastUsedAt",
+};
+const SORT_FIELD_TO_COLUMN_ID: Record<ApiKeysSortField, string> = {
+  id: "key",
+  start: "value",
+  lastUsedAt: "last_used",
+};
 
 type UseApiKeysListQueryParams = {
   keyAuthId: string;
@@ -29,6 +43,35 @@ export function useApiKeysListQuery({
   const { filters } = useFilters();
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
   const normalizedPage = Math.max(1, page);
+  const [sortParams, setSortParams] = useQueryState("sort", parseAsSortArray<ApiKeysSortField>());
+
+  const sorting: SortingState = useMemo(() => {
+    if (!sortParams || sortParams.length === 0) {
+      return [{ id: "key", desc: true }];
+    }
+    return sortParams.map((s) => ({
+      id: SORT_FIELD_TO_COLUMN_ID[s.column] ?? s.column,
+      desc: s.direction === "desc",
+    }));
+  }, [sortParams]);
+
+  const onSortingChange = useCallback(
+    (updater: SortingState | ((old: SortingState) => SortingState)) => {
+      const next = typeof updater === "function" ? updater(sorting) : updater;
+      setSortParams(
+        next.length === 0
+          ? null
+          : next
+              .filter((s) => COLUMN_ID_TO_SORT_FIELD[s.id] !== undefined)
+              .map((s) => ({
+                column: COLUMN_ID_TO_SORT_FIELD[s.id],
+                direction: s.desc ? "desc" : "asc",
+              })),
+      );
+      setPage(1);
+    },
+    [sorting, setSortParams, setPage],
+  );
 
   // Reset to page 1 when filters change, but not on initial mount
   const filtersKey = useMemo(
@@ -53,6 +96,8 @@ export function useApiKeysListQuery({
       page: normalizedPage,
       ...Object.fromEntries(keysListFilterFieldNames.map((field) => [field, []])),
       keyAuthId,
+      sortBy: sortParams?.[0]?.column ?? "id",
+      sortOrder: sortParams?.[0]?.direction ?? "desc",
     };
 
     for (const filter of filters) {
@@ -74,7 +119,7 @@ export function useApiKeysListQuery({
     }
 
     return params;
-  }, [filters, keyAuthId, normalizedPage, normalizedPageSize]);
+  }, [filters, keyAuthId, normalizedPage, normalizedPageSize, sortParams]);
 
   const utils = trpc.useUtils();
 
@@ -130,5 +175,7 @@ export function useApiKeysListQuery({
     totalPages,
     totalCount,
     onPageChange,
+    sorting,
+    onSortingChange,
   };
 }

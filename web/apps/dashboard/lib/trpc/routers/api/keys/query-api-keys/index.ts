@@ -25,6 +25,8 @@ export const queryKeysList = workspaceProcedure
       },
       limit: input.limit,
       page: input.page,
+      sortBy: input.sortBy,
+      sortOrder: input.sortOrder,
     });
 
     return { keys, totalCount };

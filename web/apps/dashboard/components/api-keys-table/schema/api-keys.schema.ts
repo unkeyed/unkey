@@ -10,6 +10,9 @@ const filterItemSchema = z.object({
 
 const baseFilterArraySchema = z.array(filterItemSchema).nullish();
 
+export const apiKeysSortFieldEnum = z.enum(["id", "start", "lastUsedAt"]);
+export type ApiKeysSortField = z.infer<typeof apiKeysSortFieldEnum>;
+
 export const apiKeysQueryPayload = z.object({
   keyAuthId: z.string(),
   names: baseFilterArraySchema,
@@ -18,6 +21,8 @@ export const apiKeysQueryPayload = z.object({
   tags: baseFilterArraySchema,
   page: z.number().int().min(1).optional().default(1),
   limit: z.number().optional().default(PAGINATION_LIMIT),
+  sortBy: apiKeysSortFieldEnum.optional().default("id"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
 });
 
 export type ApiKeysQueryPayload = z.infer<typeof apiKeysQueryPayload>;

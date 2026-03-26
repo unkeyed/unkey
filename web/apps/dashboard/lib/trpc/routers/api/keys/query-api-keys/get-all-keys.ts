@@ -17,6 +17,8 @@ interface GetAllKeysInput {
   };
   limit?: number;
   page?: number;
+  sortBy?: "id" | "start" | "lastUsedAt";
+  sortOrder?: "asc" | "desc";
 }
 
 interface GetAllKeysResult {
@@ -36,6 +38,8 @@ export async function getAllKeys({
   filters = {},
   limit = 50,
   page = 1,
+  sortBy = "id",
+  sortOrder = "desc",
 }: GetAllKeysInput): Promise<GetAllKeysResult> {
   const { keyIds, names, identities: identityFilters, tags } = filters;
 
@@ -299,7 +303,10 @@ export async function getAllKeys({
       },
       limit,
       offset: (page - 1) * limit,
-      orderBy: (keys, { desc }) => desc(keys.id),
+      orderBy: (keys, helpers) => {
+        const column = keys[sortBy];
+        return sortOrder === "desc" ? helpers.desc(column) : helpers.asc(column);
+      },
     });
 
     const keys = keysQuery;

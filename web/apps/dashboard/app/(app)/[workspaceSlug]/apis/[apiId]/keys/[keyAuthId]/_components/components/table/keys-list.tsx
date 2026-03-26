@@ -37,6 +37,8 @@ export const KeysList = ({
     page,
     pageSize,
     totalPages,
+    sorting,
+    onSortingChange,
   } = useApiKeysListQuery({ keyAuthId: keyspaceId });
 
   const [selectedKey, setSelectedKey] = useState<KeyDetails | null>(null);
@@ -149,6 +151,8 @@ export const KeysList = ({
         selectedItem={selectedKey}
         rowClassName={getRowClassNameMemoized}
         renderSkeletonRow={renderApiKeySkeletonRow}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
         config={TABLE_CONFIG}
         emptyState={
           <div className="w-full flex justify-center items-center h-full">

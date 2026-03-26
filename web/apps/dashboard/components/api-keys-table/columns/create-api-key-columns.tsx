@@ -7,7 +7,14 @@ import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/sche
 import { cn } from "@/lib/utils";
 import { Focus, Key } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { Checkbox, HiddenValueCell, InfoTooltip, Loading, RowActionSkeleton } from "@unkey/ui";
+import {
+  Checkbox,
+  HiddenValueCell,
+  InfoTooltip,
+  Loading,
+  RowActionSkeleton,
+  SortableHeader,
+} from "@unkey/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
@@ -178,8 +185,12 @@ export const createApiKeyColumns = ({
   {
     id: API_KEY_COLUMN_IDS.KEY,
     accessorKey: "id",
-    header: "Key",
-    enableSorting: false,
+    sortDescFirst: true,
+    header: ({ header }) => (
+      <SortableHeader key={API_KEY_COLUMN_IDS.KEY} header={header}>
+        Key
+      </SortableHeader>
+    ),
     meta: {
       width: "20%",
       headerClassName: "pl-[18px]",
@@ -203,8 +214,11 @@ export const createApiKeyColumns = ({
   {
     id: API_KEY_COLUMN_IDS.VALUE,
     accessorKey: "start",
-    header: "Value",
-    enableSorting: false,
+    header: ({ header }) => (
+      <SortableHeader key={API_KEY_COLUMN_IDS.VALUE} header={header}>
+        Value
+      </SortableHeader>
+    ),
     meta: {
       width: "15%",
     },
@@ -235,16 +249,18 @@ export const createApiKeyColumns = ({
   },
   {
     id: API_KEY_COLUMN_IDS.LAST_USED,
-    header: "Last Used",
-    enableSorting: false,
+    accessorKey: "last_used_at",
+    header: ({ header }) => (
+      <SortableHeader key={API_KEY_COLUMN_IDS.LAST_USED} header={header}>
+        Last Used
+      </SortableHeader>
+    ),
     meta: {
       width: "15%",
     },
     cell: ({ row }) => {
       const key = row.original;
-      return (
-        <LastUsedCell lastUsedAt={key.last_used_at} isSelected={key.id === selectedKeyId} />
-      );
+      return <LastUsedCell lastUsedAt={key.last_used_at} isSelected={key.id === selectedKeyId} />;
     },
   },
   {
