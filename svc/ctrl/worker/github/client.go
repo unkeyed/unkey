@@ -215,12 +215,16 @@ func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch s
 	), nil
 }
 
-// GetBranchHeadCommitPublic retrieves the HEAD commit of a branch using the
-// public GitHub API without authentication. Only works for public repositories.
-func (c *Client) GetBranchHeadCommitPublic(repo string, branch string) (CommitInfo, error) {
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
+// GetCommitBySHA retrieves commit metadata for a specific SHA.
+func (c *Client) GetCommitBySHA(installationID int64, repo string, sha string) (CommitInfo, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to get installation token for commit lookup"))
+	}
 
-	commit, err := request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, githubHeaders(""), nil, http.StatusOK)
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(sha))
+
+	commit, err := request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
 	if err != nil {
 		return CommitInfo{}, err
 	}

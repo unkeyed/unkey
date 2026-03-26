@@ -2,7 +2,6 @@
 
 import { CircleHalfDottedClock, Gear, StackPerspective2 } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
-
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
@@ -29,16 +28,18 @@ type DeploymentSection = "advanced" | "sentinel" | "runtime" | "build";
 type DeploymentSettingsProps = {
   githubReadOnly?: boolean;
   sections?: Partial<Record<DeploymentSection, true>>;
+  onBeforeNavigate?: () => void;
 };
 
 export const DeploymentSettings = ({
   githubReadOnly = false,
   sections = { build: true, runtime: true, advanced: true, sentinel: true },
+  onBeforeNavigate,
 }: DeploymentSettingsProps) => {
   return (
     <div className="flex flex-col gap-6">
       <SettingCardGroup>
-        <GitHub readOnly={githubReadOnly} />
+        <GitHub readOnly={githubReadOnly} onBeforeNavigate={onBeforeNavigate} />
         <RootDirectory />
         <Dockerfile />
         <WatchPaths />

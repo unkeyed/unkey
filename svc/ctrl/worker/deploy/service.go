@@ -49,12 +49,11 @@ type Workflow struct {
 	github githubclient.GitHubClient
 
 	// Build dependencies
-	depotConfig                     DepotConfig
-	registryConfig                  RegistryConfig
-	buildPlatform                   BuildPlatform
-	clickhouse                      clickhouse.ClickHouse
-	allowUnauthenticatedDeployments bool
-	dashboardURL                    string
+	depotConfig    DepotConfig
+	registryConfig RegistryConfig
+	buildPlatform  BuildPlatform
+	clickhouse     clickhouse.ClickHouse
+	dashboardURL   string
 }
 
 var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
@@ -106,12 +105,11 @@ func New(cfg Config) *Workflow {
 		vault:                            cfg.Vault,
 		sentinelImage:                    cfg.SentinelImage,
 
-		github:                          cfg.GitHub,
-		depotConfig:                     cfg.DepotConfig,
-		registryConfig:                  cfg.RegistryConfig,
-		buildPlatform:                   cfg.BuildPlatform,
-		clickhouse:                      cfg.Clickhouse,
-		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
-		dashboardURL:                    cfg.DashboardURL,
+		github:         cfg.GitHub,
+		depotConfig:    cfg.DepotConfig,
+		registryConfig: cfg.RegistryConfig,
+		buildPlatform:  cfg.BuildPlatform,
+		clickhouse:     cfg.Clickhouse,
+		dashboardURL:   cfg.DashboardURL,
 	}
 }

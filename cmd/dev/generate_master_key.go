@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/vault/keys"
+	"github.com/unkeyed/unkey/svc/vault/keys"
 )
 
 var generateMasterKeyCmd = &cli.Command{

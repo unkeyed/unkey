@@ -1,0 +1,105 @@
+---
+title: "set-override"
+description: "Create or update a custom rate limit for specific identifiers, bypassing the namespace default"
+---
+
+Create or update a custom rate limit for specific identifiers, bypassing the namespace default.
+
+Use this to create premium tiers with higher limits, apply stricter limits to specific users, or implement emergency throttling. Overrides take effect immediately and completely replace the default limit for matching identifiers.
+
+**Important:** Use wildcard patterns (e.g., `premium_*`) to match multiple identifiers. Set `--limit=0` to completely block access for an identifier.
+
+**Required permissions:**
+- `ratelimit.*.set_override` (to set overrides in any namespace)
+- `ratelimit.<namespace_id>.set_override` (to set overrides in a specific namespace)
+
+<Note>
+See the [API reference](/api-reference/v2/ratelimit/set-ratelimit-override) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api ratelimit set-override [flags]
+```
+
+## Flags
+
+<ParamField body="--namespace" type="string" required>
+The ID or name of the rate limit namespace. Must be 1-255 characters.
+</ParamField>
+
+<ParamField body="--identifier" type="string" required>
+Identifier of the entity receiving this custom rate limit. This can be a specific user ID, an IP address, an email domain, or any other string that identifies the target entity. Must be 1-255 characters.
+
+Wildcards (`*`) can be used to create pattern-matching rules that apply to multiple identifiers. For example:
+- `premium_*` matches all identifiers starting with `premium_`
+- `*_admin` matches all identifiers ending with `_admin`
+- `*suspicious*` matches any identifier containing `suspicious`
+</ParamField>
+
+<ParamField body="--limit" type="integer" required>
+The maximum number of requests allowed for this override. This defines the custom quota for the specified identifier(s) and entirely replaces the default limit for matching identifiers. Minimum value is `0`.
+
+Special values:
+- **Higher than default** -- for premium or trusted entities
+- **Lower than default** -- for suspicious or abusive entities
+- **0** -- to completely block access (useful for ban implementation)
+</ParamField>
+
+<ParamField body="--duration" type="integer" required>
+The duration in milliseconds for the rate limit window. This defines how long the rate limit counter accumulates before resetting to zero. Minimum value is `1000`.
+
+Common values: `60000` (1 minute), `3600000` (1 hour), `86400000` (1 day). This can differ from the default duration for the namespace.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Premium user with higher limit
+unkey api ratelimit set-override --namespace=api.requests --identifier=premium_user_123 --limit=1000 --duration=60000
+```
+```bash Wildcard pattern for multiple identifiers
+unkey api ratelimit set-override --namespace=api.requests --identifier='premium_*' --limit=500 --duration=60000
+```
+```bash Block a specific identifier
+unkey api ratelimit set-override --namespace=api.requests --identifier=abusive_user_456 --limit=0 --duration=60000
+```
+```bash JSON output for scripting
+unkey api ratelimit set-override --namespace=api.requests --identifier=partner_acme --limit=2000 --duration=60000 --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the created or updated override:
+
+```
+req_2cGKbMxRyIzhCxo1Idjz8q (took 45ms)
+
+{
+  "overrideId": "ovr_1234567890abcdef"
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2cGKbMxRyIzhCxo1Idjz8q"
+  },
+  "data": {
+    "overrideId": "ovr_1234567890abcdef"
+  }
+}
+```

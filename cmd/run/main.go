@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/unkeyed/unkey/cmd/api"
-	"github.com/unkeyed/unkey/cmd/ctrl"
-	"github.com/unkeyed/unkey/cmd/frontline"
-	"github.com/unkeyed/unkey/cmd/krane"
-	"github.com/unkeyed/unkey/cmd/sentinel"
-	"github.com/unkeyed/unkey/cmd/vault"
+	"github.com/unkeyed/unkey/cmd/run/api"
+	"github.com/unkeyed/unkey/cmd/run/ctrl"
+	"github.com/unkeyed/unkey/cmd/run/frontline"
+	"github.com/unkeyed/unkey/cmd/run/krane"
+	"github.com/unkeyed/unkey/cmd/run/sentinel"
+	"github.com/unkeyed/unkey/cmd/run/vault"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
