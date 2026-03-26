@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/unkeyed/unkey/cmd/auth"
 	"github.com/unkeyed/unkey/cmd/deploy"
 	dev "github.com/unkeyed/unkey/cmd/dev"
 	"github.com/unkeyed/unkey/cmd/healthcheck"
@@ -24,6 +25,7 @@ func main() {
 		Description: `Unkey CLI – deploy, run and administer Unkey services.`,
 		Version:     versioncmd.Version,
 		Commands: []*cli.Command{
+			auth.Cmd,
 			run.Cmd,
 			version.Cmd,
 			deploy.Cmd,
