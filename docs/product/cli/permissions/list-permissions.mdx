@@ -1,0 +1,106 @@
+---
+title: "list-permissions"
+description: "Retrieve all permissions in your workspace"
+---
+
+Retrieve all permissions in your workspace.
+
+Results are paginated and sorted by their id. Use the `--limit` and `--cursor` flags to traverse large permission sets efficiently.
+
+**Required permissions:**
+- `rbac.*.read_permission`
+
+<Note>
+See the [API reference](/api-reference/v2/permissions/list-permissions) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api permissions list-permissions [flags]
+```
+
+## Flags
+
+<ParamField body="--limit" type="integer">
+Maximum number of permissions to return in a single response. Accepts a value between 1 and 100. Defaults to 100 when omitted.
+</ParamField>
+
+<ParamField body="--cursor" type="string">
+Pagination cursor from a previous response to fetch the next page of permissions. Include this value when you need to retrieve additional permissions beyond the initial response. Leave empty or omit this flag to start from the beginning of the permission list. Cursors are temporary and may expire -- always handle cases where a cursor becomes invalid.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api permissions list-permissions
+```
+```bash Limit results
+unkey api permissions list-permissions --limit=50
+```
+```bash Paginate with cursor
+unkey api permissions list-permissions --limit=50 --cursor=eyJrZXkiOiJwZXJtXzEyMzQifQ==
+```
+```bash JSON output for scripting
+unkey api permissions list-permissions --output=json
+```
+```bash Iterate all pages
+CURSOR=""
+while true; do
+  RESP=$(unkey api permissions list-permissions --limit=50 --output=json ${CURSOR:+--cursor=$CURSOR})
+  echo "$RESP" | jq '.data[]'
+  HAS_MORE=$(echo "$RESP" | jq -r '.pagination.hasMore')
+  [ "$HAS_MORE" != "true" ] && break
+  CURSOR=$(echo "$RESP" | jq -r '.pagination.cursor')
+done
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the list of permissions:
+
+```
+req_2c9a0jf23l4k567 (took 32ms)
+
+[
+  {
+    "id": "perm_1234567890abcdef",
+    "name": "users.read",
+    "slug": "users-read",
+    "description": "Allows reading user profile information and account details"
+  }
+]
+```
+
+With `--output=json`, the full response envelope including pagination metadata is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": [
+    {
+      "id": "perm_1234567890abcdef",
+      "name": "users.read",
+      "slug": "users-read",
+      "description": "Allows reading user profile information and account details"
+    }
+  ],
+  "pagination": {
+    "hasMore": true,
+    "cursor": "eyJrZXkiOiJwZXJtXzEyMzQiLCJ0cyI6MTY5OTM3ODgwMH0="
+  }
+}
+```

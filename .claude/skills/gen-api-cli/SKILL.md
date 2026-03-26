@@ -301,7 +301,217 @@ The project uses strict linters via bazel nogo. Watch out for:
   ```
 - **errcheck**: All error returns must be checked. Never ignore return values from `Write`, `Fprintln`, `Close`, etc.
 
-## Step 5: Verify
+## Step 5: Generate documentation
+
+For each command, generate a documentation page at `docs/product/cli/{group}/{command-name}.mdx`.
+
+### Doc file structure
+
+Each command gets its own `.mdx` file using Mintlify components:
+
+```mdx
+---
+title: "create-api"
+description: "Create an API namespace for organizing keys by environment, service, or product"
+---
+
+Copy the full description from the OpenAPI spec here (same as the CLI Description,
+but keep markdown formatting since this is a docs page).
+
+## Usage
+
+```bash
+unkey api apis create-api [flags]
+```
+
+## Flags
+
+<ParamField body="--name" type="string" required>
+Unique identifier for this API namespace within your workspace. Use descriptive names
+like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
+</ParamField>
+
+<ParamField body="--enabled" type="bool" default="true">
+Whether the key is active for verification.
+</ParamField>
+
+<ParamField body="--meta-json" type="JSON string">
+Arbitrary JSON metadata returned during key verification.
+</ParamField>
+
+For JSON flags, use an Expandable to show the schema:
+
+<ParamField body="--credits-json" type="JSON string">
+Credit and refill configuration.
+<Expandable title="JSON schema">
+  <ResponseField name="remaining" type="integer" required>
+  Number of credits remaining.
+  </ResponseField>
+  <ResponseField name="refill" type="object">
+  Auto-refill configuration.
+    <Expandable title="properties">
+      <ResponseField name="interval" type="string" required>
+      Refill interval: "daily" or "monthly".
+      </ResponseField>
+      <ResponseField name="amount" type="integer" required>
+      Credits to add each interval.
+      </ResponseField>
+    </Expandable>
+  </ResponseField>
+</Expandable>
+</ParamField>
+
+## Global Flags
+
+Include this exact section on every command doc:
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api apis create-api --name=payment-service-prod
+```
+```bash With options
+unkey api apis create-api --name=user-api-dev --output=json
+```
+```bash With JSON flags
+unkey api keys create-key --api-id=api_123 --meta-json='{"plan":"pro"}'
+```
+</CodeGroup>
+```
+
+### Key rules for docs
+
+- **Flag descriptions**: Use the FULL OpenAPI property description here (unlike CLI help which uses short summaries). This is the detailed reference.
+- **JSON schemas**: Use `<Expandable>` with nested `<ResponseField>` to document the shape of JSON flags. Read the OpenAPI spec's `$ref` schemas to get the exact field definitions.
+- **Required flags**: Use `required` attribute on `<ParamField>`.
+- **Default values**: Use `default` attribute on `<ParamField>`.
+- **Link to API reference**: Add a note at the bottom linking to the corresponding API endpoint page.
+
+### Register in docs.json
+
+**IMPORTANT**: Every new doc file MUST be registered in `docs/product/docs.json` or it won't appear in the documentation site. After creating doc files, read the current `docs.json`, find the CLI navigation group, and add any missing pages. The structure should be:
+
+```json
+{
+  "group": "CLI",
+  "icon": "terminal",
+  "pages": [
+    "cli/overview",
+    {
+      "group": "apis",
+      "pages": [
+        "cli/apis/create-api",
+        "cli/apis/delete-api",
+        "cli/apis/get-api",
+        "cli/apis/list-keys"
+      ]
+    },
+    {
+      "group": "keys",
+      "pages": [
+        "cli/keys/create-key",
+        ...
+      ]
+    }
+  ]
+}
+```
+
+### Audit mode docs and tests check
+
+When running in `check` mode, also report:
+- **Missing docs**: CLI commands with no corresponding `.mdx` file in `docs/product/cli/`
+- **Missing from nav**: Doc files that exist but aren't registered in `docs.json`
+- **Missing tests**: CLI command files with no corresponding `_test.go` file
+
+## Step 6: Write tests
+
+Each command gets a table-driven test that verifies the exact request body sent to the API.
+
+### Test file location
+
+Each command file `{action}.go` gets a corresponding `{action}_test.go` in the same package.
+
+### Test harness
+
+Use `util.CaptureRequest[T]` which runs the full CLI against a local test server, captures the
+request body, unmarshals it into T, and returns it. It fatals on any error.
+
+```go
+req := util.CaptureRequest[openapi.V2ApisCreateApiRequestBody](t, Cmd(), "apis create-api --name=test")
+```
+
+### Test pattern
+
+Use table-driven tests. Each case is: name, args string, expected struct.
+
+```go
+func TestCreateAPI(t *testing.T) {
+    tests := []struct {
+        name string
+        args string
+        want openapi.V2ApisCreateApiRequestBody
+    }{
+        {
+            name: "basic",
+            args: "apis create-api --name=payment-service",
+            want: openapi.V2ApisCreateApiRequestBody{
+                Name: "payment-service",
+            },
+        },
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            req := util.CaptureRequest[openapi.V2ApisCreateApiRequestBody](t, Cmd(), tt.args)
+            require.Equal(t, tt.want, req)
+        })
+    }
+}
+```
+
+### What to test
+
+For each command, write test cases covering:
+- **Minimal request**: only required flags, verify defaults are correct
+- **Each optional flag individually**: verify it maps to the correct struct field
+- **All flags together**: verify no interference between flags
+- **Boolean defaults**: verify the correct default from the OpenAPI spec is sent
+- **Boolean omission on update endpoints**: verify omitting `--enabled` does NOT send an `enabled` field (for partial-update commands using `FlagIsSet`)
+- **JSON flags**: verify complex objects unmarshal correctly into the expected nested structs
+
+### Types
+
+- Import request types from `github.com/unkeyed/unkey/svc/api/openapi` (e.g., `openapi.V2KeysCreateKeyRequestBody`)
+- Use `ptr.P()` from `github.com/unkeyed/unkey/pkg/ptr` for pointer fields
+- Use `nullable.NewNullableWithValue()` from `github.com/oapi-codegen/nullable` for nullable fields
+- Use `--flag=value` syntax in args (not `--flag value`)
+- Commands are functions now (`Cmd()` not `Cmd`), so each test gets fresh flag state
+
+### Important: commands are functions
+
+All commands and group roots are defined as functions returning `*cli.Command`, not package-level
+vars. This ensures each test invocation gets fresh flag instances with no stale state from prior
+tests. Always call `Cmd()` in tests, never reference a bare `Cmd` variable.
+
+### Reference tests
+
+See `cmd/api/keys/create_key_test.go` and `cmd/api/keys/update_key_test.go` for complete examples.
+
+### Audit mode test check
+
+When running in `check` mode, also report:
+- **Missing tests**: CLI command files with no corresponding `_test.go` file
+
+## Step 7: Verify
 
 After generating, run:
 ```

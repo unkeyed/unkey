@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "analytics",
@@ -12,5 +12,16 @@ go_library(
         "//cmd/api/util",
         "//pkg/cli",
         "@com_github_unkeyed_sdks_api_go_v2//models/components",
+    ],
+)
+
+go_test(
+    name = "analytics_test",
+    srcs = ["get_verifications_test.go"],
+    embed = [":analytics"],
+    deps = [
+        "//pkg/cli",
+        "//svc/api/openapi",
+        "@com_github_stretchr_testify//require",
     ],
 )

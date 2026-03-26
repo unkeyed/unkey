@@ -1,0 +1,91 @@
+---
+title: "reroll-key"
+description: "Generate a new API key while preserving the configuration from an existing key"
+---
+
+Generate a new API key while preserving the configuration from an existing key.
+
+This operation creates a fresh key with a new token while maintaining all settings from the original key: permissions and roles, custom metadata, rate limit configurations, identity associations, remaining credits, and recovery settings.
+
+The system attempts to extract the prefix from the original key. If prefix extraction fails, the default API prefix is used. Key length follows the API's default byte configuration (or 16 bytes if not specified).
+
+The original key will be revoked after the duration specified in `--expiration`. Set it to `0` to revoke immediately, or use a positive value to allow a graceful overlap period for key rotation.
+
+**Important:** Analytics and usage metrics are tracked at both the key level AND identity level. If the original key has an identity, the new key will inherit it, allowing you to track usage across both individual keys and the overall identity.
+
+**Required permissions:**
+- `api.*.create_key` or `api.<api_id>.create_key`
+- `api.*.encrypt_key` or `api.<api_id>.encrypt_key` (only when the original key is recoverable)
+
+<Note>
+See the [API reference](/api-reference/v2/keys/reroll-key) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api keys reroll-key [flags]
+```
+
+## Flags
+
+<ParamField body="--key-id" type="string" required>
+The database identifier of the key to reroll. This is the unique ID returned when creating or listing keys, NOT the actual API key token. You can find this ID in the response from `keys.createKey`, key verification responses, the Unkey dashboard, or API key listing endpoints.
+</ParamField>
+
+<ParamField body="--expiration" type="integer" required>
+Duration in milliseconds until the original key is revoked, starting from now. Set to `0` to revoke the original key immediately. Positive values keep the original key active for the specified duration, allowing graceful migration by giving users time to update their credentials. Common overlap periods: 1 hour (`3600000`), 24 hours (`86400000`), 7 days (`604800000`), 30 days (`2592000000`).
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Immediate revocation
+unkey api keys reroll-key --key-id=key_1234abcd --expiration=0
+```
+```bash 24-hour grace period
+unkey api keys reroll-key --key-id=key_1234abcd --expiration=86400000
+```
+```bash JSON output for scripting
+unkey api keys reroll-key --key-id=key_1234abcd --expiration=0 --output=json
+```
+```bash Capture the new key
+NEW_KEY=$(unkey api keys reroll-key --key-id=key_1234abcd --expiration=3600000 --output=json | jq -r '.data.key')
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the new key details:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+{
+  "keyId": "key_5678efgh",
+  "key": "prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT"
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {
+    "keyId": "key_5678efgh",
+    "key": "prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT"
+  }
+}
+```

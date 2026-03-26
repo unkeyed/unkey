@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "ratelimit",
@@ -17,5 +17,24 @@ go_library(
         "//cmd/api/util",
         "//pkg/cli",
         "@com_github_unkeyed_sdks_api_go_v2//models/components",
+    ],
+)
+
+go_test(
+    name = "ratelimit_test",
+    srcs = [
+        "delete_override_test.go",
+        "get_override_test.go",
+        "limit_test.go",
+        "list_overrides_test.go",
+        "multi_limit_test.go",
+        "set_override_test.go",
+    ],
+    embed = [":ratelimit"],
+    deps = [
+        "//cmd/api/util",
+        "//pkg/ptr",
+        "//svc/api/openapi",
+        "@com_github_stretchr_testify//require",
     ],
 )

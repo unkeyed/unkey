@@ -1,0 +1,131 @@
+---
+title: "update-identity"
+description: "Update an identity's metadata and rate limits"
+---
+
+Update an identity's metadata and rate limits. Only specified fields are modified — others remain unchanged.
+
+Use this for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.
+
+**Important:**
+- Rate limit changes propagate within 30 seconds across all regions
+- Providing `--meta-json` replaces all existing metadata; omitting it preserves current metadata
+- Providing `--ratelimits-json` replaces all existing rate limits; omitting it preserves current rate limits
+
+**Required permissions:**
+- `identity.*.update_identity` (to update identities in any workspace)
+
+<Note>
+See the [API reference](/api-reference/v2/identities/update-identity) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api identities update-identity [flags]
+```
+
+## Flags
+
+<ParamField body="--identity" type="string" required>
+The ID of the identity to update. Accepts either the externalId (your system-generated identifier) or the identityId (internal identifier returned by the identity service).
+</ParamField>
+
+<ParamField body="--meta-json" type="string">
+JSON object of metadata to replace existing metadata. Omitting this flag preserves existing metadata, while providing an empty object `'{}'` clears all metadata. Avoid storing sensitive data here as it is returned in verification responses. Large metadata objects increase verification latency and should stay under 10KB total size.
+</ParamField>
+
+<ParamField body="--ratelimits-json" type="string">
+JSON array of rate limit configurations. Replaces all existing identity rate limits with this complete list. Omitting this flag preserves existing rate limits, while providing an empty array `'[]'` removes all rate limits. These limits are shared across all keys belonging to this identity, preventing abuse through multiple keys.
+
+<Expandable title="Rate limit object properties">
+  <ResponseField name="name" type="string" required>
+  The name of this rate limit. Used to identify which limit to check during key verification. Use descriptive, semantic names like `api_requests`, `heavy_operations`, or `downloads`. You will reference this exact name when verifying keys to check against this specific limit.
+  </ResponseField>
+  <ResponseField name="limit" type="integer" required>
+  The maximum number of operations allowed within the specified time window. When this limit is reached, verification requests will fail with `code=RATE_LIMITED` until the window resets.
+  </ResponseField>
+  <ResponseField name="duration" type="integer" required>
+  The duration for each rate limit window in milliseconds. Common values: `1000` (1 second), `60000` (1 minute), `3600000` (1 hour), `86400000` (24 hours).
+  </ResponseField>
+  <ResponseField name="autoApply" type="boolean" required>
+  Whether this rate limit should be automatically applied when verifying a key.
+  </ResponseField>
+</Expandable>
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Update metadata
+unkey api identities update-identity --identity=user_123 --meta-json='{"plan":"premium","name":"Alice Smith"}'
+```
+```bash Update rate limits
+unkey api identities update-identity --identity=user_123 --ratelimits-json='[{"name":"requests","limit":1000,"duration":3600000,"autoApply":true}]'
+```
+```bash JSON output for scripting
+unkey api identities update-identity --identity=user_123 --meta-json='{"plan":"enterprise"}' --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the updated identity:
+
+```
+req_2c9a0jf23l4k567 (took 52ms)
+
+{
+  "id": "id_1234abcd",
+  "externalId": "user_123",
+  "meta": {
+    "plan": "premium",
+    "name": "Alice Smith"
+  },
+  "ratelimits": [
+    {
+      "id": "rl_5678efgh",
+      "name": "requests",
+      "limit": 1000,
+      "duration": 3600000,
+      "autoApply": true
+    }
+  ]
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {
+    "id": "id_1234abcd",
+    "externalId": "user_123",
+    "meta": {
+      "plan": "premium",
+      "name": "Alice Smith"
+    },
+    "ratelimits": [
+      {
+        "id": "rl_5678efgh",
+        "name": "requests",
+        "limit": 1000,
+        "duration": 3600000,
+        "autoApply": true
+      }
+    ]
+  }
+}
+```

@@ -7,6 +7,7 @@ go_library(
         "errors.go",
         "flags.go",
         "output.go",
+        "testharness.go",
     ],
     importpath = "github.com/unkeyed/unkey/cmd/api/util",
     visibility = ["//visibility:public"],

@@ -11,17 +11,19 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
-// Cmd is the top-level api command that groups all API management subcommands.
-var Cmd = &cli.Command{
-	Name:        "api",
-	Usage:       "Interact with the Unkey API",
-	Description: "Manage APIs, keys, identities, permissions, rate limits, and analytics." + util.Disclaimer,
-	Commands: []*cli.Command{
-		analytics.Cmd,
-		apis.Cmd,
-		identities.Cmd,
-		keys.Cmd,
-		permissions.Cmd,
-		ratelimit.Cmd,
-	},
+// Cmd returns the top-level api command that groups all API management subcommands.
+func Cmd() *cli.Command {
+	return &cli.Command{
+		Name:        "api",
+		Usage:       "Interact with the Unkey API",
+		Description: "Manage APIs, keys, identities, permissions, rate limits, and analytics." + util.Disclaimer,
+		Commands: []*cli.Command{
+			analytics.Cmd(),
+			apis.Cmd(),
+			identities.Cmd(),
+			keys.Cmd(),
+			permissions.Cmd(),
+			ratelimit.Cmd(),
+		},
+	}
 }

@@ -26,7 +26,7 @@ func main() {
 		Description: `Unkey CLI – deploy, run and administer Unkey services.`,
 		Version:     versioncmd.Version,
 		Commands: []*cli.Command{
-			api.Cmd,
+			api.Cmd(),
 			auth.Cmd,
 			run.Cmd,
 			version.Cmd,
