@@ -58,7 +58,16 @@ export const EnvVarNameCell = memo(function EnvVarNameCell({
     <div className="flex items-center gap-3 px-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <InfoTooltip content={copied ? "Copied!" : type === "recoverable" ? "Click to copy KEY=VALUE" : "Click to copy key"} position={{ side: "top" }}>
+          <InfoTooltip
+            content={
+              copied
+                ? "Copied!"
+                : type === "recoverable"
+                  ? "Click to copy KEY=VALUE"
+                  : "Click to copy key"
+            }
+            position={{ side: "top" }}
+          >
             <button
               type="button"
               onClick={handleCopy}
@@ -70,7 +79,7 @@ export const EnvVarNameCell = memo(function EnvVarNameCell({
           {note && (
             <InfoTooltip content={note} position={{ side: "top" }}>
               <span className="shrink-0 text-gray-9">
-                <CircleInfo iconSize="lg-regular" className="mt-0.5" />
+                <CircleInfo iconSize="md-medium" className="mt-0.5" />
               </span>
             </InfoTooltip>
           )}

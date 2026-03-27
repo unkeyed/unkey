@@ -69,36 +69,31 @@ export const AddEnvVarExpandable = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   usePreventLeave(isOpen);
-  useEffect(function closeOnEscape() {
-    if (!isOpen) {
-      return;
-    }
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
+  useEffect(
+    function closeOnEscape() {
+      if (!isOpen) {
+        return;
       }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [isOpen, onClose]);
-
-  useEffect(function persistFormState() {
-    if (isOpen) {
-      loadSavedValues();
-    } else {
-      saveCurrentValues();
-    }
-  }, [isOpen, loadSavedValues, saveCurrentValues]);
-
-  const handleAdd = useCallback(() => {
-    append(createEmptyEntry());
-  }, [append]);
-
-  const handleRemove = useCallback(
-    (index: number) => {
-      remove(index);
+      const handler = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          onClose();
+        }
+      };
+      document.addEventListener("keydown", handler);
+      return () => document.removeEventListener("keydown", handler);
     },
-    [remove],
+    [isOpen, onClose],
+  );
+
+  useEffect(
+    function persistFormState() {
+      if (isOpen) {
+        loadSavedValues();
+      } else {
+        saveCurrentValues();
+      }
+    },
+    [isOpen, loadSavedValues, saveCurrentValues],
   );
 
   const handleFileImport = useCallback(
@@ -169,8 +164,10 @@ export const AddEnvVarExpandable = ({
       {/* Backdrop overlay */}
       <div
         className={cn(
-          "fixed inset-0 z-100 bg-background/5 backdrop-blur-[2px] transition-opacity duration-300",
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
+          "fixed inset-0 z-100 bg-background/5 transition-opacity duration-300",
+          isOpen
+            ? "opacity-100 backdrop-blur-[2px]"
+            : "opacity-0 pointer-events-none backdrop-blur-none",
         )}
         onClick={onClose}
         aria-hidden="true"
@@ -179,7 +176,7 @@ export const AddEnvVarExpandable = ({
         ref={panelRef}
         className={cn(
           "fixed right-3 bg-gray-1 border border-grayA-4 rounded-xl w-175 overflow-hidden z-101",
-          "transition-all duration-300 ease-out",
+          "transition-[transform,opacity] duration-300 ease-out",
           "shadow-md",
           isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
         )}
@@ -217,7 +214,7 @@ export const AddEnvVarExpandable = ({
           {/* Form content */}
           <div
             className={cn(
-              "transition-all duration-500 ease-out flex-1 min-h-0",
+              "transition-[transform,opacity] duration-500 ease-out flex-1 min-h-0",
               isOpen ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0",
             )}
             style={{
@@ -261,14 +258,14 @@ export const AddEnvVarExpandable = ({
               </div>
 
               <div className="flex-1 overflow-y-auto pt-6 bg-grayA-2">
-                <div className="flex flex-col gap-8 px-8">
+                <div className="flex flex-col gap-4 px-8">
                   {fields.map((field, index) => (
                     <EnvVarRow
                       key={field.id}
                       index={index}
                       isOnly={fields.length === 1}
                       register={register}
-                      onRemove={handleRemove}
+                      onRemove={remove}
                       errors={errors.envVars}
                     />
                   ))}
@@ -281,7 +278,7 @@ export const AddEnvVarExpandable = ({
                     variant="outline"
                     size="md"
                     className="font-medium"
-                    onClick={handleAdd}
+                    onClick={() => append(createEmptyEntry())}
                   >
                     <Plus iconSize="sm-regular" />
                     Add Another
