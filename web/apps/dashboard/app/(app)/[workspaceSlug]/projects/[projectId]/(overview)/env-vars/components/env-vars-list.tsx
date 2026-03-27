@@ -5,8 +5,9 @@ import type { Environment } from "@/lib/collections/deploy/environments";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ChartActivity2 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
-import { useDeferredValue, useMemo } from "react";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { EnvVarActionMenu } from "./env-var-action-menu";
+import { EnvVarEditRow } from "./env-var-edit-row";
 import { EnvVarNameCell } from "./env-var-name-cell";
 import { EnvVarValueCell } from "./env-var-value-cell";
 import { EnvVarsEmpty } from "./env-vars-empty";
@@ -22,6 +23,8 @@ type EnvVarsListProps = {
 };
 
 export function EnvVarsList({ projectId, environments, searchQuery, environmentFilter, sortBy }: EnvVarsListProps) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const closeEdit = useCallback(() => setEditingId(null), []);
   const deferredQuery = useDeferredValue(searchQuery);
 
   const { data: envVarData, isLoading } = useLiveQuery(
@@ -94,29 +97,44 @@ export function EnvVarsList({ projectId, environments, searchQuery, environmentF
   return (
     <div className="border border-grayA-4 rounded-[14px] overflow-hidden divide-y divide-grayA-4">
       {filteredData.map((item) => (
-        <div
-          key={item.id}
-          className="group flex items-center hover:bg-grayA-2 transition-colors"
-        >
-          <div className="flex-3 min-w-0 py-3.5 flex items-center">
-            <EnvVarNameCell variableKey={item.key} environmentName={item.environmentName} note={item.note} searchQuery={deferredQuery} />
+        <div key={item.id}>
+          <div
+            className="group flex items-center hover:bg-grayA-2 transition-colors"
+          >
+            <div className="flex-3 min-w-0 py-3.5 flex items-center">
+              <EnvVarNameCell variableKey={item.key} environmentName={item.environmentName} note={item.note} searchQuery={deferredQuery} />
+            </div>
+            <div className="flex-4 min-w-0 py-3.5 flex items-center">
+              <EnvVarValueCell envVarId={item.id} type={item.type} />
+            </div>
+            <div className="flex-1 min-w-0 py-3.5 flex items-center pr-3">
+              <Badge className="px-1.5 rounded-md flex gap-2 items-center h-5.5 border-none bg-grayA-3 text-grayA-11 truncate">
+                <ChartActivity2 iconSize="sm-regular" className="shrink-0" />
+                <TimestampInfo
+                  displayType="relative"
+                  value={item.createdAt}
+                  className="truncate"
+                />
+              </Badge>
+            </div>
+            <div className="w-12 shrink-0 py-3.5 pr-3 flex items-center justify-end">
+              <EnvVarActionMenu envVarId={item.id} variableKey={item.key} type={item.type} onEdit={() => setEditingId(item.id)} />
+            </div>
           </div>
-          <div className="flex-4 min-w-0 py-3.5 flex items-center">
-            <EnvVarValueCell envVarId={item.id} type={item.type} />
-          </div>
-          <div className="flex-1 min-w-0 py-3.5 flex items-center pr-3">
-            <Badge className="px-1.5 rounded-md flex gap-2 items-center h-5.5 border-none bg-grayA-3 text-grayA-11 truncate">
-              <ChartActivity2 iconSize="sm-regular" className="shrink-0" />
-              <TimestampInfo
-                displayType="relative"
-                value={item.createdAt}
-                className="truncate"
-              />
-            </Badge>
-          </div>
-          <div className="w-12 shrink-0 py-3.5 pr-3 flex items-center justify-end">
-            <EnvVarActionMenu variableKey={item.key} />
-          </div>
+          {editingId === item.id && (
+            <div className="grid animate-expand-down overflow-hidden">
+              <div className="min-h-0">
+                <EnvVarEditRow
+                  envVarId={item.id}
+                  variableKey={item.key}
+                  type={item.type}
+                  note={item.note ?? null}
+                  environmentName={item.environmentName}
+                  onClose={closeEdit}
+                />
+              </div>
+            </div>
+          )}
         </div>
       ))}
     </div>
