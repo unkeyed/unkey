@@ -5,7 +5,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type OpenAI from "openai";
-import { zodResponseFormat } from "openai/helpers/zod";
+import z from "zod";
 
 /**
  * Creates a Zod schema for validating LLM-generated structured filter output for keys.
@@ -21,7 +21,7 @@ export async function getKeysStructuredSearchFromLLM(
   openai: OpenAI | null,
   userSearchMsg: string,
   usersReferenceMS: number,
-) {
+): Promise<z.infer<typeof filterOutputSchema> | null> {
   try {
     if (!openai) {
       return null; // Skip LLM processing in development environment when OpenAI API key is not configured
@@ -44,10 +44,18 @@ export async function getKeysStructuredSearchFromLLM(
           content: userSearchMsg,
         },
       ],
-      response_format: zodResponseFormat(filterOutputSchema, "searchQuery"),
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "api-keys-ai-search",
+          strict: true,
+          schema: z.toJSONSchema(filterOutputSchema, { target: "draft-7" }),
+        },
+      },
     });
 
-    if (!completion.choices[0].message.parsed) {
+    const rawContent = completion.choices[0].message.content;
+    if (!rawContent) {
       throw new TRPCError({
         code: "UNPROCESSABLE_CONTENT",
         message:
@@ -61,7 +69,8 @@ export async function getKeysStructuredSearchFromLLM(
       });
     }
 
-    return completion.choices[0].message.parsed;
+    const parsed = filterOutputSchema.parse(JSON.parse(rawContent));
+    return parsed;
   } catch (error) {
     console.error(
       `Something went wrong when querying OpenAI. Input: ${JSON.stringify(
