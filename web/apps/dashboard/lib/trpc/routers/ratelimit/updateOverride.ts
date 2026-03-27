@@ -55,7 +55,6 @@ export const updateOverride = workspaceProcedure
             limit: input.limit,
             duration: input.duration,
             updatedAtM: Date.now(),
-            async: false,
           })
           .where(eq(schema.ratelimitOverrides.id, override.id))
           .catch((_err) => {

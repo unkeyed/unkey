@@ -153,7 +153,13 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK", { status: 200 });
         }
 
-        const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
+        const {
+          requestsPerMonth,
+          logsRetentionDays,
+          auditLogsRetentionDays,
+          ratelimitRetentionDays,
+          ratelimitOverrides,
+        } = quotas;
 
         // Update quotas and workspace tier
         await db.transaction(async (tx) => {
@@ -171,6 +177,8 @@ export const POST = async (req: Request): Promise<Response> => {
               requestsPerMonth,
               logsRetentionDays,
               auditLogsRetentionDays,
+              ratelimitRetentionDays,
+              ratelimitOverrides,
               team: true,
             })
             .onDuplicateKeyUpdate({
@@ -178,6 +186,8 @@ export const POST = async (req: Request): Promise<Response> => {
                 requestsPerMonth,
                 logsRetentionDays,
                 auditLogsRetentionDays,
+                ratelimitRetentionDays,
+                ratelimitOverrides,
                 team: true,
               },
             });
@@ -403,7 +413,13 @@ export const POST = async (req: Request): Promise<Response> => {
           return new Response("OK", { status: 200 });
         }
 
-        const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
+        const {
+          requestsPerMonth,
+          logsRetentionDays,
+          auditLogsRetentionDays,
+          ratelimitRetentionDays,
+          ratelimitOverrides,
+        } = quotas;
 
         // Update workspace, quotas, and audit log in a transaction
         await db.transaction(async (tx) => {
@@ -422,6 +438,8 @@ export const POST = async (req: Request): Promise<Response> => {
               requestsPerMonth,
               logsRetentionDays,
               auditLogsRetentionDays,
+              ratelimitRetentionDays,
+              ratelimitOverrides,
               team: true,
             })
             .onDuplicateKeyUpdate({
@@ -429,6 +447,8 @@ export const POST = async (req: Request): Promise<Response> => {
                 requestsPerMonth,
                 logsRetentionDays,
                 auditLogsRetentionDays,
+                ratelimitRetentionDays,
+                ratelimitOverrides,
                 team: true,
               },
             });

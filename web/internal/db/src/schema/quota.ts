@@ -61,6 +61,18 @@ export const quotas = mysqlTable("quota", {
    */
   ratelimitApiDuration: int("ratelimit_api_duration", { unsigned: true }),
 
+  /**
+   * ratelimitRetentionDays defines how many days ratelimit logs will be stored
+   * before automatic deletion. 0 or null means disabled.
+   */
+  ratelimitRetentionDays: int("ratelimit_retention_days", { unsigned: true }).notNull().default(0),
+
+  /**
+   * ratelimitOverrides defines the maximum number of custom ratelimit overrides
+   * a workspace may create. 0 means no overrides allowed.
+   */
+  ratelimitOverrides: int("ratelimit_overrides", { unsigned: true }).notNull().default(0),
+
   // allocatedCpuMillicoresTotal defines the total CPU resources (in millicores, where 1000 millicores = 1 CPU)
   // a workspace may allocate at the same time. New deployments that would exceed this limit will be rejected.
   allocatedCpuMillicoresTotal: int("allocated_cpu_millicores_total", {

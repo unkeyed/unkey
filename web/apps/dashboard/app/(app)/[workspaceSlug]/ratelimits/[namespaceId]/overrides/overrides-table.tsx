@@ -17,7 +17,6 @@ type Override = {
   identifier: string;
   limit: number;
   duration: number;
-  async: boolean | null;
 };
 
 type Props = {
@@ -161,7 +160,6 @@ export const OverridesTable = ({ namespaceId }: Props) => {
           overrideDetails={{
             duration: override.duration,
             limit: override.limit,
-            async: override.async,
             overrideId: override.id,
           }}
           identifier={override.identifier}
@@ -202,7 +200,6 @@ export const OverridesTable = ({ namespaceId }: Props) => {
             overrideId: selectedOverride.id,
             limit: selectedOverride.limit,
             duration: selectedOverride.duration,
-            async: selectedOverride.async,
           }}
         />
       )}

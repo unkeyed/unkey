@@ -9,6 +9,8 @@ export function validateAndParseQuotas(product: Stripe.Product): {
   requestsPerMonth?: number;
   logsRetentionDays?: number;
   auditLogsRetentionDays?: number;
+  ratelimitRetentionDays?: number;
+  ratelimitOverrides?: number;
 } {
   const requiredMetadata = [
     "quota_requests_per_month",
@@ -36,10 +38,17 @@ export function validateAndParseQuotas(product: Stripe.Product): {
     return { valid: false };
   }
 
+  const ratelimitRetentionDays = Number.parseInt(
+    product.metadata.quota_ratelimit_retention_days || "0",
+  );
+  const ratelimitOverrides = Number.parseInt(product.metadata.quota_ratelimit_overrides || "0");
+
   return {
     valid: true,
     requestsPerMonth,
     logsRetentionDays,
     auditLogsRetentionDays,
+    ratelimitRetentionDays: Number.isNaN(ratelimitRetentionDays) ? 0 : ratelimitRetentionDays,
+    ratelimitOverrides: Number.isNaN(ratelimitOverrides) ? 0 : ratelimitOverrides,
   };
 }

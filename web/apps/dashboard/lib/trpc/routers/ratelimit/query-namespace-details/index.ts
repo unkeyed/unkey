@@ -19,7 +19,6 @@ const namespaceSchema = z.object({
         identifier: z.string(),
         limit: z.number(),
         duration: z.number(),
-        async: z.boolean(),
       }),
     )
     .optional(),
@@ -90,7 +89,6 @@ export async function fetchWorkspaceDetails({
                   identifier: true,
                   limit: true,
                   duration: true,
-                  async: true,
                 },
               },
             }
