@@ -46,11 +46,31 @@ If you're not sure, start with `warning`. It's easy to promote to `critical` lat
 | Alert | Severity | What it catches | File |
 |-------|----------|----------------|------|
 | PodNotRunning | critical | Pod stuck in `CrashLoopBackOff`, `ImagePullBackOff`, etc. for 5m | `observability/templates/prometheus-alerts.yaml` |
-| FrontlineErrorRateHigh | critical | 5xx error rate > 5% for 2m | `observability/templates/prometheus-alerts-frontline.yaml` |
-| FrontlineP99LatencyHigh | critical | P99 latency > 2.5s for 5m | `observability/templates/prometheus-alerts-frontline.yaml` |
+| **Frontline** | | | |
+| FrontlinePlatformErrorRateHigh | warning | Platform (our) error rate > 2% for 2m — excludes customer/user errors | `observability/templates/prometheus-alerts-frontline.yaml` |
+| FrontlineRoutingErrorsHigh | warning | Sustained routing errors > 0.5/s for 2m | `observability/templates/prometheus-alerts-frontline.yaml` |
+| FrontlineProxyConnectionFailures | warning | Connection failures (timeout, refused, reset, DNS) > 5% for 2m | `observability/templates/prometheus-alerts-frontline.yaml` |
+| FrontlineSentinel5xxRate | warning | Sentinel-sourced 5xx > 5% for 2m (sentinel itself is broken) | `observability/templates/prometheus-alerts-frontline.yaml` |
+| FrontlineP99LatencyHigh | warning | P99 latency > 2.5s for 5m | `observability/templates/prometheus-alerts-frontline.yaml` |
 | FrontlineP95LatencyHigh | warning | P95 latency > 1s for 5m | `observability/templates/prometheus-alerts-frontline.yaml` |
+| FrontlineRoutingLatencyHigh | warning | Routing P99 > 1.5s for 5m | `observability/templates/prometheus-alerts-frontline.yaml` |
+| FrontlineBackendLatencyHigh | warning | Backend P99 > 5s for 5m | `observability/templates/prometheus-alerts-frontline.yaml` |
 | FrontlineHighActiveRequests | warning | Active requests > 100 for 2m | `observability/templates/prometheus-alerts-frontline.yaml` |
+| FrontlineExcessiveHops | warning | P99 cross-region hops >= 2 for 5m | `observability/templates/prometheus-alerts-frontline.yaml` |
 | FrontlineGoroutineLeak | warning | Goroutines > 1000 for 10m | `observability/templates/prometheus-alerts-frontline.yaml` |
+| **Sentinel** | | | |
+| SentinelPlatformErrorRateHigh | warning | Platform (our) error rate > 2% for 2m — excludes customer/user errors | `observability/templates/prometheus-alerts-sentinel.yaml` |
+| SentinelProxyErrorsHigh | warning | Proxy errors > 1/s for 2m (excl. client cancellations) | `observability/templates/prometheus-alerts-sentinel.yaml` |
+| SentinelEngineEvaluationErrors | warning | Policy engine error rate > 1% for 3m | `observability/templates/prometheus-alerts-sentinel.yaml` |
+| SentinelRoutingFailures | warning | Deployment/instance routing failures > 0.5/s for 3m | `observability/templates/prometheus-alerts-sentinel.yaml` |
+| SentinelP99LatencyHigh | warning | P99 latency > 2.5s for 5m | `observability/templates/prometheus-alerts-sentinel.yaml` |
+| SentinelP95LatencyHigh | warning | P95 latency > 1s for 5m | `observability/templates/prometheus-alerts-sentinel.yaml` |
+| SentinelEngineEvaluationLatencyHigh | warning | Policy eval P99 > 1.5s for 5m | `observability/templates/prometheus-alerts-sentinel.yaml` |
+| SentinelRoutingLatencyHigh | warning | Routing P99 > 1.5s for 5m | `observability/templates/prometheus-alerts-sentinel.yaml` |
+| SentinelUpstreamLatencyHigh | warning | Upstream P99 > 10s for 5m | `observability/templates/prometheus-alerts-sentinel.yaml` |
+| SentinelHighActiveRequests | warning | Active requests > 100 for 2m | `observability/templates/prometheus-alerts-sentinel.yaml` |
+| SentinelNoRunningInstancesSustained | warning | No running instances > 0.5/s for 5m | `observability/templates/prometheus-alerts-sentinel.yaml` |
+| SentinelGoroutineLeak | warning | Goroutines > 1000 for 10m | `observability/templates/prometheus-alerts-sentinel.yaml` |
 
 ### kube-prometheus-stack built-ins
 
