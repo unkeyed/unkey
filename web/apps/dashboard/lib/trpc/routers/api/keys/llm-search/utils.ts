@@ -117,7 +117,7 @@ export const getKeysSystemPrompt = (usersReferenceMS: number) => {
       }${constraints}`;
     })
     .join("\n");
-  return `You are an expert at converting natural language queries into filters for API key searches, understanding context and inferring filter types from natural expressions. Handle complex, ambiguous queries by breaking them down into clear filters. For outcomes, use one of the valid outcome values like "valid", "invalid", etc. Use ${usersReferenceMS} timestamp for time-related queries.
+  return `You are an expert at converting natural language queries into filters for API key searches, understanding context and inferring filter types from natural expressions. Handle complex, ambiguous queries by breaking them down into clear filters. For outcomes, use ONLY the exact uppercase values from KEY_VERIFICATION_OUTCOMES (VALID, INSUFFICIENT_PERMISSIONS, RATE_LIMITED, FORBIDDEN, DISABLED, EXPIRED, USAGE_EXCEEDED). When users mention "errors" or "failures", include ALL non-VALID outcomes. Use ${usersReferenceMS} timestamp for time-related queries.
 
 Examples:
 
@@ -156,17 +156,17 @@ Query: "show valid keys"
 Result: [
   {
     field: "outcomes",
-    filters: [{ operator: "is", value: "valid" }]
+    filters: [{ operator: "is", value: "VALID" }]
   }
 ]
 
-Query: "find all invalid and expired keys"
+Query: "find all rate limited and expired keys"
 Result: [
   {
     field: "outcomes",
     filters: [
-      { operator: "is", value: "invalid" },
-      { operator: "is", value: "expired" }
+      { operator: "is", value: "RATE_LIMITED" },
+      { operator: "is", value: "EXPIRED" }
     ]
   }
 ]
@@ -210,7 +210,7 @@ Query: "show expired keys from last 2h with name containing test"
 Result: [
   {
     field: "outcomes",
-    filters: [{ operator: "is", value: "expired" }]
+    filters: [{ operator: "is", value: "EXPIRED" }]
   },
   {
     field: "since",
@@ -240,7 +240,7 @@ Special handling rules:
 3. Key IDs and names support both exact matches and contains operations
 
 Error Handling Rules:
-1. Invalid outcome values: Default to "invalid" for negative terms (failed, error), "valid" for positive terms
+1. Invalid outcome values: Default to "FORBIDDEN" for negative terms (failed, error, invalid), "VALID" for positive terms (success, valid). IMPORTANT: outcome values are ALWAYS uppercase and must exactly match one of the valid KEY_VERIFICATION_OUTCOMES values listed above.
 2. For ambiguous key names or IDs, prefer "contains" over exact match
 
 Ambiguity Resolution Priority:
@@ -277,7 +277,29 @@ Result: [
     field: "outcomes",
     filters: [{
       operator: "is",
-      value: "invalid"  // Maps "failed" to invalid status
+      value: "FORBIDDEN"  // Maps "failed" to a non-VALID outcome
+    }]
+  }
+]
+
+Query: "show me errors in the last 4 weeks"
+Result: [
+  {
+    field: "outcomes",
+    filters: [
+      { operator: "is", value: "INSUFFICIENT_PERMISSIONS" },
+      { operator: "is", value: "RATE_LIMITED" },
+      { operator: "is", value: "FORBIDDEN" },
+      { operator: "is", value: "DISABLED" },
+      { operator: "is", value: "EXPIRED" },
+      { operator: "is", value: "USAGE_EXCEEDED" }
+    ]
+  },
+  {
+    field: "since",
+    filters: [{
+      operator: "is",
+      value: "4w"
     }]
   }
 ]`;

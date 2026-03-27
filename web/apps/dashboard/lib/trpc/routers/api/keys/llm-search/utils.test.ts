@@ -10,8 +10,8 @@ describe("getKeysSystemPrompt", () => {
     const prompt = getKeysSystemPrompt(referenceTime);
 
     // Check for outcome examples
-    expect(prompt).toContain("valid");
-    expect(prompt).toContain("invalid");
+    expect(prompt).toContain("VALID");
+    expect(prompt).toContain("FORBIDDEN");
 
     // Check for time-based examples
     expect(prompt).toContain("show keys from last 30m");
@@ -53,14 +53,19 @@ describe("getKeysStructuredSearchFromLLM", () => {
   });
 
   it("should handle successful LLM response", async () => {
+    const responseData = {
+      filters: [
+        {
+          field: "outcomes",
+          filters: [{ operator: "is", value: "FORBIDDEN" }],
+        },
+      ],
+    };
     const mockResponse = {
       choices: [
         {
           message: {
-            parsed: {
-              field: "outcomes",
-              filters: [{ operator: "is", value: "invalid" }],
-            },
+            content: JSON.stringify(responseData),
           },
         },
       ],
@@ -69,28 +74,30 @@ describe("getKeysStructuredSearchFromLLM", () => {
 
     const result = await getKeysStructuredSearchFromLLM(
       mockOpenAI as any,
-      "find invalid keys",
+      "find failed keys",
       1706024400000,
     );
 
-    expect(result).toEqual({
-      field: "outcomes",
-      filters: [{ operator: "is", value: "invalid" }],
-    });
+    expect(result).toEqual(responseData);
   });
 
   it("should handle complex query with multiple filters", async () => {
+    const responseData = {
+      filters: [
+        {
+          field: "names",
+          filters: [
+            { operator: "contains", value: "test" },
+            { operator: "is", value: "production-key" },
+          ],
+        },
+      ],
+    };
     const mockResponse = {
       choices: [
         {
           message: {
-            parsed: {
-              field: "names",
-              filters: [
-                { operator: "contains", value: "test" },
-                { operator: "is", value: "production-key" },
-              ],
-            },
+            content: JSON.stringify(responseData),
           },
         },
       ],
@@ -103,13 +110,7 @@ describe("getKeysStructuredSearchFromLLM", () => {
       1706024400000,
     );
 
-    expect(result).toEqual({
-      field: "names",
-      filters: [
-        { operator: "contains", value: "test" },
-        { operator: "is", value: "production-key" },
-      ],
-    });
+    expect(result).toEqual(responseData);
   });
 
   it("should handle unparseable response", async () => {
@@ -117,7 +118,7 @@ describe("getKeysStructuredSearchFromLLM", () => {
       choices: [
         {
           message: {
-            parsed: null,
+            content: null,
           },
         },
       ],
