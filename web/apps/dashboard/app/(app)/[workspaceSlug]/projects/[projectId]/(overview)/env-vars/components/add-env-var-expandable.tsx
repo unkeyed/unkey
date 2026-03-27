@@ -60,7 +60,7 @@ export const AddEnvVarExpandable = ({
   const { ref: formRef, isDragging, importFile } = useDropZone(reset, trigger, getValues);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  usePreventLeave(isOpen)
+  usePreventLeave(isOpen);
   useEffect(() => {
     if (!isOpen) {
       reset({
@@ -115,30 +115,19 @@ export const AddEnvVarExpandable = ({
         : [values.environmentId];
     const flatRecords = expandToFlatRecords(nonEmpty, targetEnvIds, values.secret);
 
-    toast.promise(
-      Promise.resolve(
-        flatRecords.map((v) =>
-          collection.envVars.insert({
-            id: crypto.randomUUID(),
-            environmentId: v.environmentId,
-            projectId,
-            key: v.key,
-            value: v.value,
-            type: toTrpcType(v.secret) as "recoverable" | "writeonly",
-            description: v.description || null,
-            createdAt: Date.now(),
-          }),
-        ),
-      ),
-      {
-        loading: "Saving environment variable(s)...",
-        success: `Added ${flatRecords.length} variable(s)`,
-        error: (err) => ({
-          message: "Failed to add environment variable(s)",
-          description: err instanceof Error ? err.message : "An unexpected error occurred",
-        }),
-      },
-    );
+    for (const v of flatRecords) {
+      collection.envVars.insert({
+        id: crypto.randomUUID(),
+        environmentId: v.environmentId,
+        projectId,
+        key: v.key,
+        value: v.value,
+        type: toTrpcType(v.secret) as "recoverable" | "writeonly",
+        description: v.description || null,
+        updatedAt: Date.now()
+      });
+    }
+    toast.success(`Added ${flatRecords.length} variable(s)`);
 
     reset({
       envVars: [createEmptyEntry()],

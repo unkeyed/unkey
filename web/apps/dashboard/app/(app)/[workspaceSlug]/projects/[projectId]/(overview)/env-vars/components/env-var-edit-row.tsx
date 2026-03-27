@@ -54,11 +54,24 @@ export function EnvVarEditRow({
     if (isWriteonly) {
       return;
     }
+    let cancelled = false;
     decryptMutation.mutateAsync({ envVarId }).then(
-      (result) => setValue("value", result.value),
-      () => toast.error("Failed to decrypt value"),
+      (result) => {
+        if (!cancelled) {
+          setValue("value", result.value);
+        }
+      },
+      () => {
+        if (!cancelled) {
+          toast.error("Failed to decrypt value");
+        }
+      },
     );
-  }, [envVarId, isWriteonly]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+    // biome-ignore lint/correctness/useExhaustiveDependencies: decryptMutation and setValue are stable refs
+  }, [envVarId, isWriteonly]);
 
   const onSubmit = useCallback(
     async (values: EditEnvVarFormValues) => {

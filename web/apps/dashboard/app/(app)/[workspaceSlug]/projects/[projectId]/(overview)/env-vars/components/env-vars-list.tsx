@@ -50,7 +50,7 @@ export function EnvVarsList({ projectId, environments, searchQuery, environmentF
       keyLower: v.key.toLowerCase(),
       type: v.type,
       environmentId: v.environmentId,
-      createdAt: v.createdAt,
+      updatedAt: v.updatedAt,
       note: v.description,
     }));
   }, [envVarData]);
@@ -72,7 +72,7 @@ export function EnvVarsList({ projectId, environments, searchQuery, environmentF
         environmentId: v.environmentId,
         environmentName: envMap.get(v.environmentId) ?? "Unknown",
         type: v.type,
-        createdAt: v.createdAt,
+        updatedAt: v.updatedAt,
         note: v.note,
       });
     }
@@ -80,7 +80,7 @@ export function EnvVarsList({ projectId, environments, searchQuery, environmentF
     if (sortBy === "name-asc") {
       result.sort((a, b) => a.key.localeCompare(b.key));
     } else {
-      result.sort((a, b) => b.createdAt - a.createdAt);
+      result.sort((a, b) => b.updatedAt - a.updatedAt);
     }
 
     return result;
@@ -112,7 +112,7 @@ export function EnvVarsList({ projectId, environments, searchQuery, environmentF
                 <ChartActivity2 iconSize="sm-regular" className="shrink-0" />
                 <TimestampInfo
                   displayType="relative"
-                  value={item.createdAt}
+                  value={item.updatedAt}
                   className="truncate"
                 />
               </Badge>

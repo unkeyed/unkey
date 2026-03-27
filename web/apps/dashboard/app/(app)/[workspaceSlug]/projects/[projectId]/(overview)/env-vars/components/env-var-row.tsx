@@ -1,6 +1,5 @@
 import { Plus, Trash } from "@unkey/icons";
 import { Button, FormInput } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
 import { memo } from "react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import type { EnvVarsFormValues } from "./schema";
@@ -23,7 +22,7 @@ export const EnvVarRow = memo(function EnvVarRow({
   const fieldErrors = errors?.[index];
 
   return (
-    <div className={cn("flex flex-col gap-3")}>
+    <div className="flex flex-col gap-3">
       {/* Key + Value + Delete side by side */}
       <div className="flex items-start gap-4">
         <FormInput

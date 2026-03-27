@@ -1,6 +1,6 @@
 "use client";
 
-import { BarsFilter, ChevronDown, InputSearch, Magnifier } from "@unkey/icons";
+import { BarsFilter, ChevronDown, Magnifier } from "@unkey/icons";
 import { FormInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 
 const SORT_OPTIONS = ["last-updated", "name-asc"] as const;
@@ -71,6 +71,6 @@ export function EnvVarsToolbar({
           </SelectContent>
         </Select>
       </div>
-    </div >
+    </div>
   );
 }

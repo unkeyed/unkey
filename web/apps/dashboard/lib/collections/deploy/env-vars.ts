@@ -12,7 +12,7 @@ const schema = z.object({
   value: z.string(),
   type: z.enum(["recoverable", "writeonly"]),
   description: z.string().nullable(),
-  createdAt: z.number(),
+  updatedAt: z.number(),
   environmentId: z.string(),
   projectId: z.string(),
 });
@@ -57,7 +57,7 @@ export const envVars = createCollection<EnvVar, string>(
             value: v.value,
             type: v.type,
             description: v.description,
-            createdAt: v.createdAt,
+            updatedAt: v.updatedAt,
             environmentId,
             projectId,
           });
