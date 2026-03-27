@@ -206,7 +206,7 @@ func (s *service) forwardToPortal(ctx context.Context, sess *zen.Session, portal
 		targetURL:    targetURL,
 		startTime:    startTime,
 		directorFunc: s.makePortalDirector(sess, startTime, pathPrefix),
-		logTarget:    "portal",
+		destination:  "portal",
 		transport:    s.h2cTransport,
 	})
 }

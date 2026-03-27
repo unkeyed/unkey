@@ -5,17 +5,15 @@
 Start the local development environment:
 
 ```bash
-# Docker Compose
+# Start infrastructure
 make up
 
-# OR Kubernetes with Tilt
-make dev
+# Start the API service (not included in make up)
+docker compose -f dev/docker-compose.yaml up -d apiv2 apiv2_lb --wait
 ```
 
-The MySQL seed script (`dev/05-seed-portal.sql`) automatically creates a sample
-customer workspace ("Awesome Corp" / `ws_awesome`) with:
-- A workspace, keyspace (`ks_awesome_keys`), and API (`api_awesome`)
-- A root key for the customer workspace (plaintext: `awesome_root_key_secret`)
+The MySQL seed script (`dev/05-seed-portal.sql`) must be run manually after
+the Go seed tool. It creates portal-specific rows only:
 - A `portal_configurations` row (`portal_awesome`) linked to the customer keyspace
 - A `portal_branding` row with blue theme colors
 - A `frontline_routes` row for `awesome.localhost` with `route_type='portal'`
@@ -26,34 +24,48 @@ The portal represents a customer offering self-service to their end users.
 
 ### Docker Compose
 
-The portal runs automatically at `http://localhost:3100` when using `make up`.
+Not recommended for iterative development due to slow Docker builds.
+If needed: `docker compose -f dev/docker-compose.yaml up -d portal --build`
 
-### Tilt
-
-In the Tilt UI (`http://localhost:10350`), manually trigger the `portal` resource.
-It runs at `http://localhost:3100` with hot reloading.
-
-### Standalone
+### Standalone (recommended)
 
 ```bash
-cd web && pnpm --filter=@unkey/portal dev
+cd web && PORT=3100 pnpm --filter=@unkey/portal dev
+```
+
+Runs on `http://localhost:3100` with hot reloading. Port 3100 avoids conflict with the dashboard on 3000.
+
+## Creating a Root Key
+
+The Go seed tool creates the Awesome Corp workspace, keyspace, API, and root key:
+
+```bash
+go run . dev seed local --slug awesome
+```
+
+This prints a root key like `unkey_xxx_yyy`. Save it.
+
+Then run the portal seed SQL to add portal config, branding, and frontline route:
+
+```bash
+docker exec -i mysql mysql -u root -proot < dev/05-seed-portal.sql
 ```
 
 ## End-to-End Flow
 
 ### 1. Create a session via the API
 
-Use the Awesome Corp root key to create a portal session for an end user:
-
 ```bash
 curl -X POST http://localhost:7070/v2/portal.createSession \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer awesome_root_key_secret" \
+  -H "Authorization: Bearer <ROOT_KEY_FROM_SEED>" \
   -d '{
     "externalId": "user_123",
     "permissions": ["keys:read", "keys:create", "analytics:read", "docs:read"]
   }'
 ```
+
+The response URL will use `https://` — change it to `http://` for local dev since there's no TLS locally.
 
 Response:
 ```json

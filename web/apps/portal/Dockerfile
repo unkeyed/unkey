@@ -10,6 +10,7 @@ COPY web/apps/portal/package.json ./apps/portal/package.json
 COPY web/internal/db/package.json ./internal/db/package.json
 COPY web/internal/ui/package.json ./internal/ui/package.json
 COPY web/internal/icons/package.json ./internal/icons/package.json
+COPY web/internal/id/package.json ./internal/id/package.json
 RUN pnpm install --frozen-lockfile
 
 # --- Builder ---
@@ -33,7 +34,7 @@ RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/apps/portal/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/portal/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/portal/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/portal/.next/static ./apps/portal/.next/static
 
 USER nextjs
 
@@ -41,4 +42,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["node", "apps/portal/server.js"]

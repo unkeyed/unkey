@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  basePath: "/portal",
   reactStrictMode: true,
   poweredByHeader: false,
   transpilePackages: ["@unkey/db", "@unkey/ui", "@unkey/icons"],

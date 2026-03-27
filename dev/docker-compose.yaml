@@ -237,6 +237,7 @@ services:
       - ./config/ctrl-api.toml:/etc/unkey/ctrl-api.toml:ro
     environment:
       UNKEY_GITHUB_APP_WEBHOOK_SECRET: "${UNKEY_GITHUB_APP_WEBHOOK_SECRET:-}"
+      UNKEY_GITHUB_APP_ID: "${UNKEY_GITHUB_APP_ID:-0}"
 
   ctrl-worker:
     networks:

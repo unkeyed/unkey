@@ -31,12 +31,13 @@ export async function exchangeSession(sessionId: string): Promise<ExchangeResult
     };
   }
 
-  const data: { token: string; expiresAt: number } = await response.json();
+  const body = await response.json();
+  const data: { token: string; expiresAt: number } = body.data;
 
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, data.token, {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     path: "/",
     maxAge: SESSION_COOKIE_MAX_AGE_SECONDS,
