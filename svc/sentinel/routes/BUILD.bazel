@@ -16,7 +16,6 @@ go_library(
         "//pkg/zen",
         "//svc/sentinel/engine",
         "//svc/sentinel/middleware",
-        "//svc/sentinel/routes/internal_health",
         "//svc/sentinel/routes/proxy",
         "//svc/sentinel/services/router",
     ],

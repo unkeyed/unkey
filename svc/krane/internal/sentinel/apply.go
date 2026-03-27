@@ -268,7 +268,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 						LivenessProbe: &corev1.Probe{
 							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
-									Path: "/_unkey/internal/health",
+									Path: "/_unkey/internal/health/live",
 									Port: intstr.FromInt(SentinelPort),
 								},
 							},
@@ -281,7 +281,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 						ReadinessProbe: &corev1.Probe{
 							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
-									Path: "/_unkey/internal/health",
+									Path: "/_unkey/internal/health/ready",
 									Port: intstr.FromInt(SentinelPort),
 								},
 							},
