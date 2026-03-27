@@ -5,41 +5,44 @@ CREATE TABLE container_resources_per_minute_v1 (
   app_id String,
   environment_id String,
   deployment_id String,
-  cpu_millicores_sum SimpleAggregateFunction(sum, Float64),
+  instance_id String,
+  cpu_millicores_sum SimpleAggregateFunction(sum, Int64),
   memory_bytes_max SimpleAggregateFunction(max, Int64),
-  memory_bytes_sum SimpleAggregateFunction(sum, Float64),
+  memory_bytes_sum SimpleAggregateFunction(sum, Int64),
   cpu_limit_millicores_max SimpleAggregateFunction(max, Int32),
   memory_limit_bytes_max SimpleAggregateFunction(max, Int64),
-  network_tx_bytes_sum SimpleAggregateFunction(sum, Int64),
-  network_tx_bytes_public_sum SimpleAggregateFunction(sum, Int64),
+  network_egress_bytes_sum SimpleAggregateFunction(sum, Int64),
+  network_egress_public_bytes_sum SimpleAggregateFunction(sum, Int64),
   sample_count SimpleAggregateFunction(sum, Int64)
 ) ENGINE = AggregatingMergeTree()
-ORDER BY (workspace_id, app_id, deployment_id, time)
+ORDER BY (workspace_id, deployment_id, instance_id, time)
 PARTITION BY toStartOfDay(time)
 TTL time + INTERVAL 30 DAY DELETE;
 
 CREATE MATERIALIZED VIEW container_resources_per_minute_mv_v1
 TO container_resources_per_minute_v1 AS
 SELECT
-  toStartOfMinute(fromUnixTimestamp64Milli(time)) AS time,
+  toStartOfMinute(time) AS time,
   workspace_id,
   project_id,
   app_id,
   environment_id,
   deployment_id,
-  sum(cpu_millicores) AS cpu_millicores_sum,
-  max(memory_working_set_bytes) AS memory_bytes_max,
-  sum(toFloat64(memory_working_set_bytes)) AS memory_bytes_sum,
+  instance_id,
+  sum(toInt64(cpu_millicores)) AS cpu_millicores_sum,
+  max(memory_bytes) AS memory_bytes_max,
+  sum(memory_bytes) AS memory_bytes_sum,
   max(cpu_limit_millicores) AS cpu_limit_millicores_max,
   max(memory_limit_bytes) AS memory_limit_bytes_max,
-  sum(network_tx_bytes) AS network_tx_bytes_sum,
-  sum(network_tx_bytes_public) AS network_tx_bytes_public_sum,
+  sum(network_egress_bytes) AS network_egress_bytes_sum,
+  sum(network_egress_public_bytes) AS network_egress_public_bytes_sum,
   count() AS sample_count
-FROM container_resources_raw_v1
+FROM container_resource_snapshots_v1
 GROUP BY
   time,
   workspace_id,
   project_id,
   app_id,
   environment_id,
-  deployment_id;
+  deployment_id,
+  instance_id;

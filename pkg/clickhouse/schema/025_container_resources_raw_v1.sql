@@ -1,31 +1,29 @@
-CREATE TABLE container_resources_raw_v1 (
-  -- unix milli
-  time Int64 CODEC(Delta, LZ4),
-  workspace_id String CODEC(ZSTD(1)),
-  project_id String CODEC(ZSTD(1)),
-  app_id String CODEC(ZSTD(1)),
-  environment_id String CODEC(ZSTD(1)),
-  deployment_id String CODEC(ZSTD(1)),
-  instance_id String CODEC(ZSTD(1)),
+CREATE TABLE container_resource_snapshots_v1 (
+  time DateTime,
+  workspace_id String,
+  project_id String,
+  app_id String,
+  environment_id String,
+  deployment_id String,
+  instance_id String,
   region LowCardinality(String),
   platform LowCardinality(String),
-  -- Actual usage (from kubelet)
-  cpu_millicores Float64 CODEC(ZSTD(1)),
-  memory_working_set_bytes Int64 CODEC(Delta, LZ4),
-  -- Allocated resources (from pod spec)
-  cpu_request_millicores Int32 CODEC(Delta, LZ4),
-  cpu_limit_millicores Int32 CODEC(Delta, LZ4),
-  memory_request_bytes Int64 CODEC(Delta, LZ4),
-  memory_limit_bytes Int64 CODEC(Delta, LZ4),
-  -- Network egress (delta since last sample)
-  network_tx_bytes Int64 CODEC(Delta, LZ4),
-  -- Public egress only (non-RFC1918 destinations, from Cilium Hubble)
-  network_tx_bytes_public Int64 CODEC(Delta, LZ4),
-  INDEX idx_workspace_id (workspace_id) TYPE bloom_filter(0.001) GRANULARITY 1,
-  INDEX idx_app_id (app_id) TYPE bloom_filter(0.001) GRANULARITY 1,
-  INDEX idx_deployment_id (deployment_id) TYPE bloom_filter(0.001) GRANULARITY 1
-) ENGINE = MergeTree()
-ORDER BY (workspace_id, app_id, deployment_id, time)
-PARTITION BY toDate(fromUnixTimestamp64Milli(time))
-TTL toDateTime(fromUnixTimestamp64Milli(time)) + toIntervalDay(90)
-SETTINGS index_granularity = 8192, non_replicated_deduplication_window = 10000;
+
+  -- Actual usage (from Metrics Server)
+  cpu_millicores Int32,
+  memory_bytes Int64,
+
+  -- Allocated resources (from pod spec via informer)
+  cpu_request_millicores Int32,
+  cpu_limit_millicores Int32,
+  memory_request_bytes Int64,
+  memory_limit_bytes Int64,
+
+  -- Network egress (from Hubble)
+  network_egress_bytes Int64,
+  network_egress_public_bytes Int64
+)
+ENGINE = ReplacingMergeTree(time)
+ORDER BY (workspace_id, deployment_id, instance_id, time)
+PARTITION BY toYYYYMM(time)
+TTL time + INTERVAL 90 DAY DELETE;

@@ -5,8 +5,6 @@ go_library(
     srcs = [
         "collect.go",
         "doc.go",
-        "interface.go",
-        "kubelet.go",
         "service.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/heimdall/internal/collector",
@@ -17,7 +15,9 @@ go_library(
         "//pkg/logger",
         "//pkg/repeat",
         "//svc/heimdall/pkg/metrics",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
         "@io_k8s_apimachinery//pkg/labels",
         "@io_k8s_client_go//listers/core/v1:core",
+        "@io_k8s_metrics//pkg/client/clientset/versioned",
     ],
 )

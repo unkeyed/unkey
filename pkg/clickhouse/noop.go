@@ -45,13 +45,8 @@ func (n *noop) BufferSentinelRequest(req schema.SentinelRequest) {
 	// Intentionally empty - discards the event
 }
 
-// BufferContainerResource implements the Bufferer interface but discards the event.
-func (n *noop) BufferContainerResource(req schema.ContainerResource) {
-	// Intentionally empty - discards the event
-}
-
-// BufferDeploymentLifecycleEvent implements the Bufferer interface but discards the event.
-func (n *noop) BufferDeploymentLifecycleEvent(req schema.DeploymentLifecycleEvent) {
+// BufferResourceSnapshot implements the Bufferer interface but discards the event.
+func (n *noop) BufferResourceSnapshot(req schema.ResourceSnapshot) {
 	// Intentionally empty - discards the event
 }
 

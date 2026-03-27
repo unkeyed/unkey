@@ -11,16 +11,16 @@ data:
     platform = "dev"
     clickhouse_url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
     collection_interval = "15s"
-    node_ip = "${HEIMDALL_NODE_IP}"
 ---
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: heimdall
   namespace: unkey
   labels:
     app: heimdall
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: heimdall
@@ -35,11 +35,6 @@ spec:
           image: unkey/go:latest
           args: ["run", "heimdall", "--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never
-          env:
-            - name: HEIMDALL_NODE_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.hostIP
           resources:
             requests:
               cpu: 20m

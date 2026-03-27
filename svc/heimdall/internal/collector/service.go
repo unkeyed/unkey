@@ -2,7 +2,6 @@ package collector
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/svc/heimdall/pkg/metrics"
 	corelisters "k8s.io/client-go/listers/core/v1"
+	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 const (
@@ -23,43 +23,34 @@ const (
 	LabelDeployment = "unkey.com/deployment.id"
 )
 
-// Config holds the configuration for the kubelet collector.
 type Config struct {
-	CH        clickhouse.Bufferer
-	PodLister corelisters.PodLister
-	NodeIP    string
-	Region    string
-	Platform  string
+	CH            clickhouse.Bufferer
+	PodLister     corelisters.PodLister
+	MetricsClient metricsv.Interface
+	Region        string
+	Platform      string
 }
 
-// Collector scrapes kubelet stats and writes resource usage samples to ClickHouse.
+// Collector writes resource snapshots to ClickHouse every collection interval.
 type Collector struct {
-	ch              clickhouse.Bufferer
-	podLister       corelisters.PodLister
-	prevReadings    map[string]cpuReading
-	kubeletStatsURL string
-	region          string
-	platform        string
-
-	// mu guards collect() to prevent CollectOnce and regular ticks from overlapping.
-	// If they overlap, the CPU delta computation uses a tiny time interval with a tiny
-	// counter delta, producing an inflated rate.
-	mu sync.Mutex
+	ch            clickhouse.Bufferer
+	podLister     corelisters.PodLister
+	metricsClient metricsv.Interface
+	region        string
+	platform      string
+	mu            sync.Mutex
 }
 
-// New creates a new kubelet collector.
 func New(cfg Config) *Collector {
 	return &Collector{
-		ch:              cfg.CH,
-		podLister:       cfg.PodLister,
-		prevReadings:    make(map[string]cpuReading),
-		kubeletStatsURL: fmt.Sprintf("https://%s:10250/stats/summary", cfg.NodeIP),
-		region:          cfg.Region,
-		platform:        cfg.Platform,
+		ch:            cfg.CH,
+		podLister:     cfg.PodLister,
+		metricsClient: cfg.MetricsClient,
+		region:        cfg.Region,
+		platform:      cfg.Platform,
 	}
 }
 
-// Run starts the collection loop at the given interval.
 func (c *Collector) Run(ctx context.Context, interval time.Duration) error {
 	stop := repeat.Every(interval, func() {
 		c.collectWithMetrics(ctx)
@@ -70,28 +61,9 @@ func (c *Collector) Run(ctx context.Context, interval time.Duration) error {
 	return ctx.Err()
 }
 
-// CollectPod triggers an immediate kubelet fetch and processes a single pod.
-// Called by the lifecycle tracker when a pod starts or enters Terminating
-// to grab a counter reading as close to the lifecycle event as possible.
-// Only the named pod is processed — all other pods in the kubelet response are skipped.
-func (c *Collector) CollectPod(ctx context.Context, podName string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	summary, err := c.fetchSummary(ctx)
-	if err != nil {
-		logger.Error("immediate collection failed", "pod", podName, "error", err.Error())
-		return
-	}
-
-	c.processPod(summary, podName)
-}
-
 func (c *Collector) collectWithMetrics(ctx context.Context) {
 	start := time.Now()
 
-	// Prevent overlap between CollectOnce and regular ticks.
-	// TryLock: if a collection is already running, skip this one.
 	if !c.mu.TryLock() {
 		logger.Info("skipping collection, previous tick still running")
 		return
@@ -100,12 +72,11 @@ func (c *Collector) collectWithMetrics(ctx context.Context) {
 
 	err := c.collect(ctx)
 
-	duration := time.Since(start).Seconds()
-	metrics.CollectionDuration.Observe(duration)
+	metrics.CollectionDuration.Observe(time.Since(start).Seconds())
 
 	if err != nil {
 		metrics.CollectionTotal.WithLabelValues("error").Inc()
-		logger.Error("kubelet collection failed", "error", err.Error())
+		logger.Error("collection failed", "error", err.Error())
 	} else {
 		metrics.CollectionTotal.WithLabelValues("success").Inc()
 	}

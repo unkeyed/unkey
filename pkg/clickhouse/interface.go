@@ -38,15 +38,10 @@ type Bufferer interface {
 	// These represent requests routed through sentinel to deployment instances.
 	BufferSentinelRequest(schema.SentinelRequest)
 
-	// BufferContainerResource adds a container resource usage sample to the buffer.
+	// BufferResourceSnapshot adds a resource usage snapshot to the buffer.
 	// These represent per-instance CPU, memory, and network usage for billing.
 	// This buffer uses Drop: false — it blocks instead of dropping billing data.
-	BufferContainerResource(schema.ContainerResource)
-
-	// BufferDeploymentLifecycleEvent adds a deployment lifecycle event to the buffer.
-	// These represent start/stop/scale events with ms-precise timestamps for billing.
-	// This buffer uses Drop: false — it blocks instead of dropping billing data.
-	BufferDeploymentLifecycleEvent(schema.DeploymentLifecycleEvent)
+	BufferResourceSnapshot(schema.ResourceSnapshot)
 }
 
 type Querier interface {
