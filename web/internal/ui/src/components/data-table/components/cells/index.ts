@@ -16,3 +16,7 @@ export type { LastUpdatedCellProps } from "./last-updated-cell";
 export { RootKeyNameCell } from "./root-key-name-cell";
 export type { RootKeyNameCellProps } from "./root-key-name-cell";
 export { RowActionSkeleton } from "./row-action-skeleton";
+export { InvalidCountCell } from "./invalid-count-cell";
+export type { InvalidCountCellProps } from "./invalid-count-cell";
+export { OutcomePopoverCell, formatOutcomeName, getOutcomeColor } from "./outcome-popover-cell";
+export type { OutcomePopoverCellProps } from "./outcome-popover-cell";

@@ -1,12 +1,12 @@
+import { keysOverviewFilterFieldConfig } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/filters.schema";
+import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useSort } from "@/components/logs/hooks/use-sort";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES, type KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import { useEffect, useMemo, useState } from "react";
-import { keysOverviewFilterFieldConfig } from "../../../filters.schema";
-import { useFilters } from "../../../hooks/use-filters";
-import type { KeysQueryOverviewLogsPayload, SortFields } from "../query-logs.schema";
+import { useMemo } from "react";
+import type { KeysQueryOverviewLogsPayload, SortFields } from "../schema/keys-overview.schema";
 
 type UseLogsQueryParams = {
   limit?: number;
@@ -14,14 +14,8 @@ type UseLogsQueryParams = {
 };
 
 export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryParams) {
-  const [historicalLogsMap, setHistoricalLogsMap] = useState(
-    () => new Map<string, KeysOverviewLog>(),
-  );
-
   const { filters } = useFilters();
   const { sorts } = useSort<SortFields>();
-
-  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
   const { queryTime: timestamp } = useQueryTime();
 
@@ -144,18 +138,18 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     refetchOnWindowFocus: false,
   });
 
-  // Update historical logs effect
-  useEffect(() => {
-    if (initialData) {
-      const newMap = new Map<string, KeysOverviewLog>();
-      initialData.pages.forEach((page) => {
-        page.keysOverviewLogs.forEach((log) => {
-          // Use request_id as the unique key since key_id might not be unique across different requests
-          newMap.set(log.request_id, log);
-        });
-      });
-      setHistoricalLogsMap(newMap);
+  // Use request_id as the unique key since key_id might not be unique across different requests
+  const historicalLogs = useMemo(() => {
+    if (!initialData) {
+      return [];
     }
+    const map = new Map<string, KeysOverviewLog>();
+    initialData.pages.forEach((page) => {
+      page.keysOverviewLogs.forEach((log) => {
+        map.set(log.request_id, log);
+      });
+    });
+    return Array.from(map.values());
   }, [initialData]);
 
   return {
