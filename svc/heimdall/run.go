@@ -67,6 +67,7 @@ func Run(ctx context.Context, cfg Config) error {
 		CH:            ch,
 		PodLister:     podLister,
 		MetricsClient: metricsClient,
+		NodeName:      cfg.NodeName,
 		Region:        cfg.Region,
 		Platform:      cfg.Platform,
 	})

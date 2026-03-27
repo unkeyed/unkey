@@ -4,6 +4,8 @@ go_library(
     name = "collector",
     srcs = [
         "collect.go",
+        "conntrack.go",
+        "conntrack_stub.go",
         "doc.go",
         "service.go",
     ],
@@ -19,5 +21,13 @@ go_library(
         "@io_k8s_apimachinery//pkg/labels",
         "@io_k8s_client_go//listers/core/v1:core",
         "@io_k8s_metrics//pkg/client/clientset/versioned",
-    ],
+    ] + select({
+        "@rules_go//go/platform:android": [
+            "@com_github_ti_mo_conntrack//:conntrack",
+        ],
+        "@rules_go//go/platform:linux": [
+            "@com_github_ti_mo_conntrack//:conntrack",
+        ],
+        "//conditions:default": [],
+    }),
 )
