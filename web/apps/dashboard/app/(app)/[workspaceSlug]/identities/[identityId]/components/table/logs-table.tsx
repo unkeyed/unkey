@@ -1,10 +1,10 @@
 "use client";
-import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/components/status-badge";
 import {
+  StatusBadge,
   STATUS_STYLES,
   type StatusStyle,
   categorizeSeverity,
-} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/logs-table";
+} from "@/components/key-details-logs-table";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { shortenId } from "@/lib/shorten-id";

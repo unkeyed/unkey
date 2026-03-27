@@ -4,9 +4,9 @@ import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { keyDetailsFilterFieldConfig } from "../../../filters.schema";
-import { useFilters } from "../../../hooks/use-filters";
-import type { KeyDetailsLogsPayload } from "../query-logs.schema";
+import { keyDetailsFilterFieldConfig } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/filters.schema";
+import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/hooks/use-filters";
+import type { KeyDetailsLogsPayload } from "../schema/query-logs.schema";
 
 // Maximum number of real-time logs to store
 const REALTIME_DATA_LIMIT = 100;

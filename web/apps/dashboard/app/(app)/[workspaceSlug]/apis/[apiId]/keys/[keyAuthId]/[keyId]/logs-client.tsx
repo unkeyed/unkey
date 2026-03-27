@@ -5,7 +5,7 @@ import { useCallback, useState } from "react";
 import { KeyDetailsLogsChart } from "./components/charts";
 import { KeysDetailsLogsControlCloud } from "./components/control-cloud";
 import { KeysDetailsLogsControls } from "./components/controls";
-import { KeyDetailsDrawer } from "./components/table/components/log-details";
+import { KeyDetailsDrawer } from "@/components/key-details-logs-table/components/key-details-drawer";
 import { KeyDetailsLogsTable } from "./components/table/logs-table";
 import { KeyDetailsLogsProvider } from "./context/logs";
 

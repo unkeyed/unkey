@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { LogDetails } from "@/components/logs/details/log-details";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { toast } from "@unkey/ui";
-import { useFetchRequestDetails } from "./components/hooks/use-logs-query";
+import { useFetchRequestDetails } from "../hooks/use-fetch-request-details";
 
 const ANIMATION_DELAY = 350;
 type Props = {

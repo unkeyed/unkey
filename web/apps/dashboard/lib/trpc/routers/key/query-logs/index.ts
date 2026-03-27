@@ -1,4 +1,4 @@
-import { keyDetailsLogsPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/query-logs.schema";
+import { keyDetailsLogsPayload } from "@/components/key-details-logs-table/schema/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db, isNull } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
