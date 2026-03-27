@@ -24,8 +24,8 @@ export const StatsCard = ({
   icon = <ProgressBar className="text-accent-11" />,
 }: StatsCardProps) => {
   return (
-    <div className="flex flex-col border border-gray-4 rounded-xl overflow-hidden bg-gray-1">
-      <div className="h-[140px]">{chart}</div>
+    <div className="flex flex-col border border-gray-4 rounded-xl overflow-hidden bg-grayA-1">
+      <div className="h-35">{chart}</div>
       <Link href={linkPath} prefetch>
         <div className="p-4 md:p-6 border-t border-gray-4 flex flex-col gap-2">
           <div className="flex justify-between items-center">
@@ -33,14 +33,14 @@ export const StatsCard = ({
               <div className="flex gap-2 md:gap-3 items-center">
                 <span className="shrink-0">{icon}</span>
                 <InfoTooltip variant="inverted" position={{ side: "top" }} content={name}>
-                  <div className="text-accent-12 font-semibold truncate w-[220px] md:w-[280px] text-left">
+                  <div className="text-accent-12 font-semibold truncate w-55 md:w-70 text-left">
                     {name}
                   </div>
                 </InfoTooltip>
               </div>
               {secondaryId && (
                 <InfoTooltip variant="inverted" position={{ side: "top" }} content={secondaryId}>
-                  <div className="text-left text-accent-11 text-xxs overflow-hidden text-ellipsis w-[240px] md:w-[300px]">
+                  <div className="text-left text-accent-11 text-xxs overflow-hidden text-ellipsis w-60 md:w-75">
                     {secondaryId}
                   </div>
                 </InfoTooltip>
