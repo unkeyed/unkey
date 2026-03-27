@@ -149,8 +149,12 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 				SampleRate:    1.0,
 				SlowThreshold: time.Second,
 			},
-			Tracing: nil,
-			Metrics: nil,
+			Tracing: &config.TracingConfig{
+				SampleRate: 0.25,
+			},
+			Metrics: &config.MetricsConfig{
+				PrometheusPort: MetricsPort,
+			},
 		},
 		Gossip: nil,
 		Pprof: &config.PprofConfig{
@@ -258,6 +262,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 							{ContainerPort: SentinelPort, Name: "sentinel"},
 							{ContainerPort: GossipLANPort, Name: "gossip-lan", Protocol: corev1.ProtocolTCP},
 							{ContainerPort: GossipLANPort, Name: "gossip-lan-udp", Protocol: corev1.ProtocolUDP},
+							{ContainerPort: MetricsPort, Name: "metrics"},
 						},
 
 						LivenessProbe: &corev1.Probe{
