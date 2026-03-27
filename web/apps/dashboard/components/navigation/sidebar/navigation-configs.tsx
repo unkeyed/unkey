@@ -199,6 +199,12 @@ export function createProjectNavigation(
       active: segments.includes("requests") && segments.includes("projects"),
     },
     {
+      icon: ArrowOppositeDirectionY,
+      href: `${basePath}/env-vars`,
+      label: "Environment Variables",
+      active: segments.includes("env-vars") && segments.includes("env-vars"),
+    },
+    {
       icon: Gear,
       href: `${basePath}/settings`,
       label: "Settings",
