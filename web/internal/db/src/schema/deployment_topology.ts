@@ -5,6 +5,7 @@ import {
   int,
   mysqlEnum,
   mysqlTable,
+  tinyint,
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
@@ -21,6 +22,16 @@ export const deploymentTopology = mysqlTable(
     regionId: varchar("region_id", { length: 64 }).notNull(),
 
     desiredReplicas: int("desired_replicas").notNull(),
+
+    // HPA scaling configuration, snapshotted from the autoscaling policy at deploy time.
+    // Minimum number of pod replicas the HPA will maintain.
+    autoscalingReplicasMin: int("autoscaling_replicas_min").notNull().default(1),
+    // Maximum number of pod replicas the HPA can scale to.
+    autoscalingReplicasMax: int("autoscaling_replicas_max").notNull().default(1),
+    // Average CPU utilization percentage (0-100) that triggers scale-up. Null = use default (80%).
+    autoscalingThresholdCpu: tinyint("autoscaling_threshold_cpu"),
+    // Average memory utilization percentage (0-100) that triggers scale-up. Null = not used as a signal.
+    autoscalingThresholdMemory: tinyint("autoscaling_threshold_memory"),
 
     // Version for state synchronization with edge agents.
     // Updated via Restate VersioningService on each mutation.

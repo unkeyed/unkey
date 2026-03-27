@@ -556,14 +556,29 @@ func (w *Workflow) createTopologies(
 
 		replicas := rs.Replicas
 
+		// Snapshot autoscaling policy values. When no policy is attached,
+		// default to min=1, max=replicas so the HPA effectively stays at replicas.
+		autoscalingMin := int32(1)
+		autoscalingMax := replicas
+		if rs.AutoscalingReplicasMin.Valid {
+			autoscalingMin = rs.AutoscalingReplicasMin.Int32
+		}
+		if rs.AutoscalingReplicasMax.Valid {
+			autoscalingMax = rs.AutoscalingReplicasMax.Int32
+		}
+
 		topologies = append(topologies, db.InsertDeploymentTopologyParams{
-			WorkspaceID:     workspace.ID,
-			DeploymentID:    deployment.ID,
-			RegionID:        rs.RegionID,
-			DesiredReplicas: replicas,
-			DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
-			Version:         versionResp.GetVersion(),
-			CreatedAt:       time.Now().UnixMilli(),
+			WorkspaceID:                workspace.ID,
+			DeploymentID:               deployment.ID,
+			RegionID:                   rs.RegionID,
+			DesiredReplicas:            replicas,
+			AutoscalingReplicasMin:     autoscalingMin,
+			AutoscalingReplicasMax:     autoscalingMax,
+			AutoscalingThresholdCpu:    rs.AutoscalingThresholdCpu,
+			AutoscalingThresholdMemory: rs.AutoscalingThresholdMemory,
+			DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
+			Version:                    versionResp.GetVersion(),
+			CreatedAt:                  time.Now().UnixMilli(),
 		})
 	}
 
@@ -935,8 +950,8 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID st
 					return false, err
 				}
 				logger.Info("checking instances for region", "deployment_id", deploymentID, "region_id", topo.RegionID, "instances_found", len(instances))
-				if len(instances) < int(topo.DesiredReplicas) {
-					logger.Info("not all instances are up yet", "deployment_id", deploymentID, "region_id", topo.RegionID, "instances_found", len(instances), "desired_replicas", topo.DesiredReplicas)
+				if len(instances) == 0 {
+					logger.Info("no instances up yet", "deployment_id", deploymentID, "region_id", topo.RegionID)
 					continue
 				}
 				allRunning := true
@@ -952,7 +967,7 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID st
 				}
 			}
 			return false, nil
-		}, restate.WithName(fmt.Sprintf("wait for %d instances in %s", topo.DesiredReplicas, topo.RegionID)))
+		}, restate.WithName(fmt.Sprintf("wait for 1 instance in %s", topo.RegionID)))
 		readygates[i] = promise
 
 	}

@@ -1196,15 +1196,19 @@ type DeploymentStep struct {
 }
 
 type DeploymentTopology struct {
-	Pk              uint64                          `db:"pk"`
-	WorkspaceID     string                          `db:"workspace_id"`
-	DeploymentID    string                          `db:"deployment_id"`
-	RegionID        string                          `db:"region_id"`
-	DesiredReplicas int32                           `db:"desired_replicas"`
-	Version         uint64                          `db:"version"`
-	DesiredStatus   DeploymentTopologyDesiredStatus `db:"desired_status"`
-	CreatedAt       int64                           `db:"created_at"`
-	UpdatedAt       sql.NullInt64                   `db:"updated_at"`
+	Pk                         uint64                          `db:"pk"`
+	WorkspaceID                string                          `db:"workspace_id"`
+	DeploymentID               string                          `db:"deployment_id"`
+	RegionID                   string                          `db:"region_id"`
+	DesiredReplicas            int32                           `db:"desired_replicas"`
+	AutoscalingReplicasMin     int32                           `db:"autoscaling_replicas_min"`
+	AutoscalingReplicasMax     int32                           `db:"autoscaling_replicas_max"`
+	AutoscalingThresholdCpu    sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
+	AutoscalingThresholdMemory sql.NullInt16                   `db:"autoscaling_threshold_memory"`
+	Version                    uint64                          `db:"version"`
+	DesiredStatus              DeploymentTopologyDesiredStatus `db:"desired_status"`
+	CreatedAt                  int64                           `db:"created_at"`
+	UpdatedAt                  sql.NullInt64                   `db:"updated_at"`
 }
 
 type EncryptedKey struct {
