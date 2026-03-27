@@ -13,9 +13,10 @@ import {
   toast,
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { type ChangeEvent, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { Controller, useFieldArray } from "react-hook-form";
 import { useProjectData } from "../../data-provider";
 import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema } from "./schema";
@@ -46,15 +47,22 @@ export const AddEnvVarExpandable = ({
     trigger,
     getValues,
     setFocus,
-  } = useForm<EnvVarsFormValues>({
-    resolver: zodResolver(envVarsSchema),
-    mode: "onSubmit",
-    defaultValues: {
-      envVars: [createEmptyEntry()],
-      environmentId: "__all__",
-      secret: false,
+    clearPersistedData,
+    saveCurrentValues,
+    loadSavedValues,
+  } = usePersistedForm<EnvVarsFormValues>(
+    `env-vars-add-${projectId}`,
+    {
+      resolver: zodResolver(envVarsSchema),
+      mode: "onSubmit",
+      defaultValues: {
+        envVars: [createEmptyEntry()],
+        environmentId: "__all__",
+        secret: false,
+      },
     },
-  });
+    "session",
+  );
 
   const { fields, append, remove } = useFieldArray({ control, name: "envVars" });
   const { ref: formRef, isDragging, importFile } = useDropZone(reset, trigger, getValues);
@@ -62,14 +70,12 @@ export const AddEnvVarExpandable = ({
 
   usePreventLeave(isOpen);
   useEffect(() => {
-    if (!isOpen) {
-      reset({
-        envVars: [createEmptyEntry()],
-        environmentId: "__all__",
-        secret: false,
-      });
+    if (isOpen) {
+      loadSavedValues();
+    } else {
+      saveCurrentValues();
     }
-  }, [isOpen, reset, environments]);
+  }, [isOpen, loadSavedValues, saveCurrentValues]);
 
   const handleAdd = useCallback(() => {
     append(createEmptyEntry());
@@ -137,6 +143,7 @@ export const AddEnvVarExpandable = ({
     }
     toast.success(`Added ${flatRecords.length} variable(s)`);
 
+    clearPersistedData();
     reset({
       envVars: [createEmptyEntry()],
       environmentId: "__all__",
