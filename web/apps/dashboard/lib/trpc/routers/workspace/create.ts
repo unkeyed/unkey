@@ -67,7 +67,6 @@ export const createWorkspace = protectedProcedure
           orgId: orgId,
           name: input.name,
           slug: input.slug,
-          plan: "free",
           tier: "Free",
           stripeCustomerId: null,
           stripeSubscriptionId: null,

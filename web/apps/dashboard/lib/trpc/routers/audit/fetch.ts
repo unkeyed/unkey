@@ -79,7 +79,7 @@ export const queryAuditLogs = async (
   const cursor = params.cursor;
 
   const retentionDays =
-    (workspace.features.auditLogRetentionDays ?? workspace.plan === "free") ? 30 : 90;
+    (workspace.features.auditLogRetentionDays ?? workspace.tier === "Free") ? 30 : 90;
   const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
   // By default we need the last "50"(LIMIT) records.

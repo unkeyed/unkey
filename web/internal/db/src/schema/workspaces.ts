@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, boolean, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { certificates } from "./certificates";
 import { clickhouseWorkspaceSettings } from "./clickhouse_workspace_settings";
@@ -31,10 +31,6 @@ export const workspaces = mysqlTable("workspaces", {
   // Deployment platform - which partition this workspace deploys to
   partitionId: varchar("partition_id", { length: 256 }),
 
-  // different plans, this should only be used for visualisations in the ui
-  // @deprecated - use tier
-  plan: mysqlEnum("plan", ["free", "pro", "enterprise"]).default("free"),
-  // replaces plan
   tier: varchar("tier", { length: 256 }).default("Free"),
 
   // stripe

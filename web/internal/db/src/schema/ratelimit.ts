@@ -1,9 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   bigint,
-  boolean,
   int,
-  mysqlEnum,
   mysqlTable,
   unique,
   varchar,
@@ -53,18 +51,6 @@ export const ratelimitOverrides = mysqlTable(
      * window duration in milliseconds
      */
     duration: int("duration").notNull(),
-    /**
-     * If true, don't wait for the origin to return, use cached values instead.
-     */
-    async: boolean("async"),
-
-    /**
-     * Sharding method used.
-     *
-     * - edge: use the worker's edge location as part of the DO id, to run local objects
-     */
-    sharding: mysqlEnum("sharding", ["edge"]),
-
     ...lifecycleDatesMigration,
   },
   (table) => {
