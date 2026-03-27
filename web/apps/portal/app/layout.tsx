@@ -36,7 +36,7 @@ export default async function RootLayout({
       className={`${GeistSans.variable} ${GeistMono.variable}`}
       style={cssVars as React.CSSProperties}
     >
-      <body className="min-h-screen bg-portal-secondary antialiased">
+      <body className="min-h-screen antialiased" style={{ backgroundColor: 'var(--portal-secondary, #f8fafc)' }}>
         {children}
       </body>
     </html>

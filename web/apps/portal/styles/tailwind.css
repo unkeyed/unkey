@@ -6,9 +6,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* Portal branding CSS variables — injected at runtime from portal_branding table */
-  --color-portal-primary: var(--portal-primary, #6366f1);
-  --color-portal-secondary: var(--portal-secondary, #f8fafc);
+  /* Portal branding — referenced via arbitrary values: bg-[var(--portal-primary)] */
+  /* Runtime CSS variables are set on <html> by the branding engine */
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -97,6 +96,6 @@
     @apply scroll-smooth;
   }
   body {
-    @apply bg-background text-content;
+    @apply text-content;
   }
 }

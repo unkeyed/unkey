@@ -37,9 +37,13 @@ export function PortalHeader({ permissions, logoUrl, preview }: PortalHeaderProp
                 aria-selected={isActive}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-portal-primary/10 text-portal-primary"
+                    ? "text-gray-12"
                     : "text-gray-11 hover:bg-gray-3 hover:text-gray-12"
                 }`}
+                style={isActive ? {
+                  backgroundColor: 'color-mix(in srgb, var(--portal-primary, #6366f1) 10%, transparent)',
+                  color: 'var(--portal-primary, #6366f1)',
+                } : undefined}
               >
                 {tab.label}
               </Link>
