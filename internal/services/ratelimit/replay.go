@@ -37,8 +37,11 @@ import (
 //	    go svc.replayRequests()
 //	}
 func (s *service) replayRequests() {
-	for req := range s.replayBuffer.Consume() {
-		err := s.syncWithOrigin(context.Background(), req)
+	for ptr := range s.replayBuffer.Consume() {
+		if ptr == nil {
+			continue
+		}
+		err := s.syncWithOrigin(context.Background(), *ptr)
 		if err != nil {
 			logger.Error("failed to replay request", "error", err.Error())
 		}

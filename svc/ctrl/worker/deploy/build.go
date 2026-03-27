@@ -518,7 +518,7 @@ func (w *Workflow) processBuildStatus(
 			if vertex.Completed != nil && !completed[vertex.Digest] {
 				completed[vertex.Digest] = true
 
-				w.clickhouse.BufferBuildStep(schema.BuildStepV1{
+				w.buildSteps.Buffer(schema.BuildStepV1{
 					Error:        vertex.Error,
 					StartedAt:    ptr.SafeDeref(vertex.Started).UnixMilli(),
 					CompletedAt:  ptr.SafeDeref(vertex.Completed).UnixMilli(),
@@ -534,7 +534,7 @@ func (w *Workflow) processBuildStatus(
 		}
 
 		for _, log := range status.Logs {
-			w.clickhouse.BufferBuildStepLog(schema.BuildStepLogV1{
+			w.buildStepLogs.Buffer(schema.BuildStepLogV1{
 				WorkspaceID:  workspaceID,
 				ProjectID:    projectID,
 				DeploymentID: deploymentID,

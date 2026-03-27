@@ -27,7 +27,7 @@ func Test200_Success(t *testing.T) {
 
 	// Buffer some key verifications
 	for i := range 5 {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
+		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace.ID,
@@ -43,7 +43,6 @@ func Test200_Success(t *testing.T) {
 	route := &Handler{
 		DB:                         h.DB,
 		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -88,7 +87,7 @@ func Test200_PermissionFiltersByApiId(t *testing.T) {
 
 	// Buffer verifications for api1
 	for i := range 3 {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
+		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace.ID,
@@ -103,7 +102,7 @@ func Test200_PermissionFiltersByApiId(t *testing.T) {
 
 	// Buffer verifications for api2 (should NOT be returned)
 	for i := range 5 {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
+		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace.ID,
@@ -119,7 +118,6 @@ func Test200_PermissionFiltersByApiId(t *testing.T) {
 	route := &Handler{
 		DB:                         h.DB,
 		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -168,7 +166,7 @@ func Test200_PermissionFiltersByKeySpaceId(t *testing.T) {
 
 	// Buffer verifications for api1
 	for i := range 3 {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
+		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace.ID,
@@ -183,7 +181,7 @@ func Test200_PermissionFiltersByKeySpaceId(t *testing.T) {
 
 	// Buffer verifications for api2 (should NOT be returned)
 	for i := range 5 {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
+		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace.ID,
@@ -199,7 +197,6 @@ func Test200_PermissionFiltersByKeySpaceId(t *testing.T) {
 	route := &Handler{
 		DB:                         h.DB,
 		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -249,7 +246,7 @@ func Test200_QueryWithin30DaysRetention(t *testing.T) {
 	now := time.Now().UnixMilli()
 
 	// Buffer verification from 7 days ago (within 30-day retention)
-	h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
+	h.KeyVerifications.Buffer(schema.KeyVerification{
 		RequestID:   uid.New(uid.RequestPrefix),
 		Time:        now - (7 * 24 * 60 * 60 * 1000), // 7 days ago
 		WorkspaceID: workspace.ID,
@@ -264,7 +261,6 @@ func Test200_QueryWithin30DaysRetention(t *testing.T) {
 	route := &Handler{
 		DB:                         h.DB,
 		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -297,7 +293,6 @@ func Test200_QueryAtExact30DayRetentionLimit(t *testing.T) {
 	route := &Handler{
 		DB:                         h.DB,
 		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -328,7 +323,6 @@ func Test200_QueryWithCustomRetention90Days(t *testing.T) {
 	route := &Handler{
 		DB:                         h.DB,
 		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -374,7 +368,7 @@ func Test200_RLSWorkspaceIsolation(t *testing.T) {
 
 	// Buffer data for workspace 1
 	for i := range 5 {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
+		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace1.ID,
@@ -389,7 +383,7 @@ func Test200_RLSWorkspaceIsolation(t *testing.T) {
 
 	// Buffer data for workspace 2 (should NOT be accessible by workspace1's key)
 	for i := range 10 {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
+		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace2.ID,
@@ -405,7 +399,6 @@ func Test200_RLSWorkspaceIsolation(t *testing.T) {
 	route := &Handler{
 		DB:                         h.DB,
 		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -444,7 +437,6 @@ func Test200_QueryWithoutTimeFilter_AutoAddsFilter(t *testing.T) {
 	route := &Handler{
 		DB:                         h.DB,
 		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
