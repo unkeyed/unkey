@@ -18,6 +18,7 @@ export function HighlightMatch({ text, query }: HighlightMatchProps) {
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === query.toLowerCase() ? (
+          // biome-ignore lint/suspicious/noArrayIndexKey: parts are derived from splitting text by query — stable order, no reordering
           <mark key={i} className="bg-yellow-4 text-yellow-12 rounded-sm">
             {part}
           </mark>

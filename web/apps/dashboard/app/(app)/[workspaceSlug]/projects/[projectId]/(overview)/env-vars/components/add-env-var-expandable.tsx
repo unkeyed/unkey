@@ -69,7 +69,20 @@ export const AddEnvVarExpandable = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   usePreventLeave(isOpen);
-  useEffect(() => {
+  useEffect(function closeOnEscape() {
+    if (!isOpen) {
+      return;
+    }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [isOpen, onClose]);
+
+  useEffect(function persistFormState() {
     if (isOpen) {
       loadSavedValues();
     } else {
@@ -150,6 +163,7 @@ export const AddEnvVarExpandable = ({
     onClose();
   };
 
+  // TODO: LAter move this to unkey/ui so we can use this nice loooking panel everywhere
   return createPortal(
     <>
       {/* Backdrop overlay */}
@@ -282,9 +296,11 @@ export const AddEnvVarExpandable = ({
                     name="environmentId"
                     render={({ field }) => (
                       <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-                        <label className="text-gray-11 text-[13px]">Environment</label>
+                        <label htmlFor="environment-select" className="text-gray-11 text-[13px]">
+                          Environment
+                        </label>
                         <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger className="capitalize">
+                          <SelectTrigger id="environment-select" className="capitalize">
                             <SelectValue placeholder="Select environment" />
                           </SelectTrigger>
                           <SelectContent className="z-[200]">
@@ -369,7 +385,6 @@ export const AddEnvVarExpandable = ({
         </div>
       </div>
     </>,
-    // TODO: Probably later we can replace this with Radix Portal and make it nicer
     document.body,
   );
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { BarsFilter, ChevronDown, Magnifier } from "@unkey/icons";
+import { BarsFilter, ChevronDown, Layers3, Magnifier } from "@unkey/icons";
 import {
   FormInput,
   Select,
@@ -48,10 +48,11 @@ export function EnvVarsToolbar({
           leftIcon={<Magnifier iconSize="lg-medium" className="text-gray-9" />}
         />
       </div>
-      <div className="flex-[25%]">
+      <div className="flex-[25%] max-w-[184px]">
         <Select value={environmentFilter} onValueChange={onEnvironmentFilterChange}>
           <SelectTrigger
             className="h-9 w-full bg-gray-1"
+            leftIcon={<Layers3 iconSize="md-medium" className="text-gray-9" />}
             rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
           >
             <SelectValue placeholder="All Environments" />

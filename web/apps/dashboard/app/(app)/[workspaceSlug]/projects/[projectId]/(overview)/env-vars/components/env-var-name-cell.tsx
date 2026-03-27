@@ -1,25 +1,31 @@
 "use client";
 
+import { trpc } from "@/lib/trpc/client";
 import { CircleInfo } from "@unkey/icons";
 import { InfoTooltip, toast } from "@unkey/ui";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { HighlightMatch } from "./highlight-match";
 
 type EnvVarNameCellProps = {
+  envVarId: string;
   variableKey: string;
   environmentName: string;
   note?: string | null;
   searchQuery: string;
+  type: "writeonly" | "recoverable";
 };
 
 export const EnvVarNameCell = memo(function EnvVarNameCell({
+  envVarId,
   variableKey,
   environmentName,
   note,
   searchQuery,
+  type,
 }: EnvVarNameCellProps) {
   const [copied, setCopied] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const decryptMutation = trpc.deploy.envVar.decrypt.useMutation();
 
   useEffect(() => {
     return () => {
@@ -28,22 +34,31 @@ export const EnvVarNameCell = memo(function EnvVarNameCell({
   }, []);
 
   const handleCopy = useCallback(
-    (e: React.MouseEvent) => {
+    async (e: React.MouseEvent) => {
       e.stopPropagation();
-      navigator.clipboard.writeText(variableKey);
-      setCopied(true);
-      toast.success("Copied to clipboard");
-      clearTimeout(copyTimeoutRef.current);
-      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+      try {
+        if (type === "recoverable") {
+          const result = await decryptMutation.mutateAsync({ envVarId });
+          navigator.clipboard.writeText(`${variableKey}=${result.value}`);
+        } else {
+          navigator.clipboard.writeText(variableKey);
+        }
+        setCopied(true);
+        toast.success("Copied to clipboard");
+        clearTimeout(copyTimeoutRef.current);
+        copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+      } catch {
+        toast.error("Failed to copy variable");
+      }
     },
-    [variableKey],
+    [variableKey, type, envVarId, decryptMutation],
   );
 
   return (
     <div className="flex items-center gap-3 px-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <InfoTooltip content={copied ? "Copied!" : "Click to copy"} position={{ side: "top" }}>
+          <InfoTooltip content={copied ? "Copied!" : type === "recoverable" ? "Click to copy KEY=VALUE" : "Click to copy key"} position={{ side: "top" }}>
             <button
               type="button"
               onClick={handleCopy}
@@ -55,7 +70,7 @@ export const EnvVarNameCell = memo(function EnvVarNameCell({
           {note && (
             <InfoTooltip content={note} position={{ side: "top" }}>
               <span className="shrink-0 text-gray-9">
-                <CircleInfo iconSize="md-regular" />
+                <CircleInfo iconSize="lg-regular" className="mt-0.5" />
               </span>
             </InfoTooltip>
           )}

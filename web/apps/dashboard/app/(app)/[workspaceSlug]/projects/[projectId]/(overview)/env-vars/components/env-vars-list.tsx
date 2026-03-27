@@ -107,16 +107,18 @@ export function EnvVarsList({
           <div className="group flex items-center hover:bg-grayA-2 transition-colors">
             <div className="flex-3 min-w-0 py-3.5 flex items-center">
               <EnvVarNameCell
+                envVarId={item.id}
                 variableKey={item.key}
                 environmentName={item.environmentName}
                 note={item.note}
                 searchQuery={deferredQuery}
+                type={item.type}
               />
             </div>
-            <div className="flex-4 min-w-0 py-3.5 flex items-center">
+            <div className="flex-4 min-w-0 py-3.5 flex items-center pr-3">
               <EnvVarValueCell envVarId={item.id} type={item.type} />
             </div>
-            <div className="flex-1 min-w-0 py-3.5 flex items-center pr-3">
+            <div className="flex-2 min-w-0 py-3.5 flex items-center pr-3">
               <Badge className="px-1.5 rounded-md flex gap-2 items-center h-5.5 border-none bg-grayA-3 text-grayA-11 truncate">
                 <ChartActivity2 iconSize="sm-regular" className="shrink-0" />
                 <TimestampInfo displayType="relative" value={item.updatedAt} className="truncate" />
