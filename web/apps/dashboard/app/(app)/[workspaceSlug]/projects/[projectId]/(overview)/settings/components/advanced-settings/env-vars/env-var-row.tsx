@@ -108,14 +108,14 @@ export const EnvVarRow = memo(function EnvVarRow({
         />
       </div>
       <FormInput
-        className="flex-1 [&_input]:h-9 [&_input]:font-mono"
+        className="flex-1 [&_input]:font-mono"
         placeholder="MY_VAR"
         disabled={isPreviouslyAdded && isSecret}
         error={keyError}
         {...register(`envVars.${index}.key`)}
       />
       <FormInput
-        className="flex-1 [&_input]:h-9 [&_input]:font-mono"
+        className="flex-1 [&_input]:font-mono"
         disabled={isPreviouslyAdded && isSecret}
         placeholder={isPreviouslyAdded && isSecret ? "sensitive" : "value"}
         type={inputType}
