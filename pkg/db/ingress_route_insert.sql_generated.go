@@ -37,10 +37,10 @@ VALUES (
 
 type InsertFrontlineRouteParams struct {
 	ID                       string                `db:"id"`
-	ProjectID                string                `db:"project_id"`
-	AppID                    string                `db:"app_id"`
-	DeploymentID             string                `db:"deployment_id"`
-	EnvironmentID            string                `db:"environment_id"`
+	ProjectID                sql.NullString        `db:"project_id"`
+	AppID                    sql.NullString        `db:"app_id"`
+	DeploymentID             sql.NullString        `db:"deployment_id"`
+	EnvironmentID            sql.NullString        `db:"environment_id"`
 	FullyQualifiedDomainName string                `db:"fully_qualified_domain_name"`
 	Sticky                   FrontlineRoutesSticky `db:"sticky"`
 	CreatedAt                int64                 `db:"created_at"`

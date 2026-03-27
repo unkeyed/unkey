@@ -276,6 +276,27 @@ local_resource(
 
 
 
+# Portal - deployed as K8s service, routed via Frontline on *.unkey.local
+# Build the portal Docker image and load into minikube
+local_resource(
+    'build-portal-image',
+    'docker build -t unkey/portal:local -f ../web/apps/portal/Dockerfile .. && minikube image load unkey/portal:local',
+    deps=['../web/apps/portal', '../web/internal/db', '../web/internal/ui', '../web/internal/icons', '../web/internal/id'],
+    labels=['build'],
+    auto_init=False,
+)
+
+k8s_yaml('k8s/manifests/portal.yaml')
+k8s_resource(
+    'portal',
+    port_forwards='3100:3000',
+    resource_deps=['planetscale', 'api', 'build-portal-image'],
+    labels=['unkey'],
+    auto_init=False,
+    trigger_mode=TRIGGER_MODE_MANUAL,
+    links=['http://localhost:3100'],
+)
+
 # Dashboard - runs locally with HMR
 # Injects GitHub App env vars from dev/.env.github and dev/.github-private-key.pem
 local_resource(

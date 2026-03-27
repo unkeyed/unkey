@@ -64,6 +64,7 @@
             "pages": [
               "introduction",
               "quickstart/quickstart",
+              "quickstart/portal",
               "glossary"
             ]
           },
@@ -369,7 +370,10 @@
                     "pages": [
                       "errors/unkey/authentication/key_not_found",
                       "errors/unkey/authentication/malformed",
-                      "errors/unkey/authentication/missing"
+                      "errors/unkey/authentication/missing",
+                      "errors/unkey/authentication/portal_session_already_exchanged",
+                      "errors/unkey/authentication/portal_session_not_found",
+                      "errors/unkey/authentication/portal_token_missing"
                     ]
                   },
                   {

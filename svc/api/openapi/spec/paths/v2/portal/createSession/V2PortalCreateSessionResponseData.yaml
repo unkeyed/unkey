@@ -1,0 +1,24 @@
+type: object
+required:
+  - sessionId
+  - url
+  - expiresAt
+properties:
+  sessionId:
+    type: string
+    description: |
+      The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
+    example: pst_abc123def456
+  url:
+    type: string
+    format: uri
+    description: |
+      The full portal URL with the session parameter. Redirect the end user to this URL.
+    example: "https://acme.unkey.com/portal?session=pst_abc123def456"
+  expiresAt:
+    type: integer
+    format: int64
+    description: |
+      Unix timestamp in milliseconds when the session token expires (15 minutes from creation).
+    example: 1711300000000
+additionalProperties: false

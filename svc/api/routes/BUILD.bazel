@@ -61,6 +61,8 @@ go_library(
         "//svc/api/routes/v2_permissions_get_role",
         "//svc/api/routes/v2_permissions_list_permissions",
         "//svc/api/routes/v2_permissions_list_roles",
+        "//svc/api/routes/v2_portal_create_session",
+        "//svc/api/routes/v2_portal_exchange_session",
         "//svc/api/routes/v2_ratelimit_delete_override",
         "//svc/api/routes/v2_ratelimit_get_override",
         "//svc/api/routes/v2_ratelimit_limit",

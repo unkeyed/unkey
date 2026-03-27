@@ -112,10 +112,20 @@ func New(cfg Config) (*service, error) {
 }
 
 func (s *service) Forward(ctx context.Context, sess *zen.Session, decision router.RouteDecision) error {
-	if decision.Destination == router.DestinationLocalSentinel {
+	switch decision.Destination {
+	case router.DestinationLocalSentinel:
 		return s.forwardToSentinel(ctx, sess, decision.Address, decision.DeploymentID)
+	case router.DestinationRemoteRegion:
+		return s.forwardToRegion(ctx, sess, decision.Address)
+	case router.DestinationPortal:
+		return s.forwardToPortal(ctx, sess, decision.Address, decision.PathPrefix)
+	default:
+		return fault.New("unknown route destination: "+string(decision.Destination),
+			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
+			fault.Internal("unhandled route destination type"),
+			fault.Public("Internal routing error"),
+		)
 	}
-	return s.forwardToRegion(ctx, sess, decision.Address)
 }
 
 func (s *service) forwardToSentinel(ctx context.Context, sess *zen.Session, sentinelAddress string, deploymentID string) error {
@@ -175,5 +185,28 @@ func (s *service) forwardToRegion(ctx context.Context, sess *zen.Session, target
 		directorFunc: s.makeRegionDirector(sess, startTime),
 		destination:  "region",
 		transport:    s.transport,
+	})
+}
+
+// forwardToPortal forwards a request to the portal Next.js service. Portal
+// routes bypass sentinel entirely — frontline connects directly to the portal
+// service over plain HTTP (h2c), similar to how it connects to sentinel.
+func (s *service) forwardToPortal(ctx context.Context, sess *zen.Session, portalAddress string, pathPrefix string) error {
+	startTime, _ := RequestStartTimeFromContext(ctx)
+
+	targetURL, err := url.Parse(fmt.Sprintf("http://%s", portalAddress))
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
+			fault.Internal("failed to parse portal URL"),
+		)
+	}
+
+	return s.forward(ctx, sess, forwardConfig{
+		targetURL:    targetURL,
+		startTime:    startTime,
+		directorFunc: s.makePortalDirector(sess, startTime, pathPrefix),
+		destination:  "portal",
+		transport:    s.h2cTransport,
 	})
 }

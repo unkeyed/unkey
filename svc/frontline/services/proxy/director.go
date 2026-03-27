@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -75,6 +76,45 @@ func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time) fun
 				"maxHops", s.maxHops,
 				"hostname", req.Host,
 			)
+		}
+	}
+}
+
+// makePortalDirector creates a Director function for forwarding to the portal
+// service. Portal requests preserve the original Host header so the portal can
+// resolve the tenant from the hostname. If a pathPrefix is configured on the
+// route (e.g. "/portal"), it is stripped from the request path before forwarding
+// so the portal app sees clean paths (e.g. "/portal/keys" → "/keys").
+func (s *service) makePortalDirector(sess *zen.Session, startTime time.Time, pathPrefix string) func(*http.Request) {
+	return func(req *http.Request) {
+		req.Header.Set(HeaderFrontlineID, s.instanceID)
+		req.Header.Set(HeaderRegion, fmt.Sprintf("%s::%s", s.platform, s.region))
+		req.Header.Set(HeaderRequestID, sess.RequestID())
+
+		frontlineRoutingTime := s.clock.Now().Sub(startTime)
+		timing.Write(sess.ResponseWriter(), timing.Entry{
+			Name:     "frontline_routing",
+			Duration: frontlineRoutingTime,
+			Attributes: map[string]string{
+				"scope": "frontline",
+			},
+		})
+
+		req.Header.Set(HeaderForwardedProto, "https")
+
+		// Preserve original Host so the portal can resolve the tenant from hostname.
+		req.Host = sess.Request().Host
+		req.Header.Set("Host", sess.Request().Host)
+
+		// Strip the path prefix so the portal app sees clean paths.
+		// e.g. "/portal/keys" → "/keys", "/portal" → "/"
+		if pathPrefix != "" && strings.HasPrefix(req.URL.Path, pathPrefix) {
+			trimmed := strings.TrimPrefix(req.URL.Path, pathPrefix)
+			if trimmed == "" {
+				trimmed = "/"
+			}
+			req.URL.Path = trimmed
+			req.URL.RawPath = "" // force re-encoding
 		}
 	}
 }

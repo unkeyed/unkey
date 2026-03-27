@@ -682,10 +682,13 @@ CREATE TABLE `certificates` (
 CREATE TABLE `frontline_routes` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
 	`id` varchar(128) NOT NULL,
-	`project_id` varchar(255) NOT NULL,
-	`app_id` varchar(64) NOT NULL,
-	`deployment_id` varchar(255) NOT NULL,
-	`environment_id` varchar(255) NOT NULL,
+	`route_type` enum('deployment','portal') NOT NULL DEFAULT 'deployment',
+	`project_id` varchar(255),
+	`app_id` varchar(64),
+	`deployment_id` varchar(255),
+	`environment_id` varchar(255),
+	`portal_config_id` varchar(64),
+	`path_prefix` varchar(128),
 	`fully_qualified_domain_name` varchar(256) NOT NULL,
 	`sticky` enum('none','branch','environment','live','deployment') NOT NULL DEFAULT 'none',
 	`created_at` bigint NOT NULL,
@@ -774,6 +777,65 @@ CREATE TABLE `horizontal_autoscaling_policies` (
 	CONSTRAINT `horizontal_autoscaling_policies_id_unique` UNIQUE(`id`)
 );
 
+CREATE TABLE `portal_configurations` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(64) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`app_id` varchar(64),
+	`key_auth_id` varchar(64),
+	`enabled` boolean NOT NULL DEFAULT true,
+	`return_url` varchar(500),
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `portal_configurations_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `portal_configurations_id_unique` UNIQUE(`id`),
+	CONSTRAINT `idx_app_id` UNIQUE(`app_id`),
+	CONSTRAINT `idx_key_auth_id` UNIQUE(`key_auth_id`)
+);
+
+CREATE TABLE `portal_branding` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`portal_config_id` varchar(64) NOT NULL,
+	`logo_url` varchar(500),
+	`primary_color` varchar(7),
+	`secondary_color` varchar(7),
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `portal_branding_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `portal_branding_portal_config_id_unique` UNIQUE(`portal_config_id`)
+);
+
+CREATE TABLE `portal_session_tokens` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(64) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`portal_config_id` varchar(64) NOT NULL,
+	`external_id` varchar(256) NOT NULL,
+	`metadata` json,
+	`permissions` json NOT NULL,
+	`preview` boolean NOT NULL DEFAULT false,
+	`exchanged_at` bigint,
+	`expires_at` bigint NOT NULL,
+	`created_at` bigint NOT NULL,
+	CONSTRAINT `portal_session_tokens_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `portal_session_tokens_id_unique` UNIQUE(`id`)
+);
+
+CREATE TABLE `portal_sessions` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(64) NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
+	`portal_config_id` varchar(64) NOT NULL,
+	`external_id` varchar(256) NOT NULL,
+	`metadata` json,
+	`permissions` json NOT NULL,
+	`preview` boolean NOT NULL DEFAULT false,
+	`expires_at` bigint NOT NULL,
+	`created_at` bigint NOT NULL,
+	CONSTRAINT `portal_sessions_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `portal_sessions_id_unique` UNIQUE(`id`)
+);
+
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`,`id`);
@@ -815,4 +877,10 @@ CREATE INDEX `fqdn_environment_deployment_idx` ON `frontline_routes` (`fully_qua
 CREATE INDEX `installation_id_idx` ON `github_repo_connections` (`installation_id`);
 CREATE INDEX `idx_deployment_region` ON `cilium_network_policies` (`deployment_id`,`region_id`);
 CREATE INDEX `workspace_idx` ON `horizontal_autoscaling_policies` (`workspace_id`);
+CREATE INDEX `idx_workspace` ON `portal_configurations` (`workspace_id`);
+CREATE INDEX `idx_workspace` ON `portal_session_tokens` (`workspace_id`);
+CREATE INDEX `idx_expires` ON `portal_session_tokens` (`expires_at`);
+CREATE INDEX `idx_workspace` ON `portal_sessions` (`workspace_id`);
+CREATE INDEX `idx_external_id` ON `portal_sessions` (`external_id`);
+CREATE INDEX `idx_expires` ON `portal_sessions` (`expires_at`);
 

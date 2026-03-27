@@ -1,0 +1,43 @@
+# Go / Bazel
+/cmd
+/svc
+/pkg
+/internal
+/gen
+/proto
+/bin
+bazel-*
+/MODULE.bazel.lock
+
+# Git
+.git
+
+# Dev / docs
+/dev
+/docs
+/benchmarks
+/.github
+/.vscode
+/.kiro
+/.agents
+/.amp
+
+# Other web apps (not needed for portal build)
+/web/apps/dashboard
+/web/apps/engineering
+/web/apps/planetfall
+/web/apps/play
+/web/apps/workflows
+/web/apps/agent-gpt
+/web/apps/api
+
+# Node modules (pnpm install happens in Docker)
+**/node_modules
+
+# Misc
+*.md
+LICENSE
+Makefile
+/demo_api
+/k8s
+/.git

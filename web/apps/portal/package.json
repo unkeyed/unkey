@@ -1,0 +1,32 @@
+{
+  "name": "@unkey/portal",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3100",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@planetscale/database": "1.19.0",
+    "@tanstack/react-query": "4.36.1",
+    "@unkey/db": "workspace:^",
+    "@unkey/icons": "workspace:^",
+    "@unkey/ui": "workspace:^",
+    "geist": "1.3.1",
+    "next": "16.1.5",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "tailwindcss": "4.2.1",
+    "typescript": "5.7.3",
+    "zod": "4.3.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.14.0",
+    "@types/react": "19.2.4",
+    "@types/react-dom": "19.2.4",
+    "vitest": "3.2.4"
+  }
+}

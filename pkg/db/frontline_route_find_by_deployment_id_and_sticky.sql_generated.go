@@ -7,30 +7,34 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findFrontlineRouteByDeploymentIDAndSticky = `-- name: FindFrontlineRouteByDeploymentIDAndSticky :one
-SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
+SELECT pk, id, route_type, project_id, app_id, deployment_id, environment_id, portal_config_id, path_prefix, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
 `
 
 type FindFrontlineRouteByDeploymentIDAndStickyParams struct {
-	DeploymentID string                `db:"deployment_id"`
+	DeploymentID sql.NullString        `db:"deployment_id"`
 	Sticky       FrontlineRoutesSticky `db:"sticky"`
 }
 
 // FindFrontlineRouteByDeploymentIDAndSticky
 //
-//	SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
+//	SELECT pk, id, route_type, project_id, app_id, deployment_id, environment_id, portal_config_id, path_prefix, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
 func (q *Queries) FindFrontlineRouteByDeploymentIDAndSticky(ctx context.Context, db DBTX, arg FindFrontlineRouteByDeploymentIDAndStickyParams) (FrontlineRoute, error) {
 	row := db.QueryRowContext(ctx, findFrontlineRouteByDeploymentIDAndSticky, arg.DeploymentID, arg.Sticky)
 	var i FrontlineRoute
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
+		&i.RouteType,
 		&i.ProjectID,
 		&i.AppID,
 		&i.DeploymentID,
 		&i.EnvironmentID,
+		&i.PortalConfigID,
+		&i.PathPrefix,
 		&i.FullyQualifiedDomainName,
 		&i.Sticky,
 		&i.CreatedAt,
