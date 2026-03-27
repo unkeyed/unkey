@@ -5,6 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
+import { SettingField } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const portSchema = z.object({
@@ -51,23 +52,24 @@ export const Port = () => {
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
-      <FormInput
-        required
-        type="number"
-        onWheelCapture={(e) => {
-          //@ts-expect-error there is no other way to prevent scroll here
-          e.target.blur();
-        }}
-        className="w-[480px]"
-        label="Port"
-        description="Port your application listens on. Changes apply on next deploy."
-        placeholder="8080"
-        min={1}
-        max={65535}
-        error={errors.port?.message}
-        variant={errors.port ? "error" : "default"}
-        {...register("port", { valueAsNumber: true })}
-      />
+      <SettingField>
+        <FormInput
+          required
+          type="number"
+          onWheelCapture={(e) => {
+            //@ts-expect-error there is no other way to prevent scroll here
+            e.target.blur();
+          }}
+          label="Port"
+          description="Port your application listens on. Changes apply on next deploy."
+          placeholder="8080"
+          min={1}
+          max={65535}
+          error={errors.port?.message}
+          variant={errors.port ? "error" : "default"}
+          {...register("port", { valueAsNumber: true })}
+        />
+      </SettingField>
     </FormSettingCard>
   );
 };

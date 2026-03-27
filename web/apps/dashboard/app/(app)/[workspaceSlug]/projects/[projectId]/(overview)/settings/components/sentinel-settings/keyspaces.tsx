@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
+import { SettingField } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const keyspacesSchema = z.object({
@@ -165,43 +166,44 @@ const KeyspacesForm: React.FC<KeyspacesFormProps> = ({
       saveState={saveState}
       autoSave={autoSave}
     >
-      <FormCombobox
-        label="Keyspaces"
-        description="Sentinels handle auth before the request even reaches your API"
-        optional
-        className="w-[480px]"
-        options={comboboxOptions}
-        value=""
-        onSelect={addKeyspace}
-        placeholder={
-          currentKeyspaceIds.length === 0 ? (
-            <span className="text-grayA-8 w-full text-left">Select a keyspace</span>
-          ) : (
-            <div className="w-full flex flex-wrap gap-1.5 py-0.5">
-              {currentKeyspaceIds.map((keyspaceId) => (
-                <span
-                  key={keyspaceId}
-                  className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-grayA-3 border border-grayA-4 text-xs text-accent-12"
-                >
-                  {availableKeyspaces[keyspaceId]?.api?.name ?? keyspaceId}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeKeyspace(keyspaceId);
-                    }}
-                    className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
+      <SettingField>
+        <FormCombobox
+          label="Keyspaces"
+          description="Sentinels handle auth before the request even reaches your API"
+          optional
+          options={comboboxOptions}
+          value=""
+          onSelect={addKeyspace}
+          placeholder={
+            currentKeyspaceIds.length === 0 ? (
+              <span className="text-grayA-8 w-full text-left">Select a keyspace</span>
+            ) : (
+              <div className="w-full flex flex-wrap gap-1.5 py-0.5">
+                {currentKeyspaceIds.map((keyspaceId) => (
+                  <span
+                    key={keyspaceId}
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-grayA-3 border border-grayA-4 text-xs text-accent-12"
                   >
-                    <XMark iconSize="sm-regular" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )
-        }
-        searchPlaceholder="Search keyspaces..."
-        emptyMessage={<div className="mt-2"> No keyspaces available.</div>}
-      />
+                    {availableKeyspaces[keyspaceId]?.api?.name ?? keyspaceId}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeKeyspace(keyspaceId);
+                      }}
+                      className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
+                    >
+                      <XMark iconSize="sm-regular" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )
+          }
+          searchPlaceholder="Search keyspaces..."
+          emptyMessage={<div className="mt-2"> No keyspaces available.</div>}
+        />
+      </SettingField>
     </FormSettingCard>
   );
 };
