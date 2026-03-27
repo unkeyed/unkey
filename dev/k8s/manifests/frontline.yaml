@@ -28,6 +28,8 @@ data:
     url = "http://vault:8060"
     token = "vault-test-token-123"
 
+    portal_addr = "portal:3000"
+
     [pprof]
     username = "admin"
     password = "password"

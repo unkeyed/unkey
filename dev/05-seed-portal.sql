@@ -66,7 +66,7 @@ INSERT INTO frontline_routes (
   'portal',
   'portal_awesome',
   '/portal',
-  'localhost',
+  'awesome.unkey.local',
   'none',
   UNIX_TIMESTAMP() * 1000
-) ON DUPLICATE KEY UPDATE route_type = 'portal', fully_qualified_domain_name = 'localhost';
+) ON DUPLICATE KEY UPDATE route_type = 'portal', fully_qualified_domain_name = 'awesome.unkey.local';
