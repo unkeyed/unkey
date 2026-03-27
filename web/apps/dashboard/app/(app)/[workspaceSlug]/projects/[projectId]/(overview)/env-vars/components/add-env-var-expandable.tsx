@@ -21,6 +21,7 @@ import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema } from "./schema";
 import { useDropZone } from "./use-drop-zone";
 import { expandToFlatRecords, toTrpcType } from "./utils";
+import { usePreventLeave } from "@/hooks/use-prevent-leave";
 
 type AddEnvVarExpandableProps = {
   tableDistanceToTop: number;
@@ -59,6 +60,7 @@ export const AddEnvVarExpandable = ({
   const { ref: formRef, isDragging, importFile } = useDropZone(reset, trigger, getValues);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  usePreventLeave(isOpen)
   useEffect(() => {
     if (!isOpen) {
       reset({
@@ -151,7 +153,7 @@ export const AddEnvVarExpandable = ({
       {/* Backdrop overlay */}
       <div
         className={cn(
-          "fixed inset-0 z-[100] bg-background/5 backdrop-blur-[2px] transition-opacity duration-300",
+          "fixed inset-0 z-100 bg-background/5 backdrop-blur-[2px] transition-opacity duration-300",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
         onClick={onClose}
@@ -160,7 +162,7 @@ export const AddEnvVarExpandable = ({
       <div
         ref={panelRef}
         className={cn(
-          "fixed right-3 bg-gray-1 border border-grayA-4 rounded-xl w-175 overflow-hidden z-[101]",
+          "fixed right-3 bg-gray-1 border border-grayA-4 rounded-xl w-175 overflow-hidden z-101",
           "transition-all duration-300 ease-out",
           "shadow-md",
           isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",

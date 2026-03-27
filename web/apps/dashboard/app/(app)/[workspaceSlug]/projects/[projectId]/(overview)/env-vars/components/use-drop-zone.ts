@@ -46,10 +46,33 @@ export function useDropZone(
 
   const importParsed = useCallback(
     (parsed: Array<{ key: string; value: string }>) => {
+      // Deduplicate within the batch — last occurrence wins (standard .env behavior)
+      const deduped = new Map<string, { key: string; value: string }>();
+      for (const row of parsed) {
+        deduped.set(row.key, row);
+      }
+
       const existing = getValues("envVars").filter((row) => row.key !== "");
-      const newRows = parsed.map((row) => ({ ...row, description: "" }));
-      reset({ ...getValues(), envVars: [...existing, ...newRows] }, { keepDefaultValues: true });
-      toast.success(`Imported ${parsed.length} variable(s)`);
+      const existingKeys = new Set(existing.map((row) => row.key));
+
+      const newRows = [...deduped.values()].filter((row) => !existingKeys.has(row.key));
+      const skipped = deduped.size - newRows.length;
+
+      if (newRows.length === 0) {
+        toast.info("All variables already exist");
+        return;
+      }
+
+      reset(
+        { ...getValues(), envVars: [...existing, ...newRows.map((row) => ({ ...row, description: "" }))] },
+        { keepDefaultValues: true },
+      );
+
+      if (skipped > 0) {
+        toast.success(`Imported ${newRows.length} variable(s), ${skipped} duplicate(s) skipped`);
+      } else {
+        toast.success(`Imported ${newRows.length} variable(s)`);
+      }
       trigger();
     },
     [getValues, reset, trigger],
@@ -75,6 +98,11 @@ export function useDropZone(
     }
 
     const handlePaste = async (e: ClipboardEvent) => {
+      const target = e.target;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
       const clipboardData = e.clipboardData;
       if (!clipboardData) {
         return;

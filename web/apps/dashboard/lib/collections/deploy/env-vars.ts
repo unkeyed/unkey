@@ -77,6 +77,7 @@ export const envVars = createCollection<EnvVar, string>(
           key: z.string().min(1),
           value: z.string().min(1),
           type: z.enum(["recoverable", "writeonly"]),
+          description: z.string().nullable().optional(),
         })
         .parse(changes);
 
@@ -87,6 +88,7 @@ export const envVars = createCollection<EnvVar, string>(
             key: insertInput.key,
             value: insertInput.value,
             type: insertInput.type,
+            description: insertInput.description ?? null,
           },
         ],
       });

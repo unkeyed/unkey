@@ -42,7 +42,7 @@ export const EnvVarNameCell = memo(function EnvVarNameCell({ variableKey, enviro
             <button
               type="button"
               onClick={handleCopy}
-              className="font-mono font-medium text-[13px] text-accent-12 truncate leading-4 cursor-pointer hover:text-accent-11 transition-colors"
+              className="font-mono font-medium text-[13px] text-accent-12 truncate leading-4 cursor-pointer hover:text-accent-11 transition-colors max-w-[250px] "
             >
               <HighlightMatch text={variableKey} query={searchQuery} />
             </button>
