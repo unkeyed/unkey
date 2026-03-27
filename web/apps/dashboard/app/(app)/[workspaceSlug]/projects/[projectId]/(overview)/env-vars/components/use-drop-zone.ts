@@ -69,7 +69,10 @@ export function useDropZone(
       }
 
       reset(
-        { ...getValues(), envVars: [...existing, ...newRows.map((row) => ({ ...row, description: "" }))] },
+        {
+          ...getValues(),
+          envVars: [...existing, ...newRows.map((row) => ({ ...row, description: "" }))],
+        },
         { keepDefaultValues: true },
       );
 
@@ -151,7 +154,10 @@ export function useDropZone(
       e.preventDefault();
       e.stopPropagation();
       const related = e.relatedTarget;
-      if (e.currentTarget === dropZone && !(related instanceof Node && dropZone.contains(related))) {
+      if (
+        e.currentTarget === dropZone &&
+        !(related instanceof Node && dropZone.contains(related))
+      ) {
         setIsDragging(false);
       }
     };

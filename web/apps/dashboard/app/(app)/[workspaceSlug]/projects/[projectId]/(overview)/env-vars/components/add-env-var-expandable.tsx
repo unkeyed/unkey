@@ -1,5 +1,6 @@
-import { collection } from "@/lib/collections";
 import { Switch } from "@/components/ui/switch";
+import { usePersistedForm } from "@/hooks/use-persisted-form";
+import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo, CloudUp, DoubleChevronRight, Plus } from "@unkey/icons";
 import {
@@ -13,7 +14,6 @@ import {
   toast,
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { type ChangeEvent, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Controller, useFieldArray } from "react-hook-form";
@@ -116,9 +116,7 @@ export const AddEnvVarExpandable = ({
     }
 
     const targetEnvIds =
-      values.environmentId === "__all__"
-        ? environments.map((e) => e.id)
-        : [values.environmentId];
+      values.environmentId === "__all__" ? environments.map((e) => e.id) : [values.environmentId];
     const type = values.secret ? "writeonly" : "recoverable";
     const flatRecords = nonEmpty.flatMap((entry) =>
       targetEnvIds.map((envId) => ({
@@ -188,7 +186,13 @@ export const AddEnvVarExpandable = ({
                 Set a key-value pair for your project.
               </span>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close panel" className="mt-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              aria-label="Close panel"
+              className="mt-0.5"
+            >
               <DoubleChevronRight
                 iconSize="lg-medium"
                 className="text-gray-10 transition-transform duration-300 ease-out group-hover:text-gray-12"
@@ -258,7 +262,13 @@ export const AddEnvVarExpandable = ({
 
                 {/* Add Another */}
                 <div className="flex py-6 px-8">
-                  <Button type="button" variant="outline" size="md" className="font-medium" onClick={handleAdd}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="md"
+                    className="font-medium"
+                    onClick={handleAdd}
+                  >
                     <Plus iconSize="sm-regular" />
                     Add Another
                   </Button>
@@ -287,7 +297,9 @@ export const AddEnvVarExpandable = ({
                           </SelectContent>
                         </Select>
                         {errors.environmentId?.message && (
-                          <p className="text-error-11 text-[13px]">{errors.environmentId.message}</p>
+                          <p className="text-error-11 text-[13px]">
+                            {errors.environmentId.message}
+                          </p>
                         )}
                       </fieldset>
                     )}
@@ -335,7 +347,6 @@ export const AddEnvVarExpandable = ({
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <CloudUp iconSize="sm-regular" />
-
                     Import <span className="font-medium">.env</span>
                   </Button>
                   <span className="text-[13px] text-gray-11">
@@ -362,4 +373,3 @@ export const AddEnvVarExpandable = ({
     document.body,
   );
 };
-

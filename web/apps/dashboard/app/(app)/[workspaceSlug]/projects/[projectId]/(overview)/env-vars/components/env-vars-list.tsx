@@ -22,7 +22,13 @@ type EnvVarsListProps = {
   sortBy: SortOption;
 };
 
-export function EnvVarsList({ projectId, environments, searchQuery, environmentFilter, sortBy }: EnvVarsListProps) {
+export function EnvVarsList({
+  projectId,
+  environments,
+  searchQuery,
+  environmentFilter,
+  sortBy,
+}: EnvVarsListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const closeEdit = useCallback(() => setEditingId(null), []);
   const deferredQuery = useDeferredValue(searchQuery);
@@ -98,11 +104,14 @@ export function EnvVarsList({ projectId, environments, searchQuery, environmentF
     <div className="border border-grayA-4 rounded-[14px] overflow-hidden divide-y divide-grayA-4">
       {filteredData.map((item) => (
         <div key={item.id}>
-          <div
-            className="group flex items-center hover:bg-grayA-2 transition-colors"
-          >
+          <div className="group flex items-center hover:bg-grayA-2 transition-colors">
             <div className="flex-3 min-w-0 py-3.5 flex items-center">
-              <EnvVarNameCell variableKey={item.key} environmentName={item.environmentName} note={item.note} searchQuery={deferredQuery} />
+              <EnvVarNameCell
+                variableKey={item.key}
+                environmentName={item.environmentName}
+                note={item.note}
+                searchQuery={deferredQuery}
+              />
             </div>
             <div className="flex-4 min-w-0 py-3.5 flex items-center">
               <EnvVarValueCell envVarId={item.id} type={item.type} />
@@ -110,15 +119,16 @@ export function EnvVarsList({ projectId, environments, searchQuery, environmentF
             <div className="flex-1 min-w-0 py-3.5 flex items-center pr-3">
               <Badge className="px-1.5 rounded-md flex gap-2 items-center h-5.5 border-none bg-grayA-3 text-grayA-11 truncate">
                 <ChartActivity2 iconSize="sm-regular" className="shrink-0" />
-                <TimestampInfo
-                  displayType="relative"
-                  value={item.updatedAt}
-                  className="truncate"
-                />
+                <TimestampInfo displayType="relative" value={item.updatedAt} className="truncate" />
               </Badge>
             </div>
             <div className="w-12 shrink-0 py-3.5 pr-3 flex items-center justify-end">
-              <EnvVarActionMenu envVarId={item.id} variableKey={item.key} type={item.type} onEdit={() => setEditingId(item.id)} />
+              <EnvVarActionMenu
+                envVarId={item.id}
+                variableKey={item.key}
+                type={item.type}
+                onEdit={() => setEditingId(item.id)}
+              />
             </div>
           </div>
           {editingId === item.id && (

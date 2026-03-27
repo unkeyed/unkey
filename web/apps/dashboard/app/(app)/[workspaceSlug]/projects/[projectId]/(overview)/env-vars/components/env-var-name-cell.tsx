@@ -12,7 +12,12 @@ type EnvVarNameCellProps = {
   searchQuery: string;
 };
 
-export const EnvVarNameCell = memo(function EnvVarNameCell({ variableKey, environmentName, note, searchQuery }: EnvVarNameCellProps) {
+export const EnvVarNameCell = memo(function EnvVarNameCell({
+  variableKey,
+  environmentName,
+  note,
+  searchQuery,
+}: EnvVarNameCellProps) {
   const [copied, setCopied] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 

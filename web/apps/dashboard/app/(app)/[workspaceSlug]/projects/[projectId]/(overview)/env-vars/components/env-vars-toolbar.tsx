@@ -1,7 +1,14 @@
 "use client";
 
 import { BarsFilter, ChevronDown, Magnifier } from "@unkey/icons";
-import { FormInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import {
+  FormInput,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@unkey/ui";
 
 const SORT_OPTIONS = ["last-updated", "name-asc"] as const;
 export type SortOption = (typeof SORT_OPTIONS)[number];
@@ -43,7 +50,10 @@ export function EnvVarsToolbar({
       </div>
       <div className="flex-[25%]">
         <Select value={environmentFilter} onValueChange={onEnvironmentFilterChange}>
-          <SelectTrigger className="h-9 w-full bg-gray-1" rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}>
+          <SelectTrigger
+            className="h-9 w-full bg-gray-1"
+            rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+          >
             <SelectValue placeholder="All Environments" />
           </SelectTrigger>
           <SelectContent>
@@ -57,7 +67,14 @@ export function EnvVarsToolbar({
         </Select>
       </div>
       <div className="flex-[25%] max-w-[184px]">
-        <Select value={sortBy} onValueChange={(v) => { if (isSortOption(v)) { onSortChange(v); } }}>
+        <Select
+          value={sortBy}
+          onValueChange={(v) => {
+            if (isSortOption(v)) {
+              onSortChange(v);
+            }
+          }}
+        >
           <SelectTrigger
             className="h-9 w-full bg-gray-1"
             leftIcon={<BarsFilter iconSize="md-medium" className="text-gray-9" />}

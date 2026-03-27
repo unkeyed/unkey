@@ -10,7 +10,10 @@ type EnvVarValueCellProps = {
   type: "writeonly" | "recoverable";
 };
 
-export const EnvVarValueCell = memo(function EnvVarValueCell({ envVarId, type }: EnvVarValueCellProps) {
+export const EnvVarValueCell = memo(function EnvVarValueCell({
+  envVarId,
+  type,
+}: EnvVarValueCellProps) {
   const [visible, setVisible] = useState(false);
   const [copied, setCopied] = useState(false);
   const [decryptedValue, setDecryptedValue] = useState<string>();
@@ -25,27 +28,30 @@ export const EnvVarValueCell = memo(function EnvVarValueCell({ envVarId, type }:
     };
   }, []);
 
-  const handleToggleReveal = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleToggleReveal = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
 
-    if (visible) {
-      setVisible(false);
-      return;
-    }
+      if (visible) {
+        setVisible(false);
+        return;
+      }
 
-    if (decryptedValue !== undefined) {
-      setVisible(true);
-      return;
-    }
+      if (decryptedValue !== undefined) {
+        setVisible(true);
+        return;
+      }
 
-    try {
-      const result = await decryptMutation.mutateAsync({ envVarId });
-      setDecryptedValue(result.value);
-      setVisible(true);
-    } catch {
-      toast.error("Failed to decrypt value");
-    }
-  }, [visible, decryptedValue, envVarId, decryptMutation]);
+      try {
+        const result = await decryptMutation.mutateAsync({ envVarId });
+        setDecryptedValue(result.value);
+        setVisible(true);
+      } catch {
+        toast.error("Failed to decrypt value");
+      }
+    },
+    [visible, decryptedValue, envVarId, decryptMutation],
+  );
 
   const handleCopy = useCallback(
     (e: React.MouseEvent) => {

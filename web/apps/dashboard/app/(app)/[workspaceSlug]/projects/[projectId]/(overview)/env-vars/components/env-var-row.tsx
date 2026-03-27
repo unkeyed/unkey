@@ -54,8 +54,12 @@ export const EnvVarRow = memo(function EnvVarRow({
       <details className="group">
         <summary className="w-fit text-[13px] text-gray-11 hover:text-gray-12 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-1.5 group">
           <span className="group-open:hidden flex items-center gap-2">
-            <Plus iconSize="sm-medium" className="text-gray-9 group-hover:text-gray-12 transition-colors" />
-            Add Note</span>
+            <Plus
+              iconSize="sm-medium"
+              className="text-gray-9 group-hover:text-gray-12 transition-colors"
+            />
+            Add Note
+          </span>
           <span className="hidden group-open:inline">Note</span>
         </summary>
         <div className="pt-1.5">
