@@ -117,7 +117,6 @@ func getErrorPageInfo(urn codes.URN) errorPageInfo {
 			Status:  http.StatusInternalServerError,
 			Message: "The sentinel is misconfigured. Please contact support at support@unkey.com.",
 		}
-
 	// Sentinel Auth Errors
 	case codes.Sentinel.Auth.MissingCredentials.URN():
 		return errorPageInfo{

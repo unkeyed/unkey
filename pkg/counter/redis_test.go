@@ -302,11 +302,15 @@ func TestRedisCounterConnection(t *testing.T) {
 	})
 
 	t.Run("ConnectionRefused", func(t *testing.T) {
-		// Test with non-existent Redis server
-		_, err := NewRedis(RedisConfig{
+		// Redis being unreachable at startup should not prevent the counter
+		// from being created. The ratelimiter and usage limiter handle
+		// per-operation Redis errors gracefully (local fallback / DB fallback).
+		counter, err := NewRedis(RedisConfig{
 			RedisURL: "redis://localhost:12345",
 		})
-		require.Error(t, err)
+		require.NoError(t, err)
+		require.NotNil(t, counter)
+		t.Cleanup(func() { require.NoError(t, counter.Close()) })
 	})
 
 	t.Run("EmptyURL", func(t *testing.T) {
