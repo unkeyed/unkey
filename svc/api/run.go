@@ -23,8 +23,10 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/counter"
@@ -122,13 +124,52 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
+	apiRequests := batch.NewNoop[schema.ApiRequest]()
+	keyVerifications := batch.NewNoop[schema.KeyVerification]()
+	ratelimits := batch.NewNoop[schema.Ratelimit]()
+
 	if cfg.ClickHouse.URL != "" {
-		ch, err = clickhouse.New(clickhouse.Config{
+		chClient, chErr := clickhouse.New(clickhouse.Config{
 			URL: cfg.ClickHouse.URL,
 		})
-		if err != nil {
-			return fmt.Errorf("unable to create clickhouse: %w", err)
+		if chErr != nil {
+			return fmt.Errorf("unable to create clickhouse: %w", chErr)
 		}
+		ch = chClient
+
+		apiRequests = clickhouse.NewBuffer[schema.ApiRequest](chClient, "default.api_requests_raw_v2", clickhouse.BufferConfig{
+			Name:          "api_requests",
+			BatchSize:     10_000,
+			BufferSize:    20_000,
+			FlushInterval: 5 * time.Second,
+			Consumers:     2,
+			Drop:          nil,
+			OnFlushError:  nil,
+		})
+		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
+			Name:          "key_verifications",
+			BatchSize:     10_000,
+			BufferSize:    20_000,
+			FlushInterval: 5 * time.Second,
+			Consumers:     2,
+			Drop:          nil,
+			OnFlushError:  nil,
+		})
+		ratelimits = clickhouse.NewBuffer[schema.Ratelimit](chClient, "default.ratelimits_raw_v2", clickhouse.BufferConfig{
+			Name:          "ratelimits",
+			BatchSize:     10_000,
+			BufferSize:    20_000,
+			FlushInterval: 5 * time.Second,
+			Consumers:     2,
+			Drop:          nil,
+			OnFlushError:  nil,
+		})
+
+		// Close buffers before connection (LIFO)
+		r.Defer(func() error { apiRequests.Close(); return nil })
+		r.Defer(func() error { keyVerifications.Close(); return nil })
+		r.Defer(func() error { ratelimits.Close(); return nil })
+		r.Defer(chClient.Close)
 	}
 
 	// Caches will be created after invalidation consumer is set up
@@ -269,14 +310,14 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	keySvc, err := keys.New(keys.Config{
-		DB:           database,
-		KeyCache:     caches.VerificationKeyByHash,
-		QuotaCache:   caches.WorkspaceQuota,
-		RateLimiter:  rlSvc,
-		RBAC:         rbac.New(),
-		Clickhouse:   ch,
-		Region:       cfg.Region,
-		UsageLimiter: ulSvc,
+		DB:               database,
+		KeyCache:         caches.VerificationKeyByHash,
+		QuotaCache:       caches.WorkspaceQuota,
+		RateLimiter:      rlSvc,
+		RBAC:             rbac.New(),
+		KeyVerifications: keyVerifications,
+		Region:           cfg.Region,
+		UsageLimiter:     ulSvc,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
@@ -323,6 +364,8 @@ func Run(ctx context.Context, cfg Config) error {
 	routes.Register(srv, &routes.Services{
 		Database:             database,
 		ClickHouse:           ch,
+		ApiRequests:          apiRequests,
+		Ratelimits:           ratelimits,
 		Keys:                 keySvc,
 		Validator:            validator,
 		Ratelimit:            rlSvc,

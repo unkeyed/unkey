@@ -138,7 +138,10 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 			ReadonlyReplica: "${UNKEY_DATABASE_REPLICA}",
 		},
 		ClickHouse: sentinelcfg.ClickHouseConfig{
-			URL: "${UNKEY_CLICKHOUSE_URL}",
+			URL:       "${UNKEY_CLICKHOUSE_URL}",
+			BatchSize: 0,
+			BufferSize: 0,
+			Consumers: 0,
 		},
 		Redis: sentinelcfg.RedisConfig{
 			URL: "${UNKEY_REDIS_URL}",

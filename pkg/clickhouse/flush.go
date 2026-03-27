@@ -17,7 +17,7 @@ import (
 //   - Circuit breaker protection
 //
 // Returns an error if any part of the batch operation fails after all retries.
-func flush[T any](c *clickhouse, ctx context.Context, table string, rows []T) error {
+func flush[T any](c *Client, ctx context.Context, table string, rows []T) error {
 	// Apply async insert settings
 	ctx = ch.Context(ctx, ch.WithSettings(ch.Settings{
 		"async_insert":             "1",
