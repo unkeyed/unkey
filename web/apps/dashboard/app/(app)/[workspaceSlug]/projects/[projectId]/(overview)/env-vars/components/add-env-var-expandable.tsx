@@ -1,17 +1,26 @@
 import { collection } from "@/lib/collections";
-import { FormCombobox } from "@/components/ui/form-combobox";
 import { Switch } from "@/components/ui/switch";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DoubleChevronRight, Plus } from "@unkey/icons";
-import { Button, InfoTooltip, toast } from "@unkey/ui";
+import { CircleInfo, CloudUp, DoubleChevronRight, Plus } from "@unkey/icons";
+import {
+  Button,
+  InfoTooltip,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  toast,
+} from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { type ChangeEvent, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { useProjectData } from "../../data-provider";
 import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema } from "./schema";
 import { useDropZone } from "./use-drop-zone";
-import { expandToFlatRecords, groupByEnvironment, toTrpcType } from "./utils";
+import { expandToFlatRecords, toTrpcType } from "./utils";
 
 type AddEnvVarExpandableProps = {
   tableDistanceToTop: number;
@@ -26,66 +35,39 @@ export const AddEnvVarExpandable = ({
 }: AddEnvVarExpandableProps) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const { projectId, environments } = useProjectData();
-  const allEnvironmentIds = useMemo(() => environments.map((e) => e.id), [environments]);
 
   const {
     register,
     handleSubmit,
-    formState: { isValid, isSubmitting, errors, isDirty },
+    formState: { isSubmitting, errors },
     control,
     reset,
     trigger,
     getValues,
+    setFocus,
   } = useForm<EnvVarsFormValues>({
     resolver: zodResolver(envVarsSchema),
-    mode: "onChange",
+    mode: "onSubmit",
     defaultValues: {
       envVars: [createEmptyEntry()],
-      environmentIds: allEnvironmentIds,
+      environmentId: "__all__",
       secret: false,
     },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "envVars" });
-  const { ref: formRef, isDragging } = useDropZone(reset, trigger, getValues);
-
-  const triggerTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const debouncedTrigger = useCallback(() => {
-    clearTimeout(triggerTimerRef.current);
-    triggerTimerRef.current = setTimeout(() => {
-      trigger("envVars");
-    }, 100);
-  }, [trigger]);
-
-  useEffect(() => {
-    return () => clearTimeout(triggerTimerRef.current);
-  }, []);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, onClose]);
+  const { ref: formRef, isDragging, importFile } = useDropZone(reset, trigger, getValues);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isOpen) {
       reset({
         envVars: [createEmptyEntry()],
-        environmentIds: allEnvironmentIds,
+        environmentId: "__all__",
         secret: false,
       });
     }
-  }, [isOpen, reset, allEnvironmentIds]);
+  }, [isOpen, reset, environments]);
 
   const handleAdd = useCallback(() => {
     append(createEmptyEntry());
@@ -94,10 +76,30 @@ export const AddEnvVarExpandable = ({
   const handleRemove = useCallback(
     (index: number) => {
       remove(index);
-      debouncedTrigger();
     },
-    [remove, debouncedTrigger],
+    [remove],
   );
+
+  const handleFileImport = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        importFile(file);
+      }
+      e.target.value = "";
+    },
+    [importFile],
+  );
+
+  const onInvalid = useCallback(() => {
+    const envVarErrors = errors.envVars;
+    if (envVarErrors && Array.isArray(envVarErrors)) {
+      const firstErrorIndex = envVarErrors.findIndex((e) => e != null);
+      if (firstErrorIndex !== -1) {
+        setFocus(`envVars.${firstErrorIndex}.key`);
+      }
+    }
+  }, [errors.envVars, setFocus]);
 
   const onSubmit = async (values: EnvVarsFormValues) => {
     const nonEmpty = values.envVars.filter((v) => v.key !== "" && v.value !== "");
@@ -105,25 +107,26 @@ export const AddEnvVarExpandable = ({
       return;
     }
 
-    const flatRecords = expandToFlatRecords(nonEmpty, values.environmentIds, values.secret);
-    const byEnv = groupByEnvironment(flatRecords);
+    const targetEnvIds =
+      values.environmentId === "__all__"
+        ? environments.map((e) => e.id)
+        : [values.environmentId];
+    const flatRecords = expandToFlatRecords(nonEmpty, targetEnvIds, values.secret);
 
     toast.promise(
-      Promise.all(
-        [...byEnv.entries()].map(async ([envId, vars]) => {
-          for (const v of vars) {
-            collection.envVars.insert({
-              id: crypto.randomUUID(),
-              environmentId: envId,
-              projectId,
-              key: v.key,
-              value: v.value,
-              type: toTrpcType(v.secret) as "recoverable" | "writeonly",
-              description: v.description || null,
-              createdAt: Date.now(),
-            });
-          }
-        }),
+      Promise.resolve(
+        flatRecords.map((v) =>
+          collection.envVars.insert({
+            id: crypto.randomUUID(),
+            environmentId: v.environmentId,
+            projectId,
+            key: v.key,
+            value: v.value,
+            type: toTrpcType(v.secret) as "recoverable" | "writeonly",
+            description: v.description || null,
+            createdAt: Date.now(),
+          }),
+        ),
       ),
       {
         loading: "Saving environment variable(s)...",
@@ -137,18 +140,27 @@ export const AddEnvVarExpandable = ({
 
     reset({
       envVars: [createEmptyEntry()],
-      environmentIds: allEnvironmentIds,
+      environmentId: "__all__",
       secret: false,
     });
     onClose();
   };
 
-  return (
-    <div className="flex">
+  return createPortal(
+    <>
+      {/* Backdrop overlay */}
+      <div
+        className={cn(
+          "fixed inset-0 z-[100] bg-background/5 backdrop-blur-[2px] transition-opacity duration-300",
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
+        )}
+        onClick={onClose}
+        aria-hidden="true"
+      />
       <div
         ref={panelRef}
         className={cn(
-          "fixed right-3 bg-gray-1 border border-grayA-4 rounded-xl w-175 overflow-hidden z-50",
+          "fixed right-3 bg-gray-1 border border-grayA-4 rounded-xl w-175 overflow-hidden z-[101]",
           "transition-all duration-300 ease-out",
           "shadow-md",
           isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
@@ -161,30 +173,21 @@ export const AddEnvVarExpandable = ({
       >
         <div className="h-full flex flex-col">
           {/* Header */}
-          <div className="flex items-start justify-between border-b border-grayA-4 px-6 py-4">
+          <div className="flex items-start justify-between border-b border-grayA-4 px-8 py-5">
             <div className="flex flex-col">
               <span className="text-gray-12 font-medium text-base leading-8">
                 Add Environment Variable
               </span>
-              <span className="text-gray-9 text-[13px] leading-5">
+              <span className="text-gray-11 text-[13px] leading-5">
                 Set a key-value pair for your project.
               </span>
             </div>
-            <InfoTooltip
-              content="Close"
-              asChild
-              position={{
-                side: "bottom",
-                align: "end",
-              }}
-            >
-              <Button variant="ghost" size="icon" onClick={onClose} className="mt-0.5">
-                <DoubleChevronRight
-                  iconSize="lg-medium"
-                  className="text-gray-8 transition-transform duration-300 ease-out group-hover:text-gray-12"
-                />
-              </Button>
-            </InfoTooltip>
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close panel" className="mt-0.5">
+              <DoubleChevronRight
+                iconSize="lg-medium"
+                className="text-gray-10 transition-transform duration-300 ease-out group-hover:text-gray-12"
+              />
+            </Button>
           </div>
 
           {/* Form content */}
@@ -199,133 +202,162 @@ export const AddEnvVarExpandable = ({
           >
             <form
               ref={formRef}
-              onSubmit={handleSubmit(onSubmit)}
+              onSubmit={handleSubmit(onSubmit, onInvalid)}
               className="h-full flex flex-col relative"
             >
               {/* Drop zone overlay */}
               <div
                 className={cn(
-                  "absolute inset-4 rounded-lg border-2 border-dotted pointer-events-none transition-colors z-10",
-                  isDragging ? "border-successA-9" : "border-transparent",
+                  "absolute inset-0 rounded-lg pointer-events-none z-10 flex items-center justify-center transition-all duration-200",
+                  isDragging ? "bg-successA-2 opacity-100" : "opacity-0",
                 )}
-              />
+              >
+                <div
+                  className={cn(
+                    "absolute inset-4 rounded-lg border-2 border-dashed transition-all duration-200",
+                    isDragging ? "border-successA-8 scale-100" : "border-transparent scale-[0.98]",
+                  )}
+                />
+                <div
+                  className={cn(
+                    "flex flex-col items-center gap-3 transition-all duration-200",
+                    isDragging ? "opacity-100 scale-100" : "opacity-0 scale-95",
+                  )}
+                >
+                  <div className="size-12 rounded-xl bg-successA-3 flex items-center justify-center">
+                    <CloudUp className="text-success-11" />
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-sm font-medium text-success-11">Drop your .env file</span>
+                    <span className="text-xs text-success-10">
+                      We'll parse and import your variables
+                    </span>
+                  </div>
+                </div>
+              </div>
 
               {/* Scrollable content */}
-              <div className="flex-1 overflow-y-auto px-6">
-                <p className="text-xs text-gray-11 pt-5 pb-6">
-                  Drag & drop your{" "}
-                  <span className="font-mono font-medium text-gray-12">.env</span> file or paste{" "}
-                  <span className="font-mono font-medium text-gray-12">env</span> vars (⌘V /
-                  Ctrl+V)
-                </p>
-
+              <div className="flex-1 overflow-y-auto pt-6 bg-grayA-2">
                 {/* Variable entries */}
-                <div className="flex flex-col gap-7">
+                <div className="flex flex-col gap-8 px-8">
                   {fields.map((field, index) => (
                     <EnvVarRow
                       key={field.id}
                       index={index}
                       isOnly={fields.length === 1}
-                      isLast={index === fields.length - 1}
-                      keyError={errors.envVars?.[index]?.key?.message}
                       register={register}
                       onRemove={handleRemove}
+                      errors={errors.envVars}
                     />
                   ))}
                 </div>
 
                 {/* Add Another */}
-                <div className="flex pt-5 pb-4">
-                  <Button type="button" variant="outline" size="sm" onClick={handleAdd}>
+                <div className="flex py-6 px-8">
+                  <Button type="button" variant="outline" size="md" className="font-medium" onClick={handleAdd}>
                     <Plus iconSize="sm-regular" />
                     Add Another
                   </Button>
                 </div>
 
-                {/* Separator */}
-                <div className="border-t border-grayA-4 pt-6 pb-4 space-y-5">
-                  {/* Environment multi-select (shared) */}
-                  <Controller
-                    control={control}
-                    name="environmentIds"
-                    render={({ field }) => {
-                      const allSelected = allEnvironmentIds.every((id) =>
-                        field.value.includes(id),
-                      );
-                      const displayText =
-                        allSelected || field.value.length === 0
-                          ? "All Environments"
-                          : environments
-                            .filter((e) => field.value.includes(e.id))
-                            .map((e) => e.slug)
-                            .join(", ");
-
-                      return (
-                        <FormCombobox
-                          label="Environment"
-                          options={[
-                            { label: "All Environments", value: "__all__" },
-                            ...environments.map((env) => ({
-                              label: env.slug,
-                              value: env.id,
-                            })),
-                          ]}
-                          value=""
-                          closeOnSelect={false}
-                          onSelect={(envId) => {
-                            if (envId === "__all__") {
-                              field.onChange(allSelected ? [] : allEnvironmentIds);
-                            } else {
-                              const next = field.value.includes(envId)
-                                ? field.value.filter((id: string) => id !== envId)
-                                : [...field.value, envId];
-                              field.onChange(next);
-                            }
-                            trigger("environmentIds");
-                          }}
-                          placeholder={displayText}
-                          error={errors.environmentIds?.message}
-                        />
-                      );
-                    }}
-                  />
-
-                  {/* Sensitive toggle (shared) */}
-                  <div className="flex items-center gap-2 mt-4">
+                <div className="border-t border-grayA-4">
+                  <div className="px-8 py-6 space-y-6">
                     <Controller
                       control={control}
-                      name="secret"
+                      name="environmentId"
                       render={({ field }) => (
-                        <Switch
-                          className="h-6 w-10 data-[state=checked]:bg-success-9 data-[state=checked]:ring-2 data-[state=checked]:ring-successA-5 data-[state=unchecked]:bg-grayA-1 data-[state=unchecked]:ring-2 data-[state=unchecked]:ring-grayA-3 [&>span]:h-[18px] [&>span]:w-[18px]"
-                          thumbClassName="h-[18px] w-[18px] data-[state=unchecked]:bg-grayA-12 data-[state=checked]:bg-white data-[state=checked]:translate-x-[17px]"
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
+                        <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
+                          <label className="text-gray-11 text-[13px]">Environment</label>
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger className="capitalize">
+                              <SelectValue placeholder="Select environment" />
+                            </SelectTrigger>
+                            <SelectContent className="z-[200]">
+                              <SelectItem value="__all__">All Environments</SelectItem>
+                              {environments.map((env) => (
+                                <SelectItem key={env.id} value={env.id} className="capitalize">
+                                  {env.slug}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {errors.environmentId?.message && (
+                            <p className="text-error-11 text-[13px]">{errors.environmentId.message}</p>
+                          )}
+                        </fieldset>
                       )}
                     />
-                    <span className="text-[13px] text-gray-11">Sensitive</span>
+
+                    {/* Sensitive toggle (shared) */}
+                    <div className="flex items-center gap-3 pt-6">
+                      <Controller
+                        control={control}
+                        name="secret"
+                        render={({ field }) => (
+                          <Switch
+                            className="data-[state=checked]:bg-success-9 data-[state=checked]:ring-2 data-[state=checked]:ring-successA-5 data-[state=unchecked]:ring-2 data-[state=unchecked]:ring-grayA-3"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        )}
+                      />
+                      <span className="text-[13px] text-gray-12 font-medium">Sensitive</span>
+                      <InfoTooltip
+                        content="Permanently hides values after saving. Use for API keys and secrets."
+                        position={{ side: "top" }}
+                        className="z-9999"
+                      >
+                        <span className="text-grayA-9">
+                          <CircleInfo iconSize="md-regular" />
+                        </span>
+                      </InfoTooltip>
+                    </div>
+
                   </div>
                 </div>
               </div>
 
               {/* Sticky save footer */}
-              <div className="border-t border-grayA-4 bg-gray-1 px-6 py-4 flex justify-end">
+              <div className="border-t border-grayA-4 bg-gray-1 px-8 py-5 flex items-center justify-between">
+                <div className="hidden md:flex items-center gap-3">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".env,.txt,text/plain"
+                    className="hidden"
+                    onChange={handleFileImport}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <CloudUp iconSize="sm-regular" />
+
+                    Import <span className="font-medium">.env</span>
+                  </Button>
+                  <span className="text-[13px] text-gray-11">
+                    or drag & drop / paste (⌘V) your .env
+                  </span>
+                </div>
                 <Button
                   type="submit"
                   variant="primary"
                   size="md"
+                  className="px-3"
                   loading={isSubmitting}
-                  disabled={!isValid || !isDirty || isSubmitting}
+                  disabled={isSubmitting}
                 >
-                  Save Variables
+                  Save
                 </Button>
               </div>
             </form>
           </div>
         </div>
       </div>
-    </div>
+    </>,
+    document.body,
   );
 };
 

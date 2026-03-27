@@ -1,36 +1,36 @@
-import { Trash } from "@unkey/icons";
+import { Plus, Trash } from "@unkey/icons";
 import { Button, FormInput } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { memo } from "react";
-import type { UseFormRegister } from "react-hook-form";
+import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import type { EnvVarsFormValues } from "./schema";
 
 type EnvVarRowProps = {
   index: number;
   isOnly: boolean;
-  isLast: boolean;
-  keyError: string | undefined;
   register: UseFormRegister<EnvVarsFormValues>;
   onRemove: (index: number) => void;
+  errors?: FieldErrors<EnvVarsFormValues>["envVars"];
 };
 
 export const EnvVarRow = memo(function EnvVarRow({
   index,
   isOnly,
-  isLast,
-  keyError,
   register,
   onRemove,
+  errors,
 }: EnvVarRowProps) {
+  const fieldErrors = errors?.[index];
+
   return (
-    <div className={cn("flex flex-col gap-4")}>
+    <div className={cn("flex flex-col gap-3")}>
       {/* Key + Value + Delete side by side */}
       <div className="flex items-start gap-4">
         <FormInput
           label="Key"
           className="flex-1 [&_input]:font-mono"
           placeholder="CLIENT_KEY..."
-          error={keyError}
+          error={fieldErrors?.key?.message}
           {...register(`envVars.${index}.key`)}
         />
         <FormInput
@@ -44,7 +44,7 @@ export const EnvVarRow = memo(function EnvVarRow({
             type="button"
             variant="ghost"
             size="sm"
-            className="size-9 shrink-0 px-0 justify-center text-error-11 hover:text-error-11 hover:bg-grayA-3 rounded-lg mt-5"
+            className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg mt-6.5"
             onClick={() => onRemove(index)}
           >
             <Trash iconSize="sm-regular" />
@@ -52,12 +52,14 @@ export const EnvVarRow = memo(function EnvVarRow({
         )}
       </div>
 
-      {/* Create Note — collapsible */}
       <details className="group">
-        <summary className="w-fit text-[13px] text-gray-9 hover:text-gray-12 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-          Create Note
+        <summary className="w-fit text-[13px] text-gray-11 hover:text-gray-12 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-1.5 group">
+          <span className="group-open:hidden flex items-center gap-2">
+            <Plus iconSize="sm-medium" className="text-gray-9 group-hover:text-gray-12 transition-colors" />
+            Add Note</span>
+          <span className="hidden group-open:inline">Note</span>
         </summary>
-        <div className="pt-3">
+        <div className="pt-1.5">
           <FormInput
             className="[&_input]:text-sm"
             placeholder="Optional description for this variable..."

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const envVarEntrySchema = z.object({
-  key: z.string().min(1, "Key is required"),
+  key: z.string().min(1, "Variable name is required"),
   value: z.string(),
   description: z.string().optional(),
 });
@@ -28,14 +28,14 @@ export const envVarsSchema = z.object({
           for (const i of indices) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: "Duplicate key",
+              message: "Duplicate variable name",
               path: [i, "key"],
             });
           }
         }
       }
     }),
-  environmentIds: z.array(z.string()).min(1, "At least one environment is required"),
+  environmentId: z.string().min(1, "Environment is required"),
   secret: z.boolean(),
 });
 

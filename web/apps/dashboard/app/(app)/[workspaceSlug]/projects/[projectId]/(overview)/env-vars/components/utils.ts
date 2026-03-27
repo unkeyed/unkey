@@ -27,16 +27,3 @@ export function expandToFlatRecords(
     })),
   );
 }
-
-export function groupByEnvironment(items: FlatEnvVarRecord[]): Map<string, FlatEnvVarRecord[]> {
-  const map = new Map<string, FlatEnvVarRecord[]>();
-  for (const item of items) {
-    const existing = map.get(item.environmentId);
-    if (existing) {
-      existing.push(item);
-    } else {
-      map.set(item.environmentId, [item]);
-    }
-  }
-  return map;
-}

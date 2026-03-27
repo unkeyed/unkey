@@ -1,5 +1,4 @@
-import { Plus } from "@unkey/icons";
-import { Button, Empty } from "@unkey/ui";
+import { Empty } from "@unkey/ui";
 
 type EnvVarsEmptyProps = {
   searchQuery: string;
@@ -19,19 +18,6 @@ export function EnvVarsEmpty({ searchQuery }: EnvVarsEmptyProps) {
               ? `No variables matching "${searchQuery}". Try a different search term.`
               : "Environment variables will appear here once you add them. Store API keys, tokens, and config securely."}
           </Empty.Description>
-          {!searchQuery && (
-            <Empty.Actions className="mt-4 justify-start">
-              <Button
-                size="md"
-                onClick={() => {
-                  // TODO: wire up add action
-                }}
-              >
-                <Plus iconSize="sm-regular" />
-                Add Environment Variable
-              </Button>
-            </Empty.Actions>
-          )}
         </Empty>
       </div>
     </div>

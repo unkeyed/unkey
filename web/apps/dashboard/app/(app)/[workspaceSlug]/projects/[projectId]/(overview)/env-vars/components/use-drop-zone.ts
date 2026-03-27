@@ -1,9 +1,9 @@
 import { toast } from "@unkey/ui";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { UseFormGetValues, UseFormReset, UseFormTrigger } from "react-hook-form";
 import type { EnvVarsFormValues } from "./schema";
 
-const parseEnvText = (text: string): Array<{ key: string; value: string }> => {
+export const parseEnvText = (text: string): Array<{ key: string; value: string }> => {
   const lines = text.trim().split("\n");
   return lines
     .map((line) => {
@@ -44,22 +44,35 @@ export function useDropZone(
   const [isDragging, setIsDragging] = useState(false);
   const ref = useRef<HTMLFormElement>(null);
 
+  const importParsed = useCallback(
+    (parsed: Array<{ key: string; value: string }>) => {
+      const existing = getValues("envVars").filter((row) => row.key !== "");
+      const newRows = parsed.map((row) => ({ ...row, description: "" }));
+      reset({ ...getValues(), envVars: [...existing, ...newRows] }, { keepDefaultValues: true });
+      toast.success(`Imported ${parsed.length} variable(s)`);
+      trigger();
+    },
+    [getValues, reset, trigger],
+  );
+
+  const importFile = useCallback(
+    async (file: File) => {
+      const text = await file.text();
+      const parsed = parseEnvText(text);
+      if (parsed.length > 0) {
+        importParsed(parsed);
+      } else {
+        toast.error("No valid environment variables found");
+      }
+    },
+    [importParsed],
+  );
+
   useEffect(() => {
     const dropZone = ref.current;
     if (!dropZone) {
       return;
     }
-
-    const importParsed = (parsed: Array<{ key: string; value: string }>) => {
-      const existing = getValues("envVars").filter((row) => row.key !== "");
-      const newRows = parsed.map((row) => ({ ...row, description: "" }));
-      reset(
-        { ...getValues(), envVars: [...existing, ...newRows] },
-        { keepDefaultValues: true },
-      );
-      toast.success(`Imported ${parsed.length} variable(s)`);
-      trigger();
-    };
 
     const handlePaste = async (e: ClipboardEvent) => {
       const clipboardData = e.clipboardData;
@@ -151,7 +164,7 @@ export function useDropZone(
       dropZone.removeEventListener("dragleave", handleDragLeave);
       dropZone.removeEventListener("drop", handleDrop);
     };
-  }, [reset, getValues, trigger]);
+  }, [importParsed]);
 
-  return { ref, isDragging };
+  return { ref, isDragging, importFile };
 }
