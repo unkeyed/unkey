@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { UseFormGetValues, UseFormReset, UseFormTrigger } from "react-hook-form";
 import type { EnvVarsFormValues } from "./schema";
 
+const ENV_KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
 export const parseEnvText = (text: string): Array<{ key: string; value: string }> => {
   const lines = text.trim().split("\n");
   return lines
@@ -27,7 +29,7 @@ export const parseEnvText = (text: string): Array<{ key: string; value: string }
         value = value.slice(1, -1);
       }
 
-      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+      if (!ENV_KEY_RE.test(key)) {
         return null;
       }
 
@@ -35,6 +37,9 @@ export const parseEnvText = (text: string): Array<{ key: string; value: string }
     })
     .filter((v): v is NonNullable<typeof v> => v !== null);
 };
+
+const isEnvFile = (file: File) =>
+  file.name.endsWith(".env") || file.type === "text/plain" || file.type === "";
 
 export function useDropZone(
   reset: UseFormReset<EnvVarsFormValues>,
@@ -78,9 +83,8 @@ export function useDropZone(
     [getValues, reset, trigger],
   );
 
-  const importFile = useCallback(
-    async (file: File) => {
-      const text = await file.text();
+  const importText = useCallback(
+    (text: string) => {
       const parsed = parseEnvText(text);
       if (parsed.length > 0) {
         importParsed(parsed);
@@ -89,6 +93,13 @@ export function useDropZone(
       }
     },
     [importParsed],
+  );
+
+  const importFile = useCallback(
+    async (file: File) => {
+      importText(await file.text());
+    },
+    [importText],
   );
 
   useEffect(() => {
@@ -111,15 +122,9 @@ export function useDropZone(
       const files = clipboardData.files;
       if (files.length > 0) {
         const file = files[0];
-        if (file.name.endsWith(".env") || file.type === "text/plain" || file.type === "") {
+        if (isEnvFile(file)) {
           e.preventDefault();
-          const text = await file.text();
-          const parsed = parseEnvText(text);
-          if (parsed.length > 0) {
-            importParsed(parsed);
-          } else {
-            toast.error("No valid environment variables found");
-          }
+          importText(await file.text());
           return;
         }
       }
@@ -127,12 +132,7 @@ export function useDropZone(
       const text = clipboardData.getData("text/plain");
       if (text?.includes("\n") && text?.includes("=")) {
         e.preventDefault();
-        const parsed = parseEnvText(text);
-        if (parsed.length > 0) {
-          importParsed(parsed);
-        } else {
-          toast.error("No valid environment variables found");
-        }
+        importText(text);
       }
     };
 
@@ -150,7 +150,8 @@ export function useDropZone(
     const handleDragLeave = (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (e.currentTarget === dropZone && !dropZone.contains(e.relatedTarget as Node)) {
+      const related = e.relatedTarget;
+      if (e.currentTarget === dropZone && !(related instanceof Node && dropZone.contains(related))) {
         setIsDragging(false);
       }
     };
@@ -166,14 +167,8 @@ export function useDropZone(
       }
 
       const file = files[0];
-      if (file.name.endsWith(".env") || file.type === "text/plain" || file.type === "") {
-        const text = await file.text();
-        const parsed = parseEnvText(text);
-        if (parsed.length > 0) {
-          importParsed(parsed);
-        } else {
-          toast.error("No valid environment variables found");
-        }
+      if (isEnvFile(file)) {
+        importText(await file.text());
       } else {
         toast.error("Please drop a .env or text file");
       }
@@ -192,7 +187,7 @@ export function useDropZone(
       dropZone.removeEventListener("dragleave", handleDragLeave);
       dropZone.removeEventListener("drop", handleDrop);
     };
-  }, [importParsed]);
+  }, [importText]);
 
   return { ref, isDragging, importFile };
 }

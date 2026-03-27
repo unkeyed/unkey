@@ -20,7 +20,7 @@ import { useProjectData } from "../../data-provider";
 import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema } from "./schema";
 import { useDropZone } from "./use-drop-zone";
-import { expandToFlatRecords, toTrpcType } from "./utils";
+
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
 
 type AddEnvVarExpandableProps = {
@@ -113,7 +113,15 @@ export const AddEnvVarExpandable = ({
       values.environmentId === "__all__"
         ? environments.map((e) => e.id)
         : [values.environmentId];
-    const flatRecords = expandToFlatRecords(nonEmpty, targetEnvIds, values.secret);
+    const type = values.secret ? "writeonly" : "recoverable";
+    const flatRecords = nonEmpty.flatMap((entry) =>
+      targetEnvIds.map((envId) => ({
+        key: entry.key,
+        value: entry.value,
+        description: entry.description,
+        environmentId: envId,
+      })),
+    );
 
     for (const v of flatRecords) {
       collection.envVars.insert({
@@ -122,9 +130,9 @@ export const AddEnvVarExpandable = ({
         projectId,
         key: v.key,
         value: v.value,
-        type: toTrpcType(v.secret) as "recoverable" | "writeonly",
+        type,
         description: v.description || null,
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       });
     }
     toast.success(`Added ${flatRecords.length} variable(s)`);
@@ -227,9 +235,7 @@ export const AddEnvVarExpandable = ({
                 </div>
               </div>
 
-              {/* Scrollable content */}
               <div className="flex-1 overflow-y-auto pt-6 bg-grayA-2">
-                {/* Variable entries */}
                 <div className="flex flex-col gap-8 px-8">
                   {fields.map((field, index) => (
                     <EnvVarRow
@@ -250,65 +256,62 @@ export const AddEnvVarExpandable = ({
                     Add Another
                   </Button>
                 </div>
+              </div>
 
-                <div className="border-t border-grayA-4">
-                  <div className="px-8 py-6 space-y-6">
+              <div className="border-t border-grayA-4">
+                <div className="px-8 py-6 space-y-6">
+                  <Controller
+                    control={control}
+                    name="environmentId"
+                    render={({ field }) => (
+                      <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
+                        <label className="text-gray-11 text-[13px]">Environment</label>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger className="capitalize">
+                            <SelectValue placeholder="Select environment" />
+                          </SelectTrigger>
+                          <SelectContent className="z-[200]">
+                            <SelectItem value="__all__">All Environments</SelectItem>
+                            {environments.map((env) => (
+                              <SelectItem key={env.id} value={env.id} className="capitalize">
+                                {env.slug}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {errors.environmentId?.message && (
+                          <p className="text-error-11 text-[13px]">{errors.environmentId.message}</p>
+                        )}
+                      </fieldset>
+                    )}
+                  />
+
+                  <div className="flex items-center gap-3 pt-6">
                     <Controller
                       control={control}
-                      name="environmentId"
+                      name="secret"
                       render={({ field }) => (
-                        <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-                          <label className="text-gray-11 text-[13px]">Environment</label>
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <SelectTrigger className="capitalize">
-                              <SelectValue placeholder="Select environment" />
-                            </SelectTrigger>
-                            <SelectContent className="z-[200]">
-                              <SelectItem value="__all__">All Environments</SelectItem>
-                              {environments.map((env) => (
-                                <SelectItem key={env.id} value={env.id} className="capitalize">
-                                  {env.slug}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {errors.environmentId?.message && (
-                            <p className="text-error-11 text-[13px]">{errors.environmentId.message}</p>
-                          )}
-                        </fieldset>
+                        <Switch
+                          className="data-[state=checked]:bg-success-9 data-[state=checked]:ring-2 data-[state=checked]:ring-successA-5 data-[state=unchecked]:ring-2 data-[state=unchecked]:ring-grayA-3"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       )}
                     />
-
-                    {/* Sensitive toggle (shared) */}
-                    <div className="flex items-center gap-3 pt-6">
-                      <Controller
-                        control={control}
-                        name="secret"
-                        render={({ field }) => (
-                          <Switch
-                            className="data-[state=checked]:bg-success-9 data-[state=checked]:ring-2 data-[state=checked]:ring-successA-5 data-[state=unchecked]:ring-2 data-[state=unchecked]:ring-grayA-3"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        )}
-                      />
-                      <span className="text-[13px] text-gray-12 font-medium">Sensitive</span>
-                      <InfoTooltip
-                        content="Permanently hides values after saving. Use for API keys and secrets."
-                        position={{ side: "top" }}
-                        className="z-9999"
-                      >
-                        <span className="text-grayA-9">
-                          <CircleInfo iconSize="md-regular" />
-                        </span>
-                      </InfoTooltip>
-                    </div>
-
+                    <span className="text-[13px] text-gray-12 font-medium">Sensitive</span>
+                    <InfoTooltip
+                      content="Permanently hides values after saving. Use for API keys and secrets."
+                      position={{ side: "top" }}
+                      className="z-9999"
+                    >
+                      <span className="text-grayA-9">
+                        <CircleInfo iconSize="md-regular" />
+                      </span>
+                    </InfoTooltip>
                   </div>
                 </div>
               </div>
 
-              {/* Sticky save footer */}
               <div className="border-t border-grayA-4 bg-gray-1 px-8 py-5 flex items-center justify-between">
                 <div className="hidden md:flex items-center gap-3">
                   <input
@@ -348,6 +351,7 @@ export const AddEnvVarExpandable = ({
         </div>
       </div>
     </>,
+    // TODO: Probably later we can replace this with Radix Portal and make it nicer
     document.body,
   );
 };

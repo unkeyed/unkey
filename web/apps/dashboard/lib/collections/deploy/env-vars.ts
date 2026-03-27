@@ -4,6 +4,7 @@ import { createCollection } from "@tanstack/react-db";
 
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
+import { trackSave } from "./environment-settings";
 import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
 
 const schema = z.object({
@@ -81,34 +82,40 @@ export const envVars = createCollection<EnvVar, string>(
         })
         .parse(changes);
 
-      await trpcClient.deploy.envVar.create.mutate({
-        environmentId: insertInput.environmentId,
-        variables: [
-          {
-            key: insertInput.key,
-            value: insertInput.value,
-            type: insertInput.type,
-            description: insertInput.description ?? null,
-          },
-        ],
-      });
+      await trackSave(
+        trpcClient.deploy.envVar.create.mutate({
+          environmentId: insertInput.environmentId,
+          variables: [
+            {
+              key: insertInput.key,
+              value: insertInput.value,
+              type: insertInput.type,
+              description: insertInput.description ?? null,
+            },
+          ],
+        }),
+      );
     },
     onUpdate: async ({ transaction }) => {
       const { original, modified } = transaction.mutations[0];
 
-      await trpcClient.deploy.envVar.update.mutate({
-        envVarId: original.id,
-        key: modified.key,
-        value: modified.value,
-        type: modified.type,
-      });
+      await trackSave(
+        trpcClient.deploy.envVar.update.mutate({
+          envVarId: original.id,
+          key: modified.key,
+          value: modified.value,
+          type: modified.type,
+        }),
+      );
     },
     onDelete: async ({ transaction }) => {
       const { original } = transaction.mutations[0];
 
-      await trpcClient.deploy.envVar.delete.mutate({
-        envVarId: original.id,
-      });
+      await trackSave(
+        trpcClient.deploy.envVar.delete.mutate({
+          envVarId: original.id,
+        }),
+      );
     },
   }),
 );
