@@ -10,30 +10,38 @@ import (
 )
 
 const findDeploymentRegions = `-- name: FindDeploymentRegions :many
-SELECT region
-FROM ` + "`" + `deployment_topology` + "`" + `
-WHERE deployment_id = ?
+SELECT r.pk, r.id, r.name, r.platform, r.can_schedule
+FROM ` + "`" + `deployment_topology` + "`" + ` dt
+INNER JOIN ` + "`" + `regions` + "`" + ` r ON dt.region_id = r.id
+WHERE dt.deployment_id = ?
 `
 
 // Returns all regions where a deployment is configured.
 // Used for fan-out: when a deployment changes, emit state_change to each region.
 //
-//	SELECT region
-//	FROM `deployment_topology`
-//	WHERE deployment_id = ?
-func (q *Queries) FindDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]string, error) {
+//	SELECT r.pk, r.id, r.name, r.platform, r.can_schedule
+//	FROM `deployment_topology` dt
+//	INNER JOIN `regions` r ON dt.region_id = r.id
+//	WHERE dt.deployment_id = ?
+func (q *Queries) FindDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]Region, error) {
 	rows, err := db.QueryContext(ctx, findDeploymentRegions, deploymentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []Region
 	for rows.Next() {
-		var region string
-		if err := rows.Scan(&region); err != nil {
+		var i Region
+		if err := rows.Scan(
+			&i.Pk,
+			&i.ID,
+			&i.Name,
+			&i.Platform,
+			&i.CanSchedule,
+		); err != nil {
 			return nil, err
 		}
-		items = append(items, region)
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

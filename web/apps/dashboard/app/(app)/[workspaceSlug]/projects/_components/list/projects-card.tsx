@@ -5,7 +5,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 import { Avatar } from "../../[projectId]/components/git-avatar";
-import { RegionBadges } from "./region-badges";
 
 type ProjectCardProps = {
   name: string;
@@ -15,7 +14,6 @@ type ProjectCardProps = {
   branch: string;
   author: string | null;
   authorAvatar: string | null;
-  regions: string[];
   repository?: string;
   actions: ReactNode;
   projectId: string;
@@ -29,8 +27,6 @@ export const ProjectCard = ({
   branch,
   author,
   authorAvatar,
-  regions,
-  repository,
   actions,
   projectId,
 }: ProjectCardProps) => {
@@ -103,20 +99,22 @@ export const ProjectCard = ({
           <div className="text-[13px] text-accent-12 leading-5 opacity-70">No commit info</div>
         )}
 
-        <div className="flex gap-2 items-center min-w-0">
-          {commitTimestamp ? (
-            <TimestampInfo value={commitTimestamp} className="hover:underline whitespace-pre" />
-          ) : (
-            <span className="text-xs text-gray-12 truncate max-w-[70px] opacity-70">
-              No deployments
-            </span>
-          )}
-          <CodeBranch className="text-gray-12 shrink-0" iconSize="sm-regular" />
-          <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
-            <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
-          </InfoTooltip>
+        <div className="flex gap-2 items-center min-w-0 justify-between">
+          <div className="flex items-center gap-2">
+            {commitTimestamp ? (
+              <TimestampInfo value={commitTimestamp} className="hover:underline whitespace-pre" />
+            ) : (
+              <span className="text-xs text-gray-12 truncate max-w-[70px] opacity-70">
+                No deployments
+              </span>
+            )}
+            <CodeBranch className="text-gray-12 shrink-0" iconSize="sm-regular" />
+            <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
+              <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
+            </InfoTooltip>
+          </div>
           {authorAvatar && (
-            <>
+            <div className="flex items-center gap-2">
               <span className="text-xs text-gray-10">by</span>
               <Avatar alt="Author avatar" src={authorAvatar} />
               <InfoTooltip content={author} asChild position={{ align: "start", side: "top" }}>
@@ -124,12 +122,10 @@ export const ProjectCard = ({
                   {author}
                 </span>
               </InfoTooltip>
-            </>
+            </div>
           )}
         </div>
       </div>
-      {/*Bottom Section > Regions*/}
-      <RegionBadges regions={regions} repository={repository} />
     </div>
   );
 };

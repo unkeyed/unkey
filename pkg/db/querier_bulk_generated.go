@@ -10,13 +10,17 @@ type BulkQuerier interface {
 	InsertAcmeUsers(ctx context.Context, db DBTX, args []InsertAcmeUserParams) error
 	InsertApis(ctx context.Context, db DBTX, args []InsertApiParams) error
 	UpsertAppBuildSettings(ctx context.Context, db DBTX, args []UpsertAppBuildSettingsParams) error
+	InsertAppEnvironmentVariables(ctx context.Context, db DBTX, args []InsertAppEnvironmentVariableParams) error
 	InsertApps(ctx context.Context, db DBTX, args []InsertAppParams) error
+	UpsertAppRegionalSettings(ctx context.Context, db DBTX, args []UpsertAppRegionalSettingsParams) error
 	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsParams) error
 	InsertAuditLogs(ctx context.Context, db DBTX, args []InsertAuditLogParams) error
 	InsertAuditLogTargets(ctx context.Context, db DBTX, args []InsertAuditLogTargetParams) error
 	InsertCertificates(ctx context.Context, db DBTX, args []InsertCertificateParams) error
 	InsertCiliumNetworkPolicies(ctx context.Context, db DBTX, args []InsertCiliumNetworkPolicyParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
+	UpsertRegion(ctx context.Context, db DBTX, args []UpsertRegionParams) error
+	UpsertCluster(ctx context.Context, db DBTX, args []UpsertClusterParams) error
 	InsertCustomDomains(ctx context.Context, db DBTX, args []InsertCustomDomainParams) error
 	UpsertCustomDomain(ctx context.Context, db DBTX, args []UpsertCustomDomainParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
@@ -39,6 +43,7 @@ type BulkQuerier interface {
 	InsertKeyRoles(ctx context.Context, db DBTX, args []InsertKeyRoleParams) error
 	InsertKeySpaces(ctx context.Context, db DBTX, args []InsertKeySpaceParams) error
 	UpsertKeySpace(ctx context.Context, db DBTX, args []UpsertKeySpaceParams) error
+	UpsertOpenApiSpec(ctx context.Context, db DBTX, args []UpsertOpenApiSpecParams) error
 	InsertPermissions(ctx context.Context, db DBTX, args []InsertPermissionParams) error
 	InsertProjects(ctx context.Context, db DBTX, args []InsertProjectParams) error
 	UpsertQuota(ctx context.Context, db DBTX, args []UpsertQuotaParams) error

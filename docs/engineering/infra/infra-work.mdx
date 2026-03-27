@@ -1,0 +1,175 @@
+---
+title: Working on Infrastructure
+description: Planning, promotions, and production deploys.
+---
+
+Since there are only three of us working on infra across our respective timezones.. That makes how we plan, communicate, and ship more important than it would be on a colocated team or a team in the same timezone. This document covers how we should approach infra work — from planning through to production.
+
+## Planning work
+
+Not everything in infra is a quick fix. Rolling out to a new region, changing how networking works, adjusting capacity, rethinking cost — these are changes that ripple. They affect multiple clusters, multiple services, and sometimes multiple AWS accounts. They can't be developed and shipped in a day, and they shouldn't be.
+
+Before starting significant work, write up what you're planning and get it in front of the rest of the team. This doesn't need to be formal — a GitHub issue, a doc, even a detailed Slack thread in **#infrastructure** — but it needs to exist somewhere the others can read it async and weigh in. The goal is to make sure we're aligned before anyone starts writing code, not after it's already in a PR.
+
+Things worth planning together:
+
+- **New region rollouts** — cluster provisioning, secret replication, DNS, gossip functionality, environment files for every chart. There's a checklist but it still touches a lot of surface area.
+- **Capacity changes** — node group sizing, scaling limits, instance types. These have cost implications and we must be deliberate about them.
+- **Cost-related changes** — anything that changes what we're paying for or how much. Reserved instances, savings plans, storage classes, new managed services.
+- **Architectural changes** — swapping out a component, changing how traffic routes, adding or removing a dependency. These are the ones where getting a second opinion early saves the most time.
+- **Cross-cutting changes** — anything that touches the promotion files, ArgoCD ApplicationSets, or shared Helm chart structure. If it affects how we deploy, we all need to know.
+
+The point isn't to create bureaucracy. It's that the three of us are rarely online at the same time, and it's a lot cheaper to catch a problem in a plan than in a rollback.
+
+## Promotions
+
+This is how we get code from a PR into staging and production. The process is lightweight on purpose — most of the time it stays out of your way. The few rules that do exist are there because most of us have been on the wrong end of a production incident with no context, and none of us want to be there again.
+
+### Why we do it this way
+
+A common alternative is a long-running staging branch where merging staging into main means "deploy to production." That works until it doesn't. If five changes land on staging and one of them is broken, we're stuck — we can't promote the four good ones without also shipping the bad one or doing **a lot** of `git cherry-pick`in'. Everything queues up behind the fix to the one bad change. The branches drift apart, merge conflicts accumulate, and rolling back means untangling which of a dozen changes in a staging→main merge caused the problem.
+
+By pinning production to a specific commit SHA, staging and production are decoupled. A broken change on staging doesn't touch production at all — production is still sitting on the last known-good SHA while we sort things out. We pick exactly which commit to promote and when, per component if we need to. Rolling back is one revert commit. And there's no second branch to maintain — everything lives on main.
+
+### How it works
+
+Every environment has a promotion in a `promotions/<env>/<service>.yaml` file that controls which Git revision ArgoCD deploys. ArgoCD ApplicationSets read these files and set `targetRevision` on each Application.
+
+- **Staging** tracks `main` — every merge to main auto-deploys within minutes.
+- **Production** is pinned to a specific commit SHA. Deploying to production requires explicitly updating this SHA and getting the change reviewed.
+
+### Merging to main
+
+Merges to main **do not require a review** unless the change modifies a file under `eks-cluster/promotions/`. Everything merged to main deploys to staging automatically. We'll get some kind of gating mechanism put into place eventually as the infrastructure stabilizes.
+
+### Why good PRs and commit messages matter
+
+A merge to main is the unit of work that eventually gets promoted to production. The PR title, description, and commit messages become the primary audit trail for everything that runs in production.
+
+When something goes wrong at 2am, the first thing we do is check what changed recently. The promotion file points to a SHA, that SHA points to a merge commit, and that merge commit points back to a PR. If the PR says "fix stuff" with no description, whoever is triaging has to read every line of the diff to figure out what changed and whether it could be related. If the PR clearly explains what was changed, why, and what it affects, we can make that call in seconds.
+
+This matters beyond incidents too. When reviewing a promotion PR, we're deciding whether this change is safe for production. We follow the SHA back to the original PR to understand what we're approving. A well-documented PR lets us review with confidence. A poorly documented one forces us to either rubber-stamp it or spend time reverse-engineering the intent from code.
+
+**Write PRs into main as if one of us will need to triage a production issue using only the PR title and description.** Include:
+
+- What changed and why
+- What services or components are affected
+- Any risks or things to watch after deployment
+- Links to related issues, docs, or prior discussion
+
+### Deploying to production
+
+Production promotions require review. It's on whoever is promoting to make the reviewer's job easy — link back to the original PR, use the right SHA, and make sure the context is all there. If the reviewer has to go digging to understand what they're approving, we've already failed at the process.
+
+#### Step by step
+
+1. **Merge your change to main.** This __really__ should be a PR, but as long as the change is well-documented — clear title, description of what changed and why, and any relevant context... you can just push to main... but a PR is required for production, always. Violators will be prosecuted to the fullest extent of the law.
+
+2. **Verify it works in staging.** Wait for ArgoCD to deploy the change to staging and confirm it behaves correctly.
+
+3. **Get the commit SHA from the merged PR.** This is the merge commit on main that you validated in staging:
+
+   ```bash
+   git log --oneline main
+   ```
+
+4. **Run the promote script:**
+
+It is preferred to update the specific component you're updating and not blanket promote service.
+
+   ```bash
+   # Promote a single component
+   ./scripts/promote production001 frontline <sha>
+   ```
+
+5. **Commit, push, and open a promotion PR.** The promotion PR should:
+
+   - Set the `revision` to the SHA of the change being promoted
+   - Link to the original PR that introduced the change (the one merged to main), or write up an explanation.
+   - Be scoped narrowly — one promotion per PR when possible
+
+   Example commit message and PR body:
+
+   ```
+   promote production001 to 311420
+
+   Promotes https://github.com/unkeyed/infra/pull/311 to production.
+   ```
+
+6. **Get a review and merge.** You've done the work to make this easy to review — the reviewer just needs to confirm the SHA matches what was tested in staging and that the linked PR tells the full story.
+
+7. **ArgoCD picks up the change** and deploys.
+
+#### What the reviewer should check
+
+- The `revision` value is a real commit SHA (not a branch name)
+- The promotion PR links to the original PR that introduced the change
+- That change was already deployed and validated in staging
+- The scope makes sense (all components vs. single component)
+
+### Rolling back
+
+Revert the promotion commit and push:
+
+```bash
+git revert <promotion-commit>
+git push
+```
+
+ArgoCD rolls back to the prior revision within a few minutes.
+
+### The `promote` script
+
+```bash
+# Promote all components in an environment
+./scripts/promote <env> <revision>
+
+# Override a single component
+./scripts/promote <env> <component> <revision>
+
+# Clear a single-component override
+./scripts/promote <env> <component> --clear
+
+# Regenerate per-component files without changing anything
+./scripts/promote <env> --generate
+```
+
+The script updates the root promotion file (`promotions/<env>.yaml`) and regenerates per-component files that ArgoCD reads. You still need to commit and push the result.
+
+### Component overrides
+
+You can pin a single component to a different revision than the environment default:
+
+```bash
+# Pin frontline to a specific SHA in production
+./scripts/promote production001 frontline abc123
+
+# Clear the override when done
+./scripts/promote production001 frontline --clear
+```
+
+Overrides are stored in the root promotion file:
+
+```yaml
+revision: 1d9c3076d63027f5fa770b43d08a4453318b2f8e
+
+overrides:
+  frontline: abc123
+```
+
+Components without overrides use the default `revision`.
+
+### Currently valid components
+
+```
+argocd         control-api    control-worker  core
+external-dns   frontline      krane           networking
+observability  reloader       restate         runtime
+sentinel       thanos         vault           vector-logs
+```
+
+---
+
+Hopefully, none of this is heavy process. It's a few small habits — plan before building, write a good PR description, link the SHA, get a review for production — that help create codebase where any of us can pick up the thread at any point and understand what's running and why.
+
+When you need a promotion reviewed and nobody is online yet, or you want a second opinion on an approach before you start, use **#infrastructure** on Slack. It's a lot easier to coordinate async when the plans and PRs are well-documented — and when they're not, that's when things fall through the cracks and make things harder for each other.

@@ -26,9 +26,7 @@ import (
 // routes atomically through the routing service.
 //
 // ScaleDownIdlePreviewDeployments runs on a cron to find preview deployments that have
-// received no traffic for 6 hours and sets them to standby. SetDeploymentDesiredState
-// targets a single deployment, typically sent with a 30-minute delay after a new
-// deployment replaces it.
+// received no traffic for 6 hours and sets them to standby.
 type DeployServiceClient interface {
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
@@ -52,16 +50,16 @@ type DeployServiceClient interface {
 }
 
 type deployServiceClient struct {
-	ctx        sdk_go.Context
-	workflowID string
-	options    []sdk_go.ClientOption
+	ctx     sdk_go.Context
+	key     string
+	options []sdk_go.ClientOption
 }
 
-func NewDeployServiceClient(ctx sdk_go.Context, workflowID string, opts ...sdk_go.ClientOption) DeployServiceClient {
+func NewDeployServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.ClientOption) DeployServiceClient {
 	cOpts := append([]sdk_go.ClientOption{sdk_go.WithProtoJSON}, opts...)
 	return &deployServiceClient{
 		ctx,
-		workflowID,
+		key,
 		cOpts,
 	}
 }
@@ -70,7 +68,7 @@ func (c *deployServiceClient) Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*DeployRequest](sdk_go.Workflow[*DeployResponse](c.ctx, "hydra.v1.DeployService", c.workflowID, "Deploy", cOpts...))
+	return sdk_go.WithRequestType[*DeployRequest](sdk_go.Object[*DeployResponse](c.ctx, "hydra.v1.DeployService", c.key, "Deploy", cOpts...))
 }
 
 func (c *deployServiceClient) Rollback(opts ...sdk_go.ClientOption) sdk_go.Client[*RollbackRequest, *RollbackResponse] {
@@ -78,7 +76,7 @@ func (c *deployServiceClient) Rollback(opts ...sdk_go.ClientOption) sdk_go.Clien
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*RollbackRequest](sdk_go.Workflow[*RollbackResponse](c.ctx, "hydra.v1.DeployService", c.workflowID, "Rollback", cOpts...))
+	return sdk_go.WithRequestType[*RollbackRequest](sdk_go.Object[*RollbackResponse](c.ctx, "hydra.v1.DeployService", c.key, "Rollback", cOpts...))
 }
 
 func (c *deployServiceClient) Promote(opts ...sdk_go.ClientOption) sdk_go.Client[*PromoteRequest, *PromoteResponse] {
@@ -86,7 +84,7 @@ func (c *deployServiceClient) Promote(opts ...sdk_go.ClientOption) sdk_go.Client
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*PromoteRequest](sdk_go.Workflow[*PromoteResponse](c.ctx, "hydra.v1.DeployService", c.workflowID, "Promote", cOpts...))
+	return sdk_go.WithRequestType[*PromoteRequest](sdk_go.Object[*PromoteResponse](c.ctx, "hydra.v1.DeployService", c.key, "Promote", cOpts...))
 }
 
 func (c *deployServiceClient) ScaleDownIdlePreviewDeployments(opts ...sdk_go.ClientOption) sdk_go.Client[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse] {
@@ -94,7 +92,7 @@ func (c *deployServiceClient) ScaleDownIdlePreviewDeployments(opts ...sdk_go.Cli
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*ScaleDownIdlePreviewDeploymentsRequest](sdk_go.Workflow[*ScaleDownIdlePreviewDeploymentsResponse](c.ctx, "hydra.v1.DeployService", c.workflowID, "ScaleDownIdlePreviewDeployments", cOpts...))
+	return sdk_go.WithRequestType[*ScaleDownIdlePreviewDeploymentsRequest](sdk_go.Object[*ScaleDownIdlePreviewDeploymentsResponse](c.ctx, "hydra.v1.DeployService", c.key, "ScaleDownIdlePreviewDeployments", cOpts...))
 }
 
 // DeployServiceIngressClient is the ingress client API for hydra.v1.DeployService service.
@@ -125,35 +123,35 @@ type DeployServiceIngressClient interface {
 type deployServiceIngressClient struct {
 	client      *ingress.Client
 	serviceName string
-	workflowID  string
+	key         string
 }
 
-func NewDeployServiceIngressClient(client *ingress.Client, workflowID string) DeployServiceIngressClient {
+func NewDeployServiceIngressClient(client *ingress.Client, key string) DeployServiceIngressClient {
 	return &deployServiceIngressClient{
 		client,
 		"hydra.v1.DeployService",
-		workflowID,
+		key,
 	}
 }
 
 func (c *deployServiceIngressClient) Deploy() ingress.Requester[*DeployRequest, *DeployResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*DeployRequest, *DeployResponse](c.client, c.serviceName, "Deploy", &c.workflowID, &codec)
+	return ingress.NewRequester[*DeployRequest, *DeployResponse](c.client, c.serviceName, "Deploy", &c.key, &codec)
 }
 
 func (c *deployServiceIngressClient) Rollback() ingress.Requester[*RollbackRequest, *RollbackResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*RollbackRequest, *RollbackResponse](c.client, c.serviceName, "Rollback", &c.workflowID, &codec)
+	return ingress.NewRequester[*RollbackRequest, *RollbackResponse](c.client, c.serviceName, "Rollback", &c.key, &codec)
 }
 
 func (c *deployServiceIngressClient) Promote() ingress.Requester[*PromoteRequest, *PromoteResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*PromoteRequest, *PromoteResponse](c.client, c.serviceName, "Promote", &c.workflowID, &codec)
+	return ingress.NewRequester[*PromoteRequest, *PromoteResponse](c.client, c.serviceName, "Promote", &c.key, &codec)
 }
 
 func (c *deployServiceIngressClient) ScaleDownIdlePreviewDeployments() ingress.Requester[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse](c.client, c.serviceName, "ScaleDownIdlePreviewDeployments", &c.workflowID, &codec)
+	return ingress.NewRequester[*ScaleDownIdlePreviewDeploymentsRequest, *ScaleDownIdlePreviewDeploymentsResponse](c.client, c.serviceName, "ScaleDownIdlePreviewDeployments", &c.key, &codec)
 }
 
 // DeployServiceServer is the server API for hydra.v1.DeployService service.
@@ -171,29 +169,27 @@ func (c *deployServiceIngressClient) ScaleDownIdlePreviewDeployments() ingress.R
 // routes atomically through the routing service.
 //
 // ScaleDownIdlePreviewDeployments runs on a cron to find preview deployments that have
-// received no traffic for 6 hours and sets them to standby. SetDeploymentDesiredState
-// targets a single deployment, typically sent with a 30-minute delay after a new
-// deployment replaces it.
+// received no traffic for 6 hours and sets them to standby.
 type DeployServiceServer interface {
 	// Deploy executes the full deployment workflow: build (if git source), provision
 	// containers across regions, wait for health, configure domain routing, and
 	// update the project's live deployment pointer for production environments.
 	// Sets deployment status to failed on any error.
-	Deploy(ctx sdk_go.WorkflowSharedContext, req *DeployRequest) (*DeployResponse, error)
+	Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error)
 	// Rollback switches sticky frontline routes (environment and live) from the
 	// current live deployment back to a previous one. Marks the project as rolled
 	// back so future deploys don't automatically reclaim live routes.
 	// Source must be the current live deployment; both must share the same project
 	// and environment.
-	Rollback(ctx sdk_go.WorkflowSharedContext, req *RollbackRequest) (*RollbackResponse, error)
+	Rollback(ctx sdk_go.ObjectContext, req *RollbackRequest) (*RollbackResponse, error)
 	// Promote reassigns sticky frontline routes to a target deployment and clears
 	// the rolled-back flag, restoring normal deployment flow.
 	// Target must be in ready status and not already the live deployment.
-	Promote(ctx sdk_go.WorkflowSharedContext, req *PromoteRequest) (*PromoteResponse, error)
+	Promote(ctx sdk_go.ObjectContext, req *PromoteRequest) (*PromoteResponse, error)
 	// ScaleDownIdlePreviewDeployments iterates all preview environments and sets any
 	// deployment to standby that has received zero requests in the last 6 hours.
 	// Intended to be called by a cron job.
-	ScaleDownIdlePreviewDeployments(ctx sdk_go.WorkflowSharedContext, req *ScaleDownIdlePreviewDeploymentsRequest) (*ScaleDownIdlePreviewDeploymentsResponse, error)
+	ScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *ScaleDownIdlePreviewDeploymentsRequest) (*ScaleDownIdlePreviewDeploymentsResponse, error)
 }
 
 // UnimplementedDeployServiceServer should be embedded to have
@@ -203,16 +199,16 @@ type DeployServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedDeployServiceServer struct{}
 
-func (UnimplementedDeployServiceServer) Deploy(ctx sdk_go.WorkflowSharedContext, req *DeployRequest) (*DeployResponse, error) {
+func (UnimplementedDeployServiceServer) Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Deploy not implemented"), 501)
 }
-func (UnimplementedDeployServiceServer) Rollback(ctx sdk_go.WorkflowSharedContext, req *RollbackRequest) (*RollbackResponse, error) {
+func (UnimplementedDeployServiceServer) Rollback(ctx sdk_go.ObjectContext, req *RollbackRequest) (*RollbackResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Rollback not implemented"), 501)
 }
-func (UnimplementedDeployServiceServer) Promote(ctx sdk_go.WorkflowSharedContext, req *PromoteRequest) (*PromoteResponse, error) {
+func (UnimplementedDeployServiceServer) Promote(ctx sdk_go.ObjectContext, req *PromoteRequest) (*PromoteResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Promote not implemented"), 501)
 }
-func (UnimplementedDeployServiceServer) ScaleDownIdlePreviewDeployments(ctx sdk_go.WorkflowSharedContext, req *ScaleDownIdlePreviewDeploymentsRequest) (*ScaleDownIdlePreviewDeploymentsResponse, error) {
+func (UnimplementedDeployServiceServer) ScaleDownIdlePreviewDeployments(ctx sdk_go.ObjectContext, req *ScaleDownIdlePreviewDeploymentsRequest) (*ScaleDownIdlePreviewDeploymentsResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method ScaleDownIdlePreviewDeployments not implemented"), 501)
 }
 func (UnimplementedDeployServiceServer) testEmbeddedByValue() {}
@@ -233,10 +229,10 @@ func NewDeployServiceServer(srv DeployServiceServer, opts ...sdk_go.ServiceDefin
 		t.testEmbeddedByValue()
 	}
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
-	router := sdk_go.NewWorkflow("hydra.v1.DeployService", sOpts...)
-	router = router.Handler("Deploy", sdk_go.NewWorkflowSharedHandler(srv.Deploy))
-	router = router.Handler("Rollback", sdk_go.NewWorkflowSharedHandler(srv.Rollback))
-	router = router.Handler("Promote", sdk_go.NewWorkflowSharedHandler(srv.Promote))
-	router = router.Handler("ScaleDownIdlePreviewDeployments", sdk_go.NewWorkflowSharedHandler(srv.ScaleDownIdlePreviewDeployments))
+	router := sdk_go.NewObject("hydra.v1.DeployService", sOpts...)
+	router = router.Handler("Deploy", sdk_go.NewObjectHandler(srv.Deploy))
+	router = router.Handler("Rollback", sdk_go.NewObjectHandler(srv.Rollback))
+	router = router.Handler("Promote", sdk_go.NewObjectHandler(srv.Promote))
+	router = router.Handler("ScaleDownIdlePreviewDeployments", sdk_go.NewObjectHandler(srv.ScaleDownIdlePreviewDeployments))
 	return router
 }

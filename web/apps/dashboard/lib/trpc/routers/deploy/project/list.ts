@@ -102,8 +102,6 @@ export const listProjects = workspaceProcedure
         commitTimestamp:
           row.git_commit_timestamp === null ? null : Number(row.git_commit_timestamp),
         authorAvatar: row.git_commit_author_avatar_url,
-        // Only show regions/domain when we have a deployment (and thus commit data)
-        regions: hasDeployment ? ["local.dev"] : [],
         domain: hasDeployment ? row.domain : null,
         latestDeploymentId: row.latest_deployment_id,
       };

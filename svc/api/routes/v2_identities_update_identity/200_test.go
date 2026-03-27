@@ -306,6 +306,17 @@ func TestUpdateIdentityConcurrentRatelimits(t *testing.T) {
 
 	numConcurrent := 10
 
+	// Warm up the validator's schema cache with a single request so the
+	// concurrent burst doesn't race on first-time schema rendering.
+	warmupRatelimits := []openapi.RatelimitRequest{
+		{Name: "shared_limit_a", Limit: 100, Duration: 60000, AutoApply: true},
+	}
+	warmup := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Identity:   externalID,
+		Ratelimits: &warmupRatelimits,
+	})
+	require.Equal(t, 200, warmup.Status, "warmup request should succeed")
+
 	g := errgroup.Group{}
 	for i := range numConcurrent {
 		g.Go(func() error {

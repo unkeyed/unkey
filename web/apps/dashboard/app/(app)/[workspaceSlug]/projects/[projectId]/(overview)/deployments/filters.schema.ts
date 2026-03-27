@@ -5,30 +5,21 @@ import type {
 } from "@/components/logs/validation/filter.types";
 import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
+import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { z } from "zod";
-
-export const DEPLOYMENT_STATUSES = [
-  "pending",
-  "starting",
-  "building",
-  "deploying",
-  "network",
-  "finalizing",
-  "ready",
-  "failed",
-] as const;
 
 // Define grouped statuses for client filtering
 const GROUPED_DEPLOYMENT_STATUSES = [
   "pending",
   "deploying", // represents all deploying states
   "ready",
+  "stopped",
   "failed",
+  "skipped",
 ] as const;
 
 const DEPLOYMENT_ENVIRONMENTS = ["production", "preview"] as const;
 
-export type DeploymentStatus = (typeof DEPLOYMENT_STATUSES)[number];
 export type GroupedDeploymentStatus = (typeof GROUPED_DEPLOYMENT_STATUSES)[number];
 export type DeploymentEnvironment = (typeof DEPLOYMENT_ENVIRONMENTS)[number];
 
@@ -58,10 +49,7 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
       if (value === "failed") {
         return "bg-error-9";
       }
-      if (value === "pending") {
-        return "bg-gray-9";
-      }
-      return "bg-info-9"; // building
+      return "bg-info-9";
     },
   },
   environment: {
@@ -98,6 +86,10 @@ export const expandGroupedStatus = (groupedStatus: GroupedDeploymentStatus): Dep
       return ["ready"];
     case "failed":
       return ["failed"];
+    case "skipped":
+      return ["skipped"];
+    case "stopped":
+      return ["stopped"];
     default:
       throw new Error(`Unknown grouped status: ${groupedStatus}`);
   }

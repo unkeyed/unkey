@@ -11,7 +11,7 @@ import (
 )
 
 const listDeploymentsByEnvironmentIdAndStatus = `-- name: ListDeploymentsByEnvironmentIdAndStatus :many
-SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, healthcheck, status, created_at, updated_at FROM ` + "`" + `deployments` + "`" + `
+SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, status, created_at, updated_at FROM ` + "`" + `deployments` + "`" + `
 WHERE environment_id = ?
   AND status = ?
   AND created_at < ?
@@ -27,7 +27,7 @@ type ListDeploymentsByEnvironmentIdAndStatusParams struct {
 
 // ListDeploymentsByEnvironmentIdAndStatus
 //
-//	SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, openapi_spec, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, healthcheck, status, created_at, updated_at FROM `deployments`
+//	SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, status, created_at, updated_at FROM `deployments`
 //	WHERE environment_id = ?
 //	  AND status = ?
 //	  AND created_at < ?
@@ -63,7 +63,6 @@ func (q *Queries) ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, d
 			&i.GitCommitAuthorAvatarUrl,
 			&i.GitCommitTimestamp,
 			&i.SentinelConfig,
-			&i.OpenapiSpec,
 			&i.CpuMillicores,
 			&i.MemoryMib,
 			&i.DesiredState,
@@ -72,6 +71,9 @@ func (q *Queries) ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, d
 			&i.Port,
 			&i.ShutdownSignal,
 			&i.Healthcheck,
+			&i.PrNumber,
+			&i.ForkRepositoryFullName,
+			&i.GithubDeploymentID,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,

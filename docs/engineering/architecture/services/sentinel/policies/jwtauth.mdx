@@ -1,22 +1,124 @@
 ---
 title: "JWTAuth"
-description: "JWT authentication policy"
+description: "JWT authentication policy (schema only)"
 ---
 
-JWTAuth validates Bearer JSON Web Tokens using JWKS or a public key and produces a principal on success. It centralizes token validation at the gateway.
+JWTAuth validates Bearer JSON Web Tokens using JWKS, an OIDC issuer, or a static public key, and produces a principal on success.
+
+<Note>
+JWTAuth is defined in the policy schema but is not executed by the sentinel engine yet.
+</Note>
 
 ## Fields
 
-- `jwks_uri`, `oidc_issuer`, or `public_key_pem`: Token verification source.
-- `issuer`: Required `iss` claim value.
-- `audiences`: Allowed `aud` values.
-- `algorithms`: Allowed signing algorithms.
-- `subject_claim`: Claim used as the principal subject.
-- `forward_claims`: Claims copied into the principal.
-- `allow_anonymous`: Allow requests without a token.
-- `clock_skew_ms`: Clock skew tolerance for time-based claims.
-- `jwks_cache_ms`: JWKS cache duration.
+<ResponseField name="jwks_uri" type="string">
+  URL of the JWKS endpoint for token verification.
+</ResponseField>
 
-## Implementation status
+<ResponseField name="oidc_issuer" type="string">
+  OIDC issuer URL. Sentinel discovers the JWKS URI from the issuer's `.well-known/openid-configuration`.
+</ResponseField>
 
-JWTAuth is defined in the policy schema but is not executed by the sentinel engine yet.
+<ResponseField name="public_key_pem" type="bytes">
+  PEM-encoded public key for token verification. Use this for static key pairs.
+</ResponseField>
+
+<ResponseField name="issuer" type="string">
+  Required `iss` claim value.
+</ResponseField>
+
+<ResponseField name="audiences" type="string[]">
+  Allowed `aud` claim values.
+</ResponseField>
+
+<ResponseField name="algorithms" type="string[]">
+  Allowed signing algorithms.
+</ResponseField>
+
+<ResponseField name="subject_claim" type="string">
+  Claim used as the principal subject. Defaults to `sub`.
+</ResponseField>
+
+<ResponseField name="forward_claims" type="string[]">
+  Claims to copy into the principal's claims map.
+</ResponseField>
+
+<ResponseField name="allow_anonymous" type="bool">
+  When true, requests without a token are allowed through without setting a principal.
+</ResponseField>
+
+<ResponseField name="clock_skew_ms" type="int64">
+  Tolerance for time-based claim validation (`exp`, `nbf`, `iat`), in milliseconds.
+</ResponseField>
+
+<ResponseField name="jwks_cache_ms" type="int64">
+  How long to cache the JWKS response, in milliseconds.
+</ResponseField>
+
+## Examples
+
+<Tabs>
+<Tab title="OIDC issuer">
+```json
+{
+  "policies": [
+    {
+      "id": "jwt-auth",
+      "name": "Validate JWTs via OIDC",
+      "enabled": true,
+      "match": [],
+      "jwtauth": {
+        "oidc_issuer": "https://auth.example.com",
+        "audiences": ["api.example.com"],
+        "algorithms": ["RS256"],
+        "forward_claims": ["email", "org_id"]
+      }
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="JWKS URI">
+```json
+{
+  "policies": [
+    {
+      "id": "jwt-auth",
+      "name": "Validate JWTs via JWKS",
+      "enabled": true,
+      "match": [],
+      "jwtauth": {
+        "jwks_uri": "https://auth.example.com/.well-known/jwks.json",
+        "issuer": "https://auth.example.com",
+        "audiences": ["api.example.com"],
+        "algorithms": ["RS256"],
+        "jwks_cache_ms": 3600000
+      }
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Optional auth">
+```json
+{
+  "policies": [
+    {
+      "id": "jwt-auth-optional",
+      "name": "Optional JWT auth",
+      "enabled": true,
+      "match": [],
+      "jwtauth": {
+        "oidc_issuer": "https://auth.example.com",
+        "audiences": ["api.example.com"],
+        "allow_anonymous": true,
+        "forward_claims": ["sub", "email"]
+      }
+    }
+  ]
+}
+```
+
+Requests without a token pass through without a Principal. Requests with an invalid token are rejected.
+</Tab>
+</Tabs>

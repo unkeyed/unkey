@@ -30,14 +30,20 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
+	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
+	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/openapi"
+	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/versioning"
@@ -161,17 +167,18 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploy.New(deploy.Config{
-		DB:                              database,
-		DefaultDomain:                   cfg.DefaultDomain,
-		Vault:                           vaultClient,
-		SentinelImage:                   cfg.SentinelImage,
-		AvailableRegions:                cfg.AvailableRegions,
+		DB:            database,
+		DefaultDomain: cfg.DefaultDomain,
+		Vault:         vaultClient,
+		SentinelImage: cfg.SentinelImage,
+
 		GitHub:                          ghClient,
 		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
 		BuildPlatform:                   deploy.BuildPlatform(buildPlatform),
 		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
 		Clickhouse:                      ch,
 		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		DashboardURL:                    cfg.DashboardURL,
 	}),
 		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~24 hours total
 		restate.WithInvocationRetryPolicy(
@@ -186,6 +193,11 @@ func Run(ctx context.Context, cfg Config) error {
 		DB: database,
 	}), restate.WithIngressPrivate(true)))
 
+	restateSrv.Bind(hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{
+		GitHub: ghClient,
+		DB:     database,
+	}), restate.WithIngressPrivate(true)))
+
 	restateSrv.Bind(hydrav1.NewRoutingServiceServer(routing.New(routing.Config{
 		DB:            database,
 		DefaultDomain: cfg.DefaultDomain,
@@ -193,7 +205,35 @@ func Run(ctx context.Context, cfg Config) error {
 
 	restateSrv.Bind(hydrav1.NewVersioningServiceServer(versioning.New(), restate.WithIngressPrivate(true)))
 
+	restateSrv.Bind(hydrav1.NewOpenapiServiceServer(openapi.New(openapi.Config{
+		DB: database,
+	}), restate.WithIngressPrivate(true),
+		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~1 hour total.
+		// Scraping is best-effort (fire-and-forget from deploy); bound retries to avoid
+		// wasting resources on permanently broken endpoints.
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialInterval(1*time.Minute),
+			restate.WithExponentiationFactor(2.0),
+			restate.WithMaxInterval(10*time.Minute),
+			restate.WithMaxAttempts(10),
+			restate.KillOnMaxAttempts(),
+		),
+	))
+
 	restateSrv.Bind(hydrav1.NewGitHubWebhookServiceServer(githubwebhook.New(githubwebhook.Config{
+		DB:                              database,
+		GitHub:                          ghClient,
+		DashboardURL:                    cfg.DashboardURL,
+		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+	})))
+
+	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{
+		DB: database,
+	})))
+	restateSrv.Bind(hydrav1.NewAppServiceServer(workerapp.New(workerapp.Config{
+		DB: database,
+	})))
+	restateSrv.Bind(hydrav1.NewEnvironmentServiceServer(workerenvironment.New(workerenvironment.Config{
 		DB: database,
 	})))
 
@@ -331,6 +371,38 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
 	logger.Info("KeyRefillService enabled")
+
+	// Key last used sync: orchestrator + partition services
+	var keyLastUsedSyncHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.Heartbeat.KeyLastUsedSyncURL != "" {
+		keyLastUsedSyncHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL)
+	}
+
+	keyLastUsedSyncSvc, err := keylastusedsync.New(keylastusedsync.Config{
+		Heartbeat: keyLastUsedSyncHeartbeat,
+	})
+	if err != nil {
+		return fmt.Errorf("create key last used sync service: %w", err)
+	}
+	// Retry quickly (deadlocks resolve fast), but cap attempts since this runs on a schedule.
+	keyLastUsedRetryPolicy := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewKeyLastUsedSyncServiceServer(keyLastUsedSyncSvc, keyLastUsedRetryPolicy))
+
+	keyLastUsedPartitionSvc, err := keylastusedsync.NewPartitionService(keylastusedsync.PartitionConfig{
+		DB:         database,
+		Clickhouse: ch,
+	})
+	if err != nil {
+		return fmt.Errorf("create key last used partition service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, keyLastUsedRetryPolicy))
+	logger.Info("KeyLastUsedSyncService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()

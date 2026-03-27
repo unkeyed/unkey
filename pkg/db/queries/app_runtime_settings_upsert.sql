@@ -8,9 +8,9 @@ INSERT INTO app_runtime_settings (
     memory_mib,
     command,
     healthcheck,
-    region_config,
     shutdown_signal,
     sentinel_config,
+    openapi_spec_path,
     created_at,
     updated_at
 ) VALUES (
@@ -22,9 +22,9 @@ INSERT INTO app_runtime_settings (
     sqlc.arg(memory_mib),
     sqlc.arg(command),
     sqlc.arg(healthcheck),
-    sqlc.arg(region_config),
     sqlc.arg(shutdown_signal),
     sqlc.arg(sentinel_config),
+    sqlc.arg(openapi_spec_path),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)
 )
@@ -34,7 +34,7 @@ ON DUPLICATE KEY UPDATE
     memory_mib = VALUES(memory_mib),
     command = VALUES(command),
     healthcheck = VALUES(healthcheck),
-    region_config = VALUES(region_config),
     shutdown_signal = VALUES(shutdown_signal),
     sentinel_config = VALUES(sentinel_config),
+    openapi_spec_path = VALUES(openapi_spec_path),
     updated_at = VALUES(updated_at);

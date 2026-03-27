@@ -20,14 +20,17 @@ export const frontlineRoutes = mysqlTable(
       .unique(),
     // sticky determines whether a fullyQualifiedDomainName should get reassigned to the latest deployment
     // - branch: the fullyQualifiedDomainName always points to the latest deployment on the branch
-    //     <projectslug>-git-<branchname>-<workspaceslug>.unkey.app
+    //     <projectslug>-<appslug>-git-<branchname>-<workspaceslug>.unkey.app
     //
     // - environment: the fullyQualifiedDomainName is sticky to the environment it was created on
-    //     <projectslug>-<environmentslug>-<workspaceslug>.unkey.app
+    //     <projectslug>-<appslug>-<environmentslug>-<workspaceslug>.unkey.app
     //
     // - live: the fullyQualifiedDomainName is sticky to the live deployment it was created on
     //     api.unkey.com
-    sticky: mysqlEnum("sticky", ["none", "branch", "environment", "live"])
+    //
+    // - deployment: per-deployment stable URL, never reassigned
+    //     <projectslug>-<appslug>-dep-<id>-<workspaceslug>.unkey.app
+    sticky: mysqlEnum("sticky", ["none", "branch", "environment", "live", "deployment"])
       .notNull()
       .default("none"),
 
@@ -36,6 +39,11 @@ export const frontlineRoutes = mysqlTable(
   (table) => [
     index("environment_id_idx").on(table.environmentId),
     index("deployment_id_idx").on(table.deploymentId),
+    index("fqdn_environment_deployment_idx").on(
+      table.fullyQualifiedDomainName,
+      table.environmentId,
+      table.deploymentId,
+    ),
   ],
 );
 

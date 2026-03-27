@@ -23,8 +23,8 @@ import (
 // history. When no new versions are available, the server polls the database every second.
 //
 // Each poll fetches up to 100 deployment topology rows ordered by version. The desired_status
-// field determines whether to send an ApplyDeployment (for started/starting states) or
-// DeleteDeployment (for stopped/stopping states). Rows with unhandled statuses are logged
+// field determines whether to send an ApplyDeployment (for running) or
+// DeleteDeployment (for stopped). Rows with unhandled statuses are logged
 // and skipped.
 //
 // Returns when the context is cancelled, or on database or stream errors.
@@ -37,10 +37,27 @@ func (s *Service) WatchDeployments(
 		return err
 	}
 
-	region := req.Msg.GetRegion()
-	if err := assert.NotEmpty(region, "region is required"); err != nil {
+	regionName := req.Header().Get("X-Krane-Region")
+	platform := req.Header().Get("X-Krane-Platform")
+	if err := assert.All(
+		assert.NotEmpty(regionName, "region is required"),
+		assert.NotEmpty(platform, "platform is required"),
+	); err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	}
+
+	logger.Info("starting WatchDeployments stream", "region_name", regionName, "platform", platform)
+
+	region, err := db.Query.FindRegionByNameAndPlatform(ctx, s.db.RO(), db.FindRegionByNameAndPlatformParams{
+		Name:     regionName,
+		Platform: platform,
+	})
+	if err != nil {
+		logger.Error("failed to find region for WatchDeployments", "error", err, "region_name", regionName, "platform", platform)
+		return connect.NewError(connect.CodeInternal, err)
+	}
+
+	logger.Info("found region for WatchDeployments", "region_id", region.ID)
 
 	versionCursor := req.Msg.GetVersionLastSeen()
 
@@ -51,7 +68,7 @@ func (s *Service) WatchDeployments(
 		default:
 		}
 
-		states, err := s.fetchDeploymentStates(ctx, region, versionCursor)
+		states, err := s.fetchDeploymentStates(ctx, region.ID, versionCursor)
 		if err != nil {
 			logger.Error("failed to fetch deployment states", "error", err)
 			return connect.NewError(connect.CodeInternal, err)
@@ -75,9 +92,9 @@ func (s *Service) WatchDeployments(
 // fetchDeploymentStates queries the database for deployment topologies in the given region
 // with versions greater than afterVersion, returning up to 100 results. Rows that fail
 // conversion are logged and skipped rather than failing the entire batch.
-func (s *Service) fetchDeploymentStates(ctx context.Context, region string, afterVersion uint64) ([]*ctrlv1.DeploymentState, error) {
+func (s *Service) fetchDeploymentStates(ctx context.Context, regionID string, afterVersion uint64) ([]*ctrlv1.DeploymentState, error) {
 	rows, err := db.Query.ListDeploymentTopologyByRegion(ctx, s.db.RO(), db.ListDeploymentTopologyByRegionParams{
-		Region:       region,
+		RegionID:     regionID,
 		Afterversion: afterVersion,
 		Limit:        100,
 	})
@@ -95,15 +112,17 @@ func (s *Service) fetchDeploymentStates(ctx context.Context, region string, afte
 		states = append(states, state)
 	}
 
+	logger.Info("fetched deployment states", "count", len(states), "region_id", regionID, "after_version", afterVersion)
+
 	return states, nil
 }
 
 // deploymentRowToState converts a database row to a proto DeploymentState message. Returns
-// a DeleteDeployment for stopped/stopping statuses and an ApplyDeployment for started/starting
+// a DeleteDeployment for stopped and an ApplyDeployment for running
 // statuses. Returns (nil, nil) for unhandled statuses, which the caller should skip.
 func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow) (*ctrlv1.DeploymentState, error) {
 	switch row.DeploymentTopology.DesiredStatus {
-	case db.DeploymentTopologyDesiredStatusStopped, db.DeploymentTopologyDesiredStatusStopping:
+	case db.DeploymentTopologyDesiredStatusStopped:
 		return &ctrlv1.DeploymentState{
 			Version: row.DeploymentTopology.Version,
 			State: &ctrlv1.DeploymentState_Delete{
@@ -113,7 +132,7 @@ func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow)
 				},
 			},
 		}, nil
-	case db.DeploymentTopologyDesiredStatusStarted, db.DeploymentTopologyDesiredStatusStarting:
+	case db.DeploymentTopologyDesiredStatusRunning:
 		var buildID *string
 		if row.Deployment.BuildID.Valid {
 			buildID = &row.Deployment.BuildID.String
@@ -136,6 +155,21 @@ func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow)
 			Command:                       row.Deployment.Command,
 			Port:                          row.Deployment.Port,
 			ShutdownSignal:                string(row.Deployment.ShutdownSignal),
+			EnvironmentSlug:               &row.EnvironmentSlug,
+			Region:                        &row.RegionName,
+		}
+
+		if row.Deployment.GitCommitSha.Valid {
+			apply.GitCommitSha = &row.Deployment.GitCommitSha.String
+		}
+		if row.Deployment.GitBranch.Valid {
+			apply.GitBranch = &row.Deployment.GitBranch.String
+		}
+		if row.Deployment.GitCommitMessage.Valid {
+			apply.GitCommitMessage = &row.Deployment.GitCommitMessage.String
+		}
+		if row.GitRepo.Valid {
+			apply.GitRepo = &row.GitRepo.String
 		}
 
 		if row.Deployment.Healthcheck.Valid {

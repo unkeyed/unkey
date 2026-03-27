@@ -12,6 +12,7 @@ import {
 import { deploymentSteps } from "./deployment_steps";
 import { environments } from "./environments";
 import { instances } from "./instances";
+import { openapiSpecs } from "./openapi_specs";
 import { projects } from "./projects";
 import { sentinels } from "./sentinels";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -53,8 +54,6 @@ export const deployments = mysqlTable(
 
     sentinelConfig: longblob("sentinel_config").notNull(),
 
-    // OpenAPI specification
-    openapiSpec: longblob("openapi_spec"),
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
     desiredState: mysqlEnum("desired_state", ["running", "standby", "archived"])
@@ -80,6 +79,15 @@ export const deployments = mysqlTable(
     // HTTP healthcheck configuration (null = no healthcheck)
     healthcheck: json("healthcheck").$type<import("./app_runtime_settings").Healthcheck>(),
 
+    // PR number (for fork PRs, used to build refs/pull/N/head for BuildKit)
+    prNumber: bigint("pr_number", { mode: "number" }),
+
+    // Fork repository full name (e.g. "contributor/repo") for linking to the fork
+    forkRepositoryFullName: varchar("fork_repository_full_name", { length: 256 }),
+
+    // GitHub Deployment ID for status reporting
+    githubDeploymentId: bigint("github_deployment_id", { mode: "number" }),
+
     // Deployment status
     status: mysqlEnum("status", [
       "pending",
@@ -90,6 +98,9 @@ export const deployments = mysqlTable(
       "finalizing",
       "ready",
       "failed",
+      "skipped",
+      "awaiting_approval",
+      "stopped",
     ])
       .notNull()
       .default("pending"),
@@ -114,6 +125,11 @@ export const deploymentsRelations = relations(deployments, ({ one, many }) => ({
   project: one(projects, {
     fields: [deployments.projectId],
     references: [projects.id],
+  }),
+
+  openapiSpec: one(openapiSpecs, {
+    fields: [deployments.id],
+    references: [openapiSpecs.deploymentId],
   }),
 
   sentinels: many(sentinels),

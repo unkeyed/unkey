@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/unkeyed/unkey/cmd/api"
-	"github.com/unkeyed/unkey/cmd/ctrl"
-	"github.com/unkeyed/unkey/cmd/frontline"
-	"github.com/unkeyed/unkey/cmd/krane"
-	"github.com/unkeyed/unkey/cmd/preflight"
-	"github.com/unkeyed/unkey/cmd/sentinel"
-	"github.com/unkeyed/unkey/cmd/vault"
+	"github.com/unkeyed/unkey/cmd/run/api"
+	"github.com/unkeyed/unkey/cmd/run/ctrl"
+	"github.com/unkeyed/unkey/cmd/run/frontline"
+	"github.com/unkeyed/unkey/cmd/run/krane"
+	"github.com/unkeyed/unkey/cmd/run/sentinel"
+	"github.com/unkeyed/unkey/cmd/run/vault"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
@@ -29,11 +28,10 @@ This command starts different Unkey microservices. Each service can be configure
 AVAILABLE SERVICES:
 - api: The main API server for validating and managing API keys
 - ctrl: The control plane service for managing infrastructure and deployments
-- krane: The VM management service for infrastructure
+- krane: Deployment management service for Kubernetes
 - frontline: Multi-tenant frontline service for TLS termination and routing
 - sentinel: Environment tenant sentinel service for routing requests to the actual instances
 - vault: Secret management service for encryption
-- worker: Restate worker service for background jobs and workflows
 
 EXAMPLES:
 unkey run api                                    # Run the API server
@@ -47,7 +45,6 @@ unkey run api --port 8080 --env production      # Run API server with custom con
 		krane.Cmd,
 		frontline.Cmd,
 		sentinel.Cmd,
-		preflight.Cmd,
 		vault.Cmd,
 	},
 	Action: runAction,
@@ -60,7 +57,6 @@ func runAction(ctx context.Context, cmd *cli.Command) error {
 	fmt.Println("  krane           - Manage containers and deployments in docker or kubernetes")
 	fmt.Println("  frontline       - Multi-tenant ingress service for TLS termination and routing")
 	fmt.Println("  sentinel        - Environment tenant gateway service for routing requests to the actual instances")
-	fmt.Println("  preflight       - Kubernetes mutating webhook for secrets and credentials injection")
 	fmt.Println("  vault           - Encryption service for sensitive data")
 	fmt.Println("  worker          - Restate worker service for background jobs and workflows")
 	fmt.Println()

@@ -2,10 +2,13 @@ package deploy
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -41,6 +44,41 @@ const (
 	defaultCacheKeepDays = 14
 )
 
+// knownBuildError maps a BuildKit error pattern to a user-friendly message.
+type knownBuildError struct {
+	// substr is matched anywhere in the error string.
+	substr string
+	// message is the clean, actionable text shown to the user.
+	message string
+}
+
+// knownBuildErrors lists BuildKit error patterns caused by user mistakes
+// (bad Dockerfile, missing files, invalid config) paired with friendly messages.
+var knownBuildErrors = []knownBuildError{
+	// Settings-fixable: dockerfile path / docker context
+	{substr: "the dockerfile cannot be empty", message: "The Dockerfile appears to be empty. Please verify the file path in settings."},
+	{substr: "failed to read dockerfile", message: "Dockerfile could not be read. Please check that the file path is correct in settings."},
+	{substr: "failed to find target", message: "The specified build target stage was not found. Please check the target name in settings."},
+	{substr: "failed to compute cache key", message: "A file referenced in the Dockerfile was not found. Please check the root directory in settings."},
+	{substr: "no such file or directory", message: "A file or directory referenced in the build was not found. Please check the root directory in settings."},
+	// Dockerfile content issues (require editing the Dockerfile)
+	{substr: "dockerfile parse error on line", message: "Dockerfile has a syntax error. Please check the Dockerfile for typos."},
+	{substr: "no build stage in current context", message: "Dockerfile has no valid build stage. Please add a FROM instruction."},
+	{substr: "circular dependency detected on stage", message: "Dockerfile contains a circular dependency between stages. Please review the stage references."},
+	{substr: "invalid reference format", message: "A Docker image reference is invalid. Please check your FROM lines."},
+	{substr: "no match for platform in manifest", message: "The base image does not support the target platform. Please use a multi-platform image or change the platform."},
+	{substr: "no matching manifest", message: "The base image does not support the target platform. Please use a multi-platform image or change the platform."},
+	{substr: "there is no variable named", message: "Dockerfile references an undefined variable. Please check your ARG declarations."},
+	{substr: "the expression result is null", message: "A Dockerfile expression evaluated to null. Please check your variable references."},
+	{substr: "invalid expression", message: "Dockerfile contains an invalid expression. Please check the syntax."},
+	{substr: "invalid block definition", message: "Dockerfile contains an invalid block definition. Please check the syntax."},
+	{substr: "must be of the form: name=value", message: "A build argument is malformed. Please use the format name=value."},
+	{substr: "contains value with non-printable ascii characters", message: "A build argument contains non-printable characters. Please remove them."},
+	{substr: "docker exporter does not currently support", message: "The requested export format is not supported. Please check your export configuration."},
+	{substr: "failed to solve: process", message: "A build command failed. Please check the build logs for details."},
+	{substr: "linting failed", message: "Dockerfile linting failed. Please check the Dockerfile for issues."},
+}
+
 // buildResult contains the output of a Docker image build, including the image
 // name and identifiers needed to trace builds in Depot.
 type buildResult struct {
@@ -52,15 +90,18 @@ type buildResult struct {
 // gitBuildParams holds the inputs for building a container image from a Git
 // repository, including the exact commit and the build context location.
 type gitBuildParams struct {
-	InstallationID int64
-	Repository     string
-	CommitSHA      string
-	ContextPath    string
-	DockerfilePath string
-	ProjectID      string
-	AppID          string
-	DeploymentID   string
-	WorkspaceID    string
+	InstallationID                int64
+	Repository                    string
+	CommitSHA                     string
+	ContextPath                   string
+	DockerfilePath                string
+	ProjectID                     string
+	AppID                         string
+	DeploymentID                  string
+	WorkspaceID                   string
+	PrNumber                      int64
+	EncryptedEnvironmentVariables []byte
+	EnvironmentID                 string
 }
 
 // buildDockerImageFromGit builds a container image from a GitHub repository using Depot.
@@ -107,6 +148,15 @@ func (w *Workflow) buildDockerImageFromGit(
 				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
 			}
 			ghToken = token
+		}
+
+		// Decrypt env vars in-memory so they can be injected as a BuildKit secret.
+		envVars, err := w.decryptEnvVars(runCtx, params.EncryptedEnvironmentVariables, params.EnvironmentID)
+		if err != nil {
+			if errors.Is(err, errInvalidSecretsConfig) {
+				return nil, restate.TerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
+			}
+			return nil, fmt.Errorf("failed to decrypt env vars for build: %w", err)
 		}
 
 		depotBuild, err := build.NewBuild(runCtx, &cliv1.CreateBuildRequest{
@@ -166,12 +216,17 @@ func (w *Workflow) buildDockerImageFromGit(
 			contextPath = ""
 		}
 
-		// Build git context URL with commit SHA
+		// Build git context URL with commit SHA or PR ref.
 		// Format: https://github.com/owner/repo.git#<ref>:<subdir>
-		// Note: BuildKit requires full 40-char SHA for reliable builds
-		gitContextURL := fmt.Sprintf("https://github.com/%s.git#%s", params.Repository, params.CommitSHA)
+		// For fork PRs, use refs/pull/<number>/head so BuildKit can fetch
+		// the fork's commits from the base repo.
+		ref := params.CommitSHA
+		if params.PrNumber > 0 {
+			ref = fmt.Sprintf("refs/pull/%d/head", params.PrNumber)
+		}
+		gitContextURL := fmt.Sprintf("https://github.com/%s.git#%s", params.Repository, ref)
 		if contextPath != "" {
-			gitContextURL = fmt.Sprintf("https://github.com/%s.git#%s:%s", params.Repository, params.CommitSHA, contextPath)
+			gitContextURL = fmt.Sprintf("https://github.com/%s.git#%s:%s", params.Repository, ref, contextPath)
 		}
 
 		logger.Info("Starting build execution",
@@ -190,9 +245,12 @@ func (w *Workflow) buildDockerImageFromGit(
 		// Choose solver options based on authentication mode
 		var solverOptions client.SolveOpt
 		if w.allowUnauthenticatedDeployments {
-			solverOptions = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName)
+			solverOptions, err = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, envVars)
 		} else {
-			solverOptions = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token)
+			solverOptions, err = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, envVars)
+		}
+		if err != nil {
+			return nil, restate.TerminalError(fmt.Errorf("failed to build solver options: %w", err))
 		}
 
 		_, err = buildClient.Solve(runCtx, nil, solverOptions, buildStatusCh)
@@ -201,8 +259,6 @@ func (w *Workflow) buildDockerImageFromGit(
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return nil, fmt.Errorf("build interrupted: %w", err)
 			}
-			// Build failures (bad Dockerfile, compilation errors, etc.) won't fix
-			// themselves on retry — mark as terminal to stop Restate from retrying.
 			return nil, restate.TerminalError(fmt.Errorf("build failed: %w", err))
 		}
 
@@ -216,33 +272,94 @@ func (w *Workflow) buildDockerImageFromGit(
 	}, restate.WithName("build docker image from git"))
 }
 
+// buildEnvFileSecret serializes env vars into a .env-formatted byte slice
+// for injection as a BuildKit secret. Returns (nil, nil) if there are no env
+// vars. Returns an error if any value contains newline or carriage-return
+// characters, which would corrupt the .env line format.
+func buildEnvFileSecret(envVars map[string]string) ([]byte, error) {
+	if len(envVars) == 0 {
+		return nil, nil
+	}
+
+	var badKeys []string
+	for k, v := range envVars {
+		if strings.ContainsAny(v, "\n\r") {
+			badKeys = append(badKeys, k)
+		}
+	}
+	if len(badKeys) != 0 {
+		sort.Strings(badKeys)
+		return nil, fmt.Errorf("environment variables contain newlines which cannot be represented in .env format: %s", strings.Join(badKeys, ", "))
+	}
+
+	var buf strings.Builder
+	for k, v := range envVars {
+		buf.WriteString(k)
+		buf.WriteByte('=')
+		buf.WriteString(v)
+		buf.WriteByte('\n')
+	}
+	return []byte(buf.String()), nil
+}
+
+// hashEnvVars returns a hex-encoded SHA-256 hash of the sorted key=value pairs.
+// The hash is stable across runs and safe to embed in image metadata without
+// exposing secret values. Returns an empty string if there are no env vars.
+func hashEnvVars(envVars map[string]string) string {
+	if len(envVars) == 0 {
+		return ""
+	}
+	pairs := make([]string, 0, len(envVars))
+	for k, v := range envVars {
+		pairs = append(pairs, k+"="+v)
+	}
+	sort.Strings(pairs)
+	h := sha256.Sum256([]byte(strings.Join(pairs, "\n")))
+	return hex.EncodeToString(h[:])
+}
+
 // buildSolverOptions constructs the BuildKit solver configuration for URL-based
 // contexts, including registry auth and image export settings. Use
 // [Workflow.buildGitSolverOptions] when the context requires GitHub credentials.
 func (w *Workflow) buildSolverOptions(
 	platform, contextURL, dockerfilePath, imageName string,
-) client.SolveOpt {
-	return client.SolveOpt{
-		Frontend: "dockerfile.v0",
-		FrontendAttrs: map[string]string{
-			"platform": platform,
-			"context":  contextURL,
-			"filename": dockerfilePath,
-		},
-
-		Session: []session.Attachable{
-			//nolint: exhaustruct
-			authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
-				ConfigFile: &configfile.ConfigFile{
-					AuthConfigs: map[string]types.AuthConfig{
-						w.registryConfig.URL: {
-							Username: w.registryConfig.Username,
-							Password: w.registryConfig.Password,
-						},
+	envVars map[string]string,
+) (client.SolveOpt, error) {
+	sessionAttachables := []session.Attachable{
+		//nolint: exhaustruct
+		authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
+			ConfigFile: &configfile.ConfigFile{
+				AuthConfigs: map[string]types.AuthConfig{
+					w.registryConfig.URL: {
+						Username: w.registryConfig.Username,
+						Password: w.registryConfig.Password,
 					},
 				},
-			}),
-		},
+			},
+		}),
+	}
+
+	envFile, err := buildEnvFileSecret(envVars)
+	if err != nil {
+		return client.SolveOpt{}, fmt.Errorf("invalid environment variables: %w", err)
+	}
+	if envFile != nil {
+		sessionAttachables = append(sessionAttachables, secretsprovider.FromMap(map[string][]byte{"env": envFile}))
+	}
+
+	frontendAttrs := map[string]string{
+		"platform": platform,
+		"context":  contextURL,
+		"filename": dockerfilePath,
+	}
+	if h := hashEnvVars(envVars); h != "" {
+		frontendAttrs["label:org.unkey.env-hash"] = h
+	}
+
+	return client.SolveOpt{
+		Frontend:      "dockerfile.v0",
+		FrontendAttrs: frontendAttrs,
+		Session:       sessionAttachables,
 		//nolint: exhaustruct
 		Exports: []client.ExportEntry{
 			{
@@ -254,21 +371,38 @@ func (w *Workflow) buildSolverOptions(
 				},
 			},
 		},
-	}
+	}, nil
 }
 
 // buildGitSolverOptions constructs the buildkit solver configuration for a git context build.
 // It includes GitHub token authentication via the secrets provider.
 func (w *Workflow) buildGitSolverOptions(
 	platform, gitContextURL, dockerfilePath, imageName, githubToken string,
-) client.SolveOpt {
+	envVars map[string]string,
+) (client.SolveOpt, error) {
+	secrets := map[string][]byte{
+		"GIT_AUTH_TOKEN.github.com": []byte(githubToken),
+	}
+	envFile, err := buildEnvFileSecret(envVars)
+	if err != nil {
+		return client.SolveOpt{}, fmt.Errorf("invalid environment variables: %w", err)
+	}
+	if envFile != nil {
+		secrets["env"] = envFile
+	}
+
+	frontendAttrs := map[string]string{
+		"platform": platform,
+		"context":  gitContextURL,
+		"filename": dockerfilePath,
+	}
+	if h := hashEnvVars(envVars); h != "" {
+		frontendAttrs["label:org.unkey.env-hash"] = h
+	}
+
 	return client.SolveOpt{
-		Frontend: "dockerfile.v0",
-		FrontendAttrs: map[string]string{
-			"platform": platform,
-			"context":  gitContextURL,
-			"filename": dockerfilePath,
-		},
+		Frontend:      "dockerfile.v0",
+		FrontendAttrs: frontendAttrs,
 
 		Session: []session.Attachable{
 			//nolint: exhaustruct
@@ -282,10 +416,7 @@ func (w *Workflow) buildGitSolverOptions(
 					},
 				},
 			}),
-			// Provide GitHub token for BuildKit to authenticate when fetching the git repo
-			secretsprovider.FromMap(map[string][]byte{
-				"GIT_AUTH_TOKEN.github.com": []byte(githubToken),
-			}),
+			secretsprovider.FromMap(secrets),
 		},
 		//nolint: exhaustruct
 		Exports: []client.ExportEntry{
@@ -298,7 +429,7 @@ func (w *Workflow) buildGitSolverOptions(
 				},
 			},
 		},
-	}
+	}, nil
 }
 
 // getOrCreateDepotProject retrieves the Depot project ID for an Unkey project,
@@ -413,4 +544,17 @@ func (w *Workflow) processBuildStatus(
 			})
 		}
 	}
+}
+
+// extractUserBuildError checks whether err matches a known user-caused build
+// failure and returns a clean, actionable message. For unrecognized errors it
+// returns a generic fallback.
+func extractUserBuildError(err error) string {
+	msg := strings.ToLower(err.Error())
+	for _, known := range knownBuildErrors {
+		if strings.Contains(msg, known.substr) {
+			return known.message
+		}
+	}
+	return "Build failed. Please check the build logs for details."
 }

@@ -8,7 +8,7 @@ INSERT INTO cilium_network_policies (
     deployment_id,
     k8s_name,
     k8s_namespace,
-    region,
+    region_id,
     policy,
     version,
     created_at
@@ -21,7 +21,7 @@ INSERT INTO cilium_network_policies (
     sqlc.arg(deployment_id),
     sqlc.arg(k8s_name),
     sqlc.arg(k8s_namespace),
-    sqlc.arg(region),
+    sqlc.arg(region_id),
     sqlc.arg(policy),
     sqlc.arg(version),
     sqlc.arg(created_at)

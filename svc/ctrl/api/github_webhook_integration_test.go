@@ -47,16 +47,16 @@ func TestGitHubWebhook_Push_TriggersHandlePush(t *testing.T) {
 		require.Equal(t, testRepoFullName, req.GetRepositoryFullName())
 		require.Equal(t, "main", req.GetBranch())
 		require.Equal(t, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", req.GetAfter())
-		require.Equal(t, "hello", req.GetCommitMessage())
-		require.Equal(t, "u", req.GetCommitAuthorHandle())
-		require.Equal(t, "https://avatar", req.GetCommitAuthorAvatarUrl())
+		require.Equal(t, "Merge pull request #1 from pr-creator/feat", req.GetCommitMessage())
+		require.Equal(t, "pr-creator", req.GetCommitAuthorHandle())
+		require.Equal(t, "https://github.com/pr-creator.png", req.GetCommitAuthorAvatarUrl())
 		require.NotZero(t, req.GetCommitTimestamp())
 	case <-time.After(10 * time.Second):
 		t.Fatal("expected HandlePush invocation")
 	}
 }
 
-func TestGitHubWebhook_Push_IgnoresFork(t *testing.T) {
+func TestGitHubWebhook_Push_ProcessesFork(t *testing.T) {
 	pushRequests := make(chan *hydrav1.HandlePushRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
 		Services: []restate.ServiceDefinition{hydrav1.NewGitHubWebhookServiceServer(&mockGitHubWebhookService{requests: pushRequests})},
@@ -68,8 +68,54 @@ func TestGitHubWebhook_Push_IgnoresFork(t *testing.T) {
 	_ = resp.Body.Close()
 
 	select {
+	case req := <-pushRequests:
+		require.Equal(t, int64(101), req.GetInstallationId())
+		require.Equal(t, int64(202), req.GetRepositoryId())
+		require.Equal(t, testRepoFullName, req.GetRepositoryFullName())
+	case <-time.After(10 * time.Second):
+		t.Fatal("expected HandlePush invocation for fork with app installed")
+	}
+}
+
+func TestGitHubWebhook_Push_IgnoresDeletedBranch(t *testing.T) {
+	pushRequests := make(chan *hydrav1.HandlePushRequest, 1)
+	harness := newWebhookHarness(t, webhookHarnessConfig{
+		Services: []restate.ServiceDefinition{hydrav1.NewGitHubWebhookServiceServer(&mockGitHubWebhookService{requests: pushRequests})},
+	})
+
+	payload := newTestPushPayload(testRepoFullName, false)
+	payload.Deleted = true
+	payload.After = "0000000000000000000000000000000000000000"
+
+	resp, err := sendWebhook(fmt.Sprintf("%s/webhooks/github", harness.CtrlURL), mustMarshal(t, payload), harness.Secret)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	_ = resp.Body.Close()
+
+	select {
 	case <-pushRequests:
-		t.Fatal("expected no HandlePush invocation for fork event")
+		t.Fatal("unexpected HandlePush invocation for deleted branch")
+	case <-time.After(1 * time.Second):
+	}
+}
+
+func TestGitHubWebhook_Push_IgnoresRestoredBranch(t *testing.T) {
+	pushRequests := make(chan *hydrav1.HandlePushRequest, 1)
+	harness := newWebhookHarness(t, webhookHarnessConfig{
+		Services: []restate.ServiceDefinition{hydrav1.NewGitHubWebhookServiceServer(&mockGitHubWebhookService{requests: pushRequests})},
+	})
+
+	payload := newTestPushPayload(testRepoFullName, false)
+	payload.Created = true
+
+	resp, err := sendWebhook(fmt.Sprintf("%s/webhooks/github", harness.CtrlURL), mustMarshal(t, payload), harness.Secret)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	_ = resp.Body.Close()
+
+	select {
+	case <-pushRequests:
+		t.Fatal("unexpected HandlePush invocation for restored branch")
 	case <-time.After(1 * time.Second):
 	}
 }
@@ -106,20 +152,26 @@ func sendWebhook(url string, body []byte, secret string) (*http.Response, error)
 }
 
 func newTestPushPayload(repoFullName string, fork bool) pushPayload {
-	commit := pushCommit{
-		ID:        "c1",
-		Message:   "hello\nworld",
+	prCommit := pushCommit{
+		ID:        "c0",
+		Message:   "feat: original PR work",
 		Timestamp: "2024-01-01T00:00:00Z",
-		Author:    pushCommitAuthor{Name: "n", Username: "u"},
+		Author:    pushCommitAuthor{Name: "pr-creator", Username: "pr-creator"},
+	}
+	mergeCommit := pushCommit{
+		ID:        "c1",
+		Message:   "Merge pull request #1 from pr-creator/feat\n\nfeat: original PR work",
+		Timestamp: "2024-01-01T00:01:00Z",
+		Author:    pushCommitAuthor{Name: "merger", Username: "merger"},
 	}
 	return pushPayload{
 		Ref:          "refs/heads/main",
 		After:        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 		Installation: pushInstallation{ID: 101},
 		Repository:   pushRepository{ID: 202, FullName: repoFullName, Fork: fork},
-		Commits:      []pushCommit{commit},
-		HeadCommit:   &commit,
-		Sender:       pushSender{Login: "u", AvatarURL: "https://avatar"},
+		Commits:      []pushCommit{prCommit, mergeCommit},
+		HeadCommit:   &mergeCommit,
+		Sender:       pushSender{Login: "merger", AvatarURL: "https://avatar"},
 	}
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import type { DeploymentStatus } from "@/lib/collections";
 import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
 import { Bolt, Cloud, Grid, LayoutRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
@@ -11,10 +12,15 @@ import { Section, SectionHeader } from "../../../../components/section";
 import { useOptionalProjectLayout } from "../../../layout-provider";
 import { useDeployment } from "../layout-provider";
 
-export function DeploymentInfo({ title = "Deployment" }: { title?: string }) {
+type DeploymentInfoProps = {
+  title?: string;
+  statusOverride?: DeploymentStatus;
+};
+
+export function DeploymentInfo({ title = "Deployment", statusOverride }: DeploymentInfoProps) {
   const { deployment } = useDeployment();
   const projectLayout = useOptionalProjectLayout();
-  const deploymentStatus = deployment.status;
+  const deploymentStatus = statusOverride ?? deployment.status;
 
   return (
     <Section>

@@ -1,0 +1,119 @@
+---
+title: Configuring GitHubActionsDeployRole
+description: Creating the GitHubActionsDeployRole IAM role.
+---
+
+This replaces `UnkeyPulumiAWSExecutor` as we deprecate Pulumi. The trust policies are already created in this repo, so this is mostly just running commands.
+
+## Prerequisites
+
+Grab the `Basic ~/.aws/config for AdministratorAccess` from [1password](https://engineering.unkey.com/infrastructure/1password).
+
+## Creating the role in each account
+
+The trust policy files are already in this directory (`github-actions-deploy-role-{sandbox,canary,production001}-trust-policy.json`). They allow the `GitHubActionsOIDCRole` from the management account and the `AdministratorAccess` SSO role to assume this role.
+
+Create the role in each account...
+
+```
+for account in sandbox canary production001; do
+  aws iam create-role \
+    --profile "unkey-${account}-admin" \
+    --role-name GitHubActionsDeployRole \
+    --assume-role-policy-document file://docs/github-actions-deploy-role-${account}-trust-policy.json \
+    --no-cli-pager
+done
+```
+
+Now create and attach the permissions policy. This is the same across all accounts.
+
+```
+for account in sandbox canary production001; do
+  POLICY_ARN=$(aws iam create-policy \
+    --profile "unkey-${account}-admin" \
+    --policy-name GitHubActionsDeployPolicy \
+    --policy-document file://docs/github-actions-deploy-role-policy.json \
+    --query 'Policy.Arn' --output text)
+
+  aws iam attach-role-policy \
+    --profile "unkey-${account}-admin" \
+    --role-name GitHubActionsDeployRole \
+    --policy-arn "${POLICY_ARN}" \
+    --no-cli-pager
+done
+```
+
+If you need to update the policy later, create a new version...
+
+```
+for account in sandbox canary production001; do
+  POLICY_ARN="arn:aws:iam::$(aws sts get-caller-identity --profile "unkey-${account}-admin" --query Account --output text):policy/GitHubActionsDeployPolicy"
+
+  aws iam create-policy-version \
+    --profile "unkey-${account}-admin" \
+    --policy-arn "${POLICY_ARN}" \
+    --policy-document file://docs/github-actions-deploy-role-policy.json \
+    --set-as-default \
+    --no-cli-pager
+done
+```
+
+## Update the management account
+
+The `GitHubActionsOIDCRole` needs permission to assume the new role. Create a new cross-account policy for it...
+
+```
+aws iam create-policy \
+  --profile unkey-root-admin \
+  --policy-name GitHubActionsDeployCrossAccount \
+  --policy-document file://docs/github-actions-deploy-role-cross-account-policy.json
+
+aws iam attach-role-policy \
+  --profile unkey-root-admin \
+  --role-name GitHubActionsOIDCRole \
+  --policy-arn "arn:aws:iam::333769656712:policy/GitHubActionsDeployCrossAccount"
+```
+
+## EKS access
+
+For kubectl to work, the role needs an EKS access entry. Do this for each cluster you want to deploy to (sorry about the names lol)
+
+For `beautiful-dance-crab` in eu-central-1...
+
+```
+aws eks create-access-entry \
+  --cluster-name beautiful-dance-crab \
+  --principal-arn arn:aws:iam::222634365038:role/GitHubActionsDeployRole \
+  --type STANDARD \
+  --region eu-central-1 \
+  --profile unkey-production001-admin
+
+aws eks associate-access-policy \
+  --cluster-name beautiful-dance-crab \
+  --principal-arn arn:aws:iam::222634365038:role/GitHubActionsDeployRole \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+  --access-scope type=cluster \
+  --region eu-central-1 \
+  --profile unkey-production001-admin
+```
+
+For `adorable-jazz-gopher` in us-east-1...
+
+```
+aws eks create-access-entry \
+  --cluster-name adorable-jazz-gopher \
+  --principal-arn arn:aws:iam::222634365038:role/GitHubActionsDeployRole \
+  --type STANDARD \
+  --region us-east-1 \
+  --profile unkey-production001-admin
+
+aws eks associate-access-policy \
+  --cluster-name adorable-jazz-gopher \
+  --principal-arn arn:aws:iam::222634365038:role/GitHubActionsDeployRole \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy \
+  --access-scope type=cluster \
+  --region us-east-1 \
+  --profile unkey-production001-admin
+```
+
+For additional clusters, just change `--cluster-name` and `--region`.

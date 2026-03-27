@@ -130,6 +130,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 		SentinelID:    sentinel.GetSentinelId(),
 		WorkspaceID:   sentinel.GetWorkspaceId(),
 		EnvironmentID: sentinel.GetEnvironmentId(),
+		Platform:      c.platform,
 		Region:        c.region,
 		HttpPort:      SentinelPort,
 		Database: config.DatabaseConfig{
@@ -142,6 +143,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 		Redis: sentinelcfg.RedisConfig{
 			URL: "${UNKEY_REDIS_URL}",
 		},
+		RequestTimeout: 15 * time.Minute,
 		Observability: config.Observability{
 			Logging: &config.LoggingConfig{
 				SampleRate:    1.0,
@@ -151,6 +153,10 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 			Metrics: nil,
 		},
 		Gossip: nil,
+		Pprof: &config.PprofConfig{
+			Username: "${UNKEY_PPROF_USERNAME}",
+			Password: "${UNKEY_PPROF_PASSWORD}",
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -169,6 +175,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
 				ProjectID(sentinel.GetProjectId()).
+				AppID(sentinel.GetAppId()).
 				EnvironmentID(sentinel.GetEnvironmentId()).
 				SentinelID(sentinel.GetSentinelId()).
 				ComponentSentinel().
@@ -229,6 +236,14 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 								SecretRef: &corev1.SecretEnvSource{
 									LocalObjectReference: corev1.LocalObjectReference{
 										Name: "redis",
+									},
+									Optional: ptr.P(true),
+								},
+							},
+							{
+								SecretRef: &corev1.SecretEnvSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "pprof",
 									},
 									Optional: ptr.P(true),
 								},
@@ -319,6 +334,7 @@ func (c *Controller) ensureServiceExists(ctx context.Context, sentinel *ctrlv1.A
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
 				ProjectID(sentinel.GetProjectId()).
+				AppID(sentinel.GetAppId()).
 				EnvironmentID(sentinel.GetEnvironmentId()).
 				SentinelID(sentinel.GetSentinelId()).
 				ManagedByKrane().
@@ -376,6 +392,29 @@ func sentinelTopologySpread(sentinelID string) []corev1.TopologySpreadConstraint
 func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel, deployment *appsv1.Deployment) error {
 	client := c.clientSet.PolicyV1().PodDisruptionBudgets(NamespaceSentinel)
 
+	// For single-replica sentinels, use MinAvailable=1 to prevent eviction of the
+	// last pod during voluntary disruptions (node drains). For multi-replica
+	// sentinels, use MaxUnavailable=1 to allow rolling disruptions while keeping
+	// the majority available.
+	var pdbSpec policyv1.PodDisruptionBudgetSpec
+	if sentinel.GetReplicas() <= 1 {
+		//nolint:exhaustruct
+		pdbSpec = policyv1.PodDisruptionBudgetSpec{
+			MinAvailable: ptr.P(intstr.FromInt(1)),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels.New().SentinelID(sentinel.GetSentinelId()),
+			},
+		}
+	} else {
+		//nolint:exhaustruct
+		pdbSpec = policyv1.PodDisruptionBudgetSpec{
+			MaxUnavailable: ptr.P(intstr.FromInt(1)),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels.New().SentinelID(sentinel.GetSentinelId()),
+			},
+		}
+	}
+
 	//nolint:exhaustruct // k8s API types have many optional fields
 	desired := &policyv1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
@@ -388,6 +427,7 @@ func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.Apply
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
 				ProjectID(sentinel.GetProjectId()).
+				AppID(sentinel.GetAppId()).
 				EnvironmentID(sentinel.GetEnvironmentId()).
 				SentinelID(sentinel.GetSentinelId()).
 				ManagedByKrane().
@@ -401,12 +441,7 @@ func (c *Controller) ensurePDBExists(ctx context.Context, sentinel *ctrlv1.Apply
 				},
 			},
 		},
-		Spec: policyv1.PodDisruptionBudgetSpec{
-			MaxUnavailable: ptr.P(intstr.FromInt(1)),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels.New().SentinelID(sentinel.GetSentinelId()),
-			},
-		},
+		Spec: pdbSpec,
 	}
 
 	patch, err := json.Marshal(desired)
@@ -440,6 +475,7 @@ func (c *Controller) ensureGossipServiceExists(ctx context.Context, sentinel *ct
 			Labels: labels.New().
 				WorkspaceID(sentinel.GetWorkspaceId()).
 				ProjectID(sentinel.GetProjectId()).
+				AppID(sentinel.GetAppId()).
 				EnvironmentID(sentinel.GetEnvironmentId()).
 				SentinelID(sentinel.GetSentinelId()).
 				ComponentGossipLAN(),
@@ -495,6 +531,7 @@ func (c *Controller) ensureGossipCiliumPolicyExists(ctx context.Context, sentine
 				"labels": labels.New().
 					WorkspaceID(sentinel.GetWorkspaceId()).
 					ProjectID(sentinel.GetProjectId()).
+					AppID(sentinel.GetAppId()).
 					EnvironmentID(sentinel.GetEnvironmentId()).
 					SentinelID(sentinel.GetSentinelId()).
 					ComponentGossipLAN(),

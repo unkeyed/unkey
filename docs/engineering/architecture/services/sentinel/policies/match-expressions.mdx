@@ -1,23 +1,231 @@
 ---
 title: "Match expressions"
-description: "Request matching used by sentinel policies"
+description: "Request matching rules for policies"
 ---
 
-Match expressions define which requests a policy applies to. All expressions in the list must match for the policy to run. An empty list matches all requests.
+Match expressions define which requests a policy applies to. A policy carries a list of `MatchExpr` entries. All entries must match for the policy to execute (AND semantics). An empty list matches all requests.
 
-## Matchers
+## AND vs OR
 
-Sentinel evaluates these matcher types:
+Within a single policy, match expressions are combined with AND. A policy with a path match and a method match only runs when both conditions are true.
 
-- Path
-- Method
-- Header
-- Query parameter
+There is no built-in OR operator. To express OR, create multiple policies with the same config and different match lists. For example, to apply different rate limits to different parts of an API:
 
-String matching supports exact, prefix, and regex comparisons. Regex evaluation uses Go's RE2 engine, and compiled patterns are cached for reuse.
+```json
+{
+  "policies": [
+    {
+      "match": [
+        { "path": { "path": { "prefix": "/v1/search" } } }
+      ],
+      "ratelimit": { "limit": 10, "window_ms": 60000 }
+    },
+    {
+      "match": [
+        { "path": { "path": { "prefix": "/v1/keys" } } }
+      ],
+      "ratelimit": { "limit": 1000, "window_ms": 60000 }
+    }
+  ]
+}
+```
 
-## Semantics
+Each policy is evaluated independently in order. A request to `/v1/search` matches policy 1 and gets the stricter limit. A request to `/v1/keys` skips policy 1 (path does not match) and hits policy 2.
 
-- Method matching is case-insensitive.
-- Header names are matched case-insensitively and can match any header value.
-- Query parameter names are matched case-sensitively and can match any value.
+This approach is simpler to reason about than a recursive expression tree and covers the vast majority of routing needs. The proto schema is designed so that combinators (And/Or/Not) can be added later as new oneof branches without breaking the wire format.
+
+## Matcher types
+
+### Path
+
+Matches against `request.URL.Path` using a string match. The path is compared without the query string. Patterns must include the leading slash.
+
+| Comparison | Behavior                                                                                                        |
+| ---------- | --------------------------------------------------------------------------------------------------------------- |
+| Exact      | Case-sensitive by default. Set `ignore_case` to match case-insensitively.                                       |
+| Prefix     | Case-sensitive by default. Set `ignore_case` to match case-insensitively.                                       |
+| Regex      | Uses Go's RE2 engine. Patterns are compiled once and cached. Set `ignore_case` to wrap the pattern with `(?i)`. |
+
+<Tabs>
+<Tab title="Prefix">
+```json
+{
+  "policies": [
+    {
+      "match": [
+        { "path": { "path": { "prefix": "/v1/" } } }
+      ]
+      // ...omitted
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Regex">
+```json
+{
+  "policies": [
+    {
+      "match": [
+        { "path": { "path": { "regex": "^/v[0-9]+/keys/[^/]+$" } } }
+      ]
+      // ...omitted
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Exact (case-insensitive)">
+```json
+{
+  "policies": [
+    {
+      "match": [
+        { "path": { "path": { "exact": "/healthcheck", "ignore_case": true } } }
+      ]
+      // ...omitted
+    }
+  ]
+}
+```
+</Tab>
+</Tabs>
+
+### Method
+
+Matches against the HTTP method. Comparison is always case-insensitive per the HTTP specification.
+
+Multiple methods can be listed, and the request matches if it uses any of them (OR semantics). An empty method list matches all methods.
+
+<Tabs>
+<Tab title="Method only">
+```json
+{
+  "policies": [
+    {
+      "match": [
+        { "method": { "methods": ["POST", "PUT", "DELETE"] } }
+      ]
+      // ...omitted
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Path + Method (AND)">
+```json
+{
+  "policies": [
+    {
+      "match": [
+        { "path": { "path": { "prefix": "/v1/" } } },
+        { "method": { "methods": ["POST", "PUT", "DELETE"] } }
+      ]
+      // ...omitted
+    }
+  ]
+}
+```
+</Tab>
+</Tabs>
+
+### Header
+
+Matches against request headers. Header names are matched case-insensitively per HTTP specification. When a header has multiple values, the match succeeds if any value matches (OR semantics).
+
+<ResponseField name="name" type="string">
+  Header name. Matched case-insensitively.
+</ResponseField>
+
+<ResponseField name="match" type="oneof">
+  Either `present` (bool, checks header existence) or `value` (string match against header values).
+</ResponseField>
+
+<Tabs>
+<Tab title="Present">
+```json
+{
+  "policies": [
+    {
+      "match": [
+        { "header": { "name": "Authorization", "present": true } }
+      ]
+      // ...omitted
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Value match">
+```json
+{
+  "policies": [
+    {
+      "match": [
+        { "header": { "name": "X-API-Version", "value": { "exact": "2024-01-01" } } }
+      ]
+      // ...omitted
+    }
+  ]
+}
+```
+</Tab>
+</Tabs>
+
+### Query parameter
+
+Matches against URL query parameters. Parameter names are matched case-sensitively. When a parameter has multiple values, the match succeeds if any value matches (OR semantics).
+
+<ResponseField name="name" type="string">
+  Parameter name. Matched case-sensitively.
+</ResponseField>
+
+<ResponseField name="match" type="oneof">
+  Either `present` (bool, checks parameter existence) or `value` (string match against parameter
+  values).
+</ResponseField>
+
+<Tabs>
+<Tab title="Present">
+```json
+{
+  "policies": [
+    {
+      "match": [
+        { "query_param": { "name": "debug", "present": true } }
+      ]
+      // ...omitted
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Value match">
+```json
+{
+  "policies": [
+    {
+      "match": [
+        { "query_param": { "name": "version", "value": { "exact": "beta" } } }
+      ]
+      // ...omitted
+    }
+  ]
+}
+```
+</Tab>
+</Tabs>
+
+## String match types
+
+All string comparisons support three modes:
+
+| Mode     | Behavior                                                                                  |
+| -------- | ----------------------------------------------------------------------------------------- |
+| `exact`  | Full string equality. Supports `ignore_case`.                                             |
+| `prefix` | Matches if the string starts with the given prefix. Supports `ignore_case`.               |
+| `regex`  | Regular expression match using Go's RE2 syntax. Supports `ignore_case` (prepends `(?i)`). |
+
+## Regex caching
+
+Compiled regular expressions are cached in a thread-safe map keyed by the pattern string. The first evaluation of a regex pattern compiles and caches it. Subsequent evaluations reuse the compiled pattern.

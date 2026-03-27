@@ -1,0 +1,366 @@
+---
+title: Creating a New EKS Cluster Region
+description: Adding a new EKS region.
+---
+
+End-to-end guide for adding a new AWS region to the Unkey EKS infrastructure.
+
+Assumes familiarity with Kubernetes, AWS, and the existing repo layout.
+
+---
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+- **AWS credentials** configured (`AWS_PROFILE`) with permissions for EKS, IAM, Route53, Secrets Manager, and ELB
+- **CLI tools** installed: `awscli`, `eksctl`, `kubectl`, `helm`, `argocd`
+- **GitHub App credentials** for ArgoCD repository access
+- **Route53 hosted zones** created for `<environment>.aws.unkey.com` and `aws.unkey.cloud`
+- **CIDR allocation** — confirm the target region has an entry in [`networks`](/infra/clusters/networks). The generator script will refuse to run if the CIDR is missing.
+
+---
+
+## Step 1: Generate configuration
+
+The `generate-region-config.sh` script creates all eksctl and helm environment files for a region.
+
+### Dry run first
+
+```bash
+cd eks-cluster
+./scripts/generate-region-config.sh <region> --dry-run
+
+# With a non-default environment:
+./scripts/generate-region-config.sh <region> staging --dry-run
+```
+
+This prints the file list and CIDR without writing anything.
+
+### Generate files
+
+```bash
+# Base region (unkey-api + infrastructure only)
+./scripts/generate-region-config.sh <region>
+
+# Full deploy region (adds control-api, frontline, krane, vault, etc.)
+./scripts/generate-region-config.sh <region> --with-deploy
+```
+
+### What gets created
+
+| Category                          | Apps                                                                                                                                              | When                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| **Always generated**              | eksctl config, argocd, core, networking, reloader, runtime, dragonfly, tailscale, external-dns, observability, thanos, vector-logs, **unkey-api** | Every run                 |
+| **Deploy-only** (`--with-deploy`) | control-api, control-worker, restate, sentinel, frontline, krane, vault                                                                           | Only with `--with-deploy` |
+
+Files are written to `configs/<environment>/<region>.yaml` and `helm-chart/<chart>/environments/<environment>/<region>.yaml`. The script refuses to overwrite existing files — delete them first if you need to regenerate.
+
+---
+
+## Step 2: Review & commit
+
+Check the generated files make sense:
+
+```bash
+git diff --stat
+git diff
+```
+
+Things to verify:
+
+- VPC CIDR matches the [networks](/infra/clusters/networks) assignment
+- Hostnames and domain patterns look correct
+- gossip WAN seeds have a `TODO` comment (expected — you'll fill them in at Step 6)
+
+Commit the generated config and push:
+
+```bash
+git add configs/ helm-chart/
+git commit -m "Add region config for <region>"
+git push
+```
+
+### Promote all apps to the new commit
+
+Each ArgoCD ApplicationSet reads a promotion file (`eks-cluster/promotions/<environment>/<app>.yaml`) that pins a specific git SHA as the `targetRevision`. After pushing the new region's config, you **must promote every app** to a revision that includes the new env files — otherwise ArgoCD will check out the older pinned commit where the files don't exist, and all apps will show `Unknown` sync status.
+
+Use the `promote` script to update all apps to the pushed commit:
+
+```bash
+./scripts/promote <environment> $(git ls-remote origin main | awk '{print $1}')
+git add eks-cluster/promotions/
+git commit -m "Promote all apps for <region>"
+git push
+```
+
+---
+
+## Step 3: Verify secrets replication
+
+All secrets in AWS Secrets Manager (`unkey/shared`, `unkey/control`, `unkey/krane`, etc.) are already replicated from `us-east-1` to the regions where unkey-api runs. Once the cluster is up, External Secrets will pull from the local region's Secrets Manager automatically.
+
+Verify replication is in place for your region:
+
+```bash
+aws secretsmanager describe-secret \
+  --secret-id unkey/shared \
+  --region us-east-1 \
+  --query 'ReplicationStatus[].Region' \
+  --output text
+```
+
+If your region is **not** in the list, you need to add it to each secret's replication configuration:
+
+```bash
+# Add a new replica region to an existing secret
+aws secretsmanager replicate-secret-to-regions \
+  --secret-id unkey/shared \
+  --add-replica-regions Region=<region> \
+  --region us-east-1
+
+# Repeat for each secret: unkey/control, unkey/krane,
+# unkey/sentinel, unkey/vault, unkey/vector, unkey/frontline, unkey/argocd
+```
+
+The `replicate-secrets-to-new-region.sh` script automates this for all secrets at once:
+
+```bash
+./scripts/replicate-secrets-to-new-region.sh us-east-1 <region>
+```
+
+After initial replication, AWS keeps them in sync automatically — no cron or Lambda needed.
+
+See [AWS Secrets](../secrets/aws-secrets) for the full secret inventory.
+
+---
+
+## Step 4: Create cluster
+
+Set the required variables and run the bootstrap script:
+
+```bash
+ENVIRONMENT=production001 PRIMARY_REGION=<region> ./scripts/setup-cluster.sh
+```
+
+The script executes in order:
+
+| Step | What happens                                                |
+| ---- | ----------------------------------------------------------- |
+| 1    | Create IAM policies (ExternalDNS, SecretsManager, ALB, ACK) |
+| 2    | Create EKS cluster (without node groups)                    |
+| 3    | Wait for cluster ACTIVE status                              |
+| 4    | Update kubeconfig                                           |
+| 5    | Patch addon tolerations                                     |
+| 6    | Create node groups                                          |
+| 7    | Create observability S3 bucket                              |
+| 8    | Install AWS Load Balancer Controller                        |
+| 9    | Install CRDs (Prometheus, External Secrets)                 |
+| 10   | Install and configure ArgoCD                                |
+
+For production environments you'll be prompted to type the environment name to confirm.
+
+**Expected duration:** 15–25 minutes (mostly waiting for EKS cluster and node group creation).
+
+---
+
+## Step 5: Verify deployment
+
+```bash
+# Nodes are ready
+kubectl get nodes
+
+# ArgoCD is running
+kubectl get pods -n argocd
+
+# Get ArgoCD admin password
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d; echo
+
+# Access ArgoCD UI
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+
+Check that ArgoCD has picked up the new region's ApplicationSets and apps are syncing. Core infrastructure apps (external-dns, observability, etc.) should sync automatically.
+
+---
+
+## Step 6: Configure gossip WAN seeds
+
+Both **unkey-api** and **frontline** (if `--with-deploy`) use memberlist-based WAN gossip for cross-region state sharing. This is a chicken-and-egg problem: each region needs to know the other region's NLB DNS name, but that NLB doesn't exist until the chart deploys.
+
+### 6a. Deploy with empty seeds (already done)
+
+The generated config has `UNKEY_GOSSIP_WAN_SEEDS: ""` for unkey-api and appropriate defaults for frontline. ArgoCD will deploy them, creating the NLB and registering DNS via ExternalDNS.
+
+### 6b. Verify the gossip NLB DNS is registered
+
+Wait for ExternalDNS to create the DNS records, then verify:
+
+```bash
+# unkey-api
+dig unkey-api-gossip.<region>.aws.unkey.cloud
+
+# frontline (deploy regions only)
+dig frontline-gossip.<region>.aws.unkey.cloud
+```
+
+If ExternalDNS hasn't registered the friendly name yet, get the raw NLB hostname:
+
+```bash
+kubectl get svc -n api unkey-api-gossip-wan \
+  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+```
+
+### 6c. Update the new region's WAN seeds
+
+Point the new region to the existing region(s).
+
+**unkey-api** — edit `helm-chart/unkey-api/environments/<env>/<region>.yaml`:
+
+```yaml
+env:
+  UNKEY_GOSSIP_WAN_SEEDS: "unkey-api-gossip.<existing-region>.aws.unkey.cloud"
+```
+
+**frontline** (deploy regions only) — edit `helm-chart/frontline/environments/<env>/<region>.yaml`:
+
+```yaml
+gossip:
+  wanSeeds: "frontline-gossip.<existing-region>.aws.unkey.cloud"
+```
+
+### 6d. Update existing regions to include the new region
+
+Each existing region must add the new region as a seed. Seeds are comma-separated if there are multiple peer regions.
+
+**Example** — existing `us-east-1` unkey-api config gets:
+
+```yaml
+env:
+  UNKEY_GOSSIP_WAN_SEEDS: "unkey-api-gossip.eu-central-1.aws.unkey.cloud,unkey-api-gossip.<new-region>.aws.unkey.cloud"
+```
+
+### 6e. Commit, push, and sync
+
+```bash
+git add helm-chart/
+git commit -m "Wire gossip WAN seeds for <region>"
+git push
+```
+
+ArgoCD will redeploy the affected services. Pods restart and join the WAN gossip ring.
+
+### 6f. Verify gossip is healthy
+
+```bash
+# Check unkey-api gossip logs
+kubectl logs -n api -l app.kubernetes.io/component=unkey-api --tail=50 | grep -i gossip
+
+# Check the WAN NLB has a healthy target
+aws elbv2 describe-target-health \
+  --target-group-arn <TARGET_GROUP_ARN> \
+  --region <region>
+```
+
+---
+
+## Step 7: Enable Global Accelerator (deploy regions only)
+
+For regions running frontline with `--with-deploy`, the generated config already sets `globalAccelerator.enabled: true` and includes the listener ARN. After the frontline NLB is created:
+
+1. The GA resolver Helm hook job runs automatically
+2. It discovers the NLB ARN and creates an `EndpointGroup` CRD
+3. The ACK Global Accelerator controller reconciles and attaches the NLB to the Global Accelerator
+
+Verify:
+
+```bash
+
+# EndpointGroup exists
+kubectl get endpointgroups -n frontline
+```
+
+If the Global Accelerator doesn't exist yet (first-time setup), create it first:
+
+```bash
+ENVIRONMENT=production001 ./scripts/setup-global-accelerator.sh
+```
+
+---
+
+## Quick Reference
+
+| Script                               | What it does                                                                             |
+| ------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `generate-region-config.sh`          | Generate all config files for a new region                                               |
+| `promote`                            | Update promotion files to deploy a revision via ArgoCD                                   |
+| `promotion-changelists`              | Generate a changelog of PRs between the old and new promotion revisions                  |
+| `replicate-secrets-to-new-region.sh` | Add a new region to secrets replication (only needed for regions not already replicated) |
+| `setup-cluster.sh`                   | Full cluster bootstrap (IAM → EKS → nodes → ArgoCD)                                      |
+| `setup-global-accelerator.sh`        | Create Global Accelerator (one-time)                                                     |
+| `setup-acm-certificate.sh`           | Create wildcard ACM cert for a region                                                    |
+| `validate-aws-resources.sh`          | Validate AWS resources exist                                                             |
+| `apply-addon-tolerations.sh`         | Patch EKS addon tolerations                                                              |
+
+---
+
+## Troubleshooting
+
+### CIDR not found
+
+```
+Error: No CIDR found for 'production001-xx-xxxx-1'
+```
+
+The region isn't in the `CIDR_MAP` in `generate-region-config.sh`. Add it there and in [networks](/infra/clusters/networks).
+
+### Node groups not scheduling pods
+
+All node groups use taints. Pods need matching tolerations. Check:
+
+```bash
+kubectl describe node <node-name> | grep Taints
+kubectl get pods -A --field-selector=status.phase!=Running
+kubectl describe pod <pending-pod> -n <namespace>  # look for "Insufficient" or "didn't match"
+```
+
+Common taints:
+
+| Node group      | Taint                                 |
+| --------------- | ------------------------------------- |
+| `unkey`         | `node-class=unkey:NoSchedule`         |
+| `untrusted`     | `node-class=untrusted:NoSchedule`     |
+| `sentinel`      | `node-class=sentinel:NoSchedule`      |
+| `observability` | `node-class=observability:NoSchedule` |
+| `api`           | `node-class=api:NoSchedule`           |
+
+### Gossip not joining
+
+1. **DNS not resolving** — ExternalDNS may not have registered yet. Check `kubectl logs -n networking -l app.kubernetes.io/name=external-dns`.
+2. **NLB not ready** — `kubectl get svc -n api unkey-api-gossip-wan` should show an external hostname.
+3. **Security groups** — WAN gossip uses port 7947 TCP+UDP. The NLB must allow inbound on this port.
+4. **Secret mismatch** — All regions in a gossip ring must share the same `UNKEY_GOSSIP_SECRET_KEY` (pulled from AWS Secrets Manager).
+
+### ExternalSecrets failing
+
+```bash
+kubectl get externalsecrets -A
+kubectl describe externalsecret <name> -n <namespace>
+```
+
+Check that:
+
+- Secrets are replicated to this region (see [Step 3](#step-3-verify-secrets-replication))
+- Pod Identity association exists for the service account
+- The SecretStore references the correct region
+
+### ArgoCD apps not syncing
+
+```bash
+argocd app list
+argocd app get <app-name>
+kubectl logs -n argocd -l app.kubernetes.io/name=argocd-application-controller --tail=100
+```
+
+Verify the ApplicationSet generator includes the new cluster/region.

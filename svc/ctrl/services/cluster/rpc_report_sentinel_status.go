@@ -29,12 +29,13 @@ func (s *Service) ReportSentinelStatus(ctx context.Context, req *connect.Request
 	}
 
 	region := req.Header().Get("X-Krane-Region")
+	platform := req.Header().Get("X-Krane-Platform")
 
-	err := assert.All(
+	if err := assert.All(
 		assert.NotEmpty(region, "region is required"),
-	)
-	if err != nil {
-		return nil, err
+		assert.NotEmpty(platform, "platform is required"),
+	); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	var health db.SentinelsHealth
@@ -48,7 +49,7 @@ func (s *Service) ReportSentinelStatus(ctx context.Context, req *connect.Request
 	case ctrlv1.Health_HEALTH_UNSPECIFIED:
 		health = db.SentinelsHealthUnknown
 	}
-	err = db.Query.UpdateSentinelAvailableReplicasAndHealth(ctx, s.db.RW(), db.UpdateSentinelAvailableReplicasAndHealthParams{
+	err := db.Query.UpdateSentinelAvailableReplicasAndHealth(ctx, s.db.RW(), db.UpdateSentinelAvailableReplicasAndHealthParams{
 		K8sName:           req.Msg.GetK8SName(),
 		AvailableReplicas: req.Msg.GetAvailableReplicas(),
 		Health:            health,

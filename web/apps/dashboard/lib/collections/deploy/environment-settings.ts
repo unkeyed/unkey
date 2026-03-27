@@ -3,6 +3,7 @@ import type { SentinelConfig } from "@/lib/trpc/routers/deploy/environment-setti
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
+import { useSyncExternalStore } from "react";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
 import { parseEnvironmentIdFromWhere, validateEnvironmentIdInQuery } from "./utils";
@@ -36,15 +37,17 @@ const schema = z.object({
   // Build settings
   dockerfile: z.string(),
   dockerContext: z.string(),
+  watchPaths: z.array(z.string()).default([]),
   // Runtime settings
   port: z.number().int(),
   cpuMillicores: z.number().int(),
   memoryMib: z.number().int(),
   command: z.array(z.string()),
   healthcheck: healthcheckSchema,
-  regionConfig: z.record(z.string(), z.number()),
+  regions: z.array(z.object({ id: z.string(), name: z.string(), replicas: z.number().int() })),
   shutdownSignal: z.string(),
   sentinelConfig: sentinelConfigSchema,
+  openapiSpecPath: z.string().nullable().default(null),
 });
 
 /**
@@ -80,7 +83,14 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
         environmentId,
       });
 
-      return [flattenSettingsResponse(environmentId, result.buildSettings, result.runtimeSettings)];
+      return [
+        flattenSettingsResponse(
+          environmentId,
+          result.buildSettings,
+          result.runtimeSettings,
+          result.regionalSettings,
+        ),
+      ];
     },
     getKey: (item) => item.environmentId,
     id: "environmentSettings",
@@ -93,6 +103,16 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
 );
 
 export type EnvironmentSettings = z.infer<typeof schema>;
+
+/** Default values for environment settings fields (excluding regions, which are runtime-dependent). */
+export const ENVIRONMENT_SETTINGS_DEFAULTS = {
+  dockerfile: "Dockerfile",
+  dockerContext: ".",
+  port: 8080,
+  cpuMillicores: 256,
+  memoryMib: 256,
+  shutdownSignal: "SIGTERM",
+} as const;
 
 type SettingsResponse = Awaited<ReturnType<typeof trpcClient.deploy.environmentSettings.get.query>>;
 
@@ -108,19 +128,29 @@ function flattenSettingsResponse(
   environmentId: string,
   build: SettingsResponse["buildSettings"],
   runtime: SettingsResponse["runtimeSettings"],
+  regional: SettingsResponse["regionalSettings"],
 ): EnvironmentSettings {
+  const d = ENVIRONMENT_SETTINGS_DEFAULTS;
   return {
     environmentId,
-    dockerfile: build?.dockerfile ?? "Dockerfile",
-    dockerContext: build?.dockerContext ?? ".",
-    port: runtime?.port ?? 8080,
-    cpuMillicores: runtime?.cpuMillicores ?? 256,
-    memoryMib: runtime?.memoryMib ?? 256,
+    dockerfile: build?.dockerfile || d.dockerfile,
+    dockerContext: build?.dockerContext || d.dockerContext,
+    watchPaths: build?.watchPaths ?? [],
+    port: runtime?.port ?? d.port,
+    cpuMillicores: runtime?.cpuMillicores ?? d.cpuMillicores,
+    memoryMib: runtime?.memoryMib ?? d.memoryMib,
     command: runtime?.command ?? [],
     healthcheck: runtime?.healthcheck ?? null,
-    regionConfig: runtime?.regionConfig ?? {},
-    shutdownSignal: "SIGTERM",
+    regions: regional
+      .filter((r): r is typeof r & { region: NonNullable<typeof r.region> } => r.region !== null)
+      .map((r) => ({
+        id: r.region.id,
+        name: r.region.name,
+        replicas: r.replicas,
+      })),
+    shutdownSignal: d.shutdownSignal,
     sentinelConfig: runtime?.sentinelConfig,
+    openapiSpecPath: runtime?.openapiSpecPath ?? null,
   };
 }
 
@@ -151,6 +181,15 @@ export function buildSettingsMutations(
       trpcClient.deploy.environmentSettings.build.updateDockerContext.mutate({
         environmentId,
         dockerContext: modified.dockerContext,
+      }),
+    );
+  }
+
+  if (changed(original.watchPaths, modified.watchPaths)) {
+    mutations.push(
+      trpcClient.deploy.environmentSettings.build.updateWatchPaths.mutate({
+        environmentId,
+        watchPaths: modified.watchPaths,
       }),
     );
   }
@@ -200,32 +239,29 @@ export function buildSettingsMutations(
     );
   }
 
-  const origRegions = Object.keys(original.regionConfig).sort();
-  const modRegions = Object.keys(modified.regionConfig).sort();
-  const regionsChanged = changed(origRegions, modRegions);
+  const origRegionIds = original.regions.map((r) => r.id).sort();
+  const modRegionIds = modified.regions.map((r) => r.id).sort();
+  const regionsChanged = changed(origRegionIds, modRegionIds);
 
   if (regionsChanged) {
     mutations.push(
       trpcClient.deploy.environmentSettings.runtime.updateRegions.mutate({
         environmentId,
-        regions: modRegions,
+        regionIds: modRegionIds,
       }),
     );
   }
 
-  const origValues = Object.values(original.regionConfig);
-  const modValues = Object.values(modified.regionConfig);
+  const origReplicas = original.regions.at(0)?.replicas ?? 1;
+  const modReplicas = modified.regions.at(0)?.replicas ?? 1;
   const instancesChanged =
-    !regionsChanged &&
-    origValues.length === modValues.length &&
-    modValues.length > 0 &&
-    modValues[0] !== origValues[0];
+    !regionsChanged && modified.regions.length > 0 && modReplicas !== origReplicas;
 
   if (instancesChanged) {
     mutations.push(
       trpcClient.deploy.environmentSettings.runtime.updateInstances.mutate({
         environmentId,
-        replicasPerRegion: modValues[0],
+        replicasPerRegion: modReplicas,
       }),
     );
   }
@@ -235,6 +271,15 @@ export function buildSettingsMutations(
       trpcClient.deploy.environmentSettings.sentinel.updateMiddleware.mutate({
         environmentId,
         keyspaceIds: extractKeyspaceIds(modified.sentinelConfig),
+      }),
+    );
+  }
+
+  if (modified.openapiSpecPath !== original.openapiSpecPath) {
+    mutations.push(
+      trpcClient.deploy.environmentSettings.runtime.updateOpenapiSpecPath.mutate({
+        environmentId,
+        openapiSpecPath: modified.openapiSpecPath,
       }),
     );
   }
@@ -264,5 +309,54 @@ async function dispatchSettingsMutations(
       }),
     });
   }
-  await allMutations;
+  saveStore.pendingSaves++;
+  saveStore.notify();
+  try {
+    await allMutations;
+    saveStore.savedCount++;
+    saveStore.notify();
+  } finally {
+    saveStore.pendingSaves--;
+    saveStore.notify();
+  }
+}
+
+/**
+ * Store for tracking in-flight and completed settings saves.
+ *
+ * Grouped into a single object so the boundary is obvious and
+ * `dispatchSettingsMutations` has one place to update.
+ * Consumers subscribe via `useSyncExternalStore` — no React context needed
+ * because settings mutations always originate from this module.
+ */
+const saveStore = {
+  pendingSaves: 0,
+  savedCount: 0,
+  listeners: new Set<() => void>(),
+  notify() {
+    for (const cb of this.listeners) {
+      cb();
+    }
+  },
+  subscribe(cb: () => void): () => void {
+    this.listeners.add(cb);
+    return () => {
+      this.listeners.delete(cb);
+    };
+  },
+};
+
+export function useSettingsIsSaving(): boolean {
+  return useSyncExternalStore(
+    (cb) => saveStore.subscribe(cb),
+    () => saveStore.pendingSaves > 0,
+  );
+}
+
+/** Returns true once at least one settings save has completed in this session. */
+export function useSettingsHasSaved(): boolean {
+  return useSyncExternalStore(
+    (cb) => saveStore.subscribe(cb),
+    () => saveStore.savedCount > 0,
+  );
 }

@@ -2,13 +2,18 @@ package proxy
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -23,13 +28,13 @@ type forwardConfig struct {
 	targetURL    *url.URL
 	startTime    time.Time
 	directorFunc func(*http.Request)
-	logTarget    string
+	destination  string
 	transport    http.RoundTripper
 }
 
-func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
+func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardConfig) error {
 	sess.ResponseWriter().Header().Set(HeaderFrontlineID, s.instanceID)
-	sess.ResponseWriter().Header().Set(HeaderRegion, s.region)
+	sess.ResponseWriter().Header().Set(HeaderRegion, fmt.Sprintf("%s::%s", s.platform, s.region))
 	sess.ResponseWriter().Header().Set(HeaderRequestID, sess.RequestID())
 
 	var proxyStartTime time.Time
@@ -55,12 +60,21 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 	}()
 
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
+
+	var backendStart time.Time
+	observeBackendDuration := func() {
+		if !backendStart.IsZero() {
+			proxyBackendDuration.WithLabelValues(cfg.destination).Observe(s.clock.Now().Sub(backendStart).Seconds())
+		}
+	}
+
 	// nolint:exhaustruct
 	proxy := &httputil.ReverseProxy{
 		Transport:     cfg.transport,
 		FlushInterval: -1, // flush immediately for streaming
 		Director: func(req *http.Request) {
 			proxyStartTime = s.clock.Now()
+			backendStart = proxyStartTime
 
 			req.URL.Scheme = cfg.targetURL.Scheme
 			req.URL.Host = cfg.targetURL.Host
@@ -68,6 +82,14 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 			cfg.directorFunc(req)
 		},
 		ModifyResponse: func(resp *http.Response) error {
+			observeBackendDuration()
+
+			source := "upstream"
+			if resp.Header.Get("X-Unkey-Error-Source") == "sentinel" {
+				source = "sentinel"
+			}
+			proxyBackendResponseTotal.WithLabelValues(cfg.destination, source, statusClass(resp.StatusCode)).Inc()
+
 			totalTime := s.clock.Now().Sub(cfg.startTime)
 			if !proxyStartTime.IsZero() {
 				timing.Write(sess.ResponseWriter(), timing.Entry{
@@ -86,7 +108,7 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 				},
 			})
 
-			if resp.Header.Get("X-Unkey-Error-Source") != "sentinel" {
+			if source != "sentinel" {
 				return nil
 			}
 
@@ -96,20 +118,17 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 
 			// 5xx from sentinel → fault error → frontline observability handles content negotiation
 			if resp.StatusCode >= 500 {
-				urn := codes.Frontline.Proxy.BadGateway.URN()
-				switch resp.StatusCode {
-				case http.StatusServiceUnavailable:
-					urn = codes.Frontline.Proxy.ServiceUnavailable.URN()
-				case http.StatusGatewayTimeout:
-					urn = codes.Frontline.Proxy.GatewayTimeout.URN()
-				case http.StatusBadGateway:
-					urn = codes.Frontline.Proxy.BadGateway.URN()
-				}
+				proxyForwardTotal.WithLabelValues(cfg.destination, "backend_5xx").Inc()
+
+				// Try to extract the original error code from sentinel's JSON response
+				// so we preserve the specific error (e.g. InvalidConfiguration → 500)
+				// instead of blindly mapping everything to 502.
+				urn, publicMessage := extractSentinelError(resp, resp.StatusCode)
 
 				return fault.New(
 					fmt.Sprintf("sentinel returned %d", resp.StatusCode),
 					fault.Code(urn),
-					fault.Public(http.StatusText(resp.StatusCode)),
+					fault.Public(publicMessage),
 				)
 			}
 
@@ -122,11 +141,13 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
+			observeBackendDuration()
+
 			// Capture the error for middleware to handle
 			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
 				ecw.SetError(err)
 
-				logger.Warn(fmt.Sprintf("proxy error forwarding to %s", cfg.logTarget),
+				logger.Warn(fmt.Sprintf("proxy error forwarding to %s", cfg.destination),
 					"error", err.Error(),
 					"target", cfg.targetURL.String(),
 					"hostname", r.Host,
@@ -135,20 +156,60 @@ func (s *service) forward(sess *zen.Session, cfg forwardConfig) error {
 		},
 	}
 
-	// Proxy the request with wrapped writer
-	proxy.ServeHTTP(wrapper, sess.Request())
+	// Proxy the request with the middleware context (carries timeout deadline)
+	proxy.ServeHTTP(wrapper, sess.Request().WithContext(ctx))
 
 	// If error was captured, return it to middleware for consistent error handling
 	if err := wrapper.Error(); err != nil {
-		urn, message := categorizeProxyError(err)
+		// If the error already has a fault code (e.g. from extractSentinelError
+		// in ModifyResponse), preserve it instead of overwriting with a generic
+		// proxy error.
+		if _, hasCode := fault.GetCode(err); hasCode {
+			return err
+		}
+		proxyForwardTotal.WithLabelValues(cfg.destination, categorizeProxyErrorType(err)).Inc()
+		urn, message := categorizeProxyError(err, cfg.destination)
 		return fault.Wrap(err,
 			fault.Code(urn),
-			fault.Internal(fmt.Sprintf("proxy error forwarding to %s %s", cfg.logTarget, cfg.targetURL.String())),
+			fault.Internal(fmt.Sprintf("proxy error forwarding to %s %s", cfg.destination, cfg.targetURL.String())),
 			fault.Public(message),
 		)
 	}
 
+	proxyForwardTotal.WithLabelValues(cfg.destination, "none").Inc()
+
 	return nil
+}
+
+// categorizeProxyErrorType returns a short label for the type of proxy error,
+// suitable for use as a prometheus label value.
+func categorizeProxyErrorType(err error) string {
+	if errors.Is(err, context.Canceled) {
+		return "client_canceled"
+	}
+	if errors.Is(err, context.DeadlineExceeded) || os.IsTimeout(err) {
+		return "timeout"
+	}
+
+	var netErr *net.OpError
+	if errors.As(err, &netErr) {
+		if netErr.Timeout() {
+			return "timeout"
+		}
+		if errors.Is(netErr.Err, syscall.ECONNREFUSED) {
+			return "conn_refused"
+		}
+		if errors.Is(netErr.Err, syscall.ECONNRESET) {
+			return "conn_reset"
+		}
+	}
+
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		return "dns_failure"
+	}
+
+	return "other"
 }
 
 // wantsHTML returns true if the client prefers HTML over JSON based on the Accept header.
@@ -232,4 +293,64 @@ func rewriteSentinelErrorAsHTML(resp *http.Response, requestID string, renderer 
 	resp.Header.Set("Content-Length", fmt.Sprintf("%d", len(htmlBody)))
 
 	return nil
+}
+
+// extractSentinelError reads sentinel's JSON error response to extract the original
+// error code and message. This preserves sentinel's specific error codes (e.g.
+// InvalidConfiguration → 500) instead of replacing them all with BadGateway (502).
+// Falls back to generic frontline codes based on HTTP status when the body can't be parsed.
+func extractSentinelError(resp *http.Response, statusCode int) (codes.URN, string) {
+	fallbackURN := codes.Frontline.Proxy.BadGateway.URN()
+	switch statusCode {
+	case http.StatusServiceUnavailable:
+		fallbackURN = codes.Frontline.Proxy.ServiceUnavailable.URN()
+	case http.StatusGatewayTimeout:
+		fallbackURN = codes.Frontline.Proxy.GatewayTimeout.URN()
+	case http.StatusBadGateway:
+		fallbackURN = codes.Frontline.Proxy.BadGateway.URN()
+	}
+	fallbackMessage := http.StatusText(statusCode)
+
+	if resp.Body == nil {
+		return fallbackURN, fallbackMessage
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	if err != nil || len(body) == 0 {
+		resp.Body = io.NopCloser(bytes.NewReader(nil))
+		return fallbackURN, fallbackMessage
+	}
+
+	// Put body back so downstream can still read it
+	resp.Body = io.NopCloser(bytes.NewReader(body))
+
+	var parsed sentinelError
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return fallbackURN, fallbackMessage
+	}
+
+	if parsed.Error.Code != "" {
+		urn := codes.URN(parsed.Error.Code)
+		message := parsed.Error.Message
+		if message == "" {
+			message = fallbackMessage
+		}
+		return urn, message
+	}
+
+	return fallbackURN, fallbackMessage
+}
+
+func statusClass(code int) string {
+	switch {
+	case code >= 500:
+		return "5xx"
+	case code >= 400:
+		return "4xx"
+	case code >= 300:
+		return "3xx"
+	default:
+		return "2xx"
+	}
 }

@@ -41,19 +41,28 @@ type newDomain struct {
 // 4. Per-live domain (production only): `<prefix>-<workspace>.<apex>`
 //   - Sticky to live, points to the active production deployment
 //
+// 5. Per-deployment domain: `<prefix>-dep-<deploymentID>-<workspace>.<apex>`
+//   - Never reassigned, provides a stable deployment-specific URL
+//
 // Where <prefix> is `<project>-<app>` for custom app slugs, or just `<project>`
 // when the app slug is "default" (see TODO above).
 // TODO: Once users can configure custom app slugs, include the app slug in all
 // generated domains. Currently the only app slug is "default" which adds no
 // useful information to the domain and just makes URLs longer. Remove this
 // exclusion and always include appSlug once the dashboard supports renaming apps.
-func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, branchName, apex string, source ctrlv1.SourceType) []newDomain {
+func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, branchName, forkOwner, apex string, source ctrlv1.SourceType, deploymentID string) []newDomain {
 	// Build the project-app prefix for domain names.
 	// Skip "default" app slug since it's not configurable yet and would just
 	// add noise to URLs (e.g. "myproject-default-..." vs "myproject-...").
 	prefix := projectSlug
 	if appSlug != "default" {
 		prefix = projectSlug + "-" + appSlug
+	}
+
+	// Fork PRs include the fork owner in the domain to distinguish from same-repo
+	// deployments (e.g. "myproject-fork-contributor-git-abc1234-acme.unkey.app").
+	if forkOwner != "" {
+		prefix = prefix + "-fork-" + sluggify(forkOwner)
 	}
 
 	// Deploying via CLI often sends the same git sha, and we want to make them unique,
@@ -106,6 +115,14 @@ func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, 
 				sticky: db.FrontlineRoutesStickyLive,
 			})
 	}
+
+	// deployment-specific domain for stable public access.
+	sanitizedDeploymentID := strings.ReplaceAll(deploymentID, "_", "-")
+	domains = append(domains, newDomain{
+		domain: fmt.Sprintf("%s-dep-%s-%s.%s", prefix, sanitizedDeploymentID, workspaceSlug, apex),
+		//nolint: exhaustruct
+		sticky: db.FrontlineRoutesStickyDeployment,
+	})
 
 	return domains
 }

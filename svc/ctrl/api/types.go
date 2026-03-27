@@ -3,6 +3,8 @@ package api
 type pushPayload struct {
 	Ref          string           `json:"ref"`
 	After        string           `json:"after"`
+	Created      bool             `json:"created"`
+	Deleted      bool             `json:"deleted"`
 	Installation pushInstallation `json:"installation"`
 	Repository   pushRepository   `json:"repository"`
 	Commits      []pushCommit     `json:"commits"`
@@ -25,6 +27,9 @@ type pushCommit struct {
 	Message   string           `json:"message"`
 	Timestamp string           `json:"timestamp"`
 	Author    pushCommitAuthor `json:"author"`
+	Added     []string         `json:"added"`
+	Removed   []string         `json:"removed"`
+	Modified  []string         `json:"modified"`
 }
 
 type pushCommitAuthor struct {
@@ -35,4 +40,25 @@ type pushCommitAuthor struct {
 type pushSender struct {
 	Login     string `json:"login"`
 	AvatarURL string `json:"avatar_url"`
+}
+
+type pullRequestPayload struct {
+	Action       string            `json:"action"`
+	Number       int64             `json:"number"`
+	PullRequest  pullRequestDetail `json:"pull_request"`
+	Installation pushInstallation  `json:"installation"`
+	Sender       pushSender        `json:"sender"`
+}
+
+type pullRequestDetail struct {
+	Title string         `json:"title"`
+	User  pushSender     `json:"user"`
+	Head  pullRequestRef `json:"head"`
+	Base  pullRequestRef `json:"base"`
+}
+
+type pullRequestRef struct {
+	Ref  string         `json:"ref"`
+	SHA  string         `json:"sha"`
+	Repo pushRepository `json:"repo"`
 }

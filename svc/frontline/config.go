@@ -30,6 +30,10 @@ type Config struct {
 	// Serves general traffic over HTTPS by default.
 	HttpPort int `toml:"http_port" config:"default=7443,min=1,max=65535"`
 
+	// Platform identifies the cloud provider
+	// ie: aws, gcp, local
+	Platform string `toml:"platform" config:"required"`
+
 	// Region identifies the geographic region where this node is deployed.
 	// Used for observability, latency optimization, and cross-region routing.
 	Region string `toml:"region" config:"required"`
@@ -54,8 +58,9 @@ type Config struct {
 	// See [config.TLS].
 	TLS *config.TLS `toml:"tls"`
 
-	// Database configures MySQL connections. See [config.DatabaseConfig].
-	Database config.DatabaseConfig `toml:"database"`
+	// DatabaseURL is the connection string for the MySQL database.
+	// It should be a globally load balanced endpoint and only requires read access.
+	DatabaseURL string `toml:"database_url" config:"required"`
 
 	Observability config.Observability `toml:"observability"`
 
@@ -65,6 +70,10 @@ type Config struct {
 	// Gossip configures distributed cache invalidation. See [config.GossipConfig].
 	// When nil (section omitted), gossip is disabled and invalidation is local-only.
 	Gossip *config.GossipConfig `toml:"gossip"`
+
+	// Pprof configures Go pprof profiling endpoints at /_unkey/internal/pprof/*.
+	// When nil or credentials are empty, pprof is disabled.
+	Pprof *config.PprofConfig `toml:"pprof"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through

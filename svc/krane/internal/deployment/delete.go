@@ -7,17 +7,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // DeleteDeployment removes a user workload's ReplicaSet from the cluster.
+// Owned resources (Secret, ServiceAccount, Role, RoleBinding) are garbage-collected
+// automatically by K8s via ownerReferences.
 //
 // Not-found errors are ignored since the desired end state (resource gone) is
 // already achieved. After deletion, the method reports the deletion to the control
 // plane so it can update routing tables and stop sending traffic to this deployment.
-//
-// The method is idempotent: calling it multiple times for the same deployment
-// succeeds without error.
 func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDeployment) error {
 	logger.Info("deleting deployment",
 		"namespace", req.GetK8SNamespace(),
@@ -28,6 +26,8 @@ func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDep
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
+
+	c.fingerprints.Remove(ctx, req.GetK8SName())
 
 	err = c.reportDeploymentStatus(ctx, &ctrlv1.ReportDeploymentStatusRequest{
 		Change: &ctrlv1.ReportDeploymentStatusRequest_Delete_{
@@ -40,5 +40,5 @@ func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDep
 		return err
 	}
 
-	return client.IgnoreNotFound(err)
+	return nil
 }

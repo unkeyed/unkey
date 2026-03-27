@@ -33,6 +33,11 @@ message HandlePushRequest {
   string commit_author_avatar_url = 8;
   int64 commit_timestamp = 9;
   string delivery_id = 10;
+  repeated string changed_files = 11;
+  string sender_login = 12; // GitHub login of the push sender
+  bool is_fork_pr = 13; // true when triggered by a fork pull_request event
+  int64 pr_number = 14; // PR number for fork PRs; 0 for direct pushes
+  string fork_repository_full_name = 15; // fork repo (e.g. "contributor/repo"); empty for direct pushes
 }
 
 message HandlePushResponse {}

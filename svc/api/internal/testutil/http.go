@@ -82,7 +82,7 @@ func NewHarness(t *testing.T) *Harness {
 
 	redisUrl := dockertest.Redis(t)
 
-	db, err := db.New(db.Config{
+	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlDSN,
 		ReadOnlyDSN: "",
 	})
@@ -131,7 +131,21 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
-		DB:      db,
+		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
+			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
+				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
+			})
+			if err != nil {
+				return 0, false, err
+			}
+			return limit.Int32, limit.Valid, nil
+		},
+		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int32) error {
+			return db.Query.UpdateKeyCreditsDecrement(ctx, database.RW(), db.UpdateKeyCreditsDecrementParams{
+				ID:      keyID,
+				Credits: sql.NullInt32{Int32: cost, Valid: true},
+			})
+		},
 		Counter: ctr,
 		TTL:     60 * time.Second,
 	})
@@ -143,7 +157,7 @@ func NewHarness(t *testing.T) *Harness {
 	// Create analytics connection manager
 	analyticsConnManager, err := analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
 		SettingsCache: caches.ClickhouseSetting,
-		Database:      db,
+		Database:      database,
 		Clock:         clk,
 		BaseURL:       chDSN,
 		Vault:         v,
@@ -151,17 +165,17 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	// Create seeder
-	seeder := seed.New(t, db, v)
+	seeder := seed.New(t, database, v)
 
 	seeder.Seed(context.Background())
 
 	audit, err := auditlogs.New(auditlogs.Config{
-		DB: db,
+		DB: database,
 	})
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		DB:           db,
+		DB:           database,
 		KeyCache:     caches.VerificationKeyByHash,
 		QuotaCache:   caches.WorkspaceQuota,
 		RateLimiter:  ratelimitService,
@@ -181,7 +195,7 @@ func NewHarness(t *testing.T) *Harness {
 		Ratelimit:                  ratelimitService,
 		Vault:                      v,
 		ClickHouse:                 ch,
-		DB:                         db,
+		DB:                         database,
 		seeder:                     seeder,
 		Clock:                      clk,
 		AnalyticsConnectionManager: analyticsConnManager,
@@ -514,6 +528,12 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 // before any test-specific data is created.
 func (h *Harness) Resources() seed.Resources {
 	return h.seeder.Resources
+}
+
+// Mux returns the underlying HTTP mux for direct request handling in tests
+// that need to inspect raw responses without test-fatal JSON unmarshalling.
+func (h *Harness) Mux() http.Handler {
+	return h.srv.Mux()
 }
 
 // TestResponse wraps an HTTP response with typed body parsing for test assertions.

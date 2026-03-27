@@ -14,7 +14,7 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 	c.initFlagMap()
 
 	var commandArgs []string
-	// stopFlags indicates we should stop parsing flags (after -- or first positional arg when AcceptsArgs)
+	// stopFlags indicates we should stop parsing flags (after -- separator)
 	stopFlags := false
 
 	for i := 0; i < len(args); i++ {
@@ -89,14 +89,7 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 					arg, strings.Join(availableCommands, ", "))
 			}
 
-			// If command accepts args, first positional arg stops flag parsing
-			// This ensures subsequent args (like "nginx -g daemon off") aren't parsed as flags
-			if c.AcceptsArgs {
-				commandArgs = append(commandArgs, args[i:]...)
-				break
-			}
-
-			// Otherwise just collect this arg and continue
+			// Collect positional arg and continue parsing flags
 			commandArgs = append(commandArgs, arg)
 			continue
 		}

@@ -61,7 +61,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	_, validationSpan := tracing.Start(ctx, "openapi.Validate")
 	defer validationSpan.End()
 
-	valid, errors := v.validator.ValidateHttpRequest(r)
+	valid, errors := v.validator.ValidateHttpRequestSync(r)
 
 	if valid {
 		// nolint:exhaustruct
@@ -100,5 +100,4 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 	}
 
 	return res, false
-
 }

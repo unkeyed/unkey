@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/db/metrics"
+	"github.com/unkeyed/unkey/pkg/mysql/metrics"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )

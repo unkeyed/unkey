@@ -3,11 +3,10 @@ import { PageLoading } from "@/components/dashboard/page-loading";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Button, Empty, Input, SettingCard } from "@unkey/ui";
+import { Button, Empty, Input, SettingCard, SettingsShell } from "@unkey/ui";
 import Link from "next/link";
 import { WorkspaceNavbar } from "../workspace-navbar";
 import { Client } from "./client";
-import { Shell } from "./components/shell";
 
 export default function BillingPage() {
   const { workspace, isLoading: isWorkspaceLoading } = useWorkspace();
@@ -57,7 +56,7 @@ export default function BillingPage() {
     const ratelimits = usage?.billableRatelimits || 0;
 
     return (
-      <Shell>
+      <SettingsShell>
         <WorkspaceNavbar activePage={{ href: "billing", text: "Billing" }} />
         <div className="w-full">
           <SettingCard
@@ -105,7 +104,7 @@ export default function BillingPage() {
             </Button>
           </div>
         </SettingCard>
-      </Shell>
+      </SettingsShell>
     );
   }
 

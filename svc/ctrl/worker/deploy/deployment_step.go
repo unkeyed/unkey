@@ -12,11 +12,11 @@ import (
 )
 
 func (w *Workflow) DeploymentStep(
-	ctx restate.WorkflowSharedContext,
+	ctx restate.ObjectContext,
 	step db.DeploymentStepsStep,
 	deployment db.Deployment,
-	fn func(innerCtx restate.WorkflowSharedContext) error) error {
-
+	fn func(innerCtx restate.ObjectContext) error,
+) error {
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		now := time.Now().UnixMilli()
 		deploymentStatus := db.DeploymentsStatusPending
@@ -59,7 +59,6 @@ func (w *Workflow) DeploymentStep(
 			}
 			return nil
 		})
-
 	}, restate.WithName(fmt.Sprintf("starting step: %s", step)))
 	if err != nil {
 		return err
@@ -72,7 +71,7 @@ func (w *Workflow) DeploymentStep(
 			DeploymentID: deployment.ID,
 			Step:         step,
 			EndedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			Error:        sql.NullString{Valid: stepErr != nil, String: fault.UserFacingMessage(stepErr)},
+			Error:        sql.NullString{Valid: stepErr != nil, String: truncateString(fault.UserFacingMessage(stepErr), 512)},
 		})
 	}, restate.WithName(fmt.Sprintf("ending step: %s", step)))
 	if err != nil {
@@ -80,5 +79,15 @@ func (w *Workflow) DeploymentStep(
 	}
 
 	return stepErr
+}
 
+// truncateString returns s unchanged if it fits within maxLen bytes, otherwise
+// truncates it and appends "..." so the result is exactly maxLen bytes.
+// Depot/BuildKit errors can be really lengthy so capping
+// the length keeps Restate journal entries and stored error messages manageable.
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen-3] + "..."
 }

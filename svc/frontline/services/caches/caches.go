@@ -10,17 +10,20 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 )
 
 // Caches holds all cache instances used throughout frontline.
 type Caches struct {
 	// HostName -> frontline Route
-	FrontlineRoutes cache.Cache[string, db.FrontlineRoute]
+	FrontlineRoutes cache.Cache[string, db.FindFrontlineRouteByFQDNRow]
 
 	// EnvironmentID -> List of Sentinels
-	SentinelsByEnvironment cache.Cache[string, []db.Sentinel]
+	SentinelsByEnvironment cache.Cache[string, []db.FindHealthyRoutableSentinelsByEnvironmentIDRow]
+
+	// DeploymentID -> List of Instances
+	InstancesByDeployment cache.Cache[string, []db.Instance]
 
 	// HostName -> Certificate
 	TLSCertificates cache.Cache[string, tls.Certificate]
@@ -128,8 +131,8 @@ func New(config Config) (*Caches, error) {
 	}
 
 	frontlineRoute, err := createCache(
-		cache.Config[string, db.FrontlineRoute]{
-			Fresh:    30 * time.Second,
+		cache.Config[string, db.FindFrontlineRouteByFQDNRow]{
+			Fresh:    5 * time.Second,
 			Stale:    5 * time.Minute,
 			MaxSize:  10_000,
 			Resource: "frontline_route",
@@ -142,8 +145,8 @@ func New(config Config) (*Caches, error) {
 	}
 
 	sentinelsByEnvironment, err := createCache(
-		cache.Config[string, []db.Sentinel]{
-			Fresh:    30 * time.Second,
+		cache.Config[string, []db.FindHealthyRoutableSentinelsByEnvironmentIDRow]{
+			Fresh:    5 * time.Second,
 			Stale:    2 * time.Minute,
 			MaxSize:  10_000,
 			Resource: "sentinels_by_environment",
@@ -153,6 +156,20 @@ func New(config Config) (*Caches, error) {
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sentinels by environment cache: %w", err)
+	}
+
+	instancesByDeployment, err := createCache(
+		cache.Config[string, []db.Instance]{
+			Fresh:    10 * time.Second,
+			Stale:    60 * time.Second,
+			MaxSize:  10_000,
+			Resource: "instances_by_deployment",
+			Clock:    config.Clock,
+		},
+		stringKeyOpts,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create instances by deployment cache: %w", err)
 	}
 
 	tlsCertificate, err := createCache(
@@ -173,6 +190,7 @@ func New(config Config) (*Caches, error) {
 	return &Caches{
 		FrontlineRoutes:        middleware.WithTracing(frontlineRoute),
 		SentinelsByEnvironment: middleware.WithTracing(sentinelsByEnvironment),
+		InstancesByDeployment:  middleware.WithTracing(instancesByDeployment),
 		TLSCertificates:        middleware.WithTracing(tlsCertificate),
 		dispatcher:             dispatcher,
 	}, nil

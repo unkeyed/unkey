@@ -1,11 +1,9 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { createClient } from "@connectrpc/connect";
-import { createConnectTransport } from "@connectrpc/connect-web";
+import { createCtrlClient } from "@/lib/ctrl-client";
 
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 
 import { and, db, eq } from "@/lib/db";
-import { env } from "@/lib/env";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
@@ -17,29 +15,11 @@ export const createDeploy = workspaceProcedure
     z.object({
       projectId: z.string().min(1, "Project ID is required"),
       environmentSlug: z.string().min(1, "Environment slug is required"),
+      gitRef: z.string().optional(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const { CTRL_URL, CTRL_API_KEY } = env();
-    if (!CTRL_URL || !CTRL_API_KEY) {
-      throw new TRPCError({
-        code: "PRECONDITION_FAILED",
-        message: "ctrl service is not configured",
-      });
-    }
-
-    const ctrl = createClient(
-      DeployService,
-      createConnectTransport({
-        baseUrl: CTRL_URL,
-        interceptors: [
-          (next) => (req) => {
-            req.header.set("Authorization", `Bearer ${CTRL_API_KEY}`);
-            return next(req);
-          },
-        ],
-      }),
-    );
+    const ctrl = createCtrlClient(DeployService);
 
     try {
       const project = await db.query.projects.findFirst({
@@ -72,11 +52,20 @@ export const createDeploy = workspaceProcedure
         });
       }
 
+      const ref = input.gitRef ? parseGitRef(input.gitRef) : undefined;
+      // Only full 40-char SHAs are treated as commits; abbreviated SHAs are not supported
+      const isCommitSha = (r: string): boolean => /^[0-9a-f]{40}$/i.test(r);
+
       const result = await ctrl
         .createDeployment({
           projectId: input.projectId,
           appId: environment.appId,
           environmentSlug: input.environmentSlug,
+          ...(ref
+            ? {
+                gitCommit: isCommitSha(ref) ? { commitSha: ref } : { branch: ref },
+              }
+            : {}),
         })
         .catch((err) => {
           console.error(err);
@@ -114,3 +103,23 @@ export const createDeploy = workspaceProcedure
       });
     }
   });
+
+export function parseGitRef(raw: string): string {
+  const trimmed = raw.trim();
+
+  // https://github.com/owner/repo/tree/branch-name (supports slashes in branch)
+  const treeMatch = trimmed.match(/^https?:\/\/github\.com\/[^/]+\/[^/]+\/tree\/(.+)$/);
+  if (treeMatch) {
+    return treeMatch[1];
+  }
+
+  // https://github.com/owner/repo/commit/<40-char SHA>
+  const commitMatch = trimmed.match(
+    /^https?:\/\/github\.com\/[^/]+\/[^/]+\/commit\/([0-9a-f]{40})$/i,
+  );
+  if (commitMatch) {
+    return commitMatch[1];
+  }
+
+  return trimmed;
+}

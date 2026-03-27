@@ -34,16 +34,29 @@ func (s *Service) WatchSentinels(
 		return err
 	}
 
-	region := req.Msg.GetRegion()
-	if err := assert.NotEmpty(region, "region is required"); err != nil {
+	regionName := req.Header().Get("X-Krane-Region")
+	platform := req.Header().Get("X-Krane-Platform")
+	if err := assert.All(
+		assert.NotEmpty(regionName, "region is required"),
+		assert.NotEmpty(platform, "platform is required"),
+	); err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	versionCursor := req.Msg.GetVersionLastSeen()
 
 	logger.Info("krane watching sentinels",
-		"region", region,
+		"region", regionName,
 		"version", versionCursor,
 	)
+
+	region, err := db.Query.FindRegionByPlatformAndName(ctx, s.db.RO(), db.FindRegionByPlatformAndNameParams{
+		Platform: platform,
+		Name:     regionName,
+	})
+	if err != nil {
+		logger.Error("failed to find region", "error", err, "region", regionName)
+		return connect.NewError(connect.CodeInvalidArgument, err)
+	}
 
 	for {
 		select {
@@ -52,7 +65,7 @@ func (s *Service) WatchSentinels(
 		default:
 		}
 
-		states, err := s.fetchSentinelStates(ctx, region, versionCursor)
+		states, err := s.fetchSentinelStates(ctx, region.ID, versionCursor)
 		if err != nil {
 			logger.Error("failed to fetch sentinel states", "error", err)
 			return connect.NewError(connect.CodeInternal, err)
@@ -76,9 +89,9 @@ func (s *Service) WatchSentinels(
 // fetchSentinelStates queries the database for sentinels in the given region with versions
 // greater than afterVersion, returning up to 100 results. Rows with unhandled desired_state
 // values are skipped rather than failing the entire batch.
-func (s *Service) fetchSentinelStates(ctx context.Context, region string, afterVersion uint64) ([]*ctrlv1.SentinelState, error) {
+func (s *Service) fetchSentinelStates(ctx context.Context, regionID string, afterVersion uint64) ([]*ctrlv1.SentinelState, error) {
 	rows, err := db.Query.ListSentinelsByRegion(ctx, s.db.RO(), db.ListSentinelsByRegionParams{
-		Region:       region,
+		RegionID:     regionID,
 		Afterversion: afterVersion,
 		Limit:        100,
 	})

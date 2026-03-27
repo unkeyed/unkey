@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -89,7 +90,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
-	db, err := db.New(db.Config{
+	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
 	})
@@ -97,7 +98,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create db: %w", err)
 	}
 
-	r.Defer(db.Close)
+	r.Defer(database.Close)
 
 	if cfg.Observability.Metrics != nil {
 		prom, promErr := prometheus.New()
@@ -172,7 +173,21 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(rlSvc.Close)
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
-		DB:      db,
+		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
+			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
+				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
+			})
+			if err != nil {
+				return 0, false, err
+			}
+			return limit.Int32, limit.Valid, nil
+		},
+		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int32) error {
+			return db.Query.UpdateKeyCreditsDecrement(ctx, database.RW(), db.UpdateKeyCreditsDecrementParams{
+				ID:      keyID,
+				Credits: sql.NullInt32{Int32: cost, Valid: true},
+			})
+		},
 		Counter: ctr,
 		TTL:     60 * time.Second,
 	})
@@ -192,7 +207,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{
-		DB: db,
+		DB: database,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create auditlogs service: %w", err)
@@ -254,7 +269,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	keySvc, err := keys.New(keys.Config{
-		DB:           db,
+		DB:           database,
 		KeyCache:     caches.VerificationKeyByHash,
 		QuotaCache:   caches.WorkspaceQuota,
 		RateLimiter:  rlSvc,
@@ -275,7 +290,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.ClickHouse.AnalyticsURL != "" && vaultClient != nil {
 		analyticsConnMgr, err = analytics.NewConnectionManager(analytics.ConnectionManagerConfig{
 			SettingsCache: caches.ClickhouseSetting,
-			Database:      db,
+			Database:      database,
 			Clock:         clk,
 			BaseURL:       cfg.ClickHouse.AnalyticsURL,
 			Vault:         vaultClient,
@@ -298,14 +313,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("Control plane clients initialized", "url", cfg.Control.URL)
 
+	pprofEnabled := cfg.Pprof != nil && cfg.Pprof.Username != "" && cfg.Pprof.Password != ""
 	var pprofUsername, pprofPassword string
-	if cfg.Pprof != nil {
+	if pprofEnabled {
 		pprofUsername = cfg.Pprof.Username
 		pprofPassword = cfg.Pprof.Password
 	}
 
 	routes.Register(srv, &routes.Services{
-		Database:             db,
+		Database:             database,
 		ClickHouse:           ch,
 		Keys:                 keySvc,
 		Validator:            validator,
@@ -314,7 +330,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Caches:               caches,
 		Vault:                vaultClient,
 		CtrlDeploymentClient: ctrlDeploymentClient,
-		PprofEnabled:         cfg.Pprof != nil,
+		PprofEnabled:         pprofEnabled,
 		PprofUsername:        pprofUsername,
 		PprofPassword:        pprofPassword,
 

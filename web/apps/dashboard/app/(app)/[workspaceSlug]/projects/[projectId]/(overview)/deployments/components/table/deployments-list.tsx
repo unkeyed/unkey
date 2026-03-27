@@ -11,11 +11,11 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
+import { DeploymentStatusBadge } from "../../../../components/deployment-status-badge";
 import { Avatar } from "../../../../components/git-avatar";
 import { StatusIndicator } from "../../../../components/status-indicator";
 import { useProjectData } from "../../../data-provider";
 import { useDeployments } from "../../hooks/use-deployments";
-import { DeploymentStatusBadge } from "./components/deployment-status-badge";
 import { DomainList } from "./components/domain_list";
 import { EnvStatusBadge } from "./components/env-status-badge";
 import {
@@ -41,7 +41,7 @@ const DeploymentListTableActions = dynamic(
 
 export const DeploymentsList = () => {
   const { deployments } = useDeployments();
-  const { project, getDeploymentById } = useProjectData();
+  const { project } = useProjectData();
   const currentDeploymentId = project?.currentDeploymentId;
 
   const workspace = useWorkspaceNavigation();
@@ -128,13 +128,16 @@ export const DeploymentsList = () => {
         header: "",
         width: "15%",
         render: ({ deployment }: { deployment: Deployment }) => {
-          const isFailed = deployment.status === "failed";
-          const cpu = isFailed ? null : formatCpuParts(deployment.cpuMillicores);
-          const mem = isFailed ? null : formatMemoryParts(deployment.memoryMib);
+          const hideResources =
+            deployment.status === "failed" ||
+            deployment.status === "skipped" ||
+            deployment.status === "stopped";
+          const cpu = hideResources ? null : formatCpuParts(deployment.cpuMillicores);
+          const mem = hideResources ? null : formatMemoryParts(deployment.memoryMib);
           return (
             <div className="flex items-center gap-7">
               <div className="hidden 2xl:flex items-center w-[80px]">
-                {isFailed ? (
+                {hideResources ? (
                   <span className="text-gray-9">—</span>
                 ) : (
                   <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md text-grayA-11 w-fit h-[22px]">
@@ -147,7 +150,7 @@ export const DeploymentsList = () => {
                 )}
               </div>
               <div className="hidden 2xl:flex gap-1.5 w-[180px]">
-                {isFailed || !cpu || !mem ? (
+                {hideResources || !cpu || !mem ? (
                   <span className="text-gray-9">—</span>
                 ) : (
                   <>
@@ -164,17 +167,28 @@ export const DeploymentsList = () => {
                   </>
                 )}
               </div>
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-center max-w-50">
                 <div className="size-5 rounded flex items-center justify-center border border-grayA-3 bg-grayA-3">
                   <CodeBranch iconSize="sm-regular" className="text-gray-12" />
                 </div>
                 <div className="min-w-0">
-                  <div className="font-mono truncate text-[13px] text-accent-12">
-                    {deployment.gitBranch}
+                  <div className="flex items-center gap-1.5 font-mono text-[13px]">
+                    <span className="truncate text-accent-12 max-w-25" title={deployment.gitBranch}>
+                      {deployment.gitBranch}
+                    </span>
+                    <span className="text-gray-6 shrink-0">·</span>
+                    <span className="text-gray-9 shrink-0">
+                      {deployment.gitCommitSha?.slice(0, 7)}
+                    </span>
                   </div>
-                  <div className="font-mono text-xs text-gray-9">
-                    {deployment.gitCommitSha?.slice(0, 7)}
-                  </div>
+                  {deployment.gitCommitMessage ? (
+                    <div
+                      className="truncate text-xs text-gray-9 w-50 pr-5"
+                      title={deployment.gitCommitMessage}
+                    >
+                      {deployment.gitCommitMessage}
+                    </div>
+                  ) : null}
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -215,14 +229,10 @@ export const DeploymentsList = () => {
           deployment: Deployment;
           environment?: Environment;
         }) => {
-          const currentDeployment = project?.currentDeploymentId
-            ? getDeploymentById(project?.currentDeploymentId)
-            : undefined;
           return (
             <div className="pl-5">
               <DeploymentListTableActions
                 selectedDeployment={deployment}
-                currentDeployment={currentDeployment}
                 environment={environment}
               />
             </div>

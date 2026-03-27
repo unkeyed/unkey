@@ -11,7 +11,7 @@ export const GeneralSetup = () => {
   } = useFormContext<FormValues>();
 
   return (
-    <div className="space-y-5 px-2 py-1">
+    <div className="flex flex-col gap-5 px-2 py-1">
       <FormInput
         label="External ID"
         description="A unique identifier for this identity (3-255 characters)"

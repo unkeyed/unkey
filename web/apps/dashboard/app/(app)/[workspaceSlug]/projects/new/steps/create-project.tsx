@@ -48,7 +48,6 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
         commitTimestamp: Date.now(),
         commitTitle: "will-be-replace-by-server",
         domain: "will-be-replace-by-server",
-        regions: [],
       });
       await tx.isPersisted.promise;
       onProjectCreated((tx.metadata as { projectId: string }).projectId);

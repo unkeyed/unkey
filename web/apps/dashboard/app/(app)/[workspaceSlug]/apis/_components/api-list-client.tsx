@@ -79,7 +79,7 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
             ))}
           </div>
 
-          <div className="flex flex-col items-center justify-center mt-8 space-y-4 pb-8">
+          <div className="flex flex-col items-center justify-center mt-8 pb-8 gap-4">
             <div className="text-center text-sm text-accent-11">
               Showing {apiList.length} of {apisData?.pages[0]?.total || 0} APIs
             </div>
@@ -87,12 +87,12 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
             {!isSearching && hasNextPage && (
               <Button onClick={loadMore} disabled={isFetchingNextPage} size="md">
                 {isFetchingNextPage ? (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-row items-center gap-2">
                     <div className="animate-spin h-4 w-4 border-2 border-gray-7 border-t-transparent rounded-full" />
                     <span>Loading...</span>
                   </div>
                 ) : (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-row items-center gap-2">
                     <span>Load more</span>
                   </div>
                 )}

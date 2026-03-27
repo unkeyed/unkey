@@ -7,10 +7,12 @@ export const GitHubConnected = ({
   appId,
   installUrl,
   repoFullName,
+  onBeforeNavigate,
 }: {
   appId: string;
   installUrl: string;
   repoFullName: string;
+  onBeforeNavigate?: () => void;
 }) => {
   const utils = trpc.useUtils();
 
@@ -18,6 +20,7 @@ export const GitHubConnected = ({
     onSuccess: async () => {
       toast.success("Repository disconnected");
       await utils.github.getInstallations.invalidate();
+      await utils.github.getRepoTree.invalidate();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -57,6 +60,7 @@ export const GitHubConnected = ({
           installUrl={installUrl}
           variant="outline"
           text={<span>Manage GitHub</span>}
+          onBeforeNavigate={onBeforeNavigate}
         />
       </div>
     </div>

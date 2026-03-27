@@ -87,14 +87,13 @@ export const ProjectsList = () => {
               branch={project.branch}
               author={project.author}
               authorAvatar={project.authorAvatar}
-              regions={project.regions}
               repository={
                 project.repositoryFullName
                   ? `https://github.com/${project.repositoryFullName}`
                   : undefined
               }
               actions={
-                <ProjectActions projectId={project.id} projectName={project.name}>
+                <ProjectActions projectId={project.id}>
                   <Button
                     variant="ghost"
                     size="icon"

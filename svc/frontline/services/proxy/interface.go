@@ -6,22 +6,15 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/services/router"
 )
 
-// Service defines the interface for proxying requests to sentinels or remote NLBs.
+// Service defines the interface for proxying requests based on routing decisions.
 type Service interface {
-	// ForwardToSentinel forwards a request to a local sentinel service (HTTP)
-	// Adds X-Unkey-Deployment-Id header for the sentinel to route to the correct deployment
-	// Request start time is retrieved from context
-	ForwardToSentinel(ctx context.Context, sess *zen.Session, sentinel *db.Sentinel, deploymentID string) error
-
-	// ForwardToRegion forwards a request to a remote region (HTTPS)
-	// Keeps the original hostname so the remote frontline can do TLS termination and routing
-	// Request start time is retrieved from context
-	ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegion string) error
+	// Forward dispatches a request based on the routing decision.
+	Forward(ctx context.Context, sess *zen.Session, decision router.RouteDecision) error
 }
 
 // Config holds configuration for the proxy service.
@@ -29,6 +22,7 @@ type Config struct {
 	// InstanceID is the current frontline instance ID
 	InstanceID string
 
+	Platform string
 	// Region is the current frontline region
 	Region string
 

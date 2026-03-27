@@ -27,7 +27,6 @@ type transition struct {
 // before the delay elapses, the new nonce overwrites the old one, causing the
 // previous delayed call to no-op on nonce mismatch.
 func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, req *hydrav1.ScheduleDesiredStateChangeRequest) (*hydrav1.ScheduleDesiredStateChangeResponse, error) {
-
 	nonce := restate.UUID(ctx).String()
 
 	t := transition{
@@ -60,7 +59,6 @@ func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, re
 // database representation, updates the deployment's desired state and all
 // topology entries, and clears the stored transition.
 func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydrav1.ChangeDesiredStateRequest) (*hydrav1.ChangeDesiredStateResponse, error) {
-
 	deploymentID := restate.Key(ctx)
 
 	t, err := restate.Get[*transition](ctx, transitionKey)
@@ -78,10 +76,11 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 
 	var desiredState db.DeploymentsDesiredState
 	var topologyDesiredStatus db.DeploymentTopologyDesiredStatus
+
 	switch req.GetState() {
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING:
 		desiredState = db.DeploymentsDesiredStateRunning
-		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStarted
+		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusRunning
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY:
 		desiredState = db.DeploymentsDesiredStateStandby
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped
@@ -95,7 +94,6 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-
 		return db.Tx(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 			deployment, err := db.Query.FindDeploymentById(txCtx, tx, deploymentID)
 			if err != nil {
@@ -118,19 +116,17 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 			if err != nil {
 				return err
 			}
+
 			return nil
-
 		})
-
 	}, restate.WithName("updating desired state"))
-
 	if err != nil {
 		return nil, err
 	}
 
 	// Update all topology entries so WatchDeployments picks up the change.
 	// Each region needs a new version from VersioningService.
-	regions, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
+	regions, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Region, error) {
 		return db.Query.FindDeploymentRegions(runCtx, v.db.RO(), deploymentID)
 	}, restate.WithName("find deployment regions"))
 	if err != nil {
@@ -138,9 +134,9 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	}
 
 	for _, region := range regions {
-		versionResp, err := hydrav1.NewVersioningServiceClient(ctx, region).NextVersion().Request(&hydrav1.NextVersionRequest{})
+		versionResp, err := hydrav1.NewVersioningServiceClient(ctx, region.ID).NextVersion().Request(&hydrav1.NextVersionRequest{})
 		if err != nil {
-			return nil, fmt.Errorf("failed to get next version for region %s: %w", region, err)
+			return nil, fmt.Errorf("failed to get next version for region %s: %w", region.ID, err)
 		}
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -149,11 +145,11 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 				Version:       versionResp.GetVersion(),
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				DeploymentID:  deploymentID,
-				Region:        region,
+				RegionID:      region.ID,
 			})
-		}, restate.WithName(fmt.Sprintf("updating topology desired status in %s", region)))
+		}, restate.WithName(fmt.Sprintf("updating topology desired status in %s", region.ID)))
 		if err != nil {
-			return nil, fmt.Errorf("failed to update topology desired status in %s: %w", region, err)
+			return nil, fmt.Errorf("failed to update topology desired status in %s: %w", region.ID, err)
 		}
 	}
 

@@ -64,6 +64,11 @@ service ClusterService {
   // GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
   // Used by the resync loop to verify consistency for existing resources.
   rpc GetDesiredCiliumNetworkPolicyState(GetDesiredCiliumNetworkPolicyStateRequest) returns (CiliumNetworkPolicyState);
+
+  // Heartbeat is called periodically by krane agents to register their cluster
+  // and region with the control plane. This populates the regions and
+  // clusters tables, making regions dynamically discoverable.
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
 }
 
 message WatchCiliumNetworkPoliciesRequest {
@@ -227,16 +232,19 @@ message ApplySentinel {
   // project_id identifies the project within the workspace.
   string project_id = 3;
 
+  // app_id identifies the app within the project.
+  string app_id = 4;
+
   // environment_id in which the sentinel should exist.
-  string environment_id = 4;
+  string environment_id = 5;
 
   // sentinel_id is the unique identifier for this sentinel globally
-  string sentinel_id = 5;
+  string sentinel_id = 6;
 
-  string image = 6;
-  int32 replicas = 7;
-  int64 cpu_millicores = 8;
-  int64 memory_mib = 9;
+  string image = 7;
+  int32 replicas = 8;
+  int64 cpu_millicores = 9;
+  int64 memory_mib = 10;
 }
 
 // DeleteSentinel identifies a sentinel to remove from the cluster.
@@ -312,6 +320,14 @@ message ApplyDeployment {
   // app_id identifies the app within the project.
   // Used for pod labels so Vector can extract it into runtime logs.
   string app_id = 18;
+
+  // Runtime environment variable fields for user workloads.
+  optional string environment_slug = 21;
+  optional string region = 22;
+  optional string git_commit_sha = 23;
+  optional string git_branch = 24;
+  optional string git_repo = 25;
+  optional string git_commit_message = 26;
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.
@@ -323,3 +339,16 @@ message DeleteDeployment {
   string k8s_namespace = 1;
   string k8s_name = 2;
 }
+
+// HeartbeatRequest is sent periodically by krane agents to register their
+// presence. The control plane uses this to populate regions and
+// clusters tables.
+message HeartbeatRequest {
+  // region is the geographic region name (e.g. "us-east-1").
+  string region = 1;
+
+  // platform is the infrastructure provider (e.g. "aws", "gcp", "local").
+  string platform = 2;
+}
+
+message HeartbeatResponse {}

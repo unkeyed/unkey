@@ -166,6 +166,11 @@ type HeartbeatConfig struct {
 	// When set, a heartbeat is sent after successful key refill runs.
 	// Optional - if empty, no heartbeat is sent.
 	KeyRefillURL string `toml:"key_refill_url"`
+
+	// KeyLastUsedSyncURL is the Checkly heartbeat URL for key last-used sync runs.
+	// When set, a heartbeat is sent after successful sync runs.
+	// Optional - if empty, no heartbeat is sent.
+	KeyLastUsedSyncURL string `toml:"key_last_used_sync_url"`
 }
 
 // SlackConfig holds Slack webhook URLs for notifications.
@@ -204,6 +209,10 @@ type Config struct {
 	// Used for sentinel deployment and automatic certificate bootstrapping.
 	DefaultDomain string `toml:"default_domain" config:"default=unkey.app"`
 
+	// DashboardURL is the base URL of the dashboard, used for constructing links
+	// in GitHub PR comments and deployment status log URLs.
+	DashboardURL string `toml:"dashboard_url" config:"default=https://app.unkey.com"`
+
 	// BuildPlatformStr defines the target architecture for container builds.
 	// Format: "linux/amd64", "linux/arm64". Only "linux" OS supported.
 	BuildPlatformStr string `toml:"build_platform" config:"default=linux/amd64"`
@@ -211,10 +220,6 @@ type Config struct {
 	// SentinelImage is the container image used for new sentinel deployments.
 	// Overrides default sentinel image with custom build or registry.
 	SentinelImage string `toml:"sentinel_image" config:"default=ghcr.io/unkeyed/unkey:local"`
-
-	// AvailableRegions is a list of available regions for deployments.
-	// typically in the format "region.provider", ie "us-east-1.aws", "local.dev"
-	AvailableRegions []string `toml:"available_regions"`
 
 	// CnameDomain is the base domain for custom domain CNAME targets.
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".

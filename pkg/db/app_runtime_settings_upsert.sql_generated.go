@@ -22,9 +22,9 @@ INSERT INTO app_runtime_settings (
     memory_mib,
     command,
     healthcheck,
-    region_config,
     shutdown_signal,
     sentinel_config,
+    openapi_spec_path,
     created_at,
     updated_at
 ) VALUES (
@@ -48,26 +48,26 @@ ON DUPLICATE KEY UPDATE
     memory_mib = VALUES(memory_mib),
     command = VALUES(command),
     healthcheck = VALUES(healthcheck),
-    region_config = VALUES(region_config),
     shutdown_signal = VALUES(shutdown_signal),
     sentinel_config = VALUES(sentinel_config),
+    openapi_spec_path = VALUES(openapi_spec_path),
     updated_at = VALUES(updated_at)
 `
 
 type UpsertAppRuntimeSettingsParams struct {
-	WorkspaceID    string                           `db:"workspace_id"`
-	AppID          string                           `db:"app_id"`
-	EnvironmentID  string                           `db:"environment_id"`
-	Port           int32                            `db:"port"`
-	CpuMillicores  int32                            `db:"cpu_millicores"`
-	MemoryMib      int32                            `db:"memory_mib"`
-	Command        dbtype.StringSlice               `db:"command"`
-	Healthcheck    dbtype.NullHealthcheck           `db:"healthcheck"`
-	RegionConfig   dbtype.RegionConfig              `db:"region_config"`
-	ShutdownSignal AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
-	SentinelConfig []byte                           `db:"sentinel_config"`
-	CreatedAt      int64                            `db:"created_at"`
-	UpdatedAt      sql.NullInt64                    `db:"updated_at"`
+	WorkspaceID     string                           `db:"workspace_id"`
+	AppID           string                           `db:"app_id"`
+	EnvironmentID   string                           `db:"environment_id"`
+	Port            int32                            `db:"port"`
+	CpuMillicores   int32                            `db:"cpu_millicores"`
+	MemoryMib       int32                            `db:"memory_mib"`
+	Command         dbtype.StringSlice               `db:"command"`
+	Healthcheck     dbtype.NullHealthcheck           `db:"healthcheck"`
+	ShutdownSignal  AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
+	SentinelConfig  []byte                           `db:"sentinel_config"`
+	OpenapiSpecPath sql.NullString                   `db:"openapi_spec_path"`
+	CreatedAt       int64                            `db:"created_at"`
+	UpdatedAt       sql.NullInt64                    `db:"updated_at"`
 }
 
 // UpsertAppRuntimeSettings
@@ -81,9 +81,9 @@ type UpsertAppRuntimeSettingsParams struct {
 //	    memory_mib,
 //	    command,
 //	    healthcheck,
-//	    region_config,
 //	    shutdown_signal,
 //	    sentinel_config,
+//	    openapi_spec_path,
 //	    created_at,
 //	    updated_at
 //	) VALUES (
@@ -107,9 +107,9 @@ type UpsertAppRuntimeSettingsParams struct {
 //	    memory_mib = VALUES(memory_mib),
 //	    command = VALUES(command),
 //	    healthcheck = VALUES(healthcheck),
-//	    region_config = VALUES(region_config),
 //	    shutdown_signal = VALUES(shutdown_signal),
 //	    sentinel_config = VALUES(sentinel_config),
+//	    openapi_spec_path = VALUES(openapi_spec_path),
 //	    updated_at = VALUES(updated_at)
 func (q *Queries) UpsertAppRuntimeSettings(ctx context.Context, db DBTX, arg UpsertAppRuntimeSettingsParams) error {
 	_, err := db.ExecContext(ctx, upsertAppRuntimeSettings,
@@ -121,9 +121,9 @@ func (q *Queries) UpsertAppRuntimeSettings(ctx context.Context, db DBTX, arg Ups
 		arg.MemoryMib,
 		arg.Command,
 		arg.Healthcheck,
-		arg.RegionConfig,
 		arg.ShutdownSignal,
 		arg.SentinelConfig,
+		arg.OpenapiSpecPath,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

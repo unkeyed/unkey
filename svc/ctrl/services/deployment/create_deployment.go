@@ -42,8 +42,8 @@ type dockerSourceInfo struct {
 // apps deploy HEAD of their default branch, non-git apps reuse the live
 // deployment's Docker image.
 //
-// The workflow runs asynchronously keyed by project ID, so only one deployment
-// per project executes at a time. Returns the deployment ID and initial status.
+// The workflow runs asynchronously keyed by workspace ID, so only one deployment
+// per workspace executes at a time during beta. Returns the deployment ID and initial status.
 func (s *Service) CreateDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateDeploymentRequest],
@@ -148,10 +148,6 @@ func (s *Service) CreateDeployment(
 		// Explicit docker image (CLI, REST API)
 		gitBranch = branchFromGitCommit(req.Msg.GetGitCommit(), appWithSettings.App.DefaultBranch)
 
-		if tsErr := validateGitCommitTimestamp(req.Msg.GetGitCommit()); tsErr != nil {
-			return nil, tsErr
-		}
-
 		if gitCommit := req.Msg.GetGitCommit(); gitCommit != nil {
 			gitCommitSha = gitCommit.GetCommitSha()
 			gitCommitMessage = trimLength(gitCommit.GetCommitMessage(), maxCommitMessageLength)
@@ -245,7 +241,6 @@ func (s *Service) CreateDeployment(
 		ProjectID:                     project.ID,
 		AppID:                         app.ID,
 		EnvironmentID:                 env.Environment.ID,
-		OpenapiSpec:                   sql.NullString{String: "", Valid: false},
 		SentinelConfig:                appRuntimeSettings.SentinelConfig,
 		EncryptedEnvironmentVariables: secretsBlob,
 		Command:                       appRuntimeSettings.Command,
@@ -263,6 +258,8 @@ func (s *Service) CreateDeployment(
 		Port:                          appRuntimeSettings.Port,
 		ShutdownSignal:                db.DeploymentsShutdownSignal(appRuntimeSettings.ShutdownSignal),
 		Healthcheck:                   appRuntimeSettings.Healthcheck,
+		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
+		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
 	})
 	if err != nil {
 		logger.Error("failed to insert deployment", "error", err.Error())
@@ -277,8 +274,8 @@ func (s *Service) CreateDeployment(
 		"environment", env.Environment.ID,
 	)
 
-	// Send deployment request asynchronously, keyed by project ID
-	invocation, err := s.deploymentClient(project.ID).
+	// Send deployment request asynchronously, keyed by workspace ID
+	invocation, err := s.deploymentClient(workspaceID).
 		Deploy().
 		Send(ctx, deployReq)
 	if err != nil {
@@ -317,26 +314,6 @@ func branchFromGitCommit(gitCommit *ctrlv1.GitCommitInfo, defaultBranch string) 
 		return defaultBranch
 	}
 	return "main"
-}
-
-// validateGitCommitTimestamp validates the timestamp in GitCommitInfo if present.
-func validateGitCommitTimestamp(gitCommit *ctrlv1.GitCommitInfo) error {
-	if gitCommit == nil || gitCommit.GetTimestamp() == 0 {
-		return nil
-	}
-	timestamp := gitCommit.GetTimestamp()
-
-	if timestamp < 1_000_000_000_000 {
-		return connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("git_commit_timestamp must be Unix epoch milliseconds, got %d (appears to be seconds format)", timestamp))
-	}
-
-	maxValidTimestamp := time.Now().Add(1 * time.Hour).UnixMilli()
-	if timestamp > maxValidTimestamp {
-		return connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("git_commit_timestamp %d is too far in the future (must be Unix epoch milliseconds)", timestamp))
-	}
-	return nil
 }
 
 // buildDockerSource looks up the app's current deployment's Docker image and carries

@@ -1,24 +1,144 @@
 ---
 title: "RateLimit"
-description: "Gateway rate limiting policy"
+description: "Gateway rate limiting (schema only)"
 ---
 
-RateLimit defines a gateway-level rate limiting policy. It supports multiple key sources, such as client IP, a request header, the authenticated subject, or a principal claim.
+RateLimit defines gateway-level rate limiting with configurable key sources. Sentinel delegates rate limit state to Unkey's distributed rate limiting service, providing consistent counts across multiple sentinel instances.
+
+<Note>
+RateLimit is defined in the policy schema but is not executed by the sentinel engine yet.
+</Note>
 
 ## Fields
 
-- `limit`: Maximum number of requests in the window.
-- `window_ms`: Time window in milliseconds.
-- `key`: Rate limit key configuration.
+<ResponseField name="limit" type="int64">
+  Maximum number of requests allowed in the time window.
+</ResponseField>
+
+<ResponseField name="window_ms" type="int64">
+  Time window in milliseconds. For example, `limit: 100` with `window_ms: 60000` means 100 requests per minute.
+</ResponseField>
+
+<ResponseField name="key" type="RateLimitKey">
+  Determines how requests are bucketed for rate limiting.
+</ResponseField>
+
+## Examples
+
+<Tabs>
+<Tab title="Per IP">
+```json
+{
+  "policies": [
+    {
+      "id": "global-ratelimit",
+      "name": "Rate limit by IP",
+      "enabled": true,
+      "match": [],
+      "ratelimit": {
+        "limit": 1000,
+        "window_ms": 60000,
+        "key": { "remote_ip": {} }
+      }
+    }
+  ]
+}
+```
+</Tab>
+<Tab title="Per authenticated subject">
+```json
+{
+  "policies": [
+    {
+      "id": "user-ratelimit",
+      "name": "Rate limit per user",
+      "enabled": true,
+      "match": [],
+      "ratelimit": {
+        "limit": 500,
+        "window_ms": 60000,
+        "key": { "authenticated_subject": {} }
+      }
+    }
+  ]
+}
+```
+
+Requires a KeyAuth, JWTAuth, or BasicAuth policy earlier in the list to set the Principal.
+</Tab>
+<Tab title="Per header value">
+```json
+{
+  "policies": [
+    {
+      "id": "tenant-ratelimit",
+      "name": "Rate limit per tenant",
+      "enabled": true,
+      "match": [],
+      "ratelimit": {
+        "limit": 5000,
+        "window_ms": 60000,
+        "key": { "header": { "name": "X-Tenant-Id" } }
+      }
+    }
+  ]
+}
+```
+
+Use only when the header is set by a trusted upstream proxy.
+</Tab>
+<Tab title="Per principal claim">
+```json
+{
+  "policies": [
+    {
+      "id": "org-ratelimit",
+      "name": "Rate limit per organization",
+      "enabled": true,
+      "match": [],
+      "ratelimit": {
+        "limit": 10000,
+        "window_ms": 60000,
+        "key": { "principal_claim": { "claim_name": "org_id" } }
+      }
+    }
+  ]
+}
+```
+
+Creates a shared bucket for all users within the same organization. Requires a Principal with the `org_id` claim.
+</Tab>
+<Tab title="Per path">
+```json
+{
+  "policies": [
+    {
+      "id": "path-ratelimit",
+      "name": "Rate limit per endpoint",
+      "enabled": true,
+      "match": [
+        { "path": { "path": { "prefix": "/v1/" } } }
+      ],
+      "ratelimit": {
+        "limit": 100,
+        "window_ms": 60000,
+        "key": { "path": {} }
+      }
+    }
+  ]
+}
+```
+
+Creates a separate bucket per URL path, protecting expensive endpoints without a separate policy for each.
+</Tab>
+</Tabs>
 
 ## Key sources
 
-- Remote IP address.
-- Header value.
-- Authenticated subject.
-- Request path.
-- Principal claim.
-
-## Implementation status
-
-RateLimit is defined in the policy schema but is not executed by the sentinel engine yet.
+| Source               | Description                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| `remote_ip`          | Client IP address. Effective for anonymous traffic, but can over-limit behind shared NATs.       |
+| `header`             | Value of a named request header. Only use behind trusted proxies that set the header.            |
+| `authenticated_subject` | Principal subject from an upstream auth policy. Most accurate for authenticated APIs.         |
+| `path`               | Request URL path. Creates a separate bucket per endpoint.                                        |
+| `principal_claim`    | Named claim from the Principal's claims map (for example, `org_id` for per-organization limits). |

@@ -45,7 +45,7 @@ export const CanvasBoundary = ({ children }: PropsWithChildren) => {
               </div>
 
               {/* Error message */}
-              <div className="p-4 space-y-2">
+              <div className="flex flex-col p-4 gap-2">
                 <div className="text-xs font-medium text-gray-11">{error.message}</div>
                 <div className="text-xs text-gray-9">Check console for details</div>
               </div>

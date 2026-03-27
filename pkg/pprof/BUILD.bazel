@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "pprof",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/pprof",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/zen",
+    ],
+)

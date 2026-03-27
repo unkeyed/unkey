@@ -3,6 +3,8 @@
 import { ChevronRight } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../lib/utils";
+import { Button } from "./buttons/button";
+import { InfoTooltip } from "./info-tooltip";
 
 export type ChevronState = "hidden" | "interactive" | "disabled";
 
@@ -20,6 +22,7 @@ type SettingCardProps = {
   expandable?: React.ReactNode;
   defaultExpanded?: boolean;
   chevronState?: ChevronState;
+  truncateDescription?: boolean;
 };
 
 const SettingCardGroupContext = React.createContext(false);
@@ -47,6 +50,7 @@ function SettingCard({
   expandable,
   defaultExpanded = false,
   chevronState,
+  truncateDescription = false,
 }: SettingCardProps) {
   const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
   const contentRef = React.useRef<HTMLDivElement>(null);
@@ -167,9 +171,23 @@ function SettingCard({
             <div className="font-medium text-gray-12 text-[13px] leading-4 tracking-normal">
               {title}
             </div>
-            <div className="font-normal text-gray-9 text-xs leading-4 tracking-normal">
-              {description}
-            </div>
+            <InfoTooltip
+              asChild
+              content={
+                <div className="whitespace-pre-wrap text-xs break-all max-w-xs">{description}</div>
+              }
+              position={{ side: "bottom", align: "start" }}
+              disabled={!truncateDescription}
+            >
+              <div
+                className={cn(
+                  "font-normal text-gray-11 text-xs leading-4 tracking-normal max-w-[600px]",
+                  truncateDescription && "truncate",
+                )}
+              >
+                {description}
+              </div>
+            </InfoTooltip>
           </div>
         </div>
         <div className={cn("flex w-full items-center gap-4", contentWidth)}>
@@ -227,4 +245,125 @@ function findScrollParent(element: HTMLElement | null): HTMLElement | Window {
 
 SettingCard.displayName = "SettingCard";
 
-export { SettingCard, SettingCardGroup };
+type SettingsZoneVariant = "danger" | "warning";
+
+const SettingsZoneContext = React.createContext<SettingsZoneVariant>("danger");
+
+const zoneStyles: Record<SettingsZoneVariant, { heading: string; border: string }> = {
+  danger: { heading: "text-error-11", border: "border-error-7 divide-error-7" },
+  warning: { heading: "text-warning-11", border: "border-warning-7 divide-warning-7" },
+};
+
+function SettingsZone({
+  children,
+  className,
+  variant,
+  title,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  variant: SettingsZoneVariant;
+  title: string;
+}) {
+  const styles = zoneStyles[variant];
+  return (
+    <SettingsZoneContext.Provider value={variant}>
+      <div className={cn("w-full", className)}>
+        <h2 className={cn("font-semibold text-lg mb-4", styles.heading)}>{title}</h2>
+        <div className={cn("rounded-lg border overflow-hidden divide-y", styles.border)}>
+          {children}
+        </div>
+      </div>
+    </SettingsZoneContext.Provider>
+  );
+}
+
+SettingsZone.displayName = "SettingsZone";
+
+function SettingsDangerZone({
+  children,
+  className,
+}: { children: React.ReactNode; className?: string }) {
+  return (
+    <SettingsZone variant="danger" title="Danger Zone" className={className}>
+      {children}
+    </SettingsZone>
+  );
+}
+
+SettingsDangerZone.displayName = "SettingsDangerZone";
+
+type SettingsZoneAction = {
+  label: string;
+  onClick: () => void;
+  loading?: boolean;
+  disabled?: boolean;
+  className?: string;
+};
+
+const zoneButtonProps: Record<
+  SettingsZoneVariant,
+  { variant: "destructive" | "primary"; color?: "danger" | "warning" }
+> = {
+  danger: { variant: "destructive" },
+  warning: { variant: "primary", color: "warning" },
+};
+
+function SettingsZoneRow({
+  title,
+  description,
+  action,
+}: {
+  title: React.ReactNode;
+  description: React.ReactNode;
+  action: SettingsZoneAction;
+}) {
+  const zoneVariant = React.useContext(SettingsZoneContext);
+  const btnProps = zoneButtonProps[zoneVariant];
+
+  return (
+    <div className="flex items-center justify-between p-4">
+      <div className="space-y-1">
+        <p className="font-medium text-gray-12 text-sm">{title}</p>
+        <p className="text-gray-11 text-[13px]">{description}</p>
+      </div>
+      <Button
+        variant={btnProps.variant}
+        color={btnProps.color}
+        size="md"
+        className={cn("shrink-0 px-3", action.className)}
+        loading={action.loading}
+        disabled={action.disabled}
+        onClick={action.onClick}
+      >
+        {action.label}
+      </Button>
+    </div>
+  );
+}
+
+SettingsZoneRow.displayName = "SettingsZoneRow";
+
+function SettingsShell({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <main
+      className={cn(
+        "w-225 flex flex-col justify-center items-center gap-6 mx-auto my-14",
+        className,
+      )}
+    >
+      {children}
+    </main>
+  );
+}
+
+SettingsShell.displayName = "SettingsShell";
+
+export {
+  SettingCard,
+  SettingCardGroup,
+  SettingsDangerZone,
+  SettingsShell,
+  SettingsZone,
+  SettingsZoneRow,
+};

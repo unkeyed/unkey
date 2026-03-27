@@ -53,7 +53,7 @@ export function SelectedItemsList<T extends BaseItem>({
   const ItemComponent = enableTransitions ? motion.div : "div";
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("flex flex-col gap-2", className)}>
       <div className={cn("grid gap-2", getGridColsClass(gridCols))}>
         <AnimatePresence mode="popLayout">
           {items.map((item) => {

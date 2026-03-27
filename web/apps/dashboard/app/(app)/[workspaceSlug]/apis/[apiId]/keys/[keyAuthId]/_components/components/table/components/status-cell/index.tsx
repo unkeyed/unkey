@@ -30,7 +30,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
   if (isLoading) {
     return (
       <div
-        className="flex w-[100px] items-center h-[22px] space-x-1 px-1.5 py-1 rounded-md bg-grayA-3"
+        className="flex w-25 items-center h-5.5 gap-1 px-1.5 py-1 rounded-md bg-grayA-3"
         aria-busy="true"
         aria-live="polite"
       >

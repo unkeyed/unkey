@@ -63,16 +63,16 @@ export const RepoListItem = ({
           <TimestampInfo value={repo.pushedAt ?? 0} displayType="relative" />{" "}
         </div>
       </div>
-      <div className="flex gap-2 items-center ml-auto">
+      <div className="flex gap-2 items-center ml-auto shrink-0">
         {isLoading ? (
           <div className="h-4 w-28 bg-grayA-3 rounded animate-pulse" />
         ) : details.hasDockerfile ? (
           <>
             <Check className="text-success-9" iconSize="sm-regular" />
-            <span className="text-gray-10 text-xs">Dockerfile detected</span>
+            <span className="text-gray-11 text-xs">Dockerfile detected</span>
           </>
         ) : (
-          <span className="text-gray-10 text-xs">No Dockerfile</span>
+          <span className="text-gray-11 text-xs">No Dockerfile</span>
         )}
       </div>
       <div className="flex gap-2 items-center">
@@ -91,8 +91,12 @@ export const RepoListItem = ({
               </SelectTrigger>
               <SelectContent className="max-h-50">
                 {(details.branches ?? []).map((branch) => (
-                  <SelectItem key={branch} value={branch} className="cursor-pointer text-[13px]">
-                    {branch}
+                  <SelectItem
+                    key={branch.name}
+                    value={branch.name}
+                    className="cursor-pointer text-[13px]"
+                  >
+                    {branch.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -101,7 +105,7 @@ export const RepoListItem = ({
         </div>
         <Button
           variant="outline"
-          className="rounded-lg border-grayA-4 shadow-md transition-all h-7"
+          className="rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all px-3"
           disabled={disabled || isLoading}
           loading={loading}
           onClick={() => onSelect(repo)}

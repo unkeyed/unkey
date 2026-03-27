@@ -11,10 +11,10 @@ data:
     instance_id = "worker-dev"
     region = "local"
     default_domain = "unkey.local"
+    dashboard_url = "http://localhost:3000"
     cname_domain = "unkey.local"
     build_platform = "linux/arm64"
     sentinel_image = "unkey/sentinel:latest"
-    available_regions = ["local.dev"]
 
     [database]
     primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
@@ -128,6 +128,8 @@ spec:
                   name: github-credentials
                   key: UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS
                   optional: true
+            - name: FORCE_DEPLOYMENT_APPROVAL
+              value: "true"
           volumeMounts:
             - name: docker-socket
               mountPath: /var/run/docker.sock

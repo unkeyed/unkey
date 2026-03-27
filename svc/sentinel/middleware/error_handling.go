@@ -10,6 +10,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
 	handler "github.com/unkeyed/unkey/svc/sentinel/routes/proxy"
 )
@@ -47,16 +48,27 @@ func WithProxyErrorHandling() zen.Middleware {
 			}
 
 			// Categorize error and wrap with instance context
+			sentinelProxyErrorsTotal.WithLabelValues(categorizeProxyErrorTypeForMetrics(err)).Inc()
 			urn, message := categorizeProxyError(err)
 
-			var instanceAddress string
+			var instanceID, instanceAddress, deploymentID string
 			if tracking.Instance != nil {
+				instanceID = tracking.Instance.ID
 				instanceAddress = tracking.Instance.Address
 			}
+			deploymentID = tracking.DeploymentID
+
+			logger.Error("proxy connection failure",
+				"error", err.Error(),
+				"deploymentID", deploymentID,
+				"instanceID", instanceID,
+				"instanceAddress", instanceAddress,
+				"code", string(urn),
+			)
 
 			return fault.Wrap(err,
 				fault.Code(urn),
-				fault.Internal(fmt.Sprintf("proxy error forwarding to instance %s", instanceAddress)),
+				fault.Internal(fmt.Sprintf("proxy error forwarding to instance %s (deployment=%s, instance=%s)", instanceAddress, deploymentID, instanceID)),
 				fault.Public(message),
 			)
 		}

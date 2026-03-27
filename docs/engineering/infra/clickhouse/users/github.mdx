@@ -1,0 +1,9 @@
+---
+title: github
+---
+
+```sql
+CREATE USER IF NOT EXISTS github IDENTIFIED WITH sha256_password BY '<password>';
+
+GRANT readonly_role TO github;
+```

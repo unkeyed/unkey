@@ -362,10 +362,8 @@ func (ns NullDeploymentStepsStep) Value() (driver.Value, error) {
 type DeploymentTopologyDesiredStatus string
 
 const (
-	DeploymentTopologyDesiredStatusStarting DeploymentTopologyDesiredStatus = "starting"
-	DeploymentTopologyDesiredStatusStarted  DeploymentTopologyDesiredStatus = "started"
-	DeploymentTopologyDesiredStatusStopping DeploymentTopologyDesiredStatus = "stopping"
-	DeploymentTopologyDesiredStatusStopped  DeploymentTopologyDesiredStatus = "stopped"
+	DeploymentTopologyDesiredStatusStopped DeploymentTopologyDesiredStatus = "stopped"
+	DeploymentTopologyDesiredStatusRunning DeploymentTopologyDesiredStatus = "running"
 )
 
 func (e *DeploymentTopologyDesiredStatus) Scan(src interface{}) error {
@@ -493,14 +491,17 @@ func (ns NullDeploymentsShutdownSignal) Value() (driver.Value, error) {
 type DeploymentsStatus string
 
 const (
-	DeploymentsStatusPending    DeploymentsStatus = "pending"
-	DeploymentsStatusStarting   DeploymentsStatus = "starting"
-	DeploymentsStatusBuilding   DeploymentsStatus = "building"
-	DeploymentsStatusDeploying  DeploymentsStatus = "deploying"
-	DeploymentsStatusNetwork    DeploymentsStatus = "network"
-	DeploymentsStatusFinalizing DeploymentsStatus = "finalizing"
-	DeploymentsStatusReady      DeploymentsStatus = "ready"
-	DeploymentsStatusFailed     DeploymentsStatus = "failed"
+	DeploymentsStatusPending          DeploymentsStatus = "pending"
+	DeploymentsStatusStarting         DeploymentsStatus = "starting"
+	DeploymentsStatusBuilding         DeploymentsStatus = "building"
+	DeploymentsStatusDeploying        DeploymentsStatus = "deploying"
+	DeploymentsStatusNetwork          DeploymentsStatus = "network"
+	DeploymentsStatusFinalizing       DeploymentsStatus = "finalizing"
+	DeploymentsStatusReady            DeploymentsStatus = "ready"
+	DeploymentsStatusFailed           DeploymentsStatus = "failed"
+	DeploymentsStatusSkipped          DeploymentsStatus = "skipped"
+	DeploymentsStatusAwaitingApproval DeploymentsStatus = "awaiting_approval"
+	DeploymentsStatusStopped          DeploymentsStatus = "stopped"
 )
 
 func (e *DeploymentsStatus) Scan(src interface{}) error {
@@ -545,6 +546,7 @@ const (
 	FrontlineRoutesStickyBranch      FrontlineRoutesSticky = "branch"
 	FrontlineRoutesStickyEnvironment FrontlineRoutesSticky = "environment"
 	FrontlineRoutesStickyLive        FrontlineRoutesSticky = "live"
+	FrontlineRoutesStickyDeployment  FrontlineRoutesSticky = "deployment"
 )
 
 func (e *FrontlineRoutesSticky) Scan(src interface{}) error {
@@ -977,14 +979,15 @@ type App struct {
 }
 
 type AppBuildSetting struct {
-	Pk            uint64        `db:"pk"`
-	WorkspaceID   string        `db:"workspace_id"`
-	AppID         string        `db:"app_id"`
-	EnvironmentID string        `db:"environment_id"`
-	Dockerfile    string        `db:"dockerfile"`
-	DockerContext string        `db:"docker_context"`
-	CreatedAt     int64         `db:"created_at"`
-	UpdatedAt     sql.NullInt64 `db:"updated_at"`
+	Pk            uint64             `db:"pk"`
+	WorkspaceID   string             `db:"workspace_id"`
+	AppID         string             `db:"app_id"`
+	EnvironmentID string             `db:"environment_id"`
+	Dockerfile    string             `db:"dockerfile"`
+	DockerContext string             `db:"docker_context"`
+	WatchPaths    dbtype.StringSlice `db:"watch_paths"`
+	CreatedAt     int64              `db:"created_at"`
+	UpdatedAt     sql.NullInt64      `db:"updated_at"`
 }
 
 type AppEnvironmentVariable struct {
@@ -1002,21 +1005,33 @@ type AppEnvironmentVariable struct {
 	UpdatedAt        sql.NullInt64               `db:"updated_at"`
 }
 
+type AppRegionalSetting struct {
+	Pk                            uint64         `db:"pk"`
+	WorkspaceID                   string         `db:"workspace_id"`
+	AppID                         string         `db:"app_id"`
+	EnvironmentID                 string         `db:"environment_id"`
+	RegionID                      string         `db:"region_id"`
+	Replicas                      int32          `db:"replicas"`
+	HorizontalAutoscalingPolicyID sql.NullString `db:"horizontal_autoscaling_policy_id"`
+	CreatedAt                     int64          `db:"created_at"`
+	UpdatedAt                     sql.NullInt64  `db:"updated_at"`
+}
+
 type AppRuntimeSetting struct {
-	Pk             uint64                           `db:"pk"`
-	WorkspaceID    string                           `db:"workspace_id"`
-	AppID          string                           `db:"app_id"`
-	EnvironmentID  string                           `db:"environment_id"`
-	Port           int32                            `db:"port"`
-	CpuMillicores  int32                            `db:"cpu_millicores"`
-	MemoryMib      int32                            `db:"memory_mib"`
-	Command        dbtype.StringSlice               `db:"command"`
-	Healthcheck    dbtype.NullHealthcheck           `db:"healthcheck"`
-	RegionConfig   dbtype.RegionConfig              `db:"region_config"`
-	ShutdownSignal AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
-	SentinelConfig []byte                           `db:"sentinel_config"`
-	CreatedAt      int64                            `db:"created_at"`
-	UpdatedAt      sql.NullInt64                    `db:"updated_at"`
+	Pk              uint64                           `db:"pk"`
+	WorkspaceID     string                           `db:"workspace_id"`
+	AppID           string                           `db:"app_id"`
+	EnvironmentID   string                           `db:"environment_id"`
+	Port            int32                            `db:"port"`
+	CpuMillicores   int32                            `db:"cpu_millicores"`
+	MemoryMib       int32                            `db:"memory_mib"`
+	Command         dbtype.StringSlice               `db:"command"`
+	Healthcheck     dbtype.NullHealthcheck           `db:"healthcheck"`
+	ShutdownSignal  AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
+	SentinelConfig  []byte                           `db:"sentinel_config"`
+	OpenapiSpecPath sql.NullString                   `db:"openapi_spec_path"`
+	CreatedAt       int64                            `db:"created_at"`
+	UpdatedAt       sql.NullInt64                    `db:"updated_at"`
 }
 
 type AuditLog struct {
@@ -1085,7 +1100,7 @@ type CiliumNetworkPolicy struct {
 	DeploymentID  string          `db:"deployment_id"`
 	K8sName       string          `db:"k8s_name"`
 	K8sNamespace  string          `db:"k8s_namespace"`
-	Region        string          `db:"region"`
+	RegionID      string          `db:"region_id"`
 	Policy        json.RawMessage `db:"policy"`
 	Version       uint64          `db:"version"`
 	CreatedAt     int64           `db:"created_at"`
@@ -1105,6 +1120,13 @@ type ClickhouseWorkspaceSetting struct {
 	MaxQueryResultRows        int32         `db:"max_query_result_rows"`
 	CreatedAt                 int64         `db:"created_at"`
 	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
+}
+
+type Cluster struct {
+	Pk              uint64 `db:"pk"`
+	ID              string `db:"id"`
+	RegionID        string `db:"region_id"`
+	LastHeartbeatAt uint64 `db:"last_heartbeat_at"`
 }
 
 type CustomDomain struct {
@@ -1146,7 +1168,6 @@ type Deployment struct {
 	GitCommitAuthorAvatarUrl      sql.NullString            `db:"git_commit_author_avatar_url"`
 	GitCommitTimestamp            sql.NullInt64             `db:"git_commit_timestamp"`
 	SentinelConfig                []byte                    `db:"sentinel_config"`
-	OpenapiSpec                   sql.NullString            `db:"openapi_spec"`
 	CpuMillicores                 int32                     `db:"cpu_millicores"`
 	MemoryMib                     int32                     `db:"memory_mib"`
 	DesiredState                  DeploymentsDesiredState   `db:"desired_state"`
@@ -1155,6 +1176,9 @@ type Deployment struct {
 	Port                          int32                     `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
 	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
+	PrNumber                      sql.NullInt64             `db:"pr_number"`
+	ForkRepositoryFullName        sql.NullString            `db:"fork_repository_full_name"`
+	GithubDeploymentID            sql.NullInt64             `db:"github_deployment_id"`
 	Status                        DeploymentsStatus         `db:"status"`
 	CreatedAt                     int64                     `db:"created_at"`
 	UpdatedAt                     sql.NullInt64             `db:"updated_at"`
@@ -1177,7 +1201,7 @@ type DeploymentTopology struct {
 	Pk              uint64                          `db:"pk"`
 	WorkspaceID     string                          `db:"workspace_id"`
 	DeploymentID    string                          `db:"deployment_id"`
-	Region          string                          `db:"region"`
+	RegionID        string                          `db:"region_id"`
 	DesiredReplicas int32                           `db:"desired_replicas"`
 	Version         uint64                          `db:"version"`
 	DesiredStatus   DeploymentTopologyDesiredStatus `db:"desired_status"`
@@ -1240,6 +1264,19 @@ type GithubRepoConnection struct {
 	UpdatedAt          sql.NullInt64 `db:"updated_at"`
 }
 
+type HorizontalAutoscalingPolicy struct {
+	Pk              uint64        `db:"pk"`
+	ID              string        `db:"id"`
+	WorkspaceID     string        `db:"workspace_id"`
+	ReplicasMin     int32         `db:"replicas_min"`
+	ReplicasMax     int32         `db:"replicas_max"`
+	MemoryThreshold sql.NullInt16 `db:"memory_threshold"`
+	CpuThreshold    sql.NullInt16 `db:"cpu_threshold"`
+	RpsThreshold    sql.NullInt16 `db:"rps_threshold"`
+	CreatedAt       int64         `db:"created_at"`
+	UpdatedAt       sql.NullInt64 `db:"updated_at"`
+}
+
 type Identity struct {
 	Pk          uint64        `db:"pk"`
 	ID          string        `db:"id"`
@@ -1259,7 +1296,7 @@ type Instance struct {
 	WorkspaceID   string          `db:"workspace_id"`
 	ProjectID     string          `db:"project_id"`
 	AppID         string          `db:"app_id"`
-	Region        string          `db:"region"`
+	RegionID      string          `db:"region_id"`
 	K8sName       string          `db:"k8s_name"`
 	Address       string          `db:"address"`
 	CpuMillicores int32           `db:"cpu_millicores"`
@@ -1292,6 +1329,7 @@ type Key struct {
 	RatelimitLimit     sql.NullInt32  `db:"ratelimit_limit"`
 	RatelimitDuration  sql.NullInt64  `db:"ratelimit_duration"`
 	Environment        sql.NullString `db:"environment"`
+	LastUsedAt         uint64         `db:"last_used_at"`
 	PendingMigrationID sql.NullString `db:"pending_migration_id"`
 }
 
@@ -1343,6 +1381,17 @@ type KeysRole struct {
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
 }
 
+type OpenapiSpec struct {
+	Pk             uint64         `db:"pk"`
+	ID             string         `db:"id"`
+	WorkspaceID    string         `db:"workspace_id"`
+	DeploymentID   sql.NullString `db:"deployment_id"`
+	PortalConfigID sql.NullString `db:"portal_config_id"`
+	Content        []byte         `db:"content"`
+	CreatedAt      int64          `db:"created_at"`
+	UpdatedAt      sql.NullInt64  `db:"updated_at"`
+}
+
 type Permission struct {
 	Pk          uint64            `db:"pk"`
 	ID          string            `db:"id"`
@@ -1367,14 +1416,16 @@ type Project struct {
 }
 
 type Quotas struct {
-	Pk                     uint64        `db:"pk"`
-	WorkspaceID            string        `db:"workspace_id"`
-	RequestsPerMonth       int64         `db:"requests_per_month"`
-	LogsRetentionDays      int32         `db:"logs_retention_days"`
-	AuditLogsRetentionDays int32         `db:"audit_logs_retention_days"`
-	Team                   bool          `db:"team"`
-	RatelimitApiLimit      sql.NullInt32 `db:"ratelimit_api_limit"`
-	RatelimitApiDuration   sql.NullInt32 `db:"ratelimit_api_duration"`
+	Pk                          uint64        `db:"pk"`
+	WorkspaceID                 string        `db:"workspace_id"`
+	RequestsPerMonth            int64         `db:"requests_per_month"`
+	LogsRetentionDays           int32         `db:"logs_retention_days"`
+	AuditLogsRetentionDays      int32         `db:"audit_logs_retention_days"`
+	Team                        bool          `db:"team"`
+	RatelimitApiLimit           sql.NullInt32 `db:"ratelimit_api_limit"`
+	RatelimitApiDuration        sql.NullInt32 `db:"ratelimit_api_duration"`
+	AllocatedCpuMillicoresTotal uint32        `db:"allocated_cpu_millicores_total"`
+	AllocatedMemoryMibTotal     uint32        `db:"allocated_memory_mib_total"`
 }
 
 type Ratelimit struct {
@@ -1416,6 +1467,14 @@ type RatelimitOverride struct {
 	DeletedAtM  sql.NullInt64                  `db:"deleted_at_m"`
 }
 
+type Region struct {
+	Pk          uint64 `db:"pk"`
+	ID          string `db:"id"`
+	Name        string `db:"name"`
+	Platform    string `db:"platform"`
+	CanSchedule bool   `db:"can_schedule"`
+}
+
 type Role struct {
 	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
@@ -1443,7 +1502,7 @@ type Sentinel struct {
 	EnvironmentID     string                `db:"environment_id"`
 	K8sName           string                `db:"k8s_name"`
 	K8sAddress        string                `db:"k8s_address"`
-	Region            string                `db:"region"`
+	RegionID          string                `db:"region_id"`
 	Image             string                `db:"image"`
 	DesiredState      SentinelsDesiredState `db:"desired_state"`
 	Health            SentinelsHealth       `db:"health"`

@@ -64,6 +64,17 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	err := db.Query.InsertWorkspace(ctx, s.DB.RW(), params)
 	require.NoError(s.t, err)
 
+	err = db.Query.UpsertQuota(ctx, s.DB.RW(), db.UpsertQuotaParams{
+		WorkspaceID:            params.ID,
+		LogsRetentionDays:      30,
+		AuditLogsRetentionDays: 30,
+		RequestsPerMonth:       1_000_000,
+		Team:                   false,
+		RatelimitApiLimit:      sql.NullInt32{}, //nolint:exhaustruct
+		RatelimitApiDuration:   sql.NullInt32{}, //nolint:exhaustruct
+	})
+	require.NoError(s.t, err)
+
 	ws, err := db.Query.FindWorkspaceByID(ctx, s.DB.RW(), params.ID)
 	require.NoError(s.t, err)
 
@@ -221,7 +232,6 @@ type CreateEnvironmentRequest struct {
 // CreateEnvironment creates an environment within a project. If SentinelConfig is
 // nil or empty, it defaults to "{}".
 func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentRequest) db.Environment {
-
 	now := time.Now().UnixMilli()
 
 	err := db.Query.InsertEnvironment(ctx, s.DB.RW(), db.InsertEnvironmentParams{
@@ -243,6 +253,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		EnvironmentID: req.ID,
 		Dockerfile:    "Dockerfile",
 		DockerContext: ".",
+		WatchPaths:    nil,
 		CreatedAt:     now,
 		UpdatedAt:     sql.NullInt64{Valid: false},
 	})
@@ -250,19 +261,19 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 
 	// Insert default app runtime settings for this (app, environment) pair.
 	err = db.Query.UpsertAppRuntimeSettings(ctx, s.DB.RW(), db.UpsertAppRuntimeSettingsParams{
-		WorkspaceID:    req.WorkspaceID,
-		AppID:          req.AppID,
-		EnvironmentID:  req.ID,
-		Port:           8080,
-		CpuMillicores:  100,
-		MemoryMib:      128,
-		Command:        nil,
-		Healthcheck:    dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-		RegionConfig:   nil,
-		ShutdownSignal: db.AppRuntimeSettingsShutdownSignalSIGTERM,
-		SentinelConfig: []byte("{}"),
-		CreatedAt:      now,
-		UpdatedAt:      sql.NullInt64{Valid: false},
+		WorkspaceID:     req.WorkspaceID,
+		AppID:           req.AppID,
+		EnvironmentID:   req.ID,
+		Port:            8080,
+		CpuMillicores:   100,
+		MemoryMib:       128,
+		Command:         nil,
+		Healthcheck:     dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+		ShutdownSignal:  db.AppRuntimeSettingsShutdownSignalSIGTERM,
+		SentinelConfig:  []byte("{}"),
+		CreatedAt:       now,
+		UpdatedAt:       sql.NullInt64{Valid: false},
+		OpenapiSpecPath: sql.NullString{Valid: false, String: ""},
 	})
 	require.NoError(s.t, err)
 
@@ -686,7 +697,6 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		GitCommitAuthorHandle:         sql.NullString{Valid: false},
 		GitCommitAuthorAvatarUrl:      sql.NullString{Valid: false},
 		GitCommitTimestamp:            sql.NullInt64{Valid: false},
-		OpenapiSpec:                   sql.NullString{Valid: false},
 		EncryptedEnvironmentVariables: []byte{},
 		Command:                       nil,
 		Status:                        db.DeploymentsStatusPending,
@@ -695,6 +705,8 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
+		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
 		CreatedAt:                     createdAt,
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 	})

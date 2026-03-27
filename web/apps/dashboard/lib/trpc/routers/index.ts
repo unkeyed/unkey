@@ -6,7 +6,6 @@ import { apiKeysLlmSearch } from "./api/keys/llm-search-api-keys";
 import { activeKeysTimeseries } from "./api/keys/query-active-keys-timeseries";
 import { queryKeysList } from "./api/keys/query-api-keys";
 import { keyUsageTimeseries } from "./api/keys/query-key-usage-timeseries";
-import { keyLastVerificationTime } from "./api/keys/query-latest-verification";
 import { queryKeysOverviewLogs } from "./api/keys/query-overview-logs";
 import { keyVerificationsTimeseries } from "./api/keys/query-overview-timeseries";
 import { enableKey } from "./api/keys/toggle-key-enabled";
@@ -42,15 +41,18 @@ import { addCustomDomain } from "./deploy/custom-domains/add";
 import { deleteCustomDomain } from "./deploy/custom-domains/delete";
 import { listCustomDomains } from "./deploy/custom-domains/list";
 import { retryVerification } from "./deploy/custom-domains/retry";
+import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { createDeploy } from "./deploy/deployment/create-deploy";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
+import { getById as getDeploymentById } from "./deploy/deployment/getById";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
 import { promote } from "./deploy/deployment/promote";
 import { redeploy } from "./deploy/deployment/redeploy";
 import { rollback } from "./deploy/deployment/rollback";
+import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
 import { createEnvVars } from "./deploy/env-vars/create";
 import { decryptEnvVar } from "./deploy/env-vars/decrypt";
@@ -59,6 +61,7 @@ import { listEnvVars } from "./deploy/env-vars/list";
 import { updateEnvVar } from "./deploy/env-vars/update";
 import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
 import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
+import { updateWatchPaths } from "./deploy/environment-settings/build/update-watch-paths";
 import { getEnvironmentSettings } from "./deploy/environment-settings/get";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
 import { getAvailableRegions } from "./deploy/environment-settings/get-available-regions";
@@ -67,6 +70,7 @@ import { updateCpu } from "./deploy/environment-settings/runtime/update-cpu";
 import { updateHealthcheck } from "./deploy/environment-settings/runtime/update-healthcheck";
 import { updateInstances } from "./deploy/environment-settings/runtime/update-instances";
 import { updateMemory } from "./deploy/environment-settings/runtime/update-memory";
+import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/update-openapi-spec-path";
 import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
 import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
@@ -247,7 +251,6 @@ export const router = t.router({
       listLlmSearch: apiKeysLlmSearch,
       enableKey: enableKey,
       usageTimeseries: keyUsageTimeseries,
-      latestVerification: keyLastVerificationTime,
     }),
     overview: t.router({
       keyCount: getKeyCount,
@@ -422,10 +425,12 @@ export const router = t.router({
         updateHealthcheck,
         updateRegions,
         updateInstances,
+        updateOpenapiSpecPath,
       }),
       build: t.router({
         updateDockerfile,
         updateDockerContext,
+        updateWatchPaths,
       }),
     }),
     environment: t.router({
@@ -449,7 +454,9 @@ export const router = t.router({
     }),
     deployment: t.router({
       list: listDeployments,
+      getById: getDeploymentById,
       buildSteps: getDeploymentBuildSteps,
+      runtimeLogs: getDeploymentRuntimeLogs,
       steps: getDeploymentSteps,
       search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,
@@ -457,6 +464,7 @@ export const router = t.router({
       promote,
       redeploy,
       create: createDeploy,
+      authorize: authorizeDeployment,
     }),
     sentinelLogs: t.router({
       query: querySentinelLogs,

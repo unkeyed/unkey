@@ -7,6 +7,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
@@ -30,7 +31,7 @@ import (
 //
 // Returns terminal errors (400/404) for validation failures and retryable errors
 // for system failures.
-func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.RollbackRequest) (*hydrav1.RollbackResponse, error) {
+func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequest) (*hydrav1.RollbackResponse, error) {
 	logger.Info("initiating rollback",
 		"source", req.GetSourceDeploymentId(),
 		"target", req.GetTargetDeploymentId(),
@@ -63,17 +64,13 @@ func (w *Workflow) Rollback(ctx restate.WorkflowSharedContext, req *hydrav1.Roll
 		return nil, fmt.Errorf("failed to get target deployment: %w", err)
 	}
 
-	// Validate deployments are in same environment and project
-	if targetDeployment.EnvironmentID != sourceDeployment.EnvironmentID {
-		return nil, restate.TerminalError(fmt.Errorf("deployments must be in the same environment"), 400)
-	}
-
-	if targetDeployment.ProjectID != sourceDeployment.ProjectID {
-		return nil, restate.TerminalError(fmt.Errorf("deployments must be in the same project"), 400)
-	}
-
-	if targetDeployment.AppID != sourceDeployment.AppID {
-		return nil, restate.TerminalError(fmt.Errorf("deployments must be in the same app"), 400)
+	err = assert.All(
+		assert.Equal(targetDeployment.ProjectID, sourceDeployment.ProjectID, "deployments must be in the same project"),
+		assert.Equal(targetDeployment.AppID, sourceDeployment.AppID, "deployments must be in the same app"),
+		assert.Equal(targetDeployment.EnvironmentID, sourceDeployment.EnvironmentID, "deployments must be in the same environment"),
+	)
+	if err != nil {
+		return nil, restate.TerminalError(err, 400)
 	}
 
 	// Get app from deployment's app_id

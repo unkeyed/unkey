@@ -1,0 +1,9 @@
+#content-container h1 {
+  font-family: "Sagittaire Display", serif !important;
+  font-size: clamp(2rem, 5vw, 4rem) !important;
+  font-weight: 400 !important;
+  font-style: italic !important;
+  letter-spacing: -0.02em !important;
+  line-height: 100%;
+  overflow-wrap: break-word;
+}

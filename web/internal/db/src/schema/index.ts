@@ -17,8 +17,11 @@ export * from "./projects";
 export * from "./apps";
 export * from "./app_build_settings";
 export * from "./app_runtime_settings";
+export * from "./app_regional_settings";
+
 export * from "./app_environment_variables";
 export * from "./deployments";
+export * from "./openapi_specs";
 export * from "./deployment_steps";
 export * from "./deployment_topology";
 export * from "./acme_users";
@@ -32,3 +35,7 @@ export * from "./certificates";
 export * from "./frontline_routes";
 export * from "./github_app";
 export * from "./cilium";
+
+export * from "./clusters";
+export * from "./regions";
+export * from "./horizontal_autoscaling_policies";

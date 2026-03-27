@@ -144,11 +144,11 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
           </h3>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-3">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             {fields.map((field, index) => (
-              <div key={field.id} className="flex gap-3 items-end">
-                <div className="flex-1">
+              <div key={field.id} className="flex flex-row gap-2 items-end">
+                <div className="flex-1 h-22">
                   <label
                     htmlFor={`invites.${index}.email`}
                     className="text-sm text-content-subtle mb-1.5 block"
@@ -163,7 +163,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                     {...register(`invites.${index}.email`)}
                   />
                 </div>
-                <div className="w-48">
+                <div className="flex flex-col w-48 h-22">
                   <label
                     htmlFor={`invites.${index}.role`}
                     className="text-sm text-content-subtle mb-1.5 block"

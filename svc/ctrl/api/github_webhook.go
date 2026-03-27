@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	restateingress "github.com/restatedev/sdk-go/ingress"
@@ -76,6 +77,11 @@ func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch event {
 	case "push":
 		s.handlePush(r.Context(), w, body, deliveryID)
+	case "pull_request":
+		s.handlePullRequest(r.Context(), w, body, deliveryID)
+	case "create", "delete":
+		logger.Info("Branch lifecycle event ignored", "event", event)
+		w.WriteHeader(http.StatusOK)
 	case "installation":
 		logger.Info("Installation event received")
 		w.WriteHeader(http.StatusOK)
@@ -97,8 +103,15 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		return
 	}
 
-	if payload.Repository.Fork {
-		logger.Info("Ignoring push from forked repository", "repository", payload.Repository.FullName)
+	// Branch deletions and restorations don't need deployments.
+	// Deleted branches have no code to build; restored branches are
+	// just re-created refs pointing at an existing commit.
+	if payload.Deleted || payload.Created {
+		logger.Info("Ignoring branch delete/restore push",
+			"ref", payload.Ref,
+			"deleted", payload.Deleted,
+			"created", payload.Created,
+		)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -123,6 +136,9 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		sendOpts = append(sendOpts, restate.WithIdempotencyKey(deliveryID))
 	}
 
+	// Collect all unique changed files across all commits
+	changedFiles := collectChangedFiles(payload.Commits)
+
 	_, err := client.HandlePush().Send(ctx, &hydrav1.HandlePushRequest{
 		InstallationId:        payload.Installation.ID,
 		RepositoryId:          payload.Repository.ID,
@@ -134,6 +150,8 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		CommitAuthorAvatarUrl: gitCommit.AuthorAvatarURL,
 		CommitTimestamp:       gitCommit.Timestamp.UnixMilli(),
 		DeliveryId:            deliveryID,
+		ChangedFiles:          changedFiles,
+		SenderLogin:           payload.Sender.Login,
 	}, sendOpts...)
 	if err != nil {
 		logger.Error("failed to send HandlePush to Restate",
@@ -150,6 +168,81 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		"repository", payload.Repository.FullName,
 		"branch", branch,
 		"commit_sha", payload.After,
+	)
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// handlePullRequest handles pull_request events from forks. Same-repo PRs are
+// skipped because the push event already handles those. Fork PRs are dispatched
+// through the same HandlePush RPC with IsForkPr=true.
+func (s *GitHubWebhook) handlePullRequest(ctx context.Context, w http.ResponseWriter, body []byte, deliveryID string) {
+	var payload pullRequestPayload
+	if err := json.Unmarshal(body, &payload); err != nil {
+		logger.Error("failed to parse pull_request payload", "error", err)
+		http.Error(w, "failed to parse pull_request payload", http.StatusBadRequest)
+		return
+	}
+
+	// Only care about new commits (opened or new pushes to the PR)
+	if payload.Action != "opened" && payload.Action != "synchronize" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Same-repo PRs are already handled by the push event — skip to avoid double-deploy
+	if payload.PullRequest.Head.Repo.ID == payload.PullRequest.Base.Repo.ID {
+		logger.Info("Ignoring same-repo pull request, push event handles this",
+			"action", payload.Action,
+		)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	pr := payload.PullRequest
+	baseRepo := pr.Base.Repo
+
+	objectKey := fmt.Sprintf("%d:%d", payload.Installation.ID, baseRepo.ID)
+	client := hydrav1.NewGitHubWebhookServiceIngressClient(s.restate, objectKey)
+
+	var sendOpts []restate.IngressSendOption
+	if deliveryID != "" {
+		sendOpts = append(sendOpts, restate.WithIdempotencyKey(deliveryID))
+	}
+
+	authorHandle := pr.User.Login
+	_, err := client.HandlePush().Send(ctx, &hydrav1.HandlePushRequest{
+		InstallationId:         payload.Installation.ID,
+		RepositoryId:           baseRepo.ID,
+		RepositoryFullName:     baseRepo.FullName,
+		Branch:                 pr.Head.Ref,
+		After:                  pr.Head.SHA,
+		CommitMessage:          pr.Title,
+		CommitAuthorHandle:     authorHandle,
+		CommitAuthorAvatarUrl:  fmt.Sprintf("https://github.com/%s.png", authorHandle),
+		CommitTimestamp:        time.Now().UnixMilli(),
+		DeliveryId:             deliveryID,
+		SenderLogin:            payload.Sender.Login,
+		IsForkPr:               true,
+		PrNumber:               payload.Number,
+		ForkRepositoryFullName: pr.Head.Repo.FullName,
+	}, sendOpts...)
+	if err != nil {
+		logger.Error("failed to send HandlePush for fork PR to Restate",
+			"error", err,
+			"delivery_id", deliveryID,
+			"repository", baseRepo.FullName,
+		)
+		http.Error(w, "failed to enqueue webhook processing", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info("GitHub fork PR webhook enqueued to Restate",
+		"delivery_id", deliveryID,
+		"repository", baseRepo.FullName,
+		"branch", pr.Head.Ref,
+		"commit_sha", pr.Head.SHA,
+		"pr_action", payload.Action,
 	)
 
 	w.WriteHeader(http.StatusOK)
@@ -176,6 +269,9 @@ func extractGitCommitInfo(payload *pushPayload) githubclient.CommitInfo {
 			Message:   c.Message,
 			Timestamp: c.Timestamp,
 			Author:    c.Author,
+			Added:     c.Added,
+			Removed:   c.Removed,
+			Modified:  c.Modified,
 		}
 	}
 
@@ -183,16 +279,47 @@ func extractGitCommitInfo(payload *pushPayload) githubclient.CommitInfo {
 		return githubclient.CommitInfoFromRaw("", "", "", "", "")
 	}
 
-	authorHandle := headCommit.Author.Username
+	// Use the first commit's author as the originator (PR creator).
+	// For a merged PR, head_commit is the merge commit whose author is the
+	// merger; commits[0] is the original PR work commit whose author is the
+	// PR creator. For a direct push, commits[0] == head_commit so this is
+	// equivalent.
+	authorCommit := headCommit
+	if len(payload.Commits) > 0 {
+		authorCommit = &payload.Commits[0]
+	}
+
+	authorHandle := authorCommit.Author.Username
 	if authorHandle == "" {
-		authorHandle = headCommit.Author.Name
+		authorHandle = authorCommit.Author.Name
 	}
 
 	return githubclient.CommitInfoFromRaw(
 		headCommit.ID,
 		headCommit.Message,
 		authorHandle,
-		payload.Sender.AvatarURL,
+		fmt.Sprintf("https://github.com/%s.png", authorHandle),
 		headCommit.Timestamp,
 	)
+}
+
+// collectChangedFiles deduplicates file paths from all commits in a push.
+func collectChangedFiles(commits []pushCommit) []string {
+	seen := make(map[string]struct{})
+	for _, c := range commits {
+		for _, f := range c.Added {
+			seen[f] = struct{}{}
+		}
+		for _, f := range c.Removed {
+			seen[f] = struct{}{}
+		}
+		for _, f := range c.Modified {
+			seen[f] = struct{}{}
+		}
+	}
+	files := make([]string, 0, len(seen))
+	for f := range seen {
+		files = append(files, f)
+	}
+	return files
 }

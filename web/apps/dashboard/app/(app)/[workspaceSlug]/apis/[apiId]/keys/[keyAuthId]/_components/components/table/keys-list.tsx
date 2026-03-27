@@ -5,13 +5,13 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { shortenId } from "@/lib/shorten-id";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { BookBookmark, Dots, Focus, Key } from "@unkey/icons";
+import { HiddenValueCell } from "@unkey/ui";
 import { Button, Checkbox, Empty, InfoTooltip, Loading } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import React, { useCallback, useMemo, useState } from "react";
 import { VerificationBarChart } from "./components/bar-chart";
-import { HiddenValueCell } from "./components/hidden-value";
 import { LastUsedCell } from "./components/last-used";
 import { SelectionControls } from "./components/selection-controls";
 import {
@@ -184,7 +184,7 @@ export const KeysList = ({
                       handleLinkClick(key.id);
                     }}
                   >
-                    <div className="font-mono font-medium truncate text-brand-12">
+                    <div className="font-mono font-medium truncate text-gray-12">
                       {shortenId(key.id)}
                     </div>
                   </Link>
@@ -228,11 +228,7 @@ export const KeysList = ({
         width: "15%", // Keep at 15%
         render: (key) => {
           return (
-            <LastUsedCell
-              keyId={key.id}
-              keyAuthId={keyspaceId}
-              isSelected={selectedKey?.id === key.id}
-            />
+            <LastUsedCell lastUsedAt={key.last_used_at} isSelected={selectedKey?.id === key.id} />
           );
         },
       },

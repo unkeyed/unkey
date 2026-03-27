@@ -10,40 +10,50 @@ import (
 )
 
 const findSentinelsByEnvironmentID = `-- name: FindSentinelsByEnvironmentID :many
-SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM sentinels WHERE environment_id = ?
+SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.version, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
 `
+
+type FindSentinelsByEnvironmentIDRow struct {
+	Sentinel Sentinel `db:"sentinel"`
+	Region   Region   `db:"region"`
+}
 
 // FindSentinelsByEnvironmentID
 //
-//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, version, created_at, updated_at FROM sentinels WHERE environment_id = ?
-func (q *Queries) FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]Sentinel, error) {
+//	SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.version, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
+func (q *Queries) FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error) {
 	rows, err := db.QueryContext(ctx, findSentinelsByEnvironmentID, environmentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Sentinel
+	var items []FindSentinelsByEnvironmentIDRow
 	for rows.Next() {
-		var i Sentinel
+		var i FindSentinelsByEnvironmentIDRow
 		if err := rows.Scan(
-			&i.Pk,
-			&i.ID,
-			&i.WorkspaceID,
-			&i.ProjectID,
-			&i.EnvironmentID,
-			&i.K8sName,
-			&i.K8sAddress,
-			&i.Region,
-			&i.Image,
-			&i.DesiredState,
-			&i.Health,
-			&i.DesiredReplicas,
-			&i.AvailableReplicas,
-			&i.CpuMillicores,
-			&i.MemoryMib,
-			&i.Version,
-			&i.CreatedAt,
-			&i.UpdatedAt,
+			&i.Sentinel.Pk,
+			&i.Sentinel.ID,
+			&i.Sentinel.WorkspaceID,
+			&i.Sentinel.ProjectID,
+			&i.Sentinel.EnvironmentID,
+			&i.Sentinel.K8sName,
+			&i.Sentinel.K8sAddress,
+			&i.Sentinel.RegionID,
+			&i.Sentinel.Image,
+			&i.Sentinel.DesiredState,
+			&i.Sentinel.Health,
+			&i.Sentinel.DesiredReplicas,
+			&i.Sentinel.AvailableReplicas,
+			&i.Sentinel.CpuMillicores,
+			&i.Sentinel.MemoryMib,
+			&i.Sentinel.Version,
+			&i.Sentinel.CreatedAt,
+			&i.Sentinel.UpdatedAt,
+			&i.Region.Pk,
+			&i.Region.ID,
+			&i.Region.Name,
+			&i.Region.Platform,
+			&i.Region.CanSchedule,
 		); err != nil {
 			return nil, err
 		}

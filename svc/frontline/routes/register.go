@@ -3,6 +3,7 @@ package routes
 import (
 	"time"
 
+	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/middleware"
 	acme "github.com/unkeyed/unkey/svc/frontline/routes/acme"
@@ -15,7 +16,7 @@ func Register(srv *zen.Server, svc *Services) {
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
 	withPanicRecovery := zen.WithPanicRecovery()
 	withObservability := middleware.WithObservability(svc.Region, svc.ErrorPageRenderer)
-	withTimeout := zen.WithTimeout(5 * time.Minute)
+	withTimeout := zen.WithTimeout(15 * time.Minute)
 
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
@@ -29,11 +30,21 @@ func Register(srv *zen.Server, svc *Services) {
 		&internalHealth.Handler{},
 	)
 
+	if svc.Pprof != nil {
+		srv.RegisterRoute(
+			[]zen.Middleware{withLogging},
+			&pprofRoute.Handler{
+				Username: svc.Pprof.Username,
+				Password: svc.Pprof.Password,
+				Prefix:   "/_unkey/internal",
+			},
+		)
+	}
+
 	// Catches all requests and routes them to the sentinel or some other region.
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&proxy.Handler{
-			Region:        svc.Region,
 			RouterService: svc.RouterService,
 			ProxyService:  svc.ProxyService,
 			Clock:         svc.Clock,

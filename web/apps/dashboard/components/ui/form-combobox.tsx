@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { CopyButton } from "@unkey/ui";
 import { FormDescription } from "@unkey/ui/src/components/form/form-helpers";
 import { OptionalTag, RequiredTag } from "@unkey/ui/src/components/form/form-tags";
 import * as React from "react";
@@ -36,6 +37,11 @@ export type DocumentedFormComboboxProps = {
    * Tooltip text displayed on hover
    */
   title?: string;
+  /**
+   * When provided, shows a copy button next to the label that copies this value.
+   * Typically used when the field is disabled/read-only.
+   */
+  copyValue?: string;
 };
 
 // Props type combining Combobox props with form props
@@ -52,6 +58,7 @@ export const FormCombobox = React.forwardRef<HTMLDivElement, FormComboboxProps>(
       className,
       wrapperClassName,
       variant,
+      copyValue,
       id: propId,
       ...props
     },
@@ -76,7 +83,7 @@ export const FormCombobox = React.forwardRef<HTMLDivElement, FormComboboxProps>(
             {optional && <OptionalTag />}
           </label>
         )}
-        <div ref={ref}>
+        <div ref={ref} className="relative">
           <Combobox
             id={inputId}
             variant={inputVariant}
@@ -86,11 +93,20 @@ export const FormCombobox = React.forwardRef<HTMLDivElement, FormComboboxProps>(
             aria-required={required}
             {...props}
           />
+          {copyValue && (
+            <CopyButton
+              value={copyValue}
+              variant="ghost"
+              className="absolute right-8 top-1/2 -translate-y-1/2 size-6 text-gray-12 [&_svg]:stroke-9"
+              src="form-combobox"
+            />
+          )}
         </div>
         {(description || error) && (
           <FormDescription
             description={description}
             error={error}
+            variant={variant}
             descriptionId={descriptionId}
             errorId={errorId}
           />

@@ -9,7 +9,7 @@ SELECT
     d.app_id,
     d.build_id,
     d.image,
-    dt.region,
+    r.name AS region,
     d.cpu_millicores,
     d.memory_mib,
     dt.desired_replicas,
@@ -18,10 +18,18 @@ SELECT
     d.command,
     d.port,
     d.shutdown_signal,
-    d.healthcheck
+    d.healthcheck,
+    d.git_commit_sha,
+    d.git_branch,
+    d.git_commit_message,
+    e.slug AS environment_slug,
+    grc.repository_full_name AS git_repo
 FROM `deployment_topology` dt
 INNER JOIN `deployments` d ON dt.deployment_id = d.id
 INNER JOIN `workspaces` w ON d.workspace_id = w.id
-WHERE  dt.region = sqlc.arg(region)
+INNER JOIN `regions` r ON dt.region_id = r.id
+INNER JOIN `environments` e ON d.environment_id = e.id
+LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
+WHERE  r.name = sqlc.arg(region)
     AND dt.deployment_id = sqlc.arg(deployment_id)
 LIMIT 1;

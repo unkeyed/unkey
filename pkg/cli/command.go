@@ -26,6 +26,7 @@ type Command struct {
 	Name        string     // Command name (e.g., "deploy", "version")
 	Usage       string     // Short description shown in help
 	Description string     // Longer description for detailed help
+	Examples    []string   // Example invocations shown in help
 	Version     string     // Version string (only used for root command)
 	Commands    []*Command // Subcommands
 	Flags       []Flag     // Available flags for this command
@@ -44,6 +45,15 @@ type Command struct {
 // Example: "mycli deploy myapp" -> Args() returns ["myapp"]
 func (c *Command) Args() []string {
 	return c.args
+}
+
+// FlagIsSet returns whether the user explicitly provided a flag by name.
+// Returns false if the flag doesn't exist or was not set.
+func (c *Command) FlagIsSet(name string) bool {
+	if flag, ok := c.flagMap[name]; ok {
+		return flag.IsSet()
+	}
+	return false
 }
 
 // String returns the value of a string flag by name
@@ -324,7 +334,9 @@ var ExitFunc = os.Exit
 // Exit provides a clean way to exit with an error message and code
 // This is a convenience function that prints the message and calls os.Exit
 func Exit(message string, code int) error {
-	fmt.Println(message)
+	if message != "" {
+		fmt.Println(message)
+	}
 	ExitFunc(code)
 	return nil // unreachable but satisfies error interface
 }
