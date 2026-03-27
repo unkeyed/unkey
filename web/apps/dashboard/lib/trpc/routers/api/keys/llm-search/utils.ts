@@ -5,7 +5,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type OpenAI from "openai";
-import { zodResponseFormat } from "openai/helpers/zod";
+import z from "zod";
 
 /**
  * Creates a Zod schema for validating LLM-generated structured filter output for keys.
@@ -44,7 +44,14 @@ export async function getKeysStructuredSearchFromLLM(
           content: userSearchMsg,
         },
       ],
-      response_format: zodResponseFormat(filterOutputSchema, "searchQuery"),
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "api-keys-ai-search",
+          strict: true,
+          schema: z.toJSONSchema(filterOutputSchema, { target: "draft-7" }),
+        },
+      },
     });
 
     if (!completion.choices[0].message.parsed) {
