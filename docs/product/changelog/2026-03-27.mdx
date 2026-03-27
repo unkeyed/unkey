@@ -1,0 +1,30 @@
+---
+title: "March 27, 2026"
+description: "CLI for API management, persistent authentication, configurable production branch, and onboarding improvements."
+---
+
+## New features
+
+### CLI for API management
+
+The Unkey CLI now supports full API management directly from your terminal. You can create and manage APIs, keys, identities, permissions, roles, rate limits, and query analytics — all through resource-based commands like `unkey api keys create-key` or `unkey api ratelimit limit`.
+
+Every command supports JSON output for scripting with `--output=json`, and includes built-in help with usage examples. See the [CLI reference](/cli/overview) for the full command list.
+
+### Persistent CLI authentication
+
+A new `unkey auth login` command lets you store your root key locally so you don't have to pass `--root-key` on every invocation. The key is saved to `~/.unkey/config.toml` with restricted file permissions. You can still override the stored key with a flag or environment variable for one-off commands. See [auth login](/cli/auth/login) for details.
+
+### Configurable production branch
+
+You can now choose which Git branch triggers production deployments in your project settings. Previously, this was always your repository's default branch. A new branch selector in deployment settings lets you pick any branch — deployments from that branch route to your production environment, and all other branches deploy to preview.
+
+## Updates
+
+### Consistent settings pages
+
+The billing, project, ratelimit, and API settings pages now share a unified layout with consistent styling, navigation, and danger zone placement.
+
+## Bug fixes
+
+- The onboarding flow no longer closes unexpectedly when navigating between steps. If you've already connected GitHub, the flow skips straight to repository selection.
