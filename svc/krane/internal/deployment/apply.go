@@ -22,12 +22,12 @@ import (
 )
 
 // ApplyDeployment creates or updates a user workload as a Kubernetes ReplicaSet
-// with an associated HorizontalPodAutoscaler.
+// with an associated HorizontalPodAutoscaler (HPA).
 //
-// The method uses server-side apply to create or update the ReplicaSet, enabling
-// concurrent modifications from different sources without conflicts. The ReplicaSet's
-// spec.replicas is omitted so the HPA owns the replica count; the RS defaults to 1
-// pod and the HPA scales from there based on CPU (and optionally memory) utilization.
+// The method uses server-side apply to create or update the ReplicaSet.
+// spec.replicas is omitted so the HPA owns the replica count. The HPA's
+// minReplicas determines the minimum capacity; users should set this high
+// enough to handle traffic during rollouts.
 //
 // After applying, it queries the resulting pods and reports their addresses and status
 // to the control plane so the routing layer knows where to send traffic.
@@ -253,8 +253,6 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		}
 	}
 
-	// Always create an HPA. When a policy is attached, use its values.
-	// Otherwise fall back to min=1, max=replicas, cpu=80%.
 	if err := c.ensureHPAExists(ctx, req, applied); err != nil {
 		return fmt.Errorf("failed to ensure HPA: %w", err)
 	}
@@ -317,14 +315,14 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 	client := c.clientSet.AutoscalingV2().HorizontalPodAutoscalers(req.GetK8SNamespace())
 
 	minReplicas := int32(1)
-	maxReplicas := max(req.GetReplicas(), 1)
+	maxReplicas := max(req.GetReplicas(), 1) // fallback for deployments without a policy
 	cpuThreshold := ptr.P(int32(defaultCPUTargetUtilization))
 
 	var metrics []autoscalingv2.MetricSpec
 
 	if policy := req.GetAutoscaling(); policy != nil {
 		minReplicas = max(policy.GetMinReplicas(), 1)
-		maxReplicas = max(policy.GetMaxReplicas(), minReplicas)
+		maxReplicas = max(policy.GetMaxReplicas(), minReplicas) // overrides the fallback
 		if policy.CpuThreshold != nil {
 			cpuThreshold = policy.CpuThreshold
 		}
