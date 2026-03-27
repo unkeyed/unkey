@@ -260,6 +260,12 @@
             "pages": [
               "cli/overview",
               {
+                "group": "auth",
+                "pages": [
+                  "cli/auth/login"
+                ]
+              },
+              {
                 "group": "apis",
                 "pages": [
                   "cli/apis/create-api",
