@@ -38,7 +38,8 @@ export async function getStructuredSearchFromLLM(
       },
     });
 
-    if (!completion.choices[0].message.parsed) {
+    const content = completion.choices[0].message.content;
+    if (!content) {
       throw new TRPCError({
         code: "UNPROCESSABLE_CONTENT",
         message:
@@ -50,7 +51,7 @@ export async function getStructuredSearchFromLLM(
       });
     }
 
-    return completion.choices[0].message.parsed;
+    return filterOutputSchema.parse(JSON.parse(content));
   } catch (error) {
     console.error(
       `Something went wrong when querying OpenAI. Input: ${JSON.stringify(
