@@ -1,12 +1,5 @@
 import type { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import {
-  Ban,
-  CircleCheck,
-  Lock,
-  ShieldKey,
-  TimeClock,
-  TriangleWarning2,
-} from "@unkey/icons";
+import { Ban, CircleCheck, Lock, ShieldKey, TimeClock, TriangleWarning2 } from "@unkey/icons";
 
 export type LogOutcomeType = (typeof KEY_VERIFICATION_OUTCOMES)[number];
 
@@ -68,7 +61,9 @@ export const LOG_OUTCOME_DEFINITIONS: Record<LogOutcomeType, LogOutcomeInfo> = {
   },
 };
 
-export const getStatusType = (outcome: LogOutcomeType): "success" | "warning" | "blocked" | "error" => {
+export const getStatusType = (
+  outcome: LogOutcomeType,
+): "success" | "warning" | "blocked" | "error" => {
   switch (outcome) {
     case "VALID":
       return "success";

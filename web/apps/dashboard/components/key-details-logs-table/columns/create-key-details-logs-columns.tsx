@@ -1,15 +1,8 @@
 import { cn } from "@/lib/utils";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { InfoTooltip, TimestampInfo } from "@unkey/ui";
-import { StatusBadge } from "../components/status-badge";
-import { TagsCell } from "../components/tags-cell";
-import {
-  LOG_OUTCOME_DEFINITIONS,
-  getStatusType,
-  type LogOutcomeType,
-} from "../utils/outcome-definitions";
-import { STATUS_STYLES } from "../utils/get-row-class";
+import { RegionCell, TagsCell, TimestampInfo } from "@unkey/ui";
+import { OutcomeCell } from "../components/outcome-cell";
 
 type CreateColumnsOptions = {
   selectedLog: KeyDetailsLog | null;
@@ -51,31 +44,7 @@ export const createKeyDetailsLogsColumns = ({
     cell: ({ row }) => {
       const log = row.original;
       const isSelected = selectedLog?.request_id === log.request_id;
-      const outcomeType =
-        (log.outcome as LogOutcomeType) in LOG_OUTCOME_DEFINITIONS
-          ? (log.outcome as LogOutcomeType)
-          : "";
-      const outcomeInfo = LOG_OUTCOME_DEFINITIONS[outcomeType];
-      return (
-        <InfoTooltip
-          variant="inverted"
-          className="cursor-default"
-          content={<p>{outcomeInfo.tooltip}</p>}
-          position={{ side: "top", align: "center", sideOffset: 5 }}
-        >
-          <div className="flex gap-3 items-center">
-            <StatusBadge
-              primary={{
-                label: outcomeInfo.label,
-                color: isSelected
-                  ? STATUS_STYLES[getStatusType(outcomeInfo.type)].badge?.selected ?? ""
-                  : STATUS_STYLES[getStatusType(outcomeInfo.type)].badge?.default ?? "",
-                icon: outcomeInfo.icon,
-              }}
-            />
-          </div>
-        </InfoTooltip>
-      );
+      return <OutcomeCell log={log} isSelected={isSelected} />;
     },
   },
   {
@@ -86,13 +55,7 @@ export const createKeyDetailsLogsColumns = ({
     meta: {
       width: "20%",
     },
-    cell: ({ row }) => (
-      <div className="flex items-center font-mono">
-        <div className="w-full whitespace-nowrap" title={row.original.region}>
-          {row.original.region}
-        </div>
-      </div>
-    ),
+    cell: ({ row }) => <RegionCell region={row.original.region} />,
   },
   {
     id: "tags",
@@ -105,7 +68,7 @@ export const createKeyDetailsLogsColumns = ({
     cell: ({ row }) => {
       const log = row.original;
       const isSelected = selectedLog?.request_id === log.request_id;
-      return <TagsCell log={log} isSelected={isSelected} />;
+      return <TagsCell tags={log.tags ?? []} isSelected={isSelected} />;
     },
   },
 ];

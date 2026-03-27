@@ -1,5 +1,7 @@
 "use client";
 import {
+  EmptyKeyDetailsLogs,
+  KeyDetailsCountInfo,
   createKeyDetailsLogsColumns,
   getRowClassName,
   useKeyDetailsLogsQuery,
@@ -7,8 +9,7 @@ import {
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
-import { BookBookmark } from "@unkey/icons";
-import { Button, DataTable, Empty, LoadMoreFooter } from "@unkey/ui";
+import { DataTable, LoadMoreFooter } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 import { useKeyDetailsLogsContext } from "../../context/logs";
 
@@ -65,10 +66,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
     setHoveredLogId(null);
   }, []);
 
-  const columns = useMemo(
-    () => createKeyDetailsLogsColumns({ selectedLog }),
-    [selectedLog],
-  );
+  const columns = useMemo(() => createKeyDetailsLogsColumns({ selectedLog }), [selectedLog]);
 
   return (
     <div className="flex flex-col">
@@ -83,31 +81,8 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
         onRowMouseLeave={handleRowMouseLeave}
         selectedItem={selectedLog}
         rowClassName={(log) => getRowClassName(log, selectedLog)}
-        config={{ rowHeight: 40, layout: "classic", rowBorders: false }}
-        emptyState={
-          <div className="w-full flex justify-center items-center h-full">
-            <Empty className="w-[400px] flex items-start">
-              <Empty.Icon className="w-auto" />
-              <Empty.Title>Key Verification Logs</Empty.Title>
-              <Empty.Description className="text-left">
-                No verification logs found for this key. When this API key is used, details about
-                each verification attempt will appear here.
-              </Empty.Description>
-              <Empty.Actions className="mt-4 justify-center md:justify-start">
-                <a
-                  href="https://www.unkey.com/docs/introduction"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button size="md">
-                    <BookBookmark />
-                    Documentation
-                  </Button>
-                </a>
-              </Empty.Actions>
-            </Empty>
-          </div>
-        }
+        config={{ rowHeight: 26, layout: "classic", rowBorders: false }}
+        emptyState={<EmptyKeyDetailsLogs />}
       />
       <LoadMoreFooter
         onLoadMore={loadMore}
@@ -118,15 +93,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
         totalCount={totalCount}
         buttonText="Load more logs"
         countInfoText={
-          <div className="flex gap-2">
-            <span>Showing</span>{" "}
-            <span className="text-accent-12">
-              {new Intl.NumberFormat().format(historicalLogs.length)}
-            </span>
-            <span>of</span>
-            {new Intl.NumberFormat().format(totalCount)}
-            <span>requests</span>
-          </div>
+          <KeyDetailsCountInfo visibleCount={historicalLogs.length} totalCount={totalCount} />
         }
       />
     </div>

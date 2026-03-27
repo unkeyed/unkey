@@ -1,7 +1,7 @@
 "use client";
 import {
-  StatusBadge,
   STATUS_STYLES,
+  StatusBadge,
   type StatusStyle,
   categorizeSeverity,
 } from "@/components/key-details-logs-table";
