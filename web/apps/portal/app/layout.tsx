@@ -33,10 +33,7 @@ export default async function RootLayout({
       className={`${GeistSans.variable} ${GeistMono.variable}`}
       style={cssVars as React.CSSProperties}
     >
-      <body className="min-h-screen antialiased">
-        {branding?.logoUrl ? (
-          <div className="sr-only" data-portal-logo={branding.logoUrl} />
-        ) : null}
+      <body className="min-h-screen bg-portal-secondary antialiased">
         {children}
       </body>
     </html>

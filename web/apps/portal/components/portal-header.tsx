@@ -37,7 +37,7 @@ export function PortalHeader({ permissions, logoUrl, preview }: PortalHeaderProp
                 aria-selected={isActive}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-gray-3 text-gray-12"
+                    ? "bg-portal-primary/10 text-portal-primary"
                     : "text-gray-11 hover:bg-gray-3 hover:text-gray-12"
                 }`}
               >
