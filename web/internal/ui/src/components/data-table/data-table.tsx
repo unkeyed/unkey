@@ -328,6 +328,7 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
                           tabIndex={focusedRowIndex === index ? 0 : -1}
                           data-row-index={index}
                           aria-selected={isSelected}
+                          onMouseDown={(e) => e.stopPropagation()}
                           onClick={() => {
                             setFocusedRowIndex(index);
                             onRowClick?.(typedItem);
@@ -376,6 +377,7 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
                             tabIndex={focusedRowIndex === index ? 0 : -1}
                             data-row-index={index}
                             aria-selected={isSelected}
+                            onMouseDown={(e) => e.stopPropagation()}
                             onClick={() => {
                               setFocusedRowIndex(index);
                               onRowClick?.(typedItem);

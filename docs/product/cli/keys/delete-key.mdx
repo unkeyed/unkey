@@ -1,0 +1,82 @@
+---
+title: "delete-key"
+description: "Delete API keys permanently from user accounts or for cleanup purposes"
+---
+
+Delete API keys permanently from user accounts or for cleanup purposes.
+
+Use this for user-requested key deletion, account deletion workflows, or cleaning up unused keys. Keys are immediately invalidated. Two modes: soft delete (default, preserves audit records) and permanent delete.
+
+**Important:** For temporary access control, use `updateKey` with `enabled: false` instead of deletion.
+
+**Required permissions:**
+
+Your root key must have one of the following permissions:
+- `api.*.delete_key` (to delete keys in any API)
+- `api.<api_id>.delete_key` (to delete keys in a specific API)
+
+<Note>
+See the [API reference](/api-reference/v2/keys/delete-api-keys) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api keys delete-key [flags]
+```
+
+## Flags
+
+<ParamField body="--key-id" type="string" required>
+Specifies which key to delete using the database identifier returned from `createKey`. Do not confuse this with the actual API key string that users include in requests. Deletion immediately invalidates the key, causing all future verification attempts to fail with `code=NOT_FOUND`. Key deletion triggers cache invalidation across all regions but may take up to 30 seconds to fully propagate.
+</ParamField>
+
+<ParamField body="--permanent" type="boolean" default="false">
+Controls deletion behavior between recoverable soft-deletion and irreversible permanent erasure. Soft deletion (default) preserves key data for potential recovery through direct database operations. Permanent deletion completely removes all traces including hash values and metadata with no recovery option.
+
+Use permanent deletion only for regulatory compliance (GDPR), resolving hash collisions, or when reusing identical key strings. Permanent deletion cannot be undone and may affect analytics data that references the deleted key. Most applications should use soft deletion to maintain audit trails and prevent accidental data loss.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api keys delete-key --key-id=key_1234abcd
+```
+```bash Permanent deletion
+unkey api keys delete-key --key-id=key_1234abcd --permanent
+```
+```bash JSON output for scripting
+unkey api keys delete-key --key-id=key_1234abcd --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+{}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {}
+}
+```

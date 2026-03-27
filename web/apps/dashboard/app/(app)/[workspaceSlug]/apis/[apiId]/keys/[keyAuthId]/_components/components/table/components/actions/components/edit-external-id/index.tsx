@@ -77,7 +77,18 @@ export const EditExternalId = ({
         footer={
           <div className="w-full flex flex-col gap-2 items-center justify-center">
             <div className="w-full flex gap-2">
-              {originalIdentityId !== null ? (
+              {selectedIdentityId !== originalIdentityId && selectedIdentityId !== null ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="xlg"
+                  className="rounded-lg flex-1"
+                  loading={updateKeyOwner.isLoading}
+                  onClick={handleSubmit}
+                >
+                  Update External ID
+                </Button>
+              ) : originalIdentityId !== null ? (
                 <Button
                   type="button"
                   variant="primary"
@@ -93,13 +104,10 @@ export const EditExternalId = ({
               ) : (
                 <Button
                   type="button"
-                  form="edit-external-id-form"
                   variant="primary"
                   size="xlg"
                   className="rounded-lg flex-1"
-                  loading={updateKeyOwner.isLoading}
-                  onClick={handleSubmit}
-                  disabled={!originalIdentityId && !selectedIdentityId}
+                  disabled
                 >
                   Update External ID
                 </Button>
@@ -127,7 +135,7 @@ export const EditExternalId = ({
                 }
               : undefined
           }
-          disabled={updateKeyOwner.isLoading || Boolean(originalIdentityId)}
+          disabled={updateKeyOwner.isLoading}
         />
       </DialogContainer>
       <ConfirmPopover

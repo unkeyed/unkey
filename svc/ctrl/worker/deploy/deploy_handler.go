@@ -355,6 +355,47 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 
 			deployment.GitCommitSha = sql.NullString{String: info.SHA, Valid: true}
 			deployment.GitBranch = sql.NullString{String: source.Git.GetBranch(), Valid: true}
+			deployment.GitCommitMessage = sql.NullString{String: info.Message, Valid: info.Message != ""}
+			deployment.GitCommitAuthorHandle = sql.NullString{String: info.AuthorHandle, Valid: info.AuthorHandle != ""}
+			deployment.GitCommitAuthorAvatarUrl = sql.NullString{String: info.AuthorAvatarURL, Valid: info.AuthorAvatarURL != ""}
+			deployment.GitCommitTimestamp = sql.NullInt64{Int64: info.Timestamp.UnixMilli(), Valid: !info.Timestamp.IsZero()}
+		}
+
+		// When a SHA is known (either provided directly or just resolved from branch)
+		// but the deployment record is still missing git metadata, fetch it from GitHub.
+		if commitSHA != "" && !deployment.GitCommitMessage.Valid && !w.allowUnauthenticatedDeployments {
+			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
+				return w.github.GetCommitBySHA(
+					source.Git.GetInstallationId(),
+					source.Git.GetRepository(),
+					commitSHA,
+				)
+			}, restate.WithName("resolve commit metadata by sha"))
+			if resolveErr != nil {
+				return fault.Wrap(
+					fmt.Errorf("failed to resolve metadata for commit %q: %w", commitSHA, resolveErr),
+					fault.Public("Could not retrieve commit information from GitHub."),
+				)
+			}
+
+			resolveErr = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				return db.Query.UpdateDeploymentGitMetadata(runCtx, w.db.RW(), db.UpdateDeploymentGitMetadataParams{
+					ID:                       deployment.ID,
+					GitCommitSha:             sql.NullString{String: info.SHA, Valid: true},
+					GitBranch:                deployment.GitBranch,
+					GitCommitMessage:         sql.NullString{String: info.Message, Valid: info.Message != ""},
+					GitCommitAuthorHandle:    sql.NullString{String: info.AuthorHandle, Valid: info.AuthorHandle != ""},
+					GitCommitAuthorAvatarUrl: sql.NullString{String: info.AuthorAvatarURL, Valid: info.AuthorAvatarURL != ""},
+					GitCommitTimestamp:       sql.NullInt64{Int64: info.Timestamp.UnixMilli(), Valid: !info.Timestamp.IsZero()},
+					UpdatedAt:                sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				})
+			}, restate.WithName("update deployment git metadata for sha"))
+			if resolveErr != nil {
+				return fault.Wrap(
+					fmt.Errorf("failed to update deployment git metadata: %w", resolveErr),
+					fault.Public("The commit was resolved but metadata could not be saved."),
+				)
+			}
 		}
 
 		build, err := w.buildDockerImageFromGit(ctx, gitBuildParams{

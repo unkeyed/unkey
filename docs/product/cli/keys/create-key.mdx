@@ -1,0 +1,187 @@
+---
+title: "create-key"
+description: "Create a new API key for user authentication and authorization"
+---
+
+Create a new API key for user authentication and authorization.
+
+Use this when users sign up, upgrade subscription tiers, or need additional keys. Keys are cryptographically secure and unique to the specified API namespace.
+
+**Important:** The key is returned only once. Store it immediately and provide it to your user, as it cannot be retrieved later.
+
+**Required permissions:**
+
+Your root key needs one of:
+- `api.*.create_key` (create keys in any API)
+- `api.<api_id>.create_key` (create keys in a specific API)
+
+<Note>
+See the [API reference](/api-reference/v2/keys/create-api-key) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api keys create-key [flags]
+```
+
+## Flags
+
+<ParamField body="--api-id" type="string" required>
+The API namespace this key belongs to. Keys from different APIs cannot access each other.
+</ParamField>
+
+<ParamField body="--prefix" type="string">
+Prefix prepended to the generated key string for easier recognition in logs and dashboards (e.g., `prod_xxxxxxxxx`). Must be 1-16 characters containing only letters, numbers, and underscores.
+</ParamField>
+
+<ParamField body="--name" type="string">
+Human-readable name for the key, visible only in management interfaces and API responses. Avoid generic names like "API Key" when managing multiple keys.
+</ParamField>
+
+<ParamField body="--byte-length" type="integer">
+Cryptographic key length in bytes. The default of 16 bytes provides 2^128 possible combinations, sufficient for most applications. Minimum 16, maximum 255.
+</ParamField>
+
+<ParamField body="--external-id" type="string">
+Your system's user or entity identifier to link to this key. Returned during verification to identify the key owner without additional database lookups. Accepts letters, numbers, underscores, dots, and hyphens.
+</ParamField>
+
+<ParamField body="--meta-json" type="string">
+JSON object of arbitrary metadata returned during key verification. Eliminates additional database lookups during verification, improving performance for stateless services. Avoid storing sensitive data here as it is returned in verification responses.
+
+<Expandable title="JSON schema">
+  <ResponseField name="(any key)" type="any">
+    Arbitrary key-value pairs. The object can contain strings, numbers, booleans, arrays, or nested objects. Keep total size under 10KB for best verification latency.
+  </ResponseField>
+</Expandable>
+</ParamField>
+
+<ParamField body="--roles" type="string[]">
+Comma-separated list of role names to assign. Roles must already exist in your workspace. During verification, all permissions from assigned roles are checked against requested permissions.
+</ParamField>
+
+<ParamField body="--permissions" type="string[]">
+Comma-separated list of permission names to grant directly to this key. Wildcard permissions like `documents.*` grant access to all sub-permissions. Direct permissions supplement any permissions inherited from assigned roles.
+</ParamField>
+
+<ParamField body="--expires" type="integer">
+Unix timestamp in milliseconds when the key expires. Verification fails with `code=EXPIRED` immediately after this time passes. Omit to create a permanent key that never expires.
+</ParamField>
+
+<ParamField body="--credits-json" type="string">
+JSON object of credit and refill configuration. Controls usage-based limits through credit consumption with optional automatic refills. Unlike rate limits which control frequency, credits control total usage with global consistency.
+
+<Expandable title="JSON schema">
+  <ResponseField name="remaining" type="integer" required>
+    Number of credits remaining. Set to the initial credit balance for the key.
+  </ResponseField>
+  <ResponseField name="refill" type="object">
+    Configuration for automatic credit refill behavior.
+    <Expandable title="refill properties">
+      <ResponseField name="interval" type="string" required>
+        How often credits are automatically refilled. One of `daily` or `monthly`.
+      </ResponseField>
+      <ResponseField name="amount" type="integer" required>
+        Number of credits to add during each refill cycle. Minimum 1.
+      </ResponseField>
+      <ResponseField name="refillDay" type="integer">
+        Day of the month for monthly refills (1-31). Only required when interval is `monthly`. For days beyond the month's length, refill occurs on the last day of the month.
+      </ResponseField>
+    </Expandable>
+  </ResponseField>
+</Expandable>
+</ParamField>
+
+<ParamField body="--ratelimits-json" type="string">
+JSON array of rate limit configurations. Defines time-based rate limits that protect against abuse by controlling request frequency. Unlike credits which track total usage, rate limits reset automatically after each window expires.
+
+<Expandable title="JSON schema (array of objects)">
+  <ResponseField name="name" type="string" required>
+    The name of this rate limit, used to identify which limit to check during key verification. Use descriptive names like `api_requests` or `heavy_operations`. 3-128 characters.
+  </ResponseField>
+  <ResponseField name="limit" type="integer" required>
+    The maximum number of operations allowed within the specified time window. When reached, verification requests fail with `code=RATE_LIMITED` until the window resets. Minimum 1.
+  </ResponseField>
+  <ResponseField name="duration" type="integer" required>
+    The duration of each rate limit window in milliseconds. Common values: `1000` (1 second), `60000` (1 minute), `3600000` (1 hour), `86400000` (24 hours). Minimum 1000.
+  </ResponseField>
+  <ResponseField name="autoApply" type="boolean" required>
+    Whether this rate limit should be automatically applied when verifying a key. Defaults to `false`.
+  </ResponseField>
+</Expandable>
+</ParamField>
+
+<ParamField body="--enabled" type="boolean" default="true">
+Whether the key is active for verification. When set to `false`, all verification attempts fail with `code=DISABLED`.
+</ParamField>
+
+<ParamField body="--recoverable" type="boolean" default="false">
+Whether the plaintext key is stored in an encrypted vault for later retrieval. Only enable for development keys or when key recovery is absolutely necessary.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api keys create-key --api-id=api_1234abcd
+```
+```bash With prefix and name
+unkey api keys create-key --api-id=api_1234abcd --prefix=prod --name='Payment Service Key'
+```
+```bash With external ID and roles
+unkey api keys create-key --api-id=api_1234abcd --external-id=user_1234abcd --roles=api_admin,billing_reader
+```
+```bash With metadata
+unkey api keys create-key --api-id=api_1234abcd --meta-json='{"plan":"pro","team":"acme"}'
+```
+```bash With credits and refill
+unkey api keys create-key --api-id=api_1234abcd --credits-json='{"remaining":1000,"refill":{"interval":"monthly","amount":100}}'
+```
+```bash With rate limits
+unkey api keys create-key --api-id=api_1234abcd --ratelimits-json='[{"name":"requests","limit":100,"duration":60000,"autoApply":true}]'
+```
+```bash JSON output for scripting
+unkey api keys create-key --api-id=api_1234abcd --output=json
+```
+```bash Pipe the key ID to another command
+KEY_ID=$(unkey api keys create-key --api-id=api_1234abcd --output=json | jq -r '.data.keyId')
+echo "Created key: $KEY_ID"
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the created key:
+
+```
+req_2c9a0jf23l4k567 (took 120ms)
+
+{
+  "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+  "key": "prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT"
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {
+    "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",
+    "key": "prod_2cGKbMxRjIzhCxo1IdjH3arELti7Sdyc8w6XYbvtcyuBowPT"
+  }
+}
+```

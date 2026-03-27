@@ -1,0 +1,169 @@
+---
+title: "update-key"
+description: "Update key properties in response to plan changes, subscription updates, or account status changes"
+---
+
+Update key properties in response to plan changes, subscription updates, or account status changes.
+
+Use this for user upgrades/downgrades, role modifications, or administrative changes. Supports partial updates -- only specify fields you want to change. Set fields to null to clear them.
+
+**Important:** Permissions and roles are replaced entirely. Use dedicated add/remove endpoints for incremental changes.
+
+**Required permissions:**
+
+Your root key must have one of the following permissions:
+- `api.*.update_key` (to update keys in any API)
+- `api.<api_id>.update_key` (to update keys in a specific API)
+
+**Side effects:**
+
+If you specify an `externalId` that doesn't exist, a new identity will be automatically created and linked to the key. Permission updates will auto-create any permissions that don't exist in your workspace. Changes take effect immediately but may take up to 30 seconds to propagate to all edge regions due to cache invalidation.
+
+<Note>
+See the [API reference](/api-reference/v2/keys/update-key-settings) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api keys update-key [flags]
+```
+
+## Flags
+
+<ParamField body="--key-id" type="string" required>
+Specifies which key to update using the database identifier returned from `createKey`. Do not confuse this with the actual API key string that users include in requests.
+</ParamField>
+
+<ParamField body="--name" type="string">
+Sets a human-readable name for internal organization and identification. Omitting this flag leaves the current name unchanged. Avoid generic names like "API Key" when managing multiple keys per user or service.
+</ParamField>
+
+<ParamField body="--external-id" type="string">
+Links this key to a user or entity in your system for ownership tracking during verification. Omitting this flag preserves the current association. Essential for user-specific analytics, billing, and key management across multiple users.
+</ParamField>
+
+<ParamField body="--meta-json" type="string">
+JSON object of arbitrary metadata returned during key verification. Omitting this flag preserves existing metadata. Avoid storing sensitive data here as it's returned in verification responses. Large metadata objects increase verification latency and should stay under 10KB total size.
+
+<Expandable title="JSON properties">
+  <ResponseField name="*" type="any">
+  Arbitrary key-value pairs. Example: `{"plan":"enterprise","team":"acme"}`
+  </ResponseField>
+</Expandable>
+</ParamField>
+
+<ParamField body="--expires" type="integer">
+Unix timestamp in milliseconds when the key automatically expires. Verification fails with `code=EXPIRED` immediately after this time passes. Avoid setting timestamps in the past as they immediately invalidate the key. Keys expire based on server time, not client time.
+</ParamField>
+
+<ParamField body="--credits-json" type="string">
+JSON object for credit and refill configuration. Controls usage-based limits for this key through credit consumption. Setting null enables unlimited usage. Essential for implementing usage-based pricing and subscription quotas.
+
+<Expandable title="JSON properties">
+  <ResponseField name="remaining" type="integer | null">
+  Number of credits remaining. Set to `null` for unlimited usage. This also clears the refilling schedule.
+  </ResponseField>
+  <ResponseField name="refill" type="object | null">
+  Configuration for automatic credit refill behavior.
+  <Expandable title="refill properties">
+    <ResponseField name="interval" type="string" required>
+    How often credits are automatically refilled. One of `daily` or `monthly`.
+    </ResponseField>
+    <ResponseField name="amount" type="integer" required>
+    Number of credits to add during each refill cycle. Must be at least 1.
+    </ResponseField>
+    <ResponseField name="refillDay" type="integer">
+    Day of the month for monthly refills (1-31). Only required when interval is `monthly`. For days beyond the month's length, refill occurs on the last day of the month.
+    </ResponseField>
+  </Expandable>
+  </ResponseField>
+</Expandable>
+</ParamField>
+
+<ParamField body="--ratelimits-json" type="string">
+JSON array of rate limit configurations. Defines time-based rate limits that protect against abuse by controlling request frequency. Unlike credits which track total usage, rate limits reset automatically after each window expires. Multiple rate limits can control different operation types with separate thresholds and windows.
+
+<Expandable title="JSON array item properties">
+  <ResponseField name="name" type="string" required>
+  The name of this rate limit, used to identify which limit to check during key verification. Use descriptive names like `api_requests`, `heavy_operations`, or `downloads`.
+  </ResponseField>
+  <ResponseField name="limit" type="integer" required>
+  The maximum number of operations allowed within the specified time window. When this limit is reached, verification requests will fail with `code=RATE_LIMITED` until the window resets.
+  </ResponseField>
+  <ResponseField name="duration" type="integer" required>
+  The duration for each rate limit window in milliseconds. Common values: `1000` (1 second), `60000` (1 minute), `3600000` (1 hour), `86400000` (24 hours).
+  </ResponseField>
+  <ResponseField name="autoApply" type="boolean" required>
+  Whether this rate limit should be automatically applied when verifying a key. Defaults to `false`.
+  </ResponseField>
+</Expandable>
+</ParamField>
+
+<ParamField body="--enabled" type="boolean">
+Controls whether the key is currently active for verification requests. When set to `false`, all verification attempts fail with `code=DISABLED` regardless of other settings. Useful for temporarily suspending access during billing issues, security incidents, or maintenance windows without losing key configuration.
+</ParamField>
+
+<ParamField body="--roles" type="string[]">
+Comma-separated list of role names to assign. Roles must already exist in your workspace before assignment. During verification, all permissions from assigned roles are checked against requested permissions. **Replaces all existing roles** -- use dedicated add/remove endpoints for incremental changes.
+</ParamField>
+
+<ParamField body="--permissions" type="string[]">
+Comma-separated list of permission names to grant directly to this key. Wildcard permissions like `documents.*` grant access to all sub-permissions. Direct permissions supplement any permissions inherited from assigned roles. **Replaces all existing permissions** -- use dedicated add/remove endpoints for incremental changes.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format -- use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Rename a key
+unkey api keys update-key --key-id=key_1234abcd --name='Updated Key Name'
+```
+```bash Disable a key
+unkey api keys update-key --key-id=key_1234abcd --enabled=false
+```
+```bash Link to identity and assign roles
+unkey api keys update-key --key-id=key_1234abcd --external-id=user_5678 --roles=api_admin,billing_reader
+```
+```bash Update metadata
+unkey api keys update-key --key-id=key_1234abcd --meta-json='{"plan":"enterprise","team":"acme"}'
+```
+```bash Configure credits with monthly refill
+unkey api keys update-key --key-id=key_1234abcd --credits-json='{"remaining":5000,"refill":{"interval":"monthly","amount":5000}}'
+```
+```bash Set rate limits
+unkey api keys update-key --key-id=key_1234abcd --ratelimits-json='[{"name":"requests","limit":500,"duration":60000,"autoApply":true}]'
+```
+```bash JSON output for scripting
+unkey api keys update-key --key-id=key_1234abcd --name='Scripted Update' --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+{}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {}
+}
+```

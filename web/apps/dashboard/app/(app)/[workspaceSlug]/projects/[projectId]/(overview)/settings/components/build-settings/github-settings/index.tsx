@@ -21,9 +21,10 @@ type GitHubConnectionState =
 
 type GitHubProps = {
   readOnly?: boolean;
+  onBeforeNavigate?: () => void;
 };
 
-export const GitHub = ({ readOnly = false }: GitHubProps) => {
+export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
   const { projectId } = useProjectData();
 
   const state = JSON.stringify({ projectId, returnTo: "settings" });
@@ -69,6 +70,7 @@ export const GitHub = ({ readOnly = false }: GitHubProps) => {
             installUrl={connectionState.installUrl}
             variant="outline"
             className="px-2.5 py-3 text-gray-12 font-medium text-[13px] bg-grayA-2 shadow-md hover:bg-grayA-3"
+            onBeforeNavigate={onBeforeNavigate}
           />
         </GitHubSettingCard>
       );
@@ -79,6 +81,7 @@ export const GitHub = ({ readOnly = false }: GitHubProps) => {
           projectId={projectId}
           appId={connectionState.appId}
           installUrl={connectionState.installUrl}
+          onBeforeNavigate={onBeforeNavigate}
         />
       );
     case "connected":
@@ -94,6 +97,7 @@ export const GitHub = ({ readOnly = false }: GitHubProps) => {
           appId={connectionState.appId}
           installUrl={connectionState.installUrl}
           repoFullName={connectionState.repoFullName}
+          onBeforeNavigate={onBeforeNavigate}
         />
       );
   }

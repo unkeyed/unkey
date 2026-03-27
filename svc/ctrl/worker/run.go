@@ -221,9 +221,10 @@ func Run(ctx context.Context, cfg Config) error {
 	))
 
 	restateSrv.Bind(hydrav1.NewGitHubWebhookServiceServer(githubwebhook.New(githubwebhook.Config{
-		DB:           database,
-		GitHub:       ghClient,
-		DashboardURL: cfg.DashboardURL,
+		DB:                              database,
+		GitHub:                          ghClient,
+		DashboardURL:                    cfg.DashboardURL,
+		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
 	})))
 
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{

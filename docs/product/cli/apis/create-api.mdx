@@ -1,0 +1,80 @@
+---
+title: "create-api"
+description: "Create an API namespace for organizing keys by environment, service, or product"
+---
+
+Create an API namespace for organizing keys by environment, service, or product.
+
+Use this to separate production from development keys, isolate different services, or manage multiple products. Each API gets a unique identifier and dedicated infrastructure for secure key operations.
+
+**Important:** API names must be unique within your workspace and cannot be changed after creation.
+
+**Required permissions:**
+- `api.*.create_api` (to create APIs in any workspace)
+
+<Note>
+See the [API reference](/api-reference/v2/apis/create-api-namespace) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api apis create-api [flags]
+```
+
+## Flags
+
+<ParamField body="--name" type="string" required>
+Unique identifier for this API namespace within your workspace. Use descriptive names like `payment-service-prod` or `user-api-dev` to clearly identify purpose and environment. Must be 3-255 characters, start with a letter, and contain only letters, numbers, dots, hyphens, and underscores.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api apis create-api --name=payment-service-prod
+```
+```bash JSON output for scripting
+unkey api apis create-api --name=user-api-dev --output=json
+```
+```bash Pipe the API ID to another command
+API_ID=$(unkey api apis create-api --name=my-api --output=json | jq -r '.data.id')
+unkey api keys create-key --api-id=$API_ID
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the created API:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+{
+  "id": "api_1234abcd",
+  "name": "payment-service-prod"
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {
+    "id": "api_1234abcd",
+    "name": "payment-service-prod"
+  }
+}
+```

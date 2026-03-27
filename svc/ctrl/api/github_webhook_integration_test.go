@@ -77,6 +77,49 @@ func TestGitHubWebhook_Push_ProcessesFork(t *testing.T) {
 	}
 }
 
+func TestGitHubWebhook_Push_IgnoresDeletedBranch(t *testing.T) {
+	pushRequests := make(chan *hydrav1.HandlePushRequest, 1)
+	harness := newWebhookHarness(t, webhookHarnessConfig{
+		Services: []restate.ServiceDefinition{hydrav1.NewGitHubWebhookServiceServer(&mockGitHubWebhookService{requests: pushRequests})},
+	})
+
+	payload := newTestPushPayload(testRepoFullName, false)
+	payload.Deleted = true
+	payload.After = "0000000000000000000000000000000000000000"
+
+	resp, err := sendWebhook(fmt.Sprintf("%s/webhooks/github", harness.CtrlURL), mustMarshal(t, payload), harness.Secret)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	_ = resp.Body.Close()
+
+	select {
+	case <-pushRequests:
+		t.Fatal("unexpected HandlePush invocation for deleted branch")
+	case <-time.After(1 * time.Second):
+	}
+}
+
+func TestGitHubWebhook_Push_IgnoresRestoredBranch(t *testing.T) {
+	pushRequests := make(chan *hydrav1.HandlePushRequest, 1)
+	harness := newWebhookHarness(t, webhookHarnessConfig{
+		Services: []restate.ServiceDefinition{hydrav1.NewGitHubWebhookServiceServer(&mockGitHubWebhookService{requests: pushRequests})},
+	})
+
+	payload := newTestPushPayload(testRepoFullName, false)
+	payload.Created = true
+
+	resp, err := sendWebhook(fmt.Sprintf("%s/webhooks/github", harness.CtrlURL), mustMarshal(t, payload), harness.Secret)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	_ = resp.Body.Close()
+
+	select {
+	case <-pushRequests:
+		t.Fatal("unexpected HandlePush invocation for restored branch")
+	case <-time.After(1 * time.Second):
+	}
+}
+
 func TestGitHubWebhook_InvalidSignature(t *testing.T) {
 	pushRequests := make(chan *hydrav1.HandlePushRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
