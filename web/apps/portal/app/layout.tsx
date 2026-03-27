@@ -8,6 +8,9 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import type React from "react";
 
+/** All portal pages are dynamic — they depend on hostname and session state */
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Customer Portal",
   description: "Manage your API keys and view analytics",

@@ -6,7 +6,7 @@
     "dev": "next dev --port 3100",
     "build": "next build",
     "start": "next start",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc"
   },
   "dependencies": {
