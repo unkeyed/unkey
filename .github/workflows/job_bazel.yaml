@@ -22,7 +22,7 @@ jobs:
           # Avoid downloading Bazel every time.
           bazelisk-cache: true
           # Store build cache per workflow.
-          disk-cache: false # we're already using depots remote cache
+          disk-cache: ${{ hashFiles('.bazelversion', '.bazelrc', 'MODULE.bazel') }}
           # Share repository cache between workflows.
           repository-cache: true
 
@@ -43,3 +43,33 @@ jobs:
         run: docker compose -f ./dev/docker-compose.yaml up s3 clickhouse mysql vault -d --wait
       - name: Run tests
         run: bazel test //... --test_output=errors
+
+      - name: Report disk usage
+        if: always()
+        run: |
+          BAZEL_OUTPUT_BASE=$(bazel info output_base)
+          BAZEL_REPOSITORY_CACHE=$(bazel info repository_cache)
+          echo "Bazel disk cache usage"
+          du -ms -t 1 ~/bazel-disk-cache/* 2>/dev/null || echo "No disk cache found"
+          echo "Bazel repository cache usage"
+          du -ms -t 1 "$BAZEL_REPOSITORY_CACHE" 2>/dev/null || echo "No repository cache found"
+          echo "Bazel output base usage"
+          du -ms -t 1 "$BAZEL_OUTPUT_BASE"
+          echo "Workspace usage"
+          du -ms -t 1 "$GITHUB_WORKSPACE"
+
+      - name: Drop large Bazel cache files
+        if: always()
+        run: |
+          BAZEL_REPOSITORY_CACHE=$(bazel info repository_cache)
+          for cache_dir in ~/bazel-disk-cache "$BAZEL_REPOSITORY_CACHE"; do
+            if [ -d "$cache_dir" ]; then
+              find "$cache_dir" -size +100M -type f -exec rm {} \;
+              echo "Trimmed $cache_dir"
+              du -ms -t 1 "$cache_dir" 2>/dev/null || echo "Cache empty"
+            fi
+          done
+
+      - name: Bazel shutdown
+        if: always()
+        run: bazel shutdown
