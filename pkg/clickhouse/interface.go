@@ -37,6 +37,11 @@ type Bufferer interface {
 	// BufferSentinelRequest adds a sentinel request event to the buffer.
 	// These represent requests routed through sentinel to deployment instances.
 	BufferSentinelRequest(schema.SentinelRequest)
+
+	// BufferResourceSnapshot adds a resource usage snapshot to the buffer.
+	// These represent per-instance CPU, memory, and network usage for billing.
+	// This buffer uses Drop: false — it blocks instead of dropping billing data.
+	BufferResourceSnapshot(schema.ResourceSnapshot)
 }
 
 type Querier interface {

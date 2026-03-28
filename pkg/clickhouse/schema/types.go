@@ -123,6 +123,30 @@ type BuildStepLogV1 struct {
 	Message      string `ch:"message" json:"message"`
 }
 
+// ResourceSnapshot represents a point-in-time snapshot of a pod's resource usage.
+// Written every collection interval by heimdall. Each row captures "at time T,
+// this instance was using X CPU, Y memory, and had Z allocated."
+// No snapshot = the instance wasn't running.
+type ResourceSnapshot struct {
+	Time                 int64  `ch:"time" json:"time"`
+	WorkspaceID          string `ch:"workspace_id" json:"workspace_id"`
+	ProjectID            string `ch:"project_id" json:"project_id"`
+	AppID                string `ch:"app_id" json:"app_id"`
+	EnvironmentID        string `ch:"environment_id" json:"environment_id"`
+	DeploymentID         string `ch:"deployment_id" json:"deployment_id"`
+	InstanceID           string `ch:"instance_id" json:"instance_id"`
+	Region               string `ch:"region" json:"region"`
+	Platform             string `ch:"platform" json:"platform"`
+	CPUMillicores        int32  `ch:"cpu_millicores" json:"cpu_millicores"`
+	MemoryBytes          int64  `ch:"memory_bytes" json:"memory_bytes"`
+	CPURequestMillicores int32  `ch:"cpu_request_millicores" json:"cpu_request_millicores"`
+	CPULimitMillicores   int32  `ch:"cpu_limit_millicores" json:"cpu_limit_millicores"`
+	MemoryRequestBytes   int64  `ch:"memory_request_bytes" json:"memory_request_bytes"`
+	MemoryLimitBytes     int64  `ch:"memory_limit_bytes" json:"memory_limit_bytes"`
+	NetworkEgressBytes   int64  `ch:"network_egress_bytes" json:"network_egress_bytes"`
+	NetworkEgressPublic  int64  `ch:"network_egress_public_bytes" json:"network_egress_public_bytes"`
+}
+
 // SentinelRequest represents the v1 sentinel request raw table structure.
 // This tracks requests routed through sentinel proxy to deployment instances
 // with deployment routing, performance breakdown, and error categorization.

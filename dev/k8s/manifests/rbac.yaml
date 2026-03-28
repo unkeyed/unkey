@@ -82,6 +82,11 @@ rules:
     resources: ["poddisruptionbudgets"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
+  # Node stats for heimdall resource metering (kubelet /stats/summary)
+  - apiGroups: [""]
+    resources: ["nodes/stats"]
+    verbs: ["get"]
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

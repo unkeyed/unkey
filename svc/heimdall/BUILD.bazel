@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "heimdall",
+    srcs = [
+        "config.go",
+        "doc.go",
+        "run.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/heimdall",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/clickhouse",
+        "//pkg/config",
+        "//pkg/logger",
+        "//pkg/runner",
+        "//svc/heimdall/internal/collector",
+        "@io_k8s_client_go//informers",
+        "@io_k8s_client_go//kubernetes",
+        "@io_k8s_client_go//rest",
+        "@io_k8s_metrics//pkg/client/clientset/versioned",
+    ],
+)

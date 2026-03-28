@@ -29,7 +29,8 @@ type clickhouse struct {
 	ratelimits       *batch.BatchProcessor[schema.Ratelimit]
 	buildSteps       *batch.BatchProcessor[schema.BuildStepV1]
 	buildStepLogs    *batch.BatchProcessor[schema.BuildStepLogV1]
-	sentinelRequests *batch.BatchProcessor[schema.SentinelRequest]
+	sentinelRequests   *batch.BatchProcessor[schema.SentinelRequest]
+	resourceSnapshots  *batch.BatchProcessor[schema.ResourceSnapshot]
 }
 
 var (
@@ -215,6 +216,22 @@ func New(config Config) (*clickhouse, error) {
 		},
 	})
 
+	// Billing-critical: Drop: false blocks instead of losing data
+	c.resourceSnapshots = batch.New(batch.Config[schema.ResourceSnapshot]{
+		Name:          "resource_snapshots_v1",
+		Drop:          false,
+		BatchSize:     10_000,
+		BufferSize:    50_000,
+		FlushInterval: 5 * time.Second,
+		Consumers:     1,
+		Flush: func(ctx context.Context, rows []schema.ResourceSnapshot) {
+			table := "default.container_resource_snapshots_v1"
+			if err := flush(c, ctx, table, rows); err != nil {
+				logger.Error("failed to flush batch", "table", table, "error", err.Error())
+			}
+		},
+	})
+
 	return c, nil
 }
 
@@ -313,6 +330,10 @@ func (c *clickhouse) BufferSentinelRequest(req schema.SentinelRequest) {
 	c.sentinelRequests.Buffer(req)
 }
 
+func (c *clickhouse) BufferResourceSnapshot(req schema.ResourceSnapshot) {
+	c.resourceSnapshots.Buffer(req)
+}
+
 func (c *clickhouse) Conn() ch.Conn {
 	return c.conn
 }
@@ -378,6 +399,7 @@ func (c *clickhouse) Close() error {
 	c.buildSteps.Close()
 	c.buildStepLogs.Close()
 	c.sentinelRequests.Close()
+	c.resourceSnapshots.Close()
 
 	err := c.conn.Close()
 	if err != nil {
