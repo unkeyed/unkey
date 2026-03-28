@@ -19,25 +19,24 @@ export const updateInstances = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const regions = await db.query.appRegionalSettings.findMany({
-      where: and(
-        eq(appRegionalSettings.workspaceId, ctx.workspace.id),
-        eq(appRegionalSettings.environmentId, input.environmentId),
-      ),
-    });
-
-    if (regions.length === 0) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "No regional settings found for this environment.",
-      });
-    }
-
-    // Reuse existing policy if one is already attached, otherwise create a new one.
-    const existingPolicyId = regions[0].horizontalAutoscalingPolicyId;
-    const policyId = existingPolicyId ?? newId("autoscalingPolicy");
-
     await db.transaction(async (tx) => {
+      const regions = await tx.query.appRegionalSettings.findMany({
+        where: and(
+          eq(appRegionalSettings.workspaceId, ctx.workspace.id),
+          eq(appRegionalSettings.environmentId, input.environmentId),
+        ),
+      });
+
+      if (regions.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No regional settings found for this environment.",
+        });
+      }
+
+      const existingPolicyId = regions[0].horizontalAutoscalingPolicyId;
+      const policyId = existingPolicyId ?? newId("autoscalingPolicy");
+
       if (existingPolicyId) {
         await tx
           .update(horizontalAutoscalingPolicies)
