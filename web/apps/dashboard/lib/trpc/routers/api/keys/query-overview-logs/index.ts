@@ -1,4 +1,4 @@
-import { keysQueryOverviewLogsPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/components/table/query-logs.schema";
+import { keysQueryOverviewLogsPayload } from "@/components/api-requests-table/schema/keys-overview.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";

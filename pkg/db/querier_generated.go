@@ -742,18 +742,24 @@ type Querier interface {
 	//         coalesce(
 	//                 (select json_arrayagg(
 	//                      json_object(
-	//                         'id', rl.id,
-	//                         'name', rl.name,
-	//                         'key_id', rl.key_id,
-	//                         'identity_id', rl.identity_id,
-	//                         'limit', rl.limit,
-	//                         'duration', rl.duration,
-	//                         'auto_apply', rl.auto_apply
+	//                         'id', id,
+	//                         'name', name,
+	//                         'key_id', key_id,
+	//                         'identity_id', identity_id,
+	//                         'limit', `limit`,
+	//                         'duration', duration,
+	//                         'auto_apply', auto_apply
 	//                      )
 	//                  )
-	//                  from `ratelimits` rl
-	//                  where rl.key_id = k.id
-	//                     OR rl.identity_id = i.id),
+	//                  from (
+	//                      select rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
+	//                      from `ratelimits` rl
+	//                      where rl.key_id = k.id
+	//                      UNION ALL
+	//                      select rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
+	//                      from `ratelimits` rl
+	//                      where rl.identity_id = i.id
+	//                  ) as combined_rl),
 	//                 json_array()
 	//         ) as ratelimits,
 	//
@@ -883,17 +889,24 @@ type Querier interface {
 	//      COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
 	//              JSON_OBJECT(
-	//                  'id', rl.id,
-	//                  'name', rl.name,
-	//                  'key_id', rl.key_id,
-	//                  'identity_id', rl.identity_id,
-	//                  'limit', rl.`limit`,
-	//                  'duration', rl.duration,
-	//                  'auto_apply', rl.auto_apply = 1
+	//                  'id', id,
+	//                  'name', name,
+	//                  'key_id', key_id,
+	//                  'identity_id', identity_id,
+	//                  'limit', `limit`,
+	//                  'duration', duration,
+	//                  'auto_apply', auto_apply = 1
 	//              )
 	//          )
-	//          FROM ratelimits rl
-	//          WHERE rl.key_id = k.id OR rl.identity_id = i.id),
+	//          FROM (
+	//              SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
+	//              FROM ratelimits rl
+	//              WHERE rl.key_id = k.id
+	//              UNION ALL
+	//              SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
+	//              FROM ratelimits rl
+	//              WHERE rl.identity_id = i.id
+	//          ) AS combined_rl),
 	//          JSON_ARRAY()
 	//      ) as ratelimits
 	//

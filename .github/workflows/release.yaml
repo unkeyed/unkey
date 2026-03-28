@@ -70,7 +70,7 @@ jobs:
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: dist/${{ matrix.goos }}
-          key: release-${{ github.sha }}-${{ matrix.goos }}
+          key: release-${{ github.ref }}-${{ github.sha }}-${{ matrix.goos }}
 
   release:
     needs: prepare
@@ -102,13 +102,18 @@ jobs:
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: dist/linux
-          key: release-${{ github.sha }}-linux
+          key: release-${{ github.ref }}-${{ github.sha }}-linux
 
       - name: Restore darwin artifacts
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: dist/darwin
-          key: release-${{ github.sha }}-darwin
+          key: release-${{ github.ref }}-${{ github.sha }}-darwin
+
+      - name: Configure npm authentication
+        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Configure npm authentication
         run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc

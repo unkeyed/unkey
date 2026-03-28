@@ -10,8 +10,8 @@ describe("getKeysSystemPrompt", () => {
     const prompt = getKeysSystemPrompt(referenceTime);
 
     // Check for outcome examples
-    expect(prompt).toContain("valid");
-    expect(prompt).toContain("invalid");
+    expect(prompt).toContain("VALID");
+    expect(prompt).toContain("FORBIDDEN");
 
     // Check for time-based examples
     expect(prompt).toContain("show keys from last 30m");
@@ -40,11 +40,9 @@ describe("getKeysSystemPrompt", () => {
 
 describe("getKeysStructuredSearchFromLLM", () => {
   const mockOpenAI = {
-    beta: {
-      chat: {
-        completions: {
-          parse: vi.fn(),
-        },
+    chat: {
+      completions: {
+        parse: vi.fn(),
       },
     },
   };
@@ -55,49 +53,56 @@ describe("getKeysStructuredSearchFromLLM", () => {
   });
 
   it("should handle successful LLM response", async () => {
+    const responseData = {
+      filters: [
+        {
+          field: "outcomes",
+          filters: [{ operator: "is", value: "FORBIDDEN" }],
+        },
+      ],
+    };
     const mockResponse = {
       choices: [
         {
           message: {
-            parsed: {
-              field: "outcomes",
-              filters: [{ operator: "is", value: "invalid" }],
-            },
+            content: JSON.stringify(responseData),
           },
         },
       ],
     };
-    mockOpenAI.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
+    mockOpenAI.chat.completions.parse.mockResolvedValueOnce(mockResponse);
 
     const result = await getKeysStructuredSearchFromLLM(
       mockOpenAI as any,
-      "find invalid keys",
+      "find failed keys",
       1706024400000,
     );
 
-    expect(result).toEqual({
-      field: "outcomes",
-      filters: [{ operator: "is", value: "invalid" }],
-    });
+    expect(result).toEqual(responseData);
   });
 
   it("should handle complex query with multiple filters", async () => {
+    const responseData = {
+      filters: [
+        {
+          field: "names",
+          filters: [
+            { operator: "contains", value: "test" },
+            { operator: "is", value: "production-key" },
+          ],
+        },
+      ],
+    };
     const mockResponse = {
       choices: [
         {
           message: {
-            parsed: {
-              field: "names",
-              filters: [
-                { operator: "contains", value: "test" },
-                { operator: "is", value: "production-key" },
-              ],
-            },
+            content: JSON.stringify(responseData),
           },
         },
       ],
     };
-    mockOpenAI.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
+    mockOpenAI.chat.completions.parse.mockResolvedValueOnce(mockResponse);
 
     const result = await getKeysStructuredSearchFromLLM(
       mockOpenAI as any,
@@ -105,13 +110,7 @@ describe("getKeysStructuredSearchFromLLM", () => {
       1706024400000,
     );
 
-    expect(result).toEqual({
-      field: "names",
-      filters: [
-        { operator: "contains", value: "test" },
-        { operator: "is", value: "production-key" },
-      ],
-    });
+    expect(result).toEqual(responseData);
   });
 
   it("should handle unparseable response", async () => {
@@ -119,12 +118,12 @@ describe("getKeysStructuredSearchFromLLM", () => {
       choices: [
         {
           message: {
-            parsed: null,
+            content: null,
           },
         },
       ],
     };
-    mockOpenAI.beta.chat.completions.parse.mockResolvedValueOnce(mockResponse);
+    mockOpenAI.chat.completions.parse.mockResolvedValueOnce(mockResponse);
 
     await expect(
       getKeysStructuredSearchFromLLM(mockOpenAI as any, "invalid query", 1706024400000),
@@ -132,7 +131,7 @@ describe("getKeysStructuredSearchFromLLM", () => {
   });
 
   it("should handle rate limit error", async () => {
-    mockOpenAI.beta.chat.completions.parse.mockRejectedValueOnce({
+    mockOpenAI.chat.completions.parse.mockRejectedValueOnce({
       response: { status: 429 },
     });
 
@@ -147,7 +146,7 @@ describe("getKeysStructuredSearchFromLLM", () => {
   });
 
   it("should handle general errors", async () => {
-    mockOpenAI.beta.chat.completions.parse.mockRejectedValueOnce(new Error("Unknown error"));
+    mockOpenAI.chat.completions.parse.mockRejectedValueOnce(new Error("Unknown error"));
 
     await expect(
       getKeysStructuredSearchFromLLM(mockOpenAI as any, "test query", 1706024400000),

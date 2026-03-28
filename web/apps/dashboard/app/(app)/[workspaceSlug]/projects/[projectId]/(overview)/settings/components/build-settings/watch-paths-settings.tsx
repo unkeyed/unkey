@@ -9,9 +9,9 @@ import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
+import { SettingDescription, SettingField } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { RemoveButton } from "../shared/remove-button";
-import { SettingDescription } from "../shared/setting-description";
 
 const watchPathsSchema = z.object({
   paths: z.array(
@@ -121,13 +121,14 @@ export const WatchPaths = () => {
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
     >
-      <div className="flex flex-col gap-2 w-full">
+      <SettingField>
+        <span className="text-gray-11 text-[13px] flex items-center">Watch paths</span>
         {fields.map((field, index) => {
           const { ref: rhfRef, ...fieldProps } = register(`paths.${index}.value`);
           return (
             <div key={field.id} className="flex items-start gap-2">
               <FormInput
-                className="flex-1 [&_input]:h-9 [&_input]:font-mono"
+                className="flex-1 [&_input]:font-mono"
                 placeholder="e.g. src/** or services/api/**"
                 error={errors.paths?.[index]?.value?.message}
                 {...fieldProps}
@@ -161,10 +162,10 @@ export const WatchPaths = () => {
           <Plus iconSize="sm-regular" />
           Add pattern
         </button>
-        <SettingDescription>
-          Glob patterns (e.g. src/**, **/*.go). Deployments are skipped when no changed files match.
-        </SettingDescription>
-      </div>
+      </SettingField>
+      <SettingDescription>
+        Glob patterns (e.g. src/**, **/*.go). Deployments are skipped when no changed files match.
+      </SettingDescription>
     </FormSettingCard>
   );
 };

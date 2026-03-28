@@ -17,7 +17,6 @@ go_library(
         "//svc/frontline/internal/errorpage",
         "//svc/frontline/middleware",
         "//svc/frontline/routes/acme",
-        "//svc/frontline/routes/internal_health",
         "//svc/frontline/routes/proxy",
         "//svc/frontline/services/proxy",
         "//svc/frontline/services/router",

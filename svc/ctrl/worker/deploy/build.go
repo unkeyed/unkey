@@ -31,6 +31,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
 
 const (
@@ -136,9 +137,17 @@ func (w *Workflow) buildDockerImageFromGit(
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
 		// Get GitHub installation token for BuildKit to fetch the repo
-		ghToken, err := w.github.GetInstallationToken(params.InstallationID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
+		var ghToken githubclient.InstallationToken
+		if w.allowUnauthenticatedDeployments {
+			// Unauthenticated mode - skip GitHub auth for public repos (local dev only)
+			logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
+				"repository", params.Repository)
+		} else {
+			token, err := w.github.GetInstallationToken(params.InstallationID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
+			}
+			ghToken = token
 		}
 
 		// Decrypt env vars in-memory so they can be injected as a BuildKit secret.
@@ -233,7 +242,13 @@ func (w *Workflow) buildDockerImageFromGit(
 		buildStatusCh := make(chan *client.SolveStatus, 100)
 		go w.processBuildStatus(buildStatusCh, params.WorkspaceID, params.ProjectID, params.DeploymentID)
 
-		solverOptions, err := w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, envVars)
+		// Choose solver options based on authentication mode
+		var solverOptions client.SolveOpt
+		if w.allowUnauthenticatedDeployments {
+			solverOptions, err = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, envVars)
+		} else {
+			solverOptions, err = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, envVars)
+		}
 		if err != nil {
 			return nil, restate.TerminalError(fmt.Errorf("failed to build solver options: %w", err))
 		}
@@ -301,6 +316,62 @@ func hashEnvVars(envVars map[string]string) string {
 	sort.Strings(pairs)
 	h := sha256.Sum256([]byte(strings.Join(pairs, "\n")))
 	return hex.EncodeToString(h[:])
+}
+
+// buildSolverOptions constructs the BuildKit solver configuration for URL-based
+// contexts, including registry auth and image export settings. Use
+// [Workflow.buildGitSolverOptions] when the context requires GitHub credentials.
+func (w *Workflow) buildSolverOptions(
+	platform, contextURL, dockerfilePath, imageName string,
+	envVars map[string]string,
+) (client.SolveOpt, error) {
+	sessionAttachables := []session.Attachable{
+		//nolint: exhaustruct
+		authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
+			ConfigFile: &configfile.ConfigFile{
+				AuthConfigs: map[string]types.AuthConfig{
+					w.registryConfig.URL: {
+						Username: w.registryConfig.Username,
+						Password: w.registryConfig.Password,
+					},
+				},
+			},
+		}),
+	}
+
+	envFile, err := buildEnvFileSecret(envVars)
+	if err != nil {
+		return client.SolveOpt{}, fmt.Errorf("invalid environment variables: %w", err)
+	}
+	if envFile != nil {
+		sessionAttachables = append(sessionAttachables, secretsprovider.FromMap(map[string][]byte{"env": envFile}))
+	}
+
+	frontendAttrs := map[string]string{
+		"platform": platform,
+		"context":  contextURL,
+		"filename": dockerfilePath,
+	}
+	if h := hashEnvVars(envVars); h != "" {
+		frontendAttrs["label:org.unkey.env-hash"] = h
+	}
+
+	return client.SolveOpt{
+		Frontend:      "dockerfile.v0",
+		FrontendAttrs: frontendAttrs,
+		Session:       sessionAttachables,
+		//nolint: exhaustruct
+		Exports: []client.ExportEntry{
+			{
+				Type: "image",
+				Attrs: map[string]string{
+					"name":           imageName,
+					"oci-mediatypes": "true",
+					"push":           "true",
+				},
+			},
+		},
+	}, nil
 }
 
 // buildGitSolverOptions constructs the buildkit solver configuration for a git context build.

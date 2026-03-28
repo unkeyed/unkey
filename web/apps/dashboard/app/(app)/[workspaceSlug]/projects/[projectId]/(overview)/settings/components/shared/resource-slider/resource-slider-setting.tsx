@@ -9,13 +9,13 @@ import type React from "react";
 import { useContext, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { EnvironmentContext, useEnvironmentSettings } from "../../environment-provider";
-import { useMultiEnvironmentSettings } from "../../hooks/use-multi-environment-settings";
-import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
+import { EnvironmentContext, useEnvironmentSettings } from "../../../environment-provider";
+import { useMultiEnvironmentSettings } from "../../../hooks/use-multi-environment-settings";
+import { useUpdateAllEnvironments } from "../../../hooks/use-update-all-environments";
+import { SettingDescription, WideContent } from "../form-blocks";
+import { FormSettingCard, type SaveState, resolveSaveState } from "../form-setting-card";
 import { EnvironmentDisplayValue } from "./environment-display-value";
 import { EnvironmentSliderSection } from "./environment-slider-section";
-import { FormSettingCard, type SaveState, resolveSaveState } from "./form-setting-card";
-import { SettingDescription } from "./setting-description";
 import { buildSliderRangeStyle, indexToValue, valueToIndex } from "./slider-utils";
 
 type SliderStrategy =
@@ -140,47 +140,50 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
       saveState={saveState}
       autoSave
     >
-      <div className="flex items-center gap-3">
-        <Slider
-          min={sp.min}
-          max={sp.max}
-          step={sp.step}
-          value={[sp.sliderValue]}
-          onValueChange={([v]) => {
-            if (v !== undefined) {
-              setValue("value", sp.toFormValue(v), { shouldValidate: true });
-            }
-          }}
-          onValueCommit={
-            variant === "onboarding"
-              ? ([v]) => {
-                  if (v !== undefined) {
-                    const newValue = sp.toFormValue(v);
-                    if (newValue !== defaultValue) {
-                      updateAllEnvironments((draft) => {
-                        config.writeValue(draft, newValue);
-                      });
+      <WideContent>
+        <div className="flex items-center gap-3">
+          <Slider
+            min={sp.min}
+            max={sp.max}
+            step={sp.step}
+            value={[sp.sliderValue]}
+            onValueChange={([v]) => {
+              if (v !== undefined) {
+                setValue("value", sp.toFormValue(v), { shouldValidate: true });
+              }
+            }}
+            onValueCommit={
+              variant === "onboarding"
+                ? ([v]) => {
+                    if (v !== undefined) {
+                      const newValue = sp.toFormValue(v);
+                      if (newValue !== defaultValue) {
+                        updateAllEnvironments((draft) => {
+                          config.writeValue(draft, newValue);
+                        });
+                      }
                     }
                   }
-                }
-              : undefined
-          }
-          className="flex-1 max-w-[480px]"
-          rangeStyle={buildSliderRangeStyle(
-            sp.rangeIndex,
-            sp.rangeMax,
-            sp.rangeMin,
-            config.colorVar,
-          )}
-        />
-        {config.sliderAdornment?.(settings)}
-        <span className="text-[13px]">
-          <span className="font-medium text-gray-12">{config.formatValue(currentValue).value}</span>{" "}
-          <span className="text-gray-11">{config.formatValue(currentValue).unit}</span>
-        </span>
-      </div>
-
-      <SettingDescription>{config.settingDescription}</SettingDescription>
+                : undefined
+            }
+            className="flex-1 max-w-(--setting-w)"
+            rangeStyle={buildSliderRangeStyle(
+              sp.rangeIndex,
+              sp.rangeMax,
+              sp.rangeMin,
+              config.colorVar,
+            )}
+          />
+          {config.sliderAdornment?.(settings)}
+          <span className="text-[13px]">
+            <span className="font-medium text-gray-12">
+              {config.formatValue(currentValue).value}
+            </span>{" "}
+            <span className="text-gray-11">{config.formatValue(currentValue).unit}</span>
+          </span>
+        </div>
+        <SettingDescription>{config.settingDescription}</SettingDescription>
+      </WideContent>
     </FormSettingCard>
   );
 };
@@ -280,23 +283,25 @@ const DualInner = ({ config, production, preview }: DualInnerProps) => {
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
     >
-      <DualSliderSection
-        label="Production"
-        config={config}
-        sp={prodSp}
-        settings={production}
-        onSliderChange={(v) => setValue("production", v, { shouldValidate: true })}
-      />
+      <WideContent>
+        <DualSliderSection
+          label="Production"
+          config={config}
+          sp={prodSp}
+          settings={production}
+          onSliderChange={(v) => setValue("production", v, { shouldValidate: true })}
+        />
 
-      <DualSliderSection
-        label="Preview"
-        config={config}
-        sp={previewSp}
-        settings={preview}
-        onSliderChange={(v) => setValue("preview", v, { shouldValidate: true })}
-      />
+        <DualSliderSection
+          label="Preview"
+          config={config}
+          sp={previewSp}
+          settings={preview}
+          onSliderChange={(v) => setValue("preview", v, { shouldValidate: true })}
+        />
 
-      <SettingDescription>{config.settingDescription}</SettingDescription>
+        <SettingDescription>{config.settingDescription}</SettingDescription>
+      </WideContent>
     </FormSettingCard>
   );
 };
@@ -322,7 +327,7 @@ const DualSliderSection = ({ label, config, sp, settings, onSliderChange }: Slid
             onSliderChange(sp.toFormValue(v));
           }
         }}
-        className="flex-1 max-w-[480px]"
+        className="flex-1 max-w-[var(--setting-w)]"
         rangeStyle={buildSliderRangeStyle(sp.rangeIndex, sp.rangeMax, sp.rangeMin, config.colorVar)}
       />
       {config.sliderAdornment?.(settings)}

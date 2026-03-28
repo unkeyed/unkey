@@ -1,6 +1,11 @@
 package github
 
 import (
+	"fmt"
+	"net/http"
+	"net/url"
+	"time"
+
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
@@ -71,6 +76,27 @@ func (n *Noop) UpdateIssueComment(_ int64, _ string, _ int64, _ string) error {
 // FindBotComment returns an error indicating GitHub is not configured.
 func (n *Noop) FindBotComment(_ int64, _ string, _ int, _ string) (int64, string, error) {
 	return 0, "", errNotConfigured
+}
+
+// GetBranchHeadCommitPublic retrieves the HEAD commit using the public GitHub
+// API without authentication. Works for public repositories even when GitHub
+// App credentials are not configured.
+func (n *Noop) GetBranchHeadCommitPublic(repo string, branch string) (CommitInfo, error) {
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
+
+	commit, err := request[ghCommitResponse](httpClient, http.MethodGet, apiURL, githubHeaders(""), nil, http.StatusOK)
+	if err != nil {
+		return CommitInfo{}, err
+	}
+
+	return CommitInfoFromRaw(
+		commit.SHA,
+		commit.Commit.Message,
+		commit.Author.Login,
+		commit.Author.AvatarURL,
+		commit.Commit.Author.Date,
+	), nil
 }
 
 // GetCommitBySHA returns an error indicating GitHub is not configured.

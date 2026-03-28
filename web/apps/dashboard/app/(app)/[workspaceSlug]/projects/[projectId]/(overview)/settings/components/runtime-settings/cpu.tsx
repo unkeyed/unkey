@@ -2,10 +2,7 @@
 
 import { formatCpuParts } from "@/lib/utils/deployment-formatters";
 import { Bolt } from "@unkey/icons";
-import {
-  type ResourceSliderConfig,
-  ResourceSliderSetting,
-} from "../shared/resource-slider-setting";
+import { type ResourceSliderConfig, ResourceSliderSetting } from "../shared/resource-slider";
 
 const CPU_OPTIONS = [
   { label: "1/4 vCPU", value: 256 },

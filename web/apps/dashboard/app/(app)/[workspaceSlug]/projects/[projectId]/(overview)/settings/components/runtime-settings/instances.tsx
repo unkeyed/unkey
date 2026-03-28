@@ -4,10 +4,7 @@ import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-s
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { Connections3 } from "@unkey/icons";
 import { RegionFlag } from "../../../../components/region-flag";
-import {
-  type ResourceSliderConfig,
-  ResourceSliderSetting,
-} from "../shared/resource-slider-setting";
+import { type ResourceSliderConfig, ResourceSliderSetting } from "../shared/resource-slider";
 
 const formatInstanceParts = (n: number) => ({
   value: String(n),

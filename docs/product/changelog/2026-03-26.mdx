@@ -1,6 +1,6 @@
 ---
 title: "March 26, 2026"
-description: "Build-time environment variables, OpenAPI diff viewer, idle deployments, and improved deployment triggers."
+description: "Build-time environment variables, configurable production branch, OpenAPI diff viewer, idle deployments, and improved deployment triggers."
 ---
 
 ## New features
@@ -34,6 +34,12 @@ CMD ["node", "dist/index.js"]
 A new OpenAPI Diff page lets you compare the OpenAPI spec between any two deployments. Select two deployments side-by-side to see added, removed, and changed endpoints with method-specific badges. Changes are categorized by severity — breaking, warning, or informational — so you can quickly identify regressions before promoting a deployment.
 
 To enable the diff viewer, set the path to your OpenAPI spec file (for example, `/openapi.yaml`) in your project's environment settings. Once configured, the project overview shows a compact diff indicator between your current and latest preview deployment, with a link to the full comparison page.
+
+### Configurable production branch
+
+You can now choose which Git branch triggers production deployments. Navigate to your project's deployment settings to find the new **Production branch** setting. Select any branch from your connected repository — pushes to that branch deploy to the production environment, while all other branches deploy to preview.
+
+Previously, production deployments were always triggered by the repository's default branch. Now you can set it to any branch, such as `release` or `stable`, to match your team's workflow.
 
 ### Idle deployment status
 
