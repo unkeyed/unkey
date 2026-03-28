@@ -1,6 +1,7 @@
 import { getAuth as getBaseAuth } from "@/lib/auth/get-auth";
 import { auth } from "@/lib/auth/server";
 import type { AuthenticatedUser } from "@/lib/auth/types";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
 
@@ -29,7 +30,18 @@ type GetAuthResult = {
 export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
   const authResult = await getBaseAuth(req);
   if (!authResult.userId) {
-    redirect("/auth/sign-in");
+    // Read the current path from the custom header set by the middleware (proxy.ts)
+    let signInUrl = "/auth/sign-in";
+    try {
+      const headersList = await headers();
+      const currentPath = headersList.get("x-current-path");
+      if (currentPath && currentPath !== "/") {
+        signInUrl = `/auth/sign-in?redirect=${encodeURIComponent(currentPath)}`;
+      }
+    } catch {
+      // Ignore header read errors
+    }
+    redirect(signInUrl);
   }
 
   if (!authResult.orgId && !authResult.role) {
