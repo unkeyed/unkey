@@ -20,7 +20,9 @@
               "contributing/local/development",
               {
                 "group": "Tooling",
-                "pages": ["contributing/tooling/bazel"]
+                "pages": [
+                  "contributing/tooling/bazel"
+                ]
               }
             ]
           },
@@ -50,7 +52,9 @@
         "groups": [
           {
             "group": "Overview",
-            "pages": ["architecture/index"]
+            "pages": [
+              "architecture/index"
+            ]
           },
           {
             "group": "Services",
@@ -127,7 +131,6 @@
                   "architecture/services/sentinel/configuration",
                   "architecture/services/sentinel/deployment",
                   "architecture/services/sentinel/failure-modes",
-
                   {
                     "group": "Policies",
                     "pages": [
@@ -153,7 +156,7 @@
                   {
                     "group": "Configuration",
                     "root": "architecture/services/vault/configuration",
-                    "pages": ["architecture/services/vault/configuration"]
+                    "pages": []
                   }
                 ]
               }
@@ -176,21 +179,28 @@
               "architecture/rfcs/0011-unkey-resource-names",
               "architecture/rfcs/0012-stricter-linter",
               "architecture/rfcs/0013-custom-domains",
-              "architecture/rfcs/0014-sentinel-middleware"
+              "architecture/rfcs/0014-sentinel-middleware",
+              "architecture/rfcs/0015-service-discovery"
             ]
           }
         ]
       },
       {
         "tab": "Company",
-        "pages": ["company/index", "company/meetings"]
+        "pages": [
+          "company/index",
+          "company/meetings"
+        ]
       },
       {
         "tab": "Infra",
         "groups": [
           {
             "group": "Infra",
-            "pages": ["infra/index","infra/infra-work"]
+            "pages": [
+              "infra/index",
+              "infra/infra-work"
+            ]
           },
           {
             "group": "Clusters",
@@ -225,7 +235,9 @@
           },
           {
             "group": "Secrets",
-            "pages": ["infra/secrets/aws-secrets"]
+            "pages": [
+              "infra/secrets/aws-secrets"
+            ]
           },
           {
             "group": "ClickHouse",
