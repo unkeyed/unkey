@@ -1305,8 +1305,12 @@ type ApplyDeployment struct {
 	GitBranch        *string `protobuf:"bytes,24,opt,name=git_branch,json=gitBranch,proto3,oneof" json:"git_branch,omitempty"`
 	GitRepo          *string `protobuf:"bytes,25,opt,name=git_repo,json=gitRepo,proto3,oneof" json:"git_repo,omitempty"`
 	GitCommitMessage *string `protobuf:"bytes,26,opt,name=git_commit_message,json=gitCommitMessage,proto3,oneof" json:"git_commit_message,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Horizontal autoscaling policy. When present, krane creates an HPA with
+	// these values instead of the defaults (min=1, max=replicas, cpu=80%).
+	// Populated from the horizontal_autoscaling_policies table via app_regional_settings.
+	Autoscaling   *AutoscalingPolicy `protobuf:"bytes,27,opt,name=autoscaling,proto3,oneof" json:"autoscaling,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ApplyDeployment) Reset() {
@@ -1500,6 +1504,89 @@ func (x *ApplyDeployment) GetGitCommitMessage() string {
 	return ""
 }
 
+func (x *ApplyDeployment) GetAutoscaling() *AutoscalingPolicy {
+	if x != nil {
+		return x.Autoscaling
+	}
+	return nil
+}
+
+// AutoscalingPolicy configures horizontal pod autoscaling for a deployment.
+// Snapshotted from the horizontal_autoscaling_policies table at query time.
+type AutoscalingPolicy struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Minimum number of pod replicas the HPA will maintain.
+	MinReplicas int32 `protobuf:"varint,1,opt,name=min_replicas,json=minReplicas,proto3" json:"min_replicas,omitempty"`
+	// Maximum number of pod replicas the HPA can scale to.
+	MaxReplicas int32 `protobuf:"varint,2,opt,name=max_replicas,json=maxReplicas,proto3" json:"max_replicas,omitempty"`
+	// Average CPU utilization percentage (0-100) that triggers scale-up.
+	// When omitted, defaults to 80%.
+	CpuThreshold *int32 `protobuf:"varint,3,opt,name=cpu_threshold,json=cpuThreshold,proto3,oneof" json:"cpu_threshold,omitempty"`
+	// Average memory utilization percentage (0-100) that triggers scale-up.
+	// When omitted, memory is not used as a scaling signal.
+	MemoryThreshold *int32 `protobuf:"varint,4,opt,name=memory_threshold,json=memoryThreshold,proto3,oneof" json:"memory_threshold,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *AutoscalingPolicy) Reset() {
+	*x = AutoscalingPolicy{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AutoscalingPolicy) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AutoscalingPolicy) ProtoMessage() {}
+
+func (x *AutoscalingPolicy) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AutoscalingPolicy.ProtoReflect.Descriptor instead.
+func (*AutoscalingPolicy) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *AutoscalingPolicy) GetMinReplicas() int32 {
+	if x != nil {
+		return x.MinReplicas
+	}
+	return 0
+}
+
+func (x *AutoscalingPolicy) GetMaxReplicas() int32 {
+	if x != nil {
+		return x.MaxReplicas
+	}
+	return 0
+}
+
+func (x *AutoscalingPolicy) GetCpuThreshold() int32 {
+	if x != nil && x.CpuThreshold != nil {
+		return *x.CpuThreshold
+	}
+	return 0
+}
+
+func (x *AutoscalingPolicy) GetMemoryThreshold() int32 {
+	if x != nil && x.MemoryThreshold != nil {
+		return *x.MemoryThreshold
+	}
+	return 0
+}
+
 // DeleteDeployment identifies a deployment to remove from the cluster.
 //
 // The deployment and all its pods will be terminated gracefully according to
@@ -1515,7 +1602,7 @@ type DeleteDeployment struct {
 
 func (x *DeleteDeployment) Reset() {
 	*x = DeleteDeployment{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1527,7 +1614,7 @@ func (x *DeleteDeployment) String() string {
 func (*DeleteDeployment) ProtoMessage() {}
 
 func (x *DeleteDeployment) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1540,7 +1627,7 @@ func (x *DeleteDeployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDeployment.ProtoReflect.Descriptor instead.
 func (*DeleteDeployment) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{18}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *DeleteDeployment) GetK8SNamespace() string {
@@ -1572,7 +1659,7 @@ type HeartbeatRequest struct {
 
 func (x *HeartbeatRequest) Reset() {
 	*x = HeartbeatRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1584,7 +1671,7 @@ func (x *HeartbeatRequest) String() string {
 func (*HeartbeatRequest) ProtoMessage() {}
 
 func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1597,7 +1684,7 @@ func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
 func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{19}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *HeartbeatRequest) GetRegion() string {
@@ -1622,7 +1709,7 @@ type HeartbeatResponse struct {
 
 func (x *HeartbeatResponse) Reset() {
 	*x = HeartbeatResponse{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1634,7 +1721,7 @@ func (x *HeartbeatResponse) String() string {
 func (*HeartbeatResponse) ProtoMessage() {}
 
 func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1647,7 +1734,7 @@ func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
 func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{20}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{21}
 }
 
 type ReportDeploymentStatusRequest_Update struct {
@@ -1660,7 +1747,7 @@ type ReportDeploymentStatusRequest_Update struct {
 
 func (x *ReportDeploymentStatusRequest_Update) Reset() {
 	*x = ReportDeploymentStatusRequest_Update{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1672,7 +1759,7 @@ func (x *ReportDeploymentStatusRequest_Update) String() string {
 func (*ReportDeploymentStatusRequest_Update) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusRequest_Update) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1711,7 +1798,7 @@ type ReportDeploymentStatusRequest_Delete struct {
 
 func (x *ReportDeploymentStatusRequest_Delete) Reset() {
 	*x = ReportDeploymentStatusRequest_Delete{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[22]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1723,7 +1810,7 @@ func (x *ReportDeploymentStatusRequest_Delete) String() string {
 func (*ReportDeploymentStatusRequest_Delete) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusRequest_Delete) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[22]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1759,7 +1846,7 @@ type ReportDeploymentStatusRequest_Update_Instance struct {
 
 func (x *ReportDeploymentStatusRequest_Update_Instance) Reset() {
 	*x = ReportDeploymentStatusRequest_Update_Instance{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[23]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1771,7 +1858,7 @@ func (x *ReportDeploymentStatusRequest_Update_Instance) String() string {
 func (*ReportDeploymentStatusRequest_Update_Instance) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusRequest_Update_Instance) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[23]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1909,7 +1996,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"memory_mib\x18\n" +
 	" \x01(\x03R\tmemoryMib\"+\n" +
 	"\x0eDeleteSentinel\x12\x19\n" +
-	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xc6\a\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\x99\b\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
@@ -1937,7 +2024,8 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\n" +
 	"git_branch\x18\x18 \x01(\tH\x05R\tgitBranch\x88\x01\x01\x12\x1e\n" +
 	"\bgit_repo\x18\x19 \x01(\tH\x06R\agitRepo\x88\x01\x01\x121\n" +
-	"\x12git_commit_message\x18\x1a \x01(\tH\aR\x10gitCommitMessage\x88\x01\x01B\v\n" +
+	"\x12git_commit_message\x18\x1a \x01(\tH\aR\x10gitCommitMessage\x88\x01\x01\x12A\n" +
+	"\vautoscaling\x18\x1b \x01(\v2\x1a.ctrl.v1.AutoscalingPolicyH\bR\vautoscaling\x88\x01\x01B\v\n" +
 	"\t_build_idB\x0e\n" +
 	"\f_healthcheckB\x13\n" +
 	"\x11_environment_slugB\t\n" +
@@ -1945,7 +2033,15 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0f_git_commit_shaB\r\n" +
 	"\v_git_branchB\v\n" +
 	"\t_git_repoB\x15\n" +
-	"\x13_git_commit_message\"R\n" +
+	"\x13_git_commit_messageB\x0e\n" +
+	"\f_autoscaling\"\xda\x01\n" +
+	"\x11AutoscalingPolicy\x12!\n" +
+	"\fmin_replicas\x18\x01 \x01(\x05R\vminReplicas\x12!\n" +
+	"\fmax_replicas\x18\x02 \x01(\x05R\vmaxReplicas\x12(\n" +
+	"\rcpu_threshold\x18\x03 \x01(\x05H\x00R\fcpuThreshold\x88\x01\x01\x12.\n" +
+	"\x10memory_threshold\x18\x04 \x01(\x05H\x01R\x0fmemoryThreshold\x88\x01\x01B\x10\n" +
+	"\x0e_cpu_thresholdB\x13\n" +
+	"\x11_memory_threshold\"R\n" +
 	"\x10DeleteDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\"F\n" +
@@ -1983,7 +2079,7 @@ func file_ctrl_v1_cluster_proto_rawDescGZIP() []byte {
 }
 
 var file_ctrl_v1_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(Health)(0), // 0: ctrl.v1.Health
 	(ReportDeploymentStatusRequest_Update_Instance_Status)(0), // 1: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
@@ -2005,48 +2101,50 @@ var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(*ApplySentinel)(nil),                                     // 17: ctrl.v1.ApplySentinel
 	(*DeleteSentinel)(nil),                                    // 18: ctrl.v1.DeleteSentinel
 	(*ApplyDeployment)(nil),                                   // 19: ctrl.v1.ApplyDeployment
-	(*DeleteDeployment)(nil),                                  // 20: ctrl.v1.DeleteDeployment
-	(*HeartbeatRequest)(nil),                                  // 21: ctrl.v1.HeartbeatRequest
-	(*HeartbeatResponse)(nil),                                 // 22: ctrl.v1.HeartbeatResponse
-	(*ReportDeploymentStatusRequest_Update)(nil),              // 23: ctrl.v1.ReportDeploymentStatusRequest.Update
-	(*ReportDeploymentStatusRequest_Delete)(nil),              // 24: ctrl.v1.ReportDeploymentStatusRequest.Delete
-	(*ReportDeploymentStatusRequest_Update_Instance)(nil),     // 25: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
+	(*AutoscalingPolicy)(nil),                                 // 20: ctrl.v1.AutoscalingPolicy
+	(*DeleteDeployment)(nil),                                  // 21: ctrl.v1.DeleteDeployment
+	(*HeartbeatRequest)(nil),                                  // 22: ctrl.v1.HeartbeatRequest
+	(*HeartbeatResponse)(nil),                                 // 23: ctrl.v1.HeartbeatResponse
+	(*ReportDeploymentStatusRequest_Update)(nil),              // 24: ctrl.v1.ReportDeploymentStatusRequest.Update
+	(*ReportDeploymentStatusRequest_Delete)(nil),              // 25: ctrl.v1.ReportDeploymentStatusRequest.Delete
+	(*ReportDeploymentStatusRequest_Update_Instance)(nil),     // 26: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
 }
 var file_ctrl_v1_cluster_proto_depIdxs = []int32{
 	3,  // 0: ctrl.v1.CiliumNetworkPolicyState.apply:type_name -> ctrl.v1.ApplyCiliumNetworkPolicy
 	4,  // 1: ctrl.v1.CiliumNetworkPolicyState.delete:type_name -> ctrl.v1.DeleteCiliumNetworkPolicy
-	23, // 2: ctrl.v1.ReportDeploymentStatusRequest.update:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update
-	24, // 3: ctrl.v1.ReportDeploymentStatusRequest.delete:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Delete
+	24, // 2: ctrl.v1.ReportDeploymentStatusRequest.update:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update
+	25, // 3: ctrl.v1.ReportDeploymentStatusRequest.delete:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Delete
 	0,  // 4: ctrl.v1.ReportSentinelStatusRequest.health:type_name -> ctrl.v1.Health
 	17, // 5: ctrl.v1.SentinelState.apply:type_name -> ctrl.v1.ApplySentinel
 	18, // 6: ctrl.v1.SentinelState.delete:type_name -> ctrl.v1.DeleteSentinel
 	19, // 7: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
-	20, // 8: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
-	25, // 9: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
-	1,  // 10: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
-	13, // 11: ctrl.v1.ClusterService.WatchDeployments:input_type -> ctrl.v1.WatchDeploymentsRequest
-	14, // 12: ctrl.v1.ClusterService.WatchSentinels:input_type -> ctrl.v1.WatchSentinelsRequest
-	7,  // 13: ctrl.v1.ClusterService.GetDesiredSentinelState:input_type -> ctrl.v1.GetDesiredSentinelStateRequest
-	11, // 14: ctrl.v1.ClusterService.ReportSentinelStatus:input_type -> ctrl.v1.ReportSentinelStatusRequest
-	8,  // 15: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
-	9,  // 16: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
-	2,  // 17: ctrl.v1.ClusterService.WatchCiliumNetworkPolicies:input_type -> ctrl.v1.WatchCiliumNetworkPoliciesRequest
-	6,  // 18: ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState:input_type -> ctrl.v1.GetDesiredCiliumNetworkPolicyStateRequest
-	21, // 19: ctrl.v1.ClusterService.Heartbeat:input_type -> ctrl.v1.HeartbeatRequest
-	16, // 20: ctrl.v1.ClusterService.WatchDeployments:output_type -> ctrl.v1.DeploymentState
-	15, // 21: ctrl.v1.ClusterService.WatchSentinels:output_type -> ctrl.v1.SentinelState
-	15, // 22: ctrl.v1.ClusterService.GetDesiredSentinelState:output_type -> ctrl.v1.SentinelState
-	12, // 23: ctrl.v1.ClusterService.ReportSentinelStatus:output_type -> ctrl.v1.ReportSentinelStatusResponse
-	16, // 24: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
-	10, // 25: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
-	5,  // 26: ctrl.v1.ClusterService.WatchCiliumNetworkPolicies:output_type -> ctrl.v1.CiliumNetworkPolicyState
-	5,  // 27: ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState:output_type -> ctrl.v1.CiliumNetworkPolicyState
-	22, // 28: ctrl.v1.ClusterService.Heartbeat:output_type -> ctrl.v1.HeartbeatResponse
-	20, // [20:29] is the sub-list for method output_type
-	11, // [11:20] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	21, // 8: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
+	20, // 9: ctrl.v1.ApplyDeployment.autoscaling:type_name -> ctrl.v1.AutoscalingPolicy
+	26, // 10: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
+	1,  // 11: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
+	13, // 12: ctrl.v1.ClusterService.WatchDeployments:input_type -> ctrl.v1.WatchDeploymentsRequest
+	14, // 13: ctrl.v1.ClusterService.WatchSentinels:input_type -> ctrl.v1.WatchSentinelsRequest
+	7,  // 14: ctrl.v1.ClusterService.GetDesiredSentinelState:input_type -> ctrl.v1.GetDesiredSentinelStateRequest
+	11, // 15: ctrl.v1.ClusterService.ReportSentinelStatus:input_type -> ctrl.v1.ReportSentinelStatusRequest
+	8,  // 16: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
+	9,  // 17: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
+	2,  // 18: ctrl.v1.ClusterService.WatchCiliumNetworkPolicies:input_type -> ctrl.v1.WatchCiliumNetworkPoliciesRequest
+	6,  // 19: ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState:input_type -> ctrl.v1.GetDesiredCiliumNetworkPolicyStateRequest
+	22, // 20: ctrl.v1.ClusterService.Heartbeat:input_type -> ctrl.v1.HeartbeatRequest
+	16, // 21: ctrl.v1.ClusterService.WatchDeployments:output_type -> ctrl.v1.DeploymentState
+	15, // 22: ctrl.v1.ClusterService.WatchSentinels:output_type -> ctrl.v1.SentinelState
+	15, // 23: ctrl.v1.ClusterService.GetDesiredSentinelState:output_type -> ctrl.v1.SentinelState
+	12, // 24: ctrl.v1.ClusterService.ReportSentinelStatus:output_type -> ctrl.v1.ReportSentinelStatusResponse
+	16, // 25: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
+	10, // 26: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
+	5,  // 27: ctrl.v1.ClusterService.WatchCiliumNetworkPolicies:output_type -> ctrl.v1.CiliumNetworkPolicyState
+	5,  // 28: ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState:output_type -> ctrl.v1.CiliumNetworkPolicyState
+	23, // 29: ctrl.v1.ClusterService.Heartbeat:output_type -> ctrl.v1.HeartbeatResponse
+	21, // [21:30] is the sub-list for method output_type
+	12, // [12:21] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_cluster_proto_init() }
@@ -2071,13 +2169,14 @@ func file_ctrl_v1_cluster_proto_init() {
 		(*DeploymentState_Delete)(nil),
 	}
 	file_ctrl_v1_cluster_proto_msgTypes[17].OneofWrappers = []any{}
+	file_ctrl_v1_cluster_proto_msgTypes[18].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_cluster_proto_rawDesc), len(file_ctrl_v1_cluster_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   24,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -562,14 +562,37 @@ func (w *Workflow) createTopologies(
 
 		replicas := rs.Replicas
 
+		// Snapshot autoscaling policy values. When no policy is attached,
+		// default to min=1, max=replicas so the HPA effectively stays at replicas.
+		autoscalingMin := int32(1)
+		autoscalingMax := replicas
+		if rs.AutoscalingReplicasMin.Valid {
+			autoscalingMin = rs.AutoscalingReplicasMin.Int32
+		}
+		if rs.AutoscalingReplicasMax.Valid {
+			autoscalingMax = rs.AutoscalingReplicasMax.Int32
+		}
+
+		// Clamp to satisfy HPA invariants: min >= 1 and max >= min.
+		if autoscalingMin < 1 {
+			autoscalingMin = 1
+		}
+		if autoscalingMax < autoscalingMin {
+			autoscalingMax = autoscalingMin
+		}
+
 		topologies = append(topologies, db.InsertDeploymentTopologyParams{
-			WorkspaceID:     workspace.ID,
-			DeploymentID:    deployment.ID,
-			RegionID:        rs.RegionID,
-			DesiredReplicas: replicas,
-			DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
-			Version:         versionResp.GetVersion(),
-			CreatedAt:       time.Now().UnixMilli(),
+			WorkspaceID:                workspace.ID,
+			DeploymentID:               deployment.ID,
+			RegionID:                   rs.RegionID,
+			DesiredReplicas:            replicas,
+			AutoscalingReplicasMin:     autoscalingMin,
+			AutoscalingReplicasMax:     autoscalingMax,
+			AutoscalingThresholdCpu:    rs.AutoscalingThresholdCpu,
+			AutoscalingThresholdMemory: rs.AutoscalingThresholdMemory,
+			DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
+			Version:                    versionResp.GetVersion(),
+			CreatedAt:                  time.Now().UnixMilli(),
 		})
 	}
 
@@ -900,99 +923,65 @@ func (w *Workflow) swapLiveDeployment(
 	return nil
 }
 
-// waitForDeployments polls instance status across all regions until enough
-// regions have all their desired replicas running, or [regionReadyTimeout]
-// elapses. Each region is polled concurrently via restate.RunAsync.
-//
-// The method requires min(2, len(topologies)) healthy regions to succeed.
-// This threshold ensures at least two regions are serving traffic before the
-// workflow proceeds to routing, while still allowing single-region deployments
-// to pass. Regions that time out or error are skipped rather than failing the
-// entire deployment, so a degraded region does not block progress.
+// waitForDeployments polls instance status until enough regions are healthy,
+// or [regionReadyTimeout] elapses. A region is considered healthy when it has
+// at least autoscaling_replicas_min running instances. The check tolerates one
+// full regional outage: it requires (numRegions - 1) healthy regions, minimum 1.
 func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID string, topologies []db.InsertDeploymentTopologyParams) error {
-	logger.Info("waiting for deployments to be ready", "deployment_id", deploymentID)
-
-	deadline, err := restate.Run(ctx, func(_ restate.RunContext) (time.Time, error) {
-		return time.Now().Add(regionReadyTimeout), nil
-	}, restate.WithName("calculate deadline"))
-	if err != nil {
-		return fault.Wrap(err, fault.Public("Deployment readiness checks could not start."))
+	// Build per-region minimum replica requirements.
+	regionMinReplicas := make(map[string]int32, len(topologies))
+	for _, topo := range topologies {
+		regionMinReplicas[topo.RegionID] = topo.AutoscalingReplicasMin
 	}
+	requiredRegions := max(len(regionMinReplicas)-1, 1)
 
-	readygates := make([]restate.Future, len(topologies))
-	for i, topo := range topologies {
+	logger.Info("waiting for deployments to be ready",
+		"deployment_id", deploymentID,
+		"total_regions", len(regionMinReplicas),
+		"required_regions", requiredRegions,
+	)
 
-		region, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Region, error) {
-			return db.Query.FindRegionById(runCtx, w.db.RO(), topo.RegionID)
-		}, restate.WithName(fmt.Sprintf("find region %s", topo.RegionID)))
-		if err != nil {
-			return fault.Wrap(err, fault.Public("Deployment readiness checks could not start."))
-		}
+	_, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
+		deadline := time.Now().Add(regionReadyTimeout)
 
-		promise := restate.RunAsync(ctx, func(runCtx restate.RunContext) (bool, error) {
-			for time.Now().Before(deadline) {
-				time.Sleep(time.Second)
+		for time.Now().Before(deadline) {
+			time.Sleep(time.Second)
 
-				instances, err := db.Query.FindInstancesByDeploymentIdAndRegionID(runCtx, w.db.RO(), db.FindInstancesByDeploymentIdAndRegionIDParams{
-					DeploymentID: deploymentID,
-					RegionID:     region.ID,
-				})
-				if err != nil {
-					return false, err
-				}
-				logger.Info("checking instances for region", "deployment_id", deploymentID, "region_id", topo.RegionID, "instances_found", len(instances))
-				if len(instances) < int(topo.DesiredReplicas) {
-					logger.Info("not all instances are up yet", "deployment_id", deploymentID, "region_id", topo.RegionID, "instances_found", len(instances), "desired_replicas", topo.DesiredReplicas)
-					continue
-				}
-				allRunning := true
-				for _, instance := range instances {
-					if instance.Status != db.InstancesStatusRunning {
-						logger.Info("instance not running yet", "deployment_id", deploymentID, "region_id", instance.RegionID, "instance_id", instance.ID, "status", instance.Status)
-						allRunning = false
-						break
-					}
-				}
-				if allRunning {
-					return true, nil
+			instances, err := db.Query.FindInstancesByDeploymentId(runCtx, w.db.RO(), deploymentID)
+			if err != nil {
+				return false, err
+			}
+
+			// Count running instances per region.
+			runningPerRegion := make(map[string]int32)
+			for _, instance := range instances {
+				if instance.Status == db.InstancesStatusRunning {
+					runningPerRegion[instance.RegionID]++
 				}
 			}
-			return false, nil
-		}, restate.WithName(fmt.Sprintf("wait for %d instances in %s", topo.DesiredReplicas, topo.RegionID)))
-		readygates[i] = promise
 
-	}
-	requiredHealthyRegions := min(2, len(topologies))
-	healthyRegions := 0
+			// A region is healthy when it has >= its minReplicas running.
+			healthyRegions := 0
+			for regionID, minReplicas := range regionMinReplicas {
+				if runningPerRegion[regionID] >= minReplicas {
+					healthyRegions++
+				}
+			}
 
-	for fut, err := range restate.Wait(ctx, readygates...) {
-		if err != nil {
-			continue
-		}
-		raf, ok := fut.(restate.RunAsyncFuture[bool])
-		if !ok {
-			return fault.Wrap(
-				fmt.Errorf("unexpected future type: %T", fut),
-				fault.Public("Deployment readiness checks returned an unexpected response."),
+			logger.Info("checking instances",
+				"deployment_id", deploymentID,
+				"healthy_regions", healthyRegions,
+				"required_regions", requiredRegions,
 			)
-		}
-		ready, err := raf.Result()
-		if err != nil {
-			continue
-		}
-		if ready {
-			healthyRegions++
+			if healthyRegions >= requiredRegions {
+				return true, nil
+			}
 		}
 
-		if healthyRegions >= requiredHealthyRegions {
-			break
-		}
-	}
-	if healthyRegions < requiredHealthyRegions {
-		return fault.Wrap(
-			restate.TerminalErrorf("only %d healthy regions, required at least %d", healthyRegions, requiredHealthyRegions),
-			fault.Public("Not enough regions became healthy."),
-		)
+		return false, restate.TerminalErrorf("not enough regions became healthy, required %d of %d", requiredRegions, len(regionMinReplicas))
+	}, restate.WithName(fmt.Sprintf("wait for %d healthy regions", requiredRegions)))
+	if err != nil {
+		return fault.Wrap(err, fault.Public("Not enough regions became healthy in time."))
 	}
 
 	logger.Info("deployments ready", "deployment_id", deploymentID)
