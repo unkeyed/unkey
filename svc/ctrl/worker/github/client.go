@@ -374,6 +374,32 @@ func (c *Client) CreateCommitStatus(installationID int64, repo string, sha strin
 	}, http.StatusCreated)
 }
 
+// CreateCheckRun creates a Check Run on a commit SHA with the given conclusion.
+func (c *Client) CreateCheckRun(installationID int64, repo string, sha string, name string, conclusion string, summary string, detailsURL string) error {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return err
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/check-runs", repo)
+
+	payload := map[string]interface{}{
+		"name":        name,
+		"head_sha":    sha,
+		"status":      "completed",
+		"conclusion":  conclusion,
+		"output": map[string]string{
+			"title":   name,
+			"summary": summary,
+		},
+	}
+	if detailsURL != "" {
+		payload["details_url"] = detailsURL
+	}
+
+	return doRequest(c.httpClient, http.MethodPost, apiURL, headers, payload, http.StatusCreated)
+}
+
 // ghCommitFile is the subset of GitHub's commit file object that we need.
 type ghCommitFile struct {
 	Filename string `json:"filename"`

@@ -53,6 +53,11 @@ func (n *Noop) CreateCommitStatus(_ int64, _ string, _ string, _ string, _ strin
 	return errNotConfigured
 }
 
+// CreateCheckRun returns an error indicating GitHub is not configured.
+func (n *Noop) CreateCheckRun(_ int64, _ string, _ string, _ string, _ string, _ string, _ string) error {
+	return errNotConfigured
+}
+
 // ListCommitFiles returns an error indicating GitHub is not configured.
 func (n *Noop) ListCommitFiles(_ int64, _ string, _ string) ([]string, error) {
 	return nil, errNotConfigured

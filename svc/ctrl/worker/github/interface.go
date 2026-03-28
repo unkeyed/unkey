@@ -39,6 +39,12 @@ type GitHubClient interface {
 	// ListCommitFiles returns the list of filenames changed in a specific commit.
 	ListCommitFiles(installationID int64, repo string, sha string) ([]string, error)
 
+	// CreateCheckRun creates a Check Run on a commit SHA. Unlike commit statuses,
+	// check runs support a "neutral" conclusion which renders as a gray icon.
+	// conclusion must be one of: action_required, cancelled, failure, neutral,
+	// success, skipped, stale, timed_out.
+	CreateCheckRun(installationID int64, repo string, sha string, name string, conclusion string, summary string, detailsURL string) error
+
 	// FindPullRequestForBranch returns the PR number for the given branch,
 	// or 0 if no open PR exists.
 	FindPullRequestForBranch(installationID int64, repo string, branch string) (int, error)
