@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 )
 
-
 // Config holds the configuration for creating a new keys service instance.
 type Config struct {
 	DB           db.Database          // Database connection
