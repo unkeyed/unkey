@@ -126,4 +126,10 @@ type PprofConfig struct {
 
 	// Password is the Basic Auth password for pprof endpoints.
 	Password string `toml:"password"`
+
+	// Port is the TCP port for a loopback-only (127.0.0.1) pprof server.
+	// When set to a positive value, pprof endpoints are served on an internal
+	// listener that is not reachable from outside the host.
+	// Defaults to 6060 when omitted.
+	Port int `toml:"port" config:"default=6060,min=0,max=65535"`
 }

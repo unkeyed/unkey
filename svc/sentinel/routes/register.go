@@ -20,11 +20,11 @@ func Register(srv *zen.Server, svc *Services) {
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
+		withLogging,
 		withObservability,
 		withSentinelLogging,
 		withTimeout,
 		withProxyErrorHandling,
-		withLogging,
 	}
 
 	//nolint:exhaustruct
