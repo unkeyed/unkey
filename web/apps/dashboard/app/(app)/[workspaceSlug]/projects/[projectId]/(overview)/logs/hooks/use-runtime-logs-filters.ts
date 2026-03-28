@@ -25,6 +25,8 @@ export const queryParamsPayload = {
   message: parseAsFilterValArray,
   environmentId: parseAsFilterValArray,
   deploymentId: parseAsFilterValArray,
+  region: parseAsFilterValArray,
+  instanceId: parseAsFilterValArray,
   startTime: parseAsInteger,
   endTime: parseAsInteger,
   since: parseAsRelativeTime,
@@ -90,6 +92,24 @@ export function useRuntimeLogsFilters() {
       });
     });
 
+    searchParams.region?.forEach((r) => {
+      activeFilters.push({
+        id: crypto.randomUUID(),
+        field: "region",
+        operator: r.operator,
+        value: r.value,
+      });
+    });
+
+    searchParams.instanceId?.forEach((inst) => {
+      activeFilters.push({
+        id: crypto.randomUUID(),
+        field: "instanceId",
+        operator: inst.operator,
+        value: inst.value,
+      });
+    });
+
     ["startTime", "endTime", "since"].forEach((field) => {
       const value = searchParams[field as keyof RuntimeLogsQuerySearchParams];
       if (value !== null && value !== undefined) {
@@ -112,6 +132,8 @@ export function useRuntimeLogsFilters() {
         message: null,
         environmentId: null,
         deploymentId: null,
+        region: null,
+        instanceId: null,
         startTime: null,
         endTime: null,
         since: null,
@@ -122,6 +144,8 @@ export function useRuntimeLogsFilters() {
       const messageFilters: RuntimeLogsFilterUrlValue[] = [];
       const environmentIdFilters: RuntimeLogsFilterUrlValue[] = [];
       const deploymentIdFilters: RuntimeLogsFilterUrlValue[] = [];
+      const regionFilters: RuntimeLogsFilterUrlValue[] = [];
+      const instanceIdFilters: RuntimeLogsFilterUrlValue[] = [];
 
       newFilters.forEach((filter) => {
         switch (filter.field) {
@@ -149,6 +173,18 @@ export function useRuntimeLogsFilters() {
               operator: filter.operator,
             });
             break;
+          case "region":
+            regionFilters.push({
+              value: filter.value,
+              operator: filter.operator,
+            });
+            break;
+          case "instanceId":
+            instanceIdFilters.push({
+              value: filter.value,
+              operator: filter.operator,
+            });
+            break;
           case "startTime":
           case "endTime":
             newParams[filter.field] = filter.value as number;
@@ -164,6 +200,8 @@ export function useRuntimeLogsFilters() {
       newParams.message = messageFilters.length > 0 ? messageFilters : null;
       newParams.environmentId = environmentIdFilters.length > 0 ? environmentIdFilters : null;
       newParams.deploymentId = deploymentIdFilters.length > 0 ? deploymentIdFilters : null;
+      newParams.region = regionFilters.length > 0 ? regionFilters : null;
+      newParams.instanceId = instanceIdFilters.length > 0 ? instanceIdFilters : null;
 
       setSearchParams(newParams);
     },

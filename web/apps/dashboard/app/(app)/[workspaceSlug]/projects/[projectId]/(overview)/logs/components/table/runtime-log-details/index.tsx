@@ -57,12 +57,16 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
           details={
             <div className="flex flex-col gap-2 text-xs">
               <div>
-                <span className="text-grayA-11">Deployment ID:</span>{" "}
-                <span className="font-mono">{log.deployment_id}</span>
-              </div>
-              <div>
                 <span className="text-grayA-11">Region:</span>{" "}
                 <span className="font-mono">{log.region}</span>
+              </div>
+              <div>
+                <span className="text-grayA-11">Instance ID:</span>{" "}
+                <span className="font-mono">{log.instance_id}</span>
+              </div>
+              <div>
+                <span className="text-grayA-11">Deployment ID:</span>{" "}
+                <span className="font-mono">{log.deployment_id}</span>
               </div>
             </div>
           }
