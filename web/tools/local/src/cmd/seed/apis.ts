@@ -92,14 +92,6 @@ async function createKeysForApi(
           ? new Date(Date.now() + Math.floor(Math.random() * 365) * 86400000)
           : null;
 
-      // Rate limiting: 40% of keys have rate limits
-      const hasRatelimit = Math.random() > 0.6;
-      const ratelimitLimit = hasRatelimit ? 100 * (1 + Math.floor(Math.random() * 100)) : null;
-      const ratelimitDuration = hasRatelimit
-        ? 60 * 1000 * (1 + Math.floor(Math.random() * 60))
-        : null;
-      const ratelimitAsync = hasRatelimit ? Math.random() > 0.7 : null;
-
       // Usage limits: 20% of keys have usage limits
       const hasUsageLimit = Math.random() > 0.8;
       const remaining = hasUsageLimit ? 1000 * (1 + Math.floor(Math.random() * 100)) : null;
@@ -134,9 +126,6 @@ async function createKeysForApi(
         lastRefillAt: null,
         enabled: enabled,
         remaining: remaining,
-        ratelimitAsync: ratelimitAsync,
-        ratelimitLimit: ratelimitLimit,
-        ratelimitDuration: ratelimitDuration,
         environment: environment,
       };
 
@@ -148,7 +137,7 @@ async function createKeysForApi(
         name: name,
         prefix: keyPrefix,
         enabled: enabled,
-        hasRatelimit,
+        hasRatelimit: false,
         hasUsageLimit,
       });
 
@@ -179,7 +168,6 @@ async function getExistingKeys(workspaceId: string, keyAuthId: string): Promise<
         name: schema.keys.name,
         start: schema.keys.start,
         enabled: schema.keys.enabled,
-        ratelimitLimit: schema.keys.ratelimitLimit,
         remaining: schema.keys.remaining,
       })
       .from(schema.keys)
@@ -196,7 +184,6 @@ async function getExistingKeys(workspaceId: string, keyAuthId: string): Promise<
       name: key.name ?? `Unnamed Key (${key.id})`,
       prefix: key.start,
       enabled: Boolean(key.enabled),
-      hasRatelimit: key.ratelimitLimit !== null,
       hasUsageLimit: key.remaining !== null,
     }));
   }, connectDatabase);
