@@ -567,6 +567,14 @@ func (w *Workflow) createTopologies(
 			autoscalingMax = rs.AutoscalingReplicasMax.Int32
 		}
 
+		// Clamp to satisfy HPA invariants: min >= 1 and max >= min.
+		if autoscalingMin < 1 {
+			autoscalingMin = 1
+		}
+		if autoscalingMax < autoscalingMin {
+			autoscalingMax = autoscalingMin
+		}
+
 		topologies = append(topologies, db.InsertDeploymentTopologyParams{
 			WorkspaceID:                workspace.ID,
 			DeploymentID:               deployment.ID,
