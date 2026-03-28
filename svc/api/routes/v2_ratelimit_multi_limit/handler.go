@@ -13,8 +13,8 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -37,7 +37,7 @@ type (
 type Handler struct {
 	DB             db.Database
 	Keys           keys.KeyService
-	ClickHouse     clickhouse.Bufferer
+	Ratelimits     *batch.BatchProcessor[schema.Ratelimit]
 	Ratelimit      ratelimit.Service
 	NamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs      auditlogs.AuditLogService
@@ -201,7 +201,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if s.ShouldLogRequestToClickHouse() {
 		for i, result := range results {
 			meta := checkMetadata[i]
-			h.ClickHouse.BufferRatelimit(schema.Ratelimit{
+			h.Ratelimits.Buffer(schema.Ratelimit{
 				RequestID:   s.RequestID(),
 				WorkspaceID: auth.AuthorizedWorkspaceID,
 				Time:        start.UnixMilli(),

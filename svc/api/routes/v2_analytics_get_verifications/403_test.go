@@ -25,7 +25,6 @@ func Test403_NoAnalyticsPermission(t *testing.T) {
 	route := &Handler{
 		DB:                         h.DB,
 		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
@@ -62,7 +61,6 @@ func Test403_WrongApiPermission(t *testing.T) {
 	route := &Handler{
 		DB:                         h.DB,
 		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}

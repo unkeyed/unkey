@@ -27,6 +27,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/pkg/zen",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/batch",
         "//pkg/clickhouse/schema",
         "//pkg/codes",
         "//pkg/fault",

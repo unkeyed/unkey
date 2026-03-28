@@ -30,7 +30,7 @@ type GetKeyLastUsedBatchRequest struct {
 // GetKeyLastUsedBatchPartitioned returns
 // keys whose cityHash64(key_id) % totalPartitions == partition. This allows
 // multiple workers to process disjoint slices of the keyspace concurrently.
-func (c *clickhouse) GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error) {
+func (c *Client) GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error) {
 	query := `SELECT
 		key_id,
 		max(time) as last_used

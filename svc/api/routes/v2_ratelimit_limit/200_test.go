@@ -24,7 +24,7 @@ func TestLimitSuccessfully(t *testing.T) {
 
 	route := &handler.Handler{
 		Keys:           h.Keys,
-		ClickHouse:     h.ClickHouse,
+		Ratelimits:     h.Ratelimits,
 		Ratelimit:      h.Ratelimit,
 		DB:             h.DB,
 		NamespaceCache: h.Caches.RatelimitNamespace,

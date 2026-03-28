@@ -204,6 +204,8 @@ func New(t *testing.T, opts ...Option) *Harness {
 
 		GitHub:                          nil,
 		DepotConfig:                     deploy.DepotConfig{APIUrl: "", ProjectRegion: ""},
+		BuildSteps:                      nil,
+		BuildStepLogs:                   nil,
 		RegistryConfig:                  deploy.RegistryConfig{URL: "", Username: "", Password: ""},
 		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
 		AllowUnauthenticatedDeployments: false,

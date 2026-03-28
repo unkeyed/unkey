@@ -21,7 +21,6 @@ import (
 type BatchProcessor[T any] struct {
 	name   string
 	buffer *buffer.Buffer[T]
-	batch  []T
 	config Config[T]
 	flush  func(ctx context.Context, batch []T, trigger string)
 }
@@ -93,7 +92,6 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 			Capacity: config.BufferSize,
 			Drop:     config.Drop,
 		}),
-		batch: make([]T, 0, config.BatchSize),
 		flush: func(ctx context.Context, batch []T, trigger string) {
 			batchSize := len(batch)
 
@@ -123,8 +121,11 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 // It reads items from the buffer channel and batches them until
 // either the batch is full or the flush interval elapses.
 func (bp *BatchProcessor[T]) process() {
-
-	batch := make([]T, 0, bp.config.BatchSize)
+	// Start with zero capacity — the slice grows to actual usage on the first
+	// flush cycle and is reused (batch[:0]) afterwards, so steady-state traffic
+	// never re-allocates. This avoids pre-allocating BatchSize*sizeof(T) for
+	// buffers that may see far fewer items per interval.
+	batch := make([]T, 0)
 
 	t := time.NewTimer(bp.config.FlushInterval)
 	flushAndReset := func(trigger string) {
@@ -138,7 +139,7 @@ func (bp *BatchProcessor[T]) process() {
 	c := bp.buffer.Consume()
 	for {
 		select {
-		case e, ok := <-c:
+		case ptr, ok := <-c:
 			if !ok {
 				// channel closed
 				t.Stop()
@@ -148,7 +149,7 @@ func (bp *BatchProcessor[T]) process() {
 				}
 				return
 			}
-			batch = append(batch, e)
+			batch = append(batch, *ptr)
 			if len(batch) >= bp.config.BatchSize {
 				flushAndReset("size_limit")
 
