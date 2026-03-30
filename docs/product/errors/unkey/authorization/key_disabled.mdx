@@ -5,7 +5,6 @@ description: "The authentication key is disabled"
 
 <Danger>`err:unkey:authorization:key_disabled`</Danger>
 
-
 ```json Example
 {
   "meta": {
@@ -34,6 +33,7 @@ curl -X POST https://api.unkey.com/v2/keys.listKeys \
 ```
 
 API keys can be disabled for various reasons:
+
 - Administrative action to revoke access
 - Security concerns or suspected compromise
 - Temporary deactivation during maintenance or investigation
@@ -73,6 +73,7 @@ curl -X POST https://api.unkey.com/v2/keys.listKeys \
 - **Rotation policies**: Keys that should have been rotated according to security policies
 
 ## Related Errors
+
 - [err:unkey:authorization:insufficient_permissions](./insufficient_permissions) - When the authenticated entity lacks sufficient permissions
 - [err:unkey:authorization:workspace_disabled](./workspace_disabled) - When the associated workspace is disabled
 - [err:unkey:authentication:key_not_found](../authentication/key_not_found) - When the provided API key doesn't exist at all

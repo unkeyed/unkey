@@ -24,6 +24,7 @@ description: "Your query uses a function that isn't allowed for security reasons
 Your query tried to use a function that's blocked for security reasons!
 
 For security, only safe functions are allowed in analytics queries. Functions that could:
+
 - Read files from the server (`file`, `executable`)
 - Make network requests (`url`, `remote`)
 - Access external systems (`mysql`, `postgresql`, `s3`, `hdfs`)
@@ -60,23 +61,28 @@ GROUP BY hour
 These are examples of allowed functions:
 
 **Aggregate functions:**
+
 - `COUNT()`, `SUM()`, `AVG()`, `MIN()`, `MAX()`
 - `uniq()`, `groupArray()`
 
 **Date/time functions:**
+
 - `now()`, `today()`, `yesterday()`
 - `toStartOfHour()`, `toStartOfDay()`, `toStartOfWeek()`
 - `toDate()`, `toDateTime()`
 
 **String functions:**
+
 - `concat()`, `substring()`, `lower()`, `upper()`
 - `length()`, `position()`
 
 **Mathematical functions:**
+
 - `round()`, `floor()`, `ceil()`
 - `abs()`, `sqrt()`, `pow()`
 
 **Conditional functions:**
+
 - `if()`, `multiIf()`
 - `CASE WHEN ... THEN ... END`
 
@@ -89,7 +95,7 @@ SELECT file('/path/to/file') FROM key_verifications_v1
 ```
 
 ```sql Blocked - Network access
-SELECT * FROM url('http://example.com/data')
+SELECT * FROM url('http://acme.com/data')
 ```
 
 ```sql Blocked - External DB
@@ -111,14 +117,16 @@ GROUP BY api_id
 
 These functions are blocked for security:
 
-| Function | Why Blocked |
-|----------|-------------|
-| `file()`, `executable()` | File system access |
-| `url()`, `remote()` | Network requests |
+| Function                               | Why Blocked              |
+| -------------------------------------- | ------------------------ |
+| `file()`, `executable()`               | File system access       |
+| `url()`, `remote()`                    | Network requests         |
 | `mysql()`, `postgresql()`, `mongodb()` | External database access |
-| `s3()`, `hdfs()`, `azureBlobStorage()` | External storage access |
-| `dictGet()`, `dictGetOrDefault()` | Dictionary access |
+| `s3()`, `hdfs()`, `azureBlobStorage()` | External storage access  |
+| `dictGet()`, `dictGetOrDefault()`      | Dictionary access        |
 
 <Note>
-Need a specific function that's blocked? [Contact support](mailto:support@unkey.com) to discuss your use case - we may be able to safely enable it!
+  Need a specific function that's blocked? [Contact
+  support](mailto:support@unkey.com) to discuss your use case - we may be able
+  to safely enable it!
 </Note>

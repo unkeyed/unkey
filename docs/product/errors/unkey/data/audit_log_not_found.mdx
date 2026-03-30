@@ -3,10 +3,7 @@ title: "audit_log_not_found"
 description: "The requested audit log was not found"
 ---
 
-<Danger>
-err:unkey:data:audit_log_not_found
-</Danger>
-
+<Danger>err:unkey:data:audit_log_not_found</Danger>
 
 ```json Example
 {
@@ -27,6 +24,7 @@ err:unkey:data:audit_log_not_found
 This error occurs when you're trying to retrieve or operate on a specific audit log entry that doesn't exist in the Unkey system. Audit logs record important actions and events that occur within your workspace.
 
 Common scenarios that trigger this error:
+
 - Using an incorrect audit log ID
 - Requesting an audit log entry that has been deleted or expired
 - Trying to access audit logs from a different workspace
@@ -70,5 +68,6 @@ curl -X POST https://api.unkey.com/v2/audit.listLogs \
 - **Permission issues**: Trying to access logs you don't have permission to view
 
 ## Related Errors
+
 - [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to access audit logs
 - [err:unkey:data:workspace_not_found](./workspace_not_found) - When the requested workspace doesn't exist

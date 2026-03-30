@@ -1,0 +1,95 @@
+---
+title: APIs
+description: An API is a logical container that groups related keys, configuration, and analytics within your workspace.
+---
+
+An API is a container for related API keys. It doesn't represent a running service or HTTP endpoint. Instead, it provides a boundary for organizing keys by product, environment, or tier.
+
+Every key belongs to exactly one API. When you create a key, you specify which API it belongs to by passing an `apiId`.
+
+## When to create separate APIs
+
+Use multiple APIs when you need independent key prefixes, permissions, or analytics boundaries.
+
+| Strategy       | Example API names            | Why                                                    |
+| -------------- | ---------------------------- | ------------------------------------------------------ |
+| By product     | `payments-api`, `search-api` | Different key prefixes and permission sets per product |
+| By environment | `production`, `staging`      | Separate keys and usage tracking per stage             |
+| By tier        | `free-tier`, `enterprise`    | Different default rate limits per plan                 |
+
+A single API works fine if all your keys share the same configuration and you filter by metadata or tags instead.
+
+## Create an API
+
+1. Navigate to **APIs** in the sidebar.
+2. Click **Create API**.
+3. Enter a name for your API.
+
+Unkey generates a unique `api_xxx` identifier and a keyspace for the API. You use this identifier when creating keys and querying analytics.
+
+## API settings
+
+Each API exposes configuration through its settings page.
+
+| Setting              | Description                                                                                                                              |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Name                 | Human-readable label shown in the dashboard                                                                                              |
+| Default prefix       | Prefix prepended to every key created in this API (for example, `sk_live`)                                                               |
+| Default bytes        | Number of random bytes used to generate new keys (default: 16)                                                                           |
+| Store encrypted keys | When enabled, Unkey stores an encrypted copy of each key so it can be recovered later. See [Recovering keys](/security/recovering-keys). |
+| IP whitelist         | Restrict key verification to specific IP addresses. See [IP whitelist](/platform/apis/features/whitelist).                               |
+
+## Keyspace
+
+Every API has a keyspace (internally called `key_auth`). The keyspace is the storage and validation boundary for all keys in that API. When Sentinel or the verification endpoint receives a key, it resolves the keyspace by key prefix and validates the key against that keyspace's configuration.
+
+The keyspace stores:
+
+| Property               | Description                                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ |
+| `id`                   | Unique identifier (`ks_xxx`), used in Sentinel policies and analytics queries                          |
+| `default_prefix`       | Prefix for new keys (for example, `sk_live`). The prefix appears before the random portion of the key. |
+| `default_bytes`        | Number of random bytes per key (default: 16, producing a 24-character base58 string)                   |
+| `store_encrypted_keys` | Whether to store a recoverable encrypted copy of each key                                              |
+| `size_approx`          | Approximate number of live keys in this keyspace                                                       |
+
+Keyspace IDs appear in analytics queries as `key_space_id` and in Sentinel configuration when connecting a keyspace to a deployment.
+
+### Key format
+
+Each key is composed of a prefix and a random portion:
+
+```
+sk_live_abc123def456ghi789
+└─────┘ └──────────────────┘
+ prefix   random (base58-encoded)
+```
+
+The prefix is optional but recommended. It makes keys visually identifiable and lets Unkey route verification requests to the correct keyspace without a database lookup.
+
+## Delete an API
+
+Deleting an API permanently removes the API, its keyspace, and all associated keys. This action cannot be undone.
+
+<Warning>
+  Delete protection prevents accidental deletion. Disable it in the API settings
+  before deleting.
+</Warning>
+
+## Constraints
+
+| Limit                 | Value          |
+| --------------------- | -------------- |
+| APIs per workspace    | Varies by plan |
+| Key prefix max length | 8 characters   |
+| Default bytes range   | 16 to 32       |
+
+## Related pages
+
+| Page                                                                | Description                            |
+| ------------------------------------------------------------------- | -------------------------------------- |
+| [API key management](/platform/apis/introduction)                   | Issue, verify, and manage keys         |
+| [Rate limiting](/platform/apis/features/ratelimiting/overview)      | Per-key rate limits                    |
+| [Authorization](/platform/apis/features/authorization/introduction) | Roles and permissions                  |
+| [Analytics](/platform/analytics/overview)                           | Query verification data by keyspace    |
+| [Sentinel authentication](/platform/sentinel/authentication)        | Connect keyspaces to Sentinel policies |

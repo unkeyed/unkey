@@ -15,7 +15,11 @@ A Bun HTTP server that requires a valid API key on every request. Invalid or mis
 - [API created](https://app.unkey.com/apis) in your Unkey dashboard
 - [Bun](https://bun.sh) installed
 
-<Card title="Want to skip ahead?" icon="github" href="https://github.com/unkeyed/examples/tree/main/bun-server">
+<Card
+  title="Want to skip ahead?"
+  icon="github"
+  href="https://github.com/unkeyed/examples/tree/main/bun-server"
+>
   Clone the complete example and run it locally.
 </Card>
 
@@ -72,7 +76,7 @@ const server = Bun.serve({
         // Key is invalid, expired, rate limited, etc.
         return Response.json(
           { error: "Invalid API key", code: data.code },
-          { status: 401 }
+          { status: 401 },
         );
       }
 
@@ -113,6 +117,7 @@ curl http://localhost:3000 \
 ```
 
 You should see:
+
 ```json
 {
   "message": "Hello from protected endpoint!",
@@ -122,11 +127,13 @@ You should see:
 ```
 
 Try without a key:
+
 ```bash Test without key
 curl http://localhost:3000
 ```
 
 You'll get:
+
 ```json
 {
   "error": "Missing API key"
@@ -141,20 +148,20 @@ You'll get:
 
 After successful verification:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `valid` | `boolean` | Whether the key passed all checks |
-| `code` | `string` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
-| `keyId` | `string` | The key's unique identifier |
-| `name` | `string?` | Human-readable name of the key |
-| `meta` | `object?` | Custom metadata associated with the key |
-| `expires` | `number?` | Unix timestamp (in milliseconds) when the key will expire. (if set) |
-| `credits` | `number?` | Remaining uses (if usage limits set) |
-| `enabled` | `boolean` | Whether the key is enabled |
-| `roles` | `string[]?` | Permissions attached to the key |
-| `permissions` | `string[]?` | Permissions attached to the key |
-| `identity` | `object?` | Identity info if `externalId` was set when creating the key |
-| `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
+| Field         | Type        | Description                                                         |
+| ------------- | ----------- | ------------------------------------------------------------------- |
+| `valid`       | `boolean`   | Whether the key passed all checks                                   |
+| `code`        | `string`    | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.)            |
+| `keyId`       | `string`    | The key's unique identifier                                         |
+| `name`        | `string?`   | Human-readable name of the key                                      |
+| `meta`        | `object?`   | Custom metadata associated with the key                             |
+| `expires`     | `number?`   | Unix timestamp (in milliseconds) when the key will expire. (if set) |
+| `credits`     | `number?`   | Remaining uses (if usage limits set)                                |
+| `enabled`     | `boolean`   | Whether the key is enabled                                          |
+| `roles`       | `string[]?` | Permissions attached to the key                                     |
+| `permissions` | `string[]?` | Permissions attached to the key                                     |
+| `identity`    | `object?`   | Identity info if `externalId` was set when creating the key         |
+| `ratelimits`  | `object[]?` | Rate limit states (if rate limiting configured)                     |
 
 ## Adding routes
 
@@ -189,9 +196,12 @@ const server = Bun.serve({
     // Protected routes
     if (url.pathname.startsWith("/api/")) {
       const auth = await authenticate(req);
-      
+
       if (!auth.valid) {
-        return Response.json({ error: auth.error || "Unauthorized" }, { status: 401 });
+        return Response.json(
+          { error: auth.error || "Unauthorized" },
+          { status: 401 },
+        );
       }
 
       // Route to specific handlers
@@ -213,13 +223,25 @@ const server = Bun.serve({
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Add rate limiting" icon="gauge-high" href="/quickstart/ratelimiting/bun">
+  <Card
+    title="Add rate limiting"
+    icon="gauge-high"
+    href="/quickstart/ratelimiting/bun"
+  >
     Protect endpoints from abuse
   </Card>
-  <Card title="Set usage limits" icon="calculator" href="/apis/features/remaining">
+  <Card
+    title="Set usage limits"
+    icon="calculator"
+    href="/platform/apis/features/remaining"
+  >
     Cap total requests per key
   </Card>
-  <Card title="Add permissions" icon="user-shield" href="/apis/features/authorization/introduction">
+  <Card
+    title="Add permissions"
+    icon="user-shield"
+    href="/platform/apis/features/authorization/introduction"
+  >
     Fine-grained access control
   </Card>
   <Card title="SDK Reference" icon="book" href="/libraries/ts/api">
@@ -231,18 +253,18 @@ const server = Bun.serve({
 
 <AccordionGroup>
   <Accordion title="Getting 401 even with a valid key?">
-    - Ensure the key hasn't expired or been revoked
-    - Verify the header format: `Authorization: Bearer YOUR_KEY` (note the space)
+    - Ensure the key hasn't expired or been revoked - Verify the header format:
+    `Authorization: Bearer YOUR_KEY` (note the space)
   </Accordion>
-  
-  <Accordion title="Environment variables not loading?">
-    Bun automatically loads `.env` files. Make sure:
-    - The `.env` file is in your project root
-    - You're using `Bun.env.VAR_NAME` not `process.env.VAR_NAME`
-    - Restart the server after changing `.env`
-  </Accordion>
-  
+
+<Accordion title="Environment variables not loading?">
+  Bun automatically loads `.env` files. Make sure: - The `.env` file is in your
+  project root - You're using `Bun.env.VAR_NAME` not `process.env.VAR_NAME` -
+  Restart the server after changing `.env`
+</Accordion>
+
   <Accordion title="TypeScript errors?">
-    Run `bun init -y` to ensure you have a proper `tsconfig.json`. Bun handles TypeScript natively, no extra setup needed.
+    Run `bun init -y` to ensure you have a proper `tsconfig.json`. Bun handles
+    TypeScript natively, no extra setup needed.
   </Accordion>
 </AccordionGroup>

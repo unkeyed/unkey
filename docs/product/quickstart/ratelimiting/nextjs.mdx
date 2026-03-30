@@ -70,9 +70,7 @@ Create or update `.env.local`:
 UNKEY_ROOT_KEY="unkey_..."
 ```
 
-<Warning>
-Never commit your root key. Add `.env.local` to `.gitignore`.
-</Warning>
+<Warning>Never commit your root key. Add `.env.local` to `.gitignore`.</Warning>
 
 </Step>
 
@@ -85,16 +83,17 @@ import { Ratelimit } from "@unkey/ratelimit";
 // Create limiter instance outside the handler
 const limiter = new Ratelimit({
   rootKey: process.env.UNKEY_ROOT_KEY!,
-  namespace: "my-app",  // Group related limits
-  limit: 10,            // 10 requests...
-  duration: "60s",      // ...per minute
+  namespace: "my-app", // Group related limits
+  limit: 10, // 10 requests...
+  duration: "60s", // ...per minute
 });
 
 export async function POST(req: Request) {
   // 1. Identify the user (IP, user ID, API key, etc.)
-  const identifier = req.headers.get("x-user-id") 
-    ?? req.headers.get("x-forwarded-for") 
-    ?? "anonymous";
+  const identifier =
+    req.headers.get("x-user-id") ??
+    req.headers.get("x-forwarded-for") ??
+    "anonymous";
 
   // 2. Check the rate limit
   const { success, remaining, reset } = await limiter.limit(identifier);
@@ -109,15 +108,12 @@ export async function POST(req: Request) {
   if (!success) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
-      { status: 429, headers }
+      { status: 429, headers },
     );
   }
 
   // 4. Request allowed — do your thing
-  return NextResponse.json(
-    { message: "Hello!", remaining },
-    { headers }
-  );
+  return NextResponse.json({ message: "Hello!", remaining }, { headers });
 }
 ```
 
@@ -170,23 +166,23 @@ Wait 60 seconds and the limit resets.
 
 `limiter.limit()` returns:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `success` | `boolean` | `true` if request is allowed, `false` if rate limited |
-| `remaining` | `number` | Requests remaining in current window |
-| `reset` | `number` | Unix timestamp (ms) when the window resets |
-| `limit` | `number` | The configured limit |
+| Field       | Type      | Description                                           |
+| ----------- | --------- | ----------------------------------------------------- |
+| `success`   | `boolean` | `true` if request is allowed, `false` if rate limited |
+| `remaining` | `number`  | Requests remaining in current window                  |
+| `reset`     | `number`  | Unix timestamp (ms) when the window resets            |
+| `limit`     | `number`  | The configured limit                                  |
 
 ## Choosing an identifier
 
-The identifier determines *who* gets rate limited. Common choices:
+The identifier determines _who_ gets rate limited. Common choices:
 
-| Identifier | Use case | Example |
-|------------|----------|---------|
-| User ID | Authenticated users | `req.auth.userId` |
-| API key | Per-key limits | `req.headers.get("x-api-key")` |
+| Identifier | Use case                   | Example                              |
+| ---------- | -------------------------- | ------------------------------------ |
+| User ID    | Authenticated users        | `req.auth.userId`                    |
+| API key    | Per-key limits             | `req.headers.get("x-api-key")`       |
 | IP address | Anonymous/public endpoints | `req.headers.get("x-forwarded-for")` |
-| Combo | Extra specificity | `${userId}:${endpoint}` |
+| Combo      | Extra specificity          | `${userId}:${endpoint}`              |
 
 ## Creating a reusable limiter
 
@@ -218,11 +214,11 @@ import { authLimiter } from "@/lib/ratelimit";
 export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
   const { success } = await authLimiter.limit(ip);
-  
+
   if (!success) {
     return Response.json({ error: "Too many login attempts" }, { status: 429 });
   }
-  
+
   // Handle login...
 }
 ```
@@ -230,13 +226,21 @@ export async function POST(req: Request) {
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="How it works" icon="bolt" href="/ratelimiting/modes">
+  <Card title="How it works" icon="bolt" href="/platform/ratelimiting/modes">
     Understand the rate limiting architecture
   </Card>
-  <Card title="Per-user overrides" icon="sliders" href="/ratelimiting/overrides">
+  <Card
+    title="Per-user overrides"
+    icon="sliders"
+    href="/platform/ratelimiting/overrides"
+  >
     Give specific users higher limits
   </Card>
-  <Card title="SDK Reference" icon="book" href="/libraries/ts/ratelimit/ratelimit">
+  <Card
+    title="SDK Reference"
+    icon="book"
+    href="/libraries/ts/ratelimit/ratelimit"
+  >
     All configuration options
   </Card>
   <Card title="Add API key auth" icon="key" href="/quickstart/apis/nextjs">
@@ -248,19 +252,19 @@ export async function POST(req: Request) {
 
 <AccordionGroup>
   <Accordion title="Rate limit not working?">
-    - Check that `UNKEY_ROOT_KEY` is set in `.env.local`
-    - Verify your root key has `ratelimit.*.limit` permission
-    - Make sure you're using the same identifier each request
-    - Restart the dev server after changing `.env.local`
+    - Check that `UNKEY_ROOT_KEY` is set in `.env.local` - Verify your root key
+    has `ratelimit.*.limit` permission - Make sure you're using the same
+    identifier each request - Restart the dev server after changing `.env.local`
   </Accordion>
-  
-  <Accordion title="Getting network errors?">
-    - Unkey's SDK retries failed requests automatically
-    - If errors persist, check [status.unkey.com](https://status.unkey.com)
-    - Check [status.unkey.com](https://status.unkey.com) if issues persist
-  </Accordion>
-  
+
+<Accordion title="Getting network errors?">
+  - Unkey's SDK retries failed requests automatically - If errors persist, check
+  [status.unkey.com](https://status.unkey.com) - Check
+  [status.unkey.com](https://status.unkey.com) if issues persist
+</Accordion>
+
   <Accordion title="Want different limits per route?">
-    Create multiple `Ratelimit` instances with different namespaces and limits. Each namespace tracks limits independently.
+    Create multiple `Ratelimit` instances with different namespaces and limits.
+    Each namespace tracks limits independently.
   </Accordion>
 </AccordionGroup>
