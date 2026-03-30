@@ -146,8 +146,10 @@ export async function changeUserTier(keyId: string, newTier: Tier) {
         }
       : {
           // Remove credits for unlimited tier
-          remaining: null,
-          refill: null,
+          credits: {
+            remaining: null,
+            refill: null,
+          },
         }),
 
     // Update rate limits
