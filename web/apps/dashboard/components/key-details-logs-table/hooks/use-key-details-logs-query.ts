@@ -26,36 +26,19 @@ export function useKeyDetailsLogsQuery({
   pollIntervalMs = 5000,
   startPolling = false,
 }: UseKeyDetailsLogsQueryParams) {
-  const [historicalLogsMap, setHistoricalLogsMap] = useState(
-    () => new Map<string, KeyDetailsLog>(),
-  );
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, KeyDetailsLog>());
-  const [totalCount, setTotalCount] = useState(0);
 
   const { filters } = useFilters();
   const queryClient = trpc.useUtils();
   const { queryTime: timestamp } = useQueryTime();
 
+  const activeRealtimeLogsMap = useMemo(() => {
+    return startPolling ? realtimeLogsMap : new Map<string, KeyDetailsLog>();
+  }, [startPolling, realtimeLogsMap]);
+
   const realtimeLogs = useMemo(() => {
-    return sortLogs(Array.from(realtimeLogsMap.values()));
-  }, [realtimeLogsMap]);
-
-  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
-
-  // Combined logs for rendering
-  const logs = useMemo(() => {
-    // First get all realtime logs
-    const combinedLogs = [...realtimeLogs];
-
-    // Then add historical logs that aren't already in realtime
-    for (const log of historicalLogs) {
-      if (!realtimeLogsMap.has(log.request_id)) {
-        combinedLogs.push(log);
-      }
-    }
-
-    return sortLogs(combinedLogs);
-  }, [realtimeLogs, historicalLogs, realtimeLogsMap]);
+    return sortLogs(Array.from(activeRealtimeLogsMap.values()));
+  }, [activeRealtimeLogsMap]);
 
   const queryParams = useMemo(() => {
     const params: KeyDetailsLogsPayload = {
@@ -137,6 +120,43 @@ export function useKeyDetailsLogsQuery({
     refetchOnWindowFocus: false,
   });
 
+  // Derive historical logs map from query data
+  const historicalLogsMap = useMemo(() => {
+    const map = new Map<string, KeyDetailsLog>();
+    if (logData) {
+      logData.pages.forEach((page) => {
+        page.logs.forEach((log) => {
+          map.set(log.request_id, log);
+        });
+      });
+    }
+    return map;
+  }, [logData]);
+
+  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
+
+  // Combined logs for rendering
+  const logs = useMemo(() => {
+    // First get all realtime logs
+    const combinedLogs = [...realtimeLogs];
+
+    // Then add historical logs that aren't already in realtime
+    for (const log of historicalLogs) {
+      if (!activeRealtimeLogsMap.has(log.request_id)) {
+        combinedLogs.push(log);
+      }
+    }
+
+    return sortLogs(combinedLogs);
+  }, [realtimeLogs, historicalLogs, activeRealtimeLogsMap]);
+
+  const totalCount = useMemo(() => {
+    if (logData && logData.pages.length > 0) {
+      return logData.pages[0].total;
+    }
+    return 0;
+  }, [logData]);
+
   // Query for new logs (polling)
   const pollForNewLogs = useCallback(async () => {
     try {
@@ -197,30 +217,6 @@ export function useKeyDetailsLogsQuery({
       return () => clearInterval(interval);
     }
   }, [startPolling, pollForNewLogs, pollIntervalMs]);
-
-  // Update historical logs effect
-  useEffect(() => {
-    if (logData) {
-      const newMap = new Map<string, KeyDetailsLog>();
-      logData.pages.forEach((page) => {
-        page.logs.forEach((log) => {
-          newMap.set(log.request_id, log);
-        });
-      });
-      setHistoricalLogsMap(newMap);
-
-      if (logData.pages.length > 0) {
-        setTotalCount(logData.pages[0].total);
-      }
-    }
-  }, [logData]);
-
-  // Reset realtime logs effect
-  useEffect(() => {
-    if (!startPolling) {
-      setRealtimeLogsMap(new Map());
-    }
-  }, [startPolling]);
 
   return {
     logs,
