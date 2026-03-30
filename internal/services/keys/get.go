@@ -160,7 +160,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			session:               sess,
 			rBAC:                  s.rbac,
 			region:                s.region,
-			clickhouse:            s.clickhouse,
+			keyVerifications:      s.keyVerifications,
 			rateLimiter:           s.rateLimiter,
 			usageLimiter:          s.usageLimiter,
 			AuthorizedWorkspaceID: key.WorkspaceID,
@@ -228,7 +228,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 	kv := &KeyVerifier{
 		tags:                  []string{},
 		Key:                   key.FindKeyForVerificationRow,
-		clickhouse:            s.clickhouse,
+		keyVerifications:      s.keyVerifications,
 		rateLimiter:           s.rateLimiter,
 		usageLimiter:          s.usageLimiter,
 		AuthorizedWorkspaceID: key.WorkspaceID,

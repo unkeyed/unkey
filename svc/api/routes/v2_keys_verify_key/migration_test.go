@@ -31,10 +31,9 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 	}
 
 	verifyRoute := &handler.Handler{
-		DB:         h.DB,
-		Keys:       h.Keys,
-		Auditlogs:  h.Auditlogs,
-		ClickHouse: h.ClickHouse,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
 	}
 
 	h.Register(verifyRoute)

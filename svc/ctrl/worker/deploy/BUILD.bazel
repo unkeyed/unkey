@@ -23,6 +23,7 @@ go_library(
         "//gen/proto/vault/v1:vault",
         "//gen/rpc/vault",
         "//pkg/assert",
+        "//pkg/batch",
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",
         "//pkg/db",
