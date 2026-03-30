@@ -77,20 +77,21 @@ export const EnvVarNameCell = ({
               <HighlightMatch text={variableKey} query={searchQuery} />
             </button>
           </InfoTooltip>
-          {type === "writeonly" ? (
+          {type === "writeonly" && (
             <Badge
               className="px-1.5 py-0 rounded-md h-5 text-[11px] font-medium pointer-events-none"
               variant="warning"
             >
               Sensitive
             </Badge>
-          ) : note ? (
+          )}
+          {note && (
             <InfoTooltip content={note} position={{ side: "top" }}>
               <span className="shrink-0 text-gray-10">
                 <Note3 iconSize="md-medium" className="mt-0.5" />
               </span>
             </InfoTooltip>
-          ) : null}
+          )}
         </div>
         <div className="text-[13px] mt-1 text-gray-10 capitalize">{environmentName}</div>
       </div>
