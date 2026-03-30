@@ -1,14 +1,11 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDeployment } from "../layout-provider";
 import {
   COLLAPSE_THRESHOLD,
-  DEFAULT_NODE_HEIGHT,
-  DEFAULT_NODE_WIDTH,
   type DeploymentNode,
   InfiniteCanvas,
-  type InstanceNode as InstanceNodeType,
   InternalDevTreeGenerator,
   LiveIndicator,
   NodeDetailsPanel,
@@ -73,34 +70,7 @@ export function DeploymentNetworkView({
     }
   }, [defaultTree]);
 
-  const { visibleTree, sentinelChildrenMap } = useMemo(() => {
-    const map = new Map<string, InstanceNodeType[]>();
-
-    const originNode = currentTree as OriginNodeType;
-    const newChildren = (originNode.children ?? []).map((sentinel) => {
-      // Required for narrowing down the type. There is no way children of originNode not being SentinelNode
-      if (!isSentinelNode(sentinel)) {
-        return sentinel;
-      }
-
-      const instanceChildren = sentinel.children ?? [];
-      map.set(sentinel.id, instanceChildren);
-
-      const isCollapsed = collapsedSentinelIds.has(sentinel.id);
-      const exceedsThreshold = instanceChildren.length > COLLAPSE_THRESHOLD;
-
-      if (isCollapsed && exceedsThreshold) {
-        return { ...sentinel, children: instanceChildren.slice(0, 1) };
-      }
-
-      return sentinel;
-    });
-
-    return {
-      visibleTree: { ...originNode, children: newChildren },
-      sentinelChildrenMap: map,
-    };
-  }, [currentTree, collapsedSentinelIds]);
+  const visibleTree = currentTree as OriginNodeType;
 
   const renderDeploymentNode = useCallback(
     (node: DeploymentNode, parent?: DeploymentNode): React.ReactNode => {
@@ -128,42 +98,14 @@ export function DeploymentNetworkView({
           throw new Error("Instance node requires parent sentinel");
         }
         if (collapsedSentinelIds.has(parent.id)) {
-          const instances = sentinelChildrenMap.get(parent.id) ?? [];
-          const totalLayers = instances.length;
-          const step = 10;
-          const frontOffset = (totalLayers - 1) * step;
-          // pointer-events-none: stacked instances are not individually interactive
-          // users must expand the sentinel first via its toggle button
           return (
-            <div
-              className="relative pointer-events-none"
-              style={{
-                height: frontOffset + DEFAULT_NODE_HEIGHT,
-                width: frontOffset + DEFAULT_NODE_WIDTH,
-              }}
-            >
-              {instances
-                // We render the first child below as the first card thats why we drop the first one here
-                .slice(1)
-                .reverse()
-                .map((inst, i) => (
-                  <div key={inst.id} className="absolute" style={{ top: i * step, left: i * step }}>
-                    <InstanceNode
-                      node={inst}
-                      flagCode={parent.metadata.flagCode}
-                      deploymentId={deployment.id}
-                      stacked
-                    />
-                  </div>
-                ))}
-              <div className="absolute" style={{ top: frontOffset, left: frontOffset }}>
-                <InstanceNode
-                  node={node}
-                  flagCode={parent.metadata.flagCode}
-                  deploymentId={deployment.id}
-                  stacked
-                />
-              </div>
+            <div className="invisible">
+              <InstanceNode
+                node={node}
+                flagCode={parent.metadata.flagCode}
+                deploymentId={deployment.id}
+                stacked
+              />
             </div>
           );
         }
@@ -180,7 +122,7 @@ export function DeploymentNetworkView({
       const _exhaustive: never = node;
       return _exhaustive;
     },
-    [deployment.id, collapsedSentinelIds, toggleSentinel, isShowingSkeleton, sentinelChildrenMap],
+    [deployment.id, collapsedSentinelIds, toggleSentinel, isShowingSkeleton],
   );
 
   return (
@@ -209,9 +151,12 @@ export function DeploymentNetworkView({
         nodeSpacing={{ x: 75, y: 100 }}
         onNodeClick={isShowingSkeleton ? undefined : (node) => setSelectedNode(node)}
         renderNode={renderDeploymentNode}
-        renderConnection={(path, parent, child) => (
-          <TreeConnectionLine key={`${parent.id}-${child.id}`} path={path} />
-        )}
+        renderConnection={(path, parent, child) => {
+          if (isSentinelNode(parent) && collapsedSentinelIds.has(parent.id)) {
+            return null;
+          }
+          return <TreeConnectionLine key={`${parent.id}-${child.id}`} path={path} />;
+        }}
       />
     </InfiniteCanvas>
   );

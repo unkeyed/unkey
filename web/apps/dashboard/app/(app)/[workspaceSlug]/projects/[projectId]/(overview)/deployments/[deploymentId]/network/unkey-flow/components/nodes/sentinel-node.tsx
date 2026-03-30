@@ -63,11 +63,11 @@ export function SentinelNode({
       {instances > COLLAPSE_THRESHOLD && onToggleCollapse && (
         <button
           onClick={onToggleCollapse}
-          className="mt-2 flex items-center gap-1.5 border border-grayA-4 bg-grayA-2 hover:bg-grayA-3 pl-2 pr-2.5 py-1 rounded-full text-xs text-gray-11 font-medium transition-colors shadow-sm"
+          className="mt-2 mb-5 flex items-center gap-1.5 border border-grayA-4 bg-grayA-2 hover:bg-grayA-3 pl-2 pr-2.5 py-1 rounded-full text-xs text-gray-11 font-medium transition-colors shadow-sm"
           type="button"
         >
           <Layers3 iconSize="sm-regular" className="text-gray-9" />
-          <span className="w-7 text-center">{isCollapsed ? "Show" : "Hide"}</span> instances
+          <span>{isCollapsed ? `Show ${instances}` : "Hide"}</span> instances
           {isCollapsed ? (
             <ChevronDown iconSize="sm-regular" className="text-gray-9" />
           ) : (
