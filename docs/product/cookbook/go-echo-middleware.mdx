@@ -223,7 +223,7 @@ func main() {
 
 Create configurable middleware:
 
-````go
+```go
 type AuthConfig struct {
     HeaderName string
     Prefix     string
@@ -293,6 +293,7 @@ e.GET("/api/public", func(c echo.Context) error {
         "message": "Anonymous",
     })
 }, UnkeyAuthWithConfig(AuthConfig{Optional: true}))
+```
 
 ## Group-Level Middleware
 
@@ -311,7 +312,7 @@ public.GET("/status", statusHandler)
 protected := v1.Group("/protected")
 protected.Use(RequirePermission("data:read"))
 protected.GET("/data", dataHandler)
-````
+```
 
 ## Testing
 
