@@ -212,6 +212,8 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 					},
 					Labels: labels.New().
 						WorkspaceID(sentinel.GetWorkspaceId()).
+						ProjectID(sentinel.GetProjectId()).
+						AppID(sentinel.GetAppId()).
 						EnvironmentID(sentinel.GetEnvironmentId()).
 						SentinelID(sentinel.GetSentinelId()).
 						ComponentSentinel(),
