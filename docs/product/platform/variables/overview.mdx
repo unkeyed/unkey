@@ -9,18 +9,44 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 Variables are encrypted key-value pairs that Unkey injects into your application as environment variables at runtime. Each variable is scoped to a specific [environment](/environments/overview), so production and preview can have different values.
 
+You manage variables from the **Environment Variables** tab in your project dashboard.
+
 ## Create variables
 
-1. Open your project's **Settings** tab.
-2. Select the environment (production or preview).
-3. Under **Environment variables**, click **Add variable**.
-4. Enter the key and value.
-5. Choose the visibility type.
-6. Save the changes.
+1. Open your project and go to the **Environment Variables** tab.
+2. Click **Add Environment Variable** to open the slide panel.
+3. Enter one or more key-value pairs.
+4. Select the target environment, or choose **All Environments** to apply the variable everywhere.
+5. Toggle **Secret** if the value should be write-only.
+6. Click **Save**.
 
-You can also paste multiple variables in bulk or drag and drop a `.env` file.
+### Bulk import
 
-{/* TODO: screenshot of variables UI */}
+You can add multiple variables at once:
+
+- **Paste** — paste content in `KEY=value` format (one per line) directly into the form. Unkey parses each line into a separate entry.
+- **Drag and drop** — drag a `.env` file onto the form to import all variables from the file.
+- **File picker** — click the import button and select a `.env` file from your file system.
+
+### Form persistence
+
+If you close the panel or navigate away before saving, Unkey preserves your unsaved entries for the current session. When you reopen the panel, your draft is restored so you can pick up where you left off. A leave-prevention prompt also appears if you attempt to refresh or close the browser tab while the panel is open.
+
+## Search, filter, and sort
+
+The toolbar above the variable list lets you:
+
+- **Search** — filter variables by name using the search field.
+- **Filter by environment** — show only variables for a specific environment, or select **All Environments** to see everything.
+- **Sort** — order variables by **Last Updated** or **Name A-Z**.
+
+## Edit and delete variables
+
+Click any variable row to open the inline editor. You can update the key, value, or description. Use the action menu on each row to delete a variable.
+
+<Note>
+  Unkey validates variable names for uniqueness within the same environment. If a variable with the same key already exists in the target environment, the form shows an error.
+</Note>
 
 ## Visibility types
 
@@ -32,8 +58,6 @@ Each variable has a visibility type that controls whether the value can be read 
 | **Write-only** | The value is hidden after saving and cannot be retrieved from the dashboard |
 
 Use write-only for secrets like API keys, database passwords, and tokens. Use recoverable for non-sensitive configuration like feature flags, service URLs, and port numbers.
-
-{/* TODO: screenshot showing visibility type selection */}
 
 <Tip>
   All variables are encrypted at rest regardless of visibility type. The distinction only affects whether the value is displayed in the dashboard.
@@ -49,11 +73,11 @@ Variables are tied to a specific environment. This lets you use different config
 | `LOG_LEVEL`      | `warn`                             | `debug`                           |
 | `FEATURE_V2_UI`  | `false`                            | `true`                            |
 
+When adding a variable, you can select **All Environments** to set the same key-value pair across every environment in one step.
+
 ## Variables and deployments
 
-Deployments are immutable. Variable changes don't affect running deployments. To apply updated variables, trigger a new deployment.
-
-This means you can update variables safely without worrying about side effects on running instances. The new values only take effect when the next deployment starts.
+Deployments are immutable. Variable changes don't affect running deployments. To apply updated variables, trigger a new deployment. A redeploy banner appears at the top of the page after you make changes as a reminder.
 
 ## Next steps
 

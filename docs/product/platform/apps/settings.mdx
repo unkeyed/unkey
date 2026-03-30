@@ -182,18 +182,9 @@ Keyspace authentication is the only policy type configurable from the dashboard.
 
 ## Environment variables
 
-Encrypted key-value pairs injected into your instances at runtime. Variables are scoped to a specific environment, so production and preview can have different values.
+Environment variables have moved to their own dedicated **Environment Variables** tab in the project dashboard. You can search, filter by environment, sort, and bulk-import variables from `.env` files.
 
-Each variable has a visibility type:
-
-| Type          | Description                                                                  |
-| ------------- | ---------------------------------------------------------------------------- |
-| Recoverable   | The value can be read back from the dashboard after saving                    |
-| Write-only    | The value is hidden after saving and cannot be retrieved from the dashboard   |
-
-Use write-only for secrets like API keys and database passwords. Use recoverable for non-sensitive configuration like feature flags and service URLs.
-
-You can add variables one at a time, paste them in bulk, or drag and drop a `.env` file. See [Variables](/platform/variables/overview) for details.
+See [Variables](/platform/variables/overview) for full details on creating, editing, and managing variables.
 
 ## Networking settings
 
