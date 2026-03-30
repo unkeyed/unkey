@@ -7,7 +7,7 @@ description: "Key last-used tracking, deployment approvals, runtime environment 
 
 ### Key last-used tracking
 
-You can now see when each API key was last used for verification. A new `lastUsedAt` field is returned by the `keys.getKey`, `keys.whoami`, and `apis.listKeys` [v2 API](/api-reference/v2/overview) endpoints as a Unix timestamp in milliseconds. The value is approximate, accurate to within a few minutes. Use it to identify stale keys and clean up unused credentials.
+You can now see when each API key was last used for verification. A new `lastUsedAt` field is returned by the `keys.getKey`, `keys.whoami`, and `apis.listKeys` [v2 API](/api-reference/overview) endpoints as a Unix timestamp in milliseconds. The value is approximate, accurate to within a few minutes. Use it to identify stale keys and clean up unused credentials.
 
 ### Deployment approval for external contributors
 

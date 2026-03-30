@@ -124,8 +124,8 @@
                   {
                     "group": "Migrations",
                     "pages": [
-                      "platform/migrations/introduction",
-                      "platform/migrations/keys"
+                      "platform/apis/migrations/introduction",
+                      "platform/apis/migrations/keys"
                     ]
                   }
                 ]
@@ -426,14 +426,6 @@
                   "cli/analytics/get-verifications"
                 ]
               }
-            ]
-          },
-          {
-            "group": "Migrations",
-            "icon": "arrows-rotate",
-            "pages": [
-              "migrations/introduction",
-              "migrations/keys"
             ]
           },
           {
