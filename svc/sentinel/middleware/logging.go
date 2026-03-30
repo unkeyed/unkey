@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -14,7 +14,7 @@ import (
 
 // WithSentinelLogging logs completed sentinel requests to ClickHouse.
 // Timing/response data populated by handler via context during proxy execution.
-func WithSentinelLogging(ch clickhouse.ClickHouse, clk clock.Clock, sentinelID, region string) zen.Middleware {
+func WithSentinelLogging(buf *batch.BatchProcessor[schema.SentinelRequest], clk clock.Clock, sentinelID, region string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			// nolint:exhaustruct
@@ -37,7 +37,7 @@ func WithSentinelLogging(ch clickhouse.ClickHouse, clk clock.Clock, sentinelID, 
 
 				req := s.Request()
 
-				ch.BufferSentinelRequest(schema.SentinelRequest{
+				buf.Buffer(schema.SentinelRequest{
 					RequestID:       tracking.RequestID,
 					Time:            tracking.StartTime.UnixMilli(),
 					WorkspaceID:     tracking.Deployment.WorkspaceID,

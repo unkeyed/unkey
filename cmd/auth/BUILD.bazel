@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "auth",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/cmd/auth",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/cli",
+        "@org_golang_x_term//:term",
+    ],
+)

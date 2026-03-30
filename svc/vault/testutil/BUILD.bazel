@@ -8,9 +8,9 @@ go_library(
     deps = [
         "//gen/proto/vault/v1/vaultv1connect",
         "//pkg/dockertest",
-        "//svc/vault/internal/keys",
         "//svc/vault/internal/storage",
         "//svc/vault/internal/vault",
+        "//svc/vault/keys",
         "@com_connectrpc_connect//:connect",
         "@com_github_stretchr_testify//require",
     ],

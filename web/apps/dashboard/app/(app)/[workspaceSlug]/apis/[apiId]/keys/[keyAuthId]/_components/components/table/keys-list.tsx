@@ -184,7 +184,7 @@ export const KeysList = ({
                       handleLinkClick(key.id);
                     }}
                   >
-                    <div className="font-mono font-medium truncate text-brand-12">
+                    <div className="font-mono font-medium truncate text-gray-12">
                       {shortenId(key.id)}
                     </div>
                   </Link>
@@ -228,11 +228,7 @@ export const KeysList = ({
         width: "15%", // Keep at 15%
         render: (key) => {
           return (
-            <LastUsedCell
-              keyId={key.id}
-              keyAuthId={keyspaceId}
-              isSelected={selectedKey?.id === key.id}
-            />
+            <LastUsedCell lastUsedAt={key.last_used_at} isSelected={selectedKey?.id === key.id} />
           );
         },
       },

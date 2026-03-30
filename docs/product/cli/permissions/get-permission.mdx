@@ -1,0 +1,82 @@
+---
+title: "get-permission"
+description: "Retrieve details about a specific permission"
+---
+
+Retrieve details about a specific permission including its name, description, and metadata.
+
+Use this to inspect a permission's current state, verify its configuration, or look up its name and description. The returned data includes the permission's unique ID, human-readable name, URL-safe slug, and optional description.
+
+**Required permissions:**
+- `rbac.*.read_permission` (to read permissions in any workspace)
+
+<Note>
+See the [API reference](/api-reference/v2/permissions/get-permission) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api permissions get-permission [flags]
+```
+
+## Flags
+
+<ParamField body="--permission" type="string" required>
+The unique identifier of the permission to retrieve. Must be a valid permission ID that begins with `perm_` and exists within your workspace.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api permissions get-permission --permission=perm_1234567890abcdef
+```
+```bash JSON output for scripting
+unkey api permissions get-permission --permission=perm_1234567890abcdef --output=json
+```
+```bash Pipe the permission name to another command
+PERM_NAME=$(unkey api permissions get-permission --permission=perm_1234567890abcdef --output=json | jq -r '.data.name')
+echo "Permission name: $PERM_NAME"
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the permission details:
+
+```
+req_1234abcd (took 38ms)
+
+{
+  "id": "perm_1234567890abcdef",
+  "name": "documents.read",
+  "slug": "documents-read",
+  "description": "Allows reading document resources"
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_1234abcd"
+  },
+  "data": {
+    "id": "perm_1234567890abcdef",
+    "name": "documents.read",
+    "slug": "documents-read",
+    "description": "Allows reading document resources"
+  }
+}
+```

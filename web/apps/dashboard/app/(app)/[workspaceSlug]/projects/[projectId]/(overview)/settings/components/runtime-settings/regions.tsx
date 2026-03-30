@@ -15,9 +15,10 @@ import { z } from "zod";
 import { RegionFlag } from "../../../../components/region-flag";
 import { EnvironmentContext, useEnvironmentSettings } from "../../environment-provider";
 import { useMultiEnvironmentSettings } from "../../hooks/use-multi-environment-settings";
-import { EnvironmentSliderSection } from "../shared/environment-slider-section";
+import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
+import { SettingDescription, SettingField } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
-import { SettingDescription } from "../shared/setting-description";
+import { EnvironmentSliderSection } from "../shared/resource-slider";
 
 export const Regions = () => {
   const envContext = useContext(EnvironmentContext);
@@ -144,6 +145,7 @@ type RegionsSingleFormValues = z.infer<typeof regionsSingleSchema>;
 
 const RegionsSingle = () => {
   const { settings, variant } = useEnvironmentSettings();
+  const updateAllEnvironments = useUpdateAllEnvironments();
   const { environmentId, regions: settingsRegions } = settings;
   const defaultRegions = useMemo(() => settingsRegions.map((r) => r.name), [settingsRegions]);
 
@@ -179,7 +181,7 @@ const RegionsSingle = () => {
   );
 
   const onSubmit = async (values: RegionsSingleFormValues) => {
-    collection.environmentSettings.update(environmentId, (draft) => {
+    updateAllEnvironments((draft) => {
       const defaultReplicas = draft.regions.at(0)?.replicas ?? 1;
       draft.regions = values.regions.map((name) => {
         const existing = draft.regions.find((r) => r.name === name);
@@ -226,28 +228,30 @@ const RegionsSingle = () => {
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
-      <FormCombobox
-        optional
-        className="w-[480px]"
-        options={buildRegionComboboxOptions(unselectedRegions)}
-        value=""
-        onSelect={addRegion}
-        closeOnSelect={false}
-        placeholder={
-          currentRegions.length === 0 ? (
-            <span className="text-grayA-8 w-full text-left">Select a region</span>
-          ) : (
-            <RegionTags
-              regions={currentRegions}
-              onRemove={removeRegion}
-              canRemove={currentRegions.length > 1}
-              unschedulableRegions={unschedulableRegions}
-            />
-          )
-        }
-        searchPlaceholder="Search regions..."
-        emptyMessage={<div className="mt-2">No regions available.</div>}
-      />
+      <SettingField>
+        <FormCombobox
+          label="Region"
+          optional
+          options={buildRegionComboboxOptions(unselectedRegions)}
+          value=""
+          onSelect={addRegion}
+          closeOnSelect={false}
+          placeholder={
+            currentRegions.length === 0 ? (
+              <span className="text-grayA-8 w-full text-left">Select a region</span>
+            ) : (
+              <RegionTags
+                regions={currentRegions}
+                onRemove={removeRegion}
+                canRemove={currentRegions.length > 1}
+                unschedulableRegions={unschedulableRegions}
+              />
+            )
+          }
+          searchPlaceholder="Search regions..."
+          emptyMessage={<div className="mt-2">No regions available.</div>}
+        />
+      </SettingField>
 
       <SettingDescription>
         Traffic is routed to the nearest selected region. Changes apply on next deploy.
@@ -425,53 +429,53 @@ const RegionsDualInner = ({ production, preview }: RegionsDualInnerProps) => {
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
     >
-      <EnvironmentSliderSection label="Production">
-        <FormCombobox
-          className="w-[480px]"
-          options={buildRegionComboboxOptions(unselectedProdRegions)}
-          value=""
-          onSelect={addProdRegion}
-          closeOnSelect={false}
-          placeholder={
-            currentProdRegions.length === 0 ? (
-              <span className="text-grayA-8 w-full text-left">Select a region</span>
-            ) : (
-              <RegionTags
-                regions={currentProdRegions}
-                onRemove={removeProdRegion}
-                canRemove={currentProdRegions.length > 1}
-                unschedulableRegions={unschedulableRegions}
-              />
-            )
-          }
-          searchPlaceholder="Search regions..."
-          emptyMessage={<div className="mt-2">No regions available.</div>}
-        />
-      </EnvironmentSliderSection>
+      <SettingField>
+        <EnvironmentSliderSection label="Production">
+          <FormCombobox
+            options={buildRegionComboboxOptions(unselectedProdRegions)}
+            value=""
+            onSelect={addProdRegion}
+            closeOnSelect={false}
+            placeholder={
+              currentProdRegions.length === 0 ? (
+                <span className="text-grayA-8 w-full text-left">Select a region</span>
+              ) : (
+                <RegionTags
+                  regions={currentProdRegions}
+                  onRemove={removeProdRegion}
+                  canRemove={currentProdRegions.length > 1}
+                  unschedulableRegions={unschedulableRegions}
+                />
+              )
+            }
+            searchPlaceholder="Search regions..."
+            emptyMessage={<div className="mt-2">No regions available.</div>}
+          />
+        </EnvironmentSliderSection>
 
-      <EnvironmentSliderSection label="Preview">
-        <FormCombobox
-          className="w-[480px]"
-          options={buildRegionComboboxOptions(unselectedPreviewRegions)}
-          value=""
-          onSelect={addPreviewRegion}
-          closeOnSelect={false}
-          placeholder={
-            currentPreviewRegions.length === 0 ? (
-              <span className="text-grayA-8 w-full text-left">Select a region</span>
-            ) : (
-              <RegionTags
-                regions={currentPreviewRegions}
-                onRemove={removePreviewRegion}
-                canRemove={currentPreviewRegions.length > 1}
-                unschedulableRegions={unschedulableRegions}
-              />
-            )
-          }
-          searchPlaceholder="Search regions..."
-          emptyMessage={<div className="mt-2">No regions available.</div>}
-        />
-      </EnvironmentSliderSection>
+        <EnvironmentSliderSection label="Preview">
+          <FormCombobox
+            options={buildRegionComboboxOptions(unselectedPreviewRegions)}
+            value=""
+            onSelect={addPreviewRegion}
+            closeOnSelect={false}
+            placeholder={
+              currentPreviewRegions.length === 0 ? (
+                <span className="text-grayA-8 w-full text-left">Select a region</span>
+              ) : (
+                <RegionTags
+                  regions={currentPreviewRegions}
+                  onRemove={removePreviewRegion}
+                  canRemove={currentPreviewRegions.length > 1}
+                  unschedulableRegions={unschedulableRegions}
+                />
+              )
+            }
+            searchPlaceholder="Search regions..."
+            emptyMessage={<div className="mt-2">No regions available.</div>}
+          />
+        </EnvironmentSliderSection>
+      </SettingField>
 
       <SettingDescription>
         Traffic is routed to the nearest selected region. Changes apply on next deploy.

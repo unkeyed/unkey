@@ -70,8 +70,8 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// Always strip incoming X-Unkey-Principal header to prevent spoofing
 	req.Header.Del(engine.PrincipalHeader)
 
-	// Evaluate sentinel middleware policies
-	mw, err := engine.ParseMiddleware(deployment.SentinelConfig)
+	// Evaluate sentinel middleware policies (parsed + cached by the router service)
+	mw, err := h.RouterService.GetPolicies(ctx, deployment)
 	if err != nil {
 		return err
 	}
@@ -159,6 +159,13 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 				tracking.InstanceEnd = h.Clock.Now()
 				tracking.ResponseStatus = int32(resp.StatusCode)
 				tracking.ResponseHeaders = resp.Header
+
+				// Record upstream metrics
+				statusClass := upstreamStatusClass(resp.StatusCode)
+				upstreamResponseTotal.WithLabelValues(statusClass).Inc()
+				if !tracking.InstanceStart.IsZero() {
+					upstreamDuration.WithLabelValues(statusClass).Observe(tracking.InstanceEnd.Sub(tracking.InstanceStart).Seconds())
+				}
 
 				// Capture response body for logging
 				if resp.Body != nil {

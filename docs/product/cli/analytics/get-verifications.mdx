@@ -1,0 +1,95 @@
+---
+title: "get-verifications"
+description: "Execute custom SQL queries against your key verification analytics"
+---
+
+Execute custom SQL queries against your key verification analytics.
+
+Use this to inspect verification patterns, monitor outcomes, and build custom reports over your key usage data. Only `SELECT` queries are allowed. The response rows are dynamic -- fields vary based on your SQL `SELECT` clause and can include any combination of columns such as `time`, `outcome`, `count`, `key_id`, and more.
+
+For complete documentation including available tables, columns, data types, and query examples, see the schema reference in the API documentation.
+
+**Required permissions:**
+- `analytics.*.read_verifications` (to query verification analytics)
+
+<Note>
+See the [API reference](/api-reference/v2/analytics/query-key-verification-data) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api analytics get-verifications [flags]
+```
+
+## Flags
+
+<ParamField body="--query" type="string" required>
+SQL `SELECT` query to execute against your analytics data. Only `SELECT` queries are allowed. The query runs against the `key_verifications_v1` table, which contains columns like `time`, `key_id`, `outcome`, and more. See the API reference for the full schema.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Count valid verifications in the last 7 days
+unkey api analytics get-verifications --query="SELECT COUNT(*) as total FROM key_verifications_v1 WHERE outcome = 'VALID' AND time >= now() - INTERVAL 7 DAY"
+```
+```bash Group by key and outcome
+unkey api analytics get-verifications --query="SELECT key_id, outcome, COUNT(*) as cnt FROM key_verifications_v1 GROUP BY key_id, outcome"
+```
+```bash JSON output for scripting
+unkey api analytics get-verifications --query="SELECT outcome, COUNT(*) as total FROM key_verifications_v1 GROUP BY outcome" --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the query results:
+
+```
+req_2c9a0jf23l4k567 (took 120ms)
+
+[
+  {
+    "outcome": "VALID",
+    "count": 1234,
+    "time": 1696118400000
+  },
+  {
+    "outcome": "RATE_LIMITED",
+    "count": 56,
+    "time": 1696118400000
+  }
+]
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": [
+    {
+      "outcome": "VALID",
+      "count": 1234,
+      "time": 1696118400000
+    },
+    {
+      "outcome": "RATE_LIMITED",
+      "count": 56,
+      "time": 1696118400000
+    }
+  ]
+}
+```

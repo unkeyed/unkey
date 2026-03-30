@@ -2,6 +2,8 @@ package cluster
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -52,7 +54,6 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 	}
 
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-
 		switch msg := req.Msg.GetChange().(type) {
 		case *ctrlv1.ReportDeploymentStatusRequest_Update_:
 			{
@@ -108,27 +109,32 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 		case *ctrlv1.ReportDeploymentStatusRequest_Delete_:
 			{
-
 				deployment, err := db.Query.FindDeploymentByK8sName(ctx, tx, msg.Delete.GetK8SName())
 				if err != nil {
 					return err
 				}
 
-				err = db.Query.DeleteDeploymentInstances(ctx, tx, db.DeleteDeploymentInstancesParams{
+				if err := db.Query.DeleteDeploymentInstances(ctx, tx, db.DeleteDeploymentInstancesParams{
 					DeploymentID: deployment.ID,
 					RegionID:     region.ID,
-				})
-				if err != nil {
+				}); err != nil {
 					return err
 				}
-			}
 
+				if deployment.DesiredState == db.DeploymentsDesiredStateStandby || deployment.DesiredState == db.DeploymentsDesiredStateArchived {
+					if err := db.Query.StopDeploymentIfNoInstances(ctx, tx, db.StopDeploymentIfNoInstancesParams{
+						ID:        deployment.ID,
+						UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+					}); err != nil {
+						return err
+					}
+				}
+			}
 		}
 		return nil
 	})
 
 	return connect.NewResponse(&ctrlv1.ReportDeploymentStatusResponse{}), err
-
 }
 
 // ctrlDeploymentStatusToDbStatus maps proto instance status values to database enum values.

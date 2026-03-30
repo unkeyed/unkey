@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/unkeyed/unkey/cmd/api"
+	"github.com/unkeyed/unkey/cmd/auth"
 	"github.com/unkeyed/unkey/cmd/deploy"
 	dev "github.com/unkeyed/unkey/cmd/dev"
-	"github.com/unkeyed/unkey/cmd/frontline"
 	"github.com/unkeyed/unkey/cmd/healthcheck"
 	"github.com/unkeyed/unkey/cmd/run"
 	"github.com/unkeyed/unkey/cmd/version"
@@ -25,11 +26,12 @@ func main() {
 		Description: `Unkey CLI – deploy, run and administer Unkey services.`,
 		Version:     versioncmd.Version,
 		Commands: []*cli.Command{
+			api.Cmd(),
+			auth.Cmd,
 			run.Cmd,
 			version.Cmd,
 			deploy.Cmd,
 			healthcheck.Cmd,
-			frontline.Cmd,
 			dev.Cmd,
 		},
 	}

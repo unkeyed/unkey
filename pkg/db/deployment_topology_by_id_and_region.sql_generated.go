@@ -27,16 +27,27 @@ SELECT
     d.cpu_millicores,
     d.memory_mib,
     dt.desired_replicas,
+    dt.autoscaling_replicas_min,
+    dt.autoscaling_replicas_max,
+    dt.autoscaling_threshold_cpu,
+    dt.autoscaling_threshold_memory,
     d.desired_state,
     d.encrypted_environment_variables,
     d.command,
     d.port,
     d.shutdown_signal,
-    d.healthcheck
+    d.healthcheck,
+    d.git_commit_sha,
+    d.git_branch,
+    d.git_commit_message,
+    e.slug AS environment_slug,
+    grc.repository_full_name AS git_repo
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 INNER JOIN ` + "`" + `deployments` + "`" + ` d ON dt.deployment_id = d.id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
 INNER JOIN ` + "`" + `regions` + "`" + ` r ON dt.region_id = r.id
+INNER JOIN ` + "`" + `environments` + "`" + ` e ON d.environment_id = e.id
+LEFT JOIN ` + "`" + `github_repo_connections` + "`" + ` grc ON d.app_id = grc.app_id
 WHERE  r.name = ?
     AND dt.deployment_id = ?
 LIMIT 1
@@ -61,12 +72,21 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 	CpuMillicores                 int32                     `db:"cpu_millicores"`
 	MemoryMib                     int32                     `db:"memory_mib"`
 	DesiredReplicas               int32                     `db:"desired_replicas"`
+	AutoscalingReplicasMin        uint32                    `db:"autoscaling_replicas_min"`
+	AutoscalingReplicasMax        uint32                    `db:"autoscaling_replicas_max"`
+	AutoscalingThresholdCpu       sql.NullInt16             `db:"autoscaling_threshold_cpu"`
+	AutoscalingThresholdMemory    sql.NullInt16             `db:"autoscaling_threshold_memory"`
 	DesiredState                  DeploymentsDesiredState   `db:"desired_state"`
 	EncryptedEnvironmentVariables []byte                    `db:"encrypted_environment_variables"`
 	Command                       dbtype.StringSlice        `db:"command"`
 	Port                          int32                     `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
 	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
+	GitCommitSha                  sql.NullString            `db:"git_commit_sha"`
+	GitBranch                     sql.NullString            `db:"git_branch"`
+	GitCommitMessage              sql.NullString            `db:"git_commit_message"`
+	EnvironmentSlug               string                    `db:"environment_slug"`
+	GitRepo                       sql.NullString            `db:"git_repo"`
 }
 
 // FindDeploymentTopologyByIDAndRegion
@@ -85,16 +105,27 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //	    d.cpu_millicores,
 //	    d.memory_mib,
 //	    dt.desired_replicas,
+//	    dt.autoscaling_replicas_min,
+//	    dt.autoscaling_replicas_max,
+//	    dt.autoscaling_threshold_cpu,
+//	    dt.autoscaling_threshold_memory,
 //	    d.desired_state,
 //	    d.encrypted_environment_variables,
 //	    d.command,
 //	    d.port,
 //	    d.shutdown_signal,
-//	    d.healthcheck
+//	    d.healthcheck,
+//	    d.git_commit_sha,
+//	    d.git_branch,
+//	    d.git_commit_message,
+//	    e.slug AS environment_slug,
+//	    grc.repository_full_name AS git_repo
 //	FROM `deployment_topology` dt
 //	INNER JOIN `deployments` d ON dt.deployment_id = d.id
 //	INNER JOIN `workspaces` w ON d.workspace_id = w.id
 //	INNER JOIN `regions` r ON dt.region_id = r.id
+//	INNER JOIN `environments` e ON d.environment_id = e.id
+//	LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
 //	WHERE  r.name = ?
 //	    AND dt.deployment_id = ?
 //	LIMIT 1
@@ -115,12 +146,21 @@ func (q *Queries) FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DB
 		&i.CpuMillicores,
 		&i.MemoryMib,
 		&i.DesiredReplicas,
+		&i.AutoscalingReplicasMin,
+		&i.AutoscalingReplicasMax,
+		&i.AutoscalingThresholdCpu,
+		&i.AutoscalingThresholdMemory,
 		&i.DesiredState,
 		&i.EncryptedEnvironmentVariables,
 		&i.Command,
 		&i.Port,
 		&i.ShutdownSignal,
 		&i.Healthcheck,
+		&i.GitCommitSha,
+		&i.GitBranch,
+		&i.GitCommitMessage,
+		&i.EnvironmentSlug,
+		&i.GitRepo,
 	)
 	return i, err
 }

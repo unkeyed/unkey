@@ -321,15 +321,22 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppEnvVarsByAppAndEnvParams) ([]FindAppEnvVarsByAppAndEnvRow, error)
-	//FindAppRegionalSettingsByAppAndEnv
+	// FindAppRegionalSettingsByAppAndEnv returns per-region deployment settings
+	// including the autoscaling policy values (if attached) for snapshotting
+	// into deployment_topology at deploy time.
 	//
 	//  SELECT
 	//  	ars.region_id,
 	//  	r.name AS region_name,
 	//  	ars.replicas,
-	//  	r.can_schedule AS region_can_schedule
+	//  	r.can_schedule AS region_can_schedule,
+	//  	hap.replicas_min AS autoscaling_replicas_min,
+	//  	hap.replicas_max AS autoscaling_replicas_max,
+	//  	hap.cpu_threshold AS autoscaling_threshold_cpu,
+	//  	hap.memory_threshold AS autoscaling_threshold_memory
 	//  FROM app_regional_settings ars
 	//  JOIN regions r ON r.id = ars.region_id
+	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
 	//  WHERE ars.app_id = ?
 	//    AND ars.environment_id = ?
 	FindAppRegionalSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRegionalSettingsByAppAndEnvParams) ([]FindAppRegionalSettingsByAppAndEnvRow, error)
@@ -451,16 +458,27 @@ type Querier interface {
 	//      d.cpu_millicores,
 	//      d.memory_mib,
 	//      dt.desired_replicas,
+	//      dt.autoscaling_replicas_min,
+	//      dt.autoscaling_replicas_max,
+	//      dt.autoscaling_threshold_cpu,
+	//      dt.autoscaling_threshold_memory,
 	//      d.desired_state,
 	//      d.encrypted_environment_variables,
 	//      d.command,
 	//      d.port,
 	//      d.shutdown_signal,
-	//      d.healthcheck
+	//      d.healthcheck,
+	//      d.git_commit_sha,
+	//      d.git_branch,
+	//      d.git_commit_message,
+	//      e.slug AS environment_slug,
+	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
 	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
 	//  INNER JOIN `regions` r ON dt.region_id = r.id
+	//  INNER JOIN `environments` e ON d.environment_id = e.id
+	//  LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
 	//  WHERE  r.name = ?
 	//      AND dt.deployment_id = ?
 	//  LIMIT 1
@@ -724,18 +742,24 @@ type Querier interface {
 	//         coalesce(
 	//                 (select json_arrayagg(
 	//                      json_object(
-	//                         'id', rl.id,
-	//                         'name', rl.name,
-	//                         'key_id', rl.key_id,
-	//                         'identity_id', rl.identity_id,
-	//                         'limit', rl.limit,
-	//                         'duration', rl.duration,
-	//                         'auto_apply', rl.auto_apply
+	//                         'id', id,
+	//                         'name', name,
+	//                         'key_id', key_id,
+	//                         'identity_id', identity_id,
+	//                         'limit', `limit`,
+	//                         'duration', duration,
+	//                         'auto_apply', auto_apply
 	//                      )
 	//                  )
-	//                  from `ratelimits` rl
-	//                  where rl.key_id = k.id
-	//                     OR rl.identity_id = i.id),
+	//                  from (
+	//                      select rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
+	//                      from `ratelimits` rl
+	//                      where rl.key_id = k.id
+	//                      UNION ALL
+	//                      select rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
+	//                      from `ratelimits` rl
+	//                      where rl.identity_id = i.id
+	//                  ) as combined_rl),
 	//                 json_array()
 	//         ) as ratelimits,
 	//
@@ -865,17 +889,24 @@ type Querier interface {
 	//      COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
 	//              JSON_OBJECT(
-	//                  'id', rl.id,
-	//                  'name', rl.name,
-	//                  'key_id', rl.key_id,
-	//                  'identity_id', rl.identity_id,
-	//                  'limit', rl.`limit`,
-	//                  'duration', rl.duration,
-	//                  'auto_apply', rl.auto_apply = 1
+	//                  'id', id,
+	//                  'name', name,
+	//                  'key_id', key_id,
+	//                  'identity_id', identity_id,
+	//                  'limit', `limit`,
+	//                  'duration', duration,
+	//                  'auto_apply', auto_apply = 1
 	//              )
 	//          )
-	//          FROM ratelimits rl
-	//          WHERE rl.key_id = k.id OR rl.identity_id = i.id),
+	//          FROM (
+	//              SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
+	//              FROM ratelimits rl
+	//              WHERE rl.key_id = k.id
+	//              UNION ALL
+	//              SELECT rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
+	//              FROM ratelimits rl
+	//              WHERE rl.identity_id = i.id
+	//          ) AS combined_rl),
 	//          JSON_ARRAY()
 	//      ) as ratelimits
 	//
@@ -1575,10 +1606,18 @@ type Querier interface {
 	//      deployment_id,
 	//      region_id,
 	//      desired_replicas,
+	//      autoscaling_replicas_min,
+	//      autoscaling_replicas_max,
+	//      autoscaling_threshold_cpu,
+	//      autoscaling_threshold_memory,
 	//      desired_status,
 	//      version,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2057,13 +2096,18 @@ type Querier interface {
 	// Used by WatchDeployments to stream deployment state changes to krane agents.
 	//
 	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
 	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.status, d.created_at, d.updated_at,
-	//      w.k8s_namespace
+	//      w.k8s_namespace,
+	//      e.slug AS environment_slug,
+	//      r.name AS region_name,
+	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
 	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
 	//  INNER JOIN `regions` r ON dt.region_id = r.id
+	//  INNER JOIN `environments` e ON d.environment_id = e.id
+	//  LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
 	//  WHERE r.id = ? AND dt.version > ?
 	//  ORDER BY dt.version ASC
 	//  LIMIT ?
@@ -2080,7 +2124,7 @@ type Querier interface {
 	// Used during bootstrap to stream all running deployments to krane.
 	//
 	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
 	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace
 	//  FROM `deployment_topology` dt
@@ -2641,11 +2685,20 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	SoftDeleteWorkspace(ctx context.Context, db DBTX, arg SoftDeleteWorkspaceParams) (sql.Result, error)
+	//StopDeploymentIfNoInstances
+	//
+	//  UPDATE deployments d
+	//  LEFT JOIN instances i ON i.deployment_id = d.id
+	//  SET d.status = 'stopped', d.updated_at = ?
+	//  WHERE d.id = ?
+	//    AND d.desired_state IN ('standby', 'archived')
+	//    AND i.deployment_id IS NULL
+	StopDeploymentIfNoInstances(ctx context.Context, db DBTX, arg StopDeploymentIfNoInstancesParams) error
 	//SumAllocatedResourcesByWorkspaceID
 	//
 	//  SELECT
-	//    CAST(COALESCE(SUM(d.`cpu_millicores` * dt.`desired_replicas`), 0) AS SIGNED) AS `total_cpu_millicores`,
-	//    CAST(COALESCE(SUM(d.`memory_mib` * dt.`desired_replicas`), 0) AS SIGNED) AS `total_memory_mib`
+	//    CAST(COALESCE(SUM(d.`cpu_millicores` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_cpu_millicores`,
+	//    CAST(COALESCE(SUM(d.`memory_mib` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_memory_mib`
 	//  FROM `deployment_topology` dt
 	//  JOIN `deployments` d ON d.`id` = dt.`deployment_id`
 	//  WHERE dt.`workspace_id` = ?

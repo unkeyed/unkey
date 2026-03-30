@@ -15,7 +15,7 @@ import { cva } from "class-variance-authority";
 import * as React from "react";
 
 const comboboxTriggerVariants = cva(
-  "flex min-h-9 w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8 text-grayA-12 items-center justify-between",
+  "flex h-9 w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8 text-grayA-12 items-center justify-between",
   {
     variants: {
       variant: {
@@ -84,6 +84,8 @@ type ComboboxProps = {
   closeOnSelect?: boolean;
   /** Allow typing a custom value that isn't in the options list */
   creatable?: boolean;
+  /** Hide the chevron icon in the trigger */
+  hideChevron?: boolean;
   /** Additional accessibility attributes */
   "aria-describedby"?: string;
   "aria-invalid"?: boolean;
@@ -106,6 +108,7 @@ export function Combobox({
   variant = "default",
   id,
   creatable = false,
+  hideChevron = false,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
   "aria-required": ariaRequired,
@@ -119,12 +122,20 @@ export function Combobox({
     [options, value],
   );
 
+  // When creatable and the current value isn't in options, inject it so cmdk shows it
+  const effectiveOptions = React.useMemo(() => {
+    if (creatable && value && !options.some((o) => o.value === value)) {
+      return [{ label: value, value }, ...options];
+    }
+    return options;
+  }, [creatable, value, options]);
+
   const showCreatableOption = React.useMemo(() => {
     if (!creatable || !search.trim()) {
       return false;
     }
-    return !options.some((o) => o.value === search.trim());
-  }, [creatable, search, options]);
+    return !effectiveOptions.some((o) => o.value === search.trim());
+  }, [creatable, search, effectiveOptions]);
 
   return (
     <Popover
@@ -156,8 +167,8 @@ export function Combobox({
               comboboxTriggerVariants({ variant }),
               "px-3 py-0",
               leftIcon && "pl-9",
-              "pr-9", // Always have space for the chevron icon
-              "h-auto justify-between font-normal w-full [&_svg]:size-3",
+              !hideChevron && "pr-9", // Space for the chevron icon when visible
+              "justify-between font-normal w-full [&_svg]:size-3",
               className,
             )}
             {...otherProps}
@@ -171,15 +182,18 @@ export function Combobox({
             ) : (
               <div className="text-left w-full">{placeholder}</div>
             )}
-            <ChevronExpandY className="absolute right-3" iconSize="sm-regular" />
+            {!hideChevron && <ChevronExpandY className="absolute right-3" iconSize="sm-regular" />}
           </Button>
         </PopoverTrigger>
       </div>
       <PopoverContent
         className="p-0 w-full min-w-(--radix-popover-trigger-width) rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-200 overflow-visible"
         onOpenAutoFocus={(e) => {
-          // Prevent auto-focus to allow proper keyboard navigation
+          // Let the CommandInput receive focus so users can type immediately
           e.preventDefault();
+          if (e.currentTarget instanceof HTMLElement) {
+            e.currentTarget.querySelector<HTMLInputElement>("[cmdk-input]")?.focus();
+          }
         }}
       >
         <Command
@@ -202,6 +216,20 @@ export function Combobox({
             onKeyDown={(e) => {
               // Prevent propagation to Dialog but allow command list navigation
               e.stopPropagation();
+              // When creatable and Enter is pressed with no matching option, submit the typed value
+              if (creatable && e.key === "Enter" && search.trim()) {
+                const hasMatch = effectiveOptions.some(
+                  (o) => (o.searchValue || o.value).toLowerCase() === search.trim().toLowerCase(),
+                );
+                if (!hasMatch) {
+                  e.preventDefault();
+                  onSelect(search.trim());
+                  setSearch("");
+                  if (closeOnSelect) {
+                    setOpen(false);
+                  }
+                }
+              }
             }}
             placeholder={searchPlaceholder}
             className="text-xs placeholder:text-xs placeholder:text-accent-8"
@@ -219,12 +247,12 @@ export function Combobox({
                       setOpen(false);
                     }
                   }}
-                  className="flex items-center py-1 mt-0 text-gray-9"
+                  className="flex items-center py-1 mt-0 text-gray-9 text-xs"
                 >
                   Use "{search.trim()}"
                 </CommandItem>
               )}
-              {options.map((option) => (
+              {effectiveOptions.map((option) => (
                 <CommandItem
                   key={option.value}
                   value={option.searchValue || option.value}

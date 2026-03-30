@@ -512,7 +512,7 @@ CREATE TABLE `deployments` (
 	`pr_number` bigint,
 	`fork_repository_full_name` varchar(256),
 	`github_deployment_id` bigint,
-	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed','skipped','awaiting_approval') NOT NULL DEFAULT 'pending',
+	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed','skipped','awaiting_approval','stopped') NOT NULL DEFAULT 'pending',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployments_pk` PRIMARY KEY(`pk`),
@@ -557,6 +557,10 @@ CREATE TABLE `deployment_topology` (
 	`deployment_id` varchar(64) NOT NULL,
 	`region_id` varchar(64) NOT NULL,
 	`desired_replicas` int NOT NULL,
+	`autoscaling_replicas_min` int unsigned NOT NULL DEFAULT 1,
+	`autoscaling_replicas_max` int unsigned NOT NULL DEFAULT 1,
+	`autoscaling_threshold_cpu` tinyint unsigned,
+	`autoscaling_threshold_memory` tinyint unsigned,
 	`version` bigint unsigned NOT NULL,
 	`desired_status` enum('stopped','running') NOT NULL,
 	`created_at` bigint NOT NULL,
@@ -776,12 +780,12 @@ CREATE TABLE `horizontal_autoscaling_policies` (
 
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
-CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
+CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`,`id`);
 CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);
 CREATE INDEX `pending_migration_id_idx` ON `keys` (`pending_migration_id`);
 CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
-CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
+CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`,`key_auth_id`,`id`);
 CREATE INDEX `idx_keys_refill` ON `keys` (`refill_amount`,`deleted_at_m`);
 CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
 CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);

@@ -133,7 +133,7 @@ func (s *service) forwardToSentinel(ctx context.Context, sess *zen.Session, sent
 		targetURL:    targetURL,
 		startTime:    startTime,
 		directorFunc: s.makeSentinelDirector(sess, deploymentID, startTime),
-		logTarget:    "sentinel",
+		destination:  "sentinel",
 		transport:    s.h2cTransport,
 	})
 }
@@ -142,18 +142,22 @@ func (s *service) forwardToRegion(ctx context.Context, sess *zen.Session, target
 	startTime, _ := RequestStartTimeFromContext(ctx)
 
 	if hopCountStr := sess.Request().Header.Get(HeaderFrontlineHops); hopCountStr != "" {
-		if hops, err := strconv.Atoi(hopCountStr); err == nil && hops >= s.maxHops {
-			logger.Error("too many frontline hops - rejecting request",
-				"hops", hops,
-				"maxHops", s.maxHops,
-				"hostname", sess.Request().Host,
-				"requestID", sess.RequestID(),
-			)
-			return fault.New("too many frontline hops",
-				fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
-				fault.Internal(fmt.Sprintf("request exceeded maximum hop count: %d", hops)),
-				fault.Public("Request routing limit exceeded"),
-			)
+		if hops, err := strconv.Atoi(hopCountStr); err == nil {
+			proxyHopsTotal.Observe(float64(hops))
+
+			if hops >= s.maxHops {
+				logger.Error("too many frontline hops - rejecting request",
+					"hops", hops,
+					"maxHops", s.maxHops,
+					"hostname", sess.Request().Host,
+					"requestID", sess.RequestID(),
+				)
+				return fault.New("too many frontline hops",
+					fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
+					fault.Internal(fmt.Sprintf("request exceeded maximum hop count: %d", hops)),
+					fault.Public("Request routing limit exceeded"),
+				)
+			}
 		}
 	}
 
@@ -169,7 +173,7 @@ func (s *service) forwardToRegion(ctx context.Context, sess *zen.Session, target
 		targetURL:    targetURL,
 		startTime:    startTime,
 		directorFunc: s.makeRegionDirector(sess, startTime),
-		logTarget:    "region",
+		destination:  "region",
 		transport:    s.transport,
 	})
 }

@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "doc.go",
         "interface.go",
+        "memory.go",
         "redis.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/counter",
@@ -20,7 +21,10 @@ go_library(
 go_test(
     name = "counter_test",
     size = "small",
-    srcs = ["redis_test.go"],
+    srcs = [
+        "memory_test.go",
+        "redis_test.go",
+    ],
     embed = [":counter"],
     deps = [
         "//pkg/dockertest",

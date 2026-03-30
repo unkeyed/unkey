@@ -8,7 +8,9 @@ go_library(
     deps = [
         "//gen/proto/hydra/v1:hydra",
         "//gen/rpc/vault",
+        "//pkg/batch",
         "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
         "//pkg/db",
         "//pkg/dockertest",
         "//pkg/healthcheck",
