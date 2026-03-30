@@ -1,0 +1,122 @@
+---
+title: "list-overrides"
+description: "Retrieve a paginated list of all rate limit overrides in a namespace"
+---
+
+Retrieve a paginated list of all rate limit overrides in a namespace.
+
+Use this to audit rate limiting policies, build admin dashboards, or manage override configurations.
+
+**Important:** Results are paginated. Use the cursor parameter to retrieve additional pages when more results are available.
+
+**Required permissions:**
+- `ratelimit.*.read_override` or `ratelimit.<namespace_id>.read_override`
+
+<Note>
+See the [API reference](/api-reference/v2/ratelimit/list-ratelimit-overrides) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api ratelimit list-overrides [flags]
+```
+
+## Flags
+
+<ParamField body="--namespace" type="string" required>
+The ID or name of the rate limit namespace to list overrides for. Must be 1-255 characters.
+</ParamField>
+
+<ParamField body="--limit" type="integer">
+Maximum number of override entries to return in a single response. Use this to control response size and loading performance.
+
+- Lower values (10-20): Better for UI displays and faster response times
+- Higher values (50-100): Better for data exports or bulk operations
+- Default (10): Suitable for most dashboard views
+
+Results exceeding this limit will be paginated, with a cursor provided for fetching subsequent pages. Must be between 1 and 100.
+</ParamField>
+
+<ParamField body="--cursor" type="string">
+Pagination cursor from a previous response. Include this when fetching subsequent pages of results. Each response containing more results than the requested limit will include a cursor value that can be used here.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api ratelimit list-overrides --namespace=api.requests
+```
+```bash With custom page size
+unkey api ratelimit list-overrides --namespace=api.requests --limit=50
+```
+```bash Paginate through results
+unkey api ratelimit list-overrides --namespace=api.requests --cursor=cursor_eyJsYXN0SWQiOiJvdnJfM2RITGNOeVN6SnppRHlwMkpla2E5ciJ9
+```
+```bash JSON output for scripting
+unkey api ratelimit list-overrides --namespace=api.requests --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the list of overrides:
+
+```
+req_2cGKbMxRyIzhCxo1Idjz8q (took 38ms)
+
+{
+  "overrides": [
+    {
+      "overrideId": "ovr_1234567890abcdef",
+      "identifier": "premium_user_123",
+      "limit": 1000,
+      "duration": 60000
+    },
+    {
+      "overrideId": "ovr_2345678901bcdefg",
+      "identifier": "premium_*",
+      "limit": 500,
+      "duration": 60000
+    }
+  ],
+  "cursor": "cursor_eyJsYXN0SWQiOiJvdnJfMmhGTGNOeVN6SnppRHlwMkpla2E5ciJ9"
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2cGKbMxRyIzhCxo1Idjz8q"
+  },
+  "data": {
+    "overrides": [
+      {
+        "overrideId": "ovr_1234567890abcdef",
+        "identifier": "premium_user_123",
+        "limit": 1000,
+        "duration": 60000
+      },
+      {
+        "overrideId": "ovr_2345678901bcdefg",
+        "identifier": "premium_*",
+        "limit": 500,
+        "duration": 60000
+      }
+    ],
+    "cursor": "cursor_eyJsYXN0SWQiOiJvdnJfMmhGTGNOeVN6SnppRHlwMkpla2E5ciJ9"
+  }
+}
+```

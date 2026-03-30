@@ -1,0 +1,80 @@
+---
+title: "delete-override"
+description: "Permanently remove a rate limit override so affected identifiers revert to the namespace default"
+---
+
+Permanently remove a rate limit override. Affected identifiers immediately revert to the namespace default.
+
+Use this to remove temporary overrides, reset identifiers to standard limits, or clean up outdated rules.
+
+**Important:** Deletion is immediate and permanent. The override cannot be recovered and must be recreated if needed again.
+
+**Required permissions:**
+- `ratelimit.*.delete_override` (workspace-wide)
+- `ratelimit.<namespace_id>.delete_override` (scoped to a specific namespace)
+
+<Note>
+See the [API reference](/api-reference/v2/ratelimit/delete-ratelimit-override) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api ratelimit delete-override [flags]
+```
+
+## Flags
+
+<ParamField body="--namespace" type="string" required>
+The id or name of the namespace containing the override. Must be 1-255 characters.
+</ParamField>
+
+<ParamField body="--identifier" type="string" required>
+The exact identifier pattern of the override to delete. This must match exactly as it was specified when creating the override, including any wildcards (`*`) that were part of the original pattern. Case-sensitive. Must be 1-255 characters.
+
+After deletion, any identifiers previously affected by this override will immediately revert to using the default rate limit for the namespace.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Delete a specific override
+unkey api ratelimit delete-override --namespace=api.requests --identifier=premium_user_123
+```
+```bash Delete a wildcard pattern override
+unkey api ratelimit delete-override --namespace=api.requests --identifier="premium_*"
+```
+```bash JSON output for scripting
+unkey api ratelimit delete-override --namespace=api.requests --identifier=premium_user_123 --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the result:
+
+```
+req_2cGKbMxRyIzhCxo1Idjz8q (took 45ms)
+
+{}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2cGKbMxRyIzhCxo1Idjz8q"
+  },
+  "data": {}
+}
+```

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"os"
-	"strings"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -73,7 +72,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	// per-commit file lists. Fetch changed files from the commit API so
 	// watch path matching works correctly instead of seeing an empty list.
 	changedFiles := req.GetChangedFiles()
-	if req.GetIsForkPr() && req.GetAfter() != "" {
+	if req.GetIsForkPr() && req.GetAfter() != "" && !s.allowUnauthenticatedDeployments {
 		logger.Info("fetching commit files for fork PR",
 			"commit_sha", req.GetAfter(),
 			"repo", req.GetRepositoryFullName(),
@@ -129,7 +128,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			continue
 		}
 
-		needsApproval := s.requiresApproval(ctx, req, repo)
+		needsApproval := !s.allowUnauthenticatedDeployments && s.requiresApproval(ctx, req, repo)
 
 		status := db.DeploymentsStatusPending
 		if needsApproval {
@@ -192,15 +191,24 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 }
 
 // requiresApproval determines whether a push needs manual approval.
-// Bot accounts (ending in [bot]) and repo collaborators are auto-approved.
+// Fork PRs always require approval. Non-fork pushes are auto-approved because
+// GitHub already enforces write access — if someone can push to the repo, they
+// are authorized.
 //
-// Set FORCE_DEPLOYMENT_APPROVAL=true to bypass collaborator checks and always
-// require approval. This is useful for testing the approval flow locally.
+// Set FORCE_DEPLOYMENT_APPROVAL=true to require approval for all pushes.
+// This is useful for testing the approval flow locally.
 func (s *Service) requiresApproval(
-	ctx restate.ObjectContext,
+	_ restate.ObjectContext,
 	req *hydrav1.HandlePushRequest,
-	repo db.GithubRepoConnection,
+	_ db.GithubRepoConnection,
 ) bool {
+	if os.Getenv("FORCE_DEPLOYMENT_APPROVAL") == "true" {
+		logger.Info("FORCE_DEPLOYMENT_APPROVAL is set, requiring approval",
+			"sender", req.GetSenderLogin(),
+		)
+		return true
+	}
+
 	// Fork PRs always require approval — external code must never auto-deploy.
 	if req.GetIsForkPr() {
 		logger.Info("fork PR deployment requires approval",
@@ -209,43 +217,9 @@ func (s *Service) requiresApproval(
 		return true
 	}
 
-	if os.Getenv("FORCE_DEPLOYMENT_APPROVAL") == "true" {
-		logger.Info("FORCE_DEPLOYMENT_APPROVAL is set, requiring approval",
-			"sender", req.GetSenderLogin(),
-		)
-		return true
-	}
-
-	senderLogin := req.GetSenderLogin()
-
-	// Bot accounts are trusted (GitHub controls the [bot] suffix)
-	if strings.HasSuffix(senderLogin, "[bot]") {
-		return false
-	}
-
-	// No sender info — fail closed, require approval
-	if senderLogin == "" {
-		logger.Info("no sender login in push event, requiring approval")
-		return true
-	}
-
-	isCollaborator, err := restate.Run(ctx, func(_ restate.RunContext) (bool, error) {
-		return s.github.IsCollaborator(
-			repo.InstallationID,
-			req.GetRepositoryFullName(),
-			senderLogin,
-		)
-	}, restate.WithName("check collaborator status"), restate.WithMaxRetryDuration(30*time.Second))
-	if err != nil {
-		// Fail closed: treat errors as non-collaborator to prevent bypassing protection.
-		logger.Error("failed to check collaborator status, blocking deployment",
-			"sender", senderLogin,
-			"error", err,
-		)
-		return true
-	}
-
-	return !isCollaborator
+	// Non-fork pushes: GitHub already verified the pusher has write access to
+	// the repo, so there is no reason to gate the deployment behind approval.
+	return false
 }
 
 // insertDeploymentRecord creates a deployment and its initial queued step in a single transaction.

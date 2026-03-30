@@ -183,7 +183,7 @@ export const DeploymentsList = () => {
                   </div>
                   {deployment.gitCommitMessage ? (
                     <div
-                      className="truncate text-xs text-gray-9 max-w-50"
+                      className="truncate text-xs text-gray-9 w-50 pr-5"
                       title={deployment.gitCommitMessage}
                     >
                       {deployment.gitCommitMessage}

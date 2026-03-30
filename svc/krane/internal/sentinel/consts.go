@@ -12,6 +12,9 @@ const (
 	// GossipLANPort is the port used for gossip protocol LAN communication between sentinel pods.
 	GossipLANPort = 7946
 
+	// MetricsPort is the port for Prometheus metrics.
+	MetricsPort = 9090
+
 	// SentinelNodeClass is the node class for sentinel workloads.
 	SentinelNodeClass = "sentinel"
 

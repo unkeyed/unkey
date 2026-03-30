@@ -29,7 +29,6 @@ export const Usage: React.FC<{
       <SettingCard
         title="Usage this month"
         description="Valid key verifications and ratelimits."
-        border="both"
         className="w-full"
         contentWidth="w-full lg:w-[320px]"
       >
@@ -46,7 +45,6 @@ export const Usage: React.FC<{
       <SettingCard
         title="Usage this month"
         description="Valid key verifications and ratelimits."
-        border="both"
         className="w-full"
         contentWidth="w-full lg:w-[320px]"
       >
@@ -69,7 +67,6 @@ export const Usage: React.FC<{
       <SettingCard
         title="Usage this month"
         description="Valid key verifications and ratelimits."
-        border="both"
         className="w-full"
         contentWidth="w-full lg:w-[320px]"
       >
@@ -105,8 +102,6 @@ export const Usage: React.FC<{
         <p className="text-sm font-semibold text-gray-12">
           {formatNumber(current)} / {formatNumber(max)} ({percent}%)
         </p>
-
-        <ProgressCircle max={max} value={current} />
       </div>
     </SettingCard>
   );

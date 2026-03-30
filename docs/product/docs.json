@@ -346,6 +346,97 @@
             "pages": ["audit-log/introduction", "audit-log/types"]
           },
           {
+            "group": "CLI",
+            "icon": "terminal",
+            "pages": [
+              "cli/overview",
+              "cli/authentication",
+              {
+                "group": "auth",
+                "pages": [
+                  "cli/auth/login"
+                ]
+              },
+              {
+                "group": "apis",
+                "pages": [
+                  "cli/apis/create-api",
+                  "cli/apis/delete-api",
+                  "cli/apis/get-api",
+                  "cli/apis/list-keys"
+                ]
+              },
+              {
+                "group": "keys",
+                "pages": [
+                  "cli/keys/create-key",
+                  "cli/keys/delete-key",
+                  "cli/keys/get-key",
+                  "cli/keys/verify-key",
+                  "cli/keys/update-key",
+                  "cli/keys/reroll-key",
+                  "cli/keys/whoami",
+                  "cli/keys/migrate-keys",
+                  "cli/keys/add-permissions",
+                  "cli/keys/remove-permissions",
+                  "cli/keys/set-permissions",
+                  "cli/keys/add-roles",
+                  "cli/keys/remove-roles",
+                  "cli/keys/set-roles",
+                  "cli/keys/update-credits"
+                ]
+              },
+              {
+                "group": "identities",
+                "pages": [
+                  "cli/identities/create-identity",
+                  "cli/identities/delete-identity",
+                  "cli/identities/get-identity",
+                  "cli/identities/list-identities",
+                  "cli/identities/update-identity"
+                ]
+              },
+              {
+                "group": "permissions",
+                "pages": [
+                  "cli/permissions/create-permission",
+                  "cli/permissions/delete-permission",
+                  "cli/permissions/get-permission",
+                  "cli/permissions/list-permissions",
+                  "cli/permissions/create-role",
+                  "cli/permissions/delete-role",
+                  "cli/permissions/get-role",
+                  "cli/permissions/list-roles"
+                ]
+              },
+              {
+                "group": "ratelimit",
+                "pages": [
+                  "cli/ratelimit/limit",
+                  "cli/ratelimit/multi-limit",
+                  "cli/ratelimit/set-override",
+                  "cli/ratelimit/get-override",
+                  "cli/ratelimit/delete-override",
+                  "cli/ratelimit/list-overrides"
+                ]
+              },
+              {
+                "group": "analytics",
+                "pages": [
+                  "cli/analytics/get-verifications"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Migrations",
+            "icon": "arrows-rotate",
+            "pages": [
+              "migrations/introduction",
+              "migrations/keys"
+            ]
+          },
+          {
             "expanded": false,
             "group": "Errors",
             "icon": "triangle-exclamation",
@@ -448,8 +539,10 @@
           },
           {
             "group": "Changelog",
-            "icon": "clock-rotate-left",
+            "icon": "newspaper",
             "pages": [
+              "changelog/2026-03-27",
+              "changelog/2026-03-26",
               "changelog/2026-03-23"
             ]
           }

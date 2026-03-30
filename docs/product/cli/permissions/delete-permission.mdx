@@ -1,0 +1,79 @@
+---
+title: "delete-permission"
+description: "Remove a permission from your workspace"
+---
+
+Remove a permission from your workspace. This also removes the permission from all API keys and roles.
+
+**Important:** This operation cannot be undone and immediately affects all API keys and roles that had this permission assigned. Any verification requests checking for the deleted permission will fail.
+
+**Required permissions:**
+- `rbac.*.delete_permission`
+
+<Note>
+See the [API reference](/api-reference/v2/permissions/delete-permission) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api permissions delete-permission [flags]
+```
+
+## Flags
+
+<ParamField body="--permission" type="string" required>
+The permission ID or slug to permanently delete from your workspace. Must be 3-255 characters, start with a letter, and contain only letters, numbers, dots, hyphens, and underscores.
+
+WARNING: Deleting a permission has immediate and irreversible consequences:
+- All API keys with this permission will lose that access immediately
+- All roles containing this permission will have it removed
+- Any verification requests checking for this permission will fail
+- This action cannot be undone
+
+Before deletion, ensure you have updated any keys or roles that depend on this permission, migrated to alternative permissions if needed, and notified affected users about the access changes.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Delete by permission ID
+unkey api permissions delete-permission --permission=perm_1234567890abcdef
+```
+```bash Delete by permission slug
+unkey api permissions delete-permission --permission=documents.read
+```
+```bash JSON output for scripting
+unkey api permissions delete-permission --permission=perm_1234567890abcdef --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+{}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {}
+}
+```

@@ -12,6 +12,6 @@ go_library(
         "//cmd/dev/github",
         "//cmd/dev/seed",
         "//pkg/cli",
-        "//pkg/vault/keys",
+        "//svc/vault/keys",
     ],
 )

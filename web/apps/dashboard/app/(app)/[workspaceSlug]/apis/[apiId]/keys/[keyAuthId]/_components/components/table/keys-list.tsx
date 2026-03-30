@@ -184,7 +184,7 @@ export const KeysList = ({
                       handleLinkClick(key.id);
                     }}
                   >
-                    <div className="font-mono font-medium truncate text-brand-12">
+                    <div className="font-mono font-medium truncate text-gray-12">
                       {shortenId(key.id)}
                     </div>
                   </Link>

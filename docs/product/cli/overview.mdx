@@ -1,16 +1,145 @@
 ---
 title: CLI
-description: Deploy, manage versions, run services, and check health from the command line.
+description: Manage your Unkey resources from the command line
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
+The Unkey CLI gives you direct access to the Unkey API from your terminal. Create and manage API keys, configure rate limits, set permissions, and query analytics — all without leaving the command line.
 
-<DeployBeta />
+<Warning>
+The CLI is early and provided on a best-effort basis. There are no breaking change guarantees for commands, flags, or output format. The underlying [API](/api-reference/v2/overview) is versioned and stable.
+</Warning>
 
-## TODO
+## Installation
 
-- Installing the CLI
-- Authenticating with your Unkey account
-- Key commands: deploy, logs, status, rollback, variable management
-- Local development workflow: linking a project, running locally, pushing to preview
-- CI/CD integration: using the CLI in automated pipelines
+<Tabs>
+  <Tab title="npm">
+    ```bash
+    npm install -g unkey
+    ```
+  </Tab>
+  <Tab title="GitHub Releases">
+    Download the latest binary for your platform from [GitHub Releases](https://github.com/unkeyed/unkey/releases).
+
+    ```bash
+    # macOS (Apple Silicon)
+    curl -L https://github.com/unkeyed/unkey/releases/latest/download/unkey_darwin_arm64 -o unkey
+    chmod +x unkey
+    sudo mv unkey /usr/local/bin/
+    ```
+  </Tab>
+</Tabs>
+
+## Authentication
+
+Before using the CLI, authenticate with your root key:
+
+```bash
+unkey auth login
+```
+
+This stores your key at `~/.unkey/config.toml`. All subsequent commands use it automatically.
+
+You can also pass a key per-command or via environment variable:
+
+```bash
+# Flag
+unkey api keys create-key --root-key=unkey_xxx --api-id=api_123
+
+# Environment variable
+export UNKEY_ROOT_KEY=unkey_xxx
+unkey api keys create-key --api-id=api_123
+```
+
+## Usage
+
+All API operations live under the `unkey api` command, organized by resource:
+
+```bash
+unkey api <resource> <action> [flags]
+```
+
+### Resources
+
+| Resource | Description |
+|----------|-------------|
+| `apis` | Create, get, delete API namespaces and list their keys |
+| `keys` | Create, verify, update, delete keys and manage their permissions and roles |
+| `identities` | Create, get, update, delete identities for grouping keys |
+| `permissions` | Create, get, delete permissions and roles |
+| `ratelimit` | Apply rate limits and manage overrides |
+| `analytics` | Query key verification data with SQL |
+
+### Examples
+
+**Create an API and issue a key:**
+
+```bash
+unkey api apis create-api --name=payment-service-prod
+unkey api keys create-key --api-id=api_1234abcd --name='Production Key' --enabled
+```
+
+**Verify a key:**
+
+```bash
+unkey api keys verify-key --key=sk_1234abcdef
+```
+
+**Set up rate limiting:**
+
+```bash
+unkey api ratelimit limit --namespace=api.requests --identifier=user_123 --limit=100 --duration=60000
+```
+
+**Query analytics:**
+
+```bash
+unkey api analytics get-verifications --query="SELECT COUNT(*) as total FROM key_verifications_v1 WHERE outcome = 'VALID' AND time >= now() - INTERVAL 7 DAY"
+```
+
+**Manage permissions:**
+
+```bash
+unkey api permissions create-permission --name=documents.read --slug=documents-read
+unkey api keys add-permissions --key-id=key_1234abcd --permissions=documents.read,documents.write
+```
+
+## Output
+
+By default, the CLI prints the request ID with latency, followed by the response data:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+{
+  "id": "api_1234abcd",
+  "name": "payment-service-prod"
+}
+```
+
+For scripting, use `--output=json` to get the raw API response envelope (meta + data) as JSON on stdout:
+
+```bash
+unkey api apis create-api --name=my-api --output=json | jq '.data.id'
+```
+
+## Global Flags
+
+Every command accepts these flags:
+
+| Flag | Description |
+|------|-------------|
+| `--root-key` | Override the root key (also: `UNKEY_ROOT_KEY` env var) |
+| `--api-url` | Override the API base URL (default: `https://api.unkey.com`) |
+| `--config` | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | Output format — use `json` for raw JSON |
+
+## Help
+
+Every command has built-in help with descriptions, flag details, and examples:
+
+```bash
+unkey --help
+unkey api --help
+unkey api keys --help
+unkey api keys create-key --help
+```

@@ -7,10 +7,12 @@ export const GitHubConnected = ({
   appId,
   installUrl,
   repoFullName,
+  onBeforeNavigate,
 }: {
   appId: string;
   installUrl: string;
   repoFullName: string;
+  onBeforeNavigate?: () => void;
 }) => {
   const utils = trpc.useUtils();
 
@@ -58,6 +60,7 @@ export const GitHubConnected = ({
           installUrl={installUrl}
           variant="outline"
           text={<span>Manage GitHub</span>}
+          onBeforeNavigate={onBeforeNavigate}
         />
       </div>
     </div>

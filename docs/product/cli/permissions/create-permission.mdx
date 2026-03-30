@@ -1,0 +1,89 @@
+---
+title: "create-permission"
+description: "Create a new permission to define specific actions or capabilities in your RBAC system"
+---
+
+Create a new permission to define specific actions or capabilities in your RBAC system. Permissions can be assigned directly to API keys or included in roles.
+
+Use hierarchical naming patterns like `documents.read`, `admin.users.delete`, or `billing.invoices.create` for clear organization.
+
+**Important:** Permission names must be unique within the workspace. Once created, permissions are immediately available for assignment.
+
+**Required permissions:**
+- `rbac.*.create_permission`
+
+<Note>
+See the [API reference](/api-reference/v2/permissions/create-permission) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api permissions create-permission [flags]
+```
+
+## Flags
+
+<ParamField body="--name" type="string" required>
+Human-readable name describing the permission's purpose. Names must be unique within your workspace to prevent conflicts during assignment. Use clear, semantic names that developers can easily understand when building authorization logic. Consider using hierarchical naming conventions like `resource.action` for better organization. Must be 1-512 characters.
+</ParamField>
+
+<ParamField body="--slug" type="string" required>
+URL-safe identifier for use in APIs and integrations. Must start with a letter and contain only letters, numbers, periods, underscores, and hyphens. Slugs are often used in REST endpoints, configuration files, and external integrations. Must be unique within your workspace. Must be 1-128 characters.
+</ParamField>
+
+<ParamField body="--description" type="string">
+Detailed documentation of what this permission grants access to. Include information about affected resources, allowed actions, and any important limitations. This internal documentation helps team members understand permission scope and security implications. Not visible to end users. Max 512 characters.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api permissions create-permission --name=users.read --slug=users-read
+```
+```bash With description
+unkey api permissions create-permission --name=billing.write --slug=billing-write --description="Grants write access to billing resources"
+```
+```bash JSON output for scripting
+unkey api permissions create-permission --name=analytics.view --slug=analytics-view --output=json
+```
+```bash Pipe the permission ID to another command
+PERM_ID=$(unkey api permissions create-permission --name=documents.read --slug=documents-read --output=json | jq -r '.data.permissionId')
+echo "Created permission: $PERM_ID"
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the created permission:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+{
+  "permissionId": "perm_1234567890abcdef"
+}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {
+    "permissionId": "perm_1234567890abcdef"
+  }
+}
+```

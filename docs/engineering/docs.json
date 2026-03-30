@@ -211,6 +211,12 @@
             ]
           },
           {
+            "group": "Metering",
+            "pages": [
+              "infra/metering/gauge"
+            ]
+          },
+          {
             "group": "Deployments",
             "pages": [
               "infra/deployments/argocd-debugging",

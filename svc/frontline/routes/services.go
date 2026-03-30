@@ -3,7 +3,6 @@ package routes
 import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/services/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/services/router"
@@ -16,6 +15,4 @@ type Services struct {
 	Clock             clock.Clock
 	AcmeClient        ctrl.AcmeServiceClient
 	ErrorPageRenderer errorpage.Renderer
-	// Pprof enables pprof profiling endpoints when non-nil.
-	Pprof *config.PprofConfig
 }
