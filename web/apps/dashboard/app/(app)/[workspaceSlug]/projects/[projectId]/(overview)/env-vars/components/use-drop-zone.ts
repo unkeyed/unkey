@@ -3,8 +3,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { UseFormGetValues, UseFormReset, UseFormTrigger } from "react-hook-form";
 import type { EnvVarsFormValues } from "./schema";
 
-const ENV_KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
-
 export const parseEnvText = (text: string): Array<{ key: string; value: string }> => {
   const lines = text.trim().split("\n");
   return lines
@@ -27,10 +25,6 @@ export const parseEnvText = (text: string): Array<{ key: string; value: string }
         (value.startsWith("'") && value.endsWith("'"))
       ) {
         value = value.slice(1, -1);
-      }
-
-      if (!ENV_KEY_RE.test(key)) {
-        return null;
       }
 
       return { key, value };

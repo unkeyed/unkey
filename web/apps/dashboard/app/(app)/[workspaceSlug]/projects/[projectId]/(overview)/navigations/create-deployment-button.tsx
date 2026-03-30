@@ -1,5 +1,6 @@
 "use client";
 
+import { NavbarActionButton } from "@/components/navigation/action-button";
 import { queryClient } from "@/lib/collections/client";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -143,9 +144,15 @@ export const CreateDeploymentButton = ({
 
   return (
     <>
-      <Button {...rest} variant="outline" className="size-7" onClick={() => setIsOpen(true)}>
+      <NavbarActionButton
+        {...rest}
+        color="default"
+        variant="outline"
+        className="size-7"
+        onClick={() => setIsOpen(true)}
+      >
         <Plus iconSize="sm-regular" />
-      </Button>
+      </NavbarActionButton>
       <DynamicDialogContainer
         isOpen={isOpen}
         onOpenChange={setIsOpen}

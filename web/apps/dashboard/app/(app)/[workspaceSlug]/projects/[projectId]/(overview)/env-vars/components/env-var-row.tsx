@@ -1,6 +1,5 @@
 import { Plus, Trash } from "@unkey/icons";
 import { Button, FormInput } from "@unkey/ui";
-import { memo } from "react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import type { EnvVarsFormValues } from "./schema";
 
@@ -12,13 +11,7 @@ type EnvVarRowProps = {
   errors?: FieldErrors<EnvVarsFormValues>["envVars"];
 };
 
-export const EnvVarRow = memo(function EnvVarRow({
-  index,
-  isOnly,
-  register,
-  onRemove,
-  errors,
-}: EnvVarRowProps) {
+export const EnvVarRow = ({ index, isOnly, register, onRemove, errors }: EnvVarRowProps) => {
   const fieldErrors = errors?.[index];
 
   return (
@@ -72,4 +65,4 @@ export const EnvVarRow = memo(function EnvVarRow({
       </details>
     </div>
   );
-});
+};

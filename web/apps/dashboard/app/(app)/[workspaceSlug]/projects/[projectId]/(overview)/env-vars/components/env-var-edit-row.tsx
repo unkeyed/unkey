@@ -42,27 +42,30 @@ export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: En
     },
   });
 
-  useEffect(() => {
-    if (isWriteonly) {
-      return;
-    }
-    let cancelled = false;
-    decryptMutation.mutateAsync({ envVarId }).then(
-      (result) => {
-        if (!cancelled) {
-          setValue("value", result.value);
-        }
-      },
-      () => {
-        if (!cancelled) {
-          toast.error("Failed to decrypt value");
-        }
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [envVarId, isWriteonly, setValue, decryptMutation]);
+  useEffect(
+    function decryptValue() {
+      if (isWriteonly) {
+        return;
+      }
+      let cancelled = false;
+      decryptMutation.mutateAsync({ envVarId }).then(
+        (result) => {
+          if (!cancelled) {
+            setValue("value", result.value);
+          }
+        },
+        () => {
+          if (!cancelled) {
+            toast.error("Failed to decrypt value");
+          }
+        },
+      );
+      return () => {
+        cancelled = true;
+      };
+    },
+    [envVarId, isWriteonly, setValue, decryptMutation],
+  );
 
   const onSubmit = useCallback(
     async (values: EditEnvVarFormValues) => {

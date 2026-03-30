@@ -3,7 +3,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { Note3 } from "@unkey/icons";
 import { Badge, InfoTooltip, toast } from "@unkey/ui";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HighlightMatch } from "./highlight-match";
 
 type EnvVarNameCellProps = {
@@ -15,14 +15,14 @@ type EnvVarNameCellProps = {
   type: "writeonly" | "recoverable";
 };
 
-export const EnvVarNameCell = memo(function EnvVarNameCell({
+export const EnvVarNameCell = ({
   envVarId,
   variableKey,
   environmentName,
   note,
   searchQuery,
   type,
-}: EnvVarNameCellProps) {
+}: EnvVarNameCellProps) => {
   const [copied, setCopied] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const decryptMutation = trpc.deploy.envVar.decrypt.useMutation();
@@ -96,4 +96,4 @@ export const EnvVarNameCell = memo(function EnvVarNameCell({
       </div>
     </div>
   );
-});
+};
