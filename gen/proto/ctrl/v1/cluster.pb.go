@@ -1516,9 +1516,9 @@ func (x *ApplyDeployment) GetAutoscaling() *AutoscalingPolicy {
 type AutoscalingPolicy struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Minimum number of pod replicas the HPA will maintain.
-	MinReplicas int32 `protobuf:"varint,1,opt,name=min_replicas,json=minReplicas,proto3" json:"min_replicas,omitempty"`
+	MinReplicas uint32 `protobuf:"varint,1,opt,name=min_replicas,json=minReplicas,proto3" json:"min_replicas,omitempty"`
 	// Maximum number of pod replicas the HPA can scale to.
-	MaxReplicas int32 `protobuf:"varint,2,opt,name=max_replicas,json=maxReplicas,proto3" json:"max_replicas,omitempty"`
+	MaxReplicas uint32 `protobuf:"varint,2,opt,name=max_replicas,json=maxReplicas,proto3" json:"max_replicas,omitempty"`
 	// Average CPU utilization percentage (0-100) that triggers scale-up.
 	// When omitted, defaults to 80%.
 	CpuThreshold *int32 `protobuf:"varint,3,opt,name=cpu_threshold,json=cpuThreshold,proto3,oneof" json:"cpu_threshold,omitempty"`
@@ -1559,14 +1559,14 @@ func (*AutoscalingPolicy) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{18}
 }
 
-func (x *AutoscalingPolicy) GetMinReplicas() int32 {
+func (x *AutoscalingPolicy) GetMinReplicas() uint32 {
 	if x != nil {
 		return x.MinReplicas
 	}
 	return 0
 }
 
-func (x *AutoscalingPolicy) GetMaxReplicas() int32 {
+func (x *AutoscalingPolicy) GetMaxReplicas() uint32 {
 	if x != nil {
 		return x.MaxReplicas
 	}
@@ -2036,8 +2036,8 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x13_git_commit_messageB\x0e\n" +
 	"\f_autoscaling\"\xda\x01\n" +
 	"\x11AutoscalingPolicy\x12!\n" +
-	"\fmin_replicas\x18\x01 \x01(\x05R\vminReplicas\x12!\n" +
-	"\fmax_replicas\x18\x02 \x01(\x05R\vmaxReplicas\x12(\n" +
+	"\fmin_replicas\x18\x01 \x01(\rR\vminReplicas\x12!\n" +
+	"\fmax_replicas\x18\x02 \x01(\rR\vmaxReplicas\x12(\n" +
 	"\rcpu_threshold\x18\x03 \x01(\x05H\x00R\fcpuThreshold\x88\x01\x01\x12.\n" +
 	"\x10memory_threshold\x18\x04 \x01(\x05H\x01R\x0fmemoryThreshold\x88\x01\x01B\x10\n" +
 	"\x0e_cpu_thresholdB\x13\n" +

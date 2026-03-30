@@ -339,9 +339,9 @@ message ApplyDeployment {
 // Snapshotted from the horizontal_autoscaling_policies table at query time.
 message AutoscalingPolicy {
   // Minimum number of pod replicas the HPA will maintain.
-  int32 min_replicas = 1;
+  uint32 min_replicas = 1;
   // Maximum number of pod replicas the HPA can scale to.
-  int32 max_replicas = 2;
+  uint32 max_replicas = 2;
   // Average CPU utilization percentage (0-100) that triggers scale-up.
   // When omitted, defaults to 80%.
   optional int32 cpu_threshold = 3;

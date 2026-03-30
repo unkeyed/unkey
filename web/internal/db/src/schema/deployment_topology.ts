@@ -28,13 +28,17 @@ export const deploymentTopology = mysqlTable(
 
     // HPA scaling configuration, snapshotted from the autoscaling policy at deploy time.
     // Minimum number of pod replicas the HPA will maintain.
-    autoscalingReplicasMin: int("autoscaling_replicas_min").notNull().default(1),
+    autoscalingReplicasMin: int("autoscaling_replicas_min", { unsigned: true })
+      .notNull()
+      .default(1),
     // Maximum number of pod replicas the HPA can scale to.
-    autoscalingReplicasMax: int("autoscaling_replicas_max").notNull().default(1),
+    autoscalingReplicasMax: int("autoscaling_replicas_max", { unsigned: true })
+      .notNull()
+      .default(1),
     // Average CPU utilization percentage (0-100) that triggers scale-up. Null = use default (80%).
-    autoscalingThresholdCpu: tinyint("autoscaling_threshold_cpu"),
+    autoscalingThresholdCpu: tinyint("autoscaling_threshold_cpu", { unsigned: true }),
     // Average memory utilization percentage (0-100) that triggers scale-up. Null = not used as a signal.
-    autoscalingThresholdMemory: tinyint("autoscaling_threshold_memory"),
+    autoscalingThresholdMemory: tinyint("autoscaling_threshold_memory", { unsigned: true }),
 
     // Version for state synchronization with edge agents.
     // Updated via Restate VersioningService on each mutation.

@@ -43,8 +43,8 @@ type InsertDeploymentTopologyParams struct {
 	DeploymentID               string                          `db:"deployment_id"`
 	RegionID                   string                          `db:"region_id"`
 	DesiredReplicas            int32                           `db:"desired_replicas"`
-	AutoscalingReplicasMin     int32                           `db:"autoscaling_replicas_min"`
-	AutoscalingReplicasMax     int32                           `db:"autoscaling_replicas_max"`
+	AutoscalingReplicasMin     uint32                          `db:"autoscaling_replicas_min"`
+	AutoscalingReplicasMax     uint32                          `db:"autoscaling_replicas_max"`
 	AutoscalingThresholdCpu    sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
 	AutoscalingThresholdMemory sql.NullInt16                   `db:"autoscaling_threshold_memory"`
 	DesiredStatus              DeploymentTopologyDesiredStatus `db:"desired_status"`

@@ -72,8 +72,8 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 	CpuMillicores                 int32                     `db:"cpu_millicores"`
 	MemoryMib                     int32                     `db:"memory_mib"`
 	DesiredReplicas               int32                     `db:"desired_replicas"`
-	AutoscalingReplicasMin        int32                     `db:"autoscaling_replicas_min"`
-	AutoscalingReplicasMax        int32                     `db:"autoscaling_replicas_max"`
+	AutoscalingReplicasMin        uint32                    `db:"autoscaling_replicas_min"`
+	AutoscalingReplicasMax        uint32                    `db:"autoscaling_replicas_max"`
 	AutoscalingThresholdCpu       sql.NullInt16             `db:"autoscaling_threshold_cpu"`
 	AutoscalingThresholdMemory    sql.NullInt16             `db:"autoscaling_threshold_memory"`
 	DesiredState                  DeploymentsDesiredState   `db:"desired_state"`

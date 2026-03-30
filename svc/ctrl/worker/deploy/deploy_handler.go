@@ -533,8 +533,12 @@ func (w *Workflow) createTopologies(
 	}
 
 	for _, rs := range regionalSettings {
-		allocatedResources.TotalCpuMillicores += int64(deployment.CpuMillicores * rs.Replicas)
-		allocatedResources.TotalMemoryMib += int64(deployment.MemoryMib * rs.Replicas)
+		maxReplicas := int32(1)
+		if rs.AutoscalingReplicasMax.Valid {
+			maxReplicas = rs.AutoscalingReplicasMax.Int32
+		}
+		allocatedResources.TotalCpuMillicores += int64(deployment.CpuMillicores * maxReplicas)
+		allocatedResources.TotalMemoryMib += int64(deployment.MemoryMib * maxReplicas)
 	}
 	if allocatedResources.TotalCpuMillicores > int64(quota.AllocatedCpuMillicoresTotal) {
 		return nil, fault.Wrap(
@@ -563,14 +567,15 @@ func (w *Workflow) createTopologies(
 		replicas := rs.Replicas
 
 		// Snapshot autoscaling policy values. When no policy is attached,
-		// default to min=1, max=replicas so the HPA effectively stays at replicas.
-		autoscalingMin := int32(1)
-		autoscalingMax := replicas
+		// default to min=1, max=1 (single replica). Once all regional settings
+		// have an autoscaling policy this fallback can be removed.
+		autoscalingMin := uint32(1)
+		autoscalingMax := uint32(1)
 		if rs.AutoscalingReplicasMin.Valid {
-			autoscalingMin = rs.AutoscalingReplicasMin.Int32
+			autoscalingMin = uint32(rs.AutoscalingReplicasMin.Int32)
 		}
 		if rs.AutoscalingReplicasMax.Valid {
-			autoscalingMax = rs.AutoscalingReplicasMax.Int32
+			autoscalingMax = uint32(rs.AutoscalingReplicasMax.Int32)
 		}
 
 		// Clamp to satisfy HPA invariants: min >= 1 and max >= min.
@@ -929,7 +934,7 @@ func (w *Workflow) swapLiveDeployment(
 // full regional outage: it requires (numRegions - 1) healthy regions, minimum 1.
 func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID string, topologies []db.InsertDeploymentTopologyParams) error {
 	// Build per-region minimum replica requirements.
-	regionMinReplicas := make(map[string]int32, len(topologies))
+	regionMinReplicas := make(map[string]uint32, len(topologies))
 	for _, topo := range topologies {
 		regionMinReplicas[topo.RegionID] = topo.AutoscalingReplicasMin
 	}
@@ -953,7 +958,7 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID st
 			}
 
 			// Count running instances per region.
-			runningPerRegion := make(map[string]int32)
+			runningPerRegion := make(map[string]uint32)
 			for _, instance := range instances {
 				if instance.Status == db.InstancesStatusRunning {
 					runningPerRegion[instance.RegionID]++

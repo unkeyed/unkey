@@ -321,8 +321,8 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 	var metrics []autoscalingv2.MetricSpec
 
 	if policy := req.GetAutoscaling(); policy != nil {
-		minReplicas = max(policy.GetMinReplicas(), 1)
-		maxReplicas = max(policy.GetMaxReplicas(), minReplicas) // overrides the fallback
+		minReplicas = int32(max(policy.GetMinReplicas(), 1))
+		maxReplicas = max(int32(policy.GetMaxReplicas()), minReplicas) // overrides the fallback
 		if policy.CpuThreshold != nil {
 			cpuThreshold = policy.CpuThreshold
 		}
