@@ -16,6 +16,7 @@ export * from "./icons/book-open";
 export * from "./icons/book-bookmark";
 export * from "./icons/bookmark";
 export * from "./icons/brackets-curly";
+export * from "./icons/brackets-square-dots";
 export * from "./icons/bucket";
 export * from "./icons/calendar";
 export * from "./icons/calendar-clock";
