@@ -65,6 +65,8 @@ const SlidePanelRoot = ({
       />
       {/* Panel */}
       <div
+        aria-hidden={!isOpen}
+        inert={!isOpen || undefined}
         className={cn(
           "fixed bg-gray-1 border border-grayA-4 rounded-xl overflow-hidden z-51",
           "transition-[transform,opacity] duration-300 ease-out",
