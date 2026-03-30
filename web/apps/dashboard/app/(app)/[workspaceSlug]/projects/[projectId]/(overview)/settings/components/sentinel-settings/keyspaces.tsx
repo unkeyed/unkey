@@ -29,8 +29,13 @@ export const Keyspaces = () => {
     });
 
   const defaultKeyspaceIds: string[] = [];
-  for (const policy of settings?.sentinelConfig?.policies ?? []) {
-    if (policy.keyauth) {
+  const policies = (
+    settings?.sentinelConfig as
+      | { policies?: Array<{ keyauth?: { keySpaceIds?: string[] } }> }
+      | undefined
+  )?.policies;
+  for (const policy of policies ?? []) {
+    if (policy.keyauth?.keySpaceIds) {
       defaultKeyspaceIds.push(...policy.keyauth.keySpaceIds);
     }
   }

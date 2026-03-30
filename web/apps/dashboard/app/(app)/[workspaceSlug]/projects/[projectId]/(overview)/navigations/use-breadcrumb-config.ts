@@ -67,6 +67,12 @@ export const useBreadcrumbConfig = ({
       segment: "logs",
     },
     {
+      id: "policies",
+      label: "Sentinel",
+      href: `${basePath}/${projectId}/policies`,
+      segment: "policies",
+    },
+    {
       id: "settings",
       label: "Settings",
       href: `${basePath}/${projectId}/settings`,

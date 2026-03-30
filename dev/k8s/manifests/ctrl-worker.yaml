@@ -53,7 +53,8 @@ data:
     # Set to true only for local dev without GitHub credentials configured.
     # When true, deployments skip GitHub auth entirely works only with public repos.
     # Controlled via UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS in .env.github.
-    allow_unauthenticated_deployments = ${UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS}
+    # Default to true for local dev so the worker starts without github-credentials secret.
+    allow_unauthenticated_deployments = true
 
 ---
 apiVersion: apps/v1

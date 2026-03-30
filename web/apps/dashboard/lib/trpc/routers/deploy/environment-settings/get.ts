@@ -3,8 +3,6 @@ import { TRPCError } from "@trpc/server";
 import { appBuildSettings, appRegionalSettings, appRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
-import type { SentinelConfig } from "./sentinel/update-middleware";
-
 export const getEnvironmentSettings = workspaceProcedure
   .input(z.object({ environmentId: z.string() }))
   .query(async ({ ctx, input }) => {
@@ -40,9 +38,10 @@ export const getEnvironmentSettings = workspaceProcedure
               ...runtimeSettings,
               // Without that length check this will Buffer.from gives "", and JSON.parse("") throws 500.
               sentinelConfig: runtimeSettings.sentinelConfig?.length
-                ? (JSON.parse(
-                    Buffer.from(runtimeSettings.sentinelConfig).toString(),
-                  ) as SentinelConfig)
+                ? (JSON.parse(Buffer.from(runtimeSettings.sentinelConfig).toString()) as Record<
+                    string,
+                    unknown
+                  >)
                 : undefined,
             }
           : null,

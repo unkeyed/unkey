@@ -9,9 +9,10 @@ import {
   Key,
   Layers3,
   Nodes,
+  ShieldCheck,
   ShieldKey,
 } from "@unkey/icons";
-import type { NavItem } from "./workspace-navigations";
+import { type NavItem, Tag } from "./workspace-navigations";
 
 /**
  * Shared constants for resource navigation
@@ -197,6 +198,13 @@ export function createProjectNavigation(
       href: `${basePath}/requests`,
       label: "Requests",
       active: segments.includes("requests") && segments.includes("projects"),
+    },
+    {
+      icon: ShieldCheck,
+      href: `${basePath}/policies`,
+      label: "Sentinel",
+      active: segments.includes("policies") && segments.includes("projects"),
+      tag: <Tag label="Experimental" />,
     },
     {
       icon: Gear,
