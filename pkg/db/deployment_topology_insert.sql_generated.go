@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const insertDeploymentTopology = `-- name: InsertDeploymentTopology :exec
@@ -15,10 +16,18 @@ INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
     deployment_id,
     region_id,
     desired_replicas,
+    autoscaling_replicas_min,
+    autoscaling_replicas_max,
+    autoscaling_threshold_cpu,
+    autoscaling_threshold_memory,
     desired_status,
     version,
     created_at
 ) VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
     ?,
     ?,
     ?,
@@ -30,13 +39,17 @@ INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
 `
 
 type InsertDeploymentTopologyParams struct {
-	WorkspaceID     string                          `db:"workspace_id"`
-	DeploymentID    string                          `db:"deployment_id"`
-	RegionID        string                          `db:"region_id"`
-	DesiredReplicas int32                           `db:"desired_replicas"`
-	DesiredStatus   DeploymentTopologyDesiredStatus `db:"desired_status"`
-	Version         uint64                          `db:"version"`
-	CreatedAt       int64                           `db:"created_at"`
+	WorkspaceID                string                          `db:"workspace_id"`
+	DeploymentID               string                          `db:"deployment_id"`
+	RegionID                   string                          `db:"region_id"`
+	DesiredReplicas            int32                           `db:"desired_replicas"`
+	AutoscalingReplicasMin     uint32                          `db:"autoscaling_replicas_min"`
+	AutoscalingReplicasMax     uint32                          `db:"autoscaling_replicas_max"`
+	AutoscalingThresholdCpu    sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
+	AutoscalingThresholdMemory sql.NullInt16                   `db:"autoscaling_threshold_memory"`
+	DesiredStatus              DeploymentTopologyDesiredStatus `db:"desired_status"`
+	Version                    uint64                          `db:"version"`
+	CreatedAt                  int64                           `db:"created_at"`
 }
 
 // InsertDeploymentTopology
@@ -46,10 +59,18 @@ type InsertDeploymentTopologyParams struct {
 //	    deployment_id,
 //	    region_id,
 //	    desired_replicas,
+//	    autoscaling_replicas_min,
+//	    autoscaling_replicas_max,
+//	    autoscaling_threshold_cpu,
+//	    autoscaling_threshold_memory,
 //	    desired_status,
 //	    version,
 //	    created_at
 //	) VALUES (
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -64,6 +85,10 @@ func (q *Queries) InsertDeploymentTopology(ctx context.Context, db DBTX, arg Ins
 		arg.DeploymentID,
 		arg.RegionID,
 		arg.DesiredReplicas,
+		arg.AutoscalingReplicasMin,
+		arg.AutoscalingReplicasMax,
+		arg.AutoscalingThresholdCpu,
+		arg.AutoscalingThresholdMemory,
 		arg.DesiredStatus,
 		arg.Version,
 		arg.CreatedAt,

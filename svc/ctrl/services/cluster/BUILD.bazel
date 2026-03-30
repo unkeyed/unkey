@@ -24,6 +24,7 @@ go_library(
         "//pkg/assert",
         "//pkg/db",
         "//pkg/logger",
+        "//pkg/ptr",
         "//pkg/uid",
         "//svc/ctrl/internal/auth",
         "@com_connectrpc_connect//:connect",

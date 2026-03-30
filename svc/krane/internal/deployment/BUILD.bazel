@@ -36,6 +36,7 @@ go_library(
         "//svc/krane/pkg/labels",
         "@com_connectrpc_connect//:connect",
         "@io_k8s_api//apps/v1:apps",
+        "@io_k8s_api//autoscaling/v2:autoscaling",
         "@io_k8s_api//core/v1:core",
         "@io_k8s_apimachinery//pkg/api/errors",
         "@io_k8s_apimachinery//pkg/api/resource",

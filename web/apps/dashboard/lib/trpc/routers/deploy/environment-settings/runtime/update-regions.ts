@@ -31,6 +31,7 @@ export const updateRegions = workspaceProcedure
     });
 
     const defaultReplicas = existingSettings.at(0)?.replicas ?? 1;
+    const defaultPolicyId = existingSettings.at(0)?.horizontalAutoscalingPolicyId ?? null;
 
     await db
       .delete(appRegionalSettings)
@@ -51,6 +52,7 @@ export const updateRegions = workspaceProcedure
         environmentId: input.environmentId,
         regionId,
         replicas: defaultReplicas,
+        horizontalAutoscalingPolicyId: defaultPolicyId,
       }));
 
     if (toInsert.length > 0) {

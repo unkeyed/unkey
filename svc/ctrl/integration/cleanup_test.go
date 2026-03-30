@@ -98,13 +98,17 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 
 	// Deployment topology
 	err = db.Query.InsertDeploymentTopology(ctx, h.DB.RW(), db.InsertDeploymentTopologyParams{
-		WorkspaceID:     workspaceID,
-		DeploymentID:    deployment.ID,
-		RegionID:        region.ID,
-		DesiredReplicas: 1,
-		DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
-		Version:         1,
-		CreatedAt:       now,
+		WorkspaceID:                workspaceID,
+		DeploymentID:               deployment.ID,
+		RegionID:                   region.ID,
+		DesiredReplicas:            1,
+		AutoscalingReplicasMin:     1,
+		AutoscalingReplicasMax:     1,
+		AutoscalingThresholdCpu:    sql.NullInt16{Valid: false},
+		AutoscalingThresholdMemory: sql.NullInt16{Valid: false},
+		DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
+		Version:                    1,
+		CreatedAt:                  now,
 	})
 	require.NoError(t, err)
 
