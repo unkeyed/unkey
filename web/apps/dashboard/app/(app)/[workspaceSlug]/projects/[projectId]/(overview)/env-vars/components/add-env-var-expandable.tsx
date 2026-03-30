@@ -184,7 +184,7 @@ export const AddEnvVarExpandable = ({
         </div>
         <SlidePanel.Close
           aria-label="Close panel"
-          className="mt-0.5 inline-flex items-center justify-center size-9 rounded-md hover:bg-grayA-3 transition-colors"
+          className="mt-0.5 inline-flex items-center justify-center size-9 rounded-md hover:bg-grayA-3 transition-colors cursor-pointer"
         >
           <DoubleChevronRight
             iconSize="lg-medium"
@@ -294,7 +294,7 @@ export const AddEnvVarExpandable = ({
                   name="secret"
                   render={({ field }) => (
                     <Switch
-                      className="data-[state=checked]:bg-success-9 data-[state=checked]:ring-2 data-[state=checked]:ring-successA-5 data-[state=unchecked]:ring-2 data-[state=unchecked]:ring-grayA-3"
+                      className="data-[state=checked]:bg-success-9 data-[state=checked]:ring-2 data-[state=checked]:ring-successA-5 data-[state=unchecked]:ring-2 data-[state=unchecked]:ring-grayA-3 data-[state=unchecked]:bg-gray-5"
                       checked={field.value}
                       onCheckedChange={field.onChange}
                     />
@@ -304,7 +304,8 @@ export const AddEnvVarExpandable = ({
                 <InfoTooltip
                   content="Permanently hides values after saving. Use for API keys and secrets."
                   position={{ side: "top" }}
-                  className="z-[60]"
+                  className="z-60"
+                  asChild
                 >
                   <span className="text-grayA-9">
                     <CircleInfo iconSize="md-regular" />
@@ -314,7 +315,7 @@ export const AddEnvVarExpandable = ({
             </div>
           </div>
 
-          <div className="border-t border-grayA-4 bg-gray-1 px-8 py-5 flex items-center justify-between">
+          <div className="border-t border-gray-4 bg-white dark:bg-black px-8 py-5 flex items-center justify-between">
             <div className="hidden md:flex items-center gap-3">
               <input
                 ref={fileInputRef}

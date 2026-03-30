@@ -5,7 +5,7 @@ import { Eye, EyeSlash } from "@unkey/icons";
 import { InfoTooltip, Loading, toast } from "@unkey/ui";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
-const AUTO_HIDE_MS = 30_000;
+const AUTO_HIDE_MS = 10_000;
 
 type EnvVarValueCellProps = {
   envVarId: string;
