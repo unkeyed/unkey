@@ -5,18 +5,16 @@ description: How we can collect resource usage metrics for billing.
 
 ## Overview
 
-soonTM = I dont have a good name yet.
-
-**soonTM** is a Go DaemonSet that collects per-deployment CPU, memory, and network egress metrics from Kubernetes nodes and writes them to ClickHouse for billing.
+**heimdall** is a Go DaemonSet that collects per-deployment CPU, memory, and network egress metrics from Kubernetes nodes and writes them to ClickHouse for billing.
 It also tracks deployment lifecycle events (start, stop, scale) with millisecond-precise timestamps.
 
-soonTM runs once per node in the cluster, on every node that hosts customer deployments (`untrusted` nodepool).
+heimdall runs once per node in the cluster, on every node that hosts customer deployments (`untrusted` nodepool).
 
 ## Architecture
 
 <Steps>
 <Step title="Collect">
-soonTM scrapes two kubelet endpoints on the local node at a configurable interval (default 15s) and watches pod events via a K8s informer. It also queries Cilium Hubble for public vs internal egress classification.
+heimdall scrapes two kubelet endpoints on the local node at a configurable interval (default 15s) and watches pod events via a K8s informer. It also queries Cilium Hubble for public vs internal egress classification.
 
 | Source | What | Endpoint |
 | --- | --- | --- |
@@ -41,11 +39,11 @@ SELECT * FROM s3('s3://bucket/metering-wal/**/*.ndjson', 'JSONEachRow')
 </Step>
 </Steps>
 
-## What soonTM Collects
+## What heimdall Collects
 
 ### Resource Usage Samples (configurable interval, default 15s)
 
-For each krane-managed pod on the node, soonTM records:
+For each krane-managed pod on the node, heimdall records:
 
 | Metric | Source | Description |
 | --- | --- | --- |
@@ -62,7 +60,7 @@ Each sample is tagged with `workspace_id`, `project_id`, `app_id`, `environment_
 
 ### Lifecycle Events (real-time)
 
-soonTM watches for pod state changes via Kubernetes informers and emits events with millisecond-precise timestamps:
+heimdall watches for pod state changes via Kubernetes informers and emits events with millisecond-precise timestamps:
 
 | Event | When | Why it matters |
 | --- | --- | --- |
@@ -144,7 +142,7 @@ The billing service fetches lifecycle events from ClickHouse, walks them chronol
 
 The kernel tracks CPU as a **cumulative nanosecond counter** — it only ever goes up. The kubelet reads this via cAdvisor and exposes it through its API. We don't read cgroups directly.
 
-Every collection interval, soonTM grabs the counter from the kubelet. With two consecutive readings we compute the actual usage:
+Every collection interval, heimdall grabs the counter from the kubelet. With two consecutive readings we compute the actual usage:
 
 ```
 Example:
@@ -171,7 +169,7 @@ We do an **immediate kubelet read** when the pod informer fires `AddFunc`:
 
 ```
 :00.100  pod starts → informer AddFunc fires
-:00.120  soonTM immediately reads kubelet → counter = X (reading #1)
+:00.120  heimdall immediately reads kubelet → counter = X (reading #1)
 :15.000  regular tick → counter = Y (reading #2)
          → cpu for :00.120 → :15.000 = (Y - X) / 14.88s ✓
 ```
@@ -182,7 +180,7 @@ The blind spot shrinks from ~15s to milliseconds (however fast we can hit the ku
 Harder — the container may be gone before we can read. Our approach:
 
 1. The informer fires `UpdateFunc` when the pod transitions to **Terminating** (before the container is actually killed, during the graceful shutdown window)
-2. soonTM races to read the kubelet one last time
+2. heimdall races to read the kubelet one last time
 3. If we win the race: we get a real final delta, full coverage
 4. If we lose (container already dead): fall back to billing the **allocated rate** (`cpu_limit`) for the gap between the last real sample and the lifecycle stop event
 
@@ -190,7 +188,7 @@ Harder — the container may be gone before we can read. Our approach:
 Best case (win the race):
   :45.000  regular tick → counter = A
   :52.100  SIGTERM → pod becomes Terminating
-  :52.110  informer fires → soonTM reads kubelet → counter = B ✓
+  :52.110  informer fires → heimdall reads kubelet → counter = B ✓
   :52.300  container dies
            → :45 → :52.110 = real usage ✓
            → :52.110 → :52.300 = billed at allocated rate
@@ -215,7 +213,7 @@ Total egress comes from the kubelet Summary API (`txBytes` counter delta). To sp
 
 <Steps>
 <Step title="Query Hubble">
-soonTM queries **Cilium Hubble** (gRPC API via `hubble.relay`) for each pod's outbound network flows.
+heimdall queries **Cilium Hubble** (gRPC API via `hubble.relay`) for each pod's outbound network flows.
 </Step>
 <Step title="Classify by destination">
 Flows to RFC1918 destinations (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`) are **internal**. Everything else is **public**.
@@ -234,7 +232,7 @@ Only public egress is typically billed. Internal egress (pod-to-pod, pod-to-serv
 Billing data cannot be dropped. Unlike analytics (where losing a few events is acceptable), missing billing data means lost revenue or overcharging.
 </Warning>
 
-soonTM uses a **write-ahead log (WAL)** on a dedicated EBS volume:
+heimdall uses a **write-ahead log (WAL)** on a dedicated EBS volume:
 
 <Steps>
 <Step title="Write to disk first">
@@ -428,7 +426,7 @@ This is done in Go, not SQL — ClickHouse stores the events, the billing servic
 
 ## Deployment
 
-soonTM runs as a **Kubernetes DaemonSet** on all `untrusted` nodes (the same nodes that run customer deployments).
+heimdall runs as a **Kubernetes DaemonSet** on all `untrusted` nodes (the same nodes that run customer deployments).
 
 | Resource | Value |
 | --- | --- |
