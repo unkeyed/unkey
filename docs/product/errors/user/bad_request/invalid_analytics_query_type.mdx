@@ -24,6 +24,7 @@ description: "Only SELECT queries are allowed for analytics - you tried to use I
 You tried to run a query that modifies data or isn't a SELECT! Analytics queries are read-only - you can only SELECT data, not modify it.
 
 Blocked query types:
+
 - `INSERT` - Adding new data
 - `UPDATE` - Modifying existing data
 - `DELETE` - Removing data
@@ -99,11 +100,11 @@ LIMIT 10
 
 If you need to modify data, use the appropriate Unkey API endpoints:
 
-| What You Want | Use This API |
-|---------------|--------------|
-| Create a key | `POST /v2/keys.createKey` |
-| Update a key | `PATCH /v2/keys.updateKey` |
-| Delete a key | `POST /v2/keys.deleteKey` |
+| What You Want      | Use This API                   |
+| ------------------ | ------------------------------ |
+| Create a key       | `POST /v2/keys.createKey`      |
+| Update a key       | `PATCH /v2/keys.updateKey`     |
+| Delete a key       | `POST /v2/keys.deleteKey`      |
 | Modify permissions | `POST /v2/keys.addPermissions` |
 
 ## Why Read-Only?
@@ -116,5 +117,6 @@ Analytics queries are read-only for several reasons:
 4. **Audit trail** - Preserves accurate historical records
 
 <Note>
-Analytics is for understanding your data, not changing it. Use the main Unkey API for creating, updating, or deleting resources.
+  Analytics is for understanding your data, not changing it. Use the main Unkey
+  API for creating, updating, or deleting resources.
 </Note>

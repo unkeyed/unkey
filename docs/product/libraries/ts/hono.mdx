@@ -41,22 +41,24 @@ By default it tries to grab the API key from the `Authorization` header and then
 The result of the verification will be written to the context and can be accessed with `c.get("unkey")`.
 
 ```ts
-import { Hono } from "hono"
+import { Hono } from "hono";
 import { type UnkeyContext, unkey } from "@unkey/hono";
 
 const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
 
-app.use("*", unkey({
-  rootKey: process.env.UNKEY_ROOT_KEY!
-}));
-
+app.use(
+  "*",
+  unkey({
+    rootKey: process.env.UNKEY_ROOT_KEY!,
+  }),
+);
 
 app.get("/somewhere", (c) => {
   // access the unkey response here to get metadata of the key etc
   const keyInfo = c.get("unkey");
 
   return c.text(`Hello ${keyInfo.identity?.externalId ?? "user"}!`);
-})
+});
 ```
 
 ## Customizing the middleware
@@ -71,7 +73,7 @@ app.use(
   unkey({
     rootKey: process.env.UNKEY_ROOT_KEY!,
     getKey: (c) => c.req.header("x-api-key"),
-  })
+  }),
 );
 ```
 
@@ -95,7 +97,7 @@ app.use(
       }
       return key;
     },
-  })
+  }),
 );
 ```
 
@@ -110,7 +112,7 @@ app.use(
       // handle error
       return c.text("unauthorized", 401);
     },
-  })
+  }),
 );
 ```
 
@@ -120,7 +122,7 @@ By default the middleware will not do anything with the verification response ot
 However you most likely would like to just return a `401` response if the key is invalid and not continue with the request.
 
 To do this you can pass a `handleInvalidKey` handler to the middleware.
-See [here](/api-reference/v2/keys/create-api-key) for the full `response` object.
+See the [key verification docs](/platform/apis/keys#verify-a-key) for the full `response` object.
 
 ```ts
 app.use(
@@ -133,10 +135,10 @@ app.use(
           error: "unauthorized",
           reason: result.code,
         },
-        401
+        401,
       );
     },
-  })
+  }),
 );
 ```
 

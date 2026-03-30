@@ -26,7 +26,6 @@ go_library(
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/logger",
-        "//pkg/ptr",
         "//pkg/retry",
         "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
         "@com_github_clickhouse_clickhouse_go_v2//lib/driver",

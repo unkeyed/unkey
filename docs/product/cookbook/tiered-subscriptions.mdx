@@ -19,22 +19,28 @@ export const TIERS = {
     name: "Free",
     credits: 100,
     refill: { interval: "daily" as const, amount: 100 },
-    rateLimit: { limit: 10, duration: 60000 },  // 10/min
+    rateLimit: { limit: 10, duration: 60000 }, // 10/min
     features: ["api_access"],
   },
   pro: {
     name: "Pro",
     credits: 10000,
     refill: { interval: "monthly" as const, amount: 10000 },
-    rateLimit: { limit: 100, duration: 60000 },  // 100/min
+    rateLimit: { limit: 100, duration: 60000 }, // 100/min
     features: ["api_access", "webhooks", "priority_support"],
   },
   enterprise: {
     name: "Enterprise",
-    credits: null,  // Unlimited
+    credits: null, // Unlimited
     refill: null,
-    rateLimit: { limit: 1000, duration: 60000 },  // 1000/min
-    features: ["api_access", "webhooks", "priority_support", "sla", "custom_domain"],
+    rateLimit: { limit: 1000, duration: 60000 }, // 1000/min
+    features: [
+      "api_access",
+      "webhooks",
+      "priority_support",
+      "sla",
+      "custom_domain",
+    ],
   },
 } as const;
 
@@ -51,26 +57,28 @@ const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 export async function createKeyForUser(userId: string, tier: Tier) {
   const config = TIERS[tier];
-  
+
   const { meta, data, error } = await unkey.keys.create({
     apiId: process.env.UNKEY_API_ID!,
     prefix: `sk_${tier}`,
     externalId: userId,
     name: `${config.name} API Key`,
-    
+
     // Set credits based on tier (skip for unlimited)
     ...(config.credits && {
       remaining: config.credits,
       refill: config.refill ?? undefined,
     }),
-    
+
     // Set rate limits
-    ratelimits: [{
-      name: "requests",
-      limit: config.rateLimit.limit,
-      duration: config.rateLimit.duration,
-    }],
-    
+    ratelimits: [
+      {
+        name: "requests",
+        limit: config.rateLimit.limit,
+        duration: config.rateLimit.duration,
+      },
+    ],
+
     // Store plan info in metadata
     meta: {
       tier,
@@ -90,8 +98,8 @@ export async function createKeyForUser(userId: string, tier: Tier) {
 import { verifyKey } from "@unkey/api";
 
 export async function verifyAndCheckFeature(
-  apiKey: string, 
-  requiredFeature?: string
+  apiKey: string,
+  requiredFeature?: string,
 ) {
   const { meta, data, error } = await verifyKey({
     key: apiKey,
@@ -107,8 +115,8 @@ export async function verifyAndCheckFeature(
   if (requiredFeature) {
     const features = (data.meta?.features as string[]) ?? [];
     if (!features.includes(requiredFeature)) {
-      return { 
-        valid: false, 
+      return {
+        valid: false,
         code: "FEATURE_NOT_AVAILABLE",
         tier: data.meta?.tier,
       };
@@ -124,29 +132,35 @@ export async function verifyAndCheckFeature(
 ```typescript lib/keys.ts
 export async function changeUserTier(keyId: string, newTier: Tier) {
   const config = TIERS[newTier];
-  
+
   await unkey.keys.update({
     keyId,
-    
+
     // Update credits
-    ...(config.credits ? {
-      credits: {
-        remaining: config.credits,
-        refill: config.refill ?? undefined,
-      },
-    } : {
-      // Remove credits for unlimited tier
-      remaining: null,
-      refill: null,
-    }),
-    
+    ...(config.credits
+      ? {
+          credits: {
+            remaining: config.credits,
+            refill: config.refill ?? undefined,
+          },
+        }
+      : {
+          // Remove credits for unlimited tier
+          credits: {
+            remaining: null,
+            refill: null,
+          },
+        }),
+
     // Update rate limits
-    ratelimits: [{
-      name: "requests",
-      limit: config.rateLimit.limit,
-      duration: config.rateLimit.duration,
-    }],
-    
+    ratelimits: [
+      {
+        name: "requests",
+        limit: config.rateLimit.limit,
+        duration: config.rateLimit.duration,
+      },
+    ],
+
     // Update metadata
     meta: {
       tier: newTier,
@@ -172,7 +186,7 @@ const app = express();
 function requireFeature(feature: string) {
   return async (req, res, next) => {
     const apiKey = req.headers.authorization?.slice(7);
-    
+
     if (!apiKey) {
       return res.status(401).json({ error: "Missing API key" });
     }
@@ -187,7 +201,7 @@ function requireFeature(feature: string) {
     }
 
     const features = (data.meta?.features as string[]) ?? [];
-    
+
     if (!features.includes(feature)) {
       return res.status(403).json({
         error: "Feature not available on your plan",
@@ -202,7 +216,7 @@ function requireFeature(feature: string) {
       tier: data.meta?.tier as string,
       features,
     };
-    
+
     next();
   };
 }
@@ -250,13 +264,16 @@ export async function POST(req: NextRequest) {
   }
 
   const features = (data.meta?.features as string[]) ?? [];
-  
+
   if (!features.includes("webhooks")) {
-    return NextResponse.json({
-      error: "Webhooks require a Pro or Enterprise plan",
-      currentTier: data.meta?.tier,
-      upgradeUrl: "/settings/billing",
-    }, { status: 403 });
+    return NextResponse.json(
+      {
+        error: "Webhooks require a Pro or Enterprise plan",
+        currentTier: data.meta?.tier,
+        upgradeUrl: "/settings/billing",
+      },
+      { status: 403 },
+    );
   }
 
   // Process webhook creation...
@@ -276,23 +293,23 @@ import { changeUserTier } from "@/lib/keys";
 
 export async function handleSubscriptionChange(event: Stripe.Event) {
   const subscription = event.data.object as Stripe.Subscription;
-  
+
   // Map Stripe price IDs to tiers
   const priceToTier: Record<string, Tier> = {
-    "price_free": "free",
-    "price_pro": "pro",
-    "price_enterprise": "enterprise",
+    price_free: "free",
+    price_pro: "pro",
+    price_enterprise: "enterprise",
   };
-  
+
   const newTier = priceToTier[subscription.items.data[0].price.id];
   const userId = subscription.metadata.userId;
-  
+
   // Get user's key ID from your database
   const keyId = await db.users.getKeyId(userId);
-  
+
   // Update the key
   await changeUserTier(keyId, newTier);
-  
+
   // Optionally notify the user
   await sendEmail(userId, `You've been upgraded to ${newTier}!`);
 }

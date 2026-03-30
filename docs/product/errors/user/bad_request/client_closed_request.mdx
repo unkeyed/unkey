@@ -30,7 +30,10 @@ Your client cancelled the request before our server finished processing it. This
 - Load balancer or proxy terminated the connection
 
 <Note>
-**HTTP Status 499** is a non-standard but widely used status code that means "Client Closed Request". It was originally defined by nginx and is now used by many web servers to indicate when a client disconnects before receiving the full response.
+  **HTTP Status 499** is a non-standard but widely used status code that means
+  "Client Closed Request". It was originally defined by nginx and is now used by
+  many web servers to indicate when a client disconnects before receiving the
+  full response.
 </Note>
 
 ## Common Causes
@@ -68,13 +71,17 @@ If you're using proxies, load balancers, or CDNs:
 ## When You See This Error
 
 ### It's Usually Not Our Fault
+
 Status 499 means your client cancelled the request, so the issue is typically:
+
 - Your client timeout settings
 - Network connectivity problems
 - User behavior (closing browser, etc.)
 
 ### Check Your Logs
+
 Look for patterns:
+
 - Is it happening at specific times?
 - Are certain operations more affected?
 - Are there network errors in your client logs?
