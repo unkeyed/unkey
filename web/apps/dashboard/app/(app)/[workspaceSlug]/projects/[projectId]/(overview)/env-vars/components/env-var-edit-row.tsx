@@ -42,6 +42,7 @@ export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: En
     },
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: decryptMutation is not stable
   useEffect(
     function decryptValue() {
       if (isWriteonly) {
@@ -64,7 +65,7 @@ export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: En
         cancelled = true;
       };
     },
-    [envVarId, isWriteonly, setValue, decryptMutation],
+    [envVarId, isWriteonly, setValue],
   );
 
   const onSubmit = useCallback(

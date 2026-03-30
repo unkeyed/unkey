@@ -141,7 +141,6 @@ export function EnvVarsList({
                   variableKey={item.key}
                   type={item.type}
                   note={item.note ?? null}
-                  environmentName={item.environmentName}
                   onClose={closeEdit}
                 />
               </div>
