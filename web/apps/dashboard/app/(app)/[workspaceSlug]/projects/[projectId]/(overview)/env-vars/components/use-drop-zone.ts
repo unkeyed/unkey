@@ -51,8 +51,13 @@ export function useDropZone(
         deduped.set(row.key, row);
       }
 
-      const existing = getValues("envVars").filter((row) => row.key !== "");
-      const existingKeys = new Set(existing.map((row) => row.key));
+      const allRows = getValues("envVars");
+      const existing = allRows.filter(
+        (row) => row.key !== "" || row.value !== "" || (row.description ?? "") !== "",
+      );
+      const existingKeys = new Set(
+        allRows.filter((row) => row.key !== "").map((row) => row.key),
+      );
 
       const newRows = [...deduped.values()].filter((row) => !existingKeys.has(row.key));
       const skipped = deduped.size - newRows.length;

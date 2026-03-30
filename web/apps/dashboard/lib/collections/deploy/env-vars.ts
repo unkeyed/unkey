@@ -105,6 +105,7 @@ export const envVars = createCollection<EnvVar, string>(
           key: modified.key,
           value: modified.value,
           type: modified.type,
+          description: modified.description,
         }),
       );
     },

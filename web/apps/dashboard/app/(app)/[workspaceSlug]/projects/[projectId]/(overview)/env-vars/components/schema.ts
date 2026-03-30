@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const envVarEntrySchema = z.object({
-  key: z.string().min(1, "Variable name is required"),
+  key: z.string().trim().min(1, "Variable name is required"),
   value: z.string(),
   description: z.string().optional(),
 });

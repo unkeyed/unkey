@@ -46,6 +46,7 @@ export const EnvVarValueCell = memo(function EnvVarValueCell({
 
       if (visible) {
         setVisible(false);
+        setDecryptedValue(undefined);
         clearTimeout(hideTimeoutRef.current);
         return;
       }
@@ -69,17 +70,21 @@ export const EnvVarValueCell = memo(function EnvVarValueCell({
   );
 
   const handleCopy = useCallback(
-    (e: React.MouseEvent) => {
+    async (e: React.MouseEvent) => {
       e.stopPropagation();
       if (decryptedValue === undefined) {
         return;
       }
-      navigator.clipboard.writeText(decryptedValue);
-      setCopied(true);
-      toast.success("Copied to clipboard");
-      clearTimeout(copyTimeoutRef.current);
-      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
-      startAutoHide();
+      try {
+        await navigator.clipboard.writeText(decryptedValue);
+        setCopied(true);
+        toast.success("Copied to clipboard");
+        clearTimeout(copyTimeoutRef.current);
+        copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+        startAutoHide();
+      } catch {
+        toast.error("Failed to copy to clipboard");
+      }
     },
     [decryptedValue, startAutoHide],
   );
