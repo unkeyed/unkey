@@ -12,6 +12,7 @@ import {
   Code,
   Gauge,
   PenWriting3,
+  Refresh3,
   Tag,
   Trash,
 } from "@unkey/icons";
@@ -27,6 +28,7 @@ import { EditRatelimits } from "./components/edit-ratelimits";
 import { KeyRbacDialog } from "./components/edit-rbac";
 import { MAX_PERMS_FETCH_LIMIT } from "./components/edit-rbac/components/assign-permission/hooks/use-fetch-keys-permissions";
 import { MAX_ROLES_FETCH_LIMIT } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
+import { RerollKey } from "./components/reroll-key";
 
 export const getKeysTableActionItems = (
   key: KeyDetails,
@@ -195,6 +197,13 @@ export const getKeysTableActionItems = (
           }
         }
       },
+      divider: true,
+    },
+    {
+      id: "reroll-key",
+      label: "Reroll key...",
+      icon: <Refresh3 iconSize="md-medium" />,
+      ActionComponent: (props) => <RerollKey {...props} keyDetails={key} />,
       divider: true,
     },
     {
