@@ -226,19 +226,13 @@
             ]
           },
           {
-            "group": "Changelog",
-            "icon": "clock-rotate-left",
-            "pages": [
-              "changelog/2026-03-23"
-            ]
-          },
-          {
             "expanded": false,
             "group": "Observability",
             "icon": "eye",
             "pages": [
               "observability/overview",
               "observability/logs",
+              "observability/requests",
               "observability/metrics"
             ]
           },
@@ -298,34 +292,32 @@
                   "cookbook/usage-billing",
                   "cookbook/tiered-subscriptions"
                 ]
-              }
-            ]
-          },
-          {
-            "expanded": false,
-            "group": "Ratelimiting",
-            "icon": "gauge",
-            "pages": [
-              "platform/ratelimiting/introduction",
-              "platform/ratelimiting/modes",
-              "platform/ratelimiting/overrides",
-              "platform/ratelimiting/automated-overrides",
-              "quickstart/identities/shared-ratelimits",
-              {
-                "group": "Framework Guides",
-                "pages": [
-                  "quickstart/ratelimiting/nextjs",
-                  "quickstart/ratelimiting/express",
-                  "quickstart/ratelimiting/bun",
-                  "quickstart/ratelimiting/hono"
-                ]
               },
               {
-                "group": "Cookbook",
+                "group": "Ratelimiting",
                 "pages": [
-                  "cookbook/per-user-ratelimit",
-                  "cookbook/endpoint-ratelimit",
-                  "cookbook/python-fastapi-ratelimit"
+                  "platform/ratelimiting/introduction",
+                  "platform/ratelimiting/modes",
+                  "platform/ratelimiting/overrides",
+                  "platform/ratelimiting/automated-overrides",
+                  "quickstart/identities/shared-ratelimits",
+                  {
+                    "group": "Framework Guides",
+                    "pages": [
+                      "quickstart/ratelimiting/nextjs",
+                      "quickstart/ratelimiting/express",
+                      "quickstart/ratelimiting/bun",
+                      "quickstart/ratelimiting/hono"
+                    ]
+                  },
+                  {
+                    "group": "Cookbook",
+                    "pages": [
+                      "cookbook/per-user-ratelimit",
+                      "cookbook/endpoint-ratelimit",
+                      "cookbook/python-fastapi-ratelimit"
+                    ]
+                  }
                 ]
               }
             ]
@@ -452,6 +444,13 @@
                   }
                 ]
               }
+            ]
+          },
+          {
+            "group": "Changelog",
+            "icon": "clock-rotate-left",
+            "pages": [
+              "changelog/2026-03-23"
             ]
           }
         ],

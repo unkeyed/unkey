@@ -1,16 +1,31 @@
 ---
 title: Metrics
-description: Track request rates, latency distributions, error rates, and resource utilization with Prometheus and OpenTelemetry.
+description: Track requests per second and latency distributions for each deployment.
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-## TODO
+<Warning>
+  The metrics page is a work in progress. RPS and latency charts are available, with additional metrics coming soon.
+</Warning>
 
-- Available metrics: request rate, latency percentiles, error rate, CPU and memory utilization
-- Prometheus and OpenTelemetry integration
-- Dashboard charts and time-range controls
-- Setting up alerts based on metric thresholds
-- Per-deployment vs per-environment metric aggregation
+Each deployment's overview page includes real-time charts for throughput and latency. Navigate to a deployment from your project's **Deployments** tab to view them.
+
+## Requests per second
+
+The RPS chart shows the number of requests your deployment handles over time. Use it to spot traffic spikes, confirm scaling behavior, or correlate with incidents.
+
+## Latency
+
+The latency chart displays response time distributions over time. You can switch between p50, p75, p90, p95, and p99 percentiles. Check the [Requests](/observability/requests) tab to find individual slow requests and inspect their latency breakdown.
+
+## Planned metrics
+
+Unkey is adding per-deployment metrics for:
+
+- CPU utilization
+- Memory usage
+- Instance count
+- Disk usage

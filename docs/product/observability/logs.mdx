@@ -1,16 +1,43 @@
 ---
 title: Logs
-description: Filter and inspect API requests, key verifications, rate limit decisions, and runtime output.
+description: View and filter runtime output from your deployments.
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-## TODO
+The **Logs** tab in your project shows runtime output (stdout and stderr) from every deployment. Anything your app prints to the console appears here.
 
-- Log types: build logs (streaming build output) and runtime logs (application stdout/stderr)
-- Filtering logs by deployment, environment, time range, and severity
-- Structured logging: how to emit structured logs from your service for better searchability
-- Log retention: how long logs are stored and any size limits
-- Tailing live logs from the dashboard and CLI
+## How logs are captured
+
+Unkey captures all stdout and stderr output from your app automatically. There is nothing to install or configure.
+
+If your app writes JSON to stdout, Unkey parses the JSON and populates the **Attributes** column with the structured data. This makes individual fields filterable and easier to scan. Plain text output appears in the **Message** column as-is.
+
+## Log fields
+
+Each log entry includes a timestamp, a severity level (`ERROR`, `WARN`, `INFO`, or `DEBUG`), the region where the instance is running, and the log message. If the output is structured JSON, Unkey populates an additional **Attributes** column with the parsed fields.
+
+## Filter logs
+
+Use the control bar at the top of the page to narrow results by severity, deployment, environment, message content, and time range. Filters can be combined and are persisted in the URL, so you can bookmark or share a filtered view.
+
+<Frame caption="Logs page showing runtime output filtered by time range">
+  <img src="/observability/logs-light.png" alt="Logs page" className="block dark:hidden" />
+  <img src="/observability/logs-dark.png" alt="Logs page" className="hidden dark:block" />
+</Frame>
+
+## Structured logging
+
+To get the most out of the Attributes column, emit structured JSON from your app:
+
+```json
+{"level": "info", "message": "payment processed", "amount": 49.99, "currency": "USD", "customer_id": "cus_abc123"}
+```
+
+Unkey parses each key into a separate attribute, making it easier to locate specific entries when scanning a large volume of logs.
+
+## Retention
+
+Runtime logs are retained for 90 days.
