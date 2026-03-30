@@ -8,7 +8,6 @@ import (
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/sentinel/middleware"
-	internalHealth "github.com/unkeyed/unkey/svc/sentinel/routes/internal_health"
 	proxy "github.com/unkeyed/unkey/svc/sentinel/routes/proxy"
 )
 
@@ -21,17 +20,12 @@ func Register(srv *zen.Server, svc *Services) {
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
+		withLogging,
 		withObservability,
 		withSentinelLogging,
 		withTimeout,
 		withProxyErrorHandling,
-		withLogging,
 	}
-
-	srv.RegisterRoute(
-		[]zen.Middleware{withLogging},
-		&internalHealth.Handler{},
-	)
 
 	//nolint:exhaustruct
 	transport := &http.Transport{

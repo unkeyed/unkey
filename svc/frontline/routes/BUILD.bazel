@@ -11,13 +11,10 @@ go_library(
     deps = [
         "//gen/rpc/ctrl",
         "//pkg/clock",
-        "//pkg/config",
-        "//pkg/pprof",
         "//pkg/zen",
         "//svc/frontline/internal/errorpage",
         "//svc/frontline/middleware",
         "//svc/frontline/routes/acme",
-        "//svc/frontline/routes/internal_health",
         "//svc/frontline/routes/proxy",
         "//svc/frontline/services/proxy",
         "//svc/frontline/services/router",

@@ -8,6 +8,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
+import { SettingField } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { RemoveButton } from "../shared/remove-button";
 
@@ -73,9 +74,9 @@ export const OpenapiSpecPath = () => {
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
-      <div className="flex flex-col gap-2 w-[480px]">
-        <span className="text-gray-11 text-[13px]">OpenAPI Spec Path</span>
-        <div className="relative flex items-start gap-3">
+      <SettingField>
+        <span className="text-gray-11 text-[13px] flex items-center">OpenAPI Spec Path</span>
+        <div className="flex items-start gap-2">
           <FormInput
             description="Path your deployment serves the OpenAPI spec (e.g. /openapi.yaml). Changes apply on next deploy."
             placeholder="/openapi.yaml"
@@ -84,11 +85,9 @@ export const OpenapiSpecPath = () => {
             variant={errors.openapiSpecPath ? "error" : "default"}
             {...register("openapiSpecPath")}
           />
-          {openapiSpecPath && (
-            <RemoveButton onClick={handleRemove} className="absolute -right-11 top-0" />
-          )}
+          {openapiSpecPath && <RemoveButton onClick={handleRemove} className="shrink-0" />}
         </div>
-      </div>
+      </SettingField>
     </FormSettingCard>
   );
 };

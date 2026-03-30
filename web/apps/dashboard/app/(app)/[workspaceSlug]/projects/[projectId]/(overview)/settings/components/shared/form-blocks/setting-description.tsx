@@ -6,7 +6,7 @@ type SettingDescriptionProps = {
 
 export const SettingDescription: React.FC<SettingDescriptionProps> = ({ children }) => {
   return (
-    <div className="text-[13px] leading-5 mt-1 max-w-[480px]">
+    <div className="text-[13px] leading-5 max-w-(--setting-w)">
       <output className="text-gray-9 flex gap-2 items-start">
         <CircleInfo iconSize="md-medium" className="shrink-0 mt-[3px]" aria-hidden="true" />
         <span className="flex-1 text-gray-10">{children}</span>

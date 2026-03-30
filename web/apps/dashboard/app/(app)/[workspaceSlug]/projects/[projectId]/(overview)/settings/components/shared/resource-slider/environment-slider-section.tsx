@@ -6,8 +6,8 @@ type EnvironmentSliderSectionProps = {
 };
 
 export const EnvironmentSliderSection = ({ label, children }: EnvironmentSliderSectionProps) => (
-  <div className="flex flex-col">
-    <span className="text-gray-11 text-[13px] font-medium mb-1">{label}</span>
+  <div className="flex flex-col mb-4">
+    <span className="text-gray-11 text-[13px] mb-1">{label}</span>
     {children}
   </div>
 );

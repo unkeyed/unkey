@@ -177,6 +177,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			Pprof: &sharedconfig.PprofConfig{
 				Username: "unkey",
 				Password: "password",
+				Port:     0,
 			},
 			Gossip: nil,
 		}
