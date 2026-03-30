@@ -68,7 +68,7 @@ curl --request POST \
 
 ## Recovering plaintext keys
 
-Both the `getKey` and `listKeys` endpoints accept a `decrypt` query parameter. If you set this to `true`, the key will be decrypted and returned in the response as `plaintext`.
+Both `getKey` and `listKeys` accept a `decrypt` field in the JSON request body. When set to `true`, the key will be decrypted and returned in the response as `plaintext`.
 
 <Warning>
   When recovering keys, your root key must have permission to decrypt. Head over

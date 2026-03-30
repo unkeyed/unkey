@@ -1,4 +1,4 @@
-.PHONY: build dev
+.PHONY: build dev lint
 
 build:
 	@docker build -t unkey-docs .
@@ -6,6 +6,11 @@ build:
 dev: build
 	@docker run --rm -it \
   	-p 3000:3000 \
-    -v /Users/chronark/github/unkeyed/unkey/docs/product:/app \
+    -v $(CURDIR):/app \
     unkey-docs
+
+lint: build
+	@docker run --rm \
+	  -v $(CURDIR):/app \
+	  unkey-docs sh -c "mintlify broken-links && mintlify validate && mintlify a11y"
 
