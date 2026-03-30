@@ -119,6 +119,7 @@ export * from "./icons/minus";
 export * from "./icons/moon-stars";
 export * from "./icons/nodes-2";
 export * from "./icons/nodes";
+export * from "./icons/note-3";
 export * from "./icons/number-input";
 export * from "./icons/nut";
 export * from "./icons/page-2";
