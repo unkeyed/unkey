@@ -149,13 +149,18 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 				SampleRate:    1.0,
 				SlowThreshold: time.Second,
 			},
-			Tracing: nil,
-			Metrics: nil,
+			Tracing: &config.TracingConfig{
+				SampleRate: 0.25,
+			},
+			Metrics: &config.MetricsConfig{
+				PrometheusPort: MetricsPort,
+			},
 		},
 		Gossip: nil,
 		Pprof: &config.PprofConfig{
 			Username: "${UNKEY_PPROF_USERNAME}",
 			Password: "${UNKEY_PPROF_PASSWORD}",
+			Port:     0,
 		},
 	})
 	if err != nil {
@@ -258,12 +263,13 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 							{ContainerPort: SentinelPort, Name: "sentinel"},
 							{ContainerPort: GossipLANPort, Name: "gossip-lan", Protocol: corev1.ProtocolTCP},
 							{ContainerPort: GossipLANPort, Name: "gossip-lan-udp", Protocol: corev1.ProtocolUDP},
+							{ContainerPort: MetricsPort, Name: "metrics"},
 						},
 
 						LivenessProbe: &corev1.Probe{
 							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
-									Path: "/_unkey/internal/health",
+									Path: "/_unkey/internal/health/live",
 									Port: intstr.FromInt(SentinelPort),
 								},
 							},
@@ -276,7 +282,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 						ReadinessProbe: &corev1.Probe{
 							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
-									Path: "/_unkey/internal/health",
+									Path: "/_unkey/internal/health/ready",
 									Port: intstr.FromInt(SentinelPort),
 								},
 							},

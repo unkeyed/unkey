@@ -1,0 +1,45 @@
+---
+title: "March 27, 2026"
+description: "Full-featured CLI, improved keys overview table, and onboarding refinements."
+---
+
+## New features
+
+### Unkey CLI
+
+A new command-line interface gives you direct access to the full Unkey API from your terminal. Manage API keys, configure rate limits, set permissions, query analytics, and more — all without leaving the command line.
+
+Authenticate once with `unkey auth login`, and all subsequent commands use your stored credentials automatically. You can also pass a root key per-command or via the `UNKEY_ROOT_KEY` environment variable.
+
+```bash
+# Authenticate
+unkey auth login
+
+# Create an API and issue a key
+unkey api apis create-api --name=payment-service
+unkey api keys create-key --api-id=api_1234 --name="Production Key"
+
+# Verify a key
+unkey api keys verify-key --key=sk_1234abcdef
+```
+
+Every command supports `--output=json` for scripting and piping to tools like `jq`. See the [CLI documentation](/cli/overview) for the full command reference.
+
+<Warning>
+The CLI is early and provided on a best-effort basis. There are no breaking change guarantees for commands, flags, or output format. The underlying [API](/api-reference/v2/overview) is versioned and stable.
+</Warning>
+
+## Updates
+
+### Improved keys overview table
+
+The keys overview table in the dashboard now supports column sorting, keyboard navigation, and inline row selection. Click any row to open a details panel showing outcome distribution, roles, and permissions — without leaving the page. The table also loads faster with built-in skeleton states and a cleaner empty state.
+
+### Consistent settings pages
+
+The settings UI for billing, project, rate limiting, and API configuration now shares a unified layout. Danger and warning zones are visually consistent across all settings pages.
+
+## Bug fixes
+
+- The onboarding flow no longer closes unexpectedly when navigating away. If you've already connected GitHub, the setup wizard skips the connection step and takes you directly to repository selection.
+- Fixed a missing workspace slug in the key details panel link within the API requests view.

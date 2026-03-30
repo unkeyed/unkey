@@ -20,6 +20,7 @@ go_library(
         "//pkg/config",
         "//pkg/logger",
         "//pkg/otel",
+        "//pkg/pprof",
         "//pkg/prometheus",
         "//pkg/ptr",
         "//pkg/rpc/interceptor",
