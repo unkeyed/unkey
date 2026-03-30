@@ -7,35 +7,25 @@ import (
 	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
-	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/retry"
 )
 
-// Clickhouse represents a client for interacting with a ClickHouse database.
-// It provides batch processing for different event types to efficiently store
-// high volumes of data while minimizing connection overhead.
-type clickhouse struct {
+// Client represents a client for interacting with a ClickHouse database.
+// Batch processing for different event types is handled externally via
+// NewBuffer[T], which wires a *batch.BatchProcessor to this client's
+// connection, retry policy, and circuit breaker.
+type Client struct {
 	conn           ch.Conn
 	circuitBreaker *circuitbreaker.CB[struct{}]
 	retry          *retry.Retry
-
-	// Batched processors for different event types
-	apiRequests      *batch.BatchProcessor[schema.ApiRequest]
-	keyVerifications *batch.BatchProcessor[schema.KeyVerification]
-	ratelimits       *batch.BatchProcessor[schema.Ratelimit]
-	buildSteps       *batch.BatchProcessor[schema.BuildStepV1]
-	buildStepLogs    *batch.BatchProcessor[schema.BuildStepLogV1]
-	sentinelRequests *batch.BatchProcessor[schema.SentinelRequest]
 }
 
 var (
-	_ Bufferer   = (*clickhouse)(nil)
-	_ Querier    = (*clickhouse)(nil)
-	_ ClickHouse = (*clickhouse)(nil)
+	_ Querier    = (*Client)(nil)
+	_ ClickHouse = (*Client)(nil)
 )
 
 // Config contains the configuration options for the ClickHouse client.
@@ -46,21 +36,20 @@ type Config struct {
 }
 
 // New creates a new ClickHouse client with the provided configuration.
-// It establishes a connection to the ClickHouse server and initializes
-// batch processors for different event types.
-//
-// The client uses batch processing to efficiently handle high volumes
-// of events, automatically flushing based on batch size and time interval.
+// It establishes a connection to the ClickHouse server but does not create
+// any batch processors. Use NewBuffer[T] to create type-safe batch processors
+// for specific event types.
 //
 // Example:
 //
-//	ch, err := clickhouse.New(clickhouse.Config{
-//	    URL:    "clickhouse://user:pass@clickhouse.example.com:9000/db",
+//	client, err := clickhouse.New(clickhouse.Config{
+//	    URL: "clickhouse://user:pass@clickhouse.example.com:9000/db",
 //	})
 //	if err != nil {
 //	    return fmt.Errorf("failed to initialize clickhouse: %w", err)
 //	}
-func New(config Config) (*clickhouse, error) {
+//	buf := clickhouse.NewBuffer[schema.ApiRequest](client, "default.api_requests_raw_v2", clickhouse.BufferConfig{...})
+func New(config Config) (*Client, error) {
 	opts, err := ch.ParseDSN(config.URL)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("parsing clickhouse DSN failed"))
@@ -99,7 +88,7 @@ func New(config Config) (*clickhouse, error) {
 		return nil, fault.Wrap(err, fault.Internal("pinging clickhouse failed"))
 	}
 
-	c := &clickhouse{
+	c := &Client{
 		conn: conn,
 		circuitBreaker: circuitbreaker.New[struct{}](
 			"clickhouse_insert",
@@ -117,103 +106,7 @@ func New(config Config) (*clickhouse, error) {
 				return !isAuthenticationError(err)
 			}),
 		),
-		apiRequests:      nil,
-		keyVerifications: nil,
-		ratelimits:       nil,
-		buildSteps:       nil,
-		buildStepLogs:    nil,
-		sentinelRequests: nil,
 	}
-
-	c.apiRequests = batch.New(batch.Config[schema.ApiRequest]{
-		Name:          "api_requests",
-		Drop:          true,
-		BatchSize:     50_000,
-		BufferSize:    200_000,
-		FlushInterval: 5 * time.Second,
-		Consumers:     2,
-		Flush: func(ctx context.Context, rows []schema.ApiRequest) {
-			table := "default.api_requests_raw_v2"
-			if err := flush(c, ctx, table, rows); err != nil {
-				logger.Error("failed to flush batch", "table", table, "error", err.Error())
-			}
-		},
-	})
-
-	c.keyVerifications = batch.New(batch.Config[schema.KeyVerification]{
-		Name:          "key_verifications_v2",
-		Drop:          true,
-		BatchSize:     50_000,
-		BufferSize:    200_000,
-		FlushInterval: 5 * time.Second,
-		Consumers:     2,
-		Flush: func(ctx context.Context, rows []schema.KeyVerification) {
-			table := "default.key_verifications_raw_v2"
-			if err := flush(c, ctx, table, rows); err != nil {
-				logger.Error("failed to flush batch", "table", table, "error", err.Error())
-			}
-		},
-	})
-
-	c.ratelimits = batch.New(batch.Config[schema.Ratelimit]{
-		Name:          "ratelimits",
-		Drop:          true,
-		BatchSize:     50_000,
-		BufferSize:    200_000,
-		FlushInterval: 5 * time.Second,
-		Consumers:     2,
-		Flush: func(ctx context.Context, rows []schema.Ratelimit) {
-			table := "default.ratelimits_raw_v2"
-			if err := flush(c, ctx, table, rows); err != nil {
-				logger.Error("failed to flush batch", "table", table, "error", err.Error())
-			}
-		},
-	})
-
-	c.buildSteps = batch.New(batch.Config[schema.BuildStepV1]{
-		Name:          "build_steps_v1",
-		Drop:          true,
-		BatchSize:     50_000,
-		BufferSize:    200_000,
-		FlushInterval: 2 * time.Second,
-		Consumers:     1,
-		Flush: func(ctx context.Context, rows []schema.BuildStepV1) {
-			table := "default.build_steps_v1"
-			if err := flush(c, ctx, table, rows); err != nil {
-				logger.Error("failed to flush batch", "table", table, "error", err.Error())
-			}
-		},
-	})
-
-	c.buildStepLogs = batch.New(batch.Config[schema.BuildStepLogV1]{
-		Name:          "build_step_logs_v1",
-		Drop:          true,
-		BatchSize:     50_000,
-		BufferSize:    200_000,
-		FlushInterval: 2 * time.Second,
-		Consumers:     1,
-		Flush: func(ctx context.Context, rows []schema.BuildStepLogV1) {
-			table := "default.build_step_logs_v1"
-			if err := flush(c, ctx, table, rows); err != nil {
-				logger.Error("failed to flush batch", "table", table, "error", err.Error())
-			}
-		},
-	})
-
-	c.sentinelRequests = batch.New(batch.Config[schema.SentinelRequest]{
-		Name:          "sentinel_requests_v1",
-		Drop:          true,
-		BatchSize:     50_000,
-		BufferSize:    200_000,
-		FlushInterval: 5 * time.Second,
-		Consumers:     2,
-		Flush: func(ctx context.Context, rows []schema.SentinelRequest) {
-			table := "default.sentinel_requests_raw_v1"
-			if err := flush(c, ctx, table, rows); err != nil {
-				logger.Error("failed to flush batch", "table", table, "error", err.Error())
-			}
-		},
-	})
 
 	return c, nil
 }
@@ -235,85 +128,7 @@ func isAuthenticationError(err error) bool {
 		strings.Contains(errStr, "code: 517") // Wrong password
 }
 
-// BufferApiRequest adds an API request event to the buffer for batch processing.
-// The event will be flushed to ClickHouse automatically based on the configured
-// batch size and flush interval.
-//
-// This method is non-blocking if the buffer has available capacity. If the buffer
-// is full and the Drop option is enabled (which is the default), the event will
-// be silently dropped.
-//
-// Example:
-//
-//	ch.BufferApiRequest(schema.ApiRequest{
-//	    RequestID:      requestID,
-//	    Time:           time.Now().UnixMilli(),
-//	    WorkspaceID:    workspaceID,
-//	    Host:           r.Host,
-//	    Method:         r.Method,
-//	    Path:           r.URL.Path,
-//	    ResponseStatus: status,
-//	})
-func (c *clickhouse) BufferApiRequest(req schema.ApiRequest) {
-	c.apiRequests.Buffer(req)
-}
-
-// BufferKeyVerification adds a key verification event to the buffer for batch processing.
-// The event will be flushed to ClickHouse automatically based on the configured
-// batch size and flush interval.
-//
-// This method is non-blocking if the buffer has available capacity. If the buffer
-// is full and the Drop option is enabled (which is the default), the event will
-// be silently dropped.
-//
-// Example:
-//
-//	ch.BufferKeyVerificationV2(schema.KeyVerificationV2{
-//	    RequestID:  requestID,
-//	    Time:       time.Now().UnixMilli(),
-//	    WorkspaceID: workspaceID,
-//	    KeyID:      keyID,
-//	    Outcome:    "success",
-//	})
-func (c *clickhouse) BufferKeyVerification(req schema.KeyVerification) {
-	c.keyVerifications.Buffer(req)
-}
-
-// BufferRatelimit adds a ratelimit event to the buffer for batch processing.
-// The event will be flushed to ClickHouse automatically based on the configured
-// batch size and flush interval.
-//
-// This method is non-blocking if the buffer has available capacity. If the buffer
-// is full and the Drop option is enabled (which is the default), the event will
-// be silently dropped.
-//
-// Example:
-//
-//	ch.BufferRatelimit(schema.Ratelimit{
-//	    RequestID:      requestID,
-//	    Time:           time.Now().UnixMilli(),
-//	    WorkspaceID:    workspaceID,
-//	    NamespaceID:    namespaceID,
-//	    Identifier:     identifier,
-//	    Passed:         passed,
-//	})
-func (c *clickhouse) BufferRatelimit(req schema.Ratelimit) {
-	c.ratelimits.Buffer(req)
-}
-
-func (c *clickhouse) BufferBuildStep(req schema.BuildStepV1) {
-	c.buildSteps.Buffer(req)
-}
-
-func (c *clickhouse) BufferBuildStepLog(req schema.BuildStepLogV1) {
-	c.buildStepLogs.Buffer(req)
-}
-
-func (c *clickhouse) BufferSentinelRequest(req schema.SentinelRequest) {
-	c.sentinelRequests.Buffer(req)
-}
-
-func (c *clickhouse) Conn() ch.Conn {
+func (c *Client) Conn() ch.Conn {
 	return c.conn
 }
 
@@ -321,7 +136,7 @@ func (c *clickhouse) Conn() ch.Conn {
 // Each map represents a row with column names as keys and values as ch.Dynamic.
 // Returns fault-wrapped errors with appropriate codes for resource limits,
 // user query errors, and system errors.
-func (c *clickhouse) QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error) {
+func (c *Client) QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error) {
 	rows, err := c.conn.Query(ctx, query, args...)
 	if err != nil {
 		return nil, WrapClickHouseError(err)
@@ -360,25 +175,18 @@ func (c *clickhouse) QueryToMaps(ctx context.Context, query string, args ...any)
 
 // Exec executes a DDL or DML statement that doesn't return rows.
 // Used for CREATE, ALTER, DROP, GRANT, REVOKE, etc.
-func (c *clickhouse) Exec(ctx context.Context, sql string, args ...any) error {
+func (c *Client) Exec(ctx context.Context, sql string, args ...any) error {
 	return c.conn.Exec(ctx, sql, args...)
 }
 
-func (c *clickhouse) Ping(ctx context.Context) error {
+func (c *Client) Ping(ctx context.Context) error {
 	return c.conn.Ping(ctx)
 }
 
-// Close gracefully shuts down the ClickHouse client.
-// It closes all batch processors (waiting for them to flush remaining data),
-// then closes the underlying ClickHouse connection.
-func (c *clickhouse) Close() error {
-	c.apiRequests.Close()
-	c.keyVerifications.Close()
-	c.ratelimits.Close()
-	c.buildSteps.Close()
-	c.buildStepLogs.Close()
-	c.sentinelRequests.Close()
-
+// Close shuts down the ClickHouse connection.
+// Any batch processors created via NewBuffer must be closed separately
+// (and before this call) to ensure buffered rows are flushed.
+func (c *Client) Close() error {
 	err := c.conn.Close()
 	if err != nil {
 		return fault.Wrap(err, fault.Internal("clickhouse couldn't shut down"))

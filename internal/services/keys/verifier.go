@@ -7,7 +7,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
-	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -52,10 +52,10 @@ type KeyVerifier struct {
 	spentCredits int64     // Credits spent during verification
 
 	// Services
-	rateLimiter  ratelimit.Service     // Rate limiting service
-	usageLimiter usagelimiter.Service  // Usage limiting service
-	rBAC         *rbac.RBAC            // Role-based access control service
-	clickhouse   clickhouse.ClickHouse // Clickhouse for telemetry
+	rateLimiter      ratelimit.Service                             // Rate limiting service
+	usageLimiter     usagelimiter.Service                          // Usage limiting service
+	rBAC             *rbac.RBAC                                    // Role-based access control service
+	keyVerifications *batch.BatchProcessor[schema.KeyVerification] // Buffer for key verification telemetry
 }
 
 // GetRatelimitConfigs returns the rate limit configurations
@@ -126,7 +126,7 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 func (k *KeyVerifier) log() {
 	latency := time.Since(k.startTime).Milliseconds()
 
-	k.clickhouse.BufferKeyVerification(schema.KeyVerification{
+	k.keyVerifications.Buffer(schema.KeyVerification{
 		RequestID:    k.session.RequestID(),
 		WorkspaceID:  k.Key.WorkspaceID,
 		Time:         time.Now().UnixMilli(),
