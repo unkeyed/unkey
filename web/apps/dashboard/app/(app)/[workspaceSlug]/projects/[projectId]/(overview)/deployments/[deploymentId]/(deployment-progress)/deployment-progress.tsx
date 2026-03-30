@@ -205,9 +205,6 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
       {isFailed && (
         <FailedDeploymentBanner
           steps={[queued, starting, building, deploying, network, finalizing]}
-          buildStepErrors={(buildSteps.data?.steps ?? [])
-            .filter((s): s is typeof s & { error: string } => s.error !== null)
-            .map((s) => ({ name: s.name, error: s.error }))}
           settingsUrl={`/${workspaceSlug}/projects/${projectId}/settings`}
           onRedeploy={() => setRedeployOpen(true)}
           redeployOpen={redeployOpen}
