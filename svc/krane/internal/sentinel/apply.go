@@ -160,6 +160,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 		Pprof: &config.PprofConfig{
 			Username: "${UNKEY_PPROF_USERNAME}",
 			Password: "${UNKEY_PPROF_PASSWORD}",
+			Port:     0,
 		},
 	})
 	if err != nil {

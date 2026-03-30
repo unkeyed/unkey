@@ -6,9 +6,38 @@ import (
 	"net/http/pprof"
 
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
+
+// New creates a standalone zen server for pprof endpoints, intended to be
+// served on an internal-only (loopback) listener. This mirrors the pattern
+// used by the prometheus package.
+func New(cfg *config.PprofConfig, prefix string) (*zen.Server, error) {
+	srv, err := zen.New(zen.Config{
+		TLS:                nil,
+		Flags:              nil,
+		EnableH2C:          false,
+		MaxRequestBodySize: 0,
+		ReadTimeout:        -1,
+		WriteTimeout:       -1,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	srv.RegisterRoute(
+		[]zen.Middleware{},
+		&Handler{
+			Username: cfg.Username,
+			Password: cfg.Password,
+			Prefix:   prefix,
+		},
+	)
+
+	return srv, nil
+}
 
 // Handler handles pprof profiling endpoints
 type Handler struct {
