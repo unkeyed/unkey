@@ -260,6 +260,7 @@
             "icon": "terminal",
             "pages": [
               "cli/overview",
+              "cli/authentication",
               {
                 "group": "auth",
                 "pages": [

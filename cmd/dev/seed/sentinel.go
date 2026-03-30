@@ -8,6 +8,7 @@ import (
 	"math/rand/v2"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -46,6 +47,16 @@ func seedSentinel(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to connect to ClickHouse: %w", err)
 	}
 
+	sentinelRequests := clickhouse.NewBuffer[schema.SentinelRequest](ch, "default.sentinel_requests_raw_v1", clickhouse.BufferConfig{
+		Name:          "seed-sentinel-requests",
+		BatchSize:     50_000,
+		BufferSize:    50_000,
+		FlushInterval: 5 * time.Second,
+		Consumers:     2,
+		Drop:          true,
+		OnFlushError:  nil,
+	})
+
 	// Get or find deployment ID
 	deploymentID := cmd.String("deployment-id")
 	if deploymentID == "" {
@@ -58,20 +69,20 @@ func seedSentinel(ctx context.Context, cmd *cli.Command) error {
 
 	// Create seeder and run
 	seeder := &SentinelSeeder{
-		deploymentID: deploymentID,
-		numRequests:  cmd.RequireInt("num-requests"),
-		db:           database,
-		clickhouse:   ch,
+		deploymentID:     deploymentID,
+		numRequests:      cmd.RequireInt("num-requests"),
+		db:               database,
+		sentinelRequests: sentinelRequests,
 	}
 
 	return seeder.Seed(ctx)
 }
 
 type SentinelSeeder struct {
-	deploymentID string
-	numRequests  int
-	db           db.Database
-	clickhouse   clickhouse.ClickHouse
+	deploymentID     string
+	numRequests      int
+	db               db.Database
+	sentinelRequests *batch.BatchProcessor[schema.SentinelRequest]
 }
 
 func (s *SentinelSeeder) Seed(ctx context.Context) error {
@@ -227,7 +238,7 @@ func (s *SentinelSeeder) generateRequests(
 		totalLatency := instanceLatency + sentinelLatency
 
 		// Buffer it IMMEDIATELY
-		s.clickhouse.BufferSentinelRequest(schema.SentinelRequest{
+		s.sentinelRequests.Buffer(schema.SentinelRequest{
 			RequestID:       uid.New("req"),
 			Time:            timestamp.UnixMilli(),
 			WorkspaceID:     deployment.WorkspaceID,
@@ -263,10 +274,8 @@ func (s *SentinelSeeder) generateRequests(
 
 	log.Printf("  Buffered all %d requests, waiting for flush...", s.numRequests)
 
-	// Flush by closing (like verifications.go line 496)
-	if err := s.clickhouse.Close(); err != nil {
-		return fmt.Errorf("failed to close clickhouse: %w", err)
-	}
+	// Flush by closing the buffer
+	s.sentinelRequests.Close()
 
 	log.Printf("  All requests sent to ClickHouse")
 	return nil

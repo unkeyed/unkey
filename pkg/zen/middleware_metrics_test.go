@@ -351,7 +351,7 @@ type mockEventBuffer struct {
 	requests []schema.ApiRequest
 }
 
-func (m *mockEventBuffer) BufferApiRequest(req schema.ApiRequest) {
+func (m *mockEventBuffer) Buffer(req schema.ApiRequest) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.requests = append(m.requests, req)

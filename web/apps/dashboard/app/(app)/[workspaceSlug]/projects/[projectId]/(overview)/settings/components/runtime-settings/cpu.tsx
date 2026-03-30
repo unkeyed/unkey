@@ -17,8 +17,8 @@ const CPU_OPTIONS = [
 
 const cpuConfig: ResourceSliderConfig = {
   icon: <Bolt className="text-gray-12" iconSize="xl-medium" />,
-  title: "CPU",
-  description: "CPU allocation for each instance",
+  title: "Max CPU",
+  description: "Maximum CPU limit per instance. You are only charged for actual usage.",
   settingDescription:
     "Changes apply on next deploy. During beta, CPU is limited to 2 vCPUs. Please contact support@unkey.com if you need more.",
   colorVar: "infoA",

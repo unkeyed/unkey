@@ -27,6 +27,10 @@ SELECT
     d.cpu_millicores,
     d.memory_mib,
     dt.desired_replicas,
+    dt.autoscaling_replicas_min,
+    dt.autoscaling_replicas_max,
+    dt.autoscaling_threshold_cpu,
+    dt.autoscaling_threshold_memory,
     d.desired_state,
     d.encrypted_environment_variables,
     d.command,
@@ -68,6 +72,10 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 	CpuMillicores                 int32                     `db:"cpu_millicores"`
 	MemoryMib                     int32                     `db:"memory_mib"`
 	DesiredReplicas               int32                     `db:"desired_replicas"`
+	AutoscalingReplicasMin        uint32                    `db:"autoscaling_replicas_min"`
+	AutoscalingReplicasMax        uint32                    `db:"autoscaling_replicas_max"`
+	AutoscalingThresholdCpu       sql.NullInt16             `db:"autoscaling_threshold_cpu"`
+	AutoscalingThresholdMemory    sql.NullInt16             `db:"autoscaling_threshold_memory"`
 	DesiredState                  DeploymentsDesiredState   `db:"desired_state"`
 	EncryptedEnvironmentVariables []byte                    `db:"encrypted_environment_variables"`
 	Command                       dbtype.StringSlice        `db:"command"`
@@ -97,6 +105,10 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //	    d.cpu_millicores,
 //	    d.memory_mib,
 //	    dt.desired_replicas,
+//	    dt.autoscaling_replicas_min,
+//	    dt.autoscaling_replicas_max,
+//	    dt.autoscaling_threshold_cpu,
+//	    dt.autoscaling_threshold_memory,
 //	    d.desired_state,
 //	    d.encrypted_environment_variables,
 //	    d.command,
@@ -134,6 +146,10 @@ func (q *Queries) FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DB
 		&i.CpuMillicores,
 		&i.MemoryMib,
 		&i.DesiredReplicas,
+		&i.AutoscalingReplicasMin,
+		&i.AutoscalingReplicasMax,
+		&i.AutoscalingThresholdCpu,
+		&i.AutoscalingThresholdMemory,
 		&i.DesiredState,
 		&i.EncryptedEnvironmentVariables,
 		&i.Command,
