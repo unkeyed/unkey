@@ -19,6 +19,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -296,18 +297,14 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 						},
 
 						Resources: corev1.ResourceRequirements{
-							// nolint:exhaustive
-							//	Limits: corev1.ResourceList{
-							//		corev1.ResourceCPU:              *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
-							//		corev1.ResourceMemory:           *resource.NewQuantity(sentinel.GetMemoryMib(), resource.BinarySI),
-							//		corev1.ResourceEphemeralStorage: *resource.NewQuantity(5*1024*1024*1024, resource.BinarySI),
-							//	},
-							// nolint:exhaustive
-							//	Requests: corev1.ResourceList{
-							//		corev1.ResourceCPU:              *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
-							//		corev1.ResourceMemory:           *resource.NewQuantity(sentinel.GetMemoryMib(), resource.BinarySI),
-							//		corev1.ResourceEphemeralStorage: *resource.NewQuantity(5*1024*1024*1024, resource.BinarySI),
-							//	},
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", sentinel.GetCpuMillicores())),
+								corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", sentinel.GetMemoryMib())),
+							},
+							Limits: corev1.ResourceList{
+								corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", sentinel.GetCpuMillicores())),
+								corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", sentinel.GetMemoryMib())),
+							},
 						},
 					}},
 				},
