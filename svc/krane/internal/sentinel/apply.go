@@ -298,12 +298,12 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
-								corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", sentinel.GetCpuMillicores())),
-								corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", sentinel.GetMemoryMib())),
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
+								corev1.ResourceMemory: *resource.NewQuantity(sentinel.GetMemoryMib()*1024*1024, resource.BinarySI),
 							},
 							Limits: corev1.ResourceList{
-								corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", sentinel.GetCpuMillicores())),
-								corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", sentinel.GetMemoryMib())),
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
+								corev1.ResourceMemory: *resource.NewQuantity(sentinel.GetMemoryMib()*1024*1024, resource.BinarySI),
 							},
 						},
 					}},
