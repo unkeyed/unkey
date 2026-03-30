@@ -41,6 +41,7 @@ export const sentinels = mysqlTable(
     availableReplicas: int("available_replicas").notNull(),
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
+    sentinelTierId: varchar("sentinel_tier_id", { length: 64 }).notNull().default("s-25"),
 
     ...lifecycleDates,
   },

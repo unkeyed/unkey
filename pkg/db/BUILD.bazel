@@ -340,6 +340,7 @@ go_library(
         "sentinel_list_all_by_region.sql_generated.go",
         "sentinel_list_desired.sql_generated.go",
         "sentinel_update_available_replicas_and_health.sql_generated.go",
+        "sentinel_update_tier.sql_generated.go",
         "to_mysql.go",
         "traced_tx.go",
         "tx.go",

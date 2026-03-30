@@ -47,6 +47,11 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 
 	}
 
+	environment, err := db.Query.FindEnvironmentById(ctx, s.db.RO(), sentinel.EnvironmentID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("finding environment: %w", err))
+	}
+
 	logger.Info("desired sentinel", "state", sentinel.DesiredState)
 	switch sentinel.DesiredState {
 	case db.SentinelsDesiredStateArchived, db.SentinelsDesiredStateStandby:
@@ -66,6 +71,7 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 					K8SName:       sentinel.K8sName,
 					WorkspaceId:   sentinel.WorkspaceID,
 					ProjectId:     sentinel.ProjectID,
+					AppId:         environment.AppID,
 					EnvironmentId: sentinel.EnvironmentID,
 					Replicas:      sentinel.DesiredReplicas,
 					Image:         sentinel.Image,

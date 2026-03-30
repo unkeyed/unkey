@@ -200,4 +200,3 @@ func (c *Collector) buildKranePodLookup() map[string]podInfo {
 
 	return kranePods
 }
-

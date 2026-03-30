@@ -1460,6 +1460,7 @@ type Sentinel struct {
 	AvailableReplicas int32                 `db:"available_replicas"`
 	CpuMillicores     int32                 `db:"cpu_millicores"`
 	MemoryMib         int32                 `db:"memory_mib"`
+	SentinelTierID    string                `db:"sentinel_tier_id"`
 	CreatedAt         int64                 `db:"created_at"`
 	UpdatedAt         sql.NullInt64         `db:"updated_at"`
 }

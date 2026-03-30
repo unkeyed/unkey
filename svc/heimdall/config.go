@@ -12,7 +12,7 @@ type Config struct {
 	ClickHouseURL      string               `toml:"clickhouse_url" config:"required,nonempty"`
 	CollectionInterval time.Duration        `toml:"collection_interval" config:"default=15s"`
 	NodeName           string               `toml:"node_name" config:"required,nonempty"`
-	Observability      config.Observability  `toml:"observability"`
+	Observability      config.Observability `toml:"observability"`
 }
 
 func (c *Config) Validate() error {

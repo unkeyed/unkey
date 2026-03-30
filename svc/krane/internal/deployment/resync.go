@@ -36,6 +36,7 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 				LabelSelector: labels.New().
 					ManagedByKrane().
 					ComponentDeployment().
+					Region(c.region).
 					ToString(),
 				Continue: cursor,
 			})

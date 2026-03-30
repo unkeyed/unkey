@@ -73,7 +73,9 @@ import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/upd
 import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
 import { updateStorage } from "./deploy/environment-settings/runtime/update-storage";
+import { getSentinelByEnvironment } from "./deploy/environment-settings/sentinel/get-by-environment";
 import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
+import { updateSentinelTier } from "./deploy/environment-settings/sentinel/update-tier";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
 import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
@@ -416,6 +418,8 @@ export const router = t.router({
       getAvailableKeyspaces,
       sentinel: t.router({
         updateMiddleware,
+        getByEnvironment: getSentinelByEnvironment,
+        updateTier: updateSentinelTier,
       }),
       runtime: t.router({
         updateCpu,

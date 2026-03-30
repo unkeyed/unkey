@@ -57,10 +57,9 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		assert.NotEmpty(req.GetK8SNamespace(), "Namespace is required"),
 		assert.NotEmpty(req.GetK8SName(), "K8s CRD name is required"),
 		assert.NotEmpty(req.GetImage(), "Image is required"),
+		assert.GreaterOrEqual(req.GetReplicas(), int32(0), "Replicas must be greater than or equal to 0"),
 		assert.Greater(req.GetCpuMillicores(), int64(0), "CPU millicores must be greater than 0"),
 		assert.Greater(req.GetMemoryMib(), int64(0), "MemoryMib must be greater than 0"),
-		assert.GreaterOrEqual(req.GetAutoscaling().GetMinReplicas(), uint32(1), "Autoscaling min_replicas must be at least 1"),
-		assert.GreaterOrEqual(req.GetAutoscaling().GetMaxReplicas(), req.GetAutoscaling().GetMinReplicas(), "Autoscaling max_replicas must be >= min_replicas"),
 	)
 	if err != nil {
 		return err
@@ -88,7 +87,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		EnvironmentID(req.GetEnvironmentId()).
 		DeploymentID(req.GetDeploymentId()).
 		BuildID(req.GetBuildId()).
-		Platform(c.platform).
+		Region(c.region).
 		ManagedByKrane().
 		ComponentDeployment()
 
@@ -363,36 +362,40 @@ func unmarshalHealthcheck(data []byte) *dbtype.Healthcheck {
 }
 
 // ensureHPAExists creates or updates a HorizontalPodAutoscaler that scales the
-// deployment's ReplicaSet using the autoscaling policy from the control plane.
+// deployment's ReplicaSet. When an autoscaling policy is attached, its values
+// are used. Otherwise defaults to min=1, max=replicas, cpu=80%.
 // The HPA is owned by the ReplicaSet for automatic garbage collection.
 func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet) error {
 	client := c.clientSet.AutoscalingV2().HorizontalPodAutoscalers(req.GetK8SNamespace())
 
-	policy := req.GetAutoscaling()
-	minReplicas := int32(max(policy.GetMinReplicas(), 1))
-	maxReplicas := max(int32(policy.GetMaxReplicas()), minReplicas)
+	minReplicas := int32(1)
+	maxReplicas := max(req.GetReplicas(), 1) // fallback for deployments without a policy
 	cpuThreshold := ptr.P(int32(defaultCPUTargetUtilization))
 
 	var metrics []autoscalingv2.MetricSpec
 
-	if policy.CpuThreshold != nil {
-		cpuThreshold = policy.CpuThreshold
-	}
-	if policy.MemoryThreshold != nil {
-		metrics = append(metrics,
-			//nolint:exhaustruct
-			autoscalingv2.MetricSpec{
-				Type: autoscalingv2.ResourceMetricSourceType,
-				Resource: &autoscalingv2.ResourceMetricSource{
-					Name: corev1.ResourceMemory,
-					//nolint:exhaustruct
-					Target: autoscalingv2.MetricTarget{
-						Type:               autoscalingv2.UtilizationMetricType,
-						AverageUtilization: policy.MemoryThreshold,
+	if policy := req.GetAutoscaling(); policy != nil {
+		minReplicas = int32(max(policy.GetMinReplicas(), 1))
+		maxReplicas = max(int32(policy.GetMaxReplicas()), minReplicas) // overrides the fallback
+		if policy.CpuThreshold != nil {
+			cpuThreshold = policy.CpuThreshold
+		}
+		if policy.MemoryThreshold != nil {
+			metrics = append(metrics,
+				//nolint:exhaustruct
+				autoscalingv2.MetricSpec{
+					Type: autoscalingv2.ResourceMetricSourceType,
+					Resource: &autoscalingv2.ResourceMetricSource{
+						Name: corev1.ResourceMemory,
+						//nolint:exhaustruct
+						Target: autoscalingv2.MetricTarget{
+							Type:               autoscalingv2.UtilizationMetricType,
+							AverageUtilization: policy.MemoryThreshold,
+						},
 					},
 				},
-			},
-		)
+			)
+		}
 	}
 
 	// CPU is always a scaling signal.
@@ -426,6 +429,7 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 				AppID(req.GetAppId()).
 				EnvironmentID(req.GetEnvironmentId()).
 				DeploymentID(req.GetDeploymentId()).
+				Region(c.region).
 				ManagedByKrane().
 				ComponentDeployment(),
 			OwnerReferences: []metav1.OwnerReference{

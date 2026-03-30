@@ -20,6 +20,7 @@ import { CustomDomains } from "./components/advanced-settings/custom-domains";
 
 import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
 import { Keyspaces } from "./components/sentinel-settings/keyspaces";
+import { SentinelTiers } from "./components/sentinel-settings/tiers";
 import { SettingsGroup } from "./components/shared/settings-group";
 
 // build is only required to invalidate other defaults. E.g onboarding settings, passes build=true to prevent expanding other sections.
@@ -78,6 +79,7 @@ export const DeploymentSettings = ({
         defaultExpanded={Boolean(sections.sentinel)}
       >
         <SettingCardGroup>
+          <SentinelTiers />
           <Keyspaces />
         </SettingCardGroup>
       </SettingsGroup>
