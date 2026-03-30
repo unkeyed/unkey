@@ -13,16 +13,17 @@ import {
   isSkeletonNode,
 } from "../nodes/types";
 import { NodeDetailsPanelHeader } from "./node-details-panel/components/header";
-import { Metrics } from "./node-details-panel/components/metrics";
+import { ResourceMetrics } from "./node-details-panel/components/resource-metrics";
 import { SettingsSection } from "./node-details-panel/components/settings-row";
-import { metrics } from "./node-details-panel/constants";
 import { SentinelInstances } from "./node-details-panel/region-node/sentinel-instances";
 
 const SentinelNodeDetails = ({
   node,
+  deploymentId,
   onClose,
 }: {
   node: SentinelNode;
+  deploymentId: string;
   onClose: () => void;
 }) => {
   const { flagCode, health } = node.metadata;
@@ -50,7 +51,7 @@ const SentinelNodeDetails = ({
           health,
         }}
       />
-      <Metrics metrics={metrics} />
+      <ResourceMetrics resourceType="sentinel" resourceId={node.id} />
       <SentinelInstances instances={node.children ?? []} />
       <SettingsSection
         title="Scaling Configuration"
@@ -95,10 +96,11 @@ const SentinelNodeDetails = ({
 
 type InstanceNodeDetailsProps = {
   node: InstanceNode;
+  deploymentId: string;
   onClose: () => void;
 };
 
-const InstanceNodeDetails = ({ node, onClose }: InstanceNodeDetailsProps) => {
+const InstanceNodeDetails = ({ node, deploymentId, onClose }: InstanceNodeDetailsProps) => {
   const { health } = node.metadata;
 
   return (
@@ -118,7 +120,7 @@ const InstanceNodeDetails = ({ node, onClose }: InstanceNodeDetailsProps) => {
           health,
         }}
       />
-      <Metrics metrics={metrics} />
+      <ResourceMetrics resourceType="deployment" resourceId={deploymentId} />
       <SettingsSection
         title="Instance settings"
         settings={[
@@ -136,10 +138,11 @@ const InstanceNodeDetails = ({ node, onClose }: InstanceNodeDetailsProps) => {
 
 type Props = {
   node: DeploymentNode | null;
+  deploymentId: string;
   onClose: () => void;
 };
 
-export function NodeDetailsPanel({ node, onClose }: Props) {
+export function NodeDetailsPanel({ node, deploymentId, onClose }: Props) {
   if (!node) {
     return null;
   }
@@ -149,10 +152,10 @@ export function NodeDetailsPanel({ node, onClose }: Props) {
       return null;
     }
     if (isSentinelNode(node)) {
-      return <SentinelNodeDetails node={node} onClose={onClose} />;
+      return <SentinelNodeDetails node={node} deploymentId={deploymentId} onClose={onClose} />;
     }
     if (isInstanceNode(node)) {
-      return <InstanceNodeDetails node={node} onClose={onClose} />;
+      return <InstanceNodeDetails node={node} deploymentId={deploymentId} onClose={onClose} />;
     }
     const _exhaustive: never = node;
     return _exhaustive;

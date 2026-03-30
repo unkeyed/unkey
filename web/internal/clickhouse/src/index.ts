@@ -73,6 +73,12 @@ import {
 import { insertApiRequest } from "./requests";
 import { getRuntimeLogs } from "./runtime-logs";
 import {
+  getResourceCpuTimeseries,
+  getResourceInstanceCountTimeseries,
+  getResourceMemoryTimeseries,
+  getResourceSummary,
+} from "./resources";
+import {
   getDeploymentLatency,
   getDeploymentLatencyTimeseries,
   getDeploymentRps,
@@ -308,6 +314,14 @@ export class ClickHouse {
   public get telemetry() {
     return {
       insert: insertSDKTelemetry(this.inserter),
+    };
+  }
+  public get resources() {
+    return {
+      summary: getResourceSummary(this.querier),
+      cpu: { timeseries: getResourceCpuTimeseries(this.querier) },
+      memory: { timeseries: getResourceMemoryTimeseries(this.querier) },
+      instances: { timeseries: getResourceInstanceCountTimeseries(this.querier) },
     };
   }
   public get sentinel() {

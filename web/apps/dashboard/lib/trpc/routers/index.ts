@@ -76,8 +76,12 @@ import { updateStorage } from "./deploy/environment-settings/runtime/update-stor
 import { getSentinelByEnvironment } from "./deploy/environment-settings/sentinel/get-by-environment";
 import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
 import { updateSentinelTier } from "./deploy/environment-settings/sentinel/update-tier";
+import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
+import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
+import { getDeploymentMemoryTimeseries } from "./deploy/metrics/get-deployment-memory-timeseries";
+import { getDeploymentResourceSummary } from "./deploy/metrics/get-deployment-resource-summary";
 import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
 import { getDeploymentRpsTimeseries } from "./deploy/metrics/get-deployment-rps-timeseries";
 import { generateDeploymentTree } from "./deploy/network/generate";
@@ -485,6 +489,10 @@ export const router = t.router({
       getDeploymentRpsTimeseries,
       getDeploymentLatency,
       getDeploymentLatencyTimeseries,
+      getDeploymentCpuTimeseries,
+      getDeploymentMemoryTimeseries,
+      getDeploymentInstanceCountTimeseries,
+      getDeploymentResourceSummary,
     }),
   }),
 });
