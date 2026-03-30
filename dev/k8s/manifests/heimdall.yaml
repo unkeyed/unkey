@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: heimdall-config
+  namespace: unkey
+  labels:
+    app: heimdall
+data:
+  unkey.toml: |
+    region = "local"
+    platform = "dev"
+    clickhouse_url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+    collection_interval = "15s"
+    node_name = "${HEIMDALL_NODE_NAME}"
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: heimdall
+  namespace: unkey
+  labels:
+    app: heimdall
+spec:
+  selector:
+    matchLabels:
+      app: heimdall
+  template:
+    metadata:
+      labels:
+        app: heimdall
+    spec:
+      serviceAccountName: unkey-serviceaccount
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: heimdall
+          image: unkey/go:latest
+          args: ["run", "heimdall", "--config", "/etc/unkey/unkey.toml"]
+          imagePullPolicy: Never
+          env:
+            - name: HEIMDALL_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/unkey
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: heimdall-config
