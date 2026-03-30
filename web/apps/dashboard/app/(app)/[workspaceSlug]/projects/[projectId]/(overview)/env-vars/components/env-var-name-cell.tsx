@@ -1,8 +1,8 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { CircleInfo } from "@unkey/icons";
-import { InfoTooltip, toast } from "@unkey/ui";
+import { Note3 } from "@unkey/icons";
+import { Badge, InfoTooltip, toast } from "@unkey/ui";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { HighlightMatch } from "./highlight-match";
 
@@ -67,6 +67,7 @@ export const EnvVarNameCell = memo(function EnvVarNameCell({
                   : "Click to copy key"
             }
             position={{ side: "top" }}
+            asChild
           >
             <button
               type="button"
@@ -76,13 +77,20 @@ export const EnvVarNameCell = memo(function EnvVarNameCell({
               <HighlightMatch text={variableKey} query={searchQuery} />
             </button>
           </InfoTooltip>
-          {note && (
+          {type === "writeonly" ? (
+            <Badge
+              className="px-1.5 py-0 rounded-md h-5 text-[11px] font-medium pointer-events-none"
+              variant="warning"
+            >
+              Sensitive
+            </Badge>
+          ) : note ? (
             <InfoTooltip content={note} position={{ side: "top" }}>
-              <span className="shrink-0 text-gray-9">
-                <CircleInfo iconSize="md-medium" className="mt-0.5" />
+              <span className="shrink-0 text-gray-10">
+                <Note3 iconSize="md-medium" className="mt-0.5" />
               </span>
             </InfoTooltip>
-          )}
+          ) : null}
         </div>
         <div className="text-[13px] mt-1 text-gray-10 capitalize">{environmentName}</div>
       </div>

@@ -21,18 +21,10 @@ type EnvVarEditRowProps = {
   variableKey: string;
   type: "writeonly" | "recoverable";
   note: string | null;
-  environmentName: string;
   onClose: () => void;
 };
 
-export function EnvVarEditRow({
-  envVarId,
-  variableKey,
-  type,
-  note,
-  environmentName,
-  onClose,
-}: EnvVarEditRowProps) {
+export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: EnvVarEditRowProps) {
   const isWriteonly = type === "writeonly";
   const decryptMutation = trpc.deploy.envVar.decrypt.useMutation();
 
@@ -70,8 +62,7 @@ export function EnvVarEditRow({
     return () => {
       cancelled = true;
     };
-    // biome-ignore lint/correctness/useExhaustiveDependencies: decryptMutation and setValue are stable refs
-  }, [envVarId, isWriteonly]);
+  }, [envVarId, isWriteonly, setValue, decryptMutation]);
 
   const onSubmit = useCallback(
     async (values: EditEnvVarFormValues) => {

@@ -50,7 +50,9 @@ const SlidePanelRoot = ({
 
   const panel = (
     <SlidePanelProvider isOpen={isOpen} onClose={onClose}>
-      {/* Backdrop */}
+      {/* Backdrop 
+         biome-ignore lint/a11y/useKeyWithClickEvents: Safe to leave
+        */}
       <div
         className={cn(
           "fixed inset-0 z-50 bg-background/5 transition-opacity duration-300",
@@ -99,10 +101,7 @@ type SlidePanelHeaderProps = {
 
 const SlidePanelHeader = ({ children, className }: SlidePanelHeaderProps) => (
   <div
-    className={cn(
-      "flex items-start justify-between border-b border-grayA-4 px-8 py-5",
-      className,
-    )}
+    className={cn("flex items-start justify-between border-b border-grayA-4 px-8 py-5", className)}
   >
     {children}
   </div>
@@ -130,15 +129,10 @@ const SlidePanelContent = ({
       className={cn(
         "flex-1 min-h-0",
         stagger && "transition-[transform,opacity] duration-500 ease-out",
-        stagger &&
-          (isOpen ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0"),
+        stagger && (isOpen ? "translate-x-0 opacity-100" : "translate-x-6 opacity-0"),
         className,
       )}
-      style={
-        stagger
-          ? { transitionDelay: isOpen ? `${staggerDelay}ms` : "0ms" }
-          : undefined
-      }
+      style={stagger ? { transitionDelay: isOpen ? `${staggerDelay}ms` : "0ms" } : undefined}
     >
       {children}
     </div>
@@ -153,9 +147,7 @@ type SlidePanelFooterProps = {
 };
 
 const SlidePanelFooter = ({ children, className }: SlidePanelFooterProps) => (
-  <div className={cn("border-t border-grayA-4 bg-gray-1 px-8 py-5", className)}>
-    {children}
-  </div>
+  <div className={cn("border-t border-grayA-4 bg-gray-1 px-8 py-5", className)}>{children}</div>
 );
 
 SlidePanelFooter.displayName = "SlidePanelFooter";

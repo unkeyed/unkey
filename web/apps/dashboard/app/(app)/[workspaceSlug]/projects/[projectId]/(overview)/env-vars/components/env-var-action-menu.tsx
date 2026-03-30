@@ -5,6 +5,7 @@ import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
 import { toast } from "@unkey/ui";
+
 type EnvVarActionMenuProps = {
   envVarId: string;
   variableKey: string;

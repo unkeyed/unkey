@@ -2,6 +2,7 @@ import { Switch } from "@/components/ui/switch";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { CircleInfo, CloudUp, DoubleChevronRight, Plus } from "@unkey/icons";
 import {
   Button,
@@ -19,7 +20,7 @@ import { type ChangeEvent, useCallback, useEffect, useRef } from "react";
 import { Controller, useFieldArray } from "react-hook-form";
 import { useProjectData } from "../../data-provider";
 import { EnvVarRow } from "./env-var-row";
-import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema } from "./schema";
+import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema, findConflicts } from "./schema";
 import { useDropZone } from "./use-drop-zone";
 
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
@@ -37,6 +38,11 @@ export const AddEnvVarExpandable = ({
 }: AddEnvVarExpandableProps) => {
   const { projectId, environments } = useProjectData();
 
+  const { data: existingEnvVars } = useLiveQuery(
+    (q) => q.from({ v: collection.envVars }).where(({ v }) => eq(v.projectId, projectId)),
+    [projectId],
+  );
+
   const {
     register,
     handleSubmit,
@@ -46,6 +52,7 @@ export const AddEnvVarExpandable = ({
     trigger,
     getValues,
     setFocus,
+    setError,
     clearPersistedData,
     saveCurrentValues,
     loadSavedValues,
@@ -107,6 +114,28 @@ export const AddEnvVarExpandable = ({
       return;
     }
 
+    const existing = (existingEnvVars ?? []).map((v) => ({
+      key: v.key,
+      environmentId: v.environmentId,
+    }));
+    const allEnvIds = environments.map((e) => e.id);
+    const conflicts = findConflicts(nonEmpty, values.environmentId, existing, allEnvIds);
+
+    if (conflicts.length > 0) {
+      for (const idx of conflicts) {
+        // Map back to the original form index
+        const originalIdx = values.envVars.findIndex(
+          (v) => v.key === nonEmpty[idx].key && v.value === nonEmpty[idx].value,
+        );
+        if (originalIdx !== -1) {
+          setError(`envVars.${originalIdx}.key`, {
+            message: "Variable already exists in this environment",
+          });
+        }
+      }
+      return;
+    }
+
     const targetEnvIds =
       values.environmentId === "__all__" ? environments.map((e) => e.id) : [values.environmentId];
     const type = values.secret ? "writeonly" : "recoverable";
@@ -143,11 +172,7 @@ export const AddEnvVarExpandable = ({
   };
 
   return (
-    <SlidePanel.Root
-      isOpen={isOpen}
-      onClose={onClose}
-      topOffset={tableDistanceToTop}
-    >
+    <SlidePanel.Root isOpen={isOpen} onClose={onClose} topOffset={tableDistanceToTop}>
       <SlidePanel.Header>
         <div className="flex flex-col">
           <span className="text-gray-12 font-medium text-base leading-8">
@@ -257,9 +282,7 @@ export const AddEnvVarExpandable = ({
                       </SelectContent>
                     </Select>
                     {errors.environmentId?.message && (
-                      <p className="text-error-11 text-[13px]">
-                        {errors.environmentId.message}
-                      </p>
+                      <p className="text-error-11 text-[13px]">{errors.environmentId.message}</p>
                     )}
                   </fieldset>
                 )}

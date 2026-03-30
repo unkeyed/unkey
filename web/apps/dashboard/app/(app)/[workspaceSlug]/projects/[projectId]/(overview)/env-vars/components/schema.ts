@@ -48,3 +48,32 @@ export function createEmptyEntry(): EnvVarsFormValues["envVars"][number] {
     description: "",
   };
 }
+
+type ExistingEnvVar = { key: string; environmentId: string };
+
+/**
+ * Returns indices of form entries whose key already exists in the given environment(s).
+ */
+export function findConflicts(
+  entries: { key: string }[],
+  environmentId: string,
+  existingVars: ExistingEnvVar[],
+  allEnvironmentIds: string[],
+): number[] {
+  const targetEnvIds = environmentId === "__all__" ? allEnvironmentIds : [environmentId];
+  const existingSet = new Set(existingVars.map((v) => `${v.key}\0${v.environmentId}`));
+
+  const conflictIndices: number[] = [];
+  for (let i = 0; i < entries.length; i++) {
+    if (!entries[i].key) {
+      continue;
+    }
+    for (const envId of targetEnvIds) {
+      if (existingSet.has(`${entries[i].key}\0${envId}`)) {
+        conflictIndices.push(i);
+        break;
+      }
+    }
+  }
+  return conflictIndices;
+}
