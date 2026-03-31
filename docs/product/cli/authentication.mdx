@@ -3,11 +3,11 @@ title: "CLI authentication"
 description: "Store your root key locally so the Unkey CLI can authenticate without passing it on every command."
 ---
 
-The `unkey auth login` command stores your [root key](/security/root-keys) in a local config file so you don't have to pass `--root-key` on every CLI invocation.
+The `unkey auth login` command stores your [root key](/platform/root-keys/overview) in a local config file so you don't have to pass `--root-key` on every CLI invocation.
 
 ## Prerequisites
 
-- An Unkey account with a [root key](/security/root-keys)
+- An Unkey account with a [root key](/platform/root-keys/overview)
 - The Unkey CLI installed (see [installation](#installation))
 
 ## Installation
@@ -53,14 +53,14 @@ root_key = "unkey_..."
 
 ## Best practices
 
-- **Use a dedicated root key for the CLI** — create a separate key with only the permissions your CLI workflows need. See [root key permissions](/security/root-keys#create-a-root-key) for guidance.
+- **Use a dedicated root key for the CLI** — create a separate key with only the permissions your CLI workflows need. See [root key permissions](/platform/root-keys/overview#create-a-root-key) for guidance.
 - **Don't commit the config file** — add `~/.unkey/` to your global gitignore or verify it's excluded from your project repositories.
 - **Rotate periodically** — run `unkey auth login` again with a new key to replace the stored one.
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Root keys" icon="key" href="/security/root-keys">
+  <Card title="Root keys" icon="key" href="/platform/root-keys/overview">
     Learn how to create and manage root keys
   </Card>
   <Card title="Quickstart" icon="rocket" href="/quickstart/quickstart">

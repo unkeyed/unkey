@@ -25,6 +25,7 @@ description: "Request body could not be read due to malformed request or connect
 The server couldn't read your request body. This typically happens when there's an issue with how the request was formed or transmitted.
 
 Common causes include:
+
 - Malformed HTTP request structure
 - Network connection closed prematurely during transmission
 - Invalid or mismatched `Content-Length` header
@@ -50,6 +51,7 @@ curl -X POST https://api.unkey.com/v2/keys.create \
 ### 2. Check Network Stability
 
 If you're experiencing intermittent failures:
+
 - Implement retry logic with exponential backoff
 - Check your network connection stability
 - Consider timeout values that may be too aggressive

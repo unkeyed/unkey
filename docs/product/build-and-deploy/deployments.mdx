@@ -1,0 +1,101 @@
+---
+title: Deployment lifecycle
+description: "Every deployment moves through queuing, building, deploying, and domain assignment before serving traffic"
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+A deployment represents a specific version of your app running in an [environment](/environments/overview). Each deployment is immutable: once created, its image, configuration, and variables don't change.
+
+## From push to live
+
+Every deployment follows the same steps, whether triggered by a GitHub push, the CLI, or the dashboard.
+
+<Frame caption="A deployment progressing through build and deploy steps">
+  <img src="/build-and-deploy/github-deploying-light.png" alt="Deployment progress" className="block dark:hidden" />
+  <img src="/build-and-deploy/github-deploying-dark.png" alt="Deployment progress" className="hidden dark:block" />
+</Frame>
+
+<Steps>
+<Step title="Event received">
+
+Unkey receives a trigger: a GitHub webhook from a push, a CLI `unkey deploy` command, or a manual deployment from the dashboard. The deployment record is created with status **Pending**.
+
+</Step>
+
+<Step title="Queued">
+
+The deployment enters the build queue. Unkey allocates build capacity and prepares to fetch your source code. If you deployed a pre-built image via the CLI, this step is skipped.
+
+</Step>
+
+<Step title="Building image">
+
+Unkey fetches your source code from GitHub (using the commit SHA from the push) and runs `docker build` with your Dockerfile on remote build infrastructure. Build logs stream to the **Deployments** tab in real time.
+
+If the build fails (missing dependencies, Dockerfile errors), the deployment moves to **Failed** and stops here.
+
+</Step>
+
+<Step title="Deploying containers">
+
+The built image is scheduled across your configured [regions](/build-and-deploy/regions). Unkey creates the requested number of instances in each region and waits for them to start.
+
+If you configured a [health check](/platform/apps/settings#health-check), Unkey sends requests to your health endpoint and waits for healthy responses before proceeding.
+
+</Step>
+
+<Step title="Assigning domains">
+
+Unkey generates domains for the deployment:
+
+- **Commit domain**: a permanent URL tied to this specific commit
+- **Branch domain**: points to the latest deployment from this branch
+- **Environment domain**: points to the latest deployment in this environment
+- **Live domain** (production only): points to the current live deployment
+
+See [Wildcard domains](/networking/wildcard-domains) for the full naming pattern.
+
+</Step>
+
+<Step title="Finalizing">
+
+Routes are configured and traffic begins flowing to the new deployment. The deployment status moves to **Ready**.
+
+In production, this deployment becomes the current live version. The previous live deployment transitions to standby after 30 minutes, keeping it available for a quick [rollback](/build-and-deploy/rollbacks).
+
+In preview environments, deployments stay running as long as they receive traffic. Idle preview deployments (zero requests for six hours) are automatically archived.
+
+</Step>
+</Steps>
+
+## Troubleshoot failed deployments
+
+When a deployment fails, check the build and runtime logs in the **Deployments** tab. Common causes:
+
+- Dockerfile syntax errors or missing dependencies during the build step
+- Application crash on startup (check the runtime logs)
+- Health check failures if your app doesn't respond on the configured port
+
+Fix the issue in your code and push again to trigger a new deployment.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Rollbacks & promotions"
+    icon="clock-rotate-left"
+    href="/build-and-deploy/rollbacks"
+  >
+    Revert to a previous deployment or promote a specific version
+  </Card>
+  <Card
+    title="Builds"
+    icon="hammer"
+    href="/builds/overview"
+  >
+    How Unkey builds your container images
+  </Card>
+</CardGroup>

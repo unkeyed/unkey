@@ -1,0 +1,128 @@
+---
+title: Keys
+description: A key is a credential your users include in API requests. Unkey manages creation, verification, rotation, and revocation.
+---
+
+A key is the credential your users include in API requests to authenticate with your service. Unkey manages the full lifecycle: creation, verification, rotation, and revocation.
+
+Unkey never stores keys in plain text. On creation, the key is returned once and only its SHA-256 hash is persisted. Verification works by hashing the incoming key and comparing hashes.
+
+## Key lifecycle
+
+```
+Create → Active → (optional: Disable / Expire / Exhaust credits) → Revoke
+```
+
+| State     | Description                                                       |
+| --------- | ----------------------------------------------------------------- |
+| Active    | Key passes verification and deducts from rate limits and credits  |
+| Disabled  | Key exists but fails verification with `DISABLED`                 |
+| Expired   | Key passed its expiration timestamp, fails with `EXPIRED`         |
+| Exhausted | Key's remaining credits reached zero, fails with `USAGE_EXCEEDED` |
+| Revoked   | Key is permanently deleted and can't be restored                  |
+
+## Create a key
+
+Keys are created through the API, SDK, or dashboard. Each key requires an `apiId` to associate it with an API and its keyspace.
+
+On creation, you can configure:
+
+| Option        | Description                                                           |
+| ------------- | --------------------------------------------------------------------- |
+| `prefix`      | Override the API's default prefix for this key                        |
+| `name`        | Human-readable label                                                  |
+| `meta`        | Arbitrary JSON metadata returned on every verification                |
+| `expires`     | Unix timestamp (ms) when the key expires                              |
+| `remaining`   | Number of verifications before the key is exhausted                   |
+| `refill`      | Automatic credit refill schedule (interval and amount)                |
+| `ratelimit`   | One or more rate limit configurations                                 |
+| `roles`       | Roles to attach for RBAC                                              |
+| `permissions` | Permissions to attach directly                                        |
+| `externalId`  | Link the key to an identity in your system                            |
+| `enabled`     | Set to `false` to create a disabled key                               |
+| `environment` | Tag the key with an environment label (for example, `live` or `test`) |
+
+The response includes the full key value. This is the only time the plaintext key is available. Store it securely or deliver it to your user immediately.
+
+## Verify a key
+
+Verification checks the key's validity and enforces all attached policies in a single call.
+
+Unkey evaluates the following checks in order:
+
+1. **Existence.** The key hash must match a record in the keyspace.
+2. **Enabled.** The key must not be disabled.
+3. **Expiration.** The key must not have passed its expiration timestamp.
+4. **Credits.** If remaining credits are configured, at least one credit must be available. Verification deducts one credit.
+5. **Rate limits.** All rate limit configurations on the key are evaluated. If any limit is exceeded, the request is rejected.
+6. **Permissions.** If you pass a permission query, the key must satisfy it.
+
+The response includes:
+
+| Field         | Description                                                                                                                           |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `valid`       | Whether all checks passed                                                                                                             |
+| `code`        | Outcome code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, `EXPIRED`, `DISABLED`, `INSUFFICIENT_PERMISSIONS`, `USAGE_EXCEEDED`, `FORBIDDEN`) |
+| `keyId`       | The key's unique identifier                                                                                                           |
+| `meta`        | Custom metadata attached to the key                                                                                                   |
+| `remaining`   | Credits left after this verification (if configured)                                                                                  |
+| `ratelimit`   | Rate limit state (limit, remaining, reset timestamp)                                                                                  |
+| `identity`    | Identity information if the key is linked via `externalId`                                                                            |
+| `permissions` | Permissions attached to the key                                                                                                       |
+| `roles`       | Roles attached to the key                                                                                                             |
+| `enabled`     | Whether the key is enabled                                                                                                            |
+| `expires`     | Expiration timestamp (if set)                                                                                                         |
+
+## Features
+
+Each key can carry several optional features:
+
+| Feature               | What it controls                          | Learn more                                                          |
+| --------------------- | ----------------------------------------- | ------------------------------------------------------------------- |
+| Rate limits           | Requests per time window                  | [Key rate limits](/platform/apis/features/ratelimiting/overview)    |
+| Credits               | Total request quota                       | [Usage limits](/platform/apis/features/remaining)                   |
+| Refill                | Automatic credit reset (daily or monthly) | [Auto-refill](/platform/apis/features/refill)                       |
+| Expiration            | Time-based validity                       | [Temporary keys](/platform/apis/features/temp-keys)                 |
+| Roles and permissions | RBAC access control                       | [Authorization](/platform/apis/features/authorization/introduction) |
+| Metadata              | Arbitrary JSON returned on verification   | Passed as `meta` at creation                                        |
+| Environment           | Label for separating live and test keys   | [Environments](/platform/apis/features/environments)                |
+
+## Rotate a key
+
+Rotation creates a new key and revokes the old one. The new key inherits the same configuration (metadata, limits, permissions) but has a new value and key ID.
+
+See [Rerolling keys](/platform/apis/features/rerolling-key) for details.
+
+## Revoke a key
+
+Revoking a key permanently deletes it. Revoked keys can't be restored. If you need to temporarily block a key, disable it instead.
+
+See [Revocation](/platform/apis/features/revocation) for details.
+
+## Key storage
+
+By default, Unkey stores only the SHA-256 hash of each key. The plaintext is returned once at creation and never stored.
+
+If the API has **Store encrypted keys** enabled, Unkey also stores an AES-encrypted copy of the key in the vault. This lets you recover the key later through the API with the `decrypt` parameter. Use this when your workflow requires showing users their existing key.
+
+See [Recovering keys](/security/recovering-keys) for details.
+
+## Constraints
+
+| Limit                             | Value        |
+| --------------------------------- | ------------ |
+| Key prefix max length             | 8 characters |
+| Metadata max size                 | 64 KB (JSON) |
+| Rate limit configurations per key | 10           |
+| Permissions per key               | 1,000        |
+| Roles per key                     | 1,000        |
+
+## Related pages
+
+| Page                                                         | Description                               |
+| ------------------------------------------------------------ | ----------------------------------------- |
+| [APIs overview](/platform/apis/overview)                     | API and keyspace configuration            |
+| [API key management](/platform/apis/introduction)            | Quick start guide with code examples      |
+| [Identities](/platform/identities/overview)                  | Link keys to users for shared rate limits |
+| [Sentinel authentication](/platform/sentinel/authentication) | Verify keys at the gateway                |
+| [API reference](/api-reference/overview)                     | Full endpoint documentation               |

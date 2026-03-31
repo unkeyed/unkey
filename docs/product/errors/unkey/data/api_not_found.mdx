@@ -3,10 +3,7 @@ title: "api_not_found"
 description: "The requested API was not found"
 ---
 
-<Danger>
-err:unkey:data:api_not_found
-</Danger>
-
+<Danger>err:unkey:data:api_not_found</Danger>
 
 ```json Example
 {
@@ -27,6 +24,7 @@ err:unkey:data:api_not_found
 This error occurs when you're trying to perform an operation on an API that doesn't exist in the Unkey system. In Unkey, APIs are resources that you create to organize and manage your keys.
 
 Common scenarios that trigger this error:
+
 - Using an incorrect API ID in your requests
 - Referencing an API that has been deleted
 - Attempting to access an API in a workspace you don't have access to
@@ -80,6 +78,7 @@ curl -X POST https://api.unkey.com/v2/apis.createApi \
 - **Workspace boundaries**: Trying to access an API that exists in another workspace
 
 ## Related Errors
+
 - [err:unkey:data:workspace_not_found](./workspace_not_found) - When the requested workspace doesn't exist
 - [err:unkey:data:key_not_found](./key_not_found) - When the requested key doesn't exist
 - [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to access an API

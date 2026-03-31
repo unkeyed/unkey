@@ -1,0 +1,47 @@
+---
+title: Requests
+description: Inspect every HTTP request that passes through Sentinel to your deployment.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+The **Requests** tab in your project shows every HTTP request that [Sentinel](/platform/sentinel/overview) processes on behalf of your deployments. Use it to debug failed requests, trace slow responses, and understand traffic patterns.
+
+## Request fields
+
+Each row in the table shows the timestamp, the region that handled the request, the HTTP status code (color-coded by class), the HTTP method, the hostname, the request path, and the total end-to-end latency.
+
+## Filter requests
+
+Combine filters to narrow results by status code, HTTP method, path, deployment, environment, and time range. Filters persist in the URL, so you can bookmark or share a filtered view.
+
+<Frame caption="Requests page with the detail panel open for a selected request">
+  <img src="/observability/requests-light.png" alt="Requests page" className="block dark:hidden" />
+  <img src="/observability/requests-dark.png" alt="Requests page" className="hidden dark:block" />
+</Frame>
+
+## Live mode
+
+Toggle **Live** in the top-right corner to stream incoming requests in real time. New requests appear at the top of the table as they arrive. Toggle it off to freeze the view and browse historical data.
+
+## Request detail panel
+
+Click any row to open the detail panel on the right side. The panel shows:
+
+- Request headers and body
+- Response headers and body
+- Latency breakdown (see below)
+- Deployment info: deployment ID, git branch, commit SHA, commit author, commit message, environment, and deployment status
+- Meta: request ID, timestamp, client IP, user agent, host, region, query string, and query parameters
+
+## Latency breakdown
+
+The detail panel splits total latency into two components. Instance latency is the time your app spent processing the request. Sentinel latency is the time Sentinel spent on routing, policy evaluation, and proxying.
+
+If instance latency dominates, the bottleneck is in your application code. If Sentinel latency is high relative to total latency, the overhead is in the gateway layer. This distinction helps you focus debugging in the right place.
+
+## Retention
+
+Request logs are retained for 30 days.

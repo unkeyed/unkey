@@ -17,7 +17,7 @@ import (
 // relative to the current wall clock time.
 //
 // Returns 0 (not an error) if no requests exist for the deployment in the given window.
-func (c *clickhouse) GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error) {
+func (c *Client) GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error) {
 	query := `
 	SELECT toInt64(count()) as count
 	FROM default.sentinel_requests_raw_v1

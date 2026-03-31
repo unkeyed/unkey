@@ -1,0 +1,87 @@
+---
+title: Principal
+description: The Principal is the verified identity object the Sentinel produces after authentication and forwards to your application.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+The Principal is a JSON object the Sentinel sets on the `X-Unkey-Principal` header after a request passes [authentication](/platform/sentinel/authentication). It contains a stable set of top-level fields that are the same across all authentication methods, plus a `source` object with method-specific detail.
+
+When no authentication policy is configured or the request has no credentials, the header is absent. Check for header presence to distinguish authenticated from anonymous requests.
+
+```json
+{
+  "version": 1,
+  "subject": "user_42",
+  "type": "key",
+  "identity": {
+    "externalId": "user_42",
+    "meta": { "plan": "pro" }
+  },
+  "source": {
+    "key": {
+      "keyId": "key_3xMpL9kF2nR",
+      "keySpaceId": "ks_abc123",
+      "meta": {},
+      "roles": ["admin"],
+      "permissions": ["api.read", "api.write"]
+    }
+  }
+}
+```
+
+## Top-level fields
+
+<ResponseField name="version" type="integer" required>
+  The schema version of the Principal payload. Currently `1`. Check this field if you need to handle different payload shapes during migrations. Unkey bumps the version when fields are removed or renamed, but adding new optional fields does not change the version.
+</ResponseField>
+
+<ResponseField name="subject" type="string" required>
+  The primary identifier of the authenticated entity. This is the field you use for database lookups, audit logging, and as the key for per-user logic in your application.
+
+  How the subject is determined depends on the authentication method:
+
+  | Type | Subject value |
+  | --- | --- |
+  | `key` (with identity) | The identity's external ID |
+  | `key` (without identity) | The key ID |
+  | `jwt` | The `sub` claim from the token |
+
+  For API keys linked to an [identity](/platform/identities/overview), the subject is the identity's external ID rather than the key ID. This means all keys belonging to the same identity share the same subject, which is what you want for rate limiting and usage tracking at the user level rather than the key level. The specific key ID is always available at `source.key.keyId` when you need it.
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  The authentication method that produced this Principal. One of `"key"` or `"jwt"`. This value always matches the field name inside `source`, so you can use it to determine which source object to read. For example, when `type` is `"key"`, the method-specific data is at `source.key`.
+</ResponseField>
+
+<ResponseField name="identity" type="object">
+  The [identity](/platform/identities/overview) behind the credential. Present only when the credential is linked to an Unkey identity. When no identity is linked, this field is absent from the JSON entirely (not `null`, not an empty object).
+
+  Identities let you group multiple credentials under a single entity. For example, a customer might have separate API keys for staging and production, but both keys are linked to the same identity. Use `identity.externalId` to correlate requests across credentials.
+  <Expandable title="Fields">
+    <ResponseField name="identity.externalId" type="string" required>
+      The external ID you assigned when creating the identity in Unkey. This is your application's identifier for the entity (for example, a user ID from your database or an organization ID from your auth provider).
+    </ResponseField>
+    <ResponseField name="identity.meta" type="object" required>
+      Custom key-value metadata you attached to the identity. This is the same metadata you set through the Unkey API when creating or updating the identity. Useful for passing user attributes like plan tier, organization, or feature flags to your application without an extra database lookup. Empty `{}` when no metadata is set.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="source" type="object" required>
+  Method-specific data from the authentication source. Contains exactly one field whose name matches the `type` field. Most applications only need `subject` and `identity`, but `source` provides the full detail when you need it: key permissions, JWT claims, expiration times, and other method-specific attributes.
+
+  Each source type has its own reference page:
+
+  - [API key source](/platform/sentinel/principal/sources/api-key)
+  - [JWT source](/platform/sentinel/principal/sources/jwt)
+</ResponseField>
+
+## Versioning
+
+The `version` field starts at `1`. Unkey follows these rules for changes:
+
+- **Additive changes** (new optional fields, new source types) don't bump the version. Applications that don't know about new fields ignore them.
+- **Breaking changes** (removing fields, changing field types, renaming fields) bump the version. Unkey supports both versions during a migration period so you have time to update your application code.

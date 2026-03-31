@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
 
-	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -30,10 +29,9 @@ const DefaultCost = 1
 
 // Handler implements zen.Route interface for the v2 keys.verify endpoint
 type Handler struct {
-	DB         db.Database
-	Keys       keys.KeyService
-	Auditlogs  auditlogs.AuditLogService
-	ClickHouse clickhouse.ClickHouse
+	DB        db.Database
+	Keys      keys.KeyService
+	Auditlogs auditlogs.AuditLogService
 }
 
 // Method returns the HTTP method this route responds to

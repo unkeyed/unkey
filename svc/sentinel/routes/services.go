@@ -3,7 +3,8 @@ package routes
 import (
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/batch"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/svc/sentinel/engine"
@@ -18,7 +19,7 @@ type Services struct {
 	EnvironmentID      string
 	SentinelID         string
 	Region             string
-	ClickHouse         clickhouse.ClickHouse
+	SentinelRequests   *batch.BatchProcessor[schema.SentinelRequest]
 	MaxRequestBodySize int64
 	RequestTimeout     time.Duration
 	Engine             engine.Evaluator

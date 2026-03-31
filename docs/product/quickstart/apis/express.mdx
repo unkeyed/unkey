@@ -15,7 +15,11 @@ An Express server with a protected `/secret` route that requires a valid API key
 - [API created](https://app.unkey.com/apis) in your Unkey dashboard
 - Node.js 18+
 
-<Card title="Want to skip ahead?" icon="github" href="https://github.com/unkeyed/examples/tree/main/express">
+<Card
+  title="Want to skip ahead?"
+  icon="github"
+  href="https://github.com/unkeyed/examples/tree/main/express"
+>
   Clone the complete example and run it locally.
 </Card>
 
@@ -39,9 +43,7 @@ Get a root key from [Settings → Root Keys](https://app.unkey.com/settings/root
 UNKEY_ROOT_KEY="unkey_..."
 ```
 
-<Warning>
-Never commit your `.env` file. Add it to `.gitignore`.
-</Warning>
+<Warning>Never commit your `.env` file. Add it to `.gitignore`.</Warning>
 
 </Step>
 
@@ -78,9 +80,9 @@ app.get("/secret", async (req, res) => {
 
     if (!data.valid) {
       // Key is invalid, expired, rate limited, etc.
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: "Invalid API key",
-        code: data.code 
+        code: data.code,
       });
     }
 
@@ -122,6 +124,7 @@ curl http://localhost:3000/secret \
 ```
 
 You should see:
+
 ```json
 {
   "message": "Welcome to the secret route!",
@@ -131,11 +134,13 @@ You should see:
 ```
 
 Now try without a key:
+
 ```bash Test without key
 curl http://localhost:3000/secret
 ```
 
 You'll get:
+
 ```json
 {
   "error": "Missing API key"
@@ -150,20 +155,20 @@ You'll get:
 
 After successful verification, `data` contains:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `valid` | `boolean` | Whether the key passed all checks |
-| `code` | `string` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
-| `keyId` | `string` | The key's unique identifier |
-| `name` | `string?` | Human-readable name of the key |
-| `meta` | `object?` | Custom metadata associated with the key |
-| `expires` | `number?` | Unix timestamp (in milliseconds) when the key will expire. (if set) |
-| `credits` | `number?` | Remaining uses (if usage limits set) |
-| `enabled` | `boolean` | Whether the key is enabled |
-| `roles` | `string[]?` | Permissions attached to the key |
-| `permissions` | `string[]?` | Permissions attached to the key |
-| `identity` | `object?` | Identity info if `externalId` was set when creating the key |
-| `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
+| Field         | Type        | Description                                                         |
+| ------------- | ----------- | ------------------------------------------------------------------- |
+| `valid`       | `boolean`   | Whether the key passed all checks                                   |
+| `code`        | `string`    | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.)            |
+| `keyId`       | `string`    | The key's unique identifier                                         |
+| `name`        | `string?`   | Human-readable name of the key                                      |
+| `meta`        | `object?`   | Custom metadata associated with the key                             |
+| `expires`     | `number?`   | Unix timestamp (in milliseconds) when the key will expire. (if set) |
+| `credits`     | `number?`   | Remaining uses (if usage limits set)                                |
+| `enabled`     | `boolean`   | Whether the key is enabled                                          |
+| `roles`       | `string[]?` | Permissions attached to the key                                     |
+| `permissions` | `string[]?` | Permissions attached to the key                                     |
+| `identity`    | `object?`   | Identity info if `externalId` was set when creating the key         |
+| `ratelimits`  | `object[]?` | Rate limit states (if rate limiting configured)                     |
 
 ## Using as middleware
 
@@ -216,13 +221,25 @@ app.get("/another-secret", unkeyAuth, (req, res) => {
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Add rate limiting" icon="gauge-high" href="/apis/features/ratelimiting/overview">
+  <Card
+    title="Add rate limiting"
+    icon="gauge-high"
+    href="/platform/apis/features/ratelimiting/overview"
+  >
     Limit requests per key
   </Card>
-  <Card title="Set usage limits" icon="calculator" href="/apis/features/remaining">
+  <Card
+    title="Set usage limits"
+    icon="calculator"
+    href="/platform/apis/features/remaining"
+  >
     Cap total requests per key
   </Card>
-  <Card title="Add permissions" icon="user-shield" href="/apis/features/authorization/introduction">
+  <Card
+    title="Add permissions"
+    icon="user-shield"
+    href="/platform/apis/features/authorization/introduction"
+  >
     Fine-grained access control
   </Card>
   <Card title="SDK Reference" icon="book" href="/libraries/ts/api">
@@ -234,25 +251,20 @@ app.get("/another-secret", unkeyAuth, (req, res) => {
 
 <AccordionGroup>
   <Accordion title="Getting 401 even with a valid key?">
-    - Ensure the key hasn't expired or been revoked
-    - Verify the `Authorization` header format: `Bearer YOUR_KEY` (note the space)
-    - Check that your root key has the `verify_key` permission
+    - Ensure the key hasn't expired or been revoked - Verify the `Authorization`
+    header format: `Bearer YOUR_KEY` (note the space) - Check that your root key
+    has the `verify_key` permission
   </Accordion>
-  
-  <Accordion title="Getting 500 errors?">
-    - Check that `UNKEY_ROOT_KEY` is set correctly in your `.env`
-    - Make sure you're calling `require("dotenv").config()` before using env vars
-    - Check the Unkey dashboard for any service issues
-  </Accordion>
-  
+
+<Accordion title="Getting 500 errors?">
+  - Check that `UNKEY_ROOT_KEY` is set correctly in your `.env` - Make sure
+  you're calling `require("dotenv").config()` before using env vars - Check the
+  Unkey dashboard for any service issues
+</Accordion>
+
   <Accordion title="TypeScript version?">
     The code above uses CommonJS. For TypeScript, install types and use imports:
-    ```bash
-    npm install -D typescript @types/express @types/node
-    ```
-    ```ts
-    import express from "express";
-    import { verifyKey } from "@unkey/api";
-    ```
+    ```bash npm install -D typescript @types/express @types/node ``` ```ts
+    import express from "express"; import {verifyKey} from "@unkey/api"; ```
   </Accordion>
 </AccordionGroup>

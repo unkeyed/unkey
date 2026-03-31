@@ -19,6 +19,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -125,7 +126,6 @@ func (c *Controller) ensureNamespaceExists(ctx context.Context) error {
 // server-side apply. Returns the resulting Deployment so the caller can extract
 // its UID for setting owner references on related resources.
 func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) (*appsv1.Deployment, error) {
-
 	configEnv, err := toml.Marshal(sentinelcfg.Config{
 		SentinelID:    sentinel.GetSentinelId(),
 		WorkspaceID:   sentinel.GetWorkspaceId(),
@@ -138,7 +138,10 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 			ReadonlyReplica: "${UNKEY_DATABASE_REPLICA}",
 		},
 		ClickHouse: sentinelcfg.ClickHouseConfig{
-			URL: "${UNKEY_CLICKHOUSE_URL}",
+			URL:        "${UNKEY_CLICKHOUSE_URL}",
+			BatchSize:  0,
+			BufferSize: 0,
+			Consumers:  0,
 		},
 		Redis: sentinelcfg.RedisConfig{
 			URL: "${UNKEY_REDIS_URL}",
@@ -293,18 +296,15 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 						},
 
 						Resources: corev1.ResourceRequirements{
-							// nolint:exhaustive
-							//	Limits: corev1.ResourceList{
-							//		corev1.ResourceCPU:              *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
-							//		corev1.ResourceMemory:           *resource.NewQuantity(sentinel.GetMemoryMib(), resource.BinarySI),
-							//		corev1.ResourceEphemeralStorage: *resource.NewQuantity(5*1024*1024*1024, resource.BinarySI),
-							//	},
-							// nolint:exhaustive
-							//	Requests: corev1.ResourceList{
-							//		corev1.ResourceCPU:              *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
-							//		corev1.ResourceMemory:           *resource.NewQuantity(sentinel.GetMemoryMib(), resource.BinarySI),
-							//		corev1.ResourceEphemeralStorage: *resource.NewQuantity(5*1024*1024*1024, resource.BinarySI),
-							//	},
+							// Sentinels are very light on CPU, so we request half the limit for better bin-packing.
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.GetCpuMillicores()/2, resource.BinarySI),
+								corev1.ResourceMemory: *resource.NewQuantity(sentinel.GetMemoryMib()*1024*1024, resource.BinarySI),
+							},
+							Limits: corev1.ResourceList{
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
+								corev1.ResourceMemory: *resource.NewQuantity(sentinel.GetMemoryMib()*1024*1024, resource.BinarySI),
+							},
 						},
 					}},
 				},

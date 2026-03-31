@@ -14,7 +14,7 @@ import (
 func Register(srv *zen.Server, svc *Services) {
 	withPanicRecovery := zen.WithPanicRecovery()
 	withObservability := middleware.WithObservability(svc.EnvironmentID, svc.Region)
-	withSentinelLogging := middleware.WithSentinelLogging(svc.ClickHouse, svc.Clock, svc.SentinelID, svc.Region)
+	withSentinelLogging := middleware.WithSentinelLogging(svc.SentinelRequests, svc.Clock, svc.SentinelID, svc.Region)
 	withProxyErrorHandling := middleware.WithProxyErrorHandling()
 	withTimeout := zen.WithTimeout(svc.RequestTimeout)
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))

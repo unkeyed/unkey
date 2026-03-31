@@ -64,6 +64,7 @@ A permissions query can be:
 4. **Grouped expressions**: `(permission_1 OR permission_2) AND permission_3`
 
 **Key rules:**
+
 - Permission names must be valid permission slugs (letters, numbers, dots, underscores, hyphens)
 - Use `AND` when all permissions are required
 - Use `OR` when any of the permissions is sufficient
@@ -73,6 +74,7 @@ A permissions query can be:
 ## Common Errors and Solutions
 
 ### 1. Invalid Characters
+
 ```bash
 # ❌ Invalid - contains special characters
 curl -X POST https://api.unkey.com/v2/keys.verifyKey \
@@ -94,6 +96,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ```
 
 ### 2. Missing Operands
+
 ```bash
 # ❌ Invalid - AND without right operand
 curl -X POST https://api.unkey.com/v2/keys.verifyKey \
@@ -115,6 +118,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ```
 
 ### 3. Unmatched Parentheses
+
 ```bash
 # ❌ Invalid - missing closing parenthesis
 curl -X POST https://api.unkey.com/v2/keys.verifyKey \
@@ -136,6 +140,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ```
 
 ### 4. Empty Parentheses
+
 ```bash
 # ❌ Invalid - empty parentheses
 curl -X POST https://api.unkey.com/v2/keys.verifyKey \
@@ -157,6 +162,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ```
 
 ### 5. Incorrect Operator Placement
+
 ```bash
 # ❌ Invalid - operator at start
 curl -X POST https://api.unkey.com/v2/keys.verifyKey \
@@ -180,6 +186,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ## Valid Query Examples
 
 ### Simple Permission
+
 ```bash
 curl -X POST https://api.unkey.com/v2/keys.verifyKey \
   -H "Content-Type: application/json" \
@@ -191,6 +198,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ```
 
 ### AND Operation
+
 ```bash
 curl -X POST https://api.unkey.com/v2/keys.verifyKey \
   -H "Content-Type: application/json" \
@@ -202,6 +210,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ```
 
 ### OR Operation
+
 ```bash
 curl -X POST https://api.unkey.com/v2/keys.verifyKey \
   -H "Content-Type: application/json" \
@@ -213,6 +222,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ```
 
 ### Complex Expressions
+
 ```bash
 curl -X POST https://api.unkey.com/v2/keys.verifyKey \
   -H "Content-Type: application/json" \
@@ -224,6 +234,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ```
 
 ### Nested Expressions
+
 ```bash
 curl -X POST https://api.unkey.com/v2/keys.verifyKey \
   -H "Content-Type: application/json" \
@@ -237,20 +248,22 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ## Valid Permission Formats
 
 ### Simple Names
+
 - `permission_1`
 - `user_read`
 - `admin-access`
 
 ### Namespaced Permissions
+
 - `api.users.read`
 - `billing.invoices.create`
 - `workspace.settings.update`
 
 ### Mixed Formats
+
 - `user_management.create`
 - `billing-service.view`
 - `service123.feature_a.read`
-
 
 ## Context
 

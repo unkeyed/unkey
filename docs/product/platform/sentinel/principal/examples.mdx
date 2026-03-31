@@ -1,0 +1,186 @@
+---
+title: Framework examples
+description: Code examples for reading the Principal in Hono, Next.js, and Go.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+These examples show how to parse the [Principal](/platform/sentinel/principal/overview) from the `X-Unkey-Principal` header in common frameworks using API key authentication.
+
+<CodeGroup>
+
+```ts Hono
+import { Hono } from "hono";
+
+type KeyPrincipal = {
+  version: number;
+  subject: string;
+  type: "key";
+  identity?: {
+    externalId: string;
+    meta: Record<string, string>;
+  };
+  source: {
+    key: {
+      keyId: string;
+      keySpaceId: string;
+      name?: string;
+      expiresAt?: number;
+      meta: Record<string, string>;
+      roles: string[];
+      permissions: string[];
+    };
+  };
+};
+
+const app = new Hono();
+
+app.use("*", async (c, next) => {
+  const header = c.req.header("x-unkey-principal");
+  if (!header) {
+    return c.json({ error: "Not authenticated" }, 401);
+  }
+
+  const principal: KeyPrincipal = JSON.parse(header);
+  c.set("principal", principal);
+  await next();
+});
+
+app.get("/api/resource", (c) => {
+  const principal = c.get("principal") as KeyPrincipal;
+
+  const { permissions } = principal.source.key;
+  if (!permissions.includes("api.read")) {
+    return c.json({ error: "Insufficient permissions" }, 403);
+  }
+
+  const userId = principal.subject;
+  const org = principal.identity?.meta?.org;
+
+  return c.json({ userId, org });
+});
+
+export default app;
+```
+
+```ts Next.js
+import { NextRequest, NextResponse } from "next/server";
+
+type KeyPrincipal = {
+  version: number;
+  subject: string;
+  type: "key";
+  identity?: {
+    externalId: string;
+    meta: Record<string, string>;
+  };
+  source: {
+    key: {
+      keyId: string;
+      keySpaceId: string;
+      name?: string;
+      expiresAt?: number;
+      meta: Record<string, string>;
+      roles: string[];
+      permissions: string[];
+    };
+  };
+};
+
+function getPrincipal(req: NextRequest): KeyPrincipal | null {
+  const header = req.headers.get("x-unkey-principal");
+  if (!header) {
+    return null;
+  }
+  return JSON.parse(header) as KeyPrincipal;
+}
+
+export async function GET(req: NextRequest) {
+  const principal = getPrincipal(req);
+  if (!principal) {
+    return NextResponse.json(
+      { error: "Not authenticated" },
+      { status: 401 }
+    );
+  }
+
+  const userId = principal.subject;
+  const plan = principal.identity?.meta?.plan ?? "free";
+  const canWrite = principal.source.key.permissions.includes("api.write");
+
+  return NextResponse.json({ userId, plan, canWrite });
+}
+```
+
+```go Go
+package main
+
+import (
+	"encoding/json"
+	"net/http"
+	"slices"
+)
+
+type KeyPrincipal struct {
+	Version  int       `json:"version"`
+	Subject  string    `json:"subject"`
+	Type     string    `json:"type"`
+	Identity *Identity `json:"identity,omitempty"`
+	Source   struct {
+		Key KeySource `json:"key"`
+	} `json:"source"`
+}
+
+type Identity struct {
+	ExternalID string            `json:"externalId"`
+	Meta       map[string]string `json:"meta"`
+}
+
+type KeySource struct {
+	KeyID       string            `json:"keyId"`
+	KeySpaceID  string            `json:"keySpaceId"`
+	Name        string            `json:"name,omitempty"`
+	ExpiresAt   int64             `json:"expiresAt,omitempty"`
+	Meta        map[string]string `json:"meta"`
+	Roles       []string          `json:"roles"`
+	Permissions []string          `json:"permissions"`
+}
+
+func parsePrincipal(r *http.Request) (*KeyPrincipal, bool) {
+	header := r.Header.Get("X-Unkey-Principal")
+	if header == "" {
+		return nil, false
+	}
+
+	var p KeyPrincipal
+	if err := json.Unmarshal([]byte(header), &p); err != nil {
+		return nil, false
+	}
+	return &p, true
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	principal, ok := parsePrincipal(r)
+	if !ok {
+		http.Error(w, `{"error":"Not authenticated"}`, http.StatusUnauthorized)
+		return
+	}
+
+	if !slices.Contains(principal.Source.Key.Permissions, "api.read") {
+		http.Error(w, `{"error":"Insufficient permissions"}`, http.StatusForbidden)
+		return
+	}
+
+	userID := principal.Subject
+	json.NewEncoder(w).Encode(map[string]string{"userId": userID})
+}
+
+func main() {
+	http.HandleFunc("/api/resource", handler)
+	http.ListenAndServe(":8080", nil)
+}
+```
+
+</CodeGroup>

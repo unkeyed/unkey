@@ -6,6 +6,7 @@ go_library(
         "billable_ratelimits.go",
         "billable_usage.go",
         "billable_verifications.go",
+        "buffer.go",
         "client.go",
         "deployment_request_count.go",
         "doc.go",
@@ -22,7 +23,6 @@ go_library(
     deps = [
         "//pkg/batch",
         "//pkg/circuitbreaker",
-        "//pkg/clickhouse/schema",
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/logger",

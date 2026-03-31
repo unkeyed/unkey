@@ -33,7 +33,8 @@ export const appRuntimeSettings = mysqlTable(
     environmentId: varchar("environment_id", { length: 128 }).notNull(),
 
     port: int("port").notNull().default(8080),
-    cpuMillicores: int("cpu_millicores").notNull().default(256),
+    // CPU allocation in millicores (1000 millicores = 1 CPU).
+    cpuMillicores: int("cpu_millicores").notNull().default(250),
     memoryMib: int("memory_mib").notNull().default(256),
     command: json("command").$type<string[]>().notNull().default(sql`('[]')`),
 
