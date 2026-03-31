@@ -1,0 +1,77 @@
+---
+title: Regions
+description: "Deploy your app to multiple regions and route traffic to the nearest location"
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+Unkey deploys your application to one or more geographic regions. Traffic routes to the nearest healthy region automatically, reducing latency for your users.
+
+## Available regions
+
+| Region          | Location              | Provider |
+| --------------- | --------------------- | -------- |
+| `us-east-1`     | N. Virginia, US       | AWS      |
+| `us-west-2`     | Oregon, US            | AWS      |
+| `eu-central-1`  | Frankfurt, Germany    | AWS      |
+
+<Tip>
+  Need a region that isn't listed? Reach out on [Discord](https://unkey.com/discord) or email [support@unkey.com](mailto:support@unkey.com) to request it.
+</Tip>
+
+## Configure regions
+
+Select regions for your app in the **Settings** tab under **Runtime settings > Regions**. You must select at least one region.
+
+Production and preview environments can use different region configurations. For example, you might deploy production to all three regions for global coverage while keeping preview deployments in a single region to reduce cost.
+
+<Frame caption="Region configuration with different selections for production and preview">
+  <img src="/build-and-deploy/regions-light.png" alt="Region settings" className="block dark:hidden" />
+  <img src="/build-and-deploy/regions-dark.png" alt="Region settings" className="hidden dark:block" />
+</Frame>
+
+## Instances per region
+
+Each region runs one or more instances of your app. Configure the instance count in **Settings > Runtime settings > Instances**. The default is one instance per region.
+
+Running multiple instances in a region provides redundancy. If one instance fails, traffic routes to the remaining healthy instances.
+
+<Note>
+  During the beta, the maximum is four instances per region. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
+</Note>
+
+## Traffic routing
+
+Unkey routes incoming requests to the nearest healthy region based on the client's location. If a region becomes unhealthy (all instances failing health checks), traffic reroutes to the next nearest region.
+
+## Add or remove regions
+
+Changing your region configuration takes effect on the next deployment. Existing deployments continue running in their original regions until replaced.
+
+To update regions:
+
+1. Open your project's **Settings** tab.
+2. Under **Runtime settings**, add or remove regions.
+3. Save the changes.
+4. Trigger a new deployment to apply the updated configuration.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="App settings"
+    icon="gear"
+    href="/platform/apps/settings"
+  >
+    Configure instances, CPU, memory, and other runtime settings
+  </Card>
+  <Card
+    title="Custom domains"
+    icon="globe"
+    href="/networking/domains"
+  >
+    Serve your app from your own domain
+  </Card>
+</CardGroup>

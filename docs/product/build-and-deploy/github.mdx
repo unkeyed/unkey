@@ -1,0 +1,92 @@
+---
+title: GitHub integration
+description: "Automatic deployments on every push with branch mapping and fork protection"
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+When you connect a GitHub repository to your project, Unkey deploys your application automatically on every push. No CI/CD pipeline needed.
+
+For the initial setup walkthrough, see [Deploy your first app](/quickstart/deploy).
+
+## Branch-to-environment mapping
+
+Unkey maps branches to environments based on your default branch:
+
+| Branch                            | Environment |
+| --------------------------------- | ----------- |
+| Default branch (typically `main`) | Production  |
+| All other branches                | Preview     |
+
+Pushes to the default branch deploy to the production environment. Pushes to any other branch deploy to a preview environment.
+
+<Note>
+  Custom branch-to-environment mapping is not yet available. The default branch always maps to production.
+</Note>
+
+## Commit-level deployments
+
+Every push creates an immutable deployment with its own unique domain:
+
+```
+<project>-<app>-git-<sha>-<workspace>.unkey.app
+```
+
+This domain never changes, even as newer deployments go live. You can use commit domains to test a specific version or share a link to a particular build.
+
+In addition to the commit domain, Unkey assigns sticky domains that follow the latest deployment:
+
+- **Branch domain**: points to the latest deployment from that branch
+- **Environment domain**: points to the latest deployment in that environment
+- **Live domain** (production only): points to the current live deployment
+
+See [Wildcard domains](/networking/wildcard-domains) for the full domain naming pattern.
+
+## Fork protection
+
+Pull requests from forked repositories are not deployed automatically. A forked PR could modify your Dockerfile or application code to extract environment variable secrets during the build or at runtime.
+
+When a PR comes from a fork, Unkey requires an authorized team member to approve the deployment before it runs. This is similar to how Vercel handles fork deployments.
+
+{/* TODO: screenshot of fork approval flow */}
+
+## Watch paths
+
+By default, every push triggers a deployment. If your repository contains code that doesn't affect your app (for example, documentation or unrelated services in a monorepo), configure watch paths to deploy only when relevant files change.
+
+Add glob patterns in your app's **Settings** under **Watch paths**. Unkey skips the deployment if none of the changed files match any pattern.
+
+<Frame caption="Watch paths configuration with a glob pattern">
+  <img src="/build-and-deploy/watch-paths-light.png" alt="Watch paths settings" className="block dark:hidden" />
+  <img src="/build-and-deploy/watch-paths-dark.png" alt="Watch paths settings" className="hidden dark:block" />
+</Frame>
+
+## Troubleshoot failed triggers
+
+If a push doesn't trigger a deployment:
+
+1. Verify the Unkey GitHub App is installed on the repository's organization or account.
+2. Check that the repository is connected in your project's **Settings** tab.
+3. If watch paths are configured, confirm that the push includes changes matching at least one pattern.
+4. Check your project's **Deployments** tab for a failed deployment with error details.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Deployment lifecycle"
+    icon="arrows-spin"
+    href="/build-and-deploy/deployments"
+  >
+    How deployments progress from build to serving traffic
+  </Card>
+  <Card
+    title="App settings"
+    icon="gear"
+    href="/platform/apps/settings"
+  >
+    Configure build context, Dockerfile path, and watch paths
+  </Card>
+</CardGroup>

@@ -4,6 +4,7 @@ go_library(
     name = "batch",
     srcs = [
         "doc.go",
+        "noop.go",
         "process.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/batch",

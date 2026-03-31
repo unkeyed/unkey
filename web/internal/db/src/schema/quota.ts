@@ -61,13 +61,13 @@ export const quotas = mysqlTable("quota", {
    */
   ratelimitApiDuration: int("ratelimit_api_duration", { unsigned: true }),
 
-  // allocatedCpuMillicoresTotal defines the total CPU resources (in millicores) a workspace may allocate at the same time.
-  // New deployments that would exceed this limit will be rejected.
+  // allocatedCpuMillicoresTotal defines the total CPU resources (in millicores, where 1000 millicores = 1 CPU)
+  // a workspace may allocate at the same time. New deployments that would exceed this limit will be rejected.
   allocatedCpuMillicoresTotal: int("allocated_cpu_millicores_total", {
     unsigned: true,
   })
     .notNull()
-    .default(10240 /* 10 cores */),
+    .default(10000 /* 10 cores */),
 
   // allocatedMemoryMibTotal defines the total memory resources (in MiB) a workspace may allocate at the same time.
   // New deployments that would exceed this limit will be rejected.

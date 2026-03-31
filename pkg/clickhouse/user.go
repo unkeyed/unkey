@@ -98,7 +98,7 @@ func getTimeRetentionFilter(tableName string, retentionDays int32) string {
 
 // ConfigureUser creates or updates a ClickHouse user with all necessary permissions, quotas, and settings.
 // This is idempotent - it can be run multiple times to update settings.
-func (c *clickhouse) ConfigureUser(ctx context.Context, config UserConfig) error {
+func (c *Client) ConfigureUser(ctx context.Context, config UserConfig) error {
 	logger.Info("configuring clickhouse user", "workspace_id", config.WorkspaceID, "username", config.Username)
 
 	// Validate all identifiers to prevent SQL injection

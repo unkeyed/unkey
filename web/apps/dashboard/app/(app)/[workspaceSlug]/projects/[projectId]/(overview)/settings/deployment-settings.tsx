@@ -16,7 +16,6 @@ import { Port } from "./components/runtime-settings/port-settings";
 import { Regions } from "./components/runtime-settings/regions";
 
 import { CustomDomains } from "./components/advanced-settings/custom-domains";
-import { EnvVars } from "./components/advanced-settings/env-vars";
 
 import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
 import { Keyspaces } from "./components/sentinel-settings/keyspaces";
@@ -69,7 +68,6 @@ export const DeploymentSettings = ({
         defaultExpanded={Boolean(sections.advanced)}
       >
         <SettingCardGroup>
-          <EnvVars />
           <CustomDomains />
           <OpenapiSpecPath />
         </SettingCardGroup>

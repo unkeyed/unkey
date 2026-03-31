@@ -1,0 +1,69 @@
+---
+title: Projects
+description: A project is a container for deployments, environments, and configuration that maps to a single codebase within your workspace.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+A project is the top-level organizational unit in Unkey Deploy. Each project maps to a single codebase (typically a GitHub repository) and groups the [apps](/platform/apps/overview), [environments](/environments/overview), and configuration needed to build, deploy, and run your application.
+
+## Project hierarchy
+
+Projects live inside a workspace. A project contains one or more apps, and each app has its own environments, deployments, and configuration.
+
+```
+Workspace
+  └── Project (one per codebase)
+        └── App (deployable service)
+              ├── Environments (production, preview, custom)
+              │     ├── Deployments
+              │     ├── Variables
+              │     └── Custom domains
+              └── Configuration (build, runtime, Sentinel)
+```
+
+An [app](/platform/apps/overview) represents a single deployable service within your project. When you create a project, Unkey creates a default app automatically. A project can contain multiple apps, for example an API server and a background worker that share the same repository.
+
+Build settings, runtime configuration, and [Sentinel policies](/platform/sentinel/overview) are configured per app. [Variables](/platform/variables/overview) and [custom domains](/networking/domains) are scoped to an app's environment.
+
+## Create a project
+
+1. Navigate to your workspace's **Projects** page.
+2. Click **New project**.
+3. Enter a project name. Unkey generates a URL-friendly slug from the name, which you can edit.
+4. Connect your GitHub account if you haven't already. You can skip this step and connect later.
+5. Select the repository to deploy from your connected GitHub accounts.
+6. Configure initial [build and runtime settings](/platform/projects/settings). You can change these later.
+7. Click **Deploy** to trigger your first deployment.
+
+The slug must be unique within your workspace and can only contain lowercase letters, numbers, and hyphens.
+
+## Project dashboard
+
+After creation, the project dashboard gives you four tabs:
+
+| Tab            | What it shows                                                                                   |
+| -------------- | ----------------------------------------------------------------------------------------------- |
+| **Deployments** | Active and past deployments across all environments, with commit info and status                 |
+| **Logs**        | Runtime logs from your running instances                                                        |
+| **Requests**    | HTTP request analytics processed by [the Sentinel](/platform/sentinel/overview)                  |
+| **Settings**    | Build, runtime, and advanced configuration. See [Settings](/platform/projects/settings) for details |
+
+The deployments tab is the default view when you open a project.
+
+## Delete a project
+
+<Warning>
+  Deleting a project permanently removes all deployments, environments, custom domains, variables, and associated data. This action cannot be undone.
+</Warning>
+
+To delete a project:
+
+1. Open the project actions menu (three-dot icon on the project card).
+2. Select **Delete project**.
+3. Check the confirmation box acknowledging the permanent deletion.
+4. Confirm the deletion.
+
+Deletion is asynchronous. Unkey removes all associated resources (deployments, environments, domains, variables) in the background. The project disappears from your workspace immediately, but cleanup of underlying resources completes shortly after.

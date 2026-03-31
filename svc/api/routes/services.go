@@ -10,7 +10,9 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 )
@@ -30,9 +32,14 @@ type Services struct {
 	// checks for incoming requests.
 	Keys keys.KeyService
 
-	// ClickHouse stores analytics data including verification events,
-	// rate limit events, and request metrics.
+	// ClickHouse provides query access to ClickHouse for analytics.
 	ClickHouse clickhouse.ClickHouse
+
+	// ApiRequests buffers API request events for ClickHouse.
+	ApiRequests *batch.BatchProcessor[schema.ApiRequest]
+
+	// RatelimitEvents buffers ratelimit events for ClickHouse.
+	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
 
 	// Validator performs request payload validation using struct tags.
 	Validator *validation.Validator

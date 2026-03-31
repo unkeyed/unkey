@@ -88,11 +88,13 @@ Cursor supports the Model Context Protocol (MCP) which allows you to connect dir
 When working with Cursor, break down complex tasks into smaller, focused requests:
 
 **Good:**
+
 ```
 Create a function to verify an API key with Unkey that returns a boolean
 ```
 
 **Better:**
+
 ```
 Create a TypeScript function that:
 - Takes an API key string as input
@@ -111,14 +113,17 @@ Keep your project's README.md updated with Unkey-specific information. Cursor us
 This project uses Unkey for API authentication and ratelimiting.
 
 ## Environment Variables
+
 - `UNKEY_ROOT_KEY`: Your Unkey root key
 - `UNKEY_API_ID`: Your API ID from the Unkey dashboard
 
 ## API Routes
+
 - `/api/protected` - Requires valid API key
 - `/api/keys` - Manage API keys (admin only)
 
 ## Rate Limiting
+
 - Free tier: 100 requests/hour
 - Pro tier: 1000 requests/hour
 ```

@@ -12,9 +12,11 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/counter"
@@ -109,15 +111,41 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(database.Close)
 
-	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
+	sentinelRequests := batch.NewNoop[schema.SentinelRequest]()
+	keyVerifications := batch.NewNoop[schema.KeyVerification]()
+
+	var chClient *clickhouse.Client
 	if cfg.ClickHouse.URL != "" {
-		ch, err = clickhouse.New(clickhouse.Config{
+		chClient, err = clickhouse.New(clickhouse.Config{
 			URL: cfg.ClickHouse.URL,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create clickhouse: %w", err)
 		}
-		r.Defer(ch.Close)
+
+		sentinelRequests = clickhouse.NewBuffer[schema.SentinelRequest](chClient, "default.sentinel_requests_raw_v1", clickhouse.BufferConfig{
+			Name:          "sentinel_requests",
+			BatchSize:     cfg.ClickHouse.BatchSize,
+			BufferSize:    cfg.ClickHouse.BufferSize,
+			FlushInterval: 5 * time.Second,
+			Consumers:     cfg.ClickHouse.Consumers,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
+		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
+			Name:          "key_verifications",
+			BatchSize:     cfg.ClickHouse.BatchSize,
+			BufferSize:    cfg.ClickHouse.BufferSize,
+			FlushInterval: 5 * time.Second,
+			Consumers:     cfg.ClickHouse.Consumers,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
+
+		// Close buffers before connection (LIFO)
+		r.Defer(func() error { sentinelRequests.Close(); return nil })
+		r.Defer(func() error { keyVerifications.Close(); return nil })
+		r.Defer(chClient.Close)
 	}
 
 	// Initialize gossip-based cache invalidation
@@ -173,7 +201,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize middleware engine for KeyAuth and other sentinel policies.
 	// Uses Redis if configured, in-memory counters otherwise.
-	middlewareEngine, err := initMiddlewareEngine(r, cfg, database, ch, clk)
+	middlewareEngine, err := initMiddlewareEngine(r, cfg, database, keyVerifications, clk)
 	if err != nil {
 		return fmt.Errorf("unable to create middleware engine: %w", err)
 	}
@@ -185,7 +213,7 @@ func Run(ctx context.Context, cfg Config) error {
 		EnvironmentID:      cfg.EnvironmentID,
 		SentinelID:         cfg.SentinelID,
 		Region:             cfg.Region,
-		ClickHouse:         ch,
+		SentinelRequests:   sentinelRequests,
 		MaxRequestBodySize: maxRequestBodySize,
 		RequestTimeout:     cfg.RequestTimeout,
 		Engine:             middlewareEngine,
@@ -239,7 +267,7 @@ func Run(ctx context.Context, cfg Config) error {
 // at startup does not prevent the engine from being created — the Redis client
 // reconnects lazily, and both the rate limiter and usage limiter degrade
 // gracefully (local windows / DB fallback) when Redis is temporarily unavailable.
-func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ch clickhouse.ClickHouse, clk clock.Clock) (engine.Evaluator, error) {
+func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, keyVerifications *batch.BatchProcessor[schema.KeyVerification], clk clock.Clock) (engine.Evaluator, error) {
 	var ctr counter.Counter
 	if cfg.Redis.URL != "" {
 		redisCtr, redisErr := counter.NewRedis(counter.RedisConfig{
@@ -303,14 +331,14 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ch
 	}
 
 	keyService, err := keys.New(keys.Config{
-		DB:           database,
-		RateLimiter:  rateLimiter,
-		RBAC:         rbac.New(),
-		Clickhouse:   ch,
-		Region:       cfg.Region,
-		UsageLimiter: usageLimiter,
-		KeyCache:     keyCache,
-		QuotaCache:   nil,
+		DB:               database,
+		RateLimiter:      rateLimiter,
+		RBAC:             rbac.New(),
+		KeyVerifications: keyVerifications,
+		Region:           cfg.Region,
+		UsageLimiter:     usageLimiter,
+		KeyCache:         keyCache,
+		QuotaCache:       nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key service: %w", err)

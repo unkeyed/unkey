@@ -1,0 +1,118 @@
+---
+title: "Deploy your first app"
+description: "Go from a GitHub repository to a running application in minutes"
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+This guide walks you through deploying an application on Unkey for the first time. You'll create a project, connect a GitHub repository, and have a running app with a live URL.
+
+## Prerequisites
+
+- An Unkey account with Deploy beta access
+- A GitHub repository with a Dockerfile
+
+## Create a project
+
+<Steps>
+<Step title="Start a new project">
+
+Navigate to your workspace and click **New project**. Enter a project name and slug, then click **Create Project**.
+
+<Frame caption="Create a new project">
+  <img src="/build-and-deploy/github-create-project-light.png" alt="Create project form" className="block dark:hidden" />
+  <img src="/build-and-deploy/github-create-project-dark.png" alt="Create project form" className="hidden dark:block" />
+</Frame>
+
+</Step>
+
+<Step title="Import from GitHub">
+
+Click **Import from GitHub**. If you haven't installed the Unkey GitHub App yet, you'll be prompted to install it on your organization or personal account.
+
+<Frame caption="Import a project from GitHub">
+  <img src="/build-and-deploy/github-import-light.png" alt="Import from GitHub" className="block dark:hidden" />
+  <img src="/build-and-deploy/github-import-dark.png" alt="Import from GitHub" className="hidden dark:block" />
+</Frame>
+
+</Step>
+
+<Step title="Select a repository">
+
+Choose your repository and branch. Unkey auto-detects Dockerfiles and shows their status next to each repo.
+
+<Frame caption="Select a repository">
+  <img src="/build-and-deploy/github-select-repo-light.png" alt="Repository selection" className="block dark:hidden" />
+  <img src="/build-and-deploy/github-select-repo-dark.png" alt="Repository selection" className="hidden dark:block" />
+</Frame>
+
+</Step>
+
+<Step title="Configure build settings">
+
+Review the defaults for root directory, Dockerfile path, and watch paths. Expand **Runtime settings** to configure regions, CPU, and memory. Expand **Advanced configurations** to add environment variables.
+
+<Frame caption="Configure deployment settings">
+  <img src="/build-and-deploy/github-configure-light.png" alt="Configure deployment" className="block dark:hidden" />
+  <img src="/build-and-deploy/github-configure-dark.png" alt="Configure deployment" className="hidden dark:block" />
+</Frame>
+
+</Step>
+
+<Step title="Deploy">
+
+Click **Deploy**. Unkey builds your image, provisions infrastructure across your selected regions, and assigns domains.
+
+<Frame caption="Deployment in progress">
+  <img src="/build-and-deploy/github-deploying-light.png" alt="Deployment progress" className="block dark:hidden" />
+  <img src="/build-and-deploy/github-deploying-dark.png" alt="Deployment progress" className="hidden dark:block" />
+</Frame>
+
+Once the deployment reaches **Ready**, your app is live. Unkey assigns several domains automatically, including an environment domain and a commit-specific domain.
+
+</Step>
+</Steps>
+
+## What happens next
+
+After the initial setup, every push to your repository triggers a new deployment automatically:
+
+- Pushes to the default branch (typically `main`) deploy to **production**.
+- Pushes to any other branch deploy to **preview**.
+
+Each deployment gets its own unique URL, so you can test any version independently.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="GitHub integration"
+    icon="github"
+    href="/build-and-deploy/github"
+  >
+    Branch mapping, fork protection, and watch paths
+  </Card>
+  <Card
+    title="App settings"
+    icon="gear"
+    href="/platform/apps/settings"
+  >
+    Configure regions, CPU, memory, health checks, and more
+  </Card>
+  <Card
+    title="Variables"
+    icon="key"
+    href="/platform/variables/overview"
+  >
+    Add environment-specific configuration
+  </Card>
+  <Card
+    title="Custom domains"
+    icon="globe"
+    href="/networking/domains"
+  >
+    Serve your app from your own domain
+  </Card>
+</CardGroup>

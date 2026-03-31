@@ -1,0 +1,26 @@
+---
+title: Observability
+description: Monitor your deployments with built-in request logs, runtime logs, and metrics.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+Every project in Unkey Deploy includes built-in observability so you can inspect what your app is doing without adding extra tooling.
+
+## What you get
+
+Each project provides three types of observability data:
+
+- [Logs](/observability/logs). Runtime output (stdout and stderr) from your app, with filtering by severity, deployment, environment, and message content
+- [Requests](/observability/requests). Every HTTP request that passes through [Sentinel](/platform/sentinel/overview) to your app, including method, path, status code, headers, bodies, and a full latency breakdown
+- [Metrics](/observability/metrics). RPS and latency charts on each deployment's overview page
+
+## Where to find it
+
+Navigate to your project in the dashboard. The **Logs** and **Requests** tabs are at the top of the project overview. Deployment-level metrics are on each deployment's detail page.
+
+## Retention
+
+Runtime logs are retained for 90 days. Request logs are retained for 30 days. Metrics are available for the lifetime of the deployment.

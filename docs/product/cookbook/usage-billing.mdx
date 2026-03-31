@@ -11,7 +11,7 @@ Charge customers based on how much they use your API. This recipe shows how to t
 // Create a key with monthly credits
 const key = await unkey.keys.create({
   apiId: "api_xxx",
-  remaining: 10000,  // 10,000 API calls included
+  remaining: 10000, // 10,000 API calls included
   refill: {
     interval: "monthly",
     amount: 10000,
@@ -86,7 +86,7 @@ const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 export async function POST(request: Request) {
   const apiKey = request.headers.get("authorization")?.replace("Bearer ", "");
-  
+
   if (!apiKey) {
     return NextResponse.json({ error: "Missing API key" }, { status: 401 });
   }
@@ -102,29 +102,29 @@ export async function POST(request: Request) {
   if (!data.valid) {
     if (data.code === "USAGE_EXCEEDED") {
       return NextResponse.json(
-        { 
+        {
           error: "Usage limit exceeded",
           remaining: 0,
           message: "Please upgrade your plan or wait for monthly reset",
         },
-        { status: 402 } // Payment Required
+        { status: 402 }, // Payment Required
       );
     }
-    
+
     return NextResponse.json(
       { error: "Invalid API key", code: data.code },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
   // Include usage info in response headers
-  const response = NextResponse.json({ 
+  const response = NextResponse.json({
     success: true,
     // Your API response...
   });
-  
+
   response.headers.set("X-Usage-Remaining", (data.credits ?? 0).toString());
-  
+
   return response;
 }
 ```
@@ -143,7 +143,7 @@ const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 export async function recordOverage(keyId: string, amount: number) {
   // Get the key to find the Stripe customer
   const { data: key } = await unkey.keys.get({ keyId });
-  
+
   if (!key?.meta?.stripeCustomerId) {
     throw new Error("No Stripe customer linked to this key");
   }
@@ -161,7 +161,7 @@ export async function recordOverage(keyId: string, amount: number) {
 
   // Find the metered price item
   const meteredItem = subscription.items.data.find(
-    (item) => item.price.recurring?.usage_type === "metered"
+    (item) => item.price.recurring?.usage_type === "metered",
   );
 
   if (meteredItem) {
@@ -177,16 +177,16 @@ export async function recordOverage(keyId: string, amount: number) {
 // Webhook handler for when credits run out
 export async function handleUsageExceeded(keyId: string) {
   const { data: key } = await unkey.keys.get({ keyId });
-  
+
   if (key?.meta?.stripeCustomerId) {
     // Option 1: Add overage credits and bill later
     await unkey.keys.update({
       keyId,
       remaining: 1000, // Grant overage allowance
     });
-    
+
     await recordOverage(keyId, 1000);
-    
+
     // Option 2: Or just notify and let them upgrade
     // await sendUpgradeEmail(key.meta.email);
   }
@@ -204,7 +204,7 @@ const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 export async function GET(request: Request) {
   const customerId = request.headers.get("x-customer-id");
-  
+
   if (!customerId) {
     return NextResponse.json({ error: "Missing customer ID" }, { status: 401 });
   }
@@ -227,8 +227,11 @@ export async function GET(request: Request) {
       remaining: key.remaining ?? 0,
       limit: key.refill?.amount ?? 0,
       used: (key.refill?.amount ?? 0) - (key.remaining ?? 0),
-      resetsAt: key.refill?.lastRefillAt 
-        ? new Date(new Date(key.refill.lastRefillAt).getTime() + 30 * 24 * 60 * 60 * 1000)
+      resetsAt: key.refill?.lastRefillAt
+        ? new Date(
+            new Date(key.refill.lastRefillAt).getTime() +
+              30 * 24 * 60 * 60 * 1000,
+          )
         : null,
     },
   });
@@ -241,18 +244,18 @@ When a customer upgrades, update their key:
 
 ```typescript
 export async function upgradePlan(
-  keyId: string, 
-  newPlan: "starter" | "growth" | "scale"
+  keyId: string,
+  newPlan: "starter" | "growth" | "scale",
 ) {
   const newCredits = PLAN_CREDITS[newPlan];
-  
+
   // Get current usage
   const { data: currentKey } = await unkey.keys.get({ keyId });
   const currentRemaining = currentKey?.remaining ?? 0;
-  
+
   // Option 1: Add the difference (pro-rated)
   const creditsToAdd = newCredits - (currentKey?.refill?.amount ?? 0);
-  
+
   await unkey.keys.update({
     keyId,
     remaining: currentRemaining + creditsToAdd,
@@ -297,12 +300,12 @@ const { data } = await unkey.keys.create({
 // Check specific resource usage on verify
 const { data: verification } = await unkey.keys.verify({
   key: userKey,
-  ratelimits: [
-    { name: "ai-tokens", cost: tokenCount },
-  ],
+  ratelimits: [{ name: "ai-tokens", cost: tokenCount }],
 });
 
-if (verification.ratelimits?.find(r => r.name === "ai-tokens")?.remaining === 0) {
+if (
+  verification.ratelimits?.find((r) => r.name === "ai-tokens")?.remaining === 0
+) {
   return { error: "AI token quota exceeded" };
 }
 ```
@@ -310,11 +313,13 @@ if (verification.ratelimits?.find(r => r.name === "ai-tokens")?.remaining === 0)
 ## Best practices
 
 <CardGroup cols={2}>
-  <Card title="Use refill wisely" icon="rotate">
-    Monthly refills keep usage tracking simple. For different billing cycles, adjust the interval.
+  <Card title="Use refill wisely" icon="arrows-rotate">
+    Monthly refills keep usage tracking simple. For different billing cycles,
+    adjust the interval.
   </Card>
   <Card title="Handle overages gracefully" icon="hand-holding-dollar">
-    Don't just cut users off. Offer overage billing or soft limits with warnings.
+    Don't just cut users off. Offer overage billing or soft limits with
+    warnings.
   </Card>
   <Card title="Show usage prominently" icon="gauge">
     Let users see their usage in your dashboard. Nobody likes surprise bills.
@@ -327,10 +332,18 @@ if (verification.ratelimits?.find(r => r.name === "ai-tokens")?.remaining === 0)
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Tiered subscriptions" icon="layer-group" href="/cookbook/tiered-subscriptions">
+  <Card
+    title="Tiered subscriptions"
+    icon="layer-group"
+    href="/cookbook/tiered-subscriptions"
+  >
     Complete Free/Pro/Enterprise implementation
   </Card>
-  <Card title="Credits & refill" icon="coins" href="/apis/features/remaining">
+  <Card
+    title="Credits & refill"
+    icon="coins"
+    href="/platform/apis/features/remaining"
+  >
     Deep dive into Unkey's credit system
   </Card>
 </CardGroup>

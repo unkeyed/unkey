@@ -4,20 +4,20 @@ export function formatCpuParts(millicores: number): FormattedParts {
   if (millicores === 0) {
     return { value: "—", unit: "" };
   }
-  if (millicores === 256) {
+  if (millicores === 250) {
     return { value: "1/4", unit: "vCPU" };
   }
-  if (millicores === 512) {
+  if (millicores === 500) {
     return { value: "1/2", unit: "vCPU" };
   }
-  if (millicores === 768) {
+  if (millicores === 750) {
     return { value: "3/4", unit: "vCPU" };
   }
-  if (millicores === 1024) {
+  if (millicores === 1000) {
     return { value: "1", unit: "vCPU" };
   }
-  if (millicores >= 1024 && millicores % 1024 === 0) {
-    return { value: `${millicores / 1024}`, unit: "vCPU" };
+  if (millicores >= 1000 && millicores % 1000 === 0) {
+    return { value: `${millicores / 1000}`, unit: "vCPU" };
   }
   return { value: `${millicores}m`, unit: "vCPU" };
 }

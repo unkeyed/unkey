@@ -109,7 +109,7 @@ export const ENVIRONMENT_SETTINGS_DEFAULTS = {
   dockerfile: "Dockerfile",
   dockerContext: ".",
   port: 8080,
-  cpuMillicores: 256,
+  cpuMillicores: 250,
   memoryMib: 256,
   shutdownSignal: "SIGTERM",
 } as const;
@@ -309,25 +309,14 @@ async function dispatchSettingsMutations(
       }),
     });
   }
-  saveStore.pendingSaves++;
-  saveStore.notify();
-  try {
-    await allMutations;
-    saveStore.savedCount++;
-    saveStore.notify();
-  } finally {
-    saveStore.pendingSaves--;
-    saveStore.notify();
-  }
+  await trackSave(allMutations);
 }
 
 /**
- * Store for tracking in-flight and completed settings saves.
+ * Store for tracking in-flight and completed collection saves.
  *
- * Grouped into a single object so the boundary is obvious and
- * `dispatchSettingsMutations` has one place to update.
- * Consumers subscribe via `useSyncExternalStore` — no React context needed
- * because settings mutations always originate from this module.
+ * Shared by environment-settings and env-vars collections so the
+ * pending-redeploy banner reacts to mutations from either source.
  */
 const saveStore = {
   pendingSaves: 0,
@@ -345,6 +334,24 @@ const saveStore = {
     };
   },
 };
+
+export function trackSave<T>(promise: Promise<T>): Promise<T> {
+  saveStore.pendingSaves++;
+  saveStore.notify();
+  return promise.then(
+    (result) => {
+      saveStore.savedCount++;
+      saveStore.pendingSaves--;
+      saveStore.notify();
+      return result;
+    },
+    (err) => {
+      saveStore.pendingSaves--;
+      saveStore.notify();
+      throw err;
+    },
+  );
+}
 
 export function useSettingsIsSaving(): boolean {
   return useSyncExternalStore(

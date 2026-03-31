@@ -16,10 +16,9 @@ func TestForbidden_NoVerifyPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB:         h.DB,
-		Keys:       h.Keys,
-		Auditlogs:  h.Auditlogs,
-		ClickHouse: h.ClickHouse,
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
 	}
 
 	h.Register(route)

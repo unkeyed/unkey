@@ -327,7 +327,7 @@ const DualSliderSection = ({ label, config, sp, settings, onSliderChange }: Slid
             onSliderChange(sp.toFormValue(v));
           }
         }}
-        className="flex-1 max-w-[var(--setting-w)]"
+        className="flex-1 max-w-(--setting-w)"
         rangeStyle={buildSliderRangeStyle(sp.rangeIndex, sp.rangeMax, sp.rangeMin, config.colorVar)}
       />
       {config.sliderAdornment?.(settings)}
