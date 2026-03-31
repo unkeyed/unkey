@@ -64,8 +64,8 @@ type RatelimitRequest struct {
 	//   - An IP address
 	//   - Any other unique identifier that needs rate limiting
 	//
-	// Must be non-empty. The same identifier with different Limit/Duration
-	// combinations will be treated as separate rate limits.
+	// Must be non-empty. The same identifier with different Duration
+	// values will be treated as separate rate limits.
 	Identifier string
 
 	// Limit specifies the maximum number of tokens allowed within the Duration.
