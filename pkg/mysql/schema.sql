@@ -605,7 +605,7 @@ CREATE TABLE `custom_domains` (
 	CONSTRAINT `custom_domains_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `custom_domains_id_unique` UNIQUE(`id`),
 	CONSTRAINT `custom_domains_target_cname_unique` UNIQUE(`target_cname`),
-	CONSTRAINT `unique_domain_idx` UNIQUE(`domain`)
+	CONSTRAINT `unique_domain_workspace_idx` UNIQUE(`workspace_id`,`domain`)
 );
 
 CREATE TABLE `acme_challenges` (

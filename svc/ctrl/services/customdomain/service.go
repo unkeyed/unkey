@@ -81,8 +81,11 @@ func (s *Service) AddCustomDomain(
 	// Generate verification token for TXT record ownership verification
 	verificationToken := uid.Secure(24)
 
-	// Check domain doesn't already exist
-	existing, err := db.Query.FindCustomDomainByDomain(ctx, s.db.RO(), domain)
+	// Check domain doesn't already exist in this workspace
+	existing, err := db.Query.FindCustomDomainByWorkspaceAndDomain(ctx, s.db.RO(), db.FindCustomDomainByWorkspaceAndDomainParams{
+		WorkspaceID: req.Msg.GetWorkspaceId(),
+		Domain:      domain,
+	})
 	if err != nil && !db.IsNotFound(err) {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to check existing domain: %w", err))
 	}
@@ -113,8 +116,8 @@ func (s *Service) AddCustomDomain(
 	}
 
 	// Trigger verification workflow and store invocation ID
-	// Domain is passed as the virtual object key when creating the client
-	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain)
+	// Domain ID is the virtual object key (not domain name, since domains are workspace-scoped)
+	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domainID)
 	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{})
 	if sendErr != nil {
 		logger.Warn("failed to trigger verification workflow",
@@ -142,8 +145,11 @@ func (s *Service) DeleteCustomDomain(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.DeleteCustomDomainRequest],
 ) (*connect.Response[ctrlv1.DeleteCustomDomainResponse], error) {
-	// Find the domain first
-	domain, err := db.Query.FindCustomDomainByDomain(ctx, s.db.RO(), req.Msg.GetDomain())
+	// Find the domain scoped to workspace
+	domain, err := db.Query.FindCustomDomainByWorkspaceAndDomain(ctx, s.db.RO(), db.FindCustomDomainByWorkspaceAndDomainParams{
+		WorkspaceID: req.Msg.GetWorkspaceId(),
+		Domain:      req.Msg.GetDomain(),
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("domain not found: %s", req.Msg.GetDomain()))
@@ -151,8 +157,8 @@ func (s *Service) DeleteCustomDomain(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find domain: %w", err))
 	}
 
-	// Validate tenant ownership
-	if domain.WorkspaceID != req.Msg.GetWorkspaceId() || domain.ProjectID != req.Msg.GetProjectId() {
+	// Validate project ownership
+	if domain.ProjectID != req.Msg.GetProjectId() {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("domain not found: %s", req.Msg.GetDomain()))
 	}
 
@@ -199,8 +205,11 @@ func (s *Service) RetryVerification(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.RetryVerificationRequest],
 ) (*connect.Response[ctrlv1.RetryVerificationResponse], error) {
-	// Find the domain first
-	domain, err := db.Query.FindCustomDomainByDomain(ctx, s.db.RO(), req.Msg.GetDomain())
+	// Find the domain scoped to workspace
+	domain, err := db.Query.FindCustomDomainByWorkspaceAndDomain(ctx, s.db.RO(), db.FindCustomDomainByWorkspaceAndDomainParams{
+		WorkspaceID: req.Msg.GetWorkspaceId(),
+		Domain:      req.Msg.GetDomain(),
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("domain not found: %s", req.Msg.GetDomain()))
@@ -208,8 +217,8 @@ func (s *Service) RetryVerification(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find domain: %w", err))
 	}
 
-	// Validate tenant ownership
-	if domain.WorkspaceID != req.Msg.GetWorkspaceId() || domain.ProjectID != req.Msg.GetProjectId() {
+	// Validate project ownership
+	if domain.ProjectID != req.Msg.GetProjectId() {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("domain not found: %s", req.Msg.GetDomain()))
 	}
 
@@ -225,9 +234,8 @@ func (s *Service) RetryVerification(
 		}
 	}
 
-	// Trigger new verification workflow
-	// Domain is passed as the virtual object key when creating the client
-	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain.Domain)
+	// Trigger new verification workflow keyed by domain ID
+	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain.ID)
 	sendResp, sendErr := client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{})
 	if sendErr != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger verification: %w", sendErr))
@@ -235,7 +243,7 @@ func (s *Service) RetryVerification(
 
 	// Reset verification state with new invocation ID
 	err = db.Query.ResetCustomDomainVerification(ctx, s.db.RW(), db.ResetCustomDomainVerificationParams{
-		Domain:             req.Msg.GetDomain(),
+		ID:                 domain.ID,
 		VerificationStatus: db.CustomDomainsVerificationStatusPending,
 		CheckAttempts:      0,
 		InvocationID:       sql.NullString{Valid: true, String: sendResp.Id()},
