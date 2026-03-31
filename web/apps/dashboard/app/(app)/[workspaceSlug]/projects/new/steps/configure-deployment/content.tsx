@@ -30,7 +30,6 @@ export const ConfigureDeploymentContent = ({
           </Button>
           <span className="text-gray-10 text-[13px] text-center">
             Start configuring your environment variables
-            <br />
           </span>
         </div>
       ) : (

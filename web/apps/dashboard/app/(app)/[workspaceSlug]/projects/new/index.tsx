@@ -109,7 +109,9 @@ export const Onboarding = () => {
       </StepWizard.Step>
       <StepWizard.Step id="configure-env-vars" label="Configure environment variables">
         {projectId ? (
-          <EnvVarsStep projectId={projectId} onDeploymentCreated={setDeploymentId} />
+          <OnboardingStepContainer>
+            <EnvVarsStep projectId={projectId} onDeploymentCreated={setDeploymentId} />
+          </OnboardingStepContainer>
         ) : null}
       </StepWizard.Step>
       <StepWizard.Step id="deploying" label="Deploying" preventBack>

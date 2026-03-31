@@ -4,7 +4,6 @@ import { ChevronLeft } from "@unkey/icons";
 import { Button, useStepWizard } from "@unkey/ui";
 import { ProjectDataProvider } from "../../[projectId]/(overview)/data-provider";
 import { DeploymentEnvVars } from "../../[projectId]/(overview)/env-vars/deployment-env-vars";
-import { OnboardingStepContainer } from "../onboarding-step-container";
 import { DeployAction } from "./deploy-action";
 
 type EnvVarsStepProps = {
@@ -16,7 +15,7 @@ export const EnvVarsStep = ({ projectId, onDeploymentCreated }: EnvVarsStepProps
   const { back } = useStepWizard();
 
   return (
-    <OnboardingStepContainer>
+    <>
       <Button
         variant="ghost"
         type="button"
@@ -32,6 +31,6 @@ export const EnvVarsStep = ({ projectId, onDeploymentCreated }: EnvVarsStepProps
           <DeployAction projectId={projectId} onDeploymentCreated={onDeploymentCreated} />
         </ProjectDataProvider>
       </div>
-    </OnboardingStepContainer>
+    </>
   );
 };
