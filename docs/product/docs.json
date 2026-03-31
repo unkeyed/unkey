@@ -94,10 +94,23 @@
                 ]
               },
               {
+                "group": "Apps",
+                "pages": [
+                  "platform/apps/overview",
+                  "platform/apps/settings"
+                ]
+              },
+              {
                 "group": "Identities",
                 "pages": [
                   "platform/identities/overview",
                   "platform/identities/ratelimits"
+                ]
+              },
+              {
+                "group": "Instances",
+                "pages": [
+                  "platform/instances/overview"
                 ]
               },
               {
@@ -138,10 +151,10 @@
                 ]
               },
               {
-                "group": "Apps",
+                "group": "Root Keys",
                 "pages": [
-                  "platform/apps/overview",
-                  "platform/apps/settings"
+                  "platform/root-keys/overview",
+                  "platform/root-keys/permissions"
                 ]
               },
               {
@@ -176,13 +189,6 @@
                       "platform/sentinel/policies/openapi-validation"
                     ]
                   }
-                ]
-              },
-              {
-                "group": "Root Keys",
-                "pages": [
-                  "platform/root-keys/overview",
-                  "platform/root-keys/permissions"
                 ]
               },
               {
