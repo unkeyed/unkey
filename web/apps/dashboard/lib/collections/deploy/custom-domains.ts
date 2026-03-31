@@ -81,7 +81,7 @@ export const customDomains = createCollection<CustomDomain, string>(
         loading: "Adding domain...",
         success: (data) => ({
           message: "Domain added",
-          description: `Add a CNAME record pointing to ${data.targetCname}`,
+          description: `Add a DNS record pointing to ${data.targetCname}`,
         }),
         error: (err) => ({
           message: "Failed to add domain",

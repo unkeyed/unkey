@@ -55,3 +55,4 @@ func LookupCNAME(ctx context.Context, domain string) (string, error) {
 
 	return strings.ToLower(strings.TrimSuffix(cname, ".")), nil
 }
+
