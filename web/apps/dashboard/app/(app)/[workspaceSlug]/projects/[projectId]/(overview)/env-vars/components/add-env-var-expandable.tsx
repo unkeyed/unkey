@@ -3,7 +3,7 @@ import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { CircleInfo, CloudUp, DoubleChevronRight, Plus } from "@unkey/icons";
+import { ChevronDown, CircleInfo, CloudUp, DoubleChevronRight, Plus } from "@unkey/icons";
 import {
   Button,
   InfoTooltip,
@@ -269,10 +269,16 @@ export const AddEnvVarExpandable = ({
                       Environment
                     </label>
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="environment-select" className="capitalize">
+                      <SelectTrigger
+                        id="environment-select"
+                        className="capitalize"
+                        rightIcon={
+                          <ChevronDown className="absolute right-2" iconSize="md-medium" />
+                        }
+                      >
                         <SelectValue placeholder="Select environment" />
                       </SelectTrigger>
-                      <SelectContent className="z-[60]">
+                      <SelectContent className="z-60">
                         <SelectItem value="__all__">All Environments</SelectItem>
                         {environments.map((env) => (
                           <SelectItem key={env.id} value={env.id} className="capitalize">

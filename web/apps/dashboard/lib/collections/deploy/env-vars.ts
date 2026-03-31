@@ -102,6 +102,7 @@ export const envVars = createCollection<EnvVar, string>(
       await trackSave(
         trpcClient.deploy.envVar.update.mutate({
           envVarId: original.id,
+          environmentId: modified.environmentId,
           key: modified.key,
           value: modified.value,
           type: modified.type,

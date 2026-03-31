@@ -16,6 +16,7 @@ export const updateEnvVar = workspaceProcedure
       envVarId: z.string(),
       // Key can only be updated for recoverable vars (validated on client)
       key: z.string().min(1).optional(),
+      environmentId: z.string().trim(),
       // Value is always re-encrypted
       value: z.string().min(1),
       type: z.enum(["recoverable", "writeonly"]),
@@ -59,7 +60,7 @@ export const updateEnvVar = workspaceProcedure
       }
 
       const { encrypted } = await vault.encrypt({
-        keyring: envVar.environmentId,
+        keyring: input.environmentId,
         data: input.value,
       });
 
@@ -69,6 +70,7 @@ export const updateEnvVar = workspaceProcedure
           key: input.key ?? envVar.key,
           value: encrypted,
           type: input.type,
+          environmentId: input.environmentId,
           ...(input.description !== undefined ? { description: input.description } : {}),
         })
         .where(eq(schema.appEnvironmentVariables.id, input.envVarId));
