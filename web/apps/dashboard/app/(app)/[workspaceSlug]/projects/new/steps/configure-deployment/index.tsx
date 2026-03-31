@@ -7,11 +7,13 @@ import { ConfigureDeploymentFallback } from "./fallback";
 
 type ConfigureDeploymentStepProps = {
   projectId: string;
+  isFirstTimeOnboarding: boolean;
   onDeploymentCreated: (deploymentId: string) => void;
 };
 
 export const ConfigureDeploymentStep = ({
   projectId,
+  isFirstTimeOnboarding,
   onDeploymentCreated,
 }: ConfigureDeploymentStepProps) => {
   return (
@@ -19,6 +21,7 @@ export const ConfigureDeploymentStep = ({
       <OnboardingEnvironmentSettingsProvider>
         <ConfigureDeploymentContent
           projectId={projectId}
+          isFirstTimeOnboarding={isFirstTimeOnboarding}
           onDeploymentCreated={onDeploymentCreated}
         />
       </OnboardingEnvironmentSettingsProvider>

@@ -14,6 +14,7 @@ import {
   DeploymentLayoutProvider,
   useDeployment,
 } from "../../[projectId]/(overview)/deployments/[deploymentId]/layout-provider";
+import { OnboardingStepContainer } from "../onboarding-step-container";
 import { OnboardingStepHeader } from "../onboarding-step-header";
 
 type DeploymentLiveStepProps = {
@@ -71,7 +72,7 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
   }, [countdown, router, deploymentUrl]);
 
   return (
-    <div className="flex flex-col items-center justify-center mt-14">
+    <OnboardingStepContainer>
       <OnboardingStepHeader
         title={
           ready ? (
@@ -107,6 +108,6 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
         <DeploymentInfo statusOverride={derivedStatus} />
         <DeploymentProgress stepsData={stepsQuery.data} />
       </div>
-    </div>
+    </OnboardingStepContainer>
   );
 };

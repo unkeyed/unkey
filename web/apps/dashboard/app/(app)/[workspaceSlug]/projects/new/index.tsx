@@ -4,17 +4,19 @@ import { trpc } from "@/lib/trpc/client";
 import { StepWizard } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { OnboardingStepContainer } from "./onboarding-step-container";
 import { OnboardingStepHeader } from "./onboarding-step-header";
 import { ConfigureDeploymentStep } from "./steps/configure-deployment";
 import { ConnectGithubStep } from "./steps/connect-github";
 import { CreateProjectStep } from "./steps/create-project";
 import { DeploymentLiveStep } from "./steps/deployment-live";
+import { EnvVarsStep } from "./steps/env-vars";
 import { SelectRepo } from "./steps/select-repo";
 
 export const Onboarding = () => {
   const { data: context, isLoading: contextLoading } =
     trpc.deploy.project.creationContext.useQuery();
-  const isFirstProject = contextLoading || (context?.isFirstProject ?? true);
+  const isFirstTimeOnboarding = contextLoading || (context?.isFirstProject ?? true);
   const hasGithubInstallation = context?.hasGithubInstallation === true;
   const searchParams = useSearchParams();
 
@@ -31,86 +33,90 @@ export const Onboarding = () => {
   const { bypass } = usePreventLeave(!deploymentId);
 
   return (
-    <div>
-      <StepWizard.Root defaultStepId={initialStep}>
-        <StepWizard.Step id="create-project" label="Create project">
-          <div className="flex flex-col items-center justify-center h-screen">
-            <OnboardingStepHeader
-              title={isFirstProject ? "Deploy your first project" : "Deploy your project"}
-              showIconRow
-              subtitle={
-                <>
-                  Connect a GitHub repo and get a live URL in minutes.
-                  <br />
-                  Unkey handles builds, infra, scaling, and routing.
-                </>
-              }
-            />
-            <CreateProjectStep onProjectCreated={setProjectId} />
-          </div>
-        </StepWizard.Step>
-        {!hasGithubInstallation && (
-          <StepWizard.Step id="connect-github" label="Connect GitHub">
-            {projectId ? (
-              <div className="flex flex-col items-center justify-center h-screen">
-                <OnboardingStepHeader
-                  title={isFirstProject ? "Deploy your first project" : "Deploy your project"}
-                  showIconRow
-                  subtitle={
-                    <>
-                      Connect a GitHub repo and get a live URL in minutes.
-                      <br />
-                      Unkey handles builds, infra, scaling, and routing.
-                    </>
-                  }
-                />
-                <ConnectGithubStep projectId={projectId} onBeforeNavigate={bypass} />
-              </div>
-            ) : null}
-          </StepWizard.Step>
-        )}
-        <StepWizard.Step id="select-repo" label="Select repository">
+    <StepWizard.Root defaultStepId={initialStep}>
+      <StepWizard.Step id="create-project" label="Create project">
+        <OnboardingStepContainer>
+          <OnboardingStepHeader
+            title={isFirstTimeOnboarding ? "Deploy your first project" : "Deploy your project"}
+            showIconRow
+            subtitle={
+              <>
+                Connect a GitHub repo and get a live URL in minutes.
+                <br />
+                Unkey handles builds, infra, scaling, and routing.
+              </>
+            }
+          />
+          <CreateProjectStep onProjectCreated={setProjectId} />
+        </OnboardingStepContainer>
+      </StepWizard.Step>
+      {!hasGithubInstallation && (
+        <StepWizard.Step id="connect-github" label="Connect GitHub">
           {projectId ? (
-            <div className="flex flex-col items-center justify-center mt-14">
+            <OnboardingStepContainer>
               <OnboardingStepHeader
-                title="Select a repository"
+                title={isFirstTimeOnboarding ? "Deploy your first project" : "Deploy your project"}
+                showIconRow
                 subtitle={
                   <>
-                    Choose a repository and a branch containing your project.
+                    Connect a GitHub repo and get a live URL in minutes.
                     <br />
-                    We'll automatically detect Dockerfiles.
+                    Unkey handles builds, infra, scaling, and routing.
                   </>
                 }
               />
-              <SelectRepo
-                projectId={projectId}
-                onBeforeNavigate={bypass}
-                hasGithubInstallation={context?.hasGithubInstallation ?? false}
-              />
-            </div>
+              <ConnectGithubStep projectId={projectId} onBeforeNavigate={bypass} />
+            </OnboardingStepContainer>
           ) : null}
         </StepWizard.Step>
-        <StepWizard.Step id="configure-deployment" label="Configure deployment">
-          {projectId ? (
-            <div className="flex flex-col items-center justify-center mt-14">
-              <OnboardingStepHeader
-                title="Configure deployment"
-                subtitle="Review the defaults. Edit anything you'd like to adjust."
-                allowBack
-              />
-              <ConfigureDeploymentStep
-                projectId={projectId}
-                onDeploymentCreated={setDeploymentId}
-              />
-            </div>
-          ) : null}
-        </StepWizard.Step>
-        <StepWizard.Step id="deploying" label="Deploying" preventBack>
-          {projectId && deploymentId ? (
-            <DeploymentLiveStep projectId={projectId} deploymentId={deploymentId} />
-          ) : null}
-        </StepWizard.Step>
-      </StepWizard.Root>
-    </div>
+      )}
+      <StepWizard.Step id="select-repo" label="Select repository">
+        {projectId ? (
+          <OnboardingStepContainer>
+            <OnboardingStepHeader
+              title="Select a repository"
+              subtitle={
+                <>
+                  Choose a repository and a branch containing your project.
+                  <br />
+                  We'll automatically detect Dockerfiles.
+                </>
+              }
+            />
+            <SelectRepo
+              projectId={projectId}
+              onBeforeNavigate={bypass}
+              hasGithubInstallation={context?.hasGithubInstallation ?? false}
+            />
+          </OnboardingStepContainer>
+        ) : null}
+      </StepWizard.Step>
+      <StepWizard.Step id="configure-deployment" label="Configure deployment">
+        {projectId ? (
+          <OnboardingStepContainer>
+            <OnboardingStepHeader
+              title="Configure deployment"
+              subtitle="Review the defaults. Edit anything you'd like to adjust."
+              allowBack
+            />
+            <ConfigureDeploymentStep
+              projectId={projectId}
+              isFirstTimeOnboarding={isFirstTimeOnboarding}
+              onDeploymentCreated={setDeploymentId}
+            />
+          </OnboardingStepContainer>
+        ) : null}
+      </StepWizard.Step>
+      <StepWizard.Step id="configure-env-vars" label="Configure environment variables">
+        {projectId ? (
+          <EnvVarsStep projectId={projectId} onDeploymentCreated={setDeploymentId} />
+        ) : null}
+      </StepWizard.Step>
+      <StepWizard.Step id="deploying" label="Deploying" preventBack>
+        {projectId && deploymentId ? (
+          <DeploymentLiveStep projectId={projectId} deploymentId={deploymentId} />
+        ) : null}
+      </StepWizard.Step>
+    </StepWizard.Root>
   );
 };
