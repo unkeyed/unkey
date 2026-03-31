@@ -4,6 +4,7 @@ import { Dots } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import { KeyColumnSkeleton } from "@unkey/ui";
 import { API_KEY_COLUMN_IDS } from "../../columns/create-api-key-columns";
+import { UsageColumnSkeleton } from "../skeletons";
 
 const ApiKeyIdColumnSkeleton = () => (
   <div className="flex flex-col items-start px-[18px] py-[6px]">
@@ -14,34 +15,6 @@ const ApiKeyIdColumnSkeleton = () => (
         <div className="h-2 w-16 bg-grayA-3 rounded-sm animate-pulse mt-1" />
       </div>
     </div>
-  </div>
-);
-
-const UsageColumnSkeleton = ({ maxBars = 30 }: { maxBars?: number }) => (
-  <div
-    className={cn(
-      "grid items-end h-[28px] bg-grayA-2 w-[158px] border border-transparent px-1 py-0 overflow-hidden rounded-md",
-      "animate-pulse",
-    )}
-    style={{
-      gridTemplateColumns: `repeat(${maxBars}, 3px)`,
-      gap: "2px",
-    }}
-  >
-    {Array.from({ length: maxBars }).map((_, index) => (
-      <div
-        key={`loading-${
-          // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows have no stable id
-          index
-        }`}
-        className="flex flex-col"
-      >
-        <div
-          className="w-[3px] bg-grayA-5 animate-pulse"
-          style={{ height: `${2 + (index % 7) * 3}px` }}
-        />
-      </div>
-    ))}
   </div>
 );
 
