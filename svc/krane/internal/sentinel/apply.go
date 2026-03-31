@@ -296,6 +296,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 						},
 
 						Resources: corev1.ResourceRequirements{
+							// Sentinels are very light on CPU, so we request half the limit for better bin-packing.
 							Requests: corev1.ResourceList{
 								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.GetCpuMillicores()/2, resource.BinarySI),
 								corev1.ResourceMemory: *resource.NewQuantity(sentinel.GetMemoryMib()*1024*1024, resource.BinarySI),
