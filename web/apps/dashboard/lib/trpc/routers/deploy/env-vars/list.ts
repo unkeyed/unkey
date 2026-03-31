@@ -10,7 +10,7 @@ const envVarOutputSchema = z.object({
   value: z.string(),
   type: z.enum(["recoverable", "writeonly"]),
   description: z.string().nullable(),
-  createdAt: z.number(),
+  updatedAt: z.number(),
 });
 
 const environmentOutputSchema = z.object({
@@ -26,7 +26,6 @@ export const listEnvVars = workspaceProcedure
   )
   .query(async ({ ctx, input }) => {
     try {
-      // Fetch all environments for this project (needed for slugs and appId)
       const envs = await db.query.environments.findMany({
         where: and(
           eq(environments.workspaceId, ctx.workspace.id),
@@ -35,7 +34,6 @@ export const listEnvVars = workspaceProcedure
         columns: {
           id: true,
           slug: true,
-          appId: true,
         },
       });
 
@@ -43,50 +41,47 @@ export const listEnvVars = workspaceProcedure
         return {};
       }
 
-      // Collect unique app IDs from environments
-      const appIds = [...new Set(envs.map((e) => e.appId))];
+      const envIds = envs.map((e) => e.id);
 
-      if (appIds.length === 0) {
-        const result: Record<string, z.infer<typeof environmentOutputSchema>> = {};
-        for (const env of envs) {
-          result[env.slug] = { id: env.id, variables: [] };
-        }
-        return result;
-      }
-
-      // Fetch all app environment variables in one query
       const allVariables = await db.query.appEnvironmentVariables.findMany({
         where: and(
           eq(appEnvironmentVariables.workspaceId, ctx.workspace.id),
-          inArray(appEnvironmentVariables.appId, appIds),
+          inArray(appEnvironmentVariables.environmentId, envIds),
         ),
         columns: {
           id: true,
           environmentId: true,
           key: true,
-          value: true,
           type: true,
           description: true,
           createdAt: true,
+          updatedAt: true,
         },
       });
 
+      const varsByEnvId = new Map<string, z.infer<typeof envVarOutputSchema>[]>();
+      for (const v of allVariables) {
+        const mapped = {
+          id: v.id,
+          key: v.key,
+          value: "••••••••",
+          type: v.type,
+          description: v.description,
+          updatedAt: v.updatedAt ?? v.createdAt,
+        };
+        const existing = varsByEnvId.get(v.environmentId);
+        if (existing) {
+          existing.push(mapped);
+        } else {
+          varsByEnvId.set(v.environmentId, [mapped]);
+        }
+      }
+
       const result: Record<string, z.infer<typeof environmentOutputSchema>> = {};
-
       for (const env of envs) {
-        const vars = allVariables.filter((v) => v.environmentId === env.id);
-
         result[env.slug] = {
           id: env.id,
-          variables: vars.map((v) => ({
-            id: v.id,
-            key: v.key,
-            // Decrypted by decrypt endpoint
-            value: "••••••••",
-            type: v.type,
-            description: v.description,
-            createdAt: v.createdAt,
-          })),
+          variables: varsByEnvId.get(env.id) ?? [],
         };
       }
 

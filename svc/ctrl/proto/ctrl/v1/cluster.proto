@@ -328,6 +328,26 @@ message ApplyDeployment {
   optional string git_branch = 24;
   optional string git_repo = 25;
   optional string git_commit_message = 26;
+
+  // Horizontal autoscaling policy. When present, krane creates an HPA with
+  // these values instead of the defaults (min=1, max=replicas, cpu=80%).
+  // Populated from the horizontal_autoscaling_policies table via app_regional_settings.
+  optional AutoscalingPolicy autoscaling = 27;
+}
+
+// AutoscalingPolicy configures horizontal pod autoscaling for a deployment.
+// Snapshotted from the horizontal_autoscaling_policies table at query time.
+message AutoscalingPolicy {
+  // Minimum number of pod replicas the HPA will maintain.
+  uint32 min_replicas = 1;
+  // Maximum number of pod replicas the HPA can scale to.
+  uint32 max_replicas = 2;
+  // Average CPU utilization percentage (0-100) that triggers scale-up.
+  // When omitted, defaults to 80%.
+  optional int32 cpu_threshold = 3;
+  // Average memory utilization percentage (0-100) that triggers scale-up.
+  // When omitted, memory is not used as a scaling signal.
+  optional int32 memory_threshold = 4;
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.

@@ -3,6 +3,7 @@ import { createContext, useContext } from "react";
 type ProjectLayoutContextType = {
   isDetailsOpen: boolean;
   setIsDetailsOpen: (open: boolean) => void;
+  tableDistanceToTop: number;
 };
 
 export const ProjectLayoutContext = createContext<ProjectLayoutContextType | null>(null);

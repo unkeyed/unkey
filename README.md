@@ -1,6 +1,6 @@
 <div align="center">
     <h1 align="center">Unkey</h1>
-    <h5>Open Source API authentication and authorization</h5>
+    <h5>Open Source API Development platform</h5>
 </div>
 
 <div align="center">

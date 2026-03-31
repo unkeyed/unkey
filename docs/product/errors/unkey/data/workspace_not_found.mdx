@@ -3,10 +3,7 @@ title: "workspace_not_found"
 description: "The requested workspace was not found"
 ---
 
-<Danger>
-err:unkey:data:workspace_not_found
-</Danger>
-
+<Danger>err:unkey:data:workspace_not_found</Danger>
 
 ```json Example
 {
@@ -27,11 +24,11 @@ err:unkey:data:workspace_not_found
 This error occurs when you're trying to perform an operation on a workspace that doesn't exist in the Unkey system. This can happen when referencing a workspace by ID or name in API calls.
 
 Common scenarios that trigger this error:
+
 - Using an incorrect workspace ID
 - Referencing a workspace that has been deleted
 - Attempting to access a workspace you don't have permission to see
 - Typos in workspace names when using name-based lookups
-
 
 ## How To Fix
 
@@ -41,7 +38,7 @@ Verify that you're using the correct workspace ID or name and that the workspace
 2. Verify the workspace ID or name in your API calls
 3. Ensure you have permission to access the workspace
 4. If needed, create a new workspace through the dashboard or API
-`
+   `
 
 ## Common Mistakes
 
@@ -51,6 +48,7 @@ Verify that you're using the correct workspace ID or name and that the workspace
 - **Case sensitivity**: Using incorrect casing in workspace name lookups
 
 ## Related Errors
+
 - [err:unkey:authorization:workspace_disabled](../authorization/workspace_disabled) - When the workspace exists but is disabled
 - [err:unkey:data:api_not_found](./api_not_found) - When the requested API doesn't exist
 - [err:unkey:data:key_not_found](./key_not_found) - When the requested key doesn't exist

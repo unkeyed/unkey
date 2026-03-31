@@ -140,7 +140,7 @@ export const ProjectNavigation = ({
               disabled={!currentDeploymentId}
               onClick={onClick}
             >
-              <DoubleChevronLeft iconSize="lg-medium" className="text-gray-13" />
+              <DoubleChevronLeft iconSize="sm-regular" />
             </Button>
           </InfoTooltip>
         </div>

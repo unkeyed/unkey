@@ -12,6 +12,7 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/array"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -56,16 +57,26 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to connect to ClickHouse: %w", err)
 	}
 
+	keyVerifications := clickhouse.NewBuffer[schema.KeyVerification](ch, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
+		Name:          "seed-key-verifications",
+		BatchSize:     50_000,
+		BufferSize:    50_000,
+		FlushInterval: 5 * time.Second,
+		Consumers:     2,
+		Drop:          true,
+		OnFlushError:  nil,
+	})
+
 	// Create key service for proper key generation
 	keyService, err := keys.New(keys.Config{
-		DB:           database,
-		RateLimiter:  nil,
-		RBAC:         nil,
-		Clickhouse:   ch,
-		Region:       "test",
-		UsageLimiter: nil,
-		KeyCache:     nil,
-		QuotaCache:   nil,
+		DB:               database,
+		RateLimiter:      nil,
+		RBAC:             nil,
+		KeyVerifications: keyVerifications,
+		Region:           "test",
+		UsageLimiter:     nil,
+		KeyCache:         nil,
+		QuotaCache:       nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)
@@ -93,7 +104,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 		daysBack:                cmd.Int("days-back"),
 		daysForward:             cmd.Int("days-forward"),
 		db:                      database,
-		clickhouse:              ch,
+		keyVerifications:        keyVerifications,
 		keyService:              keyService,
 	}
 
@@ -110,7 +121,7 @@ type Seeder struct {
 	daysBack                int
 	daysForward             int
 	db                      db.Database
-	clickhouse              clickhouse.ClickHouse
+	keyVerifications        *batch.BatchProcessor[schema.KeyVerification]
 	keyService              keys.KeyService
 }
 
@@ -464,8 +475,8 @@ func (s *Seeder) generateVerifications(_ context.Context, workspaceID string, ke
 			credit = 0
 		}
 
-		// Use BufferKeyVerification to let the clickhouse client batch automatically
-		s.clickhouse.BufferKeyVerification(schema.KeyVerification{
+		// Use batch processor to buffer key verifications
+		s.keyVerifications.Buffer(schema.KeyVerification{
 			RequestID:    uid.New("req"),
 			Time:         timestamp.UnixMilli(),
 			WorkspaceID:  workspaceID,
@@ -488,10 +499,7 @@ func (s *Seeder) generateVerifications(_ context.Context, workspaceID string, ke
 
 	log.Printf("  Buffered all %d verifications, waiting for flush...", s.numVerifications)
 
-	err := s.clickhouse.Close()
-	if err != nil {
-		return fmt.Errorf("failed to close clickhouse: %w", err)
-	}
+	s.keyVerifications.Close()
 
 	log.Printf("  All verifications sent to ClickHouse")
 	return nil

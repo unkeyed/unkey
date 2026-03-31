@@ -3,7 +3,6 @@ package routes
 import (
 	"time"
 
-	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/middleware"
 	acme "github.com/unkeyed/unkey/svc/frontline/routes/acme"
@@ -12,7 +11,7 @@ import (
 
 // Register registers all frontline routes for the HTTPS server
 func Register(srv *zen.Server, svc *Services) {
-	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
+	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/"))
 	withPanicRecovery := zen.WithPanicRecovery()
 	withObservability := middleware.WithObservability(svc.Region, svc.ErrorPageRenderer)
 	withTimeout := zen.WithTimeout(15 * time.Minute)
@@ -22,17 +21,6 @@ func Register(srv *zen.Server, svc *Services) {
 		withLogging,
 		withObservability,
 		withTimeout,
-	}
-
-	if svc.Pprof != nil {
-		srv.RegisterRoute(
-			[]zen.Middleware{withLogging},
-			&pprofRoute.Handler{
-				Username: svc.Pprof.Username,
-				Password: svc.Pprof.Password,
-				Prefix:   "/_unkey/internal",
-			},
-		)
 	}
 
 	// Catches all requests and routes them to the sentinel or some other region.
@@ -48,13 +36,11 @@ func Register(srv *zen.Server, svc *Services) {
 
 // RegisterChallengeServer registers routes for the HTTP challenge server (Let's Encrypt ACME)
 func RegisterChallengeServer(srv *zen.Server, svc *Services) {
-	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
-
 	// Catches /.well-known/acme-challenge/{token} so we can forward to ctrl plane.
 	srv.RegisterRoute(
 		[]zen.Middleware{
 			zen.WithPanicRecovery(),
-			withLogging,
+			zen.WithLogging(zen.SkipPaths("/_unkey/internal/")),
 			middleware.WithObservability(svc.Region, svc.ErrorPageRenderer),
 		},
 		&acme.Handler{

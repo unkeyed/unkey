@@ -1,6 +1,6 @@
 ---
-title: 'Python'
-description: 'Protect your Python APIs with Unkey'
+title: "Python"
+description: "Protect your Python APIs with Unkey"
 ---
 
 This guide shows how to add API key verification to your Python applications using the official Unkey Python SDK (v2).
@@ -216,7 +216,8 @@ with Unkey(bearer_auth=os.environ["UNKEY_ROOT_KEY"]) as unkey:
 ```
 
 <Warning>
-The full API key is only returned once at creation. Store it securely and never show it again.
+  The full API key is only returned once at creation. Store it securely and
+  never show it again.
 </Warning>
 
 ## Error Handling
@@ -244,13 +245,21 @@ with Unkey(bearer_auth=os.environ["UNKEY_ROOT_KEY"]) as unkey:
 ## What's next?
 
 <CardGroup cols={2}>
-  <Card title="Add rate limiting" icon="gauge-high" href="/ratelimiting/introduction">
+  <Card
+    title="Add rate limiting"
+    icon="gauge-high"
+    href="/platform/ratelimiting/introduction"
+  >
     Protect your endpoints from abuse
   </Card>
   <Card title="Python SDK Reference" icon="book" href="/libraries/py/overview">
     Complete Python SDK documentation
   </Card>
-  <Card title="Authorization" icon="user-shield" href="/apis/features/authorization/introduction">
+  <Card
+    title="Authorization"
+    icon="user-shield"
+    href="/platform/apis/features/authorization/introduction"
+  >
     Add roles and permissions
   </Card>
   <Card title="Cookbook" icon="utensils" href="/cookbook">

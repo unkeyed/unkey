@@ -52,7 +52,7 @@ func AuthMiddleware(opts ...AuthOption) func(http.Handler) http.Handler {
         prefix:     "Bearer ",
         required:   true,
     }
-    
+
     for _, opt := range opts {
         opt(options)
     }
@@ -225,7 +225,7 @@ func main() {
 
 func protectedHandler(w http.ResponseWriter, r *http.Request) {
     keyCtx, _ := GetKeyContext(r)
-    
+
     json.NewEncoder(w).Encode(map[string]any{
         "message": "Access granted",
         "key_id":  keyCtx.KeyID,
@@ -235,7 +235,7 @@ func protectedHandler(w http.ResponseWriter, r *http.Request) {
 
 func adminHandler(w http.ResponseWriter, r *http.Request) {
     keyCtx, _ := GetKeyContext(r)
-    
+
     json.NewEncoder(w).Encode(map[string]any{
         "message": "Admin access granted",
         "key_id":  keyCtx.KeyID,
@@ -244,7 +244,7 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 
 func optionalAuthHandler(w http.ResponseWriter, r *http.Request) {
     keyCtx, ok := GetKeyContext(r)
-    
+
     if ok {
         json.NewEncoder(w).Encode(map[string]any{
             "message": "Authenticated access",

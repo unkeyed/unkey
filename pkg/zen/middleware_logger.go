@@ -69,7 +69,7 @@ func WithLogging(opts ...LoggingOption) Middleware {
 					slog.String("method", s.r.Method),
 					slog.String("path", s.r.URL.Path),
 					slog.String("request_id", s.RequestID()),
-					slog.String("host", s.r.URL.Host),
+					slog.String("host", s.r.Host),
 					slog.String("user_agent", s.r.UserAgent()),
 					slog.String("ip_address", s.Location()),
 					slog.Int("status_code", s.StatusCode()),

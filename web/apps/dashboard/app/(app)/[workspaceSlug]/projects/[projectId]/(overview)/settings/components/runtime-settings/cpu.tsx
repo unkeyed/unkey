@@ -5,24 +5,24 @@ import { Bolt } from "@unkey/icons";
 import { type ResourceSliderConfig, ResourceSliderSetting } from "../shared/resource-slider";
 
 const CPU_OPTIONS = [
-  { label: "1/4 vCPU", value: 256 },
-  { label: "1/2 vCPU", value: 512 },
-  { label: "1 vCPU", value: 1024 },
-  { label: "2 vCPU", value: 2048 },
-  //{ label: "4 vCPU", value: 4096 },
-  //{ label: "8 vCPU", value: 8192 },
-  //{ label: "16 vCPU", value: 16384 },
-  //{ label: "32 vCPU", value: 32768 },
+  { label: "1/4 vCPU", value: 250 },
+  { label: "1/2 vCPU", value: 500 },
+  { label: "1 vCPU", value: 1000 },
+  { label: "2 vCPU", value: 2000 },
+  //{ label: "4 vCPU", value: 4000 },
+  //{ label: "8 vCPU", value: 8000 },
+  //{ label: "16 vCPU", value: 16000 },
+  //{ label: "32 vCPU", value: 32000 },
 ] as const;
 
 const cpuConfig: ResourceSliderConfig = {
   icon: <Bolt className="text-gray-12" iconSize="xl-medium" />,
-  title: "CPU",
-  description: "CPU allocation for each instance",
+  title: "Max CPU",
+  description: "Maximum CPU limit per instance. You are only charged for actual usage.",
   settingDescription:
     "Changes apply on next deploy. During beta, CPU is limited to 2 vCPUs. Please contact support@unkey.com if you need more.",
   colorVar: "infoA",
-  slider: { kind: "index-mapped", options: CPU_OPTIONS, fallback: 256 },
+  slider: { kind: "index-mapped", options: CPU_OPTIONS, fallback: 250 },
   formatValue: formatCpuParts,
   readValue: (s) => s.cpuMillicores,
   writeValue: (draft, value) => {

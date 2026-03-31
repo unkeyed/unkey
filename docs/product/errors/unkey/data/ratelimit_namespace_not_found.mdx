@@ -3,10 +3,7 @@ title: "ratelimit_namespace_not_found"
 description: "The requested rate limit namespace was not found"
 ---
 
-<Danger>
-err:unkey:data:ratelimit_namespace_not_found
-</Danger>
-
+<Danger>err:unkey:data:ratelimit_namespace_not_found</Danger>
 
 ```json Example
 {
@@ -27,6 +24,7 @@ err:unkey:data:ratelimit_namespace_not_found
 This error occurs when you're trying to perform an operation on a rate limit namespace that doesn't exist in the Unkey system. Rate limit namespaces are used to organize and manage rate limits for different resources or operations.
 
 Common scenarios that trigger this error:
+
 - Using an incorrect namespace ID or name
 - Referencing a namespace that has been deleted
 - Trying to modify a namespace that doesn't exist in the current workspace
@@ -75,6 +73,7 @@ curl -X POST https://api.unkey.com/v2/ratelimit.limit \
 - **Workspace boundaries**: Trying to use namespaces from another workspace
 
 ## Related Errors
+
 - [err:unkey:data:ratelimit_override_not_found](./ratelimit_override_not_found) - When the requested rate limit override doesn't exist
 - [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to perform operations on rate limits
 - [err:unkey:data:workspace_not_found](./workspace_not_found) - When the requested workspace doesn't exist

@@ -69,6 +69,7 @@ export const ApiListCard = ({ api }: Props) => {
                 <Key className="text-red-11 shrink-0" iconSize="md-medium" />
                 <InfoTooltip
                   content={keyCountError?.message || "Failed to load key count. Please try again."}
+                  triggerClassName="cursor-pointer"
                 >
                   <div className="text-xs text-red-9 flex-1 min-w-0">Failed to load</div>
                 </InfoTooltip>
@@ -78,6 +79,7 @@ export const ApiListCard = ({ api }: Props) => {
                 <Key className="text-accent-11 shrink-0" iconSize="md-medium" />
                 <InfoTooltip
                   content={`This API has ${keyCount.toLocaleString()} total ${keyCount === 1 ? "key" : "keys"}`}
+                  triggerClassName="cursor-pointer"
                 >
                   <div className="text-xs text-accent-9 tabular-nums flex-1 min-w-0">
                     {formatNumber(keyCount)} {keyCount === 1 ? "Key" : "Keys"}

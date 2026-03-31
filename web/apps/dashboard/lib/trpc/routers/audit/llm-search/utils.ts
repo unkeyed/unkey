@@ -5,7 +5,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import type OpenAI from "openai";
-import { zodResponseFormat } from "openai/helpers/zod.mjs";
+import { zodResponseFormat } from "openai/helpers/zod";
 
 export async function getStructuredAuditSearchFromLLM(
   openai: OpenAI | null,
@@ -21,7 +21,7 @@ export async function getStructuredAuditSearchFromLLM(
       });
     }
 
-    const completion = await openai.beta.chat.completions.parse({
+    const completion = await openai.chat.completions.parse({
       // Don't change the model only a few models allow structured outputs
       model: "gpt-4o-mini",
       temperature: 0.2, // Range 0-2, lower = more focused/deterministic
