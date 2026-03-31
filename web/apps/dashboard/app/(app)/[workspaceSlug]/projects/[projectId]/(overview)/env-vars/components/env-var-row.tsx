@@ -29,6 +29,7 @@ export const EnvVarRow = ({ index, isOnly, register, onRemove, errors }: EnvVarR
           label="Value"
           className="flex-1 [&_input]:font-mono"
           placeholder="value"
+          error={fieldErrors?.value?.message}
           {...register(`envVars.${index}.value`)}
         />
         {!isOnly && (
