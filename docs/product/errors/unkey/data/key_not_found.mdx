@@ -3,10 +3,7 @@ title: "key_not_found"
 description: "The requested key was not found"
 ---
 
-<Danger>
-err:unkey:data:key_not_found
-</Danger>
-
+<Danger>err:unkey:data:key_not_found</Danger>
 
 ```json Example
 {
@@ -27,6 +24,7 @@ err:unkey:data:key_not_found
 This error occurs when you're trying to perform an operation on a specific API key using its ID, but the key with that ID doesn't exist in the system. This is different from the authentication error `err:unkey:authentication:key_not_found`, which occurs during the authentication process.
 
 Common scenarios that trigger this error:
+
 - Attempting to update, delete, or get information about a key that has been deleted
 - Using an incorrect or malformed key ID
 - Trying to access a key that exists in a different workspace
@@ -72,6 +70,7 @@ curl -X POST https://api.unkey.com/v2/apis.listKeys \
 - **Workspace boundaries**: Trying to access a key that exists in another workspace
 
 ## Related Errors
+
 - [err:unkey:authentication:key_not_found](../authentication/key_not_found) - When an API key used for authentication doesn't exist
 - [err:unkey:data:api_not_found](./api_not_found) - When the requested API doesn't exist
 - [err:unkey:data:workspace_not_found](./workspace_not_found) - When the requested workspace doesn't exist

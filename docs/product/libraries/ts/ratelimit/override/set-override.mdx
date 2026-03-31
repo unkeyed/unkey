@@ -5,32 +5,34 @@ description: "Sets an override for a ratelimit"
 
 ## Request
 
-
- <ParamField body="identifier" type="string" required>
-Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
+<ParamField body="identifier" type="string" required>
+  Identifier of your user, this can be their userId, an email, an ip or anything
+  else. Wildcards ( * ) can be used to match multiple identifiers, More info can
+  be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
 </ParamField>
 
 <ParamField body="limit" type="number" required>
-How many requests may pass in a given window.
+  How many requests may pass in a given window.
 </ParamField>
 
 <ParamField body="duration" type="number" required>
-The window duration in milliseconds.
+  The window duration in milliseconds.
 </ParamField>
 
- <Warning>
-Either `namespaceId` or `namespaceName` is required. Not both.
+<Warning>
+  Either `namespaceId` or `namespaceName` is required. Not both.
 </Warning>
 
 <ParamField body="namespaceId" type="string">
-The id of the namespace. Either namespaceId or namespaceName must be provided
+  The id of the namespace. Either namespaceId or namespaceName must be provided
 </ParamField>
 
 <ParamField body="namespaceName" type="string">
-Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes. Wildcards can also be used, more info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
+  Namespaces group different limits together for better analytics. You might
+  have a namespace for your public API and one for internal tRPC routes.
+  Wildcards can also be used, more info can be found at
+  https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
 </ParamField>
-
-
 
 ## Response
 
@@ -54,13 +56,14 @@ const { meta, data } = await unkey.setOverride({
 
 ```ts
 const { meta, data } = await unkey.setOverride({
-    identifier: "user_123",
-    limit: 5,
-    duration: 50000,
-    namespaceId: "rlns_1234",
-    async: false
-})
+  identifier: "user_123",
+  limit: 5,
+  duration: 50000,
+  namespaceId: "rlns_1234",
+  async: false,
+});
 ```
+
 </RequestExample>
 
 <ResponseExample>

@@ -5,7 +5,6 @@ description: "Client provided input that failed validation"
 
 <Danger>`err:unkey:application:invalid_input`</Danger>
 
-
 ```json Example
 {
   "meta": {
@@ -32,6 +31,7 @@ description: "Client provided input that failed validation"
 This error occurs when your request contains input data that doesn't meet Unkey's validation requirements. This could be due to missing required fields, values that are out of allowed ranges, incorrectly formatted data, or other validation failures.
 
 Common validation issues include:
+
 - Missing required fields
 - Values that exceed minimum or maximum limits
 - Strings that don't match required patterns
@@ -86,5 +86,6 @@ curl -X POST https://api.unkey.com/v2/ratelimit.limit \
 - **Type errors**: Sending the wrong data type (e.g., string instead of number)
 
 ## Related Errors
+
 - [err:unkey:application:assertion_failed](./assertion_failed) - When a runtime assertion or invariant check fails
 - [err:unkey:application:protected_resource](./protected_resource) - When attempting to modify a protected resource

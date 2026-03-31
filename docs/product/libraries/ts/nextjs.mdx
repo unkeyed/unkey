@@ -54,7 +54,7 @@ export const POST = withUnkey(
       externalId: req.unkey.data.identity?.externalId,
     });
   },
-  { rootKey: process.env.UNKEY_ROOT_KEY! }
+  { rootKey: process.env.UNKEY_ROOT_KEY! },
 );
 ```
 
@@ -62,23 +62,23 @@ export const POST = withUnkey(
 
 The `req.unkey.data` object contains the verification result:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `valid` | `boolean` | Whether the key passed all checks |
-| `code` | `string` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
-| `keyId` | `string` | The key's unique identifier |
-| `name` | `string?` | Human-readable name of the key |
-| `meta` | `object?` | Custom metadata associated with the key |
-| `expires` | `number?` | Unix timestamp (in milliseconds) when the key will expire (if set) |
-| `credits` | `number?` | Remaining uses (if usage limits set) |
-| `enabled` | `boolean` | Whether the key is enabled |
-| `roles` | `string[]?` | Roles attached to the key |
-| `permissions` | `string[]?` | Permissions attached to the key |
-| `identity` | `object?` | Identity info if `externalId` was set when creating the key |
-| `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
+| Field         | Type        | Description                                                        |
+| ------------- | ----------- | ------------------------------------------------------------------ |
+| `valid`       | `boolean`   | Whether the key passed all checks                                  |
+| `code`        | `string`    | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.)           |
+| `keyId`       | `string`    | The key's unique identifier                                        |
+| `name`        | `string?`   | Human-readable name of the key                                     |
+| `meta`        | `object?`   | Custom metadata associated with the key                            |
+| `expires`     | `number?`   | Unix timestamp (in milliseconds) when the key will expire (if set) |
+| `credits`     | `number?`   | Remaining uses (if usage limits set)                               |
+| `enabled`     | `boolean`   | Whether the key is enabled                                         |
+| `roles`       | `string[]?` | Roles attached to the key                                          |
+| `permissions` | `string[]?` | Permissions attached to the key                                    |
+| `identity`    | `object?`   | Identity info if `externalId` was set when creating the key        |
+| `ratelimits`  | `object[]?` | Rate limit states (if rate limiting configured)                    |
 
 <Note>
-Access these via `req.unkey.data.valid`, `req.unkey.data.keyId`, etc.
+  Access these via `req.unkey.data.valid`, `req.unkey.data.keyId`, etc.
 </Note>
 
 If you want to customize how `withUnkey` processes incoming requests, you can do so as follows:
@@ -96,7 +96,7 @@ export const GET = withUnkey(
   {
     rootKey: process.env.UNKEY_ROOT_KEY!,
     getKey: (req) => new URL(req.url).searchParams.get("key"),
-  }
+  },
 );
 ```
 
@@ -115,7 +115,7 @@ export const GET = withUnkey(
       await analytics.trackEvent(`Error ${res.code}: ${res.message}`);
       return new NextResponse("Unkey error", { status: 500 });
     },
-  }
+  },
 );
 ```
 
@@ -133,6 +133,6 @@ export const GET = withUnkey(
     handleInvalidKey: (req, res) => {
       return new Response("Unauthorized", { status: 401 });
     },
-  }
+  },
 );
 ```
