@@ -41,6 +41,8 @@ export const env = () =>
       CLICKHOUSE_URL: z.string().optional(),
       OPENAI_API_KEY: z.string().optional(),
 
+      DOMAIN_SIGNING_KEY: z.string().optional(),
+
       AUTH_PROVIDER: z.enum(["workos", "local"]),
 
       WORKOS_API_KEY: z.string().optional(),

@@ -1,7 +1,18 @@
+import { createHmac } from "node:crypto";
 import { db } from "@/lib/db";
+import { env } from "@/lib/env";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+
+/**
+ * Computes a deterministic verification token for a domain using HMAC-SHA256.
+ * Must match the Go implementation in svc/ctrl/worker/customdomain/service.go
+ * and svc/ctrl/services/customdomain/service.go.
+ */
+function verificationToken(domainId: string, signingKey: string): string {
+  return createHmac("sha256", signingKey).update(domainId).digest("hex").slice(0, 32);
+}
 
 export const listCustomDomains = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -24,6 +35,8 @@ export const listCustomDomains = workspaceProcedure
     }
 
     try {
+      const signingKey = env().DOMAIN_SIGNING_KEY ?? "";
+
       const domains = await db.query.customDomains.findMany({
         where: (table, { eq }) => eq(table.projectId, input.projectId),
         columns: {
@@ -34,7 +47,6 @@ export const listCustomDomains = workspaceProcedure
           appId: true,
           environmentId: true,
           verificationStatus: true,
-          verificationToken: true,
           ownershipVerified: true,
           cnameVerified: true,
           targetCname: true,
@@ -55,7 +67,7 @@ export const listCustomDomains = workspaceProcedure
         appId: d.appId,
         environmentId: d.environmentId,
         verificationStatus: d.verificationStatus,
-        verificationToken: d.verificationToken,
+        verificationToken: verificationToken(d.id, signingKey),
         ownershipVerified: d.ownershipVerified,
         cnameVerified: d.cnameVerified,
         targetCname: d.targetCname,

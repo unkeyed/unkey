@@ -78,9 +78,6 @@ func (s *Service) AddCustomDomain(
 	// Generate unique CNAME target for this domain
 	targetCname := fmt.Sprintf("%s.%s", uid.DNS1035(16), s.cnameDomain)
 
-	// Generate verification token for TXT record ownership verification
-	verificationToken := uid.Secure(24)
-
 	// Check domain doesn't already exist in this workspace
 	existing, err := db.Query.FindCustomDomainByWorkspaceAndDomain(ctx, s.db.RO(), db.FindCustomDomainByWorkspaceAndDomainParams{
 		WorkspaceID: req.Msg.GetWorkspaceId(),
@@ -106,7 +103,6 @@ func (s *Service) AddCustomDomain(
 		Domain:             domain,
 		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,
 		VerificationStatus: db.CustomDomainsVerificationStatusPending,
-		VerificationToken:  verificationToken,
 		TargetCname:        targetCname,
 		CreatedAt:          now,
 		InvocationID:       sql.NullString{String: "", Valid: false},

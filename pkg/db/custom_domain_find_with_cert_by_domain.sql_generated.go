@@ -12,7 +12,7 @@ import (
 
 const findCustomDomainWithCertByDomain = `-- name: FindCustomDomainWithCertByDomain :one
 SELECT
-    cd.pk, cd.id, cd.workspace_id, cd.project_id, cd.app_id, cd.environment_id, cd.domain, cd.challenge_type, cd.verification_status, cd.verification_token, cd.ownership_verified, cd.cname_verified, cd.target_cname, cd.last_checked_at, cd.check_attempts, cd.verification_error, cd.invocation_id, cd.created_at, cd.updated_at,
+    cd.pk, cd.id, cd.workspace_id, cd.project_id, cd.app_id, cd.environment_id, cd.domain, cd.challenge_type, cd.verification_status, cd.ownership_verified, cd.cname_verified, cd.target_cname, cd.last_checked_at, cd.check_attempts, cd.verification_error, cd.invocation_id, cd.created_at, cd.updated_at,
     c.id AS certificate_id
 FROM custom_domains cd
 LEFT JOIN certificates c ON c.hostname = cd.domain
@@ -29,7 +29,6 @@ type FindCustomDomainWithCertByDomainRow struct {
 	Domain             string                          `db:"domain"`
 	ChallengeType      CustomDomainsChallengeType      `db:"challenge_type"`
 	VerificationStatus CustomDomainsVerificationStatus `db:"verification_status"`
-	VerificationToken  string                          `db:"verification_token"`
 	OwnershipVerified  bool                            `db:"ownership_verified"`
 	CnameVerified      bool                            `db:"cname_verified"`
 	TargetCname        string                          `db:"target_cname"`
@@ -45,7 +44,7 @@ type FindCustomDomainWithCertByDomainRow struct {
 // FindCustomDomainWithCertByDomain
 //
 //	SELECT
-//	    cd.pk, cd.id, cd.workspace_id, cd.project_id, cd.app_id, cd.environment_id, cd.domain, cd.challenge_type, cd.verification_status, cd.verification_token, cd.ownership_verified, cd.cname_verified, cd.target_cname, cd.last_checked_at, cd.check_attempts, cd.verification_error, cd.invocation_id, cd.created_at, cd.updated_at,
+//	    cd.pk, cd.id, cd.workspace_id, cd.project_id, cd.app_id, cd.environment_id, cd.domain, cd.challenge_type, cd.verification_status, cd.ownership_verified, cd.cname_verified, cd.target_cname, cd.last_checked_at, cd.check_attempts, cd.verification_error, cd.invocation_id, cd.created_at, cd.updated_at,
 //	    c.id AS certificate_id
 //	FROM custom_domains cd
 //	LEFT JOIN certificates c ON c.hostname = cd.domain
@@ -63,7 +62,6 @@ func (q *Queries) FindCustomDomainWithCertByDomain(ctx context.Context, db DBTX,
 		&i.Domain,
 		&i.ChallengeType,
 		&i.VerificationStatus,
-		&i.VerificationToken,
 		&i.OwnershipVerified,
 		&i.CnameVerified,
 		&i.TargetCname,

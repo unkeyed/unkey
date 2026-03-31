@@ -10,7 +10,7 @@ import (
 )
 
 const findCustomDomainByDomainOrWildcard = `-- name: FindCustomDomainByDomainOrWildcard :one
-SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at FROM custom_domains
+SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at FROM custom_domains
 WHERE domain IN (?, ?)
 ORDER BY
     CASE WHEN domain = ? THEN 0 ELSE 1 END
@@ -25,7 +25,7 @@ type FindCustomDomainByDomainOrWildcardParams struct {
 
 // FindCustomDomainByDomainOrWildcard
 //
-//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at FROM custom_domains
+//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at FROM custom_domains
 //	WHERE domain IN (?, ?)
 //	ORDER BY
 //	    CASE WHEN domain = ? THEN 0 ELSE 1 END
@@ -43,7 +43,6 @@ func (q *Queries) FindCustomDomainByDomainOrWildcard(ctx context.Context, db DBT
 		&i.Domain,
 		&i.ChallengeType,
 		&i.VerificationStatus,
-		&i.VerificationToken,
 		&i.OwnershipVerified,
 		&i.CnameVerified,
 		&i.TargetCname,

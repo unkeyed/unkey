@@ -1139,7 +1139,6 @@ type CustomDomain struct {
 	Domain             string                          `db:"domain"`
 	ChallengeType      CustomDomainsChallengeType      `db:"challenge_type"`
 	VerificationStatus CustomDomainsVerificationStatus `db:"verification_status"`
-	VerificationToken  string                          `db:"verification_token"`
 	OwnershipVerified  bool                            `db:"ownership_verified"`
 	CnameVerified      bool                            `db:"cname_verified"`
 	TargetCname        string                          `db:"target_cname"`

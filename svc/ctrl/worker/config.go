@@ -225,6 +225,10 @@ type Config struct {
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".
 	CnameDomain string `toml:"cname_domain" config:"required,nonempty"`
 
+	// DomainSigningKey is used to compute HMAC-based verification tokens for
+	// custom domain TXT record ownership verification.
+	DomainSigningKey string `toml:"domain_signing_key" config:"required,nonempty"`
+
 	// Database configures MySQL connections. See [config.DatabaseConfig].
 	Database config.DatabaseConfig `toml:"database"`
 

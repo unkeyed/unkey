@@ -113,7 +113,7 @@ func (s *Service) VerifyDomain(
 	txtVerified := true // default: not required
 	if requiresTxt {
 		var txtErr error
-		txtVerified, txtErr = s.checkTXTRecord(dom.Domain, dom.VerificationToken)
+		txtVerified, txtErr = s.checkTXTRecord(dom.Domain, s.verificationToken(dom.ID))
 		if txtErr != nil {
 			logger.Warn("TXT check error",
 				"domain", dom.Domain,

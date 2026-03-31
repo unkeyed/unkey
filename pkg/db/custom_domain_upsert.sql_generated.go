@@ -13,9 +13,9 @@ import (
 const upsertCustomDomain = `-- name: UpsertCustomDomain :exec
 INSERT INTO custom_domains (
     id, workspace_id, project_id, app_id, environment_id, domain,
-    challenge_type, verification_status, verification_token, target_cname, created_at
+    challenge_type, verification_status, target_cname, created_at
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     workspace_id = VALUES(workspace_id),
     project_id = VALUES(project_id),
@@ -36,7 +36,6 @@ type UpsertCustomDomainParams struct {
 	Domain             string                          `db:"domain"`
 	ChallengeType      CustomDomainsChallengeType      `db:"challenge_type"`
 	VerificationStatus CustomDomainsVerificationStatus `db:"verification_status"`
-	VerificationToken  string                          `db:"verification_token"`
 	TargetCname        string                          `db:"target_cname"`
 	CreatedAt          int64                           `db:"created_at"`
 	UpdatedAt          sql.NullInt64                   `db:"updated_at"`
@@ -46,9 +45,9 @@ type UpsertCustomDomainParams struct {
 //
 //	INSERT INTO custom_domains (
 //	    id, workspace_id, project_id, app_id, environment_id, domain,
-//	    challenge_type, verification_status, verification_token, target_cname, created_at
+//	    challenge_type, verification_status, target_cname, created_at
 //	)
-//	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 //	ON DUPLICATE KEY UPDATE
 //	    workspace_id = VALUES(workspace_id),
 //	    project_id = VALUES(project_id),
@@ -68,7 +67,6 @@ func (q *Queries) UpsertCustomDomain(ctx context.Context, db DBTX, arg UpsertCus
 		arg.Domain,
 		arg.ChallengeType,
 		arg.VerificationStatus,
-		arg.VerificationToken,
 		arg.TargetCname,
 		arg.CreatedAt,
 		arg.UpdatedAt,

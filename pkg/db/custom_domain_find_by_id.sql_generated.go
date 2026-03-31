@@ -10,14 +10,14 @@ import (
 )
 
 const findCustomDomainById = `-- name: FindCustomDomainById :one
-SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
 FROM custom_domains
 WHERE id = ?
 `
 
 // FindCustomDomainById
 //
-//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
 //	FROM custom_domains
 //	WHERE id = ?
 func (q *Queries) FindCustomDomainById(ctx context.Context, db DBTX, id string) (CustomDomain, error) {
@@ -33,7 +33,6 @@ func (q *Queries) FindCustomDomainById(ctx context.Context, db DBTX, id string) 
 		&i.Domain,
 		&i.ChallengeType,
 		&i.VerificationStatus,
-		&i.VerificationToken,
 		&i.OwnershipVerified,
 		&i.CnameVerified,
 		&i.TargetCname,

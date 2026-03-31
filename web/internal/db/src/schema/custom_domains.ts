@@ -33,9 +33,6 @@ export const customDomains = mysqlTable(
 
     // Verification fields
     verificationStatus: verificationStatus.notNull().default("pending"),
-    // TXT record verification token (e.g., "abc123xyz...")
-    // User adds TXT record: _unkey.domain.com -> unkey-domain-verify=<token>
-    verificationToken: varchar("verification_token", { length: 64 }).notNull(),
     // Whether the TXT record has been verified (proves ownership)
     ownershipVerified: boolean("ownership_verified").notNull().default(false),
     // Whether the CNAME record has been verified (enables routing)

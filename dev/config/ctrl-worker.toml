@@ -2,6 +2,7 @@ instance_id = "ctrl-worker-dev"
 region = "local"
 default_domain = "unkey.local"
 cname_domain = "unkey.local"
+domain_signing_key = "dev-signing-key-do-not-use-in-production"
 build_platform = "linux/amd64"
 sentinel_image = "unkey/sentinel:latest"
 
