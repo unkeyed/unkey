@@ -126,7 +126,6 @@ func (c *Controller) ensureNamespaceExists(ctx context.Context) error {
 // server-side apply. Returns the resulting Deployment so the caller can extract
 // its UID for setting owner references on related resources.
 func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) (*appsv1.Deployment, error) {
-
 	configEnv, err := toml.Marshal(sentinelcfg.Config{
 		SentinelID:    sentinel.GetSentinelId(),
 		WorkspaceID:   sentinel.GetWorkspaceId(),
@@ -298,7 +297,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{
-								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.GetCpuMillicores()/2, resource.BinarySI),
 								corev1.ResourceMemory: *resource.NewQuantity(sentinel.GetMemoryMib()*1024*1024, resource.BinarySI),
 							},
 							Limits: corev1.ResourceList{

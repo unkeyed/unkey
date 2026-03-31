@@ -701,7 +701,7 @@ func (w *Workflow) ensureSentinels(
 					Health:            db.SentinelsHealthUnknown,
 					DesiredReplicas:   desiredReplicas,
 					AvailableReplicas: 0,
-					CpuMillicores:     256,
+					CpuMillicores:     250,
 					MemoryMib:         256,
 					Version:           sentinelVersion.GetVersion(),
 					CreatedAt:         time.Now().UnixMilli(),
