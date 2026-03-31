@@ -60,20 +60,47 @@ export const updateEnvVar = workspaceProcedure
         });
       }
 
-      const environment = await db.query.environments.findFirst({
-        where: and(
-          eq(environments.id, input.environmentId),
-          eq(environments.workspaceId, ctx.workspace.id),
-        ),
-        columns: {
-          id: true,
-        },
-      });
+      const [currentEnvironment, targetEnvironment] = await Promise.all([
+        db.query.environments.findFirst({
+          where: and(
+            eq(environments.id, envVar.environmentId),
+            eq(environments.workspaceId, ctx.workspace.id),
+          ),
+          columns: {
+            id: true,
+            appId: true,
+          },
+        }),
+        db.query.environments.findFirst({
+          where: and(
+            eq(environments.id, input.environmentId),
+            eq(environments.workspaceId, ctx.workspace.id),
+          ),
+          columns: {
+            id: true,
+            appId: true,
+          },
+        }),
+      ]);
 
-      if (!environment) {
+      if (!currentEnvironment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Current environment not found",
+        });
+      }
+
+      if (!targetEnvironment) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Environment not found",
+        });
+      }
+
+      if (targetEnvironment.appId !== currentEnvironment.appId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot move environment variable to a different app",
         });
       }
 

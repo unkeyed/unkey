@@ -100,18 +100,13 @@ export function EnvVarEditRow({
         return;
       }
 
-      try {
-        collection.envVars.update(envVarId, (draft) => {
-          draft.key = values.key;
-          draft.value = values.value;
-          draft.description = values.description || null;
-          draft.environmentId = values.environmentId;
-        });
-        toast.success("Variable updated");
-        onClose();
-      } catch {
-        toast.error("Failed to update variable");
-      }
+      collection.envVars.update(envVarId, (draft) => {
+        draft.key = values.key;
+        draft.value = values.value;
+        draft.description = values.description || null;
+        draft.environmentId = values.environmentId;
+      });
+      onClose();
     },
     [envVarId, isWriteonly, onClose],
   );
