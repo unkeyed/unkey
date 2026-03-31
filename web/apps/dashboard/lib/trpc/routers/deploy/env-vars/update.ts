@@ -1,8 +1,8 @@
 import { and, db, eq, schema } from "@/lib/db";
-import { environments } from "@unkey/db/src/schema";
 import { env } from "@/lib/env";
 import { Vault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
+import { environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
