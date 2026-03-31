@@ -26,6 +26,9 @@ export function transformKeyDetailsFilters(
       value: t.value,
     })) ?? null;
 
+  const page = params.page ?? 1;
+  const offset = (page - 1) * params.limit;
+
   return {
     workspaceId,
     keyId: params.keyId,
@@ -33,7 +36,8 @@ export function transformKeyDetailsFilters(
     limit: params.limit,
     startTime,
     endTime,
-    cursorTime: params.cursor ?? null,
+    cursorTime: null,
+    offset,
     outcomes,
     tags,
   };

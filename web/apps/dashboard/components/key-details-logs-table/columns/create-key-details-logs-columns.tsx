@@ -4,13 +4,7 @@ import type { DataTableColumnDef } from "@unkey/ui";
 import { RegionCell, TagsCell, TimestampInfo } from "@unkey/ui";
 import { OutcomeCell } from "../components/outcome-cell";
 
-type CreateColumnsOptions = {
-  selectedLog: KeyDetailsLog | null;
-};
-
-export const createKeyDetailsLogsColumns = ({
-  selectedLog,
-}: CreateColumnsOptions): DataTableColumnDef<KeyDetailsLog>[] => [
+export const createKeyDetailsLogsColumns = (): DataTableColumnDef<KeyDetailsLog>[] => [
   {
     id: "time",
     accessorKey: "time",
@@ -21,14 +15,12 @@ export const createKeyDetailsLogsColumns = ({
       headerClassName: "pl-2",
       cellClassName: "pl-2",
     },
-    cell: ({ row }) => (
+    cell: ({ row, table }) => (
       <TimestampInfo
         value={row.original.time}
         className={cn(
           "font-mono group-hover:underline decoration-dotted",
-          selectedLog &&
-            selectedLog.request_id !== row.original.request_id &&
-            "pointer-events-none",
+          table.getIsSomeRowsSelected() && !row.getIsSelected() && "pointer-events-none",
         )}
       />
     ),
@@ -42,9 +34,7 @@ export const createKeyDetailsLogsColumns = ({
       width: "20%",
     },
     cell: ({ row }) => {
-      const log = row.original;
-      const isSelected = selectedLog?.request_id === log.request_id;
-      return <OutcomeCell log={log} isSelected={isSelected} />;
+      return <OutcomeCell log={row.original} isSelected={row.getIsSelected()} />;
     },
   },
   {
@@ -66,9 +56,7 @@ export const createKeyDetailsLogsColumns = ({
       width: "40%",
     },
     cell: ({ row }) => {
-      const log = row.original;
-      const isSelected = selectedLog?.request_id === log.request_id;
-      return <TagsCell tags={log.tags ?? []} isSelected={isSelected} />;
+      return <TagsCell tags={row.original.tags ?? []} isSelected={row.getIsSelected()} />;
     },
   },
 ];

@@ -8,7 +8,7 @@ export const keyDetailsLogsPayload = z.object({
   keyspaceId: z.string(),
   keyId: z.string(),
   since: z.string(),
-  cursor: z.number().nullable().optional().nullable(),
+  page: z.int().optional().default(1),
   tags: z
     .array(
       z.object({

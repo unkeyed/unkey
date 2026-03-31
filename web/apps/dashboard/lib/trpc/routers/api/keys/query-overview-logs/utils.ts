@@ -49,6 +49,9 @@ export function transformKeysFilters(
       direction: sort.direction,
     })) ?? null;
 
+  const page = params.page ?? 1;
+  const offset = (page - 1) * params.limit;
+
   return {
     limit: params.limit,
     startTime,
@@ -58,7 +61,8 @@ export function transformKeysFilters(
     identities,
     tags,
     outcomes,
-    cursorTime: params.cursor ?? null,
+    cursorTime: null,
+    offset,
     sorts,
   };
 }

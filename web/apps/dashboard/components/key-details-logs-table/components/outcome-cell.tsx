@@ -14,10 +14,8 @@ type OutcomeCellProps = {
 };
 
 export const OutcomeCell = ({ log, isSelected }: OutcomeCellProps) => {
-  const outcomeType =
-    (log.outcome as LogOutcomeType) in LOG_OUTCOME_DEFINITIONS
-      ? (log.outcome as LogOutcomeType)
-      : "";
+  const outcomeType: LogOutcomeType =
+    log.outcome in LOG_OUTCOME_DEFINITIONS ? (log.outcome as LogOutcomeType) : "";
   const outcomeInfo = LOG_OUTCOME_DEFINITIONS[outcomeType];
 
   return (
@@ -32,8 +30,8 @@ export const OutcomeCell = ({ log, isSelected }: OutcomeCellProps) => {
           primary={{
             label: outcomeInfo.label,
             color: isSelected
-              ? (STATUS_STYLES[getStatusType(outcomeInfo.type)].badge?.selected ?? "")
-              : (STATUS_STYLES[getStatusType(outcomeInfo.type)].badge?.default ?? ""),
+              ? STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.selected
+              : STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.default,
             icon: outcomeInfo.icon,
           }}
         />

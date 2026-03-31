@@ -1,15 +1,15 @@
 "use client";
 import {
   EmptyKeyDetailsLogs,
-  KeyDetailsCountInfo,
   createKeyDetailsLogsColumns,
   getRowClassName,
   useKeyDetailsLogsQuery,
 } from "@/components/key-details-logs-table";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
+import type { RowSelectionState } from "@tanstack/react-table";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
-import { DataTable, LoadMoreFooter } from "@unkey/ui";
+import { DataTable, PaginationFooter } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 import { useKeyDetailsLogsContext } from "../../context/logs";
 
@@ -22,13 +22,22 @@ type Props = {
 
 export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelect }: Props) => {
   const { isLive } = useKeyDetailsLogsContext();
-  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, totalCount } =
-    useKeyDetailsLogsQuery({
-      keyId,
-      keyspaceId,
-      startPolling: isLive,
-      pollIntervalMs: 2000,
-    });
+  const {
+    realtimeLogs,
+    historicalLogs,
+    isLoading,
+    isNavigating,
+    totalCount,
+    page,
+    pageSize,
+    totalPages,
+    onPageChange,
+  } = useKeyDetailsLogsQuery({
+    keyId,
+    keyspaceId,
+    startPolling: isLive,
+    pollIntervalMs: 2000,
+  });
 
   const [hoveredLogId, setHoveredLogId] = useState<string | null>(null);
   const { queryTime: timestamp } = useQueryTime();
@@ -66,7 +75,12 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
     setHoveredLogId(null);
   }, []);
 
-  const columns = useMemo(() => createKeyDetailsLogsColumns({ selectedLog }), [selectedLog]);
+  const columns = useMemo(() => createKeyDetailsLogsColumns(), []);
+
+  const rowSelection = useMemo<RowSelectionState>(
+    () => (selectedLog ? { [selectedLog.request_id]: true } : {}),
+    [selectedLog],
+  );
 
   return (
     <div className="flex flex-col">
@@ -81,20 +95,20 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
         onRowMouseLeave={handleRowMouseLeave}
         selectedItem={selectedLog}
         rowClassName={(log) => getRowClassName(log, selectedLog)}
+        enableRowSelection={true}
+        rowSelection={rowSelection}
         config={{ rowHeight: 26, layout: "classic", rowBorders: false }}
         emptyState={<EmptyKeyDetailsLogs />}
       />
-      <LoadMoreFooter
-        onLoadMore={loadMore}
-        isFetchingNextPage={isLoadingMore}
-        hasMore={hasMore ?? false}
-        hide={isLoading}
-        totalVisible={historicalLogs.length + realtimeLogs.length}
+      <PaginationFooter
+        page={page}
+        pageSize={pageSize}
+        totalPages={totalPages}
         totalCount={totalCount}
-        buttonText="Load more logs"
-        countInfoText={
-          <KeyDetailsCountInfo visibleCount={historicalLogs.length} totalCount={totalCount} />
-        }
+        onPageChange={onPageChange}
+        itemLabel="logs"
+        loading={isLoading}
+        disabled={isNavigating}
       />
     </div>
   );

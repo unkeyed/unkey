@@ -118,10 +118,7 @@ export const TagsCell = ({ tags, isSelected, maxVisible = 3, shortenOptions }: T
           asChild
         >
           <Badge
-            className={cn(
-              "whitespace-nowrap",
-              isSelected ? STATUS_STYLES.badge?.selected : "",
-            )}
+            className={cn("whitespace-nowrap", isSelected ? STATUS_STYLES.badge?.selected : "")}
           >
             +{tags.length - maxVisible}
           </Badge>

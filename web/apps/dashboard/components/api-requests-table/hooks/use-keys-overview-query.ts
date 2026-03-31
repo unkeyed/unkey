@@ -5,7 +5,8 @@ import { useSort } from "@/components/logs/hooks/use-sort";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES, type KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import { useMemo } from "react";
+import { parseAsInteger, useQueryState } from "nuqs";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { KeysQueryOverviewLogsPayload, SortFields } from "../schema/keys-overview.schema";
 
 type UseLogsQueryParams = {
@@ -13,11 +14,15 @@ type UseLogsQueryParams = {
   apiId: string;
 };
 
+const PREFETCH_PAGES_AHEAD = 2;
+
 export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryParams) {
   const { filters } = useFilters();
   const { sorts } = useSort<SortFields>();
-
   const { queryTime: timestamp } = useQueryTime();
+
+  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+  const normalizedPage = Math.max(1, page);
 
   // Check if user explicitly set a time frame filter
   const hasTimeFrameFilter = useMemo(() => {
@@ -37,9 +42,7 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
       apiId,
       since: "",
       sorts: sorts.length > 0 ? sorts : null,
-      // Flag to indicate if user explicitly filtered by time frame
-      // If true, use new logic to find keys with ANY usage in the time frame
-      // If false or undefined, use the MV directly for speed
+      page: normalizedPage,
       useTimeFrameFilter: hasTimeFrameFilter,
     };
 
@@ -122,41 +125,92 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     });
 
     return params;
-  }, [filters, limit, timestamp, apiId, sorts, hasTimeFrameFilter]);
+  }, [filters, limit, timestamp, apiId, sorts, hasTimeFrameFilter, normalizedPage]);
 
-  // Main query for historical data
-  const {
-    data: initialData,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-    isLoading: isLoadingInitial,
-  } = trpc.api.keys.query.useInfiniteQuery(queryParams, {
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
+  // Reset to page 1 when filters change
+  const filtersKey = useMemo(
+    () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
+    [filters],
+  );
+
+  const prevFiltersKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevFiltersKeyRef.current === null) {
+      prevFiltersKeyRef.current = filtersKey;
+      return;
+    }
+    if (filtersKey !== prevFiltersKeyRef.current) {
+      prevFiltersKeyRef.current = filtersKey;
+      setPage(1);
+    }
+  }, [filtersKey, setPage]);
+
+  const utils = trpc.useUtils();
+
+  const { data, isLoading, isFetching } = trpc.api.keys.query.useQuery(queryParams, {
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
+    keepPreviousData: true,
   });
 
-  // Use request_id as the unique key since key_id might not be unique across different requests
+  const totalCount = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+
+  // Clamp page to valid range after data/totalPages updates
+  useEffect(() => {
+    if (normalizedPage > totalPages) {
+      setPage(totalPages);
+    }
+  }, [normalizedPage, totalPages, setPage]);
+
+  // Prefetch the next few pages
+  useEffect(() => {
+    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
+      const nextPage = normalizedPage + i;
+      if (nextPage > totalPages) {
+        break;
+      }
+      utils.api.keys.query.prefetch(
+        { ...queryParams, page: nextPage },
+        { staleTime: Number.POSITIVE_INFINITY },
+      );
+    }
+  }, [normalizedPage, totalPages, queryParams, utils.api.keys.query]);
+
   const historicalLogs = useMemo(() => {
-    if (!initialData) {
+    if (!data) {
       return [];
     }
     const map = new Map<string, KeysOverviewLog>();
-    initialData.pages.forEach((page) => {
-      page.keysOverviewLogs.forEach((log) => {
-        map.set(log.request_id, log);
-      });
+    data.keysOverviewLogs.forEach((log) => {
+      map.set(log.request_id, log);
     });
     return Array.from(map.values());
-  }, [initialData]);
+  }, [data]);
+
+  const onPageChange = useCallback(
+    (newPage: number) => {
+      if (newPage < 1 || newPage > totalPages) {
+        return;
+      }
+      setPage(newPage);
+    },
+    [totalPages, setPage],
+  );
+
+  const isInitialLoading = isLoading && !data;
+  const isNavigating = isFetching && !isInitialLoading;
 
   return {
     historicalLogs,
-    isLoading: isLoadingInitial,
-    hasMore: hasNextPage,
-    loadMore: fetchNextPage,
-    isLoadingMore: isFetchingNextPage,
+    isLoading: isInitialLoading,
+    isFetching,
+    isNavigating,
+    page: normalizedPage,
+    pageSize: limit,
+    totalPages,
+    totalCount,
+    onPageChange,
   };
 }

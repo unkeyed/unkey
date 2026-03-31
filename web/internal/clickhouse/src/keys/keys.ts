@@ -58,6 +58,7 @@ export const keysOverviewLogsParams = z.object({
     )
     .nullable(),
   cursorTime: z.int().nullable(),
+  offset: z.int().nullable(),
   sorts: z
     .array(
       z.object({
@@ -241,10 +242,14 @@ export function getKeysOverviewLogs(ch: Querier) {
     const orderByClause =
       [...orderByWithoutTime, `time ${timeDirection}`].join(", ") || "time DESC"; // Fallback if empty
 
+    const useOffset = args.offset !== null;
+
     // Create cursor condition based on time direction
     let havingCursorCondition: string;
 
-    if (args.cursorTime) {
+    if (useOffset) {
+      havingCursorCondition = "";
+    } else if (args.cursorTime) {
       // For subsequent pages, use cursor based on time direction
       if (timeDirection === "ASC") {
         havingCursorCondition = "\n          AND (last_time > {cursorTime: Nullable(UInt64)})";
@@ -283,7 +288,7 @@ export function getKeysOverviewLogs(ch: Querier) {
       GROUP BY key_id, workspace_id, key_space_id
       HAVING last_time > 0${havingCursorCondition}
       ORDER BY last_time ${timeDirection}
-      LIMIT {limit: Int}
+      LIMIT ${useOffset ? "{limit: Int} + {offset: Nullable(Int)}" : "{limit: Int}"}
     )`
       : `top_keys AS (
       SELECT
@@ -329,7 +334,7 @@ export function getKeysOverviewLogs(ch: Querier) {
       HAVING last_time > 0
           ${havingCursorCondition}
       ORDER BY last_time ${timeDirection}
-      LIMIT {limit: Int}
+      LIMIT ${useOffset ? "{limit: Int} + {offset: Nullable(Int)}" : "{limit: Int}"}
     )`;
 
     const query = ch.query({
@@ -417,6 +422,7 @@ WITH
     HAVING COALESCE(a.valid_count, 0) > 0 OR COALESCE(a.error_count, 0) > 0
     ORDER BY ${orderByClause}
     LIMIT {limit: Int}
+    ${useOffset ? "OFFSET {offset: Nullable(Int)}" : ""}
 `,
       params: extendedParamsSchema,
       schema: rawKeysOverviewLogs
@@ -426,12 +432,53 @@ WITH
         .omit({ outcome_counts: true }),
     });
 
-    // Execute the ClickHouse query
-    const clickhouseResults = await query(parameters);
+    // Total count query - counts distinct keys matching filters (without pagination)
+    const totalCountCTE = isRollingWindow
+      ? `SELECT count(DISTINCT key_id) as total_count
+         FROM default.key_last_used_v1
+         WHERE workspace_id = {workspaceId: String}
+           AND key_space_id = {keyspaceId: String}
+           AND (${keyIdConditions})
+           AND time >= {startTime: UInt64}
+           AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}`
+      : `SELECT count(DISTINCT key_id) as total_count
+         FROM (
+           SELECT key_id
+           FROM default.key_verifications_per_hour_v3
+           WHERE workspace_id = {workspaceId: String}
+             AND key_space_id = {keyspaceId: String}
+             AND time BETWEEN toDateTime(fromUnixTimestamp64Milli({startTime: UInt64}))
+                          AND toDateTime(fromUnixTimestamp64Milli({endTime: UInt64}))
+             AND (${keyIdConditions})
+           UNION ALL
+           SELECT key_id
+           FROM default.key_verifications_raw_v2
+           WHERE workspace_id = {workspaceId: String}
+             AND key_space_id = {keyspaceId: String}
+             AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+             AND (${keyIdConditions})
+         )`;
+
+    const totalQuery = ch.query({
+      query: totalCountCTE,
+      params: extendedParamsSchema,
+      schema: z.object({
+        total_count: z.int(),
+      }),
+    });
+
+    // Execute the ClickHouse queries
+    const [clickhouseResults, totalResults] = await Promise.all([
+      query(parameters),
+      totalQuery(parameters),
+    ]);
+
+    const totalCount = totalResults.val ? totalResults.val[0].total_count : 0;
 
     // Always transform the results to ensure consistent structure
     return {
       ...clickhouseResults,
+      totalCount,
       val: (clickhouseResults.val || []).map((result) => {
         // Convert outcome_counts_array from array of tuples to object
         const outcomeCountsObj: Record<string, number> = {};

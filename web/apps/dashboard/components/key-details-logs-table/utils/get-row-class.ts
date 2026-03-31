@@ -5,7 +5,7 @@ export type StatusStyle = {
   base: string;
   hover: string;
   selected: string;
-  badge?: {
+  badge: {
     default: string;
     selected: string;
   };
