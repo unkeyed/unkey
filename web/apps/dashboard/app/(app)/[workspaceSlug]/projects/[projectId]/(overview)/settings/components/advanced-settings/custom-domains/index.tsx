@@ -15,7 +15,7 @@ import {
 import { Controller, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
 import { useEnvironmentSettings } from "../../../environment-provider";
-import { WideContent } from "../../shared/form-blocks";
+import { SettingField, WideContent } from "../../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
 import { CustomDomainRow } from "./custom-domain-row";
 import { type CustomDomainFormValues, customDomainSchema } from "./schema";
@@ -118,7 +118,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
     >
-      <WideContent>
+      <SettingField>
         <div className="flex items-center gap-3">
           <span className="text-[13px] text-gray-11 w-35">Environment</span>
           <span className="flex-1 text-[13px] text-gray-11">Domain</span>
@@ -155,7 +155,8 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
             {...register("domain")}
           />
         </div>
-
+      </SettingField>
+      <WideContent>
         {customDomains.length > 0 && (
           <div className="border border-gray-4 rounded-lg overflow-hidden mt-1 dark:bg-black bg-white">
             {customDomains.map((d) => (
