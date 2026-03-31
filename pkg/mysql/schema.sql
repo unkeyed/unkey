@@ -294,7 +294,7 @@ CREATE TABLE `quota` (
 	`team` boolean NOT NULL DEFAULT false,
 	`ratelimit_api_limit` int unsigned,
 	`ratelimit_api_duration` int unsigned,
-	`allocated_cpu_millicores_total` int unsigned NOT NULL DEFAULT 10240,
+	`allocated_cpu_millicores_total` int unsigned NOT NULL DEFAULT 10000,
 	`allocated_memory_mib_total` int unsigned NOT NULL DEFAULT 20480,
 	CONSTRAINT `quota_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `quota_workspace_id_unique` UNIQUE(`workspace_id`)
@@ -439,7 +439,7 @@ CREATE TABLE `app_runtime_settings` (
 	`app_id` varchar(64) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
 	`port` int NOT NULL DEFAULT 8080,
-	`cpu_millicores` int NOT NULL DEFAULT 256,
+	`cpu_millicores` int NOT NULL DEFAULT 250,
 	`memory_mib` int NOT NULL DEFAULT 256,
 	`command` json NOT NULL DEFAULT ('[]'),
 	`healthcheck` json,

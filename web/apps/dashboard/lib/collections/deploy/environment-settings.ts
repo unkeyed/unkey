@@ -109,7 +109,7 @@ export const ENVIRONMENT_SETTINGS_DEFAULTS = {
   dockerfile: "Dockerfile",
   dockerContext: ".",
   port: 8080,
-  cpuMillicores: 256,
+  cpuMillicores: 250,
   memoryMib: 256,
   shutdownSignal: "SIGTERM",
 } as const;
