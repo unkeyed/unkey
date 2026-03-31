@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Badge } from "@unkey/ui";
+import { STATUS_STYLES } from "@unkey/ui";
 import { useRef } from "react";
-import { STATUS_STYLES } from "../../../utils/get-row-class";
 
 type StatusBadgeProps = {
   primary: {

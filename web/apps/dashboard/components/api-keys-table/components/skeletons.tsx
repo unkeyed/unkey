@@ -51,7 +51,7 @@ export const UsageColumnSkeleton = ({ maxBars = 30 }: { maxBars?: number }) => (
 );
 
 export const LastUsedColumnSkeleton = () => (
-  <div className="px-1.5 rounded-md flex gap-2 items-center w-[140px] h-[22px] bg-grayA-3 animate-pulse">
+  <div className="px-1.5 rounded-md flex gap-2 items-center w-35 h-5.5 bg-grayA-3 animate-pulse">
     <div className="h-2 w-2 bg-grayA-3 rounded-full animate-pulse" />
     <div className="h-2 w-12 bg-grayA-3 rounded-sm animate-pulse" />
     <div className="h-2 w-12 bg-grayA-3 rounded-sm animate-pulse" />
