@@ -144,9 +144,14 @@ export const CreateDeploymentButton = ({
 
   return (
     <>
-      <NavbarActionButton {...rest} color="default" onClick={() => setIsOpen(true)}>
-        <Plus />
-        Create new deployment
+      <NavbarActionButton
+        {...rest}
+        color="default"
+        variant="outline"
+        className="size-7"
+        onClick={() => setIsOpen(true)}
+      >
+        <Plus iconSize="sm-regular" />
       </NavbarActionButton>
       <DynamicDialogContainer
         isOpen={isOpen}

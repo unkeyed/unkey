@@ -7,7 +7,7 @@ Authenticate the CLI by storing your root key locally.
 
 Use this before running other commands so you don't need to pass `--root-key` every time. The command prompts for your root key interactively (input is hidden) and saves it to `~/.unkey/config.toml` with restricted file permissions.
 
-You can create a root key from the [Unkey dashboard](/security/root-keys).
+You can create a root key from the [Unkey dashboard](/platform/root-keys/overview).
 
 <Note>
 Your root key is stored in plaintext at `~/.unkey/config.toml`. Make sure only your user account can read this file. The CLI creates it with `0600` permissions by default.

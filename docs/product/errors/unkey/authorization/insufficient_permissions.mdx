@@ -5,7 +5,6 @@ description: "The authenticated entity lacks sufficient permissions for the requ
 
 <Danger>`err:unkey:authorization:insufficient_permissions`</Danger>
 
-
 ```json Example
 {
   "meta": {
@@ -25,6 +24,7 @@ description: "The authenticated entity lacks sufficient permissions for the requ
 This error occurs when your API key is valid and properly authenticated, but it doesn't have the necessary permissions to perform the requested operation. In Unkey, different API keys can have different permission levels.
 
 Common scenarios that trigger this error:
+
 - Using a read-only key to perform write operations
 - Using a key limited to specific resources to access other resources
 - Attempting to access resources across workspaces with a workspace-scoped key
@@ -73,5 +73,6 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
 - **Expired or downgraded privileges**: Using a key whose permissions have been reduced since it was issued
 
 ## Related Errors
+
 - [err:unkey:authorization:forbidden](./forbidden) - When the operation is not allowed for policy reasons
 - [err:unkey:authorization:key_disabled](./key_disabled) - When the authentication key is disabled

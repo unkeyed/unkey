@@ -5,7 +5,6 @@ description: "An unhandled or unexpected error occurred"
 
 <Danger>`err:unkey:application:unexpected_error`</Danger>
 
-
 ```json Example
 {
   "meta": {
@@ -25,6 +24,7 @@ description: "An unhandled or unexpected error occurred"
 This error occurs when the Unkey system encounters an internal error that wasn't anticipated or couldn't be handled gracefully. This is generally not caused by anything you did wrong in your request, but rather indicates an issue within Unkey's systems.
 
 Possible causes of this error:
+
 - Temporary infrastructure issues
 - Database connectivity problems
 - Bugs in the Unkey service
@@ -68,9 +68,12 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 300) {
       }
 
       // Exponential backoff with jitter
-      const delay = baseDelay * Math.pow(2, retries) * (0.8 + Math.random() * 0.4);
-      console.log(`Retrying after ${delay}ms (attempt ${retries + 1}/${maxRetries})`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      const delay =
+        baseDelay * Math.pow(2, retries) * (0.8 + Math.random() * 0.4);
+      console.log(
+        `Retrying after ${delay}ms (attempt ${retries + 1}/${maxRetries})`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
       retries++;
     }
   }
@@ -85,4 +88,5 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 300) {
 - If you encounter this error consistently with a specific API call, there may be an edge case that Unkey's team needs to address
 
 ## Related Errors
+
 - [err:unkey:application:service_unavailable](./service_unavailable) - When a service is temporarily unavailable

@@ -1,0 +1,66 @@
+---
+title: Wildcard domains
+description: Every deployment automatically receives a *.unkey.app domain for instant access without DNS configuration.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+Every deployment on Unkey receives automatic `*.unkey.app` subdomains with no DNS configuration required. These domains are available as soon as the deployment completes.
+
+## Immutable vs sticky
+
+Wildcard domains fall into two categories based on how they resolve over time.
+
+**Immutable** domains are locked to a specific commit or deployment and never change. The same URL always returns the same version of your app. Use immutable domains when you need a permanent reference to an exact version, for example in incident reports, audit trails, or rollback verification.
+
+**Sticky** domains follow the latest deployment that matches a condition (a branch, an environment, or production). The URL stays the same, but the deployment behind it changes as you push new code. Use sticky domains for bookmarks, CI/CD integrations, and sharing preview links that stay up to date.
+
+## Immutable domains
+
+<ResponseField name="Commit" type="{project}-{app}-git-{sha}-{workspace}.unkey.app">
+  Tied to a specific commit. Once created, it always resolves to the deployment built from that commit.
+
+  Example: `myapp-api-git-a1b2c3d-acme.unkey.app`
+
+  Deployments created via CLI upload include a random suffix to prevent collisions when deploying from a dirty git state.
+</ResponseField>
+
+<ResponseField name="Deployment" type="{project}-{app}-dep-{id}-{workspace}.unkey.app">
+  Tied to a specific deployment ID. Similar to commit domains, but references the deployment rather than the commit.
+
+  Example: `myapp-api-dep-xyz789-acme.unkey.app`
+</ResponseField>
+
+## Sticky domains
+
+<ResponseField name="Branch" type="{project}-{app}-git-{branch}-{workspace}.unkey.app">
+  Follows the latest deployment on a given branch. Each time you push to the branch, this domain updates to point to the new deployment.
+
+  Example: `myapp-api-git-main-acme.unkey.app`
+
+  Branch names are slugified: non-alphanumeric characters become hyphens, and the name is truncated to 80 characters.
+</ResponseField>
+
+<ResponseField name="Environment" type="{project}-{app}-{environment}-{workspace}.unkey.app">
+  Follows the latest deployment promoted to a specific environment. When you promote a new deployment or roll back, this domain updates automatically.
+
+  Example: `myapp-api-staging-acme.unkey.app`
+</ResponseField>
+
+<ResponseField name="Live" type="{project}-{app}-{workspace}.unkey.app">
+  A short-form URL that always resolves to the current production deployment. Unkey creates this domain only for the production environment.
+
+  Example: `myapp-api-acme.unkey.app`
+</ResponseField>
+
+## When to use each type
+
+| Domain | Use case |
+| --- | --- |
+| Commit | Link to an exact commit's deployment in an incident report or changelog |
+| Deployment | Reference a specific deployment for debugging or comparison |
+| Branch | Share a preview URL in a pull request that stays current |
+| Environment | Point integration tests at a stable staging URL |
+| Live | Give internal tools a short, memorable production URL |

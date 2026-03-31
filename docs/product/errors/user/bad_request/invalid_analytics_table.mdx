@@ -24,6 +24,7 @@ description: "Your query references a table that doesn't exist or isn't allowed.
 Your query tried to access a table that either doesn't exist or isn't allowed for security reasons.
 
 For security, only specific analytics tables are accessible:
+
 - `key_verifications_v1` - Raw key verification events
 - `key_verifications_per_minute_v1` - Minute-level aggregates
 - `key_verifications_per_hour_v1` - Hour-level aggregates
@@ -67,10 +68,10 @@ WHERE time >= now() - INTERVAL 1 DAY
 
 ## Available Tables
 
-| Table Name | Description |
-|------------|-------------|
-| `key_verifications_v1` | Raw verification events |
+| Table Name                        | Description             |
+| --------------------------------- | ----------------------- |
+| `key_verifications_v1`            | Raw verification events |
 | `key_verifications_per_minute_v1` | Minute-level aggregates |
-| `key_verifications_per_hour_v1` | Hour-level aggregates |
-| `key_verifications_per_day_v1` | Day-level aggregates |
-| `key_verifications_per_month_v1` | Month-level aggregates |
+| `key_verifications_per_hour_v1`   | Hour-level aggregates   |
+| `key_verifications_per_day_v1`    | Day-level aggregates    |
+| `key_verifications_per_month_v1`  | Month-level aggregates  |

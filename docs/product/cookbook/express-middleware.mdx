@@ -31,15 +31,15 @@ declare global {
 export async function unkeyAuth(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   // 1. Extract API key
   const authHeader = req.headers.authorization;
-  
+
   if (!authHeader?.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Missing API key" });
   }
-  
+
   const apiKey = authHeader.slice(7);
 
   // 2. Verify with Unkey
@@ -50,7 +50,9 @@ export async function unkeyAuth(
   // 3. Handle errors
   if (error) {
     console.error("Unkey error:", error);
-    return res.status(503).json({ error: "Authentication service unavailable" });
+    return res
+      .status(503)
+      .json({ error: "Authentication service unavailable" });
   }
 
   // 4. Check validity
@@ -82,7 +84,7 @@ app.get("/health", (req, res) => {
 app.get("/api/data", unkeyAuth, (req, res) => {
   // Access verification result
   const { identity, meta, remaining } = req.unkey!;
-  
+
   res.json({
     message: "Access granted",
     user: identity?.externalId,
@@ -118,10 +120,10 @@ Include rate limit info in response headers:
 export async function unkeyAuth(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   const authHeader = req.headers.authorization;
-  
+
   if (!authHeader?.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Missing API key" });
   }
@@ -174,14 +176,14 @@ const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 export function requirePermission(permission: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader?.startsWith("Bearer ")) {
       return res.status(401).json({ error: "Missing API key" });
     }
 
     const { meta, data, error } = await unkey.keys.verifyKey({
       key: authHeader.slice(7),
-      permissions: permission,  // Check for this permission
+      permissions: permission, // Check for this permission
     });
 
     if (error) {
@@ -190,7 +192,7 @@ export function requirePermission(permission: string) {
 
     if (!data.valid) {
       if (data.code === "INSUFFICIENT_PERMISSIONS") {
-        return res.status(403).json({ 
+        return res.status(403).json({
           error: "Forbidden",
           required: permission,
         });
@@ -233,20 +235,26 @@ interface AuthOptions {
   permissions?: string;
   getKey?: (req: Request) => string | null;
   onError?: (req: Request, res: Response, error: Error) => void;
-  onInvalid?: (req: Request, res: Response, result: V2KeysVerifyKeyResponseData) => void;
+  onInvalid?: (
+    req: Request,
+    res: Response,
+    result: V2KeysVerifyKeyResponseData,
+  ) => void;
 }
 
 export function createAuthMiddleware(options: AuthOptions = {}) {
   const {
     permissions,
     getKey = (req) => req.headers.authorization?.slice(7) ?? null,
-    onError = (req, res) => res.status(503).json({ error: "Service unavailable" }),
-    onInvalid = (req, res, result) => res.status(401).json({ error: result.code }),
+    onError = (req, res) =>
+      res.status(503).json({ error: "Service unavailable" }),
+    onInvalid = (req, res, result) =>
+      res.status(401).json({ error: result.code }),
   } = options;
 
   return async (req: Request, res: Response, next: NextFunction) => {
     const apiKey = getKey(req);
-    
+
     if (!apiKey) {
       return res.status(401).json({ error: "Missing API key" });
     }
@@ -293,10 +301,10 @@ Graceful degradation when Unkey is unavailable:
 export async function unkeyAuth(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   const apiKey = req.headers.authorization?.slice(7);
-  
+
   if (!apiKey) {
     return res.status(401).json({ error: "Missing API key" });
   }
@@ -309,10 +317,10 @@ export async function unkeyAuth(
     if (error) {
       // Log for monitoring
       console.error("Unkey verification error:", error);
-      
+
       // Option 1: Fail closed (more secure)
       return res.status(503).json({ error: "Authentication unavailable" });
-      
+
       // Option 2: Fail open (better availability, less secure)
       // console.warn("Allowing request due to Unkey unavailability");
       // return next();
@@ -324,7 +332,6 @@ export async function unkeyAuth(
 
     req.unkey = data;
     next();
-    
   } catch (e) {
     console.error("Unexpected auth error:", e);
     return res.status(503).json({ error: "Authentication service error" });

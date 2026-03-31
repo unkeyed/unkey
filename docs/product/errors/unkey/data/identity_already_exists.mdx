@@ -3,10 +3,7 @@ title: "identity_already_exists"
 description: "The requested identity already exists"
 ---
 
-<Danger>
-err:unkey:data:identity_already_exists
-</Danger>
-
+<Danger>err:unkey:data:identity_already_exists</Danger>
 
 ```json Example
 {
@@ -27,6 +24,7 @@ err:unkey:data:identity_already_exists
 This error occurs when you're trying to create an identity with an external ID that already exists in your Unkey workspace. External IDs must be unique within a workspace to avoid confusion and maintain data integrity.
 
 Common scenarios that trigger this error:
+
 - Creating an identity with an external ID that's already in use
 - Re-creating a previously deleted identity with the same external ID
 - Migration or import processes that don't check for existing identities
@@ -43,7 +41,7 @@ curl -X POST https://api.unkey.com/v2/identities.createIdentity \
     "externalId": "user_123",
     "meta": {
       "name": "John Doe",
-      "email": "john@example.com"
+      "email": "john@acme.com"
     }
   }'
 ```
@@ -67,7 +65,7 @@ curl -X POST https://api.unkey.com/v2/identities.updateIdentity \
     "externalId": "user_123",
     "meta": {
       "name": "John Doe",
-      "email": "updated_email@example.com"
+      "email": "updated_email@acme.com"
     }
   }'
 ```
@@ -99,5 +97,6 @@ async function getOrCreateIdentity(externalId, meta) {
 - **Cross-environment duplication**: Using the same external IDs across development and production environments
 
 ## Related Errors
+
 - [err:unkey:data:identity_not_found](./identity_not_found) - When the requested identity doesn't exist
 - [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to perform operations on identities
