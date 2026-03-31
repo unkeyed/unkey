@@ -114,6 +114,8 @@ Create a new instance for ratelimiting by providing the necessary configuration.
 <Expandable title="RatelimitConfig">
 <ParamField body="limit" type="number" required>
 How many requests may pass in the given duration.
+
+The `limit` value is evaluated per-request and does not affect how counters are identified. Counters are keyed by namespace, identifier, and duration only. This means changing the `limit` does not reset or create a new counter.
 </ParamField>
 
 <ParamField body="duration" type="Duration | number" required placeholder="60s">

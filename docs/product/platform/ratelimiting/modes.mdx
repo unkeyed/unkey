@@ -24,6 +24,24 @@ graph LR
     D -->|No| F[Reject]
 ```
 
+## How counters are identified
+
+Each rate limit counter is uniquely identified by the combination of **namespace**, **identifier**, and **duration**. The `limit` value is _not_ part of the counter key — this means you can send different `limit` values for the same identifier and duration, and they all share the same counter.
+
+This is useful when you want to dynamically adjust a user's limit without resetting their counter:
+
+```typescript
+// Both calls share the same counter for user_123 with a 60s window.
+// The limit is evaluated per-request, not used to create separate counters.
+await limiter.limit("user_123", { limit: 100 });  // e.g. free tier check
+await limiter.limit("user_123", { limit: 500 });  // e.g. after upgrade
+```
+
+<Info>
+  If you need truly separate rate limits for the same identifier, use different
+  **namespaces** or **durations**.
+</Info>
+
 ## Sliding window algorithm
 
 Unkey uses a sliding window algorithm that provides smooth rate limiting without the "burst at window start" problem of fixed windows.

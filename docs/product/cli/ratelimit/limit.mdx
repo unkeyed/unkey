@@ -35,6 +35,8 @@ The entity being rate limited. Use user IDs for per-user limits, IP addresses fo
 
 <ParamField body="--limit" type="integer" required>
 Maximum operations allowed within the duration window before requests are rejected. When this limit is reached, subsequent requests fail until the window resets. Balance user experience with resource protection when setting limits for different user tiers.
+
+The `limit` value is evaluated per-request and does not affect how counters are identified. Counters are keyed by namespace, identifier, and duration only — sending different `limit` values for the same identifier and duration reuses the same counter.
 </ParamField>
 
 <ParamField body="--duration" type="integer" required>
