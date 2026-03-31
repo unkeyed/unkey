@@ -7,37 +7,67 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-Variables are encrypted key-value pairs that Unkey injects into your application as environment variables at runtime. Each variable is scoped to a specific [environment](/environments/overview), so production and preview can have different values.
+Every variable is **encrypted before it is written to the database** — Unkey never stores unencrypted values. Variables are injected into your application as environment variables at runtime. Each variable is scoped to a specific [environment](/environments/overview), so production and preview can have different values.
+
+You manage variables from the **Environment Variables** tab in your project dashboard.
+
+<Frame>
+  <img className="block dark:hidden" src="/platform/variables/variables-list-light.png" alt="Environment variables list" />
+  <img className="hidden dark:block" src="/platform/variables/variables-list-dark.png" alt="Environment variables list" />
+</Frame>
 
 ## Create variables
 
-1. Open your project's **Settings** tab.
-2. Select the environment (production or preview).
-3. Under **Environment variables**, click **Add variable**.
-4. Enter the key and value.
-5. Choose the visibility type.
-6. Save the changes.
+1. Open your project and go to the **Environment Variables** tab.
+2. Click **Add Environment Variable** to open the slide panel.
+3. Enter one or more key-value pairs.
+4. Select the target environment, or choose **All Environments** to apply the variable everywhere.
+5. Toggle **Sensitive** if the value should be write-only.
+6. Click **Save**.
 
-You can also paste multiple variables in bulk or drag and drop a `.env` file.
+<Frame>
+  <img className="block dark:hidden" src="/platform/variables/add-variable-light.png" alt="Add environment variable panel" />
+  <img className="hidden dark:block" src="/platform/variables/add-variable-dark.png" alt="Add environment variable panel" />
+</Frame>
 
-{/* TODO: screenshot of variables UI */}
+### Bulk import
 
-## Visibility types
+You can add multiple variables at once:
 
-Each variable has a visibility type that controls whether the value can be read back after saving:
+- **Paste** — paste content in `KEY=value` format (one per line) directly into the form. Unkey parses each line into a separate entry.
+- **Drag and drop** — drag a `.env` file onto the form to import all variables from the file.
+- **File picker** — click the import button and select a `.env` file from your file system.
 
-| Type           | Description                                                             |
-| -------------- | ----------------------------------------------------------------------- |
-| **Recoverable** | The value can be viewed in the dashboard after saving                   |
-| **Write-only** | The value is hidden after saving and cannot be retrieved from the dashboard |
+### Form persistence
 
-Use write-only for secrets like API keys, database passwords, and tokens. Use recoverable for non-sensitive configuration like feature flags, service URLs, and port numbers.
+If you close the panel or navigate away before saving, Unkey preserves your unsaved entries for the current session. When you reopen the panel, your draft is restored so you can pick up where you left off. A leave-prevention prompt also appears if you attempt to refresh or close the browser tab while the panel is open.
 
-{/* TODO: screenshot showing visibility type selection */}
+## Search, filter, and sort
 
-<Tip>
-  All variables are encrypted at rest regardless of visibility type. The distinction only affects whether the value is displayed in the dashboard.
-</Tip>
+The toolbar above the variable list lets you:
+
+- **Search** — filter variables by name using the search field.
+- **Filter by environment** — show only variables for a specific environment, or select **All Environments** to see everything.
+- **Sort** — order variables by **Last Updated** or **Name A-Z**.
+
+## Edit and delete variables
+
+Click any variable row to open the inline editor. You can update the key, value, or note. Use the action menu on each row to delete a variable.
+
+<Frame>
+  <img className="block dark:hidden" src="/platform/variables/edit-variable-light.png" alt="Edit variable inline editor" />
+  <img className="hidden dark:block" src="/platform/variables/edit-variable-dark.png" alt="Edit variable inline editor" />
+</Frame>
+
+<Note>
+  Unkey validates variable names for uniqueness within the same environment. If a variable with the same key already exists in the target environment, the form shows an error.
+</Note>
+
+## Sensitive variables
+
+All variables are encrypted before they are stored — the **Sensitive** toggle does not change how a variable is encrypted. It only controls whether the value can be read back in the dashboard after saving.
+
+When **Sensitive** is enabled, the value becomes write-only: you can update or delete it, but you cannot reveal it again. Use this for API keys, database passwords, and tokens. Leave it off for non-sensitive configuration like feature flags, service URLs, and port numbers where being able to check the current value is useful.
 
 ## Environment scoping
 
@@ -49,11 +79,11 @@ Variables are tied to a specific environment. This lets you use different config
 | `LOG_LEVEL`      | `warn`                             | `debug`                           |
 | `FEATURE_V2_UI`  | `false`                            | `true`                            |
 
+When adding a variable, you can select **All Environments** to set the same key-value pair across every environment in one step.
+
 ## Variables and deployments
 
-Deployments are immutable. Variable changes don't affect running deployments. To apply updated variables, trigger a new deployment.
-
-This means you can update variables safely without worrying about side effects on running instances. The new values only take effect when the next deployment starts.
+Deployments are immutable. Variable changes don't affect running deployments. To apply updated variables, trigger a new deployment. A redeploy banner appears at the top of the page after you make changes as a reminder.
 
 ## Next steps
 
