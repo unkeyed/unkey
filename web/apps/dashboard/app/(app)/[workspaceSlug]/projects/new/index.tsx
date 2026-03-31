@@ -50,7 +50,7 @@ export const Onboarding = () => {
           </div>
         </StepWizard.Step>
         {!hasGithubInstallation && (
-          <StepWizard.Step id="connect-github" label="Connect GitHub">
+          <StepWizard.Step id="connect-github" label="Import source">
             {projectId ? (
               <div className="flex flex-col items-center justify-center h-screen">
                 <OnboardingStepHeader
@@ -58,7 +58,7 @@ export const Onboarding = () => {
                   showIconRow
                   subtitle={
                     <>
-                      Connect a GitHub repo and get a live URL in minutes.
+                      Connect a source and get a live URL in minutes.
                       <br />
                       Unkey handles builds, infra, scaling, and routing.
                     </>
