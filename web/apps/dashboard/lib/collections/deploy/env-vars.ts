@@ -2,6 +2,7 @@
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 
+import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
 import { trackSave } from "./environment-settings";
@@ -82,41 +83,60 @@ export const envVars = createCollection<EnvVar, string>(
         })
         .parse(changes);
 
-      await trackSave(
-        trpcClient.deploy.envVar.create.mutate({
-          environmentId: insertInput.environmentId,
-          variables: [
-            {
-              key: insertInput.key,
-              value: insertInput.value,
-              type: insertInput.type,
-              description: insertInput.description ?? null,
-            },
-          ],
-        }),
-      );
+      const mutation = trpcClient.deploy.envVar.create.mutate({
+        environmentId: insertInput.environmentId,
+        variables: [
+          {
+            key: insertInput.key,
+            value: insertInput.value,
+            type: insertInput.type,
+            description: insertInput.description ?? null,
+          },
+        ],
+      });
+
+      await trackSave(mutation);
     },
     onUpdate: async ({ transaction }) => {
       const { original, modified } = transaction.mutations[0];
 
-      await trackSave(
-        trpcClient.deploy.envVar.update.mutate({
-          envVarId: original.id,
-          key: modified.key,
-          value: modified.value,
-          type: modified.type,
-          description: modified.description,
+      const mutation = trpcClient.deploy.envVar.update.mutate({
+        envVarId: original.id,
+        environmentId: modified.environmentId,
+        key: modified.key,
+        value: modified.value,
+        type: modified.type,
+        description: modified.description,
+      });
+
+      toast.promise(mutation, {
+        loading: "Updating environment variable...",
+        success: "Environment variable updated",
+        error: (err) => ({
+          message: "Failed to update environment variable",
+          description: err.message,
         }),
-      );
+      });
+
+      await trackSave(mutation);
     },
     onDelete: async ({ transaction }) => {
       const { original } = transaction.mutations[0];
 
-      await trackSave(
-        trpcClient.deploy.envVar.delete.mutate({
-          envVarId: original.id,
+      const mutation = trpcClient.deploy.envVar.delete.mutate({
+        envVarId: original.id,
+      });
+
+      toast.promise(mutation, {
+        loading: "Deleting environment variable...",
+        success: "Environment variable deleted",
+        error: (err) => ({
+          message: "Failed to delete environment variable",
+          description: err.message,
         }),
-      );
+      });
+
+      await trackSave(mutation);
     },
   }),
 );

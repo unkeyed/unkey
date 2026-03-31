@@ -33,12 +33,7 @@ export function EnvVarActionMenu({ envVarId, variableKey, type, onEdit }: EnvVar
       divider: true,
       onClick: (e) => {
         e.stopPropagation();
-        try {
-          collection.envVars.delete(envVarId);
-          toast.success("Variable deleted");
-        } catch {
-          toast.error("Failed to delete variable");
-        }
+        collection.envVars.delete(envVarId);
       },
     },
     {

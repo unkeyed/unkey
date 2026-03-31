@@ -137,6 +137,7 @@ export function EnvVarsList({
             <div className="grid animate-expand-down overflow-hidden">
               <div className="min-h-0">
                 <EnvVarEditRow
+                  environmentId={item.environmentId}
                   envVarId={item.id}
                   variableKey={item.key}
                   type={item.type}
