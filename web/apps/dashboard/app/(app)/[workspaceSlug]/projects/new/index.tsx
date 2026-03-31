@@ -99,11 +99,7 @@ export const Onboarding = () => {
               subtitle="Review the defaults. Edit anything you'd like to adjust."
               allowBack
             />
-            <ConfigureDeploymentStep
-              projectId={projectId}
-              isFirstTimeOnboarding={isFirstTimeOnboarding}
-              onDeploymentCreated={setDeploymentId}
-            />
+            <ConfigureDeploymentStep projectId={projectId} />
           </OnboardingStepContainer>
         ) : null}
       </StepWizard.Step>

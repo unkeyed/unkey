@@ -7,23 +7,13 @@ import { ConfigureDeploymentFallback } from "./fallback";
 
 type ConfigureDeploymentStepProps = {
   projectId: string;
-  isFirstTimeOnboarding: boolean;
-  onDeploymentCreated: (deploymentId: string) => void;
 };
 
-export const ConfigureDeploymentStep = ({
-  projectId,
-  isFirstTimeOnboarding,
-  onDeploymentCreated,
-}: ConfigureDeploymentStepProps) => {
+export const ConfigureDeploymentStep = ({ projectId }: ConfigureDeploymentStepProps) => {
   return (
     <ProjectDataProvider projectId={projectId}>
       <OnboardingEnvironmentSettingsProvider>
-        <ConfigureDeploymentContent
-          projectId={projectId}
-          isFirstTimeOnboarding={isFirstTimeOnboarding}
-          onDeploymentCreated={onDeploymentCreated}
-        />
+        <ConfigureDeploymentContent />
       </OnboardingEnvironmentSettingsProvider>
       <ConfigureDeploymentFallback />
     </ProjectDataProvider>
