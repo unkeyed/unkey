@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
 import { ChartActivity2 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
+import { STATUS_STYLES } from "@unkey/ui";
 import { useRef, useState } from "react";
-import { STATUS_STYLES } from "../utils/get-row-class";
 
 export const LastUsedCell = ({
   lastUsedAt,
@@ -18,7 +18,7 @@ export const LastUsedCell = ({
     <Badge
       ref={badgeRef}
       className={cn(
-        "px-1.5 rounded-md flex gap-2 items-center max-w-min h-[22px] border-none cursor-pointer",
+        "px-1.5 rounded-md flex gap-2 items-center max-w-min h-5.5 border-none cursor-pointer",
         isSelected ? STATUS_STYLES.badge.selected : STATUS_STYLES.badge.default,
       )}
       onMouseOver={() => {

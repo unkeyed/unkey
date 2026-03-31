@@ -44,7 +44,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
     return (
       <div
         className={cn(
-          "flex items-center justify-center h-[22px] w-[100px]",
+          "flex items-center justify-center h-5.5 w-25",
           "px-1.5 py-1 rounded-md",
           "bg-errorA-3 text-errorA-11 text-xs",
         )}
@@ -63,7 +63,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
         <div>
           {statuses && statuses.length > 1 && (
             <div className="border-b border-grayA-3">
-              <div className="flex flex-col px-px py-px gap-1 w-[260px] p-1">
+              <div className="flex flex-col px-px py-px gap-1 w-65 p-1">
                 <div className="text-accent-12 font-medium text-[13px]">Key status overview</div>
                 <div className="text-accent-10 text-xs ">
                   This key has{" "}
@@ -79,7 +79,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
               className={cn("border-grayA-3", i !== statuses.length - 1 && "border-b")}
               key={status.type || i}
             >
-              <div className="flex items-start gap-1.5 flex-col w-[260px] p-1">
+              <div className="flex items-start gap-1.5 flex-col w-65 p-1">
                 <div className="shrink-0 mt-0.5">
                   <StatusBadge
                     primary={{
