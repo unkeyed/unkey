@@ -161,7 +161,7 @@ export const QuickNavPopover = ({
       <PopoverTrigger>{children}</PopoverTrigger>
       <PopoverContent
         className={cn(
-          "w-60 bg-gray-1 dark:bg-black drop-shadow-2xl transform-gpu p-2 border-gray-6 rounded-lg",
+          "w-60 bg-gray-1 dark:bg-black drop-shadow-2xl transform-gpu p-2 border-gray-6 rounded-lg overflow-y-auto",
         )}
         align="start"
         onKeyDown={handleKeyDown}
@@ -177,11 +177,13 @@ export const QuickNavPopover = ({
               shouldScroll ? "overflow-auto" : "overflow-visible",
               useVirtual ? "" : "flex flex-col gap-1",
             )}
-            style={{
-              height: useVirtual ? maxHeight : shouldScroll ? maxHeight : "auto",
-              maxHeight: maxHeight,
-              width: "100%",
-            }}
+            style={
+              useVirtual
+                ? { height: maxHeight, maxHeight, width: "100%" }
+                : shouldScroll
+                  ? { maxHeight, width: "100%", overflowY: "auto" }
+                  : { width: "100%" }
+            }
           >
             {useVirtual ? (
               <div

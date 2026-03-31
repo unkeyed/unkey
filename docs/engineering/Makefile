@@ -1,12 +1,9 @@
-.PHONY: sync dev lint
+.PHONY: dev
+dev:
+	npx mintlify@latest dev
 
-sync:
-	@bun run scripts/sync-infra-docs.ts
-
-dev: sync
-	bunx mintlify@latest dev
-
-lint: sync
-	bunx mintlify@latest broken-links
-	bunx mintlify@latest validate
-	bunx mintlify@latest a11y
+.PHONY: lint
+lint:
+	npx mintlify@latest broken-links
+	npx mintlify@latest validate
+	npx mintlify@latest a11y

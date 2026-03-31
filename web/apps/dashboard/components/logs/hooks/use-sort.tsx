@@ -52,9 +52,17 @@ export function useSort<TSortFields extends string>(paramName = "sorts") {
     [sortParams, setSortParams],
   );
 
+  const setSorts = useCallback(
+    (newSorts: SortUrlValue<TSortFields>[]) => {
+      setSortParams(newSorts.length > 0 ? newSorts : null);
+    },
+    [setSortParams],
+  );
+
   return {
     sorts: sortParams ?? [],
     getSortDirection,
     toggleSort,
+    setSorts,
   } as const;
 }

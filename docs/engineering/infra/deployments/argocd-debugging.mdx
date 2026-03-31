@@ -1,0 +1,318 @@
+---
+title: ArgoCD Debugging Commands
+description: Debugging ArgoCD apps, syncs, and clusters.
+---
+
+## Applications
+
+```bash
+# List all applications and their sync/health status
+kubectl get applications -n argocd
+
+# Get detailed status for a specific application
+kubectl get application <name> -n argocd -o yaml
+
+# Check why an application is failing to sync
+kubectl get application <name> -n argocd -o jsonpath='{.status.operationState.message}'
+
+# Check sync status and revision
+kubectl get application <name> -n argocd -o jsonpath='{.status.sync.status}'
+kubectl get application <name> -n argocd -o jsonpath='{.status.sync.revision}'
+
+# Check health status
+kubectl get application <name> -n argocd -o jsonpath='{.status.health.status}'
+
+# List all applications with their sync status in a table
+kubectl get applications -n argocd -o custom-columns='NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status'
+
+# Find applications that are not synced
+kubectl get applications -n argocd -o json | jq -r '.items[] | select(.status.sync.status != "Synced") | .metadata.name'
+
+# Find applications that are unhealthy
+kubectl get applications -n argocd -o json | jq -r '.items[] | select(.status.health.status != "Healthy") | "\(.metadata.name): \(.status.health.status)"'
+```
+
+## ApplicationSets
+
+```bash
+# List all applicationsets
+kubectl get applicationsets -n argocd
+
+# Check an applicationset's generators and template
+kubectl get applicationset <name> -n argocd -o yaml
+
+# Check what applications an applicationset has generated
+kubectl get applications -n argocd -l 'app.kubernetes.io/instance=<name>'
+
+# Check applicationset controller logs for generation errors
+kubectl logs -n argocd -l app.kubernetes.io/name=argocd-applicationset-controller --tail=50
+```
+
+## Syncing
+
+```bash
+# Force a refresh (re-read from git without syncing)
+kubectl patch application <name> -n argocd --type merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"normal"}}}'
+
+# Force a hard refresh (clear cache and re-read)
+kubectl patch application <name> -n argocd --type merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
+
+# Trigger a sync via kubectl
+kubectl patch application <name> -n argocd --type merge -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"revision":"HEAD"}}}'
+```
+
+## Logs
+
+```bash
+# ArgoCD server logs (UI, API, sync operations)
+kubectl logs -n argocd -l app.kubernetes.io/name=argocd-server --tail=100
+
+# Application controller logs (sync, health checks)
+kubectl logs -n argocd -l app.kubernetes.io/name=argocd-application-controller --tail=100
+
+# Repo server logs (git clone, helm template errors)
+kubectl logs -n argocd -l app.kubernetes.io/name=argocd-repo-server --tail=100
+
+# ApplicationSet controller logs
+kubectl logs -n argocd -l app.kubernetes.io/name=argocd-applicationset-controller --tail=100
+
+# Filter logs for a specific application
+kubectl logs -n argocd -l app.kubernetes.io/name=argocd-application-controller --tail=200 | grep '<app-name>'
+```
+
+## Repository
+
+```bash
+# Check configured repositories
+kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=repository
+
+# View repo connection details (redacted)
+kubectl get secret -n argocd -l argocd.argoproj.io/secret-type=repository -o jsonpath='{.items[0].data.url}' | base64 -d
+
+# Check repo server connectivity
+kubectl exec -n argocd deploy/argocd-repo-server -- ls /tmp
+```
+
+## Cluster
+
+```bash
+# Check cluster labels (used by applicationset generators)
+kubectl get secret -n argocd -l argocd.argoproj.io/secret-type=cluster -o json | jq '.items[] | {name: (.data.name // "in-cluster" | @base64d), labels: .metadata.labels}'
+
+# For in-cluster, labels are stored differently
+kubectl get configmap argocd-cm -n argocd -o yaml
+```
+
+## Port-forward to ArgoCD UI
+
+```bash
+# Access the UI locally
+kubectl port-forward svc/argocd-server -n argocd 8443:443
+
+# Then open https://localhost:8443
+
+# Get the admin password (if initial secret still exists)
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
+
+## Fresh Cluster Triage
+
+After `setup-cluster.sh` completes and configs have been pushed to git, walk through
+these checks in order:
+
+### 1. Are ApplicationSets installed and generating apps?
+
+```bash
+# ApplicationSets should exist (deployed by setup-argocd.sh)
+kubectl get applicationsets -n argocd
+
+# Applications should be generated from the ApplicationSets
+kubectl get applications -n argocd -o custom-columns='NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status'
+```
+
+If **no ApplicationSets** exist, `setup-argocd.sh` may not have completed — check its
+output or re-run it.
+
+If ApplicationSets exist but **no applications** are generated, continue to step 2.
+
+### 2. Verify cluster labels
+
+ApplicationSets use a `clusters: {}` generator that reads labels from the in-cluster
+secret. If labels are missing or wrong, no applications will be generated.
+
+```bash
+# Check what labels are set
+argocd cluster get in-cluster -o json | jq '.labels'
+```
+
+Required labels (set by `setup-argocd.sh`):
+
+| Label | Expected value (example) |
+| --- | --- |
+| `environment` | `production001` |
+| `region` | `us-east-1` |
+| `provider` | `aws` |
+| `clusterSuffix` | (empty string unless coexisting with legacy) |
+
+If labels are wrong, fix them:
+```bash
+argocd cluster set in-cluster \
+    --label environment=production001 \
+    --label region=us-east-1 \
+    --label provider=aws \
+    --label clusterSuffix=""
+```
+
+### 3. Check promotion files point to the right revision
+
+Each ApplicationSet reads a promotion file to get the target revision:
+`eks-cluster/promotions/<environment>/<app>.yaml`
+
+If the promotion file doesn't exist for an app, the git generator won't match and
+no application is created. Verify:
+```bash
+ls eks-cluster/promotions/production001/
+```
+
+**Critical for new clusters:** A new cluster requires a promotion of every app to a
+commit that includes the new region's environment files. If the promotion files still
+pin an older commit (from before the region config was added), ArgoCD will check out
+that old commit and fail with "no such file or directory" for every values file. This
+is the most common cause of all apps showing `Unknown` on a fresh cluster.
+
+```bash
+# Check what revision an app is pinned to
+cat eks-cluster/promotions/production001/core.yaml
+
+# If it's older than the commit that added the region config, promote all apps
+# Use origin HEAD (not local) since ArgoCD fetches from the remote
+./scripts/promote production001 $(git ls-remote origin main | awk '{print $1}')
+git add eks-cluster/promotions/ && git commit -m "Promote all apps for new region" && git push
+```
+
+### 4. Apps exist but show `Unknown` sync status
+
+`Unknown` means the repo server failed to render manifests (helm template failed).
+This is the most common issue on a fresh cluster.
+
+**Step A: Check repo server logs for the actual error**
+```bash
+kubectl logs -n argocd -l app.kubernetes.io/name=argocd-repo-server --tail=200 \
+    | grep 'level=error' | head -10
+```
+
+Look at the error message at the end of each line. You'll typically see one of:
+- `no such file or directory` — a values file is missing from the git repo
+- `parse error` / `YAML` — a values file has invalid syntax
+- `authentication required` — git credentials aren't working
+
+**Step B: If the error is "no such file or directory", check the promotion revision**
+
+This is the most common cause on a fresh cluster. Each app's `targetRevision` comes
+from a promotion file (`eks-cluster/promotions/<env>/<app>.yaml`), which pins a
+specific git SHA. If the promotion file still points to a commit from *before* the
+new region's env files were added, the repo server will check out that old commit
+and the files genuinely won't exist.
+
+Check what revision an app is targeting:
+```bash
+kubectl get application <name> -n argocd -o yaml | grep targetRevision
+```
+
+Compare that SHA with the commit that added your region's config files. If the
+promotion revision is older, that's the problem — **update the promotion files** to
+a revision that includes the new env files, then push.
+
+**Step C: If the promotion revision is correct, check for a stale repo cache**
+
+The repo server caches helm template results (including errors). If files were pushed
+after ArgoCD first tried to render at the correct revision, the cache may be stale.
+
+```bash
+# Force a hard refresh to clear the cache
+for app in $(kubectl get applications -n argocd -o jsonpath='{.items[?(@.status.sync.status=="Unknown")].metadata.name}'); do
+    kubectl patch application "$app" -n argocd --type merge \
+        -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
+done
+
+# If hard refresh doesn't help, restart the repo server to wipe the on-disk cache
+kubectl rollout restart deployment argocd-repo-server -n argocd
+```
+
+After this, apps should transition from `Unknown` to `OutOfSync` or `Synced` within
+a minute. If they stay `Unknown`, re-check the repo server logs — the files may
+genuinely be missing or have syntax errors.
+
+### 5. Check applicationset controller logs
+
+```bash
+kubectl logs -n argocd -l app.kubernetes.io/name=argocd-applicationset-controller --tail=100
+```
+
+Look for errors about git file discovery, cluster matching, or template rendering.
+
+---
+
+## Common Issues
+
+### Application stuck in "Unknown" sync status
+The repo server can't render the manifests. Check repo server logs:
+```bash
+kubectl logs -n argocd -l app.kubernetes.io/name=argocd-repo-server --tail=100
+```
+Common causes: missing Helm values file, invalid chart, git auth failure.
+
+### Application stuck in "Unknown" after a fix has been pushed
+The repo server caches manifest generation results, including failures. If a values
+file was missing and you've since pushed the fix, ArgoCD may keep serving the cached
+error. Force a hard refresh to clear it:
+```bash
+# Single application
+kubectl patch application <name> -n argocd --type merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
+
+# All applications stuck in Unknown
+for app in $(kubectl get applications -n argocd -o jsonpath='{.items[?(@.status.sync.status=="Unknown")].metadata.name}'); do
+    kubectl patch application "$app" -n argocd --type merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
+done
+```
+
+### Application sync stuck in "Running" forever
+A sync operation can get permanently stuck (e.g. waiting on a health check that
+passed but wasn't detected). Hard refreshes and controller restarts won't fix this
+because the operation state is stored in the Application CR itself.
+
+If the application is managed by an ApplicationSet, delete it and let the
+ApplicationSet recreate it with a clean state:
+```bash
+# Verify the applicationset exists first
+kubectl get applicationset <name> -n argocd
+
+# Delete the stuck application (the ApplicationSet will recreate it)
+kubectl delete application <name> -n argocd
+
+# Verify it was recreated and is syncing
+kubectl get application <name> -n argocd -o custom-columns='NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status'
+```
+Do NOT do this for applications that aren't managed by an ApplicationSet — they
+won't be recreated automatically.
+
+### ApplicationSet not generating applications
+Check the controller logs and verify cluster labels match the generator selectors:
+```bash
+kubectl logs -n argocd -l app.kubernetes.io/name=argocd-applicationset-controller --tail=50
+kubectl get secret -n argocd -l argocd.argoproj.io/secret-type=cluster -o json | jq '.items[].metadata.labels'
+```
+
+### Sync failed with "one or more objects failed to apply"
+Get the full error message:
+```bash
+kubectl get application <name> -n argocd -o jsonpath='{.status.operationState.message}'
+```
+
+### Application synced but pods not running
+ArgoCD sync succeeded but the workload is unhealthy. Check the target namespace:
+```bash
+kubectl get pods -n <namespace> -o wide
+kubectl describe pod <pod-name> -n <namespace>
+kubectl logs <pod-name> -n <namespace> --tail=50
+```

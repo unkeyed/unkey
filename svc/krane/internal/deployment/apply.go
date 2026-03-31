@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,16 +21,20 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// ApplyDeployment creates or updates a user workload as a Kubernetes ReplicaSet.
+// ApplyDeployment creates or updates a user workload as a Kubernetes ReplicaSet
+// with an associated HorizontalPodAutoscaler (HPA).
 //
-// The method uses server-side apply to create or update the ReplicaSet, enabling
-// concurrent modifications from different sources without conflicts. After applying,
-// it queries the resulting pods and reports their addresses and status to the control
-// plane so the routing layer knows where to send traffic.
+// The method uses server-side apply to create or update the ReplicaSet.
+// spec.replicas is omitted so the HPA owns the replica count. The HPA's
+// minReplicas determines the minimum capacity; users should set this high
+// enough to handle traffic during rollouts.
+//
+// After applying, it queries the resulting pods and reports their addresses and status
+// to the control plane so the routing layer knows where to send traffic.
 //
 // ApplyDeployment validates all required fields and returns an error if any are missing
 // or invalid: WorkspaceId, ProjectId, EnvironmentId, DeploymentId, K8sNamespace, K8sName,
-// and Image must be non-empty; Replicas must be >= 0; CpuMillicores and MemoryMib must be > 0.
+// and Image must be non-empty; CpuMillicores and MemoryMib must be > 0.
 //
 // The namespace is created automatically if it doesn't exist, along with a
 // CiliumNetworkPolicy restricting ingress to matching sentinels. Pods run with gVisor
@@ -62,12 +67,10 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return err
 	}
 
-	// Ensure registry pull secret exists in the namespace
 	if err := c.ensureRegistryPullSecret(ctx, req.GetK8SNamespace()); err != nil {
 		return fmt.Errorf("failed to ensure registry pull secret: %w", err)
 	}
 
-	// Decrypt secrets at deploy time
 	plaintext, err := c.decryptSecrets(ctx, req.GetEncryptedEnvironmentVariables(), req.GetEnvironmentId())
 	if err != nil {
 		return fmt.Errorf("failed to decrypt secrets: %w", err)
@@ -91,10 +94,16 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Env: []corev1.EnvVar{
 			{Name: "PORT", Value: strconv.Itoa(int(req.GetPort()))},
-			{Name: "UNKEY_WORKSPACE_ID", Value: req.GetWorkspaceId()},
-			{Name: "UNKEY_PROJECT_ID", Value: req.GetProjectId()},
-			{Name: "UNKEY_ENVIRONMENT_ID", Value: req.GetEnvironmentId()},
 			{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
+			{Name: "UNKEY_ENVIRONMENT_SLUG", Value: req.GetEnvironmentSlug()},
+			{Name: "UNKEY_REGION", Value: req.GetRegion()},
+			{Name: "UNKEY_GIT_COMMIT_SHA", Value: req.GetGitCommitSha()},
+			{Name: "UNKEY_GIT_BRANCH", Value: req.GetGitBranch()},
+			{Name: "UNKEY_GIT_REPO", Value: req.GetGitRepo()},
+			{Name: "UNKEY_GIT_COMMIT_MESSAGE", Value: req.GetGitCommitMessage()},
+			{Name: "UNKEY_INSTANCE_ID", ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.name"},
+			}},
 			// Override kubelet-injected K8s service env vars with empty strings.
 			// These can't be suppressed via enableServiceLinks, but setting them
 			// explicitly prevents leaking cluster internals to customer code.
@@ -186,7 +195,6 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 			Labels:    usedLabels,
 		},
 		Spec: appsv1.ReplicaSetSpec{
-			Replicas: ptr.P(req.GetReplicas()),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels.New().DeploymentID(req.GetDeploymentId()),
 			},
@@ -245,6 +253,10 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		}
 	}
 
+	if err := c.ensureHPAExists(ctx, req, applied); err != nil {
+		return fmt.Errorf("failed to ensure HPA: %w", err)
+	}
+
 	status, err := c.buildDeploymentStatus(ctx, applied)
 	if err != nil {
 		return err
@@ -293,4 +305,116 @@ func unmarshalHealthcheck(data []byte) *dbtype.Healthcheck {
 		return nil
 	}
 	return &hc
+}
+
+// ensureHPAExists creates or updates a HorizontalPodAutoscaler that scales the
+// deployment's ReplicaSet. When an autoscaling policy is attached, its values
+// are used. Otherwise defaults to min=1, max=replicas, cpu=80%.
+// The HPA is owned by the ReplicaSet for automatic garbage collection.
+func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet) error {
+	client := c.clientSet.AutoscalingV2().HorizontalPodAutoscalers(req.GetK8SNamespace())
+
+	minReplicas := int32(1)
+	maxReplicas := max(req.GetReplicas(), 1) // fallback for deployments without a policy
+	cpuThreshold := ptr.P(int32(defaultCPUTargetUtilization))
+
+	var metrics []autoscalingv2.MetricSpec
+
+	if policy := req.GetAutoscaling(); policy != nil {
+		minReplicas = int32(max(policy.GetMinReplicas(), 1))
+		maxReplicas = max(int32(policy.GetMaxReplicas()), minReplicas) // overrides the fallback
+		if policy.CpuThreshold != nil {
+			cpuThreshold = policy.CpuThreshold
+		}
+		if policy.MemoryThreshold != nil {
+			metrics = append(metrics,
+				//nolint:exhaustruct
+				autoscalingv2.MetricSpec{
+					Type: autoscalingv2.ResourceMetricSourceType,
+					Resource: &autoscalingv2.ResourceMetricSource{
+						Name: corev1.ResourceMemory,
+						//nolint:exhaustruct
+						Target: autoscalingv2.MetricTarget{
+							Type:               autoscalingv2.UtilizationMetricType,
+							AverageUtilization: policy.MemoryThreshold,
+						},
+					},
+				},
+			)
+		}
+	}
+
+	// CPU is always a scaling signal.
+	metrics = append(metrics,
+		//nolint:exhaustruct
+		autoscalingv2.MetricSpec{
+			Type: autoscalingv2.ResourceMetricSourceType,
+			Resource: &autoscalingv2.ResourceMetricSource{
+				Name: corev1.ResourceCPU,
+				//nolint:exhaustruct
+				Target: autoscalingv2.MetricTarget{
+					Type:               autoscalingv2.UtilizationMetricType,
+					AverageUtilization: cpuThreshold,
+				},
+			},
+		},
+	)
+
+	//nolint:exhaustruct // k8s API types have many optional fields
+	desired := &autoscalingv2.HorizontalPodAutoscaler{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "autoscaling/v2",
+			Kind:       "HorizontalPodAutoscaler",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      req.GetK8SName(),
+			Namespace: req.GetK8SNamespace(),
+			Labels: labels.New().
+				WorkspaceID(req.GetWorkspaceId()).
+				ProjectID(req.GetProjectId()).
+				AppID(req.GetAppId()).
+				EnvironmentID(req.GetEnvironmentId()).
+				DeploymentID(req.GetDeploymentId()).
+				ManagedByKrane().
+				ComponentDeployment(),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         "apps/v1",
+					Kind:               "ReplicaSet",
+					Name:               rs.Name,
+					UID:                rs.UID,
+					Controller:         ptr.P(true),
+					BlockOwnerDeletion: ptr.P(true),
+				},
+			},
+		},
+		//nolint:exhaustruct
+		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
+				APIVersion: "apps/v1",
+				Kind:       "ReplicaSet",
+				Name:       req.GetK8SName(),
+			},
+			MinReplicas: ptr.P(minReplicas),
+			MaxReplicas: maxReplicas,
+			//nolint:exhaustruct
+			Behavior: &autoscalingv2.HorizontalPodAutoscalerBehavior{
+				//nolint:exhaustruct
+				ScaleDown: &autoscalingv2.HPAScalingRules{
+					StabilizationWindowSeconds: ptr.P(scaleDownStabilizationSeconds),
+				},
+			},
+			Metrics: metrics,
+		},
+	}
+
+	patch, err := json.Marshal(desired)
+	if err != nil {
+		return fmt.Errorf("failed to marshal HPA: %w", err)
+	}
+
+	_, err = client.Patch(ctx, req.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
+		FieldManager: fieldManagerKrane,
+	})
+	return err
 }

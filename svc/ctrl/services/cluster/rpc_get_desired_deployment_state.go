@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 // GetDesiredDeploymentState returns the target state for a single deployment in the caller's
@@ -84,6 +85,21 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 			Command:                       deployment.Command,
 			Port:                          deployment.Port,
 			ShutdownSignal:                string(deployment.ShutdownSignal),
+			EnvironmentSlug:               &deployment.EnvironmentSlug,
+			Region:                        &deployment.Region,
+		}
+
+		if deployment.GitCommitSha.Valid {
+			apply.GitCommitSha = &deployment.GitCommitSha.String
+		}
+		if deployment.GitBranch.Valid {
+			apply.GitBranch = &deployment.GitBranch.String
+		}
+		if deployment.GitCommitMessage.Valid {
+			apply.GitCommitMessage = &deployment.GitCommitMessage.String
+		}
+		if deployment.GitRepo.Valid {
+			apply.GitRepo = &deployment.GitRepo.String
 		}
 
 		if deployment.Healthcheck.Valid {
@@ -93,6 +109,18 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 			}
 			apply.Healthcheck = hcBytes
 		}
+
+		policy := &ctrlv1.AutoscalingPolicy{
+			MinReplicas: deployment.AutoscalingReplicasMin,
+			MaxReplicas: deployment.AutoscalingReplicasMax,
+		}
+		if deployment.AutoscalingThresholdCpu.Valid {
+			policy.CpuThreshold = ptr.P(int32(deployment.AutoscalingThresholdCpu.Int16))
+		}
+		if deployment.AutoscalingThresholdMemory.Valid {
+			policy.MemoryThreshold = ptr.P(int32(deployment.AutoscalingThresholdMemory.Int16))
+		}
+		apply.Autoscaling = policy
 
 		return connect.NewResponse(&ctrlv1.DeploymentState{
 			State: &ctrlv1.DeploymentState_Apply{

@@ -180,7 +180,7 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 	// Build and sort keys first (before getting buckets)
 	reqsWithKeys := make([]reqWithKey, len(reqs))
 	for i, req := range reqs {
-		key := bucketKey{req.Name, req.Identifier, req.Limit, req.Duration}
+		key := bucketKey{name: req.Name, identifier: req.Identifier, duration: req.Duration}
 		reqsWithKeys[i] = reqWithKey{
 			req:   req,
 			key:   key,
@@ -280,7 +280,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 		return RatelimitResponse{}, err
 	}
 
-	key := bucketKey{req.Name, req.Identifier, req.Limit, req.Duration}
+	key := bucketKey{name: req.Name, identifier: req.Identifier, duration: req.Duration}
 	span.SetAttributes(attribute.String("key", key.toString()))
 	b, _ := s.getOrCreateBucket(key)
 	b.mu.Lock()

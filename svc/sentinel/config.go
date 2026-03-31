@@ -1,6 +1,8 @@
 package sentinel
 
 import (
+	"time"
+
 	"github.com/unkeyed/unkey/pkg/config"
 )
 
@@ -10,6 +12,19 @@ type ClickHouseConfig struct {
 	// URL is the ClickHouse connection string.
 	// Example: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
 	URL string `toml:"url"`
+
+	// BatchSize is the maximum number of items to collect before flushing to ClickHouse.
+	// Applies to all event buffers (sentinel requests, key verifications).
+	// Defaults to 5000.
+	BatchSize int `toml:"batch_size" config:"default=5000,min=1"`
+
+	// BufferSize is the capacity of the channel buffer holding incoming items.
+	// When full, new items are silently dropped. Defaults to 10000.
+	BufferSize int `toml:"buffer_size" config:"default=10000,min=1"`
+
+	// Consumers is the number of goroutines that drain each buffer.
+	// Defaults to 1.
+	Consumers int `toml:"consumers" config:"default=1,min=1"`
 }
 
 // RedisConfig configures the Redis connection used for rate limiting
@@ -66,9 +81,17 @@ type Config struct {
 	// Required when sentinel middleware policies use KeyAuth with auto-applied rate limits.
 	Redis RedisConfig `toml:"redis"`
 
+	// RequestTimeout is the maximum duration for proxied requests before the
+	// context is cancelled and a 504 is returned. Defaults to 15 minutes.
+	RequestTimeout time.Duration `toml:"request_timeout" config:"default=15m"`
+
 	// Gossip configures distributed cache invalidation. See [config.GossipConfig].
 	// When nil (section omitted), gossip is disabled and invalidation is local-only.
 	Gossip *config.GossipConfig `toml:"gossip"`
+
+	// Pprof configures Go pprof profiling endpoints at /_unkey/internal/pprof/*.
+	// When nil or credentials are empty, pprof is disabled.
+	Pprof *config.PprofConfig `toml:"pprof"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through

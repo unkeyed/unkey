@@ -20,7 +20,9 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -61,6 +63,8 @@ type Harness struct {
 	UsageLimiter               usagelimiter.Service
 	Auditlogs                  auditlogs.AuditLogService
 	ClickHouse                 clickhouse.ClickHouse
+	KeyVerifications           *batch.BatchProcessor[schema.KeyVerification]
+	RatelimitEvents            *batch.BatchProcessor[schema.Ratelimit]
 	Ratelimit                  ratelimit.Service
 	Vault                      vault.VaultServiceClient
 	AnalyticsConnectionManager analytics.ConnectionManager
@@ -115,6 +119,28 @@ func NewHarness(t *testing.T) *Harness {
 		URL: chDSN,
 	})
 	require.NoError(t, err)
+
+	keyVerifications := clickhouse.NewBuffer[schema.KeyVerification](ch, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
+		Name:          "key_verifications",
+		BatchSize:     10,
+		BufferSize:    100,
+		FlushInterval: 100 * time.Millisecond,
+		Consumers:     2,
+		Drop:          true,
+		OnFlushError:  nil,
+	})
+	t.Cleanup(keyVerifications.Close)
+
+	ratelimitsfer := clickhouse.NewBuffer[schema.Ratelimit](ch, "default.ratelimits_raw_v2", clickhouse.BufferConfig{
+		Name:          "ratelimits",
+		BatchSize:     10,
+		BufferSize:    100,
+		FlushInterval: 100 * time.Millisecond,
+		Consumers:     2,
+		Drop:          true,
+		OnFlushError:  nil,
+	})
+	t.Cleanup(ratelimitsfer.Close)
 
 	validator, err := validation.New()
 	require.NoError(t, err)
@@ -175,14 +201,14 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		DB:           database,
-		KeyCache:     caches.VerificationKeyByHash,
-		QuotaCache:   caches.WorkspaceQuota,
-		RateLimiter:  ratelimitService,
-		RBAC:         rbac.New(),
-		Clickhouse:   ch,
-		Region:       "test",
-		UsageLimiter: ulSvc,
+		DB:               database,
+		KeyCache:         caches.VerificationKeyByHash,
+		QuotaCache:       caches.WorkspaceQuota,
+		RateLimiter:      ratelimitService,
+		RBAC:             rbac.New(),
+		KeyVerifications: keyVerifications,
+		Region:           "test",
+		UsageLimiter:     ulSvc,
 	})
 	require.NoError(t, err)
 
@@ -195,6 +221,8 @@ func NewHarness(t *testing.T) *Harness {
 		Ratelimit:                  ratelimitService,
 		Vault:                      v,
 		ClickHouse:                 ch,
+		KeyVerifications:           keyVerifications,
+		RatelimitEvents:            ratelimitsfer,
 		DB:                         database,
 		seeder:                     seeder,
 		Clock:                      clk,
@@ -528,6 +556,12 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 // before any test-specific data is created.
 func (h *Harness) Resources() seed.Resources {
 	return h.seeder.Resources
+}
+
+// Mux returns the underlying HTTP mux for direct request handling in tests
+// that need to inspect raw responses without test-fatal JSON unmarshalling.
+func (h *Harness) Mux() http.Handler {
+	return h.srv.Mux()
 }
 
 // TestResponse wraps an HTTP response with typed body parsing for test assertions.

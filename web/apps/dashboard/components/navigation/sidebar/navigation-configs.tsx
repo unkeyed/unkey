@@ -2,6 +2,7 @@ import type { Workspace } from "@/lib/db";
 import {
   ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,
+  BracketsSquareDots,
   Cube,
   Fingerprint,
   Gauge,
@@ -197,6 +198,12 @@ export function createProjectNavigation(
       href: `${basePath}/requests`,
       label: "Requests",
       active: segments.includes("requests") && segments.includes("projects"),
+    },
+    {
+      icon: BracketsSquareDots,
+      href: `${basePath}/env-vars`,
+      label: "Environment Variables",
+      active: segments.includes("env-vars") && segments.includes("projects"),
     },
     {
       icon: Gear,

@@ -4,13 +4,25 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { queryClient } from "@/lib/collections/client";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CodeBranch, Plus } from "@unkey/icons";
-import { Button, FormInput, TimestampInfo, toast } from "@unkey/ui";
+import { ChevronDown, CodeBranch, Plus } from "@unkey/icons";
+import {
+  Button,
+  FormDescription,
+  FormInput,
+  FormLabel,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  TimestampInfo,
+  toast,
+} from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import type React from "react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { RepoDisplay } from "../../../_components/list/repo-display";
 import { useProjectData } from "../data-provider";
@@ -24,6 +36,7 @@ const DynamicDialogContainer = dynamic(
 );
 
 const formSchema = z.object({
+  environment: z.string().min(1, "Environment is required"),
   name: z
     .string()
     .trim()
@@ -80,18 +93,30 @@ export const CreateDeploymentButton = ({
   );
 
   const branches = repoDetails.data?.branches ?? [];
-  const firstEnvironment = environments[0];
+
+  const defaultEnvironmentSlug =
+    environments.find((e) => e.slug === "production")?.slug ?? environments[0]?.slug ?? "";
 
   const {
     register,
     handleSubmit,
     setValue,
     reset,
+    control,
     formState: { errors, isValid, isSubmitting },
   } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
+    defaultValues: {
+      environment: defaultEnvironmentSlug,
+    },
   });
+
+  useEffect(() => {
+    if (defaultEnvironmentSlug) {
+      setValue("environment", defaultEnvironmentSlug, { shouldValidate: true });
+    }
+  }, [defaultEnvironmentSlug, setValue]);
 
   const createDeployment = trpc.deploy.deployment.create.useMutation({
     async onSuccess(data) {
@@ -110,21 +135,23 @@ export const CreateDeploymentButton = ({
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!firstEnvironment) {
-      return;
-    }
     createDeployment.mutate({
       projectId,
-      environmentSlug: firstEnvironment.slug,
+      environmentSlug: values.environment,
       gitRef: values.name,
     });
   }
 
   return (
     <>
-      <NavbarActionButton {...rest} color="default" onClick={() => setIsOpen(true)}>
-        <Plus />
-        Create new deployment
+      <NavbarActionButton
+        {...rest}
+        color="default"
+        variant="outline"
+        className="size-7"
+        onClick={() => setIsOpen(true)}
+      >
+        <Plus iconSize="sm-regular" />
       </NavbarActionButton>
       <DynamicDialogContainer
         isOpen={isOpen}
@@ -139,7 +166,9 @@ export const CreateDeploymentButton = ({
               form="create-deployment-form"
               variant="primary"
               size="xlg"
-              disabled={createDeployment.isLoading || isSubmitting || !isValid || !firstEnvironment}
+              disabled={
+                createDeployment.isLoading || isSubmitting || !isValid || environments.length === 0
+              }
               loading={createDeployment.isLoading || isSubmitting}
               className="w-full rounded-lg"
             >
@@ -148,7 +177,7 @@ export const CreateDeploymentButton = ({
           </div>
         }
       >
-        <div className="flex flex-col gap-8 py-3">
+        <div className="flex flex-col gap-10 py-3">
           {repositoryFullName && (
             <div className="flex items-start gap-2 flex-col">
               <RepoDisplay
@@ -170,9 +199,46 @@ export const CreateDeploymentButton = ({
             </div>
           )}
 
-          <form id="create-deployment-form" onSubmit={handleSubmit(onSubmit)}>
+          <form
+            id="create-deployment-form"
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col gap-6"
+          >
+            <fieldset className="flex flex-col gap-2 border-0 m-0 p-0">
+              <FormLabel label="Environment" htmlFor="environment-select" />
+              <Controller
+                control={control}
+                name="environment"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger
+                      id="environment-select"
+                      className="capitalize"
+                      variant={errors.environment ? "error" : "default"}
+                      rightIcon={<ChevronDown className="absolute right-3 size-3 opacity-70" />}
+                    >
+                      <SelectValue placeholder="Select environment" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {environments.map((env) => (
+                        <SelectItem key={env.id} value={env.slug} className="capitalize">
+                          {env.slug}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FormDescription
+                description="Target environment for this deployment."
+                descriptionId="environment-select-description"
+                errorId="environment-select-error"
+                error={errors.environment?.message}
+              />
+            </fieldset>
             <FormInput
               label="Commit or Branch Reference"
+              className="min-h-9"
               description={
                 repositoryFullName
                   ? `Paste a valid commit reference to create a new deployment in addition to those auto-generated from ${repositoryFullName}.`
@@ -189,35 +255,40 @@ export const CreateDeploymentButton = ({
           </form>
 
           {repositoryFullName && (
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col divide-y divide-gray-4 rounded-md border border-gray-4">
               {repoDetails.isLoading &&
-                Array.from({ length: 3 }).map((_, i) => (
+                Array.from({ length: 5 }).map((_, i) => (
                   <div
                     key={`skeleton-${
                       // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders
                       i
                     }`}
-                    className="h-7 w-20 bg-gray-3 rounded-md animate-pulse"
-                  />
+                    className="flex items-center justify-between px-3 py-2 h-[36.5px]"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-4 w-4 bg-gray-3 rounded animate-pulse" />
+                      <span className="h-4 w-24 bg-gray-3 rounded animate-pulse" />
+                    </span>
+                    <span className="h-3 w-12 bg-gray-3 rounded animate-pulse" />
+                  </div>
                 ))}
               {branches.map((branch) => (
                 <button
                   key={branch.name}
                   type="button"
                   onClick={() => setValue("name", branch.name, { shouldValidate: true })}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-3 rounded-md text-xs text-grayA-11 hover:bg-gray-4 transition-colors cursor-pointer"
+                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors cursor-pointer text-[13px] text-grayA-11"
                 >
-                  <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
-                  <span className="truncate">{branch.name}</span>
+                  <span className="flex items-center gap-1.5 min-w-0 max-w-[300px]">
+                    <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
+                    <span className="truncate">{branch.name}</span>
+                  </span>
                   {branch.lastPushDate && (
-                    <span>
-                      <span className="text-gray-8">·</span>
-                      <TimestampInfo
-                        value={branch.lastPushDate}
-                        displayType="relative"
-                        className="text-gray-10 shrink-0"
-                      />
-                    </span>
+                    <TimestampInfo
+                      value={branch.lastPushDate}
+                      displayType="relative"
+                      className="text-gray-11 shrink-0 ml-3"
+                    />
                   )}
                 </button>
               ))}

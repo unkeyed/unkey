@@ -55,7 +55,7 @@ import { Ratelimit } from "@unkey/ratelimit";
 const limiter = new Ratelimit({
   rootKey: Bun.env.UNKEY_ROOT_KEY!,
   namespace: "bun-api",
-  limit: 10,       // 10 requests...
+  limit: 10, // 10 requests...
   duration: "60s", // ...per minute
 });
 
@@ -71,9 +71,10 @@ const server = Bun.serve({
     // Rate-limited route
     if (url.pathname === "/api/data") {
       // 1. Identify the user
-      const identifier = req.headers.get("x-user-id") 
-        ?? req.headers.get("x-forwarded-for")
-        ?? "anonymous";
+      const identifier =
+        req.headers.get("x-user-id") ??
+        req.headers.get("x-forwarded-for") ??
+        "anonymous";
 
       // 2. Check the rate limit
       const { success, remaining, reset } = await limiter.limit(identifier);
@@ -88,14 +89,14 @@ const server = Bun.serve({
       if (!success) {
         return Response.json(
           { error: "Too many requests. Try again later." },
-          { status: 429, headers }
+          { status: 429, headers },
         );
       }
 
       // 4. Request allowed
       return Response.json(
         { message: "Here's your data!", remaining },
-        { headers }
+        { headers },
       );
     }
 
@@ -141,12 +142,12 @@ First 10 requests return data. Requests 11+ get:
 
 `limiter.limit()` returns:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `success` | `boolean` | `true` if allowed, `false` if rate limited |
-| `remaining` | `number` | Requests left in current window |
-| `reset` | `number` | Unix timestamp (ms) when window resets |
-| `limit` | `number` | The configured limit |
+| Field       | Type      | Description                                |
+| ----------- | --------- | ------------------------------------------ |
+| `success`   | `boolean` | `true` if allowed, `false` if rate limited |
+| `remaining` | `number`  | Requests left in current window            |
+| `reset`     | `number`  | Unix timestamp (ms) when window resets     |
+| `limit`     | `number`  | The configured limit                       |
 
 ## Multiple rate limiters
 
@@ -175,10 +176,7 @@ const authLimiter = new Ratelimit({
 async function checkLimit(limiter: Ratelimit, identifier: string) {
   const result = await limiter.limit(identifier);
   if (!result.success) {
-    return Response.json(
-      { error: "Rate limit exceeded" },
-      { status: 429 }
-    );
+    return Response.json({ error: "Rate limit exceeded" }, { status: 429 });
   }
   return null; // Allowed
 }
@@ -191,14 +189,14 @@ const server = Bun.serve({
     if (url.pathname === "/api/login") {
       const blocked = await checkLimit(authLimiter, ip);
       if (blocked) return blocked;
-      
+
       return Response.json({ message: "Login endpoint" });
     }
 
     if (url.pathname.startsWith("/api/")) {
       const blocked = await checkLimit(apiLimiter, ip);
       if (blocked) return blocked;
-      
+
       return Response.json({ message: "API data" });
     }
 
@@ -211,13 +209,21 @@ const server = Bun.serve({
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="How it works" icon="bolt" href="/ratelimiting/modes">
+  <Card title="How it works" icon="bolt" href="/platform/ratelimiting/modes">
     Understand the architecture
   </Card>
-  <Card title="Per-user overrides" icon="sliders" href="/ratelimiting/overrides">
+  <Card
+    title="Per-user overrides"
+    icon="sliders"
+    href="/platform/ratelimiting/overrides"
+  >
     Give specific users higher limits
   </Card>
-  <Card title="SDK Reference" icon="book" href="/libraries/ts/ratelimit/ratelimit">
+  <Card
+    title="SDK Reference"
+    icon="book"
+    href="/libraries/ts/ratelimit/ratelimit"
+  >
     All configuration options
   </Card>
   <Card title="Add API key auth" icon="key" href="/quickstart/apis/bun">
@@ -229,12 +235,13 @@ const server = Bun.serve({
 
 <AccordionGroup>
   <Accordion title="Rate limit not applying?">
-    - Verify `UNKEY_ROOT_KEY` is in your `.env` file
-    - Use `Bun.env.UNKEY_ROOT_KEY` (not `process.env`)
-    - Check your root key has `ratelimit.*.limit` permission
+    - Verify `UNKEY_ROOT_KEY` is in your `.env` file - Use
+    `Bun.env.UNKEY_ROOT_KEY` (not `process.env`) - Check your root key has
+    `ratelimit.*.limit` permission
   </Accordion>
-  
+
   <Accordion title="Environment not loading?">
-    Bun loads `.env` automatically. Make sure the file is in your project root and restart the server.
+    Bun loads `.env` automatically. Make sure the file is in your project root
+    and restart the server.
   </Accordion>
 </AccordionGroup>

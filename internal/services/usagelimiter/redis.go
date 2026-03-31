@@ -283,8 +283,11 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 
 // replayRequests processes buffered credit changes and updates the database
 func (s *counterService) replayRequests() {
-	for change := range s.replayBuffer.Consume() {
-		err := s.syncWithDB(context.Background(), change)
+	for ptr := range s.replayBuffer.Consume() {
+		if ptr == nil {
+			continue
+		}
+		err := s.syncWithDB(context.Background(), *ptr)
 		if err != nil {
 			logger.Error("failed to replay credit change", "error", err)
 		}
@@ -356,8 +359,12 @@ func (s *counterService) Close() error {
 
 			// Process remaining items directly
 			select {
-			case change := <-s.replayBuffer.Consume():
-				err := s.syncWithDB(context.Background(), change)
+			case ptr, ok := <-s.replayBuffer.Consume():
+				if !ok || ptr == nil {
+					logger.Debug("replay buffer channel closed, done draining")
+					return nil
+				}
+				err := s.syncWithDB(context.Background(), *ptr)
 				if err != nil {
 					logger.Error("failed to sync credit change during shutdown", "error", err)
 				}

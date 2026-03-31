@@ -50,6 +50,14 @@ properties:
     example: 1701425400000
     x-go-type-skip-optional-pointer: true
     x-go-type-skip-optional-pointer-with-omitzero: true
+  lastUsedAt:
+    type: integer
+    format: int64
+    minimum: 0
+    description: Unix timestamp in milliseconds when key was last used for verification. This is an approximated value, accurate to within 5 minutes.
+    example: 1701425400000
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   expires:
     type: integer
     format: int64

@@ -20,8 +20,10 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/hydra/v1:hydra",
+        "//gen/proto/vault/v1:vault",
         "//gen/rpc/vault",
         "//pkg/assert",
+        "//pkg/batch",
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",
         "//pkg/db",
@@ -49,6 +51,7 @@ go_library(
         "@com_github_opencontainers_go_digest//:go-digest",
         "@com_github_restatedev_sdk_go//:sdk-go",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
+        "@org_golang_google_protobuf//encoding/protojson",
     ],
 )
 

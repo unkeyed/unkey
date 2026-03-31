@@ -1,0 +1,106 @@
+---
+title: Overview
+description: "Build, deploy, and serve your applications on Unkey infrastructure"
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+Unkey Deploy takes a Dockerfile and gives you a running application with automatic domains, multi-region routing, rollbacks, and built-in API security through [Sentinel](/platform/sentinel/overview).
+
+## What you get
+
+<CardGroup cols={2}>
+  <Card title="Automatic domains" icon="globe">
+    Every deployment gets its own URL. Branch, environment, and commit-level domains are assigned automatically.
+  </Card>
+  <Card title="Multi-region" icon="earth-americas">
+    Deploy to multiple [regions](/build-and-deploy/regions) and route traffic to the nearest healthy location.
+  </Card>
+  <Card title="Instant rollbacks" icon="clock-rotate-left">
+    [Roll back](/build-and-deploy/rollbacks) to any previous deployment with zero downtime.
+  </Card>
+  <Card title="Sentinel" icon="shield-halved">
+    API key authentication, rate limiting, and IP rules run at the edge before requests reach your app.
+  </Card>
+  <Card title="Build logs" icon="terminal">
+    Stream build and runtime logs in real time from the dashboard.
+  </Card>
+  <Card title="Preview environments" icon="code-branch">
+    Every branch gets its own isolated [environment](/environments/overview) with separate variables and domains.
+  </Card>
+</CardGroup>
+
+## Requirements
+
+- A **Dockerfile** in your repository. Unkey does not auto-detect runtimes or use buildpacks.
+- A **GitHub repository** for automatic deployments, or a pre-built Docker image for CLI deploys.
+
+## Get started
+
+The fastest path is connecting a GitHub repository:
+
+1. Create a [project](/platform/projects/overview) in your workspace.
+2. Click **Import from GitHub** and select your repository.
+3. Review build settings (root directory, Dockerfile path, watch paths).
+4. Click **Deploy**.
+
+Unkey builds your image, deploys it to your configured regions, and assigns domains. See [GitHub integration](/build-and-deploy/github) for the full walkthrough with screenshots.
+
+<Frame caption="Deployment in progress after connecting a repository">
+  <img src="/build-and-deploy/github-deploying-light.png" alt="Deployment progress" className="block dark:hidden" />
+  <img src="/build-and-deploy/github-deploying-dark.png" alt="Deployment progress" className="hidden dark:block" />
+</Frame>
+
+## Three ways to deploy
+
+<CardGroup cols={3}>
+  <Card title="GitHub push" icon="github">
+    Connect a repository and deploy automatically on every push. Default branch goes to production, other branches go to preview.
+  </Card>
+  <Card title="CLI" icon="terminal">
+    Deploy a pre-built Docker image with `unkey deploy`. Useful for CI/CD pipelines and custom build systems.
+  </Card>
+  <Card title="Dashboard" icon="browser">
+    Trigger a deployment manually from a specific commit or branch.
+  </Card>
+</CardGroup>
+
+<Frame caption="Create a deployment from the dashboard">
+  <img src="/build-and-deploy/deploy-trigger-light.png" alt="Create deployment dialog" className="block dark:hidden" />
+  <img src="/build-and-deploy/deploy-trigger-dark.png" alt="Create deployment dialog" className="hidden dark:block" />
+</Frame>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="GitHub integration"
+    icon="github"
+    href="/build-and-deploy/github"
+  >
+    Full setup walkthrough with screenshots
+  </Card>
+  <Card
+    title="Deployment lifecycle"
+    icon="arrows-spin"
+    href="/build-and-deploy/deployments"
+  >
+    How deployments progress from build to serving traffic
+  </Card>
+  <Card
+    title="Regions"
+    icon="earth-americas"
+    href="/build-and-deploy/regions"
+  >
+    Configure where your app runs
+  </Card>
+  <Card
+    title="App settings"
+    icon="gear"
+    href="/platform/apps/settings"
+  >
+    Build, runtime, and Sentinel configuration
+  </Card>
+</CardGroup>

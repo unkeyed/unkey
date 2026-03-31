@@ -1,0 +1,101 @@
+---
+title: How Pulumi IaC and ESC Work Together
+description: Pulumi stacks, ESC environments, and secrets.
+---
+
+## Prerequisites
+
+Install the Pulumi and ESC cli
+
+```
+brew update && \
+brew install pulumi/tap/esc pulumi/tap/pulumi
+```
+
+## Creating a stack and environment
+
+The naming convention for a stack and environment is `unkey/<project>/<aws_account_name>-<aws_region_shorthand>`.
+
+This document uses the `api` project as an example. Note that there exists a `global` environment for each AWS account to hold configuration items that don't change across regions. Right now this is only the DSN for connecting to Planetscale. We can override these at the region level but we don't need that quite yet.
+
+```
+project: api
+aws_account_name: canary
+aws_region_shorthand: use1
+```
+
+Let's start by first creating a stack and environment.
+
+```
+# Create the stack
+pulumi stack init unkey/api/aws-canary-us-east-1
+
+# Create the ESC global environment
+esc env init unkey/api/canary-global
+
+# Create the ESC region environment
+esc env init unkey/api/aws-canary-us-east-1
+```
+
+## Setting secrets
+
+To set a secret named `databasePrimaryDsn` for the `unkey/api/canary-global` environment, you would execute:
+
+```
+ esc env set --secret unkey/api/canary-global pulumiConfig.api:databasePrimaryDsn "thesecretgoeshere"
+```
+
+
+
+## Configure the stack to use a secret
+
+In the `projects/api` directory, there exists a number of `Pulumi.*.yaml` files that reference the stack name, which is just the `<aws_account_name>-<aws_region_shorthand>` between the `.`.
+
+For example in `Pulumi.aws-canary-us-east-1.yaml` we have:
+```
+imports:
+  - api/canary-global
+
+environment:
+  - api/aws-canary-us-east-1
+
+# This is blank as it's inherited via the environment in Pulumi but this can be used
+# should we want to track any of these values in git
+values:
+  pulumiConfig:
+```
+which imports the `api/canary-global` environment, and sets the stacks environment to `api/aws-canary-us-east-1`. See [Importing other environments](https://www.pulumi.com/docs/esc/environments/imports/) for more information.
+
+In the go code, you reference the secret by first creating a config object and then assigning the config value name to a variable like so
+```go
+func main() {
+	pulumi.Run(func(ctx *pulumi.Context) error {
+    // config holds configuration from Pulumi IaC and ESC
+    config := config.New(ctx, "")
+
+    databasePrimaryDsn := config.RequireSecret("databasePrimaryDsn")
+
+    // rest of IaC...
+  }
+}
+```
+
+## Inspecting config/secret values
+
+At the global level you can see we have only the `databasePrimaryDsn` defined...
+
+```
+$ pulumi env open unkey/api/canary-global -f yaml
+pulumiConfig:
+  api:databasePrimaryDsn: [secret]
+```
+
+But when you render the environment for the `aws-canary-us-east-1` stack, you see the merged config of the global environment into
+
+```
+$ pulumi env open unkey/api/aws-canary-us-east-1 -f yaml
+pulumiConfig:
+  api:databasePrimaryDsn: [secret]
+  aws:profile: unkey-canary-admin
+  aws:region: us-east-1
+```

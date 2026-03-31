@@ -86,6 +86,8 @@ export const keys = mysqlTable(
      */
     environment: varchar("environment", { length: 256 }),
 
+    lastUsedAt: bigint("last_used_at", { mode: "number", unsigned: true }).notNull().default(0),
+
     pendingMigrationId: varchar("pending_migration_id", { length: 256 }),
   },
   (table) => ({
@@ -93,12 +95,13 @@ export const keys = mysqlTable(
     keyAuthAndDeletedIndex: index("key_auth_id_deleted_at_idx").on(
       table.keyAuthId,
       table.deletedAtM,
+      table.id,
     ),
     forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
     pendingMigrationIdIndex: index("pending_migration_id_idx").on(table.pendingMigrationId),
     workspaceIdIndex: index("idx_keys_on_workspace_id").on(table.workspaceId),
     ownerIdIndex: index("owner_id_idx").on(table.ownerId),
-    identityIdIndex: index("identity_id_idx").on(table.identityId),
+    identityIdIndex: index("identity_id_idx").on(table.identityId, table.keyAuthId, table.id),
     refillIndex: index("idx_keys_refill").on(table.refillAmount, table.deletedAtM),
   }),
 );

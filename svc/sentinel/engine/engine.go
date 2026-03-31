@@ -2,7 +2,9 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"time"
 
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/internal/services/keys"
@@ -61,11 +63,12 @@ func ParseMiddleware(raw []byte) ([]*sentinelv1.Policy, error) {
 	}
 
 	cfg := &sentinelv1.Config{}
-	if err := protojson.Unmarshal(raw, cfg); err != nil {
+	unmarshalOpts := protojson.UnmarshalOptions{DiscardUnknown: true}
+	if err := unmarshalOpts.Unmarshal(raw, cfg); err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InvalidConfiguration.URN()),
-			fault.Internal("unable to unmarshal sentinel policies"),
-			fault.Public("The policy datastructure is invalid"),
+			fault.Internal(fmt.Sprintf("unable to unmarshal sentinel policies: %s", string(raw))),
+			fault.Public("The policy configuration is invalid. Please check your sentinel config or contact support at support@unkey.com."),
 		)
 	}
 
@@ -107,16 +110,22 @@ func (e *Engine) Evaluate(
 		case *sentinelv1.Policy_Keyauth:
 			// Skip if we already have a principal from a previous auth policy
 			if result.Principal != nil {
+				sentinelEngineEvaluationsTotal.WithLabelValues("keyauth", "skipped").Inc()
 				continue
 			}
 
+			t := time.Now()
 			principal, execErr := e.keyAuth.Execute(ctx, sess, req, cfg.Keyauth)
+			sentinelEngineEvaluationDuration.WithLabelValues("keyauth").Observe(time.Since(t).Seconds())
+
 			if execErr != nil {
+				sentinelEngineEvaluationsTotal.WithLabelValues("keyauth", classifyKeyauthError(execErr)).Inc()
 				return result, execErr
 			}
 
 			if principal != nil {
 				result.Principal = principal
+				sentinelEngineEvaluationsTotal.WithLabelValues("keyauth", "success").Inc()
 			}
 
 		// Future policy types will be added here:

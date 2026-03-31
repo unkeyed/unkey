@@ -1,0 +1,50 @@
+---
+title: Local development
+description: Test your application's Principal handling locally without a Sentinel.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+The [Principal](/platform/sentinel/principal/overview) is plain JSON with no encryption or signing. During local development, you can set the `X-Unkey-Principal` header yourself to test your application's authentication handling without running a Sentinel.
+
+## Send a Principal with curl
+
+Pass the Principal as a JSON string in the header:
+
+```bash
+curl http://localhost:8080/api/resource \
+  -H 'X-Unkey-Principal: {"version":1,"subject":"test_user","type":"key","source":{"key":{"keyId":"key_test","keySpaceId":"ks_test","meta":{},"roles":["admin"],"permissions":["api.read","api.write"]}}}'
+```
+
+## Use a Principal file
+
+For repeated testing, store the Principal in a file and reference it. This keeps your curl commands readable and makes it easy to switch between test scenarios.
+
+```bash
+cat > principal.json << 'EOF'
+{
+  "version": 1,
+  "subject": "test_user",
+  "type": "key",
+  "identity": {
+    "externalId": "test_user",
+    "meta": { "plan": "pro" }
+  },
+  "source": {
+    "key": {
+      "keyId": "key_test",
+      "keySpaceId": "ks_test",
+      "meta": {},
+      "roles": ["admin"],
+      "permissions": ["api.read", "api.write"]
+    }
+  }
+}
+EOF
+
+curl http://localhost:8080/api/resource \
+  -H "X-Unkey-Principal: $(cat principal.json | jq -c)"
+```
+

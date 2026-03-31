@@ -7,7 +7,7 @@ import * as React from "react";
 import { cn } from "../../lib/utils";
 
 const selectTriggerVariants = cva(
-  "flex min-h-9 w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8 text-grayA-12 items-center justify-between",
+  "flex h-9 w-full rounded-lg text-[13px] leading-5 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 placeholder:text-grayA-8 text-grayA-12 items-center justify-between",
   {
     variants: {
       variant: {

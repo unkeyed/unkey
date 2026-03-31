@@ -1,0 +1,21 @@
+---
+title: sentinel
+---
+
+Uses direct grants instead of roles because it needs a mix of read and write on specific tables.
+
+```sql
+CREATE USER IF NOT EXISTS sentinel IDENTIFIED WITH sha256_password BY '<password>';
+
+-- Read access to verification aggregation tables
+GRANT SELECT ON default.key_verifications_per_day_v3 TO sentinel;
+GRANT SELECT ON default.key_verifications_per_hour_v3 TO sentinel;
+GRANT SELECT ON default.key_verifications_per_minute_v3 TO sentinel;
+GRANT SELECT ON default.key_verifications_per_month_v3 TO sentinel;
+
+-- Read + write access to raw verifications
+GRANT SELECT, INSERT ON default.key_verifications_raw_v2 TO sentinel;
+
+-- Write access to sentinel requests
+GRANT INSERT ON default.sentinel_requests_raw_v1 TO sentinel;
+```

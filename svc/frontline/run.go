@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
+	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
@@ -113,6 +114,34 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 	} else {
 		logger.Warn("Prometheus not configured, skipping metrics server")
+	}
+
+	// Start internal pprof server on loopback-only listener
+	if cfg.Pprof != nil {
+		pprofPort := cfg.Pprof.Port
+		if pprofPort == 0 {
+			pprofPort = 6060
+		}
+
+		pprofSrv, pprofErr := pprofRoute.New(cfg.Pprof, "/_unkey/internal")
+		if pprofErr != nil {
+			return fmt.Errorf("unable to create pprof server: %w", pprofErr)
+		}
+		r.DeferCtx(pprofSrv.Shutdown)
+
+		pprofListener, pprofListenErr := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", pprofPort))
+		if pprofListenErr != nil {
+			return fmt.Errorf("unable to listen on 127.0.0.1:%d for pprof: %w", pprofPort, pprofListenErr)
+		}
+
+		r.Go(func(ctx context.Context) error {
+			logger.Info("Internal pprof server started", "addr", pprofListener.Addr().String())
+			serveErr := pprofSrv.Serve(ctx, pprofListener)
+			if serveErr != nil && !errors.Is(serveErr, context.Canceled) {
+				return fmt.Errorf("pprof server error: %w", serveErr)
+			}
+			return nil
+		})
 	}
 
 	var vaultClient vault.VaultServiceClient
@@ -214,6 +243,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:                     database,
 		FrontlineRouteCache:    cache.FrontlineRoutes,
 		SentinelsByEnvironment: cache.SentinelsByEnvironment,
+		InstancesByDeployment:  cache.InstancesByDeployment,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create router service: %w", err)
@@ -240,6 +270,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr))
+
 	svcs := &routes.Services{
 		Region:            cfg.Region,
 		RouterService:     routerSvc,
@@ -253,8 +284,8 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.HttpPort > 0 {
 		httpsSrv, httpsErr := zen.New(zen.Config{
 			TLS:                tlsConfig,
-			ReadTimeout:        0,
-			WriteTimeout:       0,
+			ReadTimeout:        -1,
+			WriteTimeout:       -1,
 			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
@@ -295,8 +326,8 @@ func Run(ctx context.Context, cfg Config) error {
 			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
-			ReadTimeout:        0,
-			WriteTimeout:       0,
+			ReadTimeout:        -1,
+			WriteTimeout:       -1,
 		})
 		if httpErr != nil {
 			return fmt.Errorf("unable to create HTTP server: %w", httpErr)

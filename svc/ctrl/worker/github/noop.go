@@ -98,3 +98,8 @@ func (n *Noop) GetBranchHeadCommitPublic(repo string, branch string) (CommitInfo
 		commit.Commit.Author.Date,
 	), nil
 }
+
+// GetCommitBySHA returns an error indicating GitHub is not configured.
+func (n *Noop) GetCommitBySHA(_ int64, _ string, _ string) (CommitInfo, error) {
+	return CommitInfo{}, errNotConfigured
+}

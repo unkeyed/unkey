@@ -1,0 +1,97 @@
+---
+title: CronJobs (Restate Scheduled Tasks)
+description: How to define and deploy scheduled tasks that trigger Restate service endpoints.
+---
+
+## Overview
+
+We use Kubernetes CronJobs to trigger Restate service endpoints on a timer. Each cronjob is a tiny `curl` container that POSTs to the Restate Cloud ingress URL. Restate handles durable execution, retries, and idempotency — the cronjob just kicks it off.
+
+## Adding a new cronjob
+
+Edit the environment values file for the target environment(s):
+
+- `eks-cluster/helm-chart/restate/environments/staging-eu-central-1.yaml`
+- `eks-cluster/helm-chart/restate/environments/production001/us-east-1.yaml`
+
+Add a new entry under `scheduledTasks.jobs`:
+
+```yaml
+scheduledTasks:
+  jobs:
+    my-new-job:
+      schedule: "0 6 * * *"
+      urlPath: 'hydra.v1.MyService/global/DoThing/send'
+      idempotencyKey: 'my-job-$(date -u +%Y-%m-%d)'
+      body: '{"someParam": "value"}'
+```
+
+Merge to main → ArgoCD deploys the new CronJob. Done.
+
+## Field reference
+
+| Field            | Description                                                                 |
+|------------------|-----------------------------------------------------------------------------|
+| `schedule`       | Standard 5-field cron expression. **All times are UTC.**                    |
+| `urlPath`        | Restate service path: `hydra.v1.{Service}/{key}/{Handler}/send`             |
+| `idempotencyKey` | Sent as `idempotency-key` header. Use shell date expansion to make it unique per run. |
+| `body`           | JSON string payload for the service handler.                                |
+
+## URL path format
+
+```
+hydra.v1.{ServiceName}/{key}/{HandlerName}/send
+```
+
+- `/send` makes it an async (fire-and-forget) invocation
+- `{key}` can be static (`global`) or dynamic (`$(date -u +%Y-%m-%d)`)
+
+## Idempotency keys
+
+Use shell date expansion to generate unique keys per execution window:
+
+| Pattern                            | Example output       | Use for              |
+|------------------------------------|----------------------|----------------------|
+| `$(date -u +%Y-%m-%d)`            | `2026-03-18`         | Daily jobs           |
+| `$(date -u +%Y-%m)`               | `2026-03`            | Monthly jobs         |
+| `$(date -u +%Y-%m-%dT%H:%M)`      | `2026-03-18T14:30`   | Sub-daily jobs       |
+
+If Restate sees the same idempotency key twice, it deduplicates — pick a granularity that matches your schedule.
+
+## Existing jobs
+
+| Job               | Schedule         | What it does                              |
+|--------------------|-----------------|-------------------------------------------|
+| `quota-check`      | `0 15 * * *`    | Daily quota verification                  |
+| `cert-renewal`     | `0 3 * * *`     | Renews certificates expiring within 30 days |
+| `key-refill`       | `0 0 * * *`     | Refills API key pools                     |
+| `scale-down-idle`  | `0 * * * *` / `*/15 * * * *` | Scales down idle preview deployments (hourly staging, every 15min prod) |
+| `key-last-used-sync` | `* * * * *`   | Syncs `lastUsedAt` timestamps from ClickHouse to MySQL every minute ([details](/architecture/services/control-plane/worker/workflows/key-last-used-sync)) |
+
+## Runtime details
+
+- **Image:** `curlimages/curl:8.12.1`
+- **Timeout:** 300s per execution
+- **Retries:** 3 attempts (`backoffLimit`)
+- **Concurrency:** `Forbid` — won't start a new run if previous is still running
+- **History:** 3 successful + 5 failed job records kept
+- **Resources:** 10m CPU / 32Mi memory
+- **Auth:** Bearer token from `restate-cloud-credentials` secret (AWS Secrets Manager)
+
+## Monitoring
+
+Prometheus alert `RestateCronJobFailing` fires after 15 min of failures:
+
+- **Staging:** `warning`
+- **Production:** `critical`
+
+Config: `eks-cluster/helm-chart/observability/templates/prometheus-alerts-restate-cronjobs.yaml`
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `eks-cluster/helm-chart/restate/templates/cronjobs.yaml` | Helm template that generates CronJobs |
+| `eks-cluster/helm-chart/restate/values.yaml` | Base values (jobs disabled by default) |
+| `eks-cluster/helm-chart/restate/environments/*.yaml` | Per-environment job definitions |
+| `eks-cluster/helm-chart/observability/templates/prometheus-alerts-restate-cronjobs.yaml` | Alerting rules |

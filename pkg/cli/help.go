@@ -2,7 +2,10 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"strings"
+
+	"golang.org/x/term"
 )
 
 // showHelp displays comprehensive help information for the command
@@ -14,6 +17,7 @@ func (c *Command) showHelp() {
 	c.showCommands()
 	c.showFlags()
 	c.showGlobalOptions()
+	c.showExamples()
 }
 
 // showHeader displays the command name and description
@@ -25,7 +29,24 @@ func (c *Command) showHeader() {
 	fmt.Printf("\n\n")
 
 	if c.Description != "" {
-		fmt.Printf("DESCRIPTION:\n   %s\n\n", c.Description)
+		const indent = "   "
+		termWidth := getTerminalWidth()
+		descWidth := termWidth - len(indent)
+		if descWidth < 30 {
+			descWidth = 77
+		}
+
+		fmt.Printf("DESCRIPTION:\n")
+		for _, line := range strings.Split(c.Description, "\n") {
+			if line == "" {
+				fmt.Println()
+			} else {
+				for _, wrapped := range wrapText(line, descWidth) {
+					fmt.Printf("%s%s\n", indent, wrapped)
+				}
+			}
+		}
+		fmt.Println()
 	}
 }
 
@@ -50,6 +71,19 @@ func (c *Command) showUsageLine() {
 	}
 
 	fmt.Printf("\n\n")
+}
+
+// showExamples displays example invocations if any are defined
+func (c *Command) showExamples() {
+	if len(c.Examples) == 0 {
+		return
+	}
+
+	fmt.Printf("EXAMPLES:\n")
+	for _, example := range c.Examples {
+		fmt.Printf("   %s\n", example)
+	}
+	fmt.Println()
 }
 
 // buildCommandPath constructs the full command path from root to current command
@@ -153,20 +187,108 @@ func (c *Command) showFlag(flag Flag) {
 	flagName := c.buildFlagName(flag)
 	usage := c.buildFlagUsage(flag)
 
-	fmt.Printf("   %-25s %s\n", flagName, usage)
+	const flagColWidth = 25
+	prefix := fmt.Sprintf("   %-*s ", flagColWidth, flagName)
+
+	// If the flag name is longer than the column, put description on next line
+	if len(flagName) > flagColWidth {
+		fmt.Printf("   %s\n", flagName)
+		prefix = strings.Repeat(" ", flagColWidth+4)
+	}
+
+	termWidth := getTerminalWidth()
+	descWidth := termWidth - len(prefix)
+	if descWidth < 30 {
+		// Terminal too narrow for wrapping, just print it
+		fmt.Printf("%s%s\n", prefix, usage)
+		return
+	}
+
+	lines := wrapText(usage, descWidth)
+	for i, line := range lines {
+		if i == 0 {
+			fmt.Printf("%s%s\n", prefix, line)
+		} else {
+			fmt.Printf("%s%s\n", strings.Repeat(" ", len(prefix)), line)
+		}
+	}
+}
+
+// getTerminalWidth returns the current terminal width, defaulting to 80.
+func getTerminalWidth() int {
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil || width <= 0 {
+		return 80
+	}
+	return width
+}
+
+// wrapText breaks text into lines of at most maxWidth characters,
+// splitting on word boundaries.
+func wrapText(text string, maxWidth int) []string {
+	if len(text) <= maxWidth {
+		return []string{text}
+	}
+
+	var lines []string
+	for len(text) > 0 {
+		if len(text) <= maxWidth {
+			lines = append(lines, text)
+			break
+		}
+
+		// Find the last space within maxWidth
+		cut := strings.LastIndex(text[:maxWidth], " ")
+		if cut <= 0 {
+			// No space found, force cut at maxWidth
+			cut = maxWidth
+		}
+
+		lines = append(lines, text[:cut])
+		text = strings.TrimLeft(text[cut:], " ")
+	}
+
+	return lines
 }
 
 // buildFlagName constructs the flag name string with proper formatting
 func (c *Command) buildFlagName(flag Flag) string {
 	name := flag.Name()
 
-	// For single character flags, show both short and long form
+	var prefix string
 	if len(name) == 1 {
-		return fmt.Sprintf("-%s", name)
+		prefix = fmt.Sprintf("-%s", name)
+	} else {
+		prefix = fmt.Sprintf("--%s", name)
 	}
 
-	// For multi-character flags, just show long form
-	return fmt.Sprintf("--%s", name)
+	typeLabel := flagTypeLabel(flag)
+	if typeLabel != "" {
+		return fmt.Sprintf("%s %s", prefix, typeLabel)
+	}
+	return prefix
+}
+
+// flagTypeLabel returns a human-readable type hint for a flag.
+func flagTypeLabel(flag Flag) string {
+	switch flag.(type) {
+	case *StringFlag:
+		return "string"
+	case *BoolFlag:
+		return "bool"
+	case *IntFlag:
+		return "int"
+	case *Int64Flag:
+		return "int"
+	case *FloatFlag:
+		return "float"
+	case *StringSliceFlag:
+		return "strings"
+	case *DurationFlag:
+		return "duration"
+	default:
+		return ""
+	}
 }
 
 // buildFlagUsage constructs the complete usage string for a flag

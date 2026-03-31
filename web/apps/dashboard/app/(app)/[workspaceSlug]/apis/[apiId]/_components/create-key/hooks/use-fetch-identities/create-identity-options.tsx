@@ -48,9 +48,6 @@ export function createIdentityOptions({
                     : identity.externalId}
                 </span>
               </div>
-              <span className="text-accent-9 text-xs max-w-[120px] truncate text-left">
-                {identity.id}
-              </span>
             </div>
           </TooltipTrigger>
           <TooltipContent
@@ -114,11 +111,10 @@ export function createIdentityOptions({
           <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
             <User iconSize="sm-regular" className="text-grayA-11" />
           </div>
-          <span className="text-accent-12 font-medium text-xs w-[120px] truncate text-left">
-            {identity.id}
+          <span className="text-accent-12 font-medium text-xs max-w-[200px] truncate text-left">
+            {identity.externalId}
           </span>
         </div>
-        <span className="w-[200px] truncate text-accent-8 text-left">{identity.externalId}</span>
       </div>
     ),
     value: identity.id,

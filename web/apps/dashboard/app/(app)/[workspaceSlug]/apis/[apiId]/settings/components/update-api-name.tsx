@@ -70,7 +70,6 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     <SettingCard
       title="Name"
       description="Change the name of your API. This is only visible to you and your team."
-      border="top"
       contentWidth="w-full lg:w-[420px] h-full justify-end items-end"
     >
       <form

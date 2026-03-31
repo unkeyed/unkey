@@ -481,6 +481,14 @@ func TestSetPermissionsConcurrent(t *testing.T) {
 		permissions[i] = perm.Name
 	}
 
+	// Warm up the validator's schema cache with a single request so the
+	// concurrent burst doesn't race on first-time schema rendering.
+	warmup := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		KeyId:       keyResponse.KeyID,
+		Permissions: []string{permissions[0]},
+	})
+	require.Equal(t, 200, warmup.Status, "warmup request should succeed")
+
 	g := errgroup.Group{}
 	for i := range numConcurrent {
 		g.Go(func() error {

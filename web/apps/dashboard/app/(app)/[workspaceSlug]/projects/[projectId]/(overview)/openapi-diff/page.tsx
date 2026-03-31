@@ -1,45 +1,30 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ArrowRight, Magnifier } from "@unkey/icons";
-import { Loading } from "@unkey/ui";
+import { Loading, SettingsShell } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { ProjectContentWrapper } from "../../components/project-content-wrapper";
 import { Card } from "../components/card";
 import { useProjectData } from "../data-provider";
 import { DiffViewerContent } from "./components/client";
 import { DeploymentSelect } from "./components/deployment-select";
+import { useDiffDeployments } from "./hooks/use-diff-deployments";
 
 export default function DiffPage() {
-  const { projectId, project } = useProjectData();
+  const { project } = useProjectData();
   const currentDeploymentId = project?.currentDeploymentId;
   const searchParams = useSearchParams();
 
   const [selectedFromDeployment, setSelectedFromDeployment] = useState<string>("");
   const [selectedToDeployment, setSelectedToDeployment] = useState<string>("");
 
-  const deployments = useLiveQuery(
-    (q) =>
-      q
-        .from({ deployment: collection.deployments })
-        .where(({ deployment }) => eq(deployment.projectId, projectId))
-        .join({ environment: collection.environments }, ({ environment, deployment }) =>
-          eq(environment.id, deployment.environmentId),
-        )
-        .orderBy(({ deployment }) => deployment.createdAt, "desc")
-        .limit(100),
-    [projectId],
-  );
-
-  const sortedDeployments = deployments.data ?? [];
+  const { deployments: sortedDeployments, isLoading: deploymentsLoading } = useDiffDeployments();
 
   // Read from URL params and pre-select deployments
   useEffect(() => {
-    if (deployments.isLoading) {
+    if (deploymentsLoading) {
       return;
     }
 
@@ -67,7 +52,7 @@ export default function DiffPage() {
         setSelectedFromDeployment(currentDeploymentId);
       }
     }
-  }, [currentDeploymentId, sortedDeployments, deployments.isLoading, searchParams]);
+  }, [currentDeploymentId, sortedDeployments, deploymentsLoading, searchParams]);
 
   const {
     data: diffData,
@@ -79,7 +64,7 @@ export default function DiffPage() {
       newDeploymentId: selectedToDeployment,
     },
     {
-      enabled: false,
+      enabled: !!selectedFromDeployment && !!selectedToDeployment,
     },
   );
 
@@ -99,26 +84,20 @@ export default function DiffPage() {
   const showContent = selectedFromDeployment && selectedToDeployment;
 
   return (
-    <ProjectContentWrapper centered>
-      <Card className="pt-[14px] flex flex-col overflow-hidden">
-        {/* Header Section */}
-        <div className="flex w-full justify-between items-center px-[22px]">
-          <div className="flex gap-5 items-center">
-            <div className="flex flex-col gap-1">
-              <div className="text-accent-12 font-medium text-[13px]">Compare Deployments</div>
-              <div className="text-grayA-9 text-xs">View API changes between deployments</div>
-            </div>
-          </div>
-        </div>
+    <SettingsShell>
+      <div className="flex flex-col gap-2 items-center">
+        <span className="font-semibold text-gray-12 leading-8 text-lg">Compare Deployments</span>
+        <span className="leading-4 text-gray-11 text-[13px]">
+          View API changes between deployments
+        </span>
+      </div>
 
+      <Card className="flex flex-col overflow-hidden w-full">
         {/* Deployment Selectors */}
-        <div className="bg-gray-1 rounded-b-[14px]">
-          <div className="relative h-4 flex items-center justify-center">
-            <div className="absolute top-0 left-0 right-0 h-4 border-b border-gray-4 rounded-b-[14px] bg-white dark:bg-black" />
-          </div>
-
-          <div className="py-5 px-3">
-            <div className="flex gap-3 items-center">
+        <div className="px-4 pt-6 pb-4">
+          <div className="flex gap-3">
+            <div className="flex flex-col gap-1.5 flex-1">
+              <span className="text-[11px] font-medium text-grayA-9">Baseline</span>
               <DeploymentSelect
                 value={selectedFromDeployment}
                 onValueChange={(value) => {
@@ -128,13 +107,16 @@ export default function DiffPage() {
                   }
                 }}
                 deployments={sortedDeployments}
-                isLoading={deployments.isLoading}
+                isLoading={deploymentsLoading}
                 placeholder="Select baseline..."
                 disabledDeploymentId={selectedToDeployment}
               />
+            </div>
 
-              <ArrowRight className="shrink-0 text-gray-9 size-[14px]" iconSize="sm-regular" />
+            <ArrowRight className="shrink-0 text-gray-9 size-[14px] mt-8.5" iconSize="sm-regular" />
 
+            <div className="flex flex-col gap-1.5 flex-1">
+              <span className="text-[11px] font-medium text-grayA-9">Comparison</span>
               <DeploymentSelect
                 value={selectedToDeployment}
                 onValueChange={(value) => {
@@ -144,14 +126,16 @@ export default function DiffPage() {
                   }
                 }}
                 deployments={sortedDeployments}
-                isLoading={deployments.isLoading}
+                isLoading={deploymentsLoading}
                 placeholder="Select comparison..."
                 disabledDeploymentId={selectedFromDeployment}
               />
             </div>
           </div>
+        </div>
 
-          {/* Content Area */}
+        {/* Content Area */}
+        <div className="bg-gray-1 rounded-b-[14px] border-t border-gray-4">
           {showEmptyState && (
             <div className="flex flex-col items-center gap-4 px-8 py-12 text-center">
               <div className="relative">
@@ -218,6 +202,6 @@ export default function DiffPage() {
           )}
         </div>
       </Card>
-    </ProjectContentWrapper>
+    </SettingsShell>
   );
 }

@@ -17,8 +17,10 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
@@ -40,6 +42,7 @@ import (
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/openapi"
 	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
@@ -146,6 +149,9 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
+	buildSteps := batch.NewNoop[schema.BuildStepV1]()
+	buildStepLogs := batch.NewNoop[schema.BuildStepLogV1]()
+
 	if cfg.ClickHouse.URL != "" {
 		chClient, chErr := clickhouse.New(clickhouse.Config{
 			URL: cfg.ClickHouse.URL,
@@ -154,6 +160,30 @@ func Run(ctx context.Context, cfg Config) error {
 			logger.Error("failed to create clickhouse client, continuing with noop", "error", chErr)
 		} else {
 			ch = chClient
+
+			buildSteps = clickhouse.NewBuffer[schema.BuildStepV1](chClient, "default.build_steps_v1", clickhouse.BufferConfig{
+				Name:          "build_steps",
+				BatchSize:     1_000,
+				BufferSize:    2_000,
+				FlushInterval: 2 * time.Second,
+				Consumers:     1,
+				Drop:          true,
+				OnFlushError:  nil,
+			})
+			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](chClient, "default.build_step_logs_v1", clickhouse.BufferConfig{
+				Name:          "build_step_logs",
+				BatchSize:     1_000,
+				BufferSize:    2_000,
+				FlushInterval: 2 * time.Second,
+				Consumers:     1,
+				Drop:          true,
+				OnFlushError:  nil,
+			})
+
+			// Close connection last (LIFO: first registered closes last)
+			r.Defer(chClient.Close)
+			r.Defer(func() error { buildSteps.Close(); return nil })
+			r.Defer(func() error { buildStepLogs.Close(); return nil })
 		}
 	}
 
@@ -176,6 +206,8 @@ func Run(ctx context.Context, cfg Config) error {
 		BuildPlatform:                   deploy.BuildPlatform(buildPlatform),
 		DepotConfig:                     deploy.DepotConfig(cfg.GetDepotConfig()),
 		Clickhouse:                      ch,
+		BuildSteps:                      buildSteps,
+		BuildStepLogs:                   buildStepLogs,
 		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 	}),
@@ -220,9 +252,10 @@ func Run(ctx context.Context, cfg Config) error {
 	))
 
 	restateSrv.Bind(hydrav1.NewGitHubWebhookServiceServer(githubwebhook.New(githubwebhook.Config{
-		DB:           database,
-		GitHub:       ghClient,
-		DashboardURL: cfg.DashboardURL,
+		DB:                              database,
+		GitHub:                          ghClient,
+		DashboardURL:                    cfg.DashboardURL,
+		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
 	})))
 
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{
@@ -369,6 +402,38 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewKeyRefillServiceServer(keyRefillSvc))
 	logger.Info("KeyRefillService enabled")
+
+	// Key last used sync: orchestrator + partition services
+	var keyLastUsedSyncHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.Heartbeat.KeyLastUsedSyncURL != "" {
+		keyLastUsedSyncHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL)
+	}
+
+	keyLastUsedSyncSvc, err := keylastusedsync.New(keylastusedsync.Config{
+		Heartbeat: keyLastUsedSyncHeartbeat,
+	})
+	if err != nil {
+		return fmt.Errorf("create key last used sync service: %w", err)
+	}
+	// Retry quickly (deadlocks resolve fast), but cap attempts since this runs on a schedule.
+	keyLastUsedRetryPolicy := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(100*time.Millisecond),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(5*time.Second),
+		restate.WithMaxAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewKeyLastUsedSyncServiceServer(keyLastUsedSyncSvc, keyLastUsedRetryPolicy))
+
+	keyLastUsedPartitionSvc, err := keylastusedsync.NewPartitionService(keylastusedsync.PartitionConfig{
+		DB:         database,
+		Clickhouse: ch,
+	})
+	if err != nil {
+		return fmt.Errorf("create key last used partition service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, keyLastUsedRetryPolicy))
+	logger.Info("KeyLastUsedSyncService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()

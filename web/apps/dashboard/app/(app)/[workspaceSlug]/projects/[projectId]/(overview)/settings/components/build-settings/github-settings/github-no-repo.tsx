@@ -8,10 +8,12 @@ export const GitHubNoRepo = ({
   projectId,
   appId,
   installUrl,
+  onBeforeNavigate,
 }: {
   projectId: string;
   appId: string;
   installUrl: string;
+  onBeforeNavigate?: () => void;
 }) => {
   const utils = trpc.useUtils();
   const [selectedRepo, setSelectedRepo] = useState("");
@@ -81,6 +83,7 @@ export const GitHubNoRepo = ({
           installUrl={installUrl}
           variant="outline"
           className="ml-0 h-8 px-3 py-2 rounded-lg"
+          onBeforeNavigate={onBeforeNavigate}
           text={
             <>
               <span className="text-gray-9">Import from</span>

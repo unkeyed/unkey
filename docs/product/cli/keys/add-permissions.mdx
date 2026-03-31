@@ -1,0 +1,100 @@
+---
+title: "add-permissions"
+description: "Add permissions to a key without affecting existing permissions"
+---
+
+Add permissions to a key without affecting existing permissions.
+
+Use this for privilege upgrades, enabling new features, or plan changes that grant additional capabilities. Permissions granted through roles remain unchanged. Duplicate permissions are ignored automatically, making this operation idempotent.
+
+**Important:** Changes take effect immediately with up to 30-second edge propagation. Any permissions that do not exist will be auto-created if the root key has the required permissions.
+
+**Required permissions:**
+- `api.*.update_key` (to update keys in any API)
+- `api.<api_id>.update_key` (to update keys in a specific API)
+
+<Note>
+See the [API reference](/api-reference/v2/keys/add-key-permissions) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api keys add-permissions [flags]
+```
+
+## Flags
+
+<ParamField body="--key-id" type="string" required>
+The key ID to add permissions to. This is the database identifier returned from `keys.createKey` (e.g., `key_2cGKbMxRyIzhCxo1Idjz8q`). Do not confuse this with the actual API key string that users include in requests.
+</ParamField>
+
+<ParamField body="--permissions" type="string[]" required>
+Comma-separated list of permission names to add. Adding permissions never removes existing permissions or role-based permissions. Duplicate permissions are ignored automatically. Permissions that do not yet exist will be auto-created if the root key has permissions, otherwise the operation will fail with a 403 error.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api keys add-permissions --key-id=key_1234abcd --permissions=documents.read,documents.write
+```
+```bash JSON output for scripting
+unkey api keys add-permissions --key-id=key_1234abcd --permissions=billing.manage --output=json
+```
+```bash Grant broad access
+unkey api keys add-permissions --key-id=key_1234abcd --permissions=admin.read,admin.write,admin.delete
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the permissions now assigned to the key:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+[
+  {
+    "id": "perm_1234567890abcdef",
+    "name": "documents.read",
+    "slug": "documents.read"
+  },
+  {
+    "id": "perm_abcdef1234567890",
+    "name": "documents.write",
+    "slug": "documents.write"
+  }
+]
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": [
+    {
+      "id": "perm_1234567890abcdef",
+      "name": "documents.read",
+      "slug": "documents.read"
+    },
+    {
+      "id": "perm_abcdef1234567890",
+      "name": "documents.write",
+      "slug": "documents.write"
+    }
+  ]
+}
+```

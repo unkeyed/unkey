@@ -4,40 +4,7 @@ import (
 	"context"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 )
-
-// Bufferer defines the interface for systems that can buffer events for
-// batch processing. It provides methods to add different types of events
-// to their respective buffers.
-//
-// This interface allows for different implementations, such as a real
-// ClickHouse client or a no-op implementation for testing or development.
-type Bufferer interface {
-	// BufferApiRequest adds an API request event to the buffer.
-	// These are typically HTTP requests to the API with request and response details.
-	BufferApiRequest(schema.ApiRequest)
-
-	// BufferKeyVerification adds a key verification event to the buffer.
-	// These represent API key validation operations with their outcomes.
-	BufferKeyVerification(schema.KeyVerification)
-
-	// BufferRatelimit adds a ratelimit event to the buffer.
-	// These represent API ratelimit operations with their outcome.
-	BufferRatelimit(schema.Ratelimit)
-
-	// BufferRatelimit adds a ratelimit event to the buffer.
-	// These represent API ratelimit operations with their outcome.
-	BufferBuildStep(schema.BuildStepV1)
-
-	// BufferRatelimit adds a ratelimit event to the buffer.
-	// These represent API ratelimit operations with their outcome.
-	BufferBuildStepLog(schema.BuildStepLogV1)
-
-	// BufferSentinelRequest adds a sentinel request event to the buffer.
-	// These represent requests routed through sentinel to deployment instances.
-	BufferSentinelRequest(schema.SentinelRequest)
-}
 
 type Querier interface {
 	// Conn returns a connection to the ClickHouse database.
@@ -68,10 +35,14 @@ type Querier interface {
 	// deployment within a recent time window, used to detect idle deployments for scale-down.
 	// Returns 0 (not an error) when the deployment has received no traffic.
 	GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error)
+
+	// GetKeyLastUsedBatchPartitioned returns keys in a specific hash partition
+	// (cityHash64(key_id) % totalPartitions == partition) after the given cursor,
+	// ordered by (time, key_id). Used by the KeyLastUsedSync partition workers.
+	GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error)
 }
 
 type ClickHouse interface {
-	Bufferer
 	Querier
 
 	// Closes the underlying ClickHouse connection.

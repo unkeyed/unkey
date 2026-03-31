@@ -2,7 +2,7 @@
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUpRight, TriangleWarning2 } from "@unkey/icons";
-import { Button, DialogContainer, InlineLink, Input, SettingCard } from "@unkey/ui";
+import { Button, DialogContainer, InlineLink, Input, SettingsZoneRow } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -63,52 +63,28 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
   }
 
   return (
-    <SettingCard
-      title={
-        <div className="inline-flex gap-2 items-center">
-          <span>Delete Protection</span>{" "}
-          <StatusBadge
-            variant={api.deleteProtection ? "enabled" : "disabled"}
-            text={api.deleteProtection ? "Enabled" : "Disabled"}
-            icon={<TriangleWarning2 iconSize="sm-regular" />}
-          />
-        </div>
-      }
-      description={
-        api.deleteProtection ? (
-          <p>Disabling this allows the API, along with all keys and data, to be deleted.</p>
-        ) : (
-          <p>Enabling this prevents the API from being deleted.</p>
-        )
-      }
-      border="top"
-      className="border-b border-grayA-4"
-    >
-      <div className="flex w-full gap-2 lg:items-center justify-end">
-        {api.deleteProtection ? (
-          <Button
-            type="button"
-            variant="outline"
-            color="warning"
-            className="h-full px-3.5 "
-            size="xlg"
-            onClick={() => setOpen(true)}
-          >
-            Disable Delete Protection
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            className="h-full px-3.5 "
-            variant="outline"
-            color="success"
-            size="xlg"
-            onClick={() => setOpen(true)}
-          >
-            Enable Delete Protection
-          </Button>
-        )}
-      </div>
+    <>
+      <SettingsZoneRow
+        title={
+          <div className="inline-flex gap-2 items-center">
+            <span>Delete Protection</span>{" "}
+            <StatusBadge
+              variant={api.deleteProtection ? "enabled" : "disabled"}
+              text={api.deleteProtection ? "Enabled" : "Disabled"}
+              icon={<TriangleWarning2 iconSize="sm-regular" />}
+            />
+          </div>
+        }
+        description={
+          api.deleteProtection
+            ? "Disabling this allows the API, along with all keys and data, to be deleted."
+            : "Enabling this prevents the API from being deleted."
+        }
+        action={{
+          label: api.deleteProtection ? "Disable" : "Enable",
+          onClick: () => setOpen(true),
+        }}
+      />
       <DialogContainer
         isOpen={open}
         onOpenChange={setOpen}
@@ -119,7 +95,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
               type="submit"
               form="delete-protection-form"
               variant="primary"
-              color={api.deleteProtection ? "warning" : "success"}
+              color="danger"
               size="xlg"
               disabled={!isValid || isSubmitting}
               loading={isSubmitting}
@@ -159,6 +135,6 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
           </form>
         </div>
       </DialogContainer>
-    </SettingCard>
+    </>
   );
 };

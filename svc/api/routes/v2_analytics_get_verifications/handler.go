@@ -49,7 +49,6 @@ var (
 type Handler struct {
 	DB                         db.Database
 	Keys                       keys.KeyService
-	ClickHouse                 clickhouse.ClickHouse
 	AnalyticsConnectionManager analytics.ConnectionManager
 	Caches                     caches.Caches
 }

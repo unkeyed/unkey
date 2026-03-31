@@ -1,0 +1,77 @@
+---
+title: "delete-api"
+description: "Permanently delete an API namespace and immediately invalidate all associated keys"
+---
+
+Permanently delete an API namespace and immediately invalidate all associated keys.
+
+Use this for cleaning up development environments, retiring deprecated services, or removing unused resources. All keys in the namespace are immediately marked as deleted and will fail verification with `code=NOT_FOUND`.
+
+**Important:** This operation is immediate and permanent. Verify you have the correct API ID before deletion. If delete protection is enabled, disable it first through the dashboard or API configuration.
+
+**Required permissions:**
+- `api.*.delete_api` (to delete any API)
+- `api.<api_id>.delete_api` (to delete a specific API)
+
+<Note>
+See the [API reference](/api-reference/v2/apis/delete-api-namespace) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api apis delete-api [flags]
+```
+
+## Flags
+
+<ParamField body="--api-id" type="string" required>
+Specifies which API namespace to permanently delete from your workspace. Must be a valid API ID that begins with `api_` and exists within your workspace.
+
+Before proceeding, ensure you have the correct API ID and understand that this action cannot be undone. If you need to migrate functionality, create replacement keys in a new API namespace and update client applications before deletion.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api apis delete-api --api-id=api_1234abcd
+```
+```bash JSON output for scripting
+unkey api apis delete-api --api-id=api_1234abcd --output=json
+```
+```bash Delete after looking up by name
+API_ID=$(unkey api apis list-apis --output=json | jq -r '.data[] | select(.name=="old-service") | .id')
+unkey api apis delete-api --api-id=$API_ID
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+{}
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": {}
+}
+```

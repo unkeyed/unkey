@@ -128,13 +128,16 @@ export const DeploymentsList = () => {
         header: "",
         width: "15%",
         render: ({ deployment }: { deployment: Deployment }) => {
-          const isFailed = deployment.status === "failed";
-          const cpu = isFailed ? null : formatCpuParts(deployment.cpuMillicores);
-          const mem = isFailed ? null : formatMemoryParts(deployment.memoryMib);
+          const hideResources =
+            deployment.status === "failed" ||
+            deployment.status === "skipped" ||
+            deployment.status === "stopped";
+          const cpu = hideResources ? null : formatCpuParts(deployment.cpuMillicores);
+          const mem = hideResources ? null : formatMemoryParts(deployment.memoryMib);
           return (
             <div className="flex items-center gap-7">
               <div className="hidden 2xl:flex items-center w-[80px]">
-                {isFailed ? (
+                {hideResources ? (
                   <span className="text-gray-9">—</span>
                 ) : (
                   <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md text-grayA-11 w-fit h-[22px]">
@@ -147,7 +150,7 @@ export const DeploymentsList = () => {
                 )}
               </div>
               <div className="hidden 2xl:flex gap-1.5 w-[180px]">
-                {isFailed || !cpu || !mem ? (
+                {hideResources || !cpu || !mem ? (
                   <span className="text-gray-9">—</span>
                 ) : (
                   <>
@@ -180,7 +183,7 @@ export const DeploymentsList = () => {
                   </div>
                   {deployment.gitCommitMessage ? (
                     <div
-                      className="truncate text-xs text-gray-9 max-w-50"
+                      className="truncate text-xs text-gray-9 w-50 pr-5"
                       title={deployment.gitCommitMessage}
                     >
                       {deployment.gitCommitMessage}

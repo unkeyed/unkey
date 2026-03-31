@@ -4,48 +4,16 @@ import (
 	"context"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 )
 
-// noop implements the Bufferer interface but discards all events.
+// noop implements the ClickHouse interface but discards all operations.
 // This is useful for testing or when ClickHouse functionality is not needed,
 // such as in development environments or when running integration tests.
 type noop struct{}
 
-var (
-	_ Bufferer = (*noop)(nil)
-)
+var _ ClickHouse = (*noop)(nil)
 
-func (n *noop) BufferApiRequest(schema.ApiRequest) {
-	// Intentionally empty - discards the event
-}
-
-// BufferKeyVerification implements the Bufferer interface but discards the event.
-func (n *noop) BufferKeyVerification(schema.KeyVerification) {
-	// Intentionally empty - discards the event
-}
-
-// BufferRatelimit implements the Bufferer interface but discards the event.
-func (n *noop) BufferRatelimit(req schema.Ratelimit) {
-	// Intentionally empty - discards the event
-}
-
-// BufferBuildStep implements the Bufferer interface but discards the event.
-func (n *noop) BufferBuildStep(req schema.BuildStepV1) {
-	// Intentionally empty - discards the event
-}
-
-// BufferBuildStepLog implements the Bufferer interface but discards the event.
-func (n *noop) BufferBuildStepLog(req schema.BuildStepLogV1) {
-	// Intentionally empty - discards the event
-}
-
-// BufferSentinelRequest implements the Bufferer interface but discards the event.
-func (n *noop) BufferSentinelRequest(req schema.SentinelRequest) {
-	// Intentionally empty - discards the event
-}
-
-// GetBillableVerifications implements the Bufferer interface but always returns 0.
+// GetBillableVerifications implements the Querier interface but always returns 0.
 func (n *noop) GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error) {
 	return 0, nil
 }
@@ -63,6 +31,11 @@ func (n *noop) GetBillableUsageAboveThreshold(ctx context.Context, year, month i
 // GetDeploymentRequestCount implements the Querier interface but always returns 0.
 func (n *noop) GetDeploymentRequestCount(ctx context.Context, req GetDeploymentRequestCountRequest) (int64, error) {
 	return 0, nil
+}
+
+// GetKeyLastUsedBatchPartitioned implements the Querier interface but always returns an empty slice.
+func (n *noop) GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error) {
+	return nil, nil
 }
 
 func (n *noop) Conn() ch.Conn {
@@ -93,30 +66,10 @@ func (n *noop) Close() error {
 	return nil
 }
 
-// NewNoop creates a new no-op implementation of the Bufferer interface.
-// This implementation simply discards all events without processing them.
+// NewNoop creates a new no-op implementation of the ClickHouse interface.
+// This implementation discards all operations without processing them.
 //
-// This is useful for:
-// - Development environments where ClickHouse is not available
-// - Testing where analytics are not relevant
-// - Scenarios where analytics are optional and not configured
-//
-// Example:
-//
-//	var bufferer clickhouse.Bufferer
-//	if config.ClickhouseURL != "" {
-//	    ch, err := clickhouse.New(clickhouse.Config{
-//	        URL:    config.ClickhouseURL,
-//	    })
-//	    if err != nil {
-//	        logger.Warn("Failed to initialize ClickHouse, analytics will be disabled")
-//	        bufferer = clickhouse.NewNoop()
-//	    } else {
-//	        bufferer = ch
-//	    }
-//	} else {
-//	    bufferer = clickhouse.NewNoop()
-//	}
+// For no-op batch processors, use batch.NewNoop[T]() instead.
 func NewNoop() *noop {
 	return &noop{}
 }

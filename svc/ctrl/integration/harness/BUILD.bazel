@@ -8,7 +8,9 @@ go_library(
     deps = [
         "//gen/proto/hydra/v1:hydra",
         "//gen/rpc/vault",
+        "//pkg/batch",
         "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
         "//pkg/db",
         "//pkg/dockertest",
         "//pkg/healthcheck",
@@ -17,6 +19,7 @@ go_library(
         "//svc/ctrl/worker/clickhouseuser",
         "//svc/ctrl/worker/deploy",
         "//svc/ctrl/worker/deployment",
+        "//svc/ctrl/worker/keylastusedsync",
         "//svc/ctrl/worker/keyrefill",
         "//svc/ctrl/worker/quotacheck",
         "//svc/vault/testutil",

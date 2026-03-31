@@ -1,0 +1,9 @@
+---
+title: vercel_dashboard
+---
+
+```sql
+CREATE USER IF NOT EXISTS vercel_dashboard IDENTIFIED WITH sha256_password BY '<password>';
+
+GRANT readonly_role TO vercel_dashboard;
+```

@@ -1,6 +1,6 @@
 ---
-title: 'Glossary'
-description: 'Key terms and concepts used throughout Unkey'
+title: "Glossary"
+description: "Key terms and concepts used throughout Unkey"
 ---
 
 ## Core Concepts
@@ -43,7 +43,8 @@ A special key that grants access to Unkey's management API. Use root keys to:
 - Access analytics
 
 <Warning>
-Root keys have full access to your workspace. Never expose them in client-side code or public repositories.
+  Root keys have full access to your workspace. Never expose them in client-side
+  code or public repositories.
 </Warning>
 
 ## Key Features
@@ -62,17 +63,18 @@ Use `externalId` to link to your own user IDs: `externalId: "user_123"`
 
 Limit how many times a key can be used. Different from rate limiting:
 
-| Feature | Credits | Rate Limits |
-|---------|---------|-------------|
-| Resets? | No (unless refill configured) | Yes, every window |
-| Use case | Total quota | Requests per time |
-| Example | "1000 requests total" | "100 requests/minute" |
+| Feature  | Credits                       | Rate Limits           |
+| -------- | ----------------------------- | --------------------- |
+| Resets?  | No (unless refill configured) | Yes, every window     |
+| Use case | Total quota                   | Requests per time     |
+| Example  | "1000 requests total"         | "100 requests/minute" |
 
 Credits decrement with each verification. When they hit 0, the key is invalid.
 
 ### Refill
 
 Automatically restore credits on a schedule:
+
 - **Daily**: Reset at midnight UTC
 - **Monthly**: Reset on a specific day
 
@@ -174,16 +176,16 @@ Key exists and passed all checks (not expired, not disabled, has credits, not ra
 
 The reason a verification succeeded or failed:
 
-| Code | Meaning |
-|------|---------|
-| `VALID` | Key is valid |
-| `NOT_FOUND` | Key doesn't exist |
-| `EXPIRED` | Key past expiration date |
-| `DISABLED` | Key manually disabled |
-| `USAGE_EXCEEDED` | No credits remaining |
-| `RATE_LIMITED` | Rate limit exceeded |
+| Code                       | Meaning                     |
+| -------------------------- | --------------------------- |
+| `VALID`                    | Key is valid                |
+| `NOT_FOUND`                | Key doesn't exist           |
+| `EXPIRED`                  | Key past expiration date    |
+| `DISABLED`                 | Key manually disabled       |
+| `USAGE_EXCEEDED`           | No credits remaining        |
+| `RATE_LIMITED`             | Rate limit exceeded         |
 | `INSUFFICIENT_PERMISSIONS` | Missing required permission |
-| `FORBIDDEN` | IP whitelist violation |
+| `FORBIDDEN`                | IP whitelist violation      |
 
 ## Analytics
 

@@ -6,7 +6,6 @@ import { apiKeysLlmSearch } from "./api/keys/llm-search-api-keys";
 import { activeKeysTimeseries } from "./api/keys/query-active-keys-timeseries";
 import { queryKeysList } from "./api/keys/query-api-keys";
 import { keyUsageTimeseries } from "./api/keys/query-key-usage-timeseries";
-import { keyLastVerificationTime } from "./api/keys/query-latest-verification";
 import { queryKeysOverviewLogs } from "./api/keys/query-overview-logs";
 import { keyVerificationsTimeseries } from "./api/keys/query-overview-timeseries";
 import { enableKey } from "./api/keys/toggle-key-enabled";
@@ -71,6 +70,7 @@ import { updateCpu } from "./deploy/environment-settings/runtime/update-cpu";
 import { updateHealthcheck } from "./deploy/environment-settings/runtime/update-healthcheck";
 import { updateInstances } from "./deploy/environment-settings/runtime/update-instances";
 import { updateMemory } from "./deploy/environment-settings/runtime/update-memory";
+import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/update-openapi-spec-path";
 import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
 import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
@@ -251,7 +251,6 @@ export const router = t.router({
       listLlmSearch: apiKeysLlmSearch,
       enableKey: enableKey,
       usageTimeseries: keyUsageTimeseries,
-      latestVerification: keyLastVerificationTime,
     }),
     overview: t.router({
       keyCount: getKeyCount,
@@ -426,6 +425,7 @@ export const router = t.router({
         updateHealthcheck,
         updateRegions,
         updateInstances,
+        updateOpenapiSpecPath,
       }),
       build: t.router({
         updateDockerfile,

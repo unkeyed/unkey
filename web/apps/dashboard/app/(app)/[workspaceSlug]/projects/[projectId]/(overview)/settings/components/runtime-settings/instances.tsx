@@ -4,10 +4,7 @@ import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-s
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { Connections3 } from "@unkey/icons";
 import { RegionFlag } from "../../../../components/region-flag";
-import {
-  type ResourceSliderConfig,
-  ResourceSliderSetting,
-} from "../shared/resource-slider-setting";
+import { type ResourceSliderConfig, ResourceSliderSetting } from "../shared/resource-slider";
 
 const formatInstanceParts = (n: number) => ({
   value: String(n),
@@ -36,10 +33,11 @@ const RegionFlags = ({ settings }: { settings: EnvironmentSettings }) => {
 
 const instancesConfig: ResourceSliderConfig = {
   icon: <Connections3 className="text-gray-12" iconSize="xl-medium" />,
-  title: "Instances",
-  description: "Number of instances running in each region",
+  title: "Max Instances",
+  description:
+    "Maximum number of instances per region. Scales down automatically based on CPU usage.",
   settingDescription:
-    "Changes apply on next deploy. During beta, instances are limited to 4 per region. Please contact support@unkey.com if you need more.",
+    "Changes apply on next deploy. Your deployment scales up to this or down to 1 when load is low. During beta, instances are limited to 4 per region.",
   colorVar: "featureA",
   slider: { kind: "direct", min: 1, max: 4, step: 1 },
   formatValue: formatInstanceParts,

@@ -15,6 +15,7 @@ import {
 import { Controller, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
 import { useEnvironmentSettings } from "../../../environment-provider";
+import { SettingField } from "../../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
 import { CustomDomainRow } from "./custom-domain-row";
 import { type CustomDomainFormValues, customDomainSchema } from "./schema";
@@ -117,19 +118,18 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
     >
-      <div className="flex flex-col gap-2 w-full">
+      <SettingField>
         <div className="flex items-center gap-3">
           <span className="text-[13px] text-gray-11 w-35">Environment</span>
           <span className="flex-1 text-[13px] text-gray-11">Domain</span>
         </div>
-        <div className="flex items-start gap-3 w-120">
+        <div className="flex items-start gap-3">
           <Controller
             control={control}
             name="environmentId"
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
                 <SelectTrigger
-                  className="h-9"
                   wrapperClassName="w-[140px]"
                   variant={errors.environmentId ? "error" : "default"}
                   rightIcon={<ChevronDown className="absolute right-3 size-3 opacity-70" />}
@@ -150,7 +150,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
           />
           <FormInput
             placeholder="api.example.com"
-            className="flex-1 [&_input]:h-9 [&_input]:font-mono"
+            className="flex-1 [&_input]:font-mono"
             error={errors.domain?.message}
             {...register("domain")}
           />
@@ -167,7 +167,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
             ))}
           </div>
         )}
-      </div>
+      </SettingField>
     </FormSettingCard>
   );
 };

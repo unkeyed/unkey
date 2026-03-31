@@ -1,0 +1,9 @@
+---
+title: vector
+---
+
+```sql
+CREATE USER IF NOT EXISTS vector IDENTIFIED WITH sha256_password BY '<password>';
+
+GRANT INSERT ON default.runtime_logs_raw_v1 TO vector;
+```

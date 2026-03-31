@@ -1,0 +1,69 @@
+---
+title: "delete-identity"
+description: "Permanently delete an identity for data cleanup, compliance, or entity removal"
+---
+
+Permanently delete an identity. This operation cannot be undone.
+
+Use this for data cleanup, compliance requirements, or when removing entities from your system.
+
+**Important:**
+- Associated API keys remain functional but lose shared resources
+- External ID becomes available for reuse immediately
+
+**Required permissions:**
+- `identity.*.delete_identity` (to delete identities in any workspace)
+
+<Note>
+See the [API reference](/api-reference/v2/identities/delete-identity) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api identities delete-identity [flags]
+```
+
+## Flags
+
+<ParamField body="--identity" type="string" required>
+The ID of the identity to delete. This can be either the external ID (from your own system that was used during identity creation) or the identity ID (the internal ID returned by the identity service).
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api identities delete-identity --identity=user_123
+```
+```bash JSON output for scripting
+unkey api identities delete-identity --identity=user_123 --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency:
+
+```
+req_01H9TQPP77V5E48E9SH0BG0ZQX (took 38ms)
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_01H9TQPP77V5E48E9SH0BG0ZQX"
+  }
+}
+```

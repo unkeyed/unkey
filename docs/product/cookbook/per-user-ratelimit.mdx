@@ -76,19 +76,19 @@ export async function POST(request: Request) {
 
   if (!success) {
     return NextResponse.json(
-      { 
+      {
         error: "Rate limit exceeded",
         tier,
         reset: new Date(reset).toISOString(),
       },
-      { 
+      {
         status: 429,
         headers: {
           "X-RateLimit-Limit": config.limit.toString(),
           "X-RateLimit-Remaining": "0",
           "X-RateLimit-Reset": reset.toString(),
         },
-      }
+      },
     );
   }
 
@@ -124,7 +124,7 @@ const TIER_LIMITS: Record<string, { limit: number; duration: string }> = {
 export function tieredRateLimit() {
   return async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.headers["x-user-id"] as string;
-    
+
     if (!userId) {
       return res.status(401).json({ error: "Missing user ID" });
     }
@@ -161,7 +161,7 @@ export function tieredRateLimit() {
 
 ## Using Unkey overrides (recommended)
 
-Instead of managing limits in your code, use [Unkey overrides](/ratelimiting/overrides) to set per-user limits dynamically:
+Instead of managing limits in your code, use [Unkey overrides](/platform/ratelimiting/overrides) to set per-user limits dynamically:
 
 ```typescript
 import { Ratelimit } from "@unkey/ratelimit";
@@ -169,7 +169,7 @@ import { Ratelimit } from "@unkey/ratelimit";
 const limiter = new Ratelimit({
   rootKey: process.env.UNKEY_ROOT_KEY!,
   namespace: "api",
-  limit: 100,      // Default for free tier
+  limit: 100, // Default for free tier
   duration: "1h",
 });
 
@@ -185,6 +185,7 @@ const { success } = await limiter.limit(userId);
 ```
 
 This approach means:
+
 - No code changes when limits change
 - Overrides can be managed via API or dashboard
 - Default limit applies to users without overrides
@@ -234,26 +235,38 @@ if (!data.valid) {
 
 <CardGroup cols={2}>
   <Card title="Use identifiers consistently" icon="fingerprint">
-    Always use the same identifier format (user ID, org ID) for accurate limiting across requests.
+    Always use the same identifier format (user ID, org ID) for accurate
+    limiting across requests.
   </Card>
   <Card title="Communicate limits clearly" icon="comment">
-    Return rate limit headers so clients know their limits and can back off gracefully.
+    Return rate limit headers so clients know their limits and can back off
+    gracefully.
   </Card>
   <Card title="Consider burst allowance" icon="bolt">
-    Pro/Enterprise users often expect some burst capacity. Consider slightly higher limits with shorter windows.
+    Pro/Enterprise users often expect some burst capacity. Consider slightly
+    higher limits with shorter windows.
   </Card>
   <Card title="Log limit hits" icon="chart-line">
-    Track when users hit limits to inform pricing decisions and identify potential abuse.
+    Track when users hit limits to inform pricing decisions and identify
+    potential abuse.
   </Card>
 </CardGroup>
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Overrides" icon="sliders" href="/ratelimiting/overrides">
+  <Card
+    title="Overrides"
+    icon="sliders"
+    href="/platform/ratelimiting/overrides"
+  >
     Manage per-user limits without code changes
   </Card>
-  <Card title="Tiered subscriptions" icon="layer-group" href="/cookbook/tiered-subscriptions">
+  <Card
+    title="Tiered subscriptions"
+    icon="layer-group"
+    href="/cookbook/tiered-subscriptions"
+  >
     Full subscription tier implementation
   </Card>
 </CardGroup>

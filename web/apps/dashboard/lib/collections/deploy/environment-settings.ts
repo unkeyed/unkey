@@ -47,6 +47,7 @@ const schema = z.object({
   regions: z.array(z.object({ id: z.string(), name: z.string(), replicas: z.number().int() })),
   shutdownSignal: z.string(),
   sentinelConfig: sentinelConfigSchema,
+  openapiSpecPath: z.string().nullable().default(null),
 });
 
 /**
@@ -103,6 +104,16 @@ export const environmentSettings = createCollection<EnvironmentSettings, string>
 
 export type EnvironmentSettings = z.infer<typeof schema>;
 
+/** Default values for environment settings fields (excluding regions, which are runtime-dependent). */
+export const ENVIRONMENT_SETTINGS_DEFAULTS = {
+  dockerfile: "Dockerfile",
+  dockerContext: ".",
+  port: 8080,
+  cpuMillicores: 250,
+  memoryMib: 256,
+  shutdownSignal: "SIGTERM",
+} as const;
+
 type SettingsResponse = Awaited<ReturnType<typeof trpcClient.deploy.environmentSettings.get.query>>;
 
 function changed<T>(a: T, b: T): boolean {
@@ -119,14 +130,15 @@ function flattenSettingsResponse(
   runtime: SettingsResponse["runtimeSettings"],
   regional: SettingsResponse["regionalSettings"],
 ): EnvironmentSettings {
+  const d = ENVIRONMENT_SETTINGS_DEFAULTS;
   return {
     environmentId,
-    dockerfile: build?.dockerfile ?? "Dockerfile",
-    dockerContext: build?.dockerContext ?? ".",
+    dockerfile: build?.dockerfile || d.dockerfile,
+    dockerContext: build?.dockerContext || d.dockerContext,
     watchPaths: build?.watchPaths ?? [],
-    port: runtime?.port ?? 8080,
-    cpuMillicores: runtime?.cpuMillicores ?? 256,
-    memoryMib: runtime?.memoryMib ?? 256,
+    port: runtime?.port ?? d.port,
+    cpuMillicores: runtime?.cpuMillicores ?? d.cpuMillicores,
+    memoryMib: runtime?.memoryMib ?? d.memoryMib,
     command: runtime?.command ?? [],
     healthcheck: runtime?.healthcheck ?? null,
     regions: regional
@@ -136,8 +148,9 @@ function flattenSettingsResponse(
         name: r.region.name,
         replicas: r.replicas,
       })),
-    shutdownSignal: "SIGTERM",
+    shutdownSignal: d.shutdownSignal,
     sentinelConfig: runtime?.sentinelConfig,
+    openapiSpecPath: runtime?.openapiSpecPath ?? null,
   };
 }
 
@@ -262,6 +275,15 @@ export function buildSettingsMutations(
     );
   }
 
+  if (modified.openapiSpecPath !== original.openapiSpecPath) {
+    mutations.push(
+      trpcClient.deploy.environmentSettings.runtime.updateOpenapiSpecPath.mutate({
+        environmentId,
+        openapiSpecPath: modified.openapiSpecPath,
+      }),
+    );
+  }
+
   return mutations;
 }
 
@@ -287,25 +309,14 @@ async function dispatchSettingsMutations(
       }),
     });
   }
-  saveStore.pendingSaves++;
-  saveStore.notify();
-  try {
-    await allMutations;
-    saveStore.savedCount++;
-    saveStore.notify();
-  } finally {
-    saveStore.pendingSaves--;
-    saveStore.notify();
-  }
+  await trackSave(allMutations);
 }
 
 /**
- * Store for tracking in-flight and completed settings saves.
+ * Store for tracking in-flight and completed collection saves.
  *
- * Grouped into a single object so the boundary is obvious and
- * `dispatchSettingsMutations` has one place to update.
- * Consumers subscribe via `useSyncExternalStore` — no React context needed
- * because settings mutations always originate from this module.
+ * Shared by environment-settings and env-vars collections so the
+ * pending-redeploy banner reacts to mutations from either source.
  */
 const saveStore = {
   pendingSaves: 0,
@@ -323,6 +334,24 @@ const saveStore = {
     };
   },
 };
+
+export function trackSave<T>(promise: Promise<T>): Promise<T> {
+  saveStore.pendingSaves++;
+  saveStore.notify();
+  return promise.then(
+    (result) => {
+      saveStore.savedCount++;
+      saveStore.pendingSaves--;
+      saveStore.notify();
+      return result;
+    },
+    (err) => {
+      saveStore.pendingSaves--;
+      saveStore.notify();
+      throw err;
+    },
+  );
+}
 
 export function useSettingsIsSaving(): boolean {
   return useSyncExternalStore(

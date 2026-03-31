@@ -6,8 +6,8 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
+import { SettingDescription, SettingField } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
-import { SettingDescription } from "../shared/setting-description";
 import { useRepoTree } from "./use-repo-tree";
 
 const dockerfileSchema = z.object({
@@ -32,7 +32,7 @@ export const Dockerfile = () => {
     defaultValues: { dockerfile: defaultValue },
   });
 
-  const currentDockerfile = useWatch({ control, name: "dockerfile" });
+  const currentDockerfile = useWatch({ control, name: "dockerfile", defaultValue });
 
   const validation = validateDockerfilePath(currentDockerfile, dockerContext);
   const caseMatch =
@@ -91,20 +91,23 @@ export const Dockerfile = () => {
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
-      <FormCombobox
-        className="w-[480px]"
-        options={options}
-        value={currentDockerfile}
-        onSelect={(val) => setValue("dockerfile", val, { shouldValidate: true })}
-        creatable
-        searchPlaceholder="Search or type a path..."
-        emptyMessage={<div className="mt-2">No Dockerfiles detected in repository</div>}
-        placeholder={<span className="text-grayA-8">Dockerfile</span>}
-        variant={inputVariant}
-      />
+      <SettingField>
+        <FormCombobox
+          required
+          label="Dockerfile"
+          options={options}
+          value={currentDockerfile}
+          onSelect={(val) => setValue("dockerfile", val, { shouldValidate: true })}
+          creatable
+          searchPlaceholder="Search or type a path..."
+          emptyMessage={<div className="mt-2">No Dockerfiles detected in repository</div>}
+          placeholder={<span className="text-grayA-8">Dockerfile</span>}
+          variant={inputVariant}
+        />
+      </SettingField>
 
       {warningMessage ? (
-        <div className="text-[13px] leading-5 mt-1 text-warning-11">{warningMessage}</div>
+        <div className="text-[13px] leading-5 text-warning-11">{warningMessage}</div>
       ) : (
         <SettingDescription>
           Dockerfile location used for docker build. Changes apply on next deploy.

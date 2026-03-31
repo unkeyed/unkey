@@ -19,6 +19,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -125,7 +126,6 @@ func (c *Controller) ensureNamespaceExists(ctx context.Context) error {
 // server-side apply. Returns the resulting Deployment so the caller can extract
 // its UID for setting owner references on related resources.
 func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.ApplySentinel) (*appsv1.Deployment, error) {
-
 	configEnv, err := toml.Marshal(sentinelcfg.Config{
 		SentinelID:    sentinel.GetSentinelId(),
 		WorkspaceID:   sentinel.GetWorkspaceId(),
@@ -138,20 +138,33 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 			ReadonlyReplica: "${UNKEY_DATABASE_REPLICA}",
 		},
 		ClickHouse: sentinelcfg.ClickHouseConfig{
-			URL: "${UNKEY_CLICKHOUSE_URL}",
+			URL:        "${UNKEY_CLICKHOUSE_URL}",
+			BatchSize:  0,
+			BufferSize: 0,
+			Consumers:  0,
 		},
 		Redis: sentinelcfg.RedisConfig{
 			URL: "${UNKEY_REDIS_URL}",
 		},
+		RequestTimeout: 15 * time.Minute,
 		Observability: config.Observability{
 			Logging: &config.LoggingConfig{
 				SampleRate:    1.0,
 				SlowThreshold: time.Second,
 			},
-			Tracing: nil,
-			Metrics: nil,
+			Tracing: &config.TracingConfig{
+				SampleRate: 0.25,
+			},
+			Metrics: &config.MetricsConfig{
+				PrometheusPort: MetricsPort,
+			},
 		},
 		Gossip: nil,
+		Pprof: &config.PprofConfig{
+			Username: "${UNKEY_PPROF_USERNAME}",
+			Password: "${UNKEY_PPROF_PASSWORD}",
+			Port:     0,
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -235,6 +248,14 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 									Optional: ptr.P(true),
 								},
 							},
+							{
+								SecretRef: &corev1.SecretEnvSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "pprof",
+									},
+									Optional: ptr.P(true),
+								},
+							},
 						},
 
 						Env: []corev1.EnvVar{
@@ -245,12 +266,13 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 							{ContainerPort: SentinelPort, Name: "sentinel"},
 							{ContainerPort: GossipLANPort, Name: "gossip-lan", Protocol: corev1.ProtocolTCP},
 							{ContainerPort: GossipLANPort, Name: "gossip-lan-udp", Protocol: corev1.ProtocolUDP},
+							{ContainerPort: MetricsPort, Name: "metrics"},
 						},
 
 						LivenessProbe: &corev1.Probe{
 							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
-									Path: "/_unkey/internal/health",
+									Path: "/_unkey/internal/health/live",
 									Port: intstr.FromInt(SentinelPort),
 								},
 							},
@@ -263,7 +285,7 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 						ReadinessProbe: &corev1.Probe{
 							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
-									Path: "/_unkey/internal/health",
+									Path: "/_unkey/internal/health/ready",
 									Port: intstr.FromInt(SentinelPort),
 								},
 							},
@@ -274,18 +296,14 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 						},
 
 						Resources: corev1.ResourceRequirements{
-							// nolint:exhaustive
-							//	Limits: corev1.ResourceList{
-							//		corev1.ResourceCPU:              *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
-							//		corev1.ResourceMemory:           *resource.NewQuantity(sentinel.GetMemoryMib(), resource.BinarySI),
-							//		corev1.ResourceEphemeralStorage: *resource.NewQuantity(5*1024*1024*1024, resource.BinarySI),
-							//	},
-							// nolint:exhaustive
-							//	Requests: corev1.ResourceList{
-							//		corev1.ResourceCPU:              *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
-							//		corev1.ResourceMemory:           *resource.NewQuantity(sentinel.GetMemoryMib(), resource.BinarySI),
-							//		corev1.ResourceEphemeralStorage: *resource.NewQuantity(5*1024*1024*1024, resource.BinarySI),
-							//	},
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.GetCpuMillicores()/2, resource.BinarySI),
+								corev1.ResourceMemory: *resource.NewQuantity(sentinel.GetMemoryMib()*1024*1024, resource.BinarySI),
+							},
+							Limits: corev1.ResourceList{
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(sentinel.GetCpuMillicores(), resource.BinarySI),
+								corev1.ResourceMemory: *resource.NewQuantity(sentinel.GetMemoryMib()*1024*1024, resource.BinarySI),
+							},
 						},
 					}},
 				},

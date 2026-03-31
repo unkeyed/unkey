@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/vault/internal/keys"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
+	"github.com/unkeyed/unkey/svc/vault/keys"
 )
 
 // corruptibleStorage wraps a storage backend and allows injecting corruption

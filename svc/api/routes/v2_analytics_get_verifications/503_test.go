@@ -53,7 +53,6 @@ func Test503_ClickHouseConnectionFailure(t *testing.T) {
 	route := &Handler{
 		DB:                         h.DB,
 		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}
