@@ -15,10 +15,10 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   {
     key: "expand",
     width: "25px",
-    cellClassName: "p-0",
+    cellClassName: "p-0 !align-top",
     render: (step) =>
       step.has_logs ? (
-        <div className="size-4 flex items-center justify-center w-full">
+        <div className="my-2 size-4 flex items-center justify-center w-full">
           <CaretRight
             iconSize="sm-regular"
             className={cn(
@@ -32,8 +32,9 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   {
     key: "started_at",
     width: "85px",
+    cellClassName: "!align-top",
     render: (step) => (
-      <div className="font-mono text-xs truncate max-w-75 flex items-center gap-2 ">
+      <div className="font-mono text-xs truncate max-w-75 my-2">
         <TimestampInfo
           displayType="local_hours_with_millis"
           value={step.started_at}
@@ -45,15 +46,22 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   {
     key: "status",
     width: "32px",
+    cellClassName: "!align-top",
     render: (step) => {
       if (step.error) {
-        return <TriangleWarning className="text-error-11" iconSize="md-regular" />;
+        return (
+          <div className="my-2">
+            <TriangleWarning className="text-error-11" iconSize="md-regular" />
+          </div>
+        );
       }
       if (step.cached) {
         return (
-          <InfoTooltip content="This step was cached" asChild>
-            <Bolt className="text-primary-11" iconSize="md-regular" />
-          </InfoTooltip>
+          <div className="my-2">
+            <InfoTooltip content="This step was cached" asChild>
+              <Bolt className="text-primary-11" iconSize="md-regular" />
+            </InfoTooltip>
+          </div>
         );
       }
       return null;
@@ -62,6 +70,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   {
     key: "name",
     width: "250px",
+    cellClassName: "!align-top",
     render: (step) => (
       <TruncatedCell
         text={step.name}
@@ -73,22 +82,24 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   {
     key: "error",
     width: "auto",
+    cellClassName: "!align-top",
     render: (step) => {
       if (!step.error) {
         return null;
       }
-      return <TruncatedCell text={step.error} threshold={100} />;
+      return <TruncatedCell text={step.error} threshold={100} maxWidth="max-w-[300px]" />;
     },
   },
   {
     key: "duration",
     width: "115px",
+    cellClassName: "!align-top",
     render: (step) => {
       const duration = step.completed_at - step.started_at;
       return (
-        <span className="px-1.5 font-mono whitespace-nowrap tabular-nums">
+        <div className="my-2 flex justify-end font-mono whitespace-nowrap tabular-nums">
           {formatLatency(duration)}
-        </span>
+        </div>
       );
     },
   },

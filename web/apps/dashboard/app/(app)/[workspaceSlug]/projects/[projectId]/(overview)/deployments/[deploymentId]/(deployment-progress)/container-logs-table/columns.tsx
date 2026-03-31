@@ -8,9 +8,17 @@ export type ContainerLogRow = { time: number; severity: string; message: string 
 function SeverityIcon({ severity }: { severity: string }) {
   switch (severity.toUpperCase()) {
     case "ERROR":
-      return <TriangleWarning className="text-error-11" iconSize="md-regular" />;
+      return (
+        <div className="my-2">
+          <TriangleWarning className="text-error-11" iconSize="md-regular" />
+        </div>
+      );
     case "WARN":
-      return <TriangleWarning className="text-warning-11" iconSize="md-regular" />;
+      return (
+        <div className="my-2">
+          <TriangleWarning className="text-warning-11" iconSize="md-regular" />
+        </div>
+      );
     default:
       return null;
   }
@@ -22,11 +30,13 @@ export const containerLogColumns: Column<ContainerLogRow>[] = [
     width: "85px",
     cellClassName: "pl-[25px]",
     render: (log) => (
-      <TimestampInfo
-        displayType="local_hours_with_millis"
-        value={log.time}
-        className="font-mono group-hover:underline decoration-dotted"
-      />
+      <div className="font-mono text-xs my-2">
+        <TimestampInfo
+          displayType="local_hours_with_millis"
+          value={log.time}
+          className="font-mono group-hover:underline decoration-dotted"
+        />
+      </div>
     ),
   },
   {
