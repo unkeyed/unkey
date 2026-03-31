@@ -1,8 +1,9 @@
 "use client";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
-import { PenWriting3, Trash } from "@unkey/icons";
+import { PenWriting3, Refresh3, Trash } from "@unkey/icons";
 import { DeleteRootKey } from "./delete-root-key";
+import { RerollRootKey } from "./reroll-root-key";
 
 type RootKeysTableActionsProps = {
   rootKey: RootKey;
@@ -26,6 +27,13 @@ const getRootKeyTableActionItems = (
       onClick: () => {
         onEditKey?.(rootKey);
       },
+      divider: true,
+    },
+    {
+      id: "reroll-root-key",
+      label: "Reroll root key...",
+      icon: <Refresh3 iconSize="md-medium" />,
+      ActionComponent: (props) => <RerollRootKey {...props} rootKeyDetails={rootKey} />,
       divider: true,
     },
     {
