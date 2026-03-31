@@ -64,12 +64,26 @@ See [Wildcard domains](/networking/wildcard-domains) for the full naming pattern
 
 Routes are configured and traffic begins flowing to the new deployment. The deployment status moves to **Ready**.
 
-In production, this deployment becomes the current live version. The previous live deployment transitions to standby after 30 minutes, keeping it available for a quick [rollback](/build-and-deploy/rollbacks).
-
-In preview environments, deployments stay running as long as they receive traffic. Idle preview deployments (zero requests for six hours) are automatically archived.
+The previous deployment stays running as part of [safe deployments](#safe-deployments), giving you a window to roll back instantly if needed.
 
 </Step>
 </Steps>
+
+## Safe deployments
+
+Every deployment on Unkey is a safe deployment. When a new version goes live, the previous deployment isn't torn down immediately. It stays running so you can roll back instantly if something goes wrong. No rebuild, no container startup, just an immediate domain reassignment back to the known-good version.
+
+### Production: 30-minute rollback window
+
+After a new production deployment starts serving traffic, the previous deployment stays running for 30 minutes. During this window, a [rollback](/build-and-deploy/rollbacks) is instant. Unkey reassigns the domains and traffic switches over in seconds.
+
+Since the previous deployment is no longer receiving traffic, it will scale down according to your [autoscaling](/build-and-deploy/regions) rules to the configured minimum. After 30 minutes, the previous deployment spins down entirely. Rolling back to it is still possible after that, but takes longer because the containers need to start up again.
+
+### Preview: 6-hour idle window
+
+Preview deployments stay running as long as they receive traffic. A preview deployment only spins down after six consecutive hours with zero requests.
+
+This keeps costs low for branches that are no longer being actively reviewed.
 
 ## Troubleshoot failed deployments
 

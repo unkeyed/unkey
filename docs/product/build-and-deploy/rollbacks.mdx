@@ -60,7 +60,7 @@ Promoting a deployment reassigns domains to point to it and restores normal beha
 Rolling back is faster since it reuses an existing, known-good deployment. Rolling forward (pushing a fix) creates a new deployment and goes through the full build and deploy pipeline.
 
 <Tip>
-  In production, previous deployments move to standby after 30 minutes. In preview environments, deployments stay running until they've been idle (zero requests) for six hours. Standby deployments can still be used for rollbacks, but reactivation takes slightly longer than rolling back to a running deployment.
+  In production, previous deployments stay running for 30 minutes after a new version goes live, then spin down. In preview environments, deployments stay running until they've been idle (zero requests) for six hours. Rolling back to a running deployment is instant. Rolling back to a spun-down deployment is still possible, but takes longer because the containers need to start up again. See [safe deployments](/build-and-deploy/deployments#safe-deployments) for details.
 </Tip>
 
 ## Next steps
