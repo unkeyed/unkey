@@ -4,6 +4,7 @@ description: "Complete guide to using Unkey in TypeScript and JavaScript applica
 ---
 
 Unkey provides two TypeScript packages:
+
 - **@unkey/api** — Manage keys, APIs, and rate limits (server-side, requires root key)
 - **@unkey/ratelimit** — Standalone rate limiting (server-side, requires root key)
 
@@ -50,7 +51,8 @@ const limiter = new Ratelimit({
 ```
 
 <Warning>
-Never expose your root key in client-side code. These SDKs are for server-side use only.
+  Never expose your root key in client-side code. These SDKs are for server-side
+  use only.
 </Warning>
 
 ---
@@ -93,20 +95,20 @@ async function handleRequest(request: Request) {
 
 ### Verification response
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `valid` | `boolean` | Whether the key passed all checks |
-| `code` | `string` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
-| `keyId` | `string` | The key's unique identifier |
-| `name` | `string?` | Human-readable name of the key |
-| `meta` | `object?` | Custom metadata associated with the key |
-| `expires` | `number?` | Unix timestamp (in milliseconds) when the key will expire (if set) |
-| `credits` | `number?` | Remaining uses (if usage limits set) |
-| `enabled` | `boolean` | Whether the key is enabled |
-| `roles` | `string[]?` | Roles attached to the key |
-| `permissions` | `string[]?` | Permissions attached to the key |
-| `identity` | `object?` | Identity info if `externalId` was set when creating the key |
-| `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
+| Field         | Type        | Description                                                        |
+| ------------- | ----------- | ------------------------------------------------------------------ |
+| `valid`       | `boolean`   | Whether the key passed all checks                                  |
+| `code`        | `string`    | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.)           |
+| `keyId`       | `string`    | The key's unique identifier                                        |
+| `name`        | `string?`   | Human-readable name of the key                                     |
+| `meta`        | `object?`   | Custom metadata associated with the key                            |
+| `expires`     | `number?`   | Unix timestamp (in milliseconds) when the key will expire (if set) |
+| `credits`     | `number?`   | Remaining uses (if usage limits set)                               |
+| `enabled`     | `boolean`   | Whether the key is enabled                                         |
+| `roles`       | `string[]?` | Roles attached to the key                                          |
+| `permissions` | `string[]?` | Permissions attached to the key                                    |
+| `identity`    | `object?`   | Identity info if `externalId` was set when creating the key        |
+| `ratelimits`  | `object[]?` | Rate limit states (if rate limiting configured)                    |
 
 ### Check permissions during verification
 
@@ -114,7 +116,7 @@ async function handleRequest(request: Request) {
 try {
   const { meta, data } = await unkey.keys.verifyKey({
     key: apiKey,
-    permissions: "documents.write",  // Required permission
+    permissions: "documents.write", // Required permission
   });
 
   if (!data.valid && data.code === "INSUFFICIENT_PERMISSIONS") {
@@ -138,22 +140,24 @@ try {
     apiId: "api_...",
 
     // Optional but recommended
-    prefix: "sk_live",                    // Visible prefix
-    externalId: "user_123",              // Link to your user
-    name: "Production key",               // Human-readable name
+    prefix: "sk_live", // Visible prefix
+    externalId: "user_123", // Link to your user
+    name: "Production key", // Human-readable name
 
     // Optional limits
-    expires: Date.now() + 30 * 24 * 60 * 60 * 1000,  // 30 days
-    remaining: 1000,                      // Usage limit
+    expires: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+    remaining: 1000, // Usage limit
     refill: {
       amount: 1000,
-      interval: "monthly",                // Auto-refill
+      interval: "monthly", // Auto-refill
     },
-    ratelimits: [{
-      name: "requests",
-      limit: 100,
-      duration: 60000,                    // 100/minute
-    }],
+    ratelimits: [
+      {
+        name: "requests",
+        limit: 100,
+        duration: 60000, // 100/minute
+      },
+    ],
 
     // Optional metadata
     meta: {
@@ -172,7 +176,8 @@ try {
 ```
 
 <Warning>
-The full API key is only returned once at creation. Unkey stores only a hash. Make sure to display it to your user immediately.
+  The full API key is only returned once at creation. Unkey stores only a hash.
+  Make sure to display it to your user immediately.
 </Warning>
 
 ---
@@ -191,11 +196,13 @@ try {
     meta: { plan: "enterprise" },
     enabled: true,
     expires: Date.now() + 90 * 24 * 60 * 60 * 1000,
-    ratelimits: [{
-      name: "requests",
-      limit: 1000,  // Upgraded limit
-      duration: 60000,
-    }],
+    ratelimits: [
+      {
+        name: "requests",
+        limit: 1000, // Upgraded limit
+        duration: 60000,
+      },
+    ],
   });
 } catch (err) {
   console.error(err);
@@ -321,7 +328,7 @@ async function verifyApiKey(key: string): Promise<VerifyResult | null> {
   } catch (err) {
     // Network error, timeout, etc.
     console.error("Unkey verification error:", err);
-    return null;  // Or return a default allow/deny
+    return null; // Or return a default allow/deny
   }
 }
 ```
@@ -333,12 +340,7 @@ async function verifyApiKey(key: string): Promise<VerifyResult | null> {
 The SDK is fully typed. Import types as needed:
 
 ```typescript
-import type { 
-  VerifyKeyResult,
-  Key,
-  Api,
-  RatelimitResponse,
-} from "@unkey/api";
+import type { VerifyKeyResult, Key, Api, RatelimitResponse } from "@unkey/api";
 ```
 
 ---
@@ -352,7 +354,11 @@ import type {
   <Card title="Hono" icon="flame" href="/libraries/ts/hono">
     Middleware for Hono apps
   </Card>
-  <Card title="Express Quickstart" icon="node-js" href="/quickstart/apis/express">
+  <Card
+    title="Express Quickstart"
+    icon="node-js"
+    href="/quickstart/apis/express"
+  >
     Step-by-step Express guide
   </Card>
   <Card title="Bun Quickstart" icon="bread-slice" href="/quickstart/apis/bun">
@@ -364,6 +370,10 @@ import type {
 
 ## Full Reference
 
-<Card title="GitHub" icon="github" href="https://github.com/unkeyed/sdks/blob/main/api/ts/README.md">
+<Card
+  title="GitHub"
+  icon="github"
+  href="https://github.com/unkeyed/sdks/blob/main/api/ts/README.md"
+>
   Complete auto-generated API reference
 </Card>

@@ -40,7 +40,8 @@ unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
 ```
 
 <Warning>
-Never expose your root key in client-side code or commit it to version control.
+  Never expose your root key in client-side code or commit it to version
+  control.
 </Warning>
 
 ---
@@ -59,18 +60,18 @@ def verify_request(api_key: str) -> Optional[dict]:
     """Verify an API key and return the result or None if invalid."""
     try:
         result = unkey.keys.verify_key(key=api_key)
-        
+
         if not result.valid:
             print(f"Key invalid: {result.code}")
             return None
-            
+
         return {
             "valid": True,
             "key_id": result.key_id,
             "meta": result.meta,
             "remaining": result.credits,
         }
-        
+
     except ApiError as e:
         print(f"Unkey error: {e.message}")
         return None
@@ -78,20 +79,20 @@ def verify_request(api_key: str) -> Optional[dict]:
 
 ### Verification response fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `valid` | `bool` | Whether the key passed all checks |
-| `code` | `str` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
-| `key_id` | `str` | The key's unique identifier |
-| `name` | `str?` | Human-readable name of the key |
-| `meta` | `dict?` | Custom metadata associated with the key |
-| `expires` | `int?` | Unix timestamp (in milliseconds) when the key will expire (if set) |
-| `credits` | `int?` | Remaining uses (if usage limits set) |
-| `enabled` | `bool` | Whether the key is enabled |
-| `roles` | `list[str]?` | Roles attached to the key |
-| `permissions` | `list[str]?` | Permissions attached to the key |
-| `identity` | `dict?` | Identity info if `external_id` was set when creating the key |
-| `ratelimits` | `list[dict]?` | Rate limit states (if rate limiting configured) |
+| Field         | Type          | Description                                                        |
+| ------------- | ------------- | ------------------------------------------------------------------ |
+| `valid`       | `bool`        | Whether the key passed all checks                                  |
+| `code`        | `str`         | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.)           |
+| `key_id`      | `str`         | The key's unique identifier                                        |
+| `name`        | `str?`        | Human-readable name of the key                                     |
+| `meta`        | `dict?`       | Custom metadata associated with the key                            |
+| `expires`     | `int?`        | Unix timestamp (in milliseconds) when the key will expire (if set) |
+| `credits`     | `int?`        | Remaining uses (if usage limits set)                               |
+| `enabled`     | `bool`        | Whether the key is enabled                                         |
+| `roles`       | `list[str]?`  | Roles attached to the key                                          |
+| `permissions` | `list[str]?`  | Permissions attached to the key                                    |
+| `identity`    | `dict?`       | Identity info if `external_id` was set when creating the key       |
+| `ratelimits`  | `list[dict]?` | Rate limit states (if rate limiting configured)                    |
 
 ### FastAPI example
 
@@ -106,13 +107,13 @@ unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
 @app.get("/api/protected")
 async def protected_route(x_api_key: str = Header(...)):
     result = unkey.keys.verify_key(key=x_api_key)
-    
+
     if not result.valid:
         raise HTTPException(
             status_code=401 if result.code == "NOT_FOUND" else 403,
             detail=f"Unauthorized: {result.code}"
         )
-    
+
     return {
         "message": "Access granted",
         "key_id": result.key_id,
@@ -133,15 +134,15 @@ unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
 @app.route("/api/protected")
 def protected_route():
     api_key = request.headers.get("X-API-Key")
-    
+
     if not api_key:
         return jsonify({"error": "Missing API key"}), 401
-    
+
     result = unkey.keys.verify_key(key=api_key)
-    
+
     if not result.valid:
         return jsonify({"error": result.code}), 401
-    
+
     return jsonify({
         "message": "Access granted",
         "key_id": result.key_id
@@ -159,28 +160,28 @@ from datetime import datetime, timedelta
 
 result = unkey.keys.create_key(
     api_id="api_...",
-    
+
     # Optional but recommended
     prefix="sk_live",
     external_id="user_123",          # Link to your user
     name="Production key",
-    
+
     # Optional: Expiration
     expires=(datetime.now() + timedelta(days=30)).timestamp() * 1000,
-    
+
     # Optional: Usage limits
     remaining=1000,
     refill={
         "amount": 1000,
         "interval": "monthly",
     },
-    
+
     # Optional: Rate limits
     ratelimit={
         "limit": 100,
         "duration": 60000,  # 100 per minute
     },
-    
+
     # Optional: Custom metadata
     meta={
         "plan": "pro",
@@ -194,7 +195,7 @@ print(f"Key ID: {result.key_id}")
 ```
 
 <Warning>
-The full API key is only returned once at creation. Unkey stores only a hash.
+  The full API key is only returned once at creation. Unkey stores only a hash.
 </Warning>
 
 ---
@@ -206,11 +207,11 @@ Modify an existing key:
 ```python
 unkey.keys.update_key(
     key_id="key_...",
-    
+
     name="Updated name",
     meta={"plan": "enterprise"},
     enabled=True,
-    
+
     # Update rate limit
     ratelimit={
         "limit": 1000,
@@ -253,10 +254,10 @@ async def main():
     async with Unkey(root_key=os.environ["UNKEY_ROOT_KEY"]) as unkey:
         # Async verification
         result = await unkey.keys.verify_key_async(key="sk_live_...")
-        
+
         if result.valid:
             print("Key is valid!")
-            
+
         # Async key creation
         new_key = await unkey.keys.create_key_async(
             api_id="api_...",
@@ -280,10 +281,10 @@ app = FastAPI()
 async def protected_route(x_api_key: str = Header(...)):
     async with Unkey(root_key=os.environ["UNKEY_ROOT_KEY"]) as unkey:
         result = await unkey.keys.verify_key_async(key=x_api_key)
-        
+
         if not result.valid:
             raise HTTPException(status_code=401, detail=result.code)
-        
+
         return {"message": "Access granted", "key_id": result.key_id}
 ```
 
@@ -300,7 +301,7 @@ unkey = Unkey(root_key=os.environ["UNKEY_ROOT_KEY"])
 try:
     result = unkey.keys.create_key(api_id="api_...")
     print(f"Created: {result.key}")
-    
+
 except ApiError as e:
     print(f"API Error: {e.status_code} - {e.message}")
     # e.status_code - HTTP status
@@ -332,6 +333,10 @@ else:
 
 ## Full Reference
 
-<Card title="GitHub" icon="github" href="https://github.com/unkeyed/sdks/blob/main/api/py/README.md">
+<Card
+  title="GitHub"
+  icon="github"
+  href="https://github.com/unkeyed/sdks/blob/main/api/py/README.md"
+>
   Complete auto-generated API reference
 </Card>

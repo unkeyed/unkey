@@ -3,10 +3,7 @@ title: "role_not_found"
 description: "The requested role was not found"
 ---
 
-<Danger>
-err:unkey:data:role_not_found
-</Danger>
-
+<Danger>err:unkey:data:role_not_found</Danger>
 
 ```json Example
 {
@@ -27,6 +24,7 @@ err:unkey:data:role_not_found
 This error occurs when you're trying to perform an operation on a role that doesn't exist in the Unkey system. Roles in Unkey are collections of permissions that can be assigned to users or API keys.
 
 Common scenarios that trigger this error:
+
 - Using an incorrect role ID or name
 - Referencing a role that has been deleted
 - Trying to assign a role that doesn't exist in the current workspace
@@ -67,6 +65,7 @@ curl -X POST https://api.unkey.com/v2/permissions.createRole \
 - **Workspace boundaries**: Trying to use roles from another workspace
 
 ## Related Errors
+
 - [err:unkey:data:permission_not_found](./permission_not_found) - When the requested permission doesn't exist
 - [err:unkey:data:api_not_found](./api_not_found) - When the requested API doesn't exist
 - [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to perform operations on roles

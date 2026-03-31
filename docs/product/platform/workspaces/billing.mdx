@@ -1,0 +1,85 @@
+---
+title: Billing
+description: Manage your workspace billing, plans, and invoices.
+---
+
+Unkey uses Stripe for all billing. Each workspace has its own subscription, payment method, and invoices. You manage billing from **Settings > Billing** in the dashboard.
+## Plans
+
+Unkey offers multiple plan tiers. Every workspace starts on the Free plan. Paid plans unlock higher [limits](/platform/workspaces/quotas), longer data retention, and [team collaboration](/platform/workspaces/team-members).
+
+| Capability              | Free plan      | Paid plans                  |
+| ----------------------- | -------------- | --------------------------- |
+| API requests per month  | 150,000        | Varies by plan              |
+| Log retention           | 7 days         | Varies by plan              |
+| Audit log retention     | 30 days        | Varies by plan              |
+| Team members            | Not available  | Included                    |
+
+<Tip>
+  Visit [unkey.com/pricing](https://unkey.com/pricing) for the latest plan details and pricing.
+</Tip>
+
+## Add a payment method
+
+Before upgrading, you must add a payment method.
+
+1. Navigate to **Settings > Billing**.
+2. Click **Add payment method**.
+3. Complete the Stripe checkout form with your card details and billing address.
+4. After saving, you return to the billing page where you can select a plan.
+
+<Frame>
+  <img className="block dark:hidden" src="/platform/workspaces/billing-free-light.png" alt="Billing page on Free plan" />
+  <img className="hidden dark:block" src="/platform/workspaces/billing-free-dark.png" alt="Billing page on Free plan" />
+</Frame>
+
+
+## Upgrade your plan
+
+1. Navigate to **Settings > Billing**.
+2. Click **Change plan** on the current plan card.
+3. Select a plan from the available options. Each plan shows its monthly price and included request quota.
+4. Confirm the selection.
+<Frame>
+  <img className="block dark:hidden" src="/platform/workspaces/billing-plans-light.png" alt="Plan selection modal" />
+  <img className="hidden dark:block" src="/platform/workspaces/billing-plans-dark.png" alt="Plan selection modal" />
+</Frame>
+
+
+Unkey prorates charges when you upgrade mid-cycle. The difference is applied to your next invoice.
+
+## Downgrade or cancel
+
+1. Navigate to **Settings > Billing**.
+2. Click **Cancel plan** at the bottom of the billing page.
+3. Confirm the cancellation.
+
+Cancellation takes effect at the end of your current billing period. Your workspace continues to operate with paid plan limits until that date. After the period ends, the workspace reverts to Free plan [defaults](/platform/workspaces/quotas#free-plan-defaults).
+
+If you cancel by mistake, you can resume your subscription from the same billing page before the period ends.
+
+Once subscribed, the billing page shows your current plan, usage, and options to change your plan, open the Stripe billing portal, or cancel.
+
+<Frame>
+  <img className="block dark:hidden" src="/platform/workspaces/billing-paid-light.png" alt="Billing page on paid plan" />
+  <img className="hidden dark:block" src="/platform/workspaces/billing-paid-dark.png" alt="Billing page on paid plan" />
+</Frame>
+
+## Billing portal
+
+The billing portal lets you manage payment methods, view invoices, and update billing details through Stripe.
+
+1. Navigate to **Settings > Billing**.
+2. Click **Open Portal**.
+
+The portal opens in a new page hosted by Stripe. From there you can:
+
+- Update or replace your payment method
+- Download past invoices
+- Update billing contact information
+
+## Usage tracking
+
+The billing page and sidebar display your workspace's usage as a percentage of your monthly request quota. This combines key verifications and rate limit operations for the current billing month.
+
+Unkey sends email notifications when your workspace approaches or exceeds its quota.

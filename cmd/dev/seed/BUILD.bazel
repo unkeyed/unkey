@@ -13,6 +13,7 @@ go_library(
     deps = [
         "//internal/services/keys",
         "//pkg/array",
+        "//pkg/batch",
         "//pkg/cli",
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",

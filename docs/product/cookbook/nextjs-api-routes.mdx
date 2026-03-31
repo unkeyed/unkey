@@ -30,7 +30,7 @@ export const POST = withUnkey(
       user: identity?.externalId,
     });
   },
-  { rootKey: process.env.UNKEY_ROOT_KEY! }
+  { rootKey: process.env.UNKEY_ROOT_KEY! },
 );
 ```
 
@@ -43,7 +43,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Type assertion needed for Pages Router
   const unkeyReq = req as unknown as NextRequestWithUnkeyContext;
-  
+
   return res.json({
     message: "Access granted",
     user: unkeyReq.unkey?.data.identity?.externalId,
@@ -59,11 +59,13 @@ By default, `withUnkey` looks for a Bearer token in the `Authorization` header. 
 
 ```typescript
 export const POST = withUnkey(
-  async (req) => { /* ... */ },
+  async (req) => {
+    /* ... */
+  },
   {
     rootKey: process.env.UNKEY_ROOT_KEY!,
-    getKey: (req) => req.headers.get("x-api-key"),  // Custom header
-  }
+    getKey: (req) => req.headers.get("x-api-key"), // Custom header
+  },
 );
 ```
 
@@ -71,27 +73,29 @@ export const POST = withUnkey(
 
 ```typescript
 export const POST = withUnkey(
-  async (req) => { /* ... */ },
+  async (req) => {
+    /* ... */
+  },
   {
     rootKey: process.env.UNKEY_ROOT_KEY!,
     handleInvalidKey: (req, result) => {
       // result.code tells you why it failed
       return Response.json(
-        { 
+        {
           error: "Unauthorized",
-          reason: result.code,  // "NOT_FOUND", "EXPIRED", "RATE_LIMITED", etc.
+          reason: result.code, // "NOT_FOUND", "EXPIRED", "RATE_LIMITED", etc.
         },
-        { status: 401 }
+        { status: 401 },
       );
     },
     onError: (req, error) => {
       console.error("Unkey error:", error);
       return Response.json(
         { error: "Authentication service unavailable" },
-        { status: 503 }
+        { status: 503 },
       );
     },
-  }
+  },
 );
 ```
 
@@ -106,16 +110,12 @@ import { Unkey } from "@unkey/api";
 import { UnkeyError } from "@unkey/api/models/errors";
 import { NextRequest, NextResponse } from "next/server";
 
-
 const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 export async function POST(req: NextRequest) {
   // 1. Extract API key
   const authHeader = req.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json(
-      { error: "Missing API key" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Missing API key" }, { status: 401 });
   }
   const apiKey = authHeader.slice(7);
 
@@ -212,7 +212,7 @@ export const GET = withAuth(async (req, auth) => {
   const users = await db.users.findMany({
     where: { organizationId: auth.identity?.externalId },
   });
-  
+
   return Response.json({ users });
 });
 
@@ -235,26 +235,20 @@ export const GET = withAuth(async (_req, auth) => {
 Require specific permissions for sensitive endpoints:
 
 ```typescript app/api/admin/route.ts
-
-
 import { verifyKey } from "@unkey/api";
 import { UnkeyError } from "@unkey/api/models/errors";
 import { NextRequest, NextResponse } from "next/server";
-
 
 const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 export async function POST(req: NextRequest) {
   // 1. Extract API key
   const authHeader = req.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json(
-      { error: "Missing API key" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Missing API key" }, { status: 401 });
   }
   const apiKey = authHeader.slice(7);
 
-  // 2. Verify with Unkey 
+  // 2. Verify with Unkey
   try {
     const result = await unkey.keys.verifyKey({
       key: apiKey,
@@ -263,9 +257,11 @@ export async function POST(req: NextRequest) {
 
     // You can reject the request because the key is invalid.
     if (!result.data.valid) {
-      
       if (result.data.code === "INSUFFICIENT_PERMISSIONS") {
-        return Response.json({ error: "Admin access required" }, { status: 403 });
+        return Response.json(
+          { error: "Admin access required" },
+          { status: 403 },
+        );
       }
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -301,5 +297,6 @@ UNKEY_ROOT_KEY=unkey_...
 ```
 
 <Warning>
-Never expose `UNKEY_ROOT_KEY` to the client. It should only be used in server-side code.
+  Never expose `UNKEY_ROOT_KEY` to the client. It should only be used in
+  server-side code.
 </Warning>

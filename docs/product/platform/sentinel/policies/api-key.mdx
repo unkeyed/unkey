@@ -1,0 +1,52 @@
+---
+title: API key authentication
+description: Verify Unkey API keys with the Sentinel and forward the authenticated identity to your app.
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+The API key authentication policy verifies Unkey API keys before requests reach your app. On success, it produces a [Principal](/platform/sentinel/principal/overview) containing the key's identity, metadata, roles, and permissions.
+
+## Configure API key authentication
+
+To enable API key authentication for your deployment:
+
+1. Navigate to your project's **Settings** page.
+2. Scroll to the **Sentinel configurations** section.
+3. Select one or more keyspaces to enforce.
+4. Save your changes.
+
+Once configured, the Sentinel verifies every incoming request against the selected keyspaces. Requests without a valid API key receive a `401` response and never reach your app.
+
+## How verification works
+
+The Sentinel extracts the API key from the `Authorization` header (as a Bearer token) and verifies it against your configured keyspaces. The following checks run in order:
+
+1. **Existence.** The key must belong to one of the configured keyspaces.
+2. **Status.** The key must not be disabled or revoked.
+3. **Expiration.** The key must not have passed its expiration timestamp.
+4. **Credits.** If remaining credits are configured, at least one credit must be available. Verification deducts one credit.
+5. **Rate limits.** All rate limit configurations attached to the key are evaluated. See [rate limiting](/platform/sentinel/policies/rate-limiting) for details on response headers and behavior.
+6. **Permissions.** If a permission query is configured, the key must satisfy it.
+
+If all checks pass, the Sentinel produces a [Principal](/platform/sentinel/principal/overview) and forwards the request with the `X-Unkey-Principal` header. See the [API key source](/platform/sentinel/principal/sources/api-key) for the full list of fields your app receives, including roles, permissions, and key metadata.
+
+## Additional configuration
+
+<Tip>
+  The following options are not yet available in the dashboard. Contact [support@unkey.com](mailto:support@unkey.com) to configure them.
+</Tip>
+
+- **Custom key locations**: Extract keys from a custom header (for example, `X-API-Key`) or a query parameter instead of the `Authorization` header
+- **Permission queries**: Enforce Unkey RBAC permissions in the Sentinel using AND/OR expressions (for example, `api.keys.create AND billing.read`)
+
+## Error responses
+
+| Scenario                          | Status | Description                       |
+| --------------------------------- | ------ | --------------------------------- |
+| No credentials provided           | 401    | The request is missing an API key  |
+| Invalid, disabled, or expired key | 401    | The API key failed verification    |
+| Insufficient permissions          | 403    | The key lacks required permissions |
+| Rate limit exceeded               | 429    | The key's rate limit was exceeded  |

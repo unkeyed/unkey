@@ -13,7 +13,7 @@ import (
 //
 // The query uses a CTE to combine verifications and ratelimits, then filters workspaces
 // where total usage >= minUsage. Returns a map from workspace ID to total usage.
-func (c *clickhouse) GetBillableUsageAboveThreshold(ctx context.Context, year, month int, minUsage int64) (map[string]int64, error) {
+func (c *Client) GetBillableUsageAboveThreshold(ctx context.Context, year, month int, minUsage int64) (map[string]int64, error) {
 	// Use a single query with UNION ALL and GROUP BY to combine verifications and ratelimits,
 	// then filter to only workspaces with usage >= minUsage
 	query := `

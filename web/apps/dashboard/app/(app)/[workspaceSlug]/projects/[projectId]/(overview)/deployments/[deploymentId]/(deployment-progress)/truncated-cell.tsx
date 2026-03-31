@@ -23,9 +23,7 @@ export function TruncatedCell({
       asChild
       disabled={!text.includes("\n") && text.length < threshold}
     >
-      <div className={cn("font-mono text-xs block truncate", maxWidth, className)}>
-        <span className="truncate">{text}</span>
-      </div>
+      <div className={cn("font-mono text-xs text-pretty my-2", maxWidth, className)}>{text}</div>
     </InfoTooltip>
   );
 }

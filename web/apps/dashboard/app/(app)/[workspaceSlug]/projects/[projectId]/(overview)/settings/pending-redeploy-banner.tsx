@@ -61,9 +61,9 @@ export function PendingRedeployBanner() {
 
         <div className="flex flex-col gap-3 flex-1 min-w-0">
           <div className="flex flex-col gap-1 pr-5">
-            <span className="text-sm font-semibold text-gray-12 leading-5">Settings changed</span>
+            <span className="text-sm font-semibold text-gray-12 leading-5">Changes detected</span>
             <span className="text-xs text-gray-11 leading-4">
-              Redeploy to apply your latest settings to production.
+              Redeploy to apply your latest changes to production.
             </span>
           </div>
           <Button

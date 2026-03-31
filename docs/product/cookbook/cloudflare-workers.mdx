@@ -28,10 +28,7 @@ export default {
     const authHeader = request.headers.get("Authorization");
 
     if (!authHeader?.startsWith("Bearer ")) {
-      return Response.json(
-        { error: "Missing API key" },
-        { status: 401 }
-      );
+      return Response.json({ error: "Missing API key" }, { status: 401 });
     }
 
     const unkey = new Unkey({ rootKey: env.UNKEY_ROOT_KEY });
@@ -48,7 +45,7 @@ export default {
         console.error("Unkey error:", error);
         return Response.json(
           { error: "Authentication service unavailable" },
-          { status: 503 }
+          { status: 503 },
         );
       }
 
@@ -56,7 +53,7 @@ export default {
       if (!data.valid) {
         return Response.json(
           { error: data.code },
-          { status: data.code === "RATE_LIMITED" ? 429 : 401 }
+          { status: data.code === "RATE_LIMITED" ? 429 : 401 },
         );
       }
 
@@ -70,7 +67,7 @@ export default {
       console.error("Unkey error:", error);
       return Response.json(
         { error: "Authentication service unavailable" },
-        { status: 503 }
+        { status: 503 },
       );
     }
   },
@@ -120,13 +117,13 @@ app.use("/api/*", async (c, next) => {
       return c.json({ error: result.code }, 401);
     },
   });
-  
+
   return handler(c, next);
 });
 
 app.get("/api/data", (c) => {
   const auth = c.get("unkey");
-  
+
   return c.json({
     message: "Access granted",
     user: auth.identity?.externalId,
@@ -170,9 +167,9 @@ type Bindings = {
 
 export function authMiddleware(options: AuthOptions = {}) {
   return async (c: Context, next: Next) => {
-    const getKey = options.getKey ?? ((c) =>
-      c.req.header("Authorization")?.replace("Bearer ", "") ?? null
-    );
+    const getKey =
+      options.getKey ??
+      ((c) => c.req.header("Authorization")?.replace("Bearer ", "") ?? null);
 
     const apiKey = getKey(c);
 
@@ -216,15 +213,13 @@ import { authMiddleware } from "./middleware/auth";
 const app = new Hono();
 
 // Basic auth
-app.use("/api/*", (c, next) => 
-  authMiddleware()(c, next)
-);
+app.use("/api/*", (c, next) => authMiddleware()(c, next));
 
 // Permission-based auth for admin routes
-app.use("/admin/*", (c, next) => 
-  authMiddleware({ 
+app.use("/admin/*", (c, next) =>
+  authMiddleware({
     permissions: "admin",
-  })(c, next)
+  })(c, next),
 );
 
 app.get("/api/data", (c) => {
@@ -247,7 +242,6 @@ export default app;
 Add standard rate limit headers:
 
 ```typescript src/middleware/auth.ts
-
 import { Unkey } from "@unkey/api";
 import { UnkeyError } from "@unkey/api/models/errors";
 import { V2KeysVerifyKeyResponseData } from "@unkey/api/models/components";
@@ -255,7 +249,7 @@ import { V2KeysVerifyKeyResponseData } from "@unkey/api/models/components";
 export function authMiddleware(options: AuthOptions = {}) {
   return async (c: Context, next: Next) => {
     const apiKey = c.req.header("Authorization")?.replace("Bearer ", "");
-    
+
     if (!apiKey) {
       return c.json({ error: "Missing API key" }, 401);
     }
@@ -308,7 +302,7 @@ export interface Env {
 
 export class Counter extends DurableObject {
   async fetch(request: Request) {
-    let count = (await this.ctx.storage.get("count")) as number || 0;
+    let count = ((await this.ctx.storage.get("count")) as number) || 0;
     count++;
     await this.ctx.storage.put("count", count);
     return Response.json({ count });
@@ -335,7 +329,9 @@ export default {
       }
 
       // Use external ID as Durable Object ID for per-user state
-      const id = env.COUNTER.idFromName(data.identity?.externalId ?? "anonymous");
+      const id = env.COUNTER.idFromName(
+        data.identity?.externalId ?? "anonymous",
+      );
       const counter = env.COUNTER.get(id);
 
       return counter.fetch(request);

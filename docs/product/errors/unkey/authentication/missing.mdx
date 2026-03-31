@@ -5,7 +5,6 @@ description: "Authentication credentials were not provided in the request"
 
 <Danger>`err:unkey:authentication:missing`</Danger>
 
-
 ```json Example
 {
   "meta": {
@@ -33,6 +32,7 @@ curl -X POST https://api.unkey.com/v2/keys.listKeys \
 ```
 
 Authentication is required to:
+
 - Verify your identity
 - Ensure you have permission to perform the requested operation
 - Track usage and apply appropriate rate limits
@@ -79,5 +79,6 @@ When properly authenticated, you'll receive a successful response like this:
 - **Wrong environment**: Using development keys in production or vice versa
 
 ## Related Errors
+
 - [err:unkey:authentication:malformed](./malformed) - When the API key is provided but formatted incorrectly
 - [err:unkey:authentication:key_not_found](./key_not_found) - When the provided API key doesn't exist

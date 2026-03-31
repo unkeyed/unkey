@@ -175,13 +175,17 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 
 	h.versionCounter++
 	err = db.Query.InsertDeploymentTopology(ctx, h.DB.RW(), db.InsertDeploymentTopologyParams{
-		WorkspaceID:     workspaceID,
-		DeploymentID:    deploymentID,
-		RegionID:        region.ID,
-		DesiredReplicas: 1,
-		DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
-		Version:         h.versionCounter,
-		CreatedAt:       h.Now(),
+		WorkspaceID:                workspaceID,
+		DeploymentID:               deploymentID,
+		RegionID:                   region.ID,
+		DesiredReplicas:            1,
+		AutoscalingReplicasMin:     1,
+		AutoscalingReplicasMax:     1,
+		AutoscalingThresholdCpu:    sql.NullInt16{Valid: false},
+		AutoscalingThresholdMemory: sql.NullInt16{Valid: false},
+		DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
+		Version:                    h.versionCounter,
+		CreatedAt:                  h.Now(),
 	})
 	require.NoError(h.t, err)
 
@@ -191,15 +195,19 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	return CreateDeploymentResult{
 		Deployment: deployment,
 		Topology: db.DeploymentTopology{
-			Pk:              0,
-			WorkspaceID:     workspaceID,
-			DeploymentID:    deploymentID,
-			RegionID:        regionID,
-			DesiredReplicas: 1,
-			DesiredStatus:   db.DeploymentTopologyDesiredStatusRunning,
-			Version:         h.versionCounter,
-			CreatedAt:       h.Now(),
-			UpdatedAt:       sql.NullInt64{Valid: false},
+			Pk:                         0,
+			WorkspaceID:                workspaceID,
+			DeploymentID:               deploymentID,
+			RegionID:                   regionID,
+			DesiredReplicas:            1,
+			AutoscalingReplicasMin:     1,
+			AutoscalingReplicasMax:     1,
+			AutoscalingThresholdCpu:    sql.NullInt16{Valid: false},
+			AutoscalingThresholdMemory: sql.NullInt16{Valid: false},
+			DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
+			Version:                    h.versionCounter,
+			CreatedAt:                  h.Now(),
+			UpdatedAt:                  sql.NullInt64{Valid: false},
 		},
 	}
 }

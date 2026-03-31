@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 // WatchDeployments streams deployment state changes from the control plane to agents.
@@ -179,6 +180,19 @@ func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow)
 			}
 			apply.Healthcheck = hcBytes
 		}
+
+		dt := row.DeploymentTopology
+		policy := &ctrlv1.AutoscalingPolicy{
+			MinReplicas: dt.AutoscalingReplicasMin,
+			MaxReplicas: dt.AutoscalingReplicasMax,
+		}
+		if dt.AutoscalingThresholdCpu.Valid {
+			policy.CpuThreshold = ptr.P(int32(dt.AutoscalingThresholdCpu.Int16))
+		}
+		if dt.AutoscalingThresholdMemory.Valid {
+			policy.MemoryThreshold = ptr.P(int32(dt.AutoscalingThresholdMemory.Int16))
+		}
+		apply.Autoscaling = policy
 
 		return &ctrlv1.DeploymentState{
 			Version: row.DeploymentTopology.Version,

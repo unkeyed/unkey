@@ -74,7 +74,7 @@ import (
 // Conditional routes are registered based on [Services] configuration.
 func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withObservability := zen.WithObservability()
-	withMetrics := zen.WithMetrics(svc.ClickHouse, info)
+	withMetrics := zen.WithMetrics(svc.ApiRequests, info)
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
 	withPanicRecovery := zen.WithPanicRecovery()
 	withErrorHandling := middleware.WithErrorHandling()
@@ -118,13 +118,13 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitLimit.Handler{
-			DB:             svc.Database,
-			Keys:           svc.Keys,
-			ClickHouse:     svc.ClickHouse,
-			Ratelimit:      svc.Ratelimit,
-			NamespaceCache: svc.Caches.RatelimitNamespace,
-			Auditlogs:      svc.Auditlogs,
-			TestMode:       srv.Flags().TestMode,
+			DB:              svc.Database,
+			Keys:            svc.Keys,
+			RatelimitEvents: svc.RatelimitEvents,
+			Ratelimit:       svc.Ratelimit,
+			NamespaceCache:  svc.Caches.RatelimitNamespace,
+			Auditlogs:       svc.Auditlogs,
+			TestMode:        srv.Flags().TestMode,
 		},
 	)
 
@@ -132,13 +132,13 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2RatelimitMultiLimit.Handler{
-			DB:             svc.Database,
-			Keys:           svc.Keys,
-			ClickHouse:     svc.ClickHouse,
-			Ratelimit:      svc.Ratelimit,
-			NamespaceCache: svc.Caches.RatelimitNamespace,
-			Auditlogs:      svc.Auditlogs,
-			TestMode:       srv.Flags().TestMode,
+			DB:              svc.Database,
+			Keys:            svc.Keys,
+			RatelimitEvents: svc.RatelimitEvents,
+			Ratelimit:       svc.Ratelimit,
+			NamespaceCache:  svc.Caches.RatelimitNamespace,
+			Auditlogs:       svc.Auditlogs,
+			TestMode:        srv.Flags().TestMode,
 		},
 	)
 
@@ -406,11 +406,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysVerifyKey.Handler{
-
-			ClickHouse: svc.ClickHouse,
-			DB:         svc.Database,
-			Keys:       svc.Keys,
-			Auditlogs:  svc.Auditlogs,
+			DB:        svc.Database,
+			Keys:      svc.Keys,
+			Auditlogs: svc.Auditlogs,
 		},
 	)
 
@@ -593,7 +591,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2AnalyticsGetVerifications.Handler{
 			DB:                         svc.Database,
 			Keys:                       svc.Keys,
-			ClickHouse:                 svc.ClickHouse,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 			Caches:                     svc.Caches,
 		},

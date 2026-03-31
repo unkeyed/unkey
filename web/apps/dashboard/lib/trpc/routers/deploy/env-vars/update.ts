@@ -2,6 +2,7 @@ import { and, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { Vault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
+import { environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
@@ -16,9 +17,11 @@ export const updateEnvVar = workspaceProcedure
       envVarId: z.string(),
       // Key can only be updated for recoverable vars (validated on client)
       key: z.string().min(1).optional(),
+      environmentId: z.string().trim().min(1, "Environment is required"),
       // Value is always re-encrypted
       value: z.string().min(1),
       type: z.enum(["recoverable", "writeonly"]),
+      description: z.string().nullable().optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -57,8 +60,52 @@ export const updateEnvVar = workspaceProcedure
         });
       }
 
+      const [currentEnvironment, targetEnvironment] = await Promise.all([
+        db.query.environments.findFirst({
+          where: and(
+            eq(environments.id, envVar.environmentId),
+            eq(environments.workspaceId, ctx.workspace.id),
+          ),
+          columns: {
+            id: true,
+            appId: true,
+          },
+        }),
+        db.query.environments.findFirst({
+          where: and(
+            eq(environments.id, input.environmentId),
+            eq(environments.workspaceId, ctx.workspace.id),
+          ),
+          columns: {
+            id: true,
+            appId: true,
+          },
+        }),
+      ]);
+
+      if (!currentEnvironment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Current environment not found",
+        });
+      }
+
+      if (!targetEnvironment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Environment not found",
+        });
+      }
+
+      if (targetEnvironment.appId !== currentEnvironment.appId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot move environment variable to a different app",
+        });
+      }
+
       const { encrypted } = await vault.encrypt({
-        keyring: envVar.environmentId,
+        keyring: input.environmentId,
         data: input.value,
       });
 
@@ -68,6 +115,8 @@ export const updateEnvVar = workspaceProcedure
           key: input.key ?? envVar.key,
           value: encrypted,
           type: input.type,
+          environmentId: input.environmentId,
+          ...(input.description !== undefined ? { description: input.description } : {}),
         })
         .where(eq(schema.appEnvironmentVariables.id, input.envVarId));
     } catch (error) {

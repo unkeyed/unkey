@@ -27,9 +27,9 @@ export const StatsCard = ({
     <Link
       href={linkPath}
       prefetch
-      className="flex flex-col border border-gray-4 rounded-xl overflow-hidden cursor-pointer"
+      className="flex flex-col border border-gray-4 rounded-xl bg-grayA-1 overflow-hidden cursor-pointer"
     >
-      <div className="h-[140px]">{chart}</div>
+      <div className="h-35">{chart}</div>
       <div className="p-4 md:p-6 border-t border-gray-4 flex flex-col gap-2">
         <div className="flex justify-between items-center">
           <div className="flex flex-col grow min-w-0">
@@ -41,7 +41,7 @@ export const StatsCard = ({
                 content={name}
                 triggerClassName="cursor-pointer"
               >
-                <div className="text-accent-12 font-semibold truncate w-[220px] md:w-[280px] text-left">
+                <div className="text-accent-12 font-semibold truncate w-55 md:w-70 text-left">
                   {name}
                 </div>
               </InfoTooltip>
@@ -53,7 +53,7 @@ export const StatsCard = ({
                 content={secondaryId}
                 triggerClassName="cursor-pointer"
               >
-                <div className="text-left text-accent-11 text-xxs overflow-hidden text-ellipsis w-[240px] md:w-[300px]">
+                <div className="text-left text-accent-11 text-xxs overflow-hidden text-ellipsis w-60 md:w-75">
                   {secondaryId}
                 </div>
               </InfoTooltip>
