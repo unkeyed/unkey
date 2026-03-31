@@ -62,6 +62,7 @@ export function EnvVarEditRow({
     defaultValues: {
       key: variableKey,
       value: "",
+      environmentId,
       description: note ?? "",
     },
   });

@@ -1,4 +1,5 @@
 import { and, db, eq, schema } from "@/lib/db";
+import { environments } from "@unkey/db/src/schema";
 import { env } from "@/lib/env";
 import { Vault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
@@ -16,7 +17,7 @@ export const updateEnvVar = workspaceProcedure
       envVarId: z.string(),
       // Key can only be updated for recoverable vars (validated on client)
       key: z.string().min(1).optional(),
-      environmentId: z.string().trim(),
+      environmentId: z.string().trim().min(1, "Environment is required"),
       // Value is always re-encrypted
       value: z.string().min(1),
       type: z.enum(["recoverable", "writeonly"]),
@@ -56,6 +57,23 @@ export const updateEnvVar = workspaceProcedure
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Cannot change environment variable type after creation",
+        });
+      }
+
+      const environment = await db.query.environments.findFirst({
+        where: and(
+          eq(environments.id, input.environmentId),
+          eq(environments.workspaceId, ctx.workspace.id),
+        ),
+        columns: {
+          id: true,
+        },
+      });
+
+      if (!environment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Environment not found",
         });
       }
 
