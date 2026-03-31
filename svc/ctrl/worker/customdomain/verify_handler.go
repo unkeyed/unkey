@@ -52,10 +52,10 @@ func (s *Service) VerifyDomain(
 	ctx restate.ObjectContext,
 	_ *hydrav1.VerifyDomainRequest,
 ) (*hydrav1.VerifyDomainResponse, error) {
-	domain := restate.Key(ctx)
+	domainID := restate.Key(ctx)
 
 	// Fetch domain - NOT journaled so we get fresh state on each retry
-	dom, err := db.Query.FindCustomDomainByDomain(ctx, s.db.RO(), domain)
+	dom, err := db.Query.FindCustomDomainById(ctx, s.db.RO(), domainID)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to fetch domain record"))
 	}
@@ -175,12 +175,12 @@ func (s *Service) RetryVerification(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RetryVerificationRequest,
 ) (*hydrav1.RetryVerificationResponse, error) {
-	domain := restate.Key(ctx)
-	logger.Info("retrying domain verification", "domain", domain)
+	domainID := restate.Key(ctx)
+	logger.Info("retrying domain verification", "domain_id", domainID)
 
 	_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 		return restate.Void{}, db.Query.ResetCustomDomainVerification(stepCtx, s.db.RW(), db.ResetCustomDomainVerificationParams{
-			Domain:             domain,
+			ID:                 domainID,
 			VerificationStatus: db.CustomDomainsVerificationStatusPending,
 			CheckAttempts:      0,
 			InvocationID:       sql.NullString{Valid: false},
