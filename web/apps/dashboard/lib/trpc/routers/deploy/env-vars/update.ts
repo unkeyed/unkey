@@ -19,6 +19,7 @@ export const updateEnvVar = workspaceProcedure
       // Value is always re-encrypted
       value: z.string().min(1),
       type: z.enum(["recoverable", "writeonly"]),
+      description: z.string().nullable().optional(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -68,6 +69,7 @@ export const updateEnvVar = workspaceProcedure
           key: input.key ?? envVar.key,
           value: encrypted,
           type: input.type,
+          ...(input.description !== undefined ? { description: input.description } : {}),
         })
         .where(eq(schema.appEnvironmentVariables.id, input.envVarId));
     } catch (error) {

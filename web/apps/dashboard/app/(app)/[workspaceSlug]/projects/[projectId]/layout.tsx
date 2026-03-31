@@ -29,6 +29,7 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
       value={{
         isDetailsOpen,
         setIsDetailsOpen,
+        tableDistanceToTop,
       }}
     >
       <div className="h-screen flex flex-col overflow-hidden">

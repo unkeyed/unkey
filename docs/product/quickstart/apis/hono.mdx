@@ -15,7 +15,11 @@ A Hono app with API key authentication using the `@unkey/hono` middleware. All r
 - [API created](https://app.unkey.com/apis) in your Unkey dashboard
 - Node.js 18+ or Bun
 
-<Card title="Want to skip ahead?" icon="github" href="https://github.com/unkeyed/examples/tree/main/hono">
+<Card
+  title="Want to skip ahead?"
+  icon="github"
+  href="https://github.com/unkeyed/examples/tree/main/hono"
+>
   Clone the complete example and run it locally.
 </Card>
 
@@ -74,9 +78,7 @@ Create a `.env` file:
 UNKEY_ROOT_KEY="unkey_..."
 ```
 
-<Note>
-The Hono middleware verifies keys directly against your root key.
-</Note>
+<Note>The Hono middleware verifies keys directly against your root key.</Note>
 
 </Step>
 
@@ -92,15 +94,18 @@ import { unkey, UnkeyContext } from "@unkey/hono";
 const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
 
 // Protect all routes with API key authentication
-app.use("*", unkey({
-  rootKey: process.env.UNKEY_ROOT_KEY!,
-}));
+app.use(
+  "*",
+  unkey({
+    rootKey: process.env.UNKEY_ROOT_KEY!,
+  }),
+);
 
 // This route now requires a valid API key
 app.get("/", (c) => {
   // Access verification result from context
   const keyInfo = c.get("unkey");
-  
+
   return c.json({
     message: "Hello from protected route!",
     keyId: keyInfo.keyId,
@@ -111,7 +116,7 @@ app.get("/", (c) => {
 // Another protected route
 app.get("/secret", (c) => {
   const keyInfo = c.get("unkey");
-  
+
   return c.json({
     secret: "data",
     identity: keyInfo.identity,
@@ -154,6 +159,7 @@ curl http://localhost:3000 \
 ```
 
 You should see:
+
 ```json
 {
   "message": "Hello from protected route!",
@@ -163,6 +169,7 @@ You should see:
 ```
 
 Without a key, you'll get a 401:
+
 ```bash Test without key
 curl http://localhost:3000
 ```
@@ -212,39 +219,42 @@ export default app;
 
 After verification, `c.get("unkey")` contains:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `valid` | `boolean` | Whether the key passed all checks |
-| `code` | `string` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
-| `keyId` | `string` | The key's unique identifier |
-| `name` | `string?` | Human-readable name of the key |
-| `meta` | `object?` | Custom metadata associated with the key |
-| `expires` | `number?` | Unix timestamp (in milliseconds) when the key will expire. (if set) |
-| `credits` | `number?` | Remaining uses (if usage limits set) |
-| `enabled` | `boolean` | Whether the key is enabled |
-| `roles` | `string[]?` | Named role(s) assigned to the key, each representing a set of permissions |
-| `permissions` | `string[]?` | List of individual permissions granted to the key |
-| `identity` | `object?` | Identity info if `externalId` was set when creating the key |
-| `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
+| Field         | Type        | Description                                                               |
+| ------------- | ----------- | ------------------------------------------------------------------------- |
+| `valid`       | `boolean`   | Whether the key passed all checks                                         |
+| `code`        | `string`    | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.)                  |
+| `keyId`       | `string`    | The key's unique identifier                                               |
+| `name`        | `string?`   | Human-readable name of the key                                            |
+| `meta`        | `object?`   | Custom metadata associated with the key                                   |
+| `expires`     | `number?`   | Unix timestamp (in milliseconds) when the key will expire. (if set)       |
+| `credits`     | `number?`   | Remaining uses (if usage limits set)                                      |
+| `enabled`     | `boolean`   | Whether the key is enabled                                                |
+| `roles`       | `string[]?` | Named role(s) assigned to the key, each representing a set of permissions |
+| `permissions` | `string[]?` | List of individual permissions granted to the key                         |
+| `identity`    | `object?`   | Identity info if `externalId` was set when creating the key               |
+| `ratelimits`  | `object[]?` | Rate limit states (if rate limiting configured)                           |
 
 ## Middleware options
 
 ```ts
 unkey({
-  rootKey: process.env.UNKEY_ROOT_KEY!,  // Required: Your root key
-  
+  rootKey: process.env.UNKEY_ROOT_KEY!, // Required: Your root key
+
   // Optional: Custom error handling
   onError: (c, error) => {
     console.error("Unkey error:", error);
     return c.json({ error: "Auth service unavailable" }, 503);
   },
-  
+
   // Optional: Custom unauthorized response
   handleInvalidKey: (c, result) => {
-    return c.json({ 
-      error: "Invalid API key",
-      code: result.code 
-    }, 401);
+    return c.json(
+      {
+        error: "Invalid API key",
+        code: result.code,
+      },
+      401,
+    );
   },
 });
 ```
@@ -252,13 +262,25 @@ unkey({
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Add rate limiting" icon="gauge-high" href="/apis/features/ratelimiting/overview">
+  <Card
+    title="Add rate limiting"
+    icon="gauge-high"
+    href="/platform/apis/features/ratelimiting/overview"
+  >
     Limit requests per key
   </Card>
-  <Card title="Set usage limits" icon="calculator" href="/apis/features/remaining">
+  <Card
+    title="Set usage limits"
+    icon="calculator"
+    href="/platform/apis/features/remaining"
+  >
     Cap total requests per key
   </Card>
-  <Card title="Add permissions" icon="user-shield" href="/apis/features/authorization/introduction">
+  <Card
+    title="Add permissions"
+    icon="user-shield"
+    href="/platform/apis/features/authorization/introduction"
+  >
     Fine-grained access control
   </Card>
   <Card title="Hono SDK Reference" icon="book" href="/libraries/ts/hono">
@@ -270,21 +292,20 @@ unkey({
 
 <AccordionGroup>
   <Accordion title="Getting 401 even with a valid key?">
-    - Ensure the key hasn't expired or been revoked
-    - Verify the header format: `Authorization: Bearer YOUR_KEY`
+    - Ensure the key hasn't expired or been revoked - Verify the header format:
+    `Authorization: Bearer YOUR_KEY`
   </Accordion>
-  
-  <Accordion title="Environment variables not loading?">
-    - For Node.js: Install `dotenv` and add `import 'dotenv/config'` at the top
-    - For Bun: `.env` is loaded automatically
-    - For Cloudflare Workers: Use `wrangler secret` or `wrangler.toml`
-  </Accordion>
-  
+
+<Accordion title="Environment variables not loading?">
+  - For Node.js: Install `dotenv` and add `import 'dotenv/config'` at the top -
+  For Bun: `.env` is loaded automatically - For Cloudflare Workers: Use
+  `wrangler secret` or `wrangler.toml`
+</Accordion>
+
   <Accordion title="Deploying to Cloudflare Workers?">
-    Use wrangler secrets for your root key:
-    ```bash
-    npx wrangler secret put UNKEY_ROOT_KEY
-    ```
-    Then access it from your Hono bindings. Add `UNKEY_ROOT_KEY` to your `Bindings` type and read it via `ctx.env.UNKEY_ROOT_KEY` or `env.UNKEY_ROOT_KEY` in your handlers.
+    Use wrangler secrets for your root key: ```bash npx wrangler secret put
+    UNKEY_ROOT_KEY ``` Then access it from your Hono bindings. Add
+    `UNKEY_ROOT_KEY` to your `Bindings` type and read it via
+    `ctx.env.UNKEY_ROOT_KEY` or `env.UNKEY_ROOT_KEY` in your handlers.
   </Accordion>
 </AccordionGroup>

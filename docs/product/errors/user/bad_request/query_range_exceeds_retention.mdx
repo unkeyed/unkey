@@ -22,6 +22,7 @@ This error occurs when your analytics query attempts to access data older than y
 ## How to fix
 
 1. **Add a time filter within retention**: Ensure your query only accesses data within your retention period
+
    ```sql
    -- Query last 7 days (within 30-day retention)
    SELECT COUNT(*) FROM key_verifications_v1
@@ -41,5 +42,5 @@ If your use case requires data retention beyond 30 days, please [contact our sup
 
 ## Related
 
-- [Analytics documentation](/apis/features/analytics)
-- [Analytics query examples](/analytics)
+- [Analytics documentation](/platform/analytics/overview)
+- [Analytics query examples](/platform/analytics/query-examples)
