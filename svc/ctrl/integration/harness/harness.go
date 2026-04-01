@@ -205,10 +205,10 @@ func New(t *testing.T, opts ...Option) *Harness {
 		SentinelImage: "test-sentinel:latest",
 
 		GitHub:                          nil,
-		DepotConfig:                     deploy.DepotConfig{APIUrl: "", ProjectRegion: ""},
+		DepotConfig:                     deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
 		BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
 		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
-		RegistryConfig:                  deploy.RegistryConfig{URL: "", Username: "", Password: ""},
+		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: ""},
 		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
 		AllowUnauthenticatedDeployments: false,
 	})

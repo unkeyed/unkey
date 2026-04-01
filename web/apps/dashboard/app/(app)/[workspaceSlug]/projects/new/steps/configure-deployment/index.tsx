@@ -7,20 +7,13 @@ import { ConfigureDeploymentFallback } from "./fallback";
 
 type ConfigureDeploymentStepProps = {
   projectId: string;
-  onDeploymentCreated: (deploymentId: string) => void;
 };
 
-export const ConfigureDeploymentStep = ({
-  projectId,
-  onDeploymentCreated,
-}: ConfigureDeploymentStepProps) => {
+export const ConfigureDeploymentStep = ({ projectId }: ConfigureDeploymentStepProps) => {
   return (
     <ProjectDataProvider projectId={projectId}>
       <OnboardingEnvironmentSettingsProvider>
-        <ConfigureDeploymentContent
-          projectId={projectId}
-          onDeploymentCreated={onDeploymentCreated}
-        />
+        <ConfigureDeploymentContent />
       </OnboardingEnvironmentSettingsProvider>
       <ConfigureDeploymentFallback />
     </ProjectDataProvider>

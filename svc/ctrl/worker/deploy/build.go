@@ -202,7 +202,7 @@ func (w *Workflow) buildDockerImageFromGit(
 			}
 		}()
 
-		imageName := fmt.Sprintf("%s/%s:%s-%s", w.registryConfig.URL, depotProjectID, params.ProjectID, params.DeploymentID)
+		imageName := fmt.Sprintf("%s:%s-%s", w.registryConfig.Repository, params.ProjectID, params.DeploymentID)
 
 		dockerfilePath := params.DockerfilePath
 		if dockerfilePath == "" {
@@ -330,7 +330,7 @@ func (w *Workflow) buildSolverOptions(
 		authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
 			ConfigFile: &configfile.ConfigFile{
 				AuthConfigs: map[string]types.AuthConfig{
-					w.registryConfig.URL: {
+					w.registryConfig.Repository: {
 						Username: w.registryConfig.Username,
 						Password: w.registryConfig.Password,
 					},
@@ -409,7 +409,7 @@ func (w *Workflow) buildGitSolverOptions(
 			authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
 				ConfigFile: &configfile.ConfigFile{
 					AuthConfigs: map[string]types.AuthConfig{
-						w.registryConfig.URL: {
+						w.registryConfig.Repository: {
 							Username: w.registryConfig.Username,
 							Password: w.registryConfig.Password,
 						},
@@ -440,7 +440,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 		return "", fmt.Errorf("failed to query project: %w", err)
 	}
 
-	projectName := fmt.Sprintf("unkey-%s", unkeyProjectID)
+	projectName := fmt.Sprintf("%s-%s", w.depotConfig.ProjectPrefix, unkeyProjectID)
 	if project.DepotProjectID.Valid && project.DepotProjectID.String != "" {
 		logger.Info(
 			"Returning existing depot project",

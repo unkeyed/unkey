@@ -20,13 +20,14 @@ type BuildPlatform struct {
 type DepotConfig struct {
 	APIUrl        string
 	ProjectRegion string
+	ProjectPrefix string
 }
 
 // RegistryConfig holds credentials for the container registry.
 type RegistryConfig struct {
-	URL      string
-	Username string
-	Password string
+	Repository string
+	Username   string
+	Password   string
 }
 
 // Workflow orchestrates deployment lifecycle operations.

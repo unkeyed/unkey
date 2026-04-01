@@ -90,6 +90,12 @@ type DepotConfig struct {
 	// Affects build performance and data residency.
 	// Options: "us-east-1", "eu-central-1". Default: "us-east-1".
 	ProjectRegion string `toml:"project_region" config:"default=us-east-1"`
+
+	// ProjectPrefix is prepended to Depot project names for environment separation.
+	// This refers to the Unkey development environment (production, preview, local),
+	// not customer environments. It keeps Depot projects from different Unkey
+	// deployments isolated from each other.
+	ProjectPrefix string `toml:"project_prefix" config:"default=builds-local"`
 }
 
 // RegistryConfig holds container registry authentication configuration.
@@ -97,9 +103,9 @@ type DepotConfig struct {
 // This configuration provides credentials for accessing container registries
 // used by build backends for pushing and pulling images.
 type RegistryConfig struct {
-	// URL is the container registry endpoint URL.
-	// Example: "registry.depot.dev" or "https://registry.example.com".
-	URL string `toml:"url"`
+	// Repository is the container registry repository path.
+	// Example: "registry.depot.dev/72dvmc7lv7".
+	Repository string `toml:"repository"`
 
 	// Username is the registry authentication username.
 	// Common values: "x-token" for token-based auth, or actual username.
@@ -304,7 +310,7 @@ func (c Config) GetBuildPlatform() (BuildPlatform, error) {
 // Should only be called after Validate() succeeds to ensure all required
 // fields are present.
 //
-// Returns RegistryConfig with URL, username, and password for container registry access.
+// Returns RegistryConfig with repository, username, and password for container registry access.
 func (c Config) GetRegistryConfig() RegistryConfig {
 	return c.Registry
 }
@@ -353,7 +359,7 @@ func (c *Config) Validate() error {
 	// URL and username may be hardcoded in k8s manifests, password comes from secrets.
 	if c.Registry.Password != "" {
 		if err := assert.All(
-			assert.NotEmpty(c.Registry.URL, "registry URL is required when registry password is configured"),
+			assert.NotEmpty(c.Registry.Repository, "registry repository is required when registry password is configured"),
 			assert.NotEmpty(c.Registry.Username, "registry username is required when registry password is configured"),
 			assert.NotEmpty(c.Depot.APIUrl, "Depot API URL is required when registry password is configured"),
 			assert.NotEmpty(c.Depot.ProjectRegion, "Depot project region is required when registry password is configured"),

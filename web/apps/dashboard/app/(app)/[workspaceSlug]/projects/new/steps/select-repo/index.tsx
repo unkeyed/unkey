@@ -5,6 +5,7 @@ import { Check, Github, Magnifier, XMark } from "@unkey/icons";
 import { Button, Input, toast, useStepWizard } from "@unkey/ui";
 import { useMemo, useRef, useState } from "react";
 import { OnboardingLinks } from "../../onboarding-links";
+import { OnboardingStepHint, OnboardingStepHintHighlight } from "../../onboarding-step-hint";
 import { RepoListItem } from "./repo-list-item";
 import { SelectRepoSkeleton } from "./skeleton";
 
@@ -117,7 +118,7 @@ export const SelectRepo = ({
     <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
       {!isBannerDismissed && (
         <div className="absolute top-2 left-2 right-2 z-50 rounded-[10px] p-3 gap-2.5 flex items-center shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.10)] bg-linear-to-r from-successA-4 via-successA-1 to-success-1">
-          <Check iconSize="sm-regular" />
+          <Check iconSize="sm-regular" className="text-successA-12" />
           <div className="flex items-center gap-1">
             <span className="font-medium text-[13px] text-success-12">
               GitHub connected successfully.
@@ -220,19 +221,18 @@ export const SelectRepo = ({
 
       {hasGithubInstallation && (
         <>
-          <div className="my-8" />
-          <div className="flex flex-col items-center gap-4 mb-8">
-            <a href={installUrl} rel="noopener noreferrer" onClick={onBeforeNavigate}>
-              <span className="text-sm text-gray-11">
-                Can't find your repo? Add more from{" "}
-                <span className="font-medium text-gray-12 underline underline-offset-2 decoration-grayA-6 hover:decoration-gray-12 transition-colors decoration-dotted">
-                  GitHub
-                </span>
-                .
-              </span>
-            </a>
-          </div>
-          <div className="w-full items-center justify-center flex">
+          <a
+            href={installUrl}
+            rel="noopener noreferrer"
+            onClick={onBeforeNavigate}
+            className="group"
+          >
+            <OnboardingStepHint>
+              Can't find your repo? Add more from{" "}
+              <OnboardingStepHintHighlight>GitHub</OnboardingStepHintHighlight>.
+            </OnboardingStepHint>
+          </a>
+          <div className="mt-8 w-full items-center justify-center flex">
             <OnboardingLinks />
           </div>
         </>
