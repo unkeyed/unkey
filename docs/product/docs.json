@@ -1,25 +1,20 @@
 {
   "$schema": "https://mintlify.com/docs.json",
+  "background": {
+    "decoration": "gradient"
+  },
   "colors": {
     "dark": "#666666",
     "light": "#999999",
     "primary": "#666666"
   },
-  "styling": {
-    "eyebrows": "breadcrumbs",
-    "codeblocks": {
-      "theme": "kanagawa-wave"
-    }
-  },
-  "icons": {
-    "library": "fontawesome"
-  },
-  "background": {
-    "decoration": "gradient"
-  },
- 
   "contextual": {
-    "options": ["copy", "view", "chatgpt", "claude"]
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude"
+    ]
   },
   "favicon": "/unkey.png",
   "fonts": {
@@ -32,6 +27,9 @@
       "linkedin": "https://www.linkedin.com/company/unkeyed",
       "x-twitter": "https://x.com/unkeydev"
     }
+  },
+  "icons": {
+    "library": "fontawesome"
   },
   "logo": {
     "dark": "/unkey-white.png",
@@ -64,11 +62,15 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Documentation",
         "groups": [
           {
             "group": "Getting Started",
-            "pages": ["introduction", "quickstart/quickstart", "quickstart/deploy", "glossary"]
+            "pages": [
+              "introduction",
+              "quickstart/quickstart",
+              "quickstart/deploy",
+              "glossary"
+            ]
           },
           {
             "expanded": false,
@@ -197,10 +199,9 @@
               }
             ]
           },
-
           {
             "expanded": false,
-            "group": "Build & Deploy",
+            "group": "Build \u0026 Deploy",
             "icon": "rocket",
             "pages": [
               "build-and-deploy/overview",
@@ -213,7 +214,6 @@
               "platform/variables/overview"
             ]
           },
-
           {
             "expanded": false,
             "group": "Networking",
@@ -240,7 +240,9 @@
             "expanded": false,
             "group": "CLI",
             "icon": "terminal",
-            "pages": ["cli/overview"]
+            "pages": [
+              "cli/overview"
+            ]
           },
           {
             "expanded": false,
@@ -343,7 +345,10 @@
             "expanded": false,
             "group": "Audit Logs",
             "icon": "scroll",
-            "pages": ["audit-log/introduction", "audit-log/types"]
+            "pages": [
+              "audit-log/introduction",
+              "audit-log/types"
+            ]
           },
           {
             "group": "CLI",
@@ -539,10 +544,10 @@
             ]
           }
         ],
-        "icon": "book-open"
+        "icon": "book-open",
+        "tab": "Documentation"
       },
       {
-        "tab": "API Reference",
         "groups": [
           {
             "group": "api.unkey.com",
@@ -561,10 +566,10 @@
             }
           }
         ],
-        "icon": "terminal"
+        "icon": "terminal",
+        "tab": "API Reference"
       },
       {
-        "tab": "SDKs",
         "groups": [
           {
             "group": "Official Libraries",
@@ -597,11 +602,17 @@
               },
               {
                 "group": "Go",
-                "pages": ["libraries/go/overview", "libraries/go/api"]
+                "pages": [
+                  "libraries/go/overview",
+                  "libraries/go/api"
+                ]
               },
               {
                 "group": "Python",
-                "pages": ["libraries/py/overview", "libraries/py/api"]
+                "pages": [
+                  "libraries/py/overview",
+                  "libraries/py/api"
+                ]
               }
             ]
           },
@@ -610,12 +621,15 @@
             "pages": [
               {
                 "group": "Nuxt",
-                "pages": ["libraries/nuxt/overview"]
+                "pages": [
+                  "libraries/nuxt/overview"
+                ]
               }
             ]
           }
         ],
-        "icon": "code"
+        "icon": "code",
+        "tab": "SDKs"
       }
     ]
   },
@@ -669,5 +683,11 @@
       "source": "/security/roles"
     }
   ],
+  "styling": {
+    "codeblocks": {
+      "theme": "kanagawa-wave"
+    },
+    "eyebrows": "breadcrumbs"
+  },
   "theme": "maple"
 }
