@@ -533,15 +533,6 @@
                 ]
               }
             ]
-          },
-          {
-            "group": "Changelog",
-            "icon": "newspaper",
-            "pages": [
-              "changelog/2026-03-27",
-              "changelog/2026-03-26",
-              "changelog/2026-03-23"
-            ]
           }
         ],
         "icon": "book-open",
