@@ -100,14 +100,8 @@ export function EnvVarsList({
     return rows;
   }, [envVarData, environments, deferredQuery, environmentFilter, sortBy]);
 
-  const {
-    selectedIds,
-    isDeleting,
-    toggleRowSelection,
-    isRowSelected,
-    handleBulkDelete,
-    clearSelection,
-  } = useRowSelection(displayRows);
+  const { selectedIds, toggleRowSelection, isRowSelected, handleBulkDelete, clearSelection } =
+    useRowSelection(displayRows);
 
   useCloseEditOnGroupCollapse(displayRows, expandedGroups, editingId, setEditingId);
 
@@ -189,7 +183,6 @@ export function EnvVarsList({
         selectedCount={selectedIds.size}
         onDelete={handleBulkDelete}
         onClearSelection={clearSelection}
-        isDeleting={isDeleting}
       />
     </>
   );

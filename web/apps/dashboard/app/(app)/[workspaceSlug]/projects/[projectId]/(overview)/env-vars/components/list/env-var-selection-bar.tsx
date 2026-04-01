@@ -9,14 +9,12 @@ type EnvVarSelectionBarProps = {
   selectedCount: number;
   onDelete: () => void;
   onClearSelection: () => void;
-  isDeleting: boolean;
 };
 
 export function EnvVarSelectionBar({
   selectedCount,
   onDelete,
   onClearSelection,
-  isDeleting,
 }: EnvVarSelectionBarProps) {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
@@ -44,19 +42,13 @@ export function EnvVarSelectionBar({
                 variant="outline"
                 size="sm"
                 className="font-medium text-[13px] [&_svg]:size-3.5"
-                disabled={isDeleting}
-                loading={isDeleting}
                 onClick={() => setIsDeleteConfirmOpen(true)}
                 ref={deleteButtonRef}
               >
                 <Trash iconSize="sm-medium" />
                 Delete
               </Button>
-              <Button
-                variant="ghost"
-                className="[&_svg]:size-3.5 ml-3"
-                onClick={onClearSelection}
-              >
+              <Button variant="ghost" className="[&_svg]:size-3.5 ml-3" onClick={onClearSelection}>
                 <XMark iconSize="sm-medium" />
               </Button>
             </div>
