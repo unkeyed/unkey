@@ -17,8 +17,10 @@ admin_url = "http://restate:9070"
 http_port = 9080
 register_as = "http://ctrl-worker:9080"
 
+# Container registry for pushing built images.
+# This is a shared Depot registry project: https://depot.dev/orgs/25j3k7j1zw/projects/72dvmc7lv7
 [registry]
-url = "registry.depot.dev"
+repository = "registry.depot.dev/72dvmc7lv7"
 username = "x-token"
 password = "${UNKEY_REGISTRY_PASSWORD}"
 
