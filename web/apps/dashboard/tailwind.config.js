@@ -131,13 +131,19 @@ module.exports = {
           from: { opacity: 0, transform: "translateY(8px)" },
           to: { opacity: 1, transform: "translateY(0)" },
         },
+        "bounce-in": {
+          "0%": { opacity: 0, transform: "scale(0.5)" },
+          "50%": { transform: "scale(1.1)" },
+          "100%": { opacity: 1, transform: "scale(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "expand-down": "expand-down 0.2s ease-out forwards",
-        "fade-slide-in": "fade-slide-in 0.3s ease-out",
+        "fade-slide-in": "fade-slide-in 0.3s ease-out forwards",
         "shiny-text": "shiny-text 10s infinite",
+        "bounce-in": "bounce-in 0.4s ease-out forwards",
         shimmer: "shimmer 1.2s ease-in-out infinite",
       },
       fontFamily: {

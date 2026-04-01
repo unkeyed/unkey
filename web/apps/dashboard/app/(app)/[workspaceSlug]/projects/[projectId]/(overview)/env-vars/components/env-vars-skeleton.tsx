@@ -23,8 +23,8 @@ export function EnvVarsSkeleton() {
           <div className="flex-[2] min-w-0 py-3.5 flex items-center pr-3">
             <div className="h-[22px] w-16 bg-grayA-3 rounded-md animate-pulse" />
           </div>
-          <div className="w-12 shrink-0 py-3.5 pr-3 flex items-center justify-end">
-            <Dots iconSize="sm-regular" className="text-gray-11 opacity-30" />
+          <div className="w-12 shrink-0 py-3.5 pr-4 flex items-center justify-end">
+            <Dots iconSize="sm-regular" className="text-gray-11 opacity-50" />
           </div>
         </div>
       ))}
