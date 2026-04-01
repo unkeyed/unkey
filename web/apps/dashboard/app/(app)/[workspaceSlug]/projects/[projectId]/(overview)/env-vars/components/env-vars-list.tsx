@@ -5,7 +5,7 @@ import type { Environment } from "@/lib/collections/deploy/environments";
 import { cn } from "@/lib/utils";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Badge, Checkbox } from "@unkey/ui";
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
   type DisplayRow,
   type EnvVarItem,
@@ -20,6 +20,7 @@ import { EnvVarsEmpty } from "./env-vars-empty";
 import { EnvVarsSkeleton } from "./env-vars-skeleton";
 import type { EnvironmentFilter, SortOption } from "./env-vars-toolbar";
 import { HighlightMatch } from "./highlight-match";
+import { useRowSelection } from "./use-row-selection";
 
 type EnvVarsListProps = {
   projectId: string;
@@ -38,8 +39,6 @@ export function EnvVarsList({
 }: EnvVarsListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isDeleting, setIsDeleting] = useState(false);
   const closeEdit = useCallback(() => setEditingId(null), []);
   const deferredQuery = useDeferredValue(searchQuery);
 
@@ -103,124 +102,14 @@ export function EnvVarsList({
     return rows;
   }, [envVarData, environments, deferredQuery, environmentFilter, sortBy]);
 
-  // Prune selected IDs that no longer exist in display rows
-  const allVisibleIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const row of displayRows) {
-      if (row.kind === "single") {
-        ids.add(row.item.id);
-      } else {
-        for (const item of row.items) {
-          ids.add(item.id);
-        }
-      }
-    }
-    return ids;
-  }, [displayRows]);
-
-  useEffect(() => {
-    setSelectedIds((prev) => {
-      let changed = false;
-      const next = new Set<string>();
-      for (const id of prev) {
-        if (allVisibleIds.has(id)) {
-          next.add(id);
-        } else {
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [allVisibleIds]);
-
-  const lastClickedIndexRef = useRef<number | null>(null);
-
-  const getRowIds = useCallback((row: DisplayRow): string[] => {
-    return row.kind === "single" ? [row.item.id] : row.items.map((i) => i.id);
-  }, []);
-
-  const toggleRowSelection = useCallback(
-    (rowIndex: number, shiftKey: boolean) => {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        const row = displayRows[rowIndex];
-        if (!row) {
-          return prev;
-        }
-
-        if (shiftKey && lastClickedIndexRef.current !== null) {
-          const start = Math.min(lastClickedIndexRef.current, rowIndex);
-          const end = Math.max(lastClickedIndexRef.current, rowIndex);
-          for (let i = start; i <= end; i++) {
-            const r = displayRows[i];
-            if (r) {
-              for (const id of getRowIds(r)) {
-                next.add(id);
-              }
-            }
-          }
-        } else {
-          const ids = getRowIds(row);
-          if (row.kind === "single") {
-            if (next.has(ids[0])) {
-              next.delete(ids[0]);
-            } else {
-              next.add(ids[0]);
-            }
-          } else {
-            const allSelected = ids.every((id) => next.has(id));
-            if (allSelected) {
-              for (const id of ids) {
-                next.delete(id);
-              }
-            } else {
-              for (const id of ids) {
-                next.add(id);
-              }
-            }
-          }
-        }
-
-        lastClickedIndexRef.current = rowIndex;
-        return next;
-      });
-    },
-    [displayRows, getRowIds],
-  );
-
-  const isRowSelected = useCallback(
-    (row: DisplayRow): boolean | "partial" => {
-      if (row.kind === "single") {
-        return selectedIds.has(row.item.id);
-      }
-      const groupIds = row.items.map((i) => i.id);
-      const selectedCount = groupIds.filter((id) => selectedIds.has(id)).length;
-      if (selectedCount === 0) {
-        return false;
-      }
-      if (selectedCount === groupIds.length) {
-        return true;
-      }
-      return "partial";
-    },
-    [selectedIds],
-  );
-
-  const handleBulkDelete = useCallback(async () => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0) {
-      return;
-    }
-    setIsDeleting(true);
-    try {
-      collection.envVars.delete(ids);
-      setSelectedIds(new Set());
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [selectedIds]);
-
-  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+  const {
+    selectedIds,
+    isDeleting,
+    toggleRowSelection,
+    isRowSelected,
+    handleBulkDelete,
+    clearSelection,
+  } = useRowSelection(displayRows);
 
   useCloseEditOnGroupCollapse(displayRows, expandedGroups, editingId, setEditingId);
 
