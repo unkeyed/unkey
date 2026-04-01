@@ -89,6 +89,7 @@ export const sentinelLogsResponseSchema = z.object({
   time: z.number().int(),
   deployment_id: z.string(),
   region: z.string(),
+  platform: z.string(),
   method: z.string(),
   path: z.string(),
   host: z.string(),
@@ -165,7 +166,7 @@ export function getSentinelLogs(ch: Querier) {
 
     const logsQuery = ch.query({
       query: `
-        SELECT request_id, time, deployment_id, region, method, path, host,
+        SELECT request_id, time, deployment_id, region, platform, method, path, host,
                response_status, total_latency, instance_latency, sentinel_latency,
                query_string, query_params, request_headers, request_body,
                response_headers, response_body, user_agent, ip_address
