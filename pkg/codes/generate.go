@@ -393,26 +393,26 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 		return fmt.Errorf("navigation not found in docs.json")
 	}
 
-	dropdowns, ok := navigation["dropdowns"].([]interface{})
+	tabs, ok := navigation["tabs"].([]interface{})
 	if !ok {
-		return fmt.Errorf("dropdowns not found in navigation")
+		return fmt.Errorf("tabs not found in navigation")
 	}
 
-	// Find the Documentation dropdown
-	var docsDropdown map[string]interface{}
-	for _, dropdown := range dropdowns {
-		dd := dropdown.(map[string]interface{})
-		if dd["dropdown"] == "Documentation" {
-			docsDropdown = dd
+	// Find the Documentation tab
+	var docsTab map[string]interface{}
+	for _, tab := range tabs {
+		t := tab.(map[string]interface{})
+		if t["tab"] == "Documentation" {
+			docsTab = t
 			break
 		}
 	}
 
-	if docsDropdown == nil {
-		return fmt.Errorf("Documentation dropdown not found")
+	if docsTab == nil {
+		return fmt.Errorf("Documentation tab not found")
 	}
 
-	groups := docsDropdown["groups"].([]interface{})
+	groups := docsTab["groups"].([]interface{})
 
 	// Find the Errors group (should be one of the top-level groups)
 	var errorsGroup map[string]interface{}
@@ -562,7 +562,7 @@ func updateDocsJSON(errorCodes []ErrorCodeInfo) error {
 	// Update the errors group
 	errorsGroup["pages"] = errorPages
 	groups[errorsGroupIndex] = errorsGroup
-	docsDropdown["groups"] = groups
+	docsTab["groups"] = groups
 
 	// Write back to docs.json with nice formatting
 	updatedJSON, err := json.MarshalIndent(docsConfig, "", "  ")

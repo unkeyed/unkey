@@ -1,17 +1,23 @@
-// Package customdomain implements domain ownership verification workflows.
+// Package customdomain implements domain verification workflows.
 //
-// This package provides a Restate-based service for verifying custom domain ownership
+// This package provides a Restate-based service for verifying custom domains
 // through DNS record validation. When a user adds a custom domain to their project,
-// this service orchestrates the verification process that proves they control the domain.
+// this service orchestrates the verification process.
 //
 // # Verification Flow
 //
-// Domain verification uses a two-step process. TXT record verification proves
-// ownership by checking for a TXT record at _unkey.<domain> containing a unique
-// token, and must complete before CNAME verification. CNAME verification enables
-// traffic routing by checking that the domain points to a unique target subdomain
-// under the platform's DNS apex (for example, <random>.unkey-dns.com). Both checks
-// must succeed before the domain is marked as verified.
+// Verification has two paths:
+//
+//   - CNAME path (subdomains): The domain has a visible CNAME record pointing to its
+//     unique target (e.g. <random>.unkey-dns.com). No TXT record needed since the
+//     unique CNAME target proves routing intent.
+//   - TXT path (apex domains): For apex domains using CNAME flattening (Cloudflare),
+//     ALIAS/ANAME records, or Cloudflare proxy, the CNAME is not visible via DNS
+//     lookup. A TXT record at _unkey.<domain> proves ownership instead.
+//
+// TXT is also always required when another workspace already has the same domain
+// verified (contention), regardless of whether CNAME is visible. On successful
+// contested verification, the old workspace's domain is revoked.
 //
 // # Why Restate
 //
