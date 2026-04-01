@@ -20,6 +20,7 @@ type BuildPlatform struct {
 type DepotConfig struct {
 	APIUrl        string
 	ProjectRegion string
+	ProjectPrefix string
 }
 
 // RegistryConfig holds credentials for the container registry.

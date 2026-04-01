@@ -27,6 +27,7 @@ password = "${UNKEY_REGISTRY_PASSWORD}"
 [depot]
 api_url = "https://api.depot.dev"
 project_region = "us-east-1"
+project_prefix = "builds-local"
 
 [acme]
 enabled = false
