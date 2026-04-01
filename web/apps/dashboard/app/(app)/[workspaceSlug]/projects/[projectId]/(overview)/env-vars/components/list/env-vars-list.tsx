@@ -3,14 +3,13 @@
 import { collection } from "@/lib/collections";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Badge } from "@unkey/ui";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRowSelection } from "../../hooks/use-row-selection";
+import { useVirtualList } from "../../hooks/use-virtual-list";
 import { EnvVarsEmpty } from "../shared/env-vars-empty";
 import { EnvVarsSkeleton } from "../shared/env-vars-skeleton";
-import { HighlightMatch } from "../shared/highlight-match";
 import type { EnvironmentFilter, SortOption } from "../toolbar/env-vars-toolbar";
-import { EnvVarBaseRow } from "./env-var-base-row";
+import { GroupRow } from "./env-var-group-row";
 import {
   type DisplayRow,
   type EnvVarItem,
@@ -112,6 +111,12 @@ export function EnvVarsList({
 
   useCloseEditOnGroupCollapse(displayRows, expandedGroups, editingId, setEditingId);
 
+  const { virtualizer, listRefCallback, scrollMargin } = useVirtualList(
+    displayRows,
+    editingId,
+    expandedGroups,
+  );
+
   if (isLoading) {
     return <EnvVarsSkeleton />;
   }
@@ -120,46 +125,65 @@ export function EnvVarsList({
     return <EnvVarsEmpty searchQuery={searchQuery} />;
   }
 
+  const virtualItems = virtualizer.getVirtualItems();
+
   return (
     <>
-      <div className="border border-grayA-4 rounded-[14px] overflow-hidden divide-y divide-grayA-4">
-        {displayRows.map((row, index) => {
-          if (row.kind === "single") {
-            const item = row.item;
-            return (
-              <EnvVarItemRow
-                key={item.id}
-                item={item}
-                searchQuery={deferredQuery}
-                isEditing={editingId === item.id}
-                onEdit={() => setEditingId(item.id)}
-                onCloseEdit={closeEdit}
-                isSelected={selectedIds.has(item.id)}
-                onToggleSelection={(shiftKey) => toggleRowSelection(index, shiftKey)}
-                hasSelection={selectedIds.size > 0}
-              />
-            );
-          }
+      <div ref={listRefCallback} className="border border-grayA-4 rounded-[14px] overflow-hidden">
+        <div
+          style={{
+            height: virtualizer.getTotalSize(),
+            position: "relative",
+            width: "100%",
+          }}
+        >
+          {virtualItems.map((virtualRow) => {
+            const row = displayRows[virtualRow.index];
+            const isLast = virtualRow.index === displayRows.length - 1;
 
-          // Group row
-          const isExpanded = expandedGroups.has(row.key);
-          const selected = isRowSelected(row);
-          return (
-            <GroupRow
-              key={`group-${row.key}`}
-              row={row}
-              isExpanded={isExpanded}
-              selected={selected}
-              deferredQuery={deferredQuery}
-              editingId={editingId}
-              onToggleGroup={() => toggleGroup(row.key)}
-              onToggleSelection={(shiftKey) => toggleRowSelection(index, shiftKey)}
-              onEdit={setEditingId}
-              onCloseEdit={closeEdit}
-              hasSelection={selectedIds.size > 0}
-            />
-          );
-        })}
+            return (
+              <div
+                key={virtualRow.key}
+                ref={virtualizer.measureElement}
+                data-index={virtualRow.index}
+                className={isLast ? undefined : "border-b border-grayA-4"}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+                }}
+              >
+                {row.kind === "single" ? (
+                  <EnvVarItemRow
+                    item={row.item}
+                    searchQuery={deferredQuery}
+                    isEditing={editingId === row.item.id}
+                    onEdit={() => setEditingId(row.item.id)}
+                    onCloseEdit={closeEdit}
+                    isSelected={selectedIds.has(row.item.id)}
+                    onToggleSelection={(shiftKey) => toggleRowSelection(virtualRow.index, shiftKey)}
+                    hasSelection={selectedIds.size > 0}
+                  />
+                ) : (
+                  <GroupRow
+                    row={row}
+                    isExpanded={expandedGroups.has(row.key)}
+                    selected={isRowSelected(row)}
+                    deferredQuery={deferredQuery}
+                    editingId={editingId}
+                    onToggleGroup={() => toggleGroup(row.key)}
+                    onToggleSelection={(shiftKey) => toggleRowSelection(virtualRow.index, shiftKey)}
+                    onEdit={setEditingId}
+                    onCloseEdit={closeEdit}
+                    hasSelection={selectedIds.size > 0}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
       <EnvVarSelectionBar
         selectedCount={selectedIds.size}
@@ -168,88 +192,6 @@ export function EnvVarsList({
         isDeleting={isDeleting}
       />
     </>
-  );
-}
-
-type GroupRowProps = {
-  row: DisplayRow & { kind: "group" };
-  isExpanded: boolean;
-  selected: boolean | "partial";
-  deferredQuery: string;
-  editingId: string | null;
-  onToggleGroup: () => void;
-  onToggleSelection: (shiftKey: boolean) => void;
-  onEdit: (id: string) => void;
-  onCloseEdit: () => void;
-  hasSelection: boolean;
-};
-
-function GroupRow({
-  row,
-  isExpanded,
-  selected,
-  deferredQuery,
-  editingId,
-  onToggleGroup,
-  onToggleSelection,
-  onEdit,
-  onCloseEdit,
-  hasSelection,
-}: GroupRowProps) {
-  const isChecked = selected === true;
-  const isIndeterminate = selected === "partial";
-
-  return (
-    <EnvVarBaseRow
-      showCheckbox
-      checked={isIndeterminate ? "indeterminate" : isChecked}
-      forceCheckboxVisible={isChecked || isIndeterminate || hasSelection}
-      onCheckboxClick={(shiftKey) => onToggleSelection(shiftKey)}
-      onRowClick={onToggleGroup}
-      nameCell={
-        <div className="flex items-center px-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <span className="font-mono font-medium text-[13px] text-accent-12 truncate leading-4 max-w-[250px]">
-                <HighlightMatch text={row.key} query={deferredQuery} />
-              </span>
-              {row.hasWriteonly && (
-                <Badge
-                  className="px-1.5 py-0 rounded-md h-5 text-[11px] font-medium pointer-events-none"
-                  variant="warning"
-                >
-                  Sensitive
-                </Badge>
-              )}
-            </div>
-            <div className="text-[13px] mt-1 text-gray-11 capitalize">All Environments</div>
-          </div>
-        </div>
-      }
-      valueCell={
-        <span className="text-[13px] text-gray-11 transition-colors pl-2">
-          {row.items.length} values ›
-        </span>
-      }
-      timestamp={row.latestUpdatedAt}
-      expandedContent={
-        isExpanded ? (
-          <div className="divide-y divide-grayA-3 bg-grayA-2 border-t border-grayA-4">
-            {row.items.map((item) => (
-              <EnvVarItemRow
-                key={item.id}
-                item={item}
-                searchQuery={deferredQuery}
-                isEditing={editingId === item.id}
-                onEdit={() => onEdit(item.id)}
-                onCloseEdit={onCloseEdit}
-                selectable={false}
-              />
-            ))}
-          </div>
-        ) : undefined
-      }
-    />
   );
 }
 
