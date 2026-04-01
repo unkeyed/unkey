@@ -90,6 +90,12 @@ type DepotConfig struct {
 	// Affects build performance and data residency.
 	// Options: "us-east-1", "eu-central-1". Default: "us-east-1".
 	ProjectRegion string `toml:"project_region" config:"default=us-east-1"`
+
+	// ProjectPrefix is prepended to Depot project names for environment separation.
+	// This refers to the Unkey development environment (production, preview, local),
+	// not customer environments. It keeps Depot projects from different Unkey
+	// deployments isolated from each other.
+	ProjectPrefix string `toml:"project_prefix" config:"default=builds-local"`
 }
 
 // RegistryConfig holds container registry authentication configuration.

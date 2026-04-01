@@ -440,7 +440,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 		return "", fmt.Errorf("failed to query project: %w", err)
 	}
 
-	projectName := fmt.Sprintf("unkey-%s", unkeyProjectID)
+	projectName := fmt.Sprintf("%s-%s", w.depotConfig.ProjectPrefix, unkeyProjectID)
 	if project.DepotProjectID.Valid && project.DepotProjectID.String != "" {
 		logger.Info(
 			"Returning existing depot project",
