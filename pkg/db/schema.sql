@@ -805,7 +805,6 @@ CREATE INDEX `workspace_idx` ON `deployment_steps` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
 CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
-CREATE INDEX `workspace_idx` ON `custom_domains` (`workspace_id`);
 CREATE INDEX `project_idx` ON `custom_domains` (`project_id`);
 CREATE INDEX `verification_status_idx` ON `custom_domains` (`verification_status`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);
