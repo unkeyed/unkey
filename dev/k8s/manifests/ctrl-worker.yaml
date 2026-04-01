@@ -28,8 +28,10 @@ data:
     http_port = 9080
     register_as = "http://ctrl-worker:9080"
 
+    # Container registry for pushing built images.
+    # This is a shared Depot registry project: https://depot.dev/orgs/25j3k7j1zw/projects/72dvmc7lv7
     [registry]
-    url = "registry.depot.dev"
+    repository = "registry.depot.dev/72dvmc7lv7"
     username = "x-token"
     password = "${UNKEY_REGISTRY_PASSWORD}"
 
@@ -53,7 +55,7 @@ data:
     # Set to true only for local dev without GitHub credentials configured.
     # When true, deployments skip GitHub auth entirely works only with public repos.
     # Controlled via UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS in .env.github.
-    allow_unauthenticated_deployments = ${UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS}
+    allow_unauthenticated_deployments = true
 
 ---
 apiVersion: apps/v1
