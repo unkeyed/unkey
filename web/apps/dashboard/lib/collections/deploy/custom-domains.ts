@@ -23,6 +23,8 @@ const schema = z.object({
   checkAttempts: z.number(),
   lastCheckedAt: z.number().nullable(),
   verificationError: z.string().nullable(),
+  domainConnectProvider: z.string().nullable(),
+  domainConnectUrl: z.string().nullable(),
   createdAt: z.number(),
   updatedAt: z.number().nullable(),
 });
