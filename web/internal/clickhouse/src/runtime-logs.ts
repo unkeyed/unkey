@@ -25,7 +25,6 @@ export const runtimeLog = z.object({
   message: z.string(),
   deployment_id: z.string(),
   region: z.string(),
-  platform: z.string(),
   attributes: z.record(z.string(), z.unknown()).nullable(),
 });
 
@@ -72,7 +71,7 @@ export function getRuntimeLogs(ch: Querier) {
       query: `
         SELECT
           time, severity, message, deployment_id,
-          region, platform, attributes
+          region, attributes
         FROM ${TABLE}
         WHERE ${filterConditions}
           AND ({cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)})
