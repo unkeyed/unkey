@@ -24,7 +24,6 @@ interface ApiLayoutData {
       bytes?: number;
     } | null;
     deleteProtection: boolean | null;
-    ipWhitelist: string | null;
   };
   workspaceApis: Array<{
     id: string;
@@ -38,7 +37,6 @@ interface ApiLayoutData {
   } | null;
   workspace: {
     id: string;
-    ipWhitelist: boolean;
   };
 }
 
