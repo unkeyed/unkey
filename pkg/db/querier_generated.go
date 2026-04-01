@@ -417,6 +417,11 @@ type Querier interface {
 	//  FROM custom_domains
 	//  WHERE id = ?
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (CustomDomain, error)
+	//FindCustomDomainByWorkspaceAndDomain
+	//
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at FROM custom_domains
+	//  WHERE workspace_id = ? AND domain = ?
+	FindCustomDomainByWorkspaceAndDomain(ctx context.Context, db DBTX, arg FindCustomDomainByWorkspaceAndDomainParams) (CustomDomain, error)
 	//FindCustomDomainWithCertByDomain
 	//
 	//  SELECT
@@ -2640,7 +2645,7 @@ type Querier interface {
 	//      last_checked_at = NULL,
 	//      invocation_id = ?,
 	//      updated_at = ?
-	//  WHERE domain = ?
+	//  WHERE id = ?
 	ResetCustomDomainVerification(ctx context.Context, db DBTX, arg ResetCustomDomainVerificationParams) error
 	//SetWorkspaceK8sNamespace
 	//
