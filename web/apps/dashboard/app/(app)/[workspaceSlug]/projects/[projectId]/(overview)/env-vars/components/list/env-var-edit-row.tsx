@@ -18,7 +18,7 @@ import {
 import { useCallback, useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { useProjectData } from "../../data-provider";
+import { useProjectData } from "../../../data-provider";
 
 const editEnvVarSchema = z.object({
   key: z.string().min(1, "Variable name is required"),

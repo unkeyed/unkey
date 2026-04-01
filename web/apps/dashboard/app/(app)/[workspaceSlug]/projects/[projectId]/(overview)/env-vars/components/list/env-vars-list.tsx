@@ -2,25 +2,24 @@
 
 import { collection } from "@/lib/collections";
 import type { Environment } from "@/lib/collections/deploy/environments";
-import { cn } from "@/lib/utils";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Badge, Checkbox } from "@unkey/ui";
+import { Badge } from "@unkey/ui";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useRowSelection } from "../../hooks/use-row-selection";
+import { EnvVarsEmpty } from "../shared/env-vars-empty";
+import { EnvVarsSkeleton } from "../shared/env-vars-skeleton";
+import { HighlightMatch } from "../shared/highlight-match";
+import type { EnvironmentFilter, SortOption } from "../toolbar/env-vars-toolbar";
+import { EnvVarBaseRow } from "./env-var-base-row";
 import {
   type DisplayRow,
   type EnvVarItem,
   EnvVarItemRow,
-  TimestampBadge,
   groupByKey,
   rowKey,
   rowTime,
 } from "./env-var-item-row";
 import { EnvVarSelectionBar } from "./env-var-selection-bar";
-import { EnvVarsEmpty } from "./env-vars-empty";
-import { EnvVarsSkeleton } from "./env-vars-skeleton";
-import type { EnvironmentFilter, SortOption } from "./env-vars-toolbar";
-import { HighlightMatch } from "./highlight-match";
-import { useRowSelection } from "./use-row-selection";
 
 type EnvVarsListProps = {
   projectId: string;
@@ -201,86 +200,56 @@ function GroupRow({
   const isIndeterminate = selected === "partial";
 
   return (
-    <div>
-      <div
-        //biome-ignore lint/a11y/useSemanticElements: its okay
-        role="button"
-        tabIndex={0}
-        onClick={onToggleGroup}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onToggleGroup();
-          }
-        }}
-        className="group flex items-center hover:bg-grayA-2 transition-colors cursor-pointer"
-      >
-        {/* biome-ignore lint/a11y/useKeyWithClickEvents: checkbox handles keyboard interaction */}
-        <div
-          className="pl-4 flex items-center w-8 shrink-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleSelection(e.shiftKey);
-          }}
-        >
-          <Checkbox
-            checked={isIndeterminate ? "indeterminate" : isChecked}
-            className={cn(
-              "size-4 [&_svg]:size-3",
-              isChecked || isIndeterminate || hasSelection
-                ? "opacity-100"
-                : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto",
-            )}
-            onCheckedChange={() => { }}
-          />
-        </div>
-        <div className="flex-4 min-w-0 py-3.5 flex items-center">
-          <div className="flex items-center px-4">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className="font-mono font-medium text-[13px] text-accent-12 truncate leading-4 max-w-[250px]">
-                  <HighlightMatch text={row.key} query={deferredQuery} />
-                </span>
-                {row.hasWriteonly && (
-                  <Badge
-                    className="px-1.5 py-0 rounded-md h-5 text-[11px] font-medium pointer-events-none"
-                    variant="warning"
-                  >
-                    Sensitive
-                  </Badge>
-                )}
-              </div>
-              <div className="text-[13px] mt-1 text-gray-11 capitalize">All Environments</div>
+    <EnvVarBaseRow
+      showCheckbox
+      checked={isIndeterminate ? "indeterminate" : isChecked}
+      forceCheckboxVisible={isChecked || isIndeterminate || hasSelection}
+      onCheckboxClick={(shiftKey) => onToggleSelection(shiftKey)}
+      onRowClick={onToggleGroup}
+      nameCell={
+        <div className="flex items-center px-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono font-medium text-[13px] text-accent-12 truncate leading-4 max-w-[250px]">
+                <HighlightMatch text={row.key} query={deferredQuery} />
+              </span>
+              {row.hasWriteonly && (
+                <Badge
+                  className="px-1.5 py-0 rounded-md h-5 text-[11px] font-medium pointer-events-none"
+                  variant="warning"
+                >
+                  Sensitive
+                </Badge>
+              )}
             </div>
+            <div className="text-[13px] mt-1 text-gray-11 capitalize">All Environments</div>
           </div>
         </div>
-        <div className="flex-4 min-w-0 py-3.5 flex items-center pr-3">
-          <span className="text-[13px] text-gray-11 transition-colors pl-2">
-            {row.items.length} values ›
-          </span>
-        </div>
-        <div className="flex-2 min-w-0 py-3.5 flex items-center pr-3">
-          <TimestampBadge value={row.latestUpdatedAt} />
-        </div>
-        <div className="w-12 shrink-0 py-3.5 pr-3" />
-      </div>
-      {/* Expanded sub-rows */}
-      {isExpanded && (
-        <div className="divide-y divide-grayA-3 bg-grayA-2 border-t border-grayA-4">
-          {row.items.map((item) => (
-            <EnvVarItemRow
-              key={item.id}
-              item={item}
-              searchQuery={deferredQuery}
-              isEditing={editingId === item.id}
-              onEdit={() => onEdit(item.id)}
-              onCloseEdit={onCloseEdit}
-              selectable={false}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+      }
+      valueCell={
+        <span className="text-[13px] text-gray-11 transition-colors pl-2">
+          {row.items.length} values ›
+        </span>
+      }
+      timestamp={row.latestUpdatedAt}
+      expandedContent={
+        isExpanded ? (
+          <div className="divide-y divide-grayA-3 bg-grayA-2 border-t border-grayA-4">
+            {row.items.map((item) => (
+              <EnvVarItemRow
+                key={item.id}
+                item={item}
+                searchQuery={deferredQuery}
+                isEditing={editingId === item.id}
+                onEdit={() => onEdit(item.id)}
+                onCloseEdit={onCloseEdit}
+                selectable={false}
+              />
+            ))}
+          </div>
+        ) : undefined
+      }
+    />
   );
 }
 

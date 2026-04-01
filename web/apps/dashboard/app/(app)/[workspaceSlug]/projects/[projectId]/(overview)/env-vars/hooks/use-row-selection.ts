@@ -1,6 +1,6 @@
 import { collection } from "@/lib/collections";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DisplayRow } from "./env-var-item-row";
+import type { DisplayRow } from "../components/list/env-var-item-row";
 
 function getRowIds(row: DisplayRow): string[] {
   return row.kind === "single" ? [row.item.id] : row.items.map((i) => i.id);

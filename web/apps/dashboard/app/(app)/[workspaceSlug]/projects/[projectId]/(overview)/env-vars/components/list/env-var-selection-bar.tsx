@@ -53,7 +53,6 @@ export function EnvVarSelectionBar({
                 Delete
               </Button>
               <Button
-                size="icon"
                 variant="ghost"
                 className="[&_svg]:size-3.5 ml-3"
                 onClick={onClearSelection}
