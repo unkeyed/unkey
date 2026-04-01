@@ -14,7 +14,7 @@ import (
 
 // WithSentinelLogging logs completed sentinel requests to ClickHouse.
 // Timing/response data populated by handler via context during proxy execution.
-func WithSentinelLogging(buf *batch.BatchProcessor[schema.SentinelRequest], clk clock.Clock, sentinelID, region string) zen.Middleware {
+func WithSentinelLogging(buf *batch.BatchProcessor[schema.SentinelRequest], clk clock.Clock, sentinelID, region, platform string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			// nolint:exhaustruct
@@ -48,6 +48,7 @@ func WithSentinelLogging(buf *batch.BatchProcessor[schema.SentinelRequest], clk 
 					InstanceID:      tracking.Instance.ID,
 					InstanceAddress: tracking.Instance.Address,
 					Region:          region,
+					Platform:        platform,
 					Method:          strings.ToUpper(req.Method),
 					Host:            req.Host,
 					Path:            req.URL.Path,
