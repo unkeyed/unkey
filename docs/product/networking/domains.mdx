@@ -9,6 +9,10 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 Custom domains let you serve your app from your own domain name (for example, `api.acme.com`) instead of a `*.unkey.app` subdomain. Unkey handles TLS certificate provisioning and renewal automatically.
 
+## Domain uniqueness
+
+Each domain must be unique within a workspace. You cannot add the same domain to a single workspace more than once. However, different workspaces can use the same domain independently, each with its own verification and certificate.
+
 ## Add a custom domain
 
 <Steps>
@@ -99,5 +103,9 @@ dig TXT _unkey.api.acme.com
 
 <Accordion title="Certificate not issued after verification">
 Certificate provisioning starts automatically after both DNS records are verified. If the certificate isn't issued within 30 minutes, check that your CNAME proxy status is set to **DNS only** (not proxied) at your DNS provider.
+</Accordion>
+
+<Accordion title="Duplicate domain error">
+A domain can only be added once per workspace. If you see a duplicate domain error, check whether the domain already exists in your workspace — possibly in a different project or environment. Remove the existing entry before adding it again.
 </Accordion>
 </AccordionGroup>
