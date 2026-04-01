@@ -28,7 +28,7 @@ func Test429_QueryQuotaExceeded(t *testing.T) {
 
 	// Buffer some key verifications
 	for i := range 5 {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
+		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace.ID,
@@ -44,7 +44,6 @@ func Test429_QueryQuotaExceeded(t *testing.T) {
 	route := &Handler{
 		DB:                         h.DB,
 		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}

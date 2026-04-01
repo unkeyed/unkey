@@ -1,0 +1,69 @@
+---
+title: "CLI authentication"
+description: "Store your root key locally so the Unkey CLI can authenticate without passing it on every command."
+---
+
+The `unkey auth login` command stores your [root key](/platform/root-keys/overview) in a local config file so you don't have to pass `--root-key` on every CLI invocation.
+
+## Prerequisites
+
+- An Unkey account with a [root key](/platform/root-keys/overview)
+- The Unkey CLI installed (see [installation](#installation))
+
+## Installation
+
+Install the CLI with npm:
+
+```bash
+npm install -g unkey
+```
+
+Or run it directly with npx:
+
+```bash
+npx unkey auth login
+```
+
+## Log in
+
+Run the `auth login` command and paste your root key when prompted:
+
+```bash
+unkey auth login
+```
+
+```
+Enter your root key: ****
+Authentication successful. Key stored in ~/.unkey/config.toml
+```
+
+The key is read as hidden input — it won't be displayed in your terminal.
+
+## How it works
+
+Your root key is saved to `~/.unkey/config.toml`. Once stored, other CLI commands (like `unkey deploy`) use it automatically instead of requiring a `--root-key` flag.
+
+```toml ~/.unkey/config.toml
+root_key = "unkey_..."
+```
+
+<Warning>
+  The config file stores your root key in plain text. Make sure `~/.unkey/config.toml` is not committed to version control or shared.
+</Warning>
+
+## Best practices
+
+- **Use a dedicated root key for the CLI** — create a separate key with only the permissions your CLI workflows need. See [root key permissions](/platform/root-keys/overview#create-a-root-key) for guidance.
+- **Don't commit the config file** — add `~/.unkey/` to your global gitignore or verify it's excluded from your project repositories.
+- **Rotate periodically** — run `unkey auth login` again with a new key to replace the stored one.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Root keys" icon="key" href="/platform/root-keys/overview">
+    Learn how to create and manage root keys
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart/quickstart">
+    Get started with Unkey API key management
+  </Card>
+</CardGroup>

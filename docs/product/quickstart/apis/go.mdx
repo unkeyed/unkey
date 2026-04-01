@@ -1,6 +1,6 @@
 ---
-title: 'Go'
-description: 'Protect your Go APIs with Unkey'
+title: "Go"
+description: "Protect your Go APIs with Unkey"
 ---
 
 This guide shows how to add API key verification to your Go applications using the official Unkey Go SDK.
@@ -90,7 +90,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 func main() {
     mux := http.NewServeMux()
-    
+
     // Protected route
     mux.HandleFunc("/api/protected", func(w http.ResponseWriter, r *http.Request) {
         w.Header().Set("Content-Type", "application/json")
@@ -255,7 +255,7 @@ func UnkeyAuthMiddleware() echo.MiddlewareFunc {
 
 func main() {
     e := echo.New()
-    
+
     e.Use(middleware.Logger())
     e.Use(middleware.Recover())
 
@@ -280,13 +280,21 @@ func main() {
 ## What's next?
 
 <CardGroup cols={2}>
-  <Card title="Add rate limiting" icon="gauge-high" href="/ratelimiting/introduction">
+  <Card
+    title="Add rate limiting"
+    icon="gauge-high"
+    href="/platform/ratelimiting/introduction"
+  >
     Protect your endpoints from abuse
   </Card>
   <Card title="Go SDK Reference" icon="book" href="/libraries/go/overview">
     Complete Go SDK documentation
   </Card>
-  <Card title="Authorization" icon="user-shield" href="/apis/features/authorization/introduction">
+  <Card
+    title="Authorization"
+    icon="user-shield"
+    href="/platform/apis/features/authorization/introduction"
+  >
     Add roles and permissions
   </Card>
   <Card title="Cookbook" icon="utensils" href="/cookbook">

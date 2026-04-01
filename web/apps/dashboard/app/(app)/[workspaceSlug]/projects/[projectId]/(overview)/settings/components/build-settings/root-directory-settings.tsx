@@ -5,6 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
+import { SettingField } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { useRepoTree } from "./use-repo-tree";
 
@@ -83,18 +84,19 @@ export const RootDirectory = () => {
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
-      <FormInput
-        label="Root directory"
-        required
-        className="w-[480px]"
-        description={
-          warningMessage ?? "Build context directory for Docker. Changes apply on next deploy."
-        }
-        placeholder="."
-        error={errors.dockerContext?.message}
-        variant={inputVariant}
-        {...register("dockerContext")}
-      />
+      <SettingField>
+        <FormInput
+          label="Root directory"
+          required
+          description={
+            warningMessage ?? "Build context directory for Docker. Changes apply on next deploy."
+          }
+          placeholder="."
+          error={errors.dockerContext?.message}
+          variant={inputVariant}
+          {...register("dockerContext")}
+        />
+      </SettingField>
     </FormSettingCard>
   );
 };

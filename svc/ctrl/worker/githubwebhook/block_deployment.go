@@ -31,17 +31,19 @@ func (s *Service) blockDeploymentForApproval(
 		s.dashboardURL, workspace.Slug, project.ID, deploymentID,
 	)
 
-	_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
-		return s.github.CreateCommitStatus(
-			repo.InstallationID,
-			req.GetRepositoryFullName(),
-			req.GetAfter(),
-			"failure",
-			logURL,
-			"Awaiting authorization from a project member",
-			"Unkey Deploy Authorization",
-		)
-	}, restate.WithName("create commit status for authorization"), restate.WithMaxRetryDuration(30*time.Second))
+	if !s.allowUnauthenticatedDeployments {
+		_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
+			return s.github.CreateCommitStatus(
+				repo.InstallationID,
+				req.GetRepositoryFullName(),
+				req.GetAfter(),
+				"failure",
+				logURL,
+				"Awaiting authorization from a project member",
+				"Unkey Deploy Authorization",
+			)
+		}, restate.WithName("create commit status for authorization"), restate.WithMaxRetryDuration(30*time.Second))
+	}
 
 	logger.Info("deployment blocked for authorization",
 		"deployment_id", deploymentID,

@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
+	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
@@ -113,6 +114,34 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 	} else {
 		logger.Warn("Prometheus not configured, skipping metrics server")
+	}
+
+	// Start internal pprof server on loopback-only listener
+	if cfg.Pprof != nil {
+		pprofPort := cfg.Pprof.Port
+		if pprofPort == 0 {
+			pprofPort = 6060
+		}
+
+		pprofSrv, pprofErr := pprofRoute.New(cfg.Pprof, "/_unkey/internal")
+		if pprofErr != nil {
+			return fmt.Errorf("unable to create pprof server: %w", pprofErr)
+		}
+		r.DeferCtx(pprofSrv.Shutdown)
+
+		pprofListener, pprofListenErr := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", pprofPort))
+		if pprofListenErr != nil {
+			return fmt.Errorf("unable to listen on 127.0.0.1:%d for pprof: %w", pprofPort, pprofListenErr)
+		}
+
+		r.Go(func(ctx context.Context) error {
+			logger.Info("Internal pprof server started", "addr", pprofListener.Addr().String())
+			serveErr := pprofSrv.Serve(ctx, pprofListener)
+			if serveErr != nil && !errors.Is(serveErr, context.Canceled) {
+				return fmt.Errorf("pprof server error: %w", serveErr)
+			}
+			return nil
+		})
 	}
 
 	var vaultClient vault.VaultServiceClient
@@ -249,7 +278,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Clock:             clk,
 		AcmeClient:        acmeClient,
 		ErrorPageRenderer: errorpage.NewRenderer(),
-		Pprof:             cfg.Pprof,
 	}
 
 	// Start HTTPS frontline server (main proxy server)

@@ -79,6 +79,8 @@ export interface LoadMoreFooterProps {
   headerContent?: ReactNode;
   hasMore: boolean;
   hide?: boolean;
+  onLoadMore?: () => void;
+  isFetchingNextPage?: boolean;
 }
 
 /**

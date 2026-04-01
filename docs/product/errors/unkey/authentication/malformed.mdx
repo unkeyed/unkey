@@ -5,7 +5,6 @@ description: "Authentication credentials were incorrectly formatted"
 
 <Danger>`err:unkey:authentication:malformed`</Danger>
 
-
 ```json Example
 {
   "meta": {
@@ -25,6 +24,7 @@ description: "Authentication credentials were incorrectly formatted"
 This error occurs when your request includes authentication credentials, but they are not formatted correctly. The Unkey API expects API keys to be provided in a specific format in the Authorization header.
 
 Common causes include:
+
 - Missing the "Bearer" prefix before your API key
 - Including extra spaces or characters
 - Using incorrect casing (e.g., "bearer" instead of "Bearer")
@@ -84,5 +84,6 @@ When properly authenticated, you'll receive a successful response like this:
 - **Truncated keys**: Accidentally cutting off part of the API key when copying
 
 ## Related Errors
+
 - [err:unkey:authentication:missing](./missing) - When no authentication credentials are provided
 - [err:unkey:authentication:key_not_found](./key_not_found) - When the provided API key doesn't exist

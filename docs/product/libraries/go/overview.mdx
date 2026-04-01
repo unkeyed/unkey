@@ -27,13 +27,14 @@ func main() {
     client := unkey.New(
         unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
     )
-    
+
     // Use client...
 }
 ```
 
 <Warning>
-Never expose your root key in client-side code or commit it to version control.
+  Never expose your root key in client-side code or commit it to version
+  control.
 </Warning>
 
 ---
@@ -57,7 +58,7 @@ import (
 
 func main() {
     ctx := context.Background()
-    
+
     client := unkey.New(
         unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
     )
@@ -67,13 +68,13 @@ func main() {
     res, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{
         Key: apiKey,
     })
-    
+
     if err != nil {
         log.Fatalf("Verification failed: %v", err)
     }
 
     result := res.V2KeysVerifyKeyResponseBody
-    
+
     if !result.Valid {
         fmt.Printf("Key invalid: %s\n", *result.Code)
         return
@@ -147,7 +148,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 func main() {
     mux := http.NewServeMux()
-    
+
     mux.HandleFunc("/api/protected", func(w http.ResponseWriter, r *http.Request) {
         w.Write([]byte("Access granted!"))
     })
@@ -281,7 +282,7 @@ func main() {
     }
 
     result := res.V2KeysCreateKeyResponseBody
-    
+
     // Send this to your user - only time you'll see the full key!
     fmt.Printf("New key: %s\n", result.Key)
     fmt.Printf("Key ID: %s\n", result.KeyID)
@@ -289,7 +290,7 @@ func main() {
 ```
 
 <Warning>
-The full API key is only returned once at creation. Unkey stores only a hash.
+  The full API key is only returned once at creation. Unkey stores only a hash.
 </Warning>
 
 ---
@@ -385,6 +386,10 @@ fmt.Printf("Created key: %s\n", res.V2KeysCreateKeyResponseBody.Key)
 
 ## Full Reference
 
-<Card title="GitHub" icon="github" href="https://github.com/unkeyed/sdks/blob/main/api/go/README.md">
+<Card
+  title="GitHub"
+  icon="github"
+  href="https://github.com/unkeyed/sdks/blob/main/api/go/README.md"
+>
   Complete auto-generated API reference
 </Card>

@@ -14,6 +14,7 @@ import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useEnvironmentSettings } from "../../../environment-provider";
 import { useUpdateAllEnvironments } from "../../../hooks/use-update-all-environments";
+import { SettingField } from "../../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
 import { RemoveButton } from "../../shared/remove-button";
 import { MethodBadge } from "./method-badge";
@@ -95,14 +96,7 @@ export const Healthcheck = () => {
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
-      <div className="flex flex-col gap-2 w-120">
-        {/* TODO: multi-check when API supports
-        {fields.map((field, index) => (
-          <div key={field.id} className="flex items-end gap-3">
-            ... add/remove buttons and per-entry fields ...
-          </div>
-        ))}
-        */}
+      <SettingField>
         <div className="flex items-center gap-3">
           <span className="w-24 text-[13px] text-gray-11">Method</span>
           <span className="flex-1 text-[13px] text-gray-11">Path</span>
@@ -115,7 +109,6 @@ export const Healthcheck = () => {
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
                 <SelectTrigger
-                  className="h-9"
                   wrapperClassName="w-24"
                   variant={errors.method ? "error" : "default"}
                   rightIcon={
@@ -141,12 +134,12 @@ export const Healthcheck = () => {
           />
           <FormInput
             placeholder="/health"
-            className="flex-1 [&_input]:h-9 [&_input]:font-mono"
+            className="flex-1 [&_input]:font-mono"
             error={errors.path?.message}
             {...register("path")}
           />
           <FormInput
-            className="flex-1 [&_input]:h-9"
+            className="flex-1"
             placeholder="30s"
             error={errors.interval?.message}
             {...register("interval")}
@@ -155,7 +148,7 @@ export const Healthcheck = () => {
             <RemoveButton onClick={handleRemove} className="absolute -right-11 top-0" />
           )}
         </div>
-      </div>
+      </SettingField>
     </FormSettingCard>
   );
 };

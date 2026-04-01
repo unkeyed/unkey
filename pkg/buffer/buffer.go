@@ -12,9 +12,9 @@ import (
 // Buffer represents a generic buffered channel that can store elements of type T.
 // It provides configuration for capacity and drop behavior when the buffer is full.
 type Buffer[T any] struct {
-	c    chan T // The underlying channel storing elements
-	drop bool   // Whether to drop new elements when buffer is full
-	name string // name of the buffer
+	c    chan *T // Pointer-based channel — 8 bytes per slot instead of sizeof(T)
+	drop bool    // Whether to drop new elements when buffer is full
+	name string  // name of the buffer
 
 	stopMetrics func()
 	closeOnce   sync.Once // Protects isClosed and stopMetrics
@@ -53,7 +53,7 @@ func New[T any](config Config) *Buffer[T] {
 		mu:          sync.RWMutex{},
 		closeOnce:   sync.Once{},
 		isClosed:    false,
-		c:           make(chan T, config.Capacity),
+		c:           make(chan *T, config.Capacity),
 		drop:        config.Drop,
 		name:        config.Name,
 		stopMetrics: func() {},
@@ -102,9 +102,12 @@ func (b *Buffer[T]) Buffer(t T) {
 		return
 	}
 
+	ptr := new(T)
+	*ptr = t
+
 	if b.drop {
 		select {
-		case b.c <- t:
+		case b.c <- ptr:
 			metrics.BufferState.WithLabelValues(b.name, "buffered").Inc()
 
 		default:
@@ -112,7 +115,7 @@ func (b *Buffer[T]) Buffer(t T) {
 			metrics.BufferState.WithLabelValues(b.name, "dropped").Inc()
 		}
 	} else {
-		b.c <- t
+		b.c <- ptr
 		metrics.BufferState.WithLabelValues(b.name, "buffered").Inc()
 	}
 }
@@ -133,10 +136,10 @@ func (b *Buffer[T]) Buffer(t T) {
 //	go func() {
 //	    for event := range buffer.Consume() {
 //	        // Process each event
-//	        fmt.Println(event)
+//	        fmt.Println(*event)
 //	    }
 //	}()
-func (b *Buffer[T]) Consume() <-chan T {
+func (b *Buffer[T]) Consume() <-chan *T {
 	return b.c
 }
 

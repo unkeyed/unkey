@@ -20,7 +20,9 @@ import (
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
@@ -203,8 +205,10 @@ func New(t *testing.T, opts ...Option) *Harness {
 		SentinelImage: "test-sentinel:latest",
 
 		GitHub:                          nil,
-		DepotConfig:                     deploy.DepotConfig{APIUrl: "", ProjectRegion: ""},
-		RegistryConfig:                  deploy.RegistryConfig{URL: "", Username: "", Password: ""},
+		DepotConfig:                     deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
+		BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
+		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
+		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: ""},
 		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
 		AllowUnauthenticatedDeployments: false,
 	})

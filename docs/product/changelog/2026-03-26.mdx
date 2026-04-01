@@ -1,6 +1,6 @@
 ---
 title: "March 26, 2026"
-description: "Build-time environment variables, OpenAPI diff viewer, idle deployments, and improved deployment triggers."
+description: "Build-time environment variables, configurable production branch, OpenAPI diff viewer, idle deployments, and improved deployment triggers."
 ---
 
 ## New features
@@ -35,6 +35,12 @@ A new OpenAPI Diff page lets you compare the OpenAPI spec between any two deploy
 
 To enable the diff viewer, set the path to your OpenAPI spec file (for example, `/openapi.yaml`) in your project's environment settings. Once configured, the project overview shows a compact diff indicator between your current and latest preview deployment, with a link to the full comparison page.
 
+### Configurable production branch
+
+You can now choose which Git branch triggers production deployments. Navigate to your project's deployment settings to find the new **Production branch** setting. Select any branch from your connected repository — pushes to that branch deploy to the production environment, while all other branches deploy to preview.
+
+Previously, production deployments were always triggered by the repository's default branch. Now you can set it to any branch, such as `release` or `stable`, to match your team's workflow.
+
 ### Idle deployment status
 
 Deployments that are scaled to zero now show an "idle" status in the dashboard instead of appearing as stopped or errored. This gives you a clearer picture of which deployments are still available but not actively running.
@@ -59,7 +65,7 @@ Deployments are now routed only to regions that have running instances. Previous
 
 ## Bug fixes
 
-- Concurrent requests to update key [roles and permissions](/apis/features/authorization/roles-and-permissions) no longer cause race conditions or deadlocks.
+- Concurrent requests to update key [roles and permissions](/platform/apis/features/authorization/roles-and-permissions) no longer cause race conditions or deadlocks.
 - You can now copy the external ID from the keys table actions menu and edit it from the dialog without errors.
 - Deployment details now reliably display git metadata (commit message, author, and timestamp) even when the information was not available at the time the deployment was created.
 - Fixed an overflow issue in the deployments list where long commit messages could break the table layout.

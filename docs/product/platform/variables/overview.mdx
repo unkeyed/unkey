@@ -1,0 +1,105 @@
+---
+title: Variables
+description: "Encrypted key-value pairs injected into your app at runtime, scoped per environment"
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+Every variable is **encrypted before it is written to the database** — Unkey never stores unencrypted values. Variables are injected into your application as environment variables at runtime. Each variable is scoped to a specific [environment](/environments/overview), so production and preview can have different values.
+
+You manage variables from the **Environment Variables** tab in your project dashboard.
+
+<Frame>
+  <img className="block dark:hidden" src="/platform/variables/variables-list-light.png" alt="Environment variables list" />
+  <img className="hidden dark:block" src="/platform/variables/variables-list-dark.png" alt="Environment variables list" />
+</Frame>
+
+## Create variables
+
+1. Open your project and go to the **Environment Variables** tab.
+2. Click **Add Environment Variable** to open the slide panel.
+3. Enter one or more key-value pairs.
+4. Select the target environment, or choose **All Environments** to apply the variable everywhere.
+5. Toggle **Sensitive** if the value should be write-only.
+6. Click **Save**.
+
+<Frame>
+  <img className="block dark:hidden" src="/platform/variables/add-variable-light.png" alt="Add environment variable panel" />
+  <img className="hidden dark:block" src="/platform/variables/add-variable-dark.png" alt="Add environment variable panel" />
+</Frame>
+
+### Bulk import
+
+You can add multiple variables at once:
+
+- **Paste** — paste content in `KEY=value` format (one per line) directly into the form. Unkey parses each line into a separate entry.
+- **Drag and drop** — drag a `.env` file onto the form to import all variables from the file.
+- **File picker** — click the import button and select a `.env` file from your file system.
+
+### Form persistence
+
+If you close the panel or navigate away before saving, Unkey preserves your unsaved entries for the current session. When you reopen the panel, your draft is restored so you can pick up where you left off. A leave-prevention prompt also appears if you attempt to refresh or close the browser tab while the panel is open.
+
+## Search, filter, and sort
+
+The toolbar above the variable list lets you:
+
+- **Search** — filter variables by name using the search field.
+- **Filter by environment** — show only variables for a specific environment, or select **All Environments** to see everything.
+- **Sort** — order variables by **Last Updated** or **Name A-Z**.
+
+## Edit and delete variables
+
+Click any variable row to open the inline editor. You can update the key, value, or note. Use the action menu on each row to delete a variable.
+
+<Frame>
+  <img className="block dark:hidden" src="/platform/variables/edit-variable-light.png" alt="Edit variable inline editor" />
+  <img className="hidden dark:block" src="/platform/variables/edit-variable-dark.png" alt="Edit variable inline editor" />
+</Frame>
+
+<Note>
+  Unkey validates variable names for uniqueness within the same environment. If a variable with the same key already exists in the target environment, the form shows an error.
+</Note>
+
+## Sensitive variables
+
+All variables are encrypted before they are stored — the **Sensitive** toggle does not change how a variable is encrypted. It only controls whether the value can be read back in the dashboard after saving.
+
+When **Sensitive** is enabled, the value becomes write-only: you can update or delete it, but you cannot reveal it again. Use this for API keys, database passwords, and tokens. Leave it off for non-sensitive configuration like feature flags, service URLs, and port numbers where being able to check the current value is useful.
+
+## Environment scoping
+
+Variables are tied to a specific environment. This lets you use different configuration for production and preview without managing separate config files:
+
+| Variable         | Production                         | Preview                           |
+| ---------------- | ---------------------------------- | --------------------------------- |
+| `DATABASE_URL`   | `postgres://prod-db.acme.com/api`  | `postgres://dev-db.acme.com/api`  |
+| `LOG_LEVEL`      | `warn`                             | `debug`                           |
+| `FEATURE_V2_UI`  | `false`                            | `true`                            |
+
+When adding a variable, you can select **All Environments** to set the same key-value pair across every environment in one step.
+
+## Variables and deployments
+
+Deployments are immutable. Variable changes don't affect running deployments. To apply updated variables, trigger a new deployment. A redeploy banner appears at the top of the page after you make changes as a reminder.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Environments"
+    icon="code-branch"
+    href="/environments/overview"
+  >
+    How environments isolate configuration and deployments
+  </Card>
+  <Card
+    title="App settings"
+    icon="gear"
+    href="/platform/apps/settings"
+  >
+    Full reference for build, runtime, and variable settings
+  </Card>
+</CardGroup>

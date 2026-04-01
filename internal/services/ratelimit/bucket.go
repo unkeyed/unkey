@@ -8,18 +8,16 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 )
 
-// bucket maintains rate limit state for a specific identifier+limit+duration combination.
+// bucket maintains rate limit state for a specific identifier+duration combination.
 // It stores a sliding window of request counts and manages the lifecycle of these windows.
 //
-// Each bucket is uniquely identified by a triplet of:
+// Each bucket is uniquely identified by a pair of:
 //   - identifier: The rate limit subject (user ID, API key, etc)
-//   - limit: Maximum requests allowed in the duration
 //   - duration: Time window for the rate limit
 //
 // Example Usage:
 //
 //	b := &bucket{
-//	    limit:    100,
 //	    duration: time.Minute,
 //	    windows:  make(map[int64]window),
 //	}
@@ -36,9 +34,6 @@ type bucket struct {
 
 	// identifier is the rate limit subject (user ID, API key, etc)
 	identifier string
-
-	// limit is the maximum number of requests allowed per duration
-	limit int64
 
 	// duration is the time window for this rate limit
 	duration time.Duration
@@ -58,14 +53,12 @@ func (b *bucket) key() bucketKey {
 	return bucketKey{
 		name:       b.name,
 		identifier: b.identifier,
-		limit:      b.limit,
 		duration:   b.duration,
 	}
 }
 
 // bucketKey uniquely identifies a rate limit bucket by combining the
-// identifier, limit, and duration. This ensures separate tracking when
-// the same identifier has different rate limit configurations.
+// identifier and duration.
 //
 // Thread Safety:
 //   - Immutable after creation
@@ -75,7 +68,6 @@ func (b *bucket) key() bucketKey {
 //
 //	key := bucketKey{
 //	    identifier: "user-123",
-//	    limit:      100,
 //	    duration:   time.Minute,
 //	}
 //	bucketID := key.toString()
@@ -86,15 +78,12 @@ type bucketKey struct {
 	// identifier is the rate limit subject (user ID, API key, etc)
 	identifier string
 
-	// limit is the maximum requests allowed in the duration
-	limit int64
-
 	// duration is the time window for the rate limit
 	duration time.Duration
 }
 
 func (b bucketKey) toString() string {
-	return fmt.Sprintf("%s-%s-%d-%d", b.name, b.identifier, b.limit, b.duration.Milliseconds())
+	return fmt.Sprintf("%s-%s-%d", b.name, b.identifier, b.duration.Milliseconds())
 }
 
 // getOrCreateBucket retrieves a rate limiting bucket for the given key.
@@ -102,7 +91,6 @@ func (b bucketKey) toString() string {
 //
 // The bucket is uniquely identified by the combination of:
 // - identifier: the client identifier being rate limited
-// - limit: the maximum number of allowed requests
 // - duration: the time window for applying the limit
 //
 // This function is thread-safe and can be called concurrently.
@@ -120,7 +108,6 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 			mu:          sync.RWMutex{},
 			name:        key.name,
 			identifier:  key.identifier,
-			limit:       key.limit,
 			duration:    key.duration,
 			windows:     make(map[int64]*window),
 			strictUntil: time.Time{},

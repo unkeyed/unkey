@@ -3,7 +3,9 @@ package deploy
 import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 )
@@ -18,13 +20,14 @@ type BuildPlatform struct {
 type DepotConfig struct {
 	APIUrl        string
 	ProjectRegion string
+	ProjectPrefix string
 }
 
 // RegistryConfig holds credentials for the container registry.
 type RegistryConfig struct {
-	URL      string
-	Username string
-	Password string
+	Repository string
+	Username   string
+	Password   string
 }
 
 // Workflow orchestrates deployment lifecycle operations.
@@ -49,11 +52,14 @@ type Workflow struct {
 	github githubclient.GitHubClient
 
 	// Build dependencies
-	depotConfig    DepotConfig
-	registryConfig RegistryConfig
-	buildPlatform  BuildPlatform
-	clickhouse     clickhouse.ClickHouse
-	dashboardURL   string
+	depotConfig                     DepotConfig
+	registryConfig                  RegistryConfig
+	buildPlatform                   BuildPlatform
+	clickhouse                      clickhouse.ClickHouse
+	buildSteps                      *batch.BatchProcessor[schema.BuildStepV1]
+	buildStepLogs                   *batch.BatchProcessor[schema.BuildStepLogV1]
+	allowUnauthenticatedDeployments bool
+	dashboardURL                    string
 }
 
 var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
@@ -84,8 +90,14 @@ type Config struct {
 	// BuildPlatform specifies the target platform for all builds.
 	BuildPlatform BuildPlatform
 
-	// Clickhouse receives build step telemetry for observability.
+	// Clickhouse provides query access for deployment request counts.
 	Clickhouse clickhouse.ClickHouse
+
+	// BuildSteps buffers build step events for ClickHouse.
+	BuildSteps *batch.BatchProcessor[schema.BuildStepV1]
+
+	// BuildStepLogs buffers build step log events for ClickHouse.
+	BuildStepLogs *batch.BatchProcessor[schema.BuildStepLogV1]
 
 	// AllowUnauthenticatedDeployments controls whether builds can skip GitHub authentication.
 	// Set to true only for local development with public repositories.
@@ -105,11 +117,14 @@ func New(cfg Config) *Workflow {
 		vault:                            cfg.Vault,
 		sentinelImage:                    cfg.SentinelImage,
 
-		github:         cfg.GitHub,
-		depotConfig:    cfg.DepotConfig,
-		registryConfig: cfg.RegistryConfig,
-		buildPlatform:  cfg.BuildPlatform,
-		clickhouse:     cfg.Clickhouse,
-		dashboardURL:   cfg.DashboardURL,
+		github:                          cfg.GitHub,
+		depotConfig:                     cfg.DepotConfig,
+		registryConfig:                  cfg.RegistryConfig,
+		buildPlatform:                   cfg.BuildPlatform,
+		clickhouse:                      cfg.Clickhouse,
+		buildSteps:                      cfg.BuildSteps,
+		buildStepLogs:                   cfg.BuildStepLogs,
+		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
+		dashboardURL:                    cfg.DashboardURL,
 	}
 }

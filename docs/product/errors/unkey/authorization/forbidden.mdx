@@ -5,7 +5,6 @@ description: "The operation is not allowed"
 
 <Danger>`err:unkey:authorization:forbidden`</Danger>
 
-
 ```json Example
 {
   "meta": {
@@ -25,6 +24,7 @@ description: "The operation is not allowed"
 This error occurs when you attempt an operation that is prohibited by Unkey's platform policies, even if your API key has high-level permissions. Unlike the "insufficient_permissions" error which relates to permission roles, this error indicates that the operation itself is not allowed regardless of permissions.
 
 Common scenarios that trigger this error:
+
 - Trying to perform operations on protected or system resources
 - Attempting to modify resources that are in a state that doesn't allow modifications
 - Trying to exceed account limits or quotas
@@ -70,6 +70,7 @@ Possible solutions include:
 - **Outdated documentation**: Following outdated documentation that suggests now-forbidden operations
 
 ## Related Errors
+
 - [err:unkey:authorization:insufficient_permissions](./insufficient_permissions) - When the authenticated entity lacks specific permissions
 - [err:unkey:authorization:key_disabled](./key_disabled) - When the authentication key is disabled
 - [err:unkey:authorization:workspace_disabled](./workspace_disabled) - When the associated workspace is disabled

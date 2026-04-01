@@ -3,10 +3,7 @@ title: "permission_not_found"
 description: "The requested permission was not found"
 ---
 
-<Danger>
-err:unkey:data:permission_not_found
-</Danger>
-
+<Danger>err:unkey:data:permission_not_found</Danger>
 
 ```json Example
 {
@@ -27,6 +24,7 @@ err:unkey:data:permission_not_found
 This error occurs when you're trying to perform an operation on a permission that doesn't exist in the Unkey system. Permissions in Unkey are used to control access to resources and operations.
 
 Common scenarios that trigger this error:
+
 - Using an incorrect permission ID or name
 - Referencing a permission that has been deleted
 - Trying to assign a permission that doesn't exist in the current workspace
@@ -67,6 +65,7 @@ curl -X POST https://api.unkey.com/v2/permissions.createPermission \
 - **Workspace boundaries**: Trying to use permissions from another workspace
 
 ## Related Errors
+
 - [err:unkey:data:role_not_found](./role_not_found) - When the requested role doesn't exist
 - [err:unkey:data:api_not_found](./api_not_found) - When the requested API doesn't exist
 - [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to perform operations on permissions

@@ -294,7 +294,7 @@ CREATE TABLE `quota` (
 	`team` boolean NOT NULL DEFAULT false,
 	`ratelimit_api_limit` int unsigned,
 	`ratelimit_api_duration` int unsigned,
-	`allocated_cpu_millicores_total` int unsigned NOT NULL DEFAULT 10240,
+	`allocated_cpu_millicores_total` int unsigned NOT NULL DEFAULT 10000,
 	`allocated_memory_mib_total` int unsigned NOT NULL DEFAULT 20480,
 	CONSTRAINT `quota_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `quota_workspace_id_unique` UNIQUE(`workspace_id`)
@@ -439,7 +439,7 @@ CREATE TABLE `app_runtime_settings` (
 	`app_id` varchar(64) NOT NULL,
 	`environment_id` varchar(128) NOT NULL,
 	`port` int NOT NULL DEFAULT 8080,
-	`cpu_millicores` int NOT NULL DEFAULT 256,
+	`cpu_millicores` int NOT NULL DEFAULT 250,
 	`memory_mib` int NOT NULL DEFAULT 256,
 	`command` json NOT NULL DEFAULT ('[]'),
 	`healthcheck` json,
@@ -557,6 +557,10 @@ CREATE TABLE `deployment_topology` (
 	`deployment_id` varchar(64) NOT NULL,
 	`region_id` varchar(64) NOT NULL,
 	`desired_replicas` int NOT NULL,
+	`autoscaling_replicas_min` int unsigned NOT NULL DEFAULT 1,
+	`autoscaling_replicas_max` int unsigned NOT NULL DEFAULT 1,
+	`autoscaling_threshold_cpu` tinyint unsigned,
+	`autoscaling_threshold_memory` tinyint unsigned,
 	`version` bigint unsigned NOT NULL,
 	`desired_status` enum('stopped','running') NOT NULL,
 	`created_at` bigint NOT NULL,
@@ -776,12 +780,12 @@ CREATE TABLE `horizontal_autoscaling_policies` (
 
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 CREATE INDEX `workspace_id_idx` ON `roles` (`workspace_id`);
-CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`);
+CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`,`id`);
 CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);
 CREATE INDEX `pending_migration_id_idx` ON `keys` (`pending_migration_id`);
 CREATE INDEX `idx_keys_on_workspace_id` ON `keys` (`workspace_id`);
 CREATE INDEX `owner_id_idx` ON `keys` (`owner_id`);
-CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`);
+CREATE INDEX `identity_id_idx` ON `keys` (`identity_id`,`key_auth_id`,`id`);
 CREATE INDEX `idx_keys_refill` ON `keys` (`refill_amount`,`deleted_at_m`);
 CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
 CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);

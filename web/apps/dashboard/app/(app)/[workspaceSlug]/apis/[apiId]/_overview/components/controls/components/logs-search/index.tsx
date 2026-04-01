@@ -6,7 +6,7 @@ export const LogsSearch = ({ apiId }: { apiId: string }) => {
   const { filters, updateFilters } = useFilters();
   const queryLLMForStructuredOutput = trpc.api.keys.llmSearch.useMutation({
     onSuccess(data) {
-      if (data?.filters.length === 0 || !data) {
+      if (!data || data.filters.length === 0) {
         toast.error(
           "Please provide more specific search criteria. Your query requires additional details for accurate results.",
           {

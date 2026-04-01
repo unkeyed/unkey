@@ -8,8 +8,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 )
 
-type EventBuffer interface {
-	BufferApiRequest(schema.ApiRequest)
+// ApiRequestBuffer abstracts the method used by WithMetrics to buffer API request events.
+// *batch.BatchProcessor[schema.ApiRequest] satisfies this interface.
+type ApiRequestBuffer interface {
+	Buffer(schema.ApiRequest)
 }
 
 var skipHeaders = map[string]bool{
@@ -39,7 +41,7 @@ func formatHeader(key, value string) string {
 //	    []zen.Middleware{zen.WithMetrics(eventBuffer)},
 //	    route,
 //	)
-func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
+func WithMetrics(apiRequestBuffer ApiRequestBuffer, info InstanceInfo) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
 			start := time.Now()
@@ -67,7 +69,7 @@ func WithMetrics(eventBuffer EventBuffer, info InstanceInfo) Middleware {
 					responseHeaders = append(responseHeaders, formatHeader(k, strings.Join(vv, ",")))
 				}
 
-				eventBuffer.BufferApiRequest(schema.ApiRequest{
+				apiRequestBuffer.Buffer(schema.ApiRequest{
 					WorkspaceID:     s.WorkspaceID,
 					RequestID:       s.RequestID(),
 					Time:            start.UnixMilli(),

@@ -6,9 +6,9 @@ import { Harddrive } from "@unkey/icons";
 import { Slider } from "@unkey/ui";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
+import { SettingDescription, SettingField } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
-import { SettingDescription } from "../shared/setting-description";
-import { indexToValue, valueToIndex } from "../shared/slider-utils";
+import { indexToValue, valueToIndex } from "../shared/resource-slider";
 
 const STORAGE_OPTIONS = [
   { label: "512 MiB", value: 512 },
@@ -74,7 +74,7 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
       onSubmit={(e) => e.preventDefault()}
       saveState={saveState}
     >
-      <div className="flex flex-col">
+      <SettingField>
         <span className="text-gray-11 text-[13px]">Storage per instance</span>
         <div className="flex items-center gap-3">
           <Slider
@@ -89,7 +89,7 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
                 });
               }
             }}
-            className="flex-1 max-w-[480px]"
+            className="flex-1 max-w-[var(--setting-w)]"
             rangeStyle={{
               background:
                 "linear-gradient(to right, hsla(var(--successA-4)), hsla(var(--successA-12)))",
@@ -104,10 +104,10 @@ const StorageForm: React.FC<StorageFormProps> = ({ defaultStorage }) => {
             <span className="text-gray-11">{formatMemoryParts(currentStorage).unit}</span>
           </span>
         </div>
-        <SettingDescription>
-          Temporary disk for logs, caches, and scratch data. Changes apply on next deploy.
-        </SettingDescription>
-      </div>
+      </SettingField>
+      <SettingDescription>
+        Temporary disk for logs, caches, and scratch data. Changes apply on next deploy.
+      </SettingDescription>
     </FormSettingCard>
   );
 };

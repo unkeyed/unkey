@@ -13,6 +13,7 @@ A Next.js API route that requires a valid API key on every request. Invalid or m
 
 - [Unkey account](https://app.unkey.com/auth/sign-up) (free)
 - [API created](https://app.unkey.com/apis) in your Unkey dashboard
+
 <Steps titleSize="h3">
 
 <Step title="Create a Next.js app">
@@ -62,15 +63,13 @@ bun add @unkey/nextjs
 
 <Step title="Add your root key">
 
-Get a root key from *Settings → Root Keys* and add it to your environment:
+Get a root key from _Settings → Root Keys_ and add it to your environment:
 
 ```bash .env.local
 UNKEY_ROOT_KEY="unkey_..."
 ```
 
-<Warning>
-Never commit your root key. Add `.env.local` to `.gitignore`.
-</Warning>
+<Warning>Never commit your root key. Add `.env.local` to `.gitignore`.</Warning>
 
 </Step>
 
@@ -85,9 +84,9 @@ export const POST = withUnkey(
   async (req: NextRequestWithUnkeyContext) => {
     // The key has already been verified at this point
     // Access verification details via req.unkey.data
-        
+
     // Your API logic here
-    // 
+    //
     // req.unkey.data contains all verification details.
     return Response.json({
       message: "Hello!",
@@ -96,12 +95,13 @@ export const POST = withUnkey(
       externalId: req.unkey.data.identity?.externalId,
     });
   },
-  { rootKey: process.env.UNKEY_ROOT_KEY! }
+  { rootKey: process.env.UNKEY_ROOT_KEY! },
 );
 ```
 
 <Tip>
-The `withUnkey` wrapper handles key extraction, verification, and error responses automatically. Invalid keys never reach your handler.
+  The `withUnkey` wrapper handles key extraction, verification, and error
+  responses automatically. Invalid keys never reach your handler.
 </Tip>
 
 </Step>
@@ -136,6 +136,7 @@ curl -X POST http://localhost:3000/api/protected \
 ```
 
 You should see:
+
 ```json
 {
   "message": "Hello!",
@@ -144,6 +145,7 @@ You should see:
 ```
 
 Now try without a key:
+
 ```bash Test without key
 curl -X POST http://localhost:3000/api/protected
 ```
@@ -158,35 +160,49 @@ You'll get a `401 Unauthorized` response.
 
 After verification, `req.unkey.data` contains:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `valid` | `boolean` | Whether the key passed all checks |
-| `code` | `string` | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.) |
-| `keyId` | `string` | The key's unique identifier |
-| `name` | `string?` | Human-readable name of the key |
-| `meta` | `object?` | Custom metadata associated with the key |
-| `expires` | `number?` | Unix timestamp (in milliseconds) when the key will expire. (if set) |
-| `credits` | `number?` | Remaining uses (if usage limits set) |
-| `enabled` | `boolean` | Whether the key is enabled |
-| `roles` | `string[]?` | Permissions attached to the key |
-| `permissions` | `string[]?` | Permissions attached to the key |
-| `identity` | `object?` | Identity info if `externalId` was set when creating the key |
-| `ratelimits` | `object[]?` | Rate limit states (if rate limiting configured) |
+| Field         | Type        | Description                                                         |
+| ------------- | ----------- | ------------------------------------------------------------------- |
+| `valid`       | `boolean`   | Whether the key passed all checks                                   |
+| `code`        | `string`    | Status code (`VALID`, `NOT_FOUND`, `RATE_LIMITED`, etc.)            |
+| `keyId`       | `string`    | The key's unique identifier                                         |
+| `name`        | `string?`   | Human-readable name of the key                                      |
+| `meta`        | `object?`   | Custom metadata associated with the key                             |
+| `expires`     | `number?`   | Unix timestamp (in milliseconds) when the key will expire. (if set) |
+| `credits`     | `number?`   | Remaining uses (if usage limits set)                                |
+| `enabled`     | `boolean`   | Whether the key is enabled                                          |
+| `roles`       | `string[]?` | Permissions attached to the key                                     |
+| `permissions` | `string[]?` | Permissions attached to the key                                     |
+| `identity`    | `object?`   | Identity info if `externalId` was set when creating the key         |
+| `ratelimits`  | `object[]?` | Rate limit states (if rate limiting configured)                     |
 
 <Note>
-`data.meta` is your custom key metadata (set via `meta` when creating the key). This is different from the response's top-level `meta` which contains `requestId`.
+  `data.meta` is your custom key metadata (set via `meta` when creating the
+  key). This is different from the response's top-level `meta` which contains
+  `requestId`.
 </Note>
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Add rate limiting" icon="gauge-high" href="/apis/features/ratelimiting/overview">
+  <Card
+    title="Add rate limiting"
+    icon="gauge-high"
+    href="/platform/apis/features/ratelimiting/overview"
+  >
     Limit requests per key
   </Card>
-  <Card title="Set usage limits" icon="calculator" href="/apis/features/remaining">
+  <Card
+    title="Set usage limits"
+    icon="calculator"
+    href="/platform/apis/features/remaining"
+  >
     Cap total requests per key
   </Card>
-  <Card title="Add permissions" icon="user-shield" href="/apis/features/authorization/introduction">
+  <Card
+    title="Add permissions"
+    icon="user-shield"
+    href="/platform/apis/features/authorization/introduction"
+  >
     Fine-grained access control
   </Card>
   <Card title="Next.js SDK Reference" icon="book" href="/libraries/ts/nextjs">
@@ -198,14 +214,13 @@ After verification, `req.unkey.data` contains:
 
 <AccordionGroup>
   <Accordion title="Getting 401 even with a valid key?">
-    - Ensure the key hasn't expired or been revoked
-    - Verify the `Authorization` header format: `Bearer YOUR_KEY` (note the space)
-    - Check that your root key has the `verify_key` permission
+    - Ensure the key hasn't expired or been revoked - Verify the `Authorization`
+    header format: `Bearer YOUR_KEY` (note the space) - Check that your root key
+    has the `verify_key` permission
   </Accordion>
-  
+
   <Accordion title="Environment variable not loading?">
-    - Restart your dev server after adding `.env.local`
-    - Make sure the file is in your project root
-    - Check for typos in the variable name
+    - Restart your dev server after adding `.env.local` - Make sure the file is
+    in your project root - Check for typos in the variable name
   </Accordion>
 </AccordionGroup>
