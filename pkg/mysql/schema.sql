@@ -605,7 +605,7 @@ CREATE TABLE `custom_domains` (
 	CONSTRAINT `custom_domains_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `custom_domains_id_unique` UNIQUE(`id`),
 	CONSTRAINT `custom_domains_target_cname_unique` UNIQUE(`target_cname`),
-	CONSTRAINT `unique_domain_idx` UNIQUE(`domain`)
+	CONSTRAINT `unique_domain_workspace_idx` UNIQUE(`workspace_id`,`domain`)
 );
 
 CREATE TABLE `acme_challenges` (
@@ -805,7 +805,6 @@ CREATE INDEX `workspace_idx` ON `deployment_steps` (`workspace_id`);
 CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
 CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
 CREATE INDEX `domain_idx` ON `acme_users` (`workspace_id`);
-CREATE INDEX `workspace_idx` ON `custom_domains` (`workspace_id`);
 CREATE INDEX `project_idx` ON `custom_domains` (`project_id`);
 CREATE INDEX `verification_status_idx` ON `custom_domains` (`verification_status`);
 CREATE INDEX `workspace_idx` ON `acme_challenges` (`workspace_id`);

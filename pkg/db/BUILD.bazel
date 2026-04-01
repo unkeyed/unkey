@@ -122,6 +122,8 @@ go_library(
         "custom_domain_find_by_domain.sql_generated.go",
         "custom_domain_find_by_domain_or_wildcard.sql_generated.go",
         "custom_domain_find_by_id.sql_generated.go",
+        "custom_domain_find_by_workspace_and_domain.sql_generated.go",
+        "custom_domain_find_verified_by_domain_excluding_workspace.sql_generated.go",
         "custom_domain_find_with_cert_by_domain.sql_generated.go",
         "custom_domain_insert.sql_generated.go",
         "custom_domain_list_by_project_id.sql_generated.go",
