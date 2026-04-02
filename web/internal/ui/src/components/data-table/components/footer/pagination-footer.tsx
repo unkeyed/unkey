@@ -1,5 +1,5 @@
 "use client";
-import { Maximize, Minimize, ChevronLeft, ChevronRight } from "@unkey/icons";
+import { ChevronLeft, ChevronRight, Maximize, Minimize } from "@unkey/icons";
 import { memo, useMemo, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";
@@ -35,10 +35,7 @@ export const PaginationFooter = memo(function PaginationFooter({
 
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, totalCount);
-  const pageNumbers = useMemo(
-    () => getPageNumbers(page, totalPages),
-    [page, totalPages],
-  );
+  const pageNumbers = useMemo(() => getPageNumbers(page, totalPages), [page, totalPages]);
 
   if (hide) {
     return null;
@@ -106,17 +103,12 @@ export const PaginationFooter = memo(function PaginationFooter({
                   {start}-{end}
                 </span>
                 <span>of</span>
-                <span className="text-grayA-11 transition-colors duration-200">
-                  {totalCount}
-                </span>
+                <span className="text-grayA-11 transition-colors duration-200">{totalCount}</span>
                 <span>{itemLabel}</span>
               </div>
 
               {/* Pagination controls */}
-              <nav
-                aria-label="Pagination navigation"
-                className="flex items-center gap-1"
-              >
+              <nav aria-label="Pagination navigation" className="flex items-center gap-1">
                 {/* Previous button */}
                 {totalPages === 1 ? null : (
                   <Button
@@ -140,11 +132,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                       if (pageNum === "ellipsis") {
                         return (
                           <span
-                            key={
-                              idx < pageNumbers.length / 2
-                                ? "ellipsis-start"
-                                : "ellipsis-end"
-                            }
+                            key={idx < pageNumbers.length / 2 ? "ellipsis-start" : "ellipsis-end"}
                             aria-hidden="true"
                             className="w-7 h-7 flex items-center justify-center text-grayA-9 text-[10px] tracking-widest select-none"
                           >
@@ -171,9 +159,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                             isCurrentPage
                               ? "text-gray-12 pointer-events-none ring-0 border border-grayA-4 bg-grayA-4 text-sm transition-all duration-300"
                               : "text-grayA-9 hover:text-gray-12 hover:bg-grayA-3",
-                            disabled &&
-                              !isCurrentPage &&
-                              "opacity-30 pointer-events-none",
+                            disabled && !isCurrentPage && "opacity-30 pointer-events-none",
                           )}
                         >
                           {pageNum}
@@ -211,8 +197,7 @@ export const PaginationFooter = memo(function PaginationFooter({
               aria-label="Minimize"
               title="Minimize"
             >
-              <Minimize
-              />
+              <Minimize />
             </Button>
           </div>
         </div>
