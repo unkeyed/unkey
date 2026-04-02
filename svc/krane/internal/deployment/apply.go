@@ -85,6 +85,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		EnvironmentID(req.GetEnvironmentId()).
 		DeploymentID(req.GetDeploymentId()).
 		BuildID(req.GetBuildId()).
+		Platform(c.platform).
 		ManagedByKrane().
 		ComponentDeployment()
 
