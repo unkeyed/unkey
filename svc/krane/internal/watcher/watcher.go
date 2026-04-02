@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
+	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 )
 
 const (
@@ -73,6 +74,7 @@ func (s *Watcher) Watch(ctx context.Context) error {
 		if time.Since(lastFullSync) >= fullSyncInterval {
 			versionLastSeen = 0
 			lastFullSync = time.Now()
+			metrics.WatcherFullSyncsTotal.Inc()
 			logger.Info("resetting deployment changes cursor for full sync")
 		}
 
@@ -97,6 +99,7 @@ func (s *Watcher) Watch(ctx context.Context) error {
 
 			if event.GetVersion() > versionLastSeen {
 				versionLastSeen = event.GetVersion()
+				metrics.WatcherVersionLastSeen.Set(float64(versionLastSeen))
 			}
 		}
 

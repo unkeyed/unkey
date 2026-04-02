@@ -12,6 +12,7 @@ go_library(
         "//svc/krane/internal/cilium",
         "//svc/krane/internal/deployment",
         "//svc/krane/internal/sentinel",
+        "//svc/krane/pkg/metrics",
     ],
 )
 

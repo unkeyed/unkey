@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
 // WatchDeploymentChanges streams all resource changes (deployments, sentinels, cilium policies)
@@ -55,6 +56,8 @@ func (s *Service) WatchDeploymentChanges(
 
 	// Full sync: paginate through all current state.
 	if versionCursor == 0 {
+		fullSyncStart := time.Now()
+
 		maxVersion, err := db.Query.GetDeploymentChangesMaxVersion(ctx, s.db.RO(), region.ID)
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, err)
@@ -72,7 +75,9 @@ func (s *Service) WatchDeploymentChanges(
 		}
 
 		versionCursor = version
-		logger.Info("full sync complete", "region_id", region.ID, "cursor", versionCursor)
+		fullSyncDuration := time.Since(fullSyncStart).Seconds()
+		logger.Info("full sync complete", "region_id", region.ID, "cursor", versionCursor, "duration_s", fullSyncDuration)
+		metrics.FullSyncDurationSeconds.Observe(fullSyncDuration)
 	}
 
 	// Incremental: poll deployment_changes for new entries.
