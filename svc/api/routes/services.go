@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/internal/services/sessionauth"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
@@ -78,4 +79,8 @@ type Services struct {
 	// AnalyticsConnectionManager manages connections to analytics backends
 	// for retrieving verification and usage data.
 	AnalyticsConnectionManager analytics.ConnectionManager
+
+	// SessionAuth provides JWT-based session authentication for dashboard routes.
+	// When nil, session-authenticated routes are not registered.
+	SessionAuth sessionauth.Service
 }

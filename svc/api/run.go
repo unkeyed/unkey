@@ -21,6 +21,8 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/internal/services/sessionauth"
+	"github.com/unkeyed/unkey/pkg/jwks"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
@@ -341,6 +343,31 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
+	// Initialize session auth service
+	var sessionAuthSvc sessionauth.Service
+	if cfg.SessionAuth != nil {
+		switch cfg.SessionAuth.Provider {
+		case "jwks":
+			keySet := jwks.NewRemoteKeySet(cfg.SessionAuth.JWKSURL)
+			sessionAuthSvc = sessionauth.NewJWKS(sessionauth.JWKSConfig{
+				KeySet: keySet,
+				Issuer: cfg.SessionAuth.Issuer,
+				DB:     database,
+			})
+			logger.Info("Session auth initialized with JWKS provider",
+				"jwks_url", cfg.SessionAuth.JWKSURL,
+				"issuer", cfg.SessionAuth.Issuer,
+			)
+		case "local":
+			sessionAuthSvc = sessionauth.NewLocal(cfg.SessionAuth.LocalWorkspaceID)
+			logger.Info("Session auth initialized with local provider",
+				"workspace_id", cfg.SessionAuth.LocalWorkspaceID,
+			)
+		default:
+			return fmt.Errorf("unknown session auth provider: %q", cfg.SessionAuth.Provider)
+		}
+	}
+
 	// Initialize control plane deployment client
 	ctrlDeploymentClient := ctrl.NewConnectDeployServiceClient(
 		ctrlv1connect.NewDeployServiceClient(
@@ -379,6 +406,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
+		SessionAuth:                sessionAuthSvc,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,

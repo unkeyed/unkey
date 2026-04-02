@@ -2,7 +2,8 @@
 
 import { revalidate } from "@/app/actions";
 import { NavbarActionButton } from "@/components/navigation/action-button";
-import { trpc } from "@/lib/trpc/client";
+import { getAccessToken } from "@/lib/auth/access-token";
+import { createApi } from "@/lib/api-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
 import { Button, FormInput, toast } from "@unkey/ui";
@@ -36,8 +37,8 @@ export const CreateApiButton = ({
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { api } = trpc.useUtils();
   const {
     register,
     handleSubmit,
@@ -47,22 +48,32 @@ export const CreateApiButton = ({
     mode: "onChange",
   });
 
-  const create = trpc.api.create.useMutation({
-    async onSuccess(res) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    try {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        toast.error("Session expired. Please sign in again.");
+        return;
+      }
+
+      const result = await createApi(accessToken, values.name);
+
+      if (!result.success) {
+        toast.error(result.error.error.detail);
+        return;
+      }
+
       toast.success("Your API has been created");
       await revalidate(`/${workspaceSlug}/apis`);
-      api.overview.query.invalidate();
-      router.push(`/${workspaceSlug}/apis/${res.id}`);
+      router.push(`/${workspaceSlug}/apis/${result.data.apiId}`);
       setIsOpen(false);
-    },
-    onError(err) {
+    } catch (err) {
       console.error(err);
-      toast.error(err.message);
-    },
-  });
-
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    create.mutate(values);
+      toast.error(err instanceof Error ? err.message : "Failed to create API");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -88,8 +99,8 @@ export const CreateApiButton = ({
               form="create-api-form"
               variant="primary"
               size="xlg"
-              disabled={create.isLoading || isSubmitting || !isValid}
-              loading={create.isLoading || isSubmitting}
+              disabled={isLoading || isSubmitting || !isValid}
+              loading={isLoading || isSubmitting}
               className="w-full rounded-lg"
             >
               Create API

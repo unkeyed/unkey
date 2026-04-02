@@ -135,6 +135,9 @@ export interface SessionValidationResult {
     email: string;
     reason?: string | null;
   };
+  // The JWT access token from the auth provider. Can be sent to the Go API
+  // as a Bearer token for session-based authentication.
+  accessToken?: string;
 }
 
 export interface SessionRefreshResult {

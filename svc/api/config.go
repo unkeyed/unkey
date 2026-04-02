@@ -104,6 +104,10 @@ type Config struct {
 	// When nil (section omitted), pprof endpoints are not registered.
 	Pprof *config.PprofConfig `toml:"pprof"`
 
+	// SessionAuth configures JWT-based session authentication for dashboard access.
+	// When nil (section omitted), session-authenticated routes are not registered.
+	SessionAuth *SessionAuthConfig `toml:"session_auth"`
+
 	// Listener is a pre-created [net.Listener] for the HTTP server. When set,
 	// the server uses this listener instead of binding to HttpPort. This is
 	// intended for tests that need ephemeral ports to avoid conflicts.
@@ -118,6 +122,28 @@ type Config struct {
 	// and [TLSFiles.KeyFile] at startup. This field is populated by the CLI
 	// entrypoint after loading the config file and must not be set in TOML.
 	TLSConfig *tls.Config `toml:"-"`
+}
+
+// SessionAuthConfig configures JWT-based session authentication.
+type SessionAuthConfig struct {
+	// Provider selects the authentication backend: "jwks" for production
+	// (validates JWTs against a JWKS endpoint) or "local" for development
+	// (accepts any token with a fixed workspace).
+	Provider string `toml:"provider" config:"required,nonempty"`
+
+	// JWKSURL is the URL of the JWKS endpoint for key resolution.
+	// Required when Provider is "jwks".
+	// Example: "https://api.workos.com/sso/jwks/client_xxx"
+	JWKSURL string `toml:"jwks_url"`
+
+	// Issuer is the expected JWT issuer claim (e.g. "https://api.workos.com").
+	// When set, tokens with a different issuer are rejected.
+	// Only used when Provider is "jwks".
+	Issuer string `toml:"issuer"`
+
+	// LocalWorkspaceID is the workspace ID returned for all requests in local mode.
+	// Defaults to "ws_local_default" if empty. Only used when Provider is "local".
+	LocalWorkspaceID string `toml:"local_workspace_id"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through

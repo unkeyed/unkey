@@ -40,6 +40,7 @@ type KeyVerifier struct {
 
 	parsedIPWhitelist map[string]struct{} // Pre-parsed IP whitelist for O(1) lookup
 	isRootKey         bool                // Whether this is a root key (special handling)
+	isSessionAuth     bool                // Whether this was authenticated via a session token (skips RBAC)
 
 	message string   // Internal message for validation failures
 	tags    []string // Tags associated with this verification
@@ -91,6 +92,12 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 
 	if config.tags != nil {
 		k.tags = config.tags
+	}
+
+	// Session-authenticated requests skip RBAC, rate limiting, and IP checks.
+	// The session middleware already verified the JWT and resolved the workspace.
+	if k.isSessionAuth {
+		return nil
 	}
 
 	var err error

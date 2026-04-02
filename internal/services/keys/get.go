@@ -23,9 +23,34 @@ import (
 // GetRootKey retrieves and validates a root key from the session's Authorization header.
 // Root keys are special administrative keys that can access workspace-level operations.
 // Validation failures are immediately converted to fault errors for root keys.
+//
+// If the request was already authenticated via a session token (JWT), this method
+// returns a synthetic KeyVerifier that passes all RBAC checks. This allows every
+// handler to work with both root keys and session tokens without modification.
 func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifier, func(), error) {
 	ctx, span := tracing.Start(ctx, "keys.GetRootKey")
 	defer span.End()
+
+	// If session auth middleware already verified a JWT and set the workspace,
+	// return a synthetic KeyVerifier that passes all permission checks.
+	if sess.IsSessionAuth() {
+		logger.Set(ctx, slog.Group("auth",
+			slog.String("workspace_id", sess.WorkspaceID),
+			slog.String("auth_type", "session"),
+			slog.String("user_id", sess.SessionAuthUserID()),
+		))
+
+		// nolint:exhaustruct
+		kv := &KeyVerifier{
+			Status:                StatusValid,
+			AuthorizedWorkspaceID: sess.WorkspaceID,
+			isSessionAuth:         true,
+			Key: db.FindKeyForVerificationRow{
+				ID: sess.SessionAuthUserID(),
+			},
+		}
+		return kv, emptyLog, nil
+	}
 
 	rootKey, err := zen.Bearer(sess)
 	if err != nil {

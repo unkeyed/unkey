@@ -15,6 +15,7 @@ type SessionResult = {
       email: string;
       reason?: string | null;
     };
+    accessToken?: string;
   } | null;
   headers: Headers;
 };
@@ -96,6 +97,7 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
             orgId: sessionValidationResult.orgId ?? null,
             role: sessionValidationResult.role ?? null,
             impersonator: sessionValidationResult.impersonator,
+            accessToken: sessionValidationResult.accessToken,
           },
           headers,
         };

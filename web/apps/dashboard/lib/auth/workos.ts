@@ -154,6 +154,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           userId: authResult.user.id,
           orgId: authResult.organizationId ?? null,
           role: authResult.role ?? null,
+          accessToken: authResult.accessToken,
         };
       }
 

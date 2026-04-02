@@ -89,6 +89,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		withErrorHandling,
 		withTimeout,
 		withValidation,
+		middleware.WithSessionAuth(svc.SessionAuth),
 	}
 
 	srv.RegisterRoute(defaultMiddlewares, &v2Liveness.Handler{})

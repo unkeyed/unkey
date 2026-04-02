@@ -50,6 +50,11 @@ type Session struct {
 	// This is set by the error handling middleware before it converts the error
 	// to an HTTP response, allowing the metrics middleware to log the full error.
 	internalError string
+
+	// sessionAuthUserID is set by the session auth middleware when a JWT session
+	// token is successfully verified. When non-empty, it indicates that the request
+	// was authenticated via a session token rather than a root key.
+	sessionAuthUserID string
 }
 
 func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
@@ -117,6 +122,25 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 // Returns an empty string if no authenticated workspace ID is available.
 func (s *Session) AuthorizedWorkspaceID() string {
 	return s.WorkspaceID
+}
+
+// SetSessionAuth marks this request as authenticated via a session token.
+// Called by the session auth middleware after successful JWT verification.
+func (s *Session) SetSessionAuth(userID string) {
+	s.sessionAuthUserID = userID
+}
+
+// IsSessionAuth returns true if this request was authenticated via a session
+// token (JWT) rather than a root key. When true, WorkspaceID is already set
+// and root key auth should be skipped.
+func (s *Session) IsSessionAuth() bool {
+	return s.sessionAuthUserID != ""
+}
+
+// SessionAuthUserID returns the user ID from the session token, or empty
+// string if this request was not session-authenticated.
+func (s *Session) SessionAuthUserID() string {
+	return s.sessionAuthUserID
 }
 
 // DisableClickHouseLogging prevents this request from being logged to ClickHouse.
@@ -521,4 +545,5 @@ func (s *Session) reset() {
 	s.responseBody = nil
 	s.logRequestToClickHouse = true // Reset ClickHouse logging control to default (enabled)
 	s.internalError = ""
+	s.sessionAuthUserID = ""
 }
