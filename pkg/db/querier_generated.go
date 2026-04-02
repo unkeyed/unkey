@@ -1959,7 +1959,6 @@ type Querier interface {
 	//      identifier,
 	//      `limit`,
 	//      duration,
-	//      async,
 	//      created_at_m
 	//  )
 	//  VALUES (
@@ -1969,13 +1968,11 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      ?,
-	//      false,
 	//      ?
 	//  )
 	//  ON DUPLICATE KEY UPDATE
 	//      `limit` = VALUES(`limit`),
 	//      duration = VALUES(duration),
-	//      async = VALUES(async),
 	//      updated_at_m = ?
 	InsertRatelimitOverride(ctx context.Context, db DBTX, arg InsertRatelimitOverrideParams) error
 	//InsertRole
