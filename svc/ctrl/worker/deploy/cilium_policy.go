@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	slim_metav1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/cilium/pkg/policy/api"
 	restate "github.com/restatedev/sdk-go"
-	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
@@ -89,11 +89,6 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 				continue
 			}
 
-			policyVersion, err := hydrav1.NewVersioningServiceClient(ctx, topo.RegionID).NextVersion().Request(&hydrav1.NextVersionRequest{})
-			if err != nil {
-				return fmt.Errorf("failed to get next version for cilium policy %s: %w", spec.k8sName, err)
-			}
-
 			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 
 				region, err := db.Query.FindRegionById(runCtx, w.db.RO(), topo.RegionID)
@@ -101,35 +96,43 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 					return fmt.Errorf("failed to find region %s for cilium policy %s: %w", topo.RegionID, spec.k8sName, err)
 				}
 
-				if hasExisting {
-					return db.Query.UpdateCiliumNetworkPolicyByEnvironmentRegionAndName(runCtx, w.db.RW(), db.UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams{
-						Policy:        policyPayload,
-						Version:       policyVersion.GetVersion(),
-						UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-						EnvironmentID: environment.ID,
-						RegionID:      region.ID,
-						K8sName:       spec.k8sName,
+				return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+					if hasExisting {
+						err := db.Query.UpdateCiliumNetworkPolicyByEnvironmentRegionAndName(txCtx, tx, db.UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams{
+							Policy:        policyPayload,
+							UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+							EnvironmentID: environment.ID,
+							RegionID:      region.ID,
+							K8sName:       spec.k8sName,
+						})
+						if err != nil {
+							return err
+						}
+					} else {
+						err := db.Query.InsertCiliumNetworkPolicy(txCtx, tx, db.InsertCiliumNetworkPolicyParams{
+							ID:            policyID,
+							WorkspaceID:   workspace.ID,
+							ProjectID:     project.ID,
+							AppID:         deployment.AppID,
+							EnvironmentID: environment.ID,
+							DeploymentID:  deployment.ID,
+							K8sName:       spec.k8sName,
+							K8sNamespace:  spec.k8sNamespace,
+							RegionID:      region.ID,
+							Policy:        policyPayload,
+							CreatedAt:     time.Now().UnixMilli(),
+						})
+						if err != nil && !db.IsDuplicateKeyError(err) {
+							return fmt.Errorf("failed to insert cilium policy %s into db: %w", spec.k8sName, err)
+						}
+					}
+					return db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
+						ResourceType: db.DeploymentChangesResourceTypeCiliumNetworkPolicy,
+						ResourceID:   policyID,
+						RegionID:     region.ID,
+						CreatedAt:    time.Now().UnixMilli(),
 					})
-				}
-
-				err = db.Query.InsertCiliumNetworkPolicy(runCtx, w.db.RW(), db.InsertCiliumNetworkPolicyParams{
-					ID:            policyID,
-					WorkspaceID:   workspace.ID,
-					ProjectID:     project.ID,
-					AppID:         deployment.AppID,
-					EnvironmentID: environment.ID,
-					DeploymentID:  deployment.ID,
-					K8sName:       spec.k8sName,
-					K8sNamespace:  spec.k8sNamespace,
-					RegionID:      region.ID,
-					Policy:        policyPayload,
-					Version:       policyVersion.GetVersion(),
-					CreatedAt:     time.Now().UnixMilli(),
 				})
-				if err != nil && !db.IsDuplicateKeyError(err) {
-					return fmt.Errorf("failed to insert cilium policy %s into db: %w", spec.k8sName, err)
-				}
-				return nil
 
 			}, restate.WithName(fmt.Sprintf("upsert network policy %s", spec.k8sName)))
 			if err != nil {

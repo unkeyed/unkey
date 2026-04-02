@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "cluster",
@@ -11,9 +11,7 @@ go_library(
         "rpc_heartbeat.go",
         "rpc_report_deployment_status.go",
         "rpc_report_sentinel_status.go",
-        "rpc_watch_cilium_network_policies.go",
-        "rpc_watch_deployments.go",
-        "rpc_watch_sentinels.go",
+        "rpc_watch_deployment_changes.go",
         "service.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/services/cluster",
@@ -28,5 +26,15 @@ go_library(
         "//pkg/uid",
         "//svc/ctrl/internal/auth",
         "@com_connectrpc_connect//:connect",
+    ],
+)
+
+go_test(
+    name = "cluster_test",
+    srcs = ["state_converters_test.go"],
+    embed = [":cluster"],
+    deps = [
+        "//pkg/db",
+        "@com_github_stretchr_testify//require",
     ],
 )

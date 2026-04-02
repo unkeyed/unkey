@@ -6,7 +6,6 @@ go_library(
         "apply.go",
         "controller.go",
         "delete.go",
-        "desired_state_apply.go",
         "doc.go",
         "list.go",
         "namespace.go",

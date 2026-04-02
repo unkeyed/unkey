@@ -18,9 +18,7 @@ var _ ctrl.ClusterServiceClient = (*MockClusterClient)(nil)
 // The mock also records ReportDeploymentStatus and ReportSentinelStatus calls
 // so tests can verify the controller reported the correct status.
 type MockClusterClient struct {
-	WatchDeploymentsFunc                   func(context.Context, *ctrlv1.WatchDeploymentsRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentState], error)
-	WatchSentinelsFunc                     func(context.Context, *ctrlv1.WatchSentinelsRequest) (*connect.ServerStreamForClient[ctrlv1.SentinelState], error)
-	WatchCiliumNetworkPoliciesFunc         func(context.Context, *ctrlv1.WatchCiliumNetworkPoliciesRequest) (*connect.ServerStreamForClient[ctrlv1.CiliumNetworkPolicyState], error)
+	WatchDeploymentChangesFunc             func(context.Context, *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error)
 	GetDesiredSentinelStateFunc            func(context.Context, *ctrlv1.GetDesiredSentinelStateRequest) (*ctrlv1.SentinelState, error)
 	ReportSentinelStatusFunc               func(context.Context, *ctrlv1.ReportSentinelStatusRequest) (*ctrlv1.ReportSentinelStatusResponse, error)
 	GetDesiredDeploymentStateFunc          func(context.Context, *ctrlv1.GetDesiredDeploymentStateRequest) (*ctrlv1.DeploymentState, error)
@@ -31,23 +29,9 @@ type MockClusterClient struct {
 	ReportSentinelStatusCalls              []*ctrlv1.ReportSentinelStatusRequest
 }
 
-func (m *MockClusterClient) WatchDeployments(ctx context.Context, req *ctrlv1.WatchDeploymentsRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentState], error) {
-	if m.WatchDeploymentsFunc != nil {
-		return m.WatchDeploymentsFunc(ctx, req)
-	}
-	return nil, nil
-}
-
-func (m *MockClusterClient) WatchSentinels(ctx context.Context, req *ctrlv1.WatchSentinelsRequest) (*connect.ServerStreamForClient[ctrlv1.SentinelState], error) {
-	if m.WatchSentinelsFunc != nil {
-		return m.WatchSentinelsFunc(ctx, req)
-	}
-	return nil, nil
-}
-
-func (m *MockClusterClient) WatchCiliumNetworkPolicies(ctx context.Context, req *ctrlv1.WatchCiliumNetworkPoliciesRequest) (*connect.ServerStreamForClient[ctrlv1.CiliumNetworkPolicyState], error) {
-	if m.WatchCiliumNetworkPoliciesFunc != nil {
-		return m.WatchCiliumNetworkPoliciesFunc(ctx, req)
+func (m *MockClusterClient) WatchDeploymentChanges(ctx context.Context, req *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error) {
+	if m.WatchDeploymentChangesFunc != nil {
+		return m.WatchDeploymentChangesFunc(ctx, req)
 	}
 	return nil, nil
 }

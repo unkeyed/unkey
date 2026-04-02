@@ -124,8 +124,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 		return nil, err
 	}
 
-	// Update all topology entries so WatchDeployments picks up the change.
-	// Each region needs a new version from VersioningService.
+	// Update all topology entries and insert deployment_changes so WatchDeployments picks up the change.
 	regions, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Region, error) {
 		return db.Query.FindDeploymentRegions(runCtx, v.db.RO(), deploymentID)
 	}, restate.WithName("find deployment regions"))
@@ -134,18 +133,23 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	}
 
 	for _, region := range regions {
-		versionResp, err := hydrav1.NewVersioningServiceClient(ctx, region.ID).NextVersion().Request(&hydrav1.NextVersionRequest{})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get next version for region %s: %w", region.ID, err)
-		}
-
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return db.Query.UpdateDeploymentTopologyDesiredStatus(runCtx, v.db.RW(), db.UpdateDeploymentTopologyDesiredStatusParams{
-				DesiredStatus: topologyDesiredStatus,
-				Version:       versionResp.GetVersion(),
-				UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				DeploymentID:  deploymentID,
-				RegionID:      region.ID,
+			return db.Tx(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+				err := db.Query.UpdateDeploymentTopologyDesiredStatus(txCtx, tx, db.UpdateDeploymentTopologyDesiredStatusParams{
+					DesiredStatus: topologyDesiredStatus,
+					UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+					DeploymentID:  deploymentID,
+					RegionID:      region.ID,
+				})
+				if err != nil {
+					return err
+				}
+				return db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
+					ResourceType: db.DeploymentChangesResourceTypeDeploymentTopology,
+					ResourceID:   deploymentID,
+					RegionID:     region.ID,
+					CreatedAt:    time.Now().UnixMilli(),
+				})
 			})
 		}, restate.WithName(fmt.Sprintf("updating topology desired status in %s", region.ID)))
 		if err != nil {
