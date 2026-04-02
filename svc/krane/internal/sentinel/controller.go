@@ -15,19 +15,17 @@ import (
 // Controller manages sentinel Deployments and Services in a Kubernetes cluster.
 //
 // It maintains bidirectional state synchronization with the control plane:
-// receiving desired state via WatchSentinels and reporting actual state
-// via ReportSentinelStatus. The controller operates independently from
-// the DeploymentController with its own version cursor and circuit breaker.
+// receiving desired state from the unified WatchDeploymentChanges stream
+// (dispatched by the watcher) and reporting actual state via ReportSentinelStatus.
 type Controller struct {
-	clientSet       kubernetes.Interface
-	cluster         ctrl.ClusterServiceClient
-	dynamicClient   dynamic.Interface
-	cb              circuitbreaker.CircuitBreaker[any]
-	done            chan struct{}
-	stopOnce        sync.Once
-	region          string
-	platform        string
-	versionLastSeen uint64
+	clientSet     kubernetes.Interface
+	cluster       ctrl.ClusterServiceClient
+	dynamicClient dynamic.Interface
+	cb            circuitbreaker.CircuitBreaker[any]
+	done          chan struct{}
+	stopOnce      sync.Once
+	region        string
+	platform      string
 }
 
 // Config holds the configuration required to create a new [Controller].
@@ -42,28 +40,27 @@ type Config struct {
 // New creates a [Controller] ready to be started with [Controller.Start].
 func New(cfg Config) *Controller {
 	return &Controller{
-		clientSet:       cfg.ClientSet,
-		dynamicClient:   cfg.DynamicClient,
-		cluster:         cfg.Cluster,
-		cb:              circuitbreaker.New[any]("sentinel_state_update"),
-		done:            make(chan struct{}),
-		region:          cfg.Region,
-		platform:        cfg.Platform,
-		versionLastSeen: 0,
-		stopOnce:        sync.Once{},
+		clientSet:     cfg.ClientSet,
+		dynamicClient: cfg.DynamicClient,
+		cluster:       cfg.Cluster,
+		cb:            circuitbreaker.New[any]("sentinel_state_update"),
+		done:          make(chan struct{}),
+		region:        cfg.Region,
+		platform:      cfg.Platform,
+		stopOnce:      sync.Once{},
 	}
 }
 
-// Start launches the three background control loops:
-//
-//   - [Controller.runDesiredStateApplyLoop]: Receives desired state from the
-//     control plane's SyncSentinels stream and applies it to Kubernetes.
+// Start launches the background control loops:
 //
 //   - [Controller.runActualStateReportLoop]: Watches Kubernetes for Deployment
 //     changes and reports actual state back to the control plane.
 //
 //   - [Controller.runResyncLoop]: Periodically re-queries the control plane for
 //     each existing sentinel to ensure eventual consistency.
+//
+// Desired state is received externally via the watcher package, which calls
+// [Controller.ApplySentinel] and [Controller.DeleteSentinel] directly.
 //
 // All loops continue until the context is cancelled or [Controller.Stop] is called.
 func (c *Controller) Start(ctx context.Context) error {
@@ -72,8 +69,6 @@ func (c *Controller) Start(ctx context.Context) error {
 	if err := c.runActualStateReportLoop(ctx); err != nil {
 		return err
 	}
-
-	go c.runDesiredStateApplyLoop(ctx)
 
 	return nil
 }

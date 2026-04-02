@@ -7,7 +7,6 @@ go_library(
         "consts.go",
         "controller.go",
         "delete.go",
-        "desired_state_apply.go",
         "doc.go",
         "namespace.go",
         "pod_watch.go",

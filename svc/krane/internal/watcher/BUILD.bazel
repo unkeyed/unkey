@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "watcher",
+    srcs = ["watcher.go"],
+    importpath = "github.com/unkeyed/unkey/svc/krane/internal/watcher",
+    visibility = ["//svc/krane:__subpackages__"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//gen/rpc/ctrl",
+        "//pkg/logger",
+        "//svc/krane/internal/cilium",
+        "//svc/krane/internal/deployment",
+        "//svc/krane/internal/sentinel",
+    ],
+)
+
+go_test(
+    name = "watcher_test",
+    srcs = ["watcher_test.go"],
+    embed = [":watcher"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "@com_github_stretchr_testify//require",
+    ],
+)

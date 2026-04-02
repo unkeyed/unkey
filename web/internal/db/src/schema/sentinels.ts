@@ -42,12 +42,6 @@ export const sentinels = mysqlTable(
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
 
-    // Version for state synchronization with edge agents.
-    // Updated via Restate VersioningService on each mutation.
-    // Edge agents track their last-seen version and request changes after it.
-    // Unique per region (composite index with region).
-    version: bigint("version", { mode: "number", unsigned: true }).notNull(),
-
     ...lifecycleDates,
   },
   (table) => [
@@ -57,7 +51,6 @@ export const sentinels = mysqlTable(
       table.health,
     ),
     uniqueIndex("one_env_per_region").on(table.environmentId, table.regionId),
-    uniqueIndex("unique_version_per_region").on(table.regionId, table.version),
   ],
 );
 

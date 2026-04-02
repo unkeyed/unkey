@@ -462,9 +462,9 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 	return nil
 }
 
-// createTopologies determines the target regions and replica counts, obtains a
-// monotonic version for each region from VersioningService, and bulk-inserts the
-// deployment topology records.
+// createTopologies determines the target regions and replica counts, bulk-inserts
+// the deployment topology records, and writes deployment_changes entries so that
+// Watch RPCs pick up the new state.
 //
 // Region selection uses the environment's runtime settings: if a region config is
 // present, only those regions are used with their configured replica counts;
@@ -556,13 +556,6 @@ func (w *Workflow) createTopologies(
 	topologies := make([]db.InsertDeploymentTopologyParams, 0, len(regionalSettings))
 
 	for _, rs := range regionalSettings {
-		versionResp, err := hydrav1.NewVersioningServiceClient(ctx, rs.RegionID).NextVersion().Request(&hydrav1.NextVersionRequest{})
-		if err != nil {
-			return nil, fault.Wrap(
-				fmt.Errorf("failed to get next version: %w", err),
-				fault.Public("Failed to generate new version."),
-			)
-		}
 
 		// Snapshot autoscaling policy values. When no policy is attached,
 		// default to min=1, max=1 (single replica). Once all regional settings
@@ -593,14 +586,29 @@ func (w *Workflow) createTopologies(
 			AutoscalingThresholdCpu:    rs.AutoscalingThresholdCpu,
 			AutoscalingThresholdMemory: rs.AutoscalingThresholdMemory,
 			DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
-			Version:                    versionResp.GetVersion(),
 			CreatedAt:                  time.Now().UnixMilli(),
 		})
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-			return db.BulkQuery.InsertDeploymentTopologies(txCtx, tx, topologies)
+			err := db.BulkQuery.InsertDeploymentTopologies(txCtx, tx, topologies)
+			if err != nil {
+				return err
+			}
+			now := time.Now().UnixMilli()
+			for _, topo := range topologies {
+				err := db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
+					ResourceType: db.DeploymentChangesResourceTypeDeploymentTopology,
+					ResourceID:   topo.DeploymentID,
+					RegionID:     topo.RegionID,
+					CreatedAt:    now,
+				})
+				if err != nil {
+					return err
+				}
+			}
+			return nil
 		})
 	}, restate.WithName("insert deployment topologies"))
 	if err != nil {
@@ -611,16 +619,15 @@ func (w *Workflow) createTopologies(
 	}
 
 	// In case anything goes wrong, delete the inserted topologies.
-	// Deleting by version keeps retries safe: a newer retry creates a higher
-	// version and will not be removed by this compensation.
+	// Safe because Restate serializes invocations per virtual object key —
+	// compensations complete before any retry begins.
 	for _, topo := range topologies {
 		compensation.Add(
-			fmt.Sprintf("delete deployment topology %s/%s/%d", topo.DeploymentID, topo.RegionID, topo.Version),
+			fmt.Sprintf("delete deployment topology %s/%s", topo.DeploymentID, topo.RegionID),
 			func(runCtx restate.RunContext) error {
-				return db.Query.DeleteDeploymentTopologyByDeploymentRegionVersion(runCtx, w.db.RW(), db.DeleteDeploymentTopologyByDeploymentRegionVersionParams{
+				return db.Query.DeleteDeploymentTopologyByDeploymentRegion(runCtx, w.db.RW(), db.DeleteDeploymentTopologyByDeploymentRegionParams{
 					DeploymentID: topo.DeploymentID,
 					RegionID:     topo.RegionID,
-					Version:      topo.Version,
 				})
 			},
 		)
@@ -669,14 +676,6 @@ func (w *Workflow) ensureSentinels(
 				desiredReplicas = 3
 			}
 
-			sentinelVersion, err := hydrav1.NewVersioningServiceClient(ctx, topology.RegionID).NextVersion().Request(&hydrav1.NextVersionRequest{})
-			if err != nil {
-				return fault.Wrap(
-					fmt.Errorf("failed to get next version for sentinel: %w", err),
-					fault.Public("Traffic proxies could not be versioned in one region."),
-				)
-			}
-
 			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 				region, err := db.Query.FindRegionById(runCtx, w.db.RO(), topology.RegionID)
 				if err != nil {
@@ -686,30 +685,37 @@ func (w *Workflow) ensureSentinels(
 				sentinelID := uid.New(uid.SentinelPrefix)
 				sentinelK8sName := uid.DNS1035()
 
-				err = db.Query.InsertSentinel(runCtx, w.db.RW(), db.InsertSentinelParams{
-					ID:                sentinelID,
-					WorkspaceID:       workspace.ID,
-					EnvironmentID:     environment.ID,
-					ProjectID:         project.ID,
-					K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
-					K8sName:           sentinelK8sName,
-					RegionID:          region.ID,
-					Image:             w.sentinelImage,
-					Health:            db.SentinelsHealthUnknown,
-					DesiredReplicas:   desiredReplicas,
-					AvailableReplicas: 0,
-					CpuMillicores:     250,
-					MemoryMib:         256,
-					Version:           sentinelVersion.GetVersion(),
-					CreatedAt:         time.Now().UnixMilli(),
-				})
-				if err != nil {
-					if db.IsDuplicateKeyError(err) {
-						return nil
+				err = db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+					err := db.Query.InsertSentinel(txCtx, tx, db.InsertSentinelParams{
+						ID:                sentinelID,
+						WorkspaceID:       workspace.ID,
+						EnvironmentID:     environment.ID,
+						ProjectID:         project.ID,
+						K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
+						K8sName:           sentinelK8sName,
+						RegionID:          region.ID,
+						Image:             w.sentinelImage,
+						Health:            db.SentinelsHealthUnknown,
+						DesiredReplicas:   desiredReplicas,
+						AvailableReplicas: 0,
+						CpuMillicores:     250,
+						MemoryMib:         256,
+						CreatedAt:         time.Now().UnixMilli(),
+					})
+					if err != nil {
+						if db.IsDuplicateKeyError(err) {
+							return nil
+						}
+						return err
 					}
-					return err
-				}
-				return nil
+					return db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
+						ResourceType: db.DeploymentChangesResourceTypeSentinel,
+						ResourceID:   sentinelID,
+						RegionID:     region.ID,
+						CreatedAt:    time.Now().UnixMilli(),
+					})
+				})
+				return err
 			}, restate.WithName("ensure sentinel exists in db"))
 			if err != nil {
 				return fault.Wrap(err, fault.Public("Traffic proxy could not be created for a region."))

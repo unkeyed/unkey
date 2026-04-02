@@ -8,7 +8,6 @@ go_library(
         "consts.go",
         "controller.go",
         "delete.go",
-        "desired_state_apply.go",
         "doc.go",
         "resync.go",
     ],
