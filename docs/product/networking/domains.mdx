@@ -57,6 +57,12 @@ Certificates renew before expiration without any action from you.
   If Let's Encrypt rate limits are reached, certificate issuance retries automatically with backoff. This can add up to two hours of delay in rare cases.
 </Note>
 
+## Domain uniqueness
+
+Each domain must be unique within a workspace. You cannot add the same domain to multiple projects or environments in the same workspace.
+
+Different workspaces can use the same domain independently. This is useful when you maintain separate workspaces for staging and production, or when different teams manage their own workspaces.
+
 ## DNS provider examples
 
 <Tabs>
