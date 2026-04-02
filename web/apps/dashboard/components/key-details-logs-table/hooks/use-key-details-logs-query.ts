@@ -116,8 +116,7 @@ export function useKeyDetailsLogsQuery({
 
   // Reset to page 1 and clear realtime buffer when filters or time window change
   const filtersKey = useMemo(
-    () =>
-      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|ts:${timestamp}`,
+    () => `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|ts:${timestamp}`,
     [filters, timestamp],
   );
 
