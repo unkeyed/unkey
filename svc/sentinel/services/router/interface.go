@@ -12,6 +12,9 @@ import (
 type Service interface {
 	GetDeployment(ctx context.Context, deploymentID string) (db.Deployment, error)
 	SelectInstance(ctx context.Context, deploymentID string) (db.Instance, error)
+	// ReleaseInstance signals that a request to the given instance has completed.
+	// Must be called exactly once for every successful SelectInstance call.
+	ReleaseInstance(instanceID string)
 	GetPolicies(ctx context.Context, deployment db.Deployment) ([]*sentinelv1.Policy, error)
 }
 

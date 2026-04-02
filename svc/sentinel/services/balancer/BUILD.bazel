@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "balancer",
+    srcs = [
+        "doc.go",
+        "interface.go",
+        "p2c.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/sentinel/services/balancer",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "balancer_test",
+    srcs = ["p2c_test.go"],
+    embed = [":balancer"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

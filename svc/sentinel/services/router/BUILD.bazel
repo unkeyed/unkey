@@ -3,8 +3,13 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "router",
     srcs = [
+        "cache.go",
+        "get_deployment.go",
+        "get_policies.go",
         "interface.go",
         "metrics.go",
+        "prewarm.go",
+        "select_instance.go",
         "service.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/sentinel/services/router",
@@ -12,7 +17,6 @@ go_library(
     deps = [
         "//gen/proto/sentinel/v1:sentinel",
         "//internal/services/caches",
-        "//pkg/array",
         "//pkg/cache",
         "//pkg/cache/clustering",
         "//pkg/clock",
@@ -22,6 +26,7 @@ go_library(
         "//pkg/logger",
         "//pkg/uid",
         "//svc/sentinel/engine",
+        "//svc/sentinel/services/balancer",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_prometheus_client_golang//prometheus/promauto",
     ],

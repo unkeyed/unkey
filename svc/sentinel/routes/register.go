@@ -59,6 +59,7 @@ func Register(srv *zen.Server, svc *Services) {
 			Region:             svc.Region,
 			MaxRequestBodySize: svc.MaxRequestBodySize,
 			Engine:             svc.Engine,
+			RetryBudget:        proxy.NewRetryBudget(),
 		},
 	)
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/timing"
@@ -23,11 +24,12 @@ import (
 type Handler struct {
 	RouterService      router.Service
 	Clock              clock.Clock
-	Transport          *http.Transport
+	Transport          http.RoundTripper
 	SentinelID         string
 	Region             string
 	MaxRequestBodySize int64
 	Engine             engine.Evaluator
+	RetryBudget        *retryBudget
 }
 
 func (h *Handler) Method() string {
@@ -58,11 +60,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	}
 
 	deployment, err := h.RouterService.GetDeployment(ctx, deploymentID)
-	if err != nil {
-		return err
-	}
-
-	instance, err := h.RouterService.SelectInstance(ctx, deploymentID)
 	if err != nil {
 		return err
 	}
@@ -101,23 +98,94 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 				fault.Public("The request body could not be read."),
 			)
 		}
-		req.Body = io.NopCloser(bytes.NewReader(requestBody))
 	}
 
-	// Populate tracking context
-	if tracking != nil {
-		tracking.RequestID = requestID
-		tracking.DeploymentID = deploymentID
-		tracking.Deployment = &DeploymentInfo{
-			WorkspaceID:   deployment.WorkspaceID,
-			EnvironmentID: deployment.EnvironmentID,
-			ProjectID:     deployment.ProjectID,
+	// First attempt
+	instance, err := h.RouterService.SelectInstance(ctx, deploymentID)
+	if err != nil {
+		return err
+	}
+
+	attempt := &proxyAttempt{
+		sess:         sess,
+		req:          req,
+		tracking:     tracking,
+		requestID:    requestID,
+		deploymentID: deploymentID,
+		deployment:   deployment,
+		instance:     instance,
+		requestBody:  requestBody,
+	}
+
+	proxyErr := h.proxyToInstance(ctx, attempt)
+
+	// Retry on a (potentially different) instance if the error is retryable.
+	// The first instance's inflight count is already released, so P2C will
+	// naturally prefer a different instance if one is available.
+	if proxyErr != nil && isRetryableError(proxyErr) && h.RetryBudget.Withdraw() {
+		retryInstance, selectErr := h.RouterService.SelectInstance(ctx, deploymentID)
+		if selectErr != nil {
+			// Can't get a retry instance, return original error.
+			return proxyErr
 		}
-		tracking.Instance = &InstanceInfo{
+
+		attempt.instance = retryInstance
+		proxyErr = h.proxyToInstance(ctx, attempt)
+	} else if proxyErr == nil {
+		// Non-retried success: deposit a token.
+		h.RetryBudget.Deposit()
+	}
+
+	return proxyErr
+}
+
+// proxyAttempt bundles the state needed for a single proxy attempt.
+type proxyAttempt struct {
+	sess         *zen.Session
+	req          *http.Request
+	tracking     *SentinelRequestTracking
+	requestID    string
+	deploymentID string
+	deployment   db.Deployment
+	instance     db.Instance
+	requestBody  []byte
+}
+
+// proxyToInstance performs the reverse proxy to a single instance. It handles
+// inflight tracking (release on return), body rewinding, tracking context
+// updates, and timing headers.
+func (h *Handler) proxyToInstance(ctx context.Context, a *proxyAttempt) error {
+	instance := a.instance
+	defer h.RouterService.ReleaseInstance(instance.ID)
+
+	// Rewind body for this attempt.
+	if a.requestBody != nil {
+		a.req.Body = io.NopCloser(bytes.NewReader(a.requestBody))
+		a.req.GetBody = func() (io.ReadCloser, error) {
+			return io.NopCloser(bytes.NewReader(a.requestBody)), nil
+		}
+	}
+
+	// Update tracking context for this attempt.
+	if a.tracking != nil {
+		a.tracking.RequestID = a.requestID
+		a.tracking.DeploymentID = a.deploymentID
+		a.tracking.Deployment = &DeploymentInfo{
+			WorkspaceID:   a.deployment.WorkspaceID,
+			EnvironmentID: a.deployment.EnvironmentID,
+			ProjectID:     a.deployment.ProjectID,
+		}
+		a.tracking.Instance = &InstanceInfo{
 			ID:      instance.ID,
 			Address: instance.Address,
 		}
-		tracking.RequestBody = requestBody
+		a.tracking.RequestBody = a.requestBody
+		// Reset timing for this attempt.
+		a.tracking.InstanceStart = h.Clock.Now()
+		a.tracking.InstanceEnd = a.tracking.InstanceStart
+		a.tracking.ResponseStatus = 0
+		a.tracking.ResponseHeaders = nil
+		a.tracking.ResponseBody = nil
 	}
 
 	targetURL, err := url.Parse("http://" + instance.Address)
@@ -130,41 +198,41 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		)
 	}
 
-	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
+	wrapper := zen.NewErrorCapturingWriter(a.sess.ResponseWriter())
 	// nolint:exhaustruct
 	proxy := &httputil.ReverseProxy{
 		FlushInterval: -1, // flush immediately for streaming
 		Director: func(outReq *http.Request) {
-			if tracking != nil {
-				tracking.InstanceStart = h.Clock.Now()
+			if a.tracking != nil {
+				a.tracking.InstanceStart = h.Clock.Now()
 			}
 
 			outReq.URL.Scheme = targetURL.Scheme
 			outReq.URL.Host = targetURL.Host
-			outReq.Host = req.Host
+			outReq.Host = a.req.Host
 
 			if outReq.Header == nil {
 				outReq.Header = make(http.Header)
 			}
 
-			if clientIP, _, err := net.SplitHostPort(req.RemoteAddr); err == nil {
+			if clientIP, _, err := net.SplitHostPort(a.req.RemoteAddr); err == nil {
 				outReq.Header.Set("X-Forwarded-For", clientIP)
 			}
-			outReq.Header.Set("X-Forwarded-Host", req.Host)
+			outReq.Header.Set("X-Forwarded-Host", a.req.Host)
 			outReq.Header.Set("X-Forwarded-Proto", "http")
 		},
 		Transport: h.Transport,
 		ModifyResponse: func(resp *http.Response) error {
-			if tracking != nil {
-				tracking.InstanceEnd = h.Clock.Now()
-				tracking.ResponseStatus = int32(resp.StatusCode)
-				tracking.ResponseHeaders = resp.Header
+			if a.tracking != nil {
+				a.tracking.InstanceEnd = h.Clock.Now()
+				a.tracking.ResponseStatus = int32(resp.StatusCode)
+				a.tracking.ResponseHeaders = resp.Header
 
 				// Record upstream metrics
 				statusClass := upstreamStatusClass(resp.StatusCode)
 				upstreamResponseTotal.WithLabelValues(statusClass).Inc()
-				if !tracking.InstanceStart.IsZero() {
-					upstreamDuration.WithLabelValues(statusClass).Observe(tracking.InstanceEnd.Sub(tracking.InstanceStart).Seconds())
+				if !a.tracking.InstanceStart.IsZero() {
+					upstreamDuration.WithLabelValues(statusClass).Observe(a.tracking.InstanceEnd.Sub(a.tracking.InstanceStart).Seconds())
 				}
 
 				// Capture response body for logging
@@ -177,14 +245,14 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 							fault.Public("Failed to process backend response"),
 						)
 					}
-					tracking.ResponseBody = responseBody
+					a.tracking.ResponseBody = responseBody
 					resp.Body = io.NopCloser(bytes.NewReader(responseBody))
 				}
 			}
 
-			if tracking != nil {
-				sentinelDuration := h.Clock.Now().Sub(tracking.StartTime)
-				timing.Write(sess.ResponseWriter(), timing.Entry{
+			if a.tracking != nil {
+				sentinelDuration := h.Clock.Now().Sub(a.tracking.StartTime)
+				timing.Write(a.sess.ResponseWriter(), timing.Entry{
 					Name:     "sentinel",
 					Duration: sentinelDuration,
 					Attributes: map[string]string{
@@ -192,9 +260,9 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 					},
 				})
 
-				if !tracking.InstanceStart.IsZero() && !tracking.InstanceEnd.IsZero() {
-					instanceDuration := tracking.InstanceEnd.Sub(tracking.InstanceStart)
-					timing.Write(sess.ResponseWriter(), timing.Entry{
+				if !a.tracking.InstanceStart.IsZero() && !a.tracking.InstanceEnd.IsZero() {
+					instanceDuration := a.tracking.InstanceEnd.Sub(a.tracking.InstanceStart)
+					timing.Write(a.sess.ResponseWriter(), timing.Entry{
 						Name:     "instance",
 						Duration: instanceDuration,
 						Attributes: map[string]string{
@@ -207,11 +275,11 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			if tracking != nil {
-				tracking.InstanceEnd = h.Clock.Now()
+			if a.tracking != nil {
+				a.tracking.InstanceEnd = h.Clock.Now()
 
-				sentinelDuration := h.Clock.Now().Sub(tracking.StartTime)
-				timing.Write(sess.ResponseWriter(), timing.Entry{
+				sentinelDuration := h.Clock.Now().Sub(a.tracking.StartTime)
+				timing.Write(a.sess.ResponseWriter(), timing.Entry{
 					Name:     "sentinel",
 					Duration: sentinelDuration,
 					Attributes: map[string]string{
@@ -219,9 +287,9 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 					},
 				})
 
-				if !tracking.InstanceStart.IsZero() && !tracking.InstanceEnd.IsZero() {
-					instanceDuration := tracking.InstanceEnd.Sub(tracking.InstanceStart)
-					timing.Write(sess.ResponseWriter(), timing.Entry{
+				if !a.tracking.InstanceStart.IsZero() && !a.tracking.InstanceEnd.IsZero() {
+					instanceDuration := a.tracking.InstanceEnd.Sub(a.tracking.InstanceStart)
+					timing.Write(a.sess.ResponseWriter(), timing.Entry{
 						Name:     "instance",
 						Duration: instanceDuration,
 						Attributes: map[string]string{
@@ -237,6 +305,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		},
 	}
 
-	proxy.ServeHTTP(wrapper, req)
+	proxy.ServeHTTP(wrapper, a.req)
 	return wrapper.Error()
 }
