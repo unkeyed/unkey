@@ -20,7 +20,6 @@ CREATE TABLE `apis` (
 
 CREATE TABLE `keys_permissions` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`temp_id` bigint,
 	`key_id` varchar(256) NOT NULL,
 	`permission_id` varchar(256) NOT NULL,
 	`workspace_id` varchar(256) NOT NULL,
@@ -28,7 +27,6 @@ CREATE TABLE `keys_permissions` (
 	`updated_at_m` bigint,
 	CONSTRAINT `keys_permissions_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `keys_permissions_key_id_permission_id_workspace_id` UNIQUE(`key_id`,`permission_id`,`workspace_id`),
-	CONSTRAINT `keys_permissions_temp_id_unique` UNIQUE(`temp_id`),
 	CONSTRAINT `key_id_permission_id_idx` UNIQUE(`key_id`,`permission_id`)
 );
 
@@ -142,9 +140,6 @@ CREATE TABLE `keys` (
 	`last_refill_at` datetime(3),
 	`enabled` boolean NOT NULL DEFAULT true,
 	`remaining_requests` int,
-	`ratelimit_async` boolean,
-	`ratelimit_limit` int,
-	`ratelimit_duration` bigint,
 	`environment` varchar(256),
 	`last_used_at` bigint unsigned NOT NULL DEFAULT 0,
 	`pending_migration_id` varchar(256),
@@ -206,8 +201,6 @@ CREATE TABLE `ratelimit_overrides` (
 	`identifier` varchar(512) NOT NULL,
 	`limit` int NOT NULL,
 	`duration` int NOT NULL,
-	`async` boolean,
-	`sharding` enum('edge'),
 	`created_at_m` bigint NOT NULL DEFAULT 0,
 	`updated_at_m` bigint,
 	`deleted_at_m` bigint,
@@ -223,13 +216,10 @@ CREATE TABLE `workspaces` (
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(64) NOT NULL,
 	`k8s_namespace` varchar(256),
-	`partition_id` varchar(256),
-	`plan` enum('free','pro','enterprise') DEFAULT 'free',
 	`tier` varchar(256) DEFAULT 'Free',
 	`stripe_customer_id` varchar(256),
 	`stripe_subscription_id` varchar(256),
 	`beta_features` json NOT NULL,
-	`features` json NOT NULL,
 	`subscriptions` json,
 	`enabled` boolean NOT NULL DEFAULT true,
 	`delete_protection` boolean DEFAULT false,
@@ -241,15 +231,6 @@ CREATE TABLE `workspaces` (
 	CONSTRAINT `workspaces_org_id_unique` UNIQUE(`org_id`),
 	CONSTRAINT `workspaces_slug_unique` UNIQUE(`slug`),
 	CONSTRAINT `workspaces_k8s_namespace_unique` UNIQUE(`k8s_namespace`)
-);
-
-CREATE TABLE `key_migration_errors` (
-	`id` varchar(256) NOT NULL,
-	`migration_id` varchar(256) NOT NULL,
-	`created_at` bigint NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`message` json NOT NULL,
-	CONSTRAINT `key_migration_errors_id` PRIMARY KEY(`id`)
 );
 
 CREATE TABLE `identities` (
@@ -319,20 +300,6 @@ CREATE TABLE `audit_log` (
 	`updated_at` bigint,
 	CONSTRAINT `audit_log_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `audit_log_id_unique` UNIQUE(`id`)
-);
-
-CREATE TABLE `audit_log_bucket` (
-	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
-	`id` varchar(256) NOT NULL,
-	`workspace_id` varchar(256) NOT NULL,
-	`name` varchar(256) NOT NULL,
-	`retention_days` int,
-	`created_at` bigint NOT NULL,
-	`updated_at` bigint,
-	`delete_protection` boolean DEFAULT false,
-	CONSTRAINT `audit_log_bucket_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `audit_log_bucket_id_unique` UNIQUE(`id`),
-	CONSTRAINT `unique_name_per_workspace_idx` UNIQUE(`workspace_id`,`name`)
 );
 
 CREATE TABLE `audit_log_target` (

@@ -350,7 +350,6 @@ go_library(
         "workspace_set_k8s_namespace.sql_generated.go",
         "workspace_soft_delete.sql_generated.go",
         "workspace_update_enabled.sql_generated.go",
-        "workspace_update_plan.sql_generated.go",
         "workspace_upsert.sql_generated.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/db",

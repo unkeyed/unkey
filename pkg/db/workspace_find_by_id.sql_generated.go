@@ -10,13 +10,13 @@ import (
 )
 
 const findWorkspaceByID = `-- name: FindWorkspaceByID :one
-SELECT pk, id, org_id, name, slug, k8s_namespace, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM ` + "`" + `workspaces` + "`" + `
+SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM ` + "`" + `workspaces` + "`" + `
 WHERE id = ?
 `
 
 // FindWorkspaceByID
 //
-//	SELECT pk, id, org_id, name, slug, k8s_namespace, partition_id, plan, tier, stripe_customer_id, stripe_subscription_id, beta_features, features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+//	SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 //	WHERE id = ?
 func (q *Queries) FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error) {
 	row := db.QueryRowContext(ctx, findWorkspaceByID, id)
@@ -28,13 +28,10 @@ func (q *Queries) FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Wo
 		&i.Name,
 		&i.Slug,
 		&i.K8sNamespace,
-		&i.PartitionID,
-		&i.Plan,
 		&i.Tier,
 		&i.StripeCustomerID,
 		&i.StripeSubscriptionID,
 		&i.BetaFeatures,
-		&i.Features,
 		&i.Subscriptions,
 		&i.Enabled,
 		&i.DeleteProtection,
