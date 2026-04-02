@@ -9,7 +9,8 @@ import { transformKeysFilters } from "./utils";
 
 const KeysOverviewLogsResponse = z.object({
   keysOverviewLogs: z.array(keysLogs),
-  total: z.number(),
+  hasMore: z.boolean(),
+  nextCursor: z.int().optional(),
 });
 
 type KeysOverviewLogsResponse = z.infer<typeof KeysOverviewLogsResponse>;
@@ -39,6 +40,7 @@ export const queryKeysOverviewLogs = workspaceProcedure
 
     const clickhouseResult = await clickhouse.api.keys.logs({
       ...transformedInputs,
+      cursorTime: input.cursor ?? null,
       workspaceId: ctx.workspace.id,
       keyspaceId: keyspaceId,
       // Flag to indicate if user explicitly filtered by time frame
@@ -63,12 +65,10 @@ export const queryKeysOverviewLogs = workspaceProcedure
     }
 
     const logs = clickhouseResult.val || [];
-    const totalCount = clickhouseResult.totalCount ?? 0;
-
     if (logs.length === 0) {
       return {
         keysOverviewLogs: [],
-        total: totalCount,
+        hasMore: false,
       };
     }
 
@@ -97,7 +97,8 @@ export const queryKeysOverviewLogs = workspaceProcedure
       }));
     const response: KeysOverviewLogsResponse = {
       keysOverviewLogs,
-      total: totalCount,
+      hasMore: logs.length === input.limit && keysOverviewLogs.length > 0,
+      nextCursor: logs.length === input.limit ? logs[logs.length - 1].time : undefined,
     };
 
     return response;
