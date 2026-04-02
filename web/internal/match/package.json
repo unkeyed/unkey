@@ -7,7 +7,9 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": ["./dist/**"],
+  "files": [
+    "./dist/**"
+  ],
   "description": "Type-safe pattern matching utility. This is package is heavily influenced by https://github.com/gvergnaud/ts-pattern",
   "keywords": [],
   "scripts": {
@@ -15,6 +17,7 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@unkey/tsconfig": "workspace:*",
     "typescript": "5.5.3",
     "vitest": "1.6.1"
   }
