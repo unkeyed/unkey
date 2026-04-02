@@ -96,8 +96,12 @@ const getStatusType = (outcome: LogOutcomeType): keyof typeof STATUS_STYLES => {
     case "DISABLED":
     case "EXPIRED":
       return "blocked";
-    default:
+    case "INSUFFICIENT_PERMISSIONS":
+    case "FORBIDDEN":
+    case "USAGE_EXCEEDED":
       return "error";
+    default:
+      return "success";
   }
 };
 

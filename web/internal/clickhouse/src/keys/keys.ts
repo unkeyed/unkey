@@ -432,16 +432,8 @@ WITH
         .omit({ outcome_counts: true }),
     });
 
-    // Total count query - counts distinct keys matching filters (without pagination)
-    const totalCountCTE = isRollingWindow
-      ? `SELECT count(DISTINCT key_id) as total_count
-         FROM default.key_last_used_v1
-         WHERE workspace_id = {workspaceId: String}
-           AND key_space_id = {keyspaceId: String}
-           AND (${keyIdConditions})
-           AND time >= {startTime: UInt64}
-           AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}`
-      : `SELECT count(DISTINCT key_id) as total_count
+    // Total count query - counts distinct keys matching all filters (without pagination)
+    const totalCountCTE = `SELECT count(DISTINCT key_id) as total_count
          FROM (
            SELECT key_id
            FROM default.key_verifications_per_hour_v3
@@ -450,6 +442,8 @@ WITH
              AND time BETWEEN toDateTime(fromUnixTimestamp64Milli({startTime: UInt64}))
                           AND toDateTime(fromUnixTimestamp64Milli({endTime: UInt64}))
              AND (${keyIdConditions})
+             AND (${outcomeCondition})
+             AND (${tagConditions})
            UNION ALL
            SELECT key_id
            FROM default.key_verifications_raw_v2
@@ -457,6 +451,8 @@ WITH
              AND key_space_id = {keyspaceId: String}
              AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
              AND (${keyIdConditions})
+             AND (${outcomeCondition})
+             AND (${tagConditions})
          )`;
 
     const totalQuery = ch.query({

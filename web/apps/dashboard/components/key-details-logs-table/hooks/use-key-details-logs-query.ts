@@ -38,8 +38,10 @@ export function useKeyDetailsLogsQuery({
   const normalizedPage = Math.max(1, page);
 
   const activeRealtimeLogsMap = useMemo(() => {
-    return startPolling ? realtimeLogsMap : new Map<string, KeyDetailsLog>();
-  }, [startPolling, realtimeLogsMap]);
+    return startPolling && normalizedPage === 1
+      ? realtimeLogsMap
+      : new Map<string, KeyDetailsLog>();
+  }, [startPolling, normalizedPage, realtimeLogsMap]);
 
   const realtimeLogs = useMemo(() => {
     return sortLogs(Array.from(activeRealtimeLogsMap.values()));
@@ -112,10 +114,11 @@ export function useKeyDetailsLogsQuery({
     return params;
   }, [filters, limit, timestamp, keyId, keyspaceId, normalizedPage]);
 
-  // Reset to page 1 when filters change
+  // Reset to page 1 and clear realtime buffer when filters or time window change
   const filtersKey = useMemo(
-    () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
-    [filters],
+    () =>
+      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|ts:${timestamp}`,
+    [filters, timestamp],
   );
 
   const prevFiltersKeyRef = useRef<string | null>(null);
@@ -127,6 +130,7 @@ export function useKeyDetailsLogsQuery({
     if (filtersKey !== prevFiltersKeyRef.current) {
       prevFiltersKeyRef.current = filtersKey;
       setPage(1);
+      setRealtimeLogsMap(new Map());
     }
   }, [filtersKey, setPage]);
 
@@ -236,13 +240,13 @@ export function useKeyDetailsLogsQuery({
     historicalLogs,
   ]);
 
-  // Set up polling effect
+  // Set up polling effect — only poll on page 1
   useEffect(() => {
-    if (startPolling) {
+    if (startPolling && normalizedPage === 1) {
       const interval = setInterval(pollForNewLogs, pollIntervalMs);
       return () => clearInterval(interval);
     }
-  }, [startPolling, pollForNewLogs, pollIntervalMs]);
+  }, [startPolling, normalizedPage, pollForNewLogs, pollIntervalMs]);
 
   const onPageChange = useCallback(
     (newPage: number) => {

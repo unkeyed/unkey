@@ -127,10 +127,10 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     return params;
   }, [filters, limit, timestamp, apiId, sorts, hasTimeFrameFilter, normalizedPage]);
 
-  // Reset to page 1 when filters change
+  // Reset to page 1 when filters or query time change
   const filtersKey = useMemo(
-    () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
-    [filters],
+    () => `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|t:${timestamp}`,
+    [filters, timestamp],
   );
 
   const prevFiltersKeyRef = useRef<string | null>(null);
