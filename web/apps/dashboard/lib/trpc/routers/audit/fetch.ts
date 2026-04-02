@@ -1,7 +1,8 @@
 import { auditQueryLogsPayload } from "@/app/(app)/[workspaceSlug]/audit/components/table/query-logs.schema";
 import { auth } from "@/lib/auth/server";
 import type { User } from "@/lib/auth/types";
-import { type Workspace, db } from "@/lib/db";
+import { type Quotas, type Workspace, db } from "@/lib/db";
+import { freeTierQuotas } from "@/lib/quotas";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
 import { type AuditLogWithTargets, type AuditQueryLogsParams, auditLog } from "./schema";
@@ -69,7 +70,7 @@ export const fetchAuditLog = workspaceProcedure
 
 export const queryAuditLogs = async (
   params: Omit<AuditQueryLogsParams, "workspaceId">,
-  workspace: Workspace,
+  workspace: Workspace & { quotas: Quotas | null },
 ) => {
   const events = (params.events ?? []).map((e) => e.value);
   const userValues = (params.users ?? []).map((u) => u.value);
@@ -79,7 +80,7 @@ export const queryAuditLogs = async (
   const cursor = params.cursor;
 
   const retentionDays =
-    (workspace.features.auditLogRetentionDays ?? workspace.plan === "free") ? 30 : 90;
+    workspace.quotas?.auditLogsRetentionDays || freeTierQuotas.auditLogsRetentionDays;
   const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
   // By default we need the last "50"(LIMIT) records.

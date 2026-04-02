@@ -16,6 +16,7 @@ const (
 	LabelKeyBuildID         = "unkey.com/build.id"
 	LabelKeySentinelID      = "unkey.com/sentinel.id"
 	LabelKeyNetworkPolicyID = "unkey.com/networkpolicy.id"
+	LabelKeyPlatform        = "unkey.com/platform"
 	LabelKeyManagedBy       = "app.kubernetes.io/managed-by"
 	LabelKeyComponent       = "app.kubernetes.io/component"
 	LabelKeyNamespace       = "io.kubernetes.pod.namespace"
@@ -74,6 +75,16 @@ func (l Labels) AppID(id string) Labels {
 // Labels instance for method chaining.
 func (l Labels) DeploymentID(id string) Labels {
 	l[LabelKeyDeploymentID] = id
+	return l
+}
+
+// Platform adds platform label to the label set.
+//
+// This method sets the "unkey.com/platform" label for identifying
+// the infrastructure provider (e.g. "aws", "gcp", "local").
+// Returns the same Labels instance for method chaining.
+func (l Labels) Platform(platform string) Labels {
+	l[LabelKeyPlatform] = platform
 	return l
 }
 
@@ -227,6 +238,12 @@ func GetEnvironmentID(l map[string]string) (string, bool) {
 // whether the label was found.
 func GetAppID(l map[string]string) (string, bool) {
 	v, ok := l[LabelKeyAppID]
+	return v, ok
+}
+
+// GetPlatform extracts platform from Kubernetes label map.
+func GetPlatform(l map[string]string) (string, bool) {
+	v, ok := l[LabelKeyPlatform]
 	return v, ok
 }
 

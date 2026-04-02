@@ -51,8 +51,8 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	switch deployment.DesiredState {
-	case db.DeploymentsDesiredStateArchived, db.DeploymentsDesiredStateStandby:
+	switch deployment.DesiredStatus {
+	case db.DeploymentTopologyDesiredStatusStopped:
 		return connect.NewResponse(&ctrlv1.DeploymentState{
 			State: &ctrlv1.DeploymentState_Delete{
 				Delete: &ctrlv1.DeleteDeployment{
@@ -61,7 +61,7 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 				},
 			},
 		}), nil
-	case db.DeploymentsDesiredStateRunning:
+	case db.DeploymentTopologyDesiredStatusRunning:
 
 		var buildID *string
 		if deployment.BuildID.Valid {
@@ -76,7 +76,6 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 			ProjectId:                     deployment.ProjectID,
 			EnvironmentId:                 deployment.EnvironmentID,
 			AppId:                         deployment.AppID,
-			Replicas:                      deployment.DesiredReplicas,
 			Image:                         deployment.Image.String,
 			CpuMillicores:                 int64(deployment.CpuMillicores),
 			MemoryMib:                     int64(deployment.MemoryMib),
@@ -128,8 +127,8 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 			},
 		}), nil
 	default:
-		logger.Error("unhandled Deployment desired state", "desiredState", deployment.DesiredState)
+		logger.Error("unhandled deployment topology desired status", "desiredStatus", deployment.DesiredStatus)
 	}
 
-	return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unhandled Deployment desired state: %s", deployment.DesiredState))
+	return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unhandled deployment topology desired status: %s", deployment.DesiredStatus))
 }

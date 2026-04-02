@@ -66,7 +66,6 @@ export const createOverride = workspaceProcedure
             identifier: input.identifier,
             limit: input.limit,
             duration: input.duration,
-            async: false,
             createdAtM: Date.now(),
           });
         }

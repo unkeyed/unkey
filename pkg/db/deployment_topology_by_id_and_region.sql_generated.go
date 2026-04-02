@@ -26,12 +26,11 @@ SELECT
     r.name AS region,
     d.cpu_millicores,
     d.memory_mib,
-    dt.desired_replicas,
     dt.autoscaling_replicas_min,
     dt.autoscaling_replicas_max,
     dt.autoscaling_threshold_cpu,
     dt.autoscaling_threshold_memory,
-    d.desired_state,
+    dt.desired_status,
     d.encrypted_environment_variables,
     d.command,
     d.port,
@@ -59,34 +58,33 @@ type FindDeploymentTopologyByIDAndRegionParams struct {
 }
 
 type FindDeploymentTopologyByIDAndRegionRow struct {
-	ID                            string                    `db:"id"`
-	K8sName                       string                    `db:"k8s_name"`
-	K8sNamespace                  sql.NullString            `db:"k8s_namespace"`
-	WorkspaceID                   string                    `db:"workspace_id"`
-	ProjectID                     string                    `db:"project_id"`
-	EnvironmentID                 string                    `db:"environment_id"`
-	AppID                         string                    `db:"app_id"`
-	BuildID                       sql.NullString            `db:"build_id"`
-	Image                         sql.NullString            `db:"image"`
-	Region                        string                    `db:"region"`
-	CpuMillicores                 int32                     `db:"cpu_millicores"`
-	MemoryMib                     int32                     `db:"memory_mib"`
-	DesiredReplicas               int32                     `db:"desired_replicas"`
-	AutoscalingReplicasMin        uint32                    `db:"autoscaling_replicas_min"`
-	AutoscalingReplicasMax        uint32                    `db:"autoscaling_replicas_max"`
-	AutoscalingThresholdCpu       sql.NullInt16             `db:"autoscaling_threshold_cpu"`
-	AutoscalingThresholdMemory    sql.NullInt16             `db:"autoscaling_threshold_memory"`
-	DesiredState                  DeploymentsDesiredState   `db:"desired_state"`
-	EncryptedEnvironmentVariables []byte                    `db:"encrypted_environment_variables"`
-	Command                       dbtype.StringSlice        `db:"command"`
-	Port                          int32                     `db:"port"`
-	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
-	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
-	GitCommitSha                  sql.NullString            `db:"git_commit_sha"`
-	GitBranch                     sql.NullString            `db:"git_branch"`
-	GitCommitMessage              sql.NullString            `db:"git_commit_message"`
-	EnvironmentSlug               string                    `db:"environment_slug"`
-	GitRepo                       sql.NullString            `db:"git_repo"`
+	ID                            string                          `db:"id"`
+	K8sName                       string                          `db:"k8s_name"`
+	K8sNamespace                  sql.NullString                  `db:"k8s_namespace"`
+	WorkspaceID                   string                          `db:"workspace_id"`
+	ProjectID                     string                          `db:"project_id"`
+	EnvironmentID                 string                          `db:"environment_id"`
+	AppID                         string                          `db:"app_id"`
+	BuildID                       sql.NullString                  `db:"build_id"`
+	Image                         sql.NullString                  `db:"image"`
+	Region                        string                          `db:"region"`
+	CpuMillicores                 int32                           `db:"cpu_millicores"`
+	MemoryMib                     int32                           `db:"memory_mib"`
+	AutoscalingReplicasMin        uint32                          `db:"autoscaling_replicas_min"`
+	AutoscalingReplicasMax        uint32                          `db:"autoscaling_replicas_max"`
+	AutoscalingThresholdCpu       sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
+	AutoscalingThresholdMemory    sql.NullInt16                   `db:"autoscaling_threshold_memory"`
+	DesiredStatus                 DeploymentTopologyDesiredStatus `db:"desired_status"`
+	EncryptedEnvironmentVariables []byte                          `db:"encrypted_environment_variables"`
+	Command                       dbtype.StringSlice              `db:"command"`
+	Port                          int32                           `db:"port"`
+	ShutdownSignal                DeploymentsShutdownSignal       `db:"shutdown_signal"`
+	Healthcheck                   dbtype.NullHealthcheck          `db:"healthcheck"`
+	GitCommitSha                  sql.NullString                  `db:"git_commit_sha"`
+	GitBranch                     sql.NullString                  `db:"git_branch"`
+	GitCommitMessage              sql.NullString                  `db:"git_commit_message"`
+	EnvironmentSlug               string                          `db:"environment_slug"`
+	GitRepo                       sql.NullString                  `db:"git_repo"`
 }
 
 // FindDeploymentTopologyByIDAndRegion
@@ -104,12 +102,11 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //	    r.name AS region,
 //	    d.cpu_millicores,
 //	    d.memory_mib,
-//	    dt.desired_replicas,
 //	    dt.autoscaling_replicas_min,
 //	    dt.autoscaling_replicas_max,
 //	    dt.autoscaling_threshold_cpu,
 //	    dt.autoscaling_threshold_memory,
-//	    d.desired_state,
+//	    dt.desired_status,
 //	    d.encrypted_environment_variables,
 //	    d.command,
 //	    d.port,
@@ -145,12 +142,11 @@ func (q *Queries) FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DB
 		&i.Region,
 		&i.CpuMillicores,
 		&i.MemoryMib,
-		&i.DesiredReplicas,
 		&i.AutoscalingReplicasMin,
 		&i.AutoscalingReplicasMax,
 		&i.AutoscalingThresholdCpu,
 		&i.AutoscalingThresholdMemory,
-		&i.DesiredState,
+		&i.DesiredStatus,
 		&i.EncryptedEnvironmentVariables,
 		&i.Command,
 		&i.Port,

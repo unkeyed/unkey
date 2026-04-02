@@ -137,6 +137,7 @@ type SentinelRequest struct {
 	InstanceID      string              `ch:"instance_id" json:"instance_id"`
 	InstanceAddress string              `ch:"instance_address" json:"instance_address"`
 	Region          string              `ch:"region" json:"region"`
+	Platform        string              `ch:"platform" json:"platform"`
 	Method          string              `ch:"method" json:"method"`
 	Host            string              `ch:"host" json:"host"`
 	Path            string              `ch:"path" json:"path"`

@@ -101,7 +101,6 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		WorkspaceID:                workspaceID,
 		DeploymentID:               deployment.ID,
 		RegionID:                   region.ID,
-		DesiredReplicas:            1,
 		AutoscalingReplicasMin:     1,
 		AutoscalingReplicasMax:     1,
 		AutoscalingThresholdCpu:    sql.NullInt16{Valid: false},

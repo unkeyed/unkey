@@ -148,6 +148,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DynamicClient: dynamicClient,
 		Cluster:       cluster,
 		Region:        cfg.Region,
+		Platform:      cfg.Platform,
 		Vault:         vaultClient,
 		Registry:      registryCfg,
 		Fingerprints:  fingerprintCache,

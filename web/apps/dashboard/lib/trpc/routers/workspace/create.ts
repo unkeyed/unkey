@@ -67,11 +67,9 @@ export const createWorkspace = protectedProcedure
           orgId: orgId,
           name: input.name,
           slug: input.slug,
-          plan: "free",
           tier: "Free",
           stripeCustomerId: null,
           stripeSubscriptionId: null,
-          features: {},
           betaFeatures: {},
           subscriptions: {},
           enabled: true,
@@ -79,7 +77,6 @@ export const createWorkspace = protectedProcedure
           createdAtM: Date.now(),
           updatedAtM: null,
           deletedAtM: null,
-          partitionId: null,
           k8sNamespace: dns1035(),
         };
 

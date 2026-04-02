@@ -670,47 +670,6 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 	return string(ns.KeyMigrationsAlgorithm), nil
 }
 
-type RatelimitOverridesSharding string
-
-const (
-	RatelimitOverridesShardingEdge RatelimitOverridesSharding = "edge"
-)
-
-func (e *RatelimitOverridesSharding) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = RatelimitOverridesSharding(s)
-	case string:
-		*e = RatelimitOverridesSharding(s)
-	default:
-		return fmt.Errorf("unsupported scan type for RatelimitOverridesSharding: %T", src)
-	}
-	return nil
-}
-
-type NullRatelimitOverridesSharding struct {
-	RatelimitOverridesSharding RatelimitOverridesSharding
-	Valid                      bool // Valid is true if RatelimitOverridesSharding is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullRatelimitOverridesSharding) Scan(value interface{}) error {
-	if value == nil {
-		ns.RatelimitOverridesSharding, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.RatelimitOverridesSharding.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullRatelimitOverridesSharding) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.RatelimitOverridesSharding), nil
-}
-
 type SentinelsDesiredState string
 
 const (
@@ -883,49 +842,6 @@ func (ns NullVercelBindingsResourceType) Value() (driver.Value, error) {
 	return string(ns.VercelBindingsResourceType), nil
 }
 
-type WorkspacesPlan string
-
-const (
-	WorkspacesPlanFree       WorkspacesPlan = "free"
-	WorkspacesPlanPro        WorkspacesPlan = "pro"
-	WorkspacesPlanEnterprise WorkspacesPlan = "enterprise"
-)
-
-func (e *WorkspacesPlan) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = WorkspacesPlan(s)
-	case string:
-		*e = WorkspacesPlan(s)
-	default:
-		return fmt.Errorf("unsupported scan type for WorkspacesPlan: %T", src)
-	}
-	return nil
-}
-
-type NullWorkspacesPlan struct {
-	WorkspacesPlan WorkspacesPlan
-	Valid          bool // Valid is true if WorkspacesPlan is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullWorkspacesPlan) Scan(value interface{}) error {
-	if value == nil {
-		ns.WorkspacesPlan, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.WorkspacesPlan.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullWorkspacesPlan) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.WorkspacesPlan), nil
-}
-
 type AcmeChallenge struct {
 	Pk            uint64                      `db:"pk"`
 	DomainID      string                      `db:"domain_id"`
@@ -1051,17 +967,6 @@ type AuditLog struct {
 	ActorMeta   []byte         `db:"actor_meta"`
 	CreatedAt   int64          `db:"created_at"`
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`
-}
-
-type AuditLogBucket struct {
-	Pk               uint64        `db:"pk"`
-	ID               string        `db:"id"`
-	WorkspaceID      string        `db:"workspace_id"`
-	Name             string        `db:"name"`
-	RetentionDays    sql.NullInt32 `db:"retention_days"`
-	CreatedAt        int64         `db:"created_at"`
-	UpdatedAt        sql.NullInt64 `db:"updated_at"`
-	DeleteProtection sql.NullBool  `db:"delete_protection"`
 }
 
 type AuditLogTarget struct {
@@ -1202,7 +1107,6 @@ type DeploymentTopology struct {
 	WorkspaceID                string                          `db:"workspace_id"`
 	DeploymentID               string                          `db:"deployment_id"`
 	RegionID                   string                          `db:"region_id"`
-	DesiredReplicas            int32                           `db:"desired_replicas"`
 	AutoscalingReplicasMin     uint32                          `db:"autoscaling_replicas_min"`
 	AutoscalingReplicasMax     uint32                          `db:"autoscaling_replicas_max"`
 	AutoscalingThresholdCpu    sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
@@ -1329,9 +1233,6 @@ type Key struct {
 	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
 	Enabled            bool           `db:"enabled"`
 	RemainingRequests  sql.NullInt32  `db:"remaining_requests"`
-	RatelimitAsync     sql.NullBool   `db:"ratelimit_async"`
-	RatelimitLimit     sql.NullInt32  `db:"ratelimit_limit"`
-	RatelimitDuration  sql.NullInt64  `db:"ratelimit_duration"`
 	Environment        sql.NullString `db:"environment"`
 	LastUsedAt         uint64         `db:"last_used_at"`
 	PendingMigrationID sql.NullString `db:"pending_migration_id"`
@@ -1358,17 +1259,8 @@ type KeyMigration struct {
 	Algorithm   KeyMigrationsAlgorithm `db:"algorithm"`
 }
 
-type KeyMigrationError struct {
-	ID          string          `db:"id"`
-	MigrationID string          `db:"migration_id"`
-	CreatedAt   int64           `db:"created_at"`
-	WorkspaceID string          `db:"workspace_id"`
-	Message     json.RawMessage `db:"message"`
-}
-
 type KeysPermission struct {
 	Pk           uint64        `db:"pk"`
-	TempID       sql.NullInt64 `db:"temp_id"`
 	KeyID        string        `db:"key_id"`
 	PermissionID string        `db:"permission_id"`
 	WorkspaceID  string        `db:"workspace_id"`
@@ -1457,18 +1349,16 @@ type RatelimitNamespace struct {
 }
 
 type RatelimitOverride struct {
-	Pk          uint64                         `db:"pk"`
-	ID          string                         `db:"id"`
-	WorkspaceID string                         `db:"workspace_id"`
-	NamespaceID string                         `db:"namespace_id"`
-	Identifier  string                         `db:"identifier"`
-	Limit       int32                          `db:"limit"`
-	Duration    int32                          `db:"duration"`
-	Async       sql.NullBool                   `db:"async"`
-	Sharding    NullRatelimitOverridesSharding `db:"sharding"`
-	CreatedAtM  int64                          `db:"created_at_m"`
-	UpdatedAtM  sql.NullInt64                  `db:"updated_at_m"`
-	DeletedAtM  sql.NullInt64                  `db:"deleted_at_m"`
+	Pk          uint64        `db:"pk"`
+	ID          string        `db:"id"`
+	WorkspaceID string        `db:"workspace_id"`
+	NamespaceID string        `db:"namespace_id"`
+	Identifier  string        `db:"identifier"`
+	Limit       int32         `db:"limit"`
+	Duration    int32         `db:"duration"`
+	CreatedAtM  int64         `db:"created_at_m"`
+	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
+	DeletedAtM  sql.NullInt64 `db:"deleted_at_m"`
 }
 
 type Region struct {
@@ -1547,23 +1437,20 @@ type VercelIntegration struct {
 }
 
 type Workspace struct {
-	Pk                   uint64             `db:"pk"`
-	ID                   string             `db:"id"`
-	OrgID                string             `db:"org_id"`
-	Name                 string             `db:"name"`
-	Slug                 string             `db:"slug"`
-	K8sNamespace         sql.NullString     `db:"k8s_namespace"`
-	PartitionID          sql.NullString     `db:"partition_id"`
-	Plan                 NullWorkspacesPlan `db:"plan"`
-	Tier                 sql.NullString     `db:"tier"`
-	StripeCustomerID     sql.NullString     `db:"stripe_customer_id"`
-	StripeSubscriptionID sql.NullString     `db:"stripe_subscription_id"`
-	BetaFeatures         json.RawMessage    `db:"beta_features"`
-	Features             json.RawMessage    `db:"features"`
-	Subscriptions        []byte             `db:"subscriptions"`
-	Enabled              bool               `db:"enabled"`
-	DeleteProtection     sql.NullBool       `db:"delete_protection"`
-	CreatedAtM           int64              `db:"created_at_m"`
-	UpdatedAtM           sql.NullInt64      `db:"updated_at_m"`
-	DeletedAtM           sql.NullInt64      `db:"deleted_at_m"`
+	Pk                   uint64          `db:"pk"`
+	ID                   string          `db:"id"`
+	OrgID                string          `db:"org_id"`
+	Name                 string          `db:"name"`
+	Slug                 string          `db:"slug"`
+	K8sNamespace         sql.NullString  `db:"k8s_namespace"`
+	Tier                 sql.NullString  `db:"tier"`
+	StripeCustomerID     sql.NullString  `db:"stripe_customer_id"`
+	StripeSubscriptionID sql.NullString  `db:"stripe_subscription_id"`
+	BetaFeatures         json.RawMessage `db:"beta_features"`
+	Subscriptions        []byte          `db:"subscriptions"`
+	Enabled              bool            `db:"enabled"`
+	DeleteProtection     sql.NullBool    `db:"delete_protection"`
+	CreatedAtM           int64           `db:"created_at_m"`
+	UpdatedAtM           sql.NullInt64   `db:"updated_at_m"`
+	DeletedAtM           sql.NullInt64   `db:"deleted_at_m"`
 }

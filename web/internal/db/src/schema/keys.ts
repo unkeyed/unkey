@@ -73,9 +73,6 @@ export const keys = mysqlTable(
      */
 
     remaining: int("remaining_requests"),
-    ratelimitAsync: boolean("ratelimit_async"),
-    ratelimitLimit: int("ratelimit_limit"), // max size of the bucket
-    ratelimitDuration: bigint("ratelimit_duration", { mode: "number" }), // milliseconds
     /**
      * A custom environment flag for our users to divide keys.
      * For example stripe has `live` and `test` keys.

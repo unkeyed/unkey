@@ -11,7 +11,7 @@ import (
 )
 
 const listLiveKeysByKeySpaceID = `-- name: ListLiveKeysByKeySpaceID :many
-SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.last_used_at, k.pending_migration_id,
+SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
        i.id                 as identity_table_id,
        i.external_id        as identity_external_id,
        i.meta               as identity_meta,
@@ -130,9 +130,6 @@ type ListLiveKeysByKeySpaceIDRow struct {
 	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
 	Enabled            bool           `db:"enabled"`
 	RemainingRequests  sql.NullInt32  `db:"remaining_requests"`
-	RatelimitAsync     sql.NullBool   `db:"ratelimit_async"`
-	RatelimitLimit     sql.NullInt32  `db:"ratelimit_limit"`
-	RatelimitDuration  sql.NullInt64  `db:"ratelimit_duration"`
 	Environment        sql.NullString `db:"environment"`
 	LastUsedAt         uint64         `db:"last_used_at"`
 	PendingMigrationID sql.NullString `db:"pending_migration_id"`
@@ -149,7 +146,7 @@ type ListLiveKeysByKeySpaceIDRow struct {
 
 // ListLiveKeysByKeySpaceID
 //
-//	SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.ratelimit_async, k.ratelimit_limit, k.ratelimit_duration, k.environment, k.last_used_at, k.pending_migration_id,
+//	SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id, k.name, k.owner_id, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled, k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 //	       i.id                 as identity_table_id,
 //	       i.external_id        as identity_external_id,
 //	       i.meta               as identity_meta,
@@ -274,9 +271,6 @@ func (q *Queries) ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg Lis
 			&i.LastRefillAt,
 			&i.Enabled,
 			&i.RemainingRequests,
-			&i.RatelimitAsync,
-			&i.RatelimitLimit,
-			&i.RatelimitDuration,
 			&i.Environment,
 			&i.LastUsedAt,
 			&i.PendingMigrationID,

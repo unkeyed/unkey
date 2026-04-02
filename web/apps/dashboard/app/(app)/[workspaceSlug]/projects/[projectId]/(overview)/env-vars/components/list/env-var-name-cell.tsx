@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc/client";
 import { Note3 } from "@unkey/icons";
 import { Badge, InfoTooltip, toast } from "@unkey/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HighlightMatch } from "./highlight-match";
+import { HighlightMatch } from "../shared/highlight-match";
 
 type EnvVarNameCellProps = {
   envVarId: string;

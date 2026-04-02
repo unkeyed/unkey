@@ -1,7 +1,7 @@
 import { toast } from "@unkey/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { UseFormGetValues, UseFormReset, UseFormTrigger } from "react-hook-form";
-import type { EnvVarsFormValues } from "./schema";
+import type { EnvVarsFormValues } from "../components/add/schema";
 
 export const parseEnvText = (text: string): Array<{ key: string; value: string }> => {
   const lines = text.trim().split("\n");
