@@ -19,6 +19,7 @@ type Services struct {
 	EnvironmentID      string
 	SentinelID         string
 	Region             string
+	Platform           string
 	SentinelRequests   *batch.BatchProcessor[schema.SentinelRequest]
 	MaxRequestBodySize int64
 	RequestTimeout     time.Duration

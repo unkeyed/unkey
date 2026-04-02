@@ -10,6 +10,7 @@ CREATE TABLE sentinel_requests_raw_v1 (
   instance_id String,
   instance_address String,
   region LowCardinality (String),
+  platform LowCardinality (String),
   -- Upper case HTTP method
   method LowCardinality (String),
   host String,
