@@ -30,10 +30,14 @@ export function matchPattern(pattern: unknown, value: unknown): boolean {
     return Object.is(value, pattern);
   }
 
-  if (!isObject(value)) return false;
+  if (!isObject(value)) {
+    return false;
+  }
 
   if (Array.isArray(pattern)) {
-    if (!Array.isArray(value)) return false;
+    if (!Array.isArray(value)) {
+      return false;
+    }
     return (
       pattern.length === value.length &&
       pattern.every((subPattern, i) => matchPattern(subPattern, value[i]))
@@ -68,6 +72,7 @@ export const P = {
   /** Matches null or undefined */
   nullish: createMatcher<null | undefined>((v) => v == null),
   /** Matches any value that is not null or undefined */
+  // biome-ignore lint/complexity/noBannedTypes: its okay we need nonnullable value
   nonNullable: createMatcher<{}>((v) => v != null),
   /** Matches using an inline predicate function */
   when<TInput>(predicate: (value: TInput) => boolean): PatternMatcher<TInput> {

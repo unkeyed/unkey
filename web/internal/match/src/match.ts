@@ -26,7 +26,6 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
     return new MatchBuilder(input, unmatched);
   }
 
-  // biome-ignore lint: phantom type cast — safe, runtime shape unchanged
   private cast<O = TOutput, R = TRemaining>(): MatchBuilder<TInput, O, R, TConstraint> {
     return this as never;
   }
@@ -47,12 +46,7 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
     pattern: TPattern & DeepPattern<TRemaining, NoInfer<TPattern>>,
     guard: (value: NarrowByPattern<TRemaining, TPattern>) => boolean,
     handler: (value: NarrowByPattern<TRemaining, TPattern>) => HandlerReturn<TConstraint, TResult>,
-  ): MatchBuilder<
-    TInput,
-    TOutput | HandlerReturn<TConstraint, TResult>,
-    Exclude<TRemaining, NarrowByPattern<TRemaining, TPattern>>,
-    TConstraint
-  >;
+  ): MatchBuilder<TInput, TOutput | HandlerReturn<TConstraint, TResult>, TRemaining, TConstraint>;
 
   /** Match two patterns with OR semantics. */
   with<const P1, const P2, TResult>(
@@ -70,7 +64,9 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
 
   // biome-ignore lint: implementation signature must be loose to cover all overloads
   with(...args: any[]): any {
-    if (this.state.matched) return this.cast();
+    if (this.state.matched) {
+      return this.cast();
+    }
 
     const handler = args[args.length - 1] as (value: unknown) => unknown;
     const patterns: unknown[] = [args[0]];
@@ -112,7 +108,9 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
 
   // biome-ignore lint: implementation signature must be loose to cover all overloads
   when(predicate: (value: any) => boolean, handler: (value: any) => any): any {
-    if (this.state.matched) return this.cast();
+    if (this.state.matched) {
+      return this.cast();
+    }
 
     const matched = Boolean(predicate(this.input));
 
@@ -126,7 +124,9 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
   otherwise<TResult>(
     handler: (value: TRemaining) => HandlerReturn<TConstraint, TResult>,
   ): TOutput | HandlerReturn<TConstraint, TResult> {
-    if (this.state.matched) return this.state.value;
+    if (this.state.matched) {
+      return this.state.value;
+    }
     return handler(this.input as never);
   }
 
@@ -134,8 +134,10 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
    * Terminate the match expression. Compile-time error if not all cases are covered.
    * Throws `NonExhaustiveError` at runtime if called when a case is missing.
    */
-  exhaustive(...args: [TRemaining] extends [never] ? [] : [never]): TOutput {
-    if (this.state.matched) return this.state.value;
+  exhaustive(..._args: [TRemaining] extends [never] ? [] : [never]): TOutput {
+    if (this.state.matched) {
+      return this.state.value;
+    }
     throw new NonExhaustiveError(this.input);
   }
 

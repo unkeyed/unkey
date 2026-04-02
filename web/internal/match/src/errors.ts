@@ -4,10 +4,10 @@
  */
 export class NonExhaustiveError extends Error {
   constructor(public input: unknown) {
-    let displayedValue;
+    let displayedValue: unknown;
     try {
       displayedValue = JSON.stringify(input);
-    } catch (e) {
+    } catch {
       displayedValue = input;
     }
     super(`Pattern matching error: no pattern matches value ${displayedValue}`);
