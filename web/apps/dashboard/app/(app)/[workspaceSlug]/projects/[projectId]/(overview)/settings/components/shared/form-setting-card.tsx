@@ -48,7 +48,7 @@ export const FormSettingCard = ({
       contentWidth="w-full lg:w-[320px] justify-end"
       expandable={
         <form
-          className={cn("flex flex-col bg-grayA-2 rounded-b-xl", className)}
+          className={cn("flex flex-col bg-grayA-2", className)}
           ref={ref}
           onSubmit={(e) => {
             //Without this form will toggle the chevron and collapse the section

@@ -39,7 +39,6 @@ const apiLayoutResponse = z.object({
     .nullable(),
   workspace: z.object({
     id: z.string(),
-    ipWhitelist: z.boolean(),
   }),
 });
 
@@ -63,7 +62,6 @@ export const queryApiKeyDetails = workspaceProcedure
             columns: {
               id: true,
               orgId: true,
-              features: true,
             },
           },
           keyAuth: {
@@ -118,7 +116,6 @@ export const queryApiKeyDetails = workspaceProcedure
         keyAuth: currentApi.keyAuth,
         workspace: {
           id: currentApi.workspace.id,
-          ipWhitelist: Boolean(currentApi.workspace.features.ipWhitelist),
         },
       };
     } catch (error) {

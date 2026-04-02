@@ -500,7 +500,6 @@ export const ratelimitOverviewLogs = z.object({
       limit: z.int(),
       duration: z.int(),
       overrideId: z.string(),
-      async: z.boolean().nullable(),
     })
     .optional()
     .nullable(),

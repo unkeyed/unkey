@@ -26,7 +26,6 @@ const PermissionSchema = z.object({
   workspaceId: z.string(),
   createdAtM: z.number(),
   updatedAtM: z.number().nullable(),
-  tempId: z.number().nullable(),
 });
 
 // Schema for role with nested permissions

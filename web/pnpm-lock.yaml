@@ -186,6 +186,9 @@ importers:
       '@unkey/keys':
         specifier: workspace:^
         version: link:../../internal/keys
+      '@unkey/match':
+        specifier: workspace:^
+        version: link:../../internal/match
       '@unkey/ratelimit':
         specifier: 2.1.3
         version: 2.1.3
@@ -556,6 +559,18 @@ importers:
       typescript:
         specifier: 5.5.3
         version: 5.5.3
+
+  internal/match:
+    devDependencies:
+      '@unkey/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      typescript:
+        specifier: 5.5.3
+        version: 5.5.3
+      vitest:
+        specifier: 1.6.1
+        version: 1.6.1(@types/node@20.14.9)(@vitest/ui@3.2.4)
 
   internal/rbac:
     dependencies:

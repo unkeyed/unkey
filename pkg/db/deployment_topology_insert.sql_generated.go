@@ -15,7 +15,6 @@ INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
     workspace_id,
     deployment_id,
     region_id,
-    desired_replicas,
     autoscaling_replicas_min,
     autoscaling_replicas_max,
     autoscaling_threshold_cpu,
@@ -33,7 +32,6 @@ INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
     ?,
     ?,
     ?,
-    ?,
     ?
 )
 `
@@ -42,7 +40,6 @@ type InsertDeploymentTopologyParams struct {
 	WorkspaceID                string                          `db:"workspace_id"`
 	DeploymentID               string                          `db:"deployment_id"`
 	RegionID                   string                          `db:"region_id"`
-	DesiredReplicas            int32                           `db:"desired_replicas"`
 	AutoscalingReplicasMin     uint32                          `db:"autoscaling_replicas_min"`
 	AutoscalingReplicasMax     uint32                          `db:"autoscaling_replicas_max"`
 	AutoscalingThresholdCpu    sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
@@ -58,7 +55,6 @@ type InsertDeploymentTopologyParams struct {
 //	    workspace_id,
 //	    deployment_id,
 //	    region_id,
-//	    desired_replicas,
 //	    autoscaling_replicas_min,
 //	    autoscaling_replicas_max,
 //	    autoscaling_threshold_cpu,
@@ -76,7 +72,6 @@ type InsertDeploymentTopologyParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
-//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertDeploymentTopology(ctx context.Context, db DBTX, arg InsertDeploymentTopologyParams) error {
@@ -84,7 +79,6 @@ func (q *Queries) InsertDeploymentTopology(ctx context.Context, db DBTX, arg Ins
 		arg.WorkspaceID,
 		arg.DeploymentID,
 		arg.RegionID,
-		arg.DesiredReplicas,
 		arg.AutoscalingReplicasMin,
 		arg.AutoscalingReplicasMax,
 		arg.AutoscalingThresholdCpu,

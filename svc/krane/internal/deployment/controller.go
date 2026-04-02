@@ -37,6 +37,7 @@ type Controller struct {
 	cb               circuitbreaker.CircuitBreaker[any]
 	done             chan struct{}
 	region           string
+	platform         string
 	versionLastSeen  uint64
 
 	// fingerprints tracks the most recently reported state per ReplicaSet
@@ -64,6 +65,9 @@ type Config struct {
 
 	// Region identifies the cluster region for filtering deployment streams.
 	Region string
+
+	// Platform identifies the infrastructure provider (e.g. "aws", "gcp", "local").
+	Platform string
 
 	// Vault provides secrets decryption. Nil disables deploy-time secret decryption.
 	Vault vault.VaultServiceClient
@@ -97,6 +101,7 @@ func New(cfg Config) *Controller {
 		cb:               circuitbreaker.New[any]("deployment_state_update"),
 		done:             make(chan struct{}),
 		region:           cfg.Region,
+		platform:         cfg.Platform,
 		versionLastSeen:  0,
 		fingerprints:     cfg.Fingerprints,
 	}

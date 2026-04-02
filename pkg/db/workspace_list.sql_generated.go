@@ -11,7 +11,7 @@ import (
 
 const listWorkspaces = `-- name: ListWorkspaces :many
 SELECT
-   w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+   w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
    q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total
 FROM ` + "`" + `workspaces` + "`" + ` w
 LEFT JOIN quota q ON w.id = q.workspace_id
@@ -28,7 +28,7 @@ type ListWorkspacesRow struct {
 // ListWorkspaces
 //
 //	SELECT
-//	   w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.partition_id, w.plan, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
+//	   w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
 //	   q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total
 //	FROM `workspaces` w
 //	LEFT JOIN quota q ON w.id = q.workspace_id
@@ -51,13 +51,10 @@ func (q *Queries) ListWorkspaces(ctx context.Context, db DBTX, cursor string) ([
 			&i.Workspace.Name,
 			&i.Workspace.Slug,
 			&i.Workspace.K8sNamespace,
-			&i.Workspace.PartitionID,
-			&i.Workspace.Plan,
 			&i.Workspace.Tier,
 			&i.Workspace.StripeCustomerID,
 			&i.Workspace.StripeSubscriptionID,
 			&i.Workspace.BetaFeatures,
-			&i.Workspace.Features,
 			&i.Workspace.Subscriptions,
 			&i.Workspace.Enabled,
 			&i.Workspace.DeleteProtection,

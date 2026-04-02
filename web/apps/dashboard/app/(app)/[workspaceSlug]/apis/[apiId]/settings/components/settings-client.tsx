@@ -10,7 +10,6 @@ import { DeleteApi } from "./delete-api";
 import { DeleteProtection } from "./delete-protection";
 import { SettingsClientSkeleton } from "./skeleton";
 import { UpdateApiName } from "./update-api-name";
-import { UpdateIpWhitelist } from "./update-ip-whitelist";
 
 export const SettingsClient = ({ apiId }: { apiId: string }) => {
   const {
@@ -33,14 +32,13 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
     throw new Error("KeyAuth configuration not found");
   }
 
-  const { currentApi, keyAuth, workspace: workspaceData } = layoutData;
+  const { currentApi, keyAuth } = layoutData;
 
   const api = {
     id: currentApi.id,
     name: currentApi.name,
     workspaceId: currentApi.workspaceId,
     deleteProtection: currentApi.deleteProtection,
-    ipWhitelist: currentApi.ipWhitelist,
   };
 
   const keyAuthForComponents = {
@@ -48,10 +46,6 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
     defaultPrefix: keyAuth.defaultPrefix,
     defaultBytes: keyAuth.defaultBytes,
     sizeApprox: keyAuth.sizeApprox,
-  };
-
-  const workspaceForComponents = {
-    features: { ipWhitelist: workspaceData.ipWhitelist },
   };
 
   return (
@@ -73,11 +67,6 @@ export const SettingsClient = ({ apiId }: { apiId: string }) => {
         <SettingCardGroup>
           <DefaultBytes keyAuth={keyAuthForComponents} apiId={api.id} />
           <DefaultPrefix keyAuth={keyAuthForComponents} apiId={api.id} />
-        </SettingCardGroup>
-      </div>
-      <div className="w-full">
-        <SettingCardGroup>
-          <UpdateIpWhitelist api={api} workspace={workspaceForComponents} />
         </SettingCardGroup>
       </div>
       <SettingsDangerZone>
