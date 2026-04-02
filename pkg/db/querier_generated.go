@@ -2056,7 +2056,6 @@ type Querier interface {
 	//      created_at_m,
 	//      tier,
 	//      beta_features,
-	//      features,
 	//      enabled,
 	//      delete_protection,
 	//      k8s_namespace
@@ -2068,7 +2067,6 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      'Free',
-	//      '{}',
 	//      '{}',
 	//      true,
 	//      true,
@@ -3263,10 +3261,9 @@ type Querier interface {
 	//      created_at_m,
 	//      tier,
 	//      beta_features,
-	//      features,
 	//      enabled,
 	//      delete_protection
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, '{}', true, false)
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, true, false)
 	//  ON DUPLICATE KEY UPDATE
 	//      beta_features = VALUES(beta_features),
 	//      name = VALUES(name)

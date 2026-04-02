@@ -19,7 +19,6 @@ INSERT INTO ` + "`" + `workspaces` + "`" + ` (
     created_at_m,
     tier,
     beta_features,
-    features,
     enabled,
     delete_protection,
     k8s_namespace
@@ -31,7 +30,6 @@ VALUES (
     ?,
     ?,
     'Free',
-    '{}',
     '{}',
     true,
     true,
@@ -58,7 +56,6 @@ type InsertWorkspaceParams struct {
 //	    created_at_m,
 //	    tier,
 //	    beta_features,
-//	    features,
 //	    enabled,
 //	    delete_protection,
 //	    k8s_namespace
@@ -70,7 +67,6 @@ type InsertWorkspaceParams struct {
 //	    ?,
 //	    ?,
 //	    'Free',
-//	    '{}',
 //	    '{}',
 //	    true,
 //	    true,
