@@ -29,7 +29,6 @@ export async function prepareDatabase(): Promise<{
         slug: `unkey-workspace-${randomUUID()}`,
         createdAtM: Date.now(),
         betaFeatures: {},
-        features: {},
       })
       .onDuplicateKeyUpdate({ set: { createdAtM: Date.now() } });
 

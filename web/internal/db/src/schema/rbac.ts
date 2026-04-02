@@ -37,7 +37,6 @@ export const keysPermissions = mysqlTable(
   "keys_permissions",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    tempId: bigint("temp_id", { mode: "number" }),
     keyId: varchar("key_id", { length: 256 }).notNull(),
     permissionId: varchar("permission_id", { length: 256 }).notNull(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
@@ -54,7 +53,6 @@ export const keysPermissions = mysqlTable(
       table.permissionId,
       table.workspaceId,
     ),
-    unique("keys_permissions_temp_id_unique").on(table.tempId),
     unique("key_id_permission_id_idx").on(table.keyId, table.permissionId),
   ],
 );

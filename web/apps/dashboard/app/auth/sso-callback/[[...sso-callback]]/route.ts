@@ -1,3 +1,4 @@
+import { isSafeRedirectPath } from "@/app/auth/sign-in/redirect-utils";
 import { setCookiesOnResponse } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
 import { AuthErrorCode, SIGN_IN_URL } from "@/lib/auth/types";
@@ -13,6 +14,30 @@ export async function GET(request: NextRequest) {
       authResult.cookies?.length > 0 // make typescript happy
     ) {
       const url = new URL(SIGN_IN_URL, request.url);
+
+      // Preserve the redirect URL from OAuth state for deep link support
+      const state = request.nextUrl.searchParams.get("state");
+      if (state) {
+        try {
+          const parsed: unknown = JSON.parse(decodeURIComponent(state));
+          const redirectUrlComplete =
+            typeof parsed === "object" &&
+            parsed !== null &&
+            "redirectUrlComplete" in parsed &&
+            typeof (parsed as { redirectUrlComplete: unknown }).redirectUrlComplete === "string"
+              ? (parsed as { redirectUrlComplete: string }).redirectUrlComplete
+              : null;
+          if (
+            redirectUrlComplete &&
+            redirectUrlComplete !== "/apis" &&
+            isSafeRedirectPath(redirectUrlComplete)
+          ) {
+            url.searchParams.set("redirect", redirectUrlComplete);
+          }
+        } catch {
+          // Ignore state parsing errors
+        }
+      }
 
       // Add orgs to searchParams to make it accessible to the client
       if ("organizations" in authResult) {

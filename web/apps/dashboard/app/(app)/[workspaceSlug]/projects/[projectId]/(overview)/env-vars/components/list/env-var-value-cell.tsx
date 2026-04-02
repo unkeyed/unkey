@@ -118,7 +118,7 @@ export const EnvVarValueCell = memo(function EnvVarValueCell({
           <button
             type="button"
             onClick={handleCopy}
-            className="font-mono max-w-90 bg-gray-3 px-1.5 py-0.5 truncate text-[13px] text-accent-12 cursor-pointer hover:text-accent-11 transition-colors min-w-0 rounded-md h-[22px]"
+            className="font-mono max-w-90 bg-gray-3 px-1.5 py-0.5 truncate text-[13px] text-accent-12 cursor-pointer transition-colors min-w-0 rounded-md h-5.5"
           >
             {decryptedValue}
           </button>

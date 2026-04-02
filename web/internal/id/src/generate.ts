@@ -25,7 +25,6 @@ const prefixes = {
   webhookDelivery: "whd",
   identity: "id",
   ratelimit: "rl",
-  auditLogBucket: "buk",
   auditLog: "log",
   fake: "fake",
   app: "app",

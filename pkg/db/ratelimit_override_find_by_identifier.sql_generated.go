@@ -10,7 +10,7 @@ import (
 )
 
 const findRatelimitOverrideByIdentifier = `-- name: FindRatelimitOverrideByIdentifier :one
-SELECT pk, id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
+SELECT pk, id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
 WHERE
     workspace_id = ?
     AND namespace_id = ?
@@ -25,7 +25,7 @@ type FindRatelimitOverrideByIdentifierParams struct {
 
 // FindRatelimitOverrideByIdentifier
 //
-//	SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, async, sharding, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
+//	SELECT pk, id, workspace_id, namespace_id, identifier, `limit`, duration, created_at_m, updated_at_m, deleted_at_m FROM ratelimit_overrides
 //	WHERE
 //	    workspace_id = ?
 //	    AND namespace_id = ?
@@ -41,8 +41,6 @@ func (q *Queries) FindRatelimitOverrideByIdentifier(ctx context.Context, db DBTX
 		&i.Identifier,
 		&i.Limit,
 		&i.Duration,
-		&i.Async,
-		&i.Sharding,
 		&i.CreatedAtM,
 		&i.UpdatedAtM,
 		&i.DeletedAtM,

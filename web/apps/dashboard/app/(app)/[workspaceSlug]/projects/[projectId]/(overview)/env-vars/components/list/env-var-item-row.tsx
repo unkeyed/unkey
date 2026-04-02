@@ -1,9 +1,10 @@
-import { ChartActivity2 } from "@unkey/icons";
-import { Badge, TimestampInfo } from "@unkey/ui";
 import { EnvVarActionMenu } from "./env-var-action-menu";
+import { EnvVarBaseRow } from "./env-var-base-row";
 import { EnvVarEditRow } from "./env-var-edit-row";
 import { EnvVarNameCell } from "./env-var-name-cell";
 import { EnvVarValueCell } from "./env-var-value-cell";
+
+export { TimestampBadge } from "./env-var-base-row";
 
 export type EnvVarItem = {
   id: string;
@@ -31,6 +32,10 @@ type EnvVarItemRowProps = {
   isEditing: boolean;
   onEdit: () => void;
   onCloseEdit: () => void;
+  isSelected?: boolean;
+  onToggleSelection?: (shiftKey: boolean) => void;
+  selectable?: boolean;
+  hasSelection?: boolean;
 };
 
 export function EnvVarItemRow({
@@ -39,59 +44,52 @@ export function EnvVarItemRow({
   isEditing,
   onEdit,
   onCloseEdit,
+  isSelected = false,
+  onToggleSelection,
+  selectable = true,
+  hasSelection = false,
 }: EnvVarItemRowProps) {
-  return (
-    <div>
-      <div className="group flex items-center hover:bg-grayA-2 transition-colors">
-        <div className="flex-3 min-w-0 py-3.5 flex items-center">
-          <EnvVarNameCell
-            envVarId={item.id}
-            variableKey={item.key}
-            environmentName={item.environmentName}
-            note={item.note}
-            searchQuery={searchQuery}
-            type={item.type}
-          />
-        </div>
-        <div className="flex-4 min-w-0 py-3.5 flex items-center pr-3">
-          <EnvVarValueCell envVarId={item.id} type={item.type} />
-        </div>
-        <div className="flex-2 min-w-0 py-3.5 flex items-center pr-3">
-          <TimestampBadge value={item.updatedAt} />
-        </div>
-        <div className="w-12 shrink-0 py-3.5 pr-3 flex items-center justify-end">
-          <EnvVarActionMenu
-            envVarId={item.id}
-            variableKey={item.key}
-            type={item.type}
-            onEdit={onEdit}
-          />
-        </div>
-      </div>
-      {isEditing && (
-        <div className="grid animate-expand-down overflow-hidden">
-          <div className="min-h-0">
-            <EnvVarEditRow
-              environmentId={item.environmentId}
-              envVarId={item.id}
-              variableKey={item.key}
-              type={item.type}
-              note={item.note ?? null}
-              onClose={onCloseEdit}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+  const showCheckbox = selectable && !!onToggleSelection;
 
-export function TimestampBadge({ value }: { value: number }) {
   return (
-    <Badge className="px-1.5 rounded-md flex gap-2 items-center h-5.5 border-none bg-grayA-3 text-grayA-11 truncate">
-      <ChartActivity2 iconSize="sm-regular" className="shrink-0" />
-      <TimestampInfo displayType="relative" value={value} className="truncate" />
-    </Badge>
+    <EnvVarBaseRow
+      showCheckbox={showCheckbox}
+      checked={isSelected}
+      forceCheckboxVisible={isSelected || hasSelection}
+      onCheckboxClick={showCheckbox ? (shiftKey) => onToggleSelection(shiftKey) : undefined}
+      nameCell={
+        <EnvVarNameCell
+          envVarId={item.id}
+          variableKey={item.key}
+          environmentName={item.environmentName}
+          note={item.note}
+          searchQuery={searchQuery}
+          type={item.type}
+        />
+      }
+      valueCell={<EnvVarValueCell envVarId={item.id} type={item.type} />}
+      timestamp={item.updatedAt}
+      actionsCell={
+        <EnvVarActionMenu
+          envVarId={item.id}
+          variableKey={item.key}
+          type={item.type}
+          onEdit={onEdit}
+        />
+      }
+      expandedContent={
+        isEditing ? (
+          <EnvVarEditRow
+            environmentId={item.environmentId}
+            envVarId={item.id}
+            variableKey={item.key}
+            type={item.type}
+            note={item.note ?? null}
+            onClose={onCloseEdit}
+          />
+        ) : undefined
+      }
+    />
   );
 }
 

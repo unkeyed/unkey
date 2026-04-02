@@ -20,6 +20,7 @@ import {
   verifyTurnstileAndRetry,
 } from "../actions";
 import { SignInContext } from "../context/signin-context";
+import { consumeRedirectUrl, isSafeRedirectPath } from "../sign-in/redirect-utils";
 
 function isAuthErrorResponse(result: VerificationResult): result is AuthErrorResponse {
   return !result.success && "message" in result;
@@ -139,6 +140,13 @@ export function useSignIn() {
         invitationToken,
       });
 
+      // Preserve the redirect param for deep link support, validated to prevent open redirects
+      // Fall back to sessionStorage if the URL param was lost (Safari)
+      const rawRedirect = searchParams?.get("redirect");
+      const redirectParam =
+        (rawRedirect && isSafeRedirectPath(rawRedirect) ? rawRedirect : null) ||
+        consumeRedirectUrl();
+
       // Determine where to redirect based on the verification result
       const redirectUrl = (() => {
         // If we have an invitation token, the verifyAuthCode should have handled
@@ -150,11 +158,15 @@ export function useSignIn() {
         // Only show org selector if we don't have an invitation token
         if (!invitationToken && isPendingOrgSelection(result)) {
           const orgsParam = encodeURIComponent(JSON.stringify(result.organizations));
-          return `${SIGN_IN_URL}?orgs=${orgsParam}`;
+          const redirectSuffix =
+            redirectParam && redirectParam !== "/apis"
+              ? `&redirect=${encodeURIComponent(redirectParam)}`
+              : "";
+          return `${SIGN_IN_URL}?orgs=${orgsParam}${redirectSuffix}`;
         }
 
         if (result.success) {
-          return result.redirectTo;
+          return redirectParam || result.redirectTo;
         }
 
         return null;

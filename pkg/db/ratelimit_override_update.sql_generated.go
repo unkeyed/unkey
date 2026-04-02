@@ -15,7 +15,6 @@ UPDATE ` + "`" + `ratelimit_overrides` + "`" + `
 SET
     ` + "`" + `limit` + "`" + ` = ?,
     duration = ?,
-    async = ?,
     updated_at_m= ?
 WHERE id = ?
 `
@@ -23,7 +22,6 @@ WHERE id = ?
 type UpdateRatelimitOverrideParams struct {
 	Windowlimit int32         `db:"windowlimit"`
 	Duration    int32         `db:"duration"`
-	Async       sql.NullBool  `db:"async"`
 	Now         sql.NullInt64 `db:"now"`
 	ID          string        `db:"id"`
 }
@@ -34,14 +32,12 @@ type UpdateRatelimitOverrideParams struct {
 //	SET
 //	    `limit` = ?,
 //	    duration = ?,
-//	    async = ?,
 //	    updated_at_m= ?
 //	WHERE id = ?
 func (q *Queries) UpdateRatelimitOverride(ctx context.Context, db DBTX, arg UpdateRatelimitOverrideParams) (sql.Result, error) {
 	return db.ExecContext(ctx, updateRatelimitOverride,
 		arg.Windowlimit,
 		arg.Duration,
-		arg.Async,
 		arg.Now,
 		arg.ID,
 	)

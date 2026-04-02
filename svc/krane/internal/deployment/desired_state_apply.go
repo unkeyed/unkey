@@ -17,15 +17,30 @@ import (
 // or [Controller.DeleteDeployment], and the version cursor is advanced on successful
 // processing to enable resumable streaming.
 //
+// Every fullSyncInterval the version cursor is reset to 0 so the next stream
+// replays all topology rows. This acts as a consistency safety net: if a DB
+// update didn't bump the version (e.g. manual fix), or if a message was
+// processed but the apply failed silently, the periodic full sync will
+// reconcile the drift.
+//
 // The loop runs indefinitely until the context is cancelled. It does not use the
 // done channel since the jittered sleep handles graceful reconnection.
 func (c *Controller) runDesiredStateApplyLoop(ctx context.Context) {
+	const fullSyncInterval = 5 * time.Minute
+
 	intervalMin := time.Second
 	intervalMax := 5 * time.Second
+	lastFullSync := time.Now()
 
 	for {
 		interval := intervalMin + time.Millisecond*time.Duration(rand.Float64()*float64(intervalMax.Milliseconds()-intervalMin.Milliseconds()))
 		time.Sleep(interval)
+
+		if time.Since(lastFullSync) >= fullSyncInterval {
+			c.versionLastSeen = 0
+			lastFullSync = time.Now()
+			logger.Info("resetting deployment watch cursor for full sync")
+		}
 
 		err := c.streamDesiredStateOnce(ctx)
 		if err != nil {
