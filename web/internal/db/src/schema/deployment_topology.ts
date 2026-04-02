@@ -21,11 +21,6 @@ export const deploymentTopology = mysqlTable(
     deploymentId: varchar("deployment_id", { length: 64 }).notNull(),
     regionId: varchar("region_id", { length: 64 }).notNull(),
 
-    // Deprecated: Use autoscalingReplicasMax instead. This field is still read by
-    // the deploy health check and quota calculation but will be removed once those
-    // are migrated to use the autoscaling columns.
-    desiredReplicas: int("desired_replicas").notNull(),
-
     // HPA scaling configuration, snapshotted from the autoscaling policy at deploy time.
     // Minimum number of pod replicas the HPA will maintain.
     autoscalingReplicasMin: int("autoscaling_replicas_min", { unsigned: true })

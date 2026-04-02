@@ -556,7 +556,6 @@ CREATE TABLE `deployment_topology` (
 	`workspace_id` varchar(64) NOT NULL,
 	`deployment_id` varchar(64) NOT NULL,
 	`region_id` varchar(64) NOT NULL,
-	`desired_replicas` int NOT NULL,
 	`autoscaling_replicas_min` int unsigned NOT NULL DEFAULT 1,
 	`autoscaling_replicas_max` int unsigned NOT NULL DEFAULT 1,
 	`autoscaling_threshold_cpu` tinyint unsigned,

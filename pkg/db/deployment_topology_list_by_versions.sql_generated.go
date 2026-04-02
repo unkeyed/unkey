@@ -12,7 +12,7 @@ import (
 
 const listDeploymentTopologyByRegion = `-- name: ListDeploymentTopologyByRegion :many
 SELECT
-    dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+    dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
     d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.status, d.created_at, d.updated_at,
     w.k8s_namespace,
     e.slug AS environment_slug,
@@ -48,7 +48,7 @@ type ListDeploymentTopologyByRegionRow struct {
 // Used by WatchDeployments to stream deployment state changes to krane agents.
 //
 //	SELECT
-//	    dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.desired_replicas, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
+//	    dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.version, dt.desired_status, dt.created_at, dt.updated_at,
 //	    d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.status, d.created_at, d.updated_at,
 //	    w.k8s_namespace,
 //	    e.slug AS environment_slug,
@@ -77,7 +77,6 @@ func (q *Queries) ListDeploymentTopologyByRegion(ctx context.Context, db DBTX, a
 			&i.DeploymentTopology.WorkspaceID,
 			&i.DeploymentTopology.DeploymentID,
 			&i.DeploymentTopology.RegionID,
-			&i.DeploymentTopology.DesiredReplicas,
 			&i.DeploymentTopology.AutoscalingReplicasMin,
 			&i.DeploymentTopology.AutoscalingReplicasMax,
 			&i.DeploymentTopology.AutoscalingThresholdCpu,

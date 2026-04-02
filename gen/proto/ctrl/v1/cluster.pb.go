@@ -1271,9 +1271,6 @@ type ApplyDeployment struct {
 	// Must be a valid container registry URL accessible by the cluster.
 	// Example: "gcr.io/myproject/app:v2.1.0"
 	Image string `protobuf:"bytes,7,opt,name=image,proto3" json:"image,omitempty"`
-	// replicas is the desired number of pod instances.
-	// Must be at least 1. Set higher for increased availability and load distribution.
-	Replicas int32 `protobuf:"varint,8,opt,name=replicas,proto3" json:"replicas,omitempty"`
 	// cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
 	// This ensures each pod has sufficient CPU resources.
 	// Example: 250 = 0.25 CPU cores
@@ -1305,10 +1302,9 @@ type ApplyDeployment struct {
 	GitBranch        *string `protobuf:"bytes,24,opt,name=git_branch,json=gitBranch,proto3,oneof" json:"git_branch,omitempty"`
 	GitRepo          *string `protobuf:"bytes,25,opt,name=git_repo,json=gitRepo,proto3,oneof" json:"git_repo,omitempty"`
 	GitCommitMessage *string `protobuf:"bytes,26,opt,name=git_commit_message,json=gitCommitMessage,proto3,oneof" json:"git_commit_message,omitempty"`
-	// Horizontal autoscaling policy. When present, krane creates an HPA with
-	// these values instead of the defaults (min=1, max=replicas, cpu=80%).
+	// Horizontal autoscaling policy. Krane creates an HPA with these values.
 	// Populated from the horizontal_autoscaling_policies table via app_regional_settings.
-	Autoscaling   *AutoscalingPolicy `protobuf:"bytes,27,opt,name=autoscaling,proto3,oneof" json:"autoscaling,omitempty"`
+	Autoscaling   *AutoscalingPolicy `protobuf:"bytes,27,opt,name=autoscaling,proto3" json:"autoscaling,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1390,13 +1386,6 @@ func (x *ApplyDeployment) GetImage() string {
 		return x.Image
 	}
 	return ""
-}
-
-func (x *ApplyDeployment) GetReplicas() int32 {
-	if x != nil {
-		return x.Replicas
-	}
-	return 0
 }
 
 func (x *ApplyDeployment) GetCpuMillicores() int64 {
@@ -1996,7 +1985,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"memory_mib\x18\n" +
 	" \x01(\x03R\tmemoryMib\"+\n" +
 	"\x0eDeleteSentinel\x12\x19\n" +
-	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\x99\b\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xe8\a\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
@@ -2005,8 +1994,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"project_id\x18\x04 \x01(\tR\tprojectId\x12%\n" +
 	"\x0eenvironment_id\x18\x05 \x01(\tR\renvironmentId\x12#\n" +
 	"\rdeployment_id\x18\x06 \x01(\tR\fdeploymentId\x12\x14\n" +
-	"\x05image\x18\a \x01(\tR\x05image\x12\x1a\n" +
-	"\breplicas\x18\b \x01(\x05R\breplicas\x12%\n" +
+	"\x05image\x18\a \x01(\tR\x05image\x12%\n" +
 	"\x0ecpu_millicores\x18\t \x01(\x03R\rcpuMillicores\x12\x1d\n" +
 	"\n" +
 	"memory_mib\x18\n" +
@@ -2024,8 +2012,8 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\n" +
 	"git_branch\x18\x18 \x01(\tH\x05R\tgitBranch\x88\x01\x01\x12\x1e\n" +
 	"\bgit_repo\x18\x19 \x01(\tH\x06R\agitRepo\x88\x01\x01\x121\n" +
-	"\x12git_commit_message\x18\x1a \x01(\tH\aR\x10gitCommitMessage\x88\x01\x01\x12A\n" +
-	"\vautoscaling\x18\x1b \x01(\v2\x1a.ctrl.v1.AutoscalingPolicyH\bR\vautoscaling\x88\x01\x01B\v\n" +
+	"\x12git_commit_message\x18\x1a \x01(\tH\aR\x10gitCommitMessage\x88\x01\x01\x12<\n" +
+	"\vautoscaling\x18\x1b \x01(\v2\x1a.ctrl.v1.AutoscalingPolicyR\vautoscalingB\v\n" +
 	"\t_build_idB\x0e\n" +
 	"\f_healthcheckB\x13\n" +
 	"\x11_environment_slugB\t\n" +
@@ -2033,8 +2021,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0f_git_commit_shaB\r\n" +
 	"\v_git_branchB\v\n" +
 	"\t_git_repoB\x15\n" +
-	"\x13_git_commit_messageB\x0e\n" +
-	"\f_autoscaling\"\xda\x01\n" +
+	"\x13_git_commit_message\"\xda\x01\n" +
 	"\x11AutoscalingPolicy\x12!\n" +
 	"\fmin_replicas\x18\x01 \x01(\rR\vminReplicas\x12!\n" +
 	"\fmax_replicas\x18\x02 \x01(\rR\vmaxReplicas\x12(\n" +
