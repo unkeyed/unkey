@@ -31,7 +31,6 @@ export default async function Page() {
       slug: `personal-workspace-${randomInt(100000)}`,
       orgId,
       betaFeatures: {},
-      features: {},
       k8sNamespace: dns1035(12),
     });
 

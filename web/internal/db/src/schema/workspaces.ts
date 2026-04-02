@@ -60,36 +60,6 @@ export const workspaces = mysqlTable("workspaces", {
       portal?: boolean;
     }>()
     .notNull(),
-  features: json("features")
-    .$type<{
-      /**
-       * enable audit log retention by specifiying the number of days
-       *
-       * undefined should fall back to a default
-       */
-      auditLogRetentionDays?: number;
-
-      /**
-       * enable ratelimit retention by specifiying the number of days
-       * undefined, 0 or negative means it's disabled
-       */
-      ratelimitRetentionDays?: number;
-
-      /**
-       * How many custom overrides a workspace may create.
-       */
-      ratelimitOverrides?: number;
-
-      /**
-       * Can access /app/success
-       */
-      successPage?: boolean;
-
-      ipWhitelist?: boolean;
-      webhooks?: boolean;
-    }>()
-    .notNull(),
-
   /**
    * deprecated, most customers are on stripe subscriptions instead
    */

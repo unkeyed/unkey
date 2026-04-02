@@ -70,7 +70,6 @@ export const createWorkspace = protectedProcedure
           tier: "Free",
           stripeCustomerId: null,
           stripeSubscriptionId: null,
-          features: {},
           betaFeatures: {},
           subscriptions: {},
           enabled: true,
