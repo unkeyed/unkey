@@ -6,4 +6,4 @@ SET verification_status = sqlc.arg(verification_status),
     last_checked_at = NULL,
     invocation_id = sqlc.narg(invocation_id),
     updated_at = sqlc.arg(updated_at)
-WHERE domain = sqlc.arg(domain);
+WHERE id = sqlc.arg(id);

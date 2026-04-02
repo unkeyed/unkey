@@ -94,23 +94,6 @@ export const getStatusStyle = (log: KeysOverviewLog): StatusStyle => {
   }
 };
 
-export const getOutcomeBadgeClass = (outcome: string): string => {
-  const severity = categorizeSeverity(outcome);
-
-  switch (severity) {
-    case "error":
-      return "bg-error-4 text-error-11";
-    case "moderate":
-      return "bg-orange-4 text-orange-11";
-    case "warning":
-      return "bg-warning-4 text-warning-11";
-    case "success":
-      return "bg-accent-4 text-accent-11";
-    default:
-      return "bg-gray-4 text-gray-11";
-  }
-};
-
 export const getRowClassName = (log: KeysOverviewLog, selectedLog: KeysOverviewLog) => {
   const style = getStatusStyle(log);
   const isSelected = log.key_id === selectedLog?.key_id;

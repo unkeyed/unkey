@@ -1,0 +1,53 @@
+---
+title: "login"
+description: "Authenticate the CLI by storing your root key locally"
+---
+
+Authenticate the CLI by storing your root key locally.
+
+Use this before running other commands so you don't need to pass `--root-key` every time. The command prompts for your root key interactively (input is hidden) and saves it to `~/.unkey/config.toml` with restricted file permissions.
+
+You can create a root key from the [Unkey dashboard](/platform/root-keys/overview).
+
+<Note>
+Your root key is stored in plaintext at `~/.unkey/config.toml`. Make sure only your user account can read this file. The CLI creates it with `0600` permissions by default.
+</Note>
+
+## Usage
+
+```bash
+unkey auth login
+```
+
+The command prompts you to enter your root key. Input is hidden for security:
+
+```
+Enter your root key: ••••••••••••
+Authentication successful. Key stored in /home/you/.unkey/config.toml
+```
+
+Once stored, all subsequent commands use this key automatically:
+
+```bash
+# No --root-key needed
+unkey api keys create-key --api-id=api_1234abcd --name="My Key"
+```
+
+## Overriding the stored key
+
+You can override the stored key on a per-command basis using the `--root-key` flag or the `UNKEY_ROOT_KEY` environment variable:
+
+```bash
+# Flag takes highest priority
+unkey api apis get-api --api-id=api_1234abcd --root-key=unkey_xxx
+
+# Environment variable
+export UNKEY_ROOT_KEY=unkey_xxx
+unkey api apis get-api --api-id=api_1234abcd
+```
+
+The priority order is: `--root-key` flag > `UNKEY_ROOT_KEY` env var > `~/.unkey/config.toml`.
+
+## Updating your key
+
+Run `unkey auth login` again to replace the stored key. The new key overwrites the previous one.

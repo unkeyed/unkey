@@ -117,7 +117,6 @@ const NavbarContent = ({
       keyAuthId: keyspaceId ?? "",
       // This cannot be empty string but required to silence TS errors
       keyIds: [{ operator: "is", value: keyId ?? "" }],
-      cursor: null,
       identities: null,
       limit: 1,
       names: null,

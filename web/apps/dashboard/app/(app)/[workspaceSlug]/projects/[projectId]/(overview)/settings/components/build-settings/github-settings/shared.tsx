@@ -50,14 +50,22 @@ export const ManageGitHubAppLink = ({
   variant = "ghost",
   className = "-ml-3 px-3 py-2 rounded-lg",
   text = "Manage Github App",
+  onBeforeNavigate,
 }: {
   installUrl: string;
   variant?: "outline" | "ghost";
   className?: string;
   text?: React.ReactNode;
+  onBeforeNavigate?: () => void;
 }) => (
   <Button variant={variant} className={className}>
-    <a href={installUrl} className="text-sm text-gray-12" target="_blank" rel="noopener noreferrer">
+    <a
+      href={installUrl}
+      className="text-sm text-gray-12"
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={onBeforeNavigate}
+    >
       {text}
     </a>
   </Button>

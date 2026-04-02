@@ -66,6 +66,7 @@ If Restate sees the same idempotency key twice, it deduplicates — pick a granu
 | `cert-renewal`     | `0 3 * * *`     | Renews certificates expiring within 30 days |
 | `key-refill`       | `0 0 * * *`     | Refills API key pools                     |
 | `scale-down-idle`  | `0 * * * *` / `*/15 * * * *` | Scales down idle preview deployments (hourly staging, every 15min prod) |
+| `key-last-used-sync` | `* * * * *`   | Syncs `lastUsedAt` timestamps from ClickHouse to MySQL every minute ([details](/architecture/services/control-plane/worker/workflows/key-last-used-sync)) |
 
 ## Runtime details
 

@@ -134,6 +134,13 @@ docker_build('unkey/mysql:local', '..', dockerfile='./Dockerfile.mysql')
 k8s_yaml('k8s/manifests/mysql.yaml')
 k8s_resource('mysql', port_forwards='3306:3306', resource_deps=[], labels=['database'])
 
+local_resource(
+    'seed',
+    'cd .. && go run . dev seed local',
+    resource_deps=['mysql'],
+    labels=['setup'],
+)
+
 # ClickHouse service
 docker_build('unkey/clickhouse:local', '..', dockerfile='./Dockerfile.clickhouse')
 k8s_yaml('k8s/manifests/clickhouse.yaml')
@@ -159,6 +166,12 @@ k8s_resource(
 # Restate service
 k8s_yaml('k8s/manifests/restate.yaml')
 k8s_resource('restate', port_forwards=['8080:8080', '9070:9070'], resource_deps=[], labels=['database'])
+
+# Restate CronJobs (scheduled tasks that call Restate handlers)
+k8s_yaml(helm('k8s/charts/restate-cronjobs'))
+k8s_resource('restate-key-last-used-sync', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
+k8s_resource('restate-key-refill', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
+k8s_resource('restate-quota-check', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
 
 
 # Build Go binaries locally (auto-detect arch from minikube)

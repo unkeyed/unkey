@@ -65,7 +65,7 @@ export const useFilters = () => {
         const validOperators = fieldConfig.operators;
 
         if (!validOperators.includes(filter.operator)) {
-          throw new Error("Invalid operator");
+          return;
         }
 
         if (typeof filter.value === "string") {

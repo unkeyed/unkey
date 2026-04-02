@@ -4,13 +4,25 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { queryClient } from "@/lib/collections/client";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CodeBranch, Plus } from "@unkey/icons";
-import { Button, FormInput, TimestampInfo, toast } from "@unkey/ui";
+import { ChevronDown, CodeBranch, Plus } from "@unkey/icons";
+import {
+  Button,
+  FormDescription,
+  FormInput,
+  FormLabel,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  TimestampInfo,
+  toast,
+} from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import type React from "react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { RepoDisplay } from "../../../_components/list/repo-display";
 import { useProjectData } from "../data-provider";
@@ -24,6 +36,7 @@ const DynamicDialogContainer = dynamic(
 );
 
 const formSchema = z.object({
+  environment: z.string().min(1, "Environment is required"),
   name: z
     .string()
     .trim()
@@ -80,18 +93,30 @@ export const CreateDeploymentButton = ({
   );
 
   const branches = repoDetails.data?.branches ?? [];
-  const firstEnvironment = environments[0];
+
+  const defaultEnvironmentSlug =
+    environments.find((e) => e.slug === "production")?.slug ?? environments[0]?.slug ?? "";
 
   const {
     register,
     handleSubmit,
     setValue,
     reset,
+    control,
     formState: { errors, isValid, isSubmitting },
   } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
+    defaultValues: {
+      environment: defaultEnvironmentSlug,
+    },
   });
+
+  useEffect(() => {
+    if (defaultEnvironmentSlug) {
+      setValue("environment", defaultEnvironmentSlug, { shouldValidate: true });
+    }
+  }, [defaultEnvironmentSlug, setValue]);
 
   const createDeployment = trpc.deploy.deployment.create.useMutation({
     async onSuccess(data) {
@@ -110,21 +135,23 @@ export const CreateDeploymentButton = ({
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!firstEnvironment) {
-      return;
-    }
     createDeployment.mutate({
       projectId,
-      environmentSlug: firstEnvironment.slug,
+      environmentSlug: values.environment,
       gitRef: values.name,
     });
   }
 
   return (
     <>
-      <NavbarActionButton {...rest} color="default" onClick={() => setIsOpen(true)}>
-        <Plus />
-        Create new deployment
+      <NavbarActionButton
+        {...rest}
+        color="default"
+        variant="outline"
+        className="size-7"
+        onClick={() => setIsOpen(true)}
+      >
+        <Plus iconSize="sm-regular" />
       </NavbarActionButton>
       <DynamicDialogContainer
         isOpen={isOpen}
@@ -139,7 +166,9 @@ export const CreateDeploymentButton = ({
               form="create-deployment-form"
               variant="primary"
               size="xlg"
-              disabled={createDeployment.isLoading || isSubmitting || !isValid || !firstEnvironment}
+              disabled={
+                createDeployment.isLoading || isSubmitting || !isValid || environments.length === 0
+              }
               loading={createDeployment.isLoading || isSubmitting}
               className="w-full rounded-lg"
             >
@@ -148,7 +177,7 @@ export const CreateDeploymentButton = ({
           </div>
         }
       >
-        <div className="flex flex-col gap-8 py-3">
+        <div className="flex flex-col gap-10 py-3">
           {repositoryFullName && (
             <div className="flex items-start gap-2 flex-col">
               <RepoDisplay
@@ -170,9 +199,46 @@ export const CreateDeploymentButton = ({
             </div>
           )}
 
-          <form id="create-deployment-form" onSubmit={handleSubmit(onSubmit)}>
+          <form
+            id="create-deployment-form"
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col gap-6"
+          >
+            <fieldset className="flex flex-col gap-2 border-0 m-0 p-0">
+              <FormLabel label="Environment" htmlFor="environment-select" />
+              <Controller
+                control={control}
+                name="environment"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger
+                      id="environment-select"
+                      className="capitalize"
+                      variant={errors.environment ? "error" : "default"}
+                      rightIcon={<ChevronDown className="absolute right-3 size-3 opacity-70" />}
+                    >
+                      <SelectValue placeholder="Select environment" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {environments.map((env) => (
+                        <SelectItem key={env.id} value={env.slug} className="capitalize">
+                          {env.slug}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FormDescription
+                description="Target environment for this deployment."
+                descriptionId="environment-select-description"
+                errorId="environment-select-error"
+                error={errors.environment?.message}
+              />
+            </fieldset>
             <FormInput
               label="Commit or Branch Reference"
+              className="min-h-9"
               description={
                 repositoryFullName
                   ? `Paste a valid commit reference to create a new deployment in addition to those auto-generated from ${repositoryFullName}.`

@@ -15,6 +15,10 @@ type GitHubClient interface {
 	// the public GitHub API without authentication. Only works for public repos.
 	GetBranchHeadCommitPublic(repo string, branch string) (CommitInfo, error)
 
+	// GetCommitBySHA retrieves commit metadata for a specific SHA using
+	// the given installation's credentials.
+	GetCommitBySHA(installationID int64, repo string, sha string) (CommitInfo, error)
+
 	// CreateDeployment creates a GitHub Deployment on a commit SHA. Returns the
 	// GitHub deployment ID for subsequent status updates.
 	CreateDeployment(installationID int64, repo string, ref string, environment string, description string, isProduction bool) (int64, error)

@@ -4,7 +4,7 @@ import {
 } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
 import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
-import { zodResponseFormat } from "openai/helpers/zod.mjs";
+import { zodResponseFormat } from "openai/helpers/zod";
 
 /**
  * Creates a Zod schema for validating LLM-generated structured filter output.
@@ -19,7 +19,7 @@ import { zodResponseFormat } from "openai/helpers/zod.mjs";
  *   ratelimitFilterFieldConfig
  * );
  *
- * const llmResponse = await openai.beta.chat.completions.parse({
+ * const llmResponse = await openai.chat.completions.parse({
  *   response_format: zodResponseFormat(schema, "searchQuery")
  * });
  */
@@ -35,7 +35,7 @@ export async function getStructuredSearchFromLLM(
         message: "OpenAI isn't configured correctly, please check your API key",
       });
     }
-    const completion = await openai.beta.chat.completions.parse({
+    const completion = await openai.chat.completions.parse({
       // Don't change the model only a few models allow structured outputs
       model: "gpt-4o-mini",
       temperature: 0.2, // Range 0-2, lower = more focused/deterministic

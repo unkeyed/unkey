@@ -8,6 +8,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
+import { SettingField } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 
 const commandSchema = z.object({
@@ -73,16 +74,18 @@ export const Command = () => {
       saveState={saveState}
       autoSave={variant === "onboarding"}
     >
-      <FormTextarea
-        label="Command"
-        placeholder="~ npm start"
-        className="w-[480px] [&_textarea]:font-mono"
-        description="
-        Overrides the default container startup command. Arguments are split on whitespace. Leave
-        empty to use the image's default command."
-        variant={errors.command ? "error" : "default"}
-        {...register("command")}
-      />
+      <SettingField>
+        <FormTextarea
+          label="Command"
+          placeholder="~ npm start"
+          className="[&_textarea]:font-mono"
+          description="
+          Overrides the default container startup command. Arguments are split on whitespace. Leave
+          empty to use the image's default command."
+          variant={errors.command ? "error" : "default"}
+          {...register("command")}
+        />
+      </SettingField>
     </FormSettingCard>
   );
 };

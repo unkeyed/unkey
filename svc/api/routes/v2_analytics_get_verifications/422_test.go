@@ -28,7 +28,7 @@ func Test422_ExceedsMaxMemory(t *testing.T) {
 
 	// Buffer many verifications to ensure memory usage exceeds limit
 	for i := range 50_000 {
-		h.ClickHouse.BufferKeyVerification(schema.KeyVerification{
+		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        now - int64(i*1000),
 			WorkspaceID: workspace.ID,
@@ -44,7 +44,6 @@ func Test422_ExceedsMaxMemory(t *testing.T) {
 	route := &Handler{
 		DB:                         h.DB,
 		Keys:                       h.Keys,
-		ClickHouse:                 h.ClickHouse,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
 	}

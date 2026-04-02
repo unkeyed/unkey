@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
@@ -33,6 +34,8 @@ func New(cfg Config) (*service, error) {
 }
 
 func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, error) {
+	start := time.Now()
+
 	route, sentinels, err := s.lookupByHostname(ctx, hostname)
 	if err != nil {
 		return RouteDecision{}, err
@@ -40,10 +43,25 @@ func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, er
 
 	instances, err := s.getInstances(ctx, route.DeploymentID)
 	if err != nil {
+		routingErrorsTotal.WithLabelValues("instance_load_failed").Inc()
 		return RouteDecision{}, err
 	}
 
-	return s.selectSentinel(route, sentinels, instances)
+	decision, err := s.selectSentinel(route, sentinels, instances)
+
+	routingDuration.Observe(time.Since(start).Seconds())
+
+	if err != nil {
+		return RouteDecision{}, err
+	}
+
+	if decision.Destination == DestinationLocalSentinel {
+		routingDecisionsTotal.WithLabelValues("local_sentinel", s.regionPlatform).Inc()
+	} else {
+		routingDecisionsTotal.WithLabelValues("remote_region", decision.Address).Inc()
+	}
+
+	return decision, nil
 }
 
 func (s *service) ValidateHostname(ctx context.Context, hostname string) error {

@@ -1,0 +1,37 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "apis",
+    srcs = [
+        "create_api.go",
+        "delete_api.go",
+        "get_api.go",
+        "list_keys.go",
+        "root.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/cmd/api/apis",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/api/util",
+        "//pkg/cli",
+        "//pkg/ptr",
+        "@com_github_unkeyed_sdks_api_go_v2//models/components",
+    ],
+)
+
+go_test(
+    name = "apis_test",
+    srcs = [
+        "create_api_test.go",
+        "delete_api_test.go",
+        "get_api_test.go",
+        "list_keys_test.go",
+    ],
+    embed = [":apis"],
+    deps = [
+        "//cmd/api/util",
+        "//pkg/ptr",
+        "//svc/api/openapi",
+        "@com_github_stretchr_testify//require",
+    ],
+)

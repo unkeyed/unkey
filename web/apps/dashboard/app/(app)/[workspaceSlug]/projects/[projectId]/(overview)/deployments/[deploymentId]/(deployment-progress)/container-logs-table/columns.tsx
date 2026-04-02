@@ -16,9 +16,17 @@ export type ContainerLogRow = {
 function SeverityIcon({ severity }: { severity: string }) {
   switch (severity.toUpperCase()) {
     case "ERROR":
-      return <TriangleWarning className="text-error-11" iconSize="md-regular" />;
+      return (
+        <div className="my-2">
+          <TriangleWarning className="text-error-11" iconSize="md-regular" />
+        </div>
+      );
     case "WARN":
-      return <TriangleWarning className="text-warning-11" iconSize="md-regular" />;
+      return (
+        <div className="my-2">
+          <TriangleWarning className="text-warning-11" iconSize="md-regular" />
+        </div>
+      );
     default:
       return null;
   }
@@ -30,30 +38,31 @@ export const containerLogColumns: Column<ContainerLogRow>[] = [
     width: "auto",
     cellClassName: "pl-[25px]",
     render: (log) => (
-      <div className="flex items-center gap-6">
+      <div className="font-mono text-xs my-2">
         <TimestampInfo
           displayType="local_hours_with_millis"
           value={log.time}
           className="font-mono group-hover:underline decoration-dotted"
         />
-        <SeverityIcon severity={log.severity} />
-        <div className="items-center flex gap-2">
-          <RegionFlag flagCode={mapRegionToFlag(log.region)} size="xs" shape="circle" />
-          <span className="font-mono text-xs uppercase">{log.region}</span>
-        </div>
-        <span className="font-mono truncate text-xs" title={log.instance_id}>
-          {log.instance_id}
-        </span>
-        <div className="flex-1 min-w-0">
-          <TruncatedCell
-            text={log.message}
-            threshold={120}
-            maxWidth="max-w-[750px]"
-            className="text-gray-12"
-            side="top"
-          />
-        </div>
       </div>
+    ),
+  },
+  {
+    key: "severity",
+    width: "32px",
+    render: (log) => <SeverityIcon severity={log.severity} />,
+  },
+  {
+    key: "message",
+    width: "auto",
+    render: (log) => (
+      <TruncatedCell
+        text={log.message}
+        threshold={120}
+        maxWidth="max-w-[750px]"
+        className="text-gray-12"
+        side="top"
+      />
     ),
   },
 ];

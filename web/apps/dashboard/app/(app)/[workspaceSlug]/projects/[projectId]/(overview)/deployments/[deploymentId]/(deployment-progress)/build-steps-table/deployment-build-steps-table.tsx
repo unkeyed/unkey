@@ -38,7 +38,7 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps }) => {
             key={column.key}
             className={cn(
               "text-xs align-middle whitespace-nowrap",
-              idx === 0 ? "pl-[18px]" : "",
+              idx === 0 ? "pl-4.5" : "",
               column.cellClassName,
             )}
             style={{ height: `${rowHeight}px` }}

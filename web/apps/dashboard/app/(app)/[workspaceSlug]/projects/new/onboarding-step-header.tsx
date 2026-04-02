@@ -69,7 +69,6 @@ export const OnboardingStepHeader = ({
   return (
     <div className="flex flex-col items-center">
       {showIconRow && <IconRow />}
-      <div className="mb-5" />
       {allowBack && (
         <Button
           variant="ghost"
@@ -85,7 +84,6 @@ export const OnboardingStepHeader = ({
         <div className="font-semibold text-lg text-gray-12">{title}</div>
         {subtitle && <div className="text-[13px] text-gray-11 text-center">{subtitle}</div>}
       </div>
-      <div className="mb-6" />
     </div>
   );
 };

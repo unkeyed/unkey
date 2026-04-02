@@ -16,12 +16,13 @@ interface GetAllKeysInput {
     tags?: AllOperatorsUrlValue[] | null;
   };
   limit?: number;
-  cursorKeyId?: string | null;
+  page?: number;
+  sortBy?: "id" | "start" | "lastUsedAt";
+  sortOrder?: "asc" | "desc";
 }
 
 interface GetAllKeysResult {
   keys: KeyDetails[];
-  hasMore: boolean;
   totalCount: number;
 }
 
@@ -36,7 +37,9 @@ export async function getAllKeys({
   workspaceId,
   filters = {},
   limit = 50,
-  cursorKeyId = null,
+  page = 1,
+  sortBy = "id",
+  sortOrder = "desc",
 }: GetAllKeysInput): Promise<GetAllKeysResult> {
   const { keyIds, names, identities: identityFilters, tags } = filters;
 
@@ -281,18 +284,7 @@ export async function getAllKeys({
 
     const totalCount = countResult?.count ?? 0;
     const keysQuery = await db.query.keys.findMany({
-      where: (key, helpers) => {
-        const { and, lt } = helpers;
-        // Get base filter conditions
-        const filterConditions = buildFilterConditions(key, helpers);
-
-        // Add cursor condition for pagination only
-        if (cursorKeyId) {
-          return and(filterConditions, lt(key.id, cursorKeyId));
-        }
-
-        return filterConditions;
-      },
+      where: (key, helpers) => buildFilterConditions(key, helpers),
       with: {
         ratelimits: {
           columns: {
@@ -309,14 +301,17 @@ export async function getAllKeys({
           },
         },
       },
-      limit: limit + 1, // Fetch one extra to determine if there are more results
-      orderBy: (keys, { desc }) => desc(keys.id),
+      limit,
+      offset: (page - 1) * limit,
+      orderBy: (keys, helpers) => {
+        const column = keys[sortBy];
+        const primary = sortOrder === "desc" ? helpers.desc(column) : helpers.asc(column);
+        const tiebreaker = sortOrder === "desc" ? helpers.desc(keys.id) : helpers.asc(keys.id);
+        return [primary, tiebreaker];
+      },
     });
 
-    // Determine if there are more results
-    const hasMore = keysQuery.length > limit;
-    // Remove the extra item if it exists
-    const keys = hasMore ? keysQuery.slice(0, limit) : keysQuery;
+    const keys = keysQuery;
 
     const transformedKeys: KeyDetails[] = keys.map((key) => {
       const identityData = key.identity
@@ -334,6 +329,7 @@ export async function getAllKeys({
         identity: identityData,
         updated_at_m: key.updatedAtM,
         start: key.start,
+        last_used_at: key.lastUsedAt,
         metadata: key.meta,
         key: {
           credits: {
@@ -358,7 +354,6 @@ export async function getAllKeys({
 
     return {
       keys: transformedKeys,
-      hasMore,
       totalCount,
     };
   } catch (error) {

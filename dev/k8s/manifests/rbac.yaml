@@ -77,6 +77,11 @@ rules:
     resources: ["ciliumnetworkpolicies"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
+  # HorizontalPodAutoscaler management for deployment workloads
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
   # PodDisruptionBudget management for sentinel workloads
   - apiGroups: ["policy"]
     resources: ["poddisruptionbudgets"]

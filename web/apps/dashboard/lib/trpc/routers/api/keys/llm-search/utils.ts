@@ -5,7 +5,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type OpenAI from "openai";
-import { zodResponseFormat } from "openai/helpers/zod.mjs";
+import z from "zod";
 
 /**
  * Creates a Zod schema for validating LLM-generated structured filter output for keys.
@@ -21,12 +21,12 @@ export async function getKeysStructuredSearchFromLLM(
   openai: OpenAI | null,
   userSearchMsg: string,
   usersReferenceMS: number,
-) {
+): Promise<z.infer<typeof filterOutputSchema> | null> {
   try {
     if (!openai) {
       return null; // Skip LLM processing in development environment when OpenAI API key is not configured
     }
-    const completion = await openai.beta.chat.completions.parse({
+    const completion = await openai.chat.completions.parse({
       // Don't change the model only a few models allow structured outputs
       model: "gpt-4o-mini",
       temperature: 0.2, // Range 0-2, lower = more focused/deterministic
@@ -44,10 +44,18 @@ export async function getKeysStructuredSearchFromLLM(
           content: userSearchMsg,
         },
       ],
-      response_format: zodResponseFormat(filterOutputSchema, "searchQuery"),
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "api-keys-ai-search",
+          strict: true,
+          schema: z.toJSONSchema(filterOutputSchema, { target: "draft-7" }),
+        },
+      },
     });
 
-    if (!completion.choices[0].message.parsed) {
+    const rawContent = completion.choices[0].message.content;
+    if (!rawContent) {
       throw new TRPCError({
         code: "UNPROCESSABLE_CONTENT",
         message:
@@ -61,7 +69,8 @@ export async function getKeysStructuredSearchFromLLM(
       });
     }
 
-    return completion.choices[0].message.parsed;
+    const parsed = filterOutputSchema.parse(JSON.parse(rawContent));
+    return parsed;
   } catch (error) {
     console.error(
       `Something went wrong when querying OpenAI. Input: ${JSON.stringify(
@@ -108,7 +117,7 @@ export const getKeysSystemPrompt = (usersReferenceMS: number) => {
       }${constraints}`;
     })
     .join("\n");
-  return `You are an expert at converting natural language queries into filters for API key searches, understanding context and inferring filter types from natural expressions. Handle complex, ambiguous queries by breaking them down into clear filters. For outcomes, use one of the valid outcome values like "valid", "invalid", etc. Use ${usersReferenceMS} timestamp for time-related queries.
+  return `You are an expert at converting natural language queries into filters for API key searches, understanding context and inferring filter types from natural expressions. Handle complex, ambiguous queries by breaking them down into clear filters. For outcomes, use ONLY the exact uppercase values from KEY_VERIFICATION_OUTCOMES (VALID, INSUFFICIENT_PERMISSIONS, RATE_LIMITED, FORBIDDEN, DISABLED, EXPIRED, USAGE_EXCEEDED). When users mention "errors" or "failures", include ALL non-VALID outcomes. Use ${usersReferenceMS} timestamp for time-related queries.
 
 Examples:
 
@@ -147,17 +156,17 @@ Query: "show valid keys"
 Result: [
   {
     field: "outcomes",
-    filters: [{ operator: "is", value: "valid" }]
+    filters: [{ operator: "is", value: "VALID" }]
   }
 ]
 
-Query: "find all invalid and expired keys"
+Query: "find all rate limited and expired keys"
 Result: [
   {
     field: "outcomes",
     filters: [
-      { operator: "is", value: "invalid" },
-      { operator: "is", value: "expired" }
+      { operator: "is", value: "RATE_LIMITED" },
+      { operator: "is", value: "EXPIRED" }
     ]
   }
 ]
@@ -201,7 +210,7 @@ Query: "show expired keys from last 2h with name containing test"
 Result: [
   {
     field: "outcomes",
-    filters: [{ operator: "is", value: "expired" }]
+    filters: [{ operator: "is", value: "EXPIRED" }]
   },
   {
     field: "since",
@@ -231,7 +240,7 @@ Special handling rules:
 3. Key IDs and names support both exact matches and contains operations
 
 Error Handling Rules:
-1. Invalid outcome values: Default to "invalid" for negative terms (failed, error), "valid" for positive terms
+1. Invalid outcome values: Default to "FORBIDDEN" for negative terms (failed, error, invalid), "VALID" for positive terms (success, valid). IMPORTANT: outcome values are ALWAYS uppercase and must exactly match one of the valid KEY_VERIFICATION_OUTCOMES values listed above.
 2. For ambiguous key names or IDs, prefer "contains" over exact match
 
 Ambiguity Resolution Priority:
@@ -268,7 +277,29 @@ Result: [
     field: "outcomes",
     filters: [{
       operator: "is",
-      value: "invalid"  // Maps "failed" to invalid status
+      value: "FORBIDDEN"  // Maps "failed" to a non-VALID outcome
+    }]
+  }
+]
+
+Query: "show me errors in the last 4 weeks"
+Result: [
+  {
+    field: "outcomes",
+    filters: [
+      { operator: "is", value: "INSUFFICIENT_PERMISSIONS" },
+      { operator: "is", value: "RATE_LIMITED" },
+      { operator: "is", value: "FORBIDDEN" },
+      { operator: "is", value: "DISABLED" },
+      { operator: "is", value: "EXPIRED" },
+      { operator: "is", value: "USAGE_EXCEEDED" }
+    ]
+  },
+  {
+    field: "since",
+    filters: [{
+      operator: "is",
+      value: "4w"
     }]
   }
 ]`;

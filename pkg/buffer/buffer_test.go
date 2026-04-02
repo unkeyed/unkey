@@ -86,7 +86,7 @@ func TestBuffer(t *testing.T) {
 			for {
 				select {
 				case v := <-b.c:
-					received = append(received, v)
+					received = append(received, *v)
 				case <-timeout:
 					break receiveLoop
 				}
@@ -143,7 +143,7 @@ func TestCustomTypes(t *testing.T) {
 
 		select {
 		case received := <-b.c:
-			assert.Equal(t, event, received, "received event should match buffered event")
+			assert.Equal(t, event, *received, "received event should match buffered event")
 		default:
 			t.Error("Expected to receive buffered event")
 		}

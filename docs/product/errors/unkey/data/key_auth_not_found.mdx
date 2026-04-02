@@ -3,10 +3,7 @@ title: "key_auth_not_found"
 description: "The requested key authentication was not found"
 ---
 
-<Danger>
-err:unkey:data:key_auth_not_found
-</Danger>
-
+<Danger>err:unkey:data:key_auth_not_found</Danger>
 
 ```json Example
 {
@@ -27,11 +24,11 @@ err:unkey:data:key_auth_not_found
 This error occurs when you're trying to perform an operation on a key authentication record that doesn't exist in the Unkey system. Key authentication records contain information about how API keys are authenticated.
 
 Common scenarios that trigger this error:
+
 - Using an incorrect key authentication ID
 - Referencing a key authentication record that has been deleted
 - Attempting to update authentication settings for a non-existent record
 - Typos in identifiers
-
 
 ## How To Fix
 
@@ -60,6 +57,7 @@ curl -X POST https://api.unkey.com/v2/keys.getKey \
 - **Workspace boundaries**: Trying to access authentication records from another workspace
 
 ## Related Errors
+
 - [err:unkey:data:key_not_found](./key_not_found) - When the requested key doesn't exist
 - [err:unkey:authentication:key_not_found](../authentication/key_not_found) - When an API key used for authentication doesn't exist
 - [err:unkey:authorization:key_disabled](../authorization/key_disabled) - When the authentication key is disabled

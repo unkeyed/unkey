@@ -5,12 +5,13 @@ go_library(
     srcs = [
         "error_handling.go",
         "logging.go",
+        "metrics.go",
         "observability.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/sentinel/middleware",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/clickhouse",
+        "//pkg/batch",
         "//pkg/clickhouse/schema",
         "//pkg/clock",
         "//pkg/codes",

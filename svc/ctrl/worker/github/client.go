@@ -234,6 +234,29 @@ func (c *Client) GetBranchHeadCommitPublic(repo string, branch string) (CommitIn
 	), nil
 }
 
+// GetCommitBySHA retrieves commit metadata for a specific SHA.
+func (c *Client) GetCommitBySHA(installationID int64, repo string, sha string) (CommitInfo, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to get installation token for commit lookup"))
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(sha))
+
+	commit, err := request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
+	if err != nil {
+		return CommitInfo{}, err
+	}
+
+	return CommitInfoFromRaw(
+		commit.SHA,
+		commit.Commit.Message,
+		commit.Author.Login,
+		commit.Author.AvatarURL,
+		commit.Commit.Author.Date,
+	), nil
+}
+
 // CommitInfoFromRaw constructs a CommitInfo, truncating the message to the
 // first line and parsing an RFC3339 timestamp string.
 func CommitInfoFromRaw(sha, message, authorHandle, authorAvatarURL, timestamp string) CommitInfo {

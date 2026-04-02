@@ -15,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -97,13 +96,14 @@ func newTestHarness(t *testing.T) *testHarness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		DB:           database,
-		RateLimiter:  rateLimiter,
-		RBAC:         rbac.New(),
-		Clickhouse:   clickhouse.NewNoop(),
-		Region:       "test",
-		UsageLimiter: usageLimiter,
-		KeyCache:     keyCache,
+		DB:               database,
+		RateLimiter:      rateLimiter,
+		RBAC:             rbac.New(),
+		KeyVerifications: nil,
+		Region:           "test",
+		UsageLimiter:     usageLimiter,
+		KeyCache:         keyCache,
+		QuotaCache:       nil,
 	})
 	require.NoError(t, err)
 

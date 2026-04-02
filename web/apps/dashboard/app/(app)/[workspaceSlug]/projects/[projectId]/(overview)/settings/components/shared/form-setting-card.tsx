@@ -69,7 +69,8 @@ export const FormSettingCard = ({
           <div
             ref={contentRef}
             className={cn(
-              "px-4 flex flex-col gap-0.5 overflow-y-auto max-h-[850px]",
+              "px-4 flex flex-col gap-2 overflow-y-auto max-h-[850px]",
+              "[--setting-w:30rem] max-w-(--setting-w) has-data-form-wide:max-w-none",
               !stickyHeader && "pt-4",
               autoSave ? "pb-4" : "pb-2",
             )}

@@ -18,6 +18,15 @@ const (
 	// resourceRequestFraction is the fraction of limits used for resource requests.
 	// Requests determine scheduling; limits cap actual usage.
 	resourceRequestFraction = 4 // requests = limits / 4
+
+	// defaultCPUTargetUtilization is the average CPU utilization percentage (0-100)
+	// used when no autoscaling policy is attached. When average pod CPU exceeds
+	// this percentage of their requested CPU, the HPA adds replicas.
+	defaultCPUTargetUtilization = 80
+
+	// scaleDownStabilizationSeconds is how long the HPA waits after load drops
+	// before removing pods. Prevents flapping when traffic is spiky.
+	scaleDownStabilizationSeconds int32 = 60
 )
 
 // untrustedToleration allows deployment pods to be scheduled on nodes tainted

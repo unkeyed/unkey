@@ -1,0 +1,132 @@
+---
+title: "list-keys"
+description: "Retrieve a paginated list of API keys for dashboard and administrative interfaces"
+---
+
+Retrieve a paginated list of API keys for dashboard and administrative interfaces.
+
+Use this to build key management dashboards, filter keys by user with `externalId`, or retrieve key details for administrative purposes. Each key includes status, metadata, permissions, and usage limits.
+
+**Important:** Set `decrypt: true` only in secure contexts to retrieve plaintext key values from recoverable keys.
+
+**Required permissions:**
+- `api.*.read_key` or `api.<api_id>.read_key` (to read keys)
+- `api.*.read_api` or `api.<api_id>.read_api` (to read the API)
+- `api.*.decrypt_key` or `api.<api_id>.decrypt_key` (additionally required when using `--decrypt`)
+
+<Note>
+See the [API reference](/api-reference/v2/apis/list-api-keys) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api apis list-keys [flags]
+```
+
+## Flags
+
+<ParamField body="--api-id" type="string" required>
+The API namespace whose keys you want to list. Returns all keys in this API, subject to pagination and filters.
+</ParamField>
+
+<ParamField body="--limit" type="integer" default={100}>
+Maximum number of keys to return per request. Balance between response size and number of pagination calls needed. Must be between 1 and 100.
+</ParamField>
+
+<ParamField body="--cursor" type="string">
+Pagination cursor from a previous response to fetch the next page. Use when `hasMore: true` in the previous response.
+</ParamField>
+
+<ParamField body="--external-id" type="string">
+Filter keys by external ID to find keys for a specific user or entity. Must exactly match the `externalId` set during key creation.
+</ParamField>
+
+<ParamField body="--decrypt" type="boolean" default={false}>
+When true, includes the plaintext key value in the response. Only works for keys created with `recoverable: true`. Requires the `decrypt_key` permission on the calling root key. Never enable this in user-facing applications.
+</ParamField>
+
+<ParamField body="--revalidate-keys-cache" type="boolean" default={false}>
+**Experimental.** Skip the cache and fetch keys directly from the database. Use this when you have just created a key and need to see it immediately, or when debugging cache consistency issues. This comes with a performance cost and should be used sparingly.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash List all keys in an API
+unkey api apis list-keys --api-id=api_1234abcd
+```
+```bash Paginate with a custom limit
+unkey api apis list-keys --api-id=api_1234abcd --limit=50
+```
+```bash Filter keys by external ID
+unkey api apis list-keys --api-id=api_1234abcd --external-id=user_1234abcd
+```
+```bash Paginate through all keys
+CURSOR=""
+while true; do
+  RESULT=$(unkey api apis list-keys --api-id=api_1234abcd --limit=100 --output=json ${CURSOR:+--cursor=$CURSOR})
+  echo "$RESULT" | jq '.data[]'
+  HAS_MORE=$(echo "$RESULT" | jq -r '.pagination.hasMore')
+  [ "$HAS_MORE" != "true" ] && break
+  CURSOR=$(echo "$RESULT" | jq -r '.pagination.cursor')
+done
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the list of keys:
+
+```
+req_1234abcd (took 82ms)
+
+[
+  {
+    "keyId": "key_1234abcd",
+    "start": "sk_prod",
+    "enabled": true,
+    "name": "Production API Key",
+    "createdAt": 1704067200000
+  },
+  {
+    "keyId": "key_5678efgh",
+    "start": "sk_dev",
+    "enabled": true,
+    "name": "Development Key",
+    "createdAt": 1704153600000
+  }
+]
+```
+
+With `--output=json`, the full response envelope including pagination is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_1234abcd"
+  },
+  "data": [
+    {
+      "keyId": "key_1234abcd",
+      "start": "sk_prod",
+      "enabled": true,
+      "name": "Production API Key",
+      "createdAt": 1704067200000
+    }
+  ],
+  "pagination": {
+    "cursor": "key_1234abcd",
+    "hasMore": true
+  }
+}
+```

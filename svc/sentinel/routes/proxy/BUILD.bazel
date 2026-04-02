@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "context.go",
         "handler.go",
+        "metrics.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/sentinel/routes/proxy",
     visibility = ["//visibility:public"],
@@ -18,5 +19,7 @@ go_library(
         "//pkg/zen",
         "//svc/sentinel/engine",
         "//svc/sentinel/services/router",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/promauto",
     ],
 )

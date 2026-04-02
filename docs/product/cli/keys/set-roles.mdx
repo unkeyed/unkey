@@ -1,0 +1,96 @@
+---
+title: "set-roles"
+description: "Replace all roles on a key with the specified set in a single atomic operation"
+---
+
+Replace all roles on a key with the specified set in a single atomic operation.
+
+Use this to synchronize with external systems, reset roles to a known state, or apply standardized role templates. Direct permissions are never affected.
+
+**Important:** Changes take effect immediately with up to 30-second edge propagation. This is a wholesale replacement, not an incremental update -- any existing roles not included in the request are removed.
+
+**Required permissions:**
+- `api.*.update_key` (to update keys in any API)
+- `api.<api_id>.update_key` (to update keys in a specific API)
+
+<Note>
+See the [API reference](/api-reference/v2/keys/set-key-roles) for the full HTTP endpoint documentation.
+</Note>
+
+## Usage
+
+```bash
+unkey api keys set-roles [flags]
+```
+
+## Flags
+
+<ParamField body="--key-id" type="string" required>
+The key ID to set roles on. This is the database identifier returned from key creation (e.g., `key_2cGKbMxRyIzhCxo1Idjz8q`), not the actual API key string that users include in requests.
+</ParamField>
+
+<ParamField body="--roles" type="string[]" required>
+Comma-separated list of roles. Replaces all existing roles on the key with this exact set. All roles must already exist in your workspace -- invalid role references cause the entire operation to fail atomically. Providing an empty value removes all role assignments from the key.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format — use `json` for raw JSON |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api keys set-roles --key-id=key_1234abcd --roles=api_admin,billing_reader
+```
+```bash Reset to a single role
+unkey api keys set-roles --key-id=key_1234abcd --roles=viewer
+```
+```bash JSON output for scripting
+unkey api keys set-roles --key-id=key_1234abcd --roles=api_admin,billing_reader --output=json
+```
+</CodeGroup>
+
+## Output
+
+Default output shows the request ID with latency, followed by the roles now assigned to the key:
+
+```
+req_2c9a0jf23l4k567 (took 45ms)
+
+[
+  {
+    "id": "role_1234567890abcdef",
+    "name": "api_admin"
+  },
+  {
+    "id": "role_abcdef1234567890",
+    "name": "billing_reader"
+  }
+]
+```
+
+With `--output=json`, the full response envelope is returned:
+
+```json
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "data": [
+    {
+      "id": "role_1234567890abcdef",
+      "name": "api_admin"
+    },
+    {
+      "id": "role_abcdef1234567890",
+      "name": "billing_reader"
+    }
+  ]
+}
+```

@@ -3,7 +3,8 @@ import type { ContainerLogRow } from "./columns";
 
 const baseClasses = [
   "group",
-  "rounded-md",
+  "rounded-none",
+  "[&>td]:rounded-none",
   "focus:outline-hidden",
   "focus:ring-1",
   "focus:ring-opacity-40",

@@ -3,9 +3,7 @@ title: "permission_already_exists"
 description: "A permission with this slug already exists"
 ---
 
-<Danger>
-err:unkey:data:permission_already_exists
-</Danger>
+<Danger>err:unkey:data:permission_already_exists</Danger>
 
 ```json Example
 {
@@ -78,7 +76,7 @@ async function getOrCreatePermission(name, slug, description) {
       // Extract the permission name from the error message and get it
       const permissions = await listPermissions();
       return permissions.find(
-        (p) => p.name.toLowerCase() === name.toLowerCase()
+        (p) => p.name.toLowerCase() === name.toLowerCase(),
       );
     }
     // Otherwise, rethrow the error

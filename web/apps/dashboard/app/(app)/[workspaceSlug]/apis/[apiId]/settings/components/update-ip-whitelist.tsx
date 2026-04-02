@@ -84,7 +84,6 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             />
           </div>
         }
-        border="both"
         contentWidth="w-full"
       >
         {isEnabled ? (
@@ -122,10 +121,10 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             <a target="_blank" rel="noreferrer" href="https://cal.com/james-r-perkins/sales">
               <Button
                 type="button"
-                size="lg"
+                size="md"
                 variant="primary"
                 color="info"
-                className="w-fit px-3.5"
+                className="w-fit px-3 py-2"
               >
                 Upgrade to Enterprise
               </Button>
