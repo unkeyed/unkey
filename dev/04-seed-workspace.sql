@@ -10,15 +10,13 @@ INSERT INTO workspaces (
   name,
   slug,
   created_at_m,
-  beta_features,
-  features
+  beta_features
 ) VALUES (
   'ws_local_root',
   'user_REPLACE_ME',
   'Unkey',
   'unkey',
   UNIX_TIMESTAMP() * 1000,
-  '{}',
   '{}'
 ) ON DUPLICATE KEY UPDATE created_at_m = UNIX_TIMESTAMP() * 1000;
 

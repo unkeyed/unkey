@@ -7,7 +7,6 @@ INSERT INTO `workspaces` (
     created_at_m,
     tier,
     beta_features,
-    features,
     enabled,
     delete_protection,
     k8s_namespace
@@ -19,7 +18,6 @@ VALUES (
     sqlc.arg(slug),
     sqlc.arg(created_at),
     'Free',
-    '{}',
     '{}',
     true,
     true,
