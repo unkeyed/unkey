@@ -4,14 +4,14 @@ import { useState } from "react";
 import { useProjectData } from "../data-provider";
 import { useOptionalProjectLayout } from "../layout-provider";
 import { PendingRedeployBanner } from "../settings/pending-redeploy-banner";
-import { AddEnvVarExpandable } from "./components/add-env-var-expandable";
-import { EnvVarsHeader } from "./components/env-vars-header";
-import { EnvVarsList } from "./components/env-vars-list";
+import { AddEnvVarExpandable } from "./components/add/add-env-var-expandable";
+import { EnvVarsList } from "./components/list/env-vars-list";
+import { EnvVarsHeader } from "./components/toolbar/env-vars-header";
 import {
   EnvVarsToolbar,
   type EnvironmentFilter,
   type SortOption,
-} from "./components/env-vars-toolbar";
+} from "./components/toolbar/env-vars-toolbar";
 
 export function DeploymentEnvVars() {
   const { projectId, environments } = useProjectData();

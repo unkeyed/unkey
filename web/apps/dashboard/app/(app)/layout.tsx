@@ -29,7 +29,12 @@ export default function Layout({ children }: LayoutProps) {
     const isAuthError = error?.data?.code === "UNAUTHORIZED" || error?.data?.code === "FORBIDDEN";
 
     if (isAuthError) {
-      router.push("/auth/sign-in");
+      const currentPath = window.location.pathname + window.location.search;
+      const signInUrl =
+        currentPath && currentPath !== "/"
+          ? `/auth/sign-in?redirect=${encodeURIComponent(currentPath)}`
+          : "/auth/sign-in";
+      router.push(signInUrl);
       return;
     }
 

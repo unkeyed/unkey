@@ -18,10 +18,10 @@ import {
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type ChangeEvent, useCallback, useEffect, useRef } from "react";
 import { Controller, useFieldArray } from "react-hook-form";
-import { useProjectData } from "../../data-provider";
+import { useProjectData } from "../../../data-provider";
+import { useDropZone } from "../../hooks/use-drop-zone";
 import { EnvVarRow } from "./env-var-row";
 import { type EnvVarsFormValues, createEmptyEntry, envVarsSchema, findConflicts } from "./schema";
-import { useDropZone } from "./use-drop-zone";
 
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
 

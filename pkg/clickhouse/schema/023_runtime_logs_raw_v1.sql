@@ -26,6 +26,9 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     -- Region
     `region` LowCardinality(String),
 
+    -- Platform (e.g. aws, gcp, local)
+    `platform` LowCardinality(String),
+
     -- Structured log attributes (parsed from JSON or key=value logs)
     -- Using JSON type for nested attribute support
     `attributes` JSON CODEC(ZSTD(1)),

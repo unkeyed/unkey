@@ -213,6 +213,7 @@ func Run(ctx context.Context, cfg Config) error {
 		EnvironmentID:      cfg.EnvironmentID,
 		SentinelID:         cfg.SentinelID,
 		Region:             cfg.Region,
+		Platform:           cfg.Platform,
 		SentinelRequests:   sentinelRequests,
 		MaxRequestBodySize: maxRequestBodySize,
 		RequestTimeout:     cfg.RequestTimeout,

@@ -249,6 +249,7 @@ func (s *SentinelSeeder) generateRequests(
 			InstanceID:      instanceIDs[rand.IntN(len(instanceIDs))],
 			InstanceAddress: generateIP(),
 			Region:          weightedSelectString(regions),
+			Platform:        "dev",
 			Method:          weightedSelectString(methods),
 			Host:            domain,
 			Path:            paths[rand.IntN(len(paths))],

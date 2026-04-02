@@ -84,6 +84,7 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
             label="Project Name"
             className="[&_input:first-of-type]:h-[36px]"
             description="A descriptive name for your project."
+            data-1p-ignore
             error={errors.name?.message}
             {...register("name", {
               onChange: handleNameChange,
@@ -96,6 +97,7 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
             label="Slug"
             className="[&_input:first-of-type]:h-[36px]"
             description="URL-friendly identifier for your project (auto-generated from name)."
+            data-1p-ignore
             error={errors.slug?.message}
             {...register("slug")}
             placeholder="my-awesome-project"

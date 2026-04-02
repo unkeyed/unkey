@@ -121,17 +121,16 @@ export const envVars = createCollection<EnvVar, string>(
       await trackSave(mutation);
     },
     onDelete: async ({ transaction }) => {
-      const { original } = transaction.mutations[0];
+      const envVarIds = transaction.mutations.map((m) => m.original.id);
+      const count = envVarIds.length;
 
-      const mutation = trpcClient.deploy.envVar.delete.mutate({
-        envVarId: original.id,
-      });
+      const mutation = trpcClient.deploy.envVar.delete.mutate({ envVarIds });
 
       toast.promise(mutation, {
-        loading: "Deleting environment variable...",
-        success: "Environment variable deleted",
+        loading: `Deleting ${count === 1 ? "environment variable" : `${count} environment variables`}...`,
+        success: `${count === 1 ? "Environment variable" : `${count} environment variables`} deleted`,
         error: (err) => ({
-          message: "Failed to delete environment variable",
+          message: `Failed to delete environment variable${count === 1 ? "" : "s"}`,
           description: err.message,
         }),
       });
