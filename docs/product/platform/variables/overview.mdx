@@ -81,6 +81,10 @@ Variables are tied to a specific environment. This lets you use different config
 
 When adding a variable, you can select **All Environments** to set the same key-value pair across every environment in one step.
 
+## Precedence over image defaults
+
+Variables configured in Unkey take precedence over any environment variables set in your Dockerfile with `ENV`. For example, if your Dockerfile sets `ENV PORT=8080` but you configure `PORT=8081` in Unkey, your application receives `8081` at runtime. This applies to all variables, not just `PORT` — Unkey's runtime values always override image defaults.
+
 ## Variables and deployments
 
 Deployments are immutable. Variable changes don't affect running deployments. To apply updated variables, trigger a new deployment. A redeploy banner appears at the top of the page after you make changes as a reminder.

@@ -115,6 +115,8 @@ Memory allocation for each instance. Available options:
 
 The port your application listens on. Defaults to 8080. Must be between 1 and 65,535.
 
+Unkey injects this value as the `PORT` environment variable at runtime. If your Dockerfile sets `ENV PORT=8080` but you configure port 8081 in your app settings, your application receives `PORT=8081`. Runtime settings always take precedence over defaults set in the container image.
+
 ### Command
 
 The command to start your application. This overrides the default `CMD` in your Dockerfile. Leave empty to use your image's default command.
