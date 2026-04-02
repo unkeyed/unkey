@@ -39,6 +39,6 @@ export function transformFilters(
     startTime,
     endTime,
     limit: params.limit,
-    cursor: params.cursor,
+    page: params.page,
   };
 }

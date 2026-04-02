@@ -1,17 +1,31 @@
 import { auditQueryLogsPayload } from "@/app/(app)/[workspaceSlug]/audit/components/table/query-logs.schema";
 import { auth } from "@/lib/auth/server";
 import type { User } from "@/lib/auth/types";
-import { type Quotas, type Workspace, db } from "@/lib/db";
+import {
+  type Quotas,
+  type Workspace,
+  and,
+  between,
+  count,
+  db,
+  eq,
+  gte,
+  inArray,
+  schema,
+} from "@/lib/db";
 import { freeTierQuotas } from "@/lib/quotas";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
 import { type AuditLogWithTargets, type AuditQueryLogsParams, auditLog } from "./schema";
 import { transformFilters } from "./utils";
 
+const LIMIT = 50;
+const MAX_LIMIT = 200;
+
 const AuditLogsResponse = z.object({
   auditLogs: z.array(auditLog),
   hasMore: z.boolean(),
-  nextCursor: z.number().optional(),
+  total: z.number(),
 });
 
 type AuditLogsResponse = z.infer<typeof AuditLogsResponse>;
@@ -22,12 +36,31 @@ export const fetchAuditLog = workspaceProcedure
   .output(AuditLogsResponse)
   .query(async ({ ctx, input }) => {
     const params = transformFilters(input);
-    const logs = await queryAuditLogs(params, ctx.workspace);
+    const pageSize = Math.min(params.limit, MAX_LIMIT) || LIMIT;
+    const page = params.page ?? 1;
+    const offset = (page - 1) * pageSize;
 
-    const { slicedItems, hasMore } = omitLastItemForPagination(logs, params.limit);
-    const uniqueUsers = await fetchUsersFromLogs(slicedItems);
+    const whereConditions = buildWhereConditions(params, ctx.workspace);
 
-    const items: AuditLogsResponse["auditLogs"] = slicedItems.map((l) => {
+    const [totalResult, logs] = await Promise.all([
+      db
+        .select({ count: count() })
+        .from(schema.auditLog)
+        .where(and(...whereConditions)),
+      db.query.auditLog.findMany({
+        where: and(...whereConditions),
+        with: {
+          targets: true,
+        },
+        orderBy: (table, { desc }) => desc(table.time),
+        limit: pageSize,
+        offset,
+      }),
+    ]);
+
+    const uniqueUsers = await fetchUsersFromLogs(logs);
+
+    const items: AuditLogsResponse["auditLogs"] = logs.map((l) => {
       const user = uniqueUsers[l.actorId];
       return {
         user: user
@@ -61,78 +94,68 @@ export const fetchAuditLog = workspaceProcedure
       };
     });
 
+    const totalCount = totalResult[0]?.count ?? 0;
+
     return {
       auditLogs: items,
-      hasMore,
-      nextCursor: hasMore && items.length > 0 ? items[items.length - 1].auditLog.time : undefined,
+      hasMore: page * pageSize < totalCount,
+      total: totalCount,
     };
   });
 
-export const queryAuditLogs = async (
+function buildWhereConditions(
   params: Omit<AuditQueryLogsParams, "workspaceId">,
   workspace: Workspace & { quotas: Quotas | null },
-) => {
+) {
   const events = (params.events ?? []).map((e) => e.value);
   const userValues = (params.users ?? []).map((u) => u.value);
   const rootKeyValues = (params.rootKeys ?? []).map((r) => r.value);
   const users = [...userValues, ...rootKeyValues];
 
-  const cursor = params.cursor;
-
   const retentionDays =
     workspace.quotas?.auditLogsRetentionDays || freeTierQuotas.auditLogsRetentionDays;
   const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
-  // By default we need the last "50"(LIMIT) records.
   const hasTimeFilter = params.startTime !== undefined || params.endTime !== undefined;
 
-  const logs = await db.query.auditLog.findMany({
-    where: (table, { eq, and, inArray, between, lt, gte }) =>
-      and(
-        eq(table.workspaceId, workspace.id),
-        eq(table.bucket, params.bucket),
-        events.length > 0 ? inArray(table.event, events) : undefined,
-        // Apply time filters only if explicitly provided, otherwise just respect retention period
-        hasTimeFilter
-          ? between(
-              table.time,
-              Math.max(params.startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
-              params.endTime ?? Date.now(),
-            )
-          : gte(table.time, retentionCutoffUnixMilli), // Only enforce retention period
-        users.length > 0 ? inArray(table.actorId, users) : undefined,
-        cursor ? lt(table.time, cursor) : undefined,
-      ),
-    with: {
-      targets: true,
-    },
-    orderBy: (table, { desc }) => desc(table.time),
-    limit: params.limit + 1,
-  });
-  return logs;
-};
+  const conditions = [
+    eq(schema.auditLog.workspaceId, workspace.id),
+    eq(schema.auditLog.bucket, params.bucket),
+  ];
 
-export function omitLastItemForPagination(items: AuditLogWithTargets[], limit: number) {
-  // If we got limit + 1 results, there are more pages
-  const hasMore = items.length > limit;
-  // Remove the extra item we used to check for more pages
-  const slicedItems = hasMore ? items.slice(0, -1) : items;
-  return { slicedItems, hasMore };
+  if (events.length > 0) {
+    conditions.push(inArray(schema.auditLog.event, events));
+  }
+
+  if (hasTimeFilter) {
+    conditions.push(
+      between(
+        schema.auditLog.time,
+        Math.max(params.startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
+        params.endTime ?? Date.now(),
+      ),
+    );
+  } else {
+    conditions.push(gte(schema.auditLog.time, retentionCutoffUnixMilli));
+  }
+
+  if (users.length > 0) {
+    conditions.push(inArray(schema.auditLog.actorId, users));
+  }
+
+  return conditions;
 }
 
 export const fetchUsersFromLogs = async (
   logs: AuditLogWithTargets[],
 ): Promise<Record<string, User>> => {
   try {
-    // Get unique user IDs from logs
     const userIds = [...new Set(logs.filter((l) => l.actorType === "user").map((l) => l.actorId))];
 
-    // Fetch all users in parallel
     const users = await Promise.all(
       userIds.map((userId) => auth.getUser(userId).catch(() => null)),
     );
 
-    // Convert array to record object
     return users.reduce(
       (acc, user) => {
         if (user) {

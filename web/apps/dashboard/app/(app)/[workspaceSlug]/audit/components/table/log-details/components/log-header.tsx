@@ -1,8 +1,8 @@
+import { AUDIT_STATUS_STYLES, getEventType } from "@/components/audit-logs-table";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { XMark } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { AUDIT_STATUS_STYLES, getEventType } from "../../utils/get-row-class";
 
 type Props = {
   log: AuditLog;
