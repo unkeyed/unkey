@@ -35,8 +35,8 @@ function SeverityIcon({ severity }: { severity: string }) {
 export const containerLogColumns: Column<ContainerLogRow>[] = [
   {
     key: "log",
-    width: "auto",
-    cellClassName: "pl-[25px]",
+    width: "85px",
+    cellClassName: "align-top pl-[25px]",
     render: (log) => (
       <div className="font-mono text-xs my-2">
         <TimestampInfo
@@ -50,18 +50,28 @@ export const containerLogColumns: Column<ContainerLogRow>[] = [
   {
     key: "severity",
     width: "32px",
+    cellClassName: "align-top",
     render: (log) => <SeverityIcon severity={log.severity} />,
+  },
+  {
+    key: "region",
+    width: "140px",
+    cellClassName: "align-top",
+    render: (log) => (
+      <div className="my-2 flex items-center gap-1.5">
+        <RegionFlag flagCode={mapRegionToFlag(log.region)} size="xs" shape="circle" />
+        <span className="font-mono text-xs text-gray-11">{log.region}</span>
+      </div>
+    ),
   },
   {
     key: "message",
     width: "auto",
+    cellClassName: "align-top",
     render: (log) => (
       <TruncatedCell
         text={log.message}
-        threshold={120}
-        maxWidth="max-w-[750px]"
         className="text-gray-12"
-        side="top"
       />
     ),
   },

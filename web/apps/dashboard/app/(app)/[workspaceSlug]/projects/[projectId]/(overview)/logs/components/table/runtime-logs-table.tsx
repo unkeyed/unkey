@@ -1,7 +1,9 @@
 "use client";
 
+import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
+import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { cn } from "@/lib/utils";
 import { Badge, Empty, TimestampInfo } from "@unkey/ui";
 import { useMemo } from "react";
@@ -127,8 +129,9 @@ export function RuntimeLogsTable() {
         header: "Region",
         width: "10%",
         render: (log) => (
-          <div className="font-mono pr-4 truncate" title={log.region}>
-            {log.region}
+          <div className="flex items-center gap-1.5">
+            <RegionFlag flagCode={mapRegionToFlag(log.region)} size="xs" shape="circle" />
+            <span className="font-mono text-xs text-gray-11">{log.region}</span>
           </div>
         ),
       },

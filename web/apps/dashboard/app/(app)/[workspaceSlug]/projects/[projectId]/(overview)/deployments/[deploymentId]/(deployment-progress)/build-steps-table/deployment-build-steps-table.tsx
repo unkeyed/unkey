@@ -54,7 +54,7 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps }) => {
       rowClassName={(step) => getBuildStepRowClass(step)}
       expandedIds={expandedIds}
       onExpandedChange={setExpandedIds}
-      fixedHeight={256}
+      fixedHeight={500}
       autoScrollToBottom
       isExpandable={(step) => step.has_logs}
       renderExpanded={(step) => <BuildStepLogsExpanded step={step} />}
