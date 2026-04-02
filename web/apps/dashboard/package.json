@@ -58,6 +58,7 @@
     "@unkey/events": "workspace:^",
     "@unkey/hash": "workspace:^",
     "@unkey/icons": "workspace:^",
+    "@unkey/match": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/keys": "workspace:^",
     "@unkey/ratelimit": "2.1.3",

@@ -3,7 +3,7 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
-import { ArrowDottedRotateAnticlockwise, ChevronUp, Layers3 } from "@unkey/icons";
+import { ArrowDottedRotateAnticlockwise, ChevronUp, Hammer2, Layers3 } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { getDeploymentActionEligibility } from "./deployment-action-eligibility";
@@ -95,6 +95,16 @@ export const DeploymentListTableActions = ({
         icon: <Layers3 iconSize="md-regular" />,
         onClick: () => {
           router.push(`/${workspace.slug}/projects/${selectedDeployment.projectId}/logs`);
+        },
+      },
+      {
+        id: "build-steps",
+        label: "Go to build logs...",
+        icon: <Hammer2 iconSize="md-regular" />,
+        onClick: () => {
+          router.push(
+            `/${workspace.slug}/projects/${selectedDeployment.projectId}/deployments/${selectedDeployment.id}?build=true`,
+          );
         },
       },
     ];

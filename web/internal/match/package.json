@@ -1,0 +1,23 @@
+{
+  "name": "@unkey/match",
+  "version": "0.1.0",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "./dist/**"
+  ],
+  "description": "Type-safe pattern matching utility. This is package is heavily influenced by https://github.com/gvergnaud/ts-pattern",
+  "keywords": [],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "5.5.3",
+    "vitest": "1.6.1"
+  }
+}
