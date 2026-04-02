@@ -1,5 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { type VercelBinding, and, db, eq, schema } from "@/lib/db";
+import { type VercelBinding, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -26,7 +26,7 @@ export const vercelRouter = t.router({
     .mutation(async ({ ctx, input }) => {
       // It's stupid to have to do this, we should just read `UNKEY_KEY_AUTH_ID` from the env instead
       const unkeyApi = await db.query.apis.findFirst({
-        where: (table, { eq }) => eq(table.id, env().UNKEY_API_ID),
+        where: { id: env().UNKEY_API_ID },
       });
       if (!unkeyApi) {
         throw new TRPCError({
@@ -42,7 +42,7 @@ export const vercelRouter = t.router({
       }
 
       const integration = await db.query.vercelIntegrations.findFirst({
-        where: eq(schema.vercelIntegrations.id, input.integrationId),
+        where: { id: input.integrationId },
         with: {
           workspace: true,
         },
@@ -233,7 +233,7 @@ export const vercelRouter = t.router({
     )
     .mutation(async ({ ctx, input }) => {
       const integration = await db.query.vercelIntegrations.findFirst({
-        where: eq(schema.vercelIntegrations.id, input.integrationId),
+        where: { id: input.integrationId },
         with: {
           vercelBindings: true,
           workspace: true,
@@ -357,7 +357,7 @@ export const vercelRouter = t.router({
     )
     .mutation(async ({ ctx, input }) => {
       const integration = await db.query.vercelIntegrations.findFirst({
-        where: eq(schema.vercelIntegrations.id, input.integrationId),
+        where: { id: input.integrationId },
         with: {
           vercelBindings: true,
           workspace: true,
@@ -375,7 +375,7 @@ export const vercelRouter = t.router({
       }
       // It's stupid to have to do this, we should just read `UNKEY_KEY_AUTH_ID` from the env instead
       const unkeyApi = await db.query.apis.findFirst({
-        where: (table, { eq }) => eq(table.id, env().UNKEY_API_ID),
+        where: { id: env().UNKEY_API_ID },
       });
       if (!unkeyApi) {
         throw new TRPCError({
@@ -544,7 +544,7 @@ export const vercelRouter = t.router({
     )
     .mutation(async ({ ctx, input }) => {
       const binding = await db.query.vercelBindings.findFirst({
-        where: eq(schema.vercelBindings.id, input.bindingId),
+        where: { id: input.bindingId },
         with: {
           vercelIntegrations: {
             with: {
@@ -601,7 +601,7 @@ export const vercelRouter = t.router({
     )
     .mutation(async ({ ctx, input }) => {
       const integration = await db.query.vercelIntegrations.findFirst({
-        where: eq(schema.vercelIntegrations.id, input.integrationId),
+        where: { id: input.integrationId },
         with: {
           vercelBindings: true,
           workspace: true,
@@ -623,7 +623,7 @@ export const vercelRouter = t.router({
       });
 
       const bindings = await db.query.vercelBindings.findMany({
-        where: and(eq(schema.vercelBindings.projectId, input.projectId)),
+        where: { projectId: input.projectId },
       });
 
       for (const binding of bindings) {

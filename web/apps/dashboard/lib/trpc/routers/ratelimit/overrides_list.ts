@@ -8,8 +8,7 @@ export const listRatelimitOverrides = workspaceProcedure
   .query(async ({ ctx }) => {
     try {
       return await db.query.ratelimitOverrides.findMany({
-        where: (table, { eq, and, isNull }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), isNull(table.deletedAtM)),
+        where: { workspaceId: ctx.workspace.id, deletedAtM: { isNull: true } },
         columns: {
           id: true,
           identifier: true,

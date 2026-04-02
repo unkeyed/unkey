@@ -24,8 +24,7 @@ export const createPermission = workspaceProcedure
     await db
       .transaction(async (tx) => {
         const existing = await tx.query.permissions.findFirst({
-          where: (table, { and, eq }) =>
-            and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.name)),
+          where: { workspaceId: ctx.workspace.id, name: input.name },
         });
         if (existing) {
           throw new TRPCError({

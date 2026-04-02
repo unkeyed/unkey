@@ -18,7 +18,7 @@ async function main() {
   const productId = "prod_Rtu3rLbjwprz7p";
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq }) => eq(table.stripeCustomerId, stripeCustomerId),
+    where: { stripeCustomerId: stripeCustomerId },
   });
 
   if (!workspace) {
@@ -63,7 +63,7 @@ async function main() {
     })
     .where(eq(schema.workspaces.id, workspace.id));
   await db
-    .insert(schema.quotas)
+    .insert(schema.quota)
     .values({
       workspaceId: workspace.id,
       requestsPerMonth: Number.parseInt(product.metadata.quota_requests_per_month),

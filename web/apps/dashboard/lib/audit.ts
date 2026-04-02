@@ -2,7 +2,7 @@ import type { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { z } from "zod";
 
 import type { MaybeArray } from "@/lib/types";
-import { type Database, type Transaction, schema } from "@unkey/db";
+import { type Database, schema } from "@unkey/db";
 import type { auditLog, auditLogTarget } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
 
@@ -102,10 +102,7 @@ export type UnkeyAuditLog = {
   };
 };
 
-export async function insertAuditLogs(
-  db: Transaction | Database,
-  logOrLogs: MaybeArray<UnkeyAuditLog>,
-) {
+export async function insertAuditLogs(db: Database, logOrLogs: MaybeArray<UnkeyAuditLog>) {
   const logs = Array.isArray(logOrLogs) ? logOrLogs : [logOrLogs];
 
   if (logs.length === 0) {

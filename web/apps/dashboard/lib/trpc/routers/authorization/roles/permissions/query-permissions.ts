@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, lt } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import {
@@ -17,15 +17,12 @@ export const queryRolesPermissions = workspaceProcedure
 
     try {
       const permissionsQuery = await db.query.permissions.findMany({
-        where: (permission, { and, eq, lt }) => {
-          const conditions = [eq(permission.workspaceId, workspaceId)];
-          if (cursor) {
-            conditions.push(lt(permission.id, cursor));
-          }
-          return and(...conditions);
+        where: {
+          workspaceId: workspaceId,
+          ...(cursor ? { RAW: (permission) => lt(permission.id, cursor) } : {}),
         },
         limit: limit + 1,
-        orderBy: (permissions, { desc }) => desc(permissions.id),
+        orderBy: { id: "desc" },
         with: {
           roles: {
             with: {

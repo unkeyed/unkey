@@ -39,8 +39,7 @@ export const updateIdentityMetadata = workspaceProcedure
 
     const identity = await db.query.identities
       .findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.identityId)),
+        where: { workspaceId: ctx.workspace.id, id: input.identityId },
       })
       .catch((err) => {
         console.error("Failed to fetch identity:", err);

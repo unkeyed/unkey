@@ -23,11 +23,11 @@ export const queryRatelimitLogs = workspaceProcedure
   .query(async ({ ctx, input }) => {
     const ratelimitNamespaces = await db.query.ratelimitNamespaces
       .findMany({
-        where: (table, { and, eq, isNull }) =>
-          and(
-            eq(table.workspaceId, ctx.workspace.id),
-            and(eq(table.id, input.namespaceId), isNull(table.deletedAtM)),
-          ),
+        where: {
+          workspaceId: ctx.workspace.id,
+          id: input.namespaceId,
+          deletedAtM: { isNull: true },
+        },
       })
       .catch((_err) => {
         throw new TRPCError({

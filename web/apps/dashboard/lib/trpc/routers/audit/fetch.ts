@@ -87,26 +87,28 @@ export const queryAuditLogs = async (
   const hasTimeFilter = params.startTime !== undefined || params.endTime !== undefined;
 
   const logs = await db.query.auditLog.findMany({
-    where: (table, { eq, and, inArray, between, lt, gte }) =>
-      and(
-        eq(table.workspaceId, workspace.id),
-        eq(table.bucket, params.bucket),
-        events.length > 0 ? inArray(table.event, events) : undefined,
-        // Apply time filters only if explicitly provided, otherwise just respect retention period
-        hasTimeFilter
-          ? between(
-              table.time,
-              Math.max(params.startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
-              params.endTime ?? Date.now(),
-            )
-          : gte(table.time, retentionCutoffUnixMilli), // Only enforce retention period
-        users.length > 0 ? inArray(table.actorId, users) : undefined,
-        cursor ? lt(table.time, cursor) : undefined,
-      ),
+    where: {
+      workspaceId: workspace.id,
+      bucket: params.bucket,
+      RAW: (table, { and, inArray, between, lt, gte }) =>
+        and(
+          events.length > 0 ? inArray(table.event, events) : undefined,
+          // Apply time filters only if explicitly provided, otherwise just respect retention period
+          hasTimeFilter
+            ? between(
+                table.time,
+                Math.max(params.startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
+                params.endTime ?? Date.now(),
+              )
+            : gte(table.time, retentionCutoffUnixMilli), // Only enforce retention period
+          users.length > 0 ? inArray(table.actorId, users) : undefined,
+          cursor ? lt(table.time, cursor) : undefined,
+        ),
+    },
     with: {
       targets: true,
     },
-    orderBy: (table, { desc }) => desc(table.time),
+    orderBy: { time: "desc" },
     limit: params.limit + 1,
   });
   return logs;

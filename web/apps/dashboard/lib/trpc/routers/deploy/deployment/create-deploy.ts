@@ -3,10 +3,10 @@ import { createCtrlClient } from "@/lib/ctrl-client";
 
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 
-import { and, db, eq } from "@/lib/db";
+import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { environments } from "@unkey/db/src/schema";
+
 import { z } from "zod";
 
 export const createDeploy = workspaceProcedure
@@ -23,8 +23,7 @@ export const createDeploy = workspaceProcedure
 
     try {
       const project = await db.query.projects.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
+        where: { id: input.projectId, workspaceId: ctx.workspace.id },
         columns: { id: true, name: true },
       });
 
@@ -37,11 +36,11 @@ export const createDeploy = workspaceProcedure
 
       // Look up the environment to find the app
       const environment = await db.query.environments.findFirst({
-        where: and(
-          eq(environments.projectId, input.projectId),
-          eq(environments.slug, input.environmentSlug),
-          eq(environments.workspaceId, ctx.workspace.id),
-        ),
+        where: {
+          projectId: input.projectId,
+          slug: input.environmentSlug,
+          workspaceId: ctx.workspace.id,
+        },
         columns: { id: true, appId: true },
       });
 

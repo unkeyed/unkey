@@ -11,7 +11,7 @@ export const creationContext = workspaceProcedure
         .from(projects)
         .where(eq(projects.workspaceId, ctx.workspace.id)),
       db.query.githubAppInstallations.findFirst({
-        where: (table, { eq: eqFn }) => eqFn(table.workspaceId, ctx.workspace.id),
+        where: { workspaceId: ctx.workspace.id },
         columns: { pk: true },
       }),
     ]);

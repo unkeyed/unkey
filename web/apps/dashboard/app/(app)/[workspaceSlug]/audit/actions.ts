@@ -21,7 +21,7 @@ export const getWorkspace = async (orgId: string) => {
     }
 
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { eq, and, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+      where: { orgId: orgId, deletedAtM: { isNull: true } },
     });
 
     if (!workspace) {
@@ -29,8 +29,7 @@ export const getWorkspace = async (orgId: string) => {
     }
 
     const rootKeys = await db.query.keys.findMany({
-      where: (table, { eq }) => eq(table.forWorkspaceId, workspace?.id),
-
+      where: { forWorkspaceId: workspace?.id },
       columns: {
         id: true,
         name: true,

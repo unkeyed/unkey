@@ -1,6 +1,6 @@
 import { permissionSchema } from "@/app/(app)/[workspaceSlug]/authorization/permissions/components/upsert-permission/upsert-permission.schema";
 import { insertAuditLogs } from "@/lib/audit";
-import { and, db, eq, schema } from "@/lib/db";
+import { and, db, eq, ne, schema } from "@/lib/db";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -34,8 +34,7 @@ export const upsertPermission = workspaceProcedure
 
         // Get existing permission
         const existingPermission = await tx.query.permissions.findFirst({
-          where: (table, { and, eq }) =>
-            and(eq(table.id, updatePermissionId), eq(table.workspaceId, ctx.workspace.id)),
+          where: { id: updatePermissionId, workspaceId: ctx.workspace.id },
         });
 
         if (!existingPermission) {
@@ -48,12 +47,11 @@ export const upsertPermission = workspaceProcedure
         // Check for name conflicts only if name is changing
         if (existingPermission.name !== input.name) {
           const nameConflict = await tx.query.permissions.findFirst({
-            where: (table, { and, eq, ne }) =>
-              and(
-                eq(table.workspaceId, ctx.workspace.id),
-                eq(table.name, input.name),
-                ne(table.id, updatePermissionId),
-              ),
+            where: {
+              workspaceId: ctx.workspace.id,
+              name: input.name,
+              RAW: (table) => ne(table.id, updatePermissionId),
+            },
           });
 
           if (nameConflict) {
@@ -67,12 +65,11 @@ export const upsertPermission = workspaceProcedure
         // Check for slug conflicts only if slug is changing
         if (existingPermission.slug !== input.slug) {
           const slugConflict = await tx.query.permissions.findFirst({
-            where: (table, { and, eq, ne }) =>
-              and(
-                eq(table.workspaceId, ctx.workspace.id),
-                eq(table.slug, input.slug),
-                ne(table.id, updatePermissionId),
-              ),
+            where: {
+              workspaceId: ctx.workspace.id,
+              slug: input.slug,
+              RAW: (table) => ne(table.id, updatePermissionId),
+            },
           });
 
           if (slugConflict) {
@@ -129,12 +126,10 @@ export const upsertPermission = workspaceProcedure
         // Create mode - check for both name and slug conflicts
         const [nameConflict, slugConflict] = await Promise.all([
           await tx.query.permissions.findFirst({
-            where: (table, { and, eq }) =>
-              and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.name)),
+            where: { workspaceId: ctx.workspace.id, name: input.name },
           }),
           await tx.query.permissions.findFirst({
-            where: (table, { and, eq }) =>
-              and(eq(table.workspaceId, ctx.workspace.id), eq(table.slug, input.slug)),
+            where: { workspaceId: ctx.workspace.id, slug: input.slug },
           }),
         ]);
 

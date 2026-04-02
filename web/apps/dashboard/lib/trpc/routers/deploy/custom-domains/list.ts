@@ -9,8 +9,7 @@ export const listCustomDomains = workspaceProcedure
   .query(async ({ input, ctx }) => {
     // Verify project belongs to workspace
     const project = await db.query.projects.findFirst({
-      where: (table, { eq, and }) =>
-        and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
+      where: { id: input.projectId, workspaceId: ctx.workspace.id },
       columns: {
         id: true,
       },
@@ -25,7 +24,7 @@ export const listCustomDomains = workspaceProcedure
 
     try {
       const domains = await db.query.customDomains.findMany({
-        where: (table, { eq }) => eq(table.projectId, input.projectId),
+        where: { projectId: input.projectId },
         columns: {
           id: true,
           domain: true,
@@ -44,7 +43,7 @@ export const listCustomDomains = workspaceProcedure
           createdAt: true,
           updatedAt: true,
         },
-        orderBy: (table, { desc }) => desc(table.createdAt),
+        orderBy: { createdAt: "desc" },
       });
 
       return domains.map((d) => ({

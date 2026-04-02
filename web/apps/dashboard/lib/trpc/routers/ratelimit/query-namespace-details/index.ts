@@ -67,14 +67,14 @@ export async function fetchWorkspaceDetails({
   includeOverrides = false,
 }: WorkspaceDetailsOptions): Promise<WorkspaceDetailsResponse> {
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+    where: { orgId, deletedAtM: { isNull: true } },
     columns: {
       name: true,
       orgId: true,
     },
     with: {
       ratelimitNamespaces: {
-        where: (table, { isNull }) => isNull(table.deletedAtM),
+        where: { deletedAtM: { isNull: true } },
         columns: {
           id: true,
           workspaceId: true,
@@ -83,7 +83,7 @@ export async function fetchWorkspaceDetails({
         with: includeOverrides
           ? {
               overrides: {
-                where: (table, { isNull }) => isNull(table.deletedAtM),
+                where: { deletedAtM: { isNull: true } },
                 columns: {
                   id: true,
                   identifier: true,

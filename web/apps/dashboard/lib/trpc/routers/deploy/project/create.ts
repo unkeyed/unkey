@@ -12,8 +12,7 @@ export const createProject = workspaceProcedure
 
     // Check if slug already exists in workspace
     const existingProject = await db.query.projects.findFirst({
-      where: (table, { eq, and }) =>
-        and(eq(table.workspaceId, workspaceId), eq(table.slug, input.slug)),
+      where: { workspaceId: workspaceId, slug: input.slug },
       columns: {
         id: true,
       },

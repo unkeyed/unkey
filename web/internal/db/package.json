@@ -17,13 +17,13 @@
     "@types/node": "20.14.9",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "7.4.1",
-    "drizzle-kit": "0.31.4",
+    "drizzle-kit": "1.0.0-beta.20",
     "mysql2": "3.10.3",
     "typescript": "5.5.3"
   },
   "dependencies": {
     "@planetscale/database": "1.19.0",
     "@unkey/id": "workspace:^",
-    "drizzle-orm": "0.45.1"
+    "drizzle-orm": "1.0.0-beta.20"
   }
 }

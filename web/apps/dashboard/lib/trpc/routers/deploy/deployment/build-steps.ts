@@ -26,8 +26,7 @@ export const getDeploymentBuildSteps = workspaceProcedure
   .query(async ({ ctx, input }) => {
     // Validate deployment exists and belongs to workspace
     const deployment = await db.query.deployments.findFirst({
-      where: (table, { and, eq }) =>
-        and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
+      where: { id: input.deploymentId, workspaceId: ctx.workspace.id },
     });
     if (!deployment) {
       throw new TRPCError({

@@ -12,11 +12,11 @@ async function main() {
   let cursor = "";
   do {
     const workspaces = await db.query.workspaces.findMany({
-      where: (table, { gt }) => gt(table.id, cursor),
+      where: { RAW: (table, { gt }) => gt(table.id, cursor) },
 
-      with: { quotas: true },
+      with: { quota: true },
       limit: 1000,
-      orderBy: (table, { asc }) => asc(table.id),
+      orderBy: { id: "asc" },
     });
     cursor = workspaces.at(-1)?.id ?? "";
 
@@ -26,7 +26,7 @@ async function main() {
       }
 
       if (workspace.stripeCustomerId) {
-        await db.insert(schema.quotas).values({
+        await db.insert(schema.quota).values({
           workspaceId: workspace.id,
           team: true,
           requestsPerMonth: 250_000,
@@ -34,7 +34,7 @@ async function main() {
           auditLogsRetentionDays: 90,
         });
       } else {
-        await db.insert(schema.quotas).values({
+        await db.insert(schema.quota).values({
           workspaceId: workspace.id,
           team: false,
           requestsPerMonth: 150_000,

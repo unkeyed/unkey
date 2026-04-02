@@ -25,8 +25,7 @@ export const createIdentity = workspaceProcedure
     try {
       // Check if identity with this externalId already exists
       const existingIdentity = await db.query.identities.findFirst({
-        where: (table, { and, eq }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), eq(table.externalId, input.externalId)),
+        where: { workspaceId: ctx.workspace.id, externalId: input.externalId },
       });
 
       if (existingIdentity) {

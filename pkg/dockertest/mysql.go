@@ -146,12 +146,12 @@ func schemaSQLPath() string {
 	if runfiles := os.Getenv("TEST_SRCDIR"); runfiles != "" {
 		workspace := os.Getenv("TEST_WORKSPACE")
 		if workspace != "" {
-			candidate := filepath.Join(runfiles, workspace, "pkg", "db", "schema.sql")
+			candidate := filepath.Join(runfiles, workspace, "pkg", "mysql", "schema.sql")
 			if _, err := os.Stat(candidate); err == nil {
 				return candidate
 			}
 		}
-		candidate := filepath.Join(runfiles, "_main", "pkg", "db", "schema.sql")
+		candidate := filepath.Join(runfiles, "_main", "pkg", "mysql", "schema.sql")
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}
@@ -162,5 +162,5 @@ func schemaSQLPath() string {
 		return ""
 	}
 	root := filepath.Dir(filepath.Dir(currentFile))
-	return filepath.Join(root, "db", "schema.sql")
+	return filepath.Join(root, "mysql", "schema.sql")
 }

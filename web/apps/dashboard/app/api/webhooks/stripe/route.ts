@@ -73,8 +73,7 @@ export const POST = async (req: Request): Promise<Response> => {
         const sub = event.data.object as Stripe.Subscription;
 
         const ws = await db.query.workspaces.findFirst({
-          where: (table, { and, eq, isNull }) =>
-            and(eq(table.stripeSubscriptionId, sub.id), isNull(table.deletedAtM)),
+          where: { stripeSubscriptionId: sub.id, deletedAtM: { isNull: true } },
         });
         if (!ws) {
           console.error("Workspace not found for subscription:", {
@@ -165,7 +164,7 @@ export const POST = async (req: Request): Promise<Response> => {
             .where(eq(schema.workspaces.id, ws.id));
 
           await tx
-            .insert(schema.quotas)
+            .insert(schema.quota)
             .values({
               workspaceId: ws.id,
               requestsPerMonth,
@@ -276,8 +275,7 @@ export const POST = async (req: Request): Promise<Response> => {
         const sub = event.data.object as Stripe.Subscription;
 
         const ws = await db.query.workspaces.findFirst({
-          where: (table, { and, eq, isNull }) =>
-            and(eq(table.stripeSubscriptionId, sub.id), isNull(table.deletedAtM)),
+          where: { stripeSubscriptionId: sub.id, deletedAtM: { isNull: true } },
         });
         if (!ws) {
           console.error("Workspace not found for subscription:", {
@@ -295,7 +293,7 @@ export const POST = async (req: Request): Promise<Response> => {
           .where(eq(schema.workspaces.id, ws.id));
 
         await db
-          .insert(schema.quotas)
+          .insert(schema.quota)
           .values({
             workspaceId: ws.id,
             ...freeTierQuotas,
@@ -385,8 +383,7 @@ export const POST = async (req: Request): Promise<Response> => {
         // Find workspace by stripe customer ID
         const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
         const ws = await db.query.workspaces.findFirst({
-          where: (table, { and, eq, isNull }) =>
-            and(eq(table.stripeCustomerId, customerId), isNull(table.deletedAtM)),
+          where: { stripeCustomerId: customerId, deletedAtM: { isNull: true } },
         });
 
         if (!ws) {
@@ -416,7 +413,7 @@ export const POST = async (req: Request): Promise<Response> => {
             .where(eq(schema.workspaces.id, ws.id));
 
           await tx
-            .insert(schema.quotas)
+            .insert(schema.quota)
             .values({
               workspaceId: ws.id,
               requestsPerMonth,

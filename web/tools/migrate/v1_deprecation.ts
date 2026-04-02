@@ -45,7 +45,7 @@ async function main() {
     }
 
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { eq }) => eq(table.id, row.workspace_id),
+      where: { id: row.workspace_id },
     });
     if (!workspace) {
       console.error(`Workspace ${row.workspace_id} not found`);

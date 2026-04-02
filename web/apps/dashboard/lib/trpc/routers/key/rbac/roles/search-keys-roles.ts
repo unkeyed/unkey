@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import {
@@ -27,21 +27,13 @@ export const searchKeysRoles = workspaceProcedure
       const searchTerm = `%${query}%`;
 
       const rolesQuery = await db.query.roles.findMany({
-        where: (role, { and, eq, or, like }) => {
-          return and(
-            eq(role.workspaceId, workspaceId),
-            or(
-              like(role.id, searchTerm),
-              like(role.name, searchTerm),
-              like(role.description, searchTerm),
-            ),
-          );
+        where: {
+          workspaceId,
+          RAW: (table) =>
+            sql`(${table.id} LIKE ${searchTerm} OR ${table.name} LIKE ${searchTerm} OR ${table.description} LIKE ${searchTerm})`,
         },
         limit: LIMIT,
-        orderBy: (roles, { asc }) => [
-          asc(roles.name), // Name matches first
-          asc(roles.id), // Then by ID for consistency
-        ],
+        orderBy: { name: "asc", id: "asc" },
         with: {
           keys: {
             with: {

@@ -50,7 +50,7 @@ export const getIdentityById = workspaceProcedure
 
     try {
       const identity = await db.query.identities.findFirst({
-        where: (table, { eq }) => eq(table.id, identityId),
+        where: { id: identityId },
         with: {
           workspace: {
             columns: {
@@ -60,7 +60,7 @@ export const getIdentityById = workspaceProcedure
             },
           },
           keys: {
-            where: (table, { isNull }) => isNull(table.deletedAtM),
+            where: { deletedAtM: { isNull: true } },
             with: {
               keyAuth: {
                 with: {

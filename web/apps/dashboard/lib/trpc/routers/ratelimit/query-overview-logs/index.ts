@@ -23,12 +23,11 @@ export const queryRatelimitOverviewLogs = workspaceProcedure
   .query(async ({ ctx, input }) => {
     const ratelimitNamespace = await db.query.ratelimitNamespaces
       .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(
-            eq(table.workspaceId, ctx.workspace.id),
-            eq(table.id, input.namespaceId),
-            isNull(table.deletedAtM),
-          ),
+        where: {
+          workspaceId: ctx.workspace.id,
+          id: input.namespaceId,
+          deletedAtM: { isNull: true },
+        },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -97,13 +96,12 @@ async function checkIfIdentifierHasOverride(
 
   const overrides = await db.query.ratelimitOverrides
     .findMany({
-      where: (table, { and, isNull, inArray, eq }) =>
-        and(
-          eq(table.namespaceId, namespaceId),
-          eq(table.workspaceId, workspaceId),
-          inArray(table.identifier, identifiers),
-          isNull(table.deletedAtM),
-        ),
+      where: {
+        namespaceId,
+        workspaceId,
+        identifier: { in: identifiers },
+        deletedAtM: { isNull: true },
+      },
       columns: {
         identifier: true,
         limit: true,

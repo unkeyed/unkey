@@ -154,7 +154,7 @@ export const queryRootKeys = workspaceProcedure
           .from(schema.keys)
           .where(and(...countConditions)),
         db.query.keys.findMany({
-          where: and(...fetchConditions),
+          where: { RAW: () => and(...fetchConditions) },
           orderBy: [sortFn(sortColumn), sortFn(schema.keys.id)],
           limit: pageSize,
           offset: (page - 1) * pageSize,
@@ -187,7 +187,7 @@ export const queryRootKeys = workspaceProcedure
       const keys = keysResult.map((key) => {
         const permissions = key.permissions
           .map((p) => p.permission)
-          .filter(Boolean)
+          .filter((p): p is NonNullable<typeof p> => Boolean(p))
           .map((permission) => ({
             id: permission.id,
             name: permission.name,

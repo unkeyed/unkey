@@ -381,8 +381,7 @@ export async function completeOrgSelection(
     try {
       const { db } = await import("@/lib/db");
       const workspace = await db.query.workspaces.findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+        where: { orgId: orgId, deletedAtM: { isNull: true } },
         columns: { slug: true },
       });
       workspaceSlug = workspace?.slug ?? undefined;

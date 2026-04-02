@@ -14,14 +14,13 @@ export const connectPermissionToRole = workspaceProcedure
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces
       .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+        where: { orgId: ctx.tenant.id, deletedAtM: { isNull: true } },
         with: {
           roles: {
-            where: (table, { eq }) => eq(table.id, input.roleId),
+            where: { id: input.roleId },
           },
           permissions: {
-            where: (table, { eq }) => eq(table.id, input.permissionId),
+            where: { id: input.permissionId },
           },
         },
       })

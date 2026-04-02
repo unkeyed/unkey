@@ -29,12 +29,10 @@ export const deleteKeys = workspaceProcedure
 
     try {
       const workspace = await db.query.workspaces.findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.orgId, tenantId), isNull(table.deletedAtM)),
+        where: { orgId: tenantId, deletedAtM: { isNull: true } },
         with: {
           keys: {
-            where: (table, { and, inArray, isNull }) =>
-              and(isNull(table.deletedAtM), inArray(table.id, keyIds)),
+            where: { deletedAtM: { isNull: true }, id: { in: keyIds } },
             columns: {
               id: true,
             },

@@ -9,10 +9,9 @@ export const getCachedWorkspace = (orgId: string) =>
   unstable_cache(
     async () => {
       const workspace = await db.query.workspaces.findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+        where: { orgId: orgId, deletedAtM: { isNull: true } },
         with: {
-          quotas: true,
+          quota: true,
         },
       });
 
@@ -48,7 +47,7 @@ export const invalidateWorkspaceCache = async (orgId?: string) => {
 export const invalidateWorkspaceCacheById = async (workspaceId: string) => {
   // First fetch the workspace to get the orgId
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq }) => eq(table.id, workspaceId),
+    where: { id: workspaceId },
     columns: {
       orgId: true,
     },

@@ -18,8 +18,7 @@ export const deleteCustomDomain = workspaceProcedure
 
     // Verify project belongs to workspace
     const project = await db.query.projects.findFirst({
-      where: (table, { eq, and }) =>
-        and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
+      where: { id: input.projectId, workspaceId: ctx.workspace.id },
       columns: {
         id: true,
       },
@@ -34,12 +33,7 @@ export const deleteCustomDomain = workspaceProcedure
 
     // Verify domain belongs to project and workspace
     const customDomain = await db.query.customDomains.findFirst({
-      where: (table, { eq, and }) =>
-        and(
-          eq(table.domain, input.domain),
-          eq(table.projectId, input.projectId),
-          eq(table.workspaceId, ctx.workspace.id),
-        ),
+      where: { domain: input.domain, projectId: input.projectId, workspaceId: ctx.workspace.id },
       columns: {
         id: true,
       },

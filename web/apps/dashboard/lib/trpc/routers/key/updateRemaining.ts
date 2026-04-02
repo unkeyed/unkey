@@ -15,12 +15,7 @@ export const updateKeyRemaining = workspaceProcedure
     await db
       .transaction(async (tx) => {
         const key = await tx.query.keys.findFirst({
-          where: (table, { eq, and, isNull }) =>
-            and(
-              eq(table.workspaceId, ctx.workspace.id),
-              eq(table.id, input.keyId),
-              isNull(table.deletedAtM),
-            ),
+          where: { workspaceId: ctx.workspace.id, id: input.keyId, deletedAtM: { isNull: true } },
         });
         if (!key) {
           throw new TRPCError({

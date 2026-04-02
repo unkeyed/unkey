@@ -7,7 +7,7 @@ import { Navigation } from "@/components/navigation/navigation";
 import { PageContent } from "@/components/page-content";
 import { getAuth } from "@/lib/auth";
 import { auth } from "@/lib/auth/server";
-import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
+import { type Api, type Key, type VercelBinding, db } from "@/lib/db";
 import { Gear } from "@unkey/icons";
 import { Button, Code, Empty } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
@@ -26,16 +26,16 @@ type Props = {
 export default async function Page(props: Props) {
   const { orgId } = await getAuth();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+    where: { orgId, deletedAtM: { isNull: true } },
     with: {
       apis: {
-        where: (table, { isNull }) => isNull(table.deletedAtM),
+        where: { deletedAtM: { isNull: true } },
       },
       vercelIntegrations: {
-        where: (table, { isNull }) => isNull(table.deletedAtM),
+        where: { deletedAtM: { isNull: true } },
         with: {
           vercelBindings: {
-            where: (table, { isNull }) => isNull(table.deletedAtM),
+            where: { deletedAtM: { isNull: true } },
           },
         },
       },
@@ -101,7 +101,7 @@ export default async function Page(props: Props) {
 
   const rootKeys = (
     await db.query.keys.findMany({
-      where: eq(schema.keys.forWorkspaceId, workspace.id),
+      where: { forWorkspaceId: workspace.id },
     })
   ).reduce(
     (acc, key) => {

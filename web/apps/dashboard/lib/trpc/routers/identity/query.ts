@@ -1,4 +1,4 @@
-import { and, count, db, eq, like, or, schema } from "@/lib/db";
+import { and, count, db, eq, like, lt, or, schema, sql } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
@@ -71,40 +71,28 @@ export const queryIdentities = workspaceProcedure
 
       const totalCount = countResult.count;
 
-      // Helper function to build filter conditions for query API
-      // biome-ignore lint/suspicious/noExplicitAny: Drizzle query builder types are complex and vary between schema and query contexts
-      const buildFilterConditions = (identity: any, helpers: any) => {
-        const conditions = [
-          helpers.eq(identity.workspaceId, workspaceId),
-          helpers.eq(identity.deleted, false),
-        ];
-
-        if (search) {
-          const escapedSearch = escapeLike(search);
-          const searchCondition = helpers.or(
-            helpers.like(identity.externalId, `%${escapedSearch}%`),
-            helpers.like(identity.id, `%${escapedSearch}%`),
-          );
-          if (searchCondition) {
-            conditions.push(searchCondition);
-          }
-        }
-
-        return helpers.and(...conditions);
-      };
-
       const identitiesQuery = await db.query.identities.findMany({
-        where: (identity, helpers) => {
-          const { and, lt } = helpers;
-          // Get base filter conditions
-          const filterConditions = buildFilterConditions(identity, helpers);
+        where: {
+          RAW: (table) => {
+            const conditions = [eq(table.workspaceId, workspaceId), eq(table.deleted, false)];
 
-          // Add cursor condition for pagination only
-          if (cursor) {
-            return and(filterConditions, lt(identity.id, cursor));
-          }
+            if (search) {
+              const escapedSearch = escapeLike(search);
+              const searchCondition = or(
+                like(table.externalId, `%${escapedSearch}%`),
+                like(table.id, `%${escapedSearch}%`),
+              );
+              if (searchCondition) {
+                conditions.push(searchCondition);
+              }
+            }
 
-          return filterConditions;
+            if (cursor) {
+              conditions.push(lt(table.id, cursor));
+            }
+
+            return and(...conditions) ?? sql`1=1`;
+          },
         },
         with: {
           keys: {
@@ -123,7 +111,7 @@ export const queryIdentities = workspaceProcedure
           },
         },
         limit: limit + 1, // Fetch one extra to determine if there are more results
-        orderBy: (identities, { desc }) => desc(identities.id),
+        orderBy: { id: "desc" },
       });
 
       // Determine if there are more results

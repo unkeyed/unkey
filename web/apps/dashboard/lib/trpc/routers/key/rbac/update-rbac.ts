@@ -13,8 +13,7 @@ export const updateKeyRbac = workspaceProcedure
     // Verify key exists and belongs to workspace
     const key = await db.query.keys
       .findFirst({
-        where: (table, { eq, isNull, and }) =>
-          and(eq(table.workspaceId, workspaceId), eq(table.id, keyId), isNull(table.deletedAtM)),
+        where: { workspaceId, id: keyId, deletedAtM: { isNull: true } },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -36,8 +35,7 @@ export const updateKeyRbac = workspaceProcedure
     if (roleIds.length > 0) {
       const existingRoles = await db.query.roles
         .findMany({
-          where: (table, { eq, and, inArray }) =>
-            and(eq(table.workspaceId, workspaceId), inArray(table.id, roleIds)),
+          where: { workspaceId, id: { in: roleIds } },
           columns: { id: true },
         })
         .catch((_err) => {
@@ -59,8 +57,7 @@ export const updateKeyRbac = workspaceProcedure
     if (directPermissionIds.length > 0) {
       const existingPermissions = await db.query.permissions
         .findMany({
-          where: (table, { eq, and, inArray }) =>
-            and(eq(table.workspaceId, workspaceId), inArray(table.id, directPermissionIds)),
+          where: { workspaceId, id: { in: directPermissionIds } },
           columns: { id: true },
         })
         .catch((_err) => {
@@ -89,8 +86,7 @@ export const updateKeyRbac = workspaceProcedure
           roleIds.length > 0
             ? await tx.query.rolesPermissions
                 .findMany({
-                  where: (table, { inArray, eq, and }) =>
-                    and(inArray(table.roleId, roleIds), eq(table.workspaceId, workspaceId)),
+                  where: { roleId: { in: roleIds }, workspaceId },
                   columns: { permissionId: true },
                 })
                 .catch((_err) => {

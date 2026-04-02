@@ -1,6 +1,6 @@
 import { rbacRoleSchema } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/upsert-role.schema";
 import { insertAuditLogs } from "@/lib/audit";
-import { and, db, eq, schema } from "@/lib/db";
+import { and, db, eq, ne, schema } from "@/lib/db";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -34,8 +34,7 @@ export const upsertRole = workspaceProcedure
 
         // Get the existing role to compare names and verify existence
         const existingRole = await tx.query.roles.findFirst({
-          where: (table, { and, eq }) =>
-            and(eq(table.id, updateRoleId), eq(table.workspaceId, ctx.workspace.id)),
+          where: { id: updateRoleId, workspaceId: ctx.workspace.id },
         });
 
         if (!existingRole) {
@@ -48,12 +47,11 @@ export const upsertRole = workspaceProcedure
         // Only check for name conflicts if the name is actually changing
         if (existingRole.name !== input.roleName) {
           const nameConflict = await tx.query.roles.findFirst({
-            where: (table, { and, eq, ne }) =>
-              and(
-                eq(table.workspaceId, ctx.workspace.id),
-                eq(table.name, input.roleName),
-                ne(table.id, updateRoleId),
-              ),
+            where: {
+              workspaceId: ctx.workspace.id,
+              name: input.roleName,
+              RAW: (table) => ne(table.id, updateRoleId),
+            },
           });
 
           if (nameConflict) {
@@ -208,8 +206,7 @@ export const upsertRole = workspaceProcedure
       } else {
         // Create mode - always check for name conflicts
         const nameConflict = await tx.query.roles.findFirst({
-          where: (table, { and, eq }) =>
-            and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.roleName)),
+          where: { workspaceId: ctx.workspace.id, name: input.roleName },
         });
 
         if (nameConflict) {

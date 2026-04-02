@@ -7,7 +7,7 @@ type WorkspaceWithQuotas = NonNullable<
   Awaited<
     ReturnType<
       typeof db.query.workspaces.findFirst<{
-        with: { quotas: true };
+        with: { quota: true };
       }>
     >
   >
@@ -33,10 +33,9 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
     // Try to fetch workspace directly from database using tenant/orgId
     try {
       let workspace = await db.query.workspaces.findFirst({
-        where: (table, { eq, and, isNull }) =>
-          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+        where: { orgId: ctx.tenant.id, deletedAtM: { isNull: true } },
         with: {
-          quotas: true,
+          quota: true,
         },
       });
 
@@ -51,10 +50,9 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
         await new Promise((resolve) => setTimeout(resolve, 150));
 
         workspace = await db.query.workspaces.findFirst({
-          where: (table, { eq, and, isNull }) =>
-            and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+          where: { orgId: ctx.tenant.id, deletedAtM: { isNull: true } },
           with: {
-            quotas: true,
+            quota: true,
           },
         });
       }
@@ -67,7 +65,7 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
         });
       }
 
-      const result = { ...workspace, quotas: workspace.quotas };
+      const result = { ...workspace, quota: workspace.quota };
 
       const cacheKey = `workspace_${ctx.tenant?.id}`;
       workspaceCache.set(cacheKey, {
@@ -104,10 +102,9 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
     // The workspace is already available in context from requireWorkspace middleware
     // but we need to fetch it with quotas and related data
     let workspace = await db.query.workspaces.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+      where: { orgId: ctx.tenant.id, deletedAtM: { isNull: true } },
       with: {
-        quotas: true,
+        quota: true,
       },
     });
 
@@ -121,10 +118,9 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       workspace = await db.query.workspaces.findFirst({
-        where: (table, { eq, and, isNull }) =>
-          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+        where: { orgId: ctx.tenant.id, deletedAtM: { isNull: true } },
         with: {
-          quotas: true,
+          quota: true,
         },
       });
     }
@@ -138,7 +134,7 @@ export const getCurrentWorkspace = protectedProcedure.query(async ({ ctx }) => {
       });
     }
 
-    const result = { ...workspace, quotas: workspace.quotas };
+    const result = { ...workspace, quota: workspace.quota };
 
     // Cache the result
     workspaceCache.set(cacheKey, {

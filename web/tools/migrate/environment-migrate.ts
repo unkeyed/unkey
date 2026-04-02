@@ -12,14 +12,13 @@ async function main() {
   let cursor = "";
   do {
     const keys = await db.query.keys.findMany({
-      where: (table, { isNotNull, gt, eq, and }) =>
-        and(
-          gt(table.id, cursor),
-          eq(table.workspaceId, "ws_39g5eLLQTX8bVdbsGK9Dke"),
-          isNotNull(table.environment),
-        ),
+      where: {
+        workspaceId: "ws_39g5eLLQTX8bVdbsGK9Dke",
+        environment: { isNotNull: true },
+        RAW: (table, { gt }) => gt(table.id, cursor),
+      },
       limit: 1000,
-      orderBy: (table, { asc }) => asc(table.id),
+      orderBy: { id: "asc" },
     });
 
     cursor = keys.at(-1)?.id ?? "";

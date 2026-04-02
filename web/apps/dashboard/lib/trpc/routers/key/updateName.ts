@@ -15,12 +15,7 @@ export const updateKeyName = workspaceProcedure
   .mutation(async ({ input, ctx }) => {
     const key = await db.query.keys
       .findFirst({
-        where: (table, { eq, isNull, and }) =>
-          and(
-            eq(table.workspaceId, ctx.workspace.id),
-            eq(table.id, input.keyId),
-            isNull(table.deletedAtM),
-          ),
+        where: { workspaceId: ctx.workspace.id, id: input.keyId, deletedAtM: { isNull: true } },
       })
       .catch((_err) => {
         throw new TRPCError({

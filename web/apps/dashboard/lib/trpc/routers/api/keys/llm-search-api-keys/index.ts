@@ -24,12 +24,11 @@ export const apiKeysLlmSearch = workspaceProcedure
     // Verify API access and workspace permissions
     const api = await db.query.apis
       .findFirst({
-        where: (api, { and, eq, isNull }) =>
-          and(
-            eq(api.keyAuthId, input.keyspaceId),
-            eq(api.workspaceId, ctx.workspace.id),
-            isNull(api.deletedAtM),
-          ),
+        where: {
+          keyAuthId: input.keyspaceId,
+          workspaceId: ctx.workspace.id,
+          deletedAtM: { isNull: true },
+        },
       })
       .catch((_err) => {
         throw new TRPCError({

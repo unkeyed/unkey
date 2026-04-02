@@ -102,7 +102,7 @@ export const updateSubscription = workspaceProcedure
       .where(eq(schema.workspaces.id, ctx.workspace.id));
 
     await db
-      .insert(schema.quotas)
+      .insert(schema.quota)
       .values({
         workspaceId: ctx.workspace.id,
         requestsPerMonth: Number.parseInt(newProduct.metadata.quota_requests_per_month),

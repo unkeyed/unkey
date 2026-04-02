@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { and, db, eq, like, sql } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
@@ -30,12 +30,13 @@ export const searchIdentities = workspaceProcedure
     try {
       const escapedQuery = escapeLike(query);
       const identitiesQuery = await db.query.identities.findMany({
-        where: (identity, { and, eq, like }) => {
-          return and(
-            eq(identity.workspaceId, workspaceId),
-            eq(identity.deleted, false),
-            like(identity.externalId, `%${escapedQuery}%`),
-          );
+        where: {
+          RAW: (table) =>
+            and(
+              eq(table.workspaceId, workspaceId),
+              eq(table.deleted, false),
+              like(table.externalId, `%${escapedQuery}%`),
+            ) ?? sql`1=1`,
         },
         with: {
           keys: {
@@ -54,7 +55,7 @@ export const searchIdentities = workspaceProcedure
           },
         },
         limit: LIMIT,
-        orderBy: (identities, { asc }) => [asc(identities.externalId)],
+        orderBy: { externalId: "asc" },
       });
 
       const transformedIdentities = identitiesQuery.map((identity) => ({

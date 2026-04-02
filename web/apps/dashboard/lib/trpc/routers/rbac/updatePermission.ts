@@ -21,8 +21,7 @@ export const updatePermission = workspaceProcedure
   )
   .mutation(async ({ input, ctx }) => {
     const permission = await db.query.permissions.findFirst({
-      where: (table, { and, eq }) =>
-        and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.id)),
+      where: { workspaceId: ctx.workspace.id, id: input.id },
     });
 
     if (!permission) {

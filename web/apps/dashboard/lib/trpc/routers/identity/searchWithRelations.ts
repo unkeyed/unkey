@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { and, db, eq, like, or, sql } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
@@ -40,19 +40,22 @@ export const searchIdentitiesWithRelations = workspaceProcedure
 
     try {
       const workspace = await db.query.workspaces.findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.id, workspaceId), isNull(table.deletedAtM)),
+        where: { id: workspaceId, deletedAtM: { isNull: true } },
         with: {
           identities: {
-            where: (table, { or, like, and, eq }) => {
-              const deletedFilter = eq(table.deleted, false);
-              const searchFilter = search
-                ? or(like(table.externalId, `%${search}%`), like(table.id, `%${search}%`))
-                : undefined;
-              return searchFilter ? and(deletedFilter, searchFilter) : deletedFilter;
+            where: {
+              RAW: (table) => {
+                const deletedFilter = eq(table.deleted, false);
+                const searchFilter = search
+                  ? or(like(table.externalId, `%${search}%`), like(table.id, `%${search}%`))
+                  : undefined;
+                return (
+                  (searchFilter ? and(deletedFilter, searchFilter) : deletedFilter) ?? sql`1=1`
+                );
+              },
             },
             limit,
-            orderBy: (table, { asc }) => asc(table.id),
+            orderBy: { id: "asc" },
             with: {
               ratelimits: {
                 columns: {

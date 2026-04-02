@@ -4,7 +4,7 @@
  */
 
 import { getAuth } from "@/lib/auth";
-import { type VercelIntegration, db, eq, schema } from "@/lib/db";
+import { type VercelIntegration, db, schema } from "@/lib/db";
 import { vercelIntegrationEnv } from "@/lib/env";
 import { Code, Empty } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
@@ -35,9 +35,9 @@ export default async function Page(props: Props) {
 
   const { orgId } = await getAuth();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+    where: { orgId: orgId, deletedAtM: { isNull: true } },
     with: {
-      apis: { where: (table, { isNull }) => isNull(table.deletedAtM) },
+      apis: { where: { deletedAtM: { isNull: true } } },
     },
   });
 
@@ -47,7 +47,7 @@ export default async function Page(props: Props) {
 
   let integration: Omit<VercelIntegration, "pk"> | undefined =
     await db.query.vercelIntegrations.findFirst({
-      where: eq(schema.vercelIntegrations.id, (await props.searchParams).configurationId),
+      where: { id: (await props.searchParams).configurationId },
     });
 
   if (!integration) {

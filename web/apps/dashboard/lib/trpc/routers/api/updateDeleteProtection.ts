@@ -16,12 +16,11 @@ export const updateAPIDeleteProtection = workspaceProcedure
   .mutation(async ({ ctx, input }) => {
     const api = await db.query.apis
       .findFirst({
-        where: (table, { eq, and, isNull }) =>
-          and(
-            eq(table.workspaceId, ctx.workspace.id),
-            eq(table.id, input.apiId),
-            isNull(table.deletedAtM),
-          ),
+        where: {
+          workspaceId: ctx.workspace.id,
+          id: input.apiId,
+          deletedAtM: { isNull: true },
+        },
       })
       .catch((_err) => {
         throw new TRPCError({

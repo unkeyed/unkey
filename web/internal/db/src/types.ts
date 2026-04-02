@@ -52,8 +52,8 @@ export type InsertAuditLog = InferInsertModel<typeof schema.auditLog>;
 export type AuditLogTarget = InferSelectModel<typeof schema.auditLogTarget>;
 export type InsertAuditLogTarget = InferInsertModel<typeof schema.auditLogTarget>;
 
-export type Quotas = InferSelectModel<typeof schema.quotas>;
-export type InsertQuotas = InferInsertModel<typeof schema.quotas>;
+export type Quotas = InferSelectModel<typeof schema.quota>;
+export type InsertQuotas = InferInsertModel<typeof schema.quota>;
 
 export type Sentinel = InferSelectModel<typeof schema.sentinels>;
 export type InsertSentinel = InferInsertModel<typeof schema.sentinels>;

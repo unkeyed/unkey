@@ -9,7 +9,7 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
   let authResult = await getAuth(req as NextRequest);
   const { userId, orgId } = authResult;
 
-  let ws: Awaited<ReturnType<typeof db.query.workspaces.findFirst<{ with: { quotas: true } }>>> =
+  let ws: Awaited<ReturnType<typeof db.query.workspaces.findFirst<{ with: { quota: true } }>>> =
     undefined;
 
   // Only attempt workspace query if we have both userId and orgId
@@ -17,10 +17,9 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
   if (orgId && userId) {
     try {
       ws = await db.query.workspaces.findFirst({
-        where: (table, { eq, and, isNull }) =>
-          and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+        where: { orgId: orgId, deletedAtM: { isNull: true } },
         with: {
-          quotas: true,
+          quota: true,
         },
       });
 
@@ -56,10 +55,9 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
 
         // Try workspace query again with potentially updated auth context
         ws = await db.query.workspaces.findFirst({
-          where: (table, { eq, and, isNull }) =>
-            and(eq(table.orgId, authResult.orgId || orgId), isNull(table.deletedAtM)),
+          where: { orgId: authResult.orgId || orgId, deletedAtM: { isNull: true } },
           with: {
-            quotas: true,
+            quota: true,
           },
         });
 

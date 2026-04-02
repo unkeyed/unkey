@@ -12,10 +12,9 @@ export const getWorkspaceById = protectedProcedure
   .query(async ({ input }) => {
     try {
       const workspace = await db.query.workspaces.findFirst({
-        where: (table, { eq, and, isNull }) =>
-          and(eq(table.id, input.workspaceId), isNull(table.deletedAtM)),
+        where: { id: input.workspaceId, deletedAtM: { isNull: true } },
         with: {
-          quotas: true,
+          quota: true,
         },
       });
 

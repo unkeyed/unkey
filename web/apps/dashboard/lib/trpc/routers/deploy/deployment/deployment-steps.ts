@@ -17,8 +17,7 @@ export const getDeploymentSteps = workspaceProcedure
   .output(z.partialRecord(z.enum(deploymentSteps.step.enumValues), stepSchema.nullable()))
   .query(async ({ ctx, input }) => {
     const deployment = await db.query.deployments.findFirst({
-      where: (table, { and, eq }) =>
-        and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
+      where: { id: input.deploymentId, workspaceId: ctx.workspace.id },
       columns: { id: true },
       with: {
         steps: {

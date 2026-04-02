@@ -85,7 +85,7 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
     return {
       user: user ?? null,
       workspace: workspace ?? null,
-      quotas: workspace?.quotas ?? null,
+      quotas: workspace?.quota ?? null,
       isLoading,
       error,
       refetch,

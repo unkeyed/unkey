@@ -14,7 +14,7 @@ go_library(
     ],
     data = [
         "//pkg/clickhouse/schema:schema_files",  # keep
-        "//pkg/db:schema.sql",  # keep
+        "//pkg/mysql:schema.sql",  # keep
     ],
     importpath = "github.com/unkeyed/unkey/pkg/dockertest",
     visibility = ["//visibility:public"],

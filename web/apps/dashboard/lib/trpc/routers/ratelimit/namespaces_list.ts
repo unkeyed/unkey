@@ -8,8 +8,7 @@ export const listRatelimitNamespaces = workspaceProcedure
   .query(async ({ ctx }) => {
     try {
       return await db.query.ratelimitNamespaces.findMany({
-        where: (table, { eq, and, isNull }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), isNull(table.deletedAtM)),
+        where: { workspaceId: ctx.workspace.id, deletedAtM: { isNull: true } },
         columns: {
           id: true,
           name: true,
