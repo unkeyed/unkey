@@ -1,4 +1,4 @@
-import { auditQueryLogsPayload } from "@/app/(app)/[workspaceSlug]/audit/components/table/query-logs.schema";
+import { auditLogsQueryPayload } from "@/components/audit-logs-table/schema/audit-logs.schema";
 import { auth } from "@/lib/auth/server";
 import type { User } from "@/lib/auth/types";
 import {
@@ -32,7 +32,7 @@ type AuditLogsResponse = z.infer<typeof AuditLogsResponse>;
 
 export const fetchAuditLog = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
-  .input(auditQueryLogsPayload)
+  .input(auditLogsQueryPayload)
   .output(AuditLogsResponse)
   .query(async ({ ctx, input }) => {
     const params = transformFilters(input);

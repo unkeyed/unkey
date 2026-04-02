@@ -1,9 +1,9 @@
-import type { AuditQueryLogsPayload } from "@/app/(app)/[workspaceSlug]/audit/components/table/query-logs.schema";
+import type { AuditLogsQueryPayload } from "@/components/audit-logs-table/schema/audit-logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
 import type { AuditQueryLogsParams } from "./schema";
 
 export function transformFilters(
-  params: AuditQueryLogsPayload,
+  params: AuditLogsQueryPayload,
 ): Omit<AuditQueryLogsParams, "workspaceId"> {
   let startTime = params.startTime;
   let endTime = params.endTime;

@@ -8,3 +8,5 @@ export {
   AUDIT_STATUS_STYLES,
 } from "./utils/get-row-class";
 export { useAuditLogsQuery } from "./hooks/use-audit-logs-query";
+export { auditLogsQueryPayload } from "./schema/audit-logs.schema";
+export type { AuditLogsQueryPayload } from "./schema/audit-logs.schema";
