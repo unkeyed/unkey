@@ -109,7 +109,6 @@ async function checkIfIdentifierHasOverride(
         limit: true,
         duration: true,
         id: true,
-        async: true,
       },
     })
     .catch((_err) => {
@@ -126,7 +125,6 @@ async function checkIfIdentifierHasOverride(
         limit: override.limit,
         duration: override.duration,
         overrideId: override.id,
-        async: override.async,
       },
     ]),
   );

@@ -1,43 +1,8 @@
+import { newId } from "@unkey/id";
 import { relations } from "drizzle-orm";
-import {
-  bigint,
-  index,
-  int,
-  json,
-  mysqlTable,
-  unique,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlTable, unique, varchar } from "drizzle-orm/mysql-core";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
-
-import { newId } from "@unkey/id";
-import { deleteProtection } from "./util/delete_protection";
-
-export const auditLogBucket = mysqlTable(
-  "audit_log_bucket",
-  {
-    pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
-    id: varchar("id", { length: 256 })
-      .notNull()
-      .unique()
-      .$defaultFn(() => newId("auditLogBucket")),
-
-    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
-    /**
-     * Buckets are used as namespaces for different logs belonging to a single workspace
-     */
-    name: varchar("name", { length: 256 }).notNull(),
-    /**
-     * null means we don't automatically remove logs
-     */
-    retentionDays: int("retention_days"),
-    ...lifecycleDates,
-    ...deleteProtection,
-  },
-  (table) => [uniqueIndex("unique_name_per_workspace_idx").on(table.workspaceId, table.name)],
-);
 
 export const auditLog = mysqlTable(
   "audit_log",
