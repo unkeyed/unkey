@@ -18,7 +18,7 @@ import {
 import { useCallback, useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { useProjectData } from "../../data-provider";
+import { useProjectData } from "../../../data-provider";
 
 const editEnvVarSchema = z.object({
   key: z.string().min(1, "Variable name is required"),
@@ -122,7 +122,7 @@ export function EnvVarEditRow({
   );
 
   return (
-    <div className="bg-gray-1 px-6 pb-6 pt-5 border-t border-grayA-4" onKeyDown={handleKeyDown}>
+    <div className="bg-gray-1 px-12 pb-6 pt-5 border-t border-grayA-4" onKeyDown={handleKeyDown}>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
         <FormInput
           label="Key"
