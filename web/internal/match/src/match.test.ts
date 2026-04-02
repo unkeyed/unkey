@@ -41,9 +41,18 @@ describe("match", () => {
     it("short-circuits after first match", () => {
       let callCount = 0;
       match("a" as "a" | "b")
-        .with("a", () => { callCount++; return 1; })
-        .with("a", () => { callCount++; return 2; })
-        .otherwise(() => { callCount++; return 3; });
+        .with("a", () => {
+          callCount++;
+          return 1;
+        })
+        .with("a", () => {
+          callCount++;
+          return 2;
+        })
+        .otherwise(() => {
+          callCount++;
+          return 3;
+        });
       expect(callCount).toBe(1);
     });
   });
@@ -51,14 +60,22 @@ describe("match", () => {
   describe(".with() + guard", () => {
     it("matches when guard returns true", () => {
       const result = match(5 as number)
-        .with(5, (n) => n > 0, () => "positive five")
+        .with(
+          5,
+          (n) => n > 0,
+          () => "positive five",
+        )
         .otherwise(() => "other");
       expect(result).toBe("positive five");
     });
 
     it("skips when guard returns false", () => {
       const result = match(5 as number)
-        .with(5, (n) => n < 0, () => "negative five")
+        .with(
+          5,
+          (n) => n < 0,
+          () => "negative five",
+        )
         .otherwise(() => "other");
       expect(result).toBe("other");
     });
@@ -74,18 +91,23 @@ describe("match", () => {
     });
   });
 
-
   describe(".when()", () => {
     it("matches using a predicate", () => {
       const result = match(10 as number)
-        .when((n) => n > 5, () => "big")
+        .when(
+          (n) => n > 5,
+          () => "big",
+        )
         .otherwise(() => "small");
       expect(result).toBe("big");
     });
 
     it("skips when predicate returns false", () => {
       const result = match(3 as number)
-        .when((n) => n > 5, () => "big")
+        .when(
+          (n) => n > 5,
+          () => "big",
+        )
         .otherwise(() => "small");
       expect(result).toBe("small");
     });
@@ -151,7 +173,6 @@ describe("match", () => {
     });
   });
 });
-
 
 describe("P", () => {
   describe("P.nullish", () => {
@@ -239,7 +260,10 @@ describe("P", () => {
   describe("P.when()", () => {
     it("matches when predicate returns true", () => {
       const result = match(10 as number)
-        .with(P.when((n: number) => n > 5), () => "big")
+        .with(
+          P.when((n: number) => n > 5),
+          () => "big",
+        )
         .otherwise(() => "small");
       expect(result).toBe("big");
     });
@@ -248,14 +272,22 @@ describe("P", () => {
   describe("P.nullish + guard", () => {
     it("matches null with passing guard", () => {
       const result = match(null as string | null)
-        .with(P.nullish, () => true, () => "null + guard passed")
+        .with(
+          P.nullish,
+          () => true,
+          () => "null + guard passed",
+        )
         .otherwise(() => "fallback");
       expect(result).toBe("null + guard passed");
     });
 
     it("skips null when guard fails", () => {
       const result = match(null as string | null)
-        .with(P.nullish, () => false, () => "null + guard passed")
+        .with(
+          P.nullish,
+          () => false,
+          () => "null + guard passed",
+        )
         .otherwise(() => "fallback");
       expect(result).toBe("fallback");
     });
@@ -286,12 +318,16 @@ describe("P", () => {
 
 describe("Object.is semantics", () => {
   it("NaN matches NaN", () => {
-    const result = match(NaN).with(NaN, () => "nan").otherwise(() => "other");
+    const result = match(Number.NaN)
+      .with(Number.NaN, () => "nan")
+      .otherwise(() => "other");
     expect(result).toBe("nan");
   });
 
   it("0 does not match -0", () => {
-    const result = match(-0 as number).with(0, () => "zero").otherwise(() => "neg zero");
+    const result = match(-0 as number)
+      .with(0, () => "zero")
+      .otherwise(() => "neg zero");
     expect(result).toBe("neg zero");
   });
 });

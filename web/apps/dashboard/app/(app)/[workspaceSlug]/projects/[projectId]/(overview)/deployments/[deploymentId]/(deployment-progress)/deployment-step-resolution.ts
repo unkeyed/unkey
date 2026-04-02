@@ -41,14 +41,28 @@ export function resolveDeploymentStep(ctx: DeploymentStepContext): DeploymentSte
 
   return match(step)
     .returnType<DeploymentStepResolution>()
-    .with(P.nullish, () => Boolean(implicitlyComplete), () => ({
-      status: "completed", description: completedMessage, duration: undefined,
-    }))
-    .with(P.nullish, () => skippable && isFailed, () => ({
-      status: "skipped", description: "Skipped", duration: undefined,
-    }))
+    .with(
+      P.nullish,
+      () => Boolean(implicitlyComplete),
+      () => ({
+        status: "completed",
+        description: completedMessage,
+        duration: undefined,
+      }),
+    )
+    .with(
+      P.nullish,
+      () => skippable && isFailed,
+      () => ({
+        status: "skipped",
+        description: "Skipped",
+        duration: undefined,
+      }),
+    )
     .with(P.nullish, () => ({
-      status: "pending", description: waitingMessage, duration: undefined,
+      status: "pending",
+      description: waitingMessage,
+      duration: undefined,
     }))
     .when(
       (s) => Boolean(s?.error),

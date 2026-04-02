@@ -1,11 +1,8 @@
 import { describe, expectTypeOf, it } from "vitest";
-import { match, P } from "./index";
-
+import { P, match } from "./index";
 
 describe("type: discriminated union narrowing", () => {
-  type Shape =
-    | { kind: "circle"; r: number }
-    | { kind: "rect"; w: number; h: number };
+  type Shape = { kind: "circle"; r: number } | { kind: "rect"; w: number; h: number };
 
   it("narrows handler param to matched variant", () => {
     const shape = {} as Shape;
@@ -45,7 +42,6 @@ describe("type: discriminated union narrowing", () => {
   });
 });
 
-
 describe("type: literal narrowing", () => {
   it("narrows string union to matched literal", () => {
     const v = {} as "a" | "b" | "c";
@@ -69,7 +65,6 @@ describe("type: literal narrowing", () => {
     builder.otherwise(() => 2);
   });
 });
-
 
 describe("type: P helpers", () => {
   it("P.string narrows to string", () => {
@@ -117,7 +112,6 @@ describe("type: P helpers", () => {
   });
 });
 
-
 describe("type: object patterns with P helpers", () => {
   it("narrows object field via P.string", () => {
     type Data = { error: string | null; ok: boolean };
@@ -131,7 +125,6 @@ describe("type: object patterns with P helpers", () => {
   });
 });
 
-
 describe("type: multi-pattern OR", () => {
   it("handler receives union of both narrowed types", () => {
     const v = {} as "a" | "b" | "c";
@@ -144,7 +137,6 @@ describe("type: multi-pattern OR", () => {
       .exhaustive();
   });
 });
-
 
 describe("type: guard overload", () => {
   it("guard and handler both receive narrowed type", () => {
@@ -165,7 +157,6 @@ describe("type: guard overload", () => {
   });
 });
 
-
 describe("type: .returnType() constraint", () => {
   it("constrains handler return types", () => {
     const v = {} as "a" | "b";
@@ -177,7 +168,6 @@ describe("type: .returnType() constraint", () => {
     expectTypeOf(result).toEqualTypeOf<number>();
   });
 });
-
 
 describe("type: .when()", () => {
   it("handler receives narrowed type for type guard predicate", () => {

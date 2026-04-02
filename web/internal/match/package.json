@@ -7,9 +7,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": [
-    "./dist/**"
-  ],
+  "files": ["./dist/**"],
   "description": "Type-safe pattern matching utility. This is package is heavily influenced by https://github.com/gvergnaud/ts-pattern",
   "keywords": [],
   "scripts": {

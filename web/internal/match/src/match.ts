@@ -2,9 +2,7 @@ import { NonExhaustiveError } from "./errors";
 import { matchPattern } from "./patterns";
 import type { DeepPattern, HandlerReturn, NarrowByPattern } from "./types";
 
-type MatchState<TOutput> =
-  | { matched: true; value: TOutput }
-  | { matched: false; value: undefined };
+type MatchState<TOutput> = { matched: true; value: TOutput } | { matched: false; value: undefined };
 
 const unmatched: MatchState<never> = {
   matched: false,
@@ -22,7 +20,7 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
   private constructor(
     private input: TInput,
     private state: MatchState<TOutput>,
-  ) { }
+  ) {}
 
   static create<T>(input: T): MatchBuilder<T, never, T> {
     return new MatchBuilder(input, unmatched);
@@ -36,9 +34,7 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
   /** Match a single pattern. */
   with<const TPattern, TResult>(
     pattern: TPattern & DeepPattern<TRemaining, NoInfer<TPattern>>,
-    handler: (
-      value: NarrowByPattern<TRemaining, TPattern>,
-    ) => HandlerReturn<TConstraint, TResult>,
+    handler: (value: NarrowByPattern<TRemaining, TPattern>) => HandlerReturn<TConstraint, TResult>,
   ): MatchBuilder<
     TInput,
     TOutput | HandlerReturn<TConstraint, TResult>,
@@ -50,9 +46,7 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
   with<const TPattern, TResult>(
     pattern: TPattern & DeepPattern<TRemaining, NoInfer<TPattern>>,
     guard: (value: NarrowByPattern<TRemaining, TPattern>) => boolean,
-    handler: (
-      value: NarrowByPattern<TRemaining, TPattern>,
-    ) => HandlerReturn<TConstraint, TResult>,
+    handler: (value: NarrowByPattern<TRemaining, TPattern>) => HandlerReturn<TConstraint, TResult>,
   ): MatchBuilder<
     TInput,
     TOutput | HandlerReturn<TConstraint, TResult>,
@@ -114,12 +108,7 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
   when<TResult>(
     predicate: (value: TInput) => boolean,
     handler: (value: TInput) => HandlerReturn<TConstraint, TResult>,
-  ): MatchBuilder<
-    TInput,
-    TOutput | HandlerReturn<TConstraint, TResult>,
-    TRemaining,
-    TConstraint
-  >;
+  ): MatchBuilder<TInput, TOutput | HandlerReturn<TConstraint, TResult>, TRemaining, TConstraint>;
 
   // biome-ignore lint: implementation signature must be loose to cover all overloads
   when(predicate: (value: any) => boolean, handler: (value: any) => any): any {

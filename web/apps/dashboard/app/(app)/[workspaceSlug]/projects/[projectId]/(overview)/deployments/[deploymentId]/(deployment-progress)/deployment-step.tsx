@@ -82,9 +82,7 @@ export function DeploymentStep({
           </span>
           {statusIcon ??
             match(status)
-              .with("completed", () => (
-                <Check iconSize="md-regular" className="text-success-11" />
-              ))
+              .with("completed", () => <Check iconSize="md-regular" className="text-success-11" />)
               .with("started", () => <Loading className="size-4" />)
               .with("error", () => (
                 <TriangleWarning2 className="text-error-11" iconSize="md-regular" />
