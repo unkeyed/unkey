@@ -564,8 +564,6 @@ func (w *Workflow) createTopologies(
 			)
 		}
 
-		replicas := rs.Replicas
-
 		// Snapshot autoscaling policy values. When no policy is attached,
 		// default to min=1, max=1 (single replica). Once all regional settings
 		// have an autoscaling policy this fallback can be removed.
@@ -590,7 +588,6 @@ func (w *Workflow) createTopologies(
 			WorkspaceID:                workspace.ID,
 			DeploymentID:               deployment.ID,
 			RegionID:                   rs.RegionID,
-			DesiredReplicas:            replicas,
 			AutoscalingReplicasMin:     autoscalingMin,
 			AutoscalingReplicasMax:     autoscalingMax,
 			AutoscalingThresholdCpu:    rs.AutoscalingThresholdCpu,

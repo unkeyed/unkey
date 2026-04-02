@@ -147,7 +147,6 @@ func (s *Service) deploymentRowToState(row db.ListDeploymentTopologyByRegionRow)
 			ProjectId:                     row.Deployment.ProjectID,
 			EnvironmentId:                 row.Deployment.EnvironmentID,
 			AppId:                         row.Deployment.AppID,
-			Replicas:                      row.DeploymentTopology.DesiredReplicas,
 			Image:                         row.Deployment.Image.String,
 			CpuMillicores:                 int64(row.Deployment.CpuMillicores),
 			MemoryMib:                     int64(row.Deployment.MemoryMib),

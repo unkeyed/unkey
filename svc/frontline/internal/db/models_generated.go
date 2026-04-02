@@ -1200,7 +1200,6 @@ type DeploymentTopology struct {
 	WorkspaceID                string                          `db:"workspace_id"`
 	DeploymentID               string                          `db:"deployment_id"`
 	RegionID                   string                          `db:"region_id"`
-	DesiredReplicas            int32                           `db:"desired_replicas"`
 	AutoscalingReplicasMin     uint32                          `db:"autoscaling_replicas_min"`
 	AutoscalingReplicasMax     uint32                          `db:"autoscaling_replicas_max"`
 	AutoscalingThresholdCpu    sql.NullInt16                   `db:"autoscaling_threshold_cpu"`

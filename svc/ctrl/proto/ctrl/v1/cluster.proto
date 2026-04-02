@@ -285,10 +285,6 @@ message ApplyDeployment {
   // Example: "gcr.io/myproject/app:v2.1.0"
   string image = 7;
 
-  // replicas is the desired number of pod instances.
-  // Must be at least 1. Set higher for increased availability and load distribution.
-  int32 replicas = 8;
-
   // cpu_millicores is the CPU request/limit in millicores (1000 = 1 CPU core).
   // This ensures each pod has sufficient CPU resources.
   // Example: 250 = 0.25 CPU cores
@@ -329,10 +325,9 @@ message ApplyDeployment {
   optional string git_repo = 25;
   optional string git_commit_message = 26;
 
-  // Horizontal autoscaling policy. When present, krane creates an HPA with
-  // these values instead of the defaults (min=1, max=replicas, cpu=80%).
+  // Horizontal autoscaling policy. Krane creates an HPA with these values.
   // Populated from the horizontal_autoscaling_policies table via app_regional_settings.
-  optional AutoscalingPolicy autoscaling = 27;
+  AutoscalingPolicy autoscaling = 27;
 }
 
 // AutoscalingPolicy configures horizontal pod autoscaling for a deployment.
