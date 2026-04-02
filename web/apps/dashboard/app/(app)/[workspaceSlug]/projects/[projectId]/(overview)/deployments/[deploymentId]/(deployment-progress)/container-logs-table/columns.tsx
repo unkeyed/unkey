@@ -68,11 +68,6 @@ export const containerLogColumns: Column<ContainerLogRow>[] = [
     key: "message",
     width: "auto",
     cellClassName: "align-top",
-    render: (log) => (
-      <TruncatedCell
-        text={log.message}
-        className="text-gray-12"
-      />
-    ),
+    render: (log) => <TruncatedCell text={log.message} className="text-gray-12" />,
   },
 ];

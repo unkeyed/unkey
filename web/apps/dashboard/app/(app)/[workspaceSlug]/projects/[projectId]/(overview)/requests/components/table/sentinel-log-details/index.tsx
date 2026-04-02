@@ -4,8 +4,8 @@ import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/com
 import { EMPTY_TEXT, LogDetails } from "@/components/logs/details/log-details";
 import { LogSection } from "@/components/logs/details/log-details/components/log-section";
 import { collection } from "@/lib/collections";
-import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { shortenId } from "@/lib/shorten-id";
+import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";

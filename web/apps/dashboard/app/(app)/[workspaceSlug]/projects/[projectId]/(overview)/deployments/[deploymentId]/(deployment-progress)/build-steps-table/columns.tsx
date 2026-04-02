@@ -72,10 +72,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
     width: "400px",
     cellClassName: "align-top",
     render: (step) => (
-      <TruncatedCell
-        text={step.name}
-        className="flex items-center gap-2 text-gray-12"
-      />
+      <TruncatedCell text={step.name} className="flex items-center gap-2 text-gray-12" />
     ),
   },
   {
