@@ -37,8 +37,6 @@ export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
             <td colSpan={3} className="h-[26px] py-px ">
               <TruncatedCell
                 text={log.message}
-                threshold={120}
-                maxWidth="max-w-[750px]"
                 className="text-gray-12"
               />
             </td>
