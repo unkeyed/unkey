@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import { CloudUp, Earth, Hammer2, LayerFront, Pulse, Sparkle3 } from "@unkey/icons";
+import { P, match } from "@unkey/match";
 import { SettingCardGroup } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -143,26 +144,27 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
           key={isPrebuilt ? "prebuilt" : "building"}
           icon={<Hammer2 iconSize="sm-medium" className="size-[18px]" />}
           title="Building Image"
-          description={
-            building
-              ? building.endedAt
-                ? (building.error ??
-                  (hasFreshBuild.current ? "Build Complete" : "Image was prebuilt"))
-                : (buildSteps.data?.steps.at(-1)?.name ?? "Building...")
-              : deploying
-                ? "Image was prebuilt"
-                : "Waiting for deployment to start"
-          }
+          description={match(building)
+            .when(
+              (b) => Boolean(b?.endedAt),
+              (b) => b?.error ?? (hasFreshBuild.current ? "Build Complete" : "Image was prebuilt"),
+            )
+            .with(P.nonNullable, () => buildSteps.data?.steps.at(-1)?.name ?? "Building...")
+            .otherwise(() =>
+              deploying ? "Image was prebuilt" : "Waiting for deployment to start",
+            )}
           duration={building ? (building.endedAt ?? now) - building.startedAt : undefined}
-          status={
-            building?.error
-              ? "error"
-              : building?.completed
-                ? "completed"
-                : building
-                  ? "started"
-                  : "pending"
-          }
+          status={match(building)
+            .when(
+              (b) => Boolean(b?.error),
+              () => "error" as const,
+            )
+            .when(
+              (b) => Boolean(b?.completed),
+              () => "completed" as const,
+            )
+            .with(P.nonNullable, () => "started" as const)
+            .otherwise(() => "pending" as const)}
           expandable={
             isPrebuilt ? null : (
               <div className="bg-grayA-2">

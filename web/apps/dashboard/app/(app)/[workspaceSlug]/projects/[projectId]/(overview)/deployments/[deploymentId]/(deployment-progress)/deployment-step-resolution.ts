@@ -1,3 +1,5 @@
+import { P, match } from "@unkey/match";
+
 type StepData = {
   startedAt: number;
   endedAt: number | null;
@@ -35,25 +37,40 @@ export function resolveDeploymentStep(ctx: DeploymentStepContext): DeploymentSte
     waitingMessage,
   } = ctx;
 
-  if (!step) {
-    if (implicitlyComplete) {
-      return { status: "completed", description: completedMessage, duration: undefined };
-    }
-    if (skippable && isFailed) {
-      return { status: "skipped", description: "Skipped", duration: undefined };
-    }
-    return { status: "pending", description: waitingMessage, duration: undefined };
-  }
+  const duration = step ? (step.endedAt ?? now) - step.startedAt : undefined;
 
-  const duration = (step.endedAt ?? now) - step.startedAt;
-
-  if (step.error) {
-    return { status: "error", description: step.error, duration };
-  }
-
-  if (step.completed) {
-    return { status: "completed", description: completedMessage, duration };
-  }
-
-  return { status: "started", description: inProgressMessage, duration };
+  return match(step)
+    .returnType<DeploymentStepResolution>()
+    .with(
+      P.nullish,
+      () => Boolean(implicitlyComplete),
+      () => ({
+        status: "completed",
+        description: completedMessage,
+        duration: undefined,
+      }),
+    )
+    .with(
+      P.nullish,
+      () => skippable && isFailed,
+      () => ({
+        status: "skipped",
+        description: "Skipped",
+        duration: undefined,
+      }),
+    )
+    .with(P.nullish, () => ({
+      status: "pending",
+      description: waitingMessage,
+      duration: undefined,
+    }))
+    .when(
+      (s) => Boolean(s?.error),
+      (s) => ({ status: "error", description: s?.error ?? "", duration }),
+    )
+    .when(
+      (s) => Boolean(s?.completed),
+      () => ({ status: "completed", description: completedMessage, duration }),
+    )
+    .otherwise(() => ({ status: "started", description: inProgressMessage, duration }));
 }

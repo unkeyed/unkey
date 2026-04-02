@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
 import { Check, CircleHalfDottedClock, TriangleWarning2 } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Badge, Loading, SettingCard } from "@unkey/ui";
 import { GlowIcon } from "../../../../components/glow-icon";
 
@@ -12,6 +13,7 @@ type DeploymentStepProps = {
   description: string;
   duration?: number;
   status: "pending" | "started" | "completed" | "error" | "skipped";
+  statusIcon?: React.ReactNode;
   expandable?: React.ReactNode;
   defaultExpanded?: boolean;
 };
@@ -22,6 +24,7 @@ export function DeploymentStep({
   description,
   duration,
   status,
+  statusIcon,
   expandable,
   defaultExpanded,
 }: DeploymentStepProps) {
@@ -77,15 +80,18 @@ export function DeploymentStep({
           <span className="text-gray-10 text-xs">
             {duration !== null && duration !== undefined ? formatCompoundDuration(duration) : null}
           </span>
-          {status === "completed" ? (
-            <Check iconSize="md-regular" className="text-success-11" />
-          ) : status === "started" ? (
-            <Loading className="size-4" />
-          ) : status === "error" ? (
-            <TriangleWarning2 className="text-error-11" iconSize="md-regular" />
-          ) : status === "pending" ? (
-            <CircleHalfDottedClock className="text-gray-9" iconSize="md-regular" />
-          ) : null}
+          {statusIcon ??
+            match(status)
+              .with("completed", () => <Check iconSize="md-regular" className="text-success-11" />)
+              .with("started", () => <Loading className="size-4" />)
+              .with("error", () => (
+                <TriangleWarning2 className="text-error-11" iconSize="md-regular" />
+              ))
+              .with("pending", () => (
+                <CircleHalfDottedClock className="text-gray-9" iconSize="md-regular" />
+              ))
+              .with("skipped", () => null)
+              .exhaustive()}
         </div>
       </SettingCard>
     </div>
