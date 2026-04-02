@@ -140,7 +140,7 @@ go_library(
         "deployment_changes_cleanup.sql_generated.go",
         "deployment_changes_insert.sql_generated.go",
         "deployment_changes_list_all.sql_generated.go",
-        "deployment_changes_max_cursor.sql_generated.go",
+        "deployment_changes_max_version.sql_generated.go",
         "deployment_compare_and_swap_status.sql_generated.go",
         "deployment_delete_by_environment.sql_generated.go",
         "deployment_delete_instances.sql_generated.go",

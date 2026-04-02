@@ -25,6 +25,7 @@ go_library(
         "//pkg/ptr",
         "//pkg/uid",
         "//svc/ctrl/internal/auth",
+        "//svc/ctrl/pkg/metrics",
         "@com_connectrpc_connect//:connect",
     ],
 )

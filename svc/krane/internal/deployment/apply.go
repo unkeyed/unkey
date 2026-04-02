@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
+	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -40,7 +41,8 @@ import (
 // CiliumNetworkPolicy restricting ingress to matching sentinels. Pods run with gVisor
 // isolation (RuntimeClass "gvisor") since they execute untrusted user code, and are
 // scheduled on Karpenter-managed untrusted nodes with zone-spread constraints.
-func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) error {
+func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) (retErr error) {
+	defer func() { metrics.RecordReconcile("deployment", "apply", retErr) }()
 	logger.Info("applying deployment",
 		"namespace", req.GetK8SNamespace(),
 		"name", req.GetK8SName(),

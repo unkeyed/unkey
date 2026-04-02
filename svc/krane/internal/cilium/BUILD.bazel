@@ -20,6 +20,7 @@ go_library(
         "//pkg/logger",
         "//pkg/repeat",
         "//svc/krane/pkg/labels",
+        "//svc/krane/pkg/metrics",
         "@com_connectrpc_connect//:connect",
         "@io_k8s_api//core/v1:core",
         "@io_k8s_apimachinery//pkg/api/errors",
