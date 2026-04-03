@@ -1,6 +1,7 @@
 "use client";
 
 import { collection } from "@/lib/collections";
+import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown } from "@unkey/icons";
@@ -15,7 +16,6 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
-import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { useCallback, useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";

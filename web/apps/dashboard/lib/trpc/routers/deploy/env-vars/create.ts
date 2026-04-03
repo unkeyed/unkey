@@ -1,10 +1,10 @@
 import { and, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
+import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { Vault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
-import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
