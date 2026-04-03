@@ -72,7 +72,6 @@ import { updateMemory } from "./deploy/environment-settings/runtime/update-memor
 import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/update-openapi-spec-path";
 import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
-import { updateUpstreamProtocol } from "./deploy/environment-settings/runtime/update-upstream-protocol";
 import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
@@ -426,7 +425,6 @@ export const router = t.router({
         updateRegions,
         updateInstances,
         updateOpenapiSpecPath,
-        updateUpstreamProtocol,
       }),
       build: t.router({
         updateDockerfile,

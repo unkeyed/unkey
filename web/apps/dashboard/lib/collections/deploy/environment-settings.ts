@@ -46,7 +46,6 @@ const schema = z.object({
   healthcheck: healthcheckSchema,
   regions: z.array(z.object({ id: z.string(), name: z.string(), replicas: z.number().int() })),
   shutdownSignal: z.string(),
-  upstreamProtocol: z.enum(["http1", "h2c"]).default("http1"),
   sentinelConfig: sentinelConfigSchema,
   openapiSpecPath: z.string().nullable().default(null),
 });
@@ -113,7 +112,6 @@ export const ENVIRONMENT_SETTINGS_DEFAULTS = {
   cpuMillicores: 250,
   memoryMib: 256,
   shutdownSignal: "SIGTERM",
-  upstreamProtocol: "http1",
 } as const;
 
 type SettingsResponse = Awaited<ReturnType<typeof trpcClient.deploy.environmentSettings.get.query>>;
@@ -151,7 +149,6 @@ function flattenSettingsResponse(
         replicas: r.replicas,
       })),
     shutdownSignal: d.shutdownSignal,
-    upstreamProtocol: (runtime?.upstreamProtocol as "http1" | "h2c") ?? d.upstreamProtocol,
     sentinelConfig: runtime?.sentinelConfig,
     openapiSpecPath: runtime?.openapiSpecPath ?? null,
   };
@@ -274,15 +271,6 @@ export function buildSettingsMutations(
       trpcClient.deploy.environmentSettings.sentinel.updateMiddleware.mutate({
         environmentId,
         keyspaceIds: extractKeyspaceIds(modified.sentinelConfig),
-      }),
-    );
-  }
-
-  if (modified.upstreamProtocol !== original.upstreamProtocol) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.runtime.updateUpstreamProtocol.mutate({
-        environmentId,
-        upstreamProtocol: modified.upstreamProtocol,
       }),
     );
   }
