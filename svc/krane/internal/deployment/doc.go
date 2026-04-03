@@ -1,4 +1,4 @@
-// Package deployment manages user workload ReplicaSets in Kubernetes as part of
+// Package deployment manages user workload Deployments in Kubernetes as part of
 // krane's split control loop architecture.
 //
 // The package provides [Controller], which operates independently from the sentinel
@@ -16,13 +16,13 @@
 //
 // [Controller.runPodWatchLoop] watches Kubernetes for pod changes and reports actual
 // state back to the control plane via ReportDeploymentStatus. Watching pods directly
-// (rather than ReplicaSets) means IP assignments and readiness changes are reported
-// immediately without waiting for the RS status to roll up.
+// (rather than Deployments) means IP assignments and readiness changes are reported
+// immediately without waiting for the Deployment status to roll up.
 //
 // [Controller.runResyncLoop] runs every minute as a consistency safety net. While the
 // other loops handle real-time events, they can miss updates during network partitions,
 // controller restarts, or buffer overflows. The resync loop queries the control plane
-// for each existing ReplicaSet and applies any drift.
+// for each existing Deployment and applies any drift.
 //
 // # Security
 //

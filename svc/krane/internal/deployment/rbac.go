@@ -16,7 +16,7 @@ import (
 // ensureDeploymentServiceAccount creates a ServiceAccount for the deployment.
 // The SA is referenced by podSpec.ServiceAccountName so the pod doesn't use the
 // namespace default. automountServiceAccountToken is false — no API access is needed.
-// The SA is owned by the ReplicaSet via ownerRef for automatic GC.
+// The SA is owned by the Deployment via ownerRef for automatic GC.
 func (c *Controller) ensureDeploymentServiceAccount(ctx context.Context, namespace, deploymentID string) error {
 	saName := deploymentResourcePrefix(deploymentID)
 	commonLabels := labels.New().DeploymentID(deploymentID).ManagedByKrane()
@@ -38,7 +38,7 @@ func (c *Controller) ensureDeploymentServiceAccount(ctx context.Context, namespa
 }
 
 // patchOwnerRef patches the ownerReferences on the Secret and ServiceAccount
-// for the given resource name so they are garbage-collected with the ReplicaSet.
+// for the given resource name so they are garbage-collected with the Deployment.
 func (c *Controller) patchOwnerRef(ctx context.Context, namespace, name string, ownerRef metav1.OwnerReference) error {
 	ownerPatch, err := json.Marshal(map[string]any{
 		"metadata": map[string]any{

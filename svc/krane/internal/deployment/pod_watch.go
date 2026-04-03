@@ -7,6 +7,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
@@ -16,8 +17,9 @@ import (
 // to the control plane in real-time.
 //
 // The watch filters for pods with "managed-by: krane" and "component: deployment"
-// labels. On any pod event it finds the owning ReplicaSet, rebuilds the full
-// deployment status, and reports it (deduplicated via fingerprinting).
+// labels. On any pod event it finds the owning Deployment (via the intermediate
+// ReplicaSet), rebuilds the full deployment status, and reports it (deduplicated
+// via fingerprinting).
 //
 // The initial watch must succeed for the controller to start. After that the
 // goroutine automatically reconnects with jittered backoff (1-5s) when the
@@ -90,26 +92,37 @@ func (c *Controller) drainPodWatch(ctx context.Context, w watch.Interface) {
 
 			rs, err := c.clientSet.AppsV1().ReplicaSets(pod.Namespace).Get(ctx, rsName, metav1.GetOptions{})
 			if err != nil {
-				// RS already deleted — resync loop handles orphan cleanup.
 				logger.Info("pod watch: replicaset not found, skipping", "pod", pod.Name, "replicaSet", rsName, "error", err.Error())
 				continue
 			}
 
-			status, err := c.buildDeploymentStatus(ctx, rs)
+			deployName := owningDeployment(rs)
+			if deployName == "" {
+				logger.Info("pod watch: replicaset has no owning deployment, skipping", "pod", pod.Name, "replicaSet", rsName)
+				continue
+			}
+
+			deploy, err := c.clientSet.AppsV1().Deployments(pod.Namespace).Get(ctx, deployName, metav1.GetOptions{})
 			if err != nil {
-				logger.Error("pod watch: unable to build status", "error", err.Error(), "replicaSet", rsName)
+				logger.Info("pod watch: deployment not found, skipping", "pod", pod.Name, "deployment", deployName, "error", err.Error())
+				continue
+			}
+
+			status, err := c.buildDeploymentStatus(ctx, deploy)
+			if err != nil {
+				logger.Error("pod watch: unable to build status", "error", err.Error(), "deployment", deployName)
 				continue
 			}
 
 			reported, err := c.reportIfChanged(ctx, status)
 			if err != nil {
-				logger.Error("pod watch: unable to report status", "error", err.Error(), "replicaSet", rsName)
+				logger.Error("pod watch: unable to report status", "error", err.Error(), "deployment", deployName)
 				continue
 			}
 			if reported {
-				logger.Info("pod watch: reported changed status", "replicaSet", rsName, "pod", pod.Name, "instances", len(status.GetUpdate().GetInstances()))
+				logger.Info("pod watch: reported changed status", "deployment", deployName, "pod", pod.Name, "instances", len(status.GetUpdate().GetInstances()))
 			} else {
-				logger.Info("pod watch: status unchanged, skipped report", "replicaSet", rsName, "pod", pod.Name)
+				logger.Info("pod watch: status unchanged, skipped report", "deployment", deployName, "pod", pod.Name)
 			}
 		}
 	}
@@ -120,6 +133,17 @@ func (c *Controller) drainPodWatch(ctx context.Context, w watch.Interface) {
 func owningReplicaSet(pod *corev1.Pod) string {
 	for _, ref := range pod.OwnerReferences {
 		if ref.Kind == "ReplicaSet" && ref.Controller != nil && *ref.Controller {
+			return ref.Name
+		}
+	}
+	return ""
+}
+
+// owningDeployment returns the name of the Deployment that owns this ReplicaSet,
+// or empty string if no controller owner reference with Kind "Deployment" exists.
+func owningDeployment(rs *appsv1.ReplicaSet) string {
+	for _, ref := range rs.OwnerReferences {
+		if ref.Kind == "Deployment" && ref.Controller != nil && *ref.Controller {
 			return ref.Name
 		}
 	}

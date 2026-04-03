@@ -12,27 +12,26 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// runResyncLoop periodically reconciles all deployment ReplicaSets with their
-// desired state from the control plane.
+// runResyncLoop periodically reconciles all Deployments with their desired state
+// from the control plane.
 //
 // The loop runs every minute as a consistency safety net. While
 // [Controller.runPodWatchLoop] handles real-time Kubernetes events and
 // [Controller.runDesiredStateApplyLoop] handles streaming updates, both can miss
 // events during network partitions, controller restarts, or watch buffer overflows.
 // This resync loop guarantees eventual consistency by querying the control plane
-// for each existing ReplicaSet and applying any drift.
+// for each existing Deployment and applying any drift.
 //
-// The loop paginates through all krane-managed deployment ReplicaSets across all
-// namespaces, calling GetDesiredDeploymentState for each and applying or deleting
-// as directed. Errors are logged but don't stop the loop from processing remaining
-// ReplicaSets.
+// The loop paginates through all krane-managed Deployments across all namespaces,
+// calling GetDesiredDeploymentState for each and applying or deleting as directed.
+// Errors are logged but don't stop the loop from processing remaining Deployments.
 func (c *Controller) runResyncLoop(ctx context.Context) {
 	repeat.Every(1*time.Minute, func() {
 		logger.Info("running periodic resync")
 
 		cursor := ""
 		for {
-			replicaSets, err := c.clientSet.AppsV1().ReplicaSets("").List(ctx, metav1.ListOptions{
+			deployments, err := c.clientSet.AppsV1().Deployments("").List(ctx, metav1.ListOptions{
 				LabelSelector: labels.New().
 					ManagedByKrane().
 					ComponentDeployment().
@@ -40,26 +39,26 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 				Continue: cursor,
 			})
 			if err != nil {
-				logger.Error("unable to list replicaSets", "error", err.Error())
+				logger.Error("unable to list deployments", "error", err.Error())
 				return
 			}
 
-			for _, replicaSet := range replicaSets.Items {
+			for _, deployment := range deployments.Items {
 				// Report actual state back to the control plane if it differs
 				// from the last report. This catches pods that were skipped
 				// earlier (e.g. no IP yet) or watch events that were missed.
-				status, buildErr := c.buildDeploymentStatus(ctx, &replicaSet)
+				status, buildErr := c.buildDeploymentStatus(ctx, &deployment)
 				if buildErr != nil {
-					logger.Error("resync: unable to build deployment status", "error", buildErr.Error(), "replicaSet", replicaSet.Name)
+					logger.Error("resync: unable to build deployment status", "error", buildErr.Error(), "deployment", deployment.Name)
 				} else if reported, reportErr := c.reportIfChanged(ctx, status); reportErr != nil {
-					logger.Error("resync: unable to report deployment status", "error", reportErr.Error(), "replicaSet", replicaSet.Name)
+					logger.Error("resync: unable to report deployment status", "error", reportErr.Error(), "deployment", deployment.Name)
 				} else if reported {
-					logger.Info("resync: reported changed deployment status", "replicaSet", replicaSet.Name)
+					logger.Info("resync: reported changed deployment status", "deployment", deployment.Name)
 				}
 
-				deploymentID, ok := labels.GetDeploymentID(replicaSet.Labels)
+				deploymentID, ok := labels.GetDeploymentID(deployment.Labels)
 				if !ok {
-					logger.Error("unable to get deployment ID", "replicaSet", replicaSet.Name)
+					logger.Error("unable to get deployment ID", "deployment", deployment.Name)
 					continue
 				}
 
@@ -69,8 +68,8 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 				if err != nil {
 					if connect.CodeOf(err) == connect.CodeNotFound {
 						if err := c.DeleteDeployment(ctx, &ctrlv1.DeleteDeployment{
-							K8SNamespace: replicaSet.GetNamespace(),
-							K8SName:      replicaSet.GetName(),
+							K8SNamespace: deployment.GetNamespace(),
+							K8SName:      deployment.GetName(),
 						}); err != nil {
 							logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
 							continue
@@ -93,7 +92,7 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 				}
 			}
 
-			cursor = replicaSets.Continue
+			cursor = deployments.Continue
 			if cursor == "" {
 				break
 			}

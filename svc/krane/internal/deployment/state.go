@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// buildDeploymentStatus queries the pods belonging to a ReplicaSet and builds a
+// buildDeploymentStatus queries the pods belonging to a Deployment and builds a
 // status report for the control plane.
 //
 // The report includes each pod's cluster-local DNS address, CPU and memory limits,
@@ -22,29 +22,29 @@ import (
 // Pod phase is mapped to instance status: Running pods with all containers ready
 // become STATUS_RUNNING, Pending pods become STATUS_PENDING, and Failed pods or
 // Running pods with unready containers become STATUS_FAILED.
-func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *appsv1.ReplicaSet) (*ctrlv1.ReportDeploymentStatusRequest, error) {
-	selector, err := metav1.LabelSelectorAsSelector(replicaset.Spec.Selector)
+func (c *Controller) buildDeploymentStatus(ctx context.Context, deploy *appsv1.Deployment) (*ctrlv1.ReportDeploymentStatusRequest, error) {
+	selector, err := metav1.LabelSelectorAsSelector(deploy.Spec.Selector)
 	if err != nil {
 		return nil, err
 	}
 
-	pods, err := c.clientSet.CoreV1().Pods(replicaset.Namespace).List(ctx, metav1.ListOptions{
+	pods, err := c.clientSet.CoreV1().Pods(deploy.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: selector.String(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pods: %w", err)
 	}
 
-	// Read the port from the ReplicaSet's container spec
+	// Read the port from the Deployment's container spec
 	containerPort := int32(8080)
-	if containers := replicaset.Spec.Template.Spec.Containers; len(containers) > 0 {
+	if containers := deploy.Spec.Template.Spec.Containers; len(containers) > 0 {
 		if ports := containers[0].Ports; len(ports) > 0 {
 			containerPort = ports[0].ContainerPort
 		}
 	}
 
 	update := &ctrlv1.ReportDeploymentStatusRequest_Update{
-		K8SName:   replicaset.Name,
+		K8SName:   deploy.Name,
 		Instances: make([]*ctrlv1.ReportDeploymentStatusRequest_Update_Instance, 0, len(pods.Items)),
 	}
 

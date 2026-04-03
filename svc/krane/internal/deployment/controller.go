@@ -17,7 +17,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// Controller manages deployment ReplicaSets in a Kubernetes cluster by maintaining
+// Controller manages user workload Deployments in a Kubernetes cluster by maintaining
 // bidirectional state synchronization with the control plane.
 //
 // The controller receives desired state via the WatchDeployments stream and reports
@@ -40,9 +40,9 @@ type Controller struct {
 	platform         string
 	versionLastSeen  uint64
 
-	// fingerprints tracks the most recently reported state per ReplicaSet
+	// fingerprints tracks the most recently reported state per Deployment
 	// so we can skip redundant reports during resync. Entries auto-expire
-	// via the cache's TTL, preventing unbounded growth from deleted RSs.
+	// via the cache's TTL, preventing unbounded growth from deleted Deployments.
 	fingerprints cache.Cache[string, string]
 }
 
@@ -52,7 +52,7 @@ type Controller struct {
 // operations, while Cluster provides the control plane RPC client for state
 // synchronization. Region determines which deployments this controller manages.
 type Config struct {
-	// ClientSet provides typed Kubernetes API access for ReplicaSet and Pod operations.
+	// ClientSet provides typed Kubernetes API access for Deployment and Pod operations.
 	ClientSet kubernetes.Interface
 
 	// DynamicClient provides unstructured Kubernetes API access for CiliumNetworkPolicy

@@ -21,10 +21,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// ApplyDeployment creates or updates a user workload as a Kubernetes ReplicaSet
+// ApplyDeployment creates or updates a user workload as a Kubernetes Deployment
 // with an associated HorizontalPodAutoscaler (HPA).
 //
-// The method uses server-side apply to create or update the ReplicaSet.
+// The method uses server-side apply to create or update the Deployment.
 // spec.replicas is omitted so the HPA owns the replica count. The HPA's
 // minReplicas determines the minimum capacity; users should set this high
 // enough to handle traffic during rollouts.
@@ -186,21 +186,29 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 	podSpec.ImagePullSecrets = c.imagePullSecrets
 
-	desired := &appsv1.ReplicaSet{
+	desired := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
-			Kind:       "ReplicaSet",
+			Kind:       "Deployment",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      req.GetK8SName(),
 			Namespace: req.GetK8SNamespace(),
 			Labels:    usedLabels,
 		},
-		Spec: appsv1.ReplicaSetSpec{
+		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels.New().DeploymentID(req.GetDeploymentId()),
 			},
-			MinReadySeconds: 30,
+			MinReadySeconds:      30,
+			RevisionHistoryLimit: ptr.P(int32(0)),
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDeployment{
+					MaxUnavailable: ptr.P(intstr.FromInt(0)),
+					MaxSurge:       ptr.P(intstr.FromInt(1)),
+				},
+			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: fmt.Sprintf("%s-", req.GetK8SName()),
@@ -211,10 +219,10 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		},
 	}
 
-	// Create the Secret and ServiceAccount before the ReplicaSet so they
+	// Create the Secret and ServiceAccount before the Deployment so they
 	// exist by the time pods are scheduled. This prevents the
 	// "serviceaccount not found" race condition. We patch ownerReferences
-	// onto them after the RS is created so K8s still garbage-collects them.
+	// onto them after the Deployment is created so K8s still garbage-collects them.
 	if hasSecrets {
 		if err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext); err != nil {
 			return fmt.Errorf("failed to ensure deployment secret: %w", err)
@@ -224,26 +232,26 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		}
 	}
 
-	client := c.clientSet.AppsV1().ReplicaSets(req.GetK8SNamespace())
+	client := c.clientSet.AppsV1().Deployments(req.GetK8SNamespace())
 
 	patch, err := json.Marshal(desired)
 	if err != nil {
-		return fmt.Errorf("failed to marshal replicaset: %w", err)
+		return fmt.Errorf("failed to marshal deployment: %w", err)
 	}
 
 	applied, err := client.Patch(ctx, req.GetK8SName(), types.ApplyPatchType, patch, metav1.PatchOptions{
 		FieldManager: fieldManagerKrane,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to apply replicaset: %w", err)
+		return fmt.Errorf("failed to apply deployment: %w", err)
 	}
 
 	// Patch ownerReferences onto the Secret and SA so K8s garbage-collects
-	// them when the ReplicaSet is deleted.
+	// them when the Deployment is deleted.
 	if hasSecrets {
 		ownerRef := metav1.OwnerReference{
 			APIVersion:         "apps/v1",
-			Kind:               "ReplicaSet",
+			Kind:               "Deployment",
 			Name:               applied.Name,
 			UID:                applied.UID,
 			Controller:         ptr.P(true),
@@ -310,9 +318,9 @@ func unmarshalHealthcheck(data []byte) *dbtype.Healthcheck {
 }
 
 // ensureHPAExists creates or updates a HorizontalPodAutoscaler that scales the
-// deployment's ReplicaSet using the autoscaling policy from the control plane.
-// The HPA is owned by the ReplicaSet for automatic garbage collection.
-func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet) error {
+// Deployment using the autoscaling policy from the control plane.
+// The HPA is owned by the Deployment for automatic garbage collection.
+func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeployment, deploy *appsv1.Deployment) error {
 	client := c.clientSet.AutoscalingV2().HorizontalPodAutoscalers(req.GetK8SNamespace())
 
 	policy := req.GetAutoscaling()
@@ -378,9 +386,9 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion:         "apps/v1",
-					Kind:               "ReplicaSet",
-					Name:               rs.Name,
-					UID:                rs.UID,
+					Kind:               "Deployment",
+					Name:               deploy.Name,
+					UID:                deploy.UID,
 					Controller:         ptr.P(true),
 					BlockOwnerDeletion: ptr.P(true),
 				},
@@ -390,7 +398,7 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
 			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 				APIVersion: "apps/v1",
-				Kind:       "ReplicaSet",
+				Kind:       "Deployment",
 				Name:       req.GetK8SName(),
 			},
 			MinReplicas: ptr.P(minReplicas),
