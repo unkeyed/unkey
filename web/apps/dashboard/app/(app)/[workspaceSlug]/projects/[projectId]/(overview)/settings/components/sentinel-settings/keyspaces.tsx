@@ -90,6 +90,7 @@ const KeyspacesForm: React.FC<KeyspacesFormProps> = ({
                   id: "keyauth-policy",
                   name: "API Key Auth",
                   enabled: true,
+                  type: "keyauth" as const,
                   keyauth: { keySpaceIds: values.keyspaces },
                 },
               ]
