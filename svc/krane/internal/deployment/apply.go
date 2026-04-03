@@ -125,6 +125,10 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 			ContainerPort: req.GetPort(),
 			Name:          "deployment",
 		}},
+		ResizePolicy: []corev1.ContainerResizePolicy{
+			{ResourceName: corev1.ResourceCPU, RestartPolicy: corev1.NotRequired},
+			{ResourceName: corev1.ResourceMemory, RestartPolicy: corev1.NotRequired},
+		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", max(req.GetCpuMillicores()/resourceRequestFraction, 1))),
@@ -250,6 +254,14 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		},
 	}
 
+	// When using VPA (no HPA), we must explicitly set replicas since there is
+	// no HPA to manage the replica count. Use the static replica count from
+	// app_regional_settings. For HPA, replicas is left nil so the HPA owns it.
+	if req.GetVerticalAutoscaling() != nil {
+		replicas := int32(max(req.GetReplicas(), 1))
+		desired.Spec.Replicas = &replicas
+	}
+
 	// Create the Secret and ServiceAccount before the ReplicaSet so they
 	// exist by the time pods are scheduled. This prevents the
 	// "serviceaccount not found" race condition. We patch ownerReferences
@@ -296,8 +308,14 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		}
 	}
 
-	if err := c.ensureHPAExists(ctx, req, applied); err != nil {
-		return fmt.Errorf("failed to ensure HPA: %w", err)
+	if req.GetVerticalAutoscaling() != nil {
+		if err := c.ensureVPAExists(ctx, req, applied); err != nil {
+			return fmt.Errorf("failed to ensure VPA: %w", err)
+		}
+	} else {
+		if err := c.ensureHPAExists(ctx, req, applied); err != nil {
+			return fmt.Errorf("failed to ensure HPA: %w", err)
+		}
 	}
 
 	status, err := c.buildDeploymentStatus(ctx, applied)

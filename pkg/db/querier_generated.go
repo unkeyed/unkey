@@ -328,7 +328,8 @@ type Querier interface {
 	FindAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppEnvVarsByAppAndEnvParams) ([]FindAppEnvVarsByAppAndEnvRow, error)
 	// FindAppRegionalSettingsByAppAndEnv returns per-region deployment settings
 	// including the autoscaling policy values (if attached) for snapshotting
-	// into deployment_topology at deploy time.
+	// into deployment_topology at deploy time. A row may reference either an
+	// HPA or VPA policy (never both).
 	//
 	//  SELECT
 	//  	ars.region_id,
@@ -338,10 +339,18 @@ type Querier interface {
 	//  	hap.replicas_min AS autoscaling_replicas_min,
 	//  	hap.replicas_max AS autoscaling_replicas_max,
 	//  	hap.cpu_threshold AS autoscaling_threshold_cpu,
-	//  	hap.memory_threshold AS autoscaling_threshold_memory
+	//  	hap.memory_threshold AS autoscaling_threshold_memory,
+	//  	vap.update_mode AS vpa_update_mode,
+	//  	vap.controlled_resources AS vpa_controlled_resources,
+	//  	vap.controlled_values AS vpa_controlled_values,
+	//  	vap.cpu_min_millicores AS vpa_cpu_min_millicores,
+	//  	vap.cpu_max_millicores AS vpa_cpu_max_millicores,
+	//  	vap.memory_min_mib AS vpa_memory_min_mib,
+	//  	vap.memory_max_mib AS vpa_memory_max_mib
 	//  FROM app_regional_settings ars
 	//  JOIN regions r ON r.id = ars.region_id
 	//  LEFT JOIN horizontal_autoscaling_policies hap ON hap.id = ars.horizontal_autoscaling_policy_id
+	//  LEFT JOIN vertical_autoscaling_policies vap ON vap.id = ars.vertical_autoscaling_policy_id
 	//  WHERE ars.app_id = ?
 	//    AND ars.environment_id = ?
 	FindAppRegionalSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRegionalSettingsByAppAndEnvParams) ([]FindAppRegionalSettingsByAppAndEnvRow, error)
@@ -463,7 +472,7 @@ type Querier interface {
 	// joined data needed for the Watch stream. Used by the unified WatchDeploymentChanges RPC.
 	//
 	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
+	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.vpa_update_mode, dt.vpa_controlled_resources, dt.vpa_controlled_values, dt.vpa_cpu_min_millicores, dt.vpa_cpu_max_millicores, dt.vpa_memory_min_mib, dt.vpa_memory_max_mib, dt.desired_status, dt.created_at, dt.updated_at,
 	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
@@ -498,6 +507,13 @@ type Querier interface {
 	//      dt.autoscaling_replicas_max,
 	//      dt.autoscaling_threshold_cpu,
 	//      dt.autoscaling_threshold_memory,
+	//      dt.vpa_update_mode,
+	//      dt.vpa_controlled_resources,
+	//      dt.vpa_controlled_values,
+	//      dt.vpa_cpu_min_millicores,
+	//      dt.vpa_cpu_max_millicores,
+	//      dt.vpa_memory_min_mib,
+	//      dt.vpa_memory_max_mib,
 	//      dt.desired_status,
 	//      d.encrypted_environment_variables,
 	//      d.command,
@@ -1597,9 +1613,23 @@ type Querier interface {
 	//      autoscaling_replicas_max,
 	//      autoscaling_threshold_cpu,
 	//      autoscaling_threshold_memory,
+	//      vpa_update_mode,
+	//      vpa_controlled_resources,
+	//      vpa_controlled_values,
+	//      vpa_cpu_min_millicores,
+	//      vpa_cpu_max_millicores,
+	//      vpa_memory_min_mib,
+	//      vpa_memory_max_mib,
 	//      desired_status,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2052,23 +2082,25 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListAllCiliumNetworkPoliciesByRegion(ctx context.Context, db DBTX, arg ListAllCiliumNetworkPoliciesByRegionParams) ([]CiliumNetworkPolicy, error)
-	// ListAllDeploymentTopologiesByRegion returns running deployment topologies for a region, paginated by pk.
-	// Used by SyncDesiredState to reconcile krane agents with current desired state.
+	// ListAllDeploymentTopologiesByRegion returns deployment topologies for a region, paginated by pk.
+	// Used during full sync (version=0) to bootstrap krane agents with current state.
 	//
 	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
+	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.vpa_update_mode, dt.vpa_controlled_resources, dt.vpa_controlled_values, dt.vpa_cpu_min_millicores, dt.vpa_cpu_max_millicores, dt.vpa_memory_min_mib, dt.vpa_memory_max_mib, dt.desired_status, dt.created_at, dt.updated_at,
 	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
 	//      r.name AS region_name,
-	//      grc.repository_full_name AS git_repo
+	//      grc.repository_full_name AS git_repo,
+	//      ars.replicas AS regional_replicas
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
 	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
 	//  INNER JOIN `regions` r ON dt.region_id = r.id
 	//  INNER JOIN `environments` e ON d.environment_id = e.id
 	//  LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
-	//  WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
+	//  LEFT JOIN `app_regional_settings` ars ON ars.app_id = d.app_id AND ars.environment_id = d.environment_id AND ars.region_id = dt.region_id
+	//  WHERE r.id = ? AND dt.pk > ?
 	//  ORDER BY dt.pk ASC
 	//  LIMIT ?
 	ListAllDeploymentTopologiesByRegion(ctx context.Context, db DBTX, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error)
@@ -2119,7 +2151,7 @@ type Querier interface {
 	// Used during bootstrap to stream all running deployments to krane.
 	//
 	//  SELECT
-	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
+	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.vpa_update_mode, dt.vpa_controlled_resources, dt.vpa_controlled_values, dt.vpa_cpu_min_millicores, dt.vpa_cpu_max_millicores, dt.vpa_memory_min_mib, dt.vpa_memory_max_mib, dt.desired_status, dt.created_at, dt.updated_at,
 	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace
 	//  FROM `deployment_topology` dt

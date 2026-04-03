@@ -592,8 +592,24 @@ func (w *Workflow) createTopologies(
 			AutoscalingReplicasMax:     autoscalingMax,
 			AutoscalingThresholdCpu:    rs.AutoscalingThresholdCpu,
 			AutoscalingThresholdMemory: rs.AutoscalingThresholdMemory,
-			DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
-			CreatedAt:                  time.Now().UnixMilli(),
+			VpaUpdateMode: db.NullDeploymentTopologyVpaUpdateMode{
+				DeploymentTopologyVpaUpdateMode: db.DeploymentTopologyVpaUpdateMode(rs.VpaUpdateMode.VerticalAutoscalingPoliciesUpdateMode),
+				Valid:                           rs.VpaUpdateMode.Valid,
+			},
+			VpaControlledResources: db.NullDeploymentTopologyVpaControlledResources{
+				DeploymentTopologyVpaControlledResources: db.DeploymentTopologyVpaControlledResources(rs.VpaControlledResources.VerticalAutoscalingPoliciesControlledResources),
+				Valid:                                    rs.VpaControlledResources.Valid,
+			},
+			VpaControlledValues: db.NullDeploymentTopologyVpaControlledValues{
+				DeploymentTopologyVpaControlledValues: db.DeploymentTopologyVpaControlledValues(rs.VpaControlledValues.VerticalAutoscalingPoliciesControlledValues),
+				Valid:                                 rs.VpaControlledValues.Valid,
+			},
+			VpaCpuMinMillicores: rs.VpaCpuMinMillicores,
+			VpaCpuMaxMillicores: rs.VpaCpuMaxMillicores,
+			VpaMemoryMinMib:     rs.VpaMemoryMinMib,
+			VpaMemoryMaxMib:     rs.VpaMemoryMaxMib,
+			DesiredStatus:       db.DeploymentTopologyDesiredStatusRunning,
+			CreatedAt:           time.Now().UnixMilli(),
 		})
 	}
 

@@ -29,6 +29,7 @@ export const getEnvironmentSettings = workspaceProcedure
           ),
           with: {
             region: true,
+            verticalAutoscalingPolicy: true,
           },
         }),
       ]);

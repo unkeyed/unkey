@@ -4,6 +4,7 @@ import { apps } from "./apps";
 import { environments } from "./environments";
 import { regions } from "./regions";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { verticalAutoscalingPolicies } from "./vertical_autoscaling_policies";
 import { workspaces } from "./workspaces";
 
 /**
@@ -25,7 +26,12 @@ export const appRegionalSettings = mysqlTable(
     replicas: int("replicas").notNull().default(1),
 
     // Optional reference to a horizontal autoscaling policy. null = no autoscaling.
+    // Only one of horizontalAutoscalingPolicyId / verticalAutoscalingPolicyId may be set.
     horizontalAutoscalingPolicyId: varchar("horizontal_autoscaling_policy_id", {
+      length: 64,
+    }),
+    // Optional reference to a vertical autoscaling policy. null = no VPA.
+    verticalAutoscalingPolicyId: varchar("vertical_autoscaling_policy_id", {
       length: 64,
     }),
 
@@ -53,5 +59,9 @@ export const appRegionalSettingsRelations = relations(appRegionalSettings, ({ on
   region: one(regions, {
     fields: [appRegionalSettings.regionId],
     references: [regions.id],
+  }),
+  verticalAutoscalingPolicy: one(verticalAutoscalingPolicies, {
+    fields: [appRegionalSettings.verticalAutoscalingPolicyId],
+    references: [verticalAutoscalingPolicies.id],
   }),
 }));

@@ -121,10 +121,54 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 		}
 		apply.Autoscaling = policy
 
-		if deployment.StorageMib > 0 {
-			apply.EphemeralStorage = &ctrlv1.EphemeralStorage{
-				SizeMib: int64(deployment.StorageMib),
+		if deployment.VpaUpdateMode.Valid {
+			vpa := &ctrlv1.VerticalAutoscalingPolicy{}
+
+			switch deployment.VpaUpdateMode.DeploymentTopologyVpaUpdateMode {
+			case db.DeploymentTopologyVpaUpdateModeOff:
+				vpa.UpdateMode = ctrlv1.VerticalAutoscalingPolicy_UPDATE_MODE_OFF
+			case db.DeploymentTopologyVpaUpdateModeInitial:
+				vpa.UpdateMode = ctrlv1.VerticalAutoscalingPolicy_UPDATE_MODE_INITIAL
+			case db.DeploymentTopologyVpaUpdateModeRecreate:
+				vpa.UpdateMode = ctrlv1.VerticalAutoscalingPolicy_UPDATE_MODE_RECREATE
+			case db.DeploymentTopologyVpaUpdateModeInPlaceOrRecreate:
+				vpa.UpdateMode = ctrlv1.VerticalAutoscalingPolicy_UPDATE_MODE_IN_PLACE_OR_RECREATE
 			}
+
+			if deployment.VpaControlledResources.Valid {
+				switch deployment.VpaControlledResources.DeploymentTopologyVpaControlledResources {
+				case db.DeploymentTopologyVpaControlledResourcesCpu:
+					vpa.ControlledResources = ctrlv1.VerticalAutoscalingPolicy_CONTROLLED_RESOURCES_CPU
+				case db.DeploymentTopologyVpaControlledResourcesMemory:
+					vpa.ControlledResources = ctrlv1.VerticalAutoscalingPolicy_CONTROLLED_RESOURCES_MEMORY
+				case db.DeploymentTopologyVpaControlledResourcesBoth:
+					vpa.ControlledResources = ctrlv1.VerticalAutoscalingPolicy_CONTROLLED_RESOURCES_BOTH
+				}
+			}
+
+			if deployment.VpaControlledValues.Valid {
+				switch deployment.VpaControlledValues.DeploymentTopologyVpaControlledValues {
+				case db.DeploymentTopologyVpaControlledValuesRequests:
+					vpa.ControlledValues = ctrlv1.VerticalAutoscalingPolicy_CONTROLLED_VALUES_REQUESTS
+				case db.DeploymentTopologyVpaControlledValuesRequestsAndLimits:
+					vpa.ControlledValues = ctrlv1.VerticalAutoscalingPolicy_CONTROLLED_VALUES_REQUESTS_AND_LIMITS
+				}
+			}
+
+			if deployment.VpaCpuMinMillicores.Valid {
+				vpa.CpuMinMillicores = ptr.P(uint32(deployment.VpaCpuMinMillicores.Int32))
+			}
+			if deployment.VpaCpuMaxMillicores.Valid {
+				vpa.CpuMaxMillicores = ptr.P(uint32(deployment.VpaCpuMaxMillicores.Int32))
+			}
+			if deployment.VpaMemoryMinMib.Valid {
+				vpa.MemoryMinMib = ptr.P(uint32(deployment.VpaMemoryMinMib.Int32))
+			}
+			if deployment.VpaMemoryMaxMib.Valid {
+				vpa.MemoryMaxMib = ptr.P(uint32(deployment.VpaMemoryMaxMib.Int32))
+			}
+
+			apply.VerticalAutoscaling = vpa
 		}
 
 		return connect.NewResponse(&ctrlv1.DeploymentState{

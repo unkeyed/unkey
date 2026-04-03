@@ -27,6 +27,15 @@ const (
 	// scaleDownStabilizationSeconds is how long the HPA waits after load drops
 	// before removing pods. Prevents flapping when traffic is spiky.
 	scaleDownStabilizationSeconds int32 = 60
+
+	// vpaGroup is the API group for VPA custom resources.
+	vpaGroup = "autoscaling.k8s.io"
+
+	// vpaVersion is the API version for VPA custom resources.
+	vpaVersion = "v1"
+
+	// vpaResource is the plural resource name for VPA CRDs.
+	vpaResource = "verticalpodautoscalers"
 )
 
 // untrustedToleration allows deployment pods to be scheduled on nodes tainted

@@ -35,6 +35,21 @@ export const deploymentTopology = mysqlTable(
     // Average memory utilization percentage (0-100) that triggers scale-up. Null = not used as a signal.
     autoscalingThresholdMemory: tinyint("autoscaling_threshold_memory", { unsigned: true }),
 
+    // VPA configuration, snapshotted from the vertical autoscaling policy at deploy time.
+    // All null when HPA is used instead.
+    vpaUpdateMode: mysqlEnum("vpa_update_mode", [
+      "off",
+      "initial",
+      "recreate",
+      "in_place_or_recreate",
+    ]),
+    vpaControlledResources: mysqlEnum("vpa_controlled_resources", ["cpu", "memory", "both"]),
+    vpaControlledValues: mysqlEnum("vpa_controlled_values", ["requests", "requests_and_limits"]),
+    vpaCpuMinMillicores: int("vpa_cpu_min_millicores", { unsigned: true }),
+    vpaCpuMaxMillicores: int("vpa_cpu_max_millicores", { unsigned: true }),
+    vpaMemoryMinMib: int("vpa_memory_min_mib", { unsigned: true }),
+    vpaMemoryMaxMib: int("vpa_memory_max_mib", { unsigned: true }),
+
     // Deployment status
     desiredStatus: mysqlEnum("desired_status", ["stopped", "running"]).notNull(),
     ...lifecycleDates,

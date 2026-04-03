@@ -442,6 +442,135 @@ func (ns NullDeploymentTopologyDesiredStatus) Value() (driver.Value, error) {
 	return string(ns.DeploymentTopologyDesiredStatus), nil
 }
 
+type DeploymentTopologyVpaControlledResources string
+
+const (
+	DeploymentTopologyVpaControlledResourcesCpu    DeploymentTopologyVpaControlledResources = "cpu"
+	DeploymentTopologyVpaControlledResourcesMemory DeploymentTopologyVpaControlledResources = "memory"
+	DeploymentTopologyVpaControlledResourcesBoth   DeploymentTopologyVpaControlledResources = "both"
+)
+
+func (e *DeploymentTopologyVpaControlledResources) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentTopologyVpaControlledResources(s)
+	case string:
+		*e = DeploymentTopologyVpaControlledResources(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentTopologyVpaControlledResources: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentTopologyVpaControlledResources struct {
+	DeploymentTopologyVpaControlledResources DeploymentTopologyVpaControlledResources
+	Valid                                    bool // Valid is true if DeploymentTopologyVpaControlledResources is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentTopologyVpaControlledResources) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentTopologyVpaControlledResources, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentTopologyVpaControlledResources.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentTopologyVpaControlledResources) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentTopologyVpaControlledResources), nil
+}
+
+type DeploymentTopologyVpaControlledValues string
+
+const (
+	DeploymentTopologyVpaControlledValuesRequests          DeploymentTopologyVpaControlledValues = "requests"
+	DeploymentTopologyVpaControlledValuesRequestsAndLimits DeploymentTopologyVpaControlledValues = "requests_and_limits"
+)
+
+func (e *DeploymentTopologyVpaControlledValues) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentTopologyVpaControlledValues(s)
+	case string:
+		*e = DeploymentTopologyVpaControlledValues(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentTopologyVpaControlledValues: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentTopologyVpaControlledValues struct {
+	DeploymentTopologyVpaControlledValues DeploymentTopologyVpaControlledValues
+	Valid                                 bool // Valid is true if DeploymentTopologyVpaControlledValues is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentTopologyVpaControlledValues) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentTopologyVpaControlledValues, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentTopologyVpaControlledValues.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentTopologyVpaControlledValues) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentTopologyVpaControlledValues), nil
+}
+
+type DeploymentTopologyVpaUpdateMode string
+
+const (
+	DeploymentTopologyVpaUpdateModeOff               DeploymentTopologyVpaUpdateMode = "off"
+	DeploymentTopologyVpaUpdateModeInitial           DeploymentTopologyVpaUpdateMode = "initial"
+	DeploymentTopologyVpaUpdateModeRecreate          DeploymentTopologyVpaUpdateMode = "recreate"
+	DeploymentTopologyVpaUpdateModeInPlaceOrRecreate DeploymentTopologyVpaUpdateMode = "in_place_or_recreate"
+)
+
+func (e *DeploymentTopologyVpaUpdateMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentTopologyVpaUpdateMode(s)
+	case string:
+		*e = DeploymentTopologyVpaUpdateMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentTopologyVpaUpdateMode: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentTopologyVpaUpdateMode struct {
+	DeploymentTopologyVpaUpdateMode DeploymentTopologyVpaUpdateMode
+	Valid                           bool // Valid is true if DeploymentTopologyVpaUpdateMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentTopologyVpaUpdateMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentTopologyVpaUpdateMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentTopologyVpaUpdateMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentTopologyVpaUpdateMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentTopologyVpaUpdateMode), nil
+}
+
 type DeploymentsDesiredState string
 
 const (
@@ -883,6 +1012,135 @@ func (ns NullVercelBindingsResourceType) Value() (driver.Value, error) {
 	return string(ns.VercelBindingsResourceType), nil
 }
 
+type VerticalAutoscalingPoliciesControlledResources string
+
+const (
+	VerticalAutoscalingPoliciesControlledResourcesCpu    VerticalAutoscalingPoliciesControlledResources = "cpu"
+	VerticalAutoscalingPoliciesControlledResourcesMemory VerticalAutoscalingPoliciesControlledResources = "memory"
+	VerticalAutoscalingPoliciesControlledResourcesBoth   VerticalAutoscalingPoliciesControlledResources = "both"
+)
+
+func (e *VerticalAutoscalingPoliciesControlledResources) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = VerticalAutoscalingPoliciesControlledResources(s)
+	case string:
+		*e = VerticalAutoscalingPoliciesControlledResources(s)
+	default:
+		return fmt.Errorf("unsupported scan type for VerticalAutoscalingPoliciesControlledResources: %T", src)
+	}
+	return nil
+}
+
+type NullVerticalAutoscalingPoliciesControlledResources struct {
+	VerticalAutoscalingPoliciesControlledResources VerticalAutoscalingPoliciesControlledResources
+	Valid                                          bool // Valid is true if VerticalAutoscalingPoliciesControlledResources is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullVerticalAutoscalingPoliciesControlledResources) Scan(value interface{}) error {
+	if value == nil {
+		ns.VerticalAutoscalingPoliciesControlledResources, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.VerticalAutoscalingPoliciesControlledResources.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullVerticalAutoscalingPoliciesControlledResources) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.VerticalAutoscalingPoliciesControlledResources), nil
+}
+
+type VerticalAutoscalingPoliciesControlledValues string
+
+const (
+	VerticalAutoscalingPoliciesControlledValuesRequests          VerticalAutoscalingPoliciesControlledValues = "requests"
+	VerticalAutoscalingPoliciesControlledValuesRequestsAndLimits VerticalAutoscalingPoliciesControlledValues = "requests_and_limits"
+)
+
+func (e *VerticalAutoscalingPoliciesControlledValues) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = VerticalAutoscalingPoliciesControlledValues(s)
+	case string:
+		*e = VerticalAutoscalingPoliciesControlledValues(s)
+	default:
+		return fmt.Errorf("unsupported scan type for VerticalAutoscalingPoliciesControlledValues: %T", src)
+	}
+	return nil
+}
+
+type NullVerticalAutoscalingPoliciesControlledValues struct {
+	VerticalAutoscalingPoliciesControlledValues VerticalAutoscalingPoliciesControlledValues
+	Valid                                       bool // Valid is true if VerticalAutoscalingPoliciesControlledValues is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullVerticalAutoscalingPoliciesControlledValues) Scan(value interface{}) error {
+	if value == nil {
+		ns.VerticalAutoscalingPoliciesControlledValues, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.VerticalAutoscalingPoliciesControlledValues.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullVerticalAutoscalingPoliciesControlledValues) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.VerticalAutoscalingPoliciesControlledValues), nil
+}
+
+type VerticalAutoscalingPoliciesUpdateMode string
+
+const (
+	VerticalAutoscalingPoliciesUpdateModeOff               VerticalAutoscalingPoliciesUpdateMode = "off"
+	VerticalAutoscalingPoliciesUpdateModeInitial           VerticalAutoscalingPoliciesUpdateMode = "initial"
+	VerticalAutoscalingPoliciesUpdateModeRecreate          VerticalAutoscalingPoliciesUpdateMode = "recreate"
+	VerticalAutoscalingPoliciesUpdateModeInPlaceOrRecreate VerticalAutoscalingPoliciesUpdateMode = "in_place_or_recreate"
+)
+
+func (e *VerticalAutoscalingPoliciesUpdateMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = VerticalAutoscalingPoliciesUpdateMode(s)
+	case string:
+		*e = VerticalAutoscalingPoliciesUpdateMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for VerticalAutoscalingPoliciesUpdateMode: %T", src)
+	}
+	return nil
+}
+
+type NullVerticalAutoscalingPoliciesUpdateMode struct {
+	VerticalAutoscalingPoliciesUpdateMode VerticalAutoscalingPoliciesUpdateMode
+	Valid                                 bool // Valid is true if VerticalAutoscalingPoliciesUpdateMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullVerticalAutoscalingPoliciesUpdateMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.VerticalAutoscalingPoliciesUpdateMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.VerticalAutoscalingPoliciesUpdateMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullVerticalAutoscalingPoliciesUpdateMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.VerticalAutoscalingPoliciesUpdateMode), nil
+}
+
 type AcmeChallenge struct {
 	Pk            uint64                      `db:"pk"`
 	DomainID      string                      `db:"domain_id"`
@@ -970,6 +1228,7 @@ type AppRegionalSetting struct {
 	RegionID                      string         `db:"region_id"`
 	Replicas                      int32          `db:"replicas"`
 	HorizontalAutoscalingPolicyID sql.NullString `db:"horizontal_autoscaling_policy_id"`
+	VerticalAutoscalingPolicyID   sql.NullString `db:"vertical_autoscaling_policy_id"`
 	CreatedAt                     int64          `db:"created_at"`
 	UpdatedAt                     sql.NullInt64  `db:"updated_at"`
 }
@@ -1155,17 +1414,24 @@ type DeploymentStep struct {
 }
 
 type DeploymentTopology struct {
-	Pk                         uint64                          `db:"pk"`
-	WorkspaceID                string                          `db:"workspace_id"`
-	DeploymentID               string                          `db:"deployment_id"`
-	RegionID                   string                          `db:"region_id"`
-	AutoscalingReplicasMin     uint32                          `db:"autoscaling_replicas_min"`
-	AutoscalingReplicasMax     uint32                          `db:"autoscaling_replicas_max"`
-	AutoscalingThresholdCpu    sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
-	AutoscalingThresholdMemory sql.NullInt16                   `db:"autoscaling_threshold_memory"`
-	DesiredStatus              DeploymentTopologyDesiredStatus `db:"desired_status"`
-	CreatedAt                  int64                           `db:"created_at"`
-	UpdatedAt                  sql.NullInt64                   `db:"updated_at"`
+	Pk                         uint64                                       `db:"pk"`
+	WorkspaceID                string                                       `db:"workspace_id"`
+	DeploymentID               string                                       `db:"deployment_id"`
+	RegionID                   string                                       `db:"region_id"`
+	AutoscalingReplicasMin     uint32                                       `db:"autoscaling_replicas_min"`
+	AutoscalingReplicasMax     uint32                                       `db:"autoscaling_replicas_max"`
+	AutoscalingThresholdCpu    sql.NullInt16                                `db:"autoscaling_threshold_cpu"`
+	AutoscalingThresholdMemory sql.NullInt16                                `db:"autoscaling_threshold_memory"`
+	VpaUpdateMode              NullDeploymentTopologyVpaUpdateMode          `db:"vpa_update_mode"`
+	VpaControlledResources     NullDeploymentTopologyVpaControlledResources `db:"vpa_controlled_resources"`
+	VpaControlledValues        NullDeploymentTopologyVpaControlledValues    `db:"vpa_controlled_values"`
+	VpaCpuMinMillicores        sql.NullInt32                                `db:"vpa_cpu_min_millicores"`
+	VpaCpuMaxMillicores        sql.NullInt32                                `db:"vpa_cpu_max_millicores"`
+	VpaMemoryMinMib            sql.NullInt32                                `db:"vpa_memory_min_mib"`
+	VpaMemoryMaxMib            sql.NullInt32                                `db:"vpa_memory_max_mib"`
+	DesiredStatus              DeploymentTopologyDesiredStatus              `db:"desired_status"`
+	CreatedAt                  int64                                        `db:"created_at"`
+	UpdatedAt                  sql.NullInt64                                `db:"updated_at"`
 }
 
 type EncryptedKey struct {
@@ -1490,6 +1756,21 @@ type VercelIntegration struct {
 	CreatedAtM  int64          `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
 	DeletedAtM  sql.NullInt64  `db:"deleted_at_m"`
+}
+
+type VerticalAutoscalingPolicy struct {
+	Pk                  uint64                                         `db:"pk"`
+	ID                  string                                         `db:"id"`
+	WorkspaceID         string                                         `db:"workspace_id"`
+	UpdateMode          VerticalAutoscalingPoliciesUpdateMode          `db:"update_mode"`
+	ControlledResources VerticalAutoscalingPoliciesControlledResources `db:"controlled_resources"`
+	ControlledValues    VerticalAutoscalingPoliciesControlledValues    `db:"controlled_values"`
+	CpuMinMillicores    sql.NullInt32                                  `db:"cpu_min_millicores"`
+	CpuMaxMillicores    sql.NullInt32                                  `db:"cpu_max_millicores"`
+	MemoryMinMib        sql.NullInt32                                  `db:"memory_min_mib"`
+	MemoryMaxMib        sql.NullInt32                                  `db:"memory_max_mib"`
+	CreatedAt           int64                                          `db:"created_at"`
+	UpdatedAt           sql.NullInt64                                  `db:"updated_at"`
 }
 
 type Workspace struct {

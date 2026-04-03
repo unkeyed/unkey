@@ -71,6 +71,12 @@ local_resource(
 )
 
 local_resource(
+  'vpa',
+  'helm repo add fairwinds-stable https://charts.fairwinds.com/stable --force-update && helm upgrade --install vpa fairwinds-stable/vpa --namespace vpa --create-namespace --wait',
+  labels=['setup'],
+)
+
+local_resource(
   'hubble',
   'kubectl -n kube-system patch configmap cilium-config --type merge -p \'{"data":{"enable-hubble":"true","hubble-listen-address":":4244"}}\' && kubectl -n kube-system rollout restart daemonset cilium && kubectl apply -f k8s/manifests/hubble.yaml && kubectl -n kube-system rollout status daemonset cilium --timeout=120s',
   resource_deps=['cilium-policies'],

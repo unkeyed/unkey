@@ -1,6 +1,6 @@
 import * as clack from "@clack/prompts";
 import { ClickHouse } from "@unkey/clickhouse";
-import { eq, drizzle, schema } from "@unkey/db";
+import { drizzle, eq, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 
 export function generateUuid() {
@@ -15,9 +15,7 @@ function env() {
 }
 
 export const clickhouse = new ClickHouse({ url: env().CLICKHOUSE_URL });
-export type DrizzleReturnType<T extends Record<string, unknown>> = ReturnType<
-  typeof drizzle<T>
->;
+export type DrizzleReturnType<T extends Record<string, unknown>> = ReturnType<typeof drizzle<T>>;
 
 export async function connectDatabase<
   TSchema extends Record<string, unknown> = Record<string, unknown>,

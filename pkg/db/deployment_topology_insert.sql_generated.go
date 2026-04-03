@@ -19,9 +19,23 @@ INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
     autoscaling_replicas_max,
     autoscaling_threshold_cpu,
     autoscaling_threshold_memory,
+    vpa_update_mode,
+    vpa_controlled_resources,
+    vpa_controlled_values,
+    vpa_cpu_min_millicores,
+    vpa_cpu_max_millicores,
+    vpa_memory_min_mib,
+    vpa_memory_max_mib,
     desired_status,
     created_at
 ) VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
     ?,
     ?,
     ?,
@@ -35,15 +49,22 @@ INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
 `
 
 type InsertDeploymentTopologyParams struct {
-	WorkspaceID                string                          `db:"workspace_id"`
-	DeploymentID               string                          `db:"deployment_id"`
-	RegionID                   string                          `db:"region_id"`
-	AutoscalingReplicasMin     uint32                          `db:"autoscaling_replicas_min"`
-	AutoscalingReplicasMax     uint32                          `db:"autoscaling_replicas_max"`
-	AutoscalingThresholdCpu    sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
-	AutoscalingThresholdMemory sql.NullInt16                   `db:"autoscaling_threshold_memory"`
-	DesiredStatus              DeploymentTopologyDesiredStatus `db:"desired_status"`
-	CreatedAt                  int64                           `db:"created_at"`
+	WorkspaceID                string                                       `db:"workspace_id"`
+	DeploymentID               string                                       `db:"deployment_id"`
+	RegionID                   string                                       `db:"region_id"`
+	AutoscalingReplicasMin     uint32                                       `db:"autoscaling_replicas_min"`
+	AutoscalingReplicasMax     uint32                                       `db:"autoscaling_replicas_max"`
+	AutoscalingThresholdCpu    sql.NullInt16                                `db:"autoscaling_threshold_cpu"`
+	AutoscalingThresholdMemory sql.NullInt16                                `db:"autoscaling_threshold_memory"`
+	VpaUpdateMode              NullDeploymentTopologyVpaUpdateMode          `db:"vpa_update_mode"`
+	VpaControlledResources     NullDeploymentTopologyVpaControlledResources `db:"vpa_controlled_resources"`
+	VpaControlledValues        NullDeploymentTopologyVpaControlledValues    `db:"vpa_controlled_values"`
+	VpaCpuMinMillicores        sql.NullInt32                                `db:"vpa_cpu_min_millicores"`
+	VpaCpuMaxMillicores        sql.NullInt32                                `db:"vpa_cpu_max_millicores"`
+	VpaMemoryMinMib            sql.NullInt32                                `db:"vpa_memory_min_mib"`
+	VpaMemoryMaxMib            sql.NullInt32                                `db:"vpa_memory_max_mib"`
+	DesiredStatus              DeploymentTopologyDesiredStatus              `db:"desired_status"`
+	CreatedAt                  int64                                        `db:"created_at"`
 }
 
 // InsertDeploymentTopology
@@ -56,9 +77,23 @@ type InsertDeploymentTopologyParams struct {
 //	    autoscaling_replicas_max,
 //	    autoscaling_threshold_cpu,
 //	    autoscaling_threshold_memory,
+//	    vpa_update_mode,
+//	    vpa_controlled_resources,
+//	    vpa_controlled_values,
+//	    vpa_cpu_min_millicores,
+//	    vpa_cpu_max_millicores,
+//	    vpa_memory_min_mib,
+//	    vpa_memory_max_mib,
 //	    desired_status,
 //	    created_at
 //	) VALUES (
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -78,6 +113,13 @@ func (q *Queries) InsertDeploymentTopology(ctx context.Context, db DBTX, arg Ins
 		arg.AutoscalingReplicasMax,
 		arg.AutoscalingThresholdCpu,
 		arg.AutoscalingThresholdMemory,
+		arg.VpaUpdateMode,
+		arg.VpaControlledResources,
+		arg.VpaControlledValues,
+		arg.VpaCpuMinMillicores,
+		arg.VpaCpuMaxMillicores,
+		arg.VpaMemoryMinMib,
+		arg.VpaMemoryMaxMib,
 		arg.DesiredStatus,
 		arg.CreatedAt,
 	)

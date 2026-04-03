@@ -82,6 +82,11 @@ rules:
     resources: ["horizontalpodautoscalers"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
+  # VerticalPodAutoscaler management for deployment workloads
+  - apiGroups: ["autoscaling.k8s.io"]
+    resources: ["verticalpodautoscalers", "verticalpodautoscalercheckpoints"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
   # PodDisruptionBudget management for sentinel workloads
   - apiGroups: ["policy"]
     resources: ["poddisruptionbudgets"]

@@ -7,6 +7,13 @@ INSERT INTO `deployment_topology` (
     autoscaling_replicas_max,
     autoscaling_threshold_cpu,
     autoscaling_threshold_memory,
+    vpa_update_mode,
+    vpa_controlled_resources,
+    vpa_controlled_values,
+    vpa_cpu_min_millicores,
+    vpa_cpu_max_millicores,
+    vpa_memory_min_mib,
+    vpa_memory_max_mib,
     desired_status,
     created_at
 ) VALUES (
@@ -17,6 +24,13 @@ INSERT INTO `deployment_topology` (
     sqlc.arg(autoscaling_replicas_max),
     sqlc.arg(autoscaling_threshold_cpu),
     sqlc.arg(autoscaling_threshold_memory),
+    sqlc.arg(vpa_update_mode),
+    sqlc.arg(vpa_controlled_resources),
+    sqlc.arg(vpa_controlled_values),
+    sqlc.arg(vpa_cpu_min_millicores),
+    sqlc.arg(vpa_cpu_max_millicores),
+    sqlc.arg(vpa_memory_min_mib),
+    sqlc.arg(vpa_memory_max_mib),
     sqlc.arg(desired_status),
     sqlc.arg(created_at)
 );

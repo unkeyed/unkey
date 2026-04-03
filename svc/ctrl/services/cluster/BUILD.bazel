@@ -14,6 +14,7 @@ go_library(
         "rpc_sync_desired_state.go",
         "rpc_watch_deployment_changes.go",
         "service.go",
+        "vpa.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/services/cluster",
     visibility = ["//visibility:public"],

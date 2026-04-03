@@ -49,6 +49,27 @@ const schema = z.object({
   shutdownSignal: z.string(),
   sentinelConfig: sentinelConfigSchema,
   openapiSpecPath: z.string().nullable().default(null),
+  verticalAutoscaling: z
+    .object({
+      enabled: z.boolean(),
+      updateMode: z.enum(["off", "initial", "recreate", "in_place_or_recreate"]),
+      controlledResources: z.enum(["cpu", "memory", "both"]),
+      controlledValues: z.enum(["requests", "requests_and_limits"]),
+      cpuMinMillicores: z.number().nullable(),
+      cpuMaxMillicores: z.number().nullable(),
+      memoryMinMib: z.number().nullable(),
+      memoryMaxMib: z.number().nullable(),
+    })
+    .default({
+      enabled: false,
+      updateMode: "off",
+      controlledResources: "both",
+      controlledValues: "requests",
+      cpuMinMillicores: null,
+      cpuMaxMillicores: null,
+      memoryMinMib: null,
+      memoryMaxMib: null,
+    }),
 });
 
 /**
@@ -154,6 +175,31 @@ function flattenSettingsResponse(
     shutdownSignal: d.shutdownSignal,
     sentinelConfig: runtime?.sentinelConfig,
     openapiSpecPath: runtime?.openapiSpecPath ?? null,
+    verticalAutoscaling: (() => {
+      const vpa = regional[0]?.verticalAutoscalingPolicy;
+      if (!vpa) {
+        return {
+          enabled: false,
+          updateMode: "off" as const,
+          controlledResources: "both" as const,
+          controlledValues: "requests" as const,
+          cpuMinMillicores: null,
+          cpuMaxMillicores: null,
+          memoryMinMib: null,
+          memoryMaxMib: null,
+        };
+      }
+      return {
+        enabled: true,
+        updateMode: vpa.updateMode,
+        controlledResources: vpa.controlledResources,
+        controlledValues: vpa.controlledValues,
+        cpuMinMillicores: vpa.cpuMinMillicores,
+        cpuMaxMillicores: vpa.cpuMaxMillicores,
+        memoryMinMib: vpa.memoryMinMib,
+        memoryMaxMib: vpa.memoryMaxMib,
+      };
+    })(),
   };
 }
 
@@ -292,6 +338,15 @@ export function buildSettingsMutations(
       trpcClient.deploy.environmentSettings.runtime.updateOpenapiSpecPath.mutate({
         environmentId,
         openapiSpecPath: modified.openapiSpecPath,
+      }),
+    );
+  }
+
+  if (changed(original.verticalAutoscaling, modified.verticalAutoscaling)) {
+    mutations.push(
+      trpcClient.deploy.environmentSettings.runtime.updateVerticalAutoscaling.mutate({
+        environmentId,
+        ...modified.verticalAutoscaling,
       }),
     );
   }

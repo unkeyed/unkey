@@ -72,7 +72,7 @@ import { updateMemory } from "./deploy/environment-settings/runtime/update-memor
 import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/update-openapi-spec-path";
 import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
-import { updateStorage } from "./deploy/environment-settings/runtime/update-storage";
+import { updateVerticalAutoscaling } from "./deploy/environment-settings/runtime/update-vertical-autoscaling";
 import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
@@ -422,12 +422,12 @@ export const router = t.router({
       runtime: t.router({
         updateCpu,
         updateMemory,
-        updateStorage,
         updatePort,
         updateCommand,
         updateHealthcheck,
         updateRegions,
         updateInstances,
+        updateVerticalAutoscaling,
         updateOpenapiSpecPath,
       }),
       build: t.router({

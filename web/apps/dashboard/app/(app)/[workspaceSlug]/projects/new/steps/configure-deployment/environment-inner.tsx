@@ -102,6 +102,16 @@ function useInitializeSettings(
       shutdownSignal: d.shutdownSignal,
       sentinelConfig: undefined,
       openapiSpecPath: null,
+      verticalAutoscaling: {
+        enabled: false,
+        updateMode: "off" as const,
+        controlledResources: "both" as const,
+        controlledValues: "requests" as const,
+        cpuMinMillicores: null,
+        cpuMaxMillicores: null,
+        memoryMinMib: null,
+        memoryMaxMib: null,
+      },
     };
 
     const empty: EnvironmentSettings = {
@@ -119,6 +129,16 @@ function useInitializeSettings(
       shutdownSignal: "",
       sentinelConfig: undefined,
       openapiSpecPath: null,
+      verticalAutoscaling: {
+        enabled: false,
+        updateMode: "off",
+        controlledResources: "both",
+        controlledValues: "requests",
+        cpuMinMillicores: null,
+        cpuMaxMillicores: null,
+        memoryMinMib: null,
+        memoryMaxMib: null,
+      },
     };
 
     const mutations = environments.flatMap((env) =>

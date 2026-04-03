@@ -6,6 +6,7 @@ CREATE TABLE `app_regional_settings` (
 	`region_id` varchar(64) NOT NULL,
 	`replicas` int NOT NULL DEFAULT 1,
 	`horizontal_autoscaling_policy_id` varchar(64),
+	`vertical_autoscaling_policy_id` varchar(64),
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `app_regional_settings_pk` PRIMARY KEY(`pk`),

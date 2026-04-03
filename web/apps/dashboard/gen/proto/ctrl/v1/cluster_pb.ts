@@ -14,15 +14,13 @@
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { EphemeralStorage } from "./deployment_pb";
-import { file_ctrl_v1_deployment } from "./deployment_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/cluster.proto.
  */
 export const file_ctrl_v1_cluster: GenFile = /*@__PURE__*/
-  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiWgodV2F0Y2hEZXBsb3ltZW50Q2hhbmdlc1JlcXVlc3QSDgoGcmVnaW9uGAEgASgJEhkKEXZlcnNpb25fbGFzdF9zZWVuGAIgASgEEg4KBnJlcGxheRgDIAEoCCIZChdTeW5jRGVzaXJlZFN0YXRlUmVxdWVzdCLRAQoVRGVwbG95bWVudENoYW5nZUV2ZW50Eg8KB3ZlcnNpb24YASABKAQSLgoKZGVwbG95bWVudBgCIAEoCzIYLmN0cmwudjEuRGVwbG95bWVudFN0YXRlSAASKgoIc2VudGluZWwYAyABKAsyFi5jdHJsLnYxLlNlbnRpbmVsU3RhdGVIABJCChVjaWxpdW1fbmV0d29ya19wb2xpY3kYBCABKAsyIS5jdHJsLnYxLkNpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZUgAQgcKBWV2ZW50InUKGEFwcGx5Q2lsaXVtTmV0d29ya1BvbGljeRIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJEiAKGGNpbGl1bV9uZXR3b3JrX3BvbGljeV9pZBgDIAEoCRIOCgZwb2xpY3kYBCABKAwiRAoZRGVsZXRlQ2lsaXVtTmV0d29ya1BvbGljeRIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJIp4BChhDaWxpdW1OZXR3b3JrUG9saWN5U3RhdGUSDwoHdmVyc2lvbhgDIAEoBBIyCgVhcHBseRgBIAEoCzIhLmN0cmwudjEuQXBwbHlDaWxpdW1OZXR3b3JrUG9saWN5SAASNAoGZGVsZXRlGAIgASgLMiIuY3RybC52MS5EZWxldGVDaWxpdW1OZXR3b3JrUG9saWN5SABCBwoFc3RhdGUiTQopR2V0RGVzaXJlZENpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZVJlcXVlc3QSIAoYY2lsaXVtX25ldHdvcmtfcG9saWN5X2lkGAEgASgJIjUKHkdldERlc2lyZWRTZW50aW5lbFN0YXRlUmVxdWVzdBITCgtzZW50aW5lbF9pZBgBIAEoCSI5CiBHZXREZXNpcmVkRGVwbG95bWVudFN0YXRlUmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIrcECh1SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdBI/CgZ1cGRhdGUYASABKAsyLS5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LlVwZGF0ZUgAEj8KBmRlbGV0ZRgCIAEoCzItLmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuRGVsZXRlSAAa7QIKBlVwZGF0ZRIQCghrOHNfbmFtZRgBIAEoCRJJCglpbnN0YW5jZXMYAiADKAsyNi5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LlVwZGF0ZS5JbnN0YW5jZRqFAgoISW5zdGFuY2USEAoIazhzX25hbWUYASABKAkSDwoHYWRkcmVzcxgCIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgDIAEoAxISCgptZW1vcnlfbWliGAQgASgDEk0KBnN0YXR1cxgFIAEoDjI9LmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuVXBkYXRlLkluc3RhbmNlLlN0YXR1cyJbCgZTdGF0dXMSFgoSU1RBVFVTX1VOU1BFQ0lGSUVEEAASEgoOU1RBVFVTX1BFTkRJTkcQARISCg5TVEFUVVNfUlVOTklORxACEhEKDVNUQVRVU19GQUlMRUQQAxoaCgZEZWxldGUSEAoIazhzX25hbWUYASABKAlCCAoGY2hhbmdlIiAKHlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXNwb25zZSJsChtSZXBvcnRTZW50aW5lbFN0YXR1c1JlcXVlc3QSEAoIazhzX25hbWUYASABKAkSGgoSYXZhaWxhYmxlX3JlcGxpY2FzGAIgASgFEh8KBmhlYWx0aBgDIAEoDjIPLmN0cmwudjEuSGVhbHRoIh4KHFJlcG9ydFNlbnRpbmVsU3RhdHVzUmVzcG9uc2UifQoNU2VudGluZWxTdGF0ZRIPCgd2ZXJzaW9uGAMgASgEEicKBWFwcGx5GAEgASgLMhYuY3RybC52MS5BcHBseVNlbnRpbmVsSAASKQoGZGVsZXRlGAIgASgLMhcuY3RybC52MS5EZWxldGVTZW50aW5lbEgAQgcKBXN0YXRlIoMBCg9EZXBsb3ltZW50U3RhdGUSDwoHdmVyc2lvbhgDIAEoBBIpCgVhcHBseRgBIAEoCzIYLmN0cmwudjEuQXBwbHlEZXBsb3ltZW50SAASKwoGZGVsZXRlGAIgASgLMhkuY3RybC52MS5EZWxldGVEZXBsb3ltZW50SABCBwoFc3RhdGUi1QEKDUFwcGx5U2VudGluZWwSEAoIazhzX25hbWUYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSDgoGYXBwX2lkGAQgASgJEhYKDmVudmlyb25tZW50X2lkGAUgASgJEhMKC3NlbnRpbmVsX2lkGAYgASgJEg0KBWltYWdlGAcgASgJEhAKCHJlcGxpY2FzGAggASgFEhYKDmNwdV9taWxsaWNvcmVzGAkgASgDEhIKCm1lbW9yeV9taWIYCiABKAMiIgoORGVsZXRlU2VudGluZWwSEAoIazhzX25hbWUYASABKAkilwYKD0FwcGx5RGVwbG95bWVudBIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJEhQKDHdvcmtzcGFjZV9pZBgDIAEoCRISCgpwcm9qZWN0X2lkGAQgASgJEhYKDmVudmlyb25tZW50X2lkGAUgASgJEhUKDWRlcGxveW1lbnRfaWQYBiABKAkSDQoFaW1hZ2UYByABKAkSFgoOY3B1X21pbGxpY29yZXMYCSABKAMSEgoKbWVtb3J5X21pYhgKIAEoAxIVCghidWlsZF9pZBgLIAEoCUgAiAEBEicKH2VuY3J5cHRlZF9lbnZpcm9ubWVudF92YXJpYWJsZXMYDCABKAwSDwoHY29tbWFuZBgNIAMoCRIMCgRwb3J0GA4gASgFEhcKD3NodXRkb3duX3NpZ25hbBgPIAEoCRIYCgtoZWFsdGhjaGVjaxgRIAEoDEgBiAEBEg4KBmFwcF9pZBgSIAEoCRIdChBlbnZpcm9ubWVudF9zbHVnGBUgASgJSAKIAQESEwoGcmVnaW9uGBYgASgJSAOIAQESGwoOZ2l0X2NvbW1pdF9zaGEYFyABKAlIBIgBARIXCgpnaXRfYnJhbmNoGBggASgJSAWIAQESFQoIZ2l0X3JlcG8YGSABKAlIBogBARIfChJnaXRfY29tbWl0X21lc3NhZ2UYGiABKAlIB4gBARIvCgthdXRvc2NhbGluZxgbIAEoCzIaLmN0cmwudjEuQXV0b3NjYWxpbmdQb2xpY3kSOQoRZXBoZW1lcmFsX3N0b3JhZ2UYHSABKAsyGS5jdHJsLnYxLkVwaGVtZXJhbFN0b3JhZ2VICIgBAUILCglfYnVpbGRfaWRCDgoMX2hlYWx0aGNoZWNrQhMKEV9lbnZpcm9ubWVudF9zbHVnQgkKB19yZWdpb25CEQoPX2dpdF9jb21taXRfc2hhQg0KC19naXRfYnJhbmNoQgsKCV9naXRfcmVwb0IVChNfZ2l0X2NvbW1pdF9tZXNzYWdlQhQKEl9lcGhlbWVyYWxfc3RvcmFnZSKhAQoRQXV0b3NjYWxpbmdQb2xpY3kSFAoMbWluX3JlcGxpY2FzGAEgASgNEhQKDG1heF9yZXBsaWNhcxgCIAEoDRIaCg1jcHVfdGhyZXNob2xkGAMgASgFSACIAQESHQoQbWVtb3J5X3RocmVzaG9sZBgEIAEoBUgBiAEBQhAKDl9jcHVfdGhyZXNob2xkQhMKEV9tZW1vcnlfdGhyZXNob2xkIjsKEERlbGV0ZURlcGxveW1lbnQSFQoNazhzX25hbWVzcGFjZRgBIAEoCRIQCghrOHNfbmFtZRgCIAEoCSI0ChBIZWFydGJlYXRSZXF1ZXN0Eg4KBnJlZ2lvbhgBIAEoCRIQCghwbGF0Zm9ybRgCIAEoCSITChFIZWFydGJlYXRSZXNwb25zZSpdCgZIZWFsdGgSFgoSSEVBTFRIX1VOU1BFQ0lGSUVEEAASEgoOSEVBTFRIX0hFQUxUSFkQARIUChBIRUFMVEhfVU5IRUFMVEhZEAISEQoNSEVBTFRIX1BBVVNFRBADMpsGCg5DbHVzdGVyU2VydmljZRJiChZXYXRjaERlcGxveW1lbnRDaGFuZ2VzEiYuY3RybC52MS5XYXRjaERlcGxveW1lbnRDaGFuZ2VzUmVxdWVzdBoeLmN0cmwudjEuRGVwbG95bWVudENoYW5nZUV2ZW50MAESVgoQU3luY0Rlc2lyZWRTdGF0ZRIgLmN0cmwudjEuU3luY0Rlc2lyZWRTdGF0ZVJlcXVlc3QaHi5jdHJsLnYxLkRlcGxveW1lbnRDaGFuZ2VFdmVudDABEloKF0dldERlc2lyZWRTZW50aW5lbFN0YXRlEicuY3RybC52MS5HZXREZXNpcmVkU2VudGluZWxTdGF0ZVJlcXVlc3QaFi5jdHJsLnYxLlNlbnRpbmVsU3RhdGUSYwoUUmVwb3J0U2VudGluZWxTdGF0dXMSJC5jdHJsLnYxLlJlcG9ydFNlbnRpbmVsU3RhdHVzUmVxdWVzdBolLmN0cmwudjEuUmVwb3J0U2VudGluZWxTdGF0dXNSZXNwb25zZRJgChlHZXREZXNpcmVkRGVwbG95bWVudFN0YXRlEikuY3RybC52MS5HZXREZXNpcmVkRGVwbG95bWVudFN0YXRlUmVxdWVzdBoYLmN0cmwudjEuRGVwbG95bWVudFN0YXRlEmkKFlJlcG9ydERlcGxveW1lbnRTdGF0dXMSJi5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0GicuY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVzcG9uc2USewoiR2V0RGVzaXJlZENpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZRIyLmN0cmwudjEuR2V0RGVzaXJlZENpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZVJlcXVlc3QaIS5jdHJsLnYxLkNpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZRJCCglIZWFydGJlYXQSGS5jdHJsLnYxLkhlYXJ0YmVhdFJlcXVlc3QaGi5jdHJsLnYxLkhlYXJ0YmVhdFJlc3BvbnNlQosBCgtjb20uY3RybC52MUIMQ2x1c3RlclByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_deployment]);
+  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiWgodV2F0Y2hEZXBsb3ltZW50Q2hhbmdlc1JlcXVlc3QSDgoGcmVnaW9uGAEgASgJEhkKEXZlcnNpb25fbGFzdF9zZWVuGAIgASgEEg4KBnJlcGxheRgDIAEoCCIZChdTeW5jRGVzaXJlZFN0YXRlUmVxdWVzdCLRAQoVRGVwbG95bWVudENoYW5nZUV2ZW50Eg8KB3ZlcnNpb24YASABKAQSLgoKZGVwbG95bWVudBgCIAEoCzIYLmN0cmwudjEuRGVwbG95bWVudFN0YXRlSAASKgoIc2VudGluZWwYAyABKAsyFi5jdHJsLnYxLlNlbnRpbmVsU3RhdGVIABJCChVjaWxpdW1fbmV0d29ya19wb2xpY3kYBCABKAsyIS5jdHJsLnYxLkNpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZUgAQgcKBWV2ZW50InUKGEFwcGx5Q2lsaXVtTmV0d29ya1BvbGljeRIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJEiAKGGNpbGl1bV9uZXR3b3JrX3BvbGljeV9pZBgDIAEoCRIOCgZwb2xpY3kYBCABKAwiRAoZRGVsZXRlQ2lsaXVtTmV0d29ya1BvbGljeRIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJIp4BChhDaWxpdW1OZXR3b3JrUG9saWN5U3RhdGUSDwoHdmVyc2lvbhgDIAEoBBIyCgVhcHBseRgBIAEoCzIhLmN0cmwudjEuQXBwbHlDaWxpdW1OZXR3b3JrUG9saWN5SAASNAoGZGVsZXRlGAIgASgLMiIuY3RybC52MS5EZWxldGVDaWxpdW1OZXR3b3JrUG9saWN5SABCBwoFc3RhdGUiTQopR2V0RGVzaXJlZENpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZVJlcXVlc3QSIAoYY2lsaXVtX25ldHdvcmtfcG9saWN5X2lkGAEgASgJIjUKHkdldERlc2lyZWRTZW50aW5lbFN0YXRlUmVxdWVzdBITCgtzZW50aW5lbF9pZBgBIAEoCSI5CiBHZXREZXNpcmVkRGVwbG95bWVudFN0YXRlUmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIrcECh1SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdBI/CgZ1cGRhdGUYASABKAsyLS5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LlVwZGF0ZUgAEj8KBmRlbGV0ZRgCIAEoCzItLmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuRGVsZXRlSAAa7QIKBlVwZGF0ZRIQCghrOHNfbmFtZRgBIAEoCRJJCglpbnN0YW5jZXMYAiADKAsyNi5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LlVwZGF0ZS5JbnN0YW5jZRqFAgoISW5zdGFuY2USEAoIazhzX25hbWUYASABKAkSDwoHYWRkcmVzcxgCIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgDIAEoAxISCgptZW1vcnlfbWliGAQgASgDEk0KBnN0YXR1cxgFIAEoDjI9LmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuVXBkYXRlLkluc3RhbmNlLlN0YXR1cyJbCgZTdGF0dXMSFgoSU1RBVFVTX1VOU1BFQ0lGSUVEEAASEgoOU1RBVFVTX1BFTkRJTkcQARISCg5TVEFUVVNfUlVOTklORxACEhEKDVNUQVRVU19GQUlMRUQQAxoaCgZEZWxldGUSEAoIazhzX25hbWUYASABKAlCCAoGY2hhbmdlIiAKHlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXNwb25zZSJsChtSZXBvcnRTZW50aW5lbFN0YXR1c1JlcXVlc3QSEAoIazhzX25hbWUYASABKAkSGgoSYXZhaWxhYmxlX3JlcGxpY2FzGAIgASgFEh8KBmhlYWx0aBgDIAEoDjIPLmN0cmwudjEuSGVhbHRoIh4KHFJlcG9ydFNlbnRpbmVsU3RhdHVzUmVzcG9uc2UifQoNU2VudGluZWxTdGF0ZRIPCgd2ZXJzaW9uGAMgASgEEicKBWFwcGx5GAEgASgLMhYuY3RybC52MS5BcHBseVNlbnRpbmVsSAASKQoGZGVsZXRlGAIgASgLMhcuY3RybC52MS5EZWxldGVTZW50aW5lbEgAQgcKBXN0YXRlIoMBCg9EZXBsb3ltZW50U3RhdGUSDwoHdmVyc2lvbhgDIAEoBBIpCgVhcHBseRgBIAEoCzIYLmN0cmwudjEuQXBwbHlEZXBsb3ltZW50SAASKwoGZGVsZXRlGAIgASgLMhkuY3RybC52MS5EZWxldGVEZXBsb3ltZW50SABCBwoFc3RhdGUi1QEKDUFwcGx5U2VudGluZWwSEAoIazhzX25hbWUYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSDgoGYXBwX2lkGAQgASgJEhYKDmVudmlyb25tZW50X2lkGAUgASgJEhMKC3NlbnRpbmVsX2lkGAYgASgJEg0KBWltYWdlGAcgASgJEhAKCHJlcGxpY2FzGAggASgFEhYKDmNwdV9taWxsaWNvcmVzGAkgASgDEhIKCm1lbW9yeV9taWIYCiABKAMiIgoORGVsZXRlU2VudGluZWwSEAoIazhzX25hbWUYASABKAkiuAYKD0FwcGx5RGVwbG95bWVudBIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJEhQKDHdvcmtzcGFjZV9pZBgDIAEoCRISCgpwcm9qZWN0X2lkGAQgASgJEhYKDmVudmlyb25tZW50X2lkGAUgASgJEhUKDWRlcGxveW1lbnRfaWQYBiABKAkSDQoFaW1hZ2UYByABKAkSFgoOY3B1X21pbGxpY29yZXMYCSABKAMSEgoKbWVtb3J5X21pYhgKIAEoAxIVCghidWlsZF9pZBgLIAEoCUgAiAEBEicKH2VuY3J5cHRlZF9lbnZpcm9ubWVudF92YXJpYWJsZXMYDCABKAwSDwoHY29tbWFuZBgNIAMoCRIMCgRwb3J0GA4gASgFEhcKD3NodXRkb3duX3NpZ25hbBgPIAEoCRIYCgtoZWFsdGhjaGVjaxgRIAEoDEgBiAEBEg4KBmFwcF9pZBgSIAEoCRIdChBlbnZpcm9ubWVudF9zbHVnGBUgASgJSAKIAQESEwoGcmVnaW9uGBYgASgJSAOIAQESGwoOZ2l0X2NvbW1pdF9zaGEYFyABKAlIBIgBARIXCgpnaXRfYnJhbmNoGBggASgJSAWIAQESFQoIZ2l0X3JlcG8YGSABKAlIBogBARIfChJnaXRfY29tbWl0X21lc3NhZ2UYGiABKAlIB4gBARIvCgthdXRvc2NhbGluZxgbIAEoCzIaLmN0cmwudjEuQXV0b3NjYWxpbmdQb2xpY3kSRQoUdmVydGljYWxfYXV0b3NjYWxpbmcYHCABKAsyIi5jdHJsLnYxLlZlcnRpY2FsQXV0b3NjYWxpbmdQb2xpY3lICIgBARIQCghyZXBsaWNhcxgdIAEoBUILCglfYnVpbGRfaWRCDgoMX2hlYWx0aGNoZWNrQhMKEV9lbnZpcm9ubWVudF9zbHVnQgkKB19yZWdpb25CEQoPX2dpdF9jb21taXRfc2hhQg0KC19naXRfYnJhbmNoQgsKCV9naXRfcmVwb0IVChNfZ2l0X2NvbW1pdF9tZXNzYWdlQhcKFV92ZXJ0aWNhbF9hdXRvc2NhbGluZyKhAQoRQXV0b3NjYWxpbmdQb2xpY3kSFAoMbWluX3JlcGxpY2FzGAEgASgNEhQKDG1heF9yZXBsaWNhcxgCIAEoDRIaCg1jcHVfdGhyZXNob2xkGAMgASgFSACIAQESHQoQbWVtb3J5X3RocmVzaG9sZBgEIAEoBUgBiAEBQhAKDl9jcHVfdGhyZXNob2xkQhMKEV9tZW1vcnlfdGhyZXNob2xkIo4HChlWZXJ0aWNhbEF1dG9zY2FsaW5nUG9saWN5EkIKC3VwZGF0ZV9tb2RlGAEgASgOMi0uY3RybC52MS5WZXJ0aWNhbEF1dG9zY2FsaW5nUG9saWN5LlVwZGF0ZU1vZGUSVAoUY29udHJvbGxlZF9yZXNvdXJjZXMYAiABKA4yNi5jdHJsLnYxLlZlcnRpY2FsQXV0b3NjYWxpbmdQb2xpY3kuQ29udHJvbGxlZFJlc291cmNlcxJOChFjb250cm9sbGVkX3ZhbHVlcxgDIAEoDjIzLmN0cmwudjEuVmVydGljYWxBdXRvc2NhbGluZ1BvbGljeS5Db250cm9sbGVkVmFsdWVzEh8KEmNwdV9taW5fbWlsbGljb3JlcxgEIAEoDUgAiAEBEh8KEmNwdV9tYXhfbWlsbGljb3JlcxgFIAEoDUgBiAEBEhsKDm1lbW9yeV9taW5fbWliGAYgASgNSAKIAQESGwoObWVtb3J5X21heF9taWIYByABKA1IA4gBASKXAQoKVXBkYXRlTW9kZRIbChdVUERBVEVfTU9ERV9VTlNQRUNJRklFRBAAEhMKD1VQREFURV9NT0RFX09GRhABEhcKE1VQREFURV9NT0RFX0lOSVRJQUwQAhIYChRVUERBVEVfTU9ERV9SRUNSRUFURRADEiQKIFVQREFURV9NT0RFX0lOX1BMQUNFX09SX1JFQ1JFQVRFEAQimQEKE0NvbnRyb2xsZWRSZXNvdXJjZXMSJAogQ09OVFJPTExFRF9SRVNPVVJDRVNfVU5TUEVDSUZJRUQQABIcChhDT05UUk9MTEVEX1JFU09VUkNFU19DUFUQARIfChtDT05UUk9MTEVEX1JFU09VUkNFU19NRU1PUlkQAhIdChlDT05UUk9MTEVEX1JFU09VUkNFU19CT1RIEAMigAEKEENvbnRyb2xsZWRWYWx1ZXMSIQodQ09OVFJPTExFRF9WQUxVRVNfVU5TUEVDSUZJRUQQABIeChpDT05UUk9MTEVEX1ZBTFVFU19SRVFVRVNUUxABEikKJUNPTlRST0xMRURfVkFMVUVTX1JFUVVFU1RTX0FORF9MSU1JVFMQAkIVChNfY3B1X21pbl9taWxsaWNvcmVzQhUKE19jcHVfbWF4X21pbGxpY29yZXNCEQoPX21lbW9yeV9taW5fbWliQhEKD19tZW1vcnlfbWF4X21pYiI7ChBEZWxldGVEZXBsb3ltZW50EhUKDWs4c19uYW1lc3BhY2UYASABKAkSEAoIazhzX25hbWUYAiABKAkiNAoQSGVhcnRiZWF0UmVxdWVzdBIOCgZyZWdpb24YASABKAkSEAoIcGxhdGZvcm0YAiABKAkiEwoRSGVhcnRiZWF0UmVzcG9uc2UqXQoGSGVhbHRoEhYKEkhFQUxUSF9VTlNQRUNJRklFRBAAEhIKDkhFQUxUSF9IRUFMVEhZEAESFAoQSEVBTFRIX1VOSEVBTFRIWRACEhEKDUhFQUxUSF9QQVVTRUQQAzKbBgoOQ2x1c3RlclNlcnZpY2USYgoWV2F0Y2hEZXBsb3ltZW50Q2hhbmdlcxImLmN0cmwudjEuV2F0Y2hEZXBsb3ltZW50Q2hhbmdlc1JlcXVlc3QaHi5jdHJsLnYxLkRlcGxveW1lbnRDaGFuZ2VFdmVudDABElYKEFN5bmNEZXNpcmVkU3RhdGUSIC5jdHJsLnYxLlN5bmNEZXNpcmVkU3RhdGVSZXF1ZXN0Gh4uY3RybC52MS5EZXBsb3ltZW50Q2hhbmdlRXZlbnQwARJaChdHZXREZXNpcmVkU2VudGluZWxTdGF0ZRInLmN0cmwudjEuR2V0RGVzaXJlZFNlbnRpbmVsU3RhdGVSZXF1ZXN0GhYuY3RybC52MS5TZW50aW5lbFN0YXRlEmMKFFJlcG9ydFNlbnRpbmVsU3RhdHVzEiQuY3RybC52MS5SZXBvcnRTZW50aW5lbFN0YXR1c1JlcXVlc3QaJS5jdHJsLnYxLlJlcG9ydFNlbnRpbmVsU3RhdHVzUmVzcG9uc2USYAoZR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZRIpLmN0cmwudjEuR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZVJlcXVlc3QaGC5jdHJsLnYxLkRlcGxveW1lbnRTdGF0ZRJpChZSZXBvcnREZXBsb3ltZW50U3RhdHVzEiYuY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdBonLmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1Jlc3BvbnNlEnsKIkdldERlc2lyZWRDaWxpdW1OZXR3b3JrUG9saWN5U3RhdGUSMi5jdHJsLnYxLkdldERlc2lyZWRDaWxpdW1OZXR3b3JrUG9saWN5U3RhdGVSZXF1ZXN0GiEuY3RybC52MS5DaWxpdW1OZXR3b3JrUG9saWN5U3RhdGUSQgoJSGVhcnRiZWF0EhkuY3RybC52MS5IZWFydGJlYXRSZXF1ZXN0GhouY3RybC52MS5IZWFydGJlYXRSZXNwb25zZUKLAQoLY29tLmN0cmwudjFCDENsdXN0ZXJQcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message ctrl.v1.WatchDeploymentChangesRequest
@@ -827,14 +825,21 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
   autoscaling?: AutoscalingPolicy;
 
   /**
-   * ephemeral_storage configures an EBS-backed scratch volume for the deployment.
-   * When present, Krane provisions a PVC per pod using the specified storage class.
-   * The volume is created when the pod starts and deleted when the pod terminates.
-   * When absent, no ephemeral volume is attached.
+   * Vertical autoscaling policy. Krane creates a VPA with these values.
+   * Populated from the vertical_autoscaling_policies table via app_regional_settings.
+   * Only one of autoscaling (HPA) or vertical_autoscaling (VPA) should be set.
    *
-   * @generated from field: optional ctrl.v1.EphemeralStorage ephemeral_storage = 29;
+   * @generated from field: optional ctrl.v1.VerticalAutoscalingPolicy vertical_autoscaling = 28;
    */
-  ephemeralStorage?: EphemeralStorage;
+  verticalAutoscaling?: VerticalAutoscalingPolicy;
+
+  /**
+   * Static replica count from app_regional_settings.
+   * Used by VPA workloads where no HPA manages the replica count.
+   *
+   * @generated from field: int32 replicas = 29;
+   */
+  replicas: number;
 };
 
 /**
@@ -890,6 +895,170 @@ export const AutoscalingPolicySchema: GenMessage<AutoscalingPolicy> = /*@__PURE_
   messageDesc(file_ctrl_v1_cluster, 18);
 
 /**
+ * VerticalAutoscalingPolicy configures vertical pod autoscaling for a deployment.
+ * Snapshotted from the vertical_autoscaling_policies table at deploy time.
+ * VPA right-sizes CPU/memory requests based on actual usage rather than scaling replicas.
+ *
+ * @generated from message ctrl.v1.VerticalAutoscalingPolicy
+ */
+export type VerticalAutoscalingPolicy = Message<"ctrl.v1.VerticalAutoscalingPolicy"> & {
+  /**
+   * @generated from field: ctrl.v1.VerticalAutoscalingPolicy.UpdateMode update_mode = 1;
+   */
+  updateMode: VerticalAutoscalingPolicy_UpdateMode;
+
+  /**
+   * @generated from field: ctrl.v1.VerticalAutoscalingPolicy.ControlledResources controlled_resources = 2;
+   */
+  controlledResources: VerticalAutoscalingPolicy_ControlledResources;
+
+  /**
+   * @generated from field: ctrl.v1.VerticalAutoscalingPolicy.ControlledValues controlled_values = 3;
+   */
+  controlledValues: VerticalAutoscalingPolicy_ControlledValues;
+
+  /**
+   * Resource bounds for VPA recommendations. VPA will never recommend outside these bounds.
+   *
+   * @generated from field: optional uint32 cpu_min_millicores = 4;
+   */
+  cpuMinMillicores?: number;
+
+  /**
+   * @generated from field: optional uint32 cpu_max_millicores = 5;
+   */
+  cpuMaxMillicores?: number;
+
+  /**
+   * @generated from field: optional uint32 memory_min_mib = 6;
+   */
+  memoryMinMib?: number;
+
+  /**
+   * @generated from field: optional uint32 memory_max_mib = 7;
+   */
+  memoryMaxMib?: number;
+};
+
+/**
+ * Describes the message ctrl.v1.VerticalAutoscalingPolicy.
+ * Use `create(VerticalAutoscalingPolicySchema)` to create a new message.
+ */
+export const VerticalAutoscalingPolicySchema: GenMessage<VerticalAutoscalingPolicy> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 19);
+
+/**
+ * How VPA applies its recommendations to pods.
+ *
+ * @generated from enum ctrl.v1.VerticalAutoscalingPolicy.UpdateMode
+ */
+export enum VerticalAutoscalingPolicy_UpdateMode {
+  /**
+   * @generated from enum value: UPDATE_MODE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Recommendations only — stored in VPA status, no automatic application.
+   *
+   * @generated from enum value: UPDATE_MODE_OFF = 1;
+   */
+  OFF = 1,
+
+  /**
+   * Recommendations applied only when pods are first created.
+   *
+   * @generated from enum value: UPDATE_MODE_INITIAL = 2;
+   */
+  INITIAL = 2,
+
+  /**
+   * VPA evicts pods and recreates them with updated requests.
+   *
+   * @generated from enum value: UPDATE_MODE_RECREATE = 3;
+   */
+  RECREATE = 3,
+
+  /**
+   * VPA attempts in-place resource updates, falls back to eviction if not possible.
+   *
+   * @generated from enum value: UPDATE_MODE_IN_PLACE_OR_RECREATE = 4;
+   */
+  IN_PLACE_OR_RECREATE = 4,
+}
+
+/**
+ * Describes the enum ctrl.v1.VerticalAutoscalingPolicy.UpdateMode.
+ */
+export const VerticalAutoscalingPolicy_UpdateModeSchema: GenEnum<VerticalAutoscalingPolicy_UpdateMode> = /*@__PURE__*/
+  enumDesc(file_ctrl_v1_cluster, 19, 0);
+
+/**
+ * Which resources VPA is allowed to adjust.
+ *
+ * @generated from enum ctrl.v1.VerticalAutoscalingPolicy.ControlledResources
+ */
+export enum VerticalAutoscalingPolicy_ControlledResources {
+  /**
+   * @generated from enum value: CONTROLLED_RESOURCES_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: CONTROLLED_RESOURCES_CPU = 1;
+   */
+  CPU = 1,
+
+  /**
+   * @generated from enum value: CONTROLLED_RESOURCES_MEMORY = 2;
+   */
+  MEMORY = 2,
+
+  /**
+   * @generated from enum value: CONTROLLED_RESOURCES_BOTH = 3;
+   */
+  BOTH = 3,
+}
+
+/**
+ * Describes the enum ctrl.v1.VerticalAutoscalingPolicy.ControlledResources.
+ */
+export const VerticalAutoscalingPolicy_ControlledResourcesSchema: GenEnum<VerticalAutoscalingPolicy_ControlledResources> = /*@__PURE__*/
+  enumDesc(file_ctrl_v1_cluster, 19, 1);
+
+/**
+ * Whether VPA adjusts only requests or both requests and limits.
+ *
+ * @generated from enum ctrl.v1.VerticalAutoscalingPolicy.ControlledValues
+ */
+export enum VerticalAutoscalingPolicy_ControlledValues {
+  /**
+   * @generated from enum value: CONTROLLED_VALUES_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * VPA adjusts resource requests only, leaves limits unchanged.
+   *
+   * @generated from enum value: CONTROLLED_VALUES_REQUESTS = 1;
+   */
+  REQUESTS = 1,
+
+  /**
+   * VPA adjusts both resource requests and limits.
+   *
+   * @generated from enum value: CONTROLLED_VALUES_REQUESTS_AND_LIMITS = 2;
+   */
+  REQUESTS_AND_LIMITS = 2,
+}
+
+/**
+ * Describes the enum ctrl.v1.VerticalAutoscalingPolicy.ControlledValues.
+ */
+export const VerticalAutoscalingPolicy_ControlledValuesSchema: GenEnum<VerticalAutoscalingPolicy_ControlledValues> = /*@__PURE__*/
+  enumDesc(file_ctrl_v1_cluster, 19, 2);
+
+/**
  * DeleteDeployment identifies a deployment to remove from the cluster.
  *
  * The deployment and all its pods will be terminated gracefully according to
@@ -915,7 +1084,7 @@ export type DeleteDeployment = Message<"ctrl.v1.DeleteDeployment"> & {
  * Use `create(DeleteDeploymentSchema)` to create a new message.
  */
 export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 19);
+  messageDesc(file_ctrl_v1_cluster, 20);
 
 /**
  * HeartbeatRequest is sent periodically by krane agents to register their
@@ -945,7 +1114,7 @@ export type HeartbeatRequest = Message<"ctrl.v1.HeartbeatRequest"> & {
  * Use `create(HeartbeatRequestSchema)` to create a new message.
  */
 export const HeartbeatRequestSchema: GenMessage<HeartbeatRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 20);
+  messageDesc(file_ctrl_v1_cluster, 21);
 
 /**
  * @generated from message ctrl.v1.HeartbeatResponse
@@ -958,7 +1127,7 @@ export type HeartbeatResponse = Message<"ctrl.v1.HeartbeatResponse"> & {
  * Use `create(HeartbeatResponseSchema)` to create a new message.
  */
 export const HeartbeatResponseSchema: GenMessage<HeartbeatResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 21);
+  messageDesc(file_ctrl_v1_cluster, 22);
 
 /**
  * Health represents the health state of a resource (sentinel, deployment instance, etc.)

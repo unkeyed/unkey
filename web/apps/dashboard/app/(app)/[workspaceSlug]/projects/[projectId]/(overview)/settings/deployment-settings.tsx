@@ -14,7 +14,7 @@ import { Instances } from "./components/runtime-settings/instances";
 import { Memory } from "./components/runtime-settings/memory";
 import { Port } from "./components/runtime-settings/port-settings";
 import { Regions } from "./components/runtime-settings/regions";
-import { Storage } from "./components/runtime-settings/storage";
+import { VerticalAutoscaling } from "./components/runtime-settings/vertical-autoscaling";
 
 import { CustomDomains } from "./components/advanced-settings/custom-domains";
 
@@ -54,7 +54,9 @@ export const DeploymentSettings = ({
           <Instances />
           <Cpu />
           <Memory />
-          <Storage />
+          <VerticalAutoscaling />
+          {/* Temporarily disabled */}
+          {/* <Storage /> */}
           <Healthcheck />
           <Port />
           <Command />

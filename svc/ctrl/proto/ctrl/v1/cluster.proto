@@ -11,8 +11,6 @@ syntax = "proto3";
 // orchestration across distributed clusters.
 package ctrl.v1;
 
-import "ctrl/v1/deployment.proto";
-
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
 // Health represents the health state of a resource (sentinel, deployment instance, etc.)
@@ -328,11 +326,14 @@ message ApplyDeployment {
   // Populated from the horizontal_autoscaling_policies table via app_regional_settings.
   AutoscalingPolicy autoscaling = 27;
 
-  // ephemeral_storage configures an EBS-backed scratch volume for the deployment.
-  // When present, Krane provisions a PVC per pod using the specified storage class.
-  // The volume is created when the pod starts and deleted when the pod terminates.
-  // When absent, no ephemeral volume is attached.
-  optional EphemeralStorage ephemeral_storage = 29;
+  // Vertical autoscaling policy. Krane creates a VPA with these values.
+  // Populated from the vertical_autoscaling_policies table via app_regional_settings.
+  // Only one of autoscaling (HPA) or vertical_autoscaling (VPA) should be set.
+  optional VerticalAutoscalingPolicy vertical_autoscaling = 28;
+
+  // Static replica count from app_regional_settings.
+  // Used by VPA workloads where no HPA manages the replica count.
+  int32 replicas = 29;
 }
 
 // AutoscalingPolicy configures horizontal pod autoscaling for a deployment.
@@ -348,6 +349,50 @@ message AutoscalingPolicy {
   // Average memory utilization percentage (0-100) that triggers scale-up.
   // When omitted, memory is not used as a scaling signal.
   optional int32 memory_threshold = 4;
+}
+
+// VerticalAutoscalingPolicy configures vertical pod autoscaling for a deployment.
+// Snapshotted from the vertical_autoscaling_policies table at deploy time.
+// VPA right-sizes CPU/memory requests based on actual usage rather than scaling replicas.
+message VerticalAutoscalingPolicy {
+  // How VPA applies its recommendations to pods.
+  enum UpdateMode {
+    UPDATE_MODE_UNSPECIFIED = 0;
+    // Recommendations only — stored in VPA status, no automatic application.
+    UPDATE_MODE_OFF = 1;
+    // Recommendations applied only when pods are first created.
+    UPDATE_MODE_INITIAL = 2;
+    // VPA evicts pods and recreates them with updated requests.
+    UPDATE_MODE_RECREATE = 3;
+    // VPA attempts in-place resource updates, falls back to eviction if not possible.
+    UPDATE_MODE_IN_PLACE_OR_RECREATE = 4;
+  }
+  UpdateMode update_mode = 1;
+
+  // Which resources VPA is allowed to adjust.
+  enum ControlledResources {
+    CONTROLLED_RESOURCES_UNSPECIFIED = 0;
+    CONTROLLED_RESOURCES_CPU = 1;
+    CONTROLLED_RESOURCES_MEMORY = 2;
+    CONTROLLED_RESOURCES_BOTH = 3;
+  }
+  ControlledResources controlled_resources = 2;
+
+  // Whether VPA adjusts only requests or both requests and limits.
+  enum ControlledValues {
+    CONTROLLED_VALUES_UNSPECIFIED = 0;
+    // VPA adjusts resource requests only, leaves limits unchanged.
+    CONTROLLED_VALUES_REQUESTS = 1;
+    // VPA adjusts both resource requests and limits.
+    CONTROLLED_VALUES_REQUESTS_AND_LIMITS = 2;
+  }
+  ControlledValues controlled_values = 3;
+
+  // Resource bounds for VPA recommendations. VPA will never recommend outside these bounds.
+  optional uint32 cpu_min_millicores = 4;
+  optional uint32 cpu_max_millicores = 5;
+  optional uint32 memory_min_mib = 6;
+  optional uint32 memory_max_mib = 7;
 }
 
 // DeleteDeployment identifies a deployment to remove from the cluster.
