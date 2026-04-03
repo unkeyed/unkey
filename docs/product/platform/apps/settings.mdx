@@ -117,6 +117,17 @@ The port your application listens on. Defaults to 8080. Must be between 1 and 65
 
 Unkey injects this value as the `PORT` environment variable at runtime. If your Dockerfile sets `ENV PORT=8080` but you configure port 8081 in your app settings, your application receives `PORT=8081`. Runtime settings always take precedence over defaults set in the container image.
 
+### Upstream protocol
+
+The protocol Unkey uses to forward requests to your application. Available options:
+
+| Option       | Description                                                                 |
+| ------------ | --------------------------------------------------------------------------- |
+| HTTP/1.1     | Standard HTTP protocol. Works with all frameworks and languages. (default)  |
+| HTTP/2 (h2c) | Cleartext HTTP/2 for applications that support h2c. Enables multiplexing and header compression between the proxy and your app. |
+
+Defaults to HTTP/1.1. Only change this if your application explicitly supports h2c (HTTP/2 without TLS). Most applications should use HTTP/1.1.
+
 ### Command
 
 The command to start your application. This overrides the default `CMD` in your Dockerfile. Leave empty to use your image's default command.
