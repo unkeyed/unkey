@@ -1,7 +1,9 @@
 "use client";
 
+import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import { LogDetails as SharedLogDetails } from "@/components/logs/details/log-details";
 import { LogSection } from "@/components/logs/details/log-details/components/log-section";
+import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useRuntimeLogs } from "../../../context/runtime-logs-provider";
@@ -56,13 +58,18 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
           title="Deployment Info"
           details={
             <div className="flex flex-col gap-2 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-grayA-11">Region:</span>{" "}
+                <RegionFlag flagCode={mapRegionToFlag(log.region)} size="xs" shape="circle" />
+                <span className="font-mono">{log.region}</span>
+              </div>
+              <div>
+                <span className="text-grayA-11">Instance ID:</span>{" "}
+                <span className="font-mono">{log.instance_id}</span>
+              </div>
               <div>
                 <span className="text-grayA-11">Deployment ID:</span>{" "}
                 <span className="font-mono">{log.deployment_id}</span>
-              </div>
-              <div>
-                <span className="text-grayA-11">Region:</span>{" "}
-                <span className="font-mono">{log.region}</span>
               </div>
             </div>
           }
