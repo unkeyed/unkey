@@ -99,6 +99,7 @@ function useInitializeSettings(
       healthcheck: null,
       regions: availableRegions.map((r) => ({ id: r.id, name: r.name, replicas: 1 })),
       shutdownSignal: d.shutdownSignal,
+      upstreamProtocol: d.upstreamProtocol,
       sentinelConfig: undefined,
       openapiSpecPath: null,
     };
@@ -115,6 +116,7 @@ function useInitializeSettings(
       healthcheck: null,
       regions: [],
       shutdownSignal: "",
+      upstreamProtocol: "http1",
       sentinelConfig: undefined,
       openapiSpecPath: null,
     };

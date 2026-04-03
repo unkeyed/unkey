@@ -14,6 +14,7 @@ import { Instances } from "./components/runtime-settings/instances";
 import { Memory } from "./components/runtime-settings/memory";
 import { Port } from "./components/runtime-settings/port-settings";
 import { Regions } from "./components/runtime-settings/regions";
+import { UpstreamProtocol } from "./components/runtime-settings/upstream-protocol";
 
 import { CustomDomains } from "./components/advanced-settings/custom-domains";
 
@@ -70,6 +71,7 @@ export const DeploymentSettings = ({
         <SettingCardGroup>
           <CustomDomains />
           <OpenapiSpecPath />
+          <UpstreamProtocol />
         </SettingCardGroup>
       </SettingsGroup>
       <SettingsGroup
