@@ -12,8 +12,8 @@ import { Button, Code, Empty } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { PropsWithChildren } from "react";
 import { Client } from "./client";
-import { PropsWithChildren } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -168,8 +168,8 @@ export default async function Page(props: Props) {
             Record<
               VercelBinding["resourceType"],
               | (VercelBinding & {
-                updatedBy: { id: string; name: string; image: string | null };
-              })
+                  updatedBy: { id: string; name: string; image: string | null };
+                })
               | null
             >
           >,
@@ -187,7 +187,6 @@ export default async function Page(props: Props) {
     </div>
   );
 }
-
 
 function PageContent({ children }: PropsWithChildren) {
   return <div className="p-4">{children}</div>;

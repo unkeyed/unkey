@@ -1,5 +1,5 @@
 import type { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
-import { z } from "zod";
+import type { z } from "zod";
 
 import type { MaybeArray } from "@/lib/types";
 import { type Database, type Transaction, schema } from "@unkey/db";
@@ -20,27 +20,27 @@ export type UnkeyAuditLog = {
   };
   resources: Array<{
     type:
-    | "key"
-    | "api"
-    | "workspace"
-    | "role"
-    | "permission"
-    | "keyAuth"
-    | "vercelBinding"
-    | "vercelIntegration"
-    | "ratelimitNamespace"
-    | "ratelimitOverride"
-    | "ratelimit"
-    | "sentinel"
-    | "llmSentinel"
-    | "webhook"
-    | "reporter"
-    | "secret"
-    | "project"
-    | "identity"
-    | "auditLogBucket"
-    | "environment"
-    | "deployment";
+      | "key"
+      | "api"
+      | "workspace"
+      | "role"
+      | "permission"
+      | "keyAuth"
+      | "vercelBinding"
+      | "vercelIntegration"
+      | "ratelimitNamespace"
+      | "ratelimitOverride"
+      | "ratelimit"
+      | "sentinel"
+      | "llmSentinel"
+      | "webhook"
+      | "reporter"
+      | "secret"
+      | "project"
+      | "identity"
+      | "auditLogBucket"
+      | "environment"
+      | "deployment";
 
     id: string;
     name?: string;
