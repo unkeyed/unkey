@@ -6,7 +6,7 @@ import { SelectedConfig } from "./selected-config";
 type EditableSettingCardProps = {
   icon: React.ReactNode;
   title: string;
-  description: string;
+  description: React.ReactNode;
   border?: SettingCardBorder;
 
   displayValue: React.ReactNode;
