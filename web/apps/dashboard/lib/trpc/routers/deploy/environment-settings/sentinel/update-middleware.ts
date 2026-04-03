@@ -4,13 +4,17 @@ import { appRuntimeSettings, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 
+export type SentinelPolicy = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  type: "keyauth" | "ratelimit";
+  keyauth?: { keySpaceIds: string[] };
+  ratelimit?: { limit: number; windowMs: number };
+};
+
 export type SentinelConfig = {
-  policies: {
-    id: string;
-    name: string;
-    enabled: boolean;
-    keyauth: { keySpaceIds: string[] };
-  }[];
+  policies: SentinelPolicy[];
 };
 
 // This is 100% not how we will do it later and is just a shortcut to use keyspace middleware before building the actual UI for it.
@@ -53,6 +57,7 @@ export const updateMiddleware = workspaceProcedure
         id: "keyauth-policy",
         name: "API Key Auth",
         enabled: true,
+        type: "keyauth",
         keyauth: { keySpaceIds: keyspaces.map((ks) => ks.id) },
       });
     }

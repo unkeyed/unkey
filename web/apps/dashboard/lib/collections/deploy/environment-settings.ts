@@ -19,16 +19,18 @@ const healthcheckSchema = z
   })
   .nullable();
 
+const sentinelPolicySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  enabled: z.boolean(),
+  type: z.enum(["keyauth", "ratelimit"]),
+  keyauth: z.object({ keySpaceIds: z.array(z.string()) }).optional(),
+  ratelimit: z.object({ limit: z.number(), windowMs: z.number() }).optional(),
+});
+
 const sentinelConfigSchema: z.ZodType<SentinelConfig | undefined> = z
   .object({
-    policies: z.array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        enabled: z.boolean(),
-        keyauth: z.object({ keySpaceIds: z.array(z.string()) }),
-      }),
-    ),
+    policies: z.array(sentinelPolicySchema),
   })
   .optional();
 
@@ -120,9 +122,24 @@ function changed<T>(a: T, b: T): boolean {
   return JSON.stringify(a) !== JSON.stringify(b);
 }
 
-function extractKeyspaceIds(config: SentinelConfig | undefined): string[] {
-  return config?.policies.flatMap((p) => p.keyauth.keySpaceIds) ?? [];
-}
+const DEV_DUMMY_POLICIES: SentinelConfig = {
+  policies: [
+    {
+      id: "keyauth-1",
+      name: "API Key Authentication",
+      enabled: true,
+      type: "keyauth",
+      keyauth: { keySpaceIds: [] },
+    },
+    {
+      id: "ratelimit-1",
+      name: "Global Rate Limit",
+      enabled: true,
+      type: "ratelimit",
+      ratelimit: { limit: 100, windowMs: 60_000 },
+    },
+  ],
+};
 
 function flattenSettingsResponse(
   environmentId: string,
@@ -149,7 +166,8 @@ function flattenSettingsResponse(
         replicas: r.replicas,
       })),
     shutdownSignal: d.shutdownSignal,
-    sentinelConfig: runtime?.sentinelConfig,
+    sentinelConfig:
+      runtime?.sentinelConfig?.policies?.length ? runtime.sentinelConfig : DEV_DUMMY_POLICIES,
     openapiSpecPath: runtime?.openapiSpecPath ?? null,
   };
 }
@@ -268,9 +286,9 @@ export function buildSettingsMutations(
 
   if (changed(original.sentinelConfig, modified.sentinelConfig)) {
     mutations.push(
-      trpcClient.deploy.environmentSettings.sentinel.updateMiddleware.mutate({
+      trpcClient.deploy.environmentSettings.sentinel.updateConfig.mutate({
         environmentId,
-        keyspaceIds: extractKeyspaceIds(modified.sentinelConfig),
+        config: modified.sentinelConfig ?? { policies: [] },
       }),
     );
   }
