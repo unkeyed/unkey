@@ -122,10 +122,10 @@ func (s *Service) CreateDeployment(
 			Secrets: make(map[string]string, len(appEnvVars)),
 		}
 		for _, ev := range appEnvVars {
-			// if !envVarKeyRegex.MatchString(ev.Key) {
-			// 	return nil, connect.NewError(connect.CodeInvalidArgument,
-			// 		fmt.Errorf("environment variable key %q contains invalid characters, only letters, numbers, hyphens, underscores, and dots are allowed", ev.Key))
-			// }
+			if !envVarKeyRegex.MatchString(ev.Key) {
+				return nil, connect.NewError(connect.CodeInvalidArgument,
+					fmt.Errorf("environment variable key %q contains invalid characters, only letters, numbers, hyphens, underscores, and dots are allowed", ev.Key))
+			}
 			secretsConfig.Secrets[ev.Key] = ev.Value
 		}
 
