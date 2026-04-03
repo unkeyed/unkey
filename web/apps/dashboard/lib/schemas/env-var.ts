@@ -3,7 +3,8 @@ import { z } from "zod";
 export const envVarKeySchema = z
   .string()
   .trim()
+  .min(1, "Variable name is required")
   .regex(
     /^[-._a-zA-Z0-9]+$/,
-    "No spaces or special characters, only letters, numbers, hyphens, underscores, and dots",
+    "Only letters, numbers, hyphens, underscores, and dots are allowed",
   );

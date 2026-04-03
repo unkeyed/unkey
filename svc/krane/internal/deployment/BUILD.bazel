@@ -32,6 +32,7 @@ go_library(
         "//pkg/hash",
         "//pkg/logger",
         "//pkg/ptr",
+        "//pkg/validation",
         "//pkg/repeat",
         "//svc/krane/pkg/labels",
         "@com_connectrpc_connect//:connect",
@@ -53,10 +54,7 @@ go_library(
 
 go_test(
     name = "deployment_test",
-    srcs = [
-        "controller_test.go",
-        "secrets_test.go",
-    ],
+    srcs = ["controller_test.go"],
     embed = [":deployment"],
     deps = [
         "//pkg/cache",

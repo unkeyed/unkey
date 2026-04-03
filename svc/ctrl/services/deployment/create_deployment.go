@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -14,10 +13,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/validation"
 	"google.golang.org/protobuf/encoding/protojson"
 )
-
-var envVarKeyRegex = regexp.MustCompile(`^[-._a-zA-Z0-9]+$`)
 
 const (
 	// maxCommitMessageLength limits commit messages to prevent oversized database entries.
@@ -122,9 +120,9 @@ func (s *Service) CreateDeployment(
 			Secrets: make(map[string]string, len(appEnvVars)),
 		}
 		for _, ev := range appEnvVars {
-			if !envVarKeyRegex.MatchString(ev.Key) {
+			if !validation.IsValidEnvVarKey(ev.Key) {
 				return nil, connect.NewError(connect.CodeInvalidArgument,
-					fmt.Errorf("environment variable key %q contains invalid characters, only letters, numbers, hyphens, underscores, and dots are allowed", ev.Key))
+					fmt.Errorf("environment variable key %q is invalid: only letters, numbers, hyphens, underscores, and dots are allowed", ev.Key))
 			}
 			secretsConfig.Secrets[ev.Key] = ev.Value
 		}

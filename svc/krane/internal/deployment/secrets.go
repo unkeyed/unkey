@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
@@ -49,8 +49,6 @@ func (c *Controller) decryptSecrets(ctx context.Context, encrypted []byte, envir
 	return bulkRes.GetItems(), nil
 }
 
-var k8sSecretKeyRegex = regexp.MustCompile(`^[-._a-zA-Z0-9]+$`)
-
 // deploymentResourcePrefix returns the base name used for all K8s resources
 // (Secret, ServiceAccount, Role, RoleBinding) owned by a deployment.
 // Converts the deployment ID to a valid RFC 1123 subdomain name.
@@ -69,8 +67,8 @@ func (c *Controller) ensureDeploymentSecret(ctx context.Context, namespace, depl
 	// ownership — removed keys won't be cleaned up from data on re-apply.
 	data := make(map[string][]byte, len(envVars))
 	for k, v := range envVars {
-		if !k8sSecretKeyRegex.MatchString(k) {
-			return fmt.Errorf("environment variable key %q contains invalid characters, only letters, numbers, hyphens, underscores, and dots are allowed", k)
+		if !validation.IsValidEnvVarKey(k) {
+			return fmt.Errorf("environment variable key %q is invalid: only letters, numbers, hyphens, underscores, and dots are allowed", k)
 		}
 		data[k] = []byte(v)
 	}
