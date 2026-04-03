@@ -68,7 +68,7 @@ func (c *Controller) ensureDeploymentSecret(ctx context.Context, namespace, depl
 	data := make(map[string][]byte, len(envVars))
 	for k, v := range envVars {
 		if !validation.IsValidEnvVarKey(k) {
-			return fmt.Errorf("environment variable key %q is invalid: only letters, numbers, hyphens, underscores, and dots are allowed", k)
+			return fmt.Errorf("environment variable key %q is invalid: %s", k, validation.ErrMsgInvalidEnvVarKey)
 		}
 		data[k] = []byte(v)
 	}

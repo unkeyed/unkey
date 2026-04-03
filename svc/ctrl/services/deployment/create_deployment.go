@@ -122,7 +122,7 @@ func (s *Service) CreateDeployment(
 		for _, ev := range appEnvVars {
 			if !validation.IsValidEnvVarKey(ev.Key) {
 				return nil, connect.NewError(connect.CodeInvalidArgument,
-					fmt.Errorf("environment variable key %q is invalid: only letters, numbers, hyphens, underscores, and dots are allowed", ev.Key))
+					fmt.Errorf("environment variable key %q is invalid: %s", ev.Key, validation.ErrMsgInvalidEnvVarKey))
 			}
 			secretsConfig.Secrets[ev.Key] = ev.Value
 		}
