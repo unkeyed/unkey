@@ -8,9 +8,7 @@ INSERT INTO sentinels (
     k8s_name,
     region_id,
     image,
-    health,
     desired_replicas,
-    available_replicas,
     cpu_millicores,
     memory_mib,
     created_at
@@ -23,9 +21,7 @@ INSERT INTO sentinels (
     sqlc.arg(k8s_name),
     sqlc.arg(region_id),
     sqlc.arg(image),
-    sqlc.arg(health),
     sqlc.arg(desired_replicas),
-    sqlc.arg(available_replicas),
     sqlc.arg(cpu_millicores),
     sqlc.arg(memory_mib),
     sqlc.arg(created_at)

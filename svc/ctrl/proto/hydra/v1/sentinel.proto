@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// SentinelService manages lifecycle operations for individual sentinels.
+// Keyed by sentinel_id. Calls to the same sentinel queue in arrival order
+// and execute serially, preventing concurrent config changes from racing.
+// Different sentinels deploy in parallel.
+service SentinelService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // Deploy updates a sentinel's configuration (image, cpu, memory, replicas)
+  // and waits for krane to report the sentinel as healthy. If the sentinel
+  // does not become healthy within the timeout, the deploy is marked as failed.
+  rpc Deploy(SentinelServiceDeployRequest) returns (SentinelServiceDeployResponse) {}
+
+  // NotifyReady is called by the control plane when krane reports a sentinel
+  // as healthy. It resolves the awakeable created by Deploy, unblocking it.
+  // This is a shared handler so it can run concurrently with a suspended Deploy.
+  rpc NotifyReady(SentinelServiceNotifyReadyRequest) returns (SentinelServiceNotifyReadyResponse) {
+    option (dev.restate.sdk.go.handler_type) = SHARED;
+  }
+}
+
+enum SentinelDeployStatus {
+  SENTINEL_DEPLOY_STATUS_UNSPECIFIED = 0;
+  SENTINEL_DEPLOY_STATUS_PROGRESSING = 1;
+  SENTINEL_DEPLOY_STATUS_READY = 2;
+  SENTINEL_DEPLOY_STATUS_FAILED = 3;
+}
+
+message SentinelServiceDeployRequest {
+  // Fields to update. Only non-zero/non-empty fields are applied.
+  string image = 1;
+  int32 cpu_millicores = 2;
+  int32 memory_mib = 3;
+  int32 desired_replicas = 4;
+}
+
+message SentinelServiceDeployResponse {
+  SentinelDeployStatus status = 1;
+}
+
+message SentinelServiceNotifyReadyRequest {}
+message SentinelServiceNotifyReadyResponse {}
+
+// SentinelRolloutService orchestrates progressive image rollouts across
+// the sentinel fleet. Uses a fixed key ("singleton") so only one rollout
+// runs at a time. Each sentinel in a wave is deployed via SentinelService.Deploy,
+// which handles per-sentinel convergence.
+service SentinelRolloutService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // Rollout starts a new progressive rollout. Returns when completed or paused
+  // (on failure in a wave). Call Resume to continue after investigating.
+  rpc Rollout(SentinelRolloutServiceRolloutRequest) returns (SentinelRolloutServiceRolloutResponse) {}
+
+  // Resume continues a paused rollout from the next wave.
+  rpc Resume(SentinelRolloutServiceResumeRequest) returns (SentinelRolloutServiceResumeResponse) {}
+
+  // Cancel stops the rollout. Successfully updated sentinels stay on the new image.
+  rpc Cancel(SentinelRolloutServiceCancelRequest) returns (SentinelRolloutServiceCancelResponse) {}
+
+  // RollbackAll reverts all successfully updated sentinels to the previous image.
+  rpc RollbackAll(SentinelRolloutServiceRollbackAllRequest) returns (SentinelRolloutServiceRollbackAllResponse) {}
+}
+
+enum SentinelRolloutState {
+  SENTINEL_ROLLOUT_STATE_UNSPECIFIED = 0;
+  SENTINEL_ROLLOUT_STATE_IDLE = 1;
+  SENTINEL_ROLLOUT_STATE_IN_PROGRESS = 2;
+  SENTINEL_ROLLOUT_STATE_PAUSED = 3;
+  SENTINEL_ROLLOUT_STATE_CANCELLED = 4;
+  SENTINEL_ROLLOUT_STATE_COMPLETED = 5;
+  SENTINEL_ROLLOUT_STATE_ROLLING_BACK = 6;
+}
+
+message SentinelRolloutServiceRolloutRequest {
+  string image = 1;
+  // Custom wave percentages. Defaults to [1, 5, 25, 50, 100].
+  repeated int32 wave_percentages = 2;
+  // Slack webhook URL for rollout notifications.
+  string slack_webhook_url = 3;
+}
+
+message SentinelRolloutServiceRolloutResponse {
+  SentinelRolloutState state = 1;
+}
+
+message SentinelRolloutServiceResumeRequest {}
+message SentinelRolloutServiceResumeResponse {
+  SentinelRolloutState state = 1;
+}
+
+message SentinelRolloutServiceCancelRequest {}
+message SentinelRolloutServiceCancelResponse {}
+
+message SentinelRolloutServiceRollbackAllRequest {}
+message SentinelRolloutServiceRollbackAllResponse {
+  int32 reverted = 1;
+}
