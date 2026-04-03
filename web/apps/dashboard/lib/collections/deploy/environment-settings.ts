@@ -23,9 +23,21 @@ const sentinelPolicySchema = z.object({
   id: z.string(),
   name: z.string(),
   enabled: z.boolean(),
-  type: z.enum(["keyauth", "ratelimit"]),
+  type: z.enum(["keyauth", "ratelimit", "jwt", "basicauth", "iprules", "openapi"]),
   keyauth: z.object({ keySpaceIds: z.array(z.string()) }).optional(),
   ratelimit: z.object({ limit: z.number(), windowMs: z.number() }).optional(),
+  jwt: z
+    .object({
+      jwksUri: z.string().optional(),
+      issuer: z.string().optional(),
+      audience: z.array(z.string()).optional(),
+    })
+    .optional(),
+  basicauth: z
+    .object({ credentials: z.array(z.object({ username: z.string(), passwordHash: z.string() })) })
+    .optional(),
+  iprules: z.object({ allowlist: z.array(z.string()), denylist: z.array(z.string()) }).optional(),
+  openapi: z.object({ specPath: z.string() }).optional(),
 });
 
 const sentinelConfigSchema: z.ZodType<SentinelConfig | undefined> = z
@@ -126,10 +138,46 @@ const DEV_DUMMY_POLICIES: SentinelConfig = {
   policies: [
     {
       id: "keyauth-1",
-      name: "API Key Authentication",
+      name: "Unkey API Key Auth",
       enabled: true,
       type: "keyauth",
       keyauth: { keySpaceIds: [] },
+    },
+    {
+      id: "keyauth-2",
+      name: "Internal Service Key Auth",
+      enabled: true,
+      type: "keyauth",
+      keyauth: { keySpaceIds: [] },
+    },
+    {
+      id: "jwt-1",
+      name: "Auth0 JWT Validation",
+      enabled: true,
+      type: "jwt",
+      jwt: {
+        jwksUri: "https://dev-example.auth0.com/.well-known/jwks.json",
+        issuer: "https://dev-example.auth0.com/",
+        audience: ["https://api.example.com"],
+      },
+    },
+    {
+      id: "jwt-2",
+      name: "Clerk Session Token",
+      enabled: false,
+      type: "jwt",
+      jwt: {
+        jwksUri: "https://clerk.example.com/.well-known/jwks.json",
+        issuer: "https://clerk.example.com",
+        audience: ["api"],
+      },
+    },
+    {
+      id: "basicauth-1",
+      name: "Admin Basic Auth",
+      enabled: false,
+      type: "basicauth",
+      basicauth: { credentials: [{ username: "admin", passwordHash: "hashed" }] },
     },
     {
       id: "ratelimit-1",
@@ -137,6 +185,41 @@ const DEV_DUMMY_POLICIES: SentinelConfig = {
       enabled: true,
       type: "ratelimit",
       ratelimit: { limit: 100, windowMs: 60_000 },
+    },
+    {
+      id: "ratelimit-2",
+      name: "Burst Protection",
+      enabled: true,
+      type: "ratelimit",
+      ratelimit: { limit: 20, windowMs: 1_000 },
+    },
+    {
+      id: "iprules-1",
+      name: "Corporate IP Allowlist",
+      enabled: true,
+      type: "iprules",
+      iprules: { allowlist: ["10.0.0.0/8", "172.16.0.0/12"], denylist: [] },
+    },
+    {
+      id: "iprules-2",
+      name: "Blocklist Known Bad Actors",
+      enabled: false,
+      type: "iprules",
+      iprules: { allowlist: [], denylist: ["185.220.101.0/24", "45.95.168.0/24"] },
+    },
+    {
+      id: "openapi-1",
+      name: "Request Schema Validation",
+      enabled: true,
+      type: "openapi",
+      openapi: { specPath: "/openapi.yaml" },
+    },
+    {
+      id: "openapi-2",
+      name: "Strict V2 Schema",
+      enabled: false,
+      type: "openapi",
+      openapi: { specPath: "/openapi.v2.yaml" },
     },
   ],
 };
@@ -167,7 +250,11 @@ function flattenSettingsResponse(
       })),
     shutdownSignal: d.shutdownSignal,
     sentinelConfig:
-      runtime?.sentinelConfig?.policies?.length ? runtime.sentinelConfig : DEV_DUMMY_POLICIES,
+      process.env.NODE_ENV === "development"
+        ? DEV_DUMMY_POLICIES
+        : runtime?.sentinelConfig?.policies?.length
+          ? runtime.sentinelConfig
+          : DEV_DUMMY_POLICIES,
     openapiSpecPath: runtime?.openapiSpecPath ?? null,
   };
 }

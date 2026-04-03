@@ -8,9 +8,13 @@ export type SentinelPolicy = {
   id: string;
   name: string;
   enabled: boolean;
-  type: "keyauth" | "ratelimit";
+  type: "keyauth" | "ratelimit" | "jwt" | "basicauth" | "iprules" | "openapi";
   keyauth?: { keySpaceIds: string[] };
   ratelimit?: { limit: number; windowMs: number };
+  jwt?: { jwksUri?: string; issuer?: string; audience?: string[] };
+  basicauth?: { credentials: { username: string; passwordHash: string }[] };
+  iprules?: { allowlist: string[]; denylist: string[] };
+  openapi?: { specPath: string };
 };
 
 export type SentinelConfig = {

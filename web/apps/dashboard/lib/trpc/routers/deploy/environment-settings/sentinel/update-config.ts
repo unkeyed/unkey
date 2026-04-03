@@ -8,9 +8,21 @@ const sentinelPolicySchema = z.object({
   id: z.string(),
   name: z.string(),
   enabled: z.boolean(),
-  type: z.enum(["keyauth", "ratelimit"]),
+  type: z.enum(["keyauth", "ratelimit", "jwt", "basicauth", "iprules", "openapi"]),
   keyauth: z.object({ keySpaceIds: z.array(z.string()) }).optional(),
   ratelimit: z.object({ limit: z.number(), windowMs: z.number() }).optional(),
+  jwt: z
+    .object({
+      jwksUri: z.string().optional(),
+      issuer: z.string().optional(),
+      audience: z.array(z.string()).optional(),
+    })
+    .optional(),
+  basicauth: z
+    .object({ credentials: z.array(z.object({ username: z.string(), passwordHash: z.string() })) })
+    .optional(),
+  iprules: z.object({ allowlist: z.array(z.string()), denylist: z.array(z.string()) }).optional(),
+  openapi: z.object({ specPath: z.string() }).optional(),
 });
 
 const sentinelConfigSchema = z.object({
