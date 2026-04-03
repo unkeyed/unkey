@@ -1,7 +1,16 @@
-import { runtimeLog } from "@unkey/clickhouse/src/runtime-logs";
 import { z } from "zod";
 
-export type RuntimeLog = z.infer<typeof runtimeLog>;
+export const dashboardRuntimeLog = z.object({
+  time: z.int(),
+  severity: z.string(),
+  message: z.string(),
+  deployment_id: z.string(),
+  region: z.string(),
+  instance_id: z.string(),
+  attributes: z.record(z.string(), z.unknown()).nullable(),
+});
+
+export type RuntimeLog = z.infer<typeof dashboardRuntimeLog>;
 
 export const runtimeLogsRequestSchema = z.object({
   projectId: z.string(),
@@ -21,14 +30,34 @@ export const runtimeLogsRequestSchema = z.object({
       ),
     })
     .nullable(),
+  region: z
+    .object({
+      filters: z.array(
+        z.object({
+          operator: z.literal("is"),
+          value: z.string(),
+        }),
+      ),
+    })
+    .nullable(),
   message: z.string().nullable(),
+  instanceId: z
+    .object({
+      filters: z.array(
+        z.object({
+          operator: z.literal("is"),
+          value: z.string(),
+        }),
+      ),
+    })
+    .nullable(),
   cursor: z.number().nullable().optional(),
 });
 
 export type RuntimeLogsRequestSchema = z.infer<typeof runtimeLogsRequestSchema>;
 
 export const runtimeLogsResponseSchema = z.object({
-  logs: z.array(runtimeLog),
+  logs: z.array(dashboardRuntimeLog),
   hasMore: z.boolean(),
   total: z.number(),
   nextCursor: z.int().optional(),

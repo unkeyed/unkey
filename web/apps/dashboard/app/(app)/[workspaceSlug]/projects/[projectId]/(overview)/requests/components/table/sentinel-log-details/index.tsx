@@ -1,9 +1,11 @@
 "use client";
 import { safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
+import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import { EMPTY_TEXT, LogDetails } from "@/components/logs/details/log-details";
 import { LogSection } from "@/components/logs/details/log-details/components/log-section";
 import { collection } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
+import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
@@ -404,7 +406,10 @@ const formatMetaInfo = (log: SentinelLogsResponse): React.ReactNode => {
       </div>
       <div className="flex items-center justify-between">
         <span className="text-gray-11">Region:</span>
-        <span className="font-mono">{log.region}</span>
+        <div className="flex items-center gap-1.5">
+          <RegionFlag flagCode={mapRegionToFlag(log.region)} size="xs" shape="circle" />
+          <span className="font-mono">{log.region}</span>
+        </div>
       </div>
       <div className="flex items-center justify-between">
         <span className="text-gray-11">Host:</span>
