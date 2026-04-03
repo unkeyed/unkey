@@ -17,9 +17,10 @@ import {
 
 type Props = {
   steps: BuildStepRow[];
+  fixedHeight?: number;
 };
 
-export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps }) => {
+export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps, fixedHeight = 500 }) => {
   const [expandedIds, setExpandedIds] = useState<Set<string | number>>(new Set());
 
   const enrichedSteps = steps.map((step) => ({
@@ -54,7 +55,7 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps }) => {
       rowClassName={(step) => getBuildStepRowClass(step)}
       expandedIds={expandedIds}
       onExpandedChange={setExpandedIds}
-      fixedHeight={500}
+      fixedHeight={fixedHeight}
       autoScrollToBottom
       isExpandable={(step) => step.has_logs}
       renderExpanded={(step) => <BuildStepLogsExpanded step={step} />}

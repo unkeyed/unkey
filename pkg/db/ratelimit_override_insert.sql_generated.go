@@ -18,7 +18,6 @@ INSERT INTO ratelimit_overrides (
     identifier,
     ` + "`" + `limit` + "`" + `,
     duration,
-    async,
     created_at_m
 )
 VALUES (
@@ -28,13 +27,11 @@ VALUES (
     ?,
     ?,
     ?,
-    false,
     ?
 )
 ON DUPLICATE KEY UPDATE
     ` + "`" + `limit` + "`" + ` = VALUES(` + "`" + `limit` + "`" + `),
     duration = VALUES(duration),
-    async = VALUES(async),
     updated_at_m = ?
 `
 
@@ -58,7 +55,6 @@ type InsertRatelimitOverrideParams struct {
 //	    identifier,
 //	    `limit`,
 //	    duration,
-//	    async,
 //	    created_at_m
 //	)
 //	VALUES (
@@ -68,13 +64,11 @@ type InsertRatelimitOverrideParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
-//	    false,
 //	    ?
 //	)
 //	ON DUPLICATE KEY UPDATE
 //	    `limit` = VALUES(`limit`),
 //	    duration = VALUES(duration),
-//	    async = VALUES(async),
 //	    updated_at_m = ?
 func (q *Queries) InsertRatelimitOverride(ctx context.Context, db DBTX, arg InsertRatelimitOverrideParams) error {
 	_, err := db.ExecContext(ctx, insertRatelimitOverride,
