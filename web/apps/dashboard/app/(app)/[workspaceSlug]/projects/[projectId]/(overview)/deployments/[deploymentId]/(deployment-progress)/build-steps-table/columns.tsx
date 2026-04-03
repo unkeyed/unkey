@@ -15,10 +15,10 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   {
     key: "expand",
     width: "25px",
-    cellClassName: "p-0 !align-top",
+    cellClassName: "p-0 align-top",
     render: (step) =>
       step.has_logs ? (
-        <div className="my-2 size-4 flex items-center justify-center w-full">
+        <div className="my-2 size-4 flex items-center justify-center w-full shrink-0">
           <CaretRight
             iconSize="sm-regular"
             className={cn(
@@ -32,7 +32,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   {
     key: "started_at",
     width: "85px",
-    cellClassName: "!align-top",
+    cellClassName: "align-top",
     render: (step) => (
       <div className="font-mono text-xs truncate max-w-75 my-2">
         <TimestampInfo
@@ -46,7 +46,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   {
     key: "status",
     width: "32px",
-    cellClassName: "!align-top",
+    cellClassName: "align-top",
     render: (step) => {
       if (step.error) {
         return (
@@ -69,31 +69,27 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
   },
   {
     key: "name",
-    width: "250px",
-    cellClassName: "!align-top",
+    width: "400px",
+    cellClassName: "align-top",
     render: (step) => (
-      <TruncatedCell
-        text={step.name}
-        threshold={50}
-        className="flex items-center gap-2 text-gray-12 truncate"
-      />
+      <TruncatedCell text={step.name} className="flex items-center gap-2 text-gray-12" />
     ),
   },
   {
     key: "error",
-    width: "auto",
-    cellClassName: "!align-top",
+    width: "400px",
+    cellClassName: "align-top",
     render: (step) => {
       if (!step.error) {
         return null;
       }
-      return <TruncatedCell text={step.error} threshold={100} maxWidth="max-w-[300px]" />;
+      return <TruncatedCell text={step.error} />;
     },
   },
   {
     key: "duration",
     width: "115px",
-    cellClassName: "!align-top",
+    cellClassName: "align-top",
     render: (step) => {
       const duration = step.completed_at - step.started_at;
       return (

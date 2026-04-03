@@ -1,9 +1,17 @@
+import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import type { Column } from "@/components/virtual-table/types";
+import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { TriangleWarning } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
 import { TruncatedCell } from "../truncated-cell";
 
-export type ContainerLogRow = { time: number; severity: string; message: string };
+export type ContainerLogRow = {
+  time: number;
+  severity: string;
+  message: string;
+  instance_id: string;
+  region: string;
+};
 
 function SeverityIcon({ severity }: { severity: string }) {
   switch (severity.toUpperCase()) {
@@ -26,9 +34,9 @@ function SeverityIcon({ severity }: { severity: string }) {
 
 export const containerLogColumns: Column<ContainerLogRow>[] = [
   {
-    key: "time",
+    key: "log",
     width: "85px",
-    cellClassName: "pl-[25px]",
+    cellClassName: "align-top pl-[25px]",
     render: (log) => (
       <div className="font-mono text-xs my-2">
         <TimestampInfo
@@ -42,19 +50,24 @@ export const containerLogColumns: Column<ContainerLogRow>[] = [
   {
     key: "severity",
     width: "32px",
+    cellClassName: "align-top",
     render: (log) => <SeverityIcon severity={log.severity} />,
+  },
+  {
+    key: "region",
+    width: "140px",
+    cellClassName: "align-top",
+    render: (log) => (
+      <div className="my-2 flex items-center gap-1.5">
+        <RegionFlag flagCode={mapRegionToFlag(log.region)} size="xs" shape="circle" />
+        <span className="font-mono text-xs text-gray-11">{log.region}</span>
+      </div>
+    ),
   },
   {
     key: "message",
     width: "auto",
-    render: (log) => (
-      <TruncatedCell
-        text={log.message}
-        threshold={120}
-        maxWidth="max-w-[750px]"
-        className="text-gray-12"
-        side="top"
-      />
-    ),
+    cellClassName: "align-top",
+    render: (log) => <TruncatedCell text={log.message} className="text-gray-12" />,
   },
 ];
