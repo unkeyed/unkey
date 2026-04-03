@@ -1,6 +1,6 @@
 ---
 title: "Endpoint-Specific Rate Limits"
-description: "Apply different rate limits to different API endpoints"
+description: "Configure different rate limits per API endpoint using Unkey, with path-based matching for expensive routes like AI generation and data exports."
 ---
 
 Not all endpoints are equal. Your `/health` endpoint can handle thousands of requests, but your `/ai/generate` endpoint calls an expensive LLM. This recipe shows how to apply different rate limits per endpoint.
