@@ -59,8 +59,14 @@ Click any variable row to open the inline editor. You can update the key, value,
   <img className="hidden dark:block" src="/platform/variables/edit-variable-dark.png" alt="Edit variable inline editor" />
 </Frame>
 
+## Naming rules
+
+Variable names must only contain **letters** (`a-z`, `A-Z`), **numbers** (`0-9`), **hyphens** (`-`), **underscores** (`_`), and **dots** (`.`). Names that include spaces or other special characters are rejected.
+
+Unkey enforces this at every level — the dashboard form, the deployment pipeline, and the runtime — so invalid names are caught before they can cause issues.
+
 <Note>
-  Unkey validates variable names for uniqueness within the same environment. If a variable with the same key already exists in the target environment, the form shows an error.
+  Unkey also validates variable names for uniqueness within the same environment. If a variable with the same key already exists in the target environment, the form shows an error.
 </Note>
 
 ## Sensitive variables
