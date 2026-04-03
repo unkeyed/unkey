@@ -9,6 +9,7 @@ INSERT INTO app_runtime_settings (
     command,
     healthcheck,
     shutdown_signal,
+    upstream_protocol,
     sentinel_config,
     openapi_spec_path,
     created_at,
@@ -23,6 +24,7 @@ INSERT INTO app_runtime_settings (
     sqlc.arg(command),
     sqlc.arg(healthcheck),
     sqlc.arg(shutdown_signal),
+    sqlc.arg(upstream_protocol),
     sqlc.arg(sentinel_config),
     sqlc.arg(openapi_spec_path),
     sqlc.arg(created_at),
@@ -35,6 +37,7 @@ ON DUPLICATE KEY UPDATE
     command = VALUES(command),
     healthcheck = VALUES(healthcheck),
     shutdown_signal = VALUES(shutdown_signal),
+    upstream_protocol = VALUES(upstream_protocol),
     sentinel_config = VALUES(sentinel_config),
     openapi_spec_path = VALUES(openapi_spec_path),
     updated_at = VALUES(updated_at);

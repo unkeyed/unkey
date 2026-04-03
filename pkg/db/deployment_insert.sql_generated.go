@@ -34,6 +34,7 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     memory_mib,
     port,
     shutdown_signal,
+    upstream_protocol,
     healthcheck,
     pr_number,
     fork_repository_full_name,
@@ -65,36 +66,38 @@ VALUES (
     ?,
     ?,
     ?,
+    ?,
     ?
 )
 `
 
 type InsertDeploymentParams struct {
-	ID                            string                    `db:"id"`
-	K8sName                       string                    `db:"k8s_name"`
-	WorkspaceID                   string                    `db:"workspace_id"`
-	ProjectID                     string                    `db:"project_id"`
-	AppID                         string                    `db:"app_id"`
-	EnvironmentID                 string                    `db:"environment_id"`
-	GitCommitSha                  sql.NullString            `db:"git_commit_sha"`
-	GitBranch                     sql.NullString            `db:"git_branch"`
-	SentinelConfig                []byte                    `db:"sentinel_config"`
-	GitCommitMessage              sql.NullString            `db:"git_commit_message"`
-	GitCommitAuthorHandle         sql.NullString            `db:"git_commit_author_handle"`
-	GitCommitAuthorAvatarUrl      sql.NullString            `db:"git_commit_author_avatar_url"`
-	GitCommitTimestamp            sql.NullInt64             `db:"git_commit_timestamp"`
-	EncryptedEnvironmentVariables []byte                    `db:"encrypted_environment_variables"`
-	Command                       dbtype.StringSlice        `db:"command"`
-	Status                        DeploymentsStatus         `db:"status"`
-	CpuMillicores                 int32                     `db:"cpu_millicores"`
-	MemoryMib                     int32                     `db:"memory_mib"`
-	Port                          int32                     `db:"port"`
-	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
-	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
-	PrNumber                      sql.NullInt64             `db:"pr_number"`
-	ForkRepositoryFullName        sql.NullString            `db:"fork_repository_full_name"`
-	CreatedAt                     int64                     `db:"created_at"`
-	UpdatedAt                     sql.NullInt64             `db:"updated_at"`
+	ID                            string                      `db:"id"`
+	K8sName                       string                      `db:"k8s_name"`
+	WorkspaceID                   string                      `db:"workspace_id"`
+	ProjectID                     string                      `db:"project_id"`
+	AppID                         string                      `db:"app_id"`
+	EnvironmentID                 string                      `db:"environment_id"`
+	GitCommitSha                  sql.NullString              `db:"git_commit_sha"`
+	GitBranch                     sql.NullString              `db:"git_branch"`
+	SentinelConfig                []byte                      `db:"sentinel_config"`
+	GitCommitMessage              sql.NullString              `db:"git_commit_message"`
+	GitCommitAuthorHandle         sql.NullString              `db:"git_commit_author_handle"`
+	GitCommitAuthorAvatarUrl      sql.NullString              `db:"git_commit_author_avatar_url"`
+	GitCommitTimestamp            sql.NullInt64               `db:"git_commit_timestamp"`
+	EncryptedEnvironmentVariables []byte                      `db:"encrypted_environment_variables"`
+	Command                       dbtype.StringSlice          `db:"command"`
+	Status                        DeploymentsStatus           `db:"status"`
+	CpuMillicores                 int32                       `db:"cpu_millicores"`
+	MemoryMib                     int32                       `db:"memory_mib"`
+	Port                          int32                       `db:"port"`
+	ShutdownSignal                DeploymentsShutdownSignal   `db:"shutdown_signal"`
+	UpstreamProtocol              DeploymentsUpstreamProtocol `db:"upstream_protocol"`
+	Healthcheck                   dbtype.NullHealthcheck      `db:"healthcheck"`
+	PrNumber                      sql.NullInt64               `db:"pr_number"`
+	ForkRepositoryFullName        sql.NullString              `db:"fork_repository_full_name"`
+	CreatedAt                     int64                       `db:"created_at"`
+	UpdatedAt                     sql.NullInt64               `db:"updated_at"`
 }
 
 // InsertDeployment
@@ -120,6 +123,7 @@ type InsertDeploymentParams struct {
 //	    memory_mib,
 //	    port,
 //	    shutdown_signal,
+//	    upstream_protocol,
 //	    healthcheck,
 //	    pr_number,
 //	    fork_repository_full_name,
@@ -127,6 +131,7 @@ type InsertDeploymentParams struct {
 //	    updated_at
 //	)
 //	VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -175,6 +180,7 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.MemoryMib,
 		arg.Port,
 		arg.ShutdownSignal,
+		arg.UpstreamProtocol,
 		arg.Healthcheck,
 		arg.PrNumber,
 		arg.ForkRepositoryFullName,
