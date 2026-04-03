@@ -4,7 +4,21 @@
     {
       "engine": "mysql",
       "queries": "./queries",
-      "schema": "../../../../pkg/mysql/schema.sql",
+      "schema": [
+        "../../../../pkg/mysql/schema/keys.sql",
+        "../../../../pkg/mysql/schema/apis.sql",
+        "../../../../pkg/mysql/schema/key_auth.sql",
+        "../../../../pkg/mysql/schema/workspaces.sql",
+        "../../../../pkg/mysql/schema/identities.sql",
+        "../../../../pkg/mysql/schema/keys_roles.sql",
+        "../../../../pkg/mysql/schema/roles.sql",
+        "../../../../pkg/mysql/schema/keys_permissions.sql",
+        "../../../../pkg/mysql/schema/permissions.sql",
+        "../../../../pkg/mysql/schema/roles_permissions.sql",
+        "../../../../pkg/mysql/schema/ratelimits.sql",
+        "../../../../pkg/mysql/schema/key_migrations.sql",
+        "../../../../pkg/mysql/schema/quota.sql"
+      ],
       "gen": {
         "go": {
           "package": "db",
