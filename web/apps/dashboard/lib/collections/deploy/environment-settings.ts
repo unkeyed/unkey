@@ -321,6 +321,7 @@ async function dispatchSettingsMutations(
 const saveStore = {
   pendingSaves: 0,
   savedCount: 0,
+  dismissedAtCount: 0,
   listeners: new Set<() => void>(),
   notify() {
     for (const cb of this.listeners) {
@@ -332,6 +333,10 @@ const saveStore = {
     return () => {
       this.listeners.delete(cb);
     };
+  },
+  dismiss() {
+    this.dismissedAtCount = this.savedCount;
+    this.notify();
   },
 };
 
@@ -360,10 +365,15 @@ export function useSettingsIsSaving(): boolean {
   );
 }
 
-/** Returns true once at least one settings save has completed in this session. */
-export function useSettingsHasSaved(): boolean {
+/** Returns true when there are saves the user hasn't dismissed yet. Survives navigation. */
+export function useSettingsBannerVisible(): boolean {
   return useSyncExternalStore(
     (cb) => saveStore.subscribe(cb),
-    () => saveStore.savedCount > 0,
+    () => saveStore.savedCount > saveStore.dismissedAtCount,
   );
+}
+
+/** Dismisses the pending-redeploy banner until a new save occurs. */
+export function dismissSettingsBanner(): void {
+  saveStore.dismiss();
 }
