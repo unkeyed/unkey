@@ -7,7 +7,9 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-Custom domains let you serve your app from your own domain name (for example, `api.acme.com`) instead of a `*.unkey.app` subdomain. Unkey handles TLS certificate provisioning and renewal automatically.
+Custom domains let you serve your app from your own domain name instead of a `*.unkey.app` subdomain. You can use either a subdomain (for example, `api.acme.com`) or an apex domain (for example, `acme.com`). Unkey handles TLS certificate provisioning and renewal automatically.
+
+Unkey automatically detects whether you enter an apex or subdomain and chooses the appropriate verification method.
 
 ## Add a custom domain
 
@@ -20,7 +22,7 @@ Navigate to your project in the dashboard and click **Settings**. Scroll to the 
 
 <Step title="Enter your domain">
 
-Select the environment and enter the fully qualified domain name you want to use (for example, `api.acme.com`).
+Select the environment and enter the fully qualified domain name you want to use — either a subdomain like `api.acme.com` or an apex domain like `acme.com`.
 
 <Frame>
   <img src="/networking/custom-domain-add.png" alt="Custom domains settings showing environment and domain input" />
@@ -30,15 +32,23 @@ Select the environment and enter the fully qualified domain name you want to use
 
 <Step title="Add the DNS records">
 
-Unkey generates two DNS records to add at your DNS provider:
+Unkey generates DNS records to add at your DNS provider. The records differ depending on whether you added a subdomain or an apex domain.
 
 <Frame>
   <img src="/networking/custom-domain-verify.png" alt="DNS records to add for domain verification showing TXT and CNAME entries" />
 </Frame>
 
-A **TXT** record proves ownership of the domain. A **CNAME** record routes traffic to your deployment. Each domain receives a unique CNAME target.
+**For subdomains** (e.g., `api.acme.com`):
 
-Add both records at your DNS provider. Unkey checks for them automatically and verifies within minutes once the records propagate.
+- A **TXT** record proves ownership of the domain.
+- A **CNAME** record routes traffic to your deployment. Each domain receives a unique CNAME target.
+
+**For apex domains** (e.g., `acme.com`):
+
+- A **TXT** record proves ownership of the domain.
+- Traffic routing uses a **CNAME flattening** or **ALIAS** record (depending on your DNS provider) instead of a standard CNAME, since the DNS specification does not allow CNAME records at the zone apex.
+
+Add the records at your DNS provider. Unkey checks for them automatically and verifies within minutes once the records propagate.
 
 </Step>
 </Steps>
@@ -58,6 +68,8 @@ Certificates renew before expiration without any action from you.
 </Note>
 
 ## DNS provider examples
+
+### Subdomain setup
 
 <Tabs>
 <Tab title="Cloudflare">
@@ -86,6 +98,43 @@ Certificates renew before expiration without any action from you.
 
 </Tabs>
 
+### Apex domain setup
+
+Apex domains cannot use standard CNAME records. Use CNAME flattening or ALIAS records instead, depending on your provider.
+
+<Tabs>
+<Tab title="Cloudflare">
+Cloudflare supports CNAME flattening at the apex automatically.
+
+1. Open your domain in the Cloudflare dashboard.
+2. Click **DNS** in the sidebar.
+3. Click **Add record**.
+4. Add the TXT record with name `_unkey` and the verification value.
+5. Add a CNAME record with name `@` and the target from your Unkey dashboard. Cloudflare automatically flattens this to an A record at the apex.
+6. Set the CNAME proxy status to **DNS only** (gray cloud) so Unkey can terminate TLS directly.
+</Tab>
+
+<Tab title="Route53">
+Route53 supports ALIAS records at the apex.
+
+1. Open your hosted zone in the Route53 console.
+2. Click **Create record**.
+3. Add the TXT record with name `_unkey` and the verification value wrapped in quotes.
+4. Add an ALIAS record with name left blank (apex) and the target from your Unkey dashboard.
+</Tab>
+
+<Tab title="Vercel">
+Vercel supports CNAME flattening at the apex.
+
+1. Open your domain in the Vercel dashboard under **Settings** > **Domains**.
+2. Click **Manage** next to your domain.
+3. Navigate to the **DNS Records** tab.
+4. Add the TXT record with name `_unkey` and the verification value.
+5. Add a CNAME record with name `@` and the target from your Unkey dashboard.
+</Tab>
+
+</Tabs>
+
 ## Troubleshooting
 
 <AccordionGroup>
@@ -103,5 +152,15 @@ Certificate provisioning starts automatically after both DNS records are verifie
 
 <Accordion title="Duplicate domain error">
 A domain can only be added once per workspace. If you see a duplicate domain error, check whether the domain already exists in your workspace — possibly in a different project or environment. Remove the existing entry before adding it again.
+</Accordion>
+
+<Accordion title="Apex domain not routing traffic">
+Verify that your DNS provider supports CNAME flattening or ALIAS records at the zone apex. Standard CNAME records at the apex are not allowed by the DNS specification and will either be rejected by your provider or cause unexpected behavior. Check your provider's documentation for apex domain support.
+
+```bash
+dig A acme.com
+```
+
+The response should resolve to an IP address pointing to Unkey's infrastructure.
 </Accordion>
 </AccordionGroup>
