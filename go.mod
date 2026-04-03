@@ -64,10 +64,10 @@ require (
 	github.com/pb33f/libopenapi v0.31.2
 	github.com/pb33f/libopenapi-validator v0.10.2
 	github.com/prometheus/client_golang v1.23.2
+	github.com/railwayapp/domainconnect-go v1.0.4
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/restatedev/sdk-go v0.23.0
 	github.com/shirou/gopsutil/v4 v4.25.6
-	github.com/spiffe/go-spiffe/v2 v2.6.0
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
 	github.com/stretchr/testify v1.11.1
 	github.com/unkeyed/sdks/api/go/v2 v2.6.1
