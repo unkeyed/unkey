@@ -29,6 +29,6 @@ export async function getAccessToken(): Promise<string | null> {
   if (!result.isValid || !result.accessToken) {
     return null;
   }
-
+  console.log(result);
   return result.accessToken;
 }

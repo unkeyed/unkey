@@ -3,14 +3,14 @@ package jwks
 import (
 	"context"
 	"crypto/rsa"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"sync"
 	"time"
-
-	jose "github.com/go-jose/go-jose/v4"
 )
 
 // KeySet resolves public keys by key ID for JWT verification.
@@ -63,6 +63,9 @@ func NewRemoteKeySet(jwksURL string, opts ...Option) *RemoteKeySet {
 		client:          http.DefaultClient,
 		refreshCooldown: time.Minute,
 		keys:            make(map[string]*rsa.PublicKey),
+		mu:              sync.RWMutex{},
+		lastRefresh:     time.Time{},
+		fetched:         false,
 	}
 	for _, opt := range opts {
 		opt(r)
@@ -118,7 +121,7 @@ func (r *RemoteKeySet) refresh(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("fetching JWKS: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("JWKS endpoint returned status %d", resp.StatusCode)
@@ -129,23 +132,58 @@ func (r *RemoteKeySet) refresh(ctx context.Context) error {
 		return fmt.Errorf("reading JWKS response: %w", err)
 	}
 
-	var keySet jose.JSONWebKeySet
-	if err := json.Unmarshal(body, &keySet); err != nil {
+	var raw rawJWKS
+	if err := json.Unmarshal(body, &raw); err != nil {
 		return fmt.Errorf("parsing JWKS: %w", err)
 	}
 
-	keys := make(map[string]*rsa.PublicKey, len(keySet.Keys))
-	for _, jwk := range keySet.Keys {
-		rsaKey, ok := jwk.Key.(*rsa.PublicKey)
-		if !ok {
-			// Skip non-RSA keys (e.g. EC, Ed25519).
+	keys := make(map[string]*rsa.PublicKey, len(raw.Keys))
+	for _, jwk := range raw.Keys {
+		if jwk.Kty != "RSA" || jwk.Kid == "" {
 			continue
 		}
-		keys[jwk.KeyID] = rsaKey
+		pub, err := jwk.rsaPublicKey()
+		if err != nil {
+			continue
+		}
+		keys[jwk.Kid] = pub
 	}
 
 	r.keys = keys
 	r.lastRefresh = time.Now()
 	r.fetched = true
 	return nil
+}
+
+// rawJWKS is a minimal JWKS representation that only extracts the fields we
+// need. This avoids go-jose's strict x5c certificate parsing, which rejects
+// certificates with negative serial numbers, this happened with WorkOS... So Yeet?.
+type rawJWKS struct {
+	Keys []rawJWK `json:"keys"`
+}
+
+type rawJWK struct {
+	Kty string `json:"kty"`
+	Kid string `json:"kid"`
+	N   string `json:"n"`
+	E   string `json:"e"`
+}
+
+func (k *rawJWK) rsaPublicKey() (*rsa.PublicKey, error) {
+	nBytes, err := base64.RawURLEncoding.DecodeString(k.N)
+	if err != nil {
+		return nil, fmt.Errorf("decoding modulus: %w", err)
+	}
+	eBytes, err := base64.RawURLEncoding.DecodeString(k.E)
+	if err != nil {
+		return nil, fmt.Errorf("decoding exponent: %w", err)
+	}
+
+	n := new(big.Int).SetBytes(nBytes)
+	e := new(big.Int).SetBytes(eBytes)
+
+	return &rsa.PublicKey{
+		N: n,
+		E: int(e.Int64()),
+	}, nil
 }

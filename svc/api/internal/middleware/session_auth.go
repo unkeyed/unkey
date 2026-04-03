@@ -2,19 +2,16 @@ package middleware
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
-	"strings"
 
 	"github.com/unkeyed/unkey/internal/services/sessionauth"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// WithSessionAuth returns a middleware that attempts JWT session authentication.
-// If the Bearer token is a JWT and verifies successfully, it sets WorkspaceID
-// and marks the session as session-authenticated. If the token is not a JWT or
-// verification fails, the middleware does nothing and lets the request continue
-// so the handler can try root key authentication instead.
+// WithSessionAuth returns a middleware that attempts session authentication.
+// If the service can handle the token and authentication succeeds, it sets
+// WorkspaceID and marks the session as session-authenticated. Otherwise the
+// middleware does nothing and lets the handler try root key auth instead.
 //
 // This allows every route to accept both root keys and session tokens without
 // any handler changes.
@@ -31,15 +28,18 @@ func WithSessionAuth(svc sessionauth.Service) zen.Middleware {
 				return next(ctx, s)
 			}
 
-			if !looksLikeJWT(token) {
-				// Not a JWT — continue to handler for root key auth.
+			if !svc.CanHandle(token) {
+				// Service doesn't recognize this token format — continue
+				// to handler for root key auth.
 				return next(ctx, s)
 			}
 
 			result, err := svc.Authenticate(ctx, token)
 			if err != nil {
-				// JWT verification failed — continue to handler for root key auth.
-				// This covers cases where a root key happens to look like a JWT.
+				// Authentication failed — continue to handler for root key auth.
+				logger.Error("session auth failed, falling back to root key",
+					"error", err.Error(),
+				)
 				return next(ctx, s)
 			}
 
@@ -48,28 +48,4 @@ func WithSessionAuth(svc sessionauth.Service) zen.Middleware {
 			return next(ctx, s)
 		}
 	}
-}
-
-// looksLikeJWT checks if a token has the structure of a JWT (three
-// base64url-encoded parts where the header contains an "alg" field).
-// This is a fast heuristic to avoid sending root keys to the JWKS verifier.
-func looksLikeJWT(token string) bool {
-	parts := strings.SplitN(token, ".", 4)
-	if len(parts) != 3 {
-		return false
-	}
-
-	headerJSON, err := base64.RawURLEncoding.DecodeString(parts[0])
-	if err != nil {
-		return false
-	}
-
-	var header struct {
-		Alg string `json:"alg"`
-	}
-	if err := json.Unmarshal(headerJSON, &header); err != nil {
-		return false
-	}
-
-	return header.Alg != ""
 }

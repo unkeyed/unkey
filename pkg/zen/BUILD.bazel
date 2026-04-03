@@ -9,6 +9,7 @@ go_library(
         "handler.go",
         "instance.go",
         "middleware.go",
+        "middleware_cors.go",
         "middleware_errors.go",
         "middleware_logger.go",
         "middleware_metrics.go",

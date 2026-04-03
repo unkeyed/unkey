@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "jwks",
+    srcs = [
+        "keyset.go",
+        "verifier.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/jwks",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/clock",
+        "//pkg/jwt",
+    ],
+)
+
+go_test(
+    name = "jwks_test",
+    size = "small",
+    srcs = [
+        "keyset_test.go",
+        "verifier_test.go",
+    ],
+    embed = [":jwks"],
+    deps = [
+        "//pkg/jwt",
+        "@com_github_go_jose_go_jose_v4//:go-jose",
+        "@com_github_stretchr_testify//require",
+    ],
+)

@@ -342,6 +342,7 @@ go_library(
         "traced_tx.go",
         "tx.go",
         "workspace_find_by_id.sql_generated.go",
+        "workspace_find_by_org_id.sql_generated.go",
         "workspace_hard_delete.sql_generated.go",
         "workspace_insert.sql_generated.go",
         "workspace_list.sql_generated.go",

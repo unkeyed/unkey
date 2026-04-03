@@ -2,7 +2,10 @@ package sessionauth
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/jwks"
@@ -39,6 +42,26 @@ func NewJWKS(cfg JWKSConfig) Service {
 		verifier: jwks.NewVerifier[SessionClaims](cfg.KeySet, opts...),
 		db:       cfg.DB,
 	}
+}
+
+// CanHandle returns true if the token looks like a JWT (three dot-separated
+// base64url parts with a JSON header containing an "alg" field).
+func (s *jwksService) CanHandle(token string) bool {
+	parts := strings.SplitN(token, ".", 4)
+	if len(parts) != 3 {
+		return false
+	}
+	headerJSON, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return false
+	}
+	var header struct {
+		Alg string `json:"alg"`
+	}
+	if err := json.Unmarshal(headerJSON, &header); err != nil {
+		return false
+	}
+	return header.Alg != ""
 }
 
 func (s *jwksService) Authenticate(ctx context.Context, token string) (*SessionResult, error) {

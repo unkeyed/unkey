@@ -144,6 +144,11 @@ type SessionAuthConfig struct {
 	// LocalWorkspaceID is the workspace ID returned for all requests in local mode.
 	// Defaults to "ws_local_default" if empty. Only used when Provider is "local".
 	LocalWorkspaceID string `toml:"local_workspace_id"`
+
+	// AllowedOrigins is the list of origins permitted for CORS requests.
+	// Required when the dashboard calls the API directly from the browser.
+	// Example: ["http://localhost:3000", "https://app.unkey.com"]
+	AllowedOrigins []string `toml:"allowed_origins"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through

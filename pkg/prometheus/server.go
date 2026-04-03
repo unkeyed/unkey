@@ -70,6 +70,7 @@ func New() (*zen.Server, error) {
 		EnableH2C:          false,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
+		AllowedOrigins:     nil,
 	})
 	if err != nil {
 		return nil, err

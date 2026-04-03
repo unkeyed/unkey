@@ -18,6 +18,10 @@ func NewLocal(workspaceID string) Service {
 	return &localService{workspaceID: workspaceID}
 }
 
+func (s *localService) CanHandle(_ string) bool {
+	return true
+}
+
 func (s *localService) Authenticate(_ context.Context, _ string) (*SessionResult, error) {
 	return &SessionResult{
 		WorkspaceID: s.workspaceID,

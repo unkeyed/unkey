@@ -16,6 +16,7 @@ go_library(
         "//internal/services/caches",
         "//internal/services/keys",
         "//internal/services/ratelimit",
+        "//internal/services/sessionauth",
         "//internal/services/usagelimiter",
         "//pkg/batch",
         "//pkg/clickhouse",

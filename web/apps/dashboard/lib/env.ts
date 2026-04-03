@@ -31,7 +31,7 @@ export const env = () =>
       CTRL_URL: z.url().optional(),
       CTRL_API_KEY: z.string().optional(),
 
-      UNKEY_API_URL: z.string().optional(),
+      NEXT_PUBLIC_UNKEY_API_URL: z.string().optional(),
 
       GITHUB_KEYS_URI: z.string().optional(),
 

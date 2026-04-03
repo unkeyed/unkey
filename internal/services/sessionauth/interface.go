@@ -36,6 +36,11 @@ type SessionResult struct {
 
 // Service authenticates session tokens (JWTs) and resolves them to workspace context.
 type Service interface {
+	// CanHandle reports whether this service should attempt to authenticate the
+	// given token. JWKS implementations check if the token looks like a JWT;
+	// local implementations accept any token.
+	CanHandle(token string) bool
+
 	// Authenticate validates the given token and returns session information.
 	// The token is expected to be a JWT access token (without the "Bearer " prefix).
 	Authenticate(ctx context.Context, token string) (*SessionResult, error)

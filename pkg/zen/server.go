@@ -65,6 +65,11 @@ type Config struct {
 	// If 0, defaults to 20 seconds.
 	// For proxy services, this should be longer than any downstream timeout.
 	WriteTimeout time.Duration
+
+	// AllowedOrigins configures CORS for browser-based API access.
+	// When non-empty, the server handles OPTIONS preflight requests and adds
+	// CORS headers for requests from these origins.
+	AllowedOrigins []string
 }
 
 // New creates a new server with the provided configuration.
@@ -104,12 +109,18 @@ func New(config Config) (*Server, error) {
 		writeTimeout = 0
 	}
 
-	// Wrap handler with h2c if enabled for HTTP/2 cleartext support
+	// Wrap handler with CORS if configured — must be outermost to catch
+	// OPTIONS preflight requests before the mux returns 405.
 	var handler http.Handler = mux
+	if len(config.AllowedOrigins) > 0 {
+		handler = newCORSHandler(handler, config.AllowedOrigins)
+	}
+
+	// Wrap handler with h2c if enabled for HTTP/2 cleartext support
 	if config.EnableH2C {
 		//nolint:exhaustruct
 		h2s := &http2.Server{}
-		handler = h2c.NewHandler(mux, h2s)
+		handler = h2c.NewHandler(handler, h2s)
 	}
 
 	srv := &http.Server{
@@ -151,6 +162,7 @@ func New(config Config) (*Server, error) {
 					WorkspaceID:            "",
 					requestID:              "",
 					internalError:          "",
+					sessionAuthUserID:      "",
 					w:                      nil,
 					r:                      nil,
 					requestBody:            []byte{},

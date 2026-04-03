@@ -175,6 +175,11 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Caches will be created after invalidation consumer is set up
+	var allowedOrigins []string
+	if cfg.SessionAuth != nil {
+		allowedOrigins = cfg.SessionAuth.AllowedOrigins
+	}
+
 	srv, err := zen.New(zen.Config{
 		Flags: &zen.Flags{
 			TestMode: cfg.TestMode,
@@ -184,6 +189,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MaxRequestBodySize: cfg.MaxRequestBodySize,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
+		AllowedOrigins:     allowedOrigins,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
@@ -359,9 +365,13 @@ func Run(ctx context.Context, cfg Config) error {
 				"issuer", cfg.SessionAuth.Issuer,
 			)
 		case "local":
-			sessionAuthSvc = sessionauth.NewLocal(cfg.SessionAuth.LocalWorkspaceID)
+			localWorkspaceID := cfg.SessionAuth.LocalWorkspaceID
+			if localWorkspaceID == "" {
+				localWorkspaceID = "ws_local_default"
+			}
+			sessionAuthSvc = sessionauth.NewLocal(localWorkspaceID)
 			logger.Info("Session auth initialized with local provider",
-				"workspace_id", cfg.SessionAuth.LocalWorkspaceID,
+				"workspace_id", localWorkspaceID,
 			)
 		default:
 			return fmt.Errorf("unknown session auth provider: %q", cfg.SessionAuth.Provider)

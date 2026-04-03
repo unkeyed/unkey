@@ -2,8 +2,8 @@
 
 import { revalidate } from "@/app/actions";
 import { NavbarActionButton } from "@/components/navigation/action-button";
-import { getAccessToken } from "@/lib/auth/access-token";
 import { createApi } from "@/lib/api-client";
+import { getAccessToken } from "@/lib/auth/access-token";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@unkey/icons";
 import { Button, FormInput, toast } from "@unkey/ui";
@@ -60,7 +60,7 @@ export const CreateApiButton = ({
       const result = await createApi(accessToken, values.name);
 
       if (!result.success) {
-        toast.error(result.error.error.detail);
+        toast.error(result.error?.error?.detail ?? "Failed to create API");
         return;
       }
 

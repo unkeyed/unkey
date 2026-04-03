@@ -21,3 +21,9 @@ token = "your-local-dev-key"
 [pprof]
 username = "admin"
 password = "password"
+
+[session_auth]
+provider = "jwks"
+jwks_url = "https://api.workos.com/sso/jwks/client_01HNZZZH591NKH5C8VJRAN8NCY"
+issuer = "https://api.workos.com"
+allowed_origins = ["http://localhost:3000"]

@@ -37,8 +37,9 @@ func serveJWKS(t *testing.T, keys map[string]*rsa.PublicKey) *httptest.Server {
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		err := json.NewEncoder(w).Encode(keySet)
-		require.NoError(t, err)
+		if err := json.NewEncoder(w).Encode(keySet); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	}))
 	t.Cleanup(srv.Close)
 	return srv
@@ -97,8 +98,9 @@ func TestRemoteKeySet_RefreshCooldown(t *testing.T) {
 			}},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		err := json.NewEncoder(w).Encode(keySet)
-		require.NoError(t, err)
+		if err := json.NewEncoder(w).Encode(keySet); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	}))
 	t.Cleanup(srv.Close)
 

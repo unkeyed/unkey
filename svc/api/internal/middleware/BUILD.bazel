@@ -2,10 +2,14 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "middleware",
-    srcs = ["errors.go"],
+    srcs = [
+        "errors.go",
+        "session_auth.go",
+    ],
     importpath = "github.com/unkeyed/unkey/svc/api/internal/middleware",
     visibility = ["//svc/api:__subpackages__"],
     deps = [
+        "//internal/services/sessionauth",
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/logger",

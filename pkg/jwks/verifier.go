@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -59,7 +60,9 @@ func WithClock(clk clock.Clock) VerifierOption {
 // NewVerifier creates a Verifier that resolves signing keys from the given KeySet.
 func NewVerifier[T any](keySet KeySet, opts ...VerifierOption) *Verifier[T] {
 	cfg := verifierConfig{
-		clock: clock.New(),
+		clock:    clock.New(),
+		issuer:   "",
+		audience: "",
 	}
 	for _, opt := range opts {
 		opt(&cfg)
@@ -172,13 +175,7 @@ func (v *Verifier[T]) validateClaims(c jwt.RegisteredClaims, now time.Time) erro
 		return jwt.ErrInvalidIssuer
 	}
 	if v.audience != "" {
-		found := false
-		for _, aud := range c.Audience {
-			if aud == v.audience {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(c.Audience, v.audience)
 		if !found {
 			return jwt.ErrInvalidAudience
 		}

@@ -262,6 +262,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		region:                s.region,
 		message:               "",
 		isRootKey:             key.ForWorkspaceID.Valid,
+		isSessionAuth:         false,
 		startTime:             startTime,
 		spentCredits:          0,
 

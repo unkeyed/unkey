@@ -22,6 +22,7 @@ func New(cfg *config.PprofConfig, prefix string) (*zen.Server, error) {
 		MaxRequestBodySize: 0,
 		ReadTimeout:        -1,
 		WriteTimeout:       -1,
+		AllowedOrigins:     nil,
 	})
 	if err != nil {
 		return nil, err
