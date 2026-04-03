@@ -19,8 +19,7 @@ export const updateIdentityRatelimit = workspaceProcedure
   .mutation(async ({ input, ctx }) => {
     const identity = await db.query.identities
       .findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.identityId)),
+        where: { workspaceId: ctx.workspace.id, id: input.identityId },
       })
       .catch((_err) => {
         throw new TRPCError({

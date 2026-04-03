@@ -18,12 +18,11 @@ export const createOverride = workspaceProcedure
   .mutation(async ({ input, ctx }) => {
     const namespace = await db.query.ratelimitNamespaces
       .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(
-            eq(table.workspaceId, ctx.workspace.id),
-            eq(table.id, input.namespaceId),
-            isNull(table.deletedAtM),
-          ),
+        where: {
+          workspaceId: ctx.workspace.id,
+          id: input.namespaceId,
+          deletedAtM: { isNull: true },
+        },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -44,8 +43,7 @@ export const createOverride = workspaceProcedure
     await db
       .transaction(async (tx) => {
         const existing = await tx.query.ratelimitOverrides.findFirst({
-          where: (table, { and, eq }) =>
-            and(eq(table.namespaceId, namespace.id), eq(table.identifier, input.identifier)),
+          where: { namespaceId: namespace.id, identifier: input.identifier },
         });
 
         if (existing) {

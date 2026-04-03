@@ -14,8 +14,7 @@ export const deletePermission = workspaceProcedure
     await db
       .transaction(async (tx) => {
         const permission = await tx.query.permissions.findFirst({
-          where: (table, { and, eq }) =>
-            and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.permissionId)),
+          where: { workspaceId: ctx.workspace.id, id: input.permissionId },
         });
 
         if (!permission) {

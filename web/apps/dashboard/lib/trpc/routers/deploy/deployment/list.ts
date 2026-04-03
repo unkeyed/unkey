@@ -9,8 +9,7 @@ export const listDeployments = workspaceProcedure
   .query(async ({ ctx, input }) => {
     try {
       const deployments = await db.query.deployments.findMany({
-        where: (table, { eq, and }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), eq(table.projectId, input.projectId)),
+        where: { workspaceId: ctx.workspace.id, projectId: input.projectId },
         columns: {
           id: true,
           projectId: true,
@@ -49,7 +48,7 @@ export const listDeployments = workspaceProcedure
             },
           },
         },
-        orderBy: (table, { desc }) => desc(table.createdAt),
+        orderBy: { createdAt: "desc" },
         limit: 500,
       });
 

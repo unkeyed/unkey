@@ -26,12 +26,7 @@ export const updateRootKeyPermissions = workspaceProcedure
     // Verify the key exists and belongs to the workspace
     const key = await db.query.keys
       .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(
-            eq(table.id, input.keyId),
-            eq(table.forWorkspaceId, ctx.workspace.id),
-            isNull(table.deletedAtM),
-          ),
+        where: { id: input.keyId, forWorkspaceId: ctx.workspace.id, deletedAtM: { isNull: true } },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -55,7 +50,7 @@ export const updateRootKeyPermissions = workspaceProcedure
         // Get current permissions for audit logging
         const currentPermissions = await tx.query.keysPermissions
           .findMany({
-            where: (table, { eq }) => eq(table.keyId, input.keyId),
+            where: { keyId: input.keyId },
             with: {
               permission: true,
             },

@@ -21,7 +21,7 @@ export const db = drizzle(
     },
   }),
   {
-    schema,
+    relations: schema.relations,
   },
 );
 

@@ -16,8 +16,7 @@ export const getDeploymentLatencyTimeseries = workspaceProcedure
   .query(async ({ ctx, input }) => {
     try {
       const deployment = await db.query.deployments.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
+        where: { id: input.deploymentId, workspaceId: ctx.workspace.id },
         columns: {
           projectId: true,
           environmentId: true,

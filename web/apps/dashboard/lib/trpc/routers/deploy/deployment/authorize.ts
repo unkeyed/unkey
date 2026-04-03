@@ -17,8 +17,7 @@ export const authorizeDeployment = workspaceProcedure
   )
   .mutation(async ({ input, ctx }) => {
     const deployment = await db.query.deployments.findFirst({
-      where: (table, { eq, and }) =>
-        and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
+      where: { id: input.deploymentId, workspaceId: ctx.workspace.id },
       columns: {
         id: true,
         projectId: true,

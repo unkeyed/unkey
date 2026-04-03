@@ -1,5 +1,10 @@
 load("@rules_go//go:def.bzl", "go_library")
 
+exports_files(
+    ["schema.sql"],
+    visibility = ["//visibility:public"],
+)
+
 go_library(
     name = "mysql",
     srcs = [

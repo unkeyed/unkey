@@ -92,8 +92,11 @@ export async function queryApiKeys({
 }: QueryApiKeysInput): Promise<QueryApiKeysResult> {
   const combinedResults = await db.query.apis
     .findFirst({
-      where: (api, { and, eq, isNull }) =>
-        and(eq(api.id, apiId), eq(api.workspaceId, workspaceId), isNull(api.deletedAtM)),
+      where: {
+        id: apiId,
+        workspaceId: workspaceId,
+        deletedAtM: { isNull: true },
+      },
       with: {
         keyAuth: {
           with: {
@@ -129,132 +132,134 @@ export async function queryApiKeys({
                   },
                 },
               },
-              where: (key, { and, isNull, inArray, sql }) => {
-                const conditions = [isNull(key.deletedAtM)];
+              where: {
+                RAW: (key, { and, isNull, inArray, sql }) => {
+                  const conditions = [isNull(key.deletedAtM)];
 
-                if (namesFromInput && namesFromInput.length > 0) {
-                  const nameIsValues = namesFromInput
-                    .filter((filter) => filter.operator === "is")
-                    .map((filter) => filter.value);
+                  if (namesFromInput && namesFromInput.length > 0) {
+                    const nameIsValues = namesFromInput
+                      .filter((filter) => filter.operator === "is")
+                      .map((filter) => filter.value);
 
-                  const nameContainsValues = namesFromInput
-                    .filter((filter) => filter.operator === "contains")
-                    .map((filter) => filter.value);
+                    const nameContainsValues = namesFromInput
+                      .filter((filter) => filter.operator === "contains")
+                      .map((filter) => filter.value);
 
-                  const nameStartsWithValues = namesFromInput
-                    .filter((filter) => filter.operator === "startsWith")
-                    .map((filter) => filter.value);
+                    const nameStartsWithValues = namesFromInput
+                      .filter((filter) => filter.operator === "startsWith")
+                      .map((filter) => filter.value);
 
-                  const nameEndsWithValues = namesFromInput
-                    .filter((filter) => filter.operator === "endsWith")
-                    .map((filter) => filter.value);
+                    const nameEndsWithValues = namesFromInput
+                      .filter((filter) => filter.operator === "endsWith")
+                      .map((filter) => filter.value);
 
-                  if (nameIsValues.length > 0) {
-                    conditions.push(inArray(key.name, nameIsValues as string[]));
-                  }
-
-                  if (nameContainsValues.length > 0) {
-                    nameContainsValues.forEach((value) => {
-                      conditions.push(sql`${key.name} LIKE ${`%${value}%`}`);
-                    });
-                  }
-
-                  if (nameStartsWithValues.length > 0) {
-                    nameStartsWithValues.forEach((value) => {
-                      conditions.push(sql`${key.name} LIKE ${`${value}%`}`);
-                    });
-                  }
-
-                  if (nameEndsWithValues.length > 0) {
-                    nameEndsWithValues.forEach((value) => {
-                      conditions.push(sql`${key.name} LIKE ${`%${value}`}`);
-                    });
-                  }
-                }
-
-                if (keyIdsFromInput && keyIdsFromInput.length > 0) {
-                  const keyIdValues = keyIdsFromInput
-                    .filter((filter) => filter.operator === "is")
-                    .map((filter) => filter.value);
-
-                  const keyIdContainsValues = keyIdsFromInput
-                    .filter((filter) => filter.operator === "contains")
-                    .map((filter) => filter.value);
-
-                  if (keyIdValues.length > 0) {
-                    conditions.push(inArray(key.id, keyIdValues as string[]));
-                  }
-
-                  if (keyIdContainsValues.length > 0) {
-                    keyIdContainsValues.forEach((value) =>
-                      conditions.push(sql`${key.id} LIKE ${`%${value}%`}`),
-                    );
-                  }
-                }
-
-                const allIdentityConditions = [];
-                if (identitiesFromInput && identitiesFromInput.length > 0) {
-                  for (const filter of identitiesFromInput) {
-                    const value = filter.value;
-                    if (typeof value !== "string") {
-                      continue;
+                    if (nameIsValues.length > 0) {
+                      conditions.push(inArray(key.name, nameIsValues as string[]));
                     }
 
-                    const operator = filter.operator;
-
-                    let condition: SQL<unknown>;
-
-                    switch (operator) {
-                      case "is":
-                        condition = sql`identities.external_id = ${value}`;
-                        break;
-                      case "contains":
-                        condition = sql`identities.external_id LIKE ${`%${value}%`}`;
-                        break;
-                      case "startsWith":
-                        condition = sql`identities.external_id LIKE ${`${value}%`}`;
-                        break;
-                      case "endsWith":
-                        condition = sql`identities.external_id LIKE ${`%${value}`}`;
-                        break;
-                      default:
-                        condition = sql`identities.external_id = ${value}`;
+                    if (nameContainsValues.length > 0) {
+                      nameContainsValues.forEach((value) => {
+                        conditions.push(sql`${key.name} LIKE ${`%${value}%`}`);
+                      });
                     }
 
-                    allIdentityConditions.push(sql`
+                    if (nameStartsWithValues.length > 0) {
+                      nameStartsWithValues.forEach((value) => {
+                        conditions.push(sql`${key.name} LIKE ${`${value}%`}`);
+                      });
+                    }
+
+                    if (nameEndsWithValues.length > 0) {
+                      nameEndsWithValues.forEach((value) => {
+                        conditions.push(sql`${key.name} LIKE ${`%${value}`}`);
+                      });
+                    }
+                  }
+
+                  if (keyIdsFromInput && keyIdsFromInput.length > 0) {
+                    const keyIdValues = keyIdsFromInput
+                      .filter((filter) => filter.operator === "is")
+                      .map((filter) => filter.value);
+
+                    const keyIdContainsValues = keyIdsFromInput
+                      .filter((filter) => filter.operator === "contains")
+                      .map((filter) => filter.value);
+
+                    if (keyIdValues.length > 0) {
+                      conditions.push(inArray(key.id, keyIdValues as string[]));
+                    }
+
+                    if (keyIdContainsValues.length > 0) {
+                      keyIdContainsValues.forEach((value) =>
+                        conditions.push(sql`${key.id} LIKE ${`%${value}%`}`),
+                      );
+                    }
+                  }
+
+                  const allIdentityConditions = [];
+                  if (identitiesFromInput && identitiesFromInput.length > 0) {
+                    for (const filter of identitiesFromInput) {
+                      const value = filter.value;
+                      if (typeof value !== "string") {
+                        continue;
+                      }
+
+                      const operator = filter.operator;
+
+                      let condition: SQL<unknown>;
+
+                      switch (operator) {
+                        case "is":
+                          condition = sql`identities.external_id = ${value}`;
+                          break;
+                        case "contains":
+                          condition = sql`identities.external_id LIKE ${`%${value}%`}`;
+                          break;
+                        case "startsWith":
+                          condition = sql`identities.external_id LIKE ${`${value}%`}`;
+                          break;
+                        case "endsWith":
+                          condition = sql`identities.external_id LIKE ${`%${value}`}`;
+                          break;
+                        default:
+                          condition = sql`identities.external_id = ${value}`;
+                      }
+
+                      allIdentityConditions.push(sql`
         EXISTS (
           SELECT 1 FROM ${identities}
           WHERE ${identities.id} = ${key.identityId}
           AND ${condition}
         )`);
-                    let ownerCondition: SQL<unknown>;
+                      let ownerCondition: SQL<unknown>;
 
-                    switch (operator) {
-                      case "is":
-                        ownerCondition = sql`${key.ownerId} = ${value}`;
-                        break;
-                      case "contains":
-                        ownerCondition = sql`${key.ownerId} LIKE ${`%${value}%`}`;
-                        break;
-                      case "startsWith":
-                        ownerCondition = sql`${key.ownerId} LIKE ${`${value}%`}`;
-                        break;
-                      case "endsWith":
-                        ownerCondition = sql`${key.ownerId} LIKE ${`%${value}`}`;
-                        break;
-                      default:
-                        ownerCondition = sql`${key.ownerId} = ${value}`;
+                      switch (operator) {
+                        case "is":
+                          ownerCondition = sql`${key.ownerId} = ${value}`;
+                          break;
+                        case "contains":
+                          ownerCondition = sql`${key.ownerId} LIKE ${`%${value}%`}`;
+                          break;
+                        case "startsWith":
+                          ownerCondition = sql`${key.ownerId} LIKE ${`${value}%`}`;
+                          break;
+                        case "endsWith":
+                          ownerCondition = sql`${key.ownerId} LIKE ${`%${value}`}`;
+                          break;
+                        default:
+                          ownerCondition = sql`${key.ownerId} = ${value}`;
+                      }
+
+                      allIdentityConditions.push(ownerCondition);
                     }
-
-                    allIdentityConditions.push(ownerCondition);
                   }
-                }
 
-                if (allIdentityConditions.length > 0) {
-                  conditions.push(sql`(${sql.join(allIdentityConditions, sql` OR `)})`);
-                }
+                  if (allIdentityConditions.length > 0) {
+                    conditions.push(sql`(${sql.join(allIdentityConditions, sql` OR `)})`);
+                  }
 
-                return and(...conditions);
+                  return and(...conditions) ?? sql`1 = 1`;
+                },
               },
               columns: {
                 id: true,
@@ -388,8 +393,11 @@ export function extractRolesAndPermissions(key: DatabaseKey) {
 export const getApi = async (apiId: string, workspaceId: string) => {
   const api = await db.query.apis
     .findFirst({
-      where: (api, { and, eq, isNull }) =>
-        and(eq(api.id, apiId), eq(api.workspaceId, workspaceId), isNull(api.deletedAtM)),
+      where: {
+        id: apiId,
+        workspaceId: workspaceId,
+        deletedAtM: { isNull: true },
+      },
       with: {
         keyAuth: {
           columns: {

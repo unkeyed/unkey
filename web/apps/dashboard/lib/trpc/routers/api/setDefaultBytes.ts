@@ -15,12 +15,11 @@ export const setDefaultApiBytes = workspaceProcedure
   .mutation(async ({ ctx, input }) => {
     const keyAuth = await db.query.keyAuth
       .findFirst({
-        where: (table, { eq, and, isNull }) =>
-          and(
-            eq(table.workspaceId, ctx.workspace.id),
-            eq(table.id, input.keyAuthId),
-            isNull(table.deletedAtM),
-          ),
+        where: {
+          workspaceId: ctx.workspace.id,
+          id: input.keyAuthId,
+          deletedAtM: { isNull: true },
+        },
       })
       .catch((_err) => {
         throw new TRPCError({

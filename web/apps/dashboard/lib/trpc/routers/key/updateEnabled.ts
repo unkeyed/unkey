@@ -24,12 +24,11 @@ export const updateKeysEnabled = workspaceProcedure
 
     const keys = await db.query.keys
       .findMany({
-        where: (table, { eq, and, isNull, inArray }) =>
-          and(
-            eq(table.workspaceId, ctx.workspace.id),
-            inArray(table.id, input.keyIds),
-            isNull(table.deletedAtM),
-          ),
+        where: {
+          workspaceId: ctx.workspace.id,
+          id: { in: input.keyIds },
+          deletedAtM: { isNull: true },
+        },
       })
       .catch((_err) => {
         throw new TRPCError({

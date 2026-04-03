@@ -23,8 +23,7 @@ const state = z.object({
 const fetchGithubContext = async (workspaceId: string, projectId: string) => {
   const project = await db.query.projects
     .findFirst({
-      where: (table, { and, eq }) =>
-        and(eq(table.id, projectId), eq(table.workspaceId, workspaceId)),
+      where: { id: projectId, workspaceId: workspaceId },
       columns: {
         id: true,
       },
@@ -94,8 +93,7 @@ const fetchProjectInstallation = async (
 ) => {
   const project = await db.query.projects
     .findFirst({
-      where: (table, { and, eq }) =>
-        and(eq(table.id, projectId), eq(table.workspaceId, workspaceId)),
+      where: { id: projectId, workspaceId: workspaceId },
       columns: {
         id: true,
       },
@@ -106,7 +104,7 @@ const fetchProjectInstallation = async (
           },
           with: {
             githubAppInstallations: {
-              where: (table, { eq }) => eq(table.installationId, installationId),
+              where: { installationId: installationId },
               columns: {
                 pk: true,
               },
@@ -135,7 +133,7 @@ const fetchProjectInstallation = async (
 export const githubRouter = t.router({
   hasInstallations: workspaceProcedure.query(async ({ ctx }) => {
     const installation = await db.query.githubAppInstallations.findFirst({
-      where: (table, { eq }) => eq(table.workspaceId, ctx.workspace.id),
+      where: { workspaceId: ctx.workspace.id },
       columns: { pk: true },
     });
     return { hasInstallation: Boolean(installation) };
@@ -475,8 +473,7 @@ export const githubRouter = t.router({
       let appId = input.appId;
       if (!appId) {
         const app = await db.query.apps.findFirst({
-          where: (table, { eq, and }) =>
-            and(eq(table.projectId, input.projectId), eq(table.slug, "default")),
+          where: { projectId: input.projectId, slug: "default" },
           columns: { id: true },
         });
         if (!app) {
@@ -551,8 +548,7 @@ export const githubRouter = t.router({
     .mutation(async ({ ctx, input }) => {
       const app = await db.query.apps
         .findFirst({
-          where: (table, { and, eq }) =>
-            and(eq(table.id, input.appId), eq(table.workspaceId, ctx.workspace.id)),
+          where: { id: input.appId, workspaceId: ctx.workspace.id },
         })
         .catch(() => {
           throw new TRPCError({
@@ -591,8 +587,7 @@ export const githubRouter = t.router({
     .mutation(async ({ ctx, input }) => {
       const app = await db.query.apps
         .findFirst({
-          where: (table, { and, eq }) =>
-            and(eq(table.id, input.appId), eq(table.workspaceId, ctx.workspace.id)),
+          where: { id: input.appId, workspaceId: ctx.workspace.id },
           columns: { id: true },
         })
         .catch(() => {
@@ -626,11 +621,7 @@ export const githubRouter = t.router({
     .mutation(async ({ ctx, input }) => {
       const installation = await db.query.githubAppInstallations
         .findFirst({
-          where: (table, { and, eq }) =>
-            and(
-              eq(table.installationId, input.installationId),
-              eq(table.workspaceId, ctx.workspace.id),
-            ),
+          where: { installationId: input.installationId, workspaceId: ctx.workspace.id },
         })
         .catch(() => {
           throw new TRPCError({

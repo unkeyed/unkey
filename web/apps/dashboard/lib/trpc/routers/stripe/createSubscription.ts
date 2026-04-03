@@ -81,7 +81,7 @@ export const createSubscription = workspaceProcedure
       })
       .where(eq(schema.workspaces.id, ctx.workspace.id));
     await db
-      .insert(schema.quotas)
+      .insert(schema.quota)
       .values({
         workspaceId: ctx.workspace.id,
         requestsPerMonth: Number.parseInt(product.metadata.quota_requests_per_month),

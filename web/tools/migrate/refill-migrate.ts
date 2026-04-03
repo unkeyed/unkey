@@ -13,18 +13,20 @@ async function main() {
   let keyChanges = 0;
   do {
     const keys = await db.query.keys.findMany({
-      where: (table, { isNotNull, gt, and, or }) =>
-        and(
-          gt(table.id, cursor),
-          isNotNull(table.refillAmount),
-          isNotNull(table.remaining),
-          or(
-            and(eq(table.refillInterval, "monthly"), isNull(table.refillDay)),
-            and(eq(table.refillInterval, "daily"), isNotNull(table.refillDay)),
+      where: {
+        RAW: (table, { isNotNull, gt, and, or }) =>
+          and(
+            gt(table.id, cursor),
+            isNotNull(table.refillAmount),
+            isNotNull(table.remaining),
+            or(
+              and(eq(table.refillInterval, "monthly"), isNull(table.refillDay)),
+              and(eq(table.refillInterval, "daily"), isNotNull(table.refillDay)),
+            ),
           ),
-        ),
+      },
       limit: 1000,
-      orderBy: (table, { asc }) => asc(table.id),
+      orderBy: { id: "asc" },
     });
 
     cursor = keys.at(-1)?.id ?? "";

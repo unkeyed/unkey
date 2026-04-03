@@ -18,8 +18,10 @@ export const auditLogsSearch = workspaceProcedure
   .mutation(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces
       .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+        where: {
+          orgId: ctx.tenant.id,
+          deletedAtM: { isNull: true },
+        },
       })
       .catch((_err) => {
         throw new TRPCError({

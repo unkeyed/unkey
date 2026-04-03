@@ -1,10 +1,10 @@
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 import { insertAuditLogs } from "@/lib/audit";
 import { createCtrlClient } from "@/lib/ctrl-client";
-import { and, db, eq } from "@/lib/db";
+import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { apps } from "@unkey/db/src/schema";
+
 import { z } from "zod";
 
 export const rollback = workspaceProcedure
@@ -20,8 +20,7 @@ export const rollback = workspaceProcedure
     try {
       // Verify the target deployment exists and belongs to this workspace
       const targetDeployment = await db.query.deployments.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.id, input.targetDeploymentId), eq(table.workspaceId, ctx.workspace.id)),
+        where: { id: input.targetDeploymentId, workspaceId: ctx.workspace.id },
         columns: {
           id: true,
           status: true,
@@ -54,7 +53,7 @@ export const rollback = workspaceProcedure
 
       // Get currentDeploymentId from the app
       const app = await db.query.apps.findFirst({
-        where: and(eq(apps.id, targetDeployment.appId), eq(apps.workspaceId, ctx.workspace.id)),
+        where: { id: targetDeployment.appId, workspaceId: ctx.workspace.id },
         columns: { currentDeploymentId: true },
       });
 

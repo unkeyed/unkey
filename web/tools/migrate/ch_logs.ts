@@ -199,7 +199,7 @@ async function handleRow(table: string, row: z.infer<typeof aggregatedSchema>): 
   let identity: Identity | undefined = undefined;
   if (!externalId) {
     identity = await db.query.identities.findFirst({
-      where: (table, { eq }) => eq(table.id, row.identity_id),
+      where: { id: row.identity_id },
     });
     if (!identity) {
       console.error("identity not found", row.identity_id);

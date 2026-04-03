@@ -13,17 +13,9 @@ export const queryKeysRoles = workspaceProcedure
 
     try {
       const rolesQuery = await db.query.roles.findMany({
-        where: (role, { and, eq, lt }) => {
-          const conditions = [eq(role.workspaceId, workspaceId)];
-
-          if (cursor) {
-            conditions.push(lt(role.id, cursor));
-          }
-
-          return and(...conditions);
-        },
+        where: cursor ? { workspaceId, id: { lt: cursor } } : { workspaceId },
         limit: limit + 1, // Fetch one extra to determine if there are more results
-        orderBy: (roles, { desc }) => desc(roles.id),
+        orderBy: { id: "desc" },
         columns: {
           id: true,
           name: true,

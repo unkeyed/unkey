@@ -16,12 +16,7 @@ export const updateOverride = workspaceProcedure
   .mutation(async ({ ctx, input }) => {
     const override = await db.query.ratelimitOverrides
       .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(
-            eq(table.workspaceId, ctx.workspace.id),
-            eq(table.id, input.id),
-            isNull(table.deletedAtM),
-          ),
+        where: { workspaceId: ctx.workspace.id, id: input.id, deletedAtM: { isNull: true } },
         with: {
           namespace: {
             columns: {

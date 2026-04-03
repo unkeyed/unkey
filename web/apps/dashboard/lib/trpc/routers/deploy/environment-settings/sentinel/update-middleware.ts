@@ -1,6 +1,6 @@
-import { and, db, eq } from "@/lib/db";
+import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { appRuntimeSettings, environments } from "@unkey/db/src/schema";
+import { appRuntimeSettings } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 
@@ -28,8 +28,10 @@ export const updateMiddleware = workspaceProcedure
     if (input.keyspaceIds.length > 0) {
       const keyspaces = await db.query.keyAuth
         .findMany({
-          where: (table, { and, inArray }) =>
-            and(inArray(table.id, input.keyspaceIds), eq(table.workspaceId, ctx.workspace.id)),
+          where: {
+            workspaceId: ctx.workspace.id,
+            RAW: (table, { inArray }) => inArray(table.id, input.keyspaceIds),
+          },
           columns: { id: true },
         })
         .catch((err) => {
@@ -58,10 +60,7 @@ export const updateMiddleware = workspaceProcedure
     }
 
     const env = await db.query.environments.findFirst({
-      where: and(
-        eq(environments.id, input.environmentId),
-        eq(environments.workspaceId, ctx.workspace.id),
-      ),
+      where: { id: input.environmentId, workspaceId: ctx.workspace.id },
       columns: { appId: true },
     });
     if (!env) {

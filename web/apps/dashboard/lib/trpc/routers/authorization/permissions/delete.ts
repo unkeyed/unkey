@@ -23,8 +23,7 @@ export const deletePermissionWithRelations = workspaceProcedure
     await db.transaction(async (tx) => {
       // Fetch all permissions to validate existence and get names for audit logs
       const permissions = await tx.query.permissions.findMany({
-        where: (table, { and, eq, inArray }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), inArray(table.id, input.permissionIds)),
+        where: { workspaceId: ctx.workspace.id, id: { in: input.permissionIds } },
       });
 
       if (permissions.length !== input.permissionIds.length) {

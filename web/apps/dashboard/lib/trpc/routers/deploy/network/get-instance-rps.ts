@@ -14,8 +14,7 @@ export const getInstanceRps = workspaceProcedure
   .query(async ({ ctx, input }) => {
     try {
       const instance = await db.query.instances.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.id, input.instanceId), eq(table.workspaceId, ctx.workspace.id)),
+        where: { id: input.instanceId, workspaceId: ctx.workspace.id },
         columns: {
           deploymentId: true,
           projectId: true,

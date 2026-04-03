@@ -17,11 +17,11 @@ export const getOpenApiDiff = workspaceProcedure
 
     try {
       const deployments = await db.query.deployments.findMany({
-        where: (table, { and, eq, inArray }) =>
-          and(
-            eq(table.workspaceId, ctx.workspace.id),
+        where: {
+          workspaceId: ctx.workspace.id,
+          RAW: (table, { inArray }) =>
             inArray(table.id, [input.oldDeploymentId, input.newDeploymentId]),
-          ),
+        },
       });
       if (deployments.length !== 2) {
         throw new TRPCError({

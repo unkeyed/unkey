@@ -34,7 +34,7 @@ export const createWorkspace = protectedProcedure
         if (env().AUTH_PROVIDER === "local") {
           // Check if this user already has a workspace
           const existingWorkspaces = await tx.query.workspaces.findMany({
-            where: (workspaces, { eq }) => eq(workspaces.orgId, ctx.tenant.id),
+            where: { orgId: ctx.tenant.id },
           });
 
           if (existingWorkspaces.length > 0) {
@@ -47,7 +47,7 @@ export const createWorkspace = protectedProcedure
         }
 
         const duplicateSlug = await tx.query.workspaces.findFirst({
-          where: (workspaces, { eq }) => eq(workspaces.slug, input.slug),
+          where: { slug: input.slug },
         });
 
         if (duplicateSlug) {
@@ -81,7 +81,7 @@ export const createWorkspace = protectedProcedure
         };
 
         await tx.insert(schema.workspaces).values(workspace);
-        await tx.insert(schema.quotas).values({
+        await tx.insert(schema.quota).values({
           workspaceId: workspace.id,
           ...freeTierQuotas,
         });

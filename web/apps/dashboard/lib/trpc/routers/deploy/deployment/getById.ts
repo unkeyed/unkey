@@ -16,8 +16,7 @@ export const getById = workspaceProcedure
         with: {
           environment: { columns: { slug: true } },
         },
-        where: (table, { eq, and }) =>
-          and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
+        where: { id: input.deploymentId, workspaceId: ctx.workspace.id },
       });
 
       if (!deployment) {

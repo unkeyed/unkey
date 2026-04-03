@@ -13,8 +13,7 @@ export const deleteRole = workspaceProcedure
   .mutation(async ({ input, ctx }) => {
     await db.transaction(async (tx) => {
       const role = await tx.query.roles.findFirst({
-        where: (table, { and, eq }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.roleId)),
+        where: { workspaceId: ctx.workspace.id, id: input.roleId },
       });
 
       if (!role) {

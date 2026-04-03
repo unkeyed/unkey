@@ -14,8 +14,7 @@ export const getSentinelRps = workspaceProcedure
   .query(async ({ ctx, input }) => {
     try {
       const sentinel = await db.query.sentinels.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.id, input.sentinelId), eq(table.workspaceId, ctx.workspace.id)),
+        where: { id: input.sentinelId, workspaceId: ctx.workspace.id },
         columns: {
           environmentId: true,
           projectId: true,
@@ -30,13 +29,12 @@ export const getSentinelRps = workspaceProcedure
       }
 
       const deployment = await db.query.deployments.findFirst({
-        where: (table, { eq, and }) =>
-          and(
-            eq(table.environmentId, sentinel.environmentId),
-            eq(table.workspaceId, ctx.workspace.id),
-            eq(table.projectId, sentinel.projectId),
-          ),
-        orderBy: (table, { desc }) => [desc(table.createdAt)],
+        where: {
+          environmentId: sentinel.environmentId,
+          workspaceId: ctx.workspace.id,
+          projectId: sentinel.projectId,
+        },
+        orderBy: { createdAt: "desc" },
         columns: {
           id: true,
           environmentId: true,

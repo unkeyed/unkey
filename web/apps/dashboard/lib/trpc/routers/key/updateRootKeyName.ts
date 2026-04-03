@@ -13,12 +13,7 @@ export const updateRootKeyName = workspaceProcedure
   )
   .mutation(async ({ input, ctx }) => {
     const key = await db.query.keys.findFirst({
-      where: (table, { eq, isNull, and }) =>
-        and(
-          eq(table.forWorkspaceId, ctx.workspace.id),
-          eq(table.id, input.keyId),
-          isNull(table.deletedAtM),
-        ),
+      where: { forWorkspaceId: ctx.workspace.id, id: input.keyId, deletedAtM: { isNull: true } },
     });
 
     if (!key) {

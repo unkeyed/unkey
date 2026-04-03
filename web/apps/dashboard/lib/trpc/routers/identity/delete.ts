@@ -13,12 +13,7 @@ export const deleteIdentity = workspaceProcedure
   .mutation(async ({ input, ctx }) => {
     const identity = await db.query.identities
       .findFirst({
-        where: (table, { eq, and }) =>
-          and(
-            eq(table.workspaceId, ctx.workspace.id),
-            eq(table.id, input.identityId),
-            eq(table.deleted, false),
-          ),
+        where: { workspaceId: ctx.workspace.id, id: input.identityId, deleted: false },
       })
       .catch((err) => {
         console.error("Failed to fetch identity:", err);

@@ -1,4 +1,4 @@
-import { and, db, eq, isNull, schema } from "@/lib/db";
+import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -136,8 +136,7 @@ export const fetchKeyPermissions = workspaceProcedure
   .query(async ({ ctx, input }) => {
     try {
       const keyAuth = await db.query.keyAuth.findFirst({
-        where: (keyAuth, { and, eq }) =>
-          and(eq(keyAuth.id, input.keyspaceId), eq(keyAuth.workspaceId, ctx.workspace.id)),
+        where: { id: input.keyspaceId, workspaceId: ctx.workspace.id },
       });
 
       if (!keyAuth) {
@@ -148,7 +147,7 @@ export const fetchKeyPermissions = workspaceProcedure
       }
 
       const key = await db.query.keys.findFirst({
-        where: and(eq(schema.keys.id, input.keyId), isNull(schema.keys.deletedAtM)),
+        where: { id: input.keyId, deletedAtM: { isNull: true } },
         with: {
           keyAuth: true,
           roles: {

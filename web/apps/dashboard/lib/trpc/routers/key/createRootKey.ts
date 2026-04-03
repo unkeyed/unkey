@@ -23,11 +23,7 @@ export const createRootKey = workspaceProcedure
   .mutation(async ({ ctx, input }) => {
     const unkeyApi = await db.query.apis
       .findFirst({
-        where: (table, { and, eq }) =>
-          and(
-            eq(table.workspaceId, env().UNKEY_WORKSPACE_ID),
-            eq(schema.apis.id, env().UNKEY_API_ID),
-          ),
+        where: { workspaceId: env().UNKEY_WORKSPACE_ID, id: env().UNKEY_API_ID },
       })
       .catch((_err) => {
         throw new TRPCError({

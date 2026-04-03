@@ -1,6 +1,6 @@
 import { keyDetailsQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/charts/bar-chart/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import { db, isNull } from "@/lib/db";
+import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { transformVerificationFilters } from "../../api/keys/timeseries.utils";
@@ -11,16 +11,10 @@ export const keyDetailsVerificationsTimeseries = workspaceProcedure
   .query(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces
       .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+        where: { orgId: ctx.tenant.id, deletedAtM: { isNull: true } },
         with: {
           keys: {
-            where: (keysTable, { eq, and }) =>
-              and(
-                eq(keysTable.id, input.keyId),
-                eq(keysTable.keyAuthId, input.keyspaceId),
-                isNull(keysTable.deletedAtM),
-              ),
+            where: { id: input.keyId, keyAuthId: input.keyspaceId, deletedAtM: { isNull: true } },
             limit: 1,
             columns: {
               id: true,

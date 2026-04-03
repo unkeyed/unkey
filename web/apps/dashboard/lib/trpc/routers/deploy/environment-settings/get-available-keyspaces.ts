@@ -1,12 +1,11 @@
-import { and, db, isNull } from "@/lib/db";
+import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { workspaceProcedure } from "../../../trpc";
 
 export const getAvailableKeyspaces = workspaceProcedure.query(async ({ ctx }) => {
   const keyspaces = await db.query.keyAuth
     .findMany({
-      where: (table, { eq }) =>
-        and(eq(table.workspaceId, ctx.workspace.id), isNull(table.deletedAtM)),
+      where: { workspaceId: ctx.workspace.id, deletedAtM: { isNull: true } },
       columns: {
         id: true,
       },

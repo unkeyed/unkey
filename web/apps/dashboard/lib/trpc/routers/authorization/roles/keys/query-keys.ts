@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, lt } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { KeysResponse, keysQueryPayload, transformKey } from "./schema-with-helpers";
@@ -13,20 +13,13 @@ export const queryKeys = workspaceProcedure
 
     try {
       const keysQuery = await db.query.keys.findMany({
-        where: (key, { and, eq, lt, isNull }) => {
-          const conditions = [
-            eq(key.workspaceId, workspaceId),
-            isNull(key.deletedAtM), // Only non-deleted keys
-          ];
-
-          if (cursor) {
-            conditions.push(lt(key.id, cursor));
-          }
-
-          return and(...conditions);
+        where: {
+          workspaceId: workspaceId,
+          deletedAtM: { isNull: true },
+          ...(cursor ? { RAW: (key) => lt(key.id, cursor) } : {}),
         },
         limit: limit + 1, // Fetch one extra to determine if there are more results
-        orderBy: (keys, { desc }) => desc(keys.id),
+        orderBy: { id: "desc" },
         with: {
           roles: {
             with: {

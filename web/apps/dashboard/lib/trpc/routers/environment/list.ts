@@ -1,6 +1,5 @@
-import { and, db, eq } from "@/lib/db";
+import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 
@@ -13,10 +12,7 @@ export const listEnvironments = workspaceProcedure
   .query(async ({ ctx, input }) => {
     try {
       const rows = await db.query.environments.findMany({
-        where: and(
-          eq(environments.workspaceId, ctx.workspace.id),
-          eq(environments.projectId, input.projectId),
-        ),
+        where: { workspaceId: ctx.workspace.id, projectId: input.projectId },
         columns: {
           id: true,
           projectId: true,

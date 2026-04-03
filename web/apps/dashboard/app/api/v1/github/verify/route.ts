@@ -79,8 +79,7 @@ export async function POST(request: Request) {
     const hashedToken = await sha256(token);
     const keyFound = await db.query.keys.findFirst({
       columns: { id: true, forWorkspaceId: true },
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.hash, hashedToken), isNull(table.deletedAtM)),
+      where: { hash: hashedToken, deletedAtM: { isNull: true } },
     });
     if (!keyFound) {
       foundKeys.push({
@@ -93,11 +92,10 @@ export async function POST(request: Request) {
       return;
     }
     const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(
-          eq(table.id, keyFound?.forWorkspaceId ? keyFound?.forWorkspaceId : ""),
-          isNull(table.deletedAtM),
-        ),
+      where: {
+        id: keyFound?.forWorkspaceId ? keyFound?.forWorkspaceId : "",
+        deletedAtM: { isNull: true },
+      },
     });
     if (!ws) {
       console.error("Workspace not found");

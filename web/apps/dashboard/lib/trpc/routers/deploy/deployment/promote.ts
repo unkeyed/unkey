@@ -19,8 +19,7 @@ export const promote = workspaceProcedure
     try {
       // Verify the target deployment exists and belongs to this workspace
       const targetDeployment = await db.query.deployments.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.id, input.targetDeploymentId), eq(table.workspaceId, ctx.workspace.id)),
+        where: { id: input.targetDeploymentId, workspaceId: ctx.workspace.id },
         columns: {
           id: true,
           status: true,

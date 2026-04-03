@@ -30,7 +30,7 @@ export const fetchApiAndWorkspaceDataFromDb = async (apiId: string): Promise<Api
   }
 
   const currentApi = await db.query.apis.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAtM)),
+    where: { id: apiId, deletedAtM: { isNull: true } },
     with: {
       workspace: {
         columns: {
@@ -53,7 +53,7 @@ export const fetchApiAndWorkspaceDataFromDb = async (apiId: string): Promise<Api
     },
   });
 
-  if (!currentApi || currentApi.workspace.orgId !== orgId) {
+  if (!currentApi || currentApi.workspace?.orgId !== orgId) {
     console.warn(`DB Validation failed: API ${apiId} not found or org mismatch for org ${orgId}`);
     notFound();
   }

@@ -10,13 +10,12 @@ async function main() {
   const db = mysqlDrizzle(conn, { schema, mode: "default" });
 
   let workspaces = await db.query.workspaces.findMany({
-    where: (table, { isNotNull, isNull, not, eq, and }) =>
-      and(
-        isNotNull(table.stripeCustomerId),
-        isNotNull(table.subscriptions),
-        not(eq(table.plan, "free")),
-        isNull(table.deletedAtM),
-      ),
+    where: {
+      stripeCustomerId: { isNotNull: true },
+      subscriptions: { isNotNull: true },
+      deletedAtM: { isNull: true },
+      RAW: (table, { not, eq }) => not(eq(table.plan, "free")),
+    },
   });
   // hack to filter out workspaces with `{}` as subscriptions
   workspaces = workspaces.filter(

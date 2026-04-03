@@ -46,8 +46,10 @@ export async function getAllKeys({
   try {
     // Security verification - ensure the keyspaceId belongs to the workspaceId
     const keyAuth = await db.query.keyAuth.findFirst({
-      where: (keyAuth, { and, eq }) =>
-        and(eq(keyAuth.id, keyspaceId), eq(keyAuth.workspaceId, workspaceId)),
+      where: {
+        id: keyspaceId,
+        workspaceId: workspaceId,
+      },
       with: {
         api: {
           columns: {
@@ -284,7 +286,7 @@ export async function getAllKeys({
 
     const totalCount = countResult?.count ?? 0;
     const keysQuery = await db.query.keys.findMany({
-      where: (key, helpers) => buildFilterConditions(key, helpers),
+      where: { RAW: (key, helpers) => buildFilterConditions(key, helpers) },
       with: {
         ratelimits: {
           columns: {
@@ -303,12 +305,7 @@ export async function getAllKeys({
       },
       limit,
       offset: (page - 1) * limit,
-      orderBy: (keys, helpers) => {
-        const column = keys[sortBy];
-        const primary = sortOrder === "desc" ? helpers.desc(column) : helpers.asc(column);
-        const tiebreaker = sortOrder === "desc" ? helpers.desc(keys.id) : helpers.asc(keys.id);
-        return [primary, tiebreaker];
-      },
+      orderBy: { [sortBy]: sortOrder, id: sortOrder },
     });
 
     const keys = keysQuery;

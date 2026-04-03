@@ -76,6 +76,32 @@ oci_load(
     visibility = ["//visibility:public"],
 )
 
+genrule(
+    name = "mysql_init_sql",
+    srcs = ["//pkg/mysql:schema.sql"],
+    outs = ["docker-entrypoint-initdb.d/schema.sql"],
+    cmd = "cp $< $@",
+)
+
+pkg_tar(
+    name = "mysql_init_tar",
+    srcs = [":mysql_init_sql"],
+    strip_prefix = ".",
+)
+
+oci_image(
+    name = "mysql_image",
+    base = "@mysql",
+    tars = [":mysql_init_tar"],
+)
+
+oci_load(
+    name = "oci_load_mysql",
+    image = ":mysql_image",
+    repo_tags = ["unkey/mysql:latest"],
+    visibility = ["//visibility:public"],
+)
+
 nogo(
     name = "my_nogo",
     visibility = ["//visibility:public"],

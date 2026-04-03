@@ -1,4 +1,4 @@
-import { and, db, eq, isNull } from "@/lib/db";
+import { and, db, eq } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { keys } from "@unkey/db/src/schema";
@@ -14,11 +14,11 @@ export const enableKey = workspaceProcedure
   .mutation(async ({ ctx, input }) => {
     const keyToEnable = await db.query.keys
       .findFirst({
-        where: and(
-          eq(keys.id, input.keyId),
-          eq(keys.workspaceId, ctx.workspace.id),
-          isNull(keys.deletedAtM),
-        ),
+        where: {
+          id: input.keyId,
+          workspaceId: ctx.workspace.id,
+          deletedAtM: { isNull: true },
+        },
         columns: {
           id: true,
           enabled: true,

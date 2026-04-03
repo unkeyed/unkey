@@ -12,8 +12,7 @@ export const getDeploymentTree = workspaceProcedure
     try {
       // Fetch deployment to get environmentId
       const deployment = await db.query.deployments.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
+        where: { id: input.deploymentId, workspaceId: ctx.workspace.id },
         columns: {
           environmentId: true,
           projectId: true,
@@ -29,12 +28,11 @@ export const getDeploymentTree = workspaceProcedure
 
       const [instances, sentinels] = await Promise.all([
         db.query.instances.findMany({
-          where: (table, { eq, and }) =>
-            and(
-              eq(table.deploymentId, input.deploymentId),
-              eq(table.projectId, deployment.projectId),
-              eq(table.workspaceId, ctx.workspace.id),
-            ),
+          where: {
+            deploymentId: input.deploymentId,
+            projectId: deployment.projectId,
+            workspaceId: ctx.workspace.id,
+          },
           columns: {
             id: true,
             cpuMillicores: true,
@@ -50,11 +48,7 @@ export const getDeploymentTree = workspaceProcedure
           },
         }),
         db.query.sentinels.findMany({
-          where: (table, { eq, and }) =>
-            and(
-              eq(table.environmentId, deployment.environmentId),
-              eq(table.workspaceId, ctx.workspace.id),
-            ),
+          where: { environmentId: deployment.environmentId, workspaceId: ctx.workspace.id },
           columns: {
             id: true,
             regionId: true,

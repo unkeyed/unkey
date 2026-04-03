@@ -33,7 +33,7 @@ export async function prepareDatabase(): Promise<{
       .onDuplicateKeyUpdate({ set: { createdAtM: Date.now() } });
 
     await db
-      .insert(schema.quotas)
+      .insert(schema.quota)
       .values({
         workspaceId: ROW_IDS.rootWorkspace,
         requestsPerMonth: 150_000,

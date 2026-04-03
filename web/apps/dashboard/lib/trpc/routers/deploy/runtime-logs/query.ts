@@ -15,8 +15,7 @@ export const queryRuntimeLogs = workspaceProcedure
   .output(runtimeLogsResponseSchema)
   .query(async ({ ctx, input }) => {
     const project = await db.query.projects.findFirst({
-      where: (table, { and, eq }) =>
-        and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
+      where: { id: input.projectId, workspaceId: ctx.workspace.id },
       columns: { id: true },
       with: {
         environments: {

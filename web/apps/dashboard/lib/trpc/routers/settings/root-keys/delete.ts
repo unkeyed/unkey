@@ -19,13 +19,12 @@ export const deleteRootKeys = workspaceProcedure
     await db.transaction(async (tx) => {
       // Fetch all root keys to validate existence and get details for audit logs
       const rootKeys = await tx.query.keys.findMany({
-        where: (table, { eq, inArray, isNull, and }) =>
-          and(
-            eq(table.workspaceId, env().UNKEY_WORKSPACE_ID),
-            eq(table.forWorkspaceId, ctx.workspace.id),
-            inArray(table.id, input.keyIds),
-            isNull(table.deletedAtM),
-          ),
+        where: {
+          workspaceId: env().UNKEY_WORKSPACE_ID,
+          forWorkspaceId: ctx.workspace.id,
+          id: { in: input.keyIds },
+          deletedAtM: { isNull: true },
+        },
         columns: {
           id: true,
           name: true,

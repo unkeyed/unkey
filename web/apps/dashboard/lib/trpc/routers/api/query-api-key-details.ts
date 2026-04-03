@@ -51,12 +51,11 @@ export const queryApiKeyDetails = workspaceProcedure
 
     try {
       const currentApi = await db.query.apis.findFirst({
-        where: (table) =>
-          and(
-            eq(table.id, apiId),
-            isNull(table.deletedAtM),
-            eq(table.workspaceId, ctx.workspace.id),
-          ),
+        where: {
+          id: apiId,
+          deletedAtM: { isNull: true },
+          workspaceId: ctx.workspace.id,
+        },
         with: {
           workspace: {
             columns: {

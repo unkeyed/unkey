@@ -40,7 +40,7 @@ type PermissionWithRoles = {
   description: string | null;
   slug: string;
   roles: {
-    role: { id: string; name: string };
+    role: { id: string; name: string } | null;
   }[];
 };
 
@@ -50,7 +50,13 @@ export const transformPermission = (permission: PermissionWithRoles) => ({
   description: permission.description,
   slug: permission.slug,
   roles: permission.roles
-    .filter((rolePermission) => Boolean(rolePermission.role))
+    .filter(
+      (
+        rolePermission,
+      ): rolePermission is typeof rolePermission & {
+        role: NonNullable<typeof rolePermission.role>;
+      } => rolePermission.role !== null,
+    )
     .map((rolePermission) => ({
       id: rolePermission.role.id,
       name: rolePermission.role.name,

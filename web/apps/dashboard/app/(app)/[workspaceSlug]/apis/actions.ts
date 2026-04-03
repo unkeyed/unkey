@@ -21,12 +21,10 @@ export async function fetchApiOverview({
 
   // Updated query to include keyAuth and fetch actual keys
   const query = db.query.apis.findMany({
-    where: (table, { and, eq, isNull, gt }) => {
-      const conditions = [eq(table.workspaceId, workspaceId), isNull(table.deletedAtM)];
-      if (cursor) {
-        conditions.push(gt(table.id, cursor.id));
-      }
-      return and(...conditions);
+    where: {
+      workspaceId: workspaceId,
+      deletedAtM: { isNull: true },
+      ...(cursor ? { id: { gt: cursor.id } } : {}),
     },
     with: {
       keyAuth: {
@@ -35,7 +33,7 @@ export async function fetchApiOverview({
         },
       },
     },
-    orderBy: (table, { asc }) => [asc(table.id)],
+    orderBy: { id: "asc" },
     limit: limit + 1, // Fetch one extra to determine if there are more
   });
 

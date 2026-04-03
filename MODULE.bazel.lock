@@ -651,7 +651,7 @@
     "@@rules_oci+//oci:extensions.bzl%oci": {
       "general": {
         "bzlTransitiveDigest": "quk1Dfrpa9uVstfnqDufChSWBun9F78CNRPu7buU6G8=",
-        "usagesDigest": "hppXrrzDUp2KVZ6Ggzf0e+ZSrL2NSqDjbyDAlFsZ1ic=",
+        "usagesDigest": "TU7DUkrysTdgzat0LRYqEJs1JPsNjA37OelaJF/yyyQ=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -696,6 +696,49 @@
                 "@@platforms//cpu:arm64": "@distroless_static_linux_arm64_v8"
               },
               "bzlmod_repository": "distroless_static",
+              "reproducible": true
+            }
+          },
+          "mysql_linux_amd64": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_pull",
+            "attributes": {
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/mysql",
+              "identifier": "sha256:135bc87cce147c3d28cecb9ad270b814cb52805af7ddeea83bfcaf157d05a6b2",
+              "platform": "linux/amd64",
+              "target_name": "mysql_linux_amd64",
+              "bazel_tags": []
+            }
+          },
+          "mysql_linux_arm64_v8": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_pull",
+            "attributes": {
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/mysql",
+              "identifier": "sha256:135bc87cce147c3d28cecb9ad270b814cb52805af7ddeea83bfcaf157d05a6b2",
+              "platform": "linux/arm64/v8",
+              "target_name": "mysql_linux_arm64_v8",
+              "bazel_tags": []
+            }
+          },
+          "mysql": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_alias",
+            "attributes": {
+              "target_name": "mysql",
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/mysql",
+              "identifier": "sha256:135bc87cce147c3d28cecb9ad270b814cb52805af7ddeea83bfcaf157d05a6b2",
+              "platforms": {
+                "@@platforms//cpu:x86_64": "@mysql_linux_amd64",
+                "@@platforms//cpu:arm64": "@mysql_linux_arm64_v8"
+              },
+              "bzlmod_repository": "mysql",
               "reproducible": true
             }
           },
@@ -817,7 +860,10 @@
           "explicitRootModuleDirectDeps": [
             "distroless_static",
             "distroless_static_linux_amd64",
-            "distroless_static_linux_arm64_v8"
+            "distroless_static_linux_arm64_v8",
+            "mysql",
+            "mysql_linux_amd64",
+            "mysql_linux_arm64_v8"
           ],
           "explicitRootModuleDirectDevDeps": [],
           "useAllRepos": "NO",

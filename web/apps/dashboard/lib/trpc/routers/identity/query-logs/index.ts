@@ -49,13 +49,13 @@ export const queryIdentityLogs = workspaceProcedure
     // First, validate identity exists and get associated keys
     const identity = await db.query.identities
       .findFirst({
-        where: (table, { eq }) => eq(table.id, input.identityId),
+        where: { id: input.identityId },
         with: {
           workspace: {
             columns: { id: true, orgId: true },
           },
           keys: {
-            where: (keysTable, { isNull }) => isNull(keysTable.deletedAtM),
+            where: { deletedAtM: { isNull: true } },
             with: {
               keyAuth: {
                 with: {

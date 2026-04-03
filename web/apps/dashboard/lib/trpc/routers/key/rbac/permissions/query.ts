@@ -17,15 +17,9 @@ export const queryKeysPermissions = workspaceProcedure
 
     try {
       const permissionsQuery = await db.query.permissions.findMany({
-        where: (permission, { and, eq, lt }) => {
-          const conditions = [eq(permission.workspaceId, workspaceId)];
-          if (cursor) {
-            conditions.push(lt(permission.id, cursor));
-          }
-          return and(...conditions);
-        },
+        where: cursor ? { workspaceId, id: { lt: cursor } } : { workspaceId },
         limit: limit + 1,
-        orderBy: (permissions, { desc }) => desc(permissions.id),
+        orderBy: { id: "desc" },
         columns: {
           id: true,
           name: true,

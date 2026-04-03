@@ -12,15 +12,14 @@ export const overviewApiSearch = workspaceProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const apis = await db.query.apis.findMany({
-      where: (table, { isNull, and, eq, or }) =>
-        and(
-          eq(table.workspaceId, ctx.workspace.id),
-          or(
-            sql`${table.name} LIKE ${`%${input.query}%`}`,
-            sql`${table.id} LIKE ${`%${input.query}%`}`,
-          ),
-          isNull(table.deletedAtM),
-        ),
+      where: {
+        workspaceId: ctx.workspace.id,
+        OR: [
+          { RAW: (table, _ops) => sql`${table.name} LIKE ${`%${input.query}%`}` },
+          { RAW: (table, _ops) => sql`${table.id} LIKE ${`%${input.query}%`}` },
+        ],
+        deletedAtM: { isNull: true },
+      },
       with: {
         keyAuth: {
           columns: {

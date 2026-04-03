@@ -23,8 +23,7 @@ export const deleteRoleWithRelations = workspaceProcedure
     await db.transaction(async (tx) => {
       // Fetch all roles to validate existence and get names for audit logs
       const roles = await tx.query.roles.findMany({
-        where: (table, { and, eq, inArray }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), inArray(table.id, input.roleIds)),
+        where: { workspaceId: ctx.workspace.id, id: { in: input.roleIds } },
       });
 
       if (roles.length !== input.roleIds.length) {

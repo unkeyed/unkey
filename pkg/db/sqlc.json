@@ -4,7 +4,7 @@
     {
       "engine": "mysql",
       "queries": "./queries",
-      "schema": "schema.sql",
+      "schema": "../mysql/schema.sql",
       "codegen": [
         {
           "out": ".",

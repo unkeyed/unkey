@@ -22,8 +22,7 @@ export const createKey = workspaceProcedure
   .mutation(async ({ input, ctx }) => {
     const keyAuth = await db.query.keyAuth
       .findFirst({
-        where: (table, { and, eq }) =>
-          and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.keyAuthId)),
+        where: { workspaceId: ctx.workspace.id, id: input.keyAuthId },
         with: {
           api: true,
         },

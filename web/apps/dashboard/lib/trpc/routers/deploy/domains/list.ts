@@ -9,8 +9,7 @@ export const listDomains = workspaceProcedure
   .query(async ({ ctx, input }) => {
     const project = await db.query.projects
       .findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
+        where: { id: input.projectId, workspaceId: ctx.workspace.id },
         columns: {
           id: true,
         },
@@ -27,7 +26,7 @@ export const listDomains = workspaceProcedure
               updatedAt: true,
             },
             limit: 500,
-            orderBy: (table, { desc }) => desc(table.updatedAt),
+            orderBy: { updatedAt: "desc" },
           },
         },
       })

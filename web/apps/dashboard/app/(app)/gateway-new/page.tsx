@@ -20,7 +20,7 @@ export default async function Page() {
   const { orgId } = await getAuth();
 
   const ws = await db.query.workspaces.findFirst({
-    where: (table, { eq, isNull, and }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+    where: { orgId, deletedAtM: { isNull: true } },
   });
 
   if (!ws) {
@@ -34,7 +34,7 @@ export default async function Page() {
       k8sNamespace: dns1035(12),
     });
 
-    await db.insert(schema.quotas).values({
+    await db.insert(schema.quota).values({
       workspaceId: id,
       ...freeTierQuotas,
     });

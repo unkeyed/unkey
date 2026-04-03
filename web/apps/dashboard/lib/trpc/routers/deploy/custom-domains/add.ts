@@ -20,8 +20,7 @@ export const addCustomDomain = workspaceProcedure
 
     // Verify project belongs to workspace
     const project = await db.query.projects.findFirst({
-      where: (table, { eq, and }) =>
-        and(eq(table.id, input.projectId), eq(table.workspaceId, ctx.workspace.id)),
+      where: { id: input.projectId, workspaceId: ctx.workspace.id },
       columns: {
         id: true,
       },
@@ -36,8 +35,7 @@ export const addCustomDomain = workspaceProcedure
 
     // Verify environment belongs to project and resolve the app
     const environment = await db.query.environments.findFirst({
-      where: (table, { eq, and }) =>
-        and(eq(table.id, input.environmentId), eq(table.projectId, input.projectId)),
+      where: { id: input.environmentId, projectId: input.projectId },
       columns: {
         id: true,
         appId: true,

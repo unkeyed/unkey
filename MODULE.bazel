@@ -14,11 +14,23 @@ oci.pull(
         "linux/arm64/v8",
     ],
 )
+oci.pull(
+    name = "mysql",
+    digest = "sha256:135bc87cce147c3d28cecb9ad270b814cb52805af7ddeea83bfcaf157d05a6b2",
+    image = "docker.io/library/mysql",
+    platforms = [
+        "linux/amd64",
+        "linux/arm64/v8",
+    ],
+)
 use_repo(
     oci,
     "distroless_static",
     "distroless_static_linux_amd64",
     "distroless_static_linux_arm64_v8",
+    "mysql",
+    "mysql_linux_amd64",
+    "mysql_linux_arm64_v8",
 )
 
 go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
