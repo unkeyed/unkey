@@ -56,10 +56,9 @@ func (c *Controller) runDesiredStateApplyLoop(ctx context.Context) {
 // The method sends the current versionLastSeen to resume from where it left off,
 // avoiding reprocessing of already-applied states. On each received message, it
 // dispatches to [Controller.ApplyDeployment] or [Controller.DeleteDeployment] based
-// on the state type. If processing fails, the method returns the error without
-// updating the version cursor, ensuring the state will be retried.
-//
-// The caller ([Controller.runDesiredStateApplyLoop]) handles reconnection on error.
+// on the state type. Individual apply/delete failures are logged and skipped so
+// that one broken deployment does not block the entire stream. The version cursor
+// advances past failed states; the periodic full sync will retry them.
 func (c *Controller) streamDesiredStateOnce(ctx context.Context) error {
 	logger.Info("connecting to control plane for desired state")
 
@@ -72,17 +71,18 @@ func (c *Controller) streamDesiredStateOnce(ctx context.Context) error {
 	}
 
 	for stream.Receive() {
-		logger.Info("received desired state from control plane")
 		state := stream.Msg()
 
 		switch op := state.GetState().(type) {
 		case *ctrlv1.DeploymentState_Apply:
+			logger.Info("applying deployment from stream", "deployment_id", op.Apply.GetDeploymentId(), "version", state.GetVersion())
 			if err := c.ApplyDeployment(ctx, op.Apply); err != nil {
-				return err
+				logger.Error("unable to apply deployment", "error", err, "deployment_id", op.Apply.GetDeploymentId())
 			}
 		case *ctrlv1.DeploymentState_Delete:
+			logger.Info("deleting deployment from stream", "namespace", op.Delete.GetK8SNamespace(), "name", op.Delete.GetK8SName(), "version", state.GetVersion())
 			if err := c.DeleteDeployment(ctx, op.Delete); err != nil {
-				return err
+				logger.Error("unable to delete deployment", "error", err, "namespace", op.Delete.GetK8SNamespace(), "name", op.Delete.GetK8SName())
 			}
 		}
 

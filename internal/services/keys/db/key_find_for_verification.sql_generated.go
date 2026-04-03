@@ -126,7 +126,12 @@ type FindKeyForVerificationRow struct {
 	ForWorkspaceEnabled sql.NullBool   `db:"for_workspace_enabled"`
 }
 
-// FindKeyForVerification
+// FindKeyForVerification loads a key by its SHA-256 hash together with its
+// workspace status, RBAC roles and permissions, identity, and rate limit
+// configuration in a single round trip. Roles, permissions, and rate limits
+// are returned as JSON arrays via JSON_ARRAYAGG so the caller can unmarshal
+// them into typed Go structs. Key-level and identity-level rate limits are
+// unioned so that both sources are available for the verification pipeline.
 //
 //	select k.id,
 //	       k.key_auth_id,
