@@ -15,13 +15,14 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
+import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { useCallback, useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useProjectData } from "../../../data-provider";
 
 const editEnvVarSchema = z.object({
-  key: z.string().min(1, "Variable name is required"),
+  key: envVarKeySchema,
   value: z.string(),
   environmentId: z.string().min(1, "Environment is required"),
   description: z.string().optional(),

@@ -53,7 +53,10 @@ go_library(
 
 go_test(
     name = "deployment_test",
-    srcs = ["controller_test.go"],
+    srcs = [
+        "controller_test.go",
+        "secrets_test.go",
+    ],
     embed = [":deployment"],
     deps = [
         "//pkg/cache",

@@ -4,6 +4,7 @@ import { Vault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
+import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
@@ -13,7 +14,7 @@ const vault = new Vault({
 });
 
 const envVarInputSchema = z.object({
-  key: z.string().min(1),
+  key: envVarKeySchema,
   value: z.string().min(1),
   type: z.enum(["recoverable", "writeonly"]),
   description: z.string().nullable().optional(),

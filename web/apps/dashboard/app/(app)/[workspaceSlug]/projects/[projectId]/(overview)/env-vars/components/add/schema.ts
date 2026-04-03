@@ -1,7 +1,8 @@
+import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { z } from "zod";
 
 export const envVarEntrySchema = z.object({
-  key: z.string().trim().min(1, "Variable name is required"),
+  key: envVarKeySchema,
   value: z.string().min(1, "Variable value is required"),
   description: z.string().optional(),
 });
