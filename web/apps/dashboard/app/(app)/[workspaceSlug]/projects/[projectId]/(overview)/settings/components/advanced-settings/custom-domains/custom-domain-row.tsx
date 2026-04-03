@@ -179,7 +179,9 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
             </div>
             <Button
               variant="primary"
-              onClick={() => window.open(domain.domainConnectUrl ?? undefined, "_blank", "noopener,noreferrer")}
+              onClick={() =>
+                window.open(domain.domainConnectUrl ?? undefined, "_blank", "noopener,noreferrer")
+              }
             >
               Connect
             </Button>
