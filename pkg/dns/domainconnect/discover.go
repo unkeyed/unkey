@@ -1,7 +1,3 @@
-// Package domainconnect wraps the Domain Connect protocol for custom domain setup.
-//
-// It uses github.com/railwayapp/domainconnect-go for discovery and URL signing,
-// providing a simplified API for Unkey's custom domain flow.
 package domainconnect
 
 import (
@@ -11,19 +7,37 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-
-	dc "github.com/railwayapp/domainconnect-go"
+	"net/url"
+	"strings"
 )
 
 const (
+	// providerID identifies Unkey in the Domain Connect template registry.
+	// Must match the providerId in our published template at
+	// https://github.com/Domain-Connect/Templates
 	providerID = "unkey.com"
-	serviceID  = "custom-domain"
-	keyID      = "_dcpubkeyv1"
+	// serviceID identifies the specific service template (one provider can have many).
+	serviceID = "custom-domain"
+	// keyID is the subdomain under the provider's syncPubKeyDomain where the public
+	// key is published as a TXT record. Providers fetch {keyID}.{syncPubKeyDomain}
+	// to verify signatures.
+	keyID = "_dcpubkeyv1"
+)
+
+// Known DNS provider IDs returned by the Domain Connect settings endpoint.
+// Values confirmed by querying each provider's /v2/{zone}/settings endpoint.
+const (
+	ProviderCloudflare = "cloudflare.com"
+	ProviderVercel     = "vercel.com"
 )
 
 // Result holds the Domain Connect discovery and URL generation output.
 type Result struct {
+	// ProviderID is the stable machine-readable provider identifier (e.g. "cloudflare.com").
+	// Use this for programmatic decisions (e.g. apex domain gating).
+	ProviderID string
 	// ProviderName is the display name of the DNS provider (e.g. "Cloudflare").
+	// Use this for UI display only.
 	ProviderName string
 	// URL is the fully signed Domain Connect redirect URL.
 	URL string
@@ -33,36 +47,64 @@ type Result struct {
 // if so, builds a signed redirect URL. Returns nil if the provider doesn't
 // support Domain Connect.
 func Discover(ctx context.Context, domain string, privateKeyPEM []byte, params map[string]string, redirectURL string) (*Result, error) {
-	client := dc.New()
-
-	cfg, err := client.GetDomainConfig(ctx, domain)
+	cfg, err := discoverConfig(ctx, domain)
 	if err != nil {
-		if errors.Is(err, dc.ErrNoDomainConnectRecord) {
+		if errors.Is(err, ErrNoDomainConnectRecord) || errors.Is(err, ErrNoDomainConnectSettings) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("domain connect discovery: %w", err)
 	}
 
-	syncURL, err := client.GetSyncURL(ctx, dc.SyncURLOptions{
-		Config:        cfg,
-		ProviderID:    providerID,
-		ServiceID:     serviceID,
-		Params:        params,
-		RedirectURL:   redirectURL,
-		State:         "",
-		GroupIDs:      nil,
-		PrivateKey:    privateKeyPEM,
-		KeyID:         keyID,
-		ForceProvider: false,
-	})
+	syncURL, err := buildSyncURL(cfg, params, redirectURL)
 	if err != nil {
-		return nil, fmt.Errorf("domain connect sync URL: %w", err)
+		return nil, fmt.Errorf("build sync URL: %w", err)
+	}
+
+	signedURL, err := signSyncURL(syncURL, privateKeyPEM, keyID)
+	if err != nil {
+		return nil, fmt.Errorf("sign sync URL: %w", err)
 	}
 
 	return &Result{
+		ProviderID:   cfg.ProviderID,
 		ProviderName: cfg.ProviderDisplayName,
-		URL:          syncURL,
+		URL:          signedURL,
 	}, nil
+}
+
+// buildSyncURL constructs the unsigned Domain Connect sync URL.
+func buildSyncURL(cfg *Config, params map[string]string, redirectURL string) (string, error) {
+	baseURL := ensureScheme(cfg.URLSyncUX)
+	rawURL := fmt.Sprintf("%s/v2/domainTemplates/providers/%s/services/%s/apply",
+		baseURL, providerID, serviceID)
+
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+
+	q := u.Query()
+	q.Set("domain", cfg.DomainRoot)
+	if cfg.Host != "" {
+		q.Set("host", cfg.Host)
+	}
+	for k, v := range params {
+		q.Set(k, v)
+	}
+	if redirectURL != "" {
+		q.Set("redirect_uri", redirectURL)
+	}
+
+	u.RawQuery = q.Encode()
+	return u.String(), nil
+}
+
+// ensureScheme adds https:// prefix if not already present.
+func ensureScheme(urlStr string) string {
+	if strings.HasPrefix(urlStr, "https://") || strings.HasPrefix(urlStr, "http://") {
+		return urlStr
+	}
+	return "https://" + urlStr
 }
 
 // ValidatePrivateKey checks that the PEM bytes contain a valid RSA private key.
@@ -72,7 +114,6 @@ func ValidatePrivateKey(pemBytes []byte) error {
 	if block == nil {
 		return errors.New("failed to decode PEM block")
 	}
-	// Try PKCS1 first, then PKCS8
 	_, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err == nil {
 		return nil

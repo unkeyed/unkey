@@ -1,3 +1,4 @@
+import { getDomain } from "tldts";
 import { DnsRecordRow } from "./dns-record-row";
 
 type DnsRecordTableProps = {
@@ -9,9 +10,10 @@ type DnsRecordTableProps = {
   isLoading?: boolean;
 };
 
-/** Returns true for apex/root domains (e.g. "example.com" but not "api.example.com"). */
+/** Returns true for apex/root domains using the public suffix list via tldts. */
 function isApexDomain(domain: string): boolean {
-  return domain.split(".").length === 2;
+  const registrable = getDomain(domain);
+  return registrable === domain;
 }
 
 function DnsRecordRowSkeleton({ isLast }: { isLast?: boolean }) {
