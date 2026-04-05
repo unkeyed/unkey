@@ -1,6 +1,8 @@
 ---
 title: "March 27, 2026"
 description: "Full-featured CLI, improved keys overview table, and onboarding refinements."
+date: "2026-03-27"
+noindex: true
 ---
 
 ## New features
@@ -23,11 +25,115 @@ unkey api keys create-key --api-id=api_1234 --name="Production Key"
 unkey api keys verify-key --key=sk_1234abcdef
 ```
 
-Every command supports `--output=json` for scripting and piping to tools like `jq`. See the [CLI documentation](/cli/overview) for the full command reference.
+Every command supports `--output=json` for scripting and piping to tools like `jq`. See the [CLI documentation](/docs//cli/overview) for the full command reference.
 
 <Warning>
-The CLI is early and provided on a best-effort basis. There are no breaking change guarantees for commands, flags, or output format. The underlying [API](/api-reference/v2/overview) is versioned and stable.
+The CLI is early and provided on a best-effort basis. There are no breaking change guarantees for commands, flags, or output format. The underlying [API](/docs//api-reference/v2/overview) is versioned and stable.
 </Warning>
+
+### Build-time environment variables
+
+Your environment variables are now available during Docker image builds. Variables configured in your deployment settings are decrypted and mounted securely as BuildKit secrets, so you can reference them in your Dockerfile without exposing them in the image layer history. This is useful for installing private packages or pulling credentials needed at build time.
+
+To use a build-time variable, mount it as a secret in your `RUN` instruction:
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM node:20-alpine
+
+# Mount NPM_TOKEN as a secret during install — it won't appear in the image layers
+RUN --mount=type=secret,id=NPM_TOKEN \
+    NPM_TOKEN=$(cat /run/secrets/NPM_TOKEN) \
+    npm install --registry https://registry.npmjs.org/
+
+COPY . .
+RUN npm run build
+CMD ["node", "dist/index.js"]
+```
+
+<Note>
+  The secret ID must match the environment variable key you configured in your deployment settings. Secrets are only available during the build stage where they are mounted.
+</Note>
+
+### OpenAPI diff viewer
+
+A new OpenAPI Diff page lets you compare the OpenAPI spec between any two deployments. Select two deployments side-by-side to see added, removed, and changed endpoints with method-specific badges. Changes are categorized by severity — breaking, warning, or informational — so you can quickly identify regressions before promoting a deployment.
+
+To enable the diff viewer, set the path to your OpenAPI spec file (for example, `/openapi.yaml`) in your project's environment settings. Once configured, the project overview shows a compact diff indicator between your current and latest preview deployment, with a link to the full comparison page.
+
+### Configurable production branch
+
+You can now choose which Git branch triggers production deployments. Navigate to your project's deployment settings to find the new **Production branch** setting. Select any branch from your connected repository — pushes to that branch deploy to the production environment, while all other branches deploy to preview.
+
+Previously, production deployments were always triggered by the repository's default branch. Now you can set it to any branch, such as `release` or `stable`, to match your team's workflow.
+
+### Idle deployment status
+
+Deployments that are scaled to zero now show an "idle" status in the dashboard instead of appearing as stopped or errored. This gives you a clearer picture of which deployments are still available but not actively running.
+
+### Environment selector for on-demand deployments
+
+When triggering a deployment manually from the dashboard, you can now choose which environment to deploy to. A dropdown lets you select the target environment — such as production, staging, or preview — instead of always deploying to the default. This gives you more control when redeploying or testing changes across environments.
+
+### Key last-used tracking
+
+You can now see when each API key was last used for verification. A new `lastUsedAt` field is returned by the `keys.getKey`, `keys.whoami`, and `apis.listKeys` [v2 API](/docs/api-reference/v2/overview) endpoints as a Unix timestamp in milliseconds. The value is approximate, accurate to within a few minutes. Use it to identify stale keys and clean up unused credentials.
+
+### Deployment approval for external contributors
+
+Deployments triggered by non-collaborators (such as fork-based pull requests) now require explicit approval from a project member before they proceed. A GitHub Check Run appears on the PR, and you can approve or dismiss the deployment directly from the Unkey dashboard.
+
+### Watch paths
+
+You can now configure glob patterns (e.g., `src/**`, `**/*.go`) in your deployment settings to control which file changes trigger builds. When no files in a push match your watch paths, the deployment is skipped — and the dashboard shows a dedicated skipped view explaining why.
+
+### On-demand deployments
+
+You can now trigger a deployment manually from the dashboard by selecting a branch and commit SHA from your connected repository. This is useful when you need to redeploy without pushing a new commit.
+
+### Deployment status on GitHub PRs
+
+Deployment progress is now reported directly to GitHub. You'll see status updates on your commits via the GitHub Deployments API, and a summary comment is posted to your pull request with a table showing the status of each app and environment.
+
+### Delete projects
+
+You can now delete projects from the dashboard. This removes the project and all associated apps, environments, and deployments.
+
+### Runtime environment variables for deployments
+
+Your deployed workloads now have access to a set of automatically injected environment variables that provide context about the running deployment. Use these to add metadata to your logs, identify which instance is handling a request, or gate behavior based on the current environment.
+
+| Variable | Description |
+| --- | --- |
+| `UNKEY_DEPLOYMENT_ID` | Unique identifier for the current deployment |
+| `UNKEY_ENVIRONMENT_SLUG` | Slug of the environment (e.g., `production`, `staging`) |
+| `UNKEY_REGION` | Region where the instance is running |
+| `UNKEY_INSTANCE_ID` | Unique identifier for the specific running instance (pod) |
+| `UNKEY_GIT_COMMIT_SHA` | Git commit SHA that triggered the deployment |
+| `UNKEY_GIT_BRANCH` | Git branch that triggered the deployment |
+| `UNKEY_GIT_REPO` | Full repository name (e.g., `org/repo`) |
+| `UNKEY_GIT_COMMIT_MESSAGE` | Commit message of the deployed commit |
+
+Git-related variables are populated automatically when your deployment is connected to a GitHub repository. `UNKEY_INSTANCE_ID` is unique per running instance, so you can use it to distinguish between replicas.
+
+```typescript
+// Example: structured logging with deployment context
+app.use((req, res, next) => {
+  console.log(JSON.stringify({
+    deployment: process.env.UNKEY_DEPLOYMENT_ID,
+    environment: process.env.UNKEY_ENVIRONMENT_SLUG,
+    region: process.env.UNKEY_REGION,
+    instance: process.env.UNKEY_INSTANCE_ID,
+    commit: process.env.UNKEY_GIT_COMMIT_SHA,
+    path: req.path,
+  }));
+  next();
+});
+```
+
+<Note>
+  The previous `UNKEY_WORKSPACE_ID`, `UNKEY_PROJECT_ID`, and `UNKEY_ENVIRONMENT_ID` variables have been replaced by the new set listed above.
+</Note>
 
 ## Updates
 
@@ -39,7 +145,48 @@ The keys overview table in the dashboard now supports column sorting, keyboard n
 
 The settings UI for billing, project, rate limiting, and API configuration now shares a unified layout. Danger and warning zones are visually consistent across all settings pages.
 
+### Smarter deployment triggers
+
+Branch creation and deletion events no longer trigger unnecessary deployments. Pushes to your main branch are also auto-approved without requiring manual intervention, since GitHub already enforces write-access verification. Fork-based pull requests still require explicit approval before deploying.
+
+### Faster key last-used display
+
+The keys table in the dashboard now loads last-used timestamps directly from the API response instead of making separate requests for each key. This means the "last used" column renders instantly without individual loading spinners.
+
+### Improved routing reliability
+
+Deployments are now routed only to regions that have running instances. Previously, requests could be forwarded to a region where no instances were active, resulting in 503 errors. The routing layer now verifies instance availability before selecting a target region.
+
+### Improved root keys table
+
+The root keys settings page now uses a paginated, sortable table with keyboard navigation and improved loading states.
+
+### Dockerfile path autocomplete
+
+The deployment settings UI now detects Dockerfiles in your connected repository and offers autocomplete suggestions. It also validates paths in real time and suggests corrections for case mismatches.
+
+### Friendlier build error messages
+
+When a Docker build fails, the dashboard now shows a human-readable error message instead of raw BuildKit output. Common issues like empty Dockerfiles, missing files, and syntax errors include actionable guidance and a link to settings.
+
+### Custom domain prioritization
+
+Custom domains now appear first in the deployment domains list. Verified custom domains take priority over platform-generated domains, making it easier to find your production URLs.
+
+### Environment variable improvements
+
+Pasting environment variables now appends to your existing list instead of replacing it. You can also search through your variables by key name, and duplicate key validation now highlights all conflicting rows.
+
 ## Bug fixes
 
 - The onboarding flow no longer closes unexpectedly when navigating away. If you've already connected GitHub, the setup wizard skips the connection step and takes you directly to repository selection.
 - Fixed a missing workspace slug in the key details panel link within the API requests view.
+- Concurrent requests to update key [roles and permissions](/docs/platform/apis/features/authorization/roles-and-permissions) no longer cause race conditions or deadlocks.
+- You can now copy the external ID from the keys table actions menu and edit it from the dialog without errors.
+- Deployment details now reliably display git metadata (commit message, author, and timestamp) even when the information was not available at the time the deployment was created.
+- Fixed an overflow issue in the deployments list where long commit messages could break the table layout.
+- Deployment errors now return specific error codes instead of generic 502 responses.
+- Build and runtime settings (Dockerfile, port, command, healthcheck) now sync across all environments in a project.
+- The workspace switcher dropdown no longer takes up excessive space when you only have one workspace.
+- The CLI now correctly parses flags that appear after positional arguments (e.g., `deploy nginx:latest --project=local`).
+- Fixed several onboarding flow issues, including a regression where settings were being applied twice.
