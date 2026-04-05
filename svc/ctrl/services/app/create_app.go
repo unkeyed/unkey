@@ -100,6 +100,7 @@ func (s *Service) CreateApp(
 				Port:            0,
 				CpuMillicores:   0,
 				MemoryMib:       0,
+				StorageMib:      0,
 				Command:         dbtype.StringSlice{},
 				Healthcheck:     dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 				ShutdownSignal:  db.AppRuntimeSettingsShutdownSignalSIGTERM,
