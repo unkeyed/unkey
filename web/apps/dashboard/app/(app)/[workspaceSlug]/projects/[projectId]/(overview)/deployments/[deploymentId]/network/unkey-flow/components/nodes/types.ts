@@ -37,6 +37,9 @@ type InstanceNode = BaseNode & {
     type: "instance";
     description: string;
     replicas: number;
+    // Pod name (matches the `instance_id` column in the checkpoints schema).
+    // Optional because the dummy generator doesn't produce one.
+    k8sName?: string;
   } & BaseMetrics;
 };
 

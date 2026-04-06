@@ -83,7 +83,7 @@ bazel: ## Sync BUILD.bazel
 	bazel run //:gazelle
 
 .PHONY: generate
-generate: generate-sql ## Generate code from protobuf and other sources
+generate: generate-sql ## Generate code from protobuf and other sources (NOT eBPF, see generate-bpf)
 	rm -rf ./gen || true
 	rm ./pkg/db/*_generated.go || true
 	go generate ./...
@@ -91,6 +91,10 @@ generate: generate-sql ## Generate code from protobuf and other sources
 	bazel run //:gazelle
 	go fmt ./...
 	pnpm --dir=web fmt
+
+.PHONY: generate-bpf
+generate-bpf: ## Compile the heimdall eBPF program and regenerate Go bindings
+	@PATH=/opt/homebrew/opt/llvm/bin:/usr/local/opt/llvm/bin:$$PATH go generate -tags bpf_generate ./svc/heimdall/internal/network/...
 
 .PHONY: test
 test: oci-load ## Run tests with bazel

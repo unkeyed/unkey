@@ -1,51 +1,32 @@
+-- Per-hour rollup of instance_checkpoints_v1 (DASHBOARDS ONLY).
+-- Reads raw directly (flat cascade).
 CREATE TABLE instance_resources_per_hour_v1 (
   time DateTime,
   workspace_id String,
-  project_id String,
-  app_id String,
-  environment_id String,
+  project_id LowCardinality(String),
+  environment_id LowCardinality(String),
   resource_type LowCardinality(String),
-  resource_id String,
-  instance_id String,
-  cpu_millicores_sum SimpleAggregateFunction(sum, Int64),
+  resource_id LowCardinality(String),
+  container_uid String,
+  instance_id LowCardinality(String),
+  cpu_usage_usec_min SimpleAggregateFunction(min, Int64),
+  cpu_usage_usec_max SimpleAggregateFunction(max, Int64),
   memory_bytes_max SimpleAggregateFunction(max, Int64),
-  memory_bytes_sum SimpleAggregateFunction(sum, Int64),
-  cpu_limit_millicores_max SimpleAggregateFunction(max, Int32),
-  memory_limit_bytes_max SimpleAggregateFunction(max, Int64),
-  network_egress_bytes_sum SimpleAggregateFunction(sum, Int64),
-  network_egress_public_bytes_sum SimpleAggregateFunction(sum, Int64),
+  cpu_allocated_millicores_max SimpleAggregateFunction(max, Int32),
+  memory_allocated_bytes_max SimpleAggregateFunction(max, Int64),
+  disk_allocated_bytes_max SimpleAggregateFunction(max, Int64),
+  disk_used_bytes_max SimpleAggregateFunction(max, Int64),
+  network_egress_public_bytes_min SimpleAggregateFunction(min, Int64),
+  network_egress_public_bytes_max SimpleAggregateFunction(max, Int64),
+  network_egress_private_bytes_min SimpleAggregateFunction(min, Int64),
+  network_egress_private_bytes_max SimpleAggregateFunction(max, Int64),
+  network_ingress_public_bytes_min SimpleAggregateFunction(min, Int64),
+  network_ingress_public_bytes_max SimpleAggregateFunction(max, Int64),
+  network_ingress_private_bytes_min SimpleAggregateFunction(min, Int64),
+  network_ingress_private_bytes_max SimpleAggregateFunction(max, Int64),
   sample_count SimpleAggregateFunction(sum, Int64)
-) ENGINE = AggregatingMergeTree()
-ORDER BY (workspace_id, resource_id, instance_id, time)
-PARTITION BY toStartOfDay(time)
+)
+ENGINE = AggregatingMergeTree()
+ORDER BY (workspace_id, resource_id, container_uid, time)
+PARTITION BY toYYYYMM(time)
 TTL time + INTERVAL 90 DAY DELETE;
-
-CREATE MATERIALIZED VIEW instance_resources_per_hour_mv_v1
-TO instance_resources_per_hour_v1 AS
-SELECT
-  toStartOfHour(fromUnixTimestamp64Milli(time)) AS time,
-  workspace_id,
-  project_id,
-  app_id,
-  environment_id,
-  resource_type,
-  resource_id,
-  instance_id,
-  sum(cpu_millicores_sum) AS cpu_millicores_sum,
-  max(memory_bytes_max) AS memory_bytes_max,
-  sum(memory_bytes_sum) AS memory_bytes_sum,
-  max(cpu_limit_millicores_max) AS cpu_limit_millicores_max,
-  max(memory_limit_bytes_max) AS memory_limit_bytes_max,
-  sum(network_egress_bytes_sum) AS network_egress_bytes_sum,
-  sum(network_egress_public_bytes_sum) AS network_egress_public_bytes_sum,
-  sum(sample_count) AS sample_count
-FROM instance_resources_per_minute_v1
-GROUP BY
-  time,
-  workspace_id,
-  project_id,
-  app_id,
-  environment_id,
-  resource_type,
-  resource_id,
-  instance_id;
