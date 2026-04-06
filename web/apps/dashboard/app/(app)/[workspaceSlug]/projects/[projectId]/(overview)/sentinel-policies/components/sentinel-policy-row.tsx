@@ -7,12 +7,25 @@ import { Dots, GripDotsVertical, PenWriting3, Trash } from "@unkey/icons";
 import { Button, ConfirmPopover, FormInput } from "@unkey/ui";
 import { useCallback, useRef, useState } from "react";
 
+type MergedPolicyRow = {
+  id: string;
+  name: string;
+  type: SentinelPolicy["type"];
+  envA: SentinelPolicy | null;
+  envB: SentinelPolicy | null;
+};
+
 type SentinelPolicyRowProps = {
-  policy: SentinelPolicy;
+  policy: MergedPolicyRow;
   index: number;
   isLast: boolean;
   isDragOver: boolean;
-  onToggleActive: (id: string) => void;
+  envASlug: string;
+  envBSlug: string;
+  onToggleEnvA: (id: string) => void;
+  onToggleEnvB: (id: string) => void;
+  onAddToEnvA: (id: string) => void;
+  onAddToEnvB: (id: string) => void;
   onUpdate: (id: string, field: "name", value: string) => void;
   onDelete: (id: string) => void;
   onDragStart: (index: number) => void;
@@ -30,12 +43,73 @@ const POLICY_TYPE_LABELS: Record<SentinelPolicy["type"], string> = {
   openapi: "OpenAPI",
 };
 
+function EnvBadge({
+  id,
+  slug,
+  envPolicy,
+  onToggle,
+  onAdd,
+}: {
+  id: string;
+  slug: string;
+  envPolicy: SentinelPolicy | null;
+  onToggle: (id: string) => void;
+  onAdd: (id: string) => void;
+}) {
+  if (envPolicy !== null) {
+    return (
+      <button
+        type="button"
+        aria-pressed={envPolicy.enabled}
+        className={cn(
+          "flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full border transition-all cursor-pointer w-full",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+          envPolicy.enabled
+            ? "bg-info-3 border-info-7 text-info-11 focus-visible:ring-info-7"
+            : "bg-transparent border-grayA-5 text-gray-10 focus-visible:ring-grayA-7",
+        )}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle(id);
+        }}
+      >
+        <span
+          className={cn(
+            "w-1.5 h-1.5 rounded-full flex-shrink-0",
+            envPolicy.enabled ? "bg-info-11" : "bg-gray-9",
+          )}
+        />
+        <span className="truncate capitalize">{slug}</span>
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-dashed border-grayA-4 text-gray-8 hover:text-gray-10 hover:border-grayA-6 transition-all cursor-pointer w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-6 focus-visible:ring-offset-1"
+      onClick={(e) => {
+        e.stopPropagation();
+        onAdd(id);
+      }}
+    >
+      <span className="flex-shrink-0">+</span>
+      <span className="truncate capitalize">{slug}</span>
+    </button>
+  );
+}
+
 export function SentinelPolicyRow({
   policy,
   index,
   isLast,
   isDragOver,
-  onToggleActive,
+  envASlug,
+  envBSlug,
+  onToggleEnvA,
+  onToggleEnvB,
+  onAddToEnvA,
+  onAddToEnvB,
   onUpdate,
   onDelete,
   onDragStart,
@@ -47,10 +121,6 @@ export function SentinelPolicyRow({
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-
-  const handleToggle = useCallback(() => {
-    onToggleActive(policy.id);
-  }, [onToggleActive, policy.id]);
 
   const menuItems: MenuItem[] = [
     {
@@ -73,6 +143,8 @@ export function SentinelPolicyRow({
       },
     },
   ];
+
+  const isActiveAnywhere = (policy.envA?.enabled ?? false) || (policy.envB?.enabled ?? false);
 
   return (
     <>
@@ -101,14 +173,14 @@ export function SentinelPolicyRow({
         }}
         className={cn(!isLast && "border-b border-grayA-4", isDragOver && "bg-grayA-3")}
       >
-        <div className={cn(!policy.enabled && "opacity-55")}>
-          <div className="group flex items-center hover:bg-grayA-2 transition-colors">
-            {/* Step number: fixed 40px column */}
-            <div className="w-10 shrink-0  py-3.5 pl-4">
+        <div className={cn(!isActiveAnywhere && "opacity-55")}>
+          <div className="group flex items-start hover:bg-grayA-2 transition-colors">
+            {/* Step number */}
+            <div className="w-10 shrink-0 pt-3.5 pl-4">
               <div
                 className={cn(
                   "size-6 rounded-full border flex items-center justify-center text-[11px] font-medium",
-                  policy.enabled
+                  isActiveAnywhere
                     ? "bg-info-3 border-info-7 text-info-11"
                     : "bg-grayA-2 border-grayA-5 text-gray-10",
                 )}
@@ -117,9 +189,9 @@ export function SentinelPolicyRow({
               </div>
             </div>
 
-            {/* Drag handle: fixed 40px column */}
+            {/* Drag handle */}
             <div
-              className="w-10 shrink-0 flex items-center justify-center py-3.5 cursor-grab active:cursor-grabbing touch-none"
+              className="w-10 shrink-0 flex items-center justify-center pt-3.5 cursor-grab active:cursor-grabbing touch-none"
               onMouseDown={() => {
                 fromHandle.current = true;
               }}
@@ -128,8 +200,8 @@ export function SentinelPolicyRow({
               <GripDotsVertical iconSize="lg-medium" className="opacity-40 hover:opacity-70" />
             </div>
 
-            {/* Name: flex-4, matches env-var name cell */}
-            <div className="flex-4 min-w-0 py-3.5 flex items-center">
+            {/* Name */}
+            <div className="flex-4 min-w-0 pt-3.5 pb-3.5 flex items-center">
               <span
                 className={cn(
                   "text-[13px] truncate",
@@ -140,38 +212,32 @@ export function SentinelPolicyRow({
               </span>
             </div>
 
-            {/* Type: flex-2, plain muted text */}
-            <div className="flex-2 min-w-0 py-3.5 flex items-center pr-3">
+            {/* Type */}
+            <div className="flex-2 min-w-0 pt-3.5 pb-3.5 flex items-center pr-3">
               <span className="text-[13px] text-gray-11 truncate">
                 {POLICY_TYPE_LABELS[policy.type]}
               </span>
             </div>
 
-            {/* Active/Inactive toggle + dots menu: fixed width so toggle text can't shift the name */}
-            <div className="w-36 shrink-0 py-3.5 flex items-center justify-end gap-2 pr-4">
-              <button
-                type="button"
-                aria-pressed={policy.enabled}
-                className={cn(
-                  "flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full border shrink-0 transition-all cursor-pointer",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-                  policy.enabled
-                    ? "bg-info-3 border-info-7 text-info-11 focus-visible:ring-info-7"
-                    : "bg-transparent border-grayA-5 text-gray-10 focus-visible:ring-grayA-7",
-                )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleToggle();
-                }}
-              >
-                <span
-                  className={cn(
-                    "w-1.5 h-1.5 rounded-full flex-shrink-0",
-                    policy.enabled ? "bg-info-11" : "bg-gray-9",
-                  )}
+            {/* Stacked env badges + dots menu */}
+            <div className="shrink-0 flex items-start gap-2.5 pt-3 pb-3 pr-4">
+              <div className="flex flex-col gap-1.5 w-28">
+                <EnvBadge
+                  id={policy.id}
+                  slug={envASlug}
+                  envPolicy={policy.envA}
+                  onToggle={onToggleEnvA}
+                  onAdd={onAddToEnvA}
                 />
-                {policy.enabled ? "Active" : "Inactive"}
-              </button>
+                <EnvBadge
+                  id={policy.id}
+                  slug={envBSlug}
+                  envPolicy={policy.envB}
+                  onToggle={onToggleEnvB}
+                  onAdd={onAddToEnvB}
+                />
+              </div>
+
               <TableActionPopover items={menuItems}>
                 <Button
                   ref={deleteButtonRef}
@@ -185,7 +251,7 @@ export function SentinelPolicyRow({
             </div>
           </div>
 
-          {/* Expandable edit — matches env-var-base-row expand pattern */}
+          {/* Expandable edit */}
           {isOpen && (
             <div className="grid animate-expand-down overflow-hidden">
               <div className="min-h-0">
@@ -209,7 +275,7 @@ export function SentinelPolicyRow({
         onConfirm={() => onDelete(policy.id)}
         triggerRef={deleteButtonRef}
         title="Confirm deletion"
-        description={`This will permanently delete "${policy.name || "this policy"}". This action cannot be undone.`}
+        description={`This will permanently delete "${policy.name || "this policy"}" from all environments. This action cannot be undone.`}
         confirmButtonText="Delete policy"
         cancelButtonText="Cancel"
         variant="danger"
@@ -223,7 +289,7 @@ function SentinelPolicyEditBody({
   onSave,
   onClose,
 }: {
-  policy: SentinelPolicy;
+  policy: MergedPolicyRow;
   onSave: (name: string) => void;
   onClose: () => void;
 }) {
