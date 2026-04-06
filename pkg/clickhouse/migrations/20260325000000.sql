@@ -3,7 +3,7 @@
 
 CREATE TABLE IF NOT EXISTS default.instance_resource_snapshots_v1
 (
-    `time` DateTime,
+    `time` Int64 CODEC(Delta, LZ4),
     `workspace_id` String,
     `project_id` String,
     `app_id` String,
@@ -25,13 +25,13 @@ CREATE TABLE IF NOT EXISTS default.instance_resource_snapshots_v1
 )
 ENGINE = ReplacingMergeTree(time)
 ORDER BY (workspace_id, resource_id, instance_id, time)
-PARTITION BY toYYYYMM(time)
-TTL time + INTERVAL 90 DAY DELETE;
+PARTITION BY toYYYYMM(fromUnixTimestamp64Milli(time))
+TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 90 DAY DELETE;
 
 -- Per-minute aggregation (from snapshots)
 CREATE TABLE IF NOT EXISTS default.instance_resources_per_minute_v1
 (
-    `time` DateTime,
+    `time` Int64 CODEC(Delta, LZ4),
     `workspace_id` String,
     `project_id` String,
     `app_id` String,
@@ -56,7 +56,7 @@ TTL time + INTERVAL 30 DAY DELETE;
 CREATE MATERIALIZED VIEW IF NOT EXISTS default.instance_resources_per_minute_mv_v1
 TO default.instance_resources_per_minute_v1 AS
 SELECT
-    toStartOfMinute(time) AS time,
+    toStartOfMinute(fromUnixTimestamp64Milli(time)) AS time,
     workspace_id, project_id, app_id, environment_id, resource_id, instance_id,
     sum(toInt64(cpu_millicores)) AS cpu_millicores_sum,
     max(memory_bytes) AS memory_bytes_max,
@@ -72,7 +72,7 @@ GROUP BY time, workspace_id, project_id, app_id, environment_id, resource_id, in
 -- Per-hour aggregation (from per-minute)
 CREATE TABLE IF NOT EXISTS default.instance_resources_per_hour_v1
 (
-    `time` DateTime,
+    `time` Int64 CODEC(Delta, LZ4),
     `workspace_id` String,
     `project_id` String,
     `app_id` String,
@@ -92,12 +92,12 @@ CREATE TABLE IF NOT EXISTS default.instance_resources_per_hour_v1
 ENGINE = AggregatingMergeTree()
 ORDER BY (workspace_id, resource_id, instance_id, time)
 PARTITION BY toStartOfDay(time)
-TTL time + INTERVAL 90 DAY DELETE;
+TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 90 DAY DELETE;
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS default.instance_resources_per_hour_mv_v1
 TO default.instance_resources_per_hour_v1 AS
 SELECT
-    toStartOfHour(time) AS time,
+    toStartOfHour(fromUnixTimestamp64Milli(time)) AS time,
     workspace_id, project_id, app_id, environment_id, resource_id, instance_id,
     sum(cpu_millicores_sum) AS cpu_millicores_sum,
     max(memory_bytes_max) AS memory_bytes_max,
@@ -137,7 +137,7 @@ TTL time + INTERVAL 365 DAY DELETE;
 CREATE MATERIALIZED VIEW IF NOT EXISTS default.instance_resources_per_day_mv_v1
 TO default.instance_resources_per_day_v1 AS
 SELECT
-    toStartOfDay(time) AS time,
+    toStartOfDay(fromUnixTimestamp64Milli(time)) AS time,
     workspace_id, project_id, app_id, environment_id, resource_id, instance_id,
     sum(cpu_millicores_sum) AS cpu_millicores_sum,
     max(memory_bytes_max) AS memory_bytes_max,
@@ -176,7 +176,7 @@ ORDER BY (workspace_id, resource_id, instance_id, time);
 CREATE MATERIALIZED VIEW IF NOT EXISTS default.instance_resources_per_month_mv_v1
 TO default.instance_resources_per_month_v1 AS
 SELECT
-    toStartOfMonth(time) AS time,
+    toStartOfMonth(fromUnixTimestamp64Milli(time)) AS time,
     workspace_id, project_id, app_id, environment_id, resource_id, instance_id,
     sum(cpu_millicores_sum) AS cpu_millicores_sum,
     max(memory_bytes_max) AS memory_bytes_max,
