@@ -3,27 +3,28 @@
 package collector
 
 import (
-	"time"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 type cgroupReader struct {
-	root string
+	root   string
+	driver CgroupDriver
 }
 
-type cpuReading struct {
-	usageUsec int64
-	readAt    time.Time
+type cgroupReading struct {
+	cpuUsageUsec int64
+	memoryBytes  int64
 }
 
-type podResources struct {
-	cpuMillicores int32
-	memoryBytes   int64
+// read is a no-op on non-Linux platforms.
+func (r *cgroupReader) read(_ types.UID, _ corev1.PodQOSClass) (cgroupReading, error) {
+	return cgroupReading{cpuUsageUsec: 0, memoryBytes: 0}, nil
 }
 
-// readPodResources is a no-op on non-Linux platforms.
-func (r *cgroupReader) readPodResources(_ types.UID, _ corev1.PodQOSClass, _ *cpuReading) (podResources, cpuReading, error) {
-	return podResources{cpuMillicores: 0, memoryBytes: 0}, cpuReading{usageUsec: 0, readAt: time.Now()}, nil
+// cgroupPath returns empty on non-Linux. The network reader skips attach on
+// empty paths, so host-network pods and macOS dev all flow through the same
+// no-op branch.
+func (r *cgroupReader) cgroupPath(_ types.UID, _ corev1.PodQOSClass) string {
+	return ""
 }

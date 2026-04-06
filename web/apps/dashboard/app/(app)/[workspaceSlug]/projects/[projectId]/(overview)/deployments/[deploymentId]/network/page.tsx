@@ -2,5 +2,5 @@
 import { DeploymentNetworkView } from "./deployment-network-view";
 
 export default function DeploymentDetailsPage() {
-  return <DeploymentNetworkView />;
+  return <DeploymentNetworkView showNodeDetails />;
 }
