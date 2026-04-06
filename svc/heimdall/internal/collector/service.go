@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/svc/heimdall/pkg/metrics"
 	corelisters "k8s.io/client-go/listers/core/v1"
-	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 const (
@@ -27,41 +26,44 @@ const (
 )
 
 type Config struct {
-	CH            *batch.BatchProcessor[schema.ResourceSnapshot]
-	PodLister     corelisters.PodLister
-	MetricsClient metricsv.Interface
-	NodeName      string
-	Region        string
-	Platform      string
+	CH         *batch.BatchProcessor[schema.ResourceSnapshot]
+	PodLister  corelisters.PodLister
+	CgroupRoot string
+	NodeName   string
+	Region     string
+	Platform   string
 }
 
 // Collector writes resource snapshots to ClickHouse every collection interval.
-// It runs as a DaemonSet — one per node. Each instance collects:
-//   - CPU/memory from Metrics Server (filtered to local node's pods)
-//   - Network egress from local conntrack table (per-connection bytes)
-//   - Pod labels + limits from informer cache
+// It reads CPU/memory directly from cgroup v2 files and network egress from conntrack.
 type Collector struct {
-	ch             *batch.BatchProcessor[schema.ResourceSnapshot]
-	podLister      corelisters.PodLister
-	metricsClient  metricsv.Interface
-	nodeName       string
-	region         string
-	platform       string
-	internalCIDRs  []*net.IPNet
-	prevEgress     map[string]podEgress // track previous conntrack totals for delta
-	mu             sync.Mutex
+	ch            *batch.BatchProcessor[schema.ResourceSnapshot]
+	podLister     corelisters.PodLister
+	cgroup        *cgroupReader
+	nodeName      string
+	region        string
+	platform      string
+	internalCIDRs []*net.IPNet
+	prevEgress    map[string]podEgress
+	prevCPU       map[string]*cpuReading
+	mu            sync.Mutex
 }
 
 func New(cfg Config) *Collector {
+	root := cfg.CgroupRoot
+	if root == "" {
+		root = "/sys/fs/cgroup"
+	}
 	return &Collector{
 		ch:            cfg.CH,
 		podLister:     cfg.PodLister,
-		metricsClient: cfg.MetricsClient,
+		cgroup:        &cgroupReader{root: root},
 		nodeName:      cfg.NodeName,
 		region:        cfg.Region,
 		platform:      cfg.Platform,
 		internalCIDRs: defaultInternalCIDRs(),
 		prevEgress:    make(map[string]podEgress),
+		prevCPU:       make(map[string]*cpuReading),
 		mu:            sync.Mutex{},
 	}
 }

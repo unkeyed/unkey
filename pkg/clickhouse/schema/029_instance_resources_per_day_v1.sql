@@ -22,7 +22,7 @@ TTL time + INTERVAL 365 DAY DELETE;
 CREATE MATERIALIZED VIEW instance_resources_per_day_mv_v1
 TO instance_resources_per_day_v1 AS
 SELECT
-  toStartOfDay(time) AS time,
+  toStartOfDay(fromUnixTimestamp64Milli(time)) AS time,
   workspace_id,
   project_id,
   app_id,

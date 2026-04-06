@@ -10,7 +10,7 @@ data:
     region = "local"
     platform = "dev"
     clickhouse_url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
-    collection_interval = "15s"
+    collection_interval = "5s"
     node_name = "${HEIMDALL_NODE_NAME}"
 ---
 apiVersion: apps/v1
@@ -57,7 +57,14 @@ spec:
             - name: config
               mountPath: /etc/unkey
               readOnly: true
+            - name: cgroup
+              mountPath: /sys/fs/cgroup
+              readOnly: true
       volumes:
         - name: config
           configMap:
             name: heimdall-config
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
+            type: Directory

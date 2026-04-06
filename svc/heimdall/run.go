@@ -13,7 +13,6 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 func Run(ctx context.Context, cfg Config) error {
@@ -52,11 +51,6 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("creating kubernetes client: %w", err)
 	}
 
-	metricsClient, err := metricsv.NewForConfig(k8sCfg)
-	if err != nil {
-		return fmt.Errorf("creating metrics client: %w", err)
-	}
-
 	factory := informers.NewSharedInformerFactory(clientset, 0)
 	podLister := factory.Core().V1().Pods().Lister()
 
@@ -71,12 +65,12 @@ func Run(ctx context.Context, cfg Config) error {
 	factory.WaitForCacheSync(ctx.Done())
 
 	kc := collector.New(collector.Config{
-		CH:            snapshotBuffer,
-		PodLister:     podLister,
-		MetricsClient: metricsClient,
-		NodeName:      cfg.NodeName,
-		Region:        cfg.Region,
-		Platform:      cfg.Platform,
+		CH:         snapshotBuffer,
+		PodLister:  podLister,
+		CgroupRoot: "/sys/fs/cgroup",
+		NodeName:   cfg.NodeName,
+		Region:     cfg.Region,
+		Platform:   cfg.Platform,
 	})
 
 	r.Go(func(ctx context.Context) error {

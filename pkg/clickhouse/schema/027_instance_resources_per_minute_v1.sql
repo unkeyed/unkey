@@ -23,7 +23,7 @@ TTL time + INTERVAL 30 DAY DELETE;
 CREATE MATERIALIZED VIEW instance_resources_per_minute_mv_v1
 TO instance_resources_per_minute_v1 AS
 SELECT
-  toStartOfMinute(time) AS time,
+  toStartOfMinute(fromUnixTimestamp64Milli(time)) AS time,
   workspace_id,
   project_id,
   app_id,

@@ -19,6 +19,5 @@ go_library(
         "@io_k8s_client_go//informers",
         "@io_k8s_client_go//kubernetes",
         "@io_k8s_client_go//rest",
-        "@io_k8s_metrics//pkg/client/clientset/versioned",
     ],
 )
