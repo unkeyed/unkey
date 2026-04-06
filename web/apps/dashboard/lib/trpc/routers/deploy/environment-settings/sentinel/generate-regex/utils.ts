@@ -3,7 +3,7 @@ import type OpenAI from "openai";
 import z from "zod";
 
 const conditionTypeContext: Record<string, string> = {
-  path: 'matching URL paths (e.g. /api/v1/users, /health, /graphql)',
+  path: "matching URL paths (e.g. /api/v1/users, /health, /graphql)",
   header: 'matching HTTP header values (e.g. "Bearer xxx", "application/json", "gzip")',
   queryParam: 'matching query parameter values (e.g. "true", "123", "admin")',
 };
