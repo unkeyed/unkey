@@ -4,8 +4,8 @@ import { type MenuItem, TableActionPopover } from "@/components/logs/table-actio
 import type { SentinelPolicy } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
 import { cn } from "@/lib/utils";
 import { Dots, GripDotsVertical, PenWriting3, Trash } from "@unkey/icons";
-import { Button, ConfirmPopover, FormInput } from "@unkey/ui";
-import { useCallback, useRef, useState } from "react";
+import { Button } from "@unkey/ui";
+import { useRef, useState } from "react";
 
 type MergedPolicyRow = {
   id: string;
@@ -26,7 +26,7 @@ type SentinelPolicyRowProps = {
   onToggleEnvB: (id: string) => void;
   onAddToEnvA: (id: string) => void;
   onAddToEnvB: (id: string) => void;
-  onUpdate: (id: string, field: "name", value: string) => void;
+  onSave: (id: string, prodPolicy: SentinelPolicy, previewPolicy: SentinelPolicy | null) => void;
   onDelete: (id: string) => void;
   onDragStart: (index: number) => void;
   onDragOver: (index: number) => void;
@@ -110,7 +110,7 @@ export function SentinelPolicyRow({
   onToggleEnvB,
   onAddToEnvA,
   onAddToEnvB,
-  onUpdate,
+  onSave,
   onDelete,
   onDragStart,
   onDragOver,
@@ -119,7 +119,7 @@ export function SentinelPolicyRow({
 }: SentinelPolicyRowProps) {
   const fromHandle = useRef(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const menuItems: MenuItem[] = [
@@ -130,7 +130,7 @@ export function SentinelPolicyRow({
       divider: true,
       onClick: (e) => {
         e.stopPropagation();
-        setIsOpen(true);
+        setIsEditOpen(true);
       },
     },
     {
@@ -171,12 +171,15 @@ export function SentinelPolicyRow({
           fromHandle.current = false;
           onDragEnd();
         }}
-        className={cn(!isLast && "border-b border-grayA-4", isDragOver && "bg-grayA-3")}
+        className={cn(
+          !isLast && !isEditOpen && "border-b border-grayA-4",
+          isDragOver && "bg-grayA-3",
+        )}
       >
         <div className={cn(!isActiveAnywhere && "opacity-55")}>
-          <div className="group flex items-start hover:bg-grayA-2 transition-colors">
+          <div className="group flex items-center hover:bg-grayA-2 transition-colors">
             {/* Step number */}
-            <div className="w-10 shrink-0 pt-3.5 pl-4">
+            <div className="w-10 shrink-0 py-5 pl-4 flex items-center">
               <div
                 className={cn(
                   "size-6 rounded-full border flex items-center justify-center text-[11px] font-medium",
@@ -191,7 +194,7 @@ export function SentinelPolicyRow({
 
             {/* Drag handle */}
             <div
-              className="w-10 shrink-0 flex items-center justify-center pt-3.5 cursor-grab active:cursor-grabbing touch-none"
+              className="w-10 shrink-0 flex items-center justify-center py-5 cursor-grab active:cursor-grabbing touch-none"
               onMouseDown={() => {
                 fromHandle.current = true;
               }}
@@ -201,7 +204,7 @@ export function SentinelPolicyRow({
             </div>
 
             {/* Name */}
-            <div className="flex-4 min-w-0 pt-3.5 pb-3.5 flex items-center">
+            <div className="flex-4 min-w-0 py-5 flex items-center">
               <span
                 className={cn(
                   "text-[13px] truncate",
@@ -213,31 +216,32 @@ export function SentinelPolicyRow({
             </div>
 
             {/* Type */}
-            <div className="flex-2 min-w-0 pt-3.5 pb-3.5 flex items-center pr-3">
+            <div className="flex-4 min-w-0 py-5 flex items-center pr-3">
               <span className="text-[13px] text-gray-11 truncate">
                 {POLICY_TYPE_LABELS[policy.type]}
               </span>
             </div>
 
-            {/* Stacked env badges + dots menu */}
-            <div className="shrink-0 flex items-start gap-2.5 pt-3 pb-3 pr-4">
-              <div className="flex flex-col gap-1.5 w-28">
-                <EnvBadge
-                  id={policy.id}
-                  slug={envASlug}
-                  envPolicy={policy.envA}
-                  onToggle={onToggleEnvA}
-                  onAdd={onAddToEnvA}
-                />
-                <EnvBadge
-                  id={policy.id}
-                  slug={envBSlug}
-                  envPolicy={policy.envB}
-                  onToggle={onToggleEnvB}
-                  onAdd={onAddToEnvB}
-                />
-              </div>
+            {/* Env badges */}
+            <div className="flex-2 min-w-0 py-5 flex items-center gap-1.5 pr-3">
+              <EnvBadge
+                id={policy.id}
+                slug={envASlug}
+                envPolicy={policy.envA}
+                onToggle={onToggleEnvA}
+                onAdd={onAddToEnvA}
+              />
+              <EnvBadge
+                id={policy.id}
+                slug={envBSlug}
+                envPolicy={policy.envB}
+                onToggle={onToggleEnvB}
+                onAdd={onAddToEnvB}
+              />
+            </div>
 
+            {/* Actions */}
+            <div className="w-12 shrink-0 py-5 flex items-center justify-end pr-4">
               <TableActionPopover items={menuItems}>
                 <Button
                   ref={deleteButtonRef}
@@ -250,87 +254,8 @@ export function SentinelPolicyRow({
               </TableActionPopover>
             </div>
           </div>
-
-          {/* Expandable edit */}
-          {isOpen && (
-            <div className="grid animate-expand-down overflow-hidden">
-              <div className="min-h-0">
-                <SentinelPolicyEditBody
-                  policy={policy}
-                  onSave={(name) => {
-                    onUpdate(policy.id, "name", name);
-                    setIsOpen(false);
-                  }}
-                  onClose={() => setIsOpen(false)}
-                />
-              </div>
-            </div>
-          )}
         </div>
       </div>
-
-      <ConfirmPopover
-        isOpen={isDeleteConfirmOpen}
-        onOpenChange={setIsDeleteConfirmOpen}
-        onConfirm={() => onDelete(policy.id)}
-        triggerRef={deleteButtonRef}
-        title="Confirm deletion"
-        description={`This will permanently delete "${policy.name || "this policy"}" from all environments. This action cannot be undone.`}
-        confirmButtonText="Delete policy"
-        cancelButtonText="Cancel"
-        variant="danger"
-      />
     </>
-  );
-}
-
-function SentinelPolicyEditBody({
-  policy,
-  onSave,
-  onClose,
-}: {
-  policy: MergedPolicyRow;
-  onSave: (name: string) => void;
-  onClose: () => void;
-}) {
-  const [draft, setDraft] = useState(policy.name);
-
-  const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      onSave(draft);
-    },
-    [draft, onSave],
-  );
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-      }
-    },
-    [onClose],
-  );
-
-  return (
-    <div className="bg-gray-1 px-4 pb-6 pt-5 border-t border-grayA-4" onKeyDown={handleKeyDown}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <FormInput
-          label="Name"
-          placeholder="Policy name"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-        />
-        <div className="flex items-center justify-end gap-2 pt-3">
-          <Button type="button" variant="outline" size="md" onClick={onClose} className="px-3">
-            Cancel
-          </Button>
-          <Button type="submit" variant="primary" size="md" className="px-3">
-            Save
-          </Button>
-        </div>
-      </form>
-    </div>
   );
 }

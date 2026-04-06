@@ -15,10 +15,7 @@ type MergedPolicy = {
   envB: SentinelPolicy | null;
 };
 
-function mergePolicies(
-  policiesA: SentinelPolicy[],
-  policiesB: SentinelPolicy[],
-): MergedPolicy[] {
+function mergePolicies(policiesA: SentinelPolicy[], policiesB: SentinelPolicy[]): MergedPolicy[] {
   const mapA = new Map(policiesA.map((p) => [p.id, p]));
   const mapB = new Map(policiesB.map((p) => [p.id, p]));
 
@@ -51,6 +48,7 @@ type SentinelPoliciesListProps = {
   envBSlug: string;
   policiesA: SentinelPolicy[];
   policiesB: SentinelPolicy[];
+  topOffset?: number;
 };
 
 export function SentinelPoliciesList({
@@ -60,20 +58,16 @@ export function SentinelPoliciesList({
   envBSlug,
   policiesA,
   policiesB,
+  topOffset: _topOffset,
 }: SentinelPoliciesListProps) {
-  const [mergedPolicies, setMergedPolicies] = useState(() =>
-    mergePolicies(policiesA, policiesB),
-  );
+  const [mergedPolicies, setMergedPolicies] = useState(() => mergePolicies(policiesA, policiesB));
   const [dragSrcIndex, setDragSrcIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setMergedPolicies((prev) => {
       const prevIds = new Set(prev.map((m) => m.id));
-      const incomingIds = new Set([
-        ...policiesA.map((p) => p.id),
-        ...policiesB.map((p) => p.id),
-      ]);
+      const incomingIds = new Set([...policiesA.map((p) => p.id), ...policiesB.map((p) => p.id)]);
       const sameSet =
         prevIds.size === incomingIds.size && [...prevIds].every((id) => incomingIds.has(id));
 
@@ -105,14 +99,11 @@ export function SentinelPoliciesList({
     [envAId, envBId],
   );
 
-  const persistEnv = useCallback(
-    (updated: MergedPolicy[], envId: string, env: "envA" | "envB") => {
-      collection.environmentSettings.update(envId, (draft) => {
-        draft.sentinelConfig = { policies: toEnvPolicies(updated, env) };
-      });
-    },
-    [],
-  );
+  const persistEnv = useCallback((updated: MergedPolicy[], envId: string, env: "envA" | "envB") => {
+    collection.environmentSettings.update(envId, (draft) => {
+      draft.sentinelConfig = { policies: toEnvPolicies(updated, env) };
+    });
+  }, []);
 
   const handleReorder = useCallback(
     (newOrder: MergedPolicy[]) => {
@@ -184,16 +175,16 @@ export function SentinelPoliciesList({
     [persistEnv, envBId],
   );
 
-  const handleUpdate = useCallback(
-    (id: string, field: "name", value: string) => {
+  const handleSaveConfig = useCallback(
+    (id: string, prodPolicy: SentinelPolicy, previewPolicy: SentinelPolicy | null) => {
       setMergedPolicies((prev) => {
         const next = prev.map((m) => {
           if (m.id !== id) return m;
           return {
             ...m,
-            [field]: value,
-            envA: m.envA !== null ? { ...m.envA, [field]: value } : null,
-            envB: m.envB !== null ? { ...m.envB, [field]: value } : null,
+            name: prodPolicy.name,
+            envA: m.envA !== null ? prodPolicy : null,
+            envB: m.envB !== null && previewPolicy !== null ? previewPolicy : m.envB,
           };
         });
         persistBoth(next);
@@ -260,7 +251,7 @@ export function SentinelPoliciesList({
             onToggleEnvB={handleToggleEnvB}
             onAddToEnvA={handleAddToEnvA}
             onAddToEnvB={handleAddToEnvB}
-            onUpdate={handleUpdate}
+            onSave={handleSaveConfig}
             onDelete={handleDelete}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}

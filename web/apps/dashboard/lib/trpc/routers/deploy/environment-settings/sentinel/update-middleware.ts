@@ -4,6 +4,30 @@ import { appRuntimeSettings, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 
+export type StringMatchMode = "exact" | "prefix" | "regex";
+
+export type MatchCondition =
+  | { id: string; type: "path"; mode: StringMatchMode; value: string; ignoreCase?: boolean }
+  | { id: string; type: "method"; methods: string[] }
+  | {
+      id: string;
+      type: "header";
+      name: string;
+      present?: boolean;
+      mode?: StringMatchMode;
+      value?: string;
+      ignoreCase?: boolean;
+    }
+  | {
+      id: string;
+      type: "queryParam";
+      name: string;
+      present?: boolean;
+      mode?: StringMatchMode;
+      value?: string;
+      ignoreCase?: boolean;
+    };
+
 export type SentinelPolicy = {
   id: string;
   name: string;
@@ -15,6 +39,7 @@ export type SentinelPolicy = {
   basicauth?: { credentials: { username: string; passwordHash: string }[] };
   iprules?: { allowlist: string[]; denylist: string[] };
   openapi?: { specPath: string };
+  match?: { conditions: MatchCondition[] };
 };
 
 export type SentinelConfig = {
