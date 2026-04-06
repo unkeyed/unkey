@@ -215,7 +215,7 @@ export function SentinelPolicyAddPanel({
                       </SelectContent>
                     </Select>
                     <FormDescription
-                      description="Which environment(s) this policy will be added to."
+                      description="Which environments this policy will be added to."
                       descriptionId="policy-env-desc"
                       errorId="policy-env-error"
                     />
