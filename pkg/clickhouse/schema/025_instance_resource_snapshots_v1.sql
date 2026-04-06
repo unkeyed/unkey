@@ -1,5 +1,6 @@
 CREATE TABLE instance_resource_snapshots_v1 (
-  time DateTime,
+  -- unix milliseconds
+  time Int64 CODEC(Delta, LZ4),
   workspace_id String,
   project_id String,
   app_id String,
@@ -10,7 +11,7 @@ CREATE TABLE instance_resource_snapshots_v1 (
   region LowCardinality(String),
   platform LowCardinality(String),
 
-  -- Actual usage (from Metrics Server)
+  -- Actual usage (from cgroup v2)
   cpu_millicores Int32,
   memory_bytes Int64,
 
@@ -29,5 +30,5 @@ CREATE TABLE instance_resource_snapshots_v1 (
 )
 ENGINE = ReplacingMergeTree(time)
 ORDER BY (workspace_id, resource_id, instance_id, time)
-PARTITION BY toYYYYMM(time)
-TTL time + INTERVAL 90 DAY DELETE;
+PARTITION BY toYYYYMM(fromUnixTimestamp64Milli(time))
+TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 90 DAY DELETE;

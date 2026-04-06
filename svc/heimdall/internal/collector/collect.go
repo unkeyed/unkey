@@ -2,17 +2,22 @@ package collector
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"os"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/heimdall/pkg/metrics"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type podInfo struct {
+	name            string
+	uid             types.UID
+	qosClass        corev1.PodQOSClass
 	workspaceID     string
 	projectID       string
 	appID           string
@@ -27,31 +32,26 @@ type podInfo struct {
 	memLimitBytes   int64
 }
 
-func (c *Collector) collect(ctx context.Context) error {
+func (c *Collector) collect(_ context.Context) error {
 	now := time.Now()
 
 	kranePods := c.buildKranePodLookup()
 
 	// Build IP → pod name map for conntrack attribution
 	podIPs := make(map[string]string, len(kranePods))
-	for name, info := range kranePods {
+	for _, info := range kranePods {
 		if info.podIP != "" {
-			podIPs[info.podIP] = name
+			podIPs[info.podIP] = info.name
 		}
 	}
 
-	podMetricsList, err := c.metricsClient.MetricsV1beta1().PodMetricses("").List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("listing pod metrics: %w", err)
-	}
-
+	// Conntrack for network egress
 	currentEgress, err := collectEgress(podIPs, c.internalCIDRs)
 	if err != nil {
 		logger.Error("conntrack failed, writing snapshots without network data", "error", err.Error())
 		currentEgress = make(map[string]podEgress)
 	}
 
-	// Conntrack counters are cumulative — compute delta from previous tick
 	egressDeltas := make(map[string]podEgress, len(currentEgress))
 	for podName, current := range currentEgress {
 		if prev, hasPrev := c.prevEgress[podName]; hasPrev {
@@ -69,35 +69,45 @@ func (c *Collector) collect(ctx context.Context) error {
 		}
 	}
 	c.prevEgress = currentEgress
+
+	// Read cgroup stats and write snapshots
 	var snapshotCount int
-	for _, pm := range podMetricsList.Items {
-		info, isKrane := kranePods[pm.Name]
-		if !isKrane {
+	seenUIDs := make(map[string]struct{}, len(kranePods))
+
+	for uidStr, info := range kranePods {
+		seenUIDs[uidStr] = struct{}{}
+
+		prev := c.prevCPU[uidStr]
+		resources, reading, err := c.cgroup.readPodResources(info.uid, info.qosClass, prev)
+		if err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				metrics.CgroupReadErrors.Inc()
+				logger.Error("cgroup read failed", "pod", info.name, "error", err.Error())
+			}
+			continue
+		}
+		c.prevCPU[uidStr] = &reading
+
+		// First tick: no CPU delta yet, skip snapshot
+		if prev == nil {
 			continue
 		}
 
-		var cpuMilli int64
-		var memBytes int64
-		for _, container := range pm.Containers {
-			cpuMilli += container.Usage.Cpu().MilliValue()
-			memBytes += container.Usage.Memory().Value()
-		}
-
-		egress := egressDeltas[pm.Name]
+		egress := egressDeltas[info.name]
 
 		c.ch.Buffer(schema.ResourceSnapshot{
-			Time:                 now.Unix(),
+			Time:                 now.UnixMilli(),
 			WorkspaceID:          info.workspaceID,
 			ProjectID:            info.projectID,
 			AppID:                info.appID,
 			EnvironmentID:        info.environmentID,
 			ResourceType:         info.resourceType,
 			ResourceID:           info.resourceID,
-			InstanceID:           pm.Name,
+			InstanceID:           info.name,
 			Region:               c.region,
 			Platform:             c.platform,
-			CPUMillicores:        int32(cpuMilli),
-			MemoryBytes:          memBytes,
+			CPUMillicores:        resources.cpuMillicores,
+			MemoryBytes:          resources.memoryBytes,
 			CPURequestMillicores: info.cpuRequestMilli,
 			CPULimitMillicores:   info.cpuLimitMilli,
 			MemoryRequestBytes:   info.memRequestBytes,
@@ -109,11 +119,18 @@ func (c *Collector) collect(ctx context.Context) error {
 		snapshotCount++
 	}
 
-	metrics.KranePods.Set(float64(snapshotCount))
+	// Clean up prevCPU for pods that no longer exist
+	for uid := range c.prevCPU {
+		if _, ok := seenUIDs[uid]; !ok {
+			delete(c.prevCPU, uid)
+		}
+	}
+
+	metrics.KranePods.Set(float64(len(kranePods)))
 
 	logger.Info("collection tick",
 		"node", c.nodeName,
-		"metrics_server_pods", len(podMetricsList.Items),
+		"krane_pods", len(kranePods),
 		"snapshots_written", snapshotCount,
 		"conntrack_pods", len(currentEgress),
 	)
@@ -141,7 +158,6 @@ func (c *Collector) buildKranePodLookup() map[string]podInfo {
 			continue
 		}
 
-		// Deployments use deployment.id, sentinels use sentinel.id
 		resourceID := pod.Labels[LabelDeployment]
 		if component == "sentinel" {
 			resourceID = pod.Labels[LabelSentinel]
@@ -153,6 +169,9 @@ func (c *Collector) buildKranePodLookup() map[string]podInfo {
 		}
 
 		info := podInfo{
+			name:            pod.Name,
+			uid:             pod.UID,
+			qosClass:        pod.Status.QOSClass,
 			workspaceID:     pod.Labels[LabelWorkspace],
 			projectID:       pod.Labels[LabelProject],
 			appID:           pod.Labels[LabelApp],
@@ -176,8 +195,9 @@ func (c *Collector) buildKranePodLookup() map[string]podInfo {
 			info.memLimitBytes = limits.Memory().Value()
 		}
 
-		kranePods[pod.Name] = info
+		kranePods[string(pod.UID)] = info
 	}
 
 	return kranePods
 }
+
