@@ -1,8 +1,13 @@
 load('ext://namespace', 'namespace_create')
 load('ext://restart_process',  'docker_build_with_restart')
 load('ext://secret', 'secret_create_generic')
+load('ext://helm_remote', 'helm_remote')
 
+config.define_string('topolvm_backing_size')
 cfg = config.parse()
+# Sparse loopback file size. Sparse means this is a ceiling, not a reservation —
+# 20 GiB on a fresh cluster costs ~0 bytes. Bump if your test workloads fill more.
+TOPOLVM_BACKING_SIZE = cfg.get('topolvm_backing_size', '20G')
 
 update_settings(suppress_unused_image_warnings=["unkey/sentinel:latest"])
 
@@ -68,6 +73,79 @@ local_resource(
   'cilium-policies',
   'kubectl apply -f k8s/manifests/cilium-policies.yaml',
   labels=['setup'],
+)
+
+# ─── TopoLVM (real LVM-backed PVCs for dev) ────────────────────────────────
+#
+# Customer pods get ephemeral PVCs via the StorageClass krane reads from
+# config (`topolvm-ssd`). TopoLVM dynamically carves an LV per PVC out of
+# `topolvm-vg`, formats it ext4, and mounts it in the customer pod — same
+# semantics as ebs-csi-gp3 in prod, just backed by a loopback file inside
+# the minikube node instead of an EBS volume.
+#
+# Three steps that have to run in order on every `tilt up`:
+#   1. setup-vg.sh: create/reattach the loopback device + activate the VG
+#      (idempotent, also handles `minikube stop`/`start` recovery).
+#   2. helm install topolvm with the cert-manager-free / no-webhook config.
+#   3. apply our StorageClass (provisioner: topolvm.io, fsType: ext4).
+#
+# The kubernetes-sigs csi-hostpath-driver addon is replaced — TopoLVM gives
+# us per-volume filesystems so heimdall's statfs reports accurate per-pod
+# usage and `df` inside the customer pod shows the allocated size, not the
+# host disk.
+local_resource(
+  'topolvm-disable-old-csi',
+  'minikube addons disable csi-hostpath-driver 2>&1 | tail -1 || true',
+  labels=['storage'],
+)
+
+local_resource(
+  'topolvm-vg',
+  # Copy the script onto the node first and then run it with no stdin.
+  # `minikube ssh -- bash < file` would work, but `minikube ssh` always
+  # allocates a PTY and the wrapping SSH session keeps the terminal open
+  # after the script exits, hanging Tilt. Copy + exec avoids the PTY trap.
+  'minikube cp k8s/topolvm/setup-vg.sh /tmp/topolvm-setup-vg.sh && ' +
+  'minikube ssh -- sudo bash /tmp/topolvm-setup-vg.sh ' + TOPOLVM_BACKING_SIZE,
+  deps=['k8s/topolvm/setup-vg.sh'],
+  resource_deps=['topolvm-disable-old-csi'],
+  labels=['storage'],
+)
+
+helm_remote(
+  'topolvm',
+  repo_name='topolvm',
+  repo_url='https://topolvm.github.io/topolvm',
+  version='15.5.4',
+  namespace='topolvm-system',
+  create_namespace=True,
+  values=['k8s/topolvm/values.yaml'],
+)
+# Force ordering so the helm install can't run before the VG exists.
+# topolvm-lvmd-0 is the lvmd sidecar DaemonSet (one device class = one
+# numbered DaemonSet); topolvm-node is the CSI node plugin DaemonSet.
+k8s_resource(
+  workload='topolvm-controller',
+  resource_deps=['topolvm-vg'],
+  labels=['storage'],
+)
+k8s_resource(
+  workload='topolvm-node',
+  resource_deps=['topolvm-vg'],
+  labels=['storage'],
+)
+k8s_resource(
+  workload='topolvm-lvmd-0',
+  resource_deps=['topolvm-vg'],
+  labels=['storage'],
+)
+
+local_resource(
+  'topolvm-storageclass',
+  'kubectl apply -f k8s/topolvm/storageclass.yaml',
+  deps=['k8s/topolvm/storageclass.yaml'],
+  resource_deps=['topolvm-controller', 'topolvm-node', 'topolvm-lvmd-0'],
+  labels=['storage'],
 )
 
 local_resource(
@@ -287,7 +365,7 @@ k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl-api', 'build-unkey', 'rbac', 'namespace', 'sentinel', 'cilium-policies', 'build-sentinel-image', 'depot-credentials'],
+  resource_deps=['ctrl-api', 'build-unkey', 'rbac', 'namespace', 'sentinel', 'cilium-policies', 'build-sentinel-image', 'depot-credentials', 'topolvm-storageclass'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
