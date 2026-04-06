@@ -49,7 +49,7 @@ func (r *cgroupReader) readPodResources(uid types.UID, qos corev1.PodQOSClass, p
 	now := time.Now()
 	reading := cpuReading{usageUsec: usageUsec, readAt: now}
 
-	res := podResources{memoryBytes: memBytes}
+	res := podResources{cpuMillicores: 0, memoryBytes: memBytes}
 
 	if prev != nil {
 		elapsed := now.Sub(prev.readAt)
