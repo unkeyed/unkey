@@ -1,0 +1,64 @@
+---
+title: eBPF primer (what it is, why we use it)
+description: Background on eBPF for engineers touching heimdall's network metering. Covers what it is, why the kernel lets us run code inside it, and why it was the right tool for per-pod byte accounting.
+---
+
+## What eBPF is
+
+eBPF (extended Berkeley Packet Filter) is a facility in the Linux kernel that lets you load small, sandboxed programs into kernel space and attach them to specific hooks: a tracepoint, a socket, a tc qdisc, a cgroup, a syscall entry, etc. When a packet traverses the hook, or the syscall fires, your program runs inside the kernel with access to that event's context (skb, registers, process state, whatever the hook exposes). It reads data, updates counters in shared maps, optionally mutates or drops the event, and returns.
+
+The crucial property: **the kernel verifies your program is safe to run before it loads.** You can't crash the kernel, leak memory, or loop forever. Either the verifier accepts the program as provably safe and it runs with near-native performance, or it rejects the program at load time and nothing happens. That's what makes eBPF usable in a production datapath. You get kernel-level observability without kernel-level blast radius.
+
+It started life as a packet-filtering assembler for `tcpdump` in 1993 (McCanne & Jacobson's original BSD Packet Filter) and was extended in 2014 by Alexei Starovoitov into a general-purpose in-kernel VM. Today it's the substrate underneath Cilium, Pixie, Katran, Cloudflare's DDoS mitigation, Falco, Tetragon, bpftrace, most modern Linux tracing tools, and an increasing slice of the kernel's own networking stack. [Origin story on LWN](https://lwn.net/Articles/603983/).
+
+## How the safety story actually works
+
+Three things keep eBPF code from taking down the kernel:
+
+1. **The verifier walks every possible execution path before load.** It proves: every memory read is in-bounds against a known-size region, every loop terminates (originally: no loops at all; now: bounded loops with a fixed upper count), every helper call gets the right argument types, pointer arithmetic stays within the pointer's allowed range, and the program's total instruction count is finite. A program that fails any of these checks doesn't load; the kernel returns `EINVAL` to `bpf(BPF_PROG_LOAD)`. [Kernel verifier docs](https://www.kernel.org/doc/html/latest/bpf/verifier.html).
+2. **Memory access goes through a narrow helper API, not raw pointers.** You can't just dereference arbitrary kernel addresses. You use `bpf_probe_read_kernel()`, `bpf_skb_load_bytes()`, map lookup helpers, etc. Each of these is a well-known function with verifier-enforced bounds.
+3. **JIT + runtime isolation.** The verifier-accepted program is JIT-compiled into native instructions (on x86_64, aarch64). At runtime the program runs to completion under a bounded-instruction cap; there is no preemption and no kernel-mode recursion into arbitrary code.
+
+The practical consequence for us: our 146-line C file in `svc/heimdall/internal/network/bpf/network.bpf.c` *cannot crash the kernel* and *cannot corrupt customer packets*. If it has a bug, the worst case is the verifier rejects the next build (we catch it at `loadBpfObjects` time) or the counters undercount. There is no scenario where a malformed eBPF program takes down the node.
+
+## Why eBPF here
+
+Per-pod network byte accounting on a Kubernetes node is a place where eBPF is genuinely the best tool. The alternatives and why they fail:
+
+| Approach | Why it doesn't work for us |
+|---|---|
+| Parse `/proc/net/dev` from an agent | Gives per-interface counters, not per-pod. Can't split public vs private. gVisor pods don't expose host-visible per-pod interfaces. |
+| Sidecar container in every customer pod | Runs customer-adjacent code, multiplies pod count, burns allocated CPU/memory, and makes the security story harder. Fly.io can do it because they own the guest; we don't. |
+| Read Cilium's per-endpoint BPF maps | Cilium doesn't expose per-endpoint byte counters; [four feature requests](https://github.com/cilium/cilium/issues/13173) have been declined. `cilium_forward_bytes_total` is node-aggregated. |
+| Patch the kernel | Obviously not available to us. |
+| gVisor's own metric server | The sentry tracks `netstack_nic_tx_bytes` per sandbox, but the counter is NIC-level and doesn't split public vs private. Also requires a containerd config change and a persistent metric-server process. Reasonable long-term fallback, not a current fit. |
+| tc-eBPF on the host-side veth (what we do) | Sees real L3 packets regardless of runtime (runc or gVisor), attaches per-pod via the pod's CNI netns, gives us per-packet classification in ~100ns. |
+
+Our program does the bare minimum: skip the Ethernet header, read the IP header, classify destination IP as RFC1918/public, `__sync_fetch_and_add` into one of four counter slots in a shared map keyed by the veth's ifindex. It returns `TC_ACT_UNSPEC` (non-terminating; see [heimdall.mdx](./heimdall) for why this matters with Cilium in the chain), never modifies the packet, and runs alongside Cilium's own programs without interfering. Userspace (the Go side) periodically reads the map and writes the raw counter values to ClickHouse. Same pattern as CPU/memory; the only difference is that the counters live in a BPF map instead of a sysfs file.
+
+## What eBPF gives us that no other tool does
+
+- **Per-packet execution at native speed.** Our program runs for every packet crossing the pod's veth, adding roughly 100ns of overhead. At 100k packets/second that's 10ms of CPU per second. Unmeasurable in practice.
+- **Namespace-aware.** The hook runs in the right context to see the pod's real packets, before or after Cilium's datapath depending on where we attach and how we chain.
+- **Shared userspace/kernel state via maps.** A BPF map is a kernel data structure accessible from both the BPF program and userspace through file descriptors. We atomically increment counters in the program; Go reads them with `map.Lookup()`. No IPC, no syscalls per packet.
+- **Safe under the customer load path.** Because of the verifier, our code is structurally incapable of breaking customer pod networking. [See the Safety invariants section of heimdall.mdx](./heimdall#safety-invariants).
+
+## Further reading
+
+- [ebpf.io - What is eBPF?](https://ebpf.io/what-is-ebpf/). The canonical overview. Start here.
+- [Brendan Gregg's eBPF landing page](https://www.brendangregg.com/ebpf.html). Entry point to his tools, book, and many worked performance-analysis examples.
+- ["Learning eBPF" by Liz Rice](https://www.oreilly.com/library/view/learning-ebpf/9781098135119/). The friendliest book-length intro, from O'Reilly.
+- [Cilium's BPF and XDP reference guide](https://docs.cilium.io/en/stable/bpf/). Dense but the best single architecture doc outside the kernel tree. Covers hook types, helpers, maps, verifier idioms.
+- [Linux kernel verifier docs](https://www.kernel.org/doc/html/latest/bpf/verifier.html). The safety story, in source form.
+- [Meta's Katran L4 load balancer](https://engineering.fb.com/2021/05/11/open-source/katran-2/). The canonical "eBPF at hyperscale" reference. Terabits per second of traffic through BPF programs.
+- [Cloudflare blog, eBPF tag](https://blog.cloudflare.com/tag/ebpf/). A steady stream of production eBPF writeups from the L7 edge of the internet.
+
+## Where eBPF lives in this repo
+
+- `svc/heimdall/internal/network/bpf/network.bpf.c`. The only eBPF C program we ship. Around 146 lines, compiled by `bpf2go` into an embedded `.o` plus Go bindings. Run `make generate-bpf` after editing.
+- `svc/heimdall/internal/network/bpf/network_helpers.h`. Hand-rolled subset of kernel + libbpf headers (around 170 lines). Replaces a 4.5 MB vmlinux.h that we'd otherwise need to vendor.
+- `svc/heimdall/internal/network/network_linux.go`. The Go loader + TCX attach logic.
+- `svc/heimdall/internal/network/sandbox_linux.go`. Resolves each pod's CNI netns through containerd.
+- `svc/heimdall/internal/network/veth_linux.go`. Enters the CNI netns via `setns` and finds the host-side veth ifindex via netlink.
+
+See [heimdall.mdx](./heimdall) for how the whole thing fits together.

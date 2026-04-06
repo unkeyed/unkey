@@ -37,6 +37,7 @@ export const getDeploymentTree = workspaceProcedure
             ),
           columns: {
             id: true,
+            k8sName: true,
             cpuMillicores: true,
             memoryMib: true,
             status: true,
@@ -89,19 +90,22 @@ export const getDeploymentTree = workspaceProcedure
               latency: "—",
               health: calculateSentinelHealth(sentinelInstances, health),
             },
-            children: sentinelInstances.map(({ id, status, cpuMillicores, memoryMib }) => ({
-              id,
-              label: id,
-              metadata: {
-                type: "instance" as const,
-                description: "Instance replica",
-                replicas: availableReplicas,
-                cpu: cpuMillicores,
-                memory: memoryMib,
-                latency: "—",
-                health: mapInstanceStatusToHealth(status),
-              },
-            })),
+            children: sentinelInstances.map(
+              ({ id, k8sName, status, cpuMillicores, memoryMib }) => ({
+                id,
+                label: id,
+                metadata: {
+                  type: "instance" as const,
+                  description: "Instance replica",
+                  replicas: availableReplicas,
+                  cpu: cpuMillicores,
+                  memory: memoryMib,
+                  latency: "—",
+                  health: mapInstanceStatusToHealth(status),
+                  k8sName,
+                },
+              }),
+            ),
           };
         },
       );

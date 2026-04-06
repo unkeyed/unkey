@@ -1,0 +1,19 @@
+---
+title: heimdall
+---
+
+Used by the heimdall metering DaemonSet running on the `untrusted` nodepool. Writes per-pod resource checkpoints to `instance_checkpoints_v1`; the three dashboard MVs on that table fan out from heimdall's INSERT.
+
+```sql
+CREATE USER IF NOT EXISTS heimdall IDENTIFIED WITH sha256_password BY '<password>';
+
+GRANT metering_writer_role TO heimdall;
+```
+
+After creating the user, put the connection URL in AWS Secrets Manager under `unkey/heimdall` as `UNKEY_CLICKHOUSE_URL`:
+
+```
+clickhouse://heimdall:<password>@<host>:<port>/default?secure=true
+```
+
+This is what the infra chart's ExternalSecret reads.

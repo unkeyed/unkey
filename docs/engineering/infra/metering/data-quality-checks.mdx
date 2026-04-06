@@ -1,0 +1,176 @@
+---
+title: Data quality checks
+description: Invariant queries that should always return zero rows. If one of them returns anything, the metering pipeline is producing bad data. Wire these into an hourly alert or a CI canary.
+---
+
+<Note>
+  These are the "tests for the live data", not for the code. They assert properties that must hold by construction of the pipeline. If a query here returns any rows, something upstream is broken and any aggregate derived from the current state could be wrong.
+</Note>
+
+## Why these exist
+
+The metering pipeline's correctness guarantees are structural (monotonic counters, `max - min` idempotent under duplicates, container_uid isolates restarts). Structure holds *as long as nobody changes it*. These queries detect the drift: the moment a counter goes backward, a bucket has fewer samples than it should, or a negative delta sneaks into the data, an alert fires and a human looks before any downstream consumer acts on it.
+
+Run them hourly against the raw or MV tables, depending on query cost. None take longer than a few seconds on the current data volume.
+
+## 1. Counter monotonicity per `container_uid`
+
+A kernel counter inside a single container incarnation should only ever increase. A decrease implies: (a) BPF map reset without corresponding `container_uid` change (severity: undercount), (b) a replay-triggered row insertion with stale data that Replacing hasn't merged yet (severity: none on `FINAL` reads, but still a smell), (c) a genuine bug.
+
+```sql
+-- Any container_uid with a single non-monotone step in the last 24h.
+-- Returns zero rows under healthy ingestion.
+SELECT
+  container_uid,
+  count() AS violations
+FROM (
+  SELECT
+    container_uid,
+    cpu_usage_usec,
+    lagInFrame(cpu_usage_usec) OVER (
+      PARTITION BY container_uid ORDER BY ts
+      ROWS BETWEEN 1 PRECEDING AND CURRENT ROW
+    ) AS prev
+  FROM default.instance_checkpoints FINAL
+  WHERE ts > (toUnixTimestamp(now()) - 86400) * 1000
+)
+WHERE prev > 0 AND cpu_usage_usec < prev
+GROUP BY container_uid
+HAVING violations > 0
+ORDER BY violations DESC
+LIMIT 50;
+```
+
+Run the same query substituting `network_egress_public_bytes`, `_private_bytes`, `network_ingress_public_bytes`, `_private_bytes`. All four must be monotone per `container_uid`.
+
+**When this fires:** the most common cause is the BPF counter map resetting without the Go side knowing (now mitigated by bpffs pinning, see `svc/heimdall/internal/network/network_linux.go`). Second most common: someone ran a backfill against the raw table with stale rows. Both undercount, so aggregates stay safe, but investigate.
+
+## 2. 15s bucket sample density
+
+The per-15s MV expects ~3 samples per bucket (heimdall ticks every 5s). A bucket with only 1 sample yields `max - min = 0` for that bucket, so the chart goes flat for exactly the window where the pod was under the heaviest load (that's when heimdall gets CPU-throttled and misses ticks). Day/month-grain aggregates are unaffected, but this is the canary for the problem we hit during `wrk` load in dev.
+
+```sql
+-- Top 15s buckets with sparse sampling in the last hour. 1-2 samples per
+-- bucket means heimdall was throttled or crashing. 0 means the pod existed
+-- but no sample landed (should not happen).
+SELECT
+  time,
+  instance_id,
+  min(sample_count) AS min_samples,
+  max(sample_count) AS max_samples
+FROM default.instance_resources_per_15s_v1
+WHERE time > now() - INTERVAL 1 HOUR
+  AND sample_count < 2
+GROUP BY time, instance_id
+ORDER BY time DESC
+LIMIT 100;
+```
+
+**When this fires:** heimdall CPU throttled (check `heimdall_tick_duration_seconds` p99), containerd drop + informer lag (both signals firing at once), or a bug in the ingest path.
+
+## 3. Negative deltas in counter columns
+
+Every counter delta must be >= 0. `max - min` over a monotonic counter can never legitimately go negative; if one does, either the container_uid partitioning let a counter reset leak in, or `UInt64` arithmetic underflowed somewhere. Runs directly against raw since there is no long-retention aggregate yet.
+
+```sql
+-- Any container-day where any counter delta went negative. Should always be empty.
+SELECT
+  toDate(fromUnixTimestamp64Milli(ts), 'UTC') AS day,
+  workspace_id,
+  resource_id,
+  container_uid,
+  max(cpu_usage_usec)             - min(cpu_usage_usec)             AS cpu_usec,
+  max(network_egress_public_bytes)  - min(network_egress_public_bytes)  AS net_egress_pub,
+  max(network_egress_private_bytes) - min(network_egress_private_bytes) AS net_egress_priv,
+  max(network_ingress_public_bytes) - min(network_ingress_public_bytes) AS net_ingress_pub,
+  max(network_ingress_private_bytes)- min(network_ingress_private_bytes)AS net_ingress_priv
+FROM default.instance_checkpoints_v1 FINAL
+WHERE ts > (toUnixTimestamp(now()) - 86400) * 1000
+GROUP BY day, workspace_id, resource_id, container_uid
+HAVING cpu_usec < 0
+    OR net_egress_pub  < 0
+    OR net_egress_priv < 0
+    OR net_ingress_pub < 0
+    OR net_ingress_priv < 0
+LIMIT 100;
+```
+
+**When this fires:** either a counter reset within a single `container_uid` (see #1) or a schema drift that reintroduces `UInt64` arithmetic somewhere in the query layer.
+
+## 4. Rows without a label
+
+Every billable row should have a non-empty `workspace_id`, `project_id`, `environment_id`, and `resource_id`. Empty values are usually a signal that pods escaped krane's label-injection or that informer cache was racing.
+
+```sql
+SELECT
+  count() AS rows_missing_labels,
+  countIf(workspace_id = '') AS no_workspace,
+  countIf(project_id = '') AS no_project,
+  countIf(environment_id = '') AS no_environment,
+  countIf(resource_id = '') AS no_resource
+FROM default.instance_checkpoints FINAL
+WHERE ts > (toUnixTimestamp(now()) - 3600) * 1000;
+```
+
+**When this fires:** krane deployed a pod without stamping workspace labels, the informer cache raced ahead of the pod spec, or a non-krane pod got accidentally billable (check `managed-by` label).
+
+## 5. Disk-used vs disk-allocated sanity
+
+`disk_used_bytes` must never exceed `disk_allocated_bytes`. If it does, either statfs is reading the wrong mount (audit risk #5) or the PVC resized and we captured the old allocation mid-resize.
+
+```sql
+SELECT
+  instance_id,
+  ts,
+  disk_used_bytes,
+  disk_allocated_bytes
+FROM default.instance_checkpoints FINAL
+WHERE ts > (toUnixTimestamp(now()) - 3600) * 1000
+  AND disk_allocated_bytes > 0
+  AND disk_used_bytes > disk_allocated_bytes
+LIMIT 50;
+```
+
+**When this fires:** statfs-vs-PVC mismatch (volumefs reader pointing at a shared path), or a mid-resize window (ephemeral).
+
+## 6. Pods reported by heimdall vs pods scheduled
+
+A sanity check that every scheduled pod is producing checkpoints. Runs against the K8s API + ClickHouse; easiest to do as a Go program, but the ClickHouse half is:
+
+```sql
+-- Distinct instance_ids per node in the last 5 minutes.
+SELECT node_id, count(DISTINCT instance_id) AS instances_seen
+FROM default.instance_checkpoints FINAL
+WHERE ts > (toUnixTimestamp(now()) - 300) * 1000
+GROUP BY node_id;
+```
+
+The number of instances seen per node should match `kubectl get pods --field-selector spec.nodeName=<node>` restricted to billable pods (`managed-by=krane`, `component in (deployment, sentinel)`). A gap means heimdall is either not running on that node, or can't reach that pod's cgroup.
+
+## 7. BPF map headroom
+
+Before the LRU starts evicting (and thus silently dropping traffic from the oldest veth), alert. The gauge is exposed by heimdall as `unkey_heimdall_bpf_map_entries` (added in this branch).
+
+Prometheus alert rule:
+
+```yaml
+- alert: HeimdallBPFMapNearCapacity
+  expr: max(unkey_heimdall_bpf_map_entries) > 3200  # 80% of 4096
+  for: 5m
+  labels:
+    severity: warning
+  annotations:
+    summary: "heimdall BPF map approaching LRU eviction"
+    runbook: "Increase max_entries in network.bpf.c and redeploy."
+```
+
+## Where these should live
+
+- **Short-term:** copy a select few (monotonicity, sample density, negative deltas) into a Grafana alert that runs against ClickHouse hourly. One Slack alert per violation.
+- **Medium-term:** a small Go binary in `svc/ctrl` that runs the full list nightly, writes results to a `metering_quality_check` table, alerts on any row > 0.
+- **Long-term:** if/when invoicing is built on top, gate invoice generation on these checks passing for the period. Anything flagged gets manual review before downstream consumers act on it.
+
+## Related docs
+
+- [metrics-architecture](./metrics-architecture). The pipeline design these checks are asserting properties of.
+- [heimdall](./heimdall). The collector these checks verify.

@@ -37,6 +37,20 @@ const schema = z.object({
   cpuMillicores: z.number().int(),
   memoryMib: z.number().int(),
   storageMib: z.number().int(),
+  // Runtime config for this deployment (from deployments table).
+  port: z.number().int(),
+  upstreamProtocol: z.enum(["http1", "h2c"]),
+  healthcheck: z
+    .object({
+      method: z.enum(["GET", "POST"]),
+      path: z.string(),
+      intervalSeconds: z.number(),
+      timeoutSeconds: z.number(),
+      failureThreshold: z.number(),
+      initialDelaySeconds: z.number(),
+    })
+    .nullable(),
+  shutdownSignal: z.enum(["SIGTERM", "SIGINT", "SIGQUIT", "SIGKILL"]),
   createdAt: z.number(),
 });
 

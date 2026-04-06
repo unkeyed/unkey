@@ -1,0 +1,20 @@
+---
+title: metering_writer_role
+description: Minimum grants heimdall needs to write checkpoints and let the attached MVs fire.
+---
+
+heimdall writes raw per-pod checkpoints. The raw table has three materialized views attached that fan out into 15s / minute / hour dashboard aggregates. ClickHouse runs the MV trigger as the inserting user, so heimdall needs INSERT on each MV destination in addition to the raw table.
+
+SELECT on the source table is included defensively: some CH configurations require it for the MV's SELECT clause to evaluate against the just-inserted block.
+
+```sql
+CREATE ROLE IF NOT EXISTS metering_writer_role;
+
+-- Source table: the raw checkpoints heimdall writes.
+GRANT SELECT, INSERT ON default.instance_checkpoints_v1 TO metering_writer_role;
+
+-- Materialized-view destinations fanned out from the source table.
+GRANT INSERT ON default.instance_resources_per_15s_v1 TO metering_writer_role;
+GRANT INSERT ON default.instance_resources_per_minute_v1 TO metering_writer_role;
+GRANT INSERT ON default.instance_resources_per_hour_v1 TO metering_writer_role;
+```

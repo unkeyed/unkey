@@ -13,6 +13,7 @@ Workspace users (`ws_*`) are also excluded, cuz we create them ourselves.
 |------|---------|----------------|
 | [`grafana`](./users/grafana) | Grafana dashboards | `grafana_readonly`, `readonly_role` |
 | [`apiv2`](./users/apiv2) | API v2 service | `insertonly_role`, `readonly_role` |
+| [`heimdall`](./users/heimdall) | Metering DaemonSet | `metering_writer_role` |
 | [`sentinel`](./users/sentinel) | Sentinel service | direct grants (see script) |
 | [`vector`](./users/vector) | Runtime logs | INSERT on `runtime_logs_raw_v1` |
 | [`github`](./users/github) | GitHub integrations | `readonly_role` |
@@ -25,4 +26,5 @@ Workspace users (`ws_*`) are also excluded, cuz we create them ourselves.
 |------|---------|
 | [`readonly_role`](./roles/readonly-role) | `SELECT` on `default.*` |
 | [`insertonly_role`](./roles/insertonly-role) | `INSERT` on `default.*` |
+| [`metering_writer_role`](./roles/metering-writer-role) | `SELECT`+`INSERT` on `instance_checkpoints_v1`; `INSERT` on the 3 dashboard MV targets |
 | [`grafana_readonly`](./roles/grafana-readonly) | Column-level `SELECT` on `system.*` tables |

@@ -213,7 +213,11 @@
           {
             "group": "Metering",
             "pages": [
-              "infra/metering/gauge"
+              "infra/metering/heimdall",
+              "infra/metering/metrics-architecture",
+              "infra/metering/why-counters-not-deltas",
+              "infra/metering/ebpf-primer",
+              "infra/metering/data-quality-checks"
             ]
           },
           {
@@ -241,6 +245,7 @@
                 "pages": [
                   "infra/clickhouse/roles/grafana-readonly",
                   "infra/clickhouse/roles/insertonly-role",
+                  "infra/clickhouse/roles/metering-writer-role",
                   "infra/clickhouse/roles/readonly-role"
                 ]
               },
@@ -250,6 +255,7 @@
                   "infra/clickhouse/users/apiv2",
                   "infra/clickhouse/users/github",
                   "infra/clickhouse/users/grafana",
+                  "infra/clickhouse/users/heimdall",
                   "infra/clickhouse/users/sentinel",
                   "infra/clickhouse/users/unkey-admin",
                   "infra/clickhouse/users/vector",
