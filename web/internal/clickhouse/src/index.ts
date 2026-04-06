@@ -86,6 +86,16 @@ import {
   insertRatelimit,
 } from "./ratelimits";
 import { insertApiRequest } from "./requests";
+import {
+  getResourceCpuTimeseries,
+  getResourceDiskTimeseries,
+  getResourceInstanceCountTimeseries,
+  getResourceMemoryTimeseries,
+  getResourceNetworkEgressTimeseries,
+  getResourceNetworkIngressTimeseries,
+  getResourceSummary,
+} from "./resources";
+export { TIME_WINDOWS, type TimeWindow } from "./resources";
 import { getRuntimeLogs } from "./runtime-logs";
 import {
   getDeploymentLatency,
@@ -340,6 +350,19 @@ export class ClickHouse {
   public get telemetry() {
     return {
       insert: insertSDKTelemetry(this.inserter),
+    };
+  }
+  public get resources() {
+    return {
+      summary: getResourceSummary(this.querier),
+      cpu: { timeseries: getResourceCpuTimeseries(this.querier) },
+      memory: { timeseries: getResourceMemoryTimeseries(this.querier) },
+      disk: { timeseries: getResourceDiskTimeseries(this.querier) },
+      instances: { timeseries: getResourceInstanceCountTimeseries(this.querier) },
+      network: {
+        egress: { timeseries: getResourceNetworkEgressTimeseries(this.querier) },
+        ingress: { timeseries: getResourceNetworkIngressTimeseries(this.querier) },
+      },
     };
   }
   public get sentinel() {
