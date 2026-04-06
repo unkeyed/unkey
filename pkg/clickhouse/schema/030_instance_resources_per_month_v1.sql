@@ -21,7 +21,7 @@ ORDER BY (workspace_id, resource_id, instance_id, time);
 CREATE MATERIALIZED VIEW instance_resources_per_month_mv_v1
 TO instance_resources_per_month_v1 AS
 SELECT
-  toStartOfMonth(time) AS time,
+  toStartOfMonth(fromUnixTimestamp64Milli(time)) AS time,
   workspace_id,
   project_id,
   app_id,

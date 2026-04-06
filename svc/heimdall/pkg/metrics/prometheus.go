@@ -38,13 +38,13 @@ var (
 		},
 	)
 
-	// KubeletFetchErrors counts kubelet API fetch failures.
-	KubeletFetchErrors = promauto.NewCounter(
+	// CgroupReadErrors counts cgroup file read failures.
+	CgroupReadErrors = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
-			Name:      "kubelet_fetch_errors_total",
-			Help:      "Total number of kubelet /stats/summary fetch failures.",
+			Name:      "cgroup_read_errors_total",
+			Help:      "Total number of cgroup file read failures.",
 		},
 	)
 )
