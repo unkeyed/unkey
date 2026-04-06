@@ -1,0 +1,251 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "network",
+    srcs = [
+        "bpf_bpfel.go",
+        "doc.go",
+        "network.go",
+        "network_linux.go",
+        "network_stub.go",
+        "sandbox_linux.go",
+        "veth_linux.go",
+    ],
+    embedsrcs = select({
+        "@rules_go//go/platform:386": [
+            "bpf_bpfel.o",
+        ],
+        "@rules_go//go/platform:amd64": [
+            "bpf_bpfel.o",
+        ],
+        "@rules_go//go/platform:arm": [
+            "bpf_bpfel.o",
+        ],
+        "@rules_go//go/platform:arm64": [
+            "bpf_bpfel.o",
+        ],
+        "@rules_go//go/platform:mips64le": [
+            "bpf_bpfel.o",
+        ],
+        "@rules_go//go/platform:mipsle": [
+            "bpf_bpfel.o",
+        ],
+        "@rules_go//go/platform:ppc64le": [
+            "bpf_bpfel.o",
+        ],
+        "@rules_go//go/platform:riscv64": [
+            "bpf_bpfel.o",
+        ],
+        "@rules_go//go/platform:wasm": [
+            "bpf_bpfel.o",
+        ],
+        "//conditions:default": [],
+    }),
+    importpath = "github.com/unkeyed/unkey/svc/heimdall/internal/network",
+    visibility = ["//svc/heimdall:__subpackages__"],
+    deps = [
+        "@io_k8s_apimachinery//pkg/types",
+    ] + select({
+        "@rules_go//go/platform:android": [
+            "//pkg/logger",
+            "//svc/heimdall/internal/metrics",
+            "@com_github_cilium_ebpf//link",
+            "@com_github_cilium_ebpf//rlimit",
+            "@com_github_containerd_containerd_v2//client",
+            "@com_github_containerd_containerd_v2//pkg/namespaces",
+            "@com_github_vishvananda_netlink//:netlink",
+            "@org_golang_x_sys//unix",
+        ],
+        "@rules_go//go/platform:linux": [
+            "//pkg/logger",
+            "//svc/heimdall/internal/metrics",
+            "@com_github_cilium_ebpf//link",
+            "@com_github_cilium_ebpf//rlimit",
+            "@com_github_containerd_containerd_v2//client",
+            "@com_github_containerd_containerd_v2//pkg/namespaces",
+            "@com_github_vishvananda_netlink//:netlink",
+            "@org_golang_x_sys//unix",
+        ],
+        "//conditions:default": [],
+    }) + select({
+        "@rules_go//go/platform:android_386": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:android_amd64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:android_arm": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:android_arm64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:darwin_386": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:darwin_amd64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:darwin_arm": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:darwin_arm64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:dragonfly_amd64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:freebsd_386": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:freebsd_amd64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:freebsd_arm": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:freebsd_arm64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:illumos_amd64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:ios_amd64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:ios_arm64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:js_wasm": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:linux_386": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:linux_amd64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:linux_arm": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:linux_arm64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:linux_mips": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:linux_mips64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:linux_mips64le": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:linux_mipsle": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:linux_ppc64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:linux_ppc64le": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:linux_riscv64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:linux_s390x": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:netbsd_386": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:netbsd_amd64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:netbsd_arm": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:netbsd_arm64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:openbsd_386": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:openbsd_amd64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:openbsd_arm": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:openbsd_arm64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:osx_386": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:osx_amd64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:osx_arm": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:osx_arm64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:plan9_386": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:plan9_amd64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:plan9_arm": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:qnx_386": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:qnx_amd64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:qnx_arm": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:qnx_arm64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:solaris_amd64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:windows_386": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:windows_amd64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:windows_arm": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "@rules_go//go/platform:windows_arm64": [
+            "@com_github_cilium_ebpf//:ebpf",
+        ],
+        "//conditions:default": [],
+    }),
+)
+
+go_test(
+    name = "network_test",
+    srcs = ["classifier_linux_test.go"],
+    embed = [":network"],
+    deps = select({
+        "@rules_go//go/platform:android": [
+            "@com_github_cilium_ebpf//:ebpf",
+            "@com_github_cilium_ebpf//rlimit",
+            "@com_github_stretchr_testify//require",
+        ],
+        "@rules_go//go/platform:linux": [
+            "@com_github_cilium_ebpf//:ebpf",
+            "@com_github_cilium_ebpf//rlimit",
+            "@com_github_stretchr_testify//require",
+        ],
+        "//conditions:default": [],
+    }),
+)

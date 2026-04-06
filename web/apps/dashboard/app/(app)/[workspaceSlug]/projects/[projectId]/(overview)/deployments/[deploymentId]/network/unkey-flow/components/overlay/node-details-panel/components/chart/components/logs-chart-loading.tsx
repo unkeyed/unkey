@@ -1,7 +1,16 @@
 import { useWaveAnimation } from "@/components/logs/overview-charts/hooks";
 import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
 
-export const LogsChartLoading = () => {
+type LogsChartLoadingProps = {
+  // Height of the loading skeleton. Must match the sibling chart's height
+  // to prevent the enclosing panel from resizing when loading flashes on
+  // (e.g. a window-selector change that triggers a refetch without
+  // keepPreviousData). Defaults to 50 which matches the bar-chart charts;
+  // the network area chart passes its own 160.
+  height?: number;
+};
+
+export const LogsChartLoading = ({ height = 50 }: LogsChartLoadingProps = {}) => {
   const { mockData } = useWaveAnimation({
     dataPoints: 300,
     labels: {
@@ -16,7 +25,7 @@ export const LogsChartLoading = () => {
   return (
     <div className="w-full relative">
       <ResponsiveContainer
-        height={50}
+        height={height}
         className="border-b border-grayA-4"
         width="100%"
         initialDimension={{ width: 1, height: 1 }}

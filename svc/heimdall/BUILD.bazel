@@ -12,12 +12,18 @@ go_library(
     deps = [
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",
+        "//pkg/clock",
         "//pkg/config",
         "//pkg/logger",
         "//pkg/runner",
         "//svc/heimdall/internal/collector",
+        "//svc/heimdall/internal/metrics",
+        "//svc/heimdall/internal/network",
+        "@com_github_prometheus_client_golang//prometheus/promhttp",
+        "@io_k8s_api//core/v1:core",
         "@io_k8s_client_go//informers",
         "@io_k8s_client_go//kubernetes",
         "@io_k8s_client_go//rest",
+        "@io_k8s_client_go//tools/cache",
     ],
 )
