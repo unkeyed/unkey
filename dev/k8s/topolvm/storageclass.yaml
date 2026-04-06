@@ -1,0 +1,20 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: topolvm-ssd
+  annotations:
+    # Make this the default in dev so anything that doesn't explicitly set
+    # storageClassName picks it up. Keep the old `standard` class around for
+    # in-cluster system PVCs (mysql, clickhouse) that already bound to it.
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: topolvm.io
+parameters:
+  # Matches the device class declared in dev/topolvm/values.yaml.
+  "csi.storage.k8s.io/fstype": ext4
+  "topolvm.io/device-class": ssd
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+# WaitForFirstConsumer so the LV is created on the same node the pod lands on.
+# In single-node minikube it's the only node, but this keeps the behavior
+# matching prod (where ebs-csi-gp3 also uses WaitForFirstConsumer).
+volumeBindingMode: WaitForFirstConsumer

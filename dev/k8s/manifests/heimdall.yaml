@@ -12,6 +12,11 @@ data:
     clickhouse_url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
     collection_interval = "5s"
     node_name = "${HEIMDALL_NODE_NAME}"
+
+    # /metrics + /health/* live on this port. 9402 avoids node-exporter
+    # (9100) which shares the host network namespace under hostNetwork.
+    [observability.metrics]
+    prometheus_port = 9402
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -31,6 +36,12 @@ spec:
     spec:
       serviceAccountName: unkey-serviceaccount
       hostNetwork: true
+      # hostPID lets heimdall see host-level PIDs when reading each pod's
+      # cgroup.procs, required for resolving the pod's netns at
+      # /proc/<pid>/ns/net to look up the host-side veth's ifindex for tc
+      # attach. Without this, cgroup.procs shows unmapped PIDs ("0") because
+      # heimdall is in a separate PID namespace.
+      hostPID: true
       dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: heimdall
@@ -42,17 +53,64 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            # Shared env var read by pkg/logger at process init. `debug`
+            # turns on the per-step diagnostics in the network attach
+            # path (sandbox_linux.go, veth_linux.go). Flip to info once
+            # we're done debugging.
+            - name: UNKEY_LOG_LEVEL
+              value: debug
+          ports:
+            - name: metrics
+              containerPort: 9402
+              protocol: TCP
+          # Probes share the metrics port. /health/live flips to 200 once
+          # runner.Wait() begins, so the initialDelay covers the synchronous
+          # preflight + informer sync + BPF attach that run before the HTTP
+          # server boots. /health/ready piggybacks on the same started gate
+          # so kubelet drains the pod on SIGTERM.
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: metrics
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
           securityContext:
             capabilities:
               add:
+                # SYS_ADMIN relaxes the eBPF verifier's pointer-arithmetic
+                # checks. CAP_BPF alone triggers "unprivileged BPF" mode,
+                # which rejects map-pointer + offset patterns the counter
+                # array uses (Spectre-mitigation paranoia). Production-grade
+                # eBPF DaemonSets routinely add SYS_ADMIN (cilium does).
+                # NET_ADMIN is needed for the cgroup_skb attach.
+                - SYS_ADMIN
+                - BPF
                 - NET_ADMIN
           resources:
             requests:
-              cpu: 20m
-              memory: 32Mi
+              cpu: 100m
+              memory: 128Mi
             limits:
-              cpu: 50m
-              memory: 64Mi
+              # Deliberately generous. Under heavy customer load (gVisor pods
+              # under wrk saturating the node), a small CPU limit throttles
+              # heimdall hard enough that ticks stretch to 30-60s, 15s buckets
+              # see only one sample, max - min collapses to 0, and dashboards
+              # go flat during exactly the moments we most want to see
+              # traffic. Memory is similarly oversized because BPF map + Go
+              # runtime are cheap, and we'd rather not OOM-kill the billing
+              # agent under load.
+              cpu: "1"
+              memory: 1Gi
           volumeMounts:
             - name: config
               mountPath: /etc/unkey
@@ -60,6 +118,42 @@ spec:
             - name: cgroup
               mountPath: /sys/fs/cgroup
               readOnly: true
+            - name: kubelet
+              mountPath: /var/lib/kubelet
+              readOnly: true
+              # statfs() follows mount points; kubelet publishes PVCs as bind
+              # mounts under pods/<uid>/volumes/. Propagation must be at
+              # least HostToContainer or statfs sees the pre-mount inode.
+              mountPropagation: HostToContainer
+            - name: containerd-sock
+              mountPath: /run/containerd/containerd.sock
+              # Not read-only: gRPC over unix sockets needs write to send.
+            - name: btf
+              mountPath: /sys/kernel/btf
+              readOnly: true
+              # CO-RE relocations against the running kernel's BTF. Required
+              # for the eBPF loader to apply the offsets recorded at compile
+              # time against whatever kernel the node is actually running.
+            - name: netns
+              mountPath: /var/run/netns
+              readOnly: true
+              # Host's CNI network namespaces. We enumerate these at pod
+              # attach time and setns() into them to resolve each pod's
+              # host-side veth ifindex via netlink. `Bidirectional` so new
+              # namespaces created after heimdall starts become visible.
+              mountPropagation: HostToContainer
+            - name: bpffs
+              mountPath: /sys/fs/bpf
+              # Host's bpffs. We pin the per-pod byte counter map under
+              # /sys/fs/bpf/heimdall/ so it survives heimdall pod restarts.
+              # Without this mount, restarting heimdall reloads the BPF
+              # program against a fresh zero-filled map and per-pod byte
+              # counters appear to reset, silently undercounting traffic
+              # that crossed the restart. HostToContainer is enough: bpffs
+              # is a kernel-level filesystem, so pins created inside the
+              # container are immediately visible on the host regardless
+              # of mount-propagation mode.
+              mountPropagation: HostToContainer
       volumes:
         - name: config
           configMap:
@@ -67,4 +161,24 @@ spec:
         - name: cgroup
           hostPath:
             path: /sys/fs/cgroup
+            type: Directory
+        - name: kubelet
+          hostPath:
+            path: /var/lib/kubelet
+            type: Directory
+        - name: containerd-sock
+          hostPath:
+            path: /run/containerd/containerd.sock
+            type: Socket
+        - name: btf
+          hostPath:
+            path: /sys/kernel/btf
+            type: Directory
+        - name: netns
+          hostPath:
+            path: /var/run/netns
+            type: Directory
+        - name: bpffs
+          hostPath:
+            path: /sys/fs/bpf
             type: Directory

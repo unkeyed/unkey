@@ -26,6 +26,10 @@ export const listDeployments = workspaceProcedure
           cpuMillicores: deployments.cpuMillicores,
           memoryMib: deployments.memoryMib,
           storageMib: deployments.storageMib,
+          port: deployments.port,
+          upstreamProtocol: deployments.upstreamProtocol,
+          healthcheck: deployments.healthcheck,
+          shutdownSignal: deployments.shutdownSignal,
           createdAt: deployments.createdAt,
         })
         .from(deployments)

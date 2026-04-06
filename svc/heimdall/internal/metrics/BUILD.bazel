@@ -3,8 +3,8 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "metrics",
     srcs = ["prometheus.go"],
-    importpath = "github.com/unkeyed/unkey/svc/heimdall/pkg/metrics",
-    visibility = ["//visibility:public"],
+    importpath = "github.com/unkeyed/unkey/svc/heimdall/internal/metrics",
+    visibility = ["//svc/heimdall:__subpackages__"],
     deps = [
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_prometheus_client_golang//prometheus/promauto",

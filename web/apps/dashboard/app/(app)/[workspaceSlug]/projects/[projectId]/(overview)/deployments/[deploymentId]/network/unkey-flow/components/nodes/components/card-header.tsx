@@ -47,14 +47,16 @@ export function CardHeader({
           <div className="text-gray-9 text-[11px]">{subtitle}</div>
         </div>
       </div>
-      <div className="flex gap-2 items-center ml-auto">
-        <StatusIndicator
-          icon={<Heart className={colors.dotTextColor} iconSize="sm-regular" />}
-          healthStatus={health}
-          tooltip={type === "sentinel" ? "Sentinel health status" : "Instance health status"}
-          showGlow={health !== "normal"}
-        />
-      </div>
+      {isCard && (
+        <div className="flex gap-2 items-center ml-auto">
+          <StatusIndicator
+            icon={<Heart className={colors.dotTextColor} iconSize="sm-regular" />}
+            healthStatus={health}
+            tooltip={type === "sentinel" ? "Sentinel health status" : "Instance health status"}
+            showGlow={health !== "normal"}
+          />
+        </div>
+      )}
     </div>
   );
 }
