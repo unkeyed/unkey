@@ -17,7 +17,7 @@ jobs:
             sudo mv $HOME/.bazelrc /etc/bazel.bazelrc
           fi
 
-      - uses: bazel-contrib/setup-bazel@083175551ceeceebc757ebee2127fde78840ca77 # 0.18.0
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
         with:
           # Avoid downloading Bazel every time.
           bazelisk-cache: true
