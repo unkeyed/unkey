@@ -7,15 +7,20 @@ type SentinelPoliciesToolbarProps = {
   environmentId: string;
   onEnvironmentChange: (value: string) => void;
   environments: { id: string; slug: string }[];
+  policyCount: number;
 };
 
 export function SentinelPoliciesToolbar({
   environmentId,
   onEnvironmentChange,
   environments,
+  policyCount,
 }: SentinelPoliciesToolbarProps) {
   return (
-    <div className="flex items-stretch ml-auto">
+    <div className="flex items-center justify-between w-full">
+      <span className="text-sm text-gray-11">
+        {policyCount} {policyCount === 1 ? "policy" : "policies"}
+      </span>
       <div className="max-w-[220px]">
         <Select value={environmentId} onValueChange={onEnvironmentChange}>
           <SelectTrigger

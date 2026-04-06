@@ -125,7 +125,7 @@ export function SentinelPolicyRow({
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <GripDotsVertical iconSize="lg-medium" className="opacity-30 hover:opacity-60" />
+              <GripDotsVertical iconSize="lg-medium" className="opacity-40 hover:opacity-70" />
             </div>
 
             {/* Name: flex-4, matches env-var name cell */}
@@ -141,7 +141,7 @@ export function SentinelPolicyRow({
             </div>
 
             {/* Type: flex-2, plain muted text */}
-            <div className="flex-4 min-w-0 py-3.5 flex items-center pr-3">
+            <div className="flex-2 min-w-0 py-3.5 flex items-center pr-3">
               <span className="text-[13px] text-gray-11 truncate">
                 {POLICY_TYPE_LABELS[policy.type]}
               </span>
@@ -256,7 +256,7 @@ function SentinelPolicyEditBody({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
         />
-        <div className="flex items-center justify-end gap-2 pt-5 mt-1">
+        <div className="flex items-center justify-end gap-2 pt-3">
           <Button type="button" variant="outline" size="md" onClick={onClose} className="px-3">
             Cancel
           </Button>

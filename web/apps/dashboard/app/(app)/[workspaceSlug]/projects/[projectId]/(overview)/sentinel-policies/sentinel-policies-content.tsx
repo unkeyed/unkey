@@ -39,6 +39,7 @@ export function SentinelPoliciesContent() {
         environmentId={environmentId}
         onEnvironmentChange={setEnvironmentId}
         environments={environments}
+        policyCount={policies.length}
       />
       {policies.length === 0 ? (
         <SentinelPoliciesEmpty />
