@@ -3,6 +3,7 @@ import type {
   SentinelPolicy,
   StringMatch,
 } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
+import { match } from "@unkey/match";
 import { z } from "zod";
 
 // ── Match condition form schema ─────────────────────────────────────────
@@ -117,19 +118,23 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
     matchConditions: [],
   };
 
-  switch (type) {
-    case "keyauth":
-      return { ...base, type: "keyauth", keySpaceIds: [], locations: [], permissionQuery: "" };
-    case "ratelimit":
-      return {
-        ...base,
-        type: "ratelimit",
-        limit: 100,
-        windowMs: 60000,
-        keySource: "remoteIp",
-        keyValue: "",
-      };
-  }
+  return match(type)
+    .with("keyauth", () => ({
+      ...base,
+      type: "keyauth" as const,
+      keySpaceIds: [],
+      locations: [],
+      permissionQuery: "",
+    }))
+    .with("ratelimit", () => ({
+      ...base,
+      type: "ratelimit" as const,
+      limit: 100,
+      windowMs: 60000,
+      keySource: "remoteIp" as const,
+      keyValue: "",
+    }))
+    .exhaustive();
 }
 
 // ── Form → protojson conversion ─────────────────────────────────────────
@@ -140,102 +145,94 @@ function toStringMatch(
   ignoreCase?: boolean,
 ): StringMatch {
   const base = ignoreCase ? { ignoreCase: true } : {};
-  switch (mode) {
-    case "exact":
-      return { ...base, exact: value } as StringMatch;
-    case "prefix":
-      return { ...base, prefix: value } as StringMatch;
-    case "regex":
-      return { ...base, regex: value } as StringMatch;
-  }
+  return match(mode)
+    .returnType<StringMatch>()
+    .with("exact", () => ({ ...base, exact: value }))
+    .with("prefix", () => ({ ...base, prefix: value }))
+    .with("regex", () => ({ ...base, regex: value }))
+    .exhaustive();
 }
 
 function toMatchExpr(condition: MatchConditionFormValues): MatchExpr {
-  switch (condition.type) {
-    case "path":
-      return { path: { path: toStringMatch(condition.mode, condition.value) } };
-    case "method":
-      return { method: { methods: condition.methods } };
-    case "header":
-      return condition.present
-        ? { header: { name: condition.name, present: true } }
+  return match(condition)
+    .with({ type: "path" }, (c) => ({
+      path: { path: toStringMatch(c.mode, c.value) },
+    }))
+    .with({ type: "method" }, (c) => ({
+      method: { methods: c.methods },
+    }))
+    .with({ type: "header" }, (c) =>
+      c.present
+        ? { header: { name: c.name, present: true } }
         : {
             header: {
-              name: condition.name,
-              value: toStringMatch(condition.mode ?? "exact", condition.value ?? ""),
+              name: c.name,
+              value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
             },
-          };
-    case "queryParam":
-      return condition.present
-        ? { queryParam: { name: condition.name, present: true } }
+          },
+    )
+    .with({ type: "queryParam" }, (c) =>
+      c.present
+        ? { queryParam: { name: c.name, present: true } }
         : {
             queryParam: {
-              name: condition.name,
-              value: toStringMatch(condition.mode ?? "exact", condition.value ?? ""),
+              name: c.name,
+              value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
             },
-          };
-  }
+          },
+    )
+    .exhaustive();
 }
 
 export function toSentinelPolicy(values: PolicyFormValues): SentinelPolicy {
   const id = crypto.randomUUID();
-  const match =
+  const matchExprs =
     values.matchConditions.length > 0 ? values.matchConditions.map(toMatchExpr) : undefined;
 
-  const base = { id, name: values.name, enabled: true, type: values.type, match };
+  const base = { id, name: values.name, enabled: true, match: matchExprs };
 
-  switch (values.type) {
-    case "keyauth": {
+  return match(values)
+    .with({ type: "keyauth" }, (v) => {
       const locations =
-        values.locations.length > 0
-          ? values.locations.map((loc) => {
-              switch (loc.locationType) {
-                case "bearer":
-                  return { bearer: {} };
-                case "header":
-                  return {
-                    header: {
-                      name: loc.name ?? "",
-                      ...(loc.stripPrefix ? { stripPrefix: loc.stripPrefix } : {}),
-                    },
-                  };
-                case "queryParam":
-                  return { queryParam: { name: loc.name ?? "" } };
-              }
-            })
+        v.locations.length > 0
+          ? v.locations.map((loc) =>
+              match(loc.locationType)
+                .with("bearer", () => ({ bearer: {} }))
+                .with("header", () => ({
+                  header: {
+                    name: loc.name ?? "",
+                    ...(loc.stripPrefix ? { stripPrefix: loc.stripPrefix } : {}),
+                  },
+                }))
+                .with("queryParam", () => ({ queryParam: { name: loc.name ?? "" } }))
+                .exhaustive(),
+            )
           : undefined;
 
       return {
         ...base,
-        type: "keyauth",
+        type: "keyauth" as const,
         keyauth: {
-          keySpaceIds: values.keySpaceIds,
+          keySpaceIds: v.keySpaceIds,
           ...(locations ? { locations } : {}),
-          ...(values.permissionQuery ? { permissionQuery: values.permissionQuery } : {}),
+          ...(v.permissionQuery ? { permissionQuery: v.permissionQuery } : {}),
         },
       };
-    }
-    case "ratelimit": {
-      const key = (() => {
-        switch (values.keySource) {
-          case "remoteIp":
-            return { remoteIp: {} };
-          case "header":
-            return { header: { name: values.keyValue } };
-          case "authenticatedSubject":
-            return { authenticatedSubject: {} };
-          case "path":
-            return { path: {} };
-          case "principalClaim":
-            return { principalClaim: { claimName: values.keyValue } };
-        }
-      })();
+    })
+    .with({ type: "ratelimit" }, (v) => {
+      const key = match(v.keySource)
+        .with("remoteIp", () => ({ remoteIp: {} }))
+        .with("header", () => ({ header: { name: v.keyValue } }))
+        .with("authenticatedSubject", () => ({ authenticatedSubject: {} }))
+        .with("path", () => ({ path: {} }))
+        .with("principalClaim", () => ({ principalClaim: { claimName: v.keyValue } }))
+        .exhaustive();
 
       return {
         ...base,
-        type: "ratelimit",
-        ratelimit: { limit: values.limit, windowMs: values.windowMs, key },
+        type: "ratelimit" as const,
+        ratelimit: { limit: v.limit, windowMs: v.windowMs, key },
       };
-    }
-  }
+    })
+    .exhaustive();
 }

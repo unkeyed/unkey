@@ -72,6 +72,7 @@ import { updateMemory } from "./deploy/environment-settings/runtime/update-memor
 import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/update-openapi-spec-path";
 import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
+import { generateRegex } from "./deploy/environment-settings/sentinel/generate-regex";
 import { updateConfig } from "./deploy/environment-settings/sentinel/update-config";
 import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
@@ -417,6 +418,7 @@ export const router = t.router({
       sentinel: t.router({
         updateMiddleware,
         updateConfig,
+        generateRegex,
       }),
       runtime: t.router({
         updateCpu,

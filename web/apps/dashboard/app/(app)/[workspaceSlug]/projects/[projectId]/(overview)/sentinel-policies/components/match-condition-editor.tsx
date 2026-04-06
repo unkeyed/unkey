@@ -1,7 +1,8 @@
 "use client";
 
+import { trpc } from "@/lib/trpc/client";
 import type { StringMatchMode } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
-import { ChevronDown, Plus, Trash } from "@unkey/icons";
+import { ChevronDown, Plus, Sparkle3, Trash } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -11,9 +12,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Separator,
+  toast,
 } from "@unkey/ui";
 import { FormDescription } from "@unkey/ui/src/components/form/form-helpers";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { MatchConditionFormValues } from "./schema";
 
 const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
@@ -31,6 +34,76 @@ const MATCH_TYPE_OPTIONS: { value: MatchConditionFormValues["type"]; label: stri
   { value: "queryParam", label: "Query Param" },
 ];
 
+function validateRegexSyntax(pattern: string): string | undefined {
+  if (!pattern) {
+    return undefined;
+  }
+  try {
+    new RegExp(pattern);
+    return undefined;
+  } catch (e) {
+    return e instanceof SyntaxError ? e.message : "Invalid regex pattern";
+  }
+}
+
+function RegexGenerateInput({
+  conditionType,
+  onGenerated,
+}: {
+  conditionType: "path" | "header" | "queryParam";
+  onGenerated: (pattern: string) => void;
+}) {
+  const [prompt, setPrompt] = useState("");
+  const generateRegex = trpc.deploy.environmentSettings.sentinel.generateRegex.useMutation({
+    onSuccess(data) {
+      onGenerated(data.pattern);
+      setPrompt("");
+    },
+    onError(error) {
+      toast.error(error.message || "Failed to generate regex pattern", {
+        duration: 5000,
+        position: "top-right",
+      });
+    },
+  });
+
+  return (
+    <div className="flex gap-2 items-end">
+      <FormInput
+        label="Describe what to match"
+        placeholder={
+          conditionType === "path"
+            ? "e.g. all API routes under /api/v2"
+            : conditionType === "header"
+              ? "e.g. bearer tokens"
+              : "e.g. numeric values only"
+        }
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        className="flex-1"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && prompt.trim().length >= 3) {
+            e.preventDefault();
+            generateRegex.mutate({ query: prompt, conditionType });
+          }
+        }}
+      />
+      <Button
+        type="button"
+        variant="primary"
+        size="lg"
+        className="shrink-0"
+        disabled={prompt.trim().length < 3 || generateRegex.isLoading}
+        loading={generateRegex.isLoading}
+        onClick={() => generateRegex.mutate({ query: prompt, conditionType })}
+      >
+        <Sparkle3 iconSize="sm-regular" />
+        Generate
+      </Button>
+    </div>
+  );
+}
+
 function ConditionFields({
   condition,
   onChange,
@@ -40,45 +113,58 @@ function ConditionFields({
 }) {
   return match(condition)
     .with({ type: "path" }, (c) => (
-      <div className="flex gap-2">
-        <div className="w-28 shrink-0">
-          <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-            <label htmlFor={`path-mode-${c.id}`} className="text-gray-11 text-[13px]">
-              Mode
-            </label>
-            <Select
-              value={c.mode}
-              onValueChange={(v) => onChange({ ...c, mode: v as StringMatchMode })}
-            >
-              <SelectTrigger
-                id={`path-mode-${c.id}`}
-                rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <div className="w-28 shrink-0">
+            <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
+              <label htmlFor={`path-mode-${c.id}`} className="text-gray-11 text-[13px]">
+                Mode
+              </label>
+              <Select
+                value={c.mode}
+                onValueChange={(v) => onChange({ ...c, mode: v as StringMatchMode })}
               >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="z-60">
-                {STRING_MATCH_MODES.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </fieldset>
+                <SelectTrigger
+                  id={`path-mode-${c.id}`}
+                  rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-60">
+                  {STRING_MATCH_MODES.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </fieldset>
+          </div>
+          <FormInput
+            label="Path"
+            placeholder={c.mode === "regex" ? "^/api/.*" : "/api/v1"}
+            value={c.value}
+            onChange={(e) => onChange({ ...c, value: e.target.value })}
+            className="flex-1"
+            description={
+              c.mode === "regex"
+                ? "Regex pattern for path matching."
+                : "The URL path to match against."
+            }
+            error={c.mode === "regex" ? validateRegexSyntax(c.value) : undefined}
+          />
         </div>
-        <FormInput
-          label="Path"
-          placeholder={c.mode === "regex" ? "^/api/.*" : "/api/v1"}
-          value={c.value}
-          onChange={(e) => onChange({ ...c, value: e.target.value })}
-          className="flex-1"
-          description="The URL path to match against."
-        />
+        {c.mode === "regex" && (
+          <RegexGenerateInput
+            conditionType="path"
+            onGenerated={(pattern) => onChange({ ...c, value: pattern })}
+          />
+        )}
       </div>
     ))
     .with({ type: "method" }, (c) => (
       <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-        <legend className="text-gray-11 text-[13px]">Allowed Methods</legend>
+        <legend className="text-gray-11 text-[13px] mb-1.5">Allowed Methods</legend>
         <div
           className="flex flex-wrap gap-1.5"
           role="group"
@@ -97,11 +183,10 @@ function ConditionFields({
                     methods: active ? c.methods.filter((x) => x !== m) : [...c.methods, m],
                   })
                 }
-                className={`px-2 py-0.5 rounded text-xs font-mono border transition-colors ${
-                  active
-                    ? "bg-accent-3 border-accent-6 text-accent-11"
-                    : "bg-grayA-2 border-grayA-4 text-grayA-9 hover:text-gray-12"
-                }`}
+                className={`px-2 py-0.5 rounded text-xs font-mono border transition-colors ${active
+                  ? "bg-accent-3 border-accent-6 text-accent-11"
+                  : "bg-grayA-2 border-grayA-4 text-grayA-9 hover:text-gray-12"
+                  }`}
               >
                 {m}
               </button>
@@ -117,6 +202,7 @@ function ConditionFields({
     ))
     .with({ type: "header" }, { type: "queryParam" }, (c) => {
       const isHeader = c.type === "header";
+      const conditionType = c.type;
       return (
         <div className="flex flex-col gap-2">
           <FormInput
@@ -131,39 +217,54 @@ function ConditionFields({
             }
           />
           {!c.present && (
-            <div className="flex gap-2">
-              <div className="w-28 shrink-0">
-                <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-                  <label htmlFor={`hq-mode-${c.id}`} className="text-gray-11 text-[13px]">
-                    Mode
-                  </label>
-                  <Select
-                    value={c.mode ?? "exact"}
-                    onValueChange={(v) => onChange({ ...c, mode: v as StringMatchMode })}
-                  >
-                    <SelectTrigger
-                      id={`hq-mode-${c.id}`}
-                      rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <div className="w-28 shrink-0">
+                  <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
+                    <label htmlFor={`hq-mode-${c.id}`} className="text-gray-11 text-[13px]">
+                      Mode
+                    </label>
+                    <Select
+                      value={c.mode ?? "exact"}
+                      onValueChange={(v) => onChange({ ...c, mode: v as StringMatchMode })}
                     >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="z-60">
-                      {STRING_MATCH_MODES.map((m) => (
-                        <SelectItem key={m.value} value={m.value}>
-                          {m.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </fieldset>
+                      <SelectTrigger
+                        id={`hq-mode-${c.id}`}
+                        rightIcon={
+                          <ChevronDown className="absolute right-2" iconSize="md-medium" />
+                        }
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="z-60">
+                        {STRING_MATCH_MODES.map((m) => (
+                          <SelectItem key={m.value} value={m.value}>
+                            {m.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </fieldset>
+                </div>
+                <FormInput
+                  label="Value"
+                  placeholder="Expected value"
+                  value={c.value ?? ""}
+                  onChange={(e) => onChange({ ...c, value: e.target.value })}
+                  className="flex-1"
+                  error={
+                    (c.mode ?? "exact") === "regex"
+                      ? validateRegexSyntax(c.value ?? "")
+                      : undefined
+                  }
+                />
               </div>
-              <FormInput
-                label="Value"
-                placeholder="Expected value"
-                value={c.value ?? ""}
-                onChange={(e) => onChange({ ...c, value: e.target.value })}
-                className="flex-1"
-              />
+              {(c.mode ?? "exact") === "regex" && (
+                <RegexGenerateInput
+                  conditionType={conditionType}
+                  onGenerated={(pattern) => onChange({ ...c, value: pattern })}
+                />
+              )}
             </div>
           )}
         </div>
@@ -182,8 +283,8 @@ function MatchConditionCard({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-4">
         <div className="flex-1">
           <Select
             value={condition.type}
@@ -272,7 +373,7 @@ export function MatchConditionEditor({
 
   return (
     <div className="border-t border-grayA-4">
-      <div className="px-8 pt-6 flex items-start justify-between">
+      <div className="px-8 pt-6 flex items-start justify-between bg-grayA-2">
         <div>
           <span id="match-conditions-label" className="text-gray-11 text-[13px]">
             Match Conditions
@@ -302,26 +403,26 @@ export function MatchConditionEditor({
         )}
       </div>
 
-      <div className="flex flex-col gap-4 px-8 pt-3 max-h-[400px] overflow-y-auto">
+      <div className="flex flex-col gap-8 px-8 pt-3 max-h-100 overflow-y-auto bg-grayA-2">
         {conditions.map((cond) => (
-          <MatchConditionCard
+          <Fragment
             key={cond.id}
-            condition={cond}
-            onChange={(updated) =>
-              onChange(conditions.map((c) => (c.id === updated.id ? updated : c)))
-            }
-            onDelete={(id) => {
-              const next = conditions.filter((c) => c.id !== id);
-              onChange(next);
-              if (next.length === 0) {
-                setExpanded(false);
-              }
-            }}
-          />
+          ><MatchConditionCard
+
+              condition={cond}
+              onChange={(updated) => onChange(conditions.map((c) => (c.id === updated.id ? updated : c)))}
+              onDelete={(id) => {
+                const next = conditions.filter((c) => c.id !== id);
+                onChange(next);
+                if (next.length === 0) {
+                  setExpanded(false);
+                }
+              }} /><Separator /></Fragment>
+
         ))}
       </div>
 
-      <div className="flex py-6 px-8">
+      <div className="flex py-6 px-8 bg-grayA-2">
         <Button
           type="button"
           variant="outline"
