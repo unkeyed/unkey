@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
@@ -170,11 +171,24 @@ func Run(ctx context.Context, cfg Config) error {
 		ChallengeCache: challengeCache,
 	})))
 	mux.Handle(ctrlv1connect.NewClusterServiceHandler(c))
+	// Domain Connect signing key (optional)
+	var dcPrivateKeyPEM []byte
+	if cfg.DomainConnect.PrivateKeyPEM != "" {
+		dcPrivateKeyPEM = []byte(cfg.DomainConnect.PrivateKeyPEM)
+		if err := domainconnect.ValidatePrivateKey(dcPrivateKeyPEM); err != nil {
+			return fmt.Errorf("invalid domain connect private key: %w", err)
+		}
+		logger.Info("Domain Connect signing enabled")
+	} else {
+		logger.Info("Domain Connect disabled (no private key configured)")
+	}
+
 	mux.Handle(ctrlv1connect.NewCustomDomainServiceHandler(customdomain.New(customdomain.Config{
-		Database:     database,
-		Restate:      restateClient,
-		RestateAdmin: restateAdminClient,
-		CnameDomain:  cfg.CnameDomain,
+		Database:                   database,
+		Restate:                    restateClient,
+		RestateAdmin:               restateAdminClient,
+		CnameDomain:                cfg.CnameDomain,
+		DomainConnectPrivateKeyPEM: dcPrivateKeyPEM,
 	})))
 	appSvc := app.New(app.Config{
 		Database: database,

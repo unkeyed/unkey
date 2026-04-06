@@ -12,6 +12,9 @@ primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams
 url = "http://restate:8080"
 admin_url = "http://restate:9070"
 
+[domain_connect]
+private_key_pem = """${UNKEY_DOMAIN_CONNECT_PRIVATE_KEY}"""
+
 [github]
 webhook_secret = "${UNKEY_GITHUB_APP_WEBHOOK_SECRET}"
 app_id = ${UNKEY_GITHUB_APP_ID}

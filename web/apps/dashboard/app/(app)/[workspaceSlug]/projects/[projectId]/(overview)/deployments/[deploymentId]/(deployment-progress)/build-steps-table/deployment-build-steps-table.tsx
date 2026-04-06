@@ -20,7 +20,7 @@ type Props = {
   fixedHeight?: number;
 };
 
-export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps, fixedHeight = 256 }) => {
+export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps, fixedHeight = 500 }) => {
   const [expandedIds, setExpandedIds] = useState<Set<string | number>>(new Set());
 
   const enrichedSteps = steps.map((step) => ({

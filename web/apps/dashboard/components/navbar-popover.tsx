@@ -158,7 +158,7 @@ export const QuickNavPopover = ({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger>{children}</PopoverTrigger>
+      <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent
         className={cn(
           "w-60 bg-gray-1 dark:bg-black drop-shadow-2xl transform-gpu p-2 border-gray-6 rounded-lg overflow-y-auto",

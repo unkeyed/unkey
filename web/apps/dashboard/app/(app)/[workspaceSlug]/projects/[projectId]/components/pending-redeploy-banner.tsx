@@ -2,26 +2,31 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { queryClient } from "@/lib/collections/client";
-import { useSettingsHasSaved } from "@/lib/collections/deploy/environment-settings";
+import {
+  dismissSettingsBanner,
+  useSettingsBannerVisible,
+} from "@/lib/collections/deploy/environment-settings";
 import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 import { Hammer2, XMark } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { GlowIcon } from "../../components/glow-icon";
-import { useProjectData } from "../data-provider";
+import { useEffect } from "react";
+import { useProjectData } from "../(overview)/data-provider";
+import { GlowIcon } from "../components/glow-icon";
 
 export function PendingRedeployBanner() {
-  const [dismissed, setDismissed] = useState(false);
   const { project, deployments, projectId } = useProjectData();
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
-  const hasSaved = useSettingsHasSaved();
-  const visible = hasSaved && !dismissed;
+  const visible = useSettingsBannerVisible();
+  const currentDeploymentId = project?.currentDeploymentId;
 
-  const currentDeployment = project?.currentDeploymentId
-    ? deployments.find((d) => d.id === project.currentDeploymentId)
+  const currentDeployment = currentDeploymentId
+    ? deployments.find((d) => d.id === currentDeploymentId)
     : undefined;
+
+  const show = visible && !!currentDeployment;
 
   const redeploy = trpc.deploy.deployment.redeploy.useMutation({
     onSuccess: async (data) => {
@@ -38,16 +43,32 @@ export function PendingRedeployBanner() {
     },
   });
 
-  if (!visible || !currentDeployment) {
-    return null;
-  }
+  useEffect(
+    function getDismissedAutomatically() {
+      if (!visible || !currentDeploymentId) {
+        return;
+      }
+      const timer = setTimeout(() => dismissSettingsBanner(), 10_000);
+      return () => {
+        clearTimeout(timer);
+      };
+    },
+    [visible, currentDeploymentId],
+  );
 
   return (
-    <div className="fixed top-6 right-6 z-50 animate-fade-slide-in">
+    <div
+      aria-hidden={!show}
+      inert={!show || undefined}
+      className={cn(
+        "fixed top-6 right-6 z-50 transition-[transform,opacity] duration-300 ease-out",
+        show ? "translate-x-0 opacity-100" : "translate-x-[calc(100%+24px)] opacity-0",
+      )}
+    >
       <div className="relative flex items-start gap-4 rounded-xl border border-gray-4 bg-gray-1 p-4 shadow-lg w-100">
         <button
           type="button"
-          onClick={() => setDismissed(true)}
+          onClick={() => dismissSettingsBanner()}
           className="absolute top-3 right-3 text-gray-9 hover:text-gray-11 transition-colors cursor-pointer"
           aria-label="Dismiss"
         >
@@ -55,7 +76,7 @@ export function PendingRedeployBanner() {
         </button>
 
         <GlowIcon
-          icon={<Hammer2 iconSize="sm-medium" className="size-[18px]" />}
+          icon={<Hammer2 iconSize="sm-medium" className="size-4.5" />}
           className="w-9 h-9 shrink-0"
         />
 
@@ -73,7 +94,9 @@ export function PendingRedeployBanner() {
             disabled={redeploy.isLoading}
             loading={redeploy.isLoading}
             onClick={() => {
-              redeploy.mutate({ deploymentId: currentDeployment.id });
+              if (currentDeployment) {
+                redeploy.mutate({ deploymentId: currentDeployment.id });
+              }
             }}
           >
             Redeploy

@@ -5,8 +5,6 @@ import { SettingsShell } from "@unkey/ui";
 import { DeleteProject } from "./components/delete-project";
 import { DeploymentSettings } from "./deployment-settings";
 import { EnvironmentSettingsProvider } from "./environment-provider";
-import { PendingRedeployBanner } from "./pending-redeploy-banner";
-
 export default function SettingsPage() {
   const { bypass } = usePreventLeave();
 
@@ -21,7 +19,6 @@ export default function SettingsPage() {
         </div>
         <DeploymentSettings onBeforeNavigate={bypass} />
       </SettingsShell>
-      <PendingRedeployBanner />
       <DeleteProject />
     </EnvironmentSettingsProvider>
   );

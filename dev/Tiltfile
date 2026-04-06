@@ -9,6 +9,7 @@ update_settings(suppress_unused_image_warnings=["unkey/sentinel:latest"])
 # Check which optional credential files exist
 has_depot_credentials = os.path.exists('./.env.depot')
 has_github_credentials = os.path.exists('./.env.github') and os.path.exists('./.github-private-key.pem')
+has_domain_connect_key = os.path.exists('./.domain-connect-private-key.pem')
 
 local_resource(
   'namespace',
@@ -104,6 +105,17 @@ local_resource(
       -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping github-credentials (missing .env.github or .github-private-key.pem)"; fi''',
     resource_deps=['namespace'],
     deps=['./.env.github', './.github-private-key.pem'],
+    labels=['setup'],
+    allow_parallel=True,
+)
+
+local_resource(
+    'domain-connect-credentials',
+    '''if [ -f ./.domain-connect-private-key.pem ]; then kubectl -n unkey create secret generic domain-connect-credentials \
+      --from-file=UNKEY_DOMAIN_CONNECT_PRIVATE_KEY=./.domain-connect-private-key.pem \
+      -o yaml --dry-run=client | kubectl apply -f -; else echo "Skipping domain-connect-credentials (no .domain-connect-private-key.pem file)"; fi''',
+    resource_deps=['namespace'],
+    deps=['./.domain-connect-private-key.pem'],
     labels=['setup'],
     allow_parallel=True,
 )
@@ -219,7 +231,7 @@ k8s_resource(
 
 # Ctrl service
 k8s_yaml('k8s/manifests/ctrl-api.yaml')
-ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'build-unkey', 'github-credentials']
+ctrl_api_deps = ['mysql', 'clickhouse', 'restate', 'vault', 'build-unkey', 'github-credentials', 'domain-connect-credentials']
 if has_depot_credentials:
     ctrl_api_deps.append('depot-credentials')
 k8s_resource(

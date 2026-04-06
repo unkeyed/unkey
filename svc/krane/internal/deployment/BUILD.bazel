@@ -33,6 +33,7 @@ go_library(
         "//pkg/logger",
         "//pkg/ptr",
         "//pkg/repeat",
+        "//pkg/validation",
         "//svc/krane/pkg/labels",
         "@com_connectrpc_connect//:connect",
         "@io_k8s_api//apps/v1:apps",
