@@ -1,6 +1,6 @@
 region = "local"
 platform = "dev"
-storage_class_name = "standard"
+storage_class_name = "topolvm-ssd"
 
 [control_plane]
 url = "http://ctrl-api:7091"

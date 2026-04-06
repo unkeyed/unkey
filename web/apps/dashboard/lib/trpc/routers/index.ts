@@ -87,8 +87,15 @@ import { create as createRatelimitPolicy } from "./deploy/environment-settings/s
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
 import { reorder as reorderSentinelPolicies } from "./deploy/environment-settings/sentinel/reorder";
+import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
+import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
+import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
+import { getDeploymentMemoryTimeseries } from "./deploy/metrics/get-deployment-memory-timeseries";
+import { getDeploymentNetworkEgressTimeseries } from "./deploy/metrics/get-deployment-network-egress-timeseries";
+import { getDeploymentNetworkIngressTimeseries } from "./deploy/metrics/get-deployment-network-ingress-timeseries";
+import { getDeploymentResourceSummary } from "./deploy/metrics/get-deployment-resource-summary";
 import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
 import { getDeploymentRpsTimeseries } from "./deploy/metrics/get-deployment-rps-timeseries";
 import { generateDeploymentTree } from "./deploy/network/generate";
@@ -517,6 +524,13 @@ export const router = t.router({
       getDeploymentRpsTimeseries,
       getDeploymentLatency,
       getDeploymentLatencyTimeseries,
+      getDeploymentCpuTimeseries,
+      getDeploymentMemoryTimeseries,
+      getDeploymentDiskTimeseries,
+      getDeploymentNetworkEgressTimeseries,
+      getDeploymentNetworkIngressTimeseries,
+      getDeploymentInstanceCountTimeseries,
+      getDeploymentResourceSummary,
     }),
   }),
 });
