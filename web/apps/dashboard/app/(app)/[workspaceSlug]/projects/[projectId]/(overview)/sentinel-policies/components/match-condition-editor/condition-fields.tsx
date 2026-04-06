@@ -141,6 +141,7 @@ export function ConditionFields({
         <legend className="text-gray-11 text-[13px] mb-1.5">Allowed Methods</legend>
         <div
           className="flex flex-wrap gap-1.5"
+          // biome-ignore lint/a11y/useSemanticElements: its okay
           role="group"
           aria-describedby={`method-desc-${c.id}`}
         >

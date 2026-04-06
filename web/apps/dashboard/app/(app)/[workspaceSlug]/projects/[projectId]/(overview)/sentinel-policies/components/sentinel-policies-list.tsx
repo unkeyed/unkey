@@ -147,9 +147,13 @@ export function SentinelPoliciesList({
     (id: string) => {
       setMergedPolicies((prev) => {
         const policy = prev.find((m) => m.id === id);
-        if (!policy) return prev;
+        if (!policy) {
+          return prev;
+        }
         const base = policy.envB;
-        if (!base) return prev;
+        if (!base) {
+          return prev;
+        }
         const added: SentinelPolicy = { ...base, enabled: false };
         const next = prev.map((m) => (m.id === id ? { ...m, envA: added } : m));
         persistEnv(next, envAId, "envA");
@@ -163,9 +167,13 @@ export function SentinelPoliciesList({
     (id: string) => {
       setMergedPolicies((prev) => {
         const policy = prev.find((m) => m.id === id);
-        if (!policy) return prev;
+        if (!policy) {
+          return prev;
+        }
         const base = policy.envA;
-        if (!base) return prev;
+        if (!base) {
+          return prev;
+        }
         const added: SentinelPolicy = { ...base, enabled: false };
         const next = prev.map((m) => (m.id === id ? { ...m, envB: added } : m));
         persistEnv(next, envBId, "envB");
@@ -179,7 +187,9 @@ export function SentinelPoliciesList({
     (id: string, prodPolicy: SentinelPolicy, previewPolicy: SentinelPolicy | null) => {
       setMergedPolicies((prev) => {
         const next = prev.map((m) => {
-          if (m.id !== id) return m;
+          if (m.id !== id) {
+            return m;
+          }
           return {
             ...m,
             name: prodPolicy.name,

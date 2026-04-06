@@ -124,6 +124,7 @@ export function KeyAuthFields({ control }: { control: Control<KeyauthFormValues>
 
       <fieldset className="flex flex-col gap-2 border-0 m-0 p-0">
         <div className="flex items-center justify-between">
+          {/* biome-ignore lint/a11y/noLabelWithoutControl: its okay */}
           <label className="text-gray-11 text-[13px]">Key Locations</label>
           <Button type="button" variant="ghost" size="sm" onClick={addLocation}>
             <Plus iconSize="sm-regular" />

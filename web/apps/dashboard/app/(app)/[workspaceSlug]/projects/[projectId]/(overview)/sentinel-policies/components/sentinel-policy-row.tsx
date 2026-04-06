@@ -110,8 +110,6 @@ export function SentinelPolicyRow({
   onToggleEnvB,
   onAddToEnvA,
   onAddToEnvB,
-  onSave,
-  onDelete,
   onDragStart,
   onDragOver,
   onDrop,
@@ -120,7 +118,6 @@ export function SentinelPolicyRow({
   const fromHandle = useRef(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const menuItems: MenuItem[] = [
     {
@@ -139,7 +136,6 @@ export function SentinelPolicyRow({
       icon: <Trash iconSize="md-regular" />,
       onClick: (e) => {
         e.stopPropagation();
-        setIsDeleteConfirmOpen(true);
       },
     },
   ];
@@ -193,7 +189,8 @@ export function SentinelPolicyRow({
             </div>
 
             {/* Drag handle */}
-            <div
+            <button
+              type="button"
               className="w-10 shrink-0 flex items-center justify-center py-5 cursor-grab active:cursor-grabbing touch-none"
               onMouseDown={() => {
                 fromHandle.current = true;
@@ -201,7 +198,7 @@ export function SentinelPolicyRow({
               onClick={(e) => e.stopPropagation()}
             >
               <GripDotsVertical iconSize="lg-medium" className="opacity-40 hover:opacity-70" />
-            </div>
+            </button>
 
             {/* Name */}
             <div className="flex-4 min-w-0 py-5 flex items-center">
