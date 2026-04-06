@@ -2,8 +2,8 @@
 
 import type { SentinelPolicy } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { match } from "@unkey/match";
 import { ChevronDown, DoubleChevronRight } from "@unkey/icons";
+import { match } from "@unkey/match";
 import {
   Button,
   FormInput,
@@ -37,7 +37,10 @@ type SentinelPolicyAddPanelProps = {
   onAdd: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
 };
 
-function PolicyConfigFields({ type, control }: { type: PolicyType; control: Control<PolicyFormValues> }) {
+function PolicyConfigFields({
+  type,
+  control,
+}: { type: PolicyType; control: Control<PolicyFormValues> }) {
   return match(type)
     .with("keyauth", () => (
       <KeyAuthFields control={control as Control<Extract<PolicyFormValues, { type: "keyauth" }>>} />
@@ -58,14 +61,9 @@ export function SentinelPolicyAddPanel({
   onClose,
   onAdd,
 }: SentinelPolicyAddPanelProps) {
-  const {
-    control,
-    handleSubmit,
-    watch,
-    reset,
-  } = useForm<PolicyFormValues>({
+  const { control, handleSubmit, watch, reset } = useForm<PolicyFormValues>({
     resolver: zodResolver(policyFormSchema),
-    defaultValues: getDefaultValues("ratelimit"),
+    defaultValues: getDefaultValues("keyauth"),
   });
 
   const watchedType = watch("type");

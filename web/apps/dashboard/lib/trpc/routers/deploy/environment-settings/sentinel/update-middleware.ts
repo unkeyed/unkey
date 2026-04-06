@@ -6,6 +6,20 @@ import { workspaceProcedure } from "../../../../trpc";
 
 export type StringMatchMode = "exact" | "prefix" | "regex";
 
+// ── Match expressions (protojson shape) ─────────────────────────────────
+
+export type StringMatch = {
+  ignoreCase?: boolean;
+} & ({ exact: string } | { prefix: string } | { regex: string });
+
+export type MatchExpr =
+  | { path: { path: StringMatch } }
+  | { method: { methods: string[] } }
+  | { header: { name: string } & ({ present: boolean } | { value: StringMatch }) }
+  | { queryParam: { name: string } & ({ present: boolean } | { value: StringMatch }) };
+
+// ── Form-level match condition (ergonomic, converted to MatchExpr on submit) ─
+
 export type MatchCondition =
   | { id: string; type: "path"; mode: StringMatchMode; value: string; ignoreCase?: boolean }
   | { id: string; type: "method"; methods: string[] }
@@ -28,18 +42,40 @@ export type MatchCondition =
       ignoreCase?: boolean;
     };
 
+// ── Policy config types (protojson oneof shapes) ────────────────────────
+
+export type KeyLocation =
+  | { bearer: Record<string, never> }
+  | { header: { name: string; stripPrefix?: string } }
+  | { queryParam: { name: string } };
+
+export type RateLimitKey =
+  | { remoteIp: Record<string, never> }
+  | { header: { name: string } }
+  | { authenticatedSubject: Record<string, never> }
+  | { path: Record<string, never> }
+  | { principalClaim: { claimName: string } };
+
 export type SentinelPolicy = {
   id: string;
   name: string;
   enabled: boolean;
   type: "keyauth" | "ratelimit" | "jwt" | "basicauth" | "iprules" | "openapi";
-  keyauth?: { keySpaceIds: string[] };
-  ratelimit?: { limit: number; windowMs: number };
+  keyauth?: {
+    keySpaceIds: string[];
+    locations?: KeyLocation[];
+    permissionQuery?: string;
+  };
+  ratelimit?: {
+    limit: number;
+    windowMs: number;
+    key?: RateLimitKey;
+  };
   jwt?: { jwksUri?: string; issuer?: string; audience?: string[] };
   basicauth?: { credentials: { username: string; passwordHash: string }[] };
   iprules?: { allowlist: string[]; denylist: string[] };
   openapi?: { specPath: string };
-  match?: { conditions: MatchCondition[] };
+  match?: MatchExpr[];
 };
 
 export type SentinelConfig = {

@@ -1,11 +1,28 @@
 "use client";
 
-import { FormInput } from "@unkey/ui";
+import { ChevronDown } from "@unkey/icons";
+import {
+  FormInput,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@unkey/ui";
+import { FormDescription } from "@unkey/ui/src/components/form/form-helpers";
 import type { Control } from "react-hook-form";
 import { useController } from "react-hook-form";
-import type { PolicyFormValues } from "../schema";
+import type { PolicyFormValues, RateLimitKeySource } from "../schema";
 
 type RatelimitFormValues = Extract<PolicyFormValues, { type: "ratelimit" }>;
+
+const KEY_SOURCE_OPTIONS: { value: RateLimitKeySource; label: string }[] = [
+  { value: "remoteIp", label: "Remote IP" },
+  { value: "header", label: "Header" },
+  { value: "authenticatedSubject", label: "Authenticated Subject" },
+  { value: "path", label: "Request Path" },
+  { value: "principalClaim", label: "Principal Claim" },
+];
 
 export function RateLimitFields({ control }: { control: Control<RatelimitFormValues> }) {
   const {
@@ -18,30 +35,89 @@ export function RateLimitFields({ control }: { control: Control<RatelimitFormVal
     fieldState: { error: windowError },
   } = useController({ control, name: "windowMs" });
 
+  const {
+    field: { value: keySource, onChange: onKeySourceChange },
+  } = useController({ control, name: "keySource" });
+
+  const {
+    field: { value: keyValue, onChange: onKeyValueChange },
+  } = useController({ control, name: "keyValue" });
+
+  const needsKeyValue = keySource === "header" || keySource === "principalClaim";
+
   return (
-    <div className="flex gap-3">
-      <FormInput
-        label="Limit"
-        description="Max number of requests allowed per window."
-        type="number"
-        value={limit}
-        onChange={(e) => onLimitChange(Number.parseInt(e.target.value) || 0)}
-        className="flex-1"
-        error={limitError?.message}
-      />
-      <FormInput
-        label="Window (ms)"
-        type="number"
-        value={windowMs}
-        onChange={(e) => onWindowChange(Number.parseInt(e.target.value) || 0)}
-        className="flex-1"
-        description={
-          windowMs > 0
-            ? `${(windowMs / 1000).toFixed(1)}s — time window before the counter resets.`
-            : "Time window before the counter resets."
-        }
-        error={windowError?.message}
-      />
+    <div className="flex flex-col gap-4">
+      <div className="flex gap-3">
+        <FormInput
+          label="Limit"
+          description="Max number of requests allowed per window."
+          type="number"
+          value={limit}
+          onChange={(e) => onLimitChange(Number.parseInt(e.target.value) || 0)}
+          className="flex-1"
+          error={limitError?.message}
+        />
+        <FormInput
+          label="Window (ms)"
+          type="number"
+          value={windowMs}
+          onChange={(e) => onWindowChange(Number.parseInt(e.target.value) || 0)}
+          className="flex-1"
+          description={
+            windowMs > 0
+              ? `${(windowMs / 1000).toFixed(1)}s. Time window before the counter resets.`
+              : "Time window before the counter resets."
+          }
+          error={windowError?.message}
+        />
+      </div>
+
+      <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
+        <label htmlFor="ratelimit-key-source" className="text-gray-11 text-[13px]">
+          Key Source
+        </label>
+        <Select
+          value={keySource}
+          onValueChange={(v) => {
+            onKeySourceChange(v as RateLimitKeySource);
+            onKeyValueChange("");
+          }}
+        >
+          <SelectTrigger
+            id="ratelimit-key-source"
+            aria-describedby="ratelimit-key-source-desc"
+            rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="z-60">
+            {KEY_SOURCE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <FormDescription
+          description="Determines how the rate limit bucket is keyed (per IP, per header value, per authenticated identity, etc.)."
+          descriptionId="ratelimit-key-source-desc"
+          errorId="ratelimit-key-source-error"
+        />
+      </fieldset>
+
+      {needsKeyValue && (
+        <FormInput
+          label={keySource === "header" ? "Header Name" : "Claim Name"}
+          value={keyValue}
+          placeholder={keySource === "header" ? "X-Tenant-Id" : "org_id"}
+          onChange={(e) => onKeyValueChange(e.target.value)}
+          description={
+            keySource === "header"
+              ? "The header whose value becomes the rate limit bucket key."
+              : "The principal claim whose value becomes the rate limit bucket key."
+          }
+        />
+      )}
     </div>
   );
 }
