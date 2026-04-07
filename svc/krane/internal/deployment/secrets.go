@@ -9,6 +9,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
@@ -66,6 +67,9 @@ func (c *Controller) ensureDeploymentSecret(ctx context.Context, namespace, depl
 	// ownership — removed keys won't be cleaned up from data on re-apply.
 	data := make(map[string][]byte, len(envVars))
 	for k, v := range envVars {
+		if !validation.IsValidEnvVarKey(k) {
+			return fmt.Errorf("environment variable key %q is invalid: %s", k, validation.ErrMsgInvalidEnvVarKey)
+		}
 		data[k] = []byte(v)
 	}
 

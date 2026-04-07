@@ -1,8 +1,3 @@
-# Depot CI Migration
-# Source: .github/workflows/pr.yaml
-#
-# No changes were necessary.
-
 name: PR
 on:
   pull_request:
@@ -18,23 +13,23 @@ permissions:
 jobs:
   detect_changes:
     if: (github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request'
-    uses: ./.github/workflows/job_detect_changes.yaml
+    uses: ./.depot/workflows/job_detect_changes.yaml
   test_packages:
     name: Test Packages
     if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && (needs.detect_changes.outputs.packages == 'true' || needs.detect_changes.outputs.dependencies == 'true')
     needs: [detect_changes]
-    uses: ./.github/workflows/job_test_web.yaml
+    uses: ./.depot/workflows/job_test_web.yaml
   bazel:
     name: Bazel
-    uses: ./.github/workflows/job_bazel.yaml
+    uses: ./.depot/workflows/job_bazel.yaml
     secrets: inherit
   test_dashboard:
     name: Test Dashboard
     if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.dashboard == 'true'
     needs: [detect_changes]
-    uses: ./.github/workflows/job_test_dashboard.yaml
+    uses: ./.depot/workflows/job_test_dashboard.yaml
   validate_workflows:
     name: Validate Workflows
     if: ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || github.event_name != 'pull_request') && needs.detect_changes.result == 'success' && needs.detect_changes.outputs.workflows == 'true'
     needs: [detect_changes]
-    uses: ./.github/workflows/job_validate_workflows.yaml
+    uses: ./.depot/workflows/job_validate_workflows.yaml

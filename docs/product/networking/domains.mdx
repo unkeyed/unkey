@@ -1,6 +1,6 @@
 ---
 title: Custom domains
-description: Attach your own domain names to route production traffic to your deployments.
+description: "Attach your own custom domain names to route production traffic to your Unkey deployments. Configure DNS records and TLS certificates."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
@@ -28,9 +28,30 @@ Select the environment and enter the fully qualified domain name you want to use
 
 </Step>
 
-<Step title="Add the DNS records">
+<Step title="Configure DNS records">
 
-Unkey generates two DNS records to add at your DNS provider:
+After you add a domain, Unkey checks whether your DNS provider supports automatic setup. If it does, you can configure your DNS records with one click. Otherwise, you add the records manually.
+
+<Tabs>
+<Tab title="Automatic setup">
+
+If your DNS provider supports the [Domain Connect](https://www.domainconnect.org/) protocol, an **Automatic setup available** card appears with your provider's name. Click **Connect** to open your DNS provider's consent page, approve the changes, and the required DNS records are created for you automatically.
+
+After you approve, Unkey begins verification immediately. No manual DNS configuration is needed.
+
+The following providers are supported for automatic setup:
+
+- Cloudflare
+- Vercel DNS
+
+<Note>
+  Automatic setup is available for subdomains only. Apex (root) domains require manual DNS configuration.
+</Note>
+
+</Tab>
+<Tab title="Manual setup">
+
+If automatic setup is not available, Unkey generates DNS records for you to add at your DNS provider:
 
 <Frame>
   <img src="/networking/custom-domain-verify.png" alt="DNS records to add for domain verification showing TXT and CNAME entries" />
@@ -39,6 +60,9 @@ Unkey generates two DNS records to add at your DNS provider:
 A **TXT** record proves ownership of the domain. A **CNAME** record routes traffic to your deployment. Each domain receives a unique CNAME target.
 
 Add both records at your DNS provider. Unkey checks for them automatically and verifies within minutes once the records propagate.
+
+</Tab>
+</Tabs>
 
 </Step>
 </Steps>
@@ -58,6 +82,8 @@ Certificates renew before expiration without any action from you.
 </Note>
 
 ## DNS provider examples
+
+If your provider supports [automatic setup](#configure-dns-records), you can skip these steps and use the one-click **Connect** button instead.
 
 <Tabs>
 <Tab title="Cloudflare">

@@ -56,22 +56,6 @@ func TestNew_CreatesOwnCircuitBreaker(t *testing.T) {
 	require.NotNil(t, ctrl.cb, "circuit breaker should not be nil")
 }
 
-func TestNew_InitializesVersionCursorToZero(t *testing.T) {
-	client := fake.NewSimpleClientset()
-	dynamicClient := fakedynamic.NewSimpleDynamicClient(runtime.NewScheme())
-	cfg := Config{
-		ClientSet:     client,
-		DynamicClient: dynamicClient,
-		Cluster:       &testutil.MockClusterClient{},
-		Region:        "us-east-1",
-		Fingerprints:  cache.NewNoopCache[string, string](),
-	}
-
-	ctrl := New(cfg)
-
-	require.Equal(t, uint64(0), ctrl.versionLastSeen, "version cursor should start at 0")
-}
-
 func TestNew_CreatesDoneChannel(t *testing.T) {
 	client := fake.NewSimpleClientset()
 	dynamicClient := fakedynamic.NewSimpleDynamicClient(runtime.NewScheme())

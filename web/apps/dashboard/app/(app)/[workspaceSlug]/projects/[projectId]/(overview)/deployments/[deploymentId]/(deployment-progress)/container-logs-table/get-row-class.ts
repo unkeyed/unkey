@@ -11,6 +11,10 @@ const baseClasses = [
 ];
 
 export function getContainerLogRowClass(log: ContainerLogRow): string {
+  if (!log?.severity) {
+    return "";
+  }
+
   switch (log.severity.toUpperCase()) {
     case "ERROR":
       return cn(

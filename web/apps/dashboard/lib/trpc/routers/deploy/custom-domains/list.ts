@@ -41,6 +41,8 @@ export const listCustomDomains = workspaceProcedure
           checkAttempts: true,
           lastCheckedAt: true,
           verificationError: true,
+          domainConnectProvider: true,
+          domainConnectUrl: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -62,6 +64,8 @@ export const listCustomDomains = workspaceProcedure
         checkAttempts: d.checkAttempts,
         lastCheckedAt: d.lastCheckedAt,
         verificationError: d.verificationError,
+        domainConnectProvider: d.domainConnectProvider ?? null,
+        domainConnectUrl: d.domainConnectUrl ?? null,
         createdAt: d.createdAt,
         updatedAt: d.updatedAt,
       }));

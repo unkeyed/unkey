@@ -66,6 +66,8 @@ export const addCustomDomain = workspaceProcedure
         domainId: response.domainId,
         targetCname: response.targetCname,
         status: response.status,
+        domainConnectProvider: response.domainConnectProvider || null,
+        domainConnectUrl: response.domainConnectUrl || null,
       };
     } catch (error) {
       console.error("Add custom domain failed:", error);

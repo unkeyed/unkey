@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, index, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { environments } from "./environments";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -22,18 +22,9 @@ export const ciliumNetworkPolicies = mysqlTable(
     // json representation of the policy
     policy: json("policy").notNull(),
 
-    // Version for state synchronization with edge agents.
-    // Updated via Restate VersioningService on each mutation.
-    // Edge agents track their last-seen version and request changes after it.
-    // Unique per region (composite index with region).
-    version: bigint("version", { mode: "number", unsigned: true }).notNull(),
-
     ...lifecycleDates,
   },
-  (table) => [
-    index("idx_deployment_region").on(table.deploymentId, table.regionId),
-    uniqueIndex("unique_version_per_region").on(table.regionId, table.version),
-  ],
+  (table) => [index("idx_deployment_region").on(table.deploymentId, table.regionId)],
 );
 
 export const ciliumNetworkPoliciesRelations = relations(ciliumNetworkPolicies, ({ one }) => ({

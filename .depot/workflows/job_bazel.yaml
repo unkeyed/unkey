@@ -1,8 +1,3 @@
-# Depot CI Migration
-# Source: .github/workflows/job_bazel.yaml
-#
-# No changes were necessary.
-
 name: Bazel
 on:
   workflow_call:
@@ -12,6 +7,7 @@ jobs:
   build:
     name: Build and Test
     runs-on: depot-ubuntu-24.04-8
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - uses: bazel-contrib/setup-bazel@083175551ceeceebc757ebee2127fde78840ca77 # 0.18.0

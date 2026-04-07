@@ -7,7 +7,9 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import { useRuntimeLogsFilters } from "../../../../hooks/use-runtime-logs-filters";
 import { RuntimeLogsDeploymentFilter } from "./runtime-logs-deployment-filter";
 import { RuntimeLogsEnvironmentFilter } from "./runtime-logs-environment-filter";
+import { RuntimeLogsInstanceFilter } from "./runtime-logs-instance-filter";
 import { RuntimeLogsMessageFilter } from "./runtime-logs-message-filter";
+import { RuntimeLogsRegionFilter } from "./runtime-logs-region-filter";
 import { RuntimeLogsSeverityFilter } from "./runtime-logs-severity-filter";
 
 const FILTER_ITEMS: FilterItemConfig[] = [
@@ -26,6 +28,13 @@ const FILTER_ITEMS: FilterItemConfig[] = [
     component: <RuntimeLogsMessageFilter />,
   },
   {
+    id: "environmentId",
+    label: "Environment",
+    shortcut: "E",
+    shortcutLabel: "E",
+    component: <RuntimeLogsEnvironmentFilter />,
+  },
+  {
     id: "deploymentId",
     label: "Deployment",
     shortcut: "D",
@@ -33,11 +42,18 @@ const FILTER_ITEMS: FilterItemConfig[] = [
     component: <RuntimeLogsDeploymentFilter />,
   },
   {
-    id: "environmentId",
-    label: "Environment",
-    shortcut: "N",
-    shortcutLabel: "N",
-    component: <RuntimeLogsEnvironmentFilter />,
+    id: "region",
+    label: "Region",
+    shortcut: "R",
+    shortcutLabel: "R",
+    component: <RuntimeLogsRegionFilter />,
+  },
+  {
+    id: "instanceId",
+    label: "Instance",
+    shortcut: "I",
+    shortcutLabel: "I",
+    component: <RuntimeLogsInstanceFilter />,
   },
 ];
 
@@ -49,7 +65,9 @@ export function RuntimeLogsFilters() {
       f.field === "severity" ||
       f.field === "message" ||
       f.field === "deploymentId" ||
-      f.field === "environmentId",
+      f.field === "environmentId" ||
+      f.field === "region" ||
+      f.field === "instanceId",
   ).length;
 
   return (

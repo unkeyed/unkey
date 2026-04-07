@@ -46,6 +46,14 @@ export const runtimeLogsFilterFieldConfig: RuntimeLogsFilterFieldConfigs = {
     type: "string",
     operators: ["is"],
   },
+  region: {
+    type: "string",
+    operators: ["is"],
+  },
+  instanceId: {
+    type: "string",
+    operators: ["is"],
+  },
 } as const;
 
 // Schemas
@@ -59,6 +67,8 @@ export const runtimeLogsFilterFieldEnum = z.enum([
   "since",
   "deploymentId",
   "environmentId",
+  "region",
+  "instanceId",
 ]);
 
 export const runtimeLogsFilterOutputSchema = createFilterOutputSchema(
@@ -79,6 +89,8 @@ export type RuntimeLogsFilterFieldConfigs = {
   since: StringConfig<RuntimeLogsFilterOperator>;
   deploymentId: StringConfig<RuntimeLogsFilterOperator>;
   environmentId: StringConfig<RuntimeLogsFilterOperator>;
+  region: StringConfig<RuntimeLogsFilterOperator>;
+  instanceId: StringConfig<RuntimeLogsFilterOperator>;
 };
 
 export type RuntimeLogsFilterUrlValue = Pick<
@@ -95,4 +107,6 @@ export type RuntimeLogsQuerySearchParams = {
   since?: string | null;
   deploymentId: RuntimeLogsFilterUrlValue[] | null;
   environmentId: RuntimeLogsFilterUrlValue[] | null;
+  region: RuntimeLogsFilterUrlValue[] | null;
+  instanceId: RuntimeLogsFilterUrlValue[] | null;
 };
