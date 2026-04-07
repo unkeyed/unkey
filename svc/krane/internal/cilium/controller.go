@@ -11,19 +11,17 @@ import (
 // Controller manages CiliumNetworkPolicy resources in a Kubernetes cluster by maintaining
 // bidirectional state synchronization with the control plane.
 //
-// The controller receives desired state via the WatchCiliumNetworkPolicies stream. It operates
-// independently from the sentinel controller with its own version cursor and circuit breaker,
-// ensuring that failures in one controller don't cascade to the other.
+// The controller receives desired state from the unified WatchDeploymentChanges stream
+// (dispatched by the watcher) and applies Cilium network policies to Kubernetes.
 //
 // Create a Controller with [New] and start it with [Controller.Start]. The controller
 // runs until the context is cancelled or [Controller.Stop] is called.
 type Controller struct {
-	clientSet       kubernetes.Interface
-	dynamicClient   dynamic.Interface
-	cluster         ctrl.ClusterServiceClient
-	done            chan struct{}
-	region          string
-	versionLastSeen uint64
+	clientSet     kubernetes.Interface
+	dynamicClient dynamic.Interface
+	cluster       ctrl.ClusterServiceClient
+	done          chan struct{}
+	region        string
 }
 
 // Config holds the configuration required to create a new [Controller].
@@ -39,7 +37,7 @@ type Config struct {
 	// resources that don't have generated Go types.
 	DynamicClient dynamic.Interface
 
-	// Cluster is the control plane RPC client for WatchCiliumNetworkPolicies calls.
+	// Cluster is the control plane RPC client for GetDesiredCiliumNetworkPolicyState calls.
 	Cluster ctrl.ClusterServiceClient
 
 	// Region identifies the cluster region for filtering policy streams.
@@ -53,25 +51,20 @@ type Config struct {
 // (healthy) state.
 func New(cfg Config) *Controller {
 	return &Controller{
-		clientSet:       cfg.ClientSet,
-		dynamicClient:   cfg.DynamicClient,
-		cluster:         cfg.Cluster,
-		done:            make(chan struct{}),
-		region:          cfg.Region,
-		versionLastSeen: 0,
+		clientSet:     cfg.ClientSet,
+		dynamicClient: cfg.DynamicClient,
+		cluster:       cfg.Cluster,
+		done:          make(chan struct{}),
+		region:        cfg.Region,
 	}
 }
 
-// Start launches the background control loops and blocks until they're initialized.
+// Start launches the resync loop as a background goroutine.
+// Desired state is received externally via the watcher package.
 //
-// The method starts [Controller.runResyncLoop] and [Controller.runDesiredStateApplyLoop]
-// as background goroutines.
-//
-// All loops continue until the context is cancelled or [Controller.Stop] is called.
+// The loop continues until the context is cancelled or [Controller.Stop] is called.
 func (c *Controller) Start(ctx context.Context) error {
 	go c.runResyncLoop(ctx)
-
-	go c.runDesiredStateApplyLoop(ctx)
 
 	return nil
 }

@@ -14,7 +14,6 @@ import (
 const updateCiliumNetworkPolicyByEnvironmentRegionAndName = `-- name: UpdateCiliumNetworkPolicyByEnvironmentRegionAndName :exec
 UPDATE cilium_network_policies
 SET policy = ?,
-    version = ?,
     updated_at = ?
 WHERE environment_id = ?
   AND region_id = ?
@@ -23,7 +22,6 @@ WHERE environment_id = ?
 
 type UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams struct {
 	Policy        json.RawMessage `db:"policy"`
-	Version       uint64          `db:"version"`
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 	EnvironmentID string          `db:"environment_id"`
 	RegionID      string          `db:"region_id"`
@@ -34,7 +32,6 @@ type UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams struct {
 //
 //	UPDATE cilium_network_policies
 //	SET policy = ?,
-//	    version = ?,
 //	    updated_at = ?
 //	WHERE environment_id = ?
 //	  AND region_id = ?
@@ -42,7 +39,6 @@ type UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams struct {
 func (q *Queries) UpdateCiliumNetworkPolicyByEnvironmentRegionAndName(ctx context.Context, db DBTX, arg UpdateCiliumNetworkPolicyByEnvironmentRegionAndNameParams) error {
 	_, err := db.ExecContext(ctx, updateCiliumNetworkPolicyByEnvironmentRegionAndName,
 		arg.Policy,
-		arg.Version,
 		arg.UpdatedAt,
 		arg.EnvironmentID,
 		arg.RegionID,

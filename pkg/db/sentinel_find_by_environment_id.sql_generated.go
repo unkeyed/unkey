@@ -10,7 +10,7 @@ import (
 )
 
 const findSentinelsByEnvironmentID = `-- name: FindSentinelsByEnvironmentID :many
-SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.version, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
+SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
 `
 
 type FindSentinelsByEnvironmentIDRow struct {
@@ -20,7 +20,7 @@ type FindSentinelsByEnvironmentIDRow struct {
 
 // FindSentinelsByEnvironmentID
 //
-//	SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.version, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
+//	SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
 func (q *Queries) FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error) {
 	rows, err := db.QueryContext(ctx, findSentinelsByEnvironmentID, environmentID)
 	if err != nil {
@@ -46,7 +46,6 @@ func (q *Queries) FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, env
 			&i.Sentinel.AvailableReplicas,
 			&i.Sentinel.CpuMillicores,
 			&i.Sentinel.MemoryMib,
-			&i.Sentinel.Version,
 			&i.Sentinel.CreatedAt,
 			&i.Sentinel.UpdatedAt,
 			&i.Region.Pk,

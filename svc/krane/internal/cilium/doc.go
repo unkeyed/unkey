@@ -7,13 +7,11 @@
 //
 // # Architecture
 //
-// The [Controller] runs two independent control loops:
-//
-//   - [Controller.runDesiredStateApplyLoop]: Streams policy updates from the control
-//     plane via WatchCiliumNetworkPolicies and applies them to Kubernetes.
-//
-//   - [Controller.runResyncLoop]: Periodically reconciles all existing policies against
-//     the control plane to handle missed events or drift.
+// The [Controller] runs a resync loop that periodically reconciles all existing
+// policies against the control plane to handle missed events or drift. Desired
+// state is received from the unified WatchDeploymentChanges stream via the
+// watcher package, which calls [Controller.ApplyCiliumNetworkPolicy] and
+// [Controller.DeleteCiliumNetworkPolicy] directly.
 //
 // # Usage
 //

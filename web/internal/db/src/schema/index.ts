@@ -38,3 +38,4 @@ export * from "./cilium";
 export * from "./clusters";
 export * from "./regions";
 export * from "./horizontal_autoscaling_policies";
+export * from "./deployment_changes";

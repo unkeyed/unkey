@@ -35,19 +35,12 @@ export const deploymentTopology = mysqlTable(
     // Average memory utilization percentage (0-100) that triggers scale-up. Null = not used as a signal.
     autoscalingThresholdMemory: tinyint("autoscaling_threshold_memory", { unsigned: true }),
 
-    // Version for state synchronization with edge agents.
-    // Updated via Restate VersioningService on each mutation.
-    // Edge agents track their last-seen version and request changes after it.
-    // Unique per regionId (composite index with regionId).
-    version: bigint("version", { mode: "number", unsigned: true }).notNull(),
-
     // Deployment status
     desiredStatus: mysqlEnum("desired_status", ["stopped", "running"]).notNull(),
     ...lifecycleDates,
   },
   (table) => [
     uniqueIndex("unique_region_per_deployment").on(table.deploymentId, table.regionId),
-    uniqueIndex("unique_version_per_region").on(table.regionId, table.version),
     index("workspace_idx").on(table.workspaceId),
     index("status_idx").on(table.desiredStatus),
   ],

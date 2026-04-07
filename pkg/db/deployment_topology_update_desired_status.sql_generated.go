@@ -12,28 +12,25 @@ import (
 
 const updateDeploymentTopologyDesiredStatus = `-- name: UpdateDeploymentTopologyDesiredStatus :exec
 UPDATE ` + "`" + `deployment_topology` + "`" + `
-SET desired_status = ?, version = ?, updated_at = ?
+SET desired_status = ?, updated_at = ?
 WHERE deployment_id = ? AND region_id = ?
 `
 
 type UpdateDeploymentTopologyDesiredStatusParams struct {
 	DesiredStatus DeploymentTopologyDesiredStatus `db:"desired_status"`
-	Version       uint64                          `db:"version"`
 	UpdatedAt     sql.NullInt64                   `db:"updated_at"`
 	DeploymentID  string                          `db:"deployment_id"`
 	RegionID      string                          `db:"region_id"`
 }
 
-// UpdateDeploymentTopologyDesiredStatus updates the desired_status and version of a topology entry.
-// A new version is required so that WatchDeployments picks up the change.
+// UpdateDeploymentTopologyDesiredStatus updates the desired_status of a topology entry.
 //
 //	UPDATE `deployment_topology`
-//	SET desired_status = ?, version = ?, updated_at = ?
+//	SET desired_status = ?, updated_at = ?
 //	WHERE deployment_id = ? AND region_id = ?
 func (q *Queries) UpdateDeploymentTopologyDesiredStatus(ctx context.Context, db DBTX, arg UpdateDeploymentTopologyDesiredStatusParams) error {
 	_, err := db.ExecContext(ctx, updateDeploymentTopologyDesiredStatus,
 		arg.DesiredStatus,
-		arg.Version,
 		arg.UpdatedAt,
 		arg.DeploymentID,
 		arg.RegionID,
