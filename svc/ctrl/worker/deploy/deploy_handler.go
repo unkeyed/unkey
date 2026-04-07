@@ -625,9 +625,20 @@ func (w *Workflow) createTopologies(
 		compensation.Add(
 			fmt.Sprintf("delete deployment topology %s/%s", topo.DeploymentID, topo.RegionID),
 			func(runCtx restate.RunContext) error {
-				return db.Query.DeleteDeploymentTopologyByDeploymentRegion(runCtx, w.db.RW(), db.DeleteDeploymentTopologyByDeploymentRegionParams{
-					DeploymentID: topo.DeploymentID,
-					RegionID:     topo.RegionID,
+				return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+					err := db.Query.DeleteDeploymentTopologyByDeploymentRegion(txCtx, tx, db.DeleteDeploymentTopologyByDeploymentRegionParams{
+						DeploymentID: topo.DeploymentID,
+						RegionID:     topo.RegionID,
+					})
+					if err != nil {
+						return err
+					}
+					return db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
+						ResourceType: db.DeploymentChangesResourceTypeDeploymentTopology,
+						ResourceID:   topo.DeploymentID,
+						RegionID:     topo.RegionID,
+						CreatedAt:    time.Now().UnixMilli(),
+					})
 				})
 			},
 		)
