@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"time"
 
 	"connectrpc.com/connect"
@@ -104,7 +105,8 @@ func (s *Service) WatchDeploymentChanges(
 		}
 
 		if len(events) == 0 {
-			time.Sleep(time.Second)
+			jitter := time.Duration(500+rand.IntN(1000)) * time.Millisecond
+			time.Sleep(jitter)
 		}
 	}
 }
