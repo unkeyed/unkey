@@ -1,6 +1,6 @@
 ---
 title: Shared Rate Limits
-description: "Share rate limits across multiple API keys using identities"
+description: "Share rate limits across multiple API keys by linking them to the same identity. Enforce a single quota across all keys for one user."
 ---
 
 Identities let you enforce a **single rate limit** across all of a user's API keys. Without this, a user with 5 keys at 100 req/s each could make 500 req/s total — probably not what you want.
