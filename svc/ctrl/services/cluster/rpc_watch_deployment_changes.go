@@ -318,7 +318,7 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
-				return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
+				return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("resource %s does not exist in region %s", change.ResourceID, change.RegionID))
 			}
 			return nil, err
 		}
