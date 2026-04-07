@@ -59,6 +59,8 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 		})
 	}()
 
+	var responseBuf bytes.Buffer
+
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
 
 	var backendStart time.Time
@@ -108,9 +110,17 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 				},
 			})
 
-			if source != "sentinel" {
-				return nil
-			}
+			// Capture response body for logging via TeeReader.
+				// Streaming: bytes flow to the client while accumulating in responseBuf.
+				// Non-streaming: the proxy buffers internally, same result.
+				if resp.Body != nil {
+					responseBuf.Reset()
+					resp.Body = io.NopCloser(io.TeeReader(resp.Body, &zen.LimitedWriter{W: &responseBuf, N: zen.MaxBodyCapture}))
+				}
+
+				if source != "sentinel" {
+					return nil
+				}
 
 			if sentinelTime := resp.Header.Get(timing.HeaderName); sentinelTime != "" {
 				sess.ResponseWriter().Header().Add(timing.HeaderName, sentinelTime)
@@ -160,6 +170,11 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 
 	// Proxy the request with the middleware context (carries timeout deadline)
 	proxy.ServeHTTP(wrapper, sess.Request().WithContext(ctx))
+
+	// Feed captured response body back into the session for zen middleware logging.
+	if responseBuf.Len() > 0 {
+		sess.SetResponseBody(responseBuf.Bytes())
+	}
 
 	// If error was captured, return it to middleware for consistent error handling
 	if err := wrapper.Error(); err != nil {

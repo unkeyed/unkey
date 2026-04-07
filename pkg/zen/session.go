@@ -74,7 +74,7 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 	// For gRPC/streaming requests, skip body buffering — the body is a stream
 	// that must be forwarded incrementally. Buffering would deadlock because the
 	// client waits for a response before sending more frames.
-	if isStreamingContentType(r.Header.Get("Content-Type")) {
+	if IsStreamingContentType(r.Header.Get("Content-Type")) {
 		s.requestBody = nil
 	} else {
 		// Read and cache the request body so metrics middleware can access it even on early errors.
@@ -514,9 +514,42 @@ func (s *Session) Send(status int, body []byte) error {
 	return s.send(status, body)
 }
 
-// isStreamingContentType returns true for content types that use streaming
+// SetResponseBody allows proxy handlers to feed a captured response body back
+// into the session so zen middleware (WithLogging, WithMetrics) can log it.
+// This is necessary for proxied responses where the body is written directly
+// to the ResponseWriter, bypassing Session.send().
+func (s *Session) SetResponseBody(body []byte) {
+	s.responseBody = body
+}
+
+// MaxBodyCapture is the maximum number of bytes captured from streaming
+// request/response bodies for logging. Anything beyond this is silently dropped.
+const MaxBodyCapture = 1 << 20 // 1 MiB
+
+// LimitedWriter wraps an io.Writer and stops writing after N bytes.
+// Excess bytes are silently discarded — no error is returned so the
+// TeeReader (and therefore the stream) is never interrupted.
+type LimitedWriter struct {
+	W io.Writer
+	N int64
+}
+
+func (lw *LimitedWriter) Write(p []byte) (int, error) {
+	total := len(p)
+	if lw.N <= 0 {
+		return total, nil
+	}
+	if int64(len(p)) > lw.N {
+		p = p[:lw.N]
+	}
+	n, err := lw.W.Write(p)
+	lw.N -= int64(n)
+	return total, err
+}
+
+// IsStreamingContentType returns true for content types that use streaming
 // and must not have their body buffered (gRPC, Connect streaming).
-func isStreamingContentType(ct string) bool {
+func IsStreamingContentType(ct string) bool {
 	return strings.HasPrefix(ct, "application/grpc") ||
 		strings.HasPrefix(ct, "application/connect+")
 }
