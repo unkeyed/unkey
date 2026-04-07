@@ -1,15 +1,17 @@
+import { keyDetailsFilterFieldConfig } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/filters.schema";
+import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { keyDetailsFilterFieldConfig } from "../../../filters.schema";
-import { useFilters } from "../../../hooks/use-filters";
-import type { KeyDetailsLogsPayload } from "../query-logs.schema";
+import { parseAsInteger, useQueryState } from "nuqs";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { KeyDetailsLogsPayload } from "../schema/query-logs.schema";
 
 // Maximum number of real-time logs to store
 const REALTIME_DATA_LIMIT = 100;
+const PREFETCH_PAGES_AHEAD = 2;
 
 type UseKeyDetailsLogsQueryParams = {
   limit?: number;
@@ -26,36 +28,24 @@ export function useKeyDetailsLogsQuery({
   pollIntervalMs = 5000,
   startPolling = false,
 }: UseKeyDetailsLogsQueryParams) {
-  const [historicalLogsMap, setHistoricalLogsMap] = useState(
-    () => new Map<string, KeyDetailsLog>(),
-  );
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, KeyDetailsLog>());
-  const [totalCount, setTotalCount] = useState(0);
 
   const { filters } = useFilters();
   const queryClient = trpc.useUtils();
   const { queryTime: timestamp } = useQueryTime();
 
+  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+  const normalizedPage = Math.max(1, page);
+
+  const activeRealtimeLogsMap = useMemo(() => {
+    return startPolling && normalizedPage === 1
+      ? realtimeLogsMap
+      : new Map<string, KeyDetailsLog>();
+  }, [startPolling, normalizedPage, realtimeLogsMap]);
+
   const realtimeLogs = useMemo(() => {
-    return sortLogs(Array.from(realtimeLogsMap.values()));
-  }, [realtimeLogsMap]);
-
-  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
-
-  // Combined logs for rendering
-  const logs = useMemo(() => {
-    // First get all realtime logs
-    const combinedLogs = [...realtimeLogs];
-
-    // Then add historical logs that aren't already in realtime
-    for (const log of historicalLogs) {
-      if (!realtimeLogsMap.has(log.request_id)) {
-        combinedLogs.push(log);
-      }
-    }
-
-    return sortLogs(combinedLogs);
-  }, [realtimeLogs, historicalLogs, realtimeLogsMap]);
+    return sortLogs(Array.from(activeRealtimeLogsMap.values()));
+  }, [activeRealtimeLogsMap]);
 
   const queryParams = useMemo(() => {
     const params: KeyDetailsLogsPayload = {
@@ -67,6 +57,7 @@ export function useKeyDetailsLogsQuery({
       outcomes: [],
       tags: [],
       since: "",
+      page: normalizedPage,
     };
 
     filters.forEach((filter) => {
@@ -121,21 +112,78 @@ export function useKeyDetailsLogsQuery({
     });
 
     return params;
-  }, [filters, limit, timestamp, keyId, keyspaceId]);
+  }, [filters, limit, timestamp, keyId, keyspaceId, normalizedPage]);
+
+  // Reset to page 1 and clear realtime buffer when filters or time window change
+  const filtersKey = useMemo(
+    () => `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|ts:${timestamp}`,
+    [filters, timestamp],
+  );
+
+  const prevFiltersKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevFiltersKeyRef.current === null) {
+      prevFiltersKeyRef.current = filtersKey;
+      return;
+    }
+    if (filtersKey !== prevFiltersKeyRef.current) {
+      prevFiltersKeyRef.current = filtersKey;
+      setPage(1);
+      setRealtimeLogsMap(new Map());
+    }
+  }, [filtersKey, setPage]);
 
   // Main query for historical data
   const {
     data: logData,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
     isLoading,
-  } = trpc.key.logs.query.useInfiniteQuery(queryParams, {
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    isFetching,
+  } = trpc.key.logs.query.useQuery(queryParams, {
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
+    keepPreviousData: true,
   });
+
+  // Derive historical logs from query data
+  const historicalLogsMap = useMemo(() => {
+    const map = new Map<string, KeyDetailsLog>();
+    if (logData) {
+      logData.logs.forEach((log) => {
+        map.set(log.request_id, log);
+      });
+    }
+    return map;
+  }, [logData]);
+
+  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
+
+  const totalCount = useMemo(() => {
+    return logData?.total ?? 0;
+  }, [logData]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+
+  // Clamp page to valid range after data/totalPages updates
+  useEffect(() => {
+    if (normalizedPage > totalPages) {
+      setPage(totalPages);
+    }
+  }, [normalizedPage, totalPages, setPage]);
+
+  // Prefetch the next few pages
+  useEffect(() => {
+    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
+      const nextPage = normalizedPage + i;
+      if (nextPage > totalPages) {
+        break;
+      }
+      queryClient.key.logs.query.prefetch(
+        { ...queryParams, page: nextPage },
+        { staleTime: Number.POSITIVE_INFINITY },
+      );
+    }
+  }, [normalizedPage, totalPages, queryParams, queryClient.key.logs.query]);
 
   // Query for new logs (polling)
   const pollForNewLogs = useCallback(async () => {
@@ -146,6 +194,7 @@ export function useKeyDetailsLogsQuery({
         ...queryParams,
         startTime: latestTime ?? Date.now() - pollIntervalMs,
         endTime: Date.now(),
+        page: 1,
       });
 
       if (result.logs.length === 0) {
@@ -190,48 +239,39 @@ export function useKeyDetailsLogsQuery({
     historicalLogs,
   ]);
 
-  // Set up polling effect
+  // Set up polling effect — only poll on page 1
   useEffect(() => {
-    if (startPolling) {
+    if (startPolling && normalizedPage === 1) {
       const interval = setInterval(pollForNewLogs, pollIntervalMs);
       return () => clearInterval(interval);
     }
-  }, [startPolling, pollForNewLogs, pollIntervalMs]);
+  }, [startPolling, normalizedPage, pollForNewLogs, pollIntervalMs]);
 
-  // Update historical logs effect
-  useEffect(() => {
-    if (logData) {
-      const newMap = new Map<string, KeyDetailsLog>();
-      logData.pages.forEach((page) => {
-        page.logs.forEach((log) => {
-          newMap.set(log.request_id, log);
-        });
-      });
-      setHistoricalLogsMap(newMap);
-
-      if (logData.pages.length > 0) {
-        setTotalCount(logData.pages[0].total);
+  const onPageChange = useCallback(
+    (newPage: number) => {
+      if (newPage < 1 || newPage > totalPages) {
+        return;
       }
-    }
-  }, [logData]);
+      setPage(newPage);
+    },
+    [totalPages, setPage],
+  );
 
-  // Reset realtime logs effect
-  useEffect(() => {
-    if (!startPolling) {
-      setRealtimeLogsMap(new Map());
-    }
-  }, [startPolling]);
+  const isInitialLoading = isLoading && !logData;
+  const isNavigating = isFetching && !isInitialLoading;
 
   return {
-    logs,
     realtimeLogs,
     historicalLogs,
     totalCount: totalCount || 0,
-    isLoading,
-    hasMore: hasNextPage,
-    loadMore: fetchNextPage,
-    isLoadingMore: isFetchingNextPage,
+    isLoading: isInitialLoading,
+    isFetching,
+    isNavigating,
     isPolling: startPolling,
+    page: normalizedPage,
+    pageSize: limit,
+    totalPages,
+    onPageChange,
   };
 }
 

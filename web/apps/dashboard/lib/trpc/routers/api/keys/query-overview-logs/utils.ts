@@ -58,7 +58,7 @@ export function transformKeysFilters(
     identities,
     tags,
     outcomes,
-    cursorTime: params.cursor ?? null,
+    cursorTime: null,
     sorts,
   };
 }

@@ -14,7 +14,7 @@ export const StatusBadge = ({ primary }: StatusBadgeProps) => {
       <div
         className={cn(
           primary.color,
-          "px-1.5 py-1 flex items-center justify-center gap-2 h-[22px]",
+          "px-1.5 py-1 flex items-center justify-center gap-2 h-5.5",
           "rounded-md",
         )}
       >

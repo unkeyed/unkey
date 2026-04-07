@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import { LogDetails } from "@/components/logs/details/log-details";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { toast } from "@unkey/ui";
-import { useFetchRequestDetails } from "./components/hooks/use-logs-query";
+import { useFetchRequestDetails } from "../hooks/use-fetch-request-details";
 
 const ANIMATION_DELAY = 350;
 type Props = {
@@ -18,10 +18,10 @@ export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Pr
     requestId: selectedLog?.request_id,
   });
 
-  const [errorShown, setErrorShown] = useState(false);
+  const errorShownRef = useRef(false);
 
   useEffect(() => {
-    if (!errorShown && selectedLog) {
+    if (!errorShownRef.current && selectedLog) {
       if (error) {
         toast.error("Error Loading Log Details", {
           description: `${
@@ -29,20 +29,20 @@ export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Pr
             "An unexpected error occurred while fetching log data. Please try again."
           }`,
         });
-        setErrorShown(true);
+        errorShownRef.current = true;
       } else if (!log) {
         toast.error("Log Data Unavailable", {
           description:
             "Could not retrieve log information for this key. The log may have been deleted or is still processing.",
         });
-        setErrorShown(true);
+        errorShownRef.current = true;
       }
     }
 
     if (!selectedLog) {
-      setErrorShown(false);
+      errorShownRef.current = false;
     }
-  }, [error, log, selectedLog, errorShown]);
+  }, [error, log, selectedLog]);
 
   const handleClose = () => {
     onLogSelect(null);

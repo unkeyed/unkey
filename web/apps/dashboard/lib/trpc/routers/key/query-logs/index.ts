@@ -1,4 +1,4 @@
-import { keyDetailsLogsPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/query-logs.schema";
+import { keyDetailsLogsPayload } from "@/components/key-details-logs-table/schema/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db, isNull } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
@@ -9,9 +9,7 @@ import { transformKeyDetailsFilters } from "./utils";
 
 const keyDetailsLogsResponse = z.object({
   logs: z.array(z.custom<KeyDetailsLog>()),
-  hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z.int().optional(),
 });
 type KeyDetailsLogsResponse = z.infer<typeof keyDetailsLogsResponse>;
 
@@ -76,8 +74,6 @@ export const queryKeyDetailsLogs = workspaceProcedure
     const response: KeyDetailsLogsResponse = {
       logs,
       total: result.totalCount,
-      hasMore: logs.length === input.limit,
-      nextCursor: logs.length === input.limit ? logs[logs.length - 1].time : undefined,
     };
 
     return response;
