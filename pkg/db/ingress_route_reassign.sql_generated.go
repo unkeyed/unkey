@@ -19,9 +19,9 @@ WHERE id = ?
 `
 
 type ReassignFrontlineRouteParams struct {
-	DeploymentID string        `db:"deployment_id"`
-	UpdatedAt    sql.NullInt64 `db:"updated_at"`
-	ID           string        `db:"id"`
+	DeploymentID sql.NullString `db:"deployment_id"`
+	UpdatedAt    sql.NullInt64  `db:"updated_at"`
+	ID           string         `db:"id"`
 }
 
 // ReassignFrontlineRoute

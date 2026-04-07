@@ -7,16 +7,17 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findFrontlineRoutesByDeploymentID = `-- name: FindFrontlineRoutesByDeploymentID :many
-SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
+SELECT pk, id, route_type, project_id, app_id, deployment_id, environment_id, portal_config_id, path_prefix, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
 `
 
 // FindFrontlineRoutesByDeploymentID
 //
-//	SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
-func (q *Queries) FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]FrontlineRoute, error) {
+//	SELECT pk, id, route_type, project_id, app_id, deployment_id, environment_id, portal_config_id, path_prefix, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
+func (q *Queries) FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID sql.NullString) ([]FrontlineRoute, error) {
 	rows, err := db.QueryContext(ctx, findFrontlineRoutesByDeploymentID, deploymentID)
 	if err != nil {
 		return nil, err
@@ -28,10 +29,13 @@ func (q *Queries) FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX
 		if err := rows.Scan(
 			&i.Pk,
 			&i.ID,
+			&i.RouteType,
 			&i.ProjectID,
 			&i.AppID,
 			&i.DeploymentID,
 			&i.EnvironmentID,
+			&i.PortalConfigID,
+			&i.PathPrefix,
 			&i.FullyQualifiedDomainName,
 			&i.Sticky,
 			&i.CreatedAt,

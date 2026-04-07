@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "proxy",
@@ -28,5 +28,16 @@ go_library(
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_prometheus_client_golang//prometheus/promauto",
         "@org_golang_x_net//http2",
+    ],
+)
+
+go_test(
+    name = "proxy_test",
+    srcs = ["director_test.go"],
+    embed = [":proxy"],
+    deps = [
+        "//pkg/clock",
+        "//pkg/zen",
+        "@com_github_stretchr_testify//require",
     ],
 )

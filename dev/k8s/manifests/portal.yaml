@@ -1,0 +1,68 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portal
+  namespace: unkey
+  labels:
+    app: portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portal
+  template:
+    metadata:
+      labels:
+        app: portal
+    spec:
+      containers:
+        - name: portal
+          image: unkey/portal:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: UNKEY_API_URL
+              value: "http://api:7070"
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+            - name: HOSTNAME
+              value: "0.0.0.0"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      initContainers:
+        - name: wait-for-dependencies
+          image: busybox:1.36
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -z api 7070; do sleep 2; done",
+            ]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portal
+  namespace: unkey
+spec:
+  selector:
+    app: portal
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000

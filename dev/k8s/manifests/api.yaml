@@ -36,6 +36,8 @@ data:
     url = "http://ctrl-api:7091"
     token = "your-local-dev-key"
 
+    portal_base_url = "http://localhost:3100"
+
 ---
 apiVersion: apps/v1
 kind: Deployment

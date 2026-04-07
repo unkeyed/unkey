@@ -1,0 +1,227 @@
+---
+title: 'Customer Portal'
+description: 'Give your end users a self-service portal for API keys, analytics, and docs'
+---
+
+The Customer Portal is a white-labeled web app you can offer to your end users. They get key management, usage analytics, and API documentation — without you building any UI.
+
+Authentication uses a Stripe-style session flow: your backend creates a session, redirects the user, and the portal handles the rest.
+
+<Note>
+The portal is in early access. Key management, analytics, and docs pages are placeholder UI for now.
+</Note>
+
+## How it works
+
+```
+Your Backend                    Unkey API                     Portal
+    │                              │                            │
+    ├─ POST /v2/portal.createSession ─►│                        │
+    │◄── sessionId + portal URL ───┤                            │
+    │                              │                            │
+    ├─ Redirect user to portal URL ─────────────────────────────►│
+    │                              │◄─ POST /v2/portal.exchangeSession ─┤
+    │                              │──── browser session token ──►│
+    │                              │                            │
+    │                              │◄── Direct API calls ───────┤
+```
+
+1. Your backend authenticates the user in your own system
+2. Your backend calls `POST /v2/portal.createSession` with a root key
+3. You redirect the user to the returned portal URL
+4. The portal exchanges the session ID for a 24-hour browser session
+5. The browser calls Unkey API directly with the session token
+
+## 1. Configure a portal
+
+Create a portal configuration for your workspace. For now this is done via direct database insert (dashboard UI coming soon):
+
+```sql
+-- Create portal config linked to your keyspace
+INSERT INTO portal_configurations (id, workspace_id, key_auth_id, enabled, created_at)
+VALUES ('portal_xxx', 'ws_xxx', 'ks_xxx', TRUE, UNIX_TIMESTAMP() * 1000);
+
+-- Set up routing
+INSERT INTO frontline_routes (fully_qualified_domain_name, route_type, portal_config_id, path_prefix, created_at_m)
+VALUES ('your-slug.unkey.com', 'portal', 'portal_xxx', '/portal', UNIX_TIMESTAMP() * 1000);
+```
+
+Optionally add branding:
+
+```sql
+INSERT INTO portal_branding (portal_config_id, primary_color, secondary_color, logo_url, created_at)
+VALUES ('portal_xxx', '#6366f1', '#f8fafc', 'https://example.com/logo.png', UNIX_TIMESTAMP() * 1000);
+```
+
+## 2. Create a session
+
+When your user wants to access the portal, create a session from your backend:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.unkey.com/v2/portal.createSession \
+  -H "Authorization: Bearer YOUR_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "externalId": "user_123",
+    "permissions": ["keys:read", "keys:create", "keys:revoke", "analytics:read", "docs:read"]
+  }'
+```
+
+```typescript TypeScript
+const response = await fetch("https://api.unkey.com/v2/portal.createSession", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${process.env.UNKEY_ROOT_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    externalId: "user_123",
+    permissions: ["keys:read", "keys:create", "keys:revoke", "analytics:read", "docs:read"],
+  }),
+});
+
+const { data } = await response.json();
+// data.sessionId  — short-lived token (15 min)
+// data.url        — full portal URL with session param
+// data.expiresAt  — expiry timestamp (unix ms)
+```
+
+```go Go
+// Use your preferred HTTP client
+body := map[string]any{
+    "externalId":  "user_123",
+    "permissions": []string{"keys:read", "keys:create", "keys:revoke", "analytics:read", "docs:read"},
+}
+```
+
+</CodeGroup>
+
+The response:
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "sessionId": "sess_xxx",
+    "url": "https://portal.unkey.com/?session=sess_xxx",
+    "expiresAt": 1742000000000
+  }
+}
+```
+
+## 3. Redirect your user
+
+Send the user to the portal URL. The session ID is valid for 15 minutes and can only be used once.
+
+```typescript
+// In your backend route handler
+return Response.redirect(data.url, 302);
+```
+
+The portal will:
+1. Exchange the session ID for a 24-hour browser session
+2. Set an httpOnly cookie
+3. Redirect to the first visible tab based on permissions
+
+## Permissions and tabs
+
+Permissions control which portal tabs are visible:
+
+| Permission | Tab |
+|-----------|-----|
+| Any `keys:*` (e.g. `keys:read`, `keys:create`, `keys:revoke`) | API Keys |
+| Any `analytics:*` (e.g. `analytics:read`) | Analytics |
+| `docs:read` | Documentation |
+
+An empty permissions array means no tabs are visible.
+
+## Optional parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `metadata` | `object` | Custom fields (name, email, etc.) stored with the session |
+| `preview` | `boolean` | Shows a "Preview mode" banner — useful for testing as a specific user |
+
+```bash
+curl -X POST https://api.unkey.com/v2/portal.createSession \
+  -H "Authorization: Bearer YOUR_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "externalId": "user_123",
+    "permissions": ["keys:read", "analytics:read"],
+    "metadata": { "name": "Jane Doe", "email": "jane@example.com" },
+    "preview": true
+  }'
+```
+
+## Session lifecycle
+
+| Token | Lifetime | Usage |
+|-------|----------|-------|
+| Session ID (`sess_xxx`) | 15 minutes | Single-use, exchanged for browser session |
+| Browser session | 24 hours | Stored as httpOnly cookie, used for API calls |
+
+When the browser session expires:
+- If `return_url` is set on the portal config → redirects to `{return_url}?reason=session_expired`
+- Otherwise → shows an "Session expired" error page
+
+## Branding
+
+The portal supports basic white-labeling via CSS custom properties:
+
+| Setting | CSS Variable | Default |
+|---------|-------------|---------|
+| Primary color | `--portal-primary` | `#6366f1` |
+| Secondary color | `--portal-secondary` | `#f8fafc` |
+| Logo | Rendered as `<img>` in header | None |
+
+Logo URLs must be HTTPS.
+
+## Local development
+
+To test the portal locally:
+
+```bash
+# 1. Start infrastructure
+make up
+
+# 2. Seed portal data (adjust IDs to match your local workspace)
+mysql -h 127.0.0.1 -u unkey -ppassword unkey -e "
+  INSERT INTO portal_configurations (id, workspace_id, key_auth_id, enabled, created_at)
+  VALUES ('portal_local_test', 'ws_local_root', 'ks_local_root_keys', TRUE, UNIX_TIMESTAMP() * 1000)
+  ON DUPLICATE KEY UPDATE enabled = TRUE;
+
+  INSERT INTO frontline_routes (fully_qualified_domain_name, route_type, portal_config_id, path_prefix, created_at_m)
+  VALUES ('localhost', 'portal', 'portal_local_test', '/portal', UNIX_TIMESTAMP() * 1000)
+  ON DUPLICATE KEY UPDATE route_type = 'portal';
+"
+
+# 3. Create a session (replace YOUR_ROOT_KEY)
+curl -s -X POST http://localhost:2112/v2/portal.createSession \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ROOT_KEY" \
+  -d '{"externalId":"user_123","permissions":["keys:read","analytics:read","docs:read"]}' | jq
+
+# 4. Start the portal app
+cd web/apps/portal
+cat > .env << 'EOF'
+UNKEY_API_URL=http://localhost:2112
+EOF
+pnpm install && pnpm dev
+
+# 5. Open the portal with the session ID from step 3
+# http://localhost:3100/?session=sess_xxx
+```
+
+## Error responses
+
+| Scenario | Status | Message |
+|----------|--------|---------|
+| Missing `externalId` | 400 | `externalId is required` |
+| Missing `permissions` | 400 | `permissions array is required` |
+| Invalid root key | 401 | `Unauthorized` |
+| Portal disabled | 403 | `Portal is disabled` |
+| Invalid/expired/used session on exchange | 401 | `Session is invalid, expired, or has already been used` |
+| No portal config for workspace | 412 | `No portal is configured for this workspace` |
