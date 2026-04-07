@@ -1,28 +1,19 @@
 import { dbEnv } from "@/lib/env";
-import { Client } from "@planetscale/database";
 import { drizzle, schema } from "@unkey/db";
+import mysql from "mysql2/promise";
 
-export const db = drizzle(
-  new Client({
-    host: dbEnv().DATABASE_HOST,
-    username: dbEnv().DATABASE_USERNAME,
-    password: dbEnv().DATABASE_PASSWORD,
+const { DATABASE_HOST, DATABASE_USERNAME, DATABASE_PASSWORD } = dbEnv();
+const isLocal = DATABASE_HOST.includes("localhost") || DATABASE_HOST.includes("127.0.0.1");
 
-    // biome-ignore lint/suspicious/noExplicitAny: safe to leave
-    fetch: (url: string, init: any) => {
-      const requestInit = init as RequestInit & { cache?: string };
-      requestInit.cache = undefined; // Remove cache header
-      const u = new URL(url);
-      // set protocol to http if localhost or docker planetscale service for CI testing
-      if (u.host.includes("localhost") || u.host === "planetscale:3900") {
-        u.protocol = "http";
-      }
-      return fetch(u, requestInit);
-    },
-  }),
-  {
-    schema,
-  },
-);
+const pool = mysql.createPool({
+  host: DATABASE_HOST.split(":")[0],
+  port: DATABASE_HOST.includes(":") ? Number(DATABASE_HOST.split(":")[1]) : 3306,
+  user: DATABASE_USERNAME,
+  password: DATABASE_PASSWORD,
+  database: "unkey",
+  ...(isLocal ? {} : { ssl: { rejectUnauthorized: true } }),
+});
+
+export const db = drizzle(pool, { schema, mode: "default" });
 
 export * from "@unkey/db";

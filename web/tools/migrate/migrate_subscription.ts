@@ -1,4 +1,4 @@
-import { eq, mysqlDrizzle, schema } from "@unkey/db";
+import { eq, drizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { Stripe } from "stripe";
 async function main() {
@@ -12,7 +12,7 @@ async function main() {
   );
 
   await conn.ping();
-  const db = mysqlDrizzle(conn, { schema, mode: "default" });
+  const db = drizzle(conn, { schema, mode: "default" });
 
   const stripeCustomerId = "cus_PymfArtwYO47fS";
   const productId = "prod_Rtu3rLbjwprz7p";
