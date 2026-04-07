@@ -77,6 +77,22 @@ func open(dsn string) (db *sql.DB, err error) {
 	return db, nil
 }
 
+// NewReplicaFromDB wraps an existing [*sql.DB] as a [*Replica] with tracing
+// and metrics. This is a temporary bridge used by pkg/db.ToMySQL while callers
+// migrate from pkg/db to pkg/mysql. Remove alongside [NewFromReplicas] and
+// pkg/db.ToMySQL once all callers use [New] directly.
+func NewReplicaFromDB(db *sql.DB, mode string) *Replica {
+	return &Replica{db: db, mode: mode, debugLogs: false}
+}
+
+// NewFromReplicas creates a [MySQL] from pre-existing replicas without opening
+// new connections. This is a temporary bridge used by pkg/db.ToMySQL while
+// callers migrate from pkg/db to pkg/mysql. Remove alongside [NewReplicaFromDB]
+// and pkg/db.ToMySQL once all callers use [New] directly.
+func NewFromReplicas(ro, rw *Replica) *database {
+	return &database{readReplica: ro, writeReplica: rw}
+}
+
 func NewReplica(url string, mode string) (*Replica, error) {
 	db, err := open(url)
 	if err != nil {
