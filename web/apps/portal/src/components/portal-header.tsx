@@ -26,9 +26,7 @@ export function PortalHeader() {
                 to={tab.href}
                 aria-current={isActive ? "page" : undefined}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  isActive
-                    ? "text-gray-12"
-                    : "text-gray-11 hover:bg-gray-3 hover:text-gray-12"
+                  isActive ? "text-gray-12" : "text-gray-11 hover:bg-gray-3 hover:text-gray-12"
                 }`}
                 style={
                   isActive

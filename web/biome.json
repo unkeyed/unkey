@@ -78,6 +78,7 @@
       "./packages/api/src/openapi.d.ts",
       "./internal/auth-migrator/",
       "./apps/dashboard/gen/proto/**/*.ts",
+      "**/routeTree.gen.ts",
       ".wrangler",
       ".react-email",
       ".content-collections",

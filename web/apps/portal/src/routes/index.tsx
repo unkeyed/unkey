@@ -1,8 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { exchangeSession, getSessionToken } from "~/lib/session";
-import { getDefaultTabHref } from "~/lib/permissions";
 import { useEffect, useState } from "react";
 import { z } from "zod";
+import { exchangeSession } from "~/lib/session";
 
 const searchSchema = z.object({
   session: z.string().optional(),
@@ -13,9 +12,7 @@ export const Route = createFileRoute("/")({
   component: PortalEntry,
 });
 
-type ExchangeState =
-  | { status: "loading" }
-  | { status: "error"; message: string };
+type ExchangeState = { status: "loading" } | { status: "error"; message: string };
 
 function PortalEntry() {
   const { session: sessionId } = Route.useSearch();

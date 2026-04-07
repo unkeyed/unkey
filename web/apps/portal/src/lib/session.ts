@@ -1,13 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getCookie, setCookie, deleteCookie } from "@tanstack/react-start/server";
+import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
 import { env } from "./env";
 
 const SESSION_COOKIE_NAME = "portal_session";
 const SESSION_COOKIE_MAX_AGE_SECONDS = 24 * 60 * 60; // 24 hours
 
-type ExchangeResult =
-  | { success: true; token: string }
-  | { success: false; error: string };
+type ExchangeResult = { success: true; token: string } | { success: false; error: string };
 
 /**
  * Exchange a short-lived session ID for a long-lived browser session token.
@@ -58,8 +56,6 @@ export const getSessionToken = createServerFn({ method: "GET" }).handler(
 /**
  * Clear the portal session cookie.
  */
-export const clearSession = createServerFn({ method: "POST" }).handler(
-  async () => {
-    deleteCookie(SESSION_COOKIE_NAME);
-  },
-);
+export const clearSession = createServerFn({ method: "POST" }).handler(async () => {
+  deleteCookie(SESSION_COOKIE_NAME);
+});
