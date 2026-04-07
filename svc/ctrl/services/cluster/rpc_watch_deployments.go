@@ -113,7 +113,7 @@ func (s *Service) fetchDeploymentStates(ctx context.Context, regionID string, af
 		states = append(states, state)
 	}
 
-	logger.Info("fetched deployment states", "count", len(states), "region_id", regionID, "after_version", afterVersion)
+	logger.Debug("fetched deployment states", "count", len(states), "region_id", regionID, "after_version", afterVersion)
 
 	return states, nil
 }

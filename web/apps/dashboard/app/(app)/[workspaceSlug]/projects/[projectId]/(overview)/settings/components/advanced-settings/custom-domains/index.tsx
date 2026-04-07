@@ -88,6 +88,8 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       checkAttempts: 0,
       lastCheckedAt: null,
       verificationError: null,
+      domainConnectProvider: null,
+      domainConnectUrl: null,
       createdAt: Date.now(),
       updatedAt: null,
     });

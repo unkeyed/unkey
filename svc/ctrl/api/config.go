@@ -38,6 +38,14 @@ type GitHubConfig struct {
 	PrivateKeyPEM string `toml:"private_key_pem"`
 }
 
+// DomainConnectConfig holds Domain Connect protocol configuration for
+// one-click DNS setup via supported providers.
+type DomainConnectConfig struct {
+	// PrivateKeyPEM is the PEM-encoded RSA private key for signing
+	// Domain Connect redirect URLs. If empty, Domain Connect is disabled.
+	PrivateKeyPEM string `toml:"private_key_pem"`
+}
+
 // Config holds the complete configuration for the control plane API server.
 // It is designed to be loaded from a TOML file using [config.Load]:
 //
@@ -97,6 +105,10 @@ type Config struct {
 
 	// GitHub configures GitHub App webhook integration. See [GitHubConfig].
 	GitHub GitHubConfig `toml:"github"`
+
+	// DomainConnect configures the Domain Connect protocol for one-click DNS setup.
+	// See [DomainConnectConfig].
+	DomainConnect DomainConnectConfig `toml:"domain_connect"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through

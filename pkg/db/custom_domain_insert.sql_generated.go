@@ -13,31 +13,35 @@ import (
 const insertCustomDomain = `-- name: InsertCustomDomain :exec
 INSERT INTO custom_domains (
     id, workspace_id, project_id, app_id, environment_id, domain,
-    challenge_type, verification_status, verification_token, target_cname, invocation_id, created_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    challenge_type, verification_status, verification_token, target_cname,
+    domain_connect_provider, domain_connect_url, invocation_id, created_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertCustomDomainParams struct {
-	ID                 string                          `db:"id"`
-	WorkspaceID        string                          `db:"workspace_id"`
-	ProjectID          string                          `db:"project_id"`
-	AppID              string                          `db:"app_id"`
-	EnvironmentID      string                          `db:"environment_id"`
-	Domain             string                          `db:"domain"`
-	ChallengeType      CustomDomainsChallengeType      `db:"challenge_type"`
-	VerificationStatus CustomDomainsVerificationStatus `db:"verification_status"`
-	VerificationToken  string                          `db:"verification_token"`
-	TargetCname        string                          `db:"target_cname"`
-	InvocationID       sql.NullString                  `db:"invocation_id"`
-	CreatedAt          int64                           `db:"created_at"`
+	ID                    string                          `db:"id"`
+	WorkspaceID           string                          `db:"workspace_id"`
+	ProjectID             string                          `db:"project_id"`
+	AppID                 string                          `db:"app_id"`
+	EnvironmentID         string                          `db:"environment_id"`
+	Domain                string                          `db:"domain"`
+	ChallengeType         CustomDomainsChallengeType      `db:"challenge_type"`
+	VerificationStatus    CustomDomainsVerificationStatus `db:"verification_status"`
+	VerificationToken     string                          `db:"verification_token"`
+	TargetCname           string                          `db:"target_cname"`
+	DomainConnectProvider sql.NullString                  `db:"domain_connect_provider"`
+	DomainConnectUrl      sql.NullString                  `db:"domain_connect_url"`
+	InvocationID          sql.NullString                  `db:"invocation_id"`
+	CreatedAt             int64                           `db:"created_at"`
 }
 
 // InsertCustomDomain
 //
 //	INSERT INTO custom_domains (
 //	    id, workspace_id, project_id, app_id, environment_id, domain,
-//	    challenge_type, verification_status, verification_token, target_cname, invocation_id, created_at
-//	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//	    challenge_type, verification_status, verification_token, target_cname,
+//	    domain_connect_provider, domain_connect_url, invocation_id, created_at
+//	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 func (q *Queries) InsertCustomDomain(ctx context.Context, db DBTX, arg InsertCustomDomainParams) error {
 	_, err := db.ExecContext(ctx, insertCustomDomain,
 		arg.ID,
@@ -50,6 +54,8 @@ func (q *Queries) InsertCustomDomain(ctx context.Context, db DBTX, arg InsertCus
 		arg.VerificationStatus,
 		arg.VerificationToken,
 		arg.TargetCname,
+		arg.DomainConnectProvider,
+		arg.DomainConnectUrl,
 		arg.InvocationID,
 		arg.CreatedAt,
 	)

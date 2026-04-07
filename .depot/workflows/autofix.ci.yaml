@@ -1,8 +1,3 @@
-# Depot CI Migration
-# Source: .github/workflows/autofix.ci.yaml
-#
-# No changes were necessary.
-
 name: autofix.ci
 on:
   pull_request:
@@ -13,16 +8,17 @@ permissions:
 jobs:
   detect_changes:
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
-    uses: ./.github/workflows/job_detect_changes.yaml
+    uses: ./.depot/workflows/job_detect_changes.yaml
   autofix:
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
     runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - name: Setup Node
-        uses: ./.github/actions/setup-node
+        uses: ./.depot/actions/setup-node
       - name: Setup Go
-        uses: ./.github/actions/setup-go
+        uses: ./.depot/actions/setup-go
       - name: Install dprint
         run: curl -fsSL https://dprint.dev/install.sh | sh -s 0.51.1 && echo "$HOME/.dprint/bin" >> $GITHUB_PATH
       - name: Format
