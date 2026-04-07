@@ -6,8 +6,9 @@ import {
   renderAuditLogSkeletonRow,
   useAuditLogsQuery,
 } from "@/components/audit-logs-table";
+import { EmptyAuditLogs } from "@/components/audit-logs-table/components/empty-audit-logs";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import { DataTable, type DataTableRef, EmptyState, PaginationFooter } from "@unkey/ui";
+import { DataTable, type DataTableRef, PaginationFooter } from "@unkey/ui";
 import { useEffect, useMemo, useRef } from "react";
 
 type Props = {
@@ -41,9 +42,9 @@ export const AuditLogsTable = ({ selectedLog, setSelectedLog, onMount }: Props) 
         rowClassName={(log) => getAuditRowClassName(log, selectedLog)}
         selectedClassName={getAuditSelectedClassName}
         renderSkeletonRow={renderAuditLogSkeletonRow}
-        emptyState={<EmptyState />}
+        emptyState={<EmptyAuditLogs />}
         config={{
-          rowHeight: 40,
+          rowHeight: 26,
           layout: "classic",
           rowBorders: true,
           loadingRows: 50,
