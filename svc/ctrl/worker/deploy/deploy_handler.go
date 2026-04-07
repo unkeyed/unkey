@@ -930,10 +930,10 @@ func (w *Workflow) configureRouting(
 					if db.IsNotFound(err) {
 						err = db.Query.InsertFrontlineRoute(runCtx, tx, db.InsertFrontlineRouteParams{
 							ID:                       uid.New(uid.FrontlineRoutePrefix),
-							ProjectID:                project.ID,
-							AppID:                    app.ID,
-							DeploymentID:             deployment.ID,
-							EnvironmentID:            deployment.EnvironmentID,
+							ProjectID:                sql.NullString{Valid: true, String: project.ID},
+							AppID:                    sql.NullString{Valid: true, String: app.ID},
+							DeploymentID:             sql.NullString{Valid: true, String: deployment.ID},
+							EnvironmentID:            sql.NullString{Valid: true, String: deployment.EnvironmentID},
 							FullyQualifiedDomainName: domain.domain,
 							Sticky:                   domain.sticky,
 							CreatedAt:                time.Now().UnixMilli(),
@@ -983,7 +983,7 @@ func (w *Workflow) configureRouting(
 			}
 
 			routes, err := db.Query.FindFrontlineRouteForPromotion(txCtx, tx, db.FindFrontlineRouteForPromotionParams{
-				EnvironmentID: deployment.EnvironmentID,
+				EnvironmentID: sql.NullString{Valid: true, String: deployment.EnvironmentID},
 				Sticky:        stickyTypes,
 			})
 			if err != nil {

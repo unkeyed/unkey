@@ -563,6 +563,8 @@ func (s *Session) reset() {
 	s.w = nil
 	s.r = nil
 
+	s.WorkspaceID = ""
+
 	s.requestBody = nil
 	s.responseStatus = 0
 	s.responseBody = nil

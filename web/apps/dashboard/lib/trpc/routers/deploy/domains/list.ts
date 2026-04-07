@@ -26,6 +26,7 @@ export const listDomains = workspaceProcedure
               createdAt: true,
               updatedAt: true,
             },
+            where: (table, { eq }) => eq(table.routeType, "deployment"),
             limit: 500,
             orderBy: (table, { desc }) => desc(table.updatedAt),
           },
@@ -40,5 +41,21 @@ export const listDomains = workspaceProcedure
         });
       });
 
-    return project?.frontlineRoutes ?? [];
+    // Filter to deployment routes with non-null deploy fields.
+    // The `where` clause above ensures routeType='deployment', but Drizzle's
+    // inferred type still includes nullable fields from the schema. We narrow
+    // at runtime so the return type satisfies the Domain collection schema.
+    return (project?.frontlineRoutes ?? []).flatMap((r) => {
+      if (r.projectId == null || r.deploymentId == null || r.environmentId == null) {
+        return [];
+      }
+      return [
+        {
+          ...r,
+          projectId: r.projectId,
+          deploymentId: r.deploymentId,
+          environmentId: r.environmentId,
+        },
+      ];
+    });
   });
