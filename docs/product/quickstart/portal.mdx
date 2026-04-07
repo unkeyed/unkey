@@ -206,10 +206,7 @@ curl -s -X POST http://localhost:2112/v2/portal.createSession \
 
 # 4. Start the portal app
 cd web/apps/portal
-cat > .env.local << 'EOF'
-DATABASE_HOST=localhost:3900
-DATABASE_USERNAME=unkey
-DATABASE_PASSWORD=password
+cat > .env << 'EOF'
 UNKEY_API_URL=http://localhost:2112
 EOF
 pnpm install && pnpm dev

@@ -188,7 +188,7 @@ func (s *service) forwardToRegion(ctx context.Context, sess *zen.Session, target
 	})
 }
 
-// forwardToPortal forwards a request to the portal Next.js service. Portal
+// forwardToPortal forwards a request to the portal service. Portal
 // routes bypass sentinel entirely — frontline connects directly to the portal
 // service over plain HTTP (h2c), similar to how it connects to sentinel.
 func (s *service) forwardToPortal(ctx context.Context, sess *zen.Session, portalAddress string, pathPrefix string) error {

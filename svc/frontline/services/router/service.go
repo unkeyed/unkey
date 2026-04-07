@@ -79,7 +79,7 @@ func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, er
 }
 
 // routePortal builds a RouteDecision for portal routes. Portal routes bypass
-// sentinel and forward directly to the portal Next.js service.
+// sentinel and forward directly to the portal service.
 func (s *service) routePortal(route db.FindFrontlineRouteByFQDNRow) (RouteDecision, error) {
 	if s.portalAddr == "" {
 		return RouteDecision{}, fault.New("portal service not configured",

@@ -24,12 +24,6 @@ spec:
             - containerPort: 3000
               name: http
           env:
-            - name: DATABASE_HOST
-              value: "planetscale:3900"
-            - name: DATABASE_USERNAME
-              value: "unkey"
-            - name: DATABASE_PASSWORD
-              value: "password"
             - name: UNKEY_API_URL
               value: "http://api:7070"
             - name: NODE_ENV
@@ -40,13 +34,13 @@ spec:
               value: "0.0.0.0"
           readinessProbe:
             httpGet:
-              path: /portal
+              path: /
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 5
           livenessProbe:
             httpGet:
-              path: /portal
+              path: /
               port: 3000
             initialDelaySeconds: 10
             periodSeconds: 10
@@ -57,7 +51,7 @@ spec:
             [
               "sh",
               "-c",
-              "until nc -z planetscale 3900 && nc -z api 7070; do sleep 2; done",
+              "until nc -z api 7070; do sleep 2; done",
             ]
 ---
 apiVersion: v1
