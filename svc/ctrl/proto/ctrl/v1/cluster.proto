@@ -31,15 +31,9 @@ enum Health {
 // The watch connections are designed to be long-lived with automatic reconnection on failure.
 // When an agent reconnects, it should resume from its last seen version for that resource type.
 service ClusterService {
-  // WatchDeployments streams deployment state changes from the control plane to agents.
-  // Each deployment controller maintains its own version cursor for resumable streaming.
-  // The agent applies received state to Kubernetes to converge actual state toward desired state.
-  rpc WatchDeployments(WatchDeploymentsRequest) returns (stream DeploymentState);
-
-  // WatchSentinels streams sentinel state changes from the control plane to agents.
-  // Each sentinel controller maintains its own version cursor for resumable streaming.
-  // The agent applies received state to Kubernetes to converge actual state toward desired state.
-  rpc WatchSentinels(WatchSentinelsRequest) returns (stream SentinelState);
+  // WatchDeploymentChanges streams all resource changes (deployments, sentinels, cilium policies)
+  // in a single stream. The agent maintains one cursor and dispatches events by type.
+  rpc WatchDeploymentChanges(WatchDeploymentChangesRequest) returns (stream DeploymentChangeEvent);
 
   // GetDesiredSentinelState returns the current desired state for a single sentinel.
   // Used by the resync loop to verify consistency for existing resources.
@@ -57,10 +51,6 @@ service ClusterService {
   // Called when K8s watch events indicate ReplicaSet changes.
   rpc ReportDeploymentStatus(ReportDeploymentStatusRequest) returns (ReportDeploymentStatusResponse);
 
-  // WatchCiliumNetworkPolicies streams Cilium network policy state changes from the control plane.
-  // Each cilium controller maintains its own version cursor for resumable streaming.
-  rpc WatchCiliumNetworkPolicies(WatchCiliumNetworkPoliciesRequest) returns (stream CiliumNetworkPolicyState);
-
   // GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
   // Used by the resync loop to verify consistency for existing resources.
   rpc GetDesiredCiliumNetworkPolicyState(GetDesiredCiliumNetworkPolicyStateRequest) returns (CiliumNetworkPolicyState);
@@ -71,9 +61,18 @@ service ClusterService {
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
 }
 
-message WatchCiliumNetworkPoliciesRequest {
+message WatchDeploymentChangesRequest {
   string region = 1;
   uint64 version_last_seen = 2;
+}
+
+message DeploymentChangeEvent {
+  uint64 version = 1;
+  oneof event {
+    DeploymentState deployment = 2;
+    SentinelState sentinel = 3;
+    CiliumNetworkPolicyState cilium_network_policy = 4;
+  }
 }
 
 message ApplyCiliumNetworkPolicy {
@@ -150,22 +149,6 @@ message ReportSentinelStatusRequest {
 }
 
 message ReportSentinelStatusResponse {}
-
-// WatchDeploymentsRequest initiates a stream of deployment state changes.
-// The version_last_seen enables resumable streaming - the server will only send
-// events newer than this version. Independent of the sentinel stream version.
-message WatchDeploymentsRequest {
-  string region = 1;
-  uint64 version_last_seen = 2;
-}
-
-// WatchSentinelsRequest initiates a stream of sentinel state changes.
-// The version_last_seen enables resumable streaming - the server will only send
-// events newer than this version. Independent of the deployment stream version.
-message WatchSentinelsRequest {
-  string region = 1;
-  uint64 version_last_seen = 2;
-}
 
 // SentinelState represents a lifecycle event for an API sentinel configuration.
 //

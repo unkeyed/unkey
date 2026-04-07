@@ -39,7 +39,6 @@ The worker groups multiple Restate services into one process. Each service uses 
 | RoutingService | `project_id` | Atomic reassignment of frontline routes to a deployment. |
 | CustomDomainService | `domain` | Domain ownership verification and post-verify actions. |
 | CertificateService | `domain` | Certificate issuance and renewal with ACME and Vault. |
-| VersioningService | `region` | Monotonic versions per region for edge sync. |
 | ClickhouseUserService | `workspace_id` | ClickHouse user provisioning and quota updates when enabled. |
 | QuotaCheckService | `billing_period` | Periodic quota checks and notifications. |
 | KeyRefillService | `date` | Periodic key usage refills with resumable state. |
@@ -50,7 +49,6 @@ The worker centralizes orchestration for operations that touch multiple systems 
 
 - Deployment orchestration across regions, including builds, rollout, and routing updates.
 - Domain ownership verification, certificate issuance, and renewal.
-- Version sequencing for edge sync.
 - Background maintenance, such as key refills and quota checks.
 - Optional ClickHouse user provisioning for analytics access.
 
@@ -79,3 +77,4 @@ The worker relies on Restate to make workflows durable and idempotent. Each work
 - [Deployment workflow](/architecture/services/control-plane/worker/workflows/deployments)
 - [Routing workflow](/architecture/services/control-plane/worker/workflows/routing)
 - [Certificate workflow](/architecture/services/control-plane/worker/workflows/certificates)
+- [Deployment sync](/architecture/services/control-plane/worker/deployment-sync)

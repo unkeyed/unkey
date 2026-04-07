@@ -527,13 +527,11 @@ CREATE TABLE `deployment_topology` (
 	`autoscaling_replicas_max` int unsigned NOT NULL DEFAULT 1,
 	`autoscaling_threshold_cpu` tinyint unsigned,
 	`autoscaling_threshold_memory` tinyint unsigned,
-	`version` bigint unsigned NOT NULL,
 	`desired_status` enum('stopped','running') NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region_id`),
-	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
+	CONSTRAINT `unique_region_per_deployment` UNIQUE(`deployment_id`,`region_id`)
 );
 
 CREATE TABLE `acme_users` (
@@ -607,15 +605,13 @@ CREATE TABLE `sentinels` (
 	`available_replicas` int NOT NULL,
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
-	`version` bigint unsigned NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `sentinels_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `sentinels_id_unique` UNIQUE(`id`),
 	CONSTRAINT `sentinels_k8s_name_unique` UNIQUE(`k8s_name`),
 	CONSTRAINT `sentinels_k8s_address_unique` UNIQUE(`k8s_address`),
-	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region_id`),
-	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
+	CONSTRAINT `one_env_per_region` UNIQUE(`environment_id`,`region_id`)
 );
 
 CREATE TABLE `instances` (
@@ -702,12 +698,10 @@ CREATE TABLE `cilium_network_policies` (
 	`k8s_namespace` varchar(255) NOT NULL,
 	`region_id` varchar(64) NOT NULL,
 	`policy` json NOT NULL,
-	`version` bigint unsigned NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `cilium_network_policies_pk` PRIMARY KEY(`pk`),
-	CONSTRAINT `cilium_network_policies_id_unique` UNIQUE(`id`),
-	CONSTRAINT `unique_version_per_region` UNIQUE(`region_id`,`version`)
+	CONSTRAINT `cilium_network_policies_id_unique` UNIQUE(`id`)
 );
 
 CREATE TABLE `clusters` (
@@ -744,6 +738,15 @@ CREATE TABLE `horizontal_autoscaling_policies` (
 	`updated_at` bigint,
 	CONSTRAINT `horizontal_autoscaling_policies_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `horizontal_autoscaling_policies_id_unique` UNIQUE(`id`)
+);
+
+CREATE TABLE `deployment_changes` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`resource_type` enum('deployment_topology','sentinel','cilium_network_policy') NOT NULL,
+	`resource_id` varchar(64) NOT NULL,
+	`region_id` varchar(64) NOT NULL,
+	`created_at` bigint NOT NULL,
+	CONSTRAINT `deployment_changes_pk` PRIMARY KEY(`pk`)
 );
 
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
@@ -786,4 +789,7 @@ CREATE INDEX `fqdn_environment_deployment_idx` ON `frontline_routes` (`fully_qua
 CREATE INDEX `installation_id_idx` ON `github_repo_connections` (`installation_id`);
 CREATE INDEX `idx_deployment_region` ON `cilium_network_policies` (`deployment_id`,`region_id`);
 CREATE INDEX `workspace_idx` ON `horizontal_autoscaling_policies` (`workspace_id`);
+CREATE INDEX `idx_region_type_pk` ON `deployment_changes` (`region_id`,`resource_type`,`pk`);
+CREATE INDEX `idx_created_at` ON `deployment_changes` (`created_at`);
+CREATE INDEX `idx_region_pk` ON `deployment_changes` (`region_id`,`pk`);
 

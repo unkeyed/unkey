@@ -20,7 +20,7 @@
 // record, loads workspace/project/environment context, then either builds a
 // Docker image from a Git repository via Depot or accepts a pre-built image.
 // It creates deployment topologies for every configured region (each with its
-// own version from VersioningService), ensures sentinel containers and Cilium
+// own deployment_changes entry), ensures sentinel containers and Cilium
 // network policies exist per region, and polls in parallel until all instances
 // are running. Once healthy, it generates frontline routes for per-commit,
 // per-branch, and per-environment domains, reassigns sticky routes through
