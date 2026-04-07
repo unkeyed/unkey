@@ -11,7 +11,7 @@ import (
 
 const listRepoConnectionDeployContexts = `-- name: ListRepoConnectionDeployContexts :many
 SELECT
-    gc.pk, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
+    gc.pk, gc.workspace_id, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
     p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
     e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
     a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
@@ -52,7 +52,7 @@ type ListRepoConnectionDeployContextsRow struct {
 // ListRepoConnectionDeployContexts
 //
 //	SELECT
-//	    gc.pk, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
+//	    gc.pk, gc.workspace_id, gc.project_id, gc.app_id, gc.installation_id, gc.repository_id, gc.repository_full_name, gc.created_at, gc.updated_at,
 //	    p.pk, p.id, p.workspace_id, p.name, p.slug, p.depot_project_id, p.delete_protection, p.created_at, p.updated_at,
 //	    e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.delete_protection, e.created_at, e.updated_at,
 //	    a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at,
@@ -88,6 +88,7 @@ func (q *Queries) ListRepoConnectionDeployContexts(ctx context.Context, db DBTX,
 		var i ListRepoConnectionDeployContextsRow
 		if err := rows.Scan(
 			&i.GithubRepoConnection.Pk,
+			&i.GithubRepoConnection.WorkspaceID,
 			&i.GithubRepoConnection.ProjectID,
 			&i.GithubRepoConnection.AppID,
 			&i.GithubRepoConnection.InstallationID,

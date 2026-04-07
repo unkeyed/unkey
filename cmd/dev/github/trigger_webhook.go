@@ -128,7 +128,7 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 
 	// Ensure github_repo_connection exists
 	fmt.Println("Ensuring GitHub connection exists in database...")
-	if err := svc.ensureGithubConnection(ctx, projectID, appRow.App.ID, installationID, repositoryID, repository); err != nil {
+	if err := svc.ensureGithubConnection(ctx, appRow.App.WorkspaceID, projectID, appRow.App.ID, installationID, repositoryID, repository); err != nil {
 		return fmt.Errorf("failed to create GitHub connection: %w", err)
 	}
 	fmt.Println("✔ GitHub connection ready")
@@ -228,9 +228,10 @@ func triggerWebhook(ctx context.Context, cmd *cli.Command) error {
 	}
 }
 
-func (s *Service) ensureGithubConnection(ctx context.Context, projectID, appID string, installationID, repositoryID int64, repository string) error {
+func (s *Service) ensureGithubConnection(ctx context.Context, workspaceID, projectID, appID string, installationID, repositoryID int64, repository string) error {
 	// Try to insert, ignore if already exists
 	err := db.Query.InsertGithubRepoConnection(ctx, s.db.RW(), db.InsertGithubRepoConnectionParams{
+		WorkspaceID:        workspaceID,
 		ProjectID:          projectID,
 		AppID:              appID,
 		InstallationID:     installationID,

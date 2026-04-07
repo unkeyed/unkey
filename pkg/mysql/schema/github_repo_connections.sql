@@ -1,5 +1,6 @@
 CREATE TABLE `github_repo_connections` (
 	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`workspace_id` varchar(256) NOT NULL,
 	`project_id` varchar(64) NOT NULL,
 	`app_id` varchar(64) NOT NULL,
 	`installation_id` bigint NOT NULL,

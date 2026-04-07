@@ -1,6 +1,7 @@
 -- name: FindGithubRepoConnectionByAppId :one
 SELECT
     pk,
+    workspace_id,
     project_id,
     app_id,
     installation_id,
