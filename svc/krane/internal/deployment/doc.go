@@ -1,18 +1,14 @@
 // Package deployment manages user workload ReplicaSets in Kubernetes as part of
 // krane's split control loop architecture.
 //
-// The package provides [Controller], which operates independently from the sentinel
-// controller with its own control plane stream, version cursor, and circuit breaker.
-// This separation ensures deployment reconciliation continues even when sentinel
-// reconciliation experiences failures.
+// The package provides [Controller], which handles Kubernetes reconciliation and
+// status reporting. Desired state is received from the unified WatchDeploymentChanges
+// stream via the watcher package, which calls [Controller.ApplyDeployment] and
+// [Controller.DeleteDeployment] directly.
 //
 // # Architecture
 //
-// The controller runs three concurrent loops for reliability:
-//
-// [Controller.runDesiredStateApplyLoop] streams desired state from the control plane's
-// WatchDeployments RPC and applies changes to Kubernetes. It uses a version cursor
-// for resumable streaming and automatically reconnects with jittered backoff on errors.
+// The controller runs two concurrent loops plus receives dispatched events:
 //
 // [Controller.runPodWatchLoop] watches Kubernetes for pod changes and reports actual
 // state back to the control plane via ReportDeploymentStatus. Watching pods directly

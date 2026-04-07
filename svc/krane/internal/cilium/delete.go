@@ -6,6 +6,7 @@ import (
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -17,7 +18,8 @@ import (
 // Not-found errors are ignored since the desired end state (resource gone) is
 // already achieved. The method is idempotent: calling it multiple times for the
 // same policy succeeds without error.
-func (c *Controller) DeleteCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.DeleteCiliumNetworkPolicy) error {
+func (c *Controller) DeleteCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.DeleteCiliumNetworkPolicy) (retErr error) {
+	defer func() { metrics.RecordReconcile("cilium_network_policy", "delete", retErr) }()
 	logger.Info("deleting cilium network policy",
 		"namespace", req.GetK8SNamespace(),
 		"name", req.GetK8SName(),

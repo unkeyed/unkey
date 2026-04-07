@@ -24,10 +24,8 @@ INSERT INTO sentinels (
     available_replicas,
     cpu_millicores,
     memory_mib,
-    version,
     created_at
 ) VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -59,7 +57,6 @@ type InsertSentinelParams struct {
 	AvailableReplicas int32           `db:"available_replicas"`
 	CpuMillicores     int32           `db:"cpu_millicores"`
 	MemoryMib         int32           `db:"memory_mib"`
-	Version           uint64          `db:"version"`
 	CreatedAt         int64           `db:"created_at"`
 }
 
@@ -79,10 +76,8 @@ type InsertSentinelParams struct {
 //	    available_replicas,
 //	    cpu_millicores,
 //	    memory_mib,
-//	    version,
 //	    created_at
 //	) VALUES (
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -113,7 +108,6 @@ func (q *Queries) InsertSentinel(ctx context.Context, db DBTX, arg InsertSentine
 		arg.AvailableReplicas,
 		arg.CpuMillicores,
 		arg.MemoryMib,
-		arg.Version,
 		arg.CreatedAt,
 	)
 	return err

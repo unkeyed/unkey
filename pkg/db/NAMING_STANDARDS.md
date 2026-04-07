@@ -219,7 +219,7 @@ api_update_delete_protection.sql → UpdateApiDeleteProtection
 ```
 key_find_by_hash.sql                    → FindKeyByHash
 key_find_by_id.sql                      → FindKeyById
-key_find_for_verification.sql           → FindKeyForVerification
+key_find_id_by_hash.sql                 → FindKeyIDByHash
 key_insert.sql                          → InsertKey
 key_list_by_key_auth_id.sql            → ListKeysByKeyAuthId
 key_soft_delete_many_by_key_auth_id.sql → SoftDeleteManyKeysByKeyAuthId

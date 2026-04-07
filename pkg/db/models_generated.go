@@ -313,6 +313,49 @@ func (ns NullCustomDomainsVerificationStatus) Value() (driver.Value, error) {
 	return string(ns.CustomDomainsVerificationStatus), nil
 }
 
+type DeploymentChangesResourceType string
+
+const (
+	DeploymentChangesResourceTypeDeploymentTopology  DeploymentChangesResourceType = "deployment_topology"
+	DeploymentChangesResourceTypeSentinel            DeploymentChangesResourceType = "sentinel"
+	DeploymentChangesResourceTypeCiliumNetworkPolicy DeploymentChangesResourceType = "cilium_network_policy"
+)
+
+func (e *DeploymentChangesResourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentChangesResourceType(s)
+	case string:
+		*e = DeploymentChangesResourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentChangesResourceType: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentChangesResourceType struct {
+	DeploymentChangesResourceType DeploymentChangesResourceType
+	Valid                         bool // Valid is true if DeploymentChangesResourceType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentChangesResourceType) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentChangesResourceType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentChangesResourceType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentChangesResourceType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentChangesResourceType), nil
+}
+
 type DeploymentStepsStep string
 
 const (
@@ -1007,7 +1050,6 @@ type CiliumNetworkPolicy struct {
 	K8sNamespace  string          `db:"k8s_namespace"`
 	RegionID      string          `db:"region_id"`
 	Policy        json.RawMessage `db:"policy"`
-	Version       uint64          `db:"version"`
 	CreatedAt     int64           `db:"created_at"`
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
@@ -1091,6 +1133,14 @@ type Deployment struct {
 	UpdatedAt                     sql.NullInt64             `db:"updated_at"`
 }
 
+type DeploymentChange struct {
+	Pk           uint64                        `db:"pk"`
+	ResourceType DeploymentChangesResourceType `db:"resource_type"`
+	ResourceID   string                        `db:"resource_id"`
+	RegionID     string                        `db:"region_id"`
+	CreatedAt    int64                         `db:"created_at"`
+}
+
 type DeploymentStep struct {
 	Pk            uint64              `db:"pk"`
 	WorkspaceID   string              `db:"workspace_id"`
@@ -1113,7 +1163,6 @@ type DeploymentTopology struct {
 	AutoscalingReplicasMax     uint32                          `db:"autoscaling_replicas_max"`
 	AutoscalingThresholdCpu    sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
 	AutoscalingThresholdMemory sql.NullInt16                   `db:"autoscaling_threshold_memory"`
-	Version                    uint64                          `db:"version"`
 	DesiredStatus              DeploymentTopologyDesiredStatus `db:"desired_status"`
 	CreatedAt                  int64                           `db:"created_at"`
 	UpdatedAt                  sql.NullInt64                   `db:"updated_at"`
@@ -1406,7 +1455,6 @@ type Sentinel struct {
 	AvailableReplicas int32                 `db:"available_replicas"`
 	CpuMillicores     int32                 `db:"cpu_millicores"`
 	MemoryMib         int32                 `db:"memory_mib"`
-	Version           uint64                `db:"version"`
 	CreatedAt         int64                 `db:"created_at"`
 	UpdatedAt         sql.NullInt64         `db:"updated_at"`
 }

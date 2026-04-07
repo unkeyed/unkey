@@ -314,10 +314,10 @@ func TestWithRetryContext_Integration(t *testing.T) {
 
 	t.Run("retry with real database - no retry on not found", func(t *testing.T) {
 		callCount := 0
-		_, err := WithRetryContext(ctx, func() (FindKeyForVerificationRow, error) {
+		_, err := WithRetryContext(ctx, func() (string, error) {
 			callCount++
 			// Try to find non-existent key using sqlc - should not be retried
-			return Query.FindKeyForVerification(ctx, dbInstance.RO(), uid.New(uid.KeyPrefix))
+			return Query.FindKeyIDByHash(ctx, dbInstance.RO(), uid.New(uid.KeyPrefix))
 		})
 
 		require.Error(t, err)

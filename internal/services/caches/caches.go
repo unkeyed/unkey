@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/cache/middleware"
@@ -21,8 +22,8 @@ type Caches struct {
 	RatelimitNamespace cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 
 	// VerificationKeyByHash caches verification key lookups by their hash with pre-parsed data.
-	// Keys are string (hash) and values are db.CachedKeyData (includes pre-parsed IP whitelist).
-	VerificationKeyByHash cache.Cache[string, db.CachedKeyData]
+	// Keys are string (hash) and values are keysdb.CachedKeyData (includes pre-parsed IP whitelist).
+	VerificationKeyByHash cache.Cache[string, keysdb.CachedKeyData]
 
 	// LiveApiByID caches live API lookups by ID.
 	// Keys are string (ID) and values are db.FindLiveApiByIDRow.
@@ -41,8 +42,8 @@ type Caches struct {
 	ApiToKeyAuthRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByIdsRow]
 
 	// WorkspaceQuota caches workspace quota lookups by workspace ID.
-	// Keys are string (workspace ID) and values are db.Quotas.
-	WorkspaceQuota cache.Cache[string, db.Quotas]
+	// Keys are string (workspace ID) and values are keysdb.Quotas.
+	WorkspaceQuota cache.Cache[string, keysdb.Quotas]
 
 	// dispatcher handles routing of invalidation events to all caches in this process.
 	// This is not exported as it's an internal implementation detail.
@@ -194,7 +195,7 @@ func New(config Config) (Caches, error) {
 	}
 
 	verificationKeyByHash, err := createCache(
-		cache.Config[string, db.CachedKeyData]{
+		cache.Config[string, keysdb.CachedKeyData]{
 			Fresh:    10 * time.Second,
 			Stale:    10 * time.Minute,
 			MaxSize:  1_000_000,
@@ -264,7 +265,7 @@ func New(config Config) (Caches, error) {
 	}
 
 	workspaceQuota, err := createCache(
-		cache.Config[string, db.Quotas]{
+		cache.Config[string, keysdb.Quotas]{
 			Fresh:    time.Minute,
 			Stale:    24 * time.Hour,
 			MaxSize:  100_000,

@@ -22,10 +22,8 @@ INSERT INTO cilium_network_policies (
     k8s_namespace,
     region_id,
     policy,
-    version,
     created_at
 ) VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -51,7 +49,6 @@ type InsertCiliumNetworkPolicyParams struct {
 	K8sNamespace  string          `db:"k8s_namespace"`
 	RegionID      string          `db:"region_id"`
 	Policy        json.RawMessage `db:"policy"`
-	Version       uint64          `db:"version"`
 	CreatedAt     int64           `db:"created_at"`
 }
 
@@ -68,10 +65,8 @@ type InsertCiliumNetworkPolicyParams struct {
 //	    k8s_namespace,
 //	    region_id,
 //	    policy,
-//	    version,
 //	    created_at
 //	) VALUES (
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -96,7 +91,6 @@ func (q *Queries) InsertCiliumNetworkPolicy(ctx context.Context, db DBTX, arg In
 		arg.K8sNamespace,
 		arg.RegionID,
 		arg.Policy,
-		arg.Version,
 		arg.CreatedAt,
 	)
 	return err
