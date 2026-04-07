@@ -100,10 +100,10 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   useEffect(() => {
-    if (normalizedPage > totalPages) {
+    if (data && normalizedPage > totalPages) {
       setPage(totalPages);
     }
-  }, [normalizedPage, totalPages, setPage]);
+  }, [data, normalizedPage, totalPages, setPage]);
 
   useEffect(() => {
     for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {

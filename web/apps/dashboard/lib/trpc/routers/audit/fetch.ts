@@ -24,7 +24,6 @@ const MAX_LIMIT = 200;
 
 const AuditLogsResponse = z.object({
   auditLogs: z.array(auditLog),
-  hasMore: z.boolean(),
   total: z.number(),
 });
 
@@ -98,7 +97,6 @@ export const fetchAuditLog = workspaceProcedure
 
     return {
       auditLogs: items,
-      hasMore: page * pageSize < totalCount,
       total: totalCount,
     };
   });
