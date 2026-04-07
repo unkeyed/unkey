@@ -3,7 +3,6 @@
 import type { SentinelPolicy } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, DoubleChevronRight } from "@unkey/icons";
-import { match } from "@unkey/match";
 import {
   Button,
   FormInput,
@@ -14,11 +13,13 @@ import {
   SelectValue,
   SlidePanel,
 } from "@unkey/ui";
-import { FormDescription } from "@unkey/ui/src/components/form/form-helpers";
-import { type Control, Controller, useForm } from "react-hook-form";
-import { KeyAuthFields } from "./forms/keyauth-fields";
-import { RateLimitFields } from "./forms/ratelimit-fields";
-import { MatchConditionEditor } from "./match-condition-editor";
+import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { AccordionSection } from "./accordion-section";
+import { MatchConditionEditorBody } from "./match-condition-editor";
+import { PolicyConfigFields } from "./policy-config-fields";
+import { summarizeMatchConditions, summarizePolicy } from "./policy-summaries";
 import {
   POLICY_TYPE_OPTIONS,
   type PolicyFormValues,
@@ -37,22 +38,6 @@ type SentinelPolicyAddPanelProps = {
   onAdd: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
 };
 
-function PolicyConfigFields({
-  type,
-  control,
-}: { type: PolicyType; control: Control<PolicyFormValues> }) {
-  return match(type)
-    .with("keyauth", () => (
-      <KeyAuthFields control={control as Control<Extract<PolicyFormValues, { type: "keyauth" }>>} />
-    ))
-    .with("ratelimit", () => (
-      <RateLimitFields
-        control={control as Control<Extract<PolicyFormValues, { type: "ratelimit" }>>}
-      />
-    ))
-    .exhaustive();
-}
-
 export function SentinelPolicyAddPanel({
   envASlug,
   envBSlug,
@@ -61,12 +46,18 @@ export function SentinelPolicyAddPanel({
   onClose,
   onAdd,
 }: SentinelPolicyAddPanelProps) {
-  const { control, handleSubmit, watch, reset } = useForm<PolicyFormValues>({
+  const { control, handleSubmit, watch, reset, setValue } = useForm<PolicyFormValues>({
     resolver: zodResolver(policyFormSchema),
     defaultValues: getDefaultValues("keyauth"),
   });
 
   const watchedType = watch("type");
+  const watchedValues = watch();
+
+  type ExpandedSection = "config" | "matchConditions" | "none";
+  const [expanded, setExpanded] = useState<ExpandedSection>("config");
+  const toggleSection = (section: Exclude<ExpandedSection, "none">) =>
+    setExpanded((prev) => (prev === section ? "none" : section));
 
   const handleTypeChange = (newType: PolicyType) => {
     const currentValues = watch();
@@ -76,6 +67,7 @@ export function SentinelPolicyAddPanel({
       environmentId: currentValues.environmentId,
       matchConditions: currentValues.matchConditions,
     });
+    setExpanded("config");
   };
 
   const onSubmit = (values: PolicyFormValues) => {
@@ -123,6 +115,7 @@ export function SentinelPolicyAddPanel({
                 render={({ field, fieldState }) => (
                   <FormInput
                     label="Name"
+                    descriptionPosition="label"
                     placeholder="e.g. API Key Auth, Rate Limit Public"
                     description="A descriptive name to identify this policy."
                     value={field.value}
@@ -137,9 +130,11 @@ export function SentinelPolicyAddPanel({
                 name="type"
                 render={({ field }) => (
                   <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-                    <label htmlFor="policy-type-select" className="text-gray-11 text-[13px]">
-                      Type
-                    </label>
+                    <FormLabel
+                      label="Type"
+                      htmlFor="policy-type-select"
+                      tooltipContent="The kind of protection this policy enforces."
+                    />
                     <Select
                       value={field.value}
                       onValueChange={(v) => handleTypeChange(v as PolicyType)}
@@ -147,14 +142,13 @@ export function SentinelPolicyAddPanel({
                       <SelectTrigger
                         id="policy-type-select"
                         className="capitalize"
-                        aria-describedby="policy-type-desc"
                         rightIcon={
                           <ChevronDown className="absolute right-2" iconSize="md-medium" />
                         }
                       >
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="z-60">
+                      <SelectContent>
                         {POLICY_TYPE_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}
@@ -162,26 +156,72 @@ export function SentinelPolicyAddPanel({
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormDescription
-                      description="The kind of protection this policy enforces."
-                      descriptionId="policy-type-desc"
-                      errorId="policy-type-error"
-                    />
                   </fieldset>
                 )}
               />
-
-              <PolicyConfigFields type={watchedType} control={control} />
             </div>
+
+            {expanded === "config" && (
+              <div className="mt-6">
+                <AccordionSection
+                  label="Policy Configuration"
+                  summary={summarizePolicy(watchedValues)}
+                  active
+                  onToggle={() => toggleSection("config")}
+                >
+                  <PolicyConfigFields type={watchedType} control={control} />
+                </AccordionSection>
+              </div>
+            )}
+            {expanded === "matchConditions" && (
+              <div className="mt-6">
+                <AccordionSection
+                  label="Match Conditions"
+                  summary={summarizeMatchConditions(watchedValues.matchConditions)}
+                  active
+                  onToggle={() => toggleSection("matchConditions")}
+                  tooltipContent={
+                    <span>
+                      All conditions must match (
+                      <span className="text-gray-12 font-medium">AND</span> logic).
+                    </span>
+                  }
+                >
+                  <MatchConditionEditorBody
+                    conditions={watchedValues.matchConditions}
+                    onChange={(next) => setValue("matchConditions", next, { shouldDirty: true })}
+                  />
+                </AccordionSection>
+              </div>
+            )}
           </div>
 
-          <Controller
-            control={control}
-            name="matchConditions"
-            render={({ field }) => (
-              <MatchConditionEditor conditions={field.value} onChange={field.onChange} />
-            )}
-          />
+          {expanded !== "config" && (
+            <AccordionSection
+              label="Policy Configuration"
+              summary={summarizePolicy(watchedValues)}
+              active={false}
+              onToggle={() => toggleSection("config")}
+            >
+              {null}
+            </AccordionSection>
+          )}
+          {expanded !== "matchConditions" && (
+            <AccordionSection
+              label="Match Conditions"
+              summary={summarizeMatchConditions(watchedValues.matchConditions)}
+              active={false}
+              onToggle={() => toggleSection("matchConditions")}
+              tooltipContent={
+                <span>
+                  All conditions must match (
+                  <span className="text-gray-12 font-medium">AND</span> logic).
+                </span>
+              }
+            >
+              {null}
+            </AccordionSection>
+          )}
 
           <div className="border-t border-grayA-4">
             <div className="px-8 py-6">
@@ -190,21 +230,22 @@ export function SentinelPolicyAddPanel({
                 name="environmentId"
                 render={({ field }) => (
                   <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-                    <label htmlFor="policy-env-select" className="text-gray-11 text-[13px]">
-                      Environment
-                    </label>
+                    <FormLabel
+                      label="Environment"
+                      htmlFor="policy-env-select"
+                      tooltipContent="Which environments this policy will be added to."
+                    />
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger
                         id="policy-env-select"
                         className="capitalize"
-                        aria-describedby="policy-env-desc"
                         rightIcon={
                           <ChevronDown className="absolute right-2" iconSize="md-medium" />
                         }
                       >
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="z-60">
+                      <SelectContent>
                         <SelectItem value="__all__">All Environments</SelectItem>
                         <SelectItem value={envASlug} className="capitalize">
                           {envASlug}
@@ -214,11 +255,6 @@ export function SentinelPolicyAddPanel({
                         </SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormDescription
-                      description="Which environments this policy will be added to."
-                      descriptionId="policy-env-desc"
-                      errorId="policy-env-error"
-                    />
                   </fieldset>
                 )}
               />

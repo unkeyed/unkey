@@ -3,7 +3,7 @@
 import type { ComboboxOption } from "@/components/ui/combobox";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { trpc } from "@/lib/trpc/client";
-import { ChevronDown, ChevronUp, Plus, Trash, XMark } from "@unkey/icons";
+import { ChevronDown, Plus, Trash, XMark } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import { FormDescription } from "@unkey/ui/src/components/form/form-helpers";
+import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import type { Control } from "react-hook-form";
 import { useController } from "react-hook-form";
 import type { KeyLocationFormValues, KeyLocationType, PolicyFormValues } from "../schema";
@@ -56,32 +56,25 @@ export function KeyAuthFields({ control }: { control: Control<KeyauthFormValues>
   }));
 
   const addLocation = () => {
-    setLocations([...locations, { id: crypto.randomUUID(), locationType: "bearer" }]);
+    setLocations([{ id: crypto.randomUUID(), locationType: "bearer" }]);
   };
 
   const updateLocation = (id: string, updates: Partial<KeyLocationFormValues>) => {
     setLocations(locations.map((loc) => (loc.id === id ? { ...loc, ...updates } : loc)));
   };
 
-  const removeLocation = (id: string) => {
-    setLocations(locations.filter((loc) => loc.id !== id));
+  const removeLocation = () => {
+    setLocations([]);
   };
 
-  const moveLocation = (index: number, direction: -1 | 1) => {
-    const target = index + direction;
-    if (target < 0 || target >= locations.length) {
-      return;
-    }
-    const next = [...locations];
-    [next[index], next[target]] = [next[target], next[index]];
-    setLocations(next);
-  };
+  const location = locations[0];
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1.5">
         <FormCombobox
           label="Keyspaces"
+          descriptionPosition="label"
           description="API keyspaces used to authenticate incoming requests."
           options={comboboxOptions}
           value=""
@@ -124,116 +117,85 @@ export function KeyAuthFields({ control }: { control: Control<KeyauthFormValues>
 
       <fieldset className="flex flex-col gap-2 border-0 m-0 p-0">
         <div className="flex items-center justify-between">
-          {/* biome-ignore lint/a11y/noLabelWithoutControl: its okay */}
-          <label className="text-gray-11 text-[13px]">Key Locations</label>
-          <Button type="button" variant="ghost" size="sm" onClick={addLocation}>
-            <Plus iconSize="sm-regular" />
-            Add
-          </Button>
+          <FormLabel
+            label="Key Location"
+            htmlFor="key-locations"
+            tooltipContent="Where to extract the API key from. Defaults to Bearer token if not configured."
+          />
+          {!location && (
+            <Button type="button" variant="ghost" size="sm" onClick={addLocation}>
+              <Plus iconSize="sm-regular" />
+              Add
+            </Button>
+          )}
         </div>
-        <FormDescription
-          description={
-            locations.length === 0
-              ? "Where to extract the API key from. Locations are tried in order and the first non-empty value wins. Defaults to Bearer token if none configured."
-              : "Tried in order. The first location that yields a non-empty key is used."
-          }
-          descriptionId="key-locations-desc"
-          errorId="key-locations-error"
-        />
-        {locations.length > 0 && (
-          <div className="flex flex-col gap-2">
-            {locations.map((loc, index) => (
-              <div key={loc.id} className="flex items-center gap-2">
-                <div className="flex flex-col shrink-0">
-                  <button
-                    type="button"
-                    aria-label="Move up"
-                    disabled={index === 0}
-                    onClick={() => moveLocation(index, -1)}
-                    className="text-gray-9 hover:text-gray-12 disabled:opacity-30 disabled:cursor-default transition-colors p-0.5"
-                  >
-                    <ChevronUp iconSize="sm-regular" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Move down"
-                    disabled={index === locations.length - 1}
-                    onClick={() => moveLocation(index, 1)}
-                    className="text-gray-9 hover:text-gray-12 disabled:opacity-30 disabled:cursor-default transition-colors p-0.5"
-                  >
-                    <ChevronDown iconSize="sm-regular" />
-                  </button>
-                </div>
-                <span className="text-[11px] text-gray-9 w-4 shrink-0 text-right tabular-nums">
-                  {index + 1}.
-                </span>
-                <div className="w-32 shrink-0">
-                  <Select
-                    value={loc.locationType}
-                    onValueChange={(v) => {
-                      const locationType = v as KeyLocationType;
-                      updateLocation(loc.id, {
-                        locationType,
-                        name: locationType === "bearer" ? undefined : "",
-                        stripPrefix: undefined,
-                      });
-                    }}
-                  >
-                    <SelectTrigger
-                      aria-label="Location type"
-                      className="shrink-0 whitespace-pre"
-                      rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="z-60">
-                      {LOCATION_TYPE_OPTIONS.map((opt) => (
-                        <SelectItem
-                          key={opt.value}
-                          value={opt.value}
-                          className="shrink-0 whitespace-pre"
-                        >
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {match(loc.locationType)
-                  .with("bearer", () => (
-                    <span className="flex-1 text-[12px] text-gray-9">
-                      Authorization: Bearer &lt;key&gt;
-                    </span>
-                  ))
-                  .with("header", () => (
-                    <FormInput
-                      placeholder="X-API-Key"
-                      value={loc.name ?? ""}
-                      onChange={(e) => updateLocation(loc.id, { name: e.target.value })}
-                      className="flex-1"
-                    />
-                  ))
-                  .with("queryParam", () => (
-                    <FormInput
-                      placeholder="api_key"
-                      value={loc.name ?? ""}
-                      onChange={(e) => updateLocation(loc.id, { name: e.target.value })}
-                      className="flex-1"
-                    />
-                  ))
-                  .exhaustive()}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  aria-label="Remove location"
-                  className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg"
-                  onClick={() => removeLocation(loc.id)}
+        {location && (
+          <div className="flex items-center gap-2">
+            <div className="w-32 shrink-0">
+              <Select
+                value={location.locationType}
+                onValueChange={(v) => {
+                  const locationType = v as KeyLocationType;
+                  updateLocation(location.id, {
+                    locationType,
+                    name: locationType === "bearer" ? undefined : "",
+                    stripPrefix: undefined,
+                  });
+                }}
+              >
+                <SelectTrigger
+                  aria-label="Location type"
+                  className="shrink-0 whitespace-pre"
+                  rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
                 >
-                  <Trash iconSize="sm-regular" />
-                </Button>
-              </div>
-            ))}
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LOCATION_TYPE_OPTIONS.map((opt) => (
+                    <SelectItem
+                      key={opt.value}
+                      value={opt.value}
+                      className="shrink-0 whitespace-pre"
+                    >
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {match(location.locationType)
+              .with("bearer", () => (
+                <span className="flex-1 text-[12px] text-gray-9">
+                  Authorization: Bearer &lt;key&gt;
+                </span>
+              ))
+              .with("header", () => (
+                <FormInput
+                  placeholder="X-API-Key"
+                  value={location.name ?? ""}
+                  onChange={(e) => updateLocation(location.id, { name: e.target.value })}
+                  className="flex-1"
+                />
+              ))
+              .with("queryParam", () => (
+                <FormInput
+                  placeholder="api_key"
+                  value={location.name ?? ""}
+                  onChange={(e) => updateLocation(location.id, { name: e.target.value })}
+                  className="flex-1"
+                />
+              ))
+              .exhaustive()}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-label="Remove location"
+              className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg"
+              onClick={removeLocation}
+            >
+              <Trash iconSize="sm-regular" />
+            </Button>
           </div>
         )}
       </fieldset>
@@ -243,6 +205,7 @@ export function KeyAuthFields({ control }: { control: Control<KeyauthFormValues>
         placeholder="e.g. api.read AND api.write"
         value={permissionQuery}
         onChange={(e) => setPermissionQuery(e.target.value)}
+        descriptionPosition="inline"
         description={
           <span>
             Reject requests if the key lacks permissions. Supports{" "}

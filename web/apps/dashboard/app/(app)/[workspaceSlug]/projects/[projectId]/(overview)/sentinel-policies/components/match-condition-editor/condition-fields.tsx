@@ -15,7 +15,7 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
-import { FormDescription } from "@unkey/ui/src/components/form/form-helpers";
+import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import { useState } from "react";
 import type { MatchConditionFormValues } from "../schema";
 import { HTTP_METHODS, STRING_MATCH_MODES, validateRegexSyntax } from "./constants";
@@ -104,7 +104,7 @@ export function ConditionFields({
                 >
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="z-60">
+                <SelectContent>
                   {STRING_MATCH_MODES.map((m) => (
                     <SelectItem key={m.value} value={m.value}>
                       {m.label}
@@ -120,6 +120,7 @@ export function ConditionFields({
             value={c.value}
             onChange={(e) => onChange({ ...c, value: e.target.value })}
             className="flex-1"
+            descriptionPosition="label"
             description={
               c.mode === "regex"
                 ? "Regex pattern for path matching."
@@ -138,12 +139,16 @@ export function ConditionFields({
     ))
     .with({ type: "method" }, (c) => (
       <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-        <legend className="text-gray-11 text-[13px] mb-1.5">Allowed Methods</legend>
+        <FormLabel
+          label="Allowed Methods"
+          htmlFor={`method-group-${c.id}`}
+          tooltipContent="Select which HTTP methods this condition matches."
+        />
         <div
+          id={`method-group-${c.id}`}
           className="flex flex-wrap gap-1.5"
           // biome-ignore lint/a11y/useSemanticElements: its okay
           role="group"
-          aria-describedby={`method-desc-${c.id}`}
         >
           {HTTP_METHODS.map((m) => {
             const active = c.methods.includes(m);
@@ -170,11 +175,6 @@ export function ConditionFields({
             );
           })}
         </div>
-        <FormDescription
-          description="Select which HTTP methods this condition matches."
-          descriptionId={`method-desc-${c.id}`}
-          errorId={`method-error-${c.id}`}
-        />
       </fieldset>
     ))
     .with({ type: "header" }, { type: "queryParam" }, (c) => {
@@ -187,6 +187,7 @@ export function ConditionFields({
             placeholder={isHeader ? "X-Custom-Header" : "param_name"}
             value={c.name}
             onChange={(e) => onChange({ ...c, name: e.target.value })}
+            descriptionPosition="label"
             description={
               isHeader
                 ? "The HTTP header to match against."
@@ -213,7 +214,7 @@ export function ConditionFields({
                       >
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="z-60">
+                      <SelectContent>
                         {STRING_MATCH_MODES.map((m) => (
                           <SelectItem key={m.value} value={m.value}>
                             {m.label}

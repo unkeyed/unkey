@@ -1,21 +1,92 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { ChevronDown, Plus } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
-import { FormDescription } from "@unkey/ui/src/components/form/form-helpers";
+import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import { Fragment, useState } from "react";
 import type { MatchConditionFormValues } from "../schema";
 import { MatchConditionCard } from "./condition-card";
 
-export function MatchConditionEditor({
+export const MAX_MATCH_CONDITIONS = 10;
+
+export function MatchConditionEditorBody({
   conditions,
   onChange,
 }: {
   conditions: MatchConditionFormValues[];
   onChange: (conditions: MatchConditionFormValues[]) => void;
 }) {
+  const atCap = conditions.length >= MAX_MATCH_CONDITIONS;
   const hasConditions = conditions.length > 0;
-  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="flex flex-col">
+      {hasConditions && (
+        <div className="flex flex-col gap-8 pt-3">
+          {conditions.map((cond, index) => (
+            <Fragment key={cond.id}>
+              <MatchConditionCard
+                condition={cond}
+                onChange={(updated) =>
+                  onChange(conditions.map((c) => (c.id === updated.id ? updated : c)))
+                }
+                onDelete={(id) => {
+                  onChange(conditions.filter((c) => c.id !== id));
+                }}
+              />
+              {index < conditions.length - 1 && <Separator className="bg-gray-2" />}
+            </Fragment>
+          ))}
+        </div>
+      )}
+      <div className={cn("flex items-center gap-3", hasConditions && "pt-6")}>
+        <Button
+          type="button"
+          variant="outline"
+          size="md"
+          className="font-medium"
+          disabled={atCap}
+          onClick={() =>
+            onChange([
+              ...conditions,
+              { id: crypto.randomUUID(), type: "path", mode: "exact", value: "" },
+            ])
+          }
+        >
+          <Plus iconSize="sm-regular" />
+          {conditions.length === 0 ? "Add First Condition" : "Add Condition"}
+        </Button>
+        <span className="text-[12px] text-gray-11">
+          {conditions.length} / {MAX_MATCH_CONDITIONS}
+          {atCap && " · maximum reached"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function MatchConditionEditor({
+  conditions,
+  onChange,
+  expanded: expandedProp,
+  onExpandedChange,
+}: {
+  conditions: MatchConditionFormValues[];
+  onChange: (conditions: MatchConditionFormValues[]) => void;
+  expanded?: boolean;
+  onExpandedChange?: (next: boolean) => void;
+}) {
+  const hasConditions = conditions.length > 0;
+  const isControlled = expandedProp !== undefined && onExpandedChange !== undefined;
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const expanded = isControlled ? expandedProp : internalExpanded;
+  const setExpanded = (next: boolean) => {
+    if (isControlled) {
+      onExpandedChange(next);
+    } else {
+      setInternalExpanded(next);
+    }
+  };
 
   const addFirstCondition = () => {
     onChange([{ id: crypto.randomUUID(), type: "path", mode: "exact", value: "" }]);
@@ -71,21 +142,16 @@ export function MatchConditionEditor({
   return (
     <div className="border-t border-grayA-4">
       <div className="px-8 pt-6 flex items-start justify-between bg-grayA-2">
-        <div>
-          <span id="match-conditions-label" className="text-gray-11 text-[13px]">
-            Match Conditions
-          </span>
-          <FormDescription
-            description={
-              <span>
-                All conditions must match (<span className="text-gray-12 font-medium">AND</span>{" "}
-                logic).
-              </span>
-            }
-            descriptionId="match-conditions-desc"
-            errorId="match-conditions-error"
-          />
-        </div>
+        <FormLabel
+          label="Match Conditions"
+          htmlFor="match-conditions-label"
+          tooltipContent={
+            <span>
+              All conditions must match (<span className="text-gray-12 font-medium">AND</span>{" "}
+              logic).
+            </span>
+          }
+        />
         <div className="flex items-center gap-3">
           {hasConditions && (
             <button

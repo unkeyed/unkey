@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import { FormDescription } from "@unkey/ui/src/components/form/form-helpers";
+import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import type { Control } from "react-hook-form";
 import { useController } from "react-hook-form";
 import type { PolicyFormValues, RateLimitKeySource } from "../schema";
@@ -50,6 +50,7 @@ export function RateLimitFields({ control }: { control: Control<RatelimitFormVal
       <div className="flex gap-3">
         <FormInput
           label="Limit"
+          descriptionPosition="label"
           description="Max number of requests allowed per window."
           type="number"
           value={limit}
@@ -63,6 +64,7 @@ export function RateLimitFields({ control }: { control: Control<RatelimitFormVal
           value={windowMs}
           onChange={(e) => onWindowChange(Number.parseInt(e.target.value) || 0)}
           className="flex-1"
+          descriptionPosition="label"
           description={
             windowMs > 0
               ? `${(windowMs / 1000).toFixed(1)}s. Time window before the counter resets.`
@@ -73,9 +75,11 @@ export function RateLimitFields({ control }: { control: Control<RatelimitFormVal
       </div>
 
       <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-        <label htmlFor="ratelimit-key-source" className="text-gray-11 text-[13px]">
-          Key Source
-        </label>
+        <FormLabel
+          label="Key Source"
+          htmlFor="ratelimit-key-source"
+          tooltipContent="Determines how the rate limit bucket is keyed (per IP, per header value, per authenticated identity, etc.)."
+        />
         <Select
           value={keySource}
           onValueChange={(v) => {
@@ -85,12 +89,11 @@ export function RateLimitFields({ control }: { control: Control<RatelimitFormVal
         >
           <SelectTrigger
             id="ratelimit-key-source"
-            aria-describedby="ratelimit-key-source-desc"
             rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="z-60">
+          <SelectContent>
             {KEY_SOURCE_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
@@ -98,11 +101,6 @@ export function RateLimitFields({ control }: { control: Control<RatelimitFormVal
             ))}
           </SelectContent>
         </Select>
-        <FormDescription
-          description="Determines how the rate limit bucket is keyed (per IP, per header value, per authenticated identity, etc.)."
-          descriptionId="ratelimit-key-source-desc"
-          errorId="ratelimit-key-source-error"
-        />
       </fieldset>
 
       {needsKeyValue && (
@@ -111,6 +109,7 @@ export function RateLimitFields({ control }: { control: Control<RatelimitFormVal
           value={keyValue}
           placeholder={keySource === "header" ? "X-Tenant-Id" : "org_id"}
           onChange={(e) => onKeyValueChange(e.target.value)}
+          descriptionPosition="label"
           description={
             keySource === "header"
               ? "The header whose value becomes the rate limit bucket key."

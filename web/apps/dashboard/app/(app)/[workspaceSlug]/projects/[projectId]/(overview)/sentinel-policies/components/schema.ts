@@ -108,7 +108,7 @@ export type PolicyType = PolicyFormValues["type"];
 
 export const POLICY_TYPE_OPTIONS: { value: PolicyType; label: string }[] = [
   { value: "keyauth", label: "Key Auth" },
-  { value: "ratelimit", label: "Rate Limit" },
+  { value: "ratelimit", label: "Ratelimit" },
 ];
 
 export function getDefaultValues(type: PolicyType): PolicyFormValues {
@@ -165,21 +165,21 @@ function toMatchExpr(condition: MatchConditionFormValues): MatchExpr {
       c.present
         ? { header: { name: c.name, present: true } }
         : {
-            header: {
-              name: c.name,
-              value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
-            },
+          header: {
+            name: c.name,
+            value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
           },
+        },
     )
     .with({ type: "queryParam" }, (c) =>
       c.present
         ? { queryParam: { name: c.name, present: true } }
         : {
-            queryParam: {
-              name: c.name,
-              value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
-            },
+          queryParam: {
+            name: c.name,
+            value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
           },
+        },
     )
     .exhaustive();
 }
@@ -196,17 +196,17 @@ export function toSentinelPolicy(values: PolicyFormValues): SentinelPolicy {
       const locations =
         v.locations.length > 0
           ? v.locations.map((loc) =>
-              match(loc.locationType)
-                .with("bearer", () => ({ bearer: {} }))
-                .with("header", () => ({
-                  header: {
-                    name: loc.name ?? "",
-                    ...(loc.stripPrefix ? { stripPrefix: loc.stripPrefix } : {}),
-                  },
-                }))
-                .with("queryParam", () => ({ queryParam: { name: loc.name ?? "" } }))
-                .exhaustive(),
-            )
+            match(loc.locationType)
+              .with("bearer", () => ({ bearer: {} }))
+              .with("header", () => ({
+                header: {
+                  name: loc.name ?? "",
+                  ...(loc.stripPrefix ? { stripPrefix: loc.stripPrefix } : {}),
+                },
+              }))
+              .with("queryParam", () => ({ queryParam: { name: loc.name ?? "" } }))
+              .exhaustive(),
+          )
           : undefined;
 
       return {
