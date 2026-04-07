@@ -1,4 +1,7 @@
 -- name: UpdateKeyHashAndMigration :exec
+-- UpdateKeyHashAndMigration re-hashes a key to SHA-256 after a successful
+-- on-demand migration and clears the pending migration marker so future
+-- lookups use the standard hash path.
 UPDATE `keys`
 SET
     hash = sqlc.arg(hash),

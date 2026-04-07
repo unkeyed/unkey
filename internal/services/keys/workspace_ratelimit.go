@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -30,8 +30,8 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 		return nil
 	}
 
-	quota, _, err := s.quotaCache.SWR(ctx, sess.AuthorizedWorkspaceID(), func(ctx context.Context) (db.Quotas, error) {
-		return db.Query.FindQuotaByWorkspaceID(ctx, s.db.RO(), sess.AuthorizedWorkspaceID())
+	quota, _, err := s.quotaCache.SWR(ctx, sess.AuthorizedWorkspaceID(), func(ctx context.Context) (keysdb.Quotas, error) {
+		return keysdb.Query.FindQuotaByWorkspaceID(ctx, s.db.RO(), sess.AuthorizedWorkspaceID())
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		logger.Error("workspace rate limit: failed to load quota",

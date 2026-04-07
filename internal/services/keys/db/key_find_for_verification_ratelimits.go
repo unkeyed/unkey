@@ -1,5 +1,8 @@
 package db
 
+// KeyFindForVerificationRatelimit represents a rate limit configuration extracted
+// from the JSON column in the FindKeyForVerification query result. It covers both
+// key-level and identity-level rate limits.
 type KeyFindForVerificationRatelimit struct {
 	ID         string `json:"id"`
 	Name       string `json:"name"`

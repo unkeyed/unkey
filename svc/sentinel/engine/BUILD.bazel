@@ -38,6 +38,7 @@ go_test(
     deps = [
         "//gen/proto/sentinel/v1:sentinel",
         "//internal/services/keys",
+        "//internal/services/keys/db",
         "//internal/services/ratelimit",
         "//internal/services/usagelimiter",
         "//pkg/cache",

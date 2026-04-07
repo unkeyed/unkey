@@ -78,7 +78,7 @@ export function EnvVarBaseRow({
         </div>
         <div className="flex-4 min-w-0 py-3.5 flex items-center">{nameCell}</div>
         <div className="flex-4 min-w-0 py-3.5 flex items-center pr-3">{valueCell}</div>
-        <div className="flex-2 min-w-0 py-3.5 flex items-center pr-3">
+        <div className="w-45 shrink-0 py-3.5 flex items-center pr-3">
           <TimestampBadge value={timestamp} />
         </div>
         <div

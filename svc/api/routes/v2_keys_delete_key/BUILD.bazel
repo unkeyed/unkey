@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//internal/services/auditlogs",
         "//internal/services/keys",
+        "//internal/services/keys/db",
         "//pkg/auditlog",
         "//pkg/cache",
         "//pkg/codes",
