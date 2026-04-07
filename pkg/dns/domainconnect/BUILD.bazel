@@ -1,11 +1,28 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "domainconnect",
-    srcs = ["discover.go"],
+    srcs = [
+        "client.go",
+        "discover.go",
+        "doc.go",
+        "domain.go",
+        "errors.go",
+        "signing.go",
+    ],
     importpath = "github.com/unkeyed/unkey/pkg/dns/domainconnect",
     visibility = ["//visibility:public"],
     deps = [
-        "@com_github_railwayapp_domainconnect_go//:domainconnect-go",
+        "@org_golang_x_net//publicsuffix",
     ],
+)
+
+go_test(
+    name = "domainconnect_test",
+    srcs = [
+        "discover_test.go",
+        "signing_test.go",
+    ],
+    embed = [":domainconnect"],
+    deps = ["@com_github_stretchr_testify//require"],
 )

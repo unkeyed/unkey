@@ -120,9 +120,14 @@ func (s *Service) AddCustomDomain(
 		if dcErr != nil {
 			logger.Warn("domain connect discovery failed", "domain", domain, "error", dcErr)
 		} else if result != nil {
-			logger.Info("domain connect provider found", "domain", domain, "provider", result.ProviderName)
-			dcProvider = result.ProviderName
-			dcURL = result.URL
+			isApex := domainconnect.IsApexDomain(domain)
+			if isApex && result.ProviderID != domainconnect.ProviderCloudflare {
+				logger.Info("domain connect skipped, apex domain on non-Cloudflare provider", "domain", domain, "provider", result.ProviderName)
+			} else {
+				logger.Info("domain connect provider found", "domain", domain, "provider", result.ProviderName)
+				dcProvider = result.ProviderName
+				dcURL = result.URL
+			}
 		} else {
 			logger.Info("domain connect not supported by provider", "domain", domain)
 		}
