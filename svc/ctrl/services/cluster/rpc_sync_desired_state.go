@@ -78,6 +78,7 @@ func (s *Service) syncDeployments(
 			return connect.NewError(connect.CodeInternal, err)
 		}
 		for _, row := range rows {
+			afterPk = row.DeploymentTopology.Pk
 			state, err := s.deploymentRowToState(deploymentRow{
 				dt:              row.DeploymentTopology,
 				d:               row.Deployment,
@@ -98,7 +99,6 @@ func (s *Service) syncDeployments(
 			}); err != nil {
 				return err
 			}
-			afterPk = row.DeploymentTopology.Pk
 		}
 		if len(rows) < changePageSize {
 			return nil
@@ -123,6 +123,7 @@ func (s *Service) syncSentinels(
 			return connect.NewError(connect.CodeInternal, err)
 		}
 		for _, sentinel := range rows {
+			afterPk = sentinel.Pk
 			state := s.sentinelToState(sentinel, 0)
 			if state == nil {
 				continue
@@ -132,7 +133,6 @@ func (s *Service) syncSentinels(
 			}); err != nil {
 				return err
 			}
-			afterPk = sentinel.Pk
 		}
 		if len(rows) < changePageSize {
 			return nil
