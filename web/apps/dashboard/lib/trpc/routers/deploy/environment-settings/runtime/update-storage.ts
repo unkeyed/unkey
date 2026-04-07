@@ -4,11 +4,11 @@ import { appRuntimeSettings, environments, quotas } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 
-export const updateCpu = workspaceProcedure
+export const updateStorage = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),
-      cpuMillicores: z.number().int().min(1),
+      storageMib: z.number().int().min(0),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -22,18 +22,18 @@ export const updateCpu = workspaceProcedure
       }),
       db.query.quotas.findFirst({
         where: eq(quotas.workspaceId, ctx.workspace.id),
-        columns: { maxCpuMillicoresPerInstance: true },
+        columns: { maxStorageMibPerInstance: true },
       }),
     ]);
     if (!env) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Environment not found" });
     }
 
-    const maxPerInstance = quota?.maxCpuMillicoresPerInstance ?? 2000;
-    if (input.cpuMillicores > maxPerInstance) {
+    const maxPerInstance = quota?.maxStorageMibPerInstance ?? 10240;
+    if (input.storageMib > maxPerInstance) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: `CPU per instance cannot exceed ${maxPerInstance} millicores. Contact support@unkey.com to increase it.`,
+        message: `Storage per instance cannot exceed ${maxPerInstance} MiB. Contact support@unkey.com to increase it.`,
       });
     }
 
@@ -43,12 +43,15 @@ export const updateCpu = workspaceProcedure
         workspaceId: ctx.workspace.id,
         appId: env.appId,
         environmentId: input.environmentId,
-        cpuMillicores: input.cpuMillicores,
+        storageMib: input.storageMib,
         sentinelConfig: "{}",
         createdAt: Date.now(),
         updatedAt: Date.now(),
       })
       .onDuplicateKeyUpdate({
-        set: { cpuMillicores: input.cpuMillicores, updatedAt: Date.now() },
+        set: {
+          storageMib: input.storageMib,
+          updatedAt: Date.now(),
+        },
       });
   });

@@ -208,6 +208,10 @@ type Quotas struct {
 	RatelimitApiDuration        sql.NullInt32 `db:"ratelimit_api_duration"`
 	AllocatedCpuMillicoresTotal uint32        `db:"allocated_cpu_millicores_total"`
 	AllocatedMemoryMibTotal     uint32        `db:"allocated_memory_mib_total"`
+	AllocatedStorageMibTotal    uint32        `db:"allocated_storage_mib_total"`
+	MaxCpuMillicoresPerInstance uint32        `db:"max_cpu_millicores_per_instance"`
+	MaxMemoryMibPerInstance     uint32        `db:"max_memory_mib_per_instance"`
+	MaxStorageMibPerInstance    uint32        `db:"max_storage_mib_per_instance"`
 }
 
 type Ratelimit struct {

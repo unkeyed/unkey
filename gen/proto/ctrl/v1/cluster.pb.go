@@ -1346,9 +1346,14 @@ type ApplyDeployment struct {
 	GitCommitMessage *string `protobuf:"bytes,26,opt,name=git_commit_message,json=gitCommitMessage,proto3,oneof" json:"git_commit_message,omitempty"`
 	// Horizontal autoscaling policy. Krane creates an HPA with these values.
 	// Populated from the horizontal_autoscaling_policies table via app_regional_settings.
-	Autoscaling   *AutoscalingPolicy `protobuf:"bytes,27,opt,name=autoscaling,proto3" json:"autoscaling,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Autoscaling *AutoscalingPolicy `protobuf:"bytes,27,opt,name=autoscaling,proto3" json:"autoscaling,omitempty"`
+	// ephemeral_storage configures an EBS-backed scratch volume for the deployment.
+	// When present, Krane provisions a PVC per pod using the specified storage class.
+	// The volume is created when the pod starts and deleted when the pod terminates.
+	// When absent, no ephemeral volume is attached.
+	EphemeralStorage *EphemeralStorage `protobuf:"bytes,29,opt,name=ephemeral_storage,json=ephemeralStorage,proto3,oneof" json:"ephemeral_storage,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ApplyDeployment) Reset() {
@@ -1538,6 +1543,13 @@ func (x *ApplyDeployment) GetGitCommitMessage() string {
 func (x *ApplyDeployment) GetAutoscaling() *AutoscalingPolicy {
 	if x != nil {
 		return x.Autoscaling
+	}
+	return nil
+}
+
+func (x *ApplyDeployment) GetEphemeralStorage() *EphemeralStorage {
+	if x != nil {
+		return x.EphemeralStorage
 	}
 	return nil
 }
@@ -1944,7 +1956,7 @@ var File_ctrl_v1_cluster_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\n" +
-	"\x15ctrl/v1/cluster.proto\x12\actrl.v1\"{\n" +
+	"\x15ctrl/v1/cluster.proto\x12\actrl.v1\x1a\x18ctrl/v1/deployment.proto\"{\n" +
 	"\x1dWatchDeploymentChangesRequest\x12\x16\n" +
 	"\x06region\x18\x01 \x01(\tR\x06region\x12*\n" +
 	"\x11version_last_seen\x18\x02 \x01(\x04R\x0fversionLastSeen\x12\x16\n" +
@@ -2031,7 +2043,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"memory_mib\x18\n" +
 	" \x01(\x03R\tmemoryMib\"+\n" +
 	"\x0eDeleteSentinel\x12\x19\n" +
-	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xe8\a\n" +
+	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\"\xcb\b\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
@@ -2059,7 +2071,8 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"git_branch\x18\x18 \x01(\tH\x05R\tgitBranch\x88\x01\x01\x12\x1e\n" +
 	"\bgit_repo\x18\x19 \x01(\tH\x06R\agitRepo\x88\x01\x01\x121\n" +
 	"\x12git_commit_message\x18\x1a \x01(\tH\aR\x10gitCommitMessage\x88\x01\x01\x12<\n" +
-	"\vautoscaling\x18\x1b \x01(\v2\x1a.ctrl.v1.AutoscalingPolicyR\vautoscalingB\v\n" +
+	"\vautoscaling\x18\x1b \x01(\v2\x1a.ctrl.v1.AutoscalingPolicyR\vautoscaling\x12K\n" +
+	"\x11ephemeral_storage\x18\x1d \x01(\v2\x19.ctrl.v1.EphemeralStorageH\bR\x10ephemeralStorage\x88\x01\x01B\v\n" +
 	"\t_build_idB\x0e\n" +
 	"\f_healthcheckB\x13\n" +
 	"\x11_environment_slugB\t\n" +
@@ -2067,7 +2080,8 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0f_git_commit_shaB\r\n" +
 	"\v_git_branchB\v\n" +
 	"\t_git_repoB\x15\n" +
-	"\x13_git_commit_message\"\xda\x01\n" +
+	"\x13_git_commit_messageB\x14\n" +
+	"\x12_ephemeral_storage\"\xda\x01\n" +
 	"\x11AutoscalingPolicy\x12!\n" +
 	"\fmin_replicas\x18\x01 \x01(\rR\vminReplicas\x12!\n" +
 	"\fmax_replicas\x18\x02 \x01(\rR\vmaxReplicas\x12(\n" +
@@ -2140,6 +2154,7 @@ var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(*ReportDeploymentStatusRequest_Update)(nil),              // 24: ctrl.v1.ReportDeploymentStatusRequest.Update
 	(*ReportDeploymentStatusRequest_Delete)(nil),              // 25: ctrl.v1.ReportDeploymentStatusRequest.Delete
 	(*ReportDeploymentStatusRequest_Update_Instance)(nil),     // 26: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
+	(*EphemeralStorage)(nil),                                  // 27: ctrl.v1.EphemeralStorage
 }
 var file_ctrl_v1_cluster_proto_depIdxs = []int32{
 	16, // 0: ctrl.v1.DeploymentChangeEvent.deployment:type_name -> ctrl.v1.DeploymentState
@@ -2155,29 +2170,30 @@ var file_ctrl_v1_cluster_proto_depIdxs = []int32{
 	19, // 10: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
 	21, // 11: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
 	20, // 12: ctrl.v1.ApplyDeployment.autoscaling:type_name -> ctrl.v1.AutoscalingPolicy
-	26, // 13: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
-	1,  // 14: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
-	2,  // 15: ctrl.v1.ClusterService.WatchDeploymentChanges:input_type -> ctrl.v1.WatchDeploymentChangesRequest
-	3,  // 16: ctrl.v1.ClusterService.SyncDesiredState:input_type -> ctrl.v1.SyncDesiredStateRequest
-	9,  // 17: ctrl.v1.ClusterService.GetDesiredSentinelState:input_type -> ctrl.v1.GetDesiredSentinelStateRequest
-	13, // 18: ctrl.v1.ClusterService.ReportSentinelStatus:input_type -> ctrl.v1.ReportSentinelStatusRequest
-	10, // 19: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
-	11, // 20: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
-	8,  // 21: ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState:input_type -> ctrl.v1.GetDesiredCiliumNetworkPolicyStateRequest
-	22, // 22: ctrl.v1.ClusterService.Heartbeat:input_type -> ctrl.v1.HeartbeatRequest
-	4,  // 23: ctrl.v1.ClusterService.WatchDeploymentChanges:output_type -> ctrl.v1.DeploymentChangeEvent
-	4,  // 24: ctrl.v1.ClusterService.SyncDesiredState:output_type -> ctrl.v1.DeploymentChangeEvent
-	15, // 25: ctrl.v1.ClusterService.GetDesiredSentinelState:output_type -> ctrl.v1.SentinelState
-	14, // 26: ctrl.v1.ClusterService.ReportSentinelStatus:output_type -> ctrl.v1.ReportSentinelStatusResponse
-	16, // 27: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
-	12, // 28: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
-	7,  // 29: ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState:output_type -> ctrl.v1.CiliumNetworkPolicyState
-	23, // 30: ctrl.v1.ClusterService.Heartbeat:output_type -> ctrl.v1.HeartbeatResponse
-	23, // [23:31] is the sub-list for method output_type
-	15, // [15:23] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	27, // 13: ctrl.v1.ApplyDeployment.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
+	26, // 14: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
+	1,  // 15: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
+	2,  // 16: ctrl.v1.ClusterService.WatchDeploymentChanges:input_type -> ctrl.v1.WatchDeploymentChangesRequest
+	3,  // 17: ctrl.v1.ClusterService.SyncDesiredState:input_type -> ctrl.v1.SyncDesiredStateRequest
+	9,  // 18: ctrl.v1.ClusterService.GetDesiredSentinelState:input_type -> ctrl.v1.GetDesiredSentinelStateRequest
+	13, // 19: ctrl.v1.ClusterService.ReportSentinelStatus:input_type -> ctrl.v1.ReportSentinelStatusRequest
+	10, // 20: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
+	11, // 21: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
+	8,  // 22: ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState:input_type -> ctrl.v1.GetDesiredCiliumNetworkPolicyStateRequest
+	22, // 23: ctrl.v1.ClusterService.Heartbeat:input_type -> ctrl.v1.HeartbeatRequest
+	4,  // 24: ctrl.v1.ClusterService.WatchDeploymentChanges:output_type -> ctrl.v1.DeploymentChangeEvent
+	4,  // 25: ctrl.v1.ClusterService.SyncDesiredState:output_type -> ctrl.v1.DeploymentChangeEvent
+	15, // 26: ctrl.v1.ClusterService.GetDesiredSentinelState:output_type -> ctrl.v1.SentinelState
+	14, // 27: ctrl.v1.ClusterService.ReportSentinelStatus:output_type -> ctrl.v1.ReportSentinelStatusResponse
+	16, // 28: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
+	12, // 29: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
+	7,  // 30: ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState:output_type -> ctrl.v1.CiliumNetworkPolicyState
+	23, // 31: ctrl.v1.ClusterService.Heartbeat:output_type -> ctrl.v1.HeartbeatResponse
+	24, // [24:32] is the sub-list for method output_type
+	16, // [16:24] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_cluster_proto_init() }
@@ -2185,6 +2201,7 @@ func file_ctrl_v1_cluster_proto_init() {
 	if File_ctrl_v1_cluster_proto != nil {
 		return
 	}
+	file_ctrl_v1_deployment_proto_init()
 	file_ctrl_v1_cluster_proto_msgTypes[2].OneofWrappers = []any{
 		(*DeploymentChangeEvent_Deployment)(nil),
 		(*DeploymentChangeEvent_Sentinel)(nil),

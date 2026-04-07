@@ -10,6 +10,7 @@ CREATE TABLE `instances` (
 	`address` varchar(255) NOT NULL,
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
+	`storage_mib` int unsigned NOT NULL DEFAULT 0,
 	`status` enum('inactive','pending','running','failed') NOT NULL,
 	CONSTRAINT `instances_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `instances_id_unique` UNIQUE(`id`),

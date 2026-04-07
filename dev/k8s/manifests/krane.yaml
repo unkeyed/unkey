@@ -10,6 +10,7 @@ data:
   unkey.toml: |
     region = "local"
     platform = "dev"
+    storage_class_name = "standard"
 
     [control]
     url = "http://ctrl-api:7091"

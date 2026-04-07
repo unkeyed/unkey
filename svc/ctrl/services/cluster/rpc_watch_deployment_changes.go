@@ -283,6 +283,12 @@ func (s *Service) deploymentRowToState(row deploymentRow, version uint64) (*ctrl
 		}
 		apply.Autoscaling = policy
 
+		if row.d.StorageMib > 0 {
+			apply.EphemeralStorage = &ctrlv1.EphemeralStorage{
+				SizeMib: int64(row.d.StorageMib),
+			}
+		}
+
 		return &ctrlv1.DeploymentState{
 			Version: version,
 			State: &ctrlv1.DeploymentState_Apply{
