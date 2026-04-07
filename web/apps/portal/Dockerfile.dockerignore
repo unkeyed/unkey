@@ -35,6 +35,8 @@ bazel-*
 **/node_modules
 **/.turbo
 **/.next
+**/dist
+**/.output
 
 # Misc
 *.md

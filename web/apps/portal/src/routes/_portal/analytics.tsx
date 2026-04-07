@@ -1,8 +1,14 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/_portal/analytics")({
+  component: AnalyticsPage,
+});
+
 /**
  * Placeholder Analytics page for the Customer Portal PoC.
- * Full analytics dashboard (charts, metrics, time-series) is deferred.
+ * Full analytics dashboard will use @unkey/api SDK for verification data.
  */
-export default function AnalyticsPage() {
+function AnalyticsPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="rounded-lg border border-gray-6 bg-background p-8">

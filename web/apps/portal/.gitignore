@@ -1,7 +1,14 @@
-# next.js
-.next/
-out/
+# build output
+dist/
+.output/
+
+# tanstack router generated
+src/routeTree.gen.ts
 
 # typescript
 *.tsbuildinfo
+
+# legacy next.js
+.next/
+out/
 next-env.d.ts

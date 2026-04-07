@@ -33,6 +33,12 @@
       "@radix-ui/react-dialog": "1.1.15",
       "@radix-ui/react-popover": "1.1.15",
       "zod": "4.3.5",
+      "@tanstack/router-generator>zod": "3.24.4",
+      "@tanstack/start-plugin-core>zod": "3.24.4",
+      "@tanstack/router-plugin>zod": "3.24.4",
+      "@tanstack/react-router>zod": "3.24.4",
+      "@tanstack/react-start-plugin>zod": "3.24.4",
+      "@tanstack/react-start-config>zod": "3.24.4",
       "@types/react": "19.2.4",
       "@types/react-dom": "19.2.3"
     }

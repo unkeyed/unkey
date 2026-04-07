@@ -1,16 +1,13 @@
 @import "tailwindcss";
 
-@source '../../../../internal/ui/src/**/*.tsx';
-@source '../../../../internal/icons/src/**/*.tsx';
+@source '../../../internal/ui/src/**/*.tsx';
+@source '../../../internal/icons/src/**/*.tsx';
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* Portal branding — referenced via arbitrary values: bg-[var(--portal-primary)] */
-  /* Runtime CSS variables are set on <html> by the branding engine */
-
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Geist", system-ui, sans-serif;
+  --font-mono: "Geist Mono", monospace;
 
   --color-background: hsl(var(--background));
   --color-background-subtle: hsl(var(--background-subtle));
@@ -46,6 +43,11 @@
   /* Error scale */
   --color-error-9: hsl(var(--error-9));
   --color-error-11: hsl(var(--error-11));
+
+  /* Warning scale */
+  --color-warning-3: hsl(var(--warning-3));
+  --color-warning-6: hsl(var(--warning-6));
+  --color-warning-11: hsl(var(--warning-11));
 }
 
 @layer base {
