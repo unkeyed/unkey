@@ -75,9 +75,10 @@ func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db
 
 	if localAddress, ok := healthyByRegion[s.regionPlatform]; ok {
 		return RouteDecision{
-			DeploymentID: route.DeploymentID,
+			DeploymentID: route.DeploymentID.String,
 			Destination:  DestinationLocalSentinel,
 			Address:      localAddress,
+			PathPrefix:   "",
 		}, nil
 	}
 
@@ -92,9 +93,10 @@ func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db
 	}
 
 	return RouteDecision{
-		DeploymentID: route.DeploymentID,
+		DeploymentID: route.DeploymentID.String,
 		Destination:  DestinationRemoteRegion,
 		Address:      nearestRegion,
+		PathPrefix:   "",
 	}, nil
 }
 

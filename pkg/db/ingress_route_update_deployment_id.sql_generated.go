@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const updateFrontlineRouteDeploymentId = `-- name: UpdateFrontlineRouteDeploymentId :exec
@@ -16,8 +17,8 @@ WHERE id = ?
 `
 
 type UpdateFrontlineRouteDeploymentIdParams struct {
-	Deploymentid string `db:"deploymentid"`
-	ID           string `db:"id"`
+	Deploymentid sql.NullString `db:"deploymentid"`
+	ID           string         `db:"id"`
 }
 
 // UpdateFrontlineRouteDeploymentId

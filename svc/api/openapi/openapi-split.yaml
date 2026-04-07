@@ -112,6 +112,8 @@ tags:
     description: Health check operations
   - name: permissions
     description: Permission and role management operations
+  - name: portal
+    description: Customer Portal session management
   - name: ratelimit
     description: Rate limiting operations
 
@@ -198,6 +200,12 @@ paths:
     $ref: "./spec/paths/v2/ratelimit/listOverrides/index.yaml"
   /v2/ratelimit.deleteOverride:
     $ref: "./spec/paths/v2/ratelimit/deleteOverride/index.yaml"
+
+  # Portal Endpoints
+  /v2/portal.createSession:
+    $ref: "./spec/paths/v2/portal/createSession/index.yaml"
+  /v2/portal.exchangeSession:
+    $ref: "./spec/paths/v2/portal/exchangeSession/index.yaml"
 
   # Permissions Endpoints
   /v2/permissions.createRole:

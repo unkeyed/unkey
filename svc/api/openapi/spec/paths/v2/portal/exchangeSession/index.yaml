@@ -1,0 +1,53 @@
+post:
+  tags:
+    - portal
+  summary: Exchange session token
+  description: |
+    Exchange a short-lived session token for a long-lived browser session.
+
+    This endpoint is unauthenticated. The session token itself serves as proof of authorization.
+    Each token can only be exchanged once; subsequent attempts return 401.
+
+    The returned browser session token is valid for 24 hours and should be stored as an
+    httpOnly cookie or used in the Authorization header for subsequent API calls.
+  operationId: portal.exchangeSession
+  x-speakeasy-name-override: exchangeSession
+  security: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalExchangeSessionRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalExchangeSessionResponseBody.yaml"
+      description: |
+        Session exchanged successfully. Use the returned token for subsequent API calls.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized — session is invalid, expired, or already exchanged
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
