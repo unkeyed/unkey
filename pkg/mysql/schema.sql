@@ -790,4 +790,6 @@ CREATE INDEX `installation_id_idx` ON `github_repo_connections` (`installation_i
 CREATE INDEX `idx_deployment_region` ON `cilium_network_policies` (`deployment_id`,`region_id`);
 CREATE INDEX `workspace_idx` ON `horizontal_autoscaling_policies` (`workspace_id`);
 CREATE INDEX `idx_region_type_pk` ON `deployment_changes` (`region_id`,`resource_type`,`pk`);
+CREATE INDEX `idx_created_at` ON `deployment_changes` (`created_at`);
+CREATE INDEX `idx_region_pk` ON `deployment_changes` (`region_id`,`pk`);
 

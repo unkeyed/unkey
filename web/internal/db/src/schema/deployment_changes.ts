@@ -13,5 +13,9 @@ export const deploymentChanges = mysqlTable(
     regionId: varchar("region_id", { length: 64 }).notNull(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
   },
-  (table) => [index("idx_region_type_pk").on(table.regionId, table.resourceType, table.pk)],
+  (table) => [
+    index("idx_region_type_pk").on(table.regionId, table.resourceType, table.pk),
+    index("idx_created_at").on(table.createdAt),
+    index("idx_region_pk").on(table.regionId, table.pk),
+  ],
 );
