@@ -56,11 +56,9 @@ function SuccessContent() {
         setLoading(true);
 
         // Get checkout session
-        const sessionResponse = await trpcUtils.stripe.getCheckoutSession.fetch(
-          {
-            sessionId: sessionId,
-          },
-        );
+        const sessionResponse = await trpcUtils.stripe.getCheckoutSession.fetch({
+          sessionId: sessionId,
+        });
 
         if (!sessionResponse) {
           console.warn("Stripe session not found");
@@ -140,8 +138,7 @@ function SuccessContent() {
             return;
           }
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
           console.error("Failed to update customer with payment method:", {
             error: errorMessage,
             customerId: "redacted", // Don't log PII
@@ -169,8 +166,7 @@ function SuccessContent() {
           await trpcUtils.stripe.invalidate();
           await trpcUtils.billing.invalidate();
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
           console.error("Failed to update workspace with payment method:", {
             error: errorMessage,
           });
