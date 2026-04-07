@@ -84,6 +84,7 @@ function SuccessContent() {
         // Get workspace details to get the slug
         const workspace = await trpcUtils.workspace.getById.fetch({
           workspaceId: workspaceId,
+          sessionId: sessionId,
         });
 
         if (!isMounted) {
