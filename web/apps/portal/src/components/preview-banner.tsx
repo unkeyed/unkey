@@ -1,6 +1,5 @@
 /**
- * Standalone preview mode banner for use outside the header.
- * Displays a visual indicator when the session has `preview: true`.
+ * Preview mode banner displayed when the session has `preview: true`.
  */
 export function PreviewBanner() {
   return (

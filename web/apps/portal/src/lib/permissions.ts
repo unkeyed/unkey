@@ -18,11 +18,9 @@ const TAB_CONFIGS: ReadonlyArray<TabConfig> = [
 /**
  * Derive visible portal tabs from a session's permissions array.
  *
- * Rules (from requirements 1.7, 2.12):
  * - Any permission matching `keys:*` → Keys tab visible
  * - Any permission matching `analytics:*` → Analytics tab visible
  * - `docs:read` → Docs tab visible
- * - Empty permissions → no tabs visible
  */
 export function deriveVisibleTabs(permissions: ReadonlyArray<string>): ReadonlyArray<TabConfig> {
   const hasKeys = permissions.some((p) => p.startsWith("keys:"));
@@ -43,7 +41,6 @@ export function deriveVisibleTabs(permissions: ReadonlyArray<string>): ReadonlyA
 
 /**
  * Get the first visible tab's href for redirect after session exchange.
- * Returns null if no tabs are visible (empty permissions).
  */
 export function getDefaultTabHref(permissions: ReadonlyArray<string>): string | null {
   const tabs = deriveVisibleTabs(permissions);

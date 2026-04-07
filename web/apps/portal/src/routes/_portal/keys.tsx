@@ -1,8 +1,14 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/_portal/keys")({
+  component: KeysPage,
+});
+
 /**
  * Placeholder Keys page for the Customer Portal PoC.
- * Full key management UI (list, create, revoke) is deferred.
+ * Full key management UI (list, create, revoke) will use @unkey/api SDK.
  */
-export default function KeysPage() {
+function KeysPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="rounded-lg border border-gray-6 bg-background p-8">

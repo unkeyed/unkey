@@ -14,9 +14,6 @@ Default values (work with `make up` / Tilt):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_HOST` | `localhost:3900` | PlanetScale HTTP proxy |
-| `DATABASE_USERNAME` | `unkey` | MySQL user |
-| `DATABASE_PASSWORD` | `password` | MySQL password |
 | `UNKEY_API_URL` | `http://localhost:7070` | Unkey API for session exchange |
 
 ### API server env var
@@ -99,7 +96,7 @@ Open `http://localhost:3100/?session=pst_xxx` in the browser.
 
 ### Option B: Docker Compose + pnpm dev (lightweight)
 
-Faster iteration with hot reloading. No K8s required.
+Faster iteration with hot reloading via Vite. No K8s required.
 
 #### Start infrastructure + API
 
@@ -111,7 +108,7 @@ docker compose -f dev/docker-compose.yaml up -d apiv2 apiv2_lb --wait
 #### Start the portal
 
 ```bash
-cd web && PORT=3100 pnpm --filter=@unkey/portal dev
+pnpm --dir=web --filter=@unkey/portal dev
 ```
 
 Runs on `http://localhost:3100`. Port 3100 avoids conflict with the dashboard.
@@ -151,9 +148,6 @@ In the app's environment settings (production or preview), set:
 
 | Variable | Value |
 |----------|-------|
-| `DATABASE_HOST` | Your staging/production PlanetScale host |
-| `DATABASE_USERNAME` | DB username |
-| `DATABASE_PASSWORD` | DB password |
 | `UNKEY_API_URL` | `https://api.unkey.dev` (or staging API URL) |
 
 ### 3. Seed portal data
@@ -202,7 +196,6 @@ end-to-end.
 
 ## Troubleshooting
 
-- **Portal can't connect to DB**: Ensure `planetscale` container is running (`docker ps`)
 - **Session creation fails with 401**: Re-run `go run . dev seed local --slug awesome --portal`
 - **Session creation fails with 403**: Check `portal_configurations.enabled = TRUE`
 - **"Invalid access" with session param**: Session may be expired (15 min TTL) or already exchanged (single-use). Create a fresh one.

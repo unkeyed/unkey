@@ -1,8 +1,14 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/_portal/docs")({
+  component: DocsPage,
+});
+
 /**
  * Placeholder Docs page for the Customer Portal PoC.
  * Full OpenAPI documentation rendering is deferred.
  */
-export default function DocsPage() {
+function DocsPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="rounded-lg border border-gray-6 bg-background p-8">
