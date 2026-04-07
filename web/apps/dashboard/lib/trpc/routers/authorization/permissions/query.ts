@@ -1,5 +1,5 @@
-import { permissionsQueryPayload } from "@/app/(app)/[workspaceSlug]/authorization/permissions/components/table/query-logs.schema";
 import type { PermissionsFilterOperator } from "@/app/(app)/[workspaceSlug]/authorization/permissions/filters.schema";
+import { permissionsQueryPayload } from "@/components/permissions-table/schema/permissions.schema";
 import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
@@ -20,9 +20,7 @@ export type Permission = z.infer<typeof permissions>;
 
 const permissionsResponse = z.object({
   permissions: z.array(permissions),
-  hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z.int().nullish(),
 });
 
 export const queryPermissions = workspaceProcedure
@@ -31,7 +29,10 @@ export const queryPermissions = workspaceProcedure
   .output(permissionsResponse)
   .query(async ({ ctx, input }) => {
     const workspaceId = ctx.workspace.id;
-    const { cursor, name, description, slug, roleName, roleId } = input;
+    const { page, limit, name, description, slug, roleName, roleId } = input;
+
+    const pageSize = limit ?? DEFAULT_LIMIT;
+    const offset = ((page ?? 1) - 1) * pageSize;
 
     // Build filter conditions
     const nameFilter = buildFilterConditions(name, "name");
@@ -82,13 +83,13 @@ export const queryPermissions = workspaceProcedure
       SELECT id, name, description, slug, updated_at_m
       FROM permissions
       WHERE workspace_id = ${workspaceId}
-        ${cursor ? sql`AND updated_at_m < ${cursor}` : sql``}
         ${nameFilter}
         ${descriptionFilter}
         ${slugFilter}
         ${roleFilter}
       ORDER BY updated_at_m DESC
-      LIMIT ${DEFAULT_LIMIT + 1}
+      LIMIT ${pageSize}
+      OFFSET ${offset}
     ) p
     ORDER BY p.updated_at_m DESC
 `);
@@ -107,17 +108,13 @@ export const queryPermissions = workspaceProcedure
     if (rows.length === 0) {
       return {
         permissions: [],
-        hasMore: false,
         total: 0,
-        nextCursor: undefined,
       };
     }
 
     const total = rows[0].grand_total;
-    const hasMore = rows.length > DEFAULT_LIMIT;
-    const items = hasMore ? rows.slice(0, -1) : rows;
 
-    const permissionsResponseData: Permission[] = items.map((row) => {
+    const permissionsResponseData: Permission[] = rows.map((row) => {
       return {
         permissionId: row.id,
         name: row.name || "",
@@ -131,12 +128,7 @@ export const queryPermissions = workspaceProcedure
 
     return {
       permissions: permissionsResponseData,
-      hasMore,
       total: Number(total) || 0,
-      nextCursor:
-        hasMore && items.length > 0
-          ? Number(items[items.length - 1].updated_at_m) || undefined
-          : undefined,
     };
   });
 
