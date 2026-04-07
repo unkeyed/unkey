@@ -1,5 +1,6 @@
 "use client";
 
+import { trpc } from "@/lib/trpc/client";
 import type { SentinelPolicy } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, DoubleChevronRight } from "@unkey/icons";
@@ -53,6 +54,12 @@ export function SentinelPolicyAddPanel({
 
   const watchedType = watch("type");
   const watchedValues = watch();
+
+  const { data: availableKeyspaces = {} } =
+    trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery();
+  const keyspaceNames: Record<string, string> = Object.fromEntries(
+    Object.entries(availableKeyspaces).map(([id, ks]) => [id, ks?.api?.name ?? id]),
+  );
 
   type ExpandedSection = "config" | "matchConditions" | "none";
   const [expanded, setExpanded] = useState<ExpandedSection>("config");
@@ -165,7 +172,7 @@ export function SentinelPolicyAddPanel({
               <div className="mt-6">
                 <AccordionSection
                   label="Policy Configuration"
-                  summary={summarizePolicy(watchedValues)}
+                  summary={summarizePolicy(watchedValues, keyspaceNames)}
                   active
                   onToggle={() => toggleSection("config")}
                 >
@@ -199,7 +206,7 @@ export function SentinelPolicyAddPanel({
           {expanded !== "config" && (
             <AccordionSection
               label="Policy Configuration"
-              summary={summarizePolicy(watchedValues)}
+              summary={summarizePolicy(watchedValues, keyspaceNames)}
               active={false}
               onToggle={() => toggleSection("config")}
             >

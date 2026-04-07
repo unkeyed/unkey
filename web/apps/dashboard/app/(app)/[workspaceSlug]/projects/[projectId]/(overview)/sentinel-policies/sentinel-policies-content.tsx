@@ -6,10 +6,10 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo, useState } from "react";
 import { useProjectData } from "../data-provider";
 import { useOptionalProjectLayout } from "../layout-provider";
-import { SentinelPolicyAddPanel } from "./components/add-sentinel-policy-expandable";
-import { SentinelPoliciesEmpty } from "./components/sentinel-policies-empty";
-import { SentinelPoliciesHeader } from "./components/sentinel-policies-header";
-import { SentinelPoliciesList } from "./components/sentinel-policies-list";
+import { SentinelPolicyAddPanel } from "./components/add-panel";
+import { SentinelPoliciesEmpty } from "./components/list/empty";
+import { SentinelPoliciesHeader } from "./components/list/header";
+import { SentinelPoliciesList } from "./components/list";
 
 export function SentinelPoliciesContent() {
   const { environments } = useProjectData();

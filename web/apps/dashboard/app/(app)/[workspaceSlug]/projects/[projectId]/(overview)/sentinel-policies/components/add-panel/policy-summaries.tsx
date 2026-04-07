@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { match } from "@unkey/match";
 import type { ReactNode } from "react";
 import type { MatchConditionFormValues } from "./schema";
@@ -5,8 +6,8 @@ import type { PolicyFormValues } from "./schema";
 
 type KeyauthValues = Extract<PolicyFormValues, { type: "keyauth" }>;
 
-const Strong = ({ children }: { children: ReactNode }) => (
-  <span className="text-gray-12 font-medium">{children}</span>
+const Strong = ({ children, className }: { children: ReactNode; className?: string }) => (
+  <span className={cn("text-gray-12 font-medium", className)}>{children}</span>
 );
 
 const Sep = () => <span className="text-gray-9 mx-1.5">·</span>;
@@ -38,7 +39,10 @@ function summarizeLocation(loc: KeyauthValues["locations"][number]): ReactNode {
     .exhaustive();
 }
 
-export function summarizePolicy(values: PolicyFormValues): ReactNode {
+export function summarizePolicy(
+  values: PolicyFormValues,
+  keyspaceNames?: Record<string, string>,
+): ReactNode {
   return match(values)
     .with({ type: "keyauth" }, (v) => (
       <span className="text-gray-11">
@@ -46,7 +50,15 @@ export function summarizePolicy(values: PolicyFormValues): ReactNode {
         {v.keySpaceIds.length > 0 && (
           <>
             <Sep />
-            <Strong>{v.keySpaceIds.length}</Strong> keyspace{v.keySpaceIds.length === 1 ? "" : "s"}
+            {v.keySpaceIds.length > 3 ? (
+              <>
+                <Strong>{v.keySpaceIds.length}</Strong> keyspaces
+              </>
+            ) : (
+              <Strong className="inline-block max-w-[200px] truncate align-bottom">
+                {v.keySpaceIds.map((id) => keyspaceNames?.[id] ?? id).join(", ")}
+              </Strong>
+            )}
           </>
         )}
         {v.locations.length === 1 && (

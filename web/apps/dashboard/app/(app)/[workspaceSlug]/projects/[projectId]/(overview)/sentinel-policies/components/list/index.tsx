@@ -3,7 +3,7 @@
 import { collection } from "@/lib/collections";
 import type { SentinelPolicy } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
 import { useCallback, useEffect, useState } from "react";
-import { SentinelPolicyRow } from "./sentinel-policy-row";
+import { SentinelPolicyRow } from "./row";
 
 type MergedPolicy = {
   id: string;
