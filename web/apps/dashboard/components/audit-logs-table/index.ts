@@ -1,4 +1,5 @@
 export { createAuditLogColumns, AUDIT_LOG_COLUMN_IDS } from "./columns/create-audit-log-columns";
+export { EmptyAuditLogs } from "./components/empty-audit-logs";
 export { renderAuditLogSkeletonRow } from "./components/skeletons/render-audit-log-skeleton-row";
 export {
   getAuditRowClassName,
