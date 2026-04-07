@@ -1,6 +1,6 @@
 import { collection } from "@/lib/collections";
 import { eq, gt, gte, lte, or, useLiveQuery } from "@tanstack/react-db";
-import ms from "ms";
+import { parseDuration } from "@/lib/duration";
 import { useProjectData } from "../../data-provider";
 import type { DeploymentListFilterField } from "../filters.schema";
 import { useFilters } from "./use-filters";
@@ -71,7 +71,7 @@ export const useDeployments = () => {
             break;
           case "since":
             query = query.where(({ deployment }) =>
-              gt(deployment.createdAt, Date.now() - ms(values.at(0) as string)),
+              gt(deployment.createdAt, Date.now() - parseDuration(values.at(0) as string)),
             );
 
             break;

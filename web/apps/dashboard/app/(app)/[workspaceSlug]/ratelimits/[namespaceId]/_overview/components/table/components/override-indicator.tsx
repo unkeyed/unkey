@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { ArrowDotAntiClockwise, Focus, TriangleWarning2 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
-import ms from "ms";
+import { formatMs } from "@/lib/ms";
 import { calculateBlockedPercentage } from "../utils/calculate-blocked-percentage";
 import { getStatusStyle } from "../utils/get-row-class";
 
@@ -99,7 +99,7 @@ const OverrideIndicator = ({ log, style }: OverrideIndicatorProps) => (
           {log.override && (
             <div className="text-accent-9 text-xs">
               Limit set to <span className="text-gray-12">{formatNumber(log.override.limit)} </span>
-              requests per <span className="text-gray-12">{ms(log.override.duration)}</span>
+              requests per <span className="text-gray-12">{formatMs(log.override.duration)}</span>
             </div>
           )}
         </div>
