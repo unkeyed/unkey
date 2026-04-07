@@ -62,8 +62,8 @@ func (s *service) lookupByHostname(ctx context.Context, hostname string) (db.Fin
 	return route, sentinels, nil
 }
 
-func (s *service) getInstances(ctx context.Context, deploymentID string) ([]db.Instance, error) {
-	instances, _, err := s.instancesByDeploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) ([]db.Instance, error) {
+func (s *service) getInstances(ctx context.Context, deploymentID string) ([]db.FindInstancesByDeploymentIDRow, error) {
+	instances, _, err := s.instancesByDeploymentCache.SWR(ctx, deploymentID, func(ctx context.Context) ([]db.FindInstancesByDeploymentIDRow, error) {
 		return s.db.FindInstancesByDeploymentID(ctx, deploymentID)
 	}, internalCaches.DefaultFindFirstOp)
 
@@ -76,7 +76,7 @@ func (s *service) getInstances(ctx context.Context, deploymentID string) ([]db.I
 	}
 
 	if instances == nil {
-		instances = []db.Instance{}
+		instances = []db.FindInstancesByDeploymentIDRow{}
 	}
 
 	return instances, nil

@@ -36,7 +36,7 @@ var regionProximity = map[string][]string{
 	"local.dev": {},
 }
 
-func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db.FindHealthyRoutableSentinelsByEnvironmentIDRow, instances []db.Instance) (RouteDecision, error) {
+func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db.FindHealthyRoutableSentinelsByEnvironmentIDRow, instances []db.FindInstancesByDeploymentIDRow) (RouteDecision, error) {
 	hasRunningInstance := false
 	for _, inst := range instances {
 		if inst.Status == db.InstancesStatusRunning {
@@ -62,6 +62,20 @@ func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db
 
 		key := fmt.Sprintf("%s.%s", row.RegionName, row.RegionPlatform)
 		healthyByRegion[key] = row.K8sAddress
+	}
+
+	// Only consider regions that have running instances for this deployment.
+	instanceRegions := make(map[string]bool)
+	for _, inst := range instances {
+		if inst.Status == db.InstancesStatusRunning && inst.RegionName != "" && inst.RegionPlatform != "" {
+			key := fmt.Sprintf("%s.%s", inst.RegionName, inst.RegionPlatform)
+			instanceRegions[key] = true
+		}
+	}
+	for region := range healthyByRegion {
+		if !instanceRegions[region] {
+			delete(healthyByRegion, region)
+		}
 	}
 
 	if len(healthyByRegion) == 0 {
