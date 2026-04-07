@@ -42,7 +42,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	keyService, err := keys.New(keys.Config{
-		DB:               database,
+		DB:               db.ToMySQL(database),
 		RateLimiter:      nil,
 		RBAC:             nil,
 		KeyVerifications: nil,

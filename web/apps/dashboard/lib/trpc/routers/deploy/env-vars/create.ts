@@ -1,5 +1,6 @@
 import { and, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
+import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { Vault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
@@ -13,7 +14,7 @@ const vault = new Vault({
 });
 
 const envVarInputSchema = z.object({
-  key: z.string().min(1),
+  key: envVarKeySchema,
   value: z.string().min(1),
   type: z.enum(["recoverable", "writeonly"]),
   description: z.string().nullable().optional(),

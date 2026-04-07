@@ -1,0 +1,53 @@
+---
+title: "April 3, 2026"
+description: "Autoscaling deployments, dedicated environment variables page, apex domain support, and environment variable management improvements."
+---
+
+## New features
+
+### Autoscaling for deployments
+
+Deployments now automatically scale based on CPU utilization. When you configure a maximum number of instances in the dashboard, Unkey creates a horizontal pod autoscaler that scales your workload between 1 and your configured maximum. Scaling kicks in at 80% CPU utilization by default, so your service can handle traffic spikes without manual intervention. See the [instances documentation](/platform/instances/overview) for details.
+
+### Dedicated environment variables page
+
+Environment variables now have their own dedicated page in the dashboard instead of being nested inside deployment settings. The new page includes a slide-out panel for editing, drag-and-drop reordering, and persistence that protects against accidental data loss if you close a dialog or refresh the page. Variables with the same key across multiple environments are automatically grouped into expandable rows to reduce clutter. You can also change an existing variable's target environment directly — no need to delete and re-create it.
+
+### Apex domain support
+
+Custom domains now support apex (root) domains in addition to subdomains. The system automatically detects whether your domain is an apex or subdomain and chooses the appropriate verification method — TXT records for apex domains using CNAME flattening or ALIAS records, and CNAME records for subdomains. See the [custom domains documentation](/networking/domains) for setup instructions.
+
+### Bulk delete environment variables
+
+You can now select and delete multiple environment variables at once. Hover over a row to reveal a checkbox, then use shift-click to select a range. This makes cleanup much faster when you have a large number of variables to remove.
+
+### Environment variables in onboarding
+
+The project onboarding wizard now includes an environment variables step between deployment configuration and deploy. You can set your variables before your first deployment goes out, so your app has the configuration it needs from the start.
+
+## Updates
+
+### Improved API keys table
+
+The API keys list in the dashboard has been migrated to the shared DataTable component, bringing consistent sorting, keyboard navigation, and improved loading states across the keys interface.
+
+### Deployment status consistency
+
+Deployment status indicators for "skipped" and "waiting for approval" states now correctly reflect the actual deployment progress. Status labels are consistent across the dashboard.
+
+### Workspace-scoped custom domain uniqueness
+
+Custom domain uniqueness is now scoped to the workspace level instead of being globally unique. The same domain can be used across different workspaces, while uniqueness is still enforced within each workspace.
+
+### Client IP preservation
+
+Requests proxied through Sentinel now correctly preserve the original client IP address via the `X-Forwarded-For` header, so your application receives accurate client location data.
+
+## Bug fixes
+
+- Deep links now redirect correctly after sign-in instead of landing on the default page. The original destination is preserved through the entire authentication flow.
+- Deployment progress logs now display all lines instead of showing only a single line.
+- Fixed alignment issues in the deployment progress step table.
+- Tooltip hovers on dashboard cards no longer flicker or disappear when moving across the card.
+- Fixed an issue where OpenAI structured output validation failed with `gpt-4o-mini` when using Zod schemas.
+- Redis connection failures during initialization no longer block startup. The system logs a warning and reconnects in the background, failing open to avoid downtime.

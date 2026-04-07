@@ -34,8 +34,6 @@ go_library(
         "quota_check_restate.pb.go",
         "routing.pb.go",
         "routing_restate.pb.go",
-        "versioning.pb.go",
-        "versioning_restate.pb.go",
     ],
     importpath = "github.com/unkeyed/unkey/gen/proto/hydra/v1",
     visibility = ["//visibility:public"],

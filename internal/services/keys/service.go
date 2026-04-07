@@ -1,18 +1,19 @@
 package keys
 
 import (
+	"github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/rbac"
 )
 
 // Config holds the configuration for creating a new keys service instance.
 type Config struct {
-	DB           db.Database          // Database connection
+	DB           mysql.MySQL          // Database with read/write replicas
 	RateLimiter  ratelimit.Service    // Rate limiting service
 	RBAC         *rbac.RBAC           // Role-based access control
 	Region       string               // Geographic region identifier
@@ -26,7 +27,7 @@ type Config struct {
 }
 
 type service struct {
-	db               db.Database
+	db               *db.Database
 	rateLimiter      ratelimit.Service
 	usageLimiter     usagelimiter.Service
 	rbac             *rbac.RBAC
@@ -48,7 +49,7 @@ func New(config Config) (*service, error) {
 	}
 
 	return &service{
-		db:               config.DB,
+		db:               db.New(config.DB),
 		rbac:             config.RBAC,
 		rateLimiter:      config.RateLimiter,
 		usageLimiter:     config.UsageLimiter,

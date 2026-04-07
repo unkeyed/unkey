@@ -52,7 +52,9 @@ export function useRuntimeLogs({
       endTime: timestamp,
       since: RUNTIME_LOGS_SINCE,
       severity: null,
+      region: null,
       message: null,
+      instanceId: null,
     },
     {
       refetchInterval: RUNTIME_LOGS_REFETCH_INTERVAL,

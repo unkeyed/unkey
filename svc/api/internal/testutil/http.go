@@ -201,7 +201,7 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		DB:               database,
+		DB:               db.ToMySQL(database),
 		KeyCache:         caches.VerificationKeyByHash,
 		QuotaCache:       caches.WorkspaceQuota,
 		RateLimiter:      ratelimitService,

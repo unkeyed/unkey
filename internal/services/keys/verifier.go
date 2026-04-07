@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -29,14 +29,14 @@ type RatelimitConfigAndResult struct {
 // KeyVerifier represents a key that has been loaded from the database and is ready for verification.
 // It contains all the necessary information and services to perform various validation checks.
 type KeyVerifier struct {
-	Key                   db.FindKeyForVerificationRow // The key data from the database
-	Roles                 []string                     // RBAC roles assigned to this key
-	Permissions           []string                     // RBAC permissions assigned to this key
-	Status                KeyStatus                    // The current validation status
-	AuthorizedWorkspaceID string                       // The workspace ID this key is authorized for
+	Key                   keysdb.FindKeyForVerificationRow // The key data from the database
+	Roles                 []string                         // RBAC roles assigned to this key
+	Permissions           []string                         // RBAC permissions assigned to this key
+	Status                KeyStatus                        // The current validation status
+	AuthorizedWorkspaceID string                           // The workspace ID this key is authorized for
 
-	ratelimitConfigs map[string]db.KeyFindForVerificationRatelimit // Rate limits configured for this key (name -> config)
-	RatelimitResults map[string]RatelimitConfigAndResult           // Combined config and results for rate limits (name -> config+result)
+	ratelimitConfigs map[string]keysdb.KeyFindForVerificationRatelimit // Rate limits configured for this key (name -> config)
+	RatelimitResults map[string]RatelimitConfigAndResult               // Combined config and results for rate limits (name -> config+result)
 
 	parsedIPWhitelist map[string]struct{} // Pre-parsed IP whitelist for O(1) lookup
 	isRootKey         bool                // Whether this is a root key (special handling)
@@ -59,7 +59,7 @@ type KeyVerifier struct {
 }
 
 // GetRatelimitConfigs returns the rate limit configurations
-func (k *KeyVerifier) GetRatelimitConfigs() map[string]db.KeyFindForVerificationRatelimit {
+func (k *KeyVerifier) GetRatelimitConfigs() map[string]keysdb.KeyFindForVerificationRatelimit {
 	return k.ratelimitConfigs
 }
 

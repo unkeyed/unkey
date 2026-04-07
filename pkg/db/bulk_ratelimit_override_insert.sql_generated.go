@@ -9,10 +9,9 @@ import (
 )
 
 // bulkInsertRatelimitOverride is the base query for bulk insert
-const bulkInsertRatelimitOverride = `INSERT INTO ratelimit_overrides ( id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, duration, async, created_at_m ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkInsertRatelimitOverride = `INSERT INTO ratelimit_overrides ( id, workspace_id, namespace_id, identifier, ` + "`" + `limit` + "`" + `, duration, created_at_m ) VALUES %s ON DUPLICATE KEY UPDATE
     ` + "`" + `limit` + "`" + ` = VALUES(` + "`" + `limit` + "`" + `),
     duration = VALUES(duration),
-    async = VALUES(async),
     updated_at_m = ?`
 
 // InsertRatelimitOverrides performs bulk insert in a single query
@@ -25,7 +24,7 @@ func (q *BulkQueries) InsertRatelimitOverrides(ctx context.Context, db DBTX, arg
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, false, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertRatelimitOverride, strings.Join(valueClauses, ", "))

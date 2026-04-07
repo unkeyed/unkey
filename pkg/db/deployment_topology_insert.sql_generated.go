@@ -20,10 +20,8 @@ INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
     autoscaling_threshold_cpu,
     autoscaling_threshold_memory,
     desired_status,
-    version,
     created_at
 ) VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -45,7 +43,6 @@ type InsertDeploymentTopologyParams struct {
 	AutoscalingThresholdCpu    sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
 	AutoscalingThresholdMemory sql.NullInt16                   `db:"autoscaling_threshold_memory"`
 	DesiredStatus              DeploymentTopologyDesiredStatus `db:"desired_status"`
-	Version                    uint64                          `db:"version"`
 	CreatedAt                  int64                           `db:"created_at"`
 }
 
@@ -60,10 +57,8 @@ type InsertDeploymentTopologyParams struct {
 //	    autoscaling_threshold_cpu,
 //	    autoscaling_threshold_memory,
 //	    desired_status,
-//	    version,
 //	    created_at
 //	) VALUES (
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -84,7 +79,6 @@ func (q *Queries) InsertDeploymentTopology(ctx context.Context, db DBTX, arg Ins
 		arg.AutoscalingThresholdCpu,
 		arg.AutoscalingThresholdMemory,
 		arg.DesiredStatus,
-		arg.Version,
 		arg.CreatedAt,
 	)
 	return err

@@ -1,9 +1,3 @@
-# Depot CI Migration
-# Source: .github/workflows/job_validate_workflows.yaml
-#
-# Changes made:
-# - Changed GitHub runs-on labels to their Depot equivalents
-
 name: Validate Workflows
 on:
   workflow_call:
@@ -12,7 +6,8 @@ permissions:
 jobs:
   validate:
     name: Validate Workflow Syntax
-    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    runs-on: depot-ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - name: Setup Python
@@ -23,7 +18,7 @@ jobs:
         run: pip install pyyaml
       - name: Validate YAML syntax
         run: |
-          for file in .github/workflows/*.{yaml,yml} .github/actions/*/action.{yaml,yml}; do
+          for file in .depot/workflows/*.{yaml,yml} .depot/actions/*/action.{yaml,yml}; do
             if [ -f "$file" ]; then
               echo "Validating $file"
               python3 -c "import yaml, sys; yaml.safe_load(open('$file'))" || exit 1

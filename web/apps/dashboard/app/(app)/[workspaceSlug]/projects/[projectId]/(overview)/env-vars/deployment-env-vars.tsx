@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useProjectData } from "../data-provider";
 import { useOptionalProjectLayout } from "../layout-provider";
-import { PendingRedeployBanner } from "../settings/pending-redeploy-banner";
 import { AddEnvVarExpandable } from "./components/add/add-env-var-expandable";
 import { EnvVarsList } from "./components/list/env-vars-list";
 import { EnvVarsHeader } from "./components/toolbar/env-vars-header";
@@ -48,7 +47,6 @@ export function DeploymentEnvVars() {
           sortBy={sortBy}
         />
       </div>
-      <PendingRedeployBanner />
     </>
   );
 }

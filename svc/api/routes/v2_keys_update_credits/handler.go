@@ -9,6 +9,7 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -29,7 +30,7 @@ type Handler struct {
 	DB           db.Database
 	Keys         keys.KeyService
 	Auditlogs    auditlogs.AuditLogService
-	KeyCache     cache.Cache[string, db.CachedKeyData]
+	KeyCache     cache.Cache[string, keysdb.CachedKeyData]
 	UsageLimiter usagelimiter.Service
 }
 

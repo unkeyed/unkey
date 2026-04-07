@@ -15,7 +15,6 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -98,11 +97,11 @@ func TestGetRootKey_Disabled(t *testing.T) {
 
 	// Disable the root key
 	keyHash := hash.Sha256(rootKey)
-	keyRow, err := db.Query.FindKeyForVerification(ctx, h.DB.RO(), keyHash)
+	keyID, err := db.Query.FindKeyIDByHash(ctx, h.DB.RO(), keyHash)
 	require.NoError(t, err)
 
 	err = db.Query.UpdateKey(ctx, h.DB.RW(), db.UpdateKeyParams{
-		ID:               keyRow.ID,
+		ID:               keyID,
 		EnabledSpecified: 1,
 		Enabled:          sql.NullBool{Bool: false, Valid: true},
 		Now:              sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
@@ -342,11 +341,11 @@ func TestGetRootKey_Deleted(t *testing.T) {
 
 	// Soft delete the root key
 	keyHash := hash.Sha256(rootKey)
-	keyRow, err := db.Query.FindKeyForVerification(ctx, h.DB.RO(), keyHash)
+	keyID, err := db.Query.FindKeyIDByHash(ctx, h.DB.RO(), keyHash)
 	require.NoError(t, err)
 
 	err = db.Query.SoftDeleteKeyByID(ctx, h.DB.RW(), db.SoftDeleteKeyByIDParams{
-		ID:  keyRow.ID,
+		ID:  keyID,
 		Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 	})
 	require.NoError(t, err)

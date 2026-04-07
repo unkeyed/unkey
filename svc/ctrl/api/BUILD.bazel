@@ -19,6 +19,7 @@ go_library(
         "//pkg/clock",
         "//pkg/config",
         "//pkg/db",
+        "//pkg/dns/domainconnect",
         "//pkg/logger",
         "//pkg/otel",
         "//pkg/prometheus",

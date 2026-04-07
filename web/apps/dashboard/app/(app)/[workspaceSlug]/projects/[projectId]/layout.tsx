@@ -4,6 +4,7 @@ import { ProjectDataProvider, useProjectData } from "./(overview)/data-provider"
 import { ProjectDetailsExpandable } from "./(overview)/details/project-details-expandables";
 import { ProjectLayoutContext } from "./(overview)/layout-provider";
 import { ProjectNavigation } from "./(overview)/navigations/project-navigation";
+import { PendingRedeployBanner } from "./components/pending-redeploy-banner";
 
 export default function ProjectLayoutWrapper({ children }: PropsWithChildren) {
   return <ProjectLayout>{children}</ProjectLayout>;
@@ -47,6 +48,7 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
             onClose={() => setIsDetailsOpen(false)}
           />
         </div>
+        <PendingRedeployBanner />
       </div>
     </ProjectLayoutContext.Provider>
   );

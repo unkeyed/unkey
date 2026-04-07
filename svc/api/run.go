@@ -310,7 +310,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	keySvc, err := keys.New(keys.Config{
-		DB:               database,
+		DB:               db.ToMySQL(database),
 		KeyCache:         caches.VerificationKeyByHash,
 		QuotaCache:       caches.WorkspaceQuota,
 		RateLimiter:      rlSvc,
