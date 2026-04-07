@@ -1,13 +1,5 @@
-# Depot CI Migration
-# Source: .github/workflows/slack-notifications.yml
-#
-# Changes made:
-# - Removed unsupported trigger "pull_request_review"
-# - Changed GitHub runs-on labels to their Depot equivalents
-
 name: PR-Opened
 run-name: PR Slack Message Notification
-# Removed unsupported trigger: pull_request_review. Pull request review events are not supported.
 on:
   pull_request:
     types:
@@ -16,7 +8,8 @@ on:
       - closed
 jobs:
   slack-notification:
-    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    runs-on: depot-ubuntu-latest
+    timeout-minutes: 5
     name: Sends a message to Slack when a PR is opened
     if: (github.event.action == 'opened' && github.event.pull_request.draft == false) || github.event.action == 'ready_for_review'
     steps:
@@ -64,7 +57,8 @@ jobs:
           path: slack-message-timestamp.txt
           key: ${{ github.event.pull_request.html_url }}
   slack-emoji-react:
-    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    runs-on: depot-ubuntu-latest
+    timeout-minutes: 5
     name: Adds emoji reaction to slack message when a PR is closed or reviewed
     if: (github.event.action == 'closed' && github.event.pull_request.merged == false) || github.event.action == 'submitted'
     steps:
