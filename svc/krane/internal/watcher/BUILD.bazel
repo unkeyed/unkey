@@ -9,11 +9,11 @@ go_library(
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/rpc/ctrl",
         "//pkg/logger",
-        "//pkg/semaphore",
         "//svc/krane/internal/cilium",
         "//svc/krane/internal/deployment",
         "//svc/krane/internal/sentinel",
         "//svc/krane/pkg/metrics",
+        "@org_golang_x_sync//semaphore",
     ],
 )
 

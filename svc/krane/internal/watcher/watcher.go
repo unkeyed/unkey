@@ -9,11 +9,11 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/semaphore"
 	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
+	"golang.org/x/sync/semaphore"
 )
 
 const (
@@ -30,7 +30,7 @@ type Watcher struct {
 	deployments *deployment.Controller
 	sentinels   *sentinel.Controller
 	cilium      *cilium.Controller
-	sem         *semaphore.Semaphore
+	sem         *semaphore.Weighted
 	region      string
 	platform    string
 }
@@ -52,7 +52,7 @@ func New(cfg Config) *Watcher {
 		deployments: cfg.Deployments,
 		sentinels:   cfg.Sentinels,
 		cilium:      cfg.Cilium,
-		sem:         semaphore.New(maxConcurrentDispatches),
+		sem:         semaphore.NewWeighted(maxConcurrentDispatches),
 		region:      cfg.Region,
 		platform:    cfg.Platform,
 	}
@@ -101,7 +101,11 @@ func (s *Watcher) runStream(ctx context.Context) {
 			event := stream.Msg()
 			metrics.StreamEventsReceivedTotal.Inc()
 
-			s.sem.Do(func() {
+			if err := s.sem.Acquire(ctx, 1); err != nil {
+				break
+			}
+			go func() {
+				defer s.sem.Release(1)
 				resourceType := eventResourceType(event)
 				if err := s.dispatch(ctx, event); err != nil {
 					metrics.DispatchTotal.WithLabelValues("stream", resourceType, "error").Inc()
@@ -109,7 +113,7 @@ func (s *Watcher) runStream(ctx context.Context) {
 				} else {
 					metrics.DispatchTotal.WithLabelValues("stream", resourceType, "success").Inc()
 				}
-			})
+			}()
 
 			if event.GetVersion() > versionLastSeen {
 				versionLastSeen = event.GetVersion()
@@ -157,7 +161,11 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 		event := stream.Msg()
 		metrics.FullSyncEventsReceivedTotal.Inc()
 
-		s.sem.Do(func() {
+		if err := s.sem.Acquire(ctx, 1); err != nil {
+			break
+		}
+		go func() {
+			defer s.sem.Release(1)
 			resourceType := eventResourceType(event)
 			if err := s.dispatch(ctx, event); err != nil {
 				metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "error").Inc()
@@ -165,7 +173,7 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 			} else {
 				metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "success").Inc()
 			}
-		})
+		}()
 	}
 
 	if err := stream.Close(); err != nil && ctx.Err() == nil {
