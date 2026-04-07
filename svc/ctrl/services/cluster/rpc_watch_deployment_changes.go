@@ -17,6 +17,9 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
+// changePageSize is the number of rows fetched per page when syncing deployment changes.
+const changePageSize = 10000
+
 // WatchDeploymentChanges streams all resource changes (deployments, sentinels, cilium policies)
 // in a single stream. The agent maintains one cursor and dispatches events by type.
 //
@@ -123,7 +126,7 @@ func (s *Service) fullSyncDeployments(
 		rows, err := db.Query.ListAllDeploymentTopologiesByRegion(ctx, s.db.RO(), db.ListAllDeploymentTopologiesByRegionParams{
 			RegionID: regionID,
 			AfterPk:  afterPk,
-			Limit:    100,
+			Limit:    changePageSize,
 		})
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, err)
@@ -152,7 +155,7 @@ func (s *Service) fullSyncDeployments(
 			}
 			afterPk = row.DeploymentTopology.Pk
 		}
-		if len(rows) < 100 {
+		if len(rows) < changePageSize {
 			return nil
 		}
 	}
@@ -170,7 +173,7 @@ func (s *Service) fullSyncSentinels(
 		rows, err := db.Query.ListAllSentinelsByRegion(ctx, s.db.RO(), db.ListAllSentinelsByRegionParams{
 			RegionID: regionID,
 			AfterPk:  afterPk,
-			Limit:    100,
+			Limit:    changePageSize,
 		})
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, err)
@@ -188,7 +191,7 @@ func (s *Service) fullSyncSentinels(
 			}
 			afterPk = sentinel.Pk
 		}
-		if len(rows) < 100 {
+		if len(rows) < changePageSize {
 			return nil
 		}
 	}
@@ -206,7 +209,7 @@ func (s *Service) fullSyncCiliumPolicies(
 		rows, err := db.Query.ListAllCiliumNetworkPoliciesByRegion(ctx, s.db.RO(), db.ListAllCiliumNetworkPoliciesByRegionParams{
 			RegionID: regionID,
 			AfterPk:  afterPk,
-			Limit:    100,
+			Limit:    changePageSize,
 		})
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, err)
@@ -222,7 +225,7 @@ func (s *Service) fullSyncCiliumPolicies(
 			}
 			afterPk = policy.Pk
 		}
-		if len(rows) < 100 {
+		if len(rows) < changePageSize {
 			return nil
 		}
 	}
@@ -234,7 +237,7 @@ func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID stri
 	changes, err := db.Query.ListDeploymentChangesByRegionAll(ctx, s.db.RO(), db.ListDeploymentChangesByRegionAllParams{
 		RegionID:     regionID,
 		AfterVersion: afterVersion,
-		Limit:        100,
+		Limit:        changePageSize,
 	})
 	if err != nil {
 		return nil, err
