@@ -225,6 +225,10 @@
             ]
           },
           {
+            "group": "Custom Domains",
+            "pages": ["infra/domain-connect"]
+          },
+          {
             "group": "Secrets",
             "pages": ["infra/secrets/aws-secrets"]
           },

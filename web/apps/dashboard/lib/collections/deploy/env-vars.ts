@@ -2,6 +2,7 @@
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 
+import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
@@ -76,7 +77,7 @@ export const envVars = createCollection<EnvVar, string>(
       const insertInput = z
         .object({
           environmentId: z.string().min(1),
-          key: z.string().min(1),
+          key: envVarKeySchema,
           value: z.string().min(1),
           type: z.enum(["recoverable", "writeonly"]),
           description: z.string().nullable().optional(),

@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -23,10 +24,11 @@ import (
 // verification workflows to Restate.
 type Service struct {
 	ctrlv1connect.UnimplementedCustomDomainServiceHandler
-	db           db.Database
-	restate      *restateingress.Client
-	restateAdmin *restateadmin.Client
-	cnameDomain  string
+	db                         db.Database
+	restate                    *restateingress.Client
+	restateAdmin               *restateadmin.Client
+	cnameDomain                string
+	domainConnectPrivateKeyPEM []byte
 }
 
 // Config holds the configuration for creating a new [Service].
@@ -39,6 +41,9 @@ type Config struct {
 	RestateAdmin *restateadmin.Client
 	// CnameDomain is the base domain for custom domain CNAME targets.
 	CnameDomain string
+	// DomainConnectPrivateKeyPEM is the PEM-encoded RSA private key for signing
+	// Domain Connect redirect URLs. If empty, Domain Connect is disabled.
+	DomainConnectPrivateKeyPEM []byte
 }
 
 // New creates a new [Service] with the given configuration.
@@ -49,6 +54,7 @@ func New(cfg Config) *Service {
 		restate:                                 cfg.Restate,
 		restateAdmin:                            cfg.RestateAdmin,
 		cnameDomain:                             cfg.CnameDomain,
+		domainConnectPrivateKeyPEM:              cfg.DomainConnectPrivateKeyPEM,
 	}
 }
 
@@ -93,23 +99,61 @@ func (s *Service) AddCustomDomain(
 		return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("domain already registered: %s", domain))
 	}
 
-	// Create custom domain record first (workflow needs it in DB)
+	// Domain Connect discovery (best-effort, before DB insert so we can persist results)
+	var dcProvider, dcURL string
+	if len(s.domainConnectPrivateKeyPEM) > 0 {
+		logger.Info("running domain connect discovery", "domain", domain)
+
+		// Build redirect URL back to project settings
+		var redirectURL string
+		ws, wsErr := db.Query.FindWorkspaceByID(ctx, s.db.RO(), req.Msg.GetWorkspaceId())
+		if wsErr != nil {
+			logger.Warn("failed to fetch workspace for redirect URL", "error", wsErr)
+		} else {
+			redirectURL = fmt.Sprintf("https://app.unkey.com/%s/projects/%s/settings", ws.Slug, req.Msg.GetProjectId())
+		}
+
+		result, dcErr := domainconnect.Discover(ctx, domain, s.domainConnectPrivateKeyPEM, map[string]string{
+			"target":            targetCname,
+			"verificationToken": verificationToken,
+		}, redirectURL)
+		if dcErr != nil {
+			logger.Warn("domain connect discovery failed", "domain", domain, "error", dcErr)
+		} else if result != nil {
+			isApex := domainconnect.IsApexDomain(domain)
+			if isApex && result.ProviderID != domainconnect.ProviderCloudflare {
+				logger.Info("domain connect skipped, apex domain on non-Cloudflare provider", "domain", domain, "provider", result.ProviderName)
+			} else {
+				logger.Info("domain connect provider found", "domain", domain, "provider", result.ProviderName)
+				dcProvider = result.ProviderName
+				dcURL = result.URL
+			}
+		} else {
+			logger.Info("domain connect not supported by provider", "domain", domain)
+		}
+	} else {
+		logger.Debug("domain connect disabled, skipping discovery", "domain", domain)
+	}
+
+	// Create custom domain record (workflow needs it in DB)
 	domainID := uid.New(uid.DomainPrefix)
 	now := time.Now().UnixMilli()
 
 	err = db.Query.InsertCustomDomain(ctx, s.db.RW(), db.InsertCustomDomainParams{
-		ID:                 domainID,
-		WorkspaceID:        req.Msg.GetWorkspaceId(),
-		ProjectID:          req.Msg.GetProjectId(),
-		AppID:              req.Msg.GetAppId(),
-		EnvironmentID:      req.Msg.GetEnvironmentId(),
-		Domain:             domain,
-		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,
-		VerificationStatus: db.CustomDomainsVerificationStatusPending,
-		VerificationToken:  verificationToken,
-		TargetCname:        targetCname,
-		CreatedAt:          now,
-		InvocationID:       sql.NullString{String: "", Valid: false},
+		ID:                    domainID,
+		WorkspaceID:           req.Msg.GetWorkspaceId(),
+		ProjectID:             req.Msg.GetProjectId(),
+		AppID:                 req.Msg.GetAppId(),
+		EnvironmentID:         req.Msg.GetEnvironmentId(),
+		Domain:                domain,
+		ChallengeType:         db.CustomDomainsChallengeTypeHTTP01,
+		VerificationStatus:    db.CustomDomainsVerificationStatusPending,
+		VerificationToken:     verificationToken,
+		TargetCname:           targetCname,
+		DomainConnectProvider: sql.NullString{Valid: dcProvider != "", String: dcProvider},
+		DomainConnectUrl:      sql.NullString{Valid: dcURL != "", String: dcURL},
+		InvocationID:          sql.NullString{String: "", Valid: false},
+		CreatedAt:             now,
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create domain: %w", err))
@@ -134,9 +178,11 @@ func (s *Service) AddCustomDomain(
 	}
 
 	return connect.NewResponse(&ctrlv1.AddCustomDomainResponse{
-		DomainId:    domainID,
-		TargetCname: targetCname,
-		Status:      ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_PENDING,
+		DomainId:              domainID,
+		TargetCname:           targetCname,
+		Status:                ctrlv1.CustomDomainStatus_CUSTOM_DOMAIN_STATUS_PENDING,
+		DomainConnectProvider: dcProvider,
+		DomainConnectUrl:      dcURL,
 	}), nil
 }
 

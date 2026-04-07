@@ -1,8 +1,3 @@
-# Depot CI Migration
-# Source: .github/workflows/job_detect_changes.yaml
-#
-# No changes were necessary.
-
 name: Detect Changes
 on:
   workflow_call:
@@ -37,6 +32,7 @@ jobs:
   build:
     name: Detect Changes
     runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 5
     outputs:
       api: ${{ steps.changes.outputs.api }}
       dashboard: ${{ steps.changes.outputs.dashboard }}
@@ -103,9 +99,9 @@ jobs:
             docs:
               - 'web/apps/docs/**'
 
-            # GitHub workflows and CI/CD
+            # Depot workflows and CI/CD
             workflows:
-              - '.github/**'
+              - '.depot/**'
 
             # Dependency changes
             dependencies:

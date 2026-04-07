@@ -1075,25 +1075,27 @@ type Cluster struct {
 }
 
 type CustomDomain struct {
-	Pk                 uint64                          `db:"pk"`
-	ID                 string                          `db:"id"`
-	WorkspaceID        string                          `db:"workspace_id"`
-	ProjectID          string                          `db:"project_id"`
-	AppID              string                          `db:"app_id"`
-	EnvironmentID      string                          `db:"environment_id"`
-	Domain             string                          `db:"domain"`
-	ChallengeType      CustomDomainsChallengeType      `db:"challenge_type"`
-	VerificationStatus CustomDomainsVerificationStatus `db:"verification_status"`
-	VerificationToken  string                          `db:"verification_token"`
-	OwnershipVerified  bool                            `db:"ownership_verified"`
-	CnameVerified      bool                            `db:"cname_verified"`
-	TargetCname        string                          `db:"target_cname"`
-	LastCheckedAt      sql.NullInt64                   `db:"last_checked_at"`
-	CheckAttempts      int32                           `db:"check_attempts"`
-	VerificationError  sql.NullString                  `db:"verification_error"`
-	InvocationID       sql.NullString                  `db:"invocation_id"`
-	CreatedAt          int64                           `db:"created_at"`
-	UpdatedAt          sql.NullInt64                   `db:"updated_at"`
+	Pk                    uint64                          `db:"pk"`
+	ID                    string                          `db:"id"`
+	WorkspaceID           string                          `db:"workspace_id"`
+	ProjectID             string                          `db:"project_id"`
+	AppID                 string                          `db:"app_id"`
+	EnvironmentID         string                          `db:"environment_id"`
+	Domain                string                          `db:"domain"`
+	ChallengeType         CustomDomainsChallengeType      `db:"challenge_type"`
+	VerificationStatus    CustomDomainsVerificationStatus `db:"verification_status"`
+	VerificationToken     string                          `db:"verification_token"`
+	OwnershipVerified     bool                            `db:"ownership_verified"`
+	CnameVerified         bool                            `db:"cname_verified"`
+	TargetCname           string                          `db:"target_cname"`
+	LastCheckedAt         sql.NullInt64                   `db:"last_checked_at"`
+	CheckAttempts         int32                           `db:"check_attempts"`
+	VerificationError     sql.NullString                  `db:"verification_error"`
+	DomainConnectProvider sql.NullString                  `db:"domain_connect_provider"`
+	DomainConnectUrl      sql.NullString                  `db:"domain_connect_url"`
+	InvocationID          sql.NullString                  `db:"invocation_id"`
+	CreatedAt             int64                           `db:"created_at"`
+	UpdatedAt             sql.NullInt64                   `db:"updated_at"`
 }
 
 type Deployment struct {

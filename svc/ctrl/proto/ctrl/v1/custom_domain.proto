@@ -24,6 +24,10 @@ message AddCustomDomainResponse {
   string domain_id = 1;
   string target_cname = 2; // CNAME target user must configure (e.g., "xxxx.unkey-dns.com")
   CustomDomainStatus status = 3;
+  // Domain Connect provider name (e.g. "Cloudflare"). Empty if unsupported.
+  string domain_connect_provider = 4;
+  // Fully signed Domain Connect redirect URL. Empty if unavailable.
+  string domain_connect_url = 5;
 }
 
 message DeleteCustomDomainRequest {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/keys"
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
@@ -320,7 +321,7 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 	}
 	r.Defer(usageLimiter.Close)
 
-	keyCache, err := cache.New[string, db.CachedKeyData](cache.Config[string, db.CachedKeyData]{
+	keyCache, err := cache.New[string, keysdb.CachedKeyData](cache.Config[string, keysdb.CachedKeyData]{
 		Fresh:    10 * time.Second,
 		Stale:    10 * time.Minute,
 		MaxSize:  100_000,
@@ -332,7 +333,7 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 	}
 
 	keyService, err := keys.New(keys.Config{
-		DB:               database,
+		DB:               db.ToMySQL(database),
 		RateLimiter:      rateLimiter,
 		RBAC:             rbac.New(),
 		KeyVerifications: keyVerifications,

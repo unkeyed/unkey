@@ -404,13 +404,13 @@ type Querier interface {
 	FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error)
 	//FindCustomDomainByDomain
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
 	//  FROM custom_domains
 	//  WHERE domain = ?
 	FindCustomDomainByDomain(ctx context.Context, db DBTX, domain string) (CustomDomain, error)
 	//FindCustomDomainByDomainOrWildcard
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at FROM custom_domains
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
 	//  WHERE domain IN (?, ?)
 	//  ORDER BY
 	//      CASE WHEN domain = ? THEN 0 ELSE 1 END
@@ -418,19 +418,19 @@ type Querier interface {
 	FindCustomDomainByDomainOrWildcard(ctx context.Context, db DBTX, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error)
 	//FindCustomDomainById
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
 	//  FROM custom_domains
 	//  WHERE id = ?
 	FindCustomDomainById(ctx context.Context, db DBTX, id string) (CustomDomain, error)
 	//FindCustomDomainByWorkspaceAndDomain
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at FROM custom_domains
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
 	//  WHERE workspace_id = ? AND domain = ?
 	FindCustomDomainByWorkspaceAndDomain(ctx context.Context, db DBTX, arg FindCustomDomainByWorkspaceAndDomainParams) (CustomDomain, error)
 	//FindCustomDomainWithCertByDomain
 	//
 	//  SELECT
-	//      cd.pk, cd.id, cd.workspace_id, cd.project_id, cd.app_id, cd.environment_id, cd.domain, cd.challenge_type, cd.verification_status, cd.verification_token, cd.ownership_verified, cd.cname_verified, cd.target_cname, cd.last_checked_at, cd.check_attempts, cd.verification_error, cd.invocation_id, cd.created_at, cd.updated_at,
+	//      cd.pk, cd.id, cd.workspace_id, cd.project_id, cd.app_id, cd.environment_id, cd.domain, cd.challenge_type, cd.verification_status, cd.verification_token, cd.ownership_verified, cd.cname_verified, cd.target_cname, cd.last_checked_at, cd.check_attempts, cd.verification_error, cd.domain_connect_provider, cd.domain_connect_url, cd.invocation_id, cd.created_at, cd.updated_at,
 	//      c.id AS certificate_id
 	//  FROM custom_domains cd
 	//  LEFT JOIN certificates c ON c.hostname = cd.domain
@@ -720,92 +720,12 @@ type Querier interface {
 	//
 	//  SELECT pk, workspace_id, key_id, created_at, updated_at, encrypted, encryption_key_id FROM encrypted_keys WHERE key_id = ?
 	FindKeyEncryptionByKeyID(ctx context.Context, db DBTX, keyID string) (EncryptedKey, error)
-	//FindKeyForVerification
+	// FindKeyIDByHash returns just the key ID for a given hash. Use this when
+	// you only need the ID for a subsequent mutation and do not need the full
+	// verification payload with roles, permissions, and rate limits.
 	//
-	//  select k.id,
-	//         k.key_auth_id,
-	//         k.workspace_id,
-	//         k.for_workspace_id,
-	//         k.name,
-	//         k.meta,
-	//         k.expires,
-	//         k.deleted_at_m,
-	//         k.refill_day,
-	//         k.refill_amount,
-	//         k.last_refill_at,
-	//         k.enabled,
-	//         k.remaining_requests,
-	//         k.pending_migration_id,
-	//         a.ip_whitelist,
-	//         a.workspace_id  as api_workspace_id,
-	//         a.id            as api_id,
-	//         a.deleted_at_m  as api_deleted_at_m,
-	//
-	//         COALESCE(
-	//                 (SELECT JSON_ARRAYAGG(name)
-	//                  FROM (SELECT name
-	//                        FROM keys_roles kr
-	//                                 JOIN roles r ON r.id = kr.role_id
-	//                        WHERE kr.key_id = k.id) as roles),
-	//                 JSON_ARRAY()
-	//         )               as roles,
-	//
-	//         COALESCE(
-	//                 (SELECT JSON_ARRAYAGG(slug)
-	//                  FROM (SELECT slug
-	//                        FROM keys_permissions kp
-	//                                 JOIN permissions p ON kp.permission_id = p.id
-	//                        WHERE kp.key_id = k.id
-	//
-	//                        UNION ALL
-	//
-	//                        SELECT slug
-	//                        FROM keys_roles kr
-	//                                 JOIN roles_permissions rp ON kr.role_id = rp.role_id
-	//                                 JOIN permissions p ON rp.permission_id = p.id
-	//                        WHERE kr.key_id = k.id) as combined_perms),
-	//                 JSON_ARRAY()
-	//         )               as permissions,
-	//
-	//         coalesce(
-	//                 (select json_arrayagg(
-	//                      json_object(
-	//                         'id', id,
-	//                         'name', name,
-	//                         'key_id', key_id,
-	//                         'identity_id', identity_id,
-	//                         'limit', `limit`,
-	//                         'duration', duration,
-	//                         'auto_apply', auto_apply
-	//                      )
-	//                  )
-	//                  from (
-	//                      select rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
-	//                      from `ratelimits` rl
-	//                      where rl.key_id = k.id
-	//                      UNION ALL
-	//                      select rl.id, rl.name, rl.key_id, rl.identity_id, rl.`limit`, rl.duration, rl.auto_apply
-	//                      from `ratelimits` rl
-	//                      where rl.identity_id = i.id
-	//                  ) as combined_rl),
-	//                 json_array()
-	//         ) as ratelimits,
-	//
-	//         i.id as identity_id,
-	//         i.external_id,
-	//         i.meta          as identity_meta,
-	//         ka.deleted_at_m as key_auth_deleted_at_m,
-	//         ws.enabled      as workspace_enabled,
-	//         fws.enabled     as for_workspace_enabled
-	//  from `keys` k
-	//           JOIN apis a USING (key_auth_id)
-	//           JOIN key_auth ka ON ka.id = k.key_auth_id
-	//           JOIN workspaces ws ON ws.id = k.workspace_id
-	//           LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
-	//           LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = 0
-	//  where k.hash = ?
-	//    and k.deleted_at_m is null
-	FindKeyForVerification(ctx context.Context, db DBTX, hash string) (FindKeyForVerificationRow, error)
+	//  SELECT id FROM `keys` WHERE hash = ? AND deleted_at_m IS NULL
+	FindKeyIDByHash(ctx context.Context, db DBTX, hash string) (string, error)
 	//FindKeyMigrationByID
 	//
 	//  SELECT
@@ -1293,7 +1213,7 @@ type Querier interface {
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error)
 	//FindVerifiedCustomDomainByDomainExcludingWorkspace
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at FROM custom_domains
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
 	//  WHERE domain = ?
 	//    AND workspace_id != ?
 	//    AND verification_status = 'verified'
@@ -1556,8 +1476,9 @@ type Querier interface {
 	//
 	//  INSERT INTO custom_domains (
 	//      id, workspace_id, project_id, app_id, environment_id, domain,
-	//      challenge_type, verification_status, verification_token, target_cname, invocation_id, created_at
-	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	//      challenge_type, verification_status, verification_token, target_cname,
+	//      domain_connect_provider, domain_connect_url, invocation_id, created_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertCustomDomain(ctx context.Context, db DBTX, arg InsertCustomDomainParams) error
 	//InsertDeployment
 	//
@@ -2158,7 +2079,7 @@ type Querier interface {
 	ListAppsByProject(ctx context.Context, db DBTX, projectID string) ([]ListAppsByProjectRow, error)
 	//ListCustomDomainsByProjectID
 	//
-	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, invocation_id, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at
 	//  FROM custom_domains
 	//  WHERE project_id = ?
 	//  ORDER BY created_at DESC
@@ -2976,16 +2897,6 @@ type Querier interface {
 	//  SET remaining_requests = ?
 	//  WHERE id = ?
 	UpdateKeyCreditsSet(ctx context.Context, db DBTX, arg UpdateKeyCreditsSetParams) error
-	//UpdateKeyHashAndMigration
-	//
-	//  UPDATE `keys`
-	//  SET
-	//      hash = ?,
-	//      pending_migration_id = ?,
-	//      start = ?,
-	//      updated_at_m = ?
-	//  WHERE id = ?
-	UpdateKeyHashAndMigration(ctx context.Context, db DBTX, arg UpdateKeyHashAndMigrationParams) error
 	//UpdateKeySpaceKeyEncryption
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?

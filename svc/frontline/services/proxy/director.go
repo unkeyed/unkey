@@ -29,6 +29,7 @@ func (s *service) makeSentinelDirector(sess *zen.Session, deploymentID string, s
 		})
 
 		req.Header.Set(HeaderForwardedProto, "https")
+		req.Header.Set("X-Forwarded-For", sess.Location())
 
 		// We always want to override the deployment id, even if the client send it.
 		req.Header.Set(HeaderDeploymentID, deploymentID)
