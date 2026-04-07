@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"unsafe"
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -55,10 +56,10 @@ func WithSentinelLogging(buf *batch.BatchProcessor[schema.SentinelRequest], clk 
 					QueryString:     req.URL.RawQuery,
 					QueryParams:     req.URL.Query(),
 					RequestHeaders:  formatHeaders(req.Header),
-					RequestBody:     string(tracking.RequestBody),
+					RequestBody:     unsafe.String(unsafe.SliceData(tracking.RequestBody), len(tracking.RequestBody)),
 					ResponseStatus:  tracking.ResponseStatus,
 					ResponseHeaders: formatHeaders(tracking.ResponseHeaders),
-					ResponseBody:    string(tracking.ResponseBody),
+					ResponseBody:    unsafe.String(unsafe.SliceData(tracking.ResponseBody), len(tracking.ResponseBody)),
 					UserAgent:       req.UserAgent(),
 					IPAddress:       s.Location(),
 					TotalLatency:    totalLatency,
