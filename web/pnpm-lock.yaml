@@ -228,9 +228,6 @@ importers:
       input-otp:
         specifier: 1.2.4
         version: 1.2.4(react-dom@19.2.4)(react@19.2.4)
-      ms:
-        specifier: 2.1.3
-        version: 2.1.3
       nanoid:
         specifier: ^5.1.6
         version: 5.1.6
@@ -304,9 +301,6 @@ importers:
       '@testing-library/react-hooks':
         specifier: 8.0.1
         version: 8.0.1(@types/react@19.2.4)(react-dom@19.2.4)(react@19.2.4)
-      '@types/ms':
-        specifier: 0.7.34
-        version: 0.7.34
       '@types/node':
         specifier: 22.14.0
         version: 22.14.0
@@ -856,9 +850,6 @@ importers:
       base-x:
         specifier: 4.0.1
         version: 4.0.1
-      ms:
-        specifier: 2.1.3
-        version: 2.1.3
       mysql2:
         specifier: 3.10.3
         version: 3.10.3
@@ -7868,10 +7859,6 @@ packages:
   /@types/mime@1.3.5:
     resolution: {integrity: sha512-/pyBZWSLD2n0dcHE3hq8s8ZvcETHtEuF+3E7XVt0Ig2nvsVQXdghHVcEkIWjy9A0wKfTn97a/PSDYohKIlnP/w==}
     dev: false
-
-  /@types/ms@0.7.34:
-    resolution: {integrity: sha512-nG96G3Wp6acyAgJqGasjODb+acrI7KltPiRxzHPXnP3NgI28bpQDRv53olbqGXbfcgF5aiiHmO3xpwEpS5Ld9g==}
-    dev: true
 
   /@types/mysql@2.15.27:
     resolution: {integrity: sha512-YfWiV16IY0OeBfBCk8+hXKmdTKrKlwKN1MNKAPBu5JYxLwBEZl7QzeEpGnlZb3VMGJrrGmB84gXiH+ofs/TezA==}

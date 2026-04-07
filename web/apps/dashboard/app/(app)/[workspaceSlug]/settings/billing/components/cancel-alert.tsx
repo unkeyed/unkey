@@ -1,7 +1,7 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
 import { SettingsZone, SettingsZoneRow, toast } from "@unkey/ui";
-import ms from "ms";
+import { formatMs } from "@/lib/ms";
 import { useRouter } from "next/navigation";
 
 export const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
@@ -44,7 +44,7 @@ export const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {
             Your subscription ends in
             <span className="text-warning-12 font-medium">
               {" "}
-              {ms(timeRemaining, { long: true })}
+              {formatMs(timeRemaining, { long: true })}
             </span>{" "}
             on{" "}
             <span className="text-warning-12 font-medium">

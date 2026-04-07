@@ -6,7 +6,7 @@ import { MetricStats } from "@/components/stats-card/components/metric-stats";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { Clock, ProgressBar } from "@unkey/icons";
 import { Loading } from "@unkey/ui";
-import ms from "ms";
+import { formatMs } from "@/lib/ms";
 import { Suspense } from "react";
 
 type Props = {
@@ -63,7 +63,7 @@ export const NamespaceCard = ({ namespace }: Props) => {
                 <Clock className="text-accent-11 shrink-0" />
                 <div className="text-xs text-accent-9 truncate">
                   {lastRatelimit
-                    ? `${ms(Date.now() - lastRatelimit.originalTimestamp, {
+                    ? `${formatMs(Date.now() - lastRatelimit.originalTimestamp, {
                         long: true,
                       })} ago`
                     : "No data"}
