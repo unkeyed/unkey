@@ -247,11 +247,13 @@ func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID stri
 	for _, change := range changes {
 		event, err := s.loadChangeEvent(ctx, change)
 		if err != nil {
-			logger.Error("failed to load state for deployment change",
-				"error", err,
-				"resource_type", change.ResourceType,
-				"resource_id", change.ResourceID,
-			)
+			if !db.IsNotFound(err) {
+				logger.Error("failed to load state for deployment change",
+					"error", err,
+					"resource_type", change.ResourceType,
+					"resource_id", change.ResourceID,
+				)
+			}
 			// Skip this row but keep advancing the cursor
 			events = append(events, &ctrlv1.DeploymentChangeEvent{Version: change.Pk})
 			continue
@@ -273,9 +275,6 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 			RegionID:     change.RegionID,
 		})
 		if err != nil {
-			if db.IsNotFound(err) {
-				return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
-			}
 			return nil, err
 		}
 		state, err := s.deploymentRowToState(deploymentRow{
@@ -300,9 +299,6 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 	case db.DeploymentChangesResourceTypeSentinel:
 		sentinel, err := db.Query.FindSentinelByID(ctx, s.db.RO(), change.ResourceID)
 		if err != nil {
-			if db.IsNotFound(err) {
-				return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
-			}
 			return nil, err
 		}
 		state := s.sentinelToState(sentinel, change.Pk)
@@ -320,9 +316,6 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 			CiliumNetworkPolicyID: change.ResourceID,
 		})
 		if err != nil {
-			if db.IsNotFound(err) {
-				return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("resource %s does not exist in region %s", change.ResourceID, change.RegionID))
-			}
 			return nil, err
 		}
 		return &ctrlv1.DeploymentChangeEvent{
