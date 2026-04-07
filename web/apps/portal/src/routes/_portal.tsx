@@ -1,6 +1,6 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { getSessionToken } from "~/lib/session";
+import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { PortalHeader } from "~/components/portal-header";
+import { getSessionToken } from "~/lib/session";
 
 export const Route = createFileRoute("/_portal")({
   beforeLoad: async () => {

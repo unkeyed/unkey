@@ -1,6 +1,6 @@
+import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 /// <reference types="vite/client" />
 import type { ReactNode } from "react";
-import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import "~/styles/tailwind.css";
 
 export const Route = createRootRoute({
@@ -35,7 +35,10 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       <head>
         <HeadContent />
       </head>
-      <body className="min-h-screen antialiased text-content" style={{ backgroundColor: "var(--portal-secondary, #f8fafc)" }}>
+      <body
+        className="min-h-screen antialiased text-content"
+        style={{ backgroundColor: "var(--portal-secondary, #f8fafc)" }}
+      >
         {children}
         <Scripts />
       </body>
