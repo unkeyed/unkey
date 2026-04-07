@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@source '../../../../internal/ui/src/**/*.tsx';
+@source '../../../../internal/icons/src/**/*.tsx';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  /* Portal branding — referenced via arbitrary values: bg-[var(--portal-primary)] */
+  /* Runtime CSS variables are set on <html> by the branding engine */
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --color-background: hsl(var(--background));
+  --color-background-subtle: hsl(var(--background-subtle));
+  --color-content: hsl(var(--content));
+  --color-content-subtle: hsl(var(--content-subtle));
+  --color-border: hsl(var(--border));
+  --color-ring: hsl(var(--ring));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-foreground: hsl(var(--content));
+  --color-muted: hsl(var(--gray-3));
+  --color-muted-foreground: hsl(var(--gray-11));
+  --color-destructive: hsl(var(--error-9));
+
+  /* Radix gray scale */
+  --color-gray-1: hsl(var(--gray-1));
+  --color-gray-2: hsl(var(--gray-2));
+  --color-gray-3: hsl(var(--gray-3));
+  --color-gray-4: hsl(var(--gray-4));
+  --color-gray-5: hsl(var(--gray-5));
+  --color-gray-6: hsl(var(--gray-6));
+  --color-gray-7: hsl(var(--gray-7));
+  --color-gray-8: hsl(var(--gray-8));
+  --color-gray-9: hsl(var(--gray-9));
+  --color-gray-10: hsl(var(--gray-10));
+  --color-gray-11: hsl(var(--gray-11));
+  --color-gray-12: hsl(var(--gray-12));
+
+  /* Error scale */
+  --color-error-9: hsl(var(--error-9));
+  --color-error-11: hsl(var(--error-11));
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --background: 0 0% 100%;
+    --background-subtle: 60 9% 94%;
+    --primary: 24 10% 10%;
+    --primary-foreground: 24 10% 90%;
+    --secondary: 20 6% 94%;
+    --secondary-foreground: 0 0% 0%;
+    --content: 240 10% 3.9%;
+    --content-subtle: 240 3.8% 46.1%;
+    --border: 24, 6%, 83%;
+    --ring: 24, 6%, 83%;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --background: 0 0% 0%;
+    --background-subtle: 24 10% 10%;
+    --primary: 20 6% 94%;
+    --primary-foreground: 20 6% 10%;
+    --secondary: 24 10% 10%;
+    --secondary-foreground: 24 10% 100%;
+    --content: 240 10% 90%;
+    --content-subtle: 240 3.8% 46.1%;
+    --border: 12, 6%, 15%;
+    --ring: 12, 6%, 15%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply text-content;
+  }
+}

@@ -151,10 +151,10 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	// Frontline route
 	err = db.Query.InsertFrontlineRoute(ctx, h.DB.RW(), db.InsertFrontlineRouteParams{
 		ID:                       uid.New("fr"),
-		ProjectID:                project.ID,
-		AppID:                    app.ID,
-		DeploymentID:             deployment.ID,
-		EnvironmentID:            env.ID,
+		ProjectID:                sql.NullString{Valid: true, String: project.ID},
+		AppID:                    sql.NullString{Valid: true, String: app.ID},
+		DeploymentID:             sql.NullString{Valid: true, String: deployment.ID},
+		EnvironmentID:            sql.NullString{Valid: true, String: env.ID},
 		FullyQualifiedDomainName: "cleanup-test.example.com",
 		Sticky:                   db.FrontlineRoutesStickyNone,
 		CreatedAt:                now,

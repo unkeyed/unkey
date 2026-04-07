@@ -187,6 +187,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				Port:     0,
 			},
 			Gossip: nil,
+			PortalBaseURL: "https://portal.test.local",
 		}
 
 		// Start API server in goroutine

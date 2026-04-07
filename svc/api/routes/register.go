@@ -58,6 +58,9 @@ import (
 
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
+	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
+	v2PortalExchangeSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_session"
+
 	zen "github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -593,6 +596,27 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Keys:                       svc.Keys,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 			Caches:                     svc.Caches,
+		},
+	)
+
+	// ---------------------------------------------------------------------------
+	// v2/portal
+
+	// v2/portal.createSession
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2PortalCreateSession.Handler{
+			DB:            svc.Database,
+			Keys:          svc.Keys,
+			PortalBaseURL: svc.PortalBaseURL,
+		},
+	)
+
+	// v2/portal.exchangeSession
+	srv.RegisterRoute(
+		defaultMiddlewares,
+		&v2PortalExchangeSession.Handler{
+			DB: svc.Database,
 		},
 	)
 

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/keys"
@@ -94,7 +95,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Fetch hostnames from frontline routes
-	routes, routesErr := db.Query.FindFrontlineRoutesByDeploymentID(ctx, h.DB.RO(), req.DeploymentId)
+	routes, routesErr := db.Query.FindFrontlineRoutesByDeploymentID(ctx, h.DB.RO(), sql.NullString{Valid: true, String: req.DeploymentId})
 	if routesErr != nil {
 		logger.Warn("failed to fetch frontline routes for deployment", "error", routesErr, "deployment_id", deployment.ID)
 	} else if len(routes) > 0 {

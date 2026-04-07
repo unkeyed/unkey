@@ -18,6 +18,8 @@ token = "vault-test-token-123"
 url = "http://ctrl-api:7091"
 token = "your-local-dev-key"
 
+portal_base_url = "${UNKEY_PORTAL_BASE_URL}"
+
 [pprof]
 username = "admin"
 password = "password"

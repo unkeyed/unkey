@@ -31,7 +31,7 @@ func (s *Service) AssignFrontlineRoutes(ctx restate.ObjectContext, req *hydrav1.
 		_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 			return restate.Void{}, db.Query.ReassignFrontlineRoute(stepCtx, s.db.RW(), db.ReassignFrontlineRouteParams{
 				ID:           frontlineRouteID,
-				DeploymentID: req.GetDeploymentId(),
+				DeploymentID: sql.NullString{Valid: true, String: req.GetDeploymentId()},
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 

@@ -247,4 +247,17 @@ const (
 	// Denied represents a 403 error - request rejected by a Firewall policy
 	// with action=DENY.
 	UnkeyFrontlineErrorsFirewallDenied URN = "err:unkey:forbidden:firewall_denied"
+
+	// ----------------
+	// UnkeyPortalErrors
+	// ----------------
+
+	// Session
+
+	// TokenMissing indicates a portal session token was not provided.
+	UnkeyPortalErrorsSessionTokenMissing URN = "err:unkey:authentication:portal_token_missing"
+	// SessionNotFound indicates the portal session was not found or has expired.
+	UnkeyPortalErrorsSessionSessionNotFound URN = "err:unkey:authentication:portal_session_not_found"
+	// SessionAlreadyExchanged indicates the session token has already been used.
+	UnkeyPortalErrorsSessionSessionAlreadyExchanged URN = "err:unkey:authentication:portal_session_already_exchanged"
 )

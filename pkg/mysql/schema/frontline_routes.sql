@@ -21,4 +21,3 @@ CREATE INDEX `environment_id_idx` ON `frontline_routes` (`environment_id`);
 CREATE INDEX `deployment_id_idx` ON `frontline_routes` (`deployment_id`);
 
 CREATE INDEX `fqdn_environment_deployment_idx` ON `frontline_routes` (`fully_qualified_domain_name`,`environment_id`,`deployment_id`);
-

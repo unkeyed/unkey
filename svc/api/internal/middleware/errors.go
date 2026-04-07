@@ -69,7 +69,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyAuthErrorsAuthenticationMissing,
 				codes.UnkeyAuthErrorsAuthenticationMalformed,
 				codes.UserErrorsBadRequestPermissionsQuerySyntaxError,
-				codes.UserErrorsBadRequestRequestBodyUnreadable:
+				codes.UserErrorsBadRequestRequestBodyUnreadable,
+				codes.UnkeyPortalErrorsSessionTokenMissing:
 				return s.ProblemJSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -193,7 +194,9 @@ func WithErrorHandling() zen.Middleware {
 				})
 
 			// Unauthorized errors
-			case codes.UnkeyAuthErrorsAuthenticationKeyNotFound:
+			case codes.UnkeyAuthErrorsAuthenticationKeyNotFound,
+				codes.UnkeyPortalErrorsSessionSessionNotFound,
+				codes.UnkeyPortalErrorsSessionSessionAlreadyExchanged:
 				return s.ProblemJSON(http.StatusUnauthorized, openapi.UnauthorizedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
