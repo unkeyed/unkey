@@ -427,8 +427,7 @@ func (s *Service) deploymentRowToState(row deploymentRow, version uint64) (*ctrl
 			},
 		}, nil
 	default:
-		logger.Error("unhandled deployment topology desired status", "status", row.dt.DesiredStatus)
-		return nil, nil
+		return nil, fmt.Errorf("unknown DeploymentTopologyDesiredStatus: %v", row.dt.DesiredStatus)
 	}
 }
 
