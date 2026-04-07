@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
 // changePageSize is the number of rows fetched per page when syncing deployment changes.
@@ -107,22 +108,13 @@ func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID stri
 
 	events := make([]*ctrlv1.DeploymentChangeEvent, 0, len(changes))
 	for _, change := range changes {
-		logger.Info("processing deployment change",
-			"pk", change.Pk,
-			"resource_type", change.ResourceType,
-			"resource_id", change.ResourceID,
-			"region_id", change.RegionID,
-		)
+		resourceType := string(change.ResourceType)
 		event, err := s.loadChangeEvent(ctx, change)
 		if err != nil {
 			if db.IsNotFound(err) {
-				logger.Info("deployment change references missing resource, advancing cursor",
-					"resource_type", change.ResourceType,
-					"resource_id", change.ResourceID,
-					"region_id", change.RegionID,
-					"pk", change.Pk,
-				)
+				metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "not_found").Inc()
 			} else {
+				metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "error").Inc()
 				logger.Error("failed to load state for deployment change",
 					"error", err,
 					"resource_type", change.ResourceType,
@@ -133,6 +125,7 @@ func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID stri
 			events = append(events, &ctrlv1.DeploymentChangeEvent{Version: change.Pk})
 			continue
 		}
+		metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "success").Inc()
 		if event != nil {
 			events = append(events, event)
 		}

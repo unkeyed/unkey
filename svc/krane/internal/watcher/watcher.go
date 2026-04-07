@@ -86,25 +86,28 @@ func (s *Watcher) runStream(ctx context.Context) {
 		default:
 		}
 
-		logger.Info("stream: connecting", "version", versionLastSeen)
-
 		stream, err := s.cluster.WatchDeploymentChanges(ctx, &ctrlv1.WatchDeploymentChangesRequest{
 			Region:          s.region,
 			VersionLastSeen: versionLastSeen,
 		})
 		if err != nil {
+			metrics.StreamConnectionsTotal.WithLabelValues("error").Inc()
 			logger.Error("stream: error opening connection", "error", err)
 			continue
 		}
+		metrics.StreamConnectionsTotal.WithLabelValues("success").Inc()
 
 		for stream.Receive() {
 			event := stream.Msg()
-
-			logger.Info("stream: received event", "version", event.GetVersion())
+			metrics.StreamEventsReceivedTotal.Inc()
 
 			s.sem.Do(func() {
+				resourceType := eventResourceType(event)
 				if err := s.dispatch(ctx, event); err != nil {
+					metrics.DispatchTotal.WithLabelValues("stream", resourceType, "error").Inc()
 					logger.Error("stream: error dispatching event", "error", err, "version", event.GetVersion())
+				} else {
+					metrics.DispatchTotal.WithLabelValues("stream", resourceType, "success").Inc()
 				}
 			})
 
@@ -142,7 +145,7 @@ func (s *Watcher) runPeriodicFullSync(ctx context.Context) {
 
 func (s *Watcher) doFullSync(ctx context.Context) {
 	metrics.WatcherFullSyncsTotal.Inc()
-	logger.Info("full sync: starting")
+	start := time.Now()
 
 	stream, err := s.cluster.SyncDesiredState(ctx, &ctrlv1.SyncDesiredStateRequest{})
 	if err != nil {
@@ -150,14 +153,17 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 		return
 	}
 
-	count := 0
 	for stream.Receive() {
 		event := stream.Msg()
-		count++
+		metrics.FullSyncEventsReceivedTotal.Inc()
 
 		s.sem.Do(func() {
+			resourceType := eventResourceType(event)
 			if err := s.dispatch(ctx, event); err != nil {
+				metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "error").Inc()
 				logger.Error("full sync: error dispatching event", "error", err)
+			} else {
+				metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "success").Inc()
 			}
 		})
 	}
@@ -166,7 +172,21 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 		logger.Error("full sync: error closing connection", "error", err)
 	}
 
-	logger.Info("full sync: complete", "events", count)
+	metrics.FullSyncDurationSeconds.Observe(time.Since(start).Seconds())
+}
+
+// eventResourceType returns a label-safe resource type string for metrics.
+func eventResourceType(event *ctrlv1.DeploymentChangeEvent) string {
+	switch event.GetEvent().(type) {
+	case *ctrlv1.DeploymentChangeEvent_Deployment:
+		return "deployment"
+	case *ctrlv1.DeploymentChangeEvent_Sentinel:
+		return "sentinel"
+	case *ctrlv1.DeploymentChangeEvent_CiliumNetworkPolicy:
+		return "cilium_network_policy"
+	default:
+		return "unknown"
+	}
 }
 
 // dispatch routes an event to the appropriate controller.

@@ -39,24 +39,28 @@ func (s *Service) SyncDesiredState(
 	})
 	if err != nil {
 		logger.Error("failed to find region for SyncDesiredState", "error", err, "region_name", regionName, "platform", platform)
+		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
 		return connect.NewError(connect.CodeInternal, err)
 	}
 
 	fullSyncStart := time.Now()
 
 	if err := s.syncDeployments(ctx, stream, region.ID); err != nil {
+		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
 		return err
 	}
 	if err := s.syncSentinels(ctx, stream, region.ID); err != nil {
+		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
 		return err
 	}
 	if err := s.syncCiliumPolicies(ctx, stream, region.ID); err != nil {
+		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
 		return err
 	}
 
 	fullSyncDuration := time.Since(fullSyncStart).Seconds()
-	logger.Info("full sync complete", "region_id", region.ID, "duration_s", fullSyncDuration)
 	metrics.FullSyncDurationSeconds.Observe(fullSyncDuration)
+	metrics.SyncDesiredStateTotal.WithLabelValues("success").Inc()
 
 	return nil
 }
@@ -99,6 +103,7 @@ func (s *Service) syncDeployments(
 			}); err != nil {
 				return err
 			}
+			metrics.SyncDesiredStateEventsSentTotal.WithLabelValues("deployment").Inc()
 		}
 		if len(rows) < changePageSize {
 			return nil
@@ -133,6 +138,7 @@ func (s *Service) syncSentinels(
 			}); err != nil {
 				return err
 			}
+			metrics.SyncDesiredStateEventsSentTotal.WithLabelValues("sentinel").Inc()
 		}
 		if len(rows) < changePageSize {
 			return nil
@@ -164,6 +170,7 @@ func (s *Service) syncCiliumPolicies(
 			}); err != nil {
 				return err
 			}
+			metrics.SyncDesiredStateEventsSentTotal.WithLabelValues("cilium_network_policy").Inc()
 			afterPk = policy.Pk
 		}
 		if len(rows) < changePageSize {
