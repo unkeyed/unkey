@@ -20,15 +20,10 @@ import (
 // changePageSize is the number of rows fetched per page when syncing deployment changes.
 const changePageSize = 10000
 
-// WatchDeploymentChanges streams all resource changes (deployments, sentinels, cilium policies)
-// in a single stream. The agent maintains one cursor and dispatches events by type.
-//
-// The stream operates in two modes:
-//   - Full sync (version_last_seen = 0): paginates through all current state from
-//     deployment_topology, sentinels, and cilium_network_policies tables, then sets
-//     the cursor to the current max deployment_changes pk.
-//   - Incremental (version_last_seen > 0): polls the deployment_changes table for new
-//     entries and loads current state via point lookups.
+// WatchDeploymentChanges streams incremental resource changes from the
+// deployment_changes outbox table. When version_last_seen is 0, the server
+// jumps to the current max pk and polls from there — it never replays
+// historical changes.
 func (s *Service) WatchDeploymentChanges(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.WatchDeploymentChangesRequest],
@@ -58,33 +53,18 @@ func (s *Service) WatchDeploymentChanges(
 
 	versionCursor := req.Msg.GetVersionLastSeen()
 
-	// Full sync: paginate through all current state.
-	if versionCursor == 0 {
-		fullSyncStart := time.Now()
-
+	// When version is 0 and replay is not requested, jump to the current max pk
+	// so we only see new changes.
+	if versionCursor == 0 && !req.Msg.GetReplay() {
 		maxVersion, err := db.Query.GetDeploymentChangesMaxVersion(ctx, s.db.RO(), region.ID)
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, err)
 		}
-		version := uint64(maxVersion)
-
-		if err := s.fullSyncDeployments(ctx, stream, region.ID, version); err != nil {
-			return err
-		}
-		if err := s.fullSyncSentinels(ctx, stream, region.ID, version); err != nil {
-			return err
-		}
-		if err := s.fullSyncCiliumPolicies(ctx, stream, region.ID, version); err != nil {
-			return err
-		}
-
-		versionCursor = version
-		fullSyncDuration := time.Since(fullSyncStart).Seconds()
-		logger.Info("full sync complete", "region_id", region.ID, "cursor", versionCursor, "duration_s", fullSyncDuration)
-		metrics.FullSyncDurationSeconds.Observe(fullSyncDuration)
+		versionCursor = uint64(maxVersion)
+		logger.Info("watch: starting from max version", "region_id", region.ID, "cursor", versionCursor)
 	}
 
-	// Incremental: poll deployment_changes for new entries.
+	// Poll deployment_changes for new entries.
 	for {
 		select {
 		case <-ctx.Done():
@@ -114,123 +94,6 @@ func (s *Service) WatchDeploymentChanges(
 	}
 }
 
-// fullSyncDeployments paginates through all deployment topologies for a region.
-func (s *Service) fullSyncDeployments(
-	ctx context.Context,
-	stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent],
-	regionID string,
-	version uint64,
-) error {
-	var afterPk uint64
-	for {
-		rows, err := db.Query.ListAllDeploymentTopologiesByRegion(ctx, s.db.RO(), db.ListAllDeploymentTopologiesByRegionParams{
-			RegionID: regionID,
-			AfterPk:  afterPk,
-			Limit:    changePageSize,
-		})
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, err)
-		}
-		for _, row := range rows {
-			state, err := s.deploymentRowToState(deploymentRow{
-				dt:              row.DeploymentTopology,
-				d:               row.Deployment,
-				k8sNamespace:    row.K8sNamespace,
-				environmentSlug: row.EnvironmentSlug,
-				regionName:      row.RegionName,
-				gitRepo:         row.GitRepo,
-			}, version)
-			if err != nil {
-				logger.Error("failed to convert deployment row", "error", err)
-				continue
-			}
-			if state == nil {
-				continue
-			}
-			if err := stream.Send(&ctrlv1.DeploymentChangeEvent{
-				Version: version,
-				Event:   &ctrlv1.DeploymentChangeEvent_Deployment{Deployment: state},
-			}); err != nil {
-				return err
-			}
-			afterPk = row.DeploymentTopology.Pk
-		}
-		if len(rows) < changePageSize {
-			return nil
-		}
-	}
-}
-
-// fullSyncSentinels paginates through all sentinels for a region.
-func (s *Service) fullSyncSentinels(
-	ctx context.Context,
-	stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent],
-	regionID string,
-	version uint64,
-) error {
-	var afterPk uint64
-	for {
-		rows, err := db.Query.ListAllSentinelsByRegion(ctx, s.db.RO(), db.ListAllSentinelsByRegionParams{
-			RegionID: regionID,
-			AfterPk:  afterPk,
-			Limit:    changePageSize,
-		})
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, err)
-		}
-		for _, sentinel := range rows {
-			state := s.sentinelToState(sentinel, version)
-			if state == nil {
-				continue
-			}
-			if err := stream.Send(&ctrlv1.DeploymentChangeEvent{
-				Version: version,
-				Event:   &ctrlv1.DeploymentChangeEvent_Sentinel{Sentinel: state},
-			}); err != nil {
-				return err
-			}
-			afterPk = sentinel.Pk
-		}
-		if len(rows) < changePageSize {
-			return nil
-		}
-	}
-}
-
-// fullSyncCiliumPolicies paginates through all cilium network policies for a region.
-func (s *Service) fullSyncCiliumPolicies(
-	ctx context.Context,
-	stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent],
-	regionID string,
-	version uint64,
-) error {
-	var afterPk uint64
-	for {
-		rows, err := db.Query.ListAllCiliumNetworkPoliciesByRegion(ctx, s.db.RO(), db.ListAllCiliumNetworkPoliciesByRegionParams{
-			RegionID: regionID,
-			AfterPk:  afterPk,
-			Limit:    changePageSize,
-		})
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, err)
-		}
-		for _, policy := range rows {
-			if err := stream.Send(&ctrlv1.DeploymentChangeEvent{
-				Version: version,
-				Event: &ctrlv1.DeploymentChangeEvent_CiliumNetworkPolicy{
-					CiliumNetworkPolicy: ciliumPolicyToState(policy, version),
-				},
-			}); err != nil {
-				return err
-			}
-			afterPk = policy.Pk
-		}
-		if len(rows) < changePageSize {
-			return nil
-		}
-	}
-}
-
 // fetchDeploymentChangeEvents polls deployment_changes for new entries and does a
 // point lookup for each row to load current state.
 func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID string, afterVersion uint64) ([]*ctrlv1.DeploymentChangeEvent, error) {
@@ -245,9 +108,13 @@ func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID stri
 
 	events := make([]*ctrlv1.DeploymentChangeEvent, 0, len(changes))
 	for _, change := range changes {
+		resourceType := string(change.ResourceType)
 		event, err := s.loadChangeEvent(ctx, change)
 		if err != nil {
-			if !db.IsNotFound(err) {
+			if db.IsNotFound(err) {
+				metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "not_found").Inc()
+			} else {
+				metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "error").Inc()
 				logger.Error("failed to load state for deployment change",
 					"error", err,
 					"resource_type", change.ResourceType,
@@ -258,6 +125,7 @@ func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID stri
 			events = append(events, &ctrlv1.DeploymentChangeEvent{Version: change.Pk})
 			continue
 		}
+		metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "success").Inc()
 		if event != nil {
 			events = append(events, event)
 		}
@@ -267,10 +135,12 @@ func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID stri
 }
 
 // loadChangeEvent does a point lookup for a single deployment_changes row based on resource_type.
+// Uses the primary (RW) connection because deployment_changes rows arrive immediately
+// after the data is written, and the read replica may not have the data yet.
 func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChange) (*ctrlv1.DeploymentChangeEvent, error) {
 	switch change.ResourceType {
 	case db.DeploymentChangesResourceTypeDeploymentTopology:
-		row, err := db.Query.FindDeploymentTopologyByDeploymentAndRegion(ctx, s.db.RO(), db.FindDeploymentTopologyByDeploymentAndRegionParams{
+		row, err := db.Query.FindDeploymentTopologyByDeploymentAndRegion(ctx, s.db.RW(), db.FindDeploymentTopologyByDeploymentAndRegionParams{
 			DeploymentID: change.ResourceID,
 			RegionID:     change.RegionID,
 		})
@@ -297,7 +167,7 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 		}, nil
 
 	case db.DeploymentChangesResourceTypeSentinel:
-		sentinel, err := db.Query.FindSentinelByID(ctx, s.db.RO(), change.ResourceID)
+		sentinel, err := db.Query.FindSentinelByID(ctx, s.db.RW(), change.ResourceID)
 		if err != nil {
 			return nil, err
 		}
@@ -311,7 +181,7 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 		}, nil
 
 	case db.DeploymentChangesResourceTypeCiliumNetworkPolicy:
-		policy, err := db.Query.FindCiliumNetworkPolicyByIDAndRegion(ctx, s.db.RO(), db.FindCiliumNetworkPolicyByIDAndRegionParams{
+		policy, err := db.Query.FindCiliumNetworkPolicyByIDAndRegion(ctx, s.db.RW(), db.FindCiliumNetworkPolicyByIDAndRegionParams{
 			RegionID:              change.RegionID,
 			CiliumNetworkPolicyID: change.ResourceID,
 		})

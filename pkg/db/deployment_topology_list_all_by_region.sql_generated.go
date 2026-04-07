@@ -24,7 +24,7 @@ INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
 INNER JOIN ` + "`" + `regions` + "`" + ` r ON dt.region_id = r.id
 INNER JOIN ` + "`" + `environments` + "`" + ` e ON d.environment_id = e.id
 LEFT JOIN ` + "`" + `github_repo_connections` + "`" + ` grc ON d.app_id = grc.app_id
-WHERE r.id = ? AND dt.pk > ?
+WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
 ORDER BY dt.pk ASC
 LIMIT ?
 `
@@ -44,8 +44,8 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 	GitRepo            sql.NullString     `db:"git_repo"`
 }
 
-// ListAllDeploymentTopologiesByRegion returns deployment topologies for a region, paginated by pk.
-// Used during full sync (version=0) to bootstrap krane agents with current state.
+// ListAllDeploymentTopologiesByRegion returns running deployment topologies for a region, paginated by pk.
+// Used by SyncDesiredState to reconcile krane agents with current desired state.
 //
 //	SELECT
 //	    dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
@@ -60,7 +60,7 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	INNER JOIN `regions` r ON dt.region_id = r.id
 //	INNER JOIN `environments` e ON d.environment_id = e.id
 //	LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
-//	WHERE r.id = ? AND dt.pk > ?
+//	WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
 //	ORDER BY dt.pk ASC
 //	LIMIT ?
 func (q *Queries) ListAllDeploymentTopologiesByRegion(ctx context.Context, db DBTX, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error) {

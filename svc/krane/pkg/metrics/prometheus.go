@@ -38,9 +38,9 @@ var (
 		[]string{"resource_type"},
 	)
 
-	// WatcherFullSyncsTotal counts how often the watcher resets its cursor to 0
-	// and performs a full sync. Under normal operation this fires once per
-	// fullSyncInterval (5 minutes). Elevated values indicate repeated stream failures.
+	// WatcherFullSyncsTotal counts how often the watcher performs a full sync
+	// via SyncDesiredState. Under normal operation this fires once per
+	// fullSyncInterval (10 minutes) plus once on startup.
 	WatcherFullSyncsTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
@@ -58,6 +58,67 @@ var (
 			Subsystem: "krane",
 			Name:      "watcher_version_last_seen",
 			Help:      "Current cursor position in the deployment_changes stream.",
+		},
+	)
+
+	// StreamConnectionsTotal counts incremental stream connection attempts by outcome.
+	//
+	// Labels:
+	//   - "status": "success" or "error"
+	StreamConnectionsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "stream_connections_total",
+			Help:      "Total number of incremental stream connection attempts.",
+		},
+		[]string{"status"},
+	)
+
+	// StreamEventsReceivedTotal counts events received on the incremental stream.
+	StreamEventsReceivedTotal = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "stream_events_received_total",
+			Help:      "Total number of events received on the incremental stream.",
+		},
+	)
+
+	// DispatchTotal counts event dispatches to controllers by source, resource type, and outcome.
+	//
+	// Labels:
+	//   - "source": "stream" or "full_sync"
+	//   - "resource_type": "deployment", "sentinel", or "cilium_network_policy"
+	//   - "status": "success" or "error"
+	DispatchTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "dispatch_total",
+			Help:      "Total number of event dispatches to controllers.",
+		},
+		[]string{"source", "resource_type", "status"},
+	)
+
+	// FullSyncEventsReceivedTotal counts events received during a full sync.
+	FullSyncEventsReceivedTotal = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "full_sync_events_received_total",
+			Help:      "Total number of events received during full syncs.",
+		},
+	)
+
+	// FullSyncDurationSeconds tracks how long the krane-side full sync takes.
+	FullSyncDurationSeconds = promauto.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "full_sync_duration_seconds",
+			Help:      "Duration of full sync operations from the krane side.",
+			Buckets:   []float64{0.1, 0.5, 1, 2, 5, 10, 30, 60},
 		},
 	)
 )
