@@ -105,6 +105,7 @@ go_library(
         "cilium_network_policy_delete_by_environment.sql_generated.go",
         "cilium_network_policy_find_by_deployment_id.sql_generated.go",
         "cilium_network_policy_find_by_environment_id.sql_generated.go",
+        "cilium_network_policy_find_by_environment_region_and_name.sql_generated.go",
         "cilium_network_policy_find_by_id_and_region.sql_generated.go",
         "cilium_network_policy_insert.sql_generated.go",
         "cilium_network_policy_list_all_by_region.sql_generated.go",

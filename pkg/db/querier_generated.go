@@ -386,6 +386,13 @@ type Querier interface {
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at FROM cilium_network_policies WHERE environment_id = ?
 	FindCiliumNetworkPoliciesByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]CiliumNetworkPolicy, error)
+	//FindCiliumNetworkPolicyByEnvironmentRegionAndName
+	//
+	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at
+	//  FROM `cilium_network_policies`
+	//  WHERE environment_id = ? AND region_id = ? AND k8s_name = ?
+	//  LIMIT 1
+	FindCiliumNetworkPolicyByEnvironmentRegionAndName(ctx context.Context, db DBTX, arg FindCiliumNetworkPolicyByEnvironmentRegionAndNameParams) (CiliumNetworkPolicy, error)
 	//FindCiliumNetworkPolicyByIDAndRegion
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, deployment_id, k8s_name, k8s_namespace, region_id, policy, created_at, updated_at

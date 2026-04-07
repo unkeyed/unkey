@@ -122,8 +122,21 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 							Policy:        policyPayload,
 							CreatedAt:     time.Now().UnixMilli(),
 						})
-						if err != nil && !db.IsDuplicateKeyError(err) {
-							return fmt.Errorf("failed to insert cilium policy %s into db: %w", spec.k8sName, err)
+						if err != nil {
+							if !db.IsDuplicateKeyError(err) {
+								return fmt.Errorf("failed to insert cilium policy %s into db: %w", spec.k8sName, err)
+							}
+							// The insert hit a duplicate key, so the freshly generated policyID
+							// does not exist in the database. Look up the real row to get its ID.
+							existing, findErr := db.Query.FindCiliumNetworkPolicyByEnvironmentRegionAndName(txCtx, tx, db.FindCiliumNetworkPolicyByEnvironmentRegionAndNameParams{
+								EnvironmentID: environment.ID,
+								RegionID:      region.ID,
+								K8sName:       spec.k8sName,
+							})
+							if findErr != nil {
+								return fmt.Errorf("failed to find existing cilium policy %s after duplicate key: %w", spec.k8sName, findErr)
+							}
+							policyID = existing.ID
 						}
 					}
 					return db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
