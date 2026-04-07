@@ -17,9 +17,7 @@
     "vitest": "1.6.1"
   },
   "dependencies": {
-    "@mendable/firecrawl-js": "1.5.2",
     "@unkey/error": "workspace:^",
-    "ai": "3.0.23",
     "zod": "4.3.5"
   }
 }
