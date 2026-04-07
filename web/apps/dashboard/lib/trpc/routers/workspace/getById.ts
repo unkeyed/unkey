@@ -14,8 +14,8 @@ export const getWorkspaceById = protectedProcedure
       const workspace = await db.query.workspaces.findFirst({
         where: (table, { eq, and, isNull }) =>
           and(eq(table.id, input.workspaceId), isNull(table.deletedAtM)),
-        with: {
-          quotas: true,
+        columns: {
+          slug: true,
         },
       });
 
@@ -26,7 +26,7 @@ export const getWorkspaceById = protectedProcedure
         });
       }
 
-      return workspace;
+      return { slug: workspace.slug };
     } catch (error) {
       // If it's already a TRPCError, re-throw it
       if (error instanceof TRPCError) {
