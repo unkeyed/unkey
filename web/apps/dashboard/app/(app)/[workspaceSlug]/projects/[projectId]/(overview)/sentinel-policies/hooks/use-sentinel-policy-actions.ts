@@ -2,9 +2,9 @@
 
 import { collection } from "@/lib/collections";
 import {
+  type SentinelPolicyRow,
   nextSentinelPolicyOrder,
   reorderSentinelPolicies,
-  type SentinelPolicyRow,
 } from "@/lib/collections/deploy/sentinel-policies";
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { useCallback } from "react";
@@ -22,7 +22,7 @@ export type SentinelPolicyActions = {
 
 /**
  * Per-row mutation handlers under the LWW model. All callbacks write directly
- * to the sentinelPolicies collection (or call `reorderSentinelPolicies`). 
+ * to the sentinelPolicies collection (or call `reorderSentinelPolicies`).
  */
 export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPolicyActions {
   const envIdFor = useCallback(
@@ -33,9 +33,13 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
   const toggleEnv = useCallback(
     (id: string, env: "envA" | "envB") => {
       const envId = envIdFor(env);
-      if (!envId) return;
+      if (!envId) {
+        return;
+      }
       const key = `${envId}::${id}`;
-      if (!collection.sentinelPolicies.get(key)) return;
+      if (!collection.sentinelPolicies.get(key)) {
+        return;
+      }
       collection.sentinelPolicies.update(key, (draft) => {
         draft.enabled = !draft.enabled;
       });
@@ -47,9 +51,13 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
     (id: string, env: "envA" | "envB") => {
       const targetEnvId = envIdFor(env);
       const sourceEnvId = env === "envA" ? envBId : envAId;
-      if (!targetEnvId || !sourceEnvId) return;
+      if (!targetEnvId || !sourceEnvId) {
+        return;
+      }
       const sourceRow = collection.sentinelPolicies.get(`${sourceEnvId}::${id}`);
-      if (!sourceRow) return;
+      if (!sourceRow) {
+        return;
+      }
       const { environmentId: _e, _order: _o, ...sourcePolicy } = sourceRow;
       collection.sentinelPolicies.insert({
         ...(sourcePolicy as SentinelPolicy),
@@ -75,7 +83,11 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
     (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => {
       const rows: SentinelPolicyRow[] = [];
       if (prodPolicy !== null && envAId) {
-        rows.push({ ...prodPolicy, environmentId: envAId, _order: nextSentinelPolicyOrder(envAId) });
+        rows.push({
+          ...prodPolicy,
+          environmentId: envAId,
+          _order: nextSentinelPolicyOrder(envAId),
+        });
       }
       if (previewPolicy !== null && envBId) {
         rows.push({
@@ -84,7 +96,9 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
           _order: nextSentinelPolicyOrder(envBId),
         });
       }
-      if (rows.length > 0) collection.sentinelPolicies.insert(rows);
+      if (rows.length > 0) {
+        collection.sentinelPolicies.insert(rows);
+      }
     },
     [envAId, envBId],
   );
@@ -92,9 +106,13 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
   const save = useCallback(
     (updated: SentinelPolicy) => {
       for (const envId of [envAId, envBId]) {
-        if (!envId) continue;
+        if (!envId) {
+          continue;
+        }
         const key = `${envId}::${updated.id}`;
-        if (!collection.sentinelPolicies.get(key)) continue;
+        if (!collection.sentinelPolicies.get(key)) {
+          continue;
+        }
         collection.sentinelPolicies.update(key, (draft) => {
           // Preserve this environment's own enabled state. The caller passes
           // initialPolicy.enabled from one specific env, so spreading it would
@@ -118,7 +136,9 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
       if (envBId && collection.sentinelPolicies.get(`${envBId}::${id}`)) {
         keys.push(`${envBId}::${id}`);
       }
-      if (keys.length > 0) collection.sentinelPolicies.delete(keys);
+      if (keys.length > 0) {
+        collection.sentinelPolicies.delete(keys);
+      }
     },
     [envAId, envBId],
   );

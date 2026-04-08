@@ -94,15 +94,25 @@ export function KeyAuthFields({ control }: { control: Control<KeyauthFormValues>
                     className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-grayA-3 border border-grayA-4 text-xs text-accent-12"
                   >
                     {availableKeyspaces[id]?.api?.name ?? id}
-                    <div
+                    {/* biome-ignore lint/a11y/useSemanticElements: nested inside a <button> (combobox trigger), so <button> is invalid here */}
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Remove ${availableKeyspaces[id]?.api?.name ?? id}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         setKeySpaceIds(keySpaceIds.filter((k) => k !== id));
                       }}
-                      className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.stopPropagation();
+                          setKeySpaceIds(keySpaceIds.filter((k) => k !== id));
+                        }
+                      }}
+                      className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors cursor-pointer"
                     >
                       <XMark iconSize="sm-regular" />
-                    </div>
+                    </span>
                   </span>
                 ))}
               </div>

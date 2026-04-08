@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleHalfDottedClock, Gear, StackPerspective2 } from "@unkey/icons";
+import { CircleHalfDottedClock, Gear } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";

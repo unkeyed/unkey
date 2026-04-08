@@ -16,7 +16,9 @@ import { trackSave } from "./environment-settings";
 export async function reorderSentinelPolicies(
   reorders: { environmentId: string; policyIds: string[] }[],
 ): Promise<void> {
-  if (reorders.length === 0) return;
+  if (reorders.length === 0) {
+    return;
+  }
   const promise = Promise.all(
     reorders.map((r) =>
       trpcClient.deploy.environmentSettings.sentinel.reorder.mutate({
@@ -134,7 +136,9 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
         loading: plural ? "Updating sentinel policies..." : "Updating sentinel policy...",
         success: plural ? "Sentinel policies updated" : "Sentinel policy updated",
         error: (err) => ({
-          message: plural ? "Failed to update sentinel policies" : "Failed to update sentinel policy",
+          message: plural
+            ? "Failed to update sentinel policies"
+            : "Failed to update sentinel policy",
           description: err instanceof Error ? err.message : "Unknown error",
         }),
       });
@@ -152,7 +156,9 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
         loading: plural ? "Deleting sentinel policies..." : "Deleting sentinel policy...",
         success: plural ? "Sentinel policies deleted" : "Sentinel policy deleted",
         error: (err) => ({
-          message: plural ? "Failed to delete sentinel policies" : "Failed to delete sentinel policy",
+          message: plural
+            ? "Failed to delete sentinel policies"
+            : "Failed to delete sentinel policy",
           description: err instanceof Error ? err.message : "Unknown error",
         }),
       });
@@ -219,4 +225,3 @@ function dispatchDelete(environmentId: string, policy: SentinelPolicy): Promise<
     )
     .exhaustive();
 }
-

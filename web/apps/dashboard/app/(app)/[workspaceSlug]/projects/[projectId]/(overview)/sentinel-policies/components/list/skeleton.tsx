@@ -10,7 +10,8 @@ export function SentinelPoliciesListSkeleton({ rows = 10 }: { rows?: number }) {
     <div className="border border-grayA-4 rounded-[14px] overflow-hidden">
       <div>
         {Array.from({ length: rows }).map((_, i) => (
-          <SentinelPolicyRowSkeleton key={i} index={i} isLast={i === rows - 1} />
+          // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items are static placeholders with no stable id
+          <SentinelPolicyRowSkeleton key={`skeleton-${i}`} index={i} isLast={i === rows - 1} />
         ))}
       </div>
     </div>

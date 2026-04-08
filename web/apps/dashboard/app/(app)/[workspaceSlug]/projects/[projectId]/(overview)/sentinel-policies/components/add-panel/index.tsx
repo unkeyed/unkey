@@ -60,8 +60,8 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
     resolver: zodResolver(policyFormSchema),
     defaultValues: isEdit
       ? fromSentinelPolicy(props.initialPolicy, "__all__")
-      // For now we only have keyauth so we default to that
-      : getDefaultValues("keyauth"),
+      : // For now we only have keyauth so we default to that
+        getDefaultValues("keyauth"),
   });
 
   const watchedType = watch("type");
@@ -119,9 +119,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
             {isEdit ? "Edit Policy" : "Add Policy"}
           </span>
           <span className="text-gray-11 text-[13px] leading-5">
-            {isEdit
-              ? "Update this sentinel policy."
-              : "Configure and add a new sentinel policy."}
+            {isEdit ? "Update this sentinel policy." : "Configure and add a new sentinel policy."}
           </span>
         </div>
         <SlidePanel.Close

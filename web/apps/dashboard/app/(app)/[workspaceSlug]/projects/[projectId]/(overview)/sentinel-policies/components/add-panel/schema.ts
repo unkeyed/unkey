@@ -53,7 +53,6 @@ export const matchConditionSchema = z.discriminatedUnion("type", [
 
 export type MatchConditionFormValues = z.infer<typeof matchConditionSchema>;
 
-
 export const keyLocationTypeSchema = z.enum(["bearer", "header", "queryParam"]);
 export type KeyLocationType = z.infer<typeof keyLocationTypeSchema>;
 
@@ -144,29 +143,26 @@ function toMatchExpr(condition: MatchConditionFormValues): MatchExpr {
       c.present
         ? { header: { name: c.name, present: true } }
         : {
-          header: {
-            name: c.name,
-            value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
+            header: {
+              name: c.name,
+              value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
+            },
           },
-        },
     )
     .with({ type: "queryParam" }, (c) =>
       c.present
         ? { queryParam: { name: c.name, present: true } }
         : {
-          queryParam: {
-            name: c.name,
-            value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
+            queryParam: {
+              name: c.name,
+              value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
+            },
           },
-        },
     )
     .exhaustive();
 }
 
-export function toSentinelPolicy(
-  values: PolicyFormValues,
-  existingId?: string,
-): KeyauthPolicy {
+export function toSentinelPolicy(values: PolicyFormValues, existingId?: string): KeyauthPolicy {
   const id = existingId ?? crypto.randomUUID();
   const matchExprs = values.matchConditions.map(toMatchExpr);
 
@@ -208,9 +204,15 @@ function stringMatchToMode(sm: {
   prefix?: string;
   regex?: string;
 }): { mode: "exact" | "prefix" | "regex"; value: string } {
-  if (typeof sm.exact === "string") return { mode: "exact", value: sm.exact };
-  if (typeof sm.prefix === "string") return { mode: "prefix", value: sm.prefix };
-  if (typeof sm.regex === "string") return { mode: "regex", value: sm.regex };
+  if (typeof sm.exact === "string") {
+    return { mode: "exact", value: sm.exact };
+  }
+  if (typeof sm.prefix === "string") {
+    return { mode: "prefix", value: sm.prefix };
+  }
+  if (typeof sm.regex === "string") {
+    return { mode: "regex", value: sm.regex };
+  }
   return { mode: "exact", value: "" };
 }
 
@@ -219,9 +221,7 @@ function stringMatchToMode(sm: {
 // the list and the editor can address rows individually (update/delete a single
 // condition without touching its siblings). We mint a fresh UUID on read here;
 // it's discarded again on save by toSentinelPolicy.
-function fromMatchExpr(
-  expr: Record<string, unknown>,
-): MatchConditionFormValues {
+function fromMatchExpr(expr: Record<string, unknown>): MatchConditionFormValues {
   const id = crypto.randomUUID();
   if ("path" in expr) {
     const p = expr.path as { path: { exact?: string; prefix?: string; regex?: string } };

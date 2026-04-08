@@ -41,6 +41,7 @@ export function AccordionSection({
                 <span
                   className="ml-0.5 inline-flex items-center text-gray-9 hover:text-gray-11"
                   onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
                 >
                   <CircleInfo iconSize="md-medium" aria-hidden="true" />
                   <span className="sr-only">More info</span>

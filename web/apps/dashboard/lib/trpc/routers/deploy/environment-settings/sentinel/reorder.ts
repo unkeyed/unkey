@@ -21,16 +21,12 @@ export const reorder = workspaceProcedure
     return { policyIds: reordered.map((p) => p.id) };
   });
 
-
 /**
  * Unknown ids in the input are dropped; current ids
  * the client didn't mention (e.g. a teammate just added one) keep their
  * original positions appended at the end.
  * */
-function reconcileOrder(
-  current: SentinelPolicy[],
-  requestedIds: string[],
-): SentinelPolicy[] {
+function reconcileOrder(current: SentinelPolicy[], requestedIds: string[]): SentinelPolicy[] {
   const byId = new Map(current.map((p) => [p.id, p]));
 
   const fromClient = Array.from(new Set(requestedIds))

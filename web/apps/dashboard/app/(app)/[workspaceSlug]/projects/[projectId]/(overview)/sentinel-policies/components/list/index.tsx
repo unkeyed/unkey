@@ -57,9 +57,15 @@ export function SentinelPoliciesList({
       // the full merged-id sequence to each env independently.
       const orderedIds = next.map((m) => m.id);
       const envs: ("envA" | "envB")[] = [];
-      if (item.envA !== null) envs.push("envA");
-      if (item.envB !== null) envs.push("envB");
-      if (envs.length > 0) onReorder(envs, orderedIds);
+      if (item.envA !== null) {
+        envs.push("envA");
+      }
+      if (item.envB !== null) {
+        envs.push("envB");
+      }
+      if (envs.length > 0) {
+        onReorder(envs, orderedIds);
+      }
       setDragSrcIndex(null);
       setDragOverIndex(null);
     },
