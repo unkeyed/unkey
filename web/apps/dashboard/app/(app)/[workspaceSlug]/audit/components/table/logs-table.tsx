@@ -27,6 +27,12 @@ export const AuditLogsTable = ({ selectedLog, setSelectedLog, onMount }: Props) 
     onMount(distanceToTop);
   }, [onMount]);
 
+  useEffect(() => {
+    if (selectedLog && !auditLogs.some((log) => log.auditLog.id === selectedLog.auditLog.id)) {
+      setSelectedLog(null);
+    }
+  }, [auditLogs, selectedLog, setSelectedLog]);
+
   const columns = useMemo(() => createAuditLogColumns({ selectedLog }), [selectedLog]);
 
   return (

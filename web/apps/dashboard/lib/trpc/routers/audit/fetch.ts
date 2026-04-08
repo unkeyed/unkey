@@ -51,7 +51,7 @@ export const fetchAuditLog = workspaceProcedure
         with: {
           targets: true,
         },
-        orderBy: (table, { desc }) => desc(table.time),
+        orderBy: (table, { desc }) => [desc(table.time), desc(table.id)],
         limit: pageSize,
         offset,
       }),

@@ -15,7 +15,9 @@ export const ActorCell = ({ log }: ActorCellProps) => {
       <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
         {isUser ? (
           <span className="text-xs whitespace-nowrap secret truncate">
-            {`${user.firstName ?? ""} ${user.lastName ?? ""}`}
+            {`${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+              user.username ||
+              log.auditLog.actor.id}
           </span>
         ) : (
           <>
