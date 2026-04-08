@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -15,39 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	handler "github.com/unkeyed/unkey/svc/sentinel/routes/proxy"
 	"go.opentelemetry.io/otel/attribute"
-)
-
-var (
-	sentinelRequestsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "sentinel",
-			Name:      "requests_total",
-			Help:      "Total number of requests processed by sentinel",
-		},
-		[]string{"status_code", "error_type", "region"},
-	)
-
-	sentinelRequestDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "unkey",
-			Subsystem: "sentinel",
-			Name:      "request_duration_seconds",
-			Help:      "Request duration in seconds",
-			Buckets:   prometheus.DefBuckets,
-		},
-		[]string{"status_code", "error_type", "region"},
-	)
-
-	sentinelActiveRequests = promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "unkey",
-			Subsystem: "sentinel",
-			Name:      "active_requests",
-			Help:      "Number of requests currently being processed",
-		},
-		[]string{"region"},
-	)
 )
 
 type ErrorResponse struct {
@@ -208,7 +173,7 @@ func categorizeErrorType(urn codes.URN, statusCode int, hasError bool) string {
 	return "none"
 }
 
-func WithObservability(environmentID, region string) zen.Middleware {
+func WithObservability(metrics *Metrics, environmentID, region string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			startTime := time.Now()
@@ -225,8 +190,8 @@ func WithObservability(environmentID, region string) zen.Middleware {
 			)
 			defer span.End()
 
-			sentinelActiveRequests.WithLabelValues(region).Inc()
-			defer sentinelActiveRequests.WithLabelValues(region).Dec()
+			metrics.ActiveRequests.WithLabelValues(region).Inc()
+			defer metrics.ActiveRequests.WithLabelValues(region).Dec()
 
 			err := next(ctx, s)
 
@@ -309,8 +274,8 @@ func WithObservability(environmentID, region string) zen.Middleware {
 				"region", region,
 			)
 
-			sentinelRequestsTotal.WithLabelValues(statusStr, errorType, region).Inc()
-			sentinelRequestDuration.WithLabelValues(statusStr, errorType, region).Observe(duration)
+			metrics.RequestsTotal.WithLabelValues(statusStr, errorType, region).Inc()
+			metrics.RequestDuration.WithLabelValues(statusStr, errorType, region).Observe(duration)
 
 			return nil
 		}

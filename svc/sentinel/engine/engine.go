@@ -23,6 +23,7 @@ const PrincipalHeader = "X-Unkey-Principal"
 type Config struct {
 	KeyService keys.KeyService
 	Clock      clock.Clock
+	Metrics    *Metrics
 }
 
 // Evaluator evaluates sentinel middleware policies against incoming requests.
@@ -34,6 +35,7 @@ type Evaluator interface {
 type Engine struct {
 	keyAuth    *KeyAuthExecutor
 	regexCache *regexCache
+	metrics    *Metrics
 }
 
 var _ Evaluator = (*Engine)(nil)
@@ -51,6 +53,7 @@ func New(cfg Config) *Engine {
 			clock:      cfg.Clock,
 		},
 		regexCache: newRegexCache(),
+		metrics:    cfg.Metrics,
 	}
 }
 
@@ -110,22 +113,22 @@ func (e *Engine) Evaluate(
 		case *sentinelv1.Policy_Keyauth:
 			// Skip if we already have a principal from a previous auth policy
 			if result.Principal != nil {
-				sentinelEngineEvaluationsTotal.WithLabelValues("keyauth", "skipped").Inc()
+				e.metrics.EvaluationsTotal.WithLabelValues("keyauth", "skipped").Inc()
 				continue
 			}
 
 			t := time.Now()
 			principal, execErr := e.keyAuth.Execute(ctx, sess, req, cfg.Keyauth)
-			sentinelEngineEvaluationDuration.WithLabelValues("keyauth").Observe(time.Since(t).Seconds())
+			e.metrics.EvaluationDuration.WithLabelValues("keyauth").Observe(time.Since(t).Seconds())
 
 			if execErr != nil {
-				sentinelEngineEvaluationsTotal.WithLabelValues("keyauth", classifyKeyauthError(execErr)).Inc()
+				e.metrics.EvaluationsTotal.WithLabelValues("keyauth", classifyKeyauthError(execErr)).Inc()
 				return result, execErr
 			}
 
 			if principal != nil {
 				result.Principal = principal
-				sentinelEngineEvaluationsTotal.WithLabelValues("keyauth", "success").Inc()
+				e.metrics.EvaluationsTotal.WithLabelValues("keyauth", "success").Inc()
 			}
 
 		// Future policy types will be added here:

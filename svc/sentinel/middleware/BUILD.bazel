@@ -21,7 +21,6 @@ go_library(
         "//pkg/zen",
         "//svc/sentinel/routes/proxy",
         "@com_github_prometheus_client_golang//prometheus",
-        "@com_github_prometheus_client_golang//prometheus/promauto",
         "@io_opentelemetry_go_otel//attribute",
     ],
 )

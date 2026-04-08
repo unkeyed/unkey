@@ -20,6 +20,5 @@ go_library(
         "//svc/sentinel/engine",
         "//svc/sentinel/services/router",
         "@com_github_prometheus_client_golang//prometheus",
-        "@com_github_prometheus_client_golang//prometheus/promauto",
     ],
 )

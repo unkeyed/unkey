@@ -13,11 +13,17 @@ import (
 	proxy "github.com/unkeyed/unkey/svc/sentinel/routes/proxy"
 )
 
-func Register(srv *zen.Server, svc *Services) {
+// AllMetrics holds all metrics structs needed for route registration.
+type AllMetrics struct {
+	Middleware *middleware.Metrics
+	Proxy      *proxy.Metrics
+}
+
+func Register(srv *zen.Server, svc *Services, metrics *AllMetrics) {
 	withPanicRecovery := zen.WithPanicRecovery(panicmetrics.NewMetrics(prometheus.DefaultRegisterer))
-	withObservability := middleware.WithObservability(svc.EnvironmentID, svc.Region)
+	withObservability := middleware.WithObservability(metrics.Middleware, svc.EnvironmentID, svc.Region)
 	withSentinelLogging := middleware.WithSentinelLogging(svc.SentinelRequests, svc.Clock, svc.SentinelID, svc.Region, svc.Platform)
-	withProxyErrorHandling := middleware.WithProxyErrorHandling()
+	withProxyErrorHandling := middleware.WithProxyErrorHandling(metrics.Middleware)
 	withTimeout := zen.WithTimeout(svc.RequestTimeout)
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
 	defaultMiddlewares := []zen.Middleware{
@@ -61,6 +67,7 @@ func Register(srv *zen.Server, svc *Services) {
 			Region:             svc.Region,
 			MaxRequestBodySize: svc.MaxRequestBodySize,
 			Engine:             svc.Engine,
+			Metrics:            metrics.Proxy,
 		},
 	)
 }

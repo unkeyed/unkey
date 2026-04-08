@@ -2,31 +2,43 @@ package handler
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-var (
-	upstreamResponseTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "sentinel",
-			Name:      "upstream_response_total",
-			Help:      "Total number of upstream responses by status class.",
-		},
-		[]string{"status_class"},
-	)
+// Metrics holds all Prometheus metrics for the proxy handler package.
+type Metrics struct {
+	UpstreamResponseTotal *prometheus.CounterVec
+	UpstreamDuration      *prometheus.HistogramVec
+}
 
-	upstreamDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "unkey",
-			Subsystem: "sentinel",
-			Name:      "upstream_duration_seconds",
-			Help:      "Backend response latency in seconds by status class, excluding sentinel overhead.",
-			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
-		},
-		[]string{"status_class"},
-	)
-)
+// NewMetrics creates and registers all proxy handler metrics with the given registerer.
+func NewMetrics(reg prometheus.Registerer) *Metrics {
+	m := &Metrics{
+		UpstreamResponseTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "sentinel",
+				Name:      "upstream_response_total",
+				Help:      "Total number of upstream responses by status class.",
+			},
+			[]string{"status_class"},
+		),
+		UpstreamDuration: prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Namespace: "unkey",
+				Subsystem: "sentinel",
+				Name:      "upstream_duration_seconds",
+				Help:      "Backend response latency in seconds by status class, excluding sentinel overhead.",
+				Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
+			},
+			[]string{"status_class"},
+		),
+	}
+
+	reg.MustRegister(m.UpstreamResponseTotal)
+	reg.MustRegister(m.UpstreamDuration)
+
+	return m
+}
 
 func upstreamStatusClass(code int) string {
 	switch {

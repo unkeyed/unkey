@@ -32,6 +32,7 @@ type service struct {
 	environmentID string
 	platform      string
 	region        string
+	metrics       *Metrics
 
 	// deploymentID -> deployment
 	deploymentCache cache.Cache[string, db.Deployment]
@@ -183,6 +184,7 @@ func New(cfg Config) (*service, error) {
 		environmentID:   cfg.EnvironmentID,
 		platform:        cfg.Platform,
 		region:          cfg.Region,
+		metrics:         cfg.Metrics,
 		deploymentCache: deploymentCache,
 		instancesCache:  instancesCache,
 		policyCache:     policyCache,
@@ -248,10 +250,10 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 		return db.Query.FindDeploymentById(ctx, s.db.RO(), deploymentID)
 	}, caches.DefaultFindFirstOp)
 
-	sentinelRoutingDuration.WithLabelValues("get_deployment").Observe(time.Since(t).Seconds())
+	s.metrics.RoutingDuration.WithLabelValues("get_deployment").Observe(time.Since(t).Seconds())
 
 	if err != nil && !db.IsNotFound(err) {
-		sentinelDeploymentLookupTotal.WithLabelValues("error").Inc()
+		s.metrics.DeploymentLookupTotal.WithLabelValues("error").Inc()
 		return db.Deployment{}, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
 			fault.Internal("failed to get deployment"),
@@ -259,7 +261,7 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 	}
 
 	if hit == cache.Null || db.IsNotFound(err) {
-		sentinelDeploymentLookupTotal.WithLabelValues("not_found").Inc()
+		s.metrics.DeploymentLookupTotal.WithLabelValues("not_found").Inc()
 		return db.Deployment{}, fault.New("deployment not found",
 			fault.Code(codes.Sentinel.Routing.DeploymentNotFound.URN()),
 			fault.Internal("no deployment found for ID or wrong environment"),
@@ -274,7 +276,7 @@ func (s *service) GetDeployment(ctx context.Context, deploymentID string) (db.De
 			"sentinelEnv", s.environmentID,
 		)
 
-		sentinelDeploymentLookupTotal.WithLabelValues("not_found").Inc()
+		s.metrics.DeploymentLookupTotal.WithLabelValues("not_found").Inc()
 		// Return as not found to avoid leaking information about deployments in other environments
 		return db.Deployment{}, fault.New("deployment not found",
 			fault.Code(codes.Sentinel.Routing.DeploymentNotFound.URN()),
@@ -309,10 +311,10 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 		)
 	}, caches.DefaultFindFirstOp)
 
-	sentinelRoutingDuration.WithLabelValues("select_instance").Observe(time.Since(t).Seconds())
+	s.metrics.RoutingDuration.WithLabelValues("select_instance").Observe(time.Since(t).Seconds())
 
 	if err != nil {
-		sentinelInstanceSelectionTotal.WithLabelValues("error").Inc()
+		s.metrics.InstanceSelectionTotal.WithLabelValues("error").Inc()
 		return db.Instance{}, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
 			fault.Internal("failed to get instances"),
@@ -320,7 +322,7 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 	}
 
 	if hit == cache.Null || len(instances) == 0 {
-		sentinelInstanceSelectionTotal.WithLabelValues("no_instances").Inc()
+		s.metrics.InstanceSelectionTotal.WithLabelValues("no_instances").Inc()
 		return db.Instance{}, fault.New("no instances found",
 			fault.Code(codes.Sentinel.Routing.NoRunningInstances.URN()),
 			fault.Internal(fmt.Sprintf("no instances for deployment %s in region %s", deploymentID, s.region)),
@@ -336,7 +338,7 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 	}
 
 	if len(runningInstances) == 0 {
-		sentinelInstanceSelectionTotal.WithLabelValues("no_running_instances").Inc()
+		s.metrics.InstanceSelectionTotal.WithLabelValues("no_running_instances").Inc()
 		return db.Instance{}, fault.New("no running instances",
 			fault.Code(codes.Sentinel.Routing.NoRunningInstances.URN()),
 			fault.Internal(fmt.Sprintf("no running instances for deployment %s in region %s (found %d total)", deploymentID, s.region, len(instances))),
@@ -344,7 +346,7 @@ func (s *service) SelectInstance(ctx context.Context, deploymentID string) (db.I
 		)
 	}
 
-	sentinelInstanceSelectionTotal.WithLabelValues("success").Inc()
+	s.metrics.InstanceSelectionTotal.WithLabelValues("success").Inc()
 	selected := array.Random(runningInstances)
 	return selected, nil
 }

@@ -21,7 +21,6 @@ go_library(
         "//pkg/rbac",
         "//pkg/zen",
         "@com_github_prometheus_client_golang//prometheus",
-        "@com_github_prometheus_client_golang//prometheus/promauto",
         "@org_golang_google_protobuf//encoding/protojson",
     ],
 )

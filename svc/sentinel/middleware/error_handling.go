@@ -16,7 +16,7 @@ import (
 )
 
 // WithProxyErrorHandling categorizes proxy errors and sets response status for logging.
-func WithProxyErrorHandling() zen.Middleware {
+func WithProxyErrorHandling(metrics *Metrics) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			err := next(ctx, s)
@@ -48,7 +48,7 @@ func WithProxyErrorHandling() zen.Middleware {
 			}
 
 			// Categorize error and wrap with instance context
-			sentinelProxyErrorsTotal.WithLabelValues(categorizeProxyErrorTypeForMetrics(err)).Inc()
+			metrics.ProxyErrorsTotal.WithLabelValues(categorizeProxyErrorTypeForMetrics(err)).Inc()
 			urn, message := categorizeProxyError(err)
 
 			var instanceID, instanceAddress, deploymentID string

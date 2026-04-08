@@ -28,6 +28,7 @@ type Handler struct {
 	Region             string
 	MaxRequestBodySize int64
 	Engine             engine.Evaluator
+	Metrics            *Metrics
 }
 
 func (h *Handler) Method() string {
@@ -162,9 +163,9 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 				// Record upstream metrics
 				statusClass := upstreamStatusClass(resp.StatusCode)
-				upstreamResponseTotal.WithLabelValues(statusClass).Inc()
+				h.Metrics.UpstreamResponseTotal.WithLabelValues(statusClass).Inc()
 				if !tracking.InstanceStart.IsZero() {
-					upstreamDuration.WithLabelValues(statusClass).Observe(tracking.InstanceEnd.Sub(tracking.InstanceStart).Seconds())
+					h.Metrics.UpstreamDuration.WithLabelValues(statusClass).Observe(tracking.InstanceEnd.Sub(tracking.InstanceStart).Seconds())
 				}
 
 				// Capture response body for logging

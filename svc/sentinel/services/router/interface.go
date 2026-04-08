@@ -44,4 +44,6 @@ type Config struct {
 
 	// BufferMetrics provides metrics for buffer operations in cluster cache invalidation.
 	BufferMetrics *buffermetrics.Metrics
+
+	Metrics *Metrics
 }

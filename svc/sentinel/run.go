@@ -40,7 +40,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/sentinel/engine"
+	"github.com/unkeyed/unkey/svc/sentinel/middleware"
 	"github.com/unkeyed/unkey/svc/sentinel/routes"
+	proxy "github.com/unkeyed/unkey/svc/sentinel/routes/proxy"
 	"github.com/unkeyed/unkey/svc/sentinel/services/router"
 )
 
@@ -202,6 +204,8 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
+	routerMetrics := router.NewMetrics(prom_sdk.DefaultRegisterer)
+
 	routerSvc, err := router.New(router.Config{
 		DB:                database,
 		Clock:             clk,
@@ -214,6 +218,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ClusteringMetrics: clusteringmetrics.NoopMetrics(),
 		BatchMetrics:      batchmetrics.NoopMetrics(),
 		BufferMetrics:     buffermetrics.NoopMetrics(),
+		Metrics:           routerMetrics,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create router service: %w", err)
@@ -259,7 +264,13 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 	r.DeferCtx(srv.Shutdown)
 
-	routes.Register(srv, svcs)
+	middlewareMetrics := middleware.NewMetrics(prom_sdk.DefaultRegisterer)
+	proxyMetrics := proxy.NewMetrics(prom_sdk.DefaultRegisterer)
+
+	routes.Register(srv, svcs, &routes.AllMetrics{
+		Middleware: middlewareMetrics,
+		Proxy:      proxyMetrics,
+	})
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
 	if err != nil {
@@ -372,9 +383,12 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 		return nil, fmt.Errorf("failed to create key service: %w", err)
 	}
 
+	engineMetrics := engine.NewMetrics(prom_sdk.DefaultRegisterer)
+
 	logger.Info("middleware engine initialized")
 	return engine.New(engine.Config{
 		KeyService: keyService,
 		Clock:      clk,
+		Metrics:    engineMetrics,
 	}), nil
 }
