@@ -87,8 +87,8 @@ const createMetaContent = (log: SupportedLogTypes) => {
   }
 
   // Standard log meta handling
-  if ("request_body" in log || "response_body" in log) {
-    const meta = extractResponseField(log as Log | EnrichedRatelimitLog, "meta");
+  if (isStandardLog(log)) {
+    const meta = extractResponseField(log, "meta");
     return JSON.stringify(meta, null, 2) === "null" ? (
       <span className="text-xs text-accent-12 truncate">{EMPTY_TEXT}</span>
     ) : (
