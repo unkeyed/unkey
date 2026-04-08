@@ -3,13 +3,15 @@
 import { collection } from "@/lib/collections";
 import type { SentinelPolicy } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useProjectData } from "../data-provider";
 import { useOptionalProjectLayout } from "../layout-provider";
 import { SentinelPolicyAddPanel } from "./components/add-panel";
+import { SentinelPoliciesList } from "./components/list";
 import { SentinelPoliciesEmpty } from "./components/list/empty";
 import { SentinelPoliciesHeader } from "./components/list/header";
-import { SentinelPoliciesList } from "./components/list";
+import { SentinelPoliciesUnsavedBar } from "./components/list/sentinel-policies-unsaved-bar";
+import { useSentinelDraft } from "./components/list/use-sentinel-draft";
 
 export function SentinelPoliciesContent() {
   const { environments } = useProjectData();
@@ -38,10 +40,12 @@ export function SentinelPoliciesContent() {
   const policiesA = dataA.at(0)?.sentinelConfig?.policies ?? [];
   const policiesB = dataB.at(0)?.sentinelConfig?.policies ?? [];
 
-  const policyCount = useMemo(() => {
-    const ids = new Set([...policiesA.map((p) => p.id), ...policiesB.map((p) => p.id)]);
-    return ids.size;
-  }, [policiesA, policiesB]);
+  const { merged, hasPending, actions, save, discard } = useSentinelDraft({
+    envAId,
+    envBId,
+    policiesA,
+    policiesB,
+  });
 
   const handleAddPolicy = useCallback(() => setIsAddPanelOpen(true), []);
 
@@ -65,22 +69,37 @@ export function SentinelPoliciesContent() {
     [envAId, envBId],
   );
 
+  const handleDelete = useCallback(
+    (id: string) => {
+      collection.environmentSettings.update(envAId, (draft) => {
+        draft.sentinelConfig = {
+          policies: (draft.sentinelConfig?.policies ?? []).filter((p) => p.id !== id),
+        };
+      });
+      collection.environmentSettings.update(envBId, (draft) => {
+        draft.sentinelConfig = {
+          policies: (draft.sentinelConfig?.policies ?? []).filter((p) => p.id !== id),
+        };
+      });
+    },
+    [envAId, envBId],
+  );
+
   return (
     <div className="flex flex-col gap-5">
       <SentinelPoliciesHeader onAddPolicy={handleAddPolicy} />
-      {policyCount === 0 ? (
+      {merged.length === 0 ? (
         <SentinelPoliciesEmpty />
       ) : (
         <SentinelPoliciesList
-          envAId={envAId}
-          envBId={envBId}
           envASlug={envA?.slug ?? "production"}
           envBSlug={envB?.slug ?? "preview"}
-          policiesA={policiesA}
-          policiesB={policiesB}
-          topOffset={layout?.tableDistanceToTop ?? 0}
+          merged={merged}
+          actions={actions}
+          onDelete={handleDelete}
         />
       )}
+      <SentinelPoliciesUnsavedBar hasPending={hasPending} onSave={save} onDiscard={discard} />
       <SentinelPolicyAddPanel
         envASlug={envA?.slug ?? "production"}
         envBSlug={envB?.slug ?? "preview"}

@@ -221,8 +221,8 @@ export function SentinelPolicyAddPanel({
               onToggle={() => toggleSection("matchConditions")}
               tooltipContent={
                 <span>
-                  All conditions must match (
-                  <span className="text-gray-12 font-medium">AND</span> logic).
+                  All conditions must match (<span className="text-gray-12 font-medium">AND</span>{" "}
+                  logic).
                 </span>
               }
             >
