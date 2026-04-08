@@ -7,6 +7,8 @@ CREATE TABLE `instances` (
 	`app_id` varchar(64) NOT NULL,
 	`region_id` varchar(64) NOT NULL,
 	`k8s_name` varchar(255) NOT NULL,
+	-- Not uniquely constrained per region: Kubernetes recycles pod IPs, so a new
+	-- pod can receive an address previously held by a pod in a different deployment.
 	`address` varchar(255) NOT NULL,
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
@@ -14,7 +16,6 @@ CREATE TABLE `instances` (
 	`status` enum('inactive','pending','running','failed') NOT NULL,
 	CONSTRAINT `instances_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `instances_id_unique` UNIQUE(`id`),
-	CONSTRAINT `unique_address_per_region` UNIQUE(`address`,`region_id`),
 	CONSTRAINT `unique_k8s_name_per_region` UNIQUE(`k8s_name`,`region_id`)
 );
 
