@@ -19,6 +19,5 @@ go_library(
         "//svc/frontline/routes/proxy",
         "//svc/frontline/services/proxy",
         "//svc/frontline/services/router",
-        "@com_github_prometheus_client_golang//prometheus",
     ],
 )

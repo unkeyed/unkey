@@ -6,14 +6,13 @@
 //
 // # Usage
 //
-// Start the metrics server on a dedicated port, typically in a goroutine since
-// [Serve] blocks until the server stops or encounters an error:
+// Create a per-service registry, register standard Go and process collectors,
+// then create a server with [NewWithRegistry]:
 //
-//	go func() {
-//	    if err := prometheus.Serve(":9090"); err != nil {
-//	        log.Printf("metrics server error: %v", err)
-//	    }
-//	}()
+//	reg := promclient.NewRegistry()
+//	reg.MustRegister(collectors.NewGoCollector())
+//	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+//	prom, err := prometheus.NewWithRegistry(reg)
 //
 // # Architecture
 //

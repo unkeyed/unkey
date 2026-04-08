@@ -60,6 +60,9 @@ type ClientConfig struct {
 	// WebhookSecret is the shared secret for verifying webhook signatures.
 	// Set this in the GitHub App settings under "Webhook secret".
 	WebhookSecret string
+
+	// CacheMetrics for internal caches.
+	CacheMetrics *cachemetrics.Metrics
 }
 
 // Ensure Client implements GitHubClient
@@ -98,7 +101,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 		MaxSize:  10_000,
 		Resource: "github_installation_token",
 		Clock:    clock.New(),
-		Metrics:  cachemetrics.NoopMetrics(),
+		Metrics:  config.CacheMetrics,
 	})
 	if err != nil {
 		return nil, err
@@ -110,7 +113,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 		MaxSize:  10_000,
 		Resource: "github_collaborator",
 		Clock:    clock.New(),
-		Metrics:  cachemetrics.NoopMetrics(),
+		Metrics:  config.CacheMetrics,
 	})
 	if err != nil {
 		return nil, err

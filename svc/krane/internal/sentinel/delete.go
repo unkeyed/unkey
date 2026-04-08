@@ -6,7 +6,6 @@ import (
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -19,7 +18,7 @@ import (
 // cascading, ensuring cleanup completes even if ownership wasn't set correctly.
 // Not-found errors are ignored since the desired end state is already achieved.
 func (c *Controller) DeleteSentinel(ctx context.Context, req *ctrlv1.DeleteSentinel) (retErr error) {
-	defer func() { metrics.RecordReconcile("sentinel", "delete", retErr) }()
+	defer func() { c.metrics.RecordReconcile("sentinel", "delete", retErr) }()
 	logger.Info("deleting sentinel",
 		"namespace", NamespaceSentinel,
 		"name", req.GetK8SName(),

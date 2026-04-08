@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	panicmetrics "github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -17,10 +16,11 @@ import (
 type AllMetrics struct {
 	Middleware *middleware.Metrics
 	Proxy      *proxy.Metrics
+	Panic      *panicmetrics.Metrics
 }
 
 func Register(srv *zen.Server, svc *Services, metrics *AllMetrics) {
-	withPanicRecovery := zen.WithPanicRecovery(panicmetrics.NewMetrics(prometheus.DefaultRegisterer))
+	withPanicRecovery := zen.WithPanicRecovery(metrics.Panic)
 	withObservability := middleware.WithObservability(metrics.Middleware, svc.EnvironmentID, svc.Region)
 	withSentinelLogging := middleware.WithSentinelLogging(svc.SentinelRequests, svc.Clock, svc.SentinelID, svc.Region, svc.Platform)
 	withProxyErrorHandling := middleware.WithProxyErrorHandling(metrics.Middleware)

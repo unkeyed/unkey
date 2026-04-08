@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	promclient "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
@@ -28,6 +30,7 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
 	"github.com/unkeyed/unkey/svc/krane/internal/watcher"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
+	kranemetrics "github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -78,6 +81,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
+	reg := promclient.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	//nolint:exhaustruct
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+
+	kraneMetrics := kranemetrics.NewMetrics(reg)
+
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
 		URL:         cfg.Control.URL,
 		BearerToken: cfg.Control.Token,
@@ -119,6 +129,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DynamicClient: dynamicClient,
 		Cluster:       cluster,
 		Region:        cfg.Region,
+		Metrics:       kraneMetrics,
 	})
 	if err := ciliumCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start cilium controller: %w", err)
@@ -139,7 +150,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MaxSize:  10_000,
 		Resource: "deployment_fingerprints",
 		Clock:    clock.New(),
-		Metrics:  cachemetrics.NoopMetrics(),
+		Metrics:  cachemetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create fingerprint cache: %w", err)
@@ -156,6 +167,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Registry:         registryCfg,
 		Fingerprints:     fingerprintCache,
 		StorageClassName: cfg.StorageClassName,
+		Metrics:          kraneMetrics,
 	})
 	if err := deploymentCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start deployment controller: %w", err)
@@ -169,6 +181,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Cluster:       cluster,
 		Region:        cfg.Region,
 		Platform:      cfg.Platform,
+		Metrics:       kraneMetrics,
 	})
 	if err := sentinelCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start sentinel controller: %w", err)
@@ -184,6 +197,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Cilium:      ciliumCtrl,
 		Region:      cfg.Region,
 		Platform:    cfg.Platform,
+		Metrics:     kraneMetrics,
 	})
 	r.Go(w.Watch)
 
@@ -227,7 +241,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 
-		prom, err := prometheus.New()
+		prom, err := prometheus.NewWithRegistry(reg)
 		if err != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", err)
 		}

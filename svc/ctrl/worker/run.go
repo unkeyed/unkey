@@ -12,6 +12,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/go-acme/lego/v4/challenge"
+	promclient "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	restate "github.com/restatedev/sdk-go"
 	restateServer "github.com/restatedev/sdk-go/server"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -110,6 +112,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
+	reg := promclient.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	//nolint:exhaustruct
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+
 	// Create vault client for remote vault service
 	var vaultClient vault.VaultServiceClient
 	if cfg.Vault.URL != "" {
@@ -127,7 +134,7 @@ func Run(ctx context.Context, cfg Config) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
-		Metrics:     mysqlmetrics.NoopMetrics(),
+		Metrics:     mysqlmetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -142,6 +149,7 @@ func Run(ctx context.Context, cfg Config) error {
 			AppID:         cfg.GitHub.AppID,
 			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
 			WebhookSecret: "",
+			CacheMetrics:  cachemetrics.NewMetrics(reg),
 		})
 		if ghErr != nil {
 			return fmt.Errorf("failed to create GitHub client: %w", ghErr)
@@ -173,8 +181,8 @@ func Run(ctx context.Context, cfg Config) error {
 				Consumers:     1,
 				Drop:          true,
 				OnFlushError:  nil,
-				BatchMetrics:  batchmetrics.NoopMetrics(),
-				BufferMetrics: buffermetrics.NoopMetrics(),
+				BatchMetrics:  batchmetrics.NewMetrics(reg),
+				BufferMetrics: buffermetrics.NewMetrics(reg),
 			})
 			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](chClient, "default.build_step_logs_v1", clickhouse.BufferConfig{
 				Name:          "build_step_logs",
@@ -184,8 +192,8 @@ func Run(ctx context.Context, cfg Config) error {
 				Consumers:     1,
 				Drop:          true,
 				OnFlushError:  nil,
-				BatchMetrics:  batchmetrics.NoopMetrics(),
-				BufferMetrics: buffermetrics.NoopMetrics(),
+				BatchMetrics:  batchmetrics.NewMetrics(reg),
+				BufferMetrics: buffermetrics.NewMetrics(reg),
 			})
 
 			// Close connection last (LIFO: first registered closes last)
@@ -299,7 +307,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MaxSize:  10000,
 		Resource: "domains",
 		Clock:    clk,
-		Metrics:  cachemetrics.NoopMetrics(),
+		Metrics:  cachemetrics.NewMetrics(reg),
 	})
 	if domainCacheErr != nil {
 		return fmt.Errorf("failed to create domain cache: %w", domainCacheErr)
@@ -506,7 +514,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
-		prom, promErr := prometheus.New()
+		prom, promErr := prometheus.NewWithRegistry(reg)
 		if promErr != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", promErr)
 		}

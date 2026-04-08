@@ -8,6 +8,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
+	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -26,6 +27,7 @@ type Controller struct {
 	stopOnce      sync.Once
 	region        string
 	platform      string
+	metrics       *metrics.Metrics
 }
 
 // Config holds the configuration required to create a new [Controller].
@@ -35,6 +37,7 @@ type Config struct {
 	Platform      string
 	ClientSet     kubernetes.Interface
 	DynamicClient dynamic.Interface
+	Metrics       *metrics.Metrics
 }
 
 // New creates a [Controller] ready to be started with [Controller.Start].
@@ -48,6 +51,7 @@ func New(cfg Config) *Controller {
 		region:        cfg.Region,
 		platform:      cfg.Platform,
 		stopOnce:      sync.Once{},
+		metrics:       cfg.Metrics,
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -44,6 +45,8 @@ type Controller struct {
 
 	// storageClassName is the Kubernetes StorageClass for ephemeral volumes.
 	storageClassName string
+
+	metrics *metrics.Metrics
 }
 
 // Config holds the configuration required to create a new [Controller].
@@ -81,6 +84,9 @@ type Config struct {
 
 	// StorageClassName is the Kubernetes StorageClass for ephemeral volumes.
 	StorageClassName string
+
+	// Metrics holds the krane Prometheus metrics.
+	Metrics *metrics.Metrics
 }
 
 // New creates a [Controller] ready to be started with [Controller.Start].
@@ -107,6 +113,7 @@ func New(cfg Config) *Controller {
 		platform:         cfg.Platform,
 		fingerprints:     cfg.Fingerprints,
 		storageClassName: cfg.StorageClassName,
+		metrics:          cfg.Metrics,
 	}
 }
 

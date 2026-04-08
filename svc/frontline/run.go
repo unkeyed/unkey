@@ -10,7 +10,9 @@ import (
 	"net/http"
 
 	"connectrpc.com/connect"
-	prom_sdk "github.com/prometheus/client_golang/prometheus"
+
+	promclient "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
@@ -28,6 +30,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel"
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	panicmetrics "github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
@@ -101,8 +104,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
+	reg := promclient.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	//nolint:exhaustruct
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+
 	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.New()
+		prom, promErr := prometheus.NewWithRegistry(reg)
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
@@ -166,7 +174,7 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Warn("Vault not configured, dynamic TLS certificate decryption will be unavailable")
 	}
 
-	database, databaseClose, err := db.New(cfg.DatabaseURL, mysqlmetrics.NoopMetrics())
+	database, databaseClose, err := db.New(cfg.DatabaseURL, mysqlmetrics.NewMetrics(reg))
 	if err != nil {
 		return fmt.Errorf("unable to connect to database: %w", err)
 	}
@@ -195,7 +203,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		gossipCluster, clusterErr := cluster.New(cluster.Config{
-			Metrics:          clustermetrics.NewMetrics(prom_sdk.DefaultRegisterer),
+			Metrics:          clustermetrics.NewMetrics(reg),
 			Region:           cfg.Region,
 			NodeID:           cfg.InstanceID,
 			BindAddr:         cfg.Gossip.BindAddr,
@@ -212,7 +220,7 @@ func Run(ctx context.Context, cfg Config) error {
 				"error", clusterErr,
 			)
 		} else {
-			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster, clusteringmetrics.NoopMetrics())
+			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster, clusteringmetrics.NewMetrics(reg))
 			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
 			broadcaster = gossipBroadcaster
 			r.Defer(gossipCluster.Close)
@@ -226,10 +234,10 @@ func Run(ctx context.Context, cfg Config) error {
 		Clock:             clk,
 		Broadcaster:       broadcaster,
 		NodeID:            cfg.InstanceID,
-		CacheMetrics:      cachemetrics.NoopMetrics(),
-		ClusteringMetrics: clusteringmetrics.NoopMetrics(),
-		BatchMetrics:      batchmetrics.NoopMetrics(),
-		BufferMetrics:     buffermetrics.NoopMetrics(),
+		CacheMetrics:      cachemetrics.NewMetrics(reg),
+		ClusteringMetrics: clusteringmetrics.NewMetrics(reg),
+		BatchMetrics:      batchmetrics.NewMetrics(reg),
+		BufferMetrics:     buffermetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
@@ -250,9 +258,9 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Initialize metrics for each service
-	routerMetrics := router.NewMetrics(prom_sdk.DefaultRegisterer)
-	proxyMetrics := proxy.NewMetrics(prom_sdk.DefaultRegisterer)
-	middlewareMetrics := middleware.NewMetrics(prom_sdk.DefaultRegisterer)
+	routerMetrics := router.NewMetrics(reg)
+	proxyMetrics := proxy.NewMetrics(reg)
+	middlewareMetrics := middleware.NewMetrics(reg)
 
 	// Initialize router service
 	routerSvc, err := router.New(router.Config{
@@ -291,6 +299,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(ptr.P(http.Client{}), cfg.CtrlAddr))
 
+	panicMetrics := panicmetrics.NewMetrics(reg)
+
 	svcs := &routes.Services{
 		Region:            cfg.Region,
 		RouterService:     routerSvc,
@@ -299,6 +309,7 @@ func Run(ctx context.Context, cfg Config) error {
 		AcmeClient:        acmeClient,
 		ErrorPageRenderer: errorpage.NewRenderer(),
 		MiddlewareMetrics: middlewareMetrics,
+		PanicMetrics:      panicMetrics,
 	}
 
 	// Start HTTPS frontline server (main proxy server)

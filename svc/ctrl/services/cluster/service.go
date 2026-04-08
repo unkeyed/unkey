@@ -3,6 +3,7 @@ package cluster
 import (
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
 // Service implements [ctrlv1connect.ClusterServiceHandler] to synchronize desired state
@@ -11,8 +12,9 @@ import (
 // and status reporting endpoints for agents to report observed state back to the control plane.
 type Service struct {
 	ctrlv1connect.UnimplementedClusterServiceHandler
-	db     db.Database
-	bearer string
+	db      db.Database
+	bearer  string
+	metrics *metrics.Metrics
 }
 
 // Config holds the configuration for creating a new cluster [Service].
@@ -22,6 +24,9 @@ type Config struct {
 
 	// Bearer is the authentication token that agents must provide in the Authorization header.
 	Bearer string
+
+	// Metrics holds the ctrl Prometheus metrics.
+	Metrics *metrics.Metrics
 }
 
 // New creates a new cluster [Service] with the given configuration. The returned service
@@ -31,6 +36,7 @@ func New(cfg Config) *Service {
 		UnimplementedClusterServiceHandler: ctrlv1connect.UnimplementedClusterServiceHandler{},
 		db:                                 cfg.Database,
 		bearer:                             cfg.Bearer,
+		metrics:                            cfg.Metrics,
 	}
 }
 

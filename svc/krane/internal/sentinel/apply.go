@@ -14,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
-	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	sentinelcfg "github.com/unkeyed/unkey/svc/sentinel"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +37,7 @@ import (
 // ApplySentinel reports the available replica count back to the control plane after
 // applying, so the platform knows when the sentinel is ready to receive traffic.
 func (c *Controller) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentinel) (retErr error) {
-	defer func() { metrics.RecordReconcile("sentinel", "apply", retErr) }()
+	defer func() { c.metrics.RecordReconcile("sentinel", "apply", retErr) }()
 	logger.Info("applying sentinel",
 		"namespace", NamespaceSentinel,
 		"name", req.GetK8SName(),

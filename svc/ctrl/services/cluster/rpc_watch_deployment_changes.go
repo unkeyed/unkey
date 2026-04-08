@@ -14,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
-	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
 // changePageSize is the number of rows fetched per page when syncing deployment changes.
@@ -112,9 +111,9 @@ func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID stri
 		event, err := s.loadChangeEvent(ctx, change)
 		if err != nil {
 			if db.IsNotFound(err) {
-				metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "not_found").Inc()
+				s.metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "not_found").Inc()
 			} else {
-				metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "error").Inc()
+				s.metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "error").Inc()
 				logger.Error("failed to load state for deployment change",
 					"error", err,
 					"resource_type", change.ResourceType,
@@ -125,7 +124,7 @@ func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID stri
 			events = append(events, &ctrlv1.DeploymentChangeEvent{Version: change.Pk})
 			continue
 		}
-		metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "success").Inc()
+		s.metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "success").Inc()
 		if event != nil {
 			events = append(events, event)
 		}

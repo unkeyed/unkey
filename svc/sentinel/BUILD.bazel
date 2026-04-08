@@ -35,6 +35,7 @@ go_library(
         "//pkg/mysql/metrics",
         "//pkg/otel",
         "//pkg/prometheus",
+        "//pkg/prometheus/metrics",
         "//pkg/rbac",
         "//pkg/runner",
         "//pkg/version",
@@ -45,5 +46,6 @@ go_library(
         "//svc/sentinel/routes/proxy",
         "//svc/sentinel/services/router",
         "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/collectors",
     ],
 )

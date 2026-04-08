@@ -24,7 +24,8 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	ratelimitmetrics "github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 
-	prom_sdk "github.com/prometheus/client_golang/prometheus"
+	promclient "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	usagelimitermetrics "github.com/unkeyed/unkey/internal/services/usagelimiter/metrics"
 	"github.com/unkeyed/unkey/pkg/batch"
@@ -102,10 +103,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
+	reg := promclient.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	//nolint:exhaustruct
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
-		Metrics:     mysqlmetrics.NoopMetrics(),
+		Metrics:     mysqlmetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -114,7 +120,7 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(database.Close)
 
 	if cfg.Observability.Metrics != nil {
-		prom, promErr := prometheus.New()
+		prom, promErr := prometheus.NewWithRegistry(reg)
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
@@ -156,8 +162,8 @@ func Run(ctx context.Context, cfg Config) error {
 			Consumers:     2,
 			Drop:          true,
 			OnFlushError:  nil,
-			BatchMetrics:  batchmetrics.NoopMetrics(),
-			BufferMetrics: buffermetrics.NoopMetrics(),
+			BatchMetrics:  batchmetrics.NewMetrics(reg),
+			BufferMetrics: buffermetrics.NewMetrics(reg),
 		})
 		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
 			Name:          "key_verifications",
@@ -167,8 +173,8 @@ func Run(ctx context.Context, cfg Config) error {
 			Consumers:     2,
 			Drop:          true,
 			OnFlushError:  nil,
-			BatchMetrics:  batchmetrics.NoopMetrics(),
-			BufferMetrics: buffermetrics.NoopMetrics(),
+			BatchMetrics:  batchmetrics.NewMetrics(reg),
+			BufferMetrics: buffermetrics.NewMetrics(reg),
 		})
 		ratelimits = clickhouse.NewBuffer[schema.Ratelimit](chClient, "default.ratelimits_raw_v2", clickhouse.BufferConfig{
 			Name:          "ratelimits",
@@ -178,8 +184,8 @@ func Run(ctx context.Context, cfg Config) error {
 			Consumers:     2,
 			Drop:          true,
 			OnFlushError:  nil,
-			BatchMetrics:  batchmetrics.NoopMetrics(),
-			BufferMetrics: buffermetrics.NoopMetrics(),
+			BatchMetrics:  batchmetrics.NewMetrics(reg),
+			BufferMetrics: buffermetrics.NewMetrics(reg),
 		})
 
 		// Close buffers before connection (LIFO)
@@ -222,8 +228,8 @@ func Run(ctx context.Context, cfg Config) error {
 	rlSvc, err := ratelimit.New(ratelimit.Config{
 		Clock:         clk,
 		Counter:       ctr,
-		BufferMetrics: buffermetrics.NoopMetrics(),
-		Metrics:       ratelimitmetrics.NewMetrics(prom_sdk.DefaultRegisterer),
+		BufferMetrics: buffermetrics.NewMetrics(reg),
+		Metrics:       ratelimitmetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
@@ -250,8 +256,8 @@ func Run(ctx context.Context, cfg Config) error {
 		},
 		Counter:       ctr,
 		TTL:           60 * time.Second,
-		BufferMetrics: buffermetrics.NoopMetrics(),
-		Metrics:       usagelimitermetrics.NewMetrics(prom_sdk.DefaultRegisterer),
+		BufferMetrics: buffermetrics.NewMetrics(reg),
+		Metrics:       usagelimitermetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create usage limiter service: %w", err)
@@ -298,7 +304,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		gossipCluster, clusterErr := cluster.New(cluster.Config{
-			Metrics:          clustermetrics.NewMetrics(prom_sdk.DefaultRegisterer),
+			Metrics:          clustermetrics.NewMetrics(reg),
 			Region:           cfg.Region,
 			NodeID:           cfg.InstanceID,
 			BindAddr:         cfg.Gossip.BindAddr,
@@ -315,7 +321,7 @@ func Run(ctx context.Context, cfg Config) error {
 				"error", clusterErr,
 			)
 		} else {
-			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster, clusteringmetrics.NoopMetrics())
+			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster, clusteringmetrics.NewMetrics(reg))
 			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
 			broadcaster = gossipBroadcaster
 			r.Defer(gossipCluster.Close)
@@ -326,10 +332,10 @@ func Run(ctx context.Context, cfg Config) error {
 		Clock:             clk,
 		Broadcaster:       broadcaster,
 		NodeID:            cfg.InstanceID,
-		CacheMetrics:      cachemetrics.NoopMetrics(),
-		ClusteringMetrics: clusteringmetrics.NoopMetrics(),
-		BatchMetrics:      batchmetrics.NoopMetrics(),
-		BufferMetrics:     buffermetrics.NoopMetrics(),
+		CacheMetrics:      cachemetrics.NewMetrics(reg),
+		ClusteringMetrics: clusteringmetrics.NewMetrics(reg),
+		BatchMetrics:      batchmetrics.NewMetrics(reg),
+		BufferMetrics:     buffermetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
@@ -344,7 +350,7 @@ func Run(ctx context.Context, cfg Config) error {
 		KeyVerifications: keyVerifications,
 		Region:           cfg.Region,
 		UsageLimiter:     ulSvc,
-		Metrics:          keysmetrics.NewMetrics(prom_sdk.DefaultRegisterer),
+		Metrics:          keysmetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
@@ -362,7 +368,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Clock:         clk,
 			BaseURL:       cfg.ClickHouse.AnalyticsURL,
 			Vault:         vaultClient,
-			CacheMetrics:  cachemetrics.NoopMetrics(),
+			CacheMetrics:  cachemetrics.NewMetrics(reg),
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create analytics connection manager: %w", err)
@@ -411,7 +417,8 @@ func Run(ctx context.Context, cfg Config) error {
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,
 			Region: cfg.Region,
-		})
+		},
+		reg)
 
 	if cfg.Listener == nil {
 		// Create listener from HttpPort (production)

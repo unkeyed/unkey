@@ -4,6 +4,7 @@ import (
 	"context"
 
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
+	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -22,6 +23,7 @@ type Controller struct {
 	cluster       ctrl.ClusterServiceClient
 	done          chan struct{}
 	region        string
+	metrics       *metrics.Metrics
 }
 
 // Config holds the configuration required to create a new [Controller].
@@ -42,6 +44,9 @@ type Config struct {
 
 	// Region identifies the cluster region for filtering policy streams.
 	Region string
+
+	// Metrics holds the krane Prometheus metrics.
+	Metrics *metrics.Metrics
 }
 
 // New creates a [Controller] ready to be started with [Controller.Start].
@@ -56,6 +61,7 @@ func New(cfg Config) *Controller {
 		cluster:       cfg.Cluster,
 		done:          make(chan struct{}),
 		region:        cfg.Region,
+		metrics:       cfg.Metrics,
 	}
 }
 

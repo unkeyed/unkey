@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/clock"
+	panicmetrics "github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/middleware"
 	"github.com/unkeyed/unkey/svc/frontline/services/proxy"
@@ -17,4 +18,5 @@ type Services struct {
 	AcmeClient        ctrl.AcmeServiceClient
 	ErrorPageRenderer errorpage.Renderer
 	MiddlewareMetrics *middleware.Metrics
+	PanicMetrics      *panicmetrics.Metrics
 }

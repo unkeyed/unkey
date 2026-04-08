@@ -33,6 +33,7 @@ type Watcher struct {
 	sem         *semaphore.Weighted
 	region      string
 	platform    string
+	metrics     *metrics.Metrics
 }
 
 // Config holds the configuration for creating a new [Watcher].
@@ -43,6 +44,7 @@ type Config struct {
 	Cilium      *cilium.Controller
 	Region      string
 	Platform    string
+	Metrics     *metrics.Metrics
 }
 
 // New creates a [Watcher] ready to be started with [Watcher.Watch].
@@ -55,6 +57,7 @@ func New(cfg Config) *Watcher {
 		sem:         semaphore.NewWeighted(maxConcurrentDispatches),
 		region:      cfg.Region,
 		platform:    cfg.Platform,
+		metrics:     cfg.Metrics,
 	}
 }
 
@@ -91,15 +94,15 @@ func (s *Watcher) runStream(ctx context.Context) {
 			VersionLastSeen: versionLastSeen,
 		})
 		if err != nil {
-			metrics.StreamConnectionsTotal.WithLabelValues("error").Inc()
+			s.metrics.StreamConnectionsTotal.WithLabelValues("error").Inc()
 			logger.Error("stream: error opening connection", "error", err)
 			continue
 		}
-		metrics.StreamConnectionsTotal.WithLabelValues("success").Inc()
+		s.metrics.StreamConnectionsTotal.WithLabelValues("success").Inc()
 
 		for stream.Receive() {
 			event := stream.Msg()
-			metrics.StreamEventsReceivedTotal.Inc()
+			s.metrics.StreamEventsReceivedTotal.Inc()
 
 			if err := s.sem.Acquire(ctx, 1); err != nil {
 				break
@@ -108,16 +111,16 @@ func (s *Watcher) runStream(ctx context.Context) {
 				defer s.sem.Release(1)
 				resourceType := eventResourceType(event)
 				if err := s.dispatch(ctx, event); err != nil {
-					metrics.DispatchTotal.WithLabelValues("stream", resourceType, "error").Inc()
+					s.metrics.DispatchTotal.WithLabelValues("stream", resourceType, "error").Inc()
 					logger.Error("stream: error dispatching event", "error", err, "version", event.GetVersion())
 				} else {
-					metrics.DispatchTotal.WithLabelValues("stream", resourceType, "success").Inc()
+					s.metrics.DispatchTotal.WithLabelValues("stream", resourceType, "success").Inc()
 				}
 			}()
 
 			if event.GetVersion() > versionLastSeen {
 				versionLastSeen = event.GetVersion()
-				metrics.WatcherVersionLastSeen.Set(float64(versionLastSeen))
+				s.metrics.WatcherVersionLastSeen.Set(float64(versionLastSeen))
 			}
 		}
 
@@ -148,7 +151,7 @@ func (s *Watcher) runPeriodicFullSync(ctx context.Context) {
 }
 
 func (s *Watcher) doFullSync(ctx context.Context) {
-	metrics.WatcherFullSyncsTotal.Inc()
+	s.metrics.WatcherFullSyncsTotal.Inc()
 	start := time.Now()
 
 	stream, err := s.cluster.SyncDesiredState(ctx, &ctrlv1.SyncDesiredStateRequest{})
@@ -159,7 +162,7 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 
 	for stream.Receive() {
 		event := stream.Msg()
-		metrics.FullSyncEventsReceivedTotal.Inc()
+		s.metrics.FullSyncEventsReceivedTotal.Inc()
 
 		if err := s.sem.Acquire(ctx, 1); err != nil {
 			break
@@ -168,10 +171,10 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 			defer s.sem.Release(1)
 			resourceType := eventResourceType(event)
 			if err := s.dispatch(ctx, event); err != nil {
-				metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "error").Inc()
+				s.metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "error").Inc()
 				logger.Error("full sync: error dispatching event", "error", err)
 			} else {
-				metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "success").Inc()
+				s.metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "success").Inc()
 			}
 		}()
 	}
@@ -180,7 +183,7 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 		logger.Error("full sync: error closing connection", "error", err)
 	}
 
-	metrics.FullSyncDurationSeconds.Observe(time.Since(start).Seconds())
+	s.metrics.FullSyncDurationSeconds.Observe(time.Since(start).Seconds())
 }
 
 // eventResourceType returns a label-safe resource type string for metrics.

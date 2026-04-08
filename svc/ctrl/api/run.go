@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	promclient "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
@@ -24,6 +26,7 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/runner"
 	pkgversion "github.com/unkeyed/unkey/pkg/version"
+	ctrlmetrics "github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/app"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
@@ -86,11 +89,16 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
+	reg := promclient.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	//nolint:exhaustruct
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+
 	// Initialize database
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
-		Metrics:     mysqlmetrics.NoopMetrics(),
+		Metrics:     mysqlmetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -111,9 +119,12 @@ func Run(ctx context.Context, cfg Config) error {
 		APIKey:  cfg.Restate.APIKey,
 	})
 
+	ctrlM := ctrlmetrics.NewMetrics(reg)
+
 	c := cluster.New(cluster.Config{
 		Database: database,
 		Bearer:   cfg.AuthToken,
+		Metrics:  ctrlM,
 	})
 
 	// Initialize caches for ACME service (needed for certificate verification endpoint)
@@ -124,7 +135,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MaxSize:  10000,
 		Resource: "domains",
 		Clock:    clk,
-		Metrics:  cachemetrics.NoopMetrics(),
+		Metrics:  cachemetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create domain cache: %w", err)
@@ -136,7 +147,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MaxSize:  1000,
 		Resource: "acme_challenges",
 		Clock:    clk,
-		Metrics:  cachemetrics.NoopMetrics(),
+		Metrics:  cachemetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create challenge cache: %w", err)
@@ -149,6 +160,7 @@ func Run(ctx context.Context, cfg Config) error {
 			AppID:         cfg.GitHub.AppID,
 			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
 			WebhookSecret: cfg.GitHub.WebhookSecret,
+			CacheMetrics:  cachemetrics.NewMetrics(reg),
 		})
 		if ghErr != nil {
 			return fmt.Errorf("failed to create GitHub client: %w", ghErr)
@@ -275,7 +287,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.New()
+		prom, promErr := prometheus.NewWithRegistry(reg)
 		if promErr != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", promErr)
 		}

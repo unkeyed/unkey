@@ -9,7 +9,8 @@ import (
 	"net"
 	"time"
 
-	prom_sdk "github.com/prometheus/client_golang/prometheus"
+	promclient "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	keysmetrics "github.com/unkeyed/unkey/internal/services/keys/metrics"
@@ -35,6 +36,7 @@ import (
 	mysqlmetrics "github.com/unkeyed/unkey/pkg/mysql/metrics"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	panicmetrics "github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/version"
@@ -94,8 +96,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
+	reg := promclient.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	//nolint:exhaustruct
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
-		prom, promErr := prometheus.New()
+		prom, promErr := prometheus.NewWithRegistry(reg)
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
@@ -118,7 +125,7 @@ func Run(ctx context.Context, cfg Config) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
-		Metrics:     mysqlmetrics.NoopMetrics(),
+		Metrics:     mysqlmetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -145,8 +152,8 @@ func Run(ctx context.Context, cfg Config) error {
 			Consumers:     cfg.ClickHouse.Consumers,
 			Drop:          true,
 			OnFlushError:  nil,
-			BatchMetrics:  batchmetrics.NoopMetrics(),
-			BufferMetrics: buffermetrics.NoopMetrics(),
+			BatchMetrics:  batchmetrics.NewMetrics(reg),
+			BufferMetrics: buffermetrics.NewMetrics(reg),
 		})
 		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
 			Name:          "key_verifications",
@@ -156,8 +163,8 @@ func Run(ctx context.Context, cfg Config) error {
 			Consumers:     cfg.ClickHouse.Consumers,
 			Drop:          true,
 			OnFlushError:  nil,
-			BatchMetrics:  batchmetrics.NoopMetrics(),
-			BufferMetrics: buffermetrics.NoopMetrics(),
+			BatchMetrics:  batchmetrics.NewMetrics(reg),
+			BufferMetrics: buffermetrics.NewMetrics(reg),
 		})
 
 		// Close buffers before connection (LIFO)
@@ -180,7 +187,7 @@ func Run(ctx context.Context, cfg Config) error {
 		wanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.WANPort)
 
 		gossipCluster, clusterErr := cluster.New(cluster.Config{
-			Metrics:          clustermetrics.NewMetrics(prom_sdk.DefaultRegisterer),
+			Metrics:          clustermetrics.NewMetrics(reg),
 			Region:           cfg.Region,
 			NodeID:           cfg.SentinelID,
 			BindAddr:         cfg.Gossip.BindAddr,
@@ -197,14 +204,14 @@ func Run(ctx context.Context, cfg Config) error {
 				"error", clusterErr,
 			)
 		} else {
-			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster, clusteringmetrics.NoopMetrics())
+			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster, clusteringmetrics.NewMetrics(reg))
 			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
 			broadcaster = gossipBroadcaster
 			r.Defer(gossipCluster.Close)
 		}
 	}
 
-	routerMetrics := router.NewMetrics(prom_sdk.DefaultRegisterer)
+	routerMetrics := router.NewMetrics(reg)
 
 	routerSvc, err := router.New(router.Config{
 		DB:                database,
@@ -214,10 +221,10 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:            cfg.Region,
 		Broadcaster:       broadcaster,
 		NodeID:            cfg.SentinelID,
-		CacheMetrics:      cachemetrics.NoopMetrics(),
-		ClusteringMetrics: clusteringmetrics.NoopMetrics(),
-		BatchMetrics:      batchmetrics.NoopMetrics(),
-		BufferMetrics:     buffermetrics.NoopMetrics(),
+		CacheMetrics:      cachemetrics.NewMetrics(reg),
+		ClusteringMetrics: clusteringmetrics.NewMetrics(reg),
+		BatchMetrics:      batchmetrics.NewMetrics(reg),
+		BufferMetrics:     buffermetrics.NewMetrics(reg),
 		Metrics:           routerMetrics,
 	})
 	if err != nil {
@@ -227,7 +234,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize middleware engine for KeyAuth and other sentinel policies.
 	// Uses Redis if configured, in-memory counters otherwise.
-	middlewareEngine, err := initMiddlewareEngine(r, cfg, database, keyVerifications, clk)
+	middlewareEngine, err := initMiddlewareEngine(r, cfg, database, keyVerifications, clk, reg)
 	if err != nil {
 		return fmt.Errorf("unable to create middleware engine: %w", err)
 	}
@@ -264,12 +271,14 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 	r.DeferCtx(srv.Shutdown)
 
-	middlewareMetrics := middleware.NewMetrics(prom_sdk.DefaultRegisterer)
-	proxyMetrics := proxy.NewMetrics(prom_sdk.DefaultRegisterer)
+	middlewareMetrics := middleware.NewMetrics(reg)
+	proxyMetrics := proxy.NewMetrics(reg)
+	sentinelPanicMetrics := panicmetrics.NewMetrics(reg)
 
 	routes.Register(srv, svcs, &routes.AllMetrics{
 		Middleware: middlewareMetrics,
 		Proxy:      proxyMetrics,
+		Panic:      sentinelPanicMetrics,
 	})
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
@@ -300,7 +309,7 @@ func Run(ctx context.Context, cfg Config) error {
 // at startup does not prevent the engine from being created — the Redis client
 // reconnects lazily, and both the rate limiter and usage limiter degrade
 // gracefully (local windows / DB fallback) when Redis is temporarily unavailable.
-func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, keyVerifications *batch.BatchProcessor[schema.KeyVerification], clk clock.Clock) (engine.Evaluator, error) {
+func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, keyVerifications *batch.BatchProcessor[schema.KeyVerification], clk clock.Clock, reg promclient.Registerer) (engine.Evaluator, error) {
 	var ctr counter.Counter
 	if cfg.Redis.URL != "" {
 		redisCtr, redisErr := counter.NewRedis(counter.RedisConfig{
@@ -321,8 +330,8 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 	rateLimiter, err := ratelimit.New(ratelimit.Config{
 		Clock:         clk,
 		Counter:       ctr,
-		BufferMetrics: buffermetrics.NoopMetrics(),
-		Metrics:       ratelimitmetrics.NewMetrics(prom_sdk.DefaultRegisterer),
+		BufferMetrics: buffermetrics.NewMetrics(reg),
+		Metrics:       ratelimitmetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rate limiter: %w", err)
@@ -348,8 +357,8 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 		Counter:       ctr,
 		TTL:           60 * time.Second,
 		ReplayWorkers: 8,
-		BufferMetrics: buffermetrics.NoopMetrics(),
-		Metrics:       usagelimitermetrics.NewMetrics(prom_sdk.DefaultRegisterer),
+		BufferMetrics: buffermetrics.NewMetrics(reg),
+		Metrics:       usagelimitermetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create usage limiter: %w", err)
@@ -362,7 +371,7 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 		MaxSize:  100_000,
 		Resource: "sentinel_key_cache",
 		Clock:    clk,
-		Metrics:  cachemetrics.NoopMetrics(),
+		Metrics:  cachemetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key cache: %w", err)
@@ -377,13 +386,13 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 		UsageLimiter:     usageLimiter,
 		KeyCache:         keyCache,
 		QuotaCache:       nil,
-		Metrics:          keysmetrics.NewMetrics(prom_sdk.DefaultRegisterer),
+		Metrics:          keysmetrics.NewMetrics(reg),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key service: %w", err)
 	}
 
-	engineMetrics := engine.NewMetrics(prom_sdk.DefaultRegisterer)
+	engineMetrics := engine.NewMetrics(reg)
 
 	logger.Info("middleware engine initialized")
 	return engine.New(engine.Config{
