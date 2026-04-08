@@ -94,8 +94,7 @@ export function KeyAuthFields({ control }: { control: Control<KeyauthFormValues>
                     className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-grayA-3 border border-grayA-4 text-xs text-accent-12"
                   >
                     {availableKeyspaces[id]?.api?.name ?? id}
-                    <button
-                      type="button"
+                    <div
                       onClick={(e) => {
                         e.stopPropagation();
                         setKeySpaceIds(keySpaceIds.filter((k) => k !== id));
@@ -103,7 +102,7 @@ export function KeyAuthFields({ control }: { control: Control<KeyauthFormValues>
                       className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors"
                     >
                       <XMark iconSize="sm-regular" />
-                    </button>
+                    </div>
                   </span>
                 ))}
               </div>

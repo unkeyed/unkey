@@ -37,6 +37,7 @@ export function PendingRedeployBanner() {
       router.push(
         `/${workspace.slug}/projects/${currentDeployment.projectId}/deployments/${data.deploymentId}`,
       );
+      dismissSettingsBanner();
     },
     onError: (error) => {
       toast.error("Redeploy failed", { description: error.message });

@@ -168,26 +168,22 @@ export function toSentinelPolicy(
   existingId?: string,
 ): KeyauthPolicy {
   const id = existingId ?? crypto.randomUUID();
-  const matchExprs =
-    values.matchConditions.length > 0 ? values.matchConditions.map(toMatchExpr) : undefined;
+  const matchExprs = values.matchConditions.map(toMatchExpr);
 
   return match(values)
     .with({ type: "keyauth" }, (v) => {
-      const locations =
-        v.locations.length > 0
-          ? v.locations.map((loc) =>
-            match(loc.locationType)
-              .with("bearer", () => ({ bearer: {} as Record<string, never> }))
-              .with("header", () => ({
-                header: {
-                  name: loc.name ?? "",
-                  ...(loc.stripPrefix ? { stripPrefix: loc.stripPrefix } : {}),
-                },
-              }))
-              .with("queryParam", () => ({ queryParam: { name: loc.name ?? "" } }))
-              .exhaustive(),
-          )
-          : undefined;
+      const locations = v.locations.map((loc) =>
+        match(loc.locationType)
+          .with("bearer", () => ({ bearer: {} as Record<string, never> }))
+          .with("header", () => ({
+            header: {
+              name: loc.name ?? "",
+              ...(loc.stripPrefix ? { stripPrefix: loc.stripPrefix } : {}),
+            },
+          }))
+          .with("queryParam", () => ({ queryParam: { name: loc.name ?? "" } }))
+          .exhaustive(),
+      );
 
       return {
         id,
@@ -196,10 +192,10 @@ export function toSentinelPolicy(
         type: "keyauth" as const,
         keyauth: {
           keySpaceIds: v.keySpaceIds,
-          ...(locations ? { locations } : {}),
-          ...(v.permissionQuery ? { permissionQuery: v.permissionQuery } : {}),
+          locations,
+          permissionQuery: v.permissionQuery,
         },
-        ...(matchExprs ? { match: matchExprs } : {}),
+        match: matchExprs,
       };
     })
     .exhaustive();

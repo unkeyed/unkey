@@ -106,7 +106,6 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       values.environmentId === "__all__" || values.environmentId === envBSlug
         ? { ...policy, enabled: true }
         : null;
-
     props.onAdd(prodPolicy, previewPolicy);
     onClose();
     reset(getDefaultValues("keyauth"));
@@ -249,6 +248,17 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
                   All conditions must match (<span className="text-gray-12 font-medium">AND</span>{" "}
                   logic).
                 </span>
+              }
+              headerAction={
+                watchedValues.matchConditions.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setValue("matchConditions", [], { shouldDirty: true })}
+                    className="text-xs text-accent-11 hover:text-accent-12 transition-colors cursor-pointer"
+                  >
+                    Clear all
+                  </button>
+                ) : undefined
               }
             >
               {null}

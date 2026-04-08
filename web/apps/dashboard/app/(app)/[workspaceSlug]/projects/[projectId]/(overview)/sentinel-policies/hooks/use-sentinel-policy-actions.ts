@@ -69,10 +69,16 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
   const add = useCallback(
     (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => {
       if (prodPolicy !== null && envAId) {
-        collection.sentinelPolicies.insert({ ...prodPolicy, environmentId: envAId });
+        collection.sentinelPolicies.insert({
+          ...prodPolicy,
+          environmentId: envAId,
+        });
       }
       if (previewPolicy !== null && envBId) {
-        collection.sentinelPolicies.insert({ ...previewPolicy, environmentId: envBId });
+        collection.sentinelPolicies.insert({
+          ...previewPolicy,
+          environmentId: envBId,
+        });
       }
     },
     [envAId, envBId],
@@ -85,7 +91,11 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
         const key = `${envId}::${updated.id}`;
         if (!collection.sentinelPolicies.get(key)) continue;
         collection.sentinelPolicies.update(key, (draft) => {
-          Object.assign(draft, updated, { environmentId: envId });
+          // Preserve this environment's own enabled state. The caller passes
+          // initialPolicy.enabled from one specific env, so spreading it would
+          // clobber the other env's toggle.
+          const currentEnabled = draft.enabled;
+          Object.assign(draft, updated, { environmentId: envId, enabled: currentEnabled });
         });
       }
     },
