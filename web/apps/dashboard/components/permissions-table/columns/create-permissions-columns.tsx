@@ -1,6 +1,6 @@
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { LastUpdatedCell, RowActionSkeleton } from "@unkey/ui";
+import { LastUpdatedCell, RowActionSkeleton, SortableHeader } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { AssignedItemsCell } from "../components/assigned-items-cell";
 import { PermissionNameCell } from "../components/permission-name-cell";
@@ -50,8 +50,10 @@ export const createPermissionsColumns = ({
   {
     id: PERMISSION_COLUMN_IDS.PERMISSION.id,
     accessorKey: PERMISSION_COLUMN_IDS.PERMISSION.accessorKey,
-    header: PERMISSION_COLUMN_IDS.PERMISSION.header,
-    enableSorting: false,
+    header: ({ header }) => (
+      <SortableHeader header={header}>{PERMISSION_COLUMN_IDS.PERMISSION.header}</SortableHeader>
+    ),
+    enableSorting: true,
     meta: {
       width: "20%",
       headerClassName: "pl-[18px]",
@@ -72,8 +74,10 @@ export const createPermissionsColumns = ({
   {
     id: PERMISSION_COLUMN_IDS.SLUG.id,
     accessorKey: PERMISSION_COLUMN_IDS.SLUG.accessorKey,
-    header: PERMISSION_COLUMN_IDS.SLUG.header,
-    enableSorting: false,
+    header: ({ header }) => (
+      <SortableHeader header={header}>{PERMISSION_COLUMN_IDS.SLUG.header}</SortableHeader>
+    ),
+    enableSorting: true,
     meta: {
       width: "20%",
     },
@@ -91,8 +95,10 @@ export const createPermissionsColumns = ({
   {
     id: PERMISSION_COLUMN_IDS.USED_IN_ROLES.id,
     accessorKey: PERMISSION_COLUMN_IDS.USED_IN_ROLES.accessorKey,
-    header: PERMISSION_COLUMN_IDS.USED_IN_ROLES.header,
-    enableSorting: false,
+    header: ({ header }) => (
+      <SortableHeader header={header}>{PERMISSION_COLUMN_IDS.USED_IN_ROLES.header}</SortableHeader>
+    ),
+    enableSorting: true,
     meta: {
       width: "20%",
     },
@@ -110,8 +116,12 @@ export const createPermissionsColumns = ({
   {
     id: PERMISSION_COLUMN_IDS.ASSIGNED_TO_KEYS.id,
     accessorKey: PERMISSION_COLUMN_IDS.ASSIGNED_TO_KEYS.accessorKey,
-    header: PERMISSION_COLUMN_IDS.ASSIGNED_TO_KEYS.header,
-    enableSorting: false,
+    header: ({ header }) => (
+      <SortableHeader header={header}>
+        {PERMISSION_COLUMN_IDS.ASSIGNED_TO_KEYS.header}
+      </SortableHeader>
+    ),
+    enableSorting: true,
     meta: {
       width: "20%",
     },
@@ -129,8 +139,11 @@ export const createPermissionsColumns = ({
   {
     id: PERMISSION_COLUMN_IDS.LAST_UPDATED.id,
     accessorKey: PERMISSION_COLUMN_IDS.LAST_UPDATED.accessorKey,
-    header: PERMISSION_COLUMN_IDS.LAST_UPDATED.header,
-    enableSorting: false,
+    sortDescFirst: true,
+    header: ({ header }) => (
+      <SortableHeader header={header}>{PERMISSION_COLUMN_IDS.LAST_UPDATED.header}</SortableHeader>
+    ),
+    enableSorting: true,
     meta: {
       width: "12%",
     },

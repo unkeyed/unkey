@@ -1,5 +1,6 @@
 "use client";
 import {
+  EmptyPermissions,
   createPermissionsColumns,
   getRowClassName,
   renderPermissionsSkeletonRow,
@@ -8,13 +9,21 @@ import {
 import { EditPermission } from "@/components/permissions-table/components/actions/components/edit-permission";
 import { SelectionControls } from "@/components/permissions-table/components/selection-controls";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
-import { BookBookmark } from "@unkey/icons";
-import { Button, DataTable, Empty, PaginationFooter } from "@unkey/ui";
+import { DataTable, PaginationFooter } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 
 export const PermissionsList = () => {
-  const { permissions, isLoading, page, pageSize, totalPages, totalCount, onPageChange } =
-    usePermissionsListPaginated();
+  const {
+    permissions,
+    isLoading,
+    page,
+    pageSize,
+    totalPages,
+    totalCount,
+    onPageChange,
+    sorting,
+    onSortingChange,
+  } = usePermissionsListPaginated();
 
   const [selectedPermission, setSelectedPermission] = useState<Permission | null>(null);
   const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(new Set());
@@ -59,30 +68,11 @@ export const PermissionsList = () => {
         selectedItem={selectedPermission}
         rowClassName={(permission) => getRowClassName(permission, selectedPermission)}
         renderSkeletonRow={renderPermissionsSkeletonRow}
-        emptyState={
-          <div className="w-full flex justify-center items-center h-full">
-            <Empty className="w-[400px] flex items-start">
-              <Empty.Icon className="w-auto" />
-              <Empty.Title>No Permissions Found</Empty.Title>
-              <Empty.Description className="text-left">
-                There are no permissions configured yet. Create your first permission to start
-                managing permissions and access control.
-              </Empty.Description>
-              <Empty.Actions className="mt-4 justify-start">
-                <a
-                  href="https://www.unkey.com/docs/apis/features/authorization/introduction"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button size="md">
-                    <BookBookmark />
-                    Learn about Permissions
-                  </Button>
-                </a>
-              </Empty.Actions>
-            </Empty>
-          </div>
-        }
+        emptyState={<EmptyPermissions />}
+        enableSorting={true}
+        manualSorting={true}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
         config={{
           rowHeight: 52,
           layout: "grid",

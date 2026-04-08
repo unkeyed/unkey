@@ -27,6 +27,18 @@ const basePermissionsSchema = z.object(filterFieldsSchema);
 export const permissionsQueryPayload = basePermissionsSchema.extend({
   page: z.number().int().min(1).optional().default(1),
   limit: z.number().int().min(1).max(100).optional(),
+  sortBy: z
+    .enum(["name", "slug", "totalConnectedRoles", "totalConnectedKeys", "lastUpdated"])
+    .optional()
+    .default("lastUpdated"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
 });
 
+export type PermissionsSortField =
+  | "name"
+  | "slug"
+  | "totalConnectedRoles"
+  | "totalConnectedKeys"
+  | "lastUpdated";
+export type PermissionsSortOrder = "asc" | "desc";
 export type PermissionsQueryPayload = z.infer<typeof permissionsQueryPayload>;

@@ -23,13 +23,42 @@ const permissionsResponse = z.object({
   total: z.number(),
 });
 
+// Maps client sort field names to SQL expressions used in ORDER BY.
+// "totalConnectedRoles" and "totalConnectedKeys" are computed columns, so they
+// must be sorted in the outer query using their aliases.
+const SORT_FIELD_TO_INNER_SQL: Record<string, string> = {
+  name: "name",
+  slug: "slug",
+  lastUpdated: "updated_at_m",
+};
+
+const SORT_FIELD_TO_OUTER_SQL: Record<string, string> = {
+  name: "p.name",
+  slug: "p.slug",
+  lastUpdated: "p.updated_at_m",
+  totalConnectedRoles: "total_roles",
+  totalConnectedKeys: "total_connected_keys",
+};
+
+function buildOrderBy(sortBy: string, sortOrder: string, context: "inner" | "outer") {
+  const map = context === "inner" ? SORT_FIELD_TO_INNER_SQL : SORT_FIELD_TO_OUTER_SQL;
+  const column = map[sortBy];
+
+  // For computed columns (roles/keys counts), we can't sort in the inner subquery
+  // because the values aren't available there. Fall back to updated_at_m.
+  const innerColumn = column ?? "updated_at_m";
+  const direction = sortOrder === "asc" ? sql`ASC` : sql`DESC`;
+
+  return sql`ORDER BY ${sql.raw(context === "inner" ? innerColumn : (column ?? "p.updated_at_m"))} ${direction}`;
+}
+
 export const queryPermissions = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(permissionsQueryPayload)
   .output(permissionsResponse)
   .query(async ({ ctx, input }) => {
     const workspaceId = ctx.workspace.id;
-    const { page, limit, name, description, slug, roleName, roleId } = input;
+    const { page, limit, name, description, slug, roleName, roleId, sortBy, sortOrder } = input;
 
     const pageSize = limit ?? DEFAULT_LIMIT;
     const offset = ((page ?? 1) - 1) * pageSize;
@@ -42,6 +71,14 @@ export const queryPermissions = workspaceProcedure
 
     // Build filter conditions for total count
     const roleFilterForCount = buildRoleFilter(roleName, roleId, workspaceId);
+
+    // For computed columns (totalConnectedRoles, totalConnectedKeys) we need to
+    // sort in the outer query, so fetch all filtered rows in the inner query and
+    // apply LIMIT/OFFSET in the outer query instead.
+    const isComputedSort = sortBy === "totalConnectedRoles" || sortBy === "totalConnectedKeys";
+
+    const innerOrderBy = buildOrderBy(sortBy, sortOrder, "inner");
+    const outerOrderBy = buildOrderBy(sortBy, sortOrder, "outer");
 
     const result = await db.execute(sql`
     SELECT
@@ -87,11 +124,11 @@ export const queryPermissions = workspaceProcedure
         ${descriptionFilter}
         ${slugFilter}
         ${roleFilter}
-      ORDER BY updated_at_m DESC
-      LIMIT ${pageSize}
-      OFFSET ${offset}
+      ${innerOrderBy}
+      ${isComputedSort ? sql`` : sql`LIMIT ${pageSize} OFFSET ${offset}`}
     ) p
-    ORDER BY p.updated_at_m DESC
+    ${outerOrderBy}
+    ${isComputedSort ? sql`LIMIT ${pageSize} OFFSET ${offset}` : sql``}
 `);
 
     const rows = result.rows as {

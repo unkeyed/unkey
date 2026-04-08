@@ -4,10 +4,15 @@ import {
 } from "@/app/(app)/[workspaceSlug]/authorization/permissions/filters.schema";
 import type { PermissionsFilterValue } from "@/app/(app)/[workspaceSlug]/authorization/permissions/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/authorization/permissions/hooks/use-filters";
+import {
+  type SortUrlValue,
+  parseAsSortArray,
+} from "@/components/logs/validation/utils/nuqs-parsers";
 import { trpc } from "@/lib/trpc/client";
+import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { PermissionsQueryPayload } from "../schema/permissions.schema";
+import type { PermissionsQueryPayload, PermissionsSortField } from "../schema/permissions.schema";
 
 const PREFETCH_PAGES_AHEAD = 2;
 
@@ -15,6 +20,22 @@ type PermissionsFilterParams = Pick<
   PermissionsQueryPayload,
   "name" | "description" | "slug" | "roleId" | "roleName"
 >;
+
+// Maps TanStack column IDs → server sort field names (and reverse)
+const COLUMN_ID_TO_SORT_FIELD: Record<string, PermissionsSortField> = {
+  permission: "name",
+  slug: "slug",
+  used_in_roles: "totalConnectedRoles",
+  assigned_to_keys: "totalConnectedKeys",
+  last_updated: "lastUpdated",
+};
+const SORT_FIELD_TO_COLUMN_ID: Record<PermissionsSortField, string> = {
+  name: "permission",
+  slug: "slug",
+  totalConnectedRoles: "used_in_roles",
+  totalConnectedKeys: "assigned_to_keys",
+  lastUpdated: "last_updated",
+};
 
 // Mirrors DEFAULT_LIMIT in query.ts
 const DEFAULT_PAGE_SIZE = 50;
@@ -59,6 +80,45 @@ export function usePermissionsListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   const { filters } = useFilters();
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
   const normalizedPage = Math.max(1, page);
+  const DEFAULT_SORT_PARAMS: SortUrlValue<PermissionsSortField>[] = [
+    { column: "lastUpdated", direction: "desc" },
+  ];
+
+  const [sortParams, setSortParams] = useQueryState(
+    "sort",
+    parseAsSortArray<PermissionsSortField>(),
+  );
+
+  // Ensure the default sort is always reflected in the URL
+  const effectiveSortParams = sortParams ?? DEFAULT_SORT_PARAMS;
+
+  useEffect(() => {
+    if (!sortParams) {
+      setSortParams(DEFAULT_SORT_PARAMS);
+    }
+  }, [sortParams, setSortParams]);
+
+  const sorting: SortingState = useMemo(() => {
+    return effectiveSortParams.map((s) => ({
+      id: SORT_FIELD_TO_COLUMN_ID[s.column] ?? s.column,
+      desc: s.direction === "desc",
+    }));
+  }, [effectiveSortParams]);
+
+  const onSortingChange = useCallback(
+    (updater: SortingState | ((old: SortingState) => SortingState)) => {
+      const next = typeof updater === "function" ? updater(sorting) : updater;
+      const mapped = next
+        .filter((s) => COLUMN_ID_TO_SORT_FIELD[s.id] !== undefined)
+        .map((s) => ({
+          column: COLUMN_ID_TO_SORT_FIELD[s.id],
+          direction: (s.desc ? "desc" : "asc") as "asc" | "desc",
+        }));
+      setSortParams(mapped.length === 0 ? DEFAULT_SORT_PARAMS : mapped);
+      setPage(1);
+    },
+    [sorting, setSortParams, setPage],
+  );
 
   // Stable string key derived from filter content
   const filtersKey = useMemo(
@@ -86,8 +146,10 @@ export function usePermissionsListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
       ...baseParams,
       page: normalizedPage,
       limit: normalizedPageSize,
+      sortBy: effectiveSortParams[0].column,
+      sortOrder: effectiveSortParams[0].direction,
     }),
-    [baseParams, normalizedPage, normalizedPageSize],
+    [baseParams, normalizedPage, normalizedPageSize, effectiveSortParams],
   );
 
   const utils = trpc.useUtils();
@@ -149,5 +211,7 @@ export function usePermissionsListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     totalPages,
     totalCount,
     onPageChange,
+    sorting,
+    onSortingChange,
   };
 }
