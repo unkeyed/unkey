@@ -13,6 +13,7 @@ import (
 const findGithubRepoConnectionByProjectId = `-- name: FindGithubRepoConnectionByProjectId :one
 SELECT
     pk,
+    workspace_id,
     project_id,
     installation_id,
     repository_id,
@@ -25,6 +26,7 @@ WHERE project_id = ?
 
 type FindGithubRepoConnectionByProjectIdRow struct {
 	Pk                 uint64        `db:"pk"`
+	WorkspaceID        string        `db:"workspace_id"`
 	ProjectID          string        `db:"project_id"`
 	InstallationID     int64         `db:"installation_id"`
 	RepositoryID       int64         `db:"repository_id"`
@@ -37,6 +39,7 @@ type FindGithubRepoConnectionByProjectIdRow struct {
 //
 //	SELECT
 //	    pk,
+//	    workspace_id,
 //	    project_id,
 //	    installation_id,
 //	    repository_id,
@@ -50,6 +53,7 @@ func (q *Queries) FindGithubRepoConnectionByProjectId(ctx context.Context, db DB
 	var i FindGithubRepoConnectionByProjectIdRow
 	err := row.Scan(
 		&i.Pk,
+		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.InstallationID,
 		&i.RepositoryID,

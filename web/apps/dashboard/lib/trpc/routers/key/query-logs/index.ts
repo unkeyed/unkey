@@ -1,6 +1,6 @@
-import { keyDetailsLogsPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/query-logs.schema";
+import { keyDetailsLogsPayload } from "@/components/key-details-logs-table/schema/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import { db, isNull } from "@/lib/db";
+import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
@@ -9,9 +9,7 @@ import { transformKeyDetailsFilters } from "./utils";
 
 const keyDetailsLogsResponse = z.object({
   logs: z.array(z.custom<KeyDetailsLog>()),
-  hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z.int().optional(),
 });
 type KeyDetailsLogsResponse = z.infer<typeof keyDetailsLogsResponse>;
 
@@ -20,24 +18,17 @@ export const queryKeyDetailsLogs = workspaceProcedure
   .input(keyDetailsLogsPayload)
   .output(keyDetailsLogsResponse)
   .query(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces
+    // Verify the key belongs to this workspace
+    const key = await db.query.keys
       .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
-        with: {
-          keys: {
-            where: (keysTable, { eq, and }) =>
-              and(
-                eq(keysTable.id, input.keyId),
-                eq(keysTable.keyAuthId, input.keyspaceId),
-                isNull(keysTable.deletedAtM),
-              ),
-            limit: 1,
-            columns: {
-              id: true,
-            },
-          },
-        },
+        where: (table, { eq, and, isNull }) =>
+          and(
+            eq(table.id, input.keyId),
+            eq(table.keyAuthId, input.keyspaceId),
+            eq(table.workspaceId, ctx.workspace.id),
+            isNull(table.deletedAtM),
+          ),
+        columns: { id: true },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -47,21 +38,14 @@ export const queryKeyDetailsLogs = workspaceProcedure
         });
       });
 
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.com.",
-      });
-    }
-
-    if (!workspace.keys || workspace.keys.length === 0) {
+    if (!key) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Key not found in the specified workspace.",
       });
     }
 
-    const transformedFilters = transformKeyDetailsFilters(input, workspace.id);
+    const transformedFilters = transformKeyDetailsFilters(input, ctx.workspace.id);
     const result = await clickhouse.api.key.logs(transformedFilters);
 
     if (result.logs.err) {
@@ -76,8 +60,6 @@ export const queryKeyDetailsLogs = workspaceProcedure
     const response: KeyDetailsLogsResponse = {
       logs,
       total: result.totalCount,
-      hasMore: logs.length === input.limit,
-      nextCursor: logs.length === input.limit ? logs[logs.length - 1].time : undefined,
     };
 
     return response;

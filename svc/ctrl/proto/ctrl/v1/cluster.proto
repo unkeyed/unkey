@@ -11,6 +11,8 @@ syntax = "proto3";
 // orchestration across distributed clusters.
 package ctrl.v1;
 
+import "ctrl/v1/deployment.proto";
+
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
 // Health represents the health state of a resource (sentinel, deployment instance, etc.)
@@ -31,9 +33,17 @@ enum Health {
 // The watch connections are designed to be long-lived with automatic reconnection on failure.
 // When an agent reconnects, it should resume from its last seen version for that resource type.
 service ClusterService {
-  // WatchDeploymentChanges streams all resource changes (deployments, sentinels, cilium policies)
-  // in a single stream. The agent maintains one cursor and dispatches events by type.
+  // WatchDeploymentChanges streams incremental resource changes from the
+  // deployment_changes outbox table. When version_last_seen is 0, the server
+  // jumps to the current max version and polls from there (no replay).
+  // The stream stays open indefinitely, polling for new changes.
   rpc WatchDeploymentChanges(WatchDeploymentChangesRequest) returns (stream DeploymentChangeEvent);
+
+  // SyncDesiredState streams the full desired state for a region: all running
+  // deployments, active sentinels, and cilium policies. The server closes the
+  // stream after all state has been sent. Krane calls this on startup and
+  // periodically as a safety net to reconcile any drift.
+  rpc SyncDesiredState(SyncDesiredStateRequest) returns (stream DeploymentChangeEvent);
 
   // GetDesiredSentinelState returns the current desired state for a single sentinel.
   // Used by the resync loop to verify consistency for existing resources.
@@ -64,7 +74,13 @@ service ClusterService {
 message WatchDeploymentChangesRequest {
   string region = 1;
   uint64 version_last_seen = 2;
+
+  // When true and version_last_seen is 0, replay all changes from the
+  // beginning instead of jumping to the current max version. Default false.
+  bool replay = 3;
 }
+
+message SyncDesiredStateRequest {}
 
 message DeploymentChangeEvent {
   uint64 version = 1;
@@ -311,6 +327,12 @@ message ApplyDeployment {
   // Horizontal autoscaling policy. Krane creates an HPA with these values.
   // Populated from the horizontal_autoscaling_policies table via app_regional_settings.
   AutoscalingPolicy autoscaling = 27;
+
+  // ephemeral_storage configures an EBS-backed scratch volume for the deployment.
+  // When present, Krane provisions a PVC per pod using the specified storage class.
+  // The volume is created when the pod starts and deleted when the pod terminates.
+  // When absent, no ephemeral volume is attached.
+  optional EphemeralStorage ephemeral_storage = 29;
 }
 
 // AutoscalingPolicy configures horizontal pod autoscaling for a deployment.

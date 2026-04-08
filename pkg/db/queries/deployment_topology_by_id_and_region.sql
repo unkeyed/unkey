@@ -12,6 +12,7 @@ SELECT
     r.name AS region,
     d.cpu_millicores,
     d.memory_mib,
+    d.storage_mib,
     dt.autoscaling_replicas_min,
     dt.autoscaling_replicas_max,
     dt.autoscaling_threshold_cpu,

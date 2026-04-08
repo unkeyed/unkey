@@ -45,6 +45,9 @@ const (
 	// ClusterServiceWatchDeploymentChangesProcedure is the fully-qualified name of the ClusterService's
 	// WatchDeploymentChanges RPC.
 	ClusterServiceWatchDeploymentChangesProcedure = "/ctrl.v1.ClusterService/WatchDeploymentChanges"
+	// ClusterServiceSyncDesiredStateProcedure is the fully-qualified name of the ClusterService's
+	// SyncDesiredState RPC.
+	ClusterServiceSyncDesiredStateProcedure = "/ctrl.v1.ClusterService/SyncDesiredState"
 	// ClusterServiceGetDesiredSentinelStateProcedure is the fully-qualified name of the
 	// ClusterService's GetDesiredSentinelState RPC.
 	ClusterServiceGetDesiredSentinelStateProcedure = "/ctrl.v1.ClusterService/GetDesiredSentinelState"
@@ -67,9 +70,16 @@ const (
 
 // ClusterServiceClient is a client for the ctrl.v1.ClusterService service.
 type ClusterServiceClient interface {
-	// WatchDeploymentChanges streams all resource changes (deployments, sentinels, cilium policies)
-	// in a single stream. The agent maintains one cursor and dispatches events by type.
+	// WatchDeploymentChanges streams incremental resource changes from the
+	// deployment_changes outbox table. When version_last_seen is 0, the server
+	// jumps to the current max version and polls from there (no replay).
+	// The stream stays open indefinitely, polling for new changes.
 	WatchDeploymentChanges(context.Context, *connect.Request[v1.WatchDeploymentChangesRequest]) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error)
+	// SyncDesiredState streams the full desired state for a region: all running
+	// deployments, active sentinels, and cilium policies. The server closes the
+	// stream after all state has been sent. Krane calls this on startup and
+	// periodically as a safety net to reconcile any drift.
+	SyncDesiredState(context.Context, *connect.Request[v1.SyncDesiredStateRequest]) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error)
 	// GetDesiredSentinelState returns the current desired state for a single sentinel.
 	// Used by the resync loop to verify consistency for existing resources.
 	GetDesiredSentinelState(context.Context, *connect.Request[v1.GetDesiredSentinelStateRequest]) (*connect.Response[v1.SentinelState], error)
@@ -106,6 +116,12 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			httpClient,
 			baseURL+ClusterServiceWatchDeploymentChangesProcedure,
 			connect.WithSchema(clusterServiceMethods.ByName("WatchDeploymentChanges")),
+			connect.WithClientOptions(opts...),
+		),
+		syncDesiredState: connect.NewClient[v1.SyncDesiredStateRequest, v1.DeploymentChangeEvent](
+			httpClient,
+			baseURL+ClusterServiceSyncDesiredStateProcedure,
+			connect.WithSchema(clusterServiceMethods.ByName("SyncDesiredState")),
 			connect.WithClientOptions(opts...),
 		),
 		getDesiredSentinelState: connect.NewClient[v1.GetDesiredSentinelStateRequest, v1.SentinelState](
@@ -150,6 +166,7 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 // clusterServiceClient implements ClusterServiceClient.
 type clusterServiceClient struct {
 	watchDeploymentChanges             *connect.Client[v1.WatchDeploymentChangesRequest, v1.DeploymentChangeEvent]
+	syncDesiredState                   *connect.Client[v1.SyncDesiredStateRequest, v1.DeploymentChangeEvent]
 	getDesiredSentinelState            *connect.Client[v1.GetDesiredSentinelStateRequest, v1.SentinelState]
 	reportSentinelStatus               *connect.Client[v1.ReportSentinelStatusRequest, v1.ReportSentinelStatusResponse]
 	getDesiredDeploymentState          *connect.Client[v1.GetDesiredDeploymentStateRequest, v1.DeploymentState]
@@ -161,6 +178,11 @@ type clusterServiceClient struct {
 // WatchDeploymentChanges calls ctrl.v1.ClusterService.WatchDeploymentChanges.
 func (c *clusterServiceClient) WatchDeploymentChanges(ctx context.Context, req *connect.Request[v1.WatchDeploymentChangesRequest]) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error) {
 	return c.watchDeploymentChanges.CallServerStream(ctx, req)
+}
+
+// SyncDesiredState calls ctrl.v1.ClusterService.SyncDesiredState.
+func (c *clusterServiceClient) SyncDesiredState(ctx context.Context, req *connect.Request[v1.SyncDesiredStateRequest]) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error) {
+	return c.syncDesiredState.CallServerStream(ctx, req)
 }
 
 // GetDesiredSentinelState calls ctrl.v1.ClusterService.GetDesiredSentinelState.
@@ -196,9 +218,16 @@ func (c *clusterServiceClient) Heartbeat(ctx context.Context, req *connect.Reque
 
 // ClusterServiceHandler is an implementation of the ctrl.v1.ClusterService service.
 type ClusterServiceHandler interface {
-	// WatchDeploymentChanges streams all resource changes (deployments, sentinels, cilium policies)
-	// in a single stream. The agent maintains one cursor and dispatches events by type.
+	// WatchDeploymentChanges streams incremental resource changes from the
+	// deployment_changes outbox table. When version_last_seen is 0, the server
+	// jumps to the current max version and polls from there (no replay).
+	// The stream stays open indefinitely, polling for new changes.
 	WatchDeploymentChanges(context.Context, *connect.Request[v1.WatchDeploymentChangesRequest], *connect.ServerStream[v1.DeploymentChangeEvent]) error
+	// SyncDesiredState streams the full desired state for a region: all running
+	// deployments, active sentinels, and cilium policies. The server closes the
+	// stream after all state has been sent. Krane calls this on startup and
+	// periodically as a safety net to reconcile any drift.
+	SyncDesiredState(context.Context, *connect.Request[v1.SyncDesiredStateRequest], *connect.ServerStream[v1.DeploymentChangeEvent]) error
 	// GetDesiredSentinelState returns the current desired state for a single sentinel.
 	// Used by the resync loop to verify consistency for existing resources.
 	GetDesiredSentinelState(context.Context, *connect.Request[v1.GetDesiredSentinelStateRequest]) (*connect.Response[v1.SentinelState], error)
@@ -231,6 +260,12 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 		ClusterServiceWatchDeploymentChangesProcedure,
 		svc.WatchDeploymentChanges,
 		connect.WithSchema(clusterServiceMethods.ByName("WatchDeploymentChanges")),
+		connect.WithHandlerOptions(opts...),
+	)
+	clusterServiceSyncDesiredStateHandler := connect.NewServerStreamHandler(
+		ClusterServiceSyncDesiredStateProcedure,
+		svc.SyncDesiredState,
+		connect.WithSchema(clusterServiceMethods.ByName("SyncDesiredState")),
 		connect.WithHandlerOptions(opts...),
 	)
 	clusterServiceGetDesiredSentinelStateHandler := connect.NewUnaryHandler(
@@ -273,6 +308,8 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 		switch r.URL.Path {
 		case ClusterServiceWatchDeploymentChangesProcedure:
 			clusterServiceWatchDeploymentChangesHandler.ServeHTTP(w, r)
+		case ClusterServiceSyncDesiredStateProcedure:
+			clusterServiceSyncDesiredStateHandler.ServeHTTP(w, r)
 		case ClusterServiceGetDesiredSentinelStateProcedure:
 			clusterServiceGetDesiredSentinelStateHandler.ServeHTTP(w, r)
 		case ClusterServiceReportSentinelStatusProcedure:
@@ -296,6 +333,10 @@ type UnimplementedClusterServiceHandler struct{}
 
 func (UnimplementedClusterServiceHandler) WatchDeploymentChanges(context.Context, *connect.Request[v1.WatchDeploymentChangesRequest], *connect.ServerStream[v1.DeploymentChangeEvent]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.WatchDeploymentChanges is not implemented"))
+}
+
+func (UnimplementedClusterServiceHandler) SyncDesiredState(context.Context, *connect.Request[v1.SyncDesiredStateRequest], *connect.ServerStream[v1.DeploymentChangeEvent]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.SyncDesiredState is not implemented"))
 }
 
 func (UnimplementedClusterServiceHandler) GetDesiredSentinelState(context.Context, *connect.Request[v1.GetDesiredSentinelStateRequest]) (*connect.Response[v1.SentinelState], error) {

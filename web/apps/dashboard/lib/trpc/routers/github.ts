@@ -1,4 +1,4 @@
-import { and, db, eq, inArray, schema } from "@/lib/db";
+import { and, db, eq, schema } from "@/lib/db";
 import { githubAppEnv } from "@/lib/env";
 import {
   type BranchActivity,
@@ -507,6 +507,7 @@ export const githubRouter = t.router({
       await db
         .insert(schema.githubRepoConnections)
         .values({
+          workspaceId: ctx.workspace.id,
           projectId: input.projectId,
           appId,
           installationId: input.installationId,
@@ -651,13 +652,7 @@ export const githubRouter = t.router({
         .where(
           and(
             eq(schema.githubRepoConnections.installationId, input.installationId),
-            inArray(
-              schema.githubRepoConnections.projectId,
-              db
-                .select({ id: schema.projects.id })
-                .from(schema.projects)
-                .where(eq(schema.projects.workspaceId, ctx.workspace.id)),
-            ),
+            eq(schema.githubRepoConnections.workspaceId, ctx.workspace.id),
           ),
         )
         .catch(() => {

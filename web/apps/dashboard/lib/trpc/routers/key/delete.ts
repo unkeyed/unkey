@@ -13,14 +13,8 @@ export const deleteKeys = workspaceProcedure
   .mutation(async ({ ctx, input }) => {
     const { keyIds } = input;
     const userId = ctx.user.id;
-    const tenantId = ctx.tenant.id;
 
     if (keyIds.length === 0) {
-      console.warn({
-        message: "No key IDs provided for deletion",
-        userId,
-        tenantId,
-      });
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: "No keys were provided for deletion",
@@ -28,40 +22,18 @@ export const deleteKeys = workspaceProcedure
     }
 
     try {
-      const workspace = await db.query.workspaces.findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.orgId, tenantId), isNull(table.deletedAtM)),
-        with: {
-          keys: {
-            where: (table, { and, inArray, isNull }) =>
-              and(isNull(table.deletedAtM), inArray(table.id, keyIds)),
-            columns: {
-              id: true,
-            },
-          },
-        },
+      // Find keys that belong to this workspace
+      const keys = await db.query.keys.findMany({
+        where: (table, { and, inArray, eq, isNull }) =>
+          and(
+            eq(table.workspaceId, ctx.workspace.id),
+            inArray(table.id, keyIds),
+            isNull(table.deletedAtM),
+          ),
+        columns: { id: true },
       });
 
-      if (!workspace) {
-        console.error({
-          message: "Workspace not found",
-          userId,
-          tenantId,
-        });
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Workspace not found. Please verify your workspace selection and try again.",
-        });
-      }
-
-      // Check if keys were found in the workspace
-      if (workspace.keys.length === 0) {
-        console.warn({
-          message: "No keys found for deletion",
-          userId,
-          tenantId,
-          keyIds,
-        });
+      if (keys.length === 0) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "None of the specified keys could be found in your workspace.",
@@ -75,18 +47,18 @@ export const deleteKeys = workspaceProcedure
             .set({ deletedAtM: Date.now() })
             .where(
               and(
-                eq(schema.keys.workspaceId, workspace.id),
+                eq(schema.keys.workspaceId, ctx.workspace.id),
                 inArray(
                   schema.keys.id,
-                  workspace.keys.map((k) => k.id),
+                  keys.map((k) => k.id),
                 ),
               ),
             );
 
           await insertAuditLogs(
             tx,
-            workspace.keys.map((key) => ({
-              workspaceId: workspace.id,
+            keys.map((key) => ({
+              workspaceId: ctx.workspace.id,
               actor: { type: "user", id: userId },
               event: "key.delete",
               description: `Deleted key ${key.id}`,
@@ -107,8 +79,7 @@ export const deleteKeys = workspaceProcedure
         console.error({
           message: "Transaction failed during key deletion",
           userId,
-          tenantId,
-          workspaceId: workspace.id,
+          workspaceId: ctx.workspace.id,
           error: txErr instanceof Error ? txErr.message : String(txErr),
           stack: txErr instanceof Error ? txErr.stack : undefined,
         });
@@ -132,8 +103,8 @@ export const deleteKeys = workspaceProcedure
       }
 
       return {
-        deletedKeyIds: workspace.keys.map((k) => k.id),
-        totalDeleted: workspace.keys.length,
+        deletedKeyIds: keys.map((k) => k.id),
+        totalDeleted: keys.length,
       };
     } catch (err) {
       if (err instanceof TRPCError) {
@@ -144,7 +115,7 @@ export const deleteKeys = workspaceProcedure
       console.error({
         message: "Error during key deletion",
         userId,
-        tenantId,
+        workspaceId: ctx.workspace.id,
         keyIds,
         error: err instanceof Error ? err.message : String(err),
         stack: err instanceof Error ? err.stack : undefined,

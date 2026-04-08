@@ -7,8 +7,8 @@ import { getRowClassName } from "@/components/api-requests-table/utils/get-row-c
 import { useSort } from "@/components/logs/hooks/use-sort";
 import type { RowSelectionState, SortingState } from "@tanstack/react-table";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import { DataTable, type DataTableConfig, EmptyApiRequests } from "@unkey/ui";
-import { useCallback, useMemo } from "react";
+import { DataTable, type DataTableConfig, EmptyApiRequests, PaginationFooter } from "@unkey/ui";
+import { useCallback, useMemo, useRef } from "react";
 
 const TABLE_CONFIG: DataTableConfig = {
   rowHeight: 26, // compact rows, default is 36
@@ -29,7 +29,16 @@ type Props = {
 
 export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog }: Props) => {
   const { sorts, setSorts } = useSort<SortFields>();
-  const { historicalLogs, isLoading, hasMore } = useKeysOverviewLogsQuery({ apiId });
+  const {
+    historicalLogs,
+    isLoading,
+    isNavigating,
+    page,
+    pageSize,
+    totalPages,
+    totalCount,
+    onPageChange,
+  } = useKeysOverviewLogsQuery({ apiId });
 
   const handleNavigate = useCallback(() => setSelectedLog(null), [setSelectedLog]);
 
@@ -51,9 +60,12 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
     [sorts],
   );
 
+  const sortingRef = useRef(sorting);
+  sortingRef.current = sorting;
+
   const handleSortingChange = useCallback(
     (updater: SortingState | ((old: SortingState) => SortingState)) => {
-      const next = typeof updater === "function" ? updater(sorting) : updater;
+      const next = typeof updater === "function" ? updater(sortingRef.current) : updater;
       const validated = next.flatMap((s) => {
         const result = sortFields.safeParse(s.id);
         if (!result.success) {
@@ -63,7 +75,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
       });
       setSorts(validated);
     },
-    [sorting, setSorts],
+    [setSorts],
   );
 
   const getRowClassNameMemoized = useCallback(
@@ -72,25 +84,33 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
   );
 
   return (
-    <DataTable
-      data={historicalLogs}
-      isLoading={isLoading}
-      columns={columns}
-      getRowId={(log) => log.request_id}
-      onRowClick={setSelectedLog}
-      selectedItem={selectedLog}
-      rowClassName={getRowClassNameMemoized}
-      sorting={sorting}
-      onSortingChange={handleSortingChange}
-      manualSorting={true}
-      enableRowSelection={true}
-      rowSelection={rowSelection}
-      config={TABLE_CONFIG}
-      loadMoreFooterProps={{
-        hide: true,
-        hasMore: hasMore ?? false,
-      }}
-      emptyState={<EmptyApiRequests />}
-    />
+    <div className="flex flex-col">
+      <DataTable
+        data={historicalLogs}
+        isLoading={isLoading}
+        columns={columns}
+        getRowId={(log) => log.request_id}
+        onRowClick={setSelectedLog}
+        selectedItem={selectedLog}
+        rowClassName={getRowClassNameMemoized}
+        sorting={sorting}
+        onSortingChange={handleSortingChange}
+        manualSorting={true}
+        enableRowSelection={true}
+        rowSelection={rowSelection}
+        config={TABLE_CONFIG}
+        emptyState={<EmptyApiRequests />}
+      />
+      <PaginationFooter
+        page={page}
+        pageSize={pageSize}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        onPageChange={onPageChange}
+        itemLabel="keys"
+        loading={isLoading}
+        disabled={isNavigating}
+      />
+    </div>
   );
 };
