@@ -1,5 +1,4 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { db } from "@/lib/db";
 import {
   type LogsResponseSchema,
   logsRequestSchema,
@@ -14,32 +13,11 @@ export const queryLogs = workspaceProcedure
   .input(logsRequestSchema)
   .output(logsResponseSchema)
   .query(async ({ ctx, input }) => {
-    // Get workspace
-    const workspace = await db.query.workspaces
-      .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "Failed to retrieve workspace logs due to an error. If this issue persists, please contact support@unkey.com with the time this occurred.",
-        });
-      });
-
-    if (!workspace) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.com.",
-      });
-    }
-
     const transformedInputs = transformFilters(input);
     const { logsQuery, totalQuery } = await clickhouse.api.logs({
       ...transformedInputs,
       cursorTime: input.cursor ?? null,
-      workspaceId: workspace.id,
+      workspaceId: ctx.workspace.id,
     });
 
     const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);
