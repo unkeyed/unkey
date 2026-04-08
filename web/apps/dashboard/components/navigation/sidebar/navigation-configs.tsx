@@ -206,6 +206,12 @@ export function createProjectNavigation(
       active: segments.includes("env-vars") && segments.includes("projects"),
     },
     {
+      icon: ShieldKey,
+      href: `${basePath}/sentinel-policies`,
+      label: "Sentinel Policies",
+      active: segments.includes("sentinel-policies") && segments.includes("projects"),
+    },
+    {
       icon: Gear,
       href: `${basePath}/settings`,
       label: "Settings",
