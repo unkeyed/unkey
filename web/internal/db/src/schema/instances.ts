@@ -28,7 +28,8 @@ export const instances = mysqlTable(
 
     // used to apply updates from the kubernetes watch events
     k8sName: varchar("k8s_name", { length: 255 }).notNull(),
-    // the kubernetes pod dns address from the stateful set
+    // The kubernetes pod dns address. Not uniquely constrained per region because
+    // Kubernetes recycles pod IPs across deployments.
     address: varchar("address", { length: 255 }).notNull(),
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
@@ -36,7 +37,6 @@ export const instances = mysqlTable(
     status: mysqlEnum("status", ["inactive", "pending", "running", "failed"]).notNull(),
   },
   (table) => [
-    uniqueIndex("unique_address_per_region").on(table.address, table.regionId),
     uniqueIndex("unique_k8s_name_per_region").on(table.k8sName, table.regionId),
     index("idx_deployment_id").on(table.deploymentId),
     index("idx_region").on(table.regionId),
