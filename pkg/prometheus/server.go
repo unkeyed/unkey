@@ -19,6 +19,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -78,6 +79,32 @@ func New() (*zen.Server, error) {
 	h := promhttp.Handler()
 
 	// Register the metrics endpoint with the zen server
+	z.RegisterRoute([]zen.Middleware{}, zen.NewRoute("GET", "/metrics", func(ctx context.Context, s *zen.Session) error {
+		h.ServeHTTP(s.ResponseWriter(), s.Request())
+		return nil
+	}))
+
+	return z, nil
+}
+
+// NewWithRegistry creates a zen server that exposes metrics from a custom
+// prometheus.Registry at the /metrics endpoint. Use this to control exactly
+// which metrics each service exposes.
+func NewWithRegistry(reg *prometheus.Registry) (*zen.Server, error) {
+	z, err := zen.New(zen.Config{
+		MaxRequestBodySize: 0,
+		Flags:              nil,
+		TLS:                nil,
+		EnableH2C:          false,
+		ReadTimeout:        0,
+		WriteTimeout:       0,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	h := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
+
 	z.RegisterRoute([]zen.Middleware{}, zen.NewRoute("GET", "/metrics", func(ctx context.Context, s *zen.Session) error {
 		h.ServeHTTP(s.ResponseWriter(), s.Request())
 		return nil
