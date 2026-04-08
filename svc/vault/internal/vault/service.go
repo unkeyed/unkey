@@ -8,6 +8,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/cache"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	cacheMiddleware "github.com/unkeyed/unkey/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/vault/internal/keyring"
@@ -61,6 +62,7 @@ func New(cfg Config) (*Service, error) {
 		MaxSize:  10000,
 		Resource: "data_encryption_key",
 		Clock:    clock.New(),
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cache: %w", err)

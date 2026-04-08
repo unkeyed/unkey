@@ -26,13 +26,14 @@ type InvalidationDispatcher struct {
 	mu          sync.RWMutex
 	handlers    map[string]InvalidationHandler // keyed by cache name
 	broadcaster Broadcaster
+	metrics     *metrics.Metrics
 }
 
 // NewInvalidationDispatcher creates a new dispatcher that routes invalidation
 // events to registered caches.
 //
 // Returns an error if broadcaster is nil - use NewNoopDispatcher() if clustering is disabled.
-func NewInvalidationDispatcher(broadcaster Broadcaster) (*InvalidationDispatcher, error) {
+func NewInvalidationDispatcher(broadcaster Broadcaster, m *metrics.Metrics) (*InvalidationDispatcher, error) {
 	err := assert.All(
 		assert.NotNil(broadcaster, "broadcaster is required for InvalidationDispatcher - use NewNoopDispatcher() if clustering is disabled"),
 	)
@@ -44,6 +45,7 @@ func NewInvalidationDispatcher(broadcaster Broadcaster) (*InvalidationDispatcher
 		mu:          sync.RWMutex{},
 		handlers:    make(map[string]InvalidationHandler),
 		broadcaster: broadcaster,
+		metrics:     m,
 	}
 
 	broadcaster.Subscribe(context.Background(), d.handleEvent)
@@ -61,7 +63,7 @@ func (d *InvalidationDispatcher) handleEvent(ctx context.Context, event *cachev1
 	// If we don't have a handler for this cache, skip it
 	if !exists {
 		actionLabel := metrics.ActionLabel(event)
-		metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(event.GetCacheName(), actionLabel, "skipped_unknown").Inc()
+		d.metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(event.GetCacheName(), actionLabel, "skipped_unknown").Inc()
 		return nil
 	}
 

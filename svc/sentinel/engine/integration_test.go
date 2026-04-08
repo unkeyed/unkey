@@ -15,7 +15,9 @@ import (
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -58,8 +60,9 @@ func newTestHarness(t *testing.T) *testHarness {
 	t.Cleanup(func() { _ = redisCounter.Close() })
 
 	rateLimiter, err := ratelimit.New(ratelimit.Config{
-		Clock:   clk,
-		Counter: redisCounter,
+		Clock:         clk,
+		Counter:       redisCounter,
+		BufferMetrics: buffermetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = rateLimiter.Close() })
@@ -83,6 +86,7 @@ func newTestHarness(t *testing.T) *testHarness {
 		Counter:       redisCounter,
 		TTL:           60 * time.Second,
 		ReplayWorkers: 2,
+		BufferMetrics: buffermetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = usageLimiter.Close() })
@@ -93,6 +97,7 @@ func newTestHarness(t *testing.T) *testHarness {
 		MaxSize:  1000,
 		Resource: "test_key_cache",
 		Clock:    clk,
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 

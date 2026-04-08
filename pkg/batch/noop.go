@@ -3,6 +3,9 @@ package batch
 import (
 	"context"
 	"time"
+
+	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 )
 
 // NewNoop creates a minimal no-op BatchProcessor that discards all buffered items.
@@ -18,5 +21,7 @@ func NewNoop[T any]() *BatchProcessor[T] {
 		Drop:          true,
 		Consumers:     1,
 		Flush:         func(_ context.Context, _ []T) {},
+		Metrics:       batchmetrics.NoopMetrics(),
+		BufferMetrics: buffermetrics.NoopMetrics(),
 	})
 }

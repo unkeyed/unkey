@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -33,6 +34,9 @@ type ConnectionManagerConfig struct {
 	Clock         clock.Clock
 	BaseURL       string // e.g., "http://clickhouse:8123/default" or "clickhouse://clickhouse:9000/default"
 	Vault         vault.VaultServiceClient
+
+	// CacheMetrics provides metrics for cache operations.
+	CacheMetrics *cachemetrics.Metrics
 }
 
 // NewConnectionManager creates a new connection manager
@@ -59,6 +63,7 @@ func NewConnectionManager(config ConnectionManagerConfig) (ConnectionManager, er
 		MaxSize:  1_000,
 		Resource: "clickhouse_analytics_connection",
 		Clock:    config.Clock,
+		Metrics:  config.CacheMetrics,
 	})
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to create connection cache"))

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/memberlist"
-	"github.com/unkeyed/unkey/pkg/cluster/metrics"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
@@ -121,8 +120,8 @@ func (c *gossipCluster) promoteToBridge() {
 	c.isBridge = true
 	c.mu.Unlock()
 
-	metrics.ClusterBridgeStatus.Set(1)
-	metrics.ClusterBridgeTransitionsTotal.WithLabelValues("promoted").Inc()
+	c.metrics.BridgeStatus.Set(1)
+	c.metrics.BridgeTransitionsTotal.WithLabelValues("promoted").Inc()
 
 	// Start background reconnection loop for WAN seeds.
 	if len(seeds) > 0 {
@@ -179,9 +178,9 @@ func (c *gossipCluster) demoteFromBridge() {
 	c.isBridge = false
 	c.mu.Unlock()
 
-	metrics.ClusterBridgeStatus.Set(0)
-	metrics.ClusterBridgeTransitionsTotal.WithLabelValues("demoted").Inc()
-	metrics.ClusterMembersCount.WithLabelValues("wan", c.config.Region).Set(0)
+	c.metrics.BridgeStatus.Set(0)
+	c.metrics.BridgeTransitionsTotal.WithLabelValues("demoted").Inc()
+	c.metrics.MembersCount.WithLabelValues("wan", c.config.Region).Set(0)
 
 	// Leave and shutdown outside the lock since Leave can trigger callbacks
 	if wan != nil {

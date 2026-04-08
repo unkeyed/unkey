@@ -15,6 +15,7 @@ go_library(
         "//internal/services/caches",
         "//pkg/assert",
         "//pkg/cache",
+        "//pkg/cache/metrics",
         "//pkg/clickhouse",
         "//pkg/clock",
         "//pkg/codes",

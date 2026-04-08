@@ -14,6 +14,7 @@ import (
 	sharedconfig "github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
+	mysqlmetrics "github.com/unkeyed/unkey/pkg/mysql/metrics"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/api"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -79,6 +80,7 @@ func New(t *testing.T, config Config) *Harness {
 	db, err := db.New(db.Config{
 		PrimaryDSN:  mysqlHostDSN,
 		ReadOnlyDSN: "",
+		Metrics:     mysqlmetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 

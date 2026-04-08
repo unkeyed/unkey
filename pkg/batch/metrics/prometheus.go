@@ -15,7 +15,8 @@ var batchSizeBuckets = []float64{
 	1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000,
 }
 
-var (
+// Metrics holds all Prometheus collectors for the batch package.
+type Metrics struct {
 	// BatchSizeDistribution tracks the size of batches when they're flushed as a histogram,
 	// labeled by batch name and trigger type.
 	// This helps understand batching efficiency and whether batches are being flushed
@@ -27,17 +28,8 @@ var (
 	// - "close": The batch was flushed because the processor was closed.
 	//
 	// Example usage:
-	//   metrics.BatchSizeDistribution.WithLabelValues("database_writes", "size_limit").Observe(float64(len(batch)))
-	BatchSizeDistribution = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "unkey",
-			Subsystem: "batch",
-			Name:      "size_distribution",
-			Help:      "Distribution of batch sizes when flushed",
-			Buckets:   batchSizeBuckets,
-		},
-		[]string{"name", "trigger"},
-	)
+	//   m.BatchSizeDistribution.WithLabelValues("database_writes", "size_limit").Observe(float64(len(batch)))
+	BatchSizeDistribution *prometheus.HistogramVec
 
 	// BatchOperationsTotal tracks the total number of batch flush operations,
 	// labeled by batch name, trigger type, and success status.
@@ -53,17 +45,9 @@ var (
 	// - "error": The batch flush operation encountered an error.
 	//
 	// Example usage:
-	//   metrics.BatchOperationsTotal.WithLabelValues("database_writes", "size_limit", "success").Inc()
-	//   metrics.BatchOperationsTotal.WithLabelValues("log_entries", "time_interval", "error").Inc()
-	BatchOperationsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "batch",
-			Name:      "operations_total",
-			Help:      "Total number of batch flush operations processed",
-		},
-		[]string{"name", "trigger", "status"},
-	)
+	//   m.BatchOperationsTotal.WithLabelValues("database_writes", "size_limit", "success").Inc()
+	//   m.BatchOperationsTotal.WithLabelValues("log_entries", "time_interval", "error").Inc()
+	BatchOperationsTotal *prometheus.CounterVec
 
 	// BatchItemsProcessedTotal tracks the total number of items processed through all batches,
 	// labeled by batch name.
@@ -71,30 +55,65 @@ var (
 	// are being processed by the batch system.
 	//
 	// Example usage:
-	//   metrics.BatchItemsProcessedTotal.WithLabelValues("database_writes").Add(float64(len(batch)))
-	BatchItemsProcessedTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "batch",
-			Name:      "items_processed_total",
-			Help:      "Total number of items processed through batches",
-		},
-		[]string{"name"},
-	)
+	//   m.BatchItemsProcessedTotal.WithLabelValues("database_writes").Add(float64(len(batch)))
+	BatchItemsProcessedTotal *prometheus.CounterVec
 
 	// BatchItemsProcessedErrorsTotal tracks the total number of items that resulted in errors
 	// during batch processing, labeled by batch name.
 	// Use this counter to monitor error rates in batch processing and identify problematic batches.
 	//
 	// Example usage:
-	//   metrics.BatchItemsProcessedErrorsTotal.WithLabelValues("database_writes").Add(float64(errorCount))
-	BatchItemsProcessedErrorsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "batch",
-			Name:      "items_processed_errors_total",
-			Help:      "Total number of items processed through batches that resulted in an error",
-		},
-		[]string{"name"},
-	)
-)
+	//   m.BatchItemsProcessedErrorsTotal.WithLabelValues("database_writes").Add(float64(errorCount))
+	BatchItemsProcessedErrorsTotal *prometheus.CounterVec
+}
+
+// NoopMetrics returns a Metrics instance registered to a discarded registry.
+// Metrics are recorded but not exported, making this safe for tests and optional instrumentation.
+func NoopMetrics() *Metrics {
+	return NewMetrics(prometheus.NewRegistry())
+}
+
+// NewMetrics registers and returns a new Metrics instance with the given registerer.
+func NewMetrics(reg prometheus.Registerer) *Metrics {
+	factory := promauto.With(reg)
+
+	return &Metrics{
+		BatchSizeDistribution: factory.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Namespace: "unkey",
+				Subsystem: "batch",
+				Name:      "size_distribution",
+				Help:      "Distribution of batch sizes when flushed",
+				Buckets:   batchSizeBuckets,
+			},
+			[]string{"name", "trigger"},
+		),
+		BatchOperationsTotal: factory.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "batch",
+				Name:      "operations_total",
+				Help:      "Total number of batch flush operations processed",
+			},
+			[]string{"name", "trigger", "status"},
+		),
+		BatchItemsProcessedTotal: factory.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "batch",
+				Name:      "items_processed_total",
+				Help:      "Total number of items processed through batches",
+			},
+			[]string{"name"},
+		),
+		BatchItemsProcessedErrorsTotal: factory.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "batch",
+				Name:      "items_processed_errors_total",
+				Help:      "Total number of items processed through batches that resulted in an error",
+			},
+			[]string{"name"},
+		),
+	}
+}

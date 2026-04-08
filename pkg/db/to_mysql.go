@@ -11,7 +11,7 @@ func ToMySQL(d Database) mysql.MySQL {
 	ro := d.RO()
 	rw := d.RW()
 	return mysql.NewFromReplicas(
-		mysql.NewReplicaFromDB(ro.db, ro.mode),
-		mysql.NewReplicaFromDB(rw.db, rw.mode),
+		mysql.NewReplicaFromDB(ro.db, ro.mode, ro.metrics),
+		mysql.NewReplicaFromDB(rw.db, rw.mode, rw.metrics),
 	)
 }

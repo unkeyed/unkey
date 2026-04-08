@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/zen/metrics"
+	zenmetrics "github.com/unkeyed/unkey/pkg/zen/metrics"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -18,10 +18,10 @@ import (
 // Example:
 //
 //	server.RegisterRoute(
-//	    []zen.Middleware{zen.WithObservability()},
+//	    []zen.Middleware{zen.WithObservability(m)},
 //	    route,
 //	)
-func WithObservability() Middleware {
+func WithObservability(m *zenmetrics.Metrics) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) error {
 			ctx, span := tracing.Start(ctx, s.r.Pattern)
@@ -40,9 +40,9 @@ func WithObservability() Middleware {
 			// "method", "path", "status"
 			labelValues := []string{s.r.Method, s.r.URL.Path, strconv.Itoa(s.responseStatus)}
 
-			metrics.HTTPRequestBodySize.WithLabelValues(labelValues...).Observe(float64(len(s.requestBody)))
-			metrics.HTTPRequestTotal.WithLabelValues(labelValues...).Inc()
-			metrics.HTTPRequestLatency.WithLabelValues(labelValues...).Observe(serviceLatency.Seconds())
+			m.HTTPRequestBodySize.WithLabelValues(labelValues...).Observe(float64(len(s.requestBody)))
+			m.HTTPRequestTotal.WithLabelValues(labelValues...).Inc()
+			m.HTTPRequestLatency.WithLabelValues(labelValues...).Observe(serviceLatency.Seconds())
 
 			return err
 		}

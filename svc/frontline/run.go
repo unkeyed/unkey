@@ -10,14 +10,21 @@ import (
 	"net/http"
 
 	"connectrpc.com/connect"
+	prom_sdk "github.com/prometheus/client_golang/prometheus"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
+	clusteringmetrics "github.com/unkeyed/unkey/pkg/cache/clustering/metrics"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/cluster"
+	clustermetrics "github.com/unkeyed/unkey/pkg/cluster/metrics"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqlmetrics "github.com/unkeyed/unkey/pkg/mysql/metrics"
 	"github.com/unkeyed/unkey/pkg/otel"
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/prometheus"
@@ -158,7 +165,7 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Warn("Vault not configured, dynamic TLS certificate decryption will be unavailable")
 	}
 
-	database, databaseClose, err := db.New(cfg.DatabaseURL)
+	database, databaseClose, err := db.New(cfg.DatabaseURL, mysqlmetrics.NoopMetrics())
 	if err != nil {
 		return fmt.Errorf("unable to connect to database: %w", err)
 	}
@@ -187,6 +194,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		gossipCluster, clusterErr := cluster.New(cluster.Config{
+			Metrics:          clustermetrics.NewMetrics(prom_sdk.DefaultRegisterer),
 			Region:           cfg.Region,
 			NodeID:           cfg.InstanceID,
 			BindAddr:         cfg.Gossip.BindAddr,
@@ -203,7 +211,7 @@ func Run(ctx context.Context, cfg Config) error {
 				"error", clusterErr,
 			)
 		} else {
-			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
+			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster, clusteringmetrics.NoopMetrics())
 			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
 			broadcaster = gossipBroadcaster
 			r.Defer(gossipCluster.Close)
@@ -214,9 +222,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize caches
 	cache, err := caches.New(caches.Config{
-		Clock:       clk,
-		Broadcaster: broadcaster,
-		NodeID:      cfg.InstanceID,
+		Clock:             clk,
+		Broadcaster:       broadcaster,
+		NodeID:            cfg.InstanceID,
+		CacheMetrics:      cachemetrics.NoopMetrics(),
+		ClusteringMetrics: clusteringmetrics.NoopMetrics(),
+		BatchMetrics:      batchmetrics.NoopMetrics(),
+		BufferMetrics:     buffermetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)

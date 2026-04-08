@@ -22,16 +22,23 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
+	prom_sdk "github.com/prometheus/client_golang/prometheus"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
+	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
+	clusteringmetrics "github.com/unkeyed/unkey/pkg/cache/clustering/metrics"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/cluster"
+	clustermetrics "github.com/unkeyed/unkey/pkg/cluster/metrics"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqlmetrics "github.com/unkeyed/unkey/pkg/mysql/metrics"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -95,6 +102,7 @@ func Run(ctx context.Context, cfg Config) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		Metrics:     mysqlmetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -145,6 +153,8 @@ func Run(ctx context.Context, cfg Config) error {
 			Consumers:     2,
 			Drop:          true,
 			OnFlushError:  nil,
+			BatchMetrics:  batchmetrics.NoopMetrics(),
+			BufferMetrics: buffermetrics.NoopMetrics(),
 		})
 		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
 			Name:          "key_verifications",
@@ -154,6 +164,8 @@ func Run(ctx context.Context, cfg Config) error {
 			Consumers:     2,
 			Drop:          true,
 			OnFlushError:  nil,
+			BatchMetrics:  batchmetrics.NoopMetrics(),
+			BufferMetrics: buffermetrics.NoopMetrics(),
 		})
 		ratelimits = clickhouse.NewBuffer[schema.Ratelimit](chClient, "default.ratelimits_raw_v2", clickhouse.BufferConfig{
 			Name:          "ratelimits",
@@ -163,6 +175,8 @@ func Run(ctx context.Context, cfg Config) error {
 			Consumers:     2,
 			Drop:          true,
 			OnFlushError:  nil,
+			BatchMetrics:  batchmetrics.NoopMetrics(),
+			BufferMetrics: buffermetrics.NoopMetrics(),
 		})
 
 		// Close buffers before connection (LIFO)
@@ -203,8 +217,9 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	rlSvc, err := ratelimit.New(ratelimit.Config{
-		Clock:   clk,
-		Counter: ctr,
+		Clock:         clk,
+		Counter:       ctr,
+		BufferMetrics: buffermetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
@@ -229,8 +244,9 @@ func Run(ctx context.Context, cfg Config) error {
 				Credits: sql.NullInt32{Int32: cost, Valid: true},
 			})
 		},
-		Counter: ctr,
-		TTL:     60 * time.Second,
+		Counter:       ctr,
+		TTL:           60 * time.Second,
+		BufferMetrics: buffermetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create usage limiter service: %w", err)
@@ -277,6 +293,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 
 		gossipCluster, clusterErr := cluster.New(cluster.Config{
+			Metrics:          clustermetrics.NewMetrics(prom_sdk.DefaultRegisterer),
 			Region:           cfg.Region,
 			NodeID:           cfg.InstanceID,
 			BindAddr:         cfg.Gossip.BindAddr,
@@ -293,7 +310,7 @@ func Run(ctx context.Context, cfg Config) error {
 				"error", clusterErr,
 			)
 		} else {
-			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
+			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster, clusteringmetrics.NoopMetrics())
 			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
 			broadcaster = gossipBroadcaster
 			r.Defer(gossipCluster.Close)
@@ -301,9 +318,13 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	caches, err := caches.New(caches.Config{
-		Clock:       clk,
-		Broadcaster: broadcaster,
-		NodeID:      cfg.InstanceID,
+		Clock:             clk,
+		Broadcaster:       broadcaster,
+		NodeID:            cfg.InstanceID,
+		CacheMetrics:      cachemetrics.NoopMetrics(),
+		ClusteringMetrics: clusteringmetrics.NoopMetrics(),
+		BatchMetrics:      batchmetrics.NoopMetrics(),
+		BufferMetrics:     buffermetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
@@ -335,6 +356,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Clock:         clk,
 			BaseURL:       cfg.ClickHouse.AnalyticsURL,
 			Vault:         vaultClient,
+			CacheMetrics:  cachemetrics.NoopMetrics(),
 		})
 		if err != nil {
 			return fmt.Errorf("unable to create analytics connection manager: %w", err)

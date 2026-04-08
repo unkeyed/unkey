@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/cache"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 )
@@ -23,6 +24,7 @@ func TestSWR_CacheHit(t *testing.T) {
 		MaxSize:  100,
 		Resource: "test",
 		Clock:    mockClock,
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 

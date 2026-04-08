@@ -18,13 +18,17 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/batch"
+	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqlmetrics "github.com/unkeyed/unkey/pkg/mysql/metrics"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -123,6 +127,7 @@ func Run(ctx context.Context, cfg Config) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		Metrics:     mysqlmetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -168,6 +173,8 @@ func Run(ctx context.Context, cfg Config) error {
 				Consumers:     1,
 				Drop:          true,
 				OnFlushError:  nil,
+				BatchMetrics:  batchmetrics.NoopMetrics(),
+				BufferMetrics: buffermetrics.NoopMetrics(),
 			})
 			buildStepLogs = clickhouse.NewBuffer[schema.BuildStepLogV1](chClient, "default.build_step_logs_v1", clickhouse.BufferConfig{
 				Name:          "build_step_logs",
@@ -177,6 +184,8 @@ func Run(ctx context.Context, cfg Config) error {
 				Consumers:     1,
 				Drop:          true,
 				OnFlushError:  nil,
+				BatchMetrics:  batchmetrics.NoopMetrics(),
+				BufferMetrics: buffermetrics.NoopMetrics(),
 			})
 
 			// Close connection last (LIFO: first registered closes last)
@@ -290,6 +299,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MaxSize:  10000,
 		Resource: "domains",
 		Clock:    clk,
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	if domainCacheErr != nil {
 		return fmt.Errorf("failed to create domain cache: %w", domainCacheErr)

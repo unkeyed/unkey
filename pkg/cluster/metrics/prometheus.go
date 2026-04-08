@@ -9,155 +9,189 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-var (
-	// ClusterMembershipEventsTotal counts LAN membership changes (join/leave).
-	ClusterMembershipEventsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "cluster",
-			Name:      "membership_events_total",
-			Help:      "Total number of LAN membership events by type.",
-		},
-		[]string{"event_type"},
-	)
+// Metrics holds all Prometheus metrics for the cluster package.
+type Metrics struct {
+	// MembershipEventsTotal counts LAN membership changes (join/leave).
+	MembershipEventsTotal *prometheus.CounterVec
 
-	// ClusterMembersCount tracks the current number of members in each pool.
-	ClusterMembersCount = promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "unkey",
-			Subsystem: "cluster",
-			Name:      "members_count",
-			Help:      "Current number of members in the cluster pool.",
-		},
-		[]string{"pool", "region"},
-	)
+	// MembersCount tracks the current number of members in each pool.
+	MembersCount *prometheus.GaugeVec
 
-	// ClusterBridgeStatus indicates whether this node is currently the bridge (1) or not (0).
-	ClusterBridgeStatus = promauto.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: "unkey",
-			Subsystem: "cluster",
-			Name:      "bridge_status",
-			Help:      "Whether this node is the WAN bridge (1=bridge, 0=not bridge).",
-		},
-	)
+	// BridgeStatus indicates whether this node is currently the bridge (1) or not (0).
+	BridgeStatus prometheus.Gauge
 
-	// ClusterBridgeTransitionsTotal counts bridge promotions and demotions.
-	ClusterBridgeTransitionsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "cluster",
-			Name:      "bridge_transitions_total",
-			Help:      "Total number of bridge role transitions by type.",
-		},
-		[]string{"transition"},
-	)
+	// BridgeTransitionsTotal counts bridge promotions and demotions.
+	BridgeTransitionsTotal *prometheus.CounterVec
 
-	// ClusterBroadcastsTotal counts messages queued for broadcast.
-	ClusterBroadcastsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "cluster",
-			Name:      "broadcasts_total",
-			Help:      "Total number of messages queued for broadcast by pool.",
-		},
-		[]string{"pool"},
-	)
+	// BroadcastsTotal counts messages queued for broadcast.
+	BroadcastsTotal *prometheus.CounterVec
 
-	// ClusterBroadcastErrorsTotal counts marshal/queue failures during broadcast.
-	ClusterBroadcastErrorsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "cluster",
-			Name:      "broadcast_errors_total",
-			Help:      "Total number of broadcast marshal/queue errors by pool.",
-		},
-		[]string{"pool"},
-	)
+	// BroadcastErrorsTotal counts marshal/queue failures during broadcast.
+	BroadcastErrorsTotal *prometheus.CounterVec
 
-	// ClusterMessagesReceivedTotal counts messages received by delegates.
+	// MessagesReceivedTotal counts messages received by delegates.
 	// pool = which delegate received it (lan/wan).
 	// direction = msg.Direction from the proto (lan = intra-region, wan = cross-region relay).
 	// payload_type = short type name from the protobuf oneof.
-	ClusterMessagesReceivedTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "cluster",
-			Name:      "messages_received_total",
-			Help:      "Total number of messages received by pool, direction, and payload type.",
-		},
-		[]string{"pool", "direction", "payload_type"},
-	)
+	MessagesReceivedTotal *prometheus.CounterVec
 
-	// ClusterMessageLatencySeconds measures end-to-end transport latency (sent_at_ms to now).
+	// MessageLatencySeconds measures end-to-end transport latency (sent_at_ms to now).
 	// direction=lan gives intra-region hop time, direction=wan gives full cross-region delivery time.
 	// source_region is the originating region, destination_region is the receiving region.
-	ClusterMessageLatencySeconds = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "unkey",
-			Subsystem: "cluster",
-			Name:      "message_latency_seconds",
-			Help:      "End-to-end message transport latency in seconds.",
-			Buckets:   prometheus.DefBuckets,
-		},
-		[]string{"direction", "source_region", "destination_region"},
-	)
+	MessageLatencySeconds *prometheus.HistogramVec
 
-	// ClusterMessageUnmarshalErrorsTotal counts proto deserialization failures.
-	ClusterMessageUnmarshalErrorsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "cluster",
-			Name:      "message_unmarshal_errors_total",
-			Help:      "Total number of message unmarshal errors by pool.",
-		},
-		[]string{"pool"},
-	)
+	// MessageUnmarshalErrorsTotal counts proto deserialization failures.
+	MessageUnmarshalErrorsTotal *prometheus.CounterVec
 
-	// ClusterRelaysTotal counts bridge relay operations.
-	ClusterRelaysTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "cluster",
-			Name:      "relays_total",
-			Help:      "Total number of bridge relay operations by direction.",
-		},
-		[]string{"direction"},
-	)
+	// RelaysTotal counts bridge relay operations.
+	RelaysTotal *prometheus.CounterVec
 
-	// ClusterRelayErrorsTotal counts relay marshal failures.
-	ClusterRelayErrorsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "cluster",
-			Name:      "relay_errors_total",
-			Help:      "Total number of relay marshal errors by direction.",
-		},
-		[]string{"direction"},
-	)
+	// RelayErrorsTotal counts relay marshal failures.
+	RelayErrorsTotal *prometheus.CounterVec
 
-	// ClusterSeedJoinAttemptsTotal tracks seed join attempts by pool and status.
-	ClusterSeedJoinAttemptsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "cluster",
-			Name:      "seed_join_attempts_total",
-			Help:      "Total number of seed join attempts by pool and status.",
-		},
-		[]string{"pool", "status"},
-	)
+	// SeedJoinAttemptsTotal tracks seed join attempts by pool and status.
+	SeedJoinAttemptsTotal *prometheus.CounterVec
 
-	// ClusterMessagesSkippedSameRegionTotal counts WAN messages dropped because
+	// MessagesSkippedSameRegionTotal counts WAN messages dropped because
 	// they originated in the same region.
-	ClusterMessagesSkippedSameRegionTotal = promauto.NewCounter(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "cluster",
-			Name:      "messages_skipped_same_region_total",
-			Help:      "Total number of WAN messages skipped because they originated in the same region.",
-		},
-	)
-)
+	MessagesSkippedSameRegionTotal prometheus.Counter
+}
+
+// NewMetrics creates and registers all cluster metrics with the given registerer.
+func NewMetrics(reg prometheus.Registerer) *Metrics {
+	f := promauto.With(reg)
+
+	return &Metrics{
+		MembershipEventsTotal: f.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "cluster",
+				Name:      "membership_events_total",
+				Help:      "Total number of LAN membership events by type.",
+			},
+			[]string{"event_type"},
+		),
+
+		MembersCount: f.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: "unkey",
+				Subsystem: "cluster",
+				Name:      "members_count",
+				Help:      "Current number of members in the cluster pool.",
+			},
+			[]string{"pool", "region"},
+		),
+
+		BridgeStatus: f.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "unkey",
+				Subsystem: "cluster",
+				Name:      "bridge_status",
+				Help:      "Whether this node is the WAN bridge (1=bridge, 0=not bridge).",
+			},
+		),
+
+		BridgeTransitionsTotal: f.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "cluster",
+				Name:      "bridge_transitions_total",
+				Help:      "Total number of bridge role transitions by type.",
+			},
+			[]string{"transition"},
+		),
+
+		BroadcastsTotal: f.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "cluster",
+				Name:      "broadcasts_total",
+				Help:      "Total number of messages queued for broadcast by pool.",
+			},
+			[]string{"pool"},
+		),
+
+		BroadcastErrorsTotal: f.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "cluster",
+				Name:      "broadcast_errors_total",
+				Help:      "Total number of broadcast marshal/queue errors by pool.",
+			},
+			[]string{"pool"},
+		),
+
+		MessagesReceivedTotal: f.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "cluster",
+				Name:      "messages_received_total",
+				Help:      "Total number of messages received by pool, direction, and payload type.",
+			},
+			[]string{"pool", "direction", "payload_type"},
+		),
+
+		MessageLatencySeconds: f.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Namespace: "unkey",
+				Subsystem: "cluster",
+				Name:      "message_latency_seconds",
+				Help:      "End-to-end message transport latency in seconds.",
+				Buckets:   prometheus.DefBuckets,
+			},
+			[]string{"direction", "source_region", "destination_region"},
+		),
+
+		MessageUnmarshalErrorsTotal: f.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "cluster",
+				Name:      "message_unmarshal_errors_total",
+				Help:      "Total number of message unmarshal errors by pool.",
+			},
+			[]string{"pool"},
+		),
+
+		RelaysTotal: f.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "cluster",
+				Name:      "relays_total",
+				Help:      "Total number of bridge relay operations by direction.",
+			},
+			[]string{"direction"},
+		),
+
+		RelayErrorsTotal: f.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "cluster",
+				Name:      "relay_errors_total",
+				Help:      "Total number of relay marshal errors by direction.",
+			},
+			[]string{"direction"},
+		),
+
+		SeedJoinAttemptsTotal: f.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "cluster",
+				Name:      "seed_join_attempts_total",
+				Help:      "Total number of seed join attempts by pool and status.",
+			},
+			[]string{"pool", "status"},
+		),
+
+		MessagesSkippedSameRegionTotal: f.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "cluster",
+				Name:      "messages_skipped_same_region_total",
+				Help:      "Total number of WAN messages skipped because they originated in the same region.",
+			},
+		),
+	}
+}
 
 // PayloadTypeName extracts a short type name from the protobuf oneof payload.
 // For example, *ClusterMessage_CacheInvalidation returns "CacheInvalidation".

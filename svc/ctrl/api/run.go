@@ -13,10 +13,12 @@ import (
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/cache"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqlmetrics "github.com/unkeyed/unkey/pkg/mysql/metrics"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -88,6 +90,7 @@ func Run(ctx context.Context, cfg Config) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		Metrics:     mysqlmetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -121,6 +124,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MaxSize:  10000,
 		Resource: "domains",
 		Clock:    clk,
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create domain cache: %w", err)
@@ -132,6 +136,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MaxSize:  1000,
 		Resource: "acme_challenges",
 		Clock:    clk,
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create challenge cache: %w", err)

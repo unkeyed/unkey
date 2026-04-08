@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/cache"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 )
@@ -21,6 +22,7 @@ func TestGetMany(t *testing.T) {
 		Stale:    time.Minute * 5,
 		Resource: "test",
 		Clock:    clock.New(),
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 
@@ -108,6 +110,7 @@ func TestGetMany_Eviction(t *testing.T) {
 		Stale:    time.Second,
 		Resource: "test",
 		Clock:    clk,
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 
@@ -135,6 +138,7 @@ func TestSetMany(t *testing.T) {
 		Stale:    time.Minute * 5,
 		Resource: "test",
 		Clock:    clock.New(),
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 
@@ -186,6 +190,7 @@ func TestSetNullMany(t *testing.T) {
 		Stale:    time.Minute * 5,
 		Resource: "test",
 		Clock:    clock.New(),
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 
@@ -227,6 +232,7 @@ func TestSWRMany(t *testing.T) {
 		MaxSize:  100,
 		Resource: "test",
 		Clock:    mockClock,
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 

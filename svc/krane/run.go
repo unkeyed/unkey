@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/cache"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
@@ -138,6 +139,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MaxSize:  10_000,
 		Resource: "deployment_fingerprints",
 		Clock:    clock.New(),
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create fingerprint cache: %w", err)
@@ -193,7 +195,7 @@ func Run(ctx context.Context, cfg Config) error {
 		}); err != nil {
 			logger.Warn("heartbeat failed", "error", err)
 		}
-	})
+	}, nil)
 	r.Defer(func() error { stopHeartbeat(); return nil })
 
 	// Create the connect handler

@@ -6,8 +6,12 @@ import (
 	"os"
 	"time"
 
+	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
+	clusteringmetrics "github.com/unkeyed/unkey/pkg/cache/clustering/metrics"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -51,16 +55,31 @@ type Config struct {
 
 	// NodeID identifies this node in the cluster (defaults to hostname-uniqueid to ensure uniqueness)
 	NodeID string
+
+	// CacheMetrics provides metrics for cache operations.
+	CacheMetrics *cachemetrics.Metrics
+
+	// ClusteringMetrics provides metrics for clustering operations.
+	ClusteringMetrics *clusteringmetrics.Metrics
+
+	// BatchMetrics provides metrics for batch operations in cluster cache invalidation.
+	BatchMetrics *batchmetrics.Metrics
+
+	// BufferMetrics provides metrics for buffer operations in cluster cache invalidation.
+	BufferMetrics *buffermetrics.Metrics
 }
 
 // clusterOpts bundles the dispatcher and key converter functions needed for
 // distributed cache invalidation.
 type clusterOpts[K comparable] struct {
-	dispatcher  *clustering.InvalidationDispatcher
-	broadcaster clustering.Broadcaster
-	nodeID      string
-	keyToString func(K) string
-	stringToKey func(string) (K, error)
+	dispatcher        *clustering.InvalidationDispatcher
+	broadcaster       clustering.Broadcaster
+	nodeID            string
+	keyToString       func(K) string
+	stringToKey       func(string) (K, error)
+	clusteringMetrics *clusteringmetrics.Metrics
+	batchMetrics      *batchmetrics.Metrics
+	bufferMetrics     *buffermetrics.Metrics
 }
 
 // createCache creates a cache instance with optional clustering support.
@@ -78,12 +97,15 @@ func createCache[K comparable, V any](
 	}
 
 	clusterCache, err := clustering.New(clustering.Config[K, V]{
-		LocalCache:  localCache,
-		Broadcaster: opts.broadcaster,
-		Dispatcher:  opts.dispatcher,
-		NodeID:      opts.nodeID,
-		KeyToString: opts.keyToString,
-		StringToKey: opts.stringToKey,
+		LocalCache:    localCache,
+		Broadcaster:   opts.broadcaster,
+		Dispatcher:    opts.dispatcher,
+		Metrics:       opts.clusteringMetrics,
+		BatchMetrics:  opts.batchMetrics,
+		BufferMetrics: opts.bufferMetrics,
+		NodeID:        opts.nodeID,
+		KeyToString:   opts.keyToString,
+		StringToKey:   opts.stringToKey,
 	})
 	if err != nil {
 		return nil, err
@@ -106,17 +128,20 @@ func New(config Config) (*Caches, error) {
 
 	if config.Broadcaster != nil {
 		var err error
-		dispatcher, err = clustering.NewInvalidationDispatcher(config.Broadcaster)
+		dispatcher, err = clustering.NewInvalidationDispatcher(config.Broadcaster, config.ClusteringMetrics)
 		if err != nil {
 			return nil, err
 		}
 
 		stringKeyOpts = &clusterOpts[string]{
-			dispatcher:  dispatcher,
-			broadcaster: config.Broadcaster,
-			nodeID:      config.NodeID,
-			keyToString: nil,
-			stringToKey: nil,
+			dispatcher:        dispatcher,
+			broadcaster:       config.Broadcaster,
+			nodeID:            config.NodeID,
+			keyToString:       nil,
+			stringToKey:       nil,
+			clusteringMetrics: config.ClusteringMetrics,
+			batchMetrics:      config.BatchMetrics,
+			bufferMetrics:     config.BufferMetrics,
 		}
 	}
 
@@ -137,6 +162,7 @@ func New(config Config) (*Caches, error) {
 			MaxSize:  10_000,
 			Resource: "frontline_route",
 			Clock:    config.Clock,
+			Metrics:  config.CacheMetrics,
 		},
 		stringKeyOpts,
 	)
@@ -151,6 +177,7 @@ func New(config Config) (*Caches, error) {
 			MaxSize:  10_000,
 			Resource: "sentinels_by_environment",
 			Clock:    config.Clock,
+			Metrics:  config.CacheMetrics,
 		},
 		stringKeyOpts,
 	)
@@ -165,6 +192,7 @@ func New(config Config) (*Caches, error) {
 			MaxSize:  10_000,
 			Resource: "instances_by_deployment",
 			Clock:    config.Clock,
+			Metrics:  config.CacheMetrics,
 		},
 		stringKeyOpts,
 	)
@@ -179,6 +207,7 @@ func New(config Config) (*Caches, error) {
 			MaxSize:  10_000,
 			Resource: "tls_certificate",
 			Clock:    config.Clock,
+			Metrics:  config.CacheMetrics,
 		},
 		stringKeyOpts,
 	)

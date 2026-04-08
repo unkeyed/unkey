@@ -6,8 +6,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+	"github.com/unkeyed/unkey/pkg/buffer/metrics"
 )
+
+func testMetrics(t *testing.T) *metrics.Metrics {
+	t.Helper()
+	return metrics.NewMetrics(prometheus.NewRegistry())
+}
 
 func TestNew(t *testing.T) {
 	tests := []Config{
@@ -15,16 +22,19 @@ func TestNew(t *testing.T) {
 			Name:     "default_settings",
 			Capacity: 10_000,
 			Drop:     false,
+			Metrics:  testMetrics(t),
 		},
 		{
 			Name:     "custom_capacity",
 			Capacity: 5000,
 			Drop:     false,
+			Metrics:  testMetrics(t),
 		},
 		{
 			Name:     "with_drop_enabled",
 			Capacity: 10_000,
 			Drop:     true,
+			Metrics:  testMetrics(t),
 		},
 	}
 
@@ -50,6 +60,7 @@ func TestBuffer(t *testing.T) {
 				Name:     "a",
 				Capacity: 5,
 				Drop:     false,
+				Metrics:  testMetrics(t),
 			},
 			name:    "Should buffer all elements when under capacity",
 			input:   []int{1, 2, 3},
@@ -60,6 +71,7 @@ func TestBuffer(t *testing.T) {
 				Name:     "b",
 				Capacity: 3,
 				Drop:     true,
+				Metrics:  testMetrics(t),
 			},
 			name:    "Should drop elements when buffer is full and drop is enabled",
 			input:   []int{1, 2, 3, 4, 5},
@@ -103,6 +115,7 @@ func TestBlockingBehavior(t *testing.T) {
 			Name:     "a",
 			Capacity: 2,
 			Drop:     false,
+			Metrics:  testMetrics(t),
 		})
 
 		// Fill the buffer
@@ -136,6 +149,7 @@ func TestCustomTypes(t *testing.T) {
 			Name:     "custom_event",
 			Capacity: 1000,
 			Drop:     false,
+			Metrics:  testMetrics(t),
 		})
 		event := CustomEvent{ID: "1", Data: "test"}
 
@@ -151,7 +165,7 @@ func TestCustomTypes(t *testing.T) {
 }
 
 func TestBufferCloseConcurrency(t *testing.T) {
-	b := New[int](Config{Capacity: 10, Drop: true, Name: "test"})
+	b := New[int](Config{Capacity: 10, Drop: true, Name: "test", Metrics: testMetrics(t)})
 
 	bufferingStarted := make(chan struct{})
 	bufferingDone := make(chan struct{})
@@ -176,6 +190,10 @@ func TestBufferCloseConcurrency(t *testing.T) {
 	// Force close the buffer again (should not panic)
 	b.Close()
 	b.Close()
+}
+
+func benchMetrics() *metrics.Metrics {
+	return metrics.NewMetrics(prometheus.NewRegistry())
 }
 
 // BenchmarkBuffer measures the performance impact of mutex operations
@@ -205,6 +223,7 @@ func BenchmarkBuffer(b *testing.B) {
 				Capacity: bm.capacity,
 				Drop:     bm.drop,
 				Name:     "benchmark",
+				Metrics:  benchMetrics(),
 			})
 			defer buf.Close()
 
@@ -258,6 +277,7 @@ func BenchmarkBufferMutexContention(b *testing.B) {
 					Capacity: 1000,
 					Drop:     true,
 					Name:     "contention_test",
+					Metrics:  benchMetrics(),
 				})
 				defer buffers[i].Close()
 
@@ -292,7 +312,7 @@ func BenchmarkBufferClose(b *testing.B) {
 	b.Run("CloseWithoutConcurrency", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			buf := New[int](Config{Capacity: 100, Drop: true, Name: "close_test"})
+			buf := New[int](Config{Capacity: 100, Drop: true, Name: "close_test", Metrics: benchMetrics()})
 			buf.Close()
 		}
 	})
@@ -300,7 +320,7 @@ func BenchmarkBufferClose(b *testing.B) {
 	b.Run("CloseWithConcurrentWrites", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			buf := New[int](Config{Capacity: 100, Drop: true, Name: "close_test"})
+			buf := New[int](Config{Capacity: 100, Drop: true, Name: "close_test", Metrics: benchMetrics()})
 
 			done := make(chan struct{})
 			go func() {
@@ -322,7 +342,7 @@ func BenchmarkBufferMemoryFootprint(b *testing.B) {
 	b.Run("MemoryUsage", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			buf := New[int](Config{Capacity: 1000, Drop: false, Name: "memory_test"})
+			buf := New[int](Config{Capacity: 1000, Drop: false, Name: "memory_test", Metrics: benchMetrics()})
 			for j := 0; j < 100; j++ {
 				buf.Buffer(j)
 			}

@@ -6,8 +6,12 @@ import (
 	"time"
 
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
+	clusteringmetrics "github.com/unkeyed/unkey/pkg/cache/clustering/metrics"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -71,6 +75,18 @@ type Config struct {
 
 	// NodeID identifies this node in the cluster (defaults to hostname-uniqueid to ensure uniqueness)
 	NodeID string
+
+	// CacheMetrics provides metrics for cache operations.
+	CacheMetrics *cachemetrics.Metrics
+
+	// ClusteringMetrics provides metrics for clustering operations.
+	ClusteringMetrics *clusteringmetrics.Metrics
+
+	// BatchMetrics provides metrics for batch operations in cluster cache invalidation.
+	BatchMetrics *batchmetrics.Metrics
+
+	// BufferMetrics provides metrics for buffer operations in cluster cache invalidation.
+	BufferMetrics *buffermetrics.Metrics
 }
 
 // clusterOpts bundles the dispatcher and key converter functions needed for
@@ -78,11 +94,14 @@ type Config struct {
 // meaningful when clustering is enabled (i.e., when a dispatcher exists).
 // Pass nil when clustering is disabled.
 type clusterOpts[K comparable] struct {
-	dispatcher  *clustering.InvalidationDispatcher
-	broadcaster clustering.Broadcaster
-	nodeID      string
-	keyToString func(K) string
-	stringToKey func(string) (K, error)
+	dispatcher        *clustering.InvalidationDispatcher
+	broadcaster       clustering.Broadcaster
+	nodeID            string
+	keyToString       func(K) string
+	stringToKey       func(string) (K, error)
+	clusteringMetrics *clusteringmetrics.Metrics
+	batchMetrics      *batchmetrics.Metrics
+	bufferMetrics     *buffermetrics.Metrics
 }
 
 // createCache creates a cache instance with optional clustering support.
@@ -111,12 +130,15 @@ func createCache[K comparable, V any](
 	// Wrap with clustering for distributed invalidation
 	// The cluster cache will automatically register with the dispatcher
 	clusterCache, err := clustering.New(clustering.Config[K, V]{
-		LocalCache:  localCache,
-		Broadcaster: opts.broadcaster,
-		Dispatcher:  opts.dispatcher,
-		NodeID:      opts.nodeID,
-		KeyToString: opts.keyToString,
-		StringToKey: opts.stringToKey,
+		LocalCache:    localCache,
+		Broadcaster:   opts.broadcaster,
+		Dispatcher:    opts.dispatcher,
+		Metrics:       opts.clusteringMetrics,
+		BatchMetrics:  opts.batchMetrics,
+		BufferMetrics: opts.bufferMetrics,
+		NodeID:        opts.nodeID,
+		KeyToString:   opts.keyToString,
+		StringToKey:   opts.stringToKey,
 	})
 	if err != nil {
 		return nil, err
@@ -149,24 +171,30 @@ func New(config Config) (Caches, error) {
 
 	if config.Broadcaster != nil {
 		var err error
-		dispatcher, err = clustering.NewInvalidationDispatcher(config.Broadcaster)
+		dispatcher, err = clustering.NewInvalidationDispatcher(config.Broadcaster, config.ClusteringMetrics)
 		if err != nil {
 			return Caches{}, err
 		}
 
 		scopedKeyOpts = &clusterOpts[cache.ScopedKey]{
-			dispatcher:  dispatcher,
-			broadcaster: config.Broadcaster,
-			nodeID:      config.NodeID,
-			keyToString: cache.ScopedKeyToString,
-			stringToKey: cache.ScopedKeyFromString,
+			dispatcher:        dispatcher,
+			broadcaster:       config.Broadcaster,
+			nodeID:            config.NodeID,
+			keyToString:       cache.ScopedKeyToString,
+			stringToKey:       cache.ScopedKeyFromString,
+			clusteringMetrics: config.ClusteringMetrics,
+			batchMetrics:      config.BatchMetrics,
+			bufferMetrics:     config.BufferMetrics,
 		}
 		stringKeyOpts = &clusterOpts[string]{
-			dispatcher:  dispatcher,
-			broadcaster: config.Broadcaster,
-			nodeID:      config.NodeID,
-			keyToString: nil, // defaults handle string keys
-			stringToKey: nil,
+			dispatcher:        dispatcher,
+			broadcaster:       config.Broadcaster,
+			nodeID:            config.NodeID,
+			keyToString:       nil, // defaults handle string keys
+			stringToKey:       nil,
+			clusteringMetrics: config.ClusteringMetrics,
+			batchMetrics:      config.BatchMetrics,
+			bufferMetrics:     config.BufferMetrics,
 		}
 	}
 
@@ -187,6 +215,7 @@ func New(config Config) (Caches, error) {
 			MaxSize:  1_000_000,
 			Resource: "ratelimit_namespace",
 			Clock:    config.Clock,
+			Metrics:  config.CacheMetrics,
 		},
 		scopedKeyOpts,
 	)
@@ -201,6 +230,7 @@ func New(config Config) (Caches, error) {
 			MaxSize:  1_000_000,
 			Resource: "verification_key_by_hash",
 			Clock:    config.Clock,
+			Metrics:  config.CacheMetrics,
 		},
 		stringKeyOpts,
 	)
@@ -215,6 +245,7 @@ func New(config Config) (Caches, error) {
 			MaxSize:  1_000_000,
 			Resource: "live_api_by_id",
 			Clock:    config.Clock,
+			Metrics:  config.CacheMetrics,
 		},
 		scopedKeyOpts,
 	)
@@ -229,6 +260,7 @@ func New(config Config) (Caches, error) {
 			MaxSize:  1_000_000,
 			Resource: "clickhouse_setting",
 			Clock:    config.Clock,
+			Metrics:  config.CacheMetrics,
 		},
 		stringKeyOpts,
 	)
@@ -243,6 +275,7 @@ func New(config Config) (Caches, error) {
 			MaxSize:  1_000_000,
 			Resource: "key_auth_to_api_row",
 			Clock:    config.Clock,
+			Metrics:  config.CacheMetrics,
 		},
 		scopedKeyOpts,
 	)
@@ -257,6 +290,7 @@ func New(config Config) (Caches, error) {
 			MaxSize:  1_000_000,
 			Resource: "api_to_key_auth_row",
 			Clock:    config.Clock,
+			Metrics:  config.CacheMetrics,
 		},
 		scopedKeyOpts,
 	)
@@ -271,6 +305,7 @@ func New(config Config) (Caches, error) {
 			MaxSize:  100_000,
 			Resource: "workspace_quota",
 			Clock:    config.Clock,
+			Metrics:  config.CacheMetrics,
 		},
 		stringKeyOpts,
 	)

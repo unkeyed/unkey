@@ -78,5 +78,5 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 				break
 			}
 		}
-	})
+	}, nil)
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/usagelimiter/metrics"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/buffer"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -40,6 +41,9 @@ type RedisConfig struct {
 
 	// TTL for Redis keys, defaults to 10 minutes if not specified
 	TTL time.Duration
+
+	// BufferMetrics provides metrics for the replay buffer.
+	BufferMetrics *buffermetrics.Metrics
 }
 
 // counterService implements usage limiting using the counter interface
@@ -78,6 +82,9 @@ type CounterConfig struct {
 	// ReplayWorkers is the number of goroutines processing replay requests
 	// Defaults to 8 if not specified
 	ReplayWorkers int
+
+	// BufferMetrics provides metrics for the replay buffer.
+	BufferMetrics *buffermetrics.Metrics
 }
 
 // NewCounter creates a new counter-based usage limiter implementation.
@@ -132,6 +139,7 @@ func NewCounter(config CounterConfig) (Service, error) {
 			Name:     "usagelimiter_replays",
 			Capacity: 10_000,
 			Drop:     false, // Do NOT drop credits
+			Metrics:  config.BufferMetrics,
 		}),
 		dbCircuitBreaker: circuitbreaker.New[any](
 			"usagelimiter_db_writes",
@@ -343,7 +351,7 @@ func (s *counterService) Close() error {
 			return
 		}
 		logger.Debug("waiting for replay buffer to drain", "remaining", remaining)
-	})
+	}, nil)
 	defer stopRepeater()
 
 	select {

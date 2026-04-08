@@ -62,5 +62,6 @@ func NewRedisWithCounter(config RedisConfig) (Service, error) {
 		DecrementKeyCredits: config.DecrementKeyCredits,
 		Counter:             config.Counter,
 		TTL:                 config.TTL,
+		BufferMetrics:       config.BufferMetrics,
 	})
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/cache"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/sim"
 )
@@ -109,6 +110,7 @@ func TestSimulation(t *testing.T) {
 						Stale:    stale,
 						MaxSize:  rng.IntN(1_000_000) + 1, // Ensure at least size 1
 						Resource: "test",
+						Metrics:  cachemetrics.NoopMetrics(),
 					})
 					require.NoError(t, err)
 					return &state{

@@ -11,8 +11,12 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/services/keys/db",
+        "//pkg/batch/metrics",
+        "//pkg/buffer/metrics",
         "//pkg/cache",
         "//pkg/cache/clustering",
+        "//pkg/cache/clustering/metrics",
+        "//pkg/cache/metrics",
         "//pkg/cache/middleware",
         "//pkg/clock",
         "//pkg/db",

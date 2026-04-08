@@ -3,16 +3,22 @@ package routes
 import (
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	panicmetrics "github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/middleware"
 	acme "github.com/unkeyed/unkey/svc/frontline/routes/acme"
 	proxy "github.com/unkeyed/unkey/svc/frontline/routes/proxy"
 )
 
+// panicMetrics is shared across Register and RegisterChallengeServer to avoid
+// double-registration on prometheus.DefaultRegisterer.
+var panicMetrics = panicmetrics.NewMetrics(prometheus.DefaultRegisterer)
+
 // Register registers all frontline routes for the HTTPS server
 func Register(srv *zen.Server, svc *Services) {
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/"))
-	withPanicRecovery := zen.WithPanicRecovery()
+	withPanicRecovery := zen.WithPanicRecovery(panicMetrics)
 	withObservability := middleware.WithObservability(svc.Region, svc.ErrorPageRenderer)
 	withTimeout := zen.WithTimeout(15 * time.Minute)
 
@@ -39,7 +45,7 @@ func RegisterChallengeServer(srv *zen.Server, svc *Services) {
 	// Catches /.well-known/acme-challenge/{token} so we can forward to ctrl plane.
 	srv.RegisterRoute(
 		[]zen.Middleware{
-			zen.WithPanicRecovery(),
+			zen.WithPanicRecovery(panicMetrics),
 			zen.WithLogging(zen.SkipPaths("/_unkey/internal/")),
 			middleware.WithObservability(svc.Region, svc.ErrorPageRenderer),
 		},

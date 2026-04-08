@@ -10,8 +10,11 @@ import (
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/array"
+	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
+	clusteringmetrics "github.com/unkeyed/unkey/pkg/cache/clustering/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -53,11 +56,14 @@ func (s *service) Close() error {
 // clusterOpts bundles the dispatcher and key converter functions needed for
 // distributed cache invalidation.
 type clusterOpts[K comparable] struct {
-	dispatcher  *clustering.InvalidationDispatcher
-	broadcaster clustering.Broadcaster
-	nodeID      string
-	keyToString func(K) string
-	stringToKey func(string) (K, error)
+	dispatcher        *clustering.InvalidationDispatcher
+	broadcaster       clustering.Broadcaster
+	nodeID            string
+	keyToString       func(K) string
+	stringToKey       func(string) (K, error)
+	clusteringMetrics *clusteringmetrics.Metrics
+	batchMetrics      *batchmetrics.Metrics
+	bufferMetrics     *buffermetrics.Metrics
 }
 
 // createCache creates a cache instance with optional clustering support.
@@ -75,12 +81,15 @@ func createCache[K comparable, V any](
 	}
 
 	clusterCache, err := clustering.New(clustering.Config[K, V]{
-		LocalCache:  localCache,
-		Broadcaster: opts.broadcaster,
-		Dispatcher:  opts.dispatcher,
-		NodeID:      opts.nodeID,
-		KeyToString: opts.keyToString,
-		StringToKey: opts.stringToKey,
+		LocalCache:    localCache,
+		Broadcaster:   opts.broadcaster,
+		Dispatcher:    opts.dispatcher,
+		Metrics:       opts.clusteringMetrics,
+		BatchMetrics:  opts.batchMetrics,
+		BufferMetrics: opts.bufferMetrics,
+		NodeID:        opts.nodeID,
+		KeyToString:   opts.keyToString,
+		StringToKey:   opts.stringToKey,
 	})
 	if err != nil {
 		return nil, err
@@ -104,17 +113,20 @@ func New(cfg Config) (*service, error) {
 
 	if cfg.Broadcaster != nil {
 		var err error
-		dispatcher, err = clustering.NewInvalidationDispatcher(cfg.Broadcaster)
+		dispatcher, err = clustering.NewInvalidationDispatcher(cfg.Broadcaster, cfg.ClusteringMetrics)
 		if err != nil {
 			return nil, err
 		}
 
 		stringKeyOpts = &clusterOpts[string]{
-			dispatcher:  dispatcher,
-			broadcaster: cfg.Broadcaster,
-			nodeID:      nodeID,
-			keyToString: nil,
-			stringToKey: nil,
+			dispatcher:        dispatcher,
+			broadcaster:       cfg.Broadcaster,
+			nodeID:            nodeID,
+			keyToString:       nil,
+			stringToKey:       nil,
+			clusteringMetrics: cfg.ClusteringMetrics,
+			batchMetrics:      cfg.BatchMetrics,
+			bufferMetrics:     cfg.BufferMetrics,
 		}
 	}
 
@@ -125,6 +137,7 @@ func New(cfg Config) (*service, error) {
 			MaxSize:  1000,
 			Fresh:    30 * time.Second,
 			Stale:    5 * time.Minute,
+			Metrics:  cfg.CacheMetrics,
 		},
 		stringKeyOpts,
 	)
@@ -139,6 +152,7 @@ func New(cfg Config) (*service, error) {
 			MaxSize:  1000,
 			Fresh:    10 * time.Second,
 			Stale:    60 * time.Second,
+			Metrics:  cfg.CacheMetrics,
 		},
 		stringKeyOpts,
 	)
@@ -155,6 +169,7 @@ func New(cfg Config) (*service, error) {
 			MaxSize:  1000,
 			Fresh:    30 * time.Second,
 			Stale:    5 * time.Minute,
+			Metrics:  cfg.CacheMetrics,
 		},
 		stringKeyOpts,
 	)

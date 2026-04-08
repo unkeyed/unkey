@@ -26,6 +26,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
+	mysqlmetrics "github.com/unkeyed/unkey/pkg/mysql/metrics"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
@@ -157,6 +158,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlCfg.DSN,
 		ReadOnlyDSN: "",
+		Metrics:     mysqlmetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })

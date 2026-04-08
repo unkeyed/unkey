@@ -13,6 +13,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/jwt"
@@ -97,6 +98,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 		MaxSize:  10_000,
 		Resource: "github_installation_token",
 		Clock:    clock.New(),
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return nil, err
@@ -108,6 +110,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 		MaxSize:  10_000,
 		Resource: "github_collaborator",
 		Clock:    clock.New(),
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return nil, err

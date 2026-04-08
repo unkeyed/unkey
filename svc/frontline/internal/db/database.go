@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/unkeyed/unkey/pkg/mysql"
+	mysqlmetrics "github.com/unkeyed/unkey/pkg/mysql/metrics"
 )
 
 // DBTX is the database interface required by generated query methods. It mirrors
@@ -37,8 +38,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 // The second return value is a close function that releases the underlying
 // connection pool. Callers must invoke it during shutdown to avoid leaking
 // connections. On error, both the Querier and close function are nil.
-func New(url string) (Querier, func() error, error) {
-	replica, err := mysql.NewReplica(url, "ro")
+func New(url string, metrics *mysqlmetrics.Metrics) (Querier, func() error, error) {
+	replica, err := mysql.NewReplica(url, "ro", metrics)
 	if err != nil {
 		return nil, nil, err
 	}

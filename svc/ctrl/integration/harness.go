@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/dockertest"
+	mysqlmetrics "github.com/unkeyed/unkey/pkg/mysql/metrics"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
@@ -35,6 +36,7 @@ func New(t *testing.T) *Harness {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlHostDSN,
 		ReadOnlyDSN: "",
+		Metrics:     mysqlmetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 

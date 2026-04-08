@@ -19,18 +19,25 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
+	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
+	clusteringmetrics "github.com/unkeyed/unkey/pkg/cache/clustering/metrics"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
+	mysqlmetrics "github.com/unkeyed/unkey/pkg/mysql/metrics"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
+	zenmetrics "github.com/unkeyed/unkey/pkg/zen/metrics"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/internal/middleware"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -89,13 +96,18 @@ func NewHarness(t *testing.T) *Harness {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  mysqlDSN,
 		ReadOnlyDSN: "",
+		Metrics:     mysqlmetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 
 	caches, err := caches.New(caches.Config{
-		Broadcaster: nil,
-		NodeID:      "",
-		Clock:       clk,
+		Broadcaster:       nil,
+		NodeID:            "",
+		Clock:             clk,
+		CacheMetrics:      cachemetrics.NoopMetrics(),
+		ClusteringMetrics: clusteringmetrics.NoopMetrics(),
+		BatchMetrics:      batchmetrics.NoopMetrics(),
+		BufferMetrics:     buffermetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 
@@ -128,6 +140,8 @@ func NewHarness(t *testing.T) *Harness {
 		Consumers:     2,
 		Drop:          true,
 		OnFlushError:  nil,
+		BatchMetrics:  batchmetrics.NoopMetrics(),
+		BufferMetrics: buffermetrics.NoopMetrics(),
 	})
 	t.Cleanup(keyVerifications.Close)
 
@@ -139,6 +153,8 @@ func NewHarness(t *testing.T) *Harness {
 		Consumers:     2,
 		Drop:          true,
 		OnFlushError:  nil,
+		BatchMetrics:  batchmetrics.NoopMetrics(),
+		BufferMetrics: buffermetrics.NoopMetrics(),
 	})
 	t.Cleanup(ratelimitsfer.Close)
 
@@ -151,8 +167,9 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	ratelimitService, err := ratelimit.New(ratelimit.Config{
-		Clock:   clk,
-		Counter: ctr,
+		Clock:         clk,
+		Counter:       ctr,
+		BufferMetrics: buffermetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 
@@ -172,8 +189,9 @@ func NewHarness(t *testing.T) *Harness {
 				Credits: sql.NullInt32{Int32: cost, Valid: true},
 			})
 		},
-		Counter: ctr,
-		TTL:     60 * time.Second,
+		Counter:       ctr,
+		TTL:           60 * time.Second,
+		BufferMetrics: buffermetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 
@@ -187,6 +205,7 @@ func NewHarness(t *testing.T) *Harness {
 		Clock:         clk,
 		BaseURL:       chDSN,
 		Vault:         v,
+		CacheMetrics:  cachemetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 
@@ -230,7 +249,7 @@ func NewHarness(t *testing.T) *Harness {
 		Auditlogs:                  audit,
 		Caches:                     caches,
 		middleware: []zen.Middleware{
-			zen.WithObservability(),
+			zen.WithObservability(zenmetrics.NewMetrics(prometheus.NewRegistry())),
 			zen.WithLogging(),
 			middleware.WithErrorHandling(),
 			zen.WithValidation(validator),

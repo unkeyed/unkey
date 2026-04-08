@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/batch/metrics"
+	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
 	"github.com/unkeyed/unkey/pkg/buffer"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 )
 
 // BatchProcessor provides a more configurable batching implementation compared to
@@ -19,10 +20,11 @@ import (
 // Unlike [Process], BatchProcessor provides methods to close the processor
 // gracefully and to check the current buffer size.
 type BatchProcessor[T any] struct {
-	name   string
-	buffer *buffer.Buffer[T]
-	config Config[T]
-	flush  func(ctx context.Context, batch []T, trigger string)
+	name    string
+	buffer  *buffer.Buffer[T]
+	config  Config[T]
+	metrics *batchmetrics.Metrics
+	flush   func(ctx context.Context, batch []T, trigger string)
 }
 
 // Config defines the behavior of a BatchProcessor.
@@ -56,6 +58,12 @@ type Config[T any] struct {
 	// Multiple consumers can improve throughput for CPU-bound flush operations.
 	// Defaults to 1 if not specified or <= 0.
 	Consumers int
+
+	// Metrics holds the Prometheus collectors for the batch package.
+	Metrics *batchmetrics.Metrics
+
+	// BufferMetrics holds the Prometheus collectors for the underlying buffer.
+	BufferMetrics *buffermetrics.Metrics
 }
 
 // New creates a new BatchProcessor with the specified configuration.
@@ -70,6 +78,8 @@ type Config[T any] struct {
 //	    BufferSize:    10000,            // Buffer up to 10000 pending logs
 //	    FlushInterval: 5 * time.Second,  // Flush at least every 5 seconds
 //	    Consumers:     4,                // Use 4 worker goroutines
+//	    Metrics:       batchMetrics,
+//	    BufferMetrics: bufferMetrics,
 //	    Flush: func(ctx context.Context, logs []LogEntry) {
 //	        err := db.BulkInsertLogs(ctx, logs)
 //	        if err != nil {
@@ -91,18 +101,20 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 			Name:     config.Name,
 			Capacity: config.BufferSize,
 			Drop:     config.Drop,
+			Metrics:  config.BufferMetrics,
 		}),
+		metrics: config.Metrics,
 		flush: func(ctx context.Context, batch []T, trigger string) {
 			batchSize := len(batch)
 
 			// Record batch size distribution
-			metrics.BatchSizeDistribution.WithLabelValues(config.Name, trigger).Observe(float64(batchSize))
+			config.Metrics.BatchSizeDistribution.WithLabelValues(config.Name, trigger).Observe(float64(batchSize))
 
 			// Record batch operation
-			metrics.BatchOperationsTotal.WithLabelValues(config.Name, trigger, "success").Inc()
+			config.Metrics.BatchOperationsTotal.WithLabelValues(config.Name, trigger, "success").Inc()
 
 			// Record total items processed
-			metrics.BatchItemsProcessedTotal.WithLabelValues(config.Name).Add(float64(batchSize))
+			config.Metrics.BatchItemsProcessedTotal.WithLabelValues(config.Name).Add(float64(batchSize))
 
 			// Call the user's flush function
 			config.Flush(ctx, batch)

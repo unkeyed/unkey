@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/metrics"
 	"github.com/unkeyed/unkey/pkg/retry"
 )
 
@@ -24,6 +25,9 @@ type Config struct {
 	// The readonly replica will be used for most read queries.
 	// If omitted, the primary is used.
 	ReadOnlyDSN string
+
+	// Metrics for database operations.
+	Metrics *metrics.Metrics
 }
 
 // database implements the Database interface, providing access to database replicas
@@ -88,6 +92,8 @@ func New(config Config) (*database, error) {
 		return nil, fault.Wrap(err, fault.Internal("invalid configuration"))
 	}
 
+	m := config.Metrics
+
 	write, err := open(config.PrimaryDSN)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("cannot open primary replica"))
@@ -98,6 +104,7 @@ func New(config Config) (*database, error) {
 		db:        write,
 		mode:      "rw",
 		debugLogs: false,
+		metrics:   m,
 	}
 
 	// Initialize read replica with primary by default
@@ -105,6 +112,7 @@ func New(config Config) (*database, error) {
 		db:        write,
 		mode:      "rw",
 		debugLogs: false,
+		metrics:   m,
 	}
 
 	// If a separate read-only DSN is provided, establish that connection
@@ -118,6 +126,7 @@ func New(config Config) (*database, error) {
 			db:        read,
 			mode:      "ro",
 			debugLogs: false,
+			metrics:   m,
 		}
 		logger.Info("database configured with separate read replica")
 	} else {

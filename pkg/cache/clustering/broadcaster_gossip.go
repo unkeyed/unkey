@@ -24,6 +24,7 @@ type invalidationHandler struct {
 type GossipBroadcaster struct {
 	cluster cluster.Cluster
 	handler atomic.Pointer[invalidationHandler]
+	metrics *metrics.Metrics
 
 	closeOnce sync.Once
 	closeErr  error
@@ -33,10 +34,11 @@ var _ Broadcaster = (*GossipBroadcaster)(nil)
 
 // NewGossipBroadcaster creates a new gossip-based broadcaster wired to the
 // given cluster instance.
-func NewGossipBroadcaster(c cluster.Cluster) *GossipBroadcaster {
+func NewGossipBroadcaster(c cluster.Cluster, m *metrics.Metrics) *GossipBroadcaster {
 	return &GossipBroadcaster{
 		cluster:   c,
 		handler:   atomic.Pointer[invalidationHandler]{},
+		metrics:   m,
 		closeOnce: sync.Once{},
 		closeErr:  nil,
 	}
@@ -58,10 +60,10 @@ func (b *GossipBroadcaster) Broadcast(_ context.Context, events ...*cachev1.Cach
 		if err := b.cluster.Broadcast(&clusterv1.ClusterMessage_CacheInvalidation{
 			CacheInvalidation: event,
 		}); err != nil {
-			metrics.CacheClusteringBroadcastErrorsTotal.Inc()
+			b.metrics.CacheClusteringBroadcastErrorsTotal.Inc()
 			logger.Error("Failed to broadcast cache invalidation", "error", err)
 		} else {
-			metrics.CacheClusteringInvalidationsSentTotal.WithLabelValues(event.CacheName, metrics.ActionLabel(event)).Inc()
+			b.metrics.CacheClusteringInvalidationsSentTotal.WithLabelValues(event.CacheName, metrics.ActionLabel(event)).Inc()
 		}
 	}
 

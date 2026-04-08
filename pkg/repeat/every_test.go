@@ -16,7 +16,7 @@ func TestEvery_BasicFunctionality(t *testing.T) {
 
 		stop := Every(10*time.Millisecond, func() {
 			counter.Add(1)
-		})
+		}, nil)
 
 		// Wait for several calls
 		time.Sleep(55 * time.Millisecond)
@@ -32,7 +32,7 @@ func TestEvery_BasicFunctionality(t *testing.T) {
 
 		stop := Every(10*time.Millisecond, func() {
 			counter.Add(1)
-		})
+		}, nil)
 
 		// Let it run briefly
 		time.Sleep(25 * time.Millisecond)
@@ -57,7 +57,7 @@ func TestEvery_GoroutineLeak(t *testing.T) {
 		for range 10 {
 			stop := Every(100*time.Millisecond, func() {
 				// Do minimal work
-			})
+			}, nil)
 			stops = append(stops, stop)
 		}
 
@@ -82,7 +82,7 @@ func TestEvery_GoroutineLeak(t *testing.T) {
 		initialGoroutines := runtime.NumGoroutine()
 
 		for range 5 {
-			stop := Every(1*time.Millisecond, func() {})
+			stop := Every(1*time.Millisecond, func() {}, nil)
 			stop() // Stop immediately
 		}
 
@@ -104,7 +104,7 @@ func TestEvery_PanicRecovery(t *testing.T) {
 			if count == 2 {
 				panic("test panic")
 			}
-		})
+		}, nil)
 
 		// Wait longer for panic to occur and recovery
 		time.Sleep(100 * time.Millisecond)
@@ -120,7 +120,7 @@ func TestEvery_PanicRecovery(t *testing.T) {
 
 		stop := Every(5*time.Millisecond, func() {
 			panic("intentional panic")
-		})
+		}, nil)
 
 		// Run for a bit to ensure multiple panics are handled
 		go func() {
@@ -144,7 +144,7 @@ func TestEvery_ConcurrentStops(t *testing.T) {
 
 		stop := Every(5*time.Millisecond, func() {
 			counter.Add(1)
-		})
+		}, nil)
 
 		// Call stop multiple times sequentially
 		stop()
@@ -164,7 +164,7 @@ func TestEvery_ConcurrentStops(t *testing.T) {
 
 		stop := Every(5*time.Millisecond, func() {
 			counter.Add(1)
-		})
+		}, nil)
 
 		// Call stop concurrently from multiple goroutines
 		var wg sync.WaitGroup
@@ -191,7 +191,7 @@ func TestEvery_EdgeCases(t *testing.T) {
 
 		stop := Every(1*time.Millisecond, func() {
 			counter.Add(1)
-		})
+		}, nil)
 
 		time.Sleep(50 * time.Millisecond)
 		stop()
@@ -207,7 +207,7 @@ func TestEvery_EdgeCases(t *testing.T) {
 
 		stop := Every(1*time.Hour, func() {
 			counter.Add(1)
-		})
+		}, nil)
 
 		// Should handle very long intervals without issues
 		time.Sleep(10 * time.Millisecond)
@@ -224,7 +224,7 @@ func TestEvery_EdgeCases(t *testing.T) {
 		stop := Every(10*time.Millisecond, func() {
 			counter.Add(1)
 			time.Sleep(20 * time.Millisecond) // Longer than interval
-		})
+		}, nil)
 
 		time.Sleep(60 * time.Millisecond)
 		stop()
@@ -242,7 +242,7 @@ func TestEvery_StopBehavior(t *testing.T) {
 
 		stop := Every(10*time.Millisecond, func() {
 			counter.Add(1)
-		})
+		}, nil)
 
 		time.Sleep(25 * time.Millisecond)
 
@@ -264,7 +264,7 @@ func TestEvery_StopBehavior(t *testing.T) {
 
 		stop := Every(100*time.Millisecond, func() {
 			time.Sleep(50 * time.Millisecond)
-		})
+		}, nil)
 
 		start := time.Now()
 		stop()
@@ -281,7 +281,7 @@ func BenchmarkEvery(b *testing.B) {
 	b.Run("StartStop", func(b *testing.B) {
 		b.ResetTimer()
 		for b.Loop() {
-			stop := Every(100*time.Millisecond, func() {})
+			stop := Every(100*time.Millisecond, func() {}, nil)
 			stop()
 		}
 	})
@@ -291,7 +291,7 @@ func BenchmarkEvery(b *testing.B) {
 
 		stop := Every(1*time.Microsecond, func() {
 			counter.Add(1)
-		})
+		}, nil)
 
 		b.ResetTimer()
 		for b.Loop() {

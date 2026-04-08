@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/batch"
+	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
@@ -34,6 +36,12 @@ type BufferConfig struct {
 	// via logger.Error (best-effort). Callers that need strict error handling
 	// can supply their own callback.
 	OnFlushError func(ctx context.Context, table string, rowCount int, err error)
+
+	// BatchMetrics provides metrics for batch operations.
+	BatchMetrics *batchmetrics.Metrics
+
+	// BufferMetrics provides metrics for buffer operations.
+	BufferMetrics *buffermetrics.Metrics
 }
 
 // NewBuffer creates a *batch.BatchProcessor[T] that flushes rows to the given
@@ -72,5 +80,7 @@ func NewBuffer[T any](c *Client, table string, cfg BufferConfig) *batch.BatchPro
 				onErr(ctx, table, len(rows), err)
 			}
 		},
+		Metrics:       cfg.BatchMetrics,
+		BufferMetrics: cfg.BufferMetrics,
 	})
 }

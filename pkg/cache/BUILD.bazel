@@ -37,6 +37,7 @@ go_test(
     ],
     deps = [
         ":cache",
+        "//pkg/cache/metrics",
         "//pkg/clock",
         "//pkg/db",
         "//pkg/sim",

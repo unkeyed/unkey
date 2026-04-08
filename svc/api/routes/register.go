@@ -8,7 +8,10 @@ import (
 	"github.com/unkeyed/unkey/svc/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/svc/api/routes/v2_liveness"
 
+	"github.com/prometheus/client_golang/prometheus"
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
+	panicmetrics "github.com/unkeyed/unkey/pkg/prometheus/metrics"
+	zenmetrics "github.com/unkeyed/unkey/pkg/zen/metrics"
 
 	v2RatelimitDeleteOverride "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_delete_override"
 	v2RatelimitGetOverride "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_get_override"
@@ -73,10 +76,10 @@ import (
 //
 // Conditional routes are registered based on [Services] configuration.
 func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
-	withObservability := zen.WithObservability()
+	withObservability := zen.WithObservability(zenmetrics.NewMetrics(prometheus.DefaultRegisterer))
 	withMetrics := zen.WithMetrics(svc.ApiRequests, info)
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
-	withPanicRecovery := zen.WithPanicRecovery()
+	withPanicRecovery := zen.WithPanicRecovery(panicmetrics.NewMetrics(prometheus.DefaultRegisterer))
 	withErrorHandling := middleware.WithErrorHandling()
 	withValidation := zen.WithValidation(svc.Validator)
 	withTimeout := zen.WithTimeout(time.Minute)

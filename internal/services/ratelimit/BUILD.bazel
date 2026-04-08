@@ -19,6 +19,7 @@ go_library(
         "//internal/services/ratelimit/metrics",
         "//pkg/assert",
         "//pkg/buffer",
+        "//pkg/buffer/metrics",
         "//pkg/circuitbreaker",
         "//pkg/clock",
         "//pkg/counter",

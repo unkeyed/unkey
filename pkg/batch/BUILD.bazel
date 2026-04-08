@@ -12,5 +12,6 @@ go_library(
     deps = [
         "//pkg/batch/metrics",
         "//pkg/buffer",
+        "//pkg/buffer/metrics",
     ],
 )

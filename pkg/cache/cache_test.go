@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/cache"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
 )
 
@@ -20,6 +21,7 @@ func TestWriteRead(t *testing.T) {
 		Fresh:    time.Minute,
 		Stale:    time.Minute * 5,
 		Resource: "test", Clock: clock.New(),
+		Metrics: cachemetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 	c.Set(context.Background(), "key", "value")
@@ -38,6 +40,7 @@ func TestEviction(t *testing.T) {
 		Stale:    time.Second,
 		Resource: "test",
 		Clock:    clk,
+		Metrics:  nil,
 	})
 	require.NoError(t, err)
 	c.Set(context.Background(), "key", "value")
@@ -60,6 +63,7 @@ func TestRefresh(t *testing.T) {
 		Stale:    time.Minute * 5,
 		Resource: "test",
 		Clock:    clk,
+		Metrics:  nil,
 	})
 	require.NoError(t, err)
 	c.Set(context.Background(), "key", "value")
@@ -82,6 +86,7 @@ func TestNull(t *testing.T) {
 		Stale:    time.Minute * 5,
 		Resource: "test",
 		Clock:    clock.New(),
+		Metrics:  nil,
 	})
 	require.NoError(t, err)
 	c.SetNull(context.Background(), "key")

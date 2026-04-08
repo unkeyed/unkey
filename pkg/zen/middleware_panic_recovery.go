@@ -9,13 +9,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
+	panicmetrics "github.com/unkeyed/unkey/pkg/prometheus/metrics"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // WithPanicRecovery returns middleware that recovers from panics and converts them
 // into appropriate HTTP error responses.
-func WithPanicRecovery() Middleware {
+func WithPanicRecovery(m *panicmetrics.Metrics) Middleware {
 	return func(next HandleFunc) HandleFunc {
 		return func(ctx context.Context, s *Session) (err error) {
 			defer func() {
@@ -32,7 +32,7 @@ func WithPanicRecovery() Middleware {
 						"stack", string(stack),
 					)
 
-					metrics.PanicsTotal.WithLabelValues("", s.r.URL.Path).Inc()
+					m.PanicsTotal.WithLabelValues("", s.r.URL.Path).Inc()
 
 					// Convert panic to an error
 					panicErr := fault.New("Internal Server Error",

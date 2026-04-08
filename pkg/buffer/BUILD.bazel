@@ -19,5 +19,9 @@ go_test(
     size = "small",
     srcs = ["buffer_test.go"],
     embed = [":buffer"],
-    deps = ["@com_github_stretchr_testify//assert"],
+    deps = [
+        "//pkg/buffer/metrics",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_stretchr_testify//assert",
+    ],
 )

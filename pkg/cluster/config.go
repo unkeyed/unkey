@@ -1,9 +1,14 @@
 package cluster
 
-import clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
+import (
+	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
+	"github.com/unkeyed/unkey/pkg/cluster/metrics"
+)
 
 // Config configures a gossip cluster node.
 type Config struct {
+	// Metrics holds the Prometheus metrics for the cluster.
+	Metrics *metrics.Metrics
 	// Region identifies the geographic region (e.g. "us-east-1").
 	Region string
 

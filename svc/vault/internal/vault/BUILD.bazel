@@ -21,6 +21,7 @@ go_library(
         "//gen/proto/vault/v1/vaultv1connect",
         "//pkg/assert",
         "//pkg/cache",
+        "//pkg/cache/metrics",
         "//pkg/cache/middleware",
         "//pkg/clock",
         "//pkg/encryption",

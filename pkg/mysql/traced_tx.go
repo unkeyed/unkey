@@ -16,19 +16,21 @@ const (
 )
 
 // WrapTxWithContext wraps a standard sql.Tx with our DBTx interface for tracing, using the provided context
-func WrapTxWithContext(tx *sql.Tx, mode string, ctx context.Context) DBTx {
+func WrapTxWithContext(tx *sql.Tx, mode string, ctx context.Context, m *metrics.Metrics) DBTx {
 	return &TracedTx{
-		tx:   tx,
-		mode: mode,
-		ctx:  ctx,
+		tx:      tx,
+		mode:    mode,
+		ctx:     ctx,
+		metrics: m,
 	}
 }
 
 // TracedTx wraps a sql.Tx to add tracing to all database operations within a transaction
 type TracedTx struct {
-	tx   *sql.Tx
-	mode string
-	ctx  context.Context // Store the context for commit/rollback tracing
+	tx      *sql.Tx
+	mode    string
+	ctx     context.Context // Store the context for commit/rollback tracing
+	metrics *metrics.Metrics
 }
 
 // Ensure TracedTx implements the DBTx interface
@@ -52,8 +54,8 @@ func (t *TracedTx) ExecContext(ctx context.Context, query string, args ...any) (
 		status = statusError
 	}
 
-	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "exec", status).Observe(duration)
-	metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "exec", status).Inc()
+	t.metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "exec", status).Observe(duration)
+	t.metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "exec", status).Inc()
 
 	return result, err
 }
@@ -77,8 +79,8 @@ func (t *TracedTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt,
 		status = statusError
 	}
 
-	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "prepare", status).Observe(duration)
-	metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "prepare", status).Inc()
+	t.metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "prepare", status).Observe(duration)
+	t.metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "prepare", status).Inc()
 
 	return stmt, err // nolint:sqlclosecheck
 }
@@ -102,8 +104,8 @@ func (t *TracedTx) QueryContext(ctx context.Context, query string, args ...any) 
 		status = statusError
 	}
 
-	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "query", status).Observe(duration)
-	metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "query", status).Inc()
+	t.metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "query", status).Observe(duration)
+	t.metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "query", status).Inc()
 
 	return rows, err // nolint:sqlclosecheck
 }
@@ -123,8 +125,8 @@ func (t *TracedTx) QueryRowContext(ctx context.Context, query string, args ...an
 	duration := time.Since(start).Seconds()
 	status := statusSuccess
 
-	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "query_row", status).Observe(duration)
-	metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "query_row", status).Inc()
+	t.metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "query_row", status).Observe(duration)
+	t.metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "query_row", status).Inc()
 
 	return row
 }
@@ -144,8 +146,8 @@ func (t *TracedTx) Commit() error {
 		status = statusError
 	}
 
-	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "commit", status).Observe(duration)
-	metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "commit", status).Inc()
+	t.metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "commit", status).Observe(duration)
+	t.metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "commit", status).Inc()
 
 	return err
 }
@@ -165,8 +167,8 @@ func (t *TracedTx) Rollback() error {
 		status = statusError
 	}
 
-	metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "rollback", status).Observe(duration)
-	metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "rollback", status).Inc()
+	t.metrics.DatabaseOperationsLatency.WithLabelValues(t.mode, "rollback", status).Observe(duration)
+	t.metrics.DatabaseOperationsTotal.WithLabelValues(t.mode, "rollback", status).Inc()
 
 	return err
 }

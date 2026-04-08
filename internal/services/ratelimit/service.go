@@ -7,6 +7,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/buffer"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
@@ -62,6 +63,9 @@ type Config struct {
 	// Counter is the distributed counter backend (typically Redis).
 	// Required - rate limiting cannot function without a counter.
 	Counter counter.Counter
+
+	// BufferMetrics provides metrics for the replay buffer.
+	BufferMetrics *buffermetrics.Metrics
 }
 
 // New creates a new rate limiting service.
@@ -86,6 +90,7 @@ func New(config Config) (*service, error) {
 			Name:     "ratelimit_replays",
 			Capacity: 10_000,
 			Drop:     true,
+			Metrics:  config.BufferMetrics,
 		}),
 		replayCircuitBreaker: circuitbreaker.New[int64]("replayRatelimitRequest"),
 	}

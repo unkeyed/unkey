@@ -10,7 +10,7 @@ import (
 
 	"github.com/maypok86/otter"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/cache/metrics"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -25,6 +25,7 @@ type cache[K comparable, V any] struct {
 	stale    time.Duration
 	resource string
 	clock    clock.Clock
+	metrics  *cachemetrics.Metrics
 
 	revalidateC chan func()
 
@@ -46,6 +47,9 @@ type Config[K comparable, V any] struct {
 
 	Resource string
 
+	// Metrics holds the Prometheus metrics for this cache instance.
+	Metrics *cachemetrics.Metrics
+
 	Clock clock.Clock
 }
 
@@ -55,6 +59,7 @@ var _ Cache[any, any] = (*cache[any, any])(nil)
 func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 	if err := assert.All(
 		assert.NotNil(config.Clock, "clock is required"),
+		assert.NotNil(config.Metrics, "metrics is required"),
 	); err != nil {
 		return nil, fmt.Errorf("invalid cache config: %w", err)
 	}
@@ -71,7 +76,7 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		}).
 		WithTTL(config.Stale).
 		DeletionListener(func(key K, value swrEntry[V], cause otter.DeletionCause) {
-			metrics.CacheDeleted.WithLabelValues(config.Resource, cause.String()).Inc()
+			config.Metrics.Deleted.WithLabelValues(config.Resource, cause.String()).Inc()
 		}).
 		Build()
 	if err != nil {
@@ -83,6 +88,7 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		stale:             config.Stale,
 		resource:          config.Resource,
 		clock:             config.Clock,
+		metrics:           config.Metrics,
 		revalidateC:       make(chan func(), 1000),
 		inflightMu:        sync.Mutex{},
 		inflightRefreshes: make(map[K]bool),
@@ -102,9 +108,9 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 
 func (c *cache[K, V]) registerMetrics() {
 	repeat.Every(60*time.Second, func() {
-		metrics.CacheSize.WithLabelValues(c.resource).Set(float64(c.otter.Size()))
-		metrics.CacheCapacity.WithLabelValues(c.resource).Set(float64(c.otter.Capacity()))
-	})
+		c.metrics.Size.WithLabelValues(c.resource).Set(float64(c.otter.Size()))
+		c.metrics.Capacity.WithLabelValues(c.resource).Set(float64(c.otter.Capacity()))
+	}, nil)
 }
 
 func (c *cache[K, V]) recordTiming(ctx context.Context, name, status string, start time.Time) {
@@ -221,7 +227,7 @@ func (c *cache[K, V]) SetMany(ctx context.Context, values map[K]V) {
 func (c *cache[K, V]) get(_ context.Context, key K) (swrEntry[V], bool) {
 	v, ok := c.otter.Get(key)
 
-	metrics.CacheReads.WithLabelValues(c.resource, fmt.Sprintf("%t", ok)).Inc()
+	c.metrics.Reads.WithLabelValues(c.resource, fmt.Sprintf("%t", ok)).Inc()
 
 	return v, ok
 }
@@ -295,7 +301,7 @@ func (c *cache[K, V]) revalidate(
 		c.inflightMu.Unlock()
 	}()
 
-	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
+	c.metrics.Revalidations.WithLabelValues(c.resource).Inc()
 	v, err := refreshFromOrigin(ctx)
 
 	if err != nil && !db.IsNotFound(err) {
@@ -551,7 +557,7 @@ func (c *cache[K, V]) revalidateWithCanonicalKey(
 		c.inflightMu.Unlock()
 	}()
 
-	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
+	c.metrics.Revalidations.WithLabelValues(c.resource).Inc()
 	v, canonicalKey, err := refreshFromOrigin(ctx)
 
 	if err != nil && !db.IsNotFound(err) {
@@ -598,7 +604,7 @@ func (c *cache[K, V]) revalidateMany(
 		c.inflightMu.Unlock()
 	}()
 
-	metrics.CacheRevalidations.WithLabelValues(c.resource).Add(float64(len(keysToRefresh)))
+	c.metrics.Revalidations.WithLabelValues(c.resource).Add(float64(len(keysToRefresh)))
 	values, err := refreshFromOrigin(ctx, keysToRefresh)
 
 	if err != nil && !db.IsNotFound(err) {

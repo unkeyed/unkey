@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/memberlist"
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
-	"github.com/unkeyed/unkey/pkg/cluster/metrics"
+	clustermetrics "github.com/unkeyed/unkey/pkg/cluster/metrics"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/repeat"
 	"google.golang.org/protobuf/proto"
@@ -36,7 +36,8 @@ type Cluster interface {
 // communication and, on the elected bridge node, a WAN pool for cross-region
 // communication.
 type gossipCluster struct {
-	config Config
+	config  Config
+	metrics *clustermetrics.Metrics
 
 	mu       sync.RWMutex
 	lan      *memberlist.Memberlist
@@ -63,6 +64,7 @@ func New(cfg Config) (Cluster, error) {
 
 	c := &gossipCluster{
 		config:      cfg,
+		metrics:     cfg.Metrics,
 		mu:          sync.RWMutex{},
 		lan:         nil,
 		lanQueue:    nil,
@@ -123,12 +125,12 @@ func New(cfg Config) (Cluster, error) {
 		c.mu.RUnlock()
 
 		if lan != nil {
-			metrics.ClusterMembersCount.WithLabelValues("lan", c.config.Region).Set(float64(lan.NumMembers()))
+			c.metrics.MembersCount.WithLabelValues("lan", c.config.Region).Set(float64(lan.NumMembers()))
 		}
 		if wan != nil {
-			metrics.ClusterMembersCount.WithLabelValues("wan", c.config.Region).Set(float64(wan.NumMembers()))
+			c.metrics.MembersCount.WithLabelValues("wan", c.config.Region).Set(float64(wan.NumMembers()))
 		}
-	})
+	}, nil)
 
 	// Trigger initial bridge evaluation
 	c.triggerEvalBridge()
@@ -156,7 +158,7 @@ func (c *gossipCluster) maintainMembership(pool string, list func() *memberlist.
 
 		_, err := ml.Join(seeds)
 		if err == nil {
-			metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "success").Inc()
+			c.metrics.SeedJoinAttemptsTotal.WithLabelValues(pool, "success").Inc()
 			logger.Info("Joined "+pool+" seeds", "seeds", seeds)
 			if onJoin != nil {
 				onJoin()
@@ -164,7 +166,7 @@ func (c *gossipCluster) maintainMembership(pool string, list func() *memberlist.
 			break
 		}
 
-		metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "failure").Inc()
+		c.metrics.SeedJoinAttemptsTotal.WithLabelValues(pool, "failure").Inc()
 		logger.Warn("Failed to join "+pool+" seeds, retrying",
 			"error", err,
 			"seeds", seeds,
@@ -208,7 +210,7 @@ func (c *gossipCluster) maintainMembership(pool string, list func() *memberlist.
 
 		_, err := ml.Join(seeds)
 		if err != nil {
-			metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "failure").Inc()
+			c.metrics.SeedJoinAttemptsTotal.WithLabelValues(pool, "failure").Inc()
 			logger.Warn("Failed to rejoin "+pool+" seeds",
 				"error", err,
 				"seeds", seeds,
@@ -216,7 +218,7 @@ func (c *gossipCluster) maintainMembership(pool string, list func() *memberlist.
 			continue
 		}
 
-		metrics.ClusterSeedJoinAttemptsTotal.WithLabelValues(pool, "success").Inc()
+		c.metrics.SeedJoinAttemptsTotal.WithLabelValues(pool, "success").Inc()
 		logger.Info("Rejoined "+pool+" seeds", "seeds", seeds)
 		if onJoin != nil {
 			onJoin()
@@ -266,22 +268,22 @@ func (c *gossipCluster) Broadcast(payload clusterv1.IsClusterMessage_Payload) er
 		msg.Direction = clusterv1.Direction_DIRECTION_LAN
 		lanBytes, err := proto.Marshal(msg)
 		if err != nil {
-			metrics.ClusterBroadcastErrorsTotal.WithLabelValues("lan").Inc()
+			c.metrics.BroadcastErrorsTotal.WithLabelValues("lan").Inc()
 			return fmt.Errorf("failed to marshal LAN message: %w", err)
 		}
 		lanQ.QueueBroadcast(newBroadcast(lanBytes))
-		metrics.ClusterBroadcastsTotal.WithLabelValues("lan").Inc()
+		c.metrics.BroadcastsTotal.WithLabelValues("lan").Inc()
 	}
 
 	if isBr && wanQ != nil {
 		msg.Direction = clusterv1.Direction_DIRECTION_WAN
 		wanBytes, err := proto.Marshal(msg)
 		if err != nil {
-			metrics.ClusterBroadcastErrorsTotal.WithLabelValues("wan").Inc()
+			c.metrics.BroadcastErrorsTotal.WithLabelValues("wan").Inc()
 			return fmt.Errorf("failed to marshal WAN message: %w", err)
 		}
 		wanQ.QueueBroadcast(newBroadcast(wanBytes))
-		metrics.ClusterBroadcastsTotal.WithLabelValues("wan").Inc()
+		c.metrics.BroadcastsTotal.WithLabelValues("wan").Inc()
 	}
 
 	return nil

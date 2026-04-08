@@ -13,10 +13,13 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/batch"
+	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
+	mysqlmetrics "github.com/unkeyed/unkey/pkg/mysql/metrics"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -44,6 +47,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.RequireString("database-primary"),
 		ReadOnlyDSN: "",
+		Metrics:     mysqlmetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
@@ -65,6 +69,8 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 		Consumers:     2,
 		Drop:          true,
 		OnFlushError:  nil,
+		BatchMetrics:  batchmetrics.NoopMetrics(),
+		BufferMetrics: buffermetrics.NoopMetrics(),
 	})
 
 	// Create key service for proper key generation

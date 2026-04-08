@@ -5,11 +5,15 @@ import (
 	"testing"
 	"time"
 
+	prom_sdk "github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
+	clusteringmetrics "github.com/unkeyed/unkey/pkg/cache/clustering/metrics"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/cluster"
+	clustermetrics "github.com/unkeyed/unkey/pkg/cluster/metrics"
 )
 
 // twoNodeCluster sets up a two-node gossip cluster with a ClusterCache on each node.
@@ -26,21 +30,23 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 	// --- Node 1 ---
 	mux1 := cluster.NewMessageMux()
 	c1, err := cluster.New(cluster.Config{
+		Metrics:   clustermetrics.NewMetrics(prom_sdk.NewRegistry()),
 		Region:    "us-east-1",
 		NodeID:    "node-1",
 		BindAddr:  "127.0.0.1",
 		OnMessage: mux1.OnMessage,
 	})
 	require.NoError(t, err)
-	b1 := clustering.NewGossipBroadcaster(c1)
+	b1 := clustering.NewGossipBroadcaster(c1, clusteringmetrics.NoopMetrics())
 	cluster.Subscribe(mux1, b1.HandleCacheInvalidation)
 
-	d1, err := clustering.NewInvalidationDispatcher(b1)
+	d1, err := clustering.NewInvalidationDispatcher(b1, clusteringmetrics.NoopMetrics())
 	require.NoError(t, err)
 
 	lc1, err := cache.New(cache.Config[string, string]{
 		Fresh: time.Minute, Stale: time.Hour, MaxSize: 1000,
 		Resource: "test_cache", Clock: clk,
+		Metrics: cachemetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 
@@ -55,6 +61,7 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 	time.Sleep(50 * time.Millisecond)
 
 	c2, err := cluster.New(cluster.Config{
+		Metrics:   clustermetrics.NewMetrics(prom_sdk.NewRegistry()),
 		Region:    "us-east-1",
 		NodeID:    "node-2",
 		BindAddr:  "127.0.0.1",
@@ -62,15 +69,16 @@ func setupTwoNodeCluster(t *testing.T) twoNodeCluster {
 		OnMessage: mux2.OnMessage,
 	})
 	require.NoError(t, err)
-	b2 := clustering.NewGossipBroadcaster(c2)
+	b2 := clustering.NewGossipBroadcaster(c2, clusteringmetrics.NoopMetrics())
 	cluster.Subscribe(mux2, b2.HandleCacheInvalidation)
 
-	d2, err := clustering.NewInvalidationDispatcher(b2)
+	d2, err := clustering.NewInvalidationDispatcher(b2, clusteringmetrics.NoopMetrics())
 	require.NoError(t, err)
 
 	lc2, err := cache.New(cache.Config[string, string]{
 		Fresh: time.Minute, Stale: time.Hour, MaxSize: 1000,
 		Resource: "test_cache", Clock: clk,
+		Metrics: cachemetrics.NoopMetrics(),
 	})
 	require.NoError(t, err)
 

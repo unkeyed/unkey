@@ -11,6 +11,7 @@ go_library(
     deps = [
         "//gen/rpc/ctrl",
         "//pkg/clock",
+        "//pkg/prometheus/metrics",
         "//pkg/zen",
         "//svc/frontline/internal/errorpage",
         "//svc/frontline/middleware",
@@ -18,5 +19,6 @@ go_library(
         "//svc/frontline/routes/proxy",
         "//svc/frontline/services/proxy",
         "//svc/frontline/services/router",
+        "@com_github_prometheus_client_golang//prometheus",
     ],
 )

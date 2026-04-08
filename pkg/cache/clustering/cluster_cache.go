@@ -8,6 +8,8 @@ import (
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/batch"
+	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering/metrics"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -23,6 +25,7 @@ type ClusterCache[K comparable, V any] struct {
 	keyToString    func(K) string
 	stringToKey    func(string) (K, error)
 	onInvalidation func(ctx context.Context, key K)
+	metrics        *metrics.Metrics
 
 	// batchProcessor batches and sends invalidation events to other nodes.
 	batchProcessor *batch.BatchProcessor[*cachev1.CacheInvalidationEvent]
@@ -39,6 +42,15 @@ type Config[K comparable, V any] struct {
 	// Dispatcher routes invalidation events to this cache
 	// Required for receiving invalidations from other nodes
 	Dispatcher *InvalidationDispatcher
+
+	// Metrics for cache clustering. Required.
+	Metrics *metrics.Metrics
+
+	// BatchMetrics for the internal invalidation batch processor.
+	BatchMetrics *batchmetrics.Metrics
+
+	// BufferMetrics for the internal invalidation buffer.
+	BufferMetrics *buffermetrics.Metrics
 
 	// Optional node ID (defaults to hostname)
 	NodeID string
@@ -97,6 +109,7 @@ func New[K comparable, V any](config Config[K, V]) (*ClusterCache[K, V], error) 
 		nodeID:         config.NodeID,
 		keyToString:    keyToString,
 		stringToKey:    stringToKey,
+		metrics:        config.Metrics,
 		onInvalidation: func(ctx context.Context, key K) {
 			config.LocalCache.Remove(ctx, key)
 		},
@@ -120,6 +133,8 @@ func New[K comparable, V any](config Config[K, V]) (*ClusterCache[K, V], error) 
 					"event_count", len(events))
 			}
 		},
+		Metrics:       config.BatchMetrics,
+		BufferMetrics: config.BufferMetrics,
 	})
 
 	// Register with dispatcher to receive invalidation events
@@ -244,7 +259,7 @@ func (c *ClusterCache[K, V]) HandleInvalidation(ctx context.Context, event *cach
 
 	// Ignore our own events to avoid loops
 	if event.GetSourceInstance() == c.nodeID {
-		metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, actionLabel, "skipped_self").Inc()
+		c.metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, actionLabel, "skipped_self").Inc()
 		return false
 	}
 
@@ -256,13 +271,13 @@ func (c *ClusterCache[K, V]) HandleInvalidation(ctx context.Context, event *cach
 	switch event.Action.(type) {
 	case *cachev1.CacheInvalidationEvent_ClearAll:
 		c.localCache.Clear(ctx)
-		metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, "clear_all", "handled").Inc()
+		c.metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, "clear_all", "handled").Inc()
 		return true
 
 	case *cachev1.CacheInvalidationEvent_CacheKey:
 		key, err := c.stringToKey(event.GetCacheKey())
 		if err != nil {
-			metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, "key", "error").Inc()
+			c.metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, "key", "error").Inc()
 			logger.Warn(
 				"Failed to convert cache key",
 				"cache", c.cacheName,
@@ -272,11 +287,11 @@ func (c *ClusterCache[K, V]) HandleInvalidation(ctx context.Context, event *cach
 			return false
 		}
 		c.onInvalidation(ctx, key)
-		metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, "key", "handled").Inc()
+		c.metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, "key", "handled").Inc()
 		return true
 
 	default:
-		metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, "unknown", "error").Inc()
+		c.metrics.CacheClusteringInvalidationsReceivedTotal.WithLabelValues(c.cacheName, "unknown", "error").Inc()
 		logger.Warn("Unknown cache invalidation action", "cache", c.cacheName)
 		return false
 	}

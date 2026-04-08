@@ -17,6 +17,8 @@ go_library(
         "//gen/proto/cluster/v1:cluster",
         "//pkg/assert",
         "//pkg/batch",
+        "//pkg/batch/metrics",
+        "//pkg/buffer/metrics",
         "//pkg/cache",
         "//pkg/cache/clustering/metrics",
         "//pkg/cluster",
@@ -31,8 +33,12 @@ go_test(
     deps = [
         ":clustering",
         "//pkg/cache",
+        "//pkg/cache/clustering/metrics",
+        "//pkg/cache/metrics",
         "//pkg/clock",
         "//pkg/cluster",
+        "//pkg/cluster/metrics",
+        "@com_github_prometheus_client_golang//prometheus",
         "@com_github_stretchr_testify//require",
     ],
 )

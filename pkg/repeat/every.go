@@ -4,18 +4,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/prometheus/metrics"
+	panicmetrics "github.com/unkeyed/unkey/pkg/prometheus/metrics"
 )
 
 // Every runs the given function in a go routine every d duration until the returned function is called.
-func Every(d time.Duration, fn func()) func() {
+// If panic metrics are provided, panics will be counted; pass nil to skip panic counting.
+func Every(d time.Duration, fn func(), m *panicmetrics.Metrics) func() {
 	t := time.NewTicker(d)
 	done := make(chan struct{})
 
 	fnWithRecovery := func() {
 		defer func() {
 			if r := recover(); r != nil {
-				metrics.PanicsTotal.WithLabelValues("repeat.Every", "background").Inc()
+				if m != nil {
+					m.PanicsTotal.WithLabelValues("repeat.Every", "background").Inc()
+				}
 			}
 		}()
 		fn()

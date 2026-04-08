@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/memberlist"
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
-	"github.com/unkeyed/unkey/pkg/cluster/metrics"
+	clustermetrics "github.com/unkeyed/unkey/pkg/cluster/metrics"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"google.golang.org/protobuf/proto"
 )
@@ -43,7 +43,7 @@ func (d *lanDelegate) NotifyMsg(data []byte) {
 
 	var msg clusterv1.ClusterMessage
 	if err := proto.Unmarshal(data, &msg); err != nil {
-		metrics.ClusterMessageUnmarshalErrorsTotal.WithLabelValues("lan").Inc()
+		d.cluster.metrics.MessageUnmarshalErrorsTotal.WithLabelValues("lan").Inc()
 		logger.Warn("Failed to unmarshal LAN cluster message", "error", err)
 		return
 	}
@@ -52,13 +52,13 @@ func (d *lanDelegate) NotifyMsg(data []byte) {
 	if msg.Direction == clusterv1.Direction_DIRECTION_WAN {
 		direction = "wan"
 	}
-	payloadType := metrics.PayloadTypeName(msg.GetPayload())
-	metrics.ClusterMessagesReceivedTotal.WithLabelValues("lan", direction, payloadType).Inc()
+	payloadType := clustermetrics.PayloadTypeName(msg.GetPayload())
+	d.cluster.metrics.MessagesReceivedTotal.WithLabelValues("lan", direction, payloadType).Inc()
 
 	if msg.SentAtMs > 0 {
 		latency := time.Since(time.UnixMilli(msg.SentAtMs)).Seconds()
 		if latency >= 0 {
-			metrics.ClusterMessageLatencySeconds.WithLabelValues(direction, msg.SourceRegion, d.cluster.config.Region).Observe(latency)
+			d.cluster.metrics.MessageLatencySeconds.WithLabelValues(direction, msg.SourceRegion, d.cluster.config.Region).Observe(latency)
 		}
 	}
 
@@ -79,12 +79,12 @@ func (d *lanDelegate) NotifyMsg(data []byte) {
 			relay.Direction = clusterv1.Direction_DIRECTION_WAN
 			wanBytes, err := proto.Marshal(relay)
 			if err != nil {
-				metrics.ClusterRelayErrorsTotal.WithLabelValues("lan_to_wan").Inc()
+				d.cluster.metrics.RelayErrorsTotal.WithLabelValues("lan_to_wan").Inc()
 				logger.Warn("Failed to marshal WAN relay message", "error", err)
 				return
 			}
 			wanQ.QueueBroadcast(newBroadcast(wanBytes))
-			metrics.ClusterRelaysTotal.WithLabelValues("lan_to_wan").Inc()
+			d.cluster.metrics.RelaysTotal.WithLabelValues("lan_to_wan").Inc()
 		}
 	}
 }
@@ -101,12 +101,12 @@ func newLANEventDelegate(c *gossipCluster) *lanEventDelegate {
 }
 
 func (d *lanEventDelegate) NotifyJoin(node *memberlist.Node) {
-	metrics.ClusterMembershipEventsTotal.WithLabelValues("join").Inc()
+	d.cluster.metrics.MembershipEventsTotal.WithLabelValues("join").Inc()
 	d.cluster.triggerEvalBridge()
 }
 
 func (d *lanEventDelegate) NotifyLeave(node *memberlist.Node) {
-	metrics.ClusterMembershipEventsTotal.WithLabelValues("leave").Inc()
+	d.cluster.metrics.MembershipEventsTotal.WithLabelValues("leave").Inc()
 	d.cluster.triggerEvalBridge()
 }
 

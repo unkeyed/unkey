@@ -6,8 +6,12 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/frontline/services/caches",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/batch/metrics",
+        "//pkg/buffer/metrics",
         "//pkg/cache",
         "//pkg/cache/clustering",
+        "//pkg/cache/clustering/metrics",
+        "//pkg/cache/metrics",
         "//pkg/cache/middleware",
         "//pkg/clock",
         "//pkg/uid",

@@ -45,71 +45,68 @@ var bodySizeBuckets = []float64{
 	67108864, // 64MB
 }
 
-var (
+// Metrics holds all Prometheus metrics for the zen HTTP package.
+type Metrics struct {
 	// HTTPRequestLatency tracks HTTP request latencies as a histogram, labeled by method, path, and status.
-	// This collector uses predefined buckets optimized for typical web service latencies,
-	// ranging from 1ms to 10s.
-	//
-	// Example usage:
-	//   timer := prometheus.NewTimer(prometheus.ObserverFunc(func(v float64) {
-	//       metrics.HTTPRequestLatency.WithLabelValues("GET", "/users", "200").Observe(v)
-	//   }))
-	//   defer timer.ObserveDuration()
-	HTTPRequestLatency = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "unkey",
-			Subsystem: "http",
-			Name:      "request_latency_seconds",
-			Help:      "Histogram of HTTP request latencies in seconds.",
-			Buckets:   latencyBuckets,
-		},
-		[]string{"method", "path", "status"},
-	)
+	HTTPRequestLatency *prometheus.HistogramVec
 
 	// HTTPRequestTotal tracks the number of HTTP requests handled, labeled by method, path, and status.
-	// Use this counter to monitor API traffic patterns and error rates.
-	//
-	// Example usage:
-	//   metrics.HTTPRequestTotal.WithLabelValues("GET", "/users", "200").Inc()
-	HTTPRequestTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "http",
-			Name:      "requests_total",
-			Help:      "Total number of HTTP requests processed.",
-		},
-		[]string{"method", "path", "status"},
-	)
+	HTTPRequestTotal *prometheus.CounterVec
 
 	// HTTPRequestErrorTotal tracks the total number of HTTP request errors,
-	// labeled by method, path, and status. Use this counter to monitor error rates by endpoint.
-	//
-	// Example usage:
-	//   metrics.HTTPRequestErrorTotal.WithLabelValues("POST", "/api/keys", "500").Inc()
-	HTTPRequestErrorTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "http",
-			Name:      "requests_errors_total",
-			Help:      "Total number of HTTP request errors.",
-		},
-		[]string{"method", "path", "status"},
-	)
+	// labeled by method, path, and status.
+	HTTPRequestErrorTotal *prometheus.CounterVec
 
 	// HTTPRequestBodySize tracks the distribution of HTTP request body sizes as a histogram,
-	// labeled by method, path, and status. This helps monitor payload sizes and identify potentially
-	// problematic large requests.
-	//
-	// Example usage:
-	//   metrics.HTTPRequestBodySize.WithLabelValues("POST", "/api/upload", "200").Observe(float64(bodySize))
-	HTTPRequestBodySize = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "unkey",
-			Subsystem: "http",
-			Name:      "request_body_size_bytes",
-			Help:      "Histogram of HTTP request body sizes in bytes.",
-			Buckets:   bodySizeBuckets,
-		},
-		[]string{"method", "path", "status"},
-	)
-)
+	// labeled by method, path, and status.
+	HTTPRequestBodySize *prometheus.HistogramVec
+}
+
+// NewMetrics creates and registers all HTTP metrics with the given registerer.
+func NewMetrics(reg prometheus.Registerer) *Metrics {
+	f := promauto.With(reg)
+
+	return &Metrics{
+		HTTPRequestLatency: f.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Namespace: "unkey",
+				Subsystem: "http",
+				Name:      "request_latency_seconds",
+				Help:      "Histogram of HTTP request latencies in seconds.",
+				Buckets:   latencyBuckets,
+			},
+			[]string{"method", "path", "status"},
+		),
+
+		HTTPRequestTotal: f.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "http",
+				Name:      "requests_total",
+				Help:      "Total number of HTTP requests processed.",
+			},
+			[]string{"method", "path", "status"},
+		),
+
+		HTTPRequestErrorTotal: f.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "http",
+				Name:      "requests_errors_total",
+				Help:      "Total number of HTTP request errors.",
+			},
+			[]string{"method", "path", "status"},
+		),
+
+		HTTPRequestBodySize: f.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Namespace: "unkey",
+				Subsystem: "http",
+				Name:      "request_body_size_bytes",
+				Help:      "Histogram of HTTP request body sizes in bytes.",
+				Buckets:   bodySizeBuckets,
+			},
+			[]string{"method", "path", "status"},
+		),
+	}
+}

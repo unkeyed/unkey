@@ -38,7 +38,8 @@ type CB[Res any] struct {
 }
 
 type config struct {
-	name string
+	name    string
+	metrics *metrics.Metrics
 	// Max requests that may pass through the circuit breaker in its half-open state
 	// If all requests are successful, the circuit will close
 	// If any request fails, the circuit will remaing half open until the next cycle
@@ -114,6 +115,13 @@ func WithClock(clock clock.Clock) applyConfig {
 	}
 }
 
+// WithMetrics sets the metrics instance for the circuit breaker.
+func WithMetrics(m *metrics.Metrics) applyConfig {
+	return func(c *config) {
+		c.metrics = m
+	}
+}
+
 // applyConfig is a functional option for configuring a circuit breaker.
 // Use the With* functions to create options.
 type applyConfig func(*config)
@@ -132,10 +140,15 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 		},
 		tripThreshold: 5,
 		clock:         clock.New(),
+		metrics:       nil,
 	}
 
 	for _, apply := range applyConfigs {
 		apply(cfg)
+	}
+
+	if cfg.metrics == nil {
+		panic("circuitbreaker: metrics is required, use WithMetrics(m) option")
 	}
 
 	cb := &CB[Res]{
@@ -205,7 +218,7 @@ func (cb *CB[Res]) preflight(_ context.Context) error {
 		cb.resetStateAt = now.Add(cb.config.timeout)
 	}
 
-	metrics.CircuitBreakerRequests.WithLabelValues(cb.config.name, string(cb.state)).Inc()
+	cb.config.metrics.CircuitBreakerRequests.WithLabelValues(cb.config.name, string(cb.state)).Inc()
 
 	if cb.state == Open {
 		return ErrTripped

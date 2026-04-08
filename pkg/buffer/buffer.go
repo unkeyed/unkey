@@ -16,6 +16,7 @@ type Buffer[T any] struct {
 	drop bool    // Whether to drop new elements when buffer is full
 	name string  // name of the buffer
 
+	metrics     *metrics.Metrics
 	stopMetrics func()
 	closeOnce   sync.Once // Protects isClosed and stopMetrics
 	mu          sync.RWMutex
@@ -23,9 +24,10 @@ type Buffer[T any] struct {
 }
 
 type Config struct {
-	Capacity int    // Maximum number of elements the buffer can hold
-	Drop     bool   // Whether to drop new elements when buffer is full
-	Name     string // name of the buffer
+	Capacity int              // Maximum number of elements the buffer can hold
+	Drop     bool             // Whether to drop new elements when buffer is full
+	Name     string           // name of the buffer
+	Metrics  *metrics.Metrics // Prometheus metrics collectors
 }
 
 // New creates a new Buffer with the specified configuration.
@@ -40,6 +42,7 @@ type Config struct {
 //		Capacity: 1000,
 //		Drop:     false,
 //		Name:     "int_buffer",
+//		Metrics:  m,
 //	})
 //
 //	// Create a buffer for strings with capacity 500 that drops when full
@@ -47,6 +50,7 @@ type Config struct {
 //		Capacity: 500,
 //		Drop:     true,
 //		Name:     "string_buffer",
+//		Metrics:  m,
 //	})
 func New[T any](config Config) *Buffer[T] {
 	b := &Buffer[T]{
@@ -56,12 +60,13 @@ func New[T any](config Config) *Buffer[T] {
 		c:           make(chan *T, config.Capacity),
 		drop:        config.Drop,
 		name:        config.Name,
+		metrics:     config.Metrics,
 		stopMetrics: func() {},
 	}
 
 	b.stopMetrics = repeat.Every(time.Minute, func() {
-		metrics.BufferSize.WithLabelValues(b.name, strconv.FormatBool(b.drop)).Set(float64(len(b.c)) / float64(cap(b.c)))
-	})
+		b.metrics.BufferSize.WithLabelValues(b.name, strconv.FormatBool(b.drop)).Set(float64(len(b.c)) / float64(cap(b.c)))
+	}, nil)
 
 	return b
 }
@@ -77,6 +82,7 @@ func New[T any](config Config) *Buffer[T] {
 //		Capacity: 1000,
 //		Drop:     false,
 //		Name:     "int_buffer",
+//		Metrics:  m,
 //	})
 //
 //	// Add integer to buffer
@@ -91,6 +97,7 @@ func New[T any](config Config) *Buffer[T] {
 //		Capacity: 1000,
 //		Drop:     false,
 //		Name:     "event_buffer",
+//		Metrics:  m,
 //	})
 //	eventBuffer.Buffer(Event{ID: "1", Data: "example"})
 func (b *Buffer[T]) Buffer(t T) {
@@ -98,7 +105,7 @@ func (b *Buffer[T]) Buffer(t T) {
 	defer b.mu.RUnlock()
 
 	if b.isClosed {
-		metrics.BufferState.WithLabelValues(b.name, "closed").Inc()
+		b.metrics.BufferState.WithLabelValues(b.name, "closed").Inc()
 		return
 	}
 
@@ -108,15 +115,15 @@ func (b *Buffer[T]) Buffer(t T) {
 	if b.drop {
 		select {
 		case b.c <- ptr:
-			metrics.BufferState.WithLabelValues(b.name, "buffered").Inc()
+			b.metrics.BufferState.WithLabelValues(b.name, "buffered").Inc()
 
 		default:
 			// Emit a metric to signal we dropped a message
-			metrics.BufferState.WithLabelValues(b.name, "dropped").Inc()
+			b.metrics.BufferState.WithLabelValues(b.name, "dropped").Inc()
 		}
 	} else {
 		b.c <- ptr
-		metrics.BufferState.WithLabelValues(b.name, "buffered").Inc()
+		b.metrics.BufferState.WithLabelValues(b.name, "buffered").Inc()
 	}
 }
 
@@ -130,6 +137,7 @@ func (b *Buffer[T]) Buffer(t T) {
 //		Capacity: 1000,
 //		Drop:     false,
 //		Name:     "int_buffer",
+//		Metrics:  m,
 //	})
 //
 //	// Consume elements in a separate goroutine
@@ -164,6 +172,7 @@ func (b *Buffer[T]) Size() int {
 //		Capacity: 1000,
 //		Drop:     false,
 //		Name:     "int_buffer",
+//		Metrics:  m,
 //	})
 //
 //	// Close the buffer when done

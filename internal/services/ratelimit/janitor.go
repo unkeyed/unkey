@@ -63,6 +63,6 @@ func (s *service) expireWindowsAndBuckets() {
 
 		metrics.RatelimitBuckets.Set(float64(len(s.buckets)))
 		metrics.RatelimitWindows.Set(windows)
-	})
+	}, nil)
 
 }

@@ -9,20 +9,27 @@ import (
 	"net"
 	"time"
 
+	prom_sdk "github.com/prometheus/client_golang/prometheus"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
+	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
+	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
+	clusteringmetrics "github.com/unkeyed/unkey/pkg/cache/clustering/metrics"
+	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/cluster"
+	clustermetrics "github.com/unkeyed/unkey/pkg/cluster/metrics"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqlmetrics "github.com/unkeyed/unkey/pkg/mysql/metrics"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -106,6 +113,7 @@ func Run(ctx context.Context, cfg Config) error {
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
 		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+		Metrics:     mysqlmetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create db: %w", err)
@@ -132,6 +140,8 @@ func Run(ctx context.Context, cfg Config) error {
 			Consumers:     cfg.ClickHouse.Consumers,
 			Drop:          true,
 			OnFlushError:  nil,
+			BatchMetrics:  batchmetrics.NoopMetrics(),
+			BufferMetrics: buffermetrics.NoopMetrics(),
 		})
 		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, "default.key_verifications_raw_v2", clickhouse.BufferConfig{
 			Name:          "key_verifications",
@@ -141,6 +151,8 @@ func Run(ctx context.Context, cfg Config) error {
 			Consumers:     cfg.ClickHouse.Consumers,
 			Drop:          true,
 			OnFlushError:  nil,
+			BatchMetrics:  batchmetrics.NoopMetrics(),
+			BufferMetrics: buffermetrics.NoopMetrics(),
 		})
 
 		// Close buffers before connection (LIFO)
@@ -163,6 +175,7 @@ func Run(ctx context.Context, cfg Config) error {
 		wanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.WANPort)
 
 		gossipCluster, clusterErr := cluster.New(cluster.Config{
+			Metrics:          clustermetrics.NewMetrics(prom_sdk.DefaultRegisterer),
 			Region:           cfg.Region,
 			NodeID:           cfg.SentinelID,
 			BindAddr:         cfg.Gossip.BindAddr,
@@ -179,7 +192,7 @@ func Run(ctx context.Context, cfg Config) error {
 				"error", clusterErr,
 			)
 		} else {
-			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
+			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster, clusteringmetrics.NoopMetrics())
 			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
 			broadcaster = gossipBroadcaster
 			r.Defer(gossipCluster.Close)
@@ -187,13 +200,17 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	routerSvc, err := router.New(router.Config{
-		DB:            database,
-		Clock:         clk,
-		EnvironmentID: cfg.EnvironmentID,
-		Platform:      cfg.Platform,
-		Region:        cfg.Region,
-		Broadcaster:   broadcaster,
-		NodeID:        cfg.SentinelID,
+		DB:                database,
+		Clock:             clk,
+		EnvironmentID:     cfg.EnvironmentID,
+		Platform:          cfg.Platform,
+		Region:            cfg.Region,
+		Broadcaster:       broadcaster,
+		NodeID:            cfg.SentinelID,
+		CacheMetrics:      cachemetrics.NoopMetrics(),
+		ClusteringMetrics: clusteringmetrics.NoopMetrics(),
+		BatchMetrics:      batchmetrics.NoopMetrics(),
+		BufferMetrics:     buffermetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create router service: %w", err)
@@ -288,8 +305,9 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 	}
 
 	rateLimiter, err := ratelimit.New(ratelimit.Config{
-		Clock:   clk,
-		Counter: ctr,
+		Clock:         clk,
+		Counter:       ctr,
+		BufferMetrics: buffermetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rate limiter: %w", err)
@@ -315,6 +333,7 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 		Counter:       ctr,
 		TTL:           60 * time.Second,
 		ReplayWorkers: 8,
+		BufferMetrics: buffermetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create usage limiter: %w", err)
@@ -327,6 +346,7 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 		MaxSize:  100_000,
 		Resource: "sentinel_key_cache",
 		Clock:    clk,
+		Metrics:  cachemetrics.NoopMetrics(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key cache: %w", err)

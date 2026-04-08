@@ -22,7 +22,9 @@ go_library(
         "//pkg/clickhouse/schema",
         "//pkg/db",
         "//pkg/pprof",
+        "//pkg/prometheus/metrics",
         "//pkg/zen",
+        "//pkg/zen/metrics",
         "//pkg/zen/validation",
         "//svc/api/internal/middleware",
         "//svc/api/routes/openapi",
@@ -69,5 +71,6 @@ go_library(
         "//svc/api/routes/v2_ratelimit_list_overrides",
         "//svc/api/routes/v2_ratelimit_multi_limit",
         "//svc/api/routes/v2_ratelimit_set_override",
+        "@com_github_prometheus_client_golang//prometheus",
     ],
 )
