@@ -25,31 +25,43 @@ import {
   POLICY_TYPE_OPTIONS,
   type PolicyFormValues,
   type PolicyType,
+  fromSentinelPolicy,
   getDefaultValues,
   policyFormSchema,
   toSentinelPolicy,
 } from "./schema";
 
-type SentinelPolicyAddPanelProps = {
+type CommonProps = {
   envASlug: string;
   envBSlug: string;
   isOpen: boolean;
   topOffset: number;
   onClose: () => void;
+};
+
+type AddProps = CommonProps & {
+  mode: "add";
   onAdd: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
 };
 
-export function SentinelPolicyAddPanel({
-  envASlug,
-  envBSlug,
-  isOpen,
-  topOffset,
-  onClose,
-  onAdd,
-}: SentinelPolicyAddPanelProps) {
+type EditProps = CommonProps & {
+  mode: "edit";
+  initialPolicy: SentinelPolicy;
+  onSave: (updated: SentinelPolicy) => void;
+};
+
+export type SentinelPolicyPanelProps = AddProps | EditProps;
+
+export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
+  const { envASlug, envBSlug, isOpen, topOffset, onClose } = props;
+  const isEdit = props.mode === "edit";
+
   const { control, handleSubmit, watch, reset, setValue } = useForm<PolicyFormValues>({
     resolver: zodResolver(policyFormSchema),
-    defaultValues: getDefaultValues("keyauth"),
+    defaultValues: isEdit
+      ? fromSentinelPolicy(props.initialPolicy, "__all__")
+      // For now we only have keyauth so we default to that
+      : getDefaultValues("keyauth"),
   });
 
   const watchedType = watch("type");
@@ -78,8 +90,14 @@ export function SentinelPolicyAddPanel({
   };
 
   const onSubmit = (values: PolicyFormValues) => {
-    const policy = toSentinelPolicy(values);
+    if (props.mode === "edit") {
+      const updated = toSentinelPolicy(values, props.initialPolicy.id);
+      props.onSave({ ...updated, enabled: props.initialPolicy.enabled });
+      onClose();
+      return;
+    }
 
+    const policy = toSentinelPolicy(values);
     const prodPolicy =
       values.environmentId === "__all__" || values.environmentId === envASlug
         ? { ...policy, enabled: true }
@@ -89,7 +107,7 @@ export function SentinelPolicyAddPanel({
         ? { ...policy, enabled: true }
         : null;
 
-    onAdd(prodPolicy, previewPolicy);
+    props.onAdd(prodPolicy, previewPolicy);
     onClose();
     reset(getDefaultValues("keyauth"));
   };
@@ -98,9 +116,13 @@ export function SentinelPolicyAddPanel({
     <SlidePanel.Root isOpen={isOpen} onClose={onClose} topOffset={topOffset}>
       <SlidePanel.Header>
         <div className="flex flex-col">
-          <span className="text-gray-12 font-medium text-base leading-8">Add Policy</span>
+          <span className="text-gray-12 font-medium text-base leading-8">
+            {isEdit ? "Edit Policy" : "Add Policy"}
+          </span>
           <span className="text-gray-11 text-[13px] leading-5">
-            Configure and add a new sentinel policy.
+            {isEdit
+              ? "Update this sentinel policy."
+              : "Configure and add a new sentinel policy."}
           </span>
         </div>
         <SlidePanel.Close
@@ -147,6 +169,7 @@ export function SentinelPolicyAddPanel({
                     <Select
                       value={field.value}
                       onValueChange={(v) => handleTypeChange(v as PolicyType)}
+                      disabled={isEdit}
                     >
                       <SelectTrigger
                         id="policy-type-select"
@@ -244,7 +267,7 @@ export function SentinelPolicyAddPanel({
                       htmlFor="policy-env-select"
                       tooltipContent="Which environments this policy will be added to."
                     />
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value} onValueChange={field.onChange} disabled={isEdit}>
                       <SelectTrigger
                         id="policy-env-select"
                         className="capitalize"
@@ -272,7 +295,7 @@ export function SentinelPolicyAddPanel({
 
           <div className="border-t border-gray-4 bg-white dark:bg-black px-8 py-5 flex items-center justify-end">
             <Button type="submit" variant="primary" size="md" className="px-3">
-              Add Policy
+              {isEdit ? "Save Changes" : "Add Policy"}
             </Button>
           </div>
         </form>

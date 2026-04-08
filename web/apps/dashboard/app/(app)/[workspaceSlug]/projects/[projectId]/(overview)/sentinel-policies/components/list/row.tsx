@@ -5,7 +5,7 @@ import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.
 import { cn } from "@/lib/utils";
 import { Dots, GripDotsVertical, PenWriting3, Trash } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
 type MergedPolicyRow = {
   id: string;
@@ -28,6 +28,7 @@ type SentinelPolicyRowProps = {
   onAddToEnvB: (id: string) => void;
   onSave: (id: string, prodPolicy: SentinelPolicy, previewPolicy: SentinelPolicy | null) => void;
   onDelete: (id: string) => void;
+  onEdit: (policy: SentinelPolicy) => void;
   onDragStart: (index: number) => void;
   onDragOver: (index: number) => void;
   onDrop: (index: number) => void;
@@ -105,6 +106,8 @@ export function SentinelPolicyRow({
   onToggleEnvB,
   onAddToEnvA,
   onAddToEnvB,
+  onDelete,
+  onEdit,
   onDragStart,
   onDragOver,
   onDrop,
@@ -112,7 +115,6 @@ export function SentinelPolicyRow({
 }: SentinelPolicyRowProps) {
   const fromHandle = useRef(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
-  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const menuItems: MenuItem[] = [
     {
@@ -122,7 +124,8 @@ export function SentinelPolicyRow({
       divider: true,
       onClick: (e) => {
         e.stopPropagation();
-        setIsEditOpen(true);
+        const target = policy.envA ?? policy.envB;
+        if (target) onEdit(target);
       },
     },
     {
@@ -131,6 +134,7 @@ export function SentinelPolicyRow({
       icon: <Trash iconSize="md-regular" />,
       onClick: (e) => {
         e.stopPropagation();
+        onDelete(policy.id);
       },
     },
   ];
@@ -163,7 +167,7 @@ export function SentinelPolicyRow({
           onDragEnd();
         }}
         className={cn(
-          !isLast && !isEditOpen && "border-b border-grayA-4",
+          !isLast && "border-b border-grayA-4",
           isDragOver && "bg-grayA-3",
         )}
       >

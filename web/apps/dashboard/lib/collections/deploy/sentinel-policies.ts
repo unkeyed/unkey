@@ -15,6 +15,11 @@ import { parseEnvironmentIdFromWhere, validateEnvironmentIdInQuery } from "./uti
  */
 export type SentinelPolicyRow = SentinelPolicy & {
   environmentId: string;
+  // Preserves DB blob order. The collection stores rows in a Map keyed by
+  // `${env}::${uuid}`, so iteration order is lexicographic by key — not blob
+  // order. Stamp the blob index here and orderBy it in live queries so the
+  // list reflects the actual order from the server.
+  _order?: number;
 };
 
 const rowKey = (environmentId: string, policyId: string) => `${environmentId}::${policyId}`;
@@ -53,7 +58,12 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
         environmentId,
       });
 
-      return result.policies.map((p) => ({ ...p, environmentId }));
+      const rows: SentinelPolicyRow[] = result.policies.map((p, index) => ({
+        ...p,
+        environmentId,
+        _order: index,
+      }));
+      return rows;
     },
     getKey: (row) => rowKey(row.environmentId, row.id),
     id: "sentinelPolicies",
@@ -117,7 +127,7 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
 );
 
 function stripEnv(row: SentinelPolicyRow): SentinelPolicy {
-  const { environmentId: _envId, ...policy } = row;
+  const { environmentId: _envId, _order: _o, ...policy } = row;
   return policy as SentinelPolicy;
 }
 

@@ -11,6 +11,7 @@ type SentinelPoliciesListProps = {
   merged: MergedPolicy[];
   actions: SentinelDraftActions;
   onDelete: (id: string) => void;
+  onEdit: (policy: SentinelPolicy) => void;
 };
 
 export function SentinelPoliciesList({
@@ -19,6 +20,7 @@ export function SentinelPoliciesList({
   merged,
   actions,
   onDelete,
+  onEdit,
 }: SentinelPoliciesListProps) {
   const [dragSrcIndex, setDragSrcIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -81,6 +83,7 @@ export function SentinelPoliciesList({
             onAddToEnvB={handleAddToEnvB}
             onSave={handleSaveConfig}
             onDelete={onDelete}
+            onEdit={onEdit}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
