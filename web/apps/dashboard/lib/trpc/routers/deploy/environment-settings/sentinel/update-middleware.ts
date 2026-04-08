@@ -24,23 +24,23 @@ export type MatchCondition =
   | { id: string; type: "path"; mode: StringMatchMode; value: string; ignoreCase?: boolean }
   | { id: string; type: "method"; methods: string[] }
   | {
-      id: string;
-      type: "header";
-      name: string;
-      present?: boolean;
-      mode?: StringMatchMode;
-      value?: string;
-      ignoreCase?: boolean;
-    }
+    id: string;
+    type: "header";
+    name: string;
+    present?: boolean;
+    mode?: StringMatchMode;
+    value?: string;
+    ignoreCase?: boolean;
+  }
   | {
-      id: string;
-      type: "queryParam";
-      name: string;
-      present?: boolean;
-      mode?: StringMatchMode;
-      value?: string;
-      ignoreCase?: boolean;
-    };
+    id: string;
+    type: "queryParam";
+    name: string;
+    present?: boolean;
+    mode?: StringMatchMode;
+    value?: string;
+    ignoreCase?: boolean;
+  };
 
 // ── Policy config types (protojson oneof shapes) ────────────────────────
 
@@ -60,21 +60,12 @@ export type SentinelPolicy = {
   id: string;
   name: string;
   enabled: boolean;
-  type: "keyauth" | "ratelimit" | "jwt" | "basicauth" | "iprules" | "openapi";
+  type: "keyauth"
   keyauth?: {
     keySpaceIds: string[];
     locations?: KeyLocation[];
     permissionQuery?: string;
   };
-  ratelimit?: {
-    limit: number;
-    windowMs: number;
-    key?: RateLimitKey;
-  };
-  jwt?: { jwksUri?: string; issuer?: string; audience?: string[] };
-  basicauth?: { credentials: { username: string; passwordHash: string }[] };
-  iprules?: { allowlist: string[]; denylist: string[] };
-  openapi?: { specPath: string };
   match?: MatchExpr[];
 };
 
@@ -82,7 +73,6 @@ export type SentinelConfig = {
   policies: SentinelPolicy[];
 };
 
-// This is 100% not how we will do it later and is just a shortcut to use keyspace middleware before building the actual UI for it.
 export const updateMiddleware = workspaceProcedure
   .input(
     z.object({

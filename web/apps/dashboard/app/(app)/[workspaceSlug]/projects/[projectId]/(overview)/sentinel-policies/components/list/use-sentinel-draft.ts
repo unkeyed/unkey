@@ -4,51 +4,6 @@ import { collection } from "@/lib/collections";
 import type { SentinelPolicy } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
 import { useCallback, useMemo, useState } from "react";
 
-export type MergedPolicy = {
-  id: string;
-  name: string;
-  type: SentinelPolicy["type"];
-  envA: SentinelPolicy | null;
-  envB: SentinelPolicy | null;
-};
-
-export function mergePolicies(
-  policiesA: SentinelPolicy[],
-  policiesB: SentinelPolicy[],
-): MergedPolicy[] {
-  const mapB = new Map(policiesB.map((p) => [p.id, p]));
-  const mapA = new Map(policiesA.map((p) => [p.id, p]));
-
-  const result: MergedPolicy[] = policiesA.map((p) => ({
-    id: p.id,
-    name: p.name,
-    type: p.type,
-    envA: p,
-    envB: mapB.get(p.id) ?? null,
-  }));
-  for (const p of policiesB) {
-    if (!mapA.has(p.id)) {
-      result.push({ id: p.id, name: p.name, type: p.type, envA: null, envB: p });
-    }
-  }
-  return result;
-}
-
-const toEnv = (merged: MergedPolicy[], env: "envA" | "envB"): SentinelPolicy[] =>
-  merged.flatMap((m) => (m[env] !== null ? [m[env]] : []));
-
-function policiesEqual(a: SentinelPolicy[], b: SentinelPolicy[]): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
-  for (let i = 0; i < a.length; i++) {
-    if (JSON.stringify(a[i]) !== JSON.stringify(b[i])) {
-      return false;
-    }
-  }
-  return true;
-}
-
 export type SentinelDraftActions = {
   reorder: (next: MergedPolicy[]) => void;
   toggleEnv: (id: string, env: "envA" | "envB") => void;
@@ -158,3 +113,50 @@ export function useSentinelDraft({ envAId, envBId, policiesA, policiesB }: Args)
 
   return { merged, hasPending, actions, save, discard };
 }
+
+export type MergedPolicy = {
+  id: string;
+  name: string;
+  type: SentinelPolicy["type"];
+  envA: SentinelPolicy | null;
+  envB: SentinelPolicy | null;
+};
+
+export function mergePolicies(
+  policiesA: SentinelPolicy[],
+  policiesB: SentinelPolicy[],
+): MergedPolicy[] {
+  const mapB = new Map(policiesB.map((p) => [p.id, p]));
+  const mapA = new Map(policiesA.map((p) => [p.id, p]));
+
+  const result: MergedPolicy[] = policiesA.map((p) => ({
+    id: p.id,
+    name: p.name,
+    type: p.type,
+    envA: p,
+    envB: mapB.get(p.id) ?? null,
+  }));
+  for (const p of policiesB) {
+    if (!mapA.has(p.id)) {
+      result.push({ id: p.id, name: p.name, type: p.type, envA: null, envB: p });
+    }
+  }
+  return result;
+}
+
+const toEnv = (merged: MergedPolicy[], env: "envA" | "envB"): SentinelPolicy[] =>
+  merged.flatMap((m) => (m[env] !== null ? [m[env]] : []));
+
+function policiesEqual(a: SentinelPolicy[], b: SentinelPolicy[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; i++) {
+    if (JSON.stringify(a[i]) !== JSON.stringify(b[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+

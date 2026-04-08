@@ -10,19 +10,11 @@ const keyLocationSchema = z.union([
   z.object({ queryParam: z.object({ name: z.string() }) }),
 ]);
 
-const rateLimitKeySchema = z.union([
-  z.object({ remoteIp: z.object({}) }),
-  z.object({ header: z.object({ name: z.string() }) }),
-  z.object({ authenticatedSubject: z.object({}) }),
-  z.object({ path: z.object({}) }),
-  z.object({ principalClaim: z.object({ claimName: z.string() }) }),
-]);
-
 const sentinelPolicySchema = z.object({
   id: z.string(),
   name: z.string(),
   enabled: z.boolean(),
-  type: z.enum(["keyauth", "ratelimit", "jwt", "basicauth", "iprules", "openapi"]),
+  type: z.enum(["keyauth"]),
   keyauth: z
     .object({
       keySpaceIds: z.array(z.string()),
@@ -30,25 +22,6 @@ const sentinelPolicySchema = z.object({
       permissionQuery: z.string().optional(),
     })
     .optional(),
-  ratelimit: z
-    .object({
-      limit: z.number(),
-      windowMs: z.number(),
-      key: rateLimitKeySchema.optional(),
-    })
-    .optional(),
-  jwt: z
-    .object({
-      jwksUri: z.string().optional(),
-      issuer: z.string().optional(),
-      audience: z.array(z.string()).optional(),
-    })
-    .optional(),
-  basicauth: z
-    .object({ credentials: z.array(z.object({ username: z.string(), passwordHash: z.string() })) })
-    .optional(),
-  iprules: z.object({ allowlist: z.array(z.string()), denylist: z.array(z.string()) }).optional(),
-  openapi: z.object({ specPath: z.string() }).optional(),
   match: z.array(z.record(z.string(), z.unknown())).optional(),
 });
 
