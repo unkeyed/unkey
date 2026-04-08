@@ -30,6 +30,7 @@ type service struct {
 	h2cTransport      *http2.Transport
 	maxHops           int
 	errorPageRenderer errorpage.Renderer
+	metrics           *Metrics
 }
 
 var _ Service = (*service)(nil)
@@ -108,6 +109,7 @@ func New(cfg Config) (*service, error) {
 		h2cTransport:      h2cTransport,
 		maxHops:           maxHops,
 		errorPageRenderer: renderer,
+		metrics:           cfg.Metrics,
 	}, nil
 }
 
@@ -143,7 +145,11 @@ func (s *service) forwardToRegion(ctx context.Context, sess *zen.Session, target
 
 	if hopCountStr := sess.Request().Header.Get(HeaderFrontlineHops); hopCountStr != "" {
 		if hops, err := strconv.Atoi(hopCountStr); err == nil {
-			proxyHopsTotal.Observe(float64(hops))
+			srcRegion := sess.Request().Header.Get(HeaderRegion)
+			if srcRegion == "" {
+				srcRegion = fmt.Sprintf("%s::%s", s.platform, s.region)
+			}
+			s.metrics.Hops.WithLabelValues(srcRegion, targetRegionPlatform).Observe(float64(hops))
 
 			if hops >= s.maxHops {
 				logger.Error("too many frontline hops - rejecting request",

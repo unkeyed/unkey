@@ -46,7 +46,7 @@ func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db
 	}
 
 	if len(instances) > 0 && !hasRunningInstance {
-		routingErrorsTotal.WithLabelValues("no_running_instances").Inc()
+		s.metrics.ErrorsTotal.WithLabelValues("no_running_instances").Inc()
 		return RouteDecision{}, fault.New("no running instances",
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal("no running instances for deployment"),
@@ -79,7 +79,7 @@ func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db
 	}
 
 	if len(healthyByRegion) == 0 {
-		routingErrorsTotal.WithLabelValues("no_sentinels_for_instances").Inc()
+		s.metrics.ErrorsTotal.WithLabelValues("no_sentinels_for_instances").Inc()
 		return RouteDecision{}, fault.New("no healthy sentinels",
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal("no healthy sentinels for environment"),
@@ -97,7 +97,7 @@ func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db
 
 	nearestRegion := s.findNearestRegionPlatform(healthyByRegion)
 	if nearestRegion == "" {
-		routingErrorsTotal.WithLabelValues("no_reachable_region").Inc()
+		s.metrics.ErrorsTotal.WithLabelValues("no_reachable_region").Inc()
 		return RouteDecision{}, fault.New("no reachable region from "+s.regionPlatform,
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal("healthy sentinels exist but no region is reachable"),

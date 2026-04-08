@@ -19,7 +19,7 @@ var panicMetrics = panicmetrics.NewMetrics(prometheus.DefaultRegisterer)
 func Register(srv *zen.Server, svc *Services) {
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/"))
 	withPanicRecovery := zen.WithPanicRecovery(panicMetrics)
-	withObservability := middleware.WithObservability(svc.Region, svc.ErrorPageRenderer)
+	withObservability := middleware.WithObservability(svc.Region, svc.ErrorPageRenderer, svc.MiddlewareMetrics)
 	withTimeout := zen.WithTimeout(15 * time.Minute)
 
 	defaultMiddlewares := []zen.Middleware{
@@ -47,7 +47,7 @@ func RegisterChallengeServer(srv *zen.Server, svc *Services) {
 		[]zen.Middleware{
 			zen.WithPanicRecovery(panicMetrics),
 			zen.WithLogging(zen.SkipPaths("/_unkey/internal/")),
-			middleware.WithObservability(svc.Region, svc.ErrorPageRenderer),
+			middleware.WithObservability(svc.Region, svc.ErrorPageRenderer, svc.MiddlewareMetrics),
 		},
 		&acme.Handler{
 			RouterService: svc.RouterService,

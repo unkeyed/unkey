@@ -17,6 +17,7 @@ type service struct {
 	frontlineRouteCache         cache.Cache[string, db.FindFrontlineRouteByFQDNRow]
 	sentinelsByEnvironmentCache cache.Cache[string, []db.FindHealthyRoutableSentinelsByEnvironmentIDRow]
 	instancesByDeploymentCache  cache.Cache[string, []db.FindInstancesByDeploymentIDRow]
+	metrics                     *Metrics
 }
 
 var _ Service = (*service)(nil)
@@ -30,6 +31,7 @@ func New(cfg Config) (*service, error) {
 		frontlineRouteCache:         cfg.FrontlineRouteCache,
 		sentinelsByEnvironmentCache: cfg.SentinelsByEnvironment,
 		instancesByDeploymentCache:  cfg.InstancesByDeployment,
+		metrics:                     cfg.Metrics,
 	}, nil
 }
 
@@ -43,22 +45,22 @@ func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, er
 
 	instances, err := s.getInstances(ctx, route.DeploymentID)
 	if err != nil {
-		routingErrorsTotal.WithLabelValues("instance_load_failed").Inc()
+		s.metrics.ErrorsTotal.WithLabelValues("instance_load_failed").Inc()
 		return RouteDecision{}, err
 	}
 
 	decision, err := s.selectSentinel(route, sentinels, instances)
 
-	routingDuration.Observe(time.Since(start).Seconds())
+	s.metrics.Duration.Observe(time.Since(start).Seconds())
 
 	if err != nil {
 		return RouteDecision{}, err
 	}
 
 	if decision.Destination == DestinationLocalSentinel {
-		routingDecisionsTotal.WithLabelValues("local_sentinel", s.regionPlatform).Inc()
+		s.metrics.DecisionsTotal.WithLabelValues("local_sentinel", s.regionPlatform).Inc()
 	} else {
-		routingDecisionsTotal.WithLabelValues("remote_region", decision.Address).Inc()
+		s.metrics.DecisionsTotal.WithLabelValues("remote_region", decision.Address).Inc()
 	}
 
 	return decision, nil

@@ -20,6 +20,5 @@ go_library(
         "//pkg/mysql",
         "//svc/frontline/internal/db",
         "@com_github_prometheus_client_golang//prometheus",
-        "@com_github_prometheus_client_golang//prometheus/promauto",
     ],
 )

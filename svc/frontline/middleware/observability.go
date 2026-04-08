@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -18,38 +17,65 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-var (
-	frontlineRequestsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "requests_total",
-			Help:      "Total number of requests processed by frontline",
-		},
-		[]string{"status_code", "error_type", "region"},
+// Metrics holds all Prometheus metrics for the frontline middleware.
+type Metrics struct {
+	RequestsTotal   *prometheus.CounterVec
+	RequestDuration *prometheus.HistogramVec
+	ActiveRequests  *prometheus.GaugeVec
+	RequestErrors   *prometheus.CounterVec
+}
+
+// NewMetrics creates and registers all middleware metrics with the given registerer.
+func NewMetrics(reg prometheus.Registerer) *Metrics {
+	m := &Metrics{
+		RequestsTotal: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "frontline",
+				Name:      "requests_total",
+				Help:      "Total number of requests processed by frontline",
+			},
+			[]string{"status_code", "error_type", "region"},
+		),
+		RequestDuration: prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Namespace: "unkey",
+				Subsystem: "frontline",
+				Name:      "request_duration_seconds",
+				Help:      "Request duration in seconds",
+				Buckets:   prometheus.DefBuckets,
+			},
+			[]string{"status_code", "error_type", "region"},
+		),
+		ActiveRequests: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: "unkey",
+				Subsystem: "frontline",
+				Name:      "active_requests",
+				Help:      "Number of requests currently being processed",
+			},
+			[]string{"region"},
+		),
+		RequestErrors: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "frontline",
+				Name:      "request_errors_total",
+				Help:      "Total request errors by error type.",
+			},
+			[]string{"error_type"},
+		),
+	}
+
+	reg.MustRegister(
+		m.RequestsTotal,
+		m.RequestDuration,
+		m.ActiveRequests,
+		m.RequestErrors,
 	)
 
-	frontlineRequestDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "request_duration_seconds",
-			Help:      "Request duration in seconds",
-			Buckets:   prometheus.DefBuckets,
-		},
-		[]string{"status_code", "error_type", "region"},
-	)
-
-	frontlineActiveRequests = promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "active_requests",
-			Help:      "Number of requests currently being processed",
-		},
-		[]string{"region"},
-	)
-)
+	return m
+}
 
 type ErrorResponse struct {
 	Error ErrorDetail `json:"error"`
@@ -107,7 +133,7 @@ func categorizeErrorTypeFrontline(urn codes.URN, statusCode int, hasError bool) 
 	return "unknown"
 }
 
-func WithObservability(region string, renderer errorpage.Renderer) zen.Middleware {
+func WithObservability(region string, renderer errorpage.Renderer, metrics *Metrics) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			startTime := time.Now()
@@ -123,8 +149,8 @@ func WithObservability(region string, renderer errorpage.Renderer) zen.Middlewar
 			)
 			defer span.End()
 
-			frontlineActiveRequests.WithLabelValues(region).Inc()
-			defer frontlineActiveRequests.WithLabelValues(region).Dec()
+			metrics.ActiveRequests.WithLabelValues(region).Inc()
+			defer metrics.ActiveRequests.WithLabelValues(region).Dec()
 
 			err := next(ctx, s)
 
@@ -213,6 +239,10 @@ func WithObservability(region string, renderer errorpage.Renderer) zen.Middlewar
 				errorType = categorizeErrorTypeFrontline("", statusCode, hasError)
 			}
 
+			if errorType != "none" {
+				metrics.RequestErrors.WithLabelValues(errorType).Inc()
+			}
+
 			duration := time.Since(startTime).Seconds()
 			statusStr := strconv.Itoa(statusCode)
 
@@ -229,8 +259,8 @@ func WithObservability(region string, renderer errorpage.Renderer) zen.Middlewar
 				"region", region,
 			)
 
-			frontlineRequestsTotal.WithLabelValues(statusStr, errorType, region).Inc()
-			frontlineRequestDuration.WithLabelValues(statusStr, errorType, region).Observe(duration)
+			metrics.RequestsTotal.WithLabelValues(statusStr, errorType, region).Inc()
+			metrics.RequestDuration.WithLabelValues(statusStr, errorType, region).Observe(duration)
 
 			return nil
 		}

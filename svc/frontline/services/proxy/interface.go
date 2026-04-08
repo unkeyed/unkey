@@ -52,4 +52,7 @@ type Config struct {
 
 	// ErrorPageRenderer renders HTML error pages for sentinel errors.
 	ErrorPageRenderer errorpage.Renderer
+
+	// Metrics holds the Prometheus metrics for the proxy service.
+	Metrics *Metrics
 }

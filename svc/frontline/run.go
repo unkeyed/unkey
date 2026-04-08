@@ -35,6 +35,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/middleware"
 	"github.com/unkeyed/unkey/svc/frontline/routes"
 	"github.com/unkeyed/unkey/svc/frontline/services/caches"
 	"github.com/unkeyed/unkey/svc/frontline/services/certmanager"
@@ -248,6 +249,11 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Warn("Certificate manager not initialized, vault client is nil")
 	}
 
+	// Initialize metrics for each service
+	routerMetrics := router.NewMetrics(prom_sdk.DefaultRegisterer)
+	proxyMetrics := proxy.NewMetrics(prom_sdk.DefaultRegisterer)
+	middlewareMetrics := middleware.NewMetrics(prom_sdk.DefaultRegisterer)
+
 	// Initialize router service
 	routerSvc, err := router.New(router.Config{
 		Platform:               cfg.Platform,
@@ -256,6 +262,7 @@ func Run(ctx context.Context, cfg Config) error {
 		FrontlineRouteCache:    cache.FrontlineRoutes,
 		SentinelsByEnvironment: cache.SentinelsByEnvironment,
 		InstancesByDeployment:  cache.InstancesByDeployment,
+		Metrics:                routerMetrics,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create router service: %w", err)
@@ -270,6 +277,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ApexDomain: cfg.ApexDomain,
 		Clock:      clk,
 		MaxHops:    cfg.MaxHops,
+		Metrics:    proxyMetrics,
 		// Use defaults for transport settings (200 max idle conns, 90s timeout, etc.)
 	})
 	if err != nil {
@@ -290,6 +298,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clock:             clk,
 		AcmeClient:        acmeClient,
 		ErrorPageRenderer: errorpage.NewRenderer(),
+		MiddlewareMetrics: middlewareMetrics,
 	}
 
 	// Start HTTPS frontline server (main proxy server)

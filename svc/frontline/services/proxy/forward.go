@@ -64,7 +64,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	var backendStart time.Time
 	observeBackendDuration := func() {
 		if !backendStart.IsZero() {
-			proxyBackendDuration.WithLabelValues(cfg.destination).Observe(s.clock.Now().Sub(backendStart).Seconds())
+			s.metrics.BackendDuration.WithLabelValues(cfg.destination).Observe(s.clock.Now().Sub(backendStart).Seconds())
 		}
 	}
 
@@ -88,7 +88,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			if resp.Header.Get("X-Unkey-Error-Source") == "sentinel" {
 				source = "sentinel"
 			}
-			proxyBackendResponseTotal.WithLabelValues(cfg.destination, source, statusClass(resp.StatusCode)).Inc()
+			s.metrics.BackendResponseTotal.WithLabelValues(cfg.destination, source, statusClass(resp.StatusCode)).Inc()
 
 			totalTime := s.clock.Now().Sub(cfg.startTime)
 			if !proxyStartTime.IsZero() {
@@ -118,7 +118,9 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 
 			// 5xx from sentinel → fault error → frontline observability handles content negotiation
 			if resp.StatusCode >= 500 {
-				proxyForwardTotal.WithLabelValues(cfg.destination, "backend_5xx").Inc()
+				s.metrics.ForwardTotal.WithLabelValues(cfg.destination, "backend_5xx").Inc()
+				s.metrics.ForwardErrorsTotal.WithLabelValues(cfg.destination).Inc()
+				s.metrics.BackendErrorsTotal.WithLabelValues(cfg.destination, source).Inc()
 
 				// Try to extract the original error code from sentinel's JSON response
 				// so we preserve the specific error (e.g. InvalidConfiguration → 500)
@@ -167,7 +169,8 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 		if _, hasCode := fault.GetCode(err); hasCode {
 			return err
 		}
-		proxyForwardTotal.WithLabelValues(cfg.destination, categorizeProxyErrorType(err)).Inc()
+		s.metrics.ForwardTotal.WithLabelValues(cfg.destination, categorizeProxyErrorType(err)).Inc()
+		s.metrics.ForwardErrorsTotal.WithLabelValues(cfg.destination).Inc()
 		urn, message := categorizeProxyError(err, cfg.destination)
 		return fault.Wrap(err,
 			fault.Code(urn),
@@ -176,7 +179,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 		)
 	}
 
-	proxyForwardTotal.WithLabelValues(cfg.destination, "none").Inc()
+	s.metrics.ForwardTotal.WithLabelValues(cfg.destination, "none").Inc()
 
 	return nil
 }
