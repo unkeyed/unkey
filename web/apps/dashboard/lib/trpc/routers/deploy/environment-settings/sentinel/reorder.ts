@@ -12,10 +12,9 @@ export const reorder = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    const env = await loadOwnedEnvironment(ctx.workspace.id, input.environmentId);
+
     const reorderedIds = await db.transaction(async (tx) => {
-      // PlanetScale's HTTP driver serializes queries on a tx connection —
-      // run sequentially, NOT via Promise.all.
-      const env = await loadOwnedEnvironment(ctx.workspace.id, input.environmentId, tx);
       const current = await loadPolicies(ctx.workspace.id, input.environmentId, tx);
       const reordered = reconcileOrder(current, input.policyIds);
       await savePolicies(ctx.workspace.id, input.environmentId, env.appId, reordered, tx);

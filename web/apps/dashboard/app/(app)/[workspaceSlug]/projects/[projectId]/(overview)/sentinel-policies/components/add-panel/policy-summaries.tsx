@@ -1,8 +1,10 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import { match } from "@unkey/match";
 import type { ReactNode } from "react";
-import type { MatchConditionFormValues } from "./schema";
-import type { PolicyFormValues } from "./schema";
+import { useFormContext, useWatch } from "react-hook-form";
+import type { MatchConditionFormValues, PolicyFormValues } from "./schema";
 
 type KeyauthValues = Extract<PolicyFormValues, { type: "keyauth" }>;
 
@@ -76,4 +78,28 @@ export function summarizePolicy(
       </span>
     ))
     .exhaustive();
+}
+
+/**
+ * Live-subscribing wrapper around `summarizePolicy`. Reads only the fields the
+ * summary actually renders so a keystroke in (say) the policy name field
+ * re-renders just this small subtree, not the entire panel.
+ */
+export function PolicySummary({ keyspaceNames }: { keyspaceNames: Record<string, string> }) {
+  const { control } = useFormContext<PolicyFormValues>();
+  const type = useWatch({ control, name: "type" });
+  const name = useWatch({ control, name: "name" });
+  const environmentId = useWatch({ control, name: "environmentId" });
+  const keySpaceIds = useWatch({ control, name: "keySpaceIds" });
+  const locations = useWatch({ control, name: "locations" });
+  const permissionQuery = useWatch({ control, name: "permissionQuery" });
+
+  return (
+    <>
+      {summarizePolicy(
+        { type, name, environmentId, matchConditions: [], keySpaceIds, locations, permissionQuery },
+        keyspaceNames,
+      )}
+    </>
+  );
 }

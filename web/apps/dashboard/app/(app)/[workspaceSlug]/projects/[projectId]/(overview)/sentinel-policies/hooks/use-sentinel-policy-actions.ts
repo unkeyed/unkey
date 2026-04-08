@@ -105,22 +105,31 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
 
   const save = useCallback(
     (updated: SentinelPolicy) => {
-      for (const envId of [envAId, envBId]) {
-        if (!envId) {
-          continue;
-        }
-        const key = `${envId}::${updated.id}`;
-        if (!collection.sentinelPolicies.get(key)) {
-          continue;
-        }
-        collection.sentinelPolicies.update(key, (draft) => {
-          // Preserve this environment's own enabled state. The caller passes
+      // Batch both env-rows into one transaction so the collection's onUpdate
+      // toast fires once, not twice (count is plural-aware).
+      const keys: string[] = [];
+      if (envAId && collection.sentinelPolicies.get(`${envAId}::${updated.id}`)) {
+        keys.push(`${envAId}::${updated.id}`);
+      }
+      if (envBId && collection.sentinelPolicies.get(`${envBId}::${updated.id}`)) {
+        keys.push(`${envBId}::${updated.id}`);
+      }
+      if (keys.length === 0) {
+        return;
+      }
+      collection.sentinelPolicies.update(keys, (drafts) => {
+        for (const draft of drafts) {
+          // Preserve each environment's own enabled state. The caller passes
           // initialPolicy.enabled from one specific env, so spreading it would
           // clobber the other env's toggle.
           const currentEnabled = draft.enabled;
-          Object.assign(draft, updated, { environmentId: envId, enabled: currentEnabled });
-        });
-      }
+          const currentEnvId = draft.environmentId;
+          Object.assign(draft, updated, {
+            environmentId: currentEnvId,
+            enabled: currentEnabled,
+          });
+        }
+      });
     },
     [envAId, envBId],
   );

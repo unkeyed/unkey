@@ -13,13 +13,12 @@ export const create = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    // Workspace-scoped ownership check is safe outside the txn (read-only).
-    await assertKeyspacesOwned(ctx.workspace.id, input.policy.keyauth.keySpaceIds);
+    const [env] = await Promise.all([
+      loadOwnedEnvironment(ctx.workspace.id, input.environmentId),
+      assertKeyspacesOwned(ctx.workspace.id, input.policy.keyauth.keySpaceIds),
+    ]);
 
-    // RMW on the policies blob must be atomic — load + save in one transaction
-    // so concurrent edits from another tab can't be silently dropped.
     await db.transaction(async (tx) => {
-      const env = await loadOwnedEnvironment(ctx.workspace.id, input.environmentId, tx);
       const current = await loadPolicies(ctx.workspace.id, input.environmentId, tx);
       if (current.some((p) => p.id === input.policy.id)) {
         throw new TRPCError({

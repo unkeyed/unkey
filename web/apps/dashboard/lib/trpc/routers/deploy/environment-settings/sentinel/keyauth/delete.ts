@@ -12,8 +12,9 @@ export const remove = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    const env = await loadOwnedEnvironment(ctx.workspace.id, input.environmentId);
+
     await db.transaction(async (tx) => {
-      const env = await loadOwnedEnvironment(ctx.workspace.id, input.environmentId, tx);
       const current = await loadPolicies(ctx.workspace.id, input.environmentId, tx);
       const idx = current.findIndex((p) => p.id === input.policyId);
       if (idx === -1) {

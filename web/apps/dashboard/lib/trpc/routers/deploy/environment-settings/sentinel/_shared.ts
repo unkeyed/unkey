@@ -16,12 +16,7 @@ import { and, db, eq } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { appRuntimeSettings, environments } from "@unkey/db/src/schema";
 
-/**
- * Per-policy mutations do read-modify-write on a single JSON blob, so they
- * MUST run inside a transaction to avoid lost updates from concurrent edits
- * (two tabs, fast drag-reorder, etc.). Helpers below accept an Executor so
- * callers can pass either `db` (for plain reads) or a `tx` (for RMW).
- */
+/** A drizzle executor — either the pool `db` or a transactional `tx`. */
 export type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**

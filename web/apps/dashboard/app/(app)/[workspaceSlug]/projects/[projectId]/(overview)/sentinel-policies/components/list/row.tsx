@@ -4,8 +4,8 @@ import { type MenuItem, TableActionPopover } from "@/components/logs/table-actio
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { cn } from "@/lib/utils";
 import { Dots, GripDotsVertical, PenWriting3, Trash } from "@unkey/icons";
-import { Button } from "@unkey/ui";
-import { useRef } from "react";
+import { Button, ConfirmPopover } from "@unkey/ui";
+import { useRef, useState } from "react";
 
 type MergedPolicyRow = {
   id: string;
@@ -38,62 +38,6 @@ const POLICY_TYPE_LABELS: Record<SentinelPolicy["type"], string> = {
   keyauth: "Key Auth",
 };
 
-function EnvBadge({
-  id,
-  slug,
-  envPolicy,
-  onToggle,
-  onAdd,
-}: {
-  id: string;
-  slug: string;
-  envPolicy: SentinelPolicy | null;
-  onToggle: (id: string) => void;
-  onAdd: (id: string) => void;
-}) {
-  if (envPolicy !== null) {
-    return (
-      <button
-        type="button"
-        aria-pressed={envPolicy.enabled}
-        className={cn(
-          "flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full border transition-all cursor-pointer w-full",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-          envPolicy.enabled
-            ? "bg-info-3 border-info-7 text-info-11 focus-visible:ring-info-7"
-            : "bg-transparent border-grayA-5 text-gray-10 focus-visible:ring-grayA-7",
-        )}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle(id);
-        }}
-      >
-        <span
-          className={cn(
-            "w-1.5 h-1.5 rounded-full flex-shrink-0",
-            envPolicy.enabled ? "bg-info-11" : "bg-gray-9",
-          )}
-        />
-        <span className="truncate capitalize">{slug}</span>
-      </button>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-dashed border-grayA-4 text-gray-8 hover:text-gray-10 hover:border-grayA-6 transition-all cursor-pointer w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-6 focus-visible:ring-offset-1"
-      onClick={(e) => {
-        e.stopPropagation();
-        onAdd(id);
-      }}
-    >
-      <span className="flex-shrink-0">+</span>
-      <span className="truncate capitalize">{slug}</span>
-    </button>
-  );
-}
-
 export function SentinelPolicyRow({
   policy,
   index,
@@ -114,6 +58,7 @@ export function SentinelPolicyRow({
 }: SentinelPolicyRowProps) {
   const fromHandle = useRef(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const menuItems: MenuItem[] = [
     {
@@ -135,7 +80,7 @@ export function SentinelPolicyRow({
       icon: <Trash iconSize="md-regular" />,
       onClick: (e) => {
         e.stopPropagation();
-        onDelete(policy.id);
+        setIsDeleteConfirmOpen(true);
       },
     },
   ];
@@ -246,10 +191,78 @@ export function SentinelPolicyRow({
                   <Dots className="group-hover:text-gray-12 text-gray-11" iconSize="sm-regular" />
                 </Button>
               </TableActionPopover>
+
+              <ConfirmPopover
+                isOpen={isDeleteConfirmOpen}
+                onOpenChange={setIsDeleteConfirmOpen}
+                onConfirm={() => onDelete(policy.id)}
+                triggerRef={deleteButtonRef}
+                title="Confirm deletion"
+                description={`This will permanently delete "${policy.name}". This action cannot be undone.`}
+                confirmButtonText="Delete policy"
+                cancelButtonText="Cancel"
+                variant="danger"
+              />
             </div>
           </div>
         </div>
       </div>
     </>
+  );
+}
+
+function EnvBadge({
+  id,
+  slug,
+  envPolicy,
+  onToggle,
+  onAdd,
+}: {
+  id: string;
+  slug: string;
+  envPolicy: SentinelPolicy | null;
+  onToggle: (id: string) => void;
+  onAdd: (id: string) => void;
+}) {
+  if (envPolicy !== null) {
+    return (
+      <button
+        type="button"
+        aria-pressed={envPolicy.enabled}
+        className={cn(
+          "flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full border transition-all cursor-pointer w-full",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+          envPolicy.enabled
+            ? "bg-info-3 border-info-7 text-info-11 focus-visible:ring-info-7"
+            : "bg-transparent border-grayA-5 text-gray-10 focus-visible:ring-grayA-7",
+        )}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle(id);
+        }}
+      >
+        <span
+          className={cn(
+            "w-1.5 h-1.5 rounded-full flex-shrink-0",
+            envPolicy.enabled ? "bg-info-11" : "bg-gray-9",
+          )}
+        />
+        <span className="truncate capitalize">{slug}</span>
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-dashed border-grayA-4 text-gray-8 hover:text-gray-10 hover:border-grayA-6 transition-all cursor-pointer w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-6 focus-visible:ring-offset-1"
+      onClick={(e) => {
+        e.stopPropagation();
+        onAdd(id);
+      }}
+    >
+      <span className="flex-shrink-0">+</span>
+      <span className="truncate capitalize">{slug}</span>
+    </button>
   );
 }

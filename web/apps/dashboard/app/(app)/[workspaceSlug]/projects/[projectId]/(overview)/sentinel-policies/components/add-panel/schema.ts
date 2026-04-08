@@ -164,21 +164,21 @@ function toMatchExpr(condition: MatchConditionFormValues): MatchExpr {
       c.present
         ? { header: { name: c.name, present: true } }
         : {
-          header: {
-            name: c.name,
-            value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
+            header: {
+              name: c.name,
+              value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
+            },
           },
-        },
     )
     .with({ type: "queryParam" }, (c) =>
       c.present
         ? { queryParam: { name: c.name, present: true } }
         : {
-          queryParam: {
-            name: c.name,
-            value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
+            queryParam: {
+              name: c.name,
+              value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
+            },
           },
-        },
     )
     .exhaustive();
 }

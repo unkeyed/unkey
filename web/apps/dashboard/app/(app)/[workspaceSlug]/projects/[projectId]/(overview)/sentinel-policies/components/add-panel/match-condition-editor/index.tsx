@@ -4,18 +4,20 @@ import { cn } from "@/lib/utils";
 import { Plus } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
 import { Fragment } from "react";
-import type { MatchConditionFormValues } from "../schema";
+import { useFormContext, useWatch } from "react-hook-form";
+import { AccordionSection } from "../accordion-section";
+import { summarizeMatchConditions } from "../policy-summaries";
+import type { PolicyFormValues } from "../schema";
 import { MatchConditionCard } from "./condition-card";
 
 export const MAX_MATCH_CONDITIONS = 10;
 
-export function MatchConditionEditorBody({
-  conditions,
-  onChange,
-}: {
-  conditions: MatchConditionFormValues[];
-  onChange: (conditions: MatchConditionFormValues[]) => void;
-}) {
+export function MatchConditionEditorBody() {
+  const { control, setValue } = useFormContext<PolicyFormValues>();
+  const conditions = useWatch({ control, name: "matchConditions" }) ?? [];
+  const onChange = (next: typeof conditions) =>
+    setValue("matchConditions", next, { shouldDirty: true });
+
   const atCap = conditions.length >= MAX_MATCH_CONDITIONS;
   const hasConditions = conditions.length > 0;
   return (
@@ -33,7 +35,7 @@ export function MatchConditionEditorBody({
                   onChange(conditions.filter((c) => c.id !== id));
                 }}
               />
-              {index < conditions.length - 1 && <Separator className="bg-gray-2" />}
+              {index < conditions.length - 1 && <Separator className="bg-gray-4" />}
             </Fragment>
           ))}
         </div>
@@ -64,3 +66,48 @@ export function MatchConditionEditorBody({
   );
 }
 
+/**
+ * Live-subscribing summary for the active fold's accordion header. Reads only
+ * `matchConditions` from the surrounding `FormProvider`.
+ */
+export function MatchConditionsSummary() {
+  const { control } = useFormContext<PolicyFormValues>();
+  const conditions = useWatch({ control, name: "matchConditions" });
+  return <>{summarizeMatchConditions(conditions ?? [])}</>;
+}
+
+/**
+ * The collapsed match-conditions accordion row, including its `Clear all`
+ * header action. Reads `matchConditions` from form context so the parent
+ * panel doesn't have to drill `control` / `setValue` through.
+ */
+export function MatchConditionsCollapsedSection({ onToggle }: { onToggle: () => void }) {
+  const { control, setValue } = useFormContext<PolicyFormValues>();
+  const conditions = useWatch({ control, name: "matchConditions" }) ?? [];
+  return (
+    <AccordionSection
+      label="Match Conditions"
+      summary={summarizeMatchConditions(conditions)}
+      active={false}
+      onToggle={onToggle}
+      tooltipContent={
+        <span>
+          All conditions must match (<span className="text-gray-12 font-medium">AND</span> logic).
+        </span>
+      }
+      headerAction={
+        conditions.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setValue("matchConditions", [], { shouldDirty: true })}
+            className="text-xs text-accent-11 hover:text-accent-12 transition-colors cursor-pointer"
+          >
+            Clear all
+          </button>
+        ) : undefined
+      }
+    >
+      {null}
+    </AccordionSection>
+  );
+}

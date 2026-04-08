@@ -13,10 +13,12 @@ export const update = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    await assertKeyspacesOwned(ctx.workspace.id, input.policy.keyauth.keySpaceIds);
+    const [env] = await Promise.all([
+      loadOwnedEnvironment(ctx.workspace.id, input.environmentId),
+      assertKeyspacesOwned(ctx.workspace.id, input.policy.keyauth.keySpaceIds),
+    ]);
 
     await db.transaction(async (tx) => {
-      const env = await loadOwnedEnvironment(ctx.workspace.id, input.environmentId, tx);
       const current = await loadPolicies(ctx.workspace.id, input.environmentId, tx);
       const idx = current.findIndex((p) => p.id === input.policy.id);
       if (idx === -1) {
