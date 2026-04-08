@@ -1,9 +1,15 @@
 import { auth as authProvider } from "@/lib/auth/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
+import { workspaceProcedure } from "../../trpc";
 
-export const getOrg = protectedProcedure.input(z.string()).query(async ({ input: orgId }) => {
+export const getOrg = workspaceProcedure.input(z.string()).query(async ({ ctx, input: orgId }) => {
+  if (orgId !== ctx.workspace.orgId) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Organization not found",
+    });
+  }
   try {
     return await authProvider.getOrg(orgId);
   } catch (error) {

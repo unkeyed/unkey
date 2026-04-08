@@ -148,7 +148,11 @@ export const fetchKeyPermissions = workspaceProcedure
       }
 
       const key = await db.query.keys.findFirst({
-        where: and(eq(schema.keys.id, input.keyId), isNull(schema.keys.deletedAtM)),
+        where: and(
+          eq(schema.keys.id, input.keyId),
+          eq(schema.keys.workspaceId, ctx.workspace.id),
+          isNull(schema.keys.deletedAtM),
+        ),
         with: {
           keyAuth: true,
           roles: {
