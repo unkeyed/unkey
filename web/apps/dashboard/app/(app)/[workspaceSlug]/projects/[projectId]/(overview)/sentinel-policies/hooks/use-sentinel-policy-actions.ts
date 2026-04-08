@@ -1,7 +1,11 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import { reorderSentinelPolicies } from "@/lib/collections/deploy/sentinel-policies";
+import {
+  nextSentinelPolicyOrder,
+  reorderSentinelPolicies,
+  type SentinelPolicyRow,
+} from "@/lib/collections/deploy/sentinel-policies";
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { useCallback } from "react";
 
@@ -51,6 +55,7 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
         ...(sourcePolicy as SentinelPolicy),
         environmentId: targetEnvId,
         enabled: false,
+        _order: nextSentinelPolicyOrder(targetEnvId),
       });
     },
     [envAId, envBId, envIdFor],
@@ -68,18 +73,18 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
 
   const add = useCallback(
     (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => {
+      const rows: SentinelPolicyRow[] = [];
       if (prodPolicy !== null && envAId) {
-        collection.sentinelPolicies.insert({
-          ...prodPolicy,
-          environmentId: envAId,
-        });
+        rows.push({ ...prodPolicy, environmentId: envAId, _order: nextSentinelPolicyOrder(envAId) });
       }
       if (previewPolicy !== null && envBId) {
-        collection.sentinelPolicies.insert({
+        rows.push({
           ...previewPolicy,
           environmentId: envBId,
+          _order: nextSentinelPolicyOrder(envBId),
         });
       }
+      if (rows.length > 0) collection.sentinelPolicies.insert(rows);
     },
     [envAId, envBId],
   );

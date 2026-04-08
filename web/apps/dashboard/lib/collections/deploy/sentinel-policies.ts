@@ -110,11 +110,12 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
         return dispatchCreate(row.environmentId, policy);
       });
       const all = Promise.all(mutations);
+      const plural = mutations.length > 1;
       toast.promise(all, {
-        loading: "Adding sentinel policy...",
-        success: "Sentinel policy added",
+        loading: plural ? "Adding sentinel policies..." : "Adding sentinel policy...",
+        success: plural ? "Sentinel policies added" : "Sentinel policy added",
         error: (err) => ({
-          message: "Failed to add sentinel policy",
+          message: plural ? "Failed to add sentinel policies" : "Failed to add sentinel policy",
           description: err instanceof Error ? err.message : "Unknown error",
         }),
       });
@@ -128,11 +129,12 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
         return dispatchUpdate(row.environmentId, policy);
       });
       const all = Promise.all(mutations);
+      const plural = mutations.length > 1;
       toast.promise(all, {
-        loading: "Updating sentinel policy...",
-        success: "Sentinel policy updated",
+        loading: plural ? "Updating sentinel policies..." : "Updating sentinel policy...",
+        success: plural ? "Sentinel policies updated" : "Sentinel policy updated",
         error: (err) => ({
-          message: "Failed to update sentinel policy",
+          message: plural ? "Failed to update sentinel policies" : "Failed to update sentinel policy",
           description: err instanceof Error ? err.message : "Unknown error",
         }),
       });
@@ -145,12 +147,12 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
         return dispatchDelete(row.environmentId, row);
       });
       const all = Promise.all(mutations);
-      const count = mutations.length;
+      const plural = mutations.length > 1;
       toast.promise(all, {
-        loading: `Deleting ${count === 1 ? "sentinel policy" : `${count} sentinel policies`}...`,
-        success: `${count === 1 ? "Sentinel policy" : `${count} sentinel policies`} deleted`,
+        loading: plural ? "Deleting sentinel policies..." : "Deleting sentinel policy...",
+        success: plural ? "Sentinel policies deleted" : "Sentinel policy deleted",
         error: (err) => ({
-          message: "Failed to delete sentinel policy",
+          message: plural ? "Failed to delete sentinel policies" : "Failed to delete sentinel policy",
           description: err instanceof Error ? err.message : "Unknown error",
         }),
       });
@@ -158,6 +160,21 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
     },
   }),
 );
+
+/**
+ * Returns the next `_order` value for a new policy in the given environment.
+ * Scans the current collection state so optimistic inserts land at the end
+ * without a flash of wrong ordering.
+ */
+export function nextSentinelPolicyOrder(environmentId: string): number {
+  let max = -1;
+  for (const [key, row] of sentinelPolicies.state) {
+    if (key.startsWith(`${environmentId}::`)) {
+      max = Math.max(max, row._order ?? -1);
+    }
+  }
+  return max + 1;
+}
 
 function stripEnv(row: SentinelPolicyRow): SentinelPolicy {
   const { environmentId: _envId, _order: _o, ...policy } = row;
