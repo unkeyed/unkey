@@ -23,7 +23,7 @@ type Caches struct {
 	SentinelsByEnvironment cache.Cache[string, []db.FindHealthyRoutableSentinelsByEnvironmentIDRow]
 
 	// DeploymentID -> List of Instances
-	InstancesByDeployment cache.Cache[string, []db.Instance]
+	InstancesByDeployment cache.Cache[string, []db.FindInstancesByDeploymentIDRow]
 
 	// HostName -> Certificate
 	TLSCertificates cache.Cache[string, tls.Certificate]
@@ -159,7 +159,7 @@ func New(config Config) (*Caches, error) {
 	}
 
 	instancesByDeployment, err := createCache(
-		cache.Config[string, []db.Instance]{
+		cache.Config[string, []db.FindInstancesByDeploymentIDRow]{
 			Fresh:    10 * time.Second,
 			Stale:    60 * time.Second,
 			MaxSize:  10_000,

@@ -16,7 +16,7 @@ type service struct {
 	db                          db.Querier
 	frontlineRouteCache         cache.Cache[string, db.FindFrontlineRouteByFQDNRow]
 	sentinelsByEnvironmentCache cache.Cache[string, []db.FindHealthyRoutableSentinelsByEnvironmentIDRow]
-	instancesByDeploymentCache  cache.Cache[string, []db.Instance]
+	instancesByDeploymentCache  cache.Cache[string, []db.FindInstancesByDeploymentIDRow]
 }
 
 var _ Service = (*service)(nil)

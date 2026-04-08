@@ -111,6 +111,42 @@ Memory allocation for each instance. Available options:
   During the beta, the maximum is 4 GiB. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
 </Note>
 
+### Storage
+
+Instances run with a **read-only root filesystem**. Your application cannot write to arbitrary paths inside the container. This hardens the runtime against unintended or malicious file writes.
+
+Two writable locations are available:
+
+| Path | Description | Always available |
+| --- | --- | --- |
+| `/tmp` | Small in-memory tmpdir for scratch files, sockets, and runtime caches | Yes |
+| `/data` | Dedicated ephemeral disk volume (see below) | Only when storage is configured |
+
+#### `/tmp`
+
+Every instance gets a writable `/tmp` directory backed by memory. Use it for small temporary files that your runtime or libraries may need (lock files, Unix sockets, etc.). Because it shares the instance's memory allocation, avoid writing large files here — use ephemeral storage instead.
+
+#### Ephemeral storage
+
+Ephemeral disk space per instance. When configured, Unkey attaches a dedicated volume to each instance mounted at `/data`. The volume is created when the instance starts and destroyed when it stops — data does not persist across restarts.
+
+Available options:
+
+- None (default)
+- 512 MiB
+- 1 GiB
+- 2 GiB
+- 5 GiB
+- 10 GiB
+
+Use this for workloads that need temporary disk access, such as media processing (ffmpeg), file format conversion, or caching data before uploading to external storage.
+
+Your application can read the mount path from the `UNKEY_EPHEMERAL_DISK_PATH` environment variable, which is set to `/data` when storage is configured.
+
+<Note>
+  During the beta, the maximum is 10 GiB. Contact [support@unkey.com](mailto:support@unkey.com) if you need more.
+</Note>
+
 ### Port
 
 The port your application listens on. Defaults to 8080. Must be between 1 and 65,535.

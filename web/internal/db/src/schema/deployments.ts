@@ -56,6 +56,7 @@ export const deployments = mysqlTable(
 
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
+    storageMib: int("storage_mib", { unsigned: true }).notNull().default(0),
     desiredState: mysqlEnum("desired_state", ["running", "standby", "archived"])
       .notNull()
       .default("running"),

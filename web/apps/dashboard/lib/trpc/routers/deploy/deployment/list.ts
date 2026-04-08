@@ -26,6 +26,7 @@ export const listDeployments = workspaceProcedure
           status: true,
           cpuMillicores: true,
           memoryMib: true,
+          storageMib: true,
           createdAt: true,
         },
         with: {

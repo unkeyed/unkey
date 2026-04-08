@@ -32,6 +32,7 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     status,
     cpu_millicores,
     memory_mib,
+    storage_mib,
     port,
     shutdown_signal,
     healthcheck,
@@ -41,6 +42,7 @@ INSERT INTO ` + "`" + `deployments` + "`" + ` (
     updated_at
 )
 VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -88,6 +90,7 @@ type InsertDeploymentParams struct {
 	Status                        DeploymentsStatus         `db:"status"`
 	CpuMillicores                 int32                     `db:"cpu_millicores"`
 	MemoryMib                     int32                     `db:"memory_mib"`
+	StorageMib                    uint32                    `db:"storage_mib"`
 	Port                          int32                     `db:"port"`
 	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
 	Healthcheck                   dbtype.NullHealthcheck    `db:"healthcheck"`
@@ -118,6 +121,7 @@ type InsertDeploymentParams struct {
 //	    status,
 //	    cpu_millicores,
 //	    memory_mib,
+//	    storage_mib,
 //	    port,
 //	    shutdown_signal,
 //	    healthcheck,
@@ -127,6 +131,7 @@ type InsertDeploymentParams struct {
 //	    updated_at
 //	)
 //	VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -173,6 +178,7 @@ func (q *Queries) InsertDeployment(ctx context.Context, db DBTX, arg InsertDeplo
 		arg.Status,
 		arg.CpuMillicores,
 		arg.MemoryMib,
+		arg.StorageMib,
 		arg.Port,
 		arg.ShutdownSignal,
 		arg.Healthcheck,

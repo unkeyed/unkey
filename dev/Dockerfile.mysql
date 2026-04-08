@@ -1,10 +1,7 @@
 FROM mysql:9.4.0
 
-# Copy database initialization script
-COPY dev/init-databases.sql /docker-entrypoint-initdb.d/00-init-databases.sql
+# Copy per-table schema files — MySQL runs .sql files alphabetically.
+COPY pkg/mysql/schema/ /docker-entrypoint-initdb.d/
 
-# Copy schemas from their respective packages
-COPY pkg/db/schema.sql /docker-entrypoint-initdb.d/01-main-schema.sql
-
-# Copy seed data for local development
-COPY dev/04-seed-workspace.sql /docker-entrypoint-initdb.d/04-seed-workspace.sql
+# Seed data runs last thanks to the zzz- prefix.
+COPY dev/04-seed-workspace.sql /docker-entrypoint-initdb.d/zzz-seed.sql

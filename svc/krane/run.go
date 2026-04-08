@@ -145,14 +145,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{
-		ClientSet:     clientset,
-		DynamicClient: dynamicClient,
-		Cluster:       cluster,
-		Region:        cfg.Region,
-		Platform:      cfg.Platform,
-		Vault:         vaultClient,
-		Registry:      registryCfg,
-		Fingerprints:  fingerprintCache,
+		ClientSet:        clientset,
+		DynamicClient:    dynamicClient,
+		Cluster:          cluster,
+		Region:           cfg.Region,
+		Platform:         cfg.Platform,
+		Vault:            vaultClient,
+		Registry:         registryCfg,
+		Fingerprints:     fingerprintCache,
+		StorageClassName: cfg.StorageClassName,
 	})
 	if err := deploymentCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start deployment controller: %w", err)
