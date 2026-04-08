@@ -11,7 +11,6 @@
     "build-clickhouse": "docker compose -f ../../../dev/docker-compose.yaml build clickhouse"
   },
   "devDependencies": {
-    "@dagger.io/dagger": "0.14.0",
     "testcontainers": "10.14.0",
     "typescript": "5.5.3",
     "execa": "9.3.0",

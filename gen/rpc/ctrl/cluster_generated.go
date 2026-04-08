@@ -15,6 +15,7 @@ import (
 // Request and response types are plain protobuf messages without connect wrappers.
 type ClusterServiceClient interface {
 	WatchDeploymentChanges(ctx context.Context, req *v1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error)
+	SyncDesiredState(ctx context.Context, req *v1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error)
 	GetDesiredSentinelState(ctx context.Context, req *v1.GetDesiredSentinelStateRequest) (*v1.SentinelState, error)
 	ReportSentinelStatus(ctx context.Context, req *v1.ReportSentinelStatusRequest) (*v1.ReportSentinelStatusResponse, error)
 	GetDesiredDeploymentState(ctx context.Context, req *v1.GetDesiredDeploymentStateRequest) (*v1.DeploymentState, error)
@@ -37,6 +38,10 @@ func NewConnectClusterServiceClient(inner ctrlv1connect.ClusterServiceClient) *C
 
 func (c *ConnectClusterServiceClient) WatchDeploymentChanges(ctx context.Context, req *v1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error) {
 	return c.inner.WatchDeploymentChanges(ctx, connect.NewRequest(req))
+}
+
+func (c *ConnectClusterServiceClient) SyncDesiredState(ctx context.Context, req *v1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error) {
+	return c.inner.SyncDesiredState(ctx, connect.NewRequest(req))
 }
 
 func (c *ConnectClusterServiceClient) GetDesiredSentinelState(ctx context.Context, req *v1.GetDesiredSentinelStateRequest) (*v1.SentinelState, error) {

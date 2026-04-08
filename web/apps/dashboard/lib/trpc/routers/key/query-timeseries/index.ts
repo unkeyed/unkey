@@ -1,6 +1,6 @@
 import { keyDetailsQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/charts/bar-chart/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import { db, isNull } from "@/lib/db";
+import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { transformVerificationFilters } from "../../api/keys/timeseries.utils";
@@ -9,24 +9,17 @@ export const keyDetailsVerificationsTimeseries = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(keyDetailsQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces
+    // Verify the key belongs to this workspace
+    const key = await db.query.keys
       .findFirst({
-        where: (table, { and, eq, isNull }) =>
-          and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
-        with: {
-          keys: {
-            where: (keysTable, { eq, and }) =>
-              and(
-                eq(keysTable.id, input.keyId),
-                eq(keysTable.keyAuthId, input.keyspaceId),
-                isNull(keysTable.deletedAtM),
-              ),
-            limit: 1,
-            columns: {
-              id: true,
-            },
-          },
-        },
+        where: (table, { eq, and, isNull }) =>
+          and(
+            eq(table.id, input.keyId),
+            eq(table.keyAuthId, input.keyspaceId),
+            eq(table.workspaceId, ctx.workspace.id),
+            isNull(table.deletedAtM),
+          ),
+        columns: { id: true },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -36,12 +29,13 @@ export const keyDetailsVerificationsTimeseries = workspaceProcedure
         });
       });
 
-    if (!workspace) {
+    if (!key) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.com.",
+        message: "Key not found in the specified workspace.",
       });
     }
+
     const { params: transformedInputs, granularity } = transformVerificationFilters({
       ...input,
       names: null,

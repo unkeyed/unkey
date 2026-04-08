@@ -135,6 +135,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		Status:                        db.DeploymentsStatusReady,
 		CpuMillicores:                 100,
 		MemoryMib:                     128,
+		StorageMib:                    0,
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},

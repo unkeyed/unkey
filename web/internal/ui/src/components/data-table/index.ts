@@ -46,6 +46,10 @@ export { LastUpdatedCell } from "./components/cells";
 export type { LastUpdatedCellProps } from "./components/cells";
 export { RootKeyNameCell } from "./components/cells";
 export type { RootKeyNameCellProps } from "./components/cells";
+export { RegionCell } from "./components/cells";
+export type { RegionCellProps } from "./components/cells";
+export { TagsCell } from "./components/cells";
+export type { TagsCellProps } from "./components/cells";
 
 // Skeletons
 export {

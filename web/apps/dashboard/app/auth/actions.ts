@@ -75,12 +75,12 @@ async function verifyTurnstileToken(token: string): Promise<boolean> {
 
 // Authentication Actions
 export async function signUpViaEmail(params: UserData): Promise<EmailAuthResult> {
-  const metadata = getRequestMetadata();
+  const metadata = await getRequestMetadata();
   return await auth.signUpViaEmail({ ...params, ...metadata });
 }
 
 export async function signInViaEmail(email: string): Promise<EmailAuthResult> {
-  const metadata = getRequestMetadata();
+  const metadata = await getRequestMetadata();
   return await auth.signInViaEmail({ email, ...metadata });
 }
 
@@ -482,7 +482,7 @@ export async function verifyTurnstileAndRetry(params: {
   }
 
   // Retry original auth operation based on action
-  const metadata = getRequestMetadata();
+  const metadata = await getRequestMetadata();
 
   if (challengeParams.action === "sign-up" && userData) {
     // For sign-up, we need the user data

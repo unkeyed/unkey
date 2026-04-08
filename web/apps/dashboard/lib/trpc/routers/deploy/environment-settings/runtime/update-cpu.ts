@@ -1,6 +1,6 @@
 import { and, db, eq } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { appRuntimeSettings, environments } from "@unkey/db/src/schema";
+import { appRuntimeSettings, environments, quotas } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 
@@ -8,26 +8,32 @@ export const updateCpu = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),
-      cpuMillicores: z
-        .number()
-        .max(
-          4096,
-          "CPU is limited to 4 cores during beta. Please contact support@unkey.com if you need more.",
-        ),
+      cpuMillicores: z.number().int().min(1),
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const env = await db.query.environments.findFirst({
-      where: and(
-        eq(environments.id, input.environmentId),
-        eq(environments.workspaceId, ctx.workspace.id),
-      ),
-      columns: { appId: true },
-    });
+    const [env, quota] = await Promise.all([
+      db.query.environments.findFirst({
+        where: and(
+          eq(environments.id, input.environmentId),
+          eq(environments.workspaceId, ctx.workspace.id),
+        ),
+        columns: { appId: true },
+      }),
+      db.query.quotas.findFirst({
+        where: eq(quotas.workspaceId, ctx.workspace.id),
+        columns: { maxCpuMillicoresPerInstance: true },
+      }),
+    ]);
     if (!env) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Environment not found" });
+    }
+
+    const maxPerInstance = quota?.maxCpuMillicoresPerInstance ?? 2000;
+    if (input.cpuMillicores > maxPerInstance) {
       throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Environment not found",
+        code: "BAD_REQUEST",
+        message: `CPU per instance cannot exceed ${maxPerInstance} millicores. Contact support@unkey.com to increase it.`,
       });
     }
 
