@@ -10,20 +10,15 @@ const PREFETCH_PAGES_AHEAD = 2;
 export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const { filters } = useFilters();
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const normalizedPage = Math.max(1, page);
 
   const filtersKey = useMemo(
     () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
     [filters],
   );
 
-  const prevFiltersKeyRef = useRef<string | null>(null);
+  const prevFiltersKeyRef = useRef(filtersKey);
   useEffect(() => {
-    if (prevFiltersKeyRef.current === null) {
-      prevFiltersKeyRef.current = filtersKey;
-      return;
-    }
-    if (filtersKey !== prevFiltersKeyRef.current) {
+    if (prevFiltersKeyRef.current !== filtersKey) {
       prevFiltersKeyRef.current = filtersKey;
       setPage(1);
     }
@@ -32,7 +27,7 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const queryParams = useMemo(() => {
     const params: AuditLogsQueryPayload = {
       limit: pageSize,
-      page: normalizedPage,
+      page,
       startTime: undefined,
       endTime: undefined,
       events: { filters: [] },
@@ -85,7 +80,7 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
     }
 
     return params;
-  }, [filters, pageSize, normalizedPage]);
+  }, [filters, pageSize, page]);
 
   const utils = trpc.useUtils();
 
@@ -100,14 +95,14 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   useEffect(() => {
-    if (data && normalizedPage > totalPages) {
+    if (data && page > totalPages) {
       setPage(totalPages);
     }
-  }, [data, normalizedPage, totalPages, setPage]);
+  }, [data, page, totalPages, setPage]);
 
   useEffect(() => {
     for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = normalizedPage + i;
+      const nextPage = page + i;
       if (nextPage > totalPages) {
         break;
       }
@@ -116,7 +111,7 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
         { staleTime: Number.POSITIVE_INFINITY },
       );
     }
-  }, [normalizedPage, totalPages, queryParams, utils.audit.logs]);
+  }, [page, totalPages, queryParams, utils.audit.logs]);
 
   const onPageChange = useCallback(
     (newPage: number) => {
@@ -132,7 +127,7 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
     auditLogs: data?.auditLogs ?? [],
     isLoading,
     isFetching,
-    page: normalizedPage,
+    page,
     pageSize,
     totalPages,
     totalCount,

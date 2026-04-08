@@ -1,9 +1,10 @@
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { cn } from "@/lib/utils";
-import { Key, MathFunction } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { Badge, TimestampInfo } from "@unkey/ui";
-import { getAuditStatusStyle, getEventType } from "../utils/get-row-class";
+import { TimestampInfo } from "@unkey/ui";
+import { ActorCell } from "../components/cells/actor-cell";
+import { AuditActionBadgeCell } from "../components/cells/audit-action-badge-cell";
+import { MonoTextCell } from "../components/cells/mono-text-cell";
 
 export const AUDIT_LOG_COLUMN_IDS = {
   TIME: { id: "time", header: "Time" },
@@ -49,28 +50,7 @@ export const createAuditLogColumns = ({
       width: "15%",
     },
     cell: ({ row }) => {
-      const log = row.original;
-      return (
-        <div className="flex items-center gap-3 truncate">
-          {log.auditLog.actor.type === "user" && log.user ? (
-            <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
-              <span className="text-xs whitespace-nowrap secret truncate">
-                {`${log.user.firstName ?? ""} ${log.user.lastName ?? ""}`}
-              </span>
-            </div>
-          ) : log.auditLog.actor.type === "key" ? (
-            <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
-              <Key iconSize="sm-thin" />
-              <span className="font-mono text-xs truncate secret">{log.auditLog.actor.id}</span>
-            </div>
-          ) : (
-            <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
-              <MathFunction iconSize="sm-thin" />
-              <span className="font-mono text-xs truncate secret">{log.auditLog.actor.id}</span>
-            </div>
-          )}
-        </div>
-      );
+      return <ActorCell log={row.original} />;
     },
   },
   {
@@ -82,22 +62,8 @@ export const createAuditLogColumns = ({
     },
     cell: ({ row }) => {
       const log = row.original;
-      const eventType = getEventType(log.auditLog.event);
-      const style = getAuditStatusStyle(log);
       const isSelected = log.auditLog.id === selectedLog?.auditLog.id;
-
-      return (
-        <div className="flex items-center gap-3 group/action">
-          <Badge
-            className={cn(
-              "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-              isSelected ? style.badge.selected : style.badge.default,
-            )}
-          >
-            {eventType}
-          </Badge>
-        </div>
-      );
+      return <AuditActionBadgeCell log={log} isSelected={isSelected} />;
     },
   },
   {
@@ -108,12 +74,7 @@ export const createAuditLogColumns = ({
       width: "25%",
     },
     cell: ({ row }) => {
-      const log = row.original;
-      return (
-        <div className="flex items-center gap-2 font-mono text-xs overflow-hidden">
-          <span className="truncate">{log.auditLog.event}</span>
-        </div>
-      );
+      return <MonoTextCell value={row.original.auditLog.event} />;
     },
   },
   {
@@ -124,12 +85,7 @@ export const createAuditLogColumns = ({
       width: "38%",
     },
     cell: ({ row }) => {
-      const log = row.original;
-      return (
-        <div className="font-mono text-xs overflow-hidden text-ellipsis whitespace-nowrap truncate min-w-0">
-          {log.auditLog.description}
-        </div>
-      );
+      return <MonoTextCell value={row.original.auditLog.description} />;
     },
   },
 ];
