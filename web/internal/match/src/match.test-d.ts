@@ -118,10 +118,36 @@ describe("type: object patterns with P helpers", () => {
     const data = {} as Data;
     match(data)
       .with({ error: P.string }, (d) => {
-        expectTypeOf(d).toEqualTypeOf<Data>();
+        expectTypeOf(d).toEqualTypeOf<{ error: string; ok: boolean }>();
         return 0;
       })
       .otherwise(() => 1);
+  });
+});
+
+describe("type: Pattern<T> autocomplete surface", () => {
+  it("accepts literal union members", () => {
+    const v = {} as "a" | "b" | "c";
+    match(v)
+      .with("a", () => 1)
+      .with("b", () => 2)
+      .with("c", () => 3)
+      .exhaustive();
+  });
+
+  it("rejects literals not in the union", () => {
+    const v = {} as "a" | "b";
+    match(v)
+      // @ts-expect-error "c" is not assignable to Pattern<"a" | "b">
+      .with("c", () => 1)
+      .otherwise(() => 0);
+  });
+
+  it("partial object patterns are allowed", () => {
+    const v = {} as { a: boolean; b: boolean };
+    match(v)
+      .with({ a: true }, () => 1)
+      .otherwise(() => 0);
   });
 });
 

@@ -45,7 +45,7 @@ describe("match", () => {
           callCount++;
           return 1;
         })
-        .with("a", () => {
+        .with("b", () => {
           callCount++;
           return 2;
         })
@@ -155,7 +155,7 @@ describe("match", () => {
     });
 
     it("calls handler with input when unmatched", () => {
-      const result = match("z")
+      const result = match("z" as "a" | "z")
         .with("a", () => 1)
         .otherwise((v) => v);
       expect(result).toBe("z");

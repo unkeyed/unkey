@@ -1,6 +1,6 @@
 import { NonExhaustiveError } from "./errors";
 import { matchPattern } from "./patterns";
-import type { DeepPattern, HandlerReturn, NarrowByPattern } from "./types";
+import type { HandlerReturn, NarrowByPattern, Pattern } from "./types";
 
 type MatchState<TOutput> = { matched: true; value: TOutput } | { matched: false; value: undefined };
 
@@ -31,8 +31,8 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
   }
 
   /** Match a single pattern. */
-  with<const TPattern, TResult>(
-    pattern: TPattern & DeepPattern<TRemaining, NoInfer<TPattern>>,
+  with<const TPattern extends Pattern<TRemaining>, TResult>(
+    pattern: TPattern,
     handler: (value: NarrowByPattern<TRemaining, TPattern>) => HandlerReturn<TConstraint, TResult>,
   ): MatchBuilder<
     TInput,
@@ -42,16 +42,16 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
   >;
 
   /** Match a pattern with a guard predicate. */
-  with<const TPattern, TResult>(
-    pattern: TPattern & DeepPattern<TRemaining, NoInfer<TPattern>>,
+  with<const TPattern extends Pattern<TRemaining>, TResult>(
+    pattern: TPattern,
     guard: (value: NarrowByPattern<TRemaining, TPattern>) => boolean,
     handler: (value: NarrowByPattern<TRemaining, TPattern>) => HandlerReturn<TConstraint, TResult>,
   ): MatchBuilder<TInput, TOutput | HandlerReturn<TConstraint, TResult>, TRemaining, TConstraint>;
 
   /** Match two patterns with OR semantics. */
-  with<const P1, const P2, TResult>(
-    p1: P1 & DeepPattern<TRemaining, NoInfer<P1>>,
-    p2: P2 & DeepPattern<TRemaining, NoInfer<P2>>,
+  with<const P1 extends Pattern<TRemaining>, const P2 extends Pattern<TRemaining>, TResult>(
+    p1: P1,
+    p2: P2,
     handler: (
       value: NarrowByPattern<TRemaining, P1> | NarrowByPattern<TRemaining, P2>,
     ) => HandlerReturn<TConstraint, TResult>,
