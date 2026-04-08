@@ -12,6 +12,7 @@ import (
 
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -86,7 +87,7 @@ func newTestHarness(t *testing.T) *testHarness {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = usageLimiter.Close() })
 
-	keyCache, err := cache.New[string, db.CachedKeyData](cache.Config[string, db.CachedKeyData]{
+	keyCache, err := cache.New[string, keysdb.CachedKeyData](cache.Config[string, keysdb.CachedKeyData]{
 		Fresh:    10 * time.Second,
 		Stale:    10 * time.Minute,
 		MaxSize:  1000,
@@ -96,7 +97,7 @@ func newTestHarness(t *testing.T) *testHarness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		DB:               database,
+		DB:               db.ToMySQL(database),
 		RateLimiter:      rateLimiter,
 		RBAC:             rbac.New(),
 		KeyVerifications: nil,

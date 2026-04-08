@@ -20,6 +20,7 @@ INSERT INTO app_runtime_settings (
     port,
     cpu_millicores,
     memory_mib,
+    storage_mib,
     command,
     healthcheck,
     shutdown_signal,
@@ -40,12 +41,14 @@ INSERT INTO app_runtime_settings (
     ?,
     ?,
     ?,
+    ?,
     ?
 )
 ON DUPLICATE KEY UPDATE
     port = VALUES(port),
     cpu_millicores = VALUES(cpu_millicores),
     memory_mib = VALUES(memory_mib),
+    storage_mib = VALUES(storage_mib),
     command = VALUES(command),
     healthcheck = VALUES(healthcheck),
     shutdown_signal = VALUES(shutdown_signal),
@@ -61,6 +64,7 @@ type UpsertAppRuntimeSettingsParams struct {
 	Port            int32                            `db:"port"`
 	CpuMillicores   int32                            `db:"cpu_millicores"`
 	MemoryMib       int32                            `db:"memory_mib"`
+	StorageMib      uint32                           `db:"storage_mib"`
 	Command         dbtype.StringSlice               `db:"command"`
 	Healthcheck     dbtype.NullHealthcheck           `db:"healthcheck"`
 	ShutdownSignal  AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
@@ -79,6 +83,7 @@ type UpsertAppRuntimeSettingsParams struct {
 //	    port,
 //	    cpu_millicores,
 //	    memory_mib,
+//	    storage_mib,
 //	    command,
 //	    healthcheck,
 //	    shutdown_signal,
@@ -99,12 +104,14 @@ type UpsertAppRuntimeSettingsParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 //	ON DUPLICATE KEY UPDATE
 //	    port = VALUES(port),
 //	    cpu_millicores = VALUES(cpu_millicores),
 //	    memory_mib = VALUES(memory_mib),
+//	    storage_mib = VALUES(storage_mib),
 //	    command = VALUES(command),
 //	    healthcheck = VALUES(healthcheck),
 //	    shutdown_signal = VALUES(shutdown_signal),
@@ -119,6 +126,7 @@ func (q *Queries) UpsertAppRuntimeSettings(ctx context.Context, db DBTX, arg Ups
 		arg.Port,
 		arg.CpuMillicores,
 		arg.MemoryMib,
+		arg.StorageMib,
 		arg.Command,
 		arg.Healthcheck,
 		arg.ShutdownSignal,

@@ -28,6 +28,7 @@ const schema = z.object({
   port: z.number().int(),
   cpuMillicores: z.number().int(),
   memoryMib: z.number().int(),
+  storageMib: z.number().int(),
   command: z.array(z.string()),
   healthcheck: healthcheckSchema,
   regions: z.array(z.object({ id: z.string(), name: z.string(), replicas: z.number().int() })),
@@ -96,6 +97,7 @@ export const ENVIRONMENT_SETTINGS_DEFAULTS = {
   port: 8080,
   cpuMillicores: 250,
   memoryMib: 256,
+  storageMib: 0,
   shutdownSignal: "SIGTERM",
 } as const;
 
@@ -120,6 +122,7 @@ function flattenSettingsResponse(
     port: runtime?.port ?? d.port,
     cpuMillicores: runtime?.cpuMillicores ?? d.cpuMillicores,
     memoryMib: runtime?.memoryMib ?? d.memoryMib,
+    storageMib: runtime?.storageMib ?? d.storageMib,
     command: runtime?.command ?? [],
     healthcheck: runtime?.healthcheck ?? null,
     regions: regional
@@ -197,6 +200,15 @@ export function buildSettingsMutations(
       trpcClient.deploy.environmentSettings.runtime.updateMemory.mutate({
         environmentId,
         memoryMib: modified.memoryMib,
+      }),
+    );
+  }
+
+  if (modified.storageMib !== original.storageMib) {
+    mutations.push(
+      trpcClient.deploy.environmentSettings.runtime.updateStorage.mutate({
+        environmentId,
+        storageMib: modified.storageMib,
       }),
     );
   }

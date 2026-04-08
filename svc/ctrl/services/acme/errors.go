@@ -85,7 +85,7 @@ func ParseACMEError(err error) *ParsedACMEError {
 			parsed.IsRetryable = false
 		} else if strings.Contains(problemErr.Type, "unauthorized") {
 			parsed.Type = ACMEErrorUnauthorized
-			parsed.IsRetryable = false
+			parsed.IsRetryable = true // authorization failures during challenge validation are often transient
 		}
 		return parsed
 	}
@@ -148,12 +148,12 @@ func ParseACMEError(err error) *ParsedACMEError {
 		return parsed
 	}
 
-	// Authorization errors
+	// Authorization errors (may be transient during ACME challenge validation)
 	if strings.Contains(errStr, "403") || strings.Contains(errStr, "forbidden") ||
 		strings.Contains(errStr, "accessdenied") || strings.Contains(errStr, "access denied") {
 		parsed.Type = ACMEErrorUnauthorized
-		parsed.IsRetryable = false
-		parsed.Message = fmt.Sprintf("Authorization failed: %s. Check IAM permissions for Route53/DNS access.", err.Error())
+		parsed.IsRetryable = true // often transient during challenge propagation
+		parsed.Message = fmt.Sprintf("Authorization failed: %s", err.Error())
 		return parsed
 	}
 

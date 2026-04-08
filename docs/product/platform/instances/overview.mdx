@@ -1,13 +1,13 @@
 ---
 title: Instances
-description: "A running container replica of your app in a specific region"
+description: "Understand instances in Unkey — running container replicas of your app deployed to specific regions with automatic scaling and routing."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-An instance is a single running container of your [app](/platform/apps/overview) in a specific [region](/build-and-deploy/regions). When Unkey deploys your app, it creates one or more instances per region based on your configuration. Each instance runs the same container image with the same [variables](/platform/variables/overview) and serves traffic independently. Instances are stateless and ephemeral: local disk does not persist across deployments or restarts.
+An instance is a single running container of your [app](/platform/apps/overview) in a specific [region](/build-and-deploy/regions). When Unkey deploys your app, it creates one or more instances per region based on your configuration. Each instance runs the same container image with the same [variables](/platform/variables/overview) and serves traffic independently. Instances are ephemeral — [ephemeral storage](/platform/apps/settings#storage) does not persist across deployments or restarts.
 
 During deployments and scale-down, Unkey sends the configured [shutdown signal](/platform/apps/settings#shutdown-signal) (default `SIGTERM`) to give your app time to drain connections and finish in-flight requests before the instance stops.
 
@@ -38,7 +38,7 @@ Running multiple instances in a region provides redundancy and distributes load.
 
 ## Resource allocation
 
-Each instance has configurable limits for CPU and memory. The two resources work differently for billing:
+Each instance has configurable limits for CPU, memory, and storage. CPU and memory work differently for billing:
 
 - CPU is a maximum limit. Your instance can burst up to the configured amount, but Unkey only charges for the CPU time actually used.
 - Memory is a dedicated allocation. The configured amount is reserved for your instance, and you are charged for the full allocation.
@@ -47,6 +47,9 @@ Configure limits in **Settings > Runtime settings**:
 
 - CPU: 1/4 vCPU to 2 vCPU (default 1/4 vCPU, billed on usage)
 - Memory: 256 MiB to 4 GiB (default 256 MiB, billed on allocation)
+- Storage: None to 10 GiB ephemeral disk (default none, mounted at `/data`)
+
+Instances run with a read-only root filesystem. A writable `/tmp` directory backed by memory is always available for scratch files. For larger temporary storage needs, configure [ephemeral storage](/platform/apps/settings#ephemeral-storage) to attach a dedicated disk volume per instance.
 
 All instances in a deployment share the same resource configuration. Changing these values takes effect on the next deployment.
 
@@ -102,7 +105,7 @@ This visibility helps you identify whether a performance issue affects a single 
     icon="gear"
     href="/platform/apps/settings"
   >
-    Configure CPU, memory, and other runtime settings
+    Configure CPU, memory, storage, and other runtime settings
   </Card>
   <Card
     title="Regions"

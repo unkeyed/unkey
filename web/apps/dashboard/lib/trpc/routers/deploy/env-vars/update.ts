@@ -1,5 +1,6 @@
 import { and, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
+import { envVarKeySchema } from "@/lib/schemas/env-var";
 import { Vault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
@@ -16,7 +17,7 @@ export const updateEnvVar = workspaceProcedure
     z.object({
       envVarId: z.string(),
       // Key can only be updated for recoverable vars (validated on client)
-      key: z.string().min(1).optional(),
+      key: envVarKeySchema.optional(),
       environmentId: z.string().trim().min(1, "Environment is required"),
       // Value is always re-encrypted
       value: z.string().min(1),

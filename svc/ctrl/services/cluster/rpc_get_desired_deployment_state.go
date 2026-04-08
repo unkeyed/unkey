@@ -121,6 +121,12 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 		}
 		apply.Autoscaling = policy
 
+		if deployment.StorageMib > 0 {
+			apply.EphemeralStorage = &ctrlv1.EphemeralStorage{
+				SizeMib: int64(deployment.StorageMib),
+			}
+		}
+
 		return connect.NewResponse(&ctrlv1.DeploymentState{
 			State: &ctrlv1.DeploymentState_Apply{
 				Apply: apply,

@@ -1,8 +1,12 @@
 "use client";
 
 import type { DeploymentStatus } from "@/lib/collections";
-import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
-import { Bolt, Cloud, Grid, LayoutRight } from "@unkey/icons";
+import {
+  formatCpuParts,
+  formatMemoryParts,
+  formatStorageParts,
+} from "@/lib/utils/deployment-formatters";
+import { Bolt, Cloud, Grid, Harddrive, LayoutRight } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { ActiveDeploymentCard } from "../../../../components/active-deployment-card";
 import { DeploymentStatusBadge } from "../../../../components/deployment-status-badge";
@@ -50,6 +54,18 @@ export function DeploymentInfo({ title = "Deployment", statusOverride }: Deploym
                   </span>
                 </div>
               </InfoChip>
+              {deployment.storageMib > 0 && (
+                <InfoChip icon={Harddrive}>
+                  <div className="text-xs flex gap-0.5">
+                    <span className="font-medium text-gray-12">
+                      {formatStorageParts(deployment.storageMib).value}
+                    </span>
+                    <span className="text-gray-11">
+                      {formatStorageParts(deployment.storageMib).unit}
+                    </span>
+                  </div>
+                </InfoChip>
+              )}
             </div>
             <RegionFlags instances={deployment.instances} />
             {projectLayout && (

@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -91,14 +92,14 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		return nil, emptyLog, fault.Wrap(err, fault.Internal("sha256Hash is empty"))
 	}
 
-	key, hit, err := s.keyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (db.CachedKeyData, error) {
+	key, hit, err := s.keyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (keysdb.CachedKeyData, error) {
 		// Use database retry with exponential backoff, skipping non-transient errors
-		var row db.FindKeyForVerificationRow
-		row, err = db.WithRetryContext(ctx, func() (db.FindKeyForVerificationRow, error) {
-			return db.Query.FindKeyForVerification(ctx, s.db.RO(), sha256Hash)
+		var row keysdb.FindKeyForVerificationRow
+		row, err = mysql.WithRetryContext(ctx, func() (keysdb.FindKeyForVerificationRow, error) {
+			return keysdb.Query.FindKeyForVerification(ctx, s.db.RO(), sha256Hash)
 		})
 		if err != nil {
-			return db.CachedKeyData{}, err
+			return keysdb.CachedKeyData{}, err
 		}
 
 		// Parse IP whitelist once during cache population for performance
@@ -113,13 +114,13 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			}
 		}
 
-		return db.CachedKeyData{
+		return keysdb.CachedKeyData{
 			FindKeyForVerificationRow: row,
 			ParsedIPWhitelist:         parsedIPWhitelist,
 		}, nil
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
-		if db.IsNotFound(err) {
+		if mysql.IsNotFound(err) {
 			// nolint:exhaustruct
 			return &KeyVerifier{
 				Status:  StatusNotFound,
@@ -175,7 +176,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 
 	// The DB returns this in array format and an empty array if not found
 	var roles, permissions []string
-	var ratelimitArr []db.KeyFindForVerificationRatelimit
+	var ratelimitArr []keysdb.KeyFindForVerificationRatelimit
 
 	// Safely handle roles field
 	rolesBytes, ok := key.Roles.([]byte)
@@ -202,7 +203,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 	// Safely handle ratelimits field
 	ratelimitsBytes, ok := key.Ratelimits.([]byte)
 	if !ok || ratelimitsBytes == nil {
-		ratelimitArr = []db.KeyFindForVerificationRatelimit{} // Default to empty array if nil or wrong type
+		ratelimitArr = []keysdb.KeyFindForVerificationRatelimit{} // Default to empty array if nil or wrong type
 	} else {
 		err = json.Unmarshal(ratelimitsBytes, &ratelimitArr)
 		if err != nil {
@@ -212,7 +213,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 
 	// Convert rate limits array to map (key name -> config)
 	// Key rate limits take precedence over identity rate limits
-	ratelimitConfigs := make(map[string]db.KeyFindForVerificationRatelimit)
+	ratelimitConfigs := make(map[string]keysdb.KeyFindForVerificationRatelimit)
 	for _, rl := range ratelimitArr {
 		existing, exists := ratelimitConfigs[rl.Name]
 		if !exists {

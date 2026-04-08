@@ -10,27 +10,52 @@ import (
 )
 
 const findInstancesByDeploymentID = `-- name: FindInstancesByDeploymentID :many
-SELECT pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, status
-FROM instances
-WHERE deployment_id = ?
+SELECT
+  i.pk, i.id, i.deployment_id, i.workspace_id, i.project_id, i.app_id, i.region_id, i.k8s_name, i.address, i.cpu_millicores, i.memory_mib, i.storage_mib, i.status,
+  r.name AS region_name,
+  r.platform AS region_platform
+FROM instances i
+INNER JOIN regions r ON i.region_id = r.id
+WHERE i.deployment_id = ?
 `
 
-// FindInstancesByDeploymentID returns all instances for a given deployment.
-// Used by the router to determine which regions have running instances
-// for instance-aware routing decisions.
+type FindInstancesByDeploymentIDRow struct {
+	Pk             uint64          `db:"pk"`
+	ID             string          `db:"id"`
+	DeploymentID   string          `db:"deployment_id"`
+	WorkspaceID    string          `db:"workspace_id"`
+	ProjectID      string          `db:"project_id"`
+	AppID          string          `db:"app_id"`
+	RegionID       string          `db:"region_id"`
+	K8sName        string          `db:"k8s_name"`
+	Address        string          `db:"address"`
+	CpuMillicores  int32           `db:"cpu_millicores"`
+	MemoryMib      int32           `db:"memory_mib"`
+	StorageMib     uint32          `db:"storage_mib"`
+	Status         InstancesStatus `db:"status"`
+	RegionName     string          `db:"region_name"`
+	RegionPlatform string          `db:"region_platform"`
+}
+
+// FindInstancesByDeploymentID returns all instances for a given deployment
+// with region metadata for instance-aware routing decisions.
 //
-//	SELECT pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, status
-//	FROM instances
-//	WHERE deployment_id = ?
-func (q *Queries) FindInstancesByDeploymentID(ctx context.Context, deploymentID string) ([]Instance, error) {
+//	SELECT
+//	  i.pk, i.id, i.deployment_id, i.workspace_id, i.project_id, i.app_id, i.region_id, i.k8s_name, i.address, i.cpu_millicores, i.memory_mib, i.storage_mib, i.status,
+//	  r.name AS region_name,
+//	  r.platform AS region_platform
+//	FROM instances i
+//	INNER JOIN regions r ON i.region_id = r.id
+//	WHERE i.deployment_id = ?
+func (q *Queries) FindInstancesByDeploymentID(ctx context.Context, deploymentID string) ([]FindInstancesByDeploymentIDRow, error) {
 	rows, err := q.db.QueryContext(ctx, findInstancesByDeploymentID, deploymentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Instance
+	var items []FindInstancesByDeploymentIDRow
 	for rows.Next() {
-		var i Instance
+		var i FindInstancesByDeploymentIDRow
 		if err := rows.Scan(
 			&i.Pk,
 			&i.ID,
@@ -43,7 +68,10 @@ func (q *Queries) FindInstancesByDeploymentID(ctx context.Context, deploymentID 
 			&i.Address,
 			&i.CpuMillicores,
 			&i.MemoryMib,
+			&i.StorageMib,
 			&i.Status,
+			&i.RegionName,
+			&i.RegionPlatform,
 		); err != nil {
 			return nil, err
 		}

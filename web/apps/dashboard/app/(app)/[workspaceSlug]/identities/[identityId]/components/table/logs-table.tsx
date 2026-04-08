@@ -1,10 +1,10 @@
 "use client";
-import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/components/status-badge";
 import {
   STATUS_STYLES,
+  StatusBadge,
   type StatusStyle,
   categorizeSeverity,
-} from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/table/logs-table";
+} from "@/components/key-details-logs-table";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { shortenId } from "@/lib/shorten-id";
@@ -96,8 +96,12 @@ const getStatusType = (outcome: LogOutcomeType): keyof typeof STATUS_STYLES => {
     case "DISABLED":
     case "EXPIRED":
       return "blocked";
-    default:
+    case "INSUFFICIENT_PERMISSIONS":
+    case "FORBIDDEN":
+    case "USAGE_EXCEEDED":
       return "error";
+    default:
+      return "success";
   }
 };
 

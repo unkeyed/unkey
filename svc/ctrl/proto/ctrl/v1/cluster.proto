@@ -11,6 +11,8 @@ syntax = "proto3";
 // orchestration across distributed clusters.
 package ctrl.v1;
 
+import "ctrl/v1/deployment.proto";
+
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
 // Health represents the health state of a resource (sentinel, deployment instance, etc.)
@@ -31,15 +33,17 @@ enum Health {
 // The watch connections are designed to be long-lived with automatic reconnection on failure.
 // When an agent reconnects, it should resume from its last seen version for that resource type.
 service ClusterService {
-  // WatchDeployments streams deployment state changes from the control plane to agents.
-  // Each deployment controller maintains its own version cursor for resumable streaming.
-  // The agent applies received state to Kubernetes to converge actual state toward desired state.
-  rpc WatchDeployments(WatchDeploymentsRequest) returns (stream DeploymentState);
+  // WatchDeploymentChanges streams incremental resource changes from the
+  // deployment_changes outbox table. When version_last_seen is 0, the server
+  // jumps to the current max version and polls from there (no replay).
+  // The stream stays open indefinitely, polling for new changes.
+  rpc WatchDeploymentChanges(WatchDeploymentChangesRequest) returns (stream DeploymentChangeEvent);
 
-  // WatchSentinels streams sentinel state changes from the control plane to agents.
-  // Each sentinel controller maintains its own version cursor for resumable streaming.
-  // The agent applies received state to Kubernetes to converge actual state toward desired state.
-  rpc WatchSentinels(WatchSentinelsRequest) returns (stream SentinelState);
+  // SyncDesiredState streams the full desired state for a region: all running
+  // deployments, active sentinels, and cilium policies. The server closes the
+  // stream after all state has been sent. Krane calls this on startup and
+  // periodically as a safety net to reconcile any drift.
+  rpc SyncDesiredState(SyncDesiredStateRequest) returns (stream DeploymentChangeEvent);
 
   // GetDesiredSentinelState returns the current desired state for a single sentinel.
   // Used by the resync loop to verify consistency for existing resources.
@@ -57,10 +61,6 @@ service ClusterService {
   // Called when K8s watch events indicate ReplicaSet changes.
   rpc ReportDeploymentStatus(ReportDeploymentStatusRequest) returns (ReportDeploymentStatusResponse);
 
-  // WatchCiliumNetworkPolicies streams Cilium network policy state changes from the control plane.
-  // Each cilium controller maintains its own version cursor for resumable streaming.
-  rpc WatchCiliumNetworkPolicies(WatchCiliumNetworkPoliciesRequest) returns (stream CiliumNetworkPolicyState);
-
   // GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
   // Used by the resync loop to verify consistency for existing resources.
   rpc GetDesiredCiliumNetworkPolicyState(GetDesiredCiliumNetworkPolicyStateRequest) returns (CiliumNetworkPolicyState);
@@ -71,9 +71,24 @@ service ClusterService {
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
 }
 
-message WatchCiliumNetworkPoliciesRequest {
+message WatchDeploymentChangesRequest {
   string region = 1;
   uint64 version_last_seen = 2;
+
+  // When true and version_last_seen is 0, replay all changes from the
+  // beginning instead of jumping to the current max version. Default false.
+  bool replay = 3;
+}
+
+message SyncDesiredStateRequest {}
+
+message DeploymentChangeEvent {
+  uint64 version = 1;
+  oneof event {
+    DeploymentState deployment = 2;
+    SentinelState sentinel = 3;
+    CiliumNetworkPolicyState cilium_network_policy = 4;
+  }
 }
 
 message ApplyCiliumNetworkPolicy {
@@ -150,22 +165,6 @@ message ReportSentinelStatusRequest {
 }
 
 message ReportSentinelStatusResponse {}
-
-// WatchDeploymentsRequest initiates a stream of deployment state changes.
-// The version_last_seen enables resumable streaming - the server will only send
-// events newer than this version. Independent of the sentinel stream version.
-message WatchDeploymentsRequest {
-  string region = 1;
-  uint64 version_last_seen = 2;
-}
-
-// WatchSentinelsRequest initiates a stream of sentinel state changes.
-// The version_last_seen enables resumable streaming - the server will only send
-// events newer than this version. Independent of the deployment stream version.
-message WatchSentinelsRequest {
-  string region = 1;
-  uint64 version_last_seen = 2;
-}
 
 // SentinelState represents a lifecycle event for an API sentinel configuration.
 //
@@ -328,6 +327,12 @@ message ApplyDeployment {
   // Horizontal autoscaling policy. Krane creates an HPA with these values.
   // Populated from the horizontal_autoscaling_policies table via app_regional_settings.
   AutoscalingPolicy autoscaling = 27;
+
+  // ephemeral_storage configures an EBS-backed scratch volume for the deployment.
+  // When present, Krane provisions a PVC per pod using the specified storage class.
+  // The volume is created when the pod starts and deleted when the pod terminates.
+  // When absent, no ephemeral volume is attached.
+  optional EphemeralStorage ephemeral_storage = 29;
 }
 
 // AutoscalingPolicy configures horizontal pod autoscaling for a deployment.

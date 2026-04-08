@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/validation"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -119,6 +120,10 @@ func (s *Service) CreateDeployment(
 			Secrets: make(map[string]string, len(appEnvVars)),
 		}
 		for _, ev := range appEnvVars {
+			if !validation.IsValidEnvVarKey(ev.Key) {
+				return nil, connect.NewError(connect.CodeInvalidArgument,
+					fmt.Errorf("environment variable key %q is invalid: %s", ev.Key, validation.ErrMsgInvalidEnvVarKey))
+			}
 			secretsConfig.Secrets[ev.Key] = ev.Value
 		}
 
@@ -255,6 +260,7 @@ func (s *Service) CreateDeployment(
 		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
 		CpuMillicores:                 appRuntimeSettings.CpuMillicores,
 		MemoryMib:                     appRuntimeSettings.MemoryMib,
+		StorageMib:                    appRuntimeSettings.StorageMib,
 		Port:                          appRuntimeSettings.Port,
 		ShutdownSignal:                db.DeploymentsShutdownSignal(appRuntimeSettings.ShutdownSignal),
 		Healthcheck:                   appRuntimeSettings.Healthcheck,

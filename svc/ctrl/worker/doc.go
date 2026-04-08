@@ -8,7 +8,7 @@
 // # Architecture
 //
 // The worker acts as a Restate service host, binding workflow services that handle container
-// deployments, TLS certificate management, traffic routing, and versioning. It maintains
+// deployments, TLS certificate management, and traffic routing. It maintains
 // connections to the primary database for persistent state, vault services for secrets and
 // ACME certificates, S3-compatible storage for build artifacts, and ClickHouse for analytics.
 //

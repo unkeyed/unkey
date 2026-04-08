@@ -78,6 +78,7 @@ import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sen
 import { update as updateKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/update";
 import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
 import { reorder as reorderSentinelPolicies } from "./deploy/environment-settings/sentinel/reorder";
+import { updateStorage } from "./deploy/environment-settings/runtime/update-storage";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
 import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
@@ -431,6 +432,7 @@ export const router = t.router({
       runtime: t.router({
         updateCpu,
         updateMemory,
+        updateStorage,
         updatePort,
         updateCommand,
         updateHealthcheck,

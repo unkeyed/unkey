@@ -87,6 +87,7 @@
                     "pages": [
                       "architecture/services/control-plane/worker/overview",
                       "architecture/services/control-plane/worker/configuration",
+                      "architecture/services/control-plane/worker/deployment-sync",
                       {
                         "group": "Workflows",
                         "pages": [
@@ -222,6 +223,10 @@
               "infra/deployments/argocd-debugging",
               "infra/deployments/cronjobs"
             ]
+          },
+          {
+            "group": "Custom Domains",
+            "pages": ["infra/domain-connect"]
           },
           {
             "group": "Secrets",

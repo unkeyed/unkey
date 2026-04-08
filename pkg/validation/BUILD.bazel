@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "validation",
+    srcs = ["env_var.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/validation",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "validation_test",
+    size = "small",
+    srcs = ["env_var_test.go"],
+    embed = [":validation"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

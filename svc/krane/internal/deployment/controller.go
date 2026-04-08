@@ -20,10 +20,8 @@ import (
 // Controller manages deployment ReplicaSets in a Kubernetes cluster by maintaining
 // bidirectional state synchronization with the control plane.
 //
-// The controller receives desired state via the WatchDeployments stream and reports
-// actual state via ReportDeploymentStatus. It operates independently from the sentinel
-// controller with its own version cursor and circuit breaker, ensuring that failures
-// in one controller don't cascade to the other.
+// The controller receives desired state from the unified WatchDeploymentChanges stream
+// (dispatched by the watcher) and reports actual state via ReportDeploymentStatus.
 //
 // Create a Controller with [New] and start it with [Controller.Start]. The controller
 // runs until the context is cancelled or [Controller.Stop] is called.
@@ -38,12 +36,14 @@ type Controller struct {
 	done             chan struct{}
 	region           string
 	platform         string
-	versionLastSeen  uint64
 
 	// fingerprints tracks the most recently reported state per ReplicaSet
 	// so we can skip redundant reports during resync. Entries auto-expire
 	// via the cache's TTL, preventing unbounded growth from deleted RSs.
 	fingerprints cache.Cache[string, string]
+
+	// storageClassName is the Kubernetes StorageClass for ephemeral volumes.
+	storageClassName string
 }
 
 // Config holds the configuration required to create a new [Controller].
@@ -78,6 +78,9 @@ type Config struct {
 
 	// Fingerprints is a cache for deduplicating deployment status reports.
 	Fingerprints cache.Cache[string, string]
+
+	// StorageClassName is the Kubernetes StorageClass for ephemeral volumes.
+	StorageClassName string
 }
 
 // New creates a [Controller] ready to be started with [Controller.Start].
@@ -102,17 +105,17 @@ func New(cfg Config) *Controller {
 		done:             make(chan struct{}),
 		region:           cfg.Region,
 		platform:         cfg.Platform,
-		versionLastSeen:  0,
 		fingerprints:     cfg.Fingerprints,
+		storageClassName: cfg.StorageClassName,
 	}
 }
 
-// Start launches the three background control loops and blocks until they're initialized.
+// Start launches the background control loops.
 //
-// The method starts [Controller.runResyncLoop] and [Controller.runDesiredStateApplyLoop]
-// as background goroutines, and initializes [Controller.runPodWatchLoop]'s Kubernetes
-// watch before returning. If watch initialization fails, Start returns the error and
-// no goroutines are left running.
+// The method starts [Controller.runResyncLoop] as a background goroutine and
+// initializes [Controller.runPodWatchLoop]'s Kubernetes watch before returning.
+// Desired state is received externally via the watcher package.
+// If watch initialization fails, Start returns the error.
 //
 // All loops continue until the context is cancelled or [Controller.Stop] is called.
 func (c *Controller) Start(ctx context.Context) error {
@@ -121,8 +124,6 @@ func (c *Controller) Start(ctx context.Context) error {
 	if err := c.runPodWatchLoop(ctx); err != nil {
 		return err
 	}
-
-	go c.runDesiredStateApplyLoop(ctx)
 
 	return nil
 }

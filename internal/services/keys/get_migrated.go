@@ -9,11 +9,12 @@ import (
 	"strings"
 	"time"
 
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/codes"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -29,12 +30,12 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 		return nil, emptyLog, fault.Wrap(err, fault.Internal("rawKey is empty"))
 	}
 
-	migration, err := db.Query.FindKeyMigrationByID(ctx, s.db.RO(), db.FindKeyMigrationByIDParams{
+	migration, err := keysdb.Query.FindKeyMigrationByID(ctx, s.db.RO(), keysdb.FindKeyMigrationByIDParams{
 		ID:          migrationID,
 		WorkspaceID: sess.AuthorizedWorkspaceID(),
 	})
 	if err != nil {
-		if db.IsNotFound(err) {
+		if mysql.IsNotFound(err) {
 			// nolint:exhaustruct
 			return &KeyVerifier{
 				Status:  StatusNotFound,
@@ -56,7 +57,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 	var start string
 
 	switch migration.Algorithm {
-	case db.KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey:
+	case keysdb.KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey:
 		{
 			// Parse from the right since shortToken and longToken never contain underscores,
 			// but prefix can (e.g., "my_company_shortToken_longToken")
@@ -89,7 +90,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 				start = fmt.Sprintf("%s_%s", prefix, actualKey)
 			}
 		}
-	case db.KeyMigrationsAlgorithmSha256:
+	case keysdb.KeyMigrationsAlgorithmSha256:
 		// If we have a sha256 already migrated key and we didn't find it in the first place
 		// then it doesn't exist, and there is nothing to migrate here.
 		// nolint:exhaustruct
@@ -111,7 +112,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 
 	if key.Key.PendingMigrationID.Valid && key.Key.PendingMigrationID.String == migrationID {
 		newHash := hash.Sha256(rawKey)
-		err = db.Query.UpdateKeyHashAndMigration(ctx, s.db.RW(), db.UpdateKeyHashAndMigrationParams{
+		err = keysdb.Query.UpdateKeyHashAndMigration(ctx, s.db.RW(), keysdb.UpdateKeyHashAndMigrationParams{
 			ID:                 key.Key.ID,
 			Hash:               newHash,
 			Start:              start,

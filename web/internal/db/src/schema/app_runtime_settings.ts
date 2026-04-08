@@ -36,6 +36,7 @@ export const appRuntimeSettings = mysqlTable(
     // CPU allocation in millicores (1000 millicores = 1 CPU).
     cpuMillicores: int("cpu_millicores").notNull().default(250),
     memoryMib: int("memory_mib").notNull().default(256),
+    storageMib: int("storage_mib", { unsigned: true }).notNull().default(0),
     command: json("command").$type<string[]>().notNull().default(sql`('[]')`),
 
     // null = no healthcheck configured

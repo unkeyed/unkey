@@ -27,6 +27,7 @@ export const keyDetailsLogsParams = z.object({
     )
     .nullable(),
   cursorTime: z.int().nullable(),
+  offset: z.int().nullable(),
 });
 
 export const keyDetailsLog = z.object({
@@ -91,10 +92,13 @@ export function getKeyDetailsLogs(ch: Querier) {
           .join(" OR ") || "TRUE"
       : "TRUE";
 
+    const useOffset = args.offset !== null;
+
     let cursorCondition: string;
 
-    // For first page or no cursor provided
-    if (args.cursorTime) {
+    if (useOffset) {
+      cursorCondition = "";
+    } else if (args.cursorTime) {
       cursorCondition = `
         AND (time < {cursorTime: Nullable(UInt64)})
         `;
@@ -149,6 +153,7 @@ export function getKeyDetailsLogs(ch: Querier) {
           ${cursorCondition}
       ORDER BY time DESC
       LIMIT {limit: Int}
+      ${useOffset ? "OFFSET {offset: Nullable(Int)}" : ""}
       `,
       params: extendedParamsSchema,
       schema: keyDetailsLog,

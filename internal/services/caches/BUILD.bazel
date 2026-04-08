@@ -10,6 +10,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/internal/services/caches",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/services/keys/db",
         "//pkg/cache",
         "//pkg/cache/clustering",
         "//pkg/cache/middleware",

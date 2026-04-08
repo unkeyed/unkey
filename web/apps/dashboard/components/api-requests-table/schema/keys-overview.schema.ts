@@ -11,7 +11,7 @@ export const keysQueryOverviewLogsPayload = z.object({
   endTime: z.int(),
   apiId: z.string(),
   since: z.string(),
-  cursor: z.number().nullable().optional().nullable(),
+  page: z.int().optional().default(1),
   // Flag to indicate if user explicitly filtered by time frame
   // If true, use new logic to find keys with ANY usage in the time frame
   // If false or undefined, use the MV directly for speed

@@ -42,7 +42,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	keyService, err := keys.New(keys.Config{
-		DB:               database,
+		DB:               db.ToMySQL(database),
 		RateLimiter:      nil,
 		RBAC:             nil,
 		KeyVerifications: nil,
@@ -182,6 +182,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Port:            8080,
 				CpuMillicores:   250,
 				MemoryMib:       256,
+				StorageMib:      0,
 				Command:         dbtype.StringSlice{},
 				Healthcheck:     dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 				SentinelConfig:  []byte{},
@@ -197,6 +198,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Port:            8080,
 				CpuMillicores:   250,
 				MemoryMib:       256,
+				StorageMib:      0,
 				Command:         dbtype.StringSlice{},
 				Healthcheck:     dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 				SentinelConfig:  []byte{},

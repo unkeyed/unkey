@@ -19,4 +19,8 @@ export { RowActionSkeleton } from "./row-action-skeleton";
 export { InvalidCountCell } from "./invalid-count-cell";
 export type { InvalidCountCellProps } from "./invalid-count-cell";
 export { OutcomePopoverCell, formatOutcomeName, getOutcomeColor } from "./outcome-popover-cell";
+export { RegionCell } from "./region-cell";
+export type { RegionCellProps } from "./region-cell";
+export { TagsCell } from "./tags-cell";
+export type { TagsCellProps } from "./tags-cell";
 export type { OutcomePopoverCellProps } from "./outcome-popover-cell";

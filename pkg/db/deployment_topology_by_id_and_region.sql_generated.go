@@ -26,6 +26,7 @@ SELECT
     r.name AS region,
     d.cpu_millicores,
     d.memory_mib,
+    d.storage_mib,
     dt.autoscaling_replicas_min,
     dt.autoscaling_replicas_max,
     dt.autoscaling_threshold_cpu,
@@ -70,6 +71,7 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 	Region                        string                          `db:"region"`
 	CpuMillicores                 int32                           `db:"cpu_millicores"`
 	MemoryMib                     int32                           `db:"memory_mib"`
+	StorageMib                    uint32                          `db:"storage_mib"`
 	AutoscalingReplicasMin        uint32                          `db:"autoscaling_replicas_min"`
 	AutoscalingReplicasMax        uint32                          `db:"autoscaling_replicas_max"`
 	AutoscalingThresholdCpu       sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
@@ -102,6 +104,7 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //	    r.name AS region,
 //	    d.cpu_millicores,
 //	    d.memory_mib,
+//	    d.storage_mib,
 //	    dt.autoscaling_replicas_min,
 //	    dt.autoscaling_replicas_max,
 //	    dt.autoscaling_threshold_cpu,
@@ -142,6 +145,7 @@ func (q *Queries) FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DB
 		&i.Region,
 		&i.CpuMillicores,
 		&i.MemoryMib,
+		&i.StorageMib,
 		&i.AutoscalingReplicasMin,
 		&i.AutoscalingReplicasMax,
 		&i.AutoscalingThresholdCpu,

@@ -4,7 +4,7 @@
     {
       "engine": "mysql",
       "queries": "./queries",
-      "schema": "../../../../pkg/mysql/schema.sql",
+      "schema": "../../../../pkg/mysql/schema",
       "gen": {
         "go": {
           "package": "db",

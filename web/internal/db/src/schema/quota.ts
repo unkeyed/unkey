@@ -76,6 +76,35 @@ export const quotas = mysqlTable("quota", {
   })
     .notNull()
     .default(20480 /* 20 GiB */),
+
+  // allocatedStorageMibTotal defines the total ephemeral storage (in MiB) a workspace may allocate at the same time.
+  // New deployments that would exceed this limit will be rejected.
+  allocatedStorageMibTotal: int("allocated_storage_mib_total", {
+    unsigned: true,
+  })
+    .notNull()
+    .default(51200 /* 50 GiB */),
+
+  // maxCpuMillicoresPerInstance caps the CPU a single instance can request.
+  maxCpuMillicoresPerInstance: int("max_cpu_millicores_per_instance", {
+    unsigned: true,
+  })
+    .notNull()
+    .default(2000 /* 2 vCPU */),
+
+  // maxMemoryMibPerInstance caps the memory a single instance can request.
+  maxMemoryMibPerInstance: int("max_memory_mib_per_instance", {
+    unsigned: true,
+  })
+    .notNull()
+    .default(4096 /* 4 GiB */),
+
+  // maxStorageMibPerInstance caps the ephemeral disk size a single instance can request.
+  maxStorageMibPerInstance: int("max_storage_mib_per_instance", {
+    unsigned: true,
+  })
+    .notNull()
+    .default(10240 /* 10 GiB */),
 });
 export const quotasRelations = relations(quotas, ({ one }) => ({
   workspace: one(workspaces, {
