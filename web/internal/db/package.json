@@ -24,6 +24,6 @@
   "dependencies": {
     "@planetscale/database": "1.19.0",
     "@unkey/id": "workspace:^",
-    "drizzle-orm": "0.45.1"
+    "drizzle-orm": "0.45.2"
   }
 }
