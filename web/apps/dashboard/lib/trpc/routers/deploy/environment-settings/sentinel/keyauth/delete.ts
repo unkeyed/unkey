@@ -11,9 +11,10 @@ export const remove = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const env = await loadOwnedEnvironment(ctx.workspace.id, input.environmentId);
-
-    const current = await loadPolicies(ctx.workspace.id, input.environmentId);
+    const [env, current] = await Promise.all([
+      loadOwnedEnvironment(ctx.workspace.id, input.environmentId),
+      loadPolicies(ctx.workspace.id, input.environmentId),
+    ]);
     const idx = current.findIndex((p) => p.id === input.policyId);
     if (idx === -1) {
       throw new TRPCError({

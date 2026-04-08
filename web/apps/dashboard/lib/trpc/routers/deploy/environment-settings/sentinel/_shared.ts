@@ -124,11 +124,9 @@ export async function savePolicies(
   appId: string,
   policies: SentinelPolicy[],
 ): Promise<void> {
-  // Re-validate the entire array (defense in depth — every endpoint already
-  // validated its own input, but a code path could mutate this list in place).
   sentinelConfigSchema.parse({ policies });
 
-  const wireBlob = JSON.stringify({ policies: policies.map(toWirePolicy) });
+  const blob = JSON.stringify({ policies: policies.map(toWirePolicy) });
   const now = Date.now();
 
   await db
@@ -137,9 +135,9 @@ export async function savePolicies(
       workspaceId,
       appId,
       environmentId,
-      sentinelConfig: wireBlob,
+      sentinelConfig: blob,
       createdAt: now,
       updatedAt: now,
     })
-    .onDuplicateKeyUpdate({ set: { sentinelConfig: wireBlob, updatedAt: now } });
+    .onDuplicateKeyUpdate({ set: { sentinelConfig: blob, updatedAt: now } });
 }

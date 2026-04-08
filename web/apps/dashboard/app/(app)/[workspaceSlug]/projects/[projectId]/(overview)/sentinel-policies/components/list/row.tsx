@@ -26,7 +26,6 @@ type SentinelPolicyRowProps = {
   onToggleEnvB: (id: string) => void;
   onAddToEnvA: (id: string) => void;
   onAddToEnvB: (id: string) => void;
-  onSave: (id: string, prodPolicy: SentinelPolicy, previewPolicy: SentinelPolicy | null) => void;
   onDelete: (id: string) => void;
   onEdit: (policy: SentinelPolicy) => void;
   onDragStart: (index: number) => void;
@@ -200,7 +199,7 @@ export function SentinelPolicyRow({
             </button>
 
             {/* Name */}
-            <div className="flex-4 min-w-0 py-5 flex items-center">
+            <div className="flex-4 min-w-0 py-5 flex items-center pr-5">
               <span
                 className={cn(
                   "text-[13px] truncate",

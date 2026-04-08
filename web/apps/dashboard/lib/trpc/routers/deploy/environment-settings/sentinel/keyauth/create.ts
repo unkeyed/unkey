@@ -12,10 +12,12 @@ export const create = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const env = await loadOwnedEnvironment(ctx.workspace.id, input.environmentId);
-    await assertKeyspacesOwned(ctx.workspace.id, input.policy.keyauth.keySpaceIds);
-
-    const current = await loadPolicies(ctx.workspace.id, input.environmentId);
+    // So if keyspaces are not owned this will prevent loading the policies
+    const [env, _, current] = await Promise.all([
+      loadOwnedEnvironment(ctx.workspace.id, input.environmentId),
+      assertKeyspacesOwned(ctx.workspace.id, input.policy.keyauth.keySpaceIds),
+      loadPolicies(ctx.workspace.id, input.environmentId),
+    ]);
     if (current.some((p) => p.id === input.policy.id)) {
       throw new TRPCError({
         code: "CONFLICT",

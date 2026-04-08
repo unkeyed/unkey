@@ -2,9 +2,42 @@
 
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
+import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
 import { queryClient, trpcClient } from "../client";
 import { trackSave } from "./environment-settings";
+
+/**
+ * Whole-list reorder. Accepts a batch of (environmentId, policyIds) so a
+ * single drag-drop that affects both envs (production + preview) emits ONE
+ * toast and one trackSave, not one per env. Each entry is sent as its own
+ * tRPC call but they're awaited together.
+ */
+export async function reorderSentinelPolicies(
+  reorders: { environmentId: string; policyIds: string[] }[],
+): Promise<void> {
+  if (reorders.length === 0) return;
+  const promise = Promise.all(
+    reorders.map((r) =>
+      trpcClient.deploy.environmentSettings.sentinel.reorder.mutate({
+        environmentId: r.environmentId,
+        policyIds: r.policyIds,
+      }),
+    ),
+  );
+  toast.promise(promise, {
+    loading: "Reordering sentinel policies...",
+    success: "Sentinel policies reordered",
+    error: (err) => ({
+      message: "Failed to reorder sentinel policies",
+      description: err instanceof Error ? err.message : "Unknown error",
+    }),
+  });
+  await trackSave(promise);
+  for (const r of reorders) {
+    queryClient.invalidateQueries({ queryKey: ["sentinelPolicies", r.environmentId] });
+  }
+}
 import { type SentinelPolicy, sentinelPolicySchema } from "./sentinel-policies.schema";
 import { parseEnvironmentIdFromWhere, validateEnvironmentIdInQuery } from "./utils";
 
@@ -133,48 +166,40 @@ function stripEnv(row: SentinelPolicyRow): SentinelPolicy {
 
 // ── Per-type dispatch ───────────────────────────────────────────────────
 //
-// Each branch maps a policy variant to its dedicated tRPC endpoint. The
-// switch is exhaustive on `policy.type` — TS will complain when a new
-// variant is added to `sentinelPolicySchema` without wiring it here.
+// Each branch maps a policy variant to its dedicated tRPC endpoint. `match`
+// is exhaustive on `policy.type` — TS will complain when a new variant is
+// added to `sentinelPolicySchema` without wiring it here.
 
 function dispatchCreate(environmentId: string, policy: SentinelPolicy): Promise<unknown> {
-  switch (policy.type) {
-    case "keyauth":
-      return trpcClient.deploy.environmentSettings.sentinel.keyauth.create.mutate({
+  return match(policy)
+    .with({ type: "keyauth" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.keyauth.create.mutate({
         environmentId,
-        policy,
-      });
-    default: {
-      const _exhaustive: never = policy.type;
-      throw new Error(`Unsupported sentinel policy type: ${_exhaustive}`);
-    }
-  }
+        policy: p,
+      }),
+    )
+    .exhaustive();
 }
 
 function dispatchUpdate(environmentId: string, policy: SentinelPolicy): Promise<unknown> {
-  switch (policy.type) {
-    case "keyauth":
-      return trpcClient.deploy.environmentSettings.sentinel.keyauth.update.mutate({
+  return match(policy)
+    .with({ type: "keyauth" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.keyauth.update.mutate({
         environmentId,
-        policy,
-      });
-    default: {
-      const _exhaustive: never = policy.type;
-      throw new Error(`Unsupported sentinel policy type: ${_exhaustive}`);
-    }
-  }
+        policy: p,
+      }),
+    )
+    .exhaustive();
 }
 
 function dispatchDelete(environmentId: string, policy: SentinelPolicy): Promise<unknown> {
-  switch (policy.type) {
-    case "keyauth":
-      return trpcClient.deploy.environmentSettings.sentinel.keyauth.delete.mutate({
+  return match(policy)
+    .with({ type: "keyauth" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.keyauth.delete.mutate({
         environmentId,
-        policyId: policy.id,
-      });
-    default: {
-      const _exhaustive: never = policy.type;
-      throw new Error(`Unsupported sentinel policy type: ${_exhaustive}`);
-    }
-  }
+        policyId: p.id,
+      }),
+    )
+    .exhaustive();
 }
+

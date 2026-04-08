@@ -2,14 +2,16 @@
 
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { useCallback, useState } from "react";
+import type { MergedPolicy } from "./merge";
 import { SentinelPolicyRow } from "./row";
-import type { MergedPolicy, SentinelDraftActions } from "./use-sentinel-draft";
 
 type SentinelPoliciesListProps = {
   envASlug: string;
   envBSlug: string;
   merged: MergedPolicy[];
-  actions: SentinelDraftActions;
+  onToggleEnv: (id: string, env: "envA" | "envB") => void;
+  onAddToEnv: (id: string, env: "envA" | "envB") => void;
+  onReorder: (envs: ("envA" | "envB")[], orderedIds: string[]) => void;
   onDelete: (id: string) => void;
   onEdit: (policy: SentinelPolicy) => void;
 };
@@ -18,22 +20,19 @@ export function SentinelPoliciesList({
   envASlug,
   envBSlug,
   merged,
-  actions,
+  onToggleEnv,
+  onAddToEnv,
+  onReorder,
   onDelete,
   onEdit,
 }: SentinelPoliciesListProps) {
   const [dragSrcIndex, setDragSrcIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  const handleToggleEnvA = useCallback((id: string) => actions.toggleEnv(id, "envA"), [actions]);
-  const handleToggleEnvB = useCallback((id: string) => actions.toggleEnv(id, "envB"), [actions]);
-  const handleAddToEnvA = useCallback((id: string) => actions.addToEnv(id, "envA"), [actions]);
-  const handleAddToEnvB = useCallback((id: string) => actions.addToEnv(id, "envB"), [actions]);
-  const handleSaveConfig = useCallback(
-    (id: string, prodPolicy: SentinelPolicy, previewPolicy: SentinelPolicy | null) =>
-      actions.saveConfig(id, prodPolicy, previewPolicy),
-    [actions],
-  );
+  const handleToggleEnvA = useCallback((id: string) => onToggleEnv(id, "envA"), [onToggleEnv]);
+  const handleToggleEnvB = useCallback((id: string) => onToggleEnv(id, "envB"), [onToggleEnv]);
+  const handleAddToEnvA = useCallback((id: string) => onAddToEnv(id, "envA"), [onAddToEnv]);
+  const handleAddToEnvB = useCallback((id: string) => onAddToEnv(id, "envB"), [onAddToEnv]);
 
   const handleDragStart = useCallback((index: number) => {
     setDragSrcIndex(index);
@@ -53,11 +52,18 @@ export function SentinelPoliciesList({
       const next = [...merged];
       const [item] = next.splice(dragSrcIndex, 1);
       next.splice(targetIndex, 0, item);
-      actions.reorder(next);
+      // Emit a reorder for whichever envs the dragged row exists in. The
+      // server is tolerant — extra/missing ids are reconciled — so we send
+      // the full merged-id sequence to each env independently.
+      const orderedIds = next.map((m) => m.id);
+      const envs: ("envA" | "envB")[] = [];
+      if (item.envA !== null) envs.push("envA");
+      if (item.envB !== null) envs.push("envB");
+      if (envs.length > 0) onReorder(envs, orderedIds);
       setDragSrcIndex(null);
       setDragOverIndex(null);
     },
-    [dragSrcIndex, merged, actions],
+    [dragSrcIndex, merged, onReorder],
   );
 
   const handleDragEnd = useCallback(() => {
@@ -81,7 +87,6 @@ export function SentinelPoliciesList({
             onToggleEnvB={handleToggleEnvB}
             onAddToEnvA={handleAddToEnvA}
             onAddToEnvB={handleAddToEnvB}
-            onSave={handleSaveConfig}
             onDelete={onDelete}
             onEdit={onEdit}
             onDragStart={handleDragStart}
