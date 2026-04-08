@@ -31,3 +31,13 @@ export function formatMemoryParts(mib: number): FormattedParts {
   }
   return { value: `${mib}`, unit: "MiB" };
 }
+
+export function formatStorageParts(mib: number): FormattedParts {
+  if (mib === 0) {
+    return { value: "None", unit: "" };
+  }
+  if (mib >= 1024) {
+    return { value: `${(mib / 1024).toFixed(mib % 1024 === 0 ? 0 : 1)}`, unit: "GiB" };
+  }
+  return { value: `${mib}`, unit: "MiB" };
+}

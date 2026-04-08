@@ -1,4 +1,5 @@
 import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
+import { slugify } from "@/lib/slugify";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { StackPerspective2 } from "@unkey/icons";
@@ -228,14 +229,4 @@ export const useWorkspaceStep = (): OnboardingStep => {
     },
     isLoading,
   };
-};
-
-const slugify = (text: string): string => {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "") // Remove special chars except lowercase letters, numbers, spaces, and hyphens
-    .replace(/\s+/g, "-") // Replace spaces with hyphens
-    .replace(/-+/g, "-") // Replace multiple hyphens with single
-    .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
 };

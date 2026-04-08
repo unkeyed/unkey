@@ -1,7 +1,6 @@
 import { env } from "@/lib/env";
 import { Resend } from "@unkey/resend";
 import { WorkOS } from "@workos-inc/node";
-import freeDomains from "free-email-domains";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -43,7 +42,6 @@ export async function POST(req: NextRequest) {
 
       const resend = new Resend({ apiKey: RESEND_API_KEY });
 
-      await alertSlack(webhookData.email);
       await resend.client.contacts.create({
         audienceId: RESEND_AUDIENCE_ID,
         email: webhookData.email,
@@ -58,45 +56,4 @@ export async function POST(req: NextRequest) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 400 });
   }
-}
-
-async function alertSlack(email: string): Promise<void> {
-  const url = process.env.SLACK_WEBHOOK_URL_SIGNUP;
-  if (!url) {
-    return;
-  }
-  const domain = email.split("@").at(-1);
-  if (!domain) {
-    return;
-  }
-  if (freeDomains.includes(domain)) {
-    return;
-  }
-
-  await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      text: `${email} signed up`,
-      blocks: [
-        {
-          type: "section",
-          fields: [
-            {
-              type: "mrkdwn",
-              text: `${email} signed up`,
-            },
-            {
-              type: "mrkdwn",
-              text: `<https://${domain}>`,
-            },
-          ],
-        },
-      ],
-    }),
-  }).catch((err: Error) => {
-    console.error(err);
-  });
 }

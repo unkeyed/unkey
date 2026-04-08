@@ -14,13 +14,15 @@
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { EphemeralStorage } from "./deployment_pb";
+import { file_ctrl_v1_deployment } from "./deployment_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ctrl/v1/cluster.proto.
  */
 export const file_ctrl_v1_cluster: GenFile = /*@__PURE__*/
-  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiSgodV2F0Y2hEZXBsb3ltZW50Q2hhbmdlc1JlcXVlc3QSDgoGcmVnaW9uGAEgASgJEhkKEXZlcnNpb25fbGFzdF9zZWVuGAIgASgEItEBChVEZXBsb3ltZW50Q2hhbmdlRXZlbnQSDwoHdmVyc2lvbhgBIAEoBBIuCgpkZXBsb3ltZW50GAIgASgLMhguY3RybC52MS5EZXBsb3ltZW50U3RhdGVIABIqCghzZW50aW5lbBgDIAEoCzIWLmN0cmwudjEuU2VudGluZWxTdGF0ZUgAEkIKFWNpbGl1bV9uZXR3b3JrX3BvbGljeRgEIAEoCzIhLmN0cmwudjEuQ2lsaXVtTmV0d29ya1BvbGljeVN0YXRlSABCBwoFZXZlbnQidQoYQXBwbHlDaWxpdW1OZXR3b3JrUG9saWN5EhUKDWs4c19uYW1lc3BhY2UYASABKAkSEAoIazhzX25hbWUYAiABKAkSIAoYY2lsaXVtX25ldHdvcmtfcG9saWN5X2lkGAMgASgJEg4KBnBvbGljeRgEIAEoDCJEChlEZWxldGVDaWxpdW1OZXR3b3JrUG9saWN5EhUKDWs4c19uYW1lc3BhY2UYASABKAkSEAoIazhzX25hbWUYAiABKAkingEKGENpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZRIPCgd2ZXJzaW9uGAMgASgEEjIKBWFwcGx5GAEgASgLMiEuY3RybC52MS5BcHBseUNpbGl1bU5ldHdvcmtQb2xpY3lIABI0CgZkZWxldGUYAiABKAsyIi5jdHJsLnYxLkRlbGV0ZUNpbGl1bU5ldHdvcmtQb2xpY3lIAEIHCgVzdGF0ZSJNCilHZXREZXNpcmVkQ2lsaXVtTmV0d29ya1BvbGljeVN0YXRlUmVxdWVzdBIgChhjaWxpdW1fbmV0d29ya19wb2xpY3lfaWQYASABKAkiNQoeR2V0RGVzaXJlZFNlbnRpbmVsU3RhdGVSZXF1ZXN0EhMKC3NlbnRpbmVsX2lkGAEgASgJIjkKIEdldERlc2lyZWREZXBsb3ltZW50U3RhdGVSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkitwQKHVJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0Ej8KBnVwZGF0ZRgBIAEoCzItLmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuVXBkYXRlSAASPwoGZGVsZXRlGAIgASgLMi0uY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdC5EZWxldGVIABrtAgoGVXBkYXRlEhAKCGs4c19uYW1lGAEgASgJEkkKCWluc3RhbmNlcxgCIAMoCzI2LmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuVXBkYXRlLkluc3RhbmNlGoUCCghJbnN0YW5jZRIQCghrOHNfbmFtZRgBIAEoCRIPCgdhZGRyZXNzGAIgASgJEhYKDmNwdV9taWxsaWNvcmVzGAMgASgDEhIKCm1lbW9yeV9taWIYBCABKAMSTQoGc3RhdHVzGAUgASgOMj0uY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdC5VcGRhdGUuSW5zdGFuY2UuU3RhdHVzIlsKBlN0YXR1cxIWChJTVEFUVVNfVU5TUEVDSUZJRUQQABISCg5TVEFUVVNfUEVORElORxABEhIKDlNUQVRVU19SVU5OSU5HEAISEQoNU1RBVFVTX0ZBSUxFRBADGhoKBkRlbGV0ZRIQCghrOHNfbmFtZRgBIAEoCUIICgZjaGFuZ2UiIAoeUmVwb3J0RGVwbG95bWVudFN0YXR1c1Jlc3BvbnNlImwKG1JlcG9ydFNlbnRpbmVsU3RhdHVzUmVxdWVzdBIQCghrOHNfbmFtZRgBIAEoCRIaChJhdmFpbGFibGVfcmVwbGljYXMYAiABKAUSHwoGaGVhbHRoGAMgASgOMg8uY3RybC52MS5IZWFsdGgiHgocUmVwb3J0U2VudGluZWxTdGF0dXNSZXNwb25zZSJ9Cg1TZW50aW5lbFN0YXRlEg8KB3ZlcnNpb24YAyABKAQSJwoFYXBwbHkYASABKAsyFi5jdHJsLnYxLkFwcGx5U2VudGluZWxIABIpCgZkZWxldGUYAiABKAsyFy5jdHJsLnYxLkRlbGV0ZVNlbnRpbmVsSABCBwoFc3RhdGUigwEKD0RlcGxveW1lbnRTdGF0ZRIPCgd2ZXJzaW9uGAMgASgEEikKBWFwcGx5GAEgASgLMhguY3RybC52MS5BcHBseURlcGxveW1lbnRIABIrCgZkZWxldGUYAiABKAsyGS5jdHJsLnYxLkRlbGV0ZURlcGxveW1lbnRIAEIHCgVzdGF0ZSLVAQoNQXBwbHlTZW50aW5lbBIQCghrOHNfbmFtZRgBIAEoCRIUCgx3b3Jrc3BhY2VfaWQYAiABKAkSEgoKcHJvamVjdF9pZBgDIAEoCRIOCgZhcHBfaWQYBCABKAkSFgoOZW52aXJvbm1lbnRfaWQYBSABKAkSEwoLc2VudGluZWxfaWQYBiABKAkSDQoFaW1hZ2UYByABKAkSEAoIcmVwbGljYXMYCCABKAUSFgoOY3B1X21pbGxpY29yZXMYCSABKAMSEgoKbWVtb3J5X21pYhgKIAEoAyIiCg5EZWxldGVTZW50aW5lbBIQCghrOHNfbmFtZRgBIAEoCSLGBQoPQXBwbHlEZXBsb3ltZW50EhUKDWs4c19uYW1lc3BhY2UYASABKAkSEAoIazhzX25hbWUYAiABKAkSFAoMd29ya3NwYWNlX2lkGAMgASgJEhIKCnByb2plY3RfaWQYBCABKAkSFgoOZW52aXJvbm1lbnRfaWQYBSABKAkSFQoNZGVwbG95bWVudF9pZBgGIAEoCRINCgVpbWFnZRgHIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgJIAEoAxISCgptZW1vcnlfbWliGAogASgDEhUKCGJ1aWxkX2lkGAsgASgJSACIAQESJwofZW5jcnlwdGVkX2Vudmlyb25tZW50X3ZhcmlhYmxlcxgMIAEoDBIPCgdjb21tYW5kGA0gAygJEgwKBHBvcnQYDiABKAUSFwoPc2h1dGRvd25fc2lnbmFsGA8gASgJEhgKC2hlYWx0aGNoZWNrGBEgASgMSAGIAQESDgoGYXBwX2lkGBIgASgJEh0KEGVudmlyb25tZW50X3NsdWcYFSABKAlIAogBARITCgZyZWdpb24YFiABKAlIA4gBARIbCg5naXRfY29tbWl0X3NoYRgXIAEoCUgEiAEBEhcKCmdpdF9icmFuY2gYGCABKAlIBYgBARIVCghnaXRfcmVwbxgZIAEoCUgGiAEBEh8KEmdpdF9jb21taXRfbWVzc2FnZRgaIAEoCUgHiAEBEi8KC2F1dG9zY2FsaW5nGBsgASgLMhouY3RybC52MS5BdXRvc2NhbGluZ1BvbGljeUILCglfYnVpbGRfaWRCDgoMX2hlYWx0aGNoZWNrQhMKEV9lbnZpcm9ubWVudF9zbHVnQgkKB19yZWdpb25CEQoPX2dpdF9jb21taXRfc2hhQg0KC19naXRfYnJhbmNoQgsKCV9naXRfcmVwb0IVChNfZ2l0X2NvbW1pdF9tZXNzYWdlIqEBChFBdXRvc2NhbGluZ1BvbGljeRIUCgxtaW5fcmVwbGljYXMYASABKA0SFAoMbWF4X3JlcGxpY2FzGAIgASgNEhoKDWNwdV90aHJlc2hvbGQYAyABKAVIAIgBARIdChBtZW1vcnlfdGhyZXNob2xkGAQgASgFSAGIAQFCEAoOX2NwdV90aHJlc2hvbGRCEwoRX21lbW9yeV90aHJlc2hvbGQiOwoQRGVsZXRlRGVwbG95bWVudBIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJIjQKEEhlYXJ0YmVhdFJlcXVlc3QSDgoGcmVnaW9uGAEgASgJEhAKCHBsYXRmb3JtGAIgASgJIhMKEUhlYXJ0YmVhdFJlc3BvbnNlKl0KBkhlYWx0aBIWChJIRUFMVEhfVU5TUEVDSUZJRUQQABISCg5IRUFMVEhfSEVBTFRIWRABEhQKEEhFQUxUSF9VTkhFQUxUSFkQAhIRCg1IRUFMVEhfUEFVU0VEEAMywwUKDkNsdXN0ZXJTZXJ2aWNlEmIKFldhdGNoRGVwbG95bWVudENoYW5nZXMSJi5jdHJsLnYxLldhdGNoRGVwbG95bWVudENoYW5nZXNSZXF1ZXN0Gh4uY3RybC52MS5EZXBsb3ltZW50Q2hhbmdlRXZlbnQwARJaChdHZXREZXNpcmVkU2VudGluZWxTdGF0ZRInLmN0cmwudjEuR2V0RGVzaXJlZFNlbnRpbmVsU3RhdGVSZXF1ZXN0GhYuY3RybC52MS5TZW50aW5lbFN0YXRlEmMKFFJlcG9ydFNlbnRpbmVsU3RhdHVzEiQuY3RybC52MS5SZXBvcnRTZW50aW5lbFN0YXR1c1JlcXVlc3QaJS5jdHJsLnYxLlJlcG9ydFNlbnRpbmVsU3RhdHVzUmVzcG9uc2USYAoZR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZRIpLmN0cmwudjEuR2V0RGVzaXJlZERlcGxveW1lbnRTdGF0ZVJlcXVlc3QaGC5jdHJsLnYxLkRlcGxveW1lbnRTdGF0ZRJpChZSZXBvcnREZXBsb3ltZW50U3RhdHVzEiYuY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdBonLmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1Jlc3BvbnNlEnsKIkdldERlc2lyZWRDaWxpdW1OZXR3b3JrUG9saWN5U3RhdGUSMi5jdHJsLnYxLkdldERlc2lyZWRDaWxpdW1OZXR3b3JrUG9saWN5U3RhdGVSZXF1ZXN0GiEuY3RybC52MS5DaWxpdW1OZXR3b3JrUG9saWN5U3RhdGUSQgoJSGVhcnRiZWF0EhkuY3RybC52MS5IZWFydGJlYXRSZXF1ZXN0GhouY3RybC52MS5IZWFydGJlYXRSZXNwb25zZUKLAQoLY29tLmN0cmwudjFCDENsdXN0ZXJQcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw");
+  fileDesc("ChVjdHJsL3YxL2NsdXN0ZXIucHJvdG8SB2N0cmwudjEiWgodV2F0Y2hEZXBsb3ltZW50Q2hhbmdlc1JlcXVlc3QSDgoGcmVnaW9uGAEgASgJEhkKEXZlcnNpb25fbGFzdF9zZWVuGAIgASgEEg4KBnJlcGxheRgDIAEoCCIZChdTeW5jRGVzaXJlZFN0YXRlUmVxdWVzdCLRAQoVRGVwbG95bWVudENoYW5nZUV2ZW50Eg8KB3ZlcnNpb24YASABKAQSLgoKZGVwbG95bWVudBgCIAEoCzIYLmN0cmwudjEuRGVwbG95bWVudFN0YXRlSAASKgoIc2VudGluZWwYAyABKAsyFi5jdHJsLnYxLlNlbnRpbmVsU3RhdGVIABJCChVjaWxpdW1fbmV0d29ya19wb2xpY3kYBCABKAsyIS5jdHJsLnYxLkNpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZUgAQgcKBWV2ZW50InUKGEFwcGx5Q2lsaXVtTmV0d29ya1BvbGljeRIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJEiAKGGNpbGl1bV9uZXR3b3JrX3BvbGljeV9pZBgDIAEoCRIOCgZwb2xpY3kYBCABKAwiRAoZRGVsZXRlQ2lsaXVtTmV0d29ya1BvbGljeRIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJIp4BChhDaWxpdW1OZXR3b3JrUG9saWN5U3RhdGUSDwoHdmVyc2lvbhgDIAEoBBIyCgVhcHBseRgBIAEoCzIhLmN0cmwudjEuQXBwbHlDaWxpdW1OZXR3b3JrUG9saWN5SAASNAoGZGVsZXRlGAIgASgLMiIuY3RybC52MS5EZWxldGVDaWxpdW1OZXR3b3JrUG9saWN5SABCBwoFc3RhdGUiTQopR2V0RGVzaXJlZENpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZVJlcXVlc3QSIAoYY2lsaXVtX25ldHdvcmtfcG9saWN5X2lkGAEgASgJIjUKHkdldERlc2lyZWRTZW50aW5lbFN0YXRlUmVxdWVzdBITCgtzZW50aW5lbF9pZBgBIAEoCSI5CiBHZXREZXNpcmVkRGVwbG95bWVudFN0YXRlUmVxdWVzdBIVCg1kZXBsb3ltZW50X2lkGAEgASgJIrcECh1SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVxdWVzdBI/CgZ1cGRhdGUYASABKAsyLS5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LlVwZGF0ZUgAEj8KBmRlbGV0ZRgCIAEoCzItLmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuRGVsZXRlSAAa7QIKBlVwZGF0ZRIQCghrOHNfbmFtZRgBIAEoCRJJCglpbnN0YW5jZXMYAiADKAsyNi5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0LlVwZGF0ZS5JbnN0YW5jZRqFAgoISW5zdGFuY2USEAoIazhzX25hbWUYASABKAkSDwoHYWRkcmVzcxgCIAEoCRIWCg5jcHVfbWlsbGljb3JlcxgDIAEoAxISCgptZW1vcnlfbWliGAQgASgDEk0KBnN0YXR1cxgFIAEoDjI9LmN0cmwudjEuUmVwb3J0RGVwbG95bWVudFN0YXR1c1JlcXVlc3QuVXBkYXRlLkluc3RhbmNlLlN0YXR1cyJbCgZTdGF0dXMSFgoSU1RBVFVTX1VOU1BFQ0lGSUVEEAASEgoOU1RBVFVTX1BFTkRJTkcQARISCg5TVEFUVVNfUlVOTklORxACEhEKDVNUQVRVU19GQUlMRUQQAxoaCgZEZWxldGUSEAoIazhzX25hbWUYASABKAlCCAoGY2hhbmdlIiAKHlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXNwb25zZSJsChtSZXBvcnRTZW50aW5lbFN0YXR1c1JlcXVlc3QSEAoIazhzX25hbWUYASABKAkSGgoSYXZhaWxhYmxlX3JlcGxpY2FzGAIgASgFEh8KBmhlYWx0aBgDIAEoDjIPLmN0cmwudjEuSGVhbHRoIh4KHFJlcG9ydFNlbnRpbmVsU3RhdHVzUmVzcG9uc2UifQoNU2VudGluZWxTdGF0ZRIPCgd2ZXJzaW9uGAMgASgEEicKBWFwcGx5GAEgASgLMhYuY3RybC52MS5BcHBseVNlbnRpbmVsSAASKQoGZGVsZXRlGAIgASgLMhcuY3RybC52MS5EZWxldGVTZW50aW5lbEgAQgcKBXN0YXRlIoMBCg9EZXBsb3ltZW50U3RhdGUSDwoHdmVyc2lvbhgDIAEoBBIpCgVhcHBseRgBIAEoCzIYLmN0cmwudjEuQXBwbHlEZXBsb3ltZW50SAASKwoGZGVsZXRlGAIgASgLMhkuY3RybC52MS5EZWxldGVEZXBsb3ltZW50SABCBwoFc3RhdGUi1QEKDUFwcGx5U2VudGluZWwSEAoIazhzX25hbWUYASABKAkSFAoMd29ya3NwYWNlX2lkGAIgASgJEhIKCnByb2plY3RfaWQYAyABKAkSDgoGYXBwX2lkGAQgASgJEhYKDmVudmlyb25tZW50X2lkGAUgASgJEhMKC3NlbnRpbmVsX2lkGAYgASgJEg0KBWltYWdlGAcgASgJEhAKCHJlcGxpY2FzGAggASgFEhYKDmNwdV9taWxsaWNvcmVzGAkgASgDEhIKCm1lbW9yeV9taWIYCiABKAMiIgoORGVsZXRlU2VudGluZWwSEAoIazhzX25hbWUYASABKAkilwYKD0FwcGx5RGVwbG95bWVudBIVCg1rOHNfbmFtZXNwYWNlGAEgASgJEhAKCGs4c19uYW1lGAIgASgJEhQKDHdvcmtzcGFjZV9pZBgDIAEoCRISCgpwcm9qZWN0X2lkGAQgASgJEhYKDmVudmlyb25tZW50X2lkGAUgASgJEhUKDWRlcGxveW1lbnRfaWQYBiABKAkSDQoFaW1hZ2UYByABKAkSFgoOY3B1X21pbGxpY29yZXMYCSABKAMSEgoKbWVtb3J5X21pYhgKIAEoAxIVCghidWlsZF9pZBgLIAEoCUgAiAEBEicKH2VuY3J5cHRlZF9lbnZpcm9ubWVudF92YXJpYWJsZXMYDCABKAwSDwoHY29tbWFuZBgNIAMoCRIMCgRwb3J0GA4gASgFEhcKD3NodXRkb3duX3NpZ25hbBgPIAEoCRIYCgtoZWFsdGhjaGVjaxgRIAEoDEgBiAEBEg4KBmFwcF9pZBgSIAEoCRIdChBlbnZpcm9ubWVudF9zbHVnGBUgASgJSAKIAQESEwoGcmVnaW9uGBYgASgJSAOIAQESGwoOZ2l0X2NvbW1pdF9zaGEYFyABKAlIBIgBARIXCgpnaXRfYnJhbmNoGBggASgJSAWIAQESFQoIZ2l0X3JlcG8YGSABKAlIBogBARIfChJnaXRfY29tbWl0X21lc3NhZ2UYGiABKAlIB4gBARIvCgthdXRvc2NhbGluZxgbIAEoCzIaLmN0cmwudjEuQXV0b3NjYWxpbmdQb2xpY3kSOQoRZXBoZW1lcmFsX3N0b3JhZ2UYHSABKAsyGS5jdHJsLnYxLkVwaGVtZXJhbFN0b3JhZ2VICIgBAUILCglfYnVpbGRfaWRCDgoMX2hlYWx0aGNoZWNrQhMKEV9lbnZpcm9ubWVudF9zbHVnQgkKB19yZWdpb25CEQoPX2dpdF9jb21taXRfc2hhQg0KC19naXRfYnJhbmNoQgsKCV9naXRfcmVwb0IVChNfZ2l0X2NvbW1pdF9tZXNzYWdlQhQKEl9lcGhlbWVyYWxfc3RvcmFnZSKhAQoRQXV0b3NjYWxpbmdQb2xpY3kSFAoMbWluX3JlcGxpY2FzGAEgASgNEhQKDG1heF9yZXBsaWNhcxgCIAEoDRIaCg1jcHVfdGhyZXNob2xkGAMgASgFSACIAQESHQoQbWVtb3J5X3RocmVzaG9sZBgEIAEoBUgBiAEBQhAKDl9jcHVfdGhyZXNob2xkQhMKEV9tZW1vcnlfdGhyZXNob2xkIjsKEERlbGV0ZURlcGxveW1lbnQSFQoNazhzX25hbWVzcGFjZRgBIAEoCRIQCghrOHNfbmFtZRgCIAEoCSI0ChBIZWFydGJlYXRSZXF1ZXN0Eg4KBnJlZ2lvbhgBIAEoCRIQCghwbGF0Zm9ybRgCIAEoCSITChFIZWFydGJlYXRSZXNwb25zZSpdCgZIZWFsdGgSFgoSSEVBTFRIX1VOU1BFQ0lGSUVEEAASEgoOSEVBTFRIX0hFQUxUSFkQARIUChBIRUFMVEhfVU5IRUFMVEhZEAISEQoNSEVBTFRIX1BBVVNFRBADMpsGCg5DbHVzdGVyU2VydmljZRJiChZXYXRjaERlcGxveW1lbnRDaGFuZ2VzEiYuY3RybC52MS5XYXRjaERlcGxveW1lbnRDaGFuZ2VzUmVxdWVzdBoeLmN0cmwudjEuRGVwbG95bWVudENoYW5nZUV2ZW50MAESVgoQU3luY0Rlc2lyZWRTdGF0ZRIgLmN0cmwudjEuU3luY0Rlc2lyZWRTdGF0ZVJlcXVlc3QaHi5jdHJsLnYxLkRlcGxveW1lbnRDaGFuZ2VFdmVudDABEloKF0dldERlc2lyZWRTZW50aW5lbFN0YXRlEicuY3RybC52MS5HZXREZXNpcmVkU2VudGluZWxTdGF0ZVJlcXVlc3QaFi5jdHJsLnYxLlNlbnRpbmVsU3RhdGUSYwoUUmVwb3J0U2VudGluZWxTdGF0dXMSJC5jdHJsLnYxLlJlcG9ydFNlbnRpbmVsU3RhdHVzUmVxdWVzdBolLmN0cmwudjEuUmVwb3J0U2VudGluZWxTdGF0dXNSZXNwb25zZRJgChlHZXREZXNpcmVkRGVwbG95bWVudFN0YXRlEikuY3RybC52MS5HZXREZXNpcmVkRGVwbG95bWVudFN0YXRlUmVxdWVzdBoYLmN0cmwudjEuRGVwbG95bWVudFN0YXRlEmkKFlJlcG9ydERlcGxveW1lbnRTdGF0dXMSJi5jdHJsLnYxLlJlcG9ydERlcGxveW1lbnRTdGF0dXNSZXF1ZXN0GicuY3RybC52MS5SZXBvcnREZXBsb3ltZW50U3RhdHVzUmVzcG9uc2USewoiR2V0RGVzaXJlZENpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZRIyLmN0cmwudjEuR2V0RGVzaXJlZENpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZVJlcXVlc3QaIS5jdHJsLnYxLkNpbGl1bU5ldHdvcmtQb2xpY3lTdGF0ZRJCCglIZWFydGJlYXQSGS5jdHJsLnYxLkhlYXJ0YmVhdFJlcXVlc3QaGi5jdHJsLnYxLkhlYXJ0YmVhdFJlc3BvbnNlQosBCgtjb20uY3RybC52MUIMQ2x1c3RlclByb3RvUAFaMWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vY3RybC92MTtjdHJsdjGiAgNDWFiqAgdDdHJsLlYxygIHQ3RybFxWMeICE0N0cmxcVjFcR1BCTWV0YWRhdGHqAghDdHJsOjpWMWIGcHJvdG8z", [file_ctrl_v1_deployment]);
 
 /**
  * @generated from message ctrl.v1.WatchDeploymentChangesRequest
@@ -35,6 +37,14 @@ export type WatchDeploymentChangesRequest = Message<"ctrl.v1.WatchDeploymentChan
    * @generated from field: uint64 version_last_seen = 2;
    */
   versionLastSeen: bigint;
+
+  /**
+   * When true and version_last_seen is 0, replay all changes from the
+   * beginning instead of jumping to the current max version. Default false.
+   *
+   * @generated from field: bool replay = 3;
+   */
+  replay: boolean;
 };
 
 /**
@@ -43,6 +53,19 @@ export type WatchDeploymentChangesRequest = Message<"ctrl.v1.WatchDeploymentChan
  */
 export const WatchDeploymentChangesRequestSchema: GenMessage<WatchDeploymentChangesRequest> = /*@__PURE__*/
   messageDesc(file_ctrl_v1_cluster, 0);
+
+/**
+ * @generated from message ctrl.v1.SyncDesiredStateRequest
+ */
+export type SyncDesiredStateRequest = Message<"ctrl.v1.SyncDesiredStateRequest"> & {
+};
+
+/**
+ * Describes the message ctrl.v1.SyncDesiredStateRequest.
+ * Use `create(SyncDesiredStateRequestSchema)` to create a new message.
+ */
+export const SyncDesiredStateRequestSchema: GenMessage<SyncDesiredStateRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_cluster, 1);
 
 /**
  * @generated from message ctrl.v1.DeploymentChangeEvent
@@ -82,7 +105,7 @@ export type DeploymentChangeEvent = Message<"ctrl.v1.DeploymentChangeEvent"> & {
  * Use `create(DeploymentChangeEventSchema)` to create a new message.
  */
 export const DeploymentChangeEventSchema: GenMessage<DeploymentChangeEvent> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 1);
+  messageDesc(file_ctrl_v1_cluster, 2);
 
 /**
  * @generated from message ctrl.v1.ApplyCiliumNetworkPolicy
@@ -114,7 +137,7 @@ export type ApplyCiliumNetworkPolicy = Message<"ctrl.v1.ApplyCiliumNetworkPolicy
  * Use `create(ApplyCiliumNetworkPolicySchema)` to create a new message.
  */
 export const ApplyCiliumNetworkPolicySchema: GenMessage<ApplyCiliumNetworkPolicy> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 2);
+  messageDesc(file_ctrl_v1_cluster, 3);
 
 /**
  * @generated from message ctrl.v1.DeleteCiliumNetworkPolicy
@@ -136,7 +159,7 @@ export type DeleteCiliumNetworkPolicy = Message<"ctrl.v1.DeleteCiliumNetworkPoli
  * Use `create(DeleteCiliumNetworkPolicySchema)` to create a new message.
  */
 export const DeleteCiliumNetworkPolicySchema: GenMessage<DeleteCiliumNetworkPolicy> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 3);
+  messageDesc(file_ctrl_v1_cluster, 4);
 
 /**
  * @generated from message ctrl.v1.CiliumNetworkPolicyState
@@ -170,7 +193,7 @@ export type CiliumNetworkPolicyState = Message<"ctrl.v1.CiliumNetworkPolicyState
  * Use `create(CiliumNetworkPolicyStateSchema)` to create a new message.
  */
 export const CiliumNetworkPolicyStateSchema: GenMessage<CiliumNetworkPolicyState> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 4);
+  messageDesc(file_ctrl_v1_cluster, 5);
 
 /**
  * @generated from message ctrl.v1.GetDesiredCiliumNetworkPolicyStateRequest
@@ -187,7 +210,7 @@ export type GetDesiredCiliumNetworkPolicyStateRequest = Message<"ctrl.v1.GetDesi
  * Use `create(GetDesiredCiliumNetworkPolicyStateRequestSchema)` to create a new message.
  */
 export const GetDesiredCiliumNetworkPolicyStateRequestSchema: GenMessage<GetDesiredCiliumNetworkPolicyStateRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 5);
+  messageDesc(file_ctrl_v1_cluster, 6);
 
 /**
  * @generated from message ctrl.v1.GetDesiredSentinelStateRequest
@@ -204,7 +227,7 @@ export type GetDesiredSentinelStateRequest = Message<"ctrl.v1.GetDesiredSentinel
  * Use `create(GetDesiredSentinelStateRequestSchema)` to create a new message.
  */
 export const GetDesiredSentinelStateRequestSchema: GenMessage<GetDesiredSentinelStateRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 6);
+  messageDesc(file_ctrl_v1_cluster, 7);
 
 /**
  * @generated from message ctrl.v1.GetDesiredDeploymentStateRequest
@@ -221,7 +244,7 @@ export type GetDesiredDeploymentStateRequest = Message<"ctrl.v1.GetDesiredDeploy
  * Use `create(GetDesiredDeploymentStateRequestSchema)` to create a new message.
  */
 export const GetDesiredDeploymentStateRequestSchema: GenMessage<GetDesiredDeploymentStateRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 7);
+  messageDesc(file_ctrl_v1_cluster, 8);
 
 /**
  * ReportDeploymentStatusRequest reports the actual state of a deployment from the agent.
@@ -253,7 +276,7 @@ export type ReportDeploymentStatusRequest = Message<"ctrl.v1.ReportDeploymentSta
  * Use `create(ReportDeploymentStatusRequestSchema)` to create a new message.
  */
 export const ReportDeploymentStatusRequestSchema: GenMessage<ReportDeploymentStatusRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 8);
+  messageDesc(file_ctrl_v1_cluster, 9);
 
 /**
  * @generated from message ctrl.v1.ReportDeploymentStatusRequest.Update
@@ -275,7 +298,7 @@ export type ReportDeploymentStatusRequest_Update = Message<"ctrl.v1.ReportDeploy
  * Use `create(ReportDeploymentStatusRequest_UpdateSchema)` to create a new message.
  */
 export const ReportDeploymentStatusRequest_UpdateSchema: GenMessage<ReportDeploymentStatusRequest_Update> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 8, 0);
+  messageDesc(file_ctrl_v1_cluster, 9, 0);
 
 /**
  * @generated from message ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
@@ -312,7 +335,7 @@ export type ReportDeploymentStatusRequest_Update_Instance = Message<"ctrl.v1.Rep
  * Use `create(ReportDeploymentStatusRequest_Update_InstanceSchema)` to create a new message.
  */
 export const ReportDeploymentStatusRequest_Update_InstanceSchema: GenMessage<ReportDeploymentStatusRequest_Update_Instance> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 8, 0, 0);
+  messageDesc(file_ctrl_v1_cluster, 9, 0, 0);
 
 /**
  * @generated from enum ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
@@ -349,7 +372,7 @@ export enum ReportDeploymentStatusRequest_Update_Instance_Status {
  * Describes the enum ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status.
  */
 export const ReportDeploymentStatusRequest_Update_Instance_StatusSchema: GenEnum<ReportDeploymentStatusRequest_Update_Instance_Status> = /*@__PURE__*/
-  enumDesc(file_ctrl_v1_cluster, 8, 0, 0, 0);
+  enumDesc(file_ctrl_v1_cluster, 9, 0, 0, 0);
 
 /**
  * @generated from message ctrl.v1.ReportDeploymentStatusRequest.Delete
@@ -366,7 +389,7 @@ export type ReportDeploymentStatusRequest_Delete = Message<"ctrl.v1.ReportDeploy
  * Use `create(ReportDeploymentStatusRequest_DeleteSchema)` to create a new message.
  */
 export const ReportDeploymentStatusRequest_DeleteSchema: GenMessage<ReportDeploymentStatusRequest_Delete> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 8, 1);
+  messageDesc(file_ctrl_v1_cluster, 9, 1);
 
 /**
  * @generated from message ctrl.v1.ReportDeploymentStatusResponse
@@ -379,7 +402,7 @@ export type ReportDeploymentStatusResponse = Message<"ctrl.v1.ReportDeploymentSt
  * Use `create(ReportDeploymentStatusResponseSchema)` to create a new message.
  */
 export const ReportDeploymentStatusResponseSchema: GenMessage<ReportDeploymentStatusResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 9);
+  messageDesc(file_ctrl_v1_cluster, 10);
 
 /**
  * ReportSentinelStatusRequest reports the actual state of a sentinel from the agent.
@@ -409,7 +432,7 @@ export type ReportSentinelStatusRequest = Message<"ctrl.v1.ReportSentinelStatusR
  * Use `create(ReportSentinelStatusRequestSchema)` to create a new message.
  */
 export const ReportSentinelStatusRequestSchema: GenMessage<ReportSentinelStatusRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 10);
+  messageDesc(file_ctrl_v1_cluster, 11);
 
 /**
  * @generated from message ctrl.v1.ReportSentinelStatusResponse
@@ -422,7 +445,7 @@ export type ReportSentinelStatusResponse = Message<"ctrl.v1.ReportSentinelStatus
  * Use `create(ReportSentinelStatusResponseSchema)` to create a new message.
  */
 export const ReportSentinelStatusResponseSchema: GenMessage<ReportSentinelStatusResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 11);
+  messageDesc(file_ctrl_v1_cluster, 12);
 
 /**
  * SentinelState represents a lifecycle event for an API sentinel configuration.
@@ -477,7 +500,7 @@ export type SentinelState = Message<"ctrl.v1.SentinelState"> & {
  * Use `create(SentinelStateSchema)` to create a new message.
  */
 export const SentinelStateSchema: GenMessage<SentinelState> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 12);
+  messageDesc(file_ctrl_v1_cluster, 13);
 
 /**
  * DeploymentState represents a lifecycle event for an application deployment.
@@ -532,7 +555,7 @@ export type DeploymentState = Message<"ctrl.v1.DeploymentState"> & {
  * Use `create(DeploymentStateSchema)` to create a new message.
  */
 export const DeploymentStateSchema: GenMessage<DeploymentState> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 13);
+  messageDesc(file_ctrl_v1_cluster, 14);
 
 /**
  * ApplySentinel contains the desired configuration for a sentinel.
@@ -610,7 +633,7 @@ export type ApplySentinel = Message<"ctrl.v1.ApplySentinel"> & {
  * Use `create(ApplySentinelSchema)` to create a new message.
  */
 export const ApplySentinelSchema: GenMessage<ApplySentinel> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 14);
+  messageDesc(file_ctrl_v1_cluster, 15);
 
 /**
  * DeleteSentinel identifies a sentinel to remove from the cluster.
@@ -632,7 +655,7 @@ export type DeleteSentinel = Message<"ctrl.v1.DeleteSentinel"> & {
  * Use `create(DeleteSentinelSchema)` to create a new message.
  */
 export const DeleteSentinelSchema: GenMessage<DeleteSentinel> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 15);
+  messageDesc(file_ctrl_v1_cluster, 16);
 
 /**
  * ApplyDeployment contains the desired configuration for a deployment.
@@ -802,6 +825,16 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
    * @generated from field: ctrl.v1.AutoscalingPolicy autoscaling = 27;
    */
   autoscaling?: AutoscalingPolicy;
+
+  /**
+   * ephemeral_storage configures an EBS-backed scratch volume for the deployment.
+   * When present, Krane provisions a PVC per pod using the specified storage class.
+   * The volume is created when the pod starts and deleted when the pod terminates.
+   * When absent, no ephemeral volume is attached.
+   *
+   * @generated from field: optional ctrl.v1.EphemeralStorage ephemeral_storage = 29;
+   */
+  ephemeralStorage?: EphemeralStorage;
 };
 
 /**
@@ -809,7 +842,7 @@ export type ApplyDeployment = Message<"ctrl.v1.ApplyDeployment"> & {
  * Use `create(ApplyDeploymentSchema)` to create a new message.
  */
 export const ApplyDeploymentSchema: GenMessage<ApplyDeployment> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 16);
+  messageDesc(file_ctrl_v1_cluster, 17);
 
 /**
  * AutoscalingPolicy configures horizontal pod autoscaling for a deployment.
@@ -854,7 +887,7 @@ export type AutoscalingPolicy = Message<"ctrl.v1.AutoscalingPolicy"> & {
  * Use `create(AutoscalingPolicySchema)` to create a new message.
  */
 export const AutoscalingPolicySchema: GenMessage<AutoscalingPolicy> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 17);
+  messageDesc(file_ctrl_v1_cluster, 18);
 
 /**
  * DeleteDeployment identifies a deployment to remove from the cluster.
@@ -882,7 +915,7 @@ export type DeleteDeployment = Message<"ctrl.v1.DeleteDeployment"> & {
  * Use `create(DeleteDeploymentSchema)` to create a new message.
  */
 export const DeleteDeploymentSchema: GenMessage<DeleteDeployment> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 18);
+  messageDesc(file_ctrl_v1_cluster, 19);
 
 /**
  * HeartbeatRequest is sent periodically by krane agents to register their
@@ -912,7 +945,7 @@ export type HeartbeatRequest = Message<"ctrl.v1.HeartbeatRequest"> & {
  * Use `create(HeartbeatRequestSchema)` to create a new message.
  */
 export const HeartbeatRequestSchema: GenMessage<HeartbeatRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 19);
+  messageDesc(file_ctrl_v1_cluster, 20);
 
 /**
  * @generated from message ctrl.v1.HeartbeatResponse
@@ -925,7 +958,7 @@ export type HeartbeatResponse = Message<"ctrl.v1.HeartbeatResponse"> & {
  * Use `create(HeartbeatResponseSchema)` to create a new message.
  */
 export const HeartbeatResponseSchema: GenMessage<HeartbeatResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_cluster, 20);
+  messageDesc(file_ctrl_v1_cluster, 21);
 
 /**
  * Health represents the health state of a resource (sentinel, deployment instance, etc.)
@@ -975,14 +1008,29 @@ export const HealthSchema: GenEnum<Health> = /*@__PURE__*/
  */
 export const ClusterService: GenService<{
   /**
-   * WatchDeploymentChanges streams all resource changes (deployments, sentinels, cilium policies)
-   * in a single stream. The agent maintains one cursor and dispatches events by type.
+   * WatchDeploymentChanges streams incremental resource changes from the
+   * deployment_changes outbox table. When version_last_seen is 0, the server
+   * jumps to the current max version and polls from there (no replay).
+   * The stream stays open indefinitely, polling for new changes.
    *
    * @generated from rpc ctrl.v1.ClusterService.WatchDeploymentChanges
    */
   watchDeploymentChanges: {
     methodKind: "server_streaming";
     input: typeof WatchDeploymentChangesRequestSchema;
+    output: typeof DeploymentChangeEventSchema;
+  },
+  /**
+   * SyncDesiredState streams the full desired state for a region: all running
+   * deployments, active sentinels, and cilium policies. The server closes the
+   * stream after all state has been sent. Krane calls this on startup and
+   * periodically as a safety net to reconcile any drift.
+   *
+   * @generated from rpc ctrl.v1.ClusterService.SyncDesiredState
+   */
+  syncDesiredState: {
+    methodKind: "server_streaming";
+    input: typeof SyncDesiredStateRequestSchema;
     output: typeof DeploymentChangeEventSchema;
   },
   /**

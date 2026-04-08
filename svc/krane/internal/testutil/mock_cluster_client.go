@@ -25,6 +25,7 @@ type MockClusterClient struct {
 	ReportDeploymentStatusFunc             func(context.Context, *ctrlv1.ReportDeploymentStatusRequest) (*ctrlv1.ReportDeploymentStatusResponse, error)
 	GetDesiredCiliumNetworkPolicyStateFunc func(context.Context, *ctrlv1.GetDesiredCiliumNetworkPolicyStateRequest) (*ctrlv1.CiliumNetworkPolicyState, error)
 	HeartbeatFunc                          func(context.Context, *ctrlv1.HeartbeatRequest) (*ctrlv1.HeartbeatResponse, error)
+	SyncDesiredStateFunc                   func(context.Context, *ctrlv1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error)
 	ReportDeploymentStatusCalls            []*ctrlv1.ReportDeploymentStatusRequest
 	ReportSentinelStatusCalls              []*ctrlv1.ReportSentinelStatusRequest
 }
@@ -78,4 +79,11 @@ func (m *MockClusterClient) Heartbeat(ctx context.Context, req *ctrlv1.Heartbeat
 		return m.HeartbeatFunc(ctx, req)
 	}
 	return &ctrlv1.HeartbeatResponse{}, nil
+}
+
+func (m *MockClusterClient) SyncDesiredState(ctx context.Context, req *ctrlv1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error) {
+	if m.SyncDesiredStateFunc != nil {
+		return m.SyncDesiredStateFunc(ctx, req)
+	}
+	return nil, nil
 }

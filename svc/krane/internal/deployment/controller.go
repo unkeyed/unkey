@@ -41,6 +41,9 @@ type Controller struct {
 	// so we can skip redundant reports during resync. Entries auto-expire
 	// via the cache's TTL, preventing unbounded growth from deleted RSs.
 	fingerprints cache.Cache[string, string]
+
+	// storageClassName is the Kubernetes StorageClass for ephemeral volumes.
+	storageClassName string
 }
 
 // Config holds the configuration required to create a new [Controller].
@@ -75,6 +78,9 @@ type Config struct {
 
 	// Fingerprints is a cache for deduplicating deployment status reports.
 	Fingerprints cache.Cache[string, string]
+
+	// StorageClassName is the Kubernetes StorageClass for ephemeral volumes.
+	StorageClassName string
 }
 
 // New creates a [Controller] ready to be started with [Controller.Start].
@@ -100,6 +106,7 @@ func New(cfg Config) *Controller {
 		region:           cfg.Region,
 		platform:         cfg.Platform,
 		fingerprints:     cfg.Fingerprints,
+		storageClassName: cfg.StorageClassName,
 	}
 }
 

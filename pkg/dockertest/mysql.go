@@ -129,11 +129,18 @@ func MySQL(t *testing.T, opts ...MySQLOpt) MySQLConfig {
 	t.Logf("  MySQL ready for connections in %s", time.Since(pingStart))
 
 	schemaStart := time.Now()
-	schemaPath := schemaSQLPath()
-	schemaBytes, err := os.ReadFile(schemaPath)
+	schemaDir := schemaPath()
+	entries, err := os.ReadDir(schemaDir)
 	require.NoError(t, err)
-	_, err = hostDB.ExecContext(context.Background(), string(schemaBytes))
-	require.NoError(t, err)
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".sql" {
+			continue
+		}
+		data, readErr := os.ReadFile(filepath.Join(schemaDir, entry.Name()))
+		require.NoError(t, readErr)
+		_, execErr := hostDB.ExecContext(context.Background(), string(data))
+		require.NoError(t, execErr, "failed to apply %s", entry.Name())
+	}
 	t.Logf("  MySQL schema loaded in %s", time.Since(schemaStart))
 
 	return MySQLConfig{
@@ -142,16 +149,16 @@ func MySQL(t *testing.T, opts ...MySQLOpt) MySQLConfig {
 	}
 }
 
-func schemaSQLPath() string {
+func schemaPath() string {
 	if runfiles := os.Getenv("TEST_SRCDIR"); runfiles != "" {
 		workspace := os.Getenv("TEST_WORKSPACE")
 		if workspace != "" {
-			candidate := filepath.Join(runfiles, workspace, "pkg", "db", "schema.sql")
+			candidate := filepath.Join(runfiles, workspace, "pkg", "mysql", "schema")
 			if _, err := os.Stat(candidate); err == nil {
 				return candidate
 			}
 		}
-		candidate := filepath.Join(runfiles, "_main", "pkg", "db", "schema.sql")
+		candidate := filepath.Join(runfiles, "_main", "pkg", "mysql", "schema")
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}
@@ -162,5 +169,5 @@ func schemaSQLPath() string {
 		return ""
 	}
 	root := filepath.Dir(filepath.Dir(currentFile))
-	return filepath.Join(root, "db", "schema.sql")
+	return filepath.Join(root, "mysql", "schema")
 }

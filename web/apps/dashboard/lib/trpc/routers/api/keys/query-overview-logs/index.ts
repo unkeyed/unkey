@@ -11,6 +11,7 @@ const KeysOverviewLogsResponse = z.object({
   keysOverviewLogs: z.array(keysLogs),
   hasMore: z.boolean(),
   nextCursor: z.int().optional(),
+  total: z.int(),
 });
 
 type KeysOverviewLogsResponse = z.infer<typeof KeysOverviewLogsResponse>;
@@ -40,7 +41,6 @@ export const queryKeysOverviewLogs = workspaceProcedure
 
     const clickhouseResult = await clickhouse.api.keys.logs({
       ...transformedInputs,
-      cursorTime: input.cursor ?? null,
       workspaceId: ctx.workspace.id,
       keyspaceId: keyspaceId,
       // Flag to indicate if user explicitly filtered by time frame
@@ -65,10 +65,22 @@ export const queryKeysOverviewLogs = workspaceProcedure
     }
 
     const logs = clickhouseResult.val || [];
+
+    // Get total count of keys matching DB-level filters (names, identities)
+    const { keys: allMatchingKeys } = await queryApiKeys({
+      apiId: input.apiId,
+      workspaceId: ctx.workspace.id,
+      keyIds: input.keyIds || null,
+      names: input.names || null,
+      identities: input.identities || null,
+    });
+    const total = allMatchingKeys.length;
+
     if (logs.length === 0) {
       return {
         keysOverviewLogs: [],
         hasMore: false,
+        total,
       };
     }
 
@@ -99,6 +111,7 @@ export const queryKeysOverviewLogs = workspaceProcedure
       keysOverviewLogs,
       hasMore: logs.length === input.limit && keysOverviewLogs.length > 0,
       nextCursor: logs.length === input.limit ? logs[logs.length - 1].time : undefined,
+      total,
     };
 
     return response;

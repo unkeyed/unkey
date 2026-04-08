@@ -1,5 +1,5 @@
 "use client";
-import { ArrowsToAllDirections, ArrowsToCenter, ChevronLeft, ChevronRight } from "@unkey/icons";
+import { ChevronLeft, ChevronRight, Maximize, Minimize } from "@unkey/icons";
 import { memo, useMemo, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";
@@ -48,22 +48,22 @@ export const PaginationFooter = memo(function PaginationFooter({
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="bg-gray-1 dark:bg-black border border-gray-6 rounded-lg shadow-lg p-3 duration-200 hover:shadow-xl hover:scale-105 group"
+          className="cursor-pointer text-grayA-9 hover:text-grayA-11 bg-gray-1 dark:bg-black border border-gray-6 rounded-lg shadow-lg p-3 duration-200 hover:shadow-xl hover:scale-105 group"
           title={`Page ${page} of ${totalPages} • ${start}-${end} of ${totalCount} ${itemLabel}`}
         >
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-gray-9 font-medium">
+            <span className="text-[11px] font-medium">
               {start}-{end} of {totalCount}
             </span>
             {totalPages === 1 ? null : (
               <>
                 <div className="w-px h-3 bg-gray-6" />
-                <span className="text-[12px] font-medium text-gray-11 group-hover:text-gray-12 transition-colors">
+                <span className="text-[12px] font-medium mr-2">
                   Page {page}/{totalPages}
                 </span>
               </>
             )}
-            <ArrowsToAllDirections iconSize="sm-regular" />
+            <Maximize iconSize="lg-thin" />
           </div>
         </button>
       </div>
@@ -93,17 +93,17 @@ export const PaginationFooter = memo(function PaginationFooter({
             )}
 
             <div
-              className="flex w-full justify-between items-center text-[13px] text-accent-9 p-[18px] transition-all duration-200 animate-fade-in-up"
+              className="flex w-full justify-between items-center text-[13px] text-grayA-9 p-[18px] transition-all duration-200 animate-fade-in-up"
               style={{ animationDelay: "0.3s" }}
             >
               {/* Item count */}
               <div className="flex gap-2">
                 <span>Viewing</span>
-                <span className="text-accent-12 transition-colors duration-200">
+                <span className="text-grayA-11 transition-colors duration-200">
                   {start}-{end}
                 </span>
                 <span>of</span>
-                <span className="text-grayA-12 transition-colors duration-200">{totalCount}</span>
+                <span className="text-grayA-11 transition-colors duration-200">{totalCount}</span>
                 <span>{itemLabel}</span>
               </div>
 
@@ -117,7 +117,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                     onClick={() => onPageChange(page - 1)}
                     disabled={disabled || page === 1}
                     aria-label="Go to previous page"
-                    className="border-none disabled:pointer-events-none disabled:opacity-30 focus:ring-0"
+                    className="border-none text-grayA-9 hover:text-grayA-11 disabled:pointer-events-none disabled:opacity-80 focus:ring-0"
                   >
                     <ChevronLeft iconSize="sm-regular" />
                   </Button>
@@ -134,7 +134,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                           <span
                             key={idx < pageNumbers.length / 2 ? "ellipsis-start" : "ellipsis-end"}
                             aria-hidden="true"
-                            className="w-7 h-7 flex items-center justify-center text-gray-11 text-[10px] tracking-widest select-none"
+                            className="w-7 h-7 flex items-center justify-center text-grayA-9 text-[10px] tracking-widest select-none"
                           >
                             ···
                           </span>
@@ -157,9 +157,9 @@ export const PaginationFooter = memo(function PaginationFooter({
                           className={cn(
                             "w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium cursor-pointer",
                             isCurrentPage
-                              ? "text-accent-12 shadow- pointer-events-none ring-0 border border-grayA-4 text-sm transition-all duration-300"
-                              : "text-gray-11 hover:text-gray-12 hover:bg-grayA-3",
-                            disabled && !isCurrentPage && "opacity-30 pointer-events-none",
+                              ? "text-gray-12 pointer-events-none ring-0 border border-grayA-4 bg-grayA-4 text-sm transition-all duration-300"
+                              : "text-grayA-9 hover:text-gray-12 hover:bg-grayA-3",
+                            disabled && !isCurrentPage && "opacity-80 pointer-events-none",
                           )}
                         >
                           {pageNum}
@@ -176,29 +176,29 @@ export const PaginationFooter = memo(function PaginationFooter({
                     onClick={() => onPageChange(page + 1)}
                     disabled={disabled || page === totalPages}
                     aria-label="Go to next page"
-                    className="border-none disabled:pointer-events-none disabled:opacity-30 focus:ring-0"
+                    className="border-none text-grayA-9 hover:text-grayA-11 disabled:pointer-events-none disabled:opacity-80 focus:ring-0 mr-2"
                   >
                     <ChevronRight iconSize="sm-regular" />
                   </Button>
                 )}
-                {/* Minimize button */}
-                <div
-                  className="flex justify-end transition-all duration-200 animate-fade-in-down ml-1"
-                  style={{ animationDelay: "0.1s" }}
-                >
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="[&_svg]:size-[14px] transition-all duration-200 rounded hover:bg-gray-3 transform hover:scale-110"
-                    onClick={() => setIsOpen(false)}
-                    aria-label="Minimize"
-                    title="Minimize"
-                  >
-                    <ArrowsToCenter iconSize="lg-regular" />
-                  </Button>
-                </div>
               </nav>
             </div>
+          </div>
+          {/* Minimize button */}
+          <div
+            className="flex justify-end transition-all duration-200 animate-fade-in-down mr-6 ml-4 rounded"
+            style={{ animationDelay: "0.1s" }}
+          >
+            <Button
+              size="icon"
+              variant="ghost"
+              className="[&_svg]:size-6 text-grayA-9 hover:text-grayA-11 transition-all duration-200 rounded transform hover:scale-110"
+              onClick={() => setIsOpen(false)}
+              aria-label="Minimize"
+              title="Minimize"
+            >
+              <Minimize />
+            </Button>
           </div>
         </div>
       )}

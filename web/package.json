@@ -11,8 +11,6 @@
     "fmt": "pnpm biome format . --write && pnpm biome check . --write",
     "test": "turbo run test --concurrency=1",
     "bootstrap": "turbo run bootstrap",
-    "commit": "cz",
-    "knip": "knip --include files,dependencies",
     "up": "docker compose -f ./dev/docker-compose.yaml up",
     "migrate": "pnpm turbo run migrate"
   },
@@ -22,8 +20,6 @@
     "@biomejs/biome": "1.9.4",
     "@types/node": "22.14.0",
     "@vitest/ui": "3.2.4",
-    "cz-conventional-changelog": "3.3.0",
-    "knip": "5.45.0",
     "turbo": "2.4.3",
     "typescript": "5.7.3",
     "vitest": "3.2.4"
@@ -35,11 +31,6 @@
       "zod": "4.3.5",
       "@types/react": "19.2.4",
       "@types/react-dom": "19.2.3"
-    }
-  },
-  "config": {
-    "commitizen": {
-      "path": "cz-conventional-changelog"
     }
   },
   "packageManager": "pnpm@8.6.9+sha256.c94450b6623ecedb5e8c7045c7e67cb240bbe88e17660b3d8c57207dfd1eff90",

@@ -539,6 +539,7 @@ func (w *Workflow) createTopologies(
 		}
 		allocatedResources.TotalCpuMillicores += int64(deployment.CpuMillicores * maxReplicas)
 		allocatedResources.TotalMemoryMib += int64(deployment.MemoryMib * maxReplicas)
+		allocatedResources.TotalStorageMib += int64(deployment.StorageMib) * int64(maxReplicas)
 	}
 	if allocatedResources.TotalCpuMillicores > int64(quota.AllocatedCpuMillicoresTotal) {
 		return nil, fault.Wrap(
@@ -550,6 +551,12 @@ func (w *Workflow) createTopologies(
 		return nil, fault.Wrap(
 			restate.TerminalError(fmt.Errorf("Memory quota exceeded: consumed %d, quota %d", allocatedResources.TotalMemoryMib, quota.AllocatedMemoryMibTotal)),
 			fault.Public("We are unable to deploy this application as you have exceeded your Memory quota."),
+		)
+	}
+	if allocatedResources.TotalStorageMib > int64(quota.AllocatedStorageMibTotal) {
+		return nil, fault.Wrap(
+			restate.TerminalError(fmt.Errorf("Storage quota exceeded: consumed %d, quota %d", allocatedResources.TotalStorageMib, quota.AllocatedStorageMibTotal)),
+			fault.Public("We are unable to deploy this application as you have exceeded your Storage quota."),
 		)
 	}
 
