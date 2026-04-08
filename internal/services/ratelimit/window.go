@@ -3,7 +3,7 @@ package ratelimit
 import (
 	"time"
 
-	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
+	ratelimitmetrics "github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 )
 
 type window struct {
@@ -33,6 +33,7 @@ type window struct {
 //   - sequence: Monotonically increasing window identifier
 //   - t: Time within the desired window
 //   - duration: Length of the window
+//   - windowsCreated: Counter to increment when a new window is created
 //
 // Returns:
 //   - *ratelimitv1.Window: A new window with:
@@ -53,9 +54,10 @@ type window struct {
 //	    calculateSequence(time.Now(), time.Minute),
 //	    time.Now(),
 //	    time.Minute,
+//	    m,
 //	)
-func newWindow(sequence int64, t time.Time, duration time.Duration) *window {
-	metrics.RatelimitWindowsCreated.Inc()
+func newWindow(sequence int64, t time.Time, duration time.Duration, m *ratelimitmetrics.Metrics) *window {
+	m.RatelimitWindowsCreated.Inc()
 	return &window{
 		sequence: sequence,
 		start:    t.Truncate(duration),

@@ -2,6 +2,7 @@ package keys
 
 import (
 	"github.com/unkeyed/unkey/internal/services/keys/db"
+	keysmetrics "github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
@@ -24,6 +25,9 @@ type Config struct {
 
 	KeyCache   cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
 	QuotaCache cache.Cache[string, db.Quotas]        // Cache for workspace quota lookups
+
+	// Metrics holds all Prometheus metrics for the key verification system.
+	Metrics *keysmetrics.Metrics
 }
 
 type service struct {
@@ -39,6 +43,9 @@ type service struct {
 
 	// workspace_id -> quota (for workspace rate limiting)
 	quotaCache cache.Cache[string, db.Quotas]
+
+	// metrics holds all Prometheus metrics for the key verification system
+	metrics *keysmetrics.Metrics
 }
 
 // New creates a new keys service instance with the provided configuration.
@@ -57,6 +64,7 @@ func New(config Config) (*service, error) {
 		region:           config.Region,
 		keyCache:         config.KeyCache,
 		quotaCache:       config.QuotaCache,
+		metrics:          config.Metrics,
 	}, nil
 }
 

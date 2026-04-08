@@ -12,8 +12,11 @@ import (
 	prom_sdk "github.com/prometheus/client_golang/prometheus"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	keysmetrics "github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	ratelimitmetrics "github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	usagelimitermetrics "github.com/unkeyed/unkey/internal/services/usagelimiter/metrics"
 	"github.com/unkeyed/unkey/pkg/batch"
 	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
 	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
@@ -308,6 +311,7 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 		Clock:         clk,
 		Counter:       ctr,
 		BufferMetrics: buffermetrics.NoopMetrics(),
+		Metrics:       ratelimitmetrics.NewMetrics(prom_sdk.DefaultRegisterer),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rate limiter: %w", err)
@@ -334,6 +338,7 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 		TTL:           60 * time.Second,
 		ReplayWorkers: 8,
 		BufferMetrics: buffermetrics.NoopMetrics(),
+		Metrics:       usagelimitermetrics.NewMetrics(prom_sdk.DefaultRegisterer),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create usage limiter: %w", err)
@@ -361,6 +366,7 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 		UsageLimiter:     usageLimiter,
 		KeyCache:         keyCache,
 		QuotaCache:       nil,
+		Metrics:          keysmetrics.NewMetrics(prom_sdk.DefaultRegisterer),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key service: %w", err)

@@ -31,53 +31,49 @@ var latencyBuckets = []float64{
 	10.0,  // 10s
 }
 
-var (
+// Metrics holds all Prometheus metrics for the usage limiter system.
+type Metrics struct {
 	// UsagelimiterDecisions counts usage limiter decisions by outcome (allowed/denied) and source (redis/db)
-	// This counter helps understand the distribution of decisions and fallback patterns.
-	//
-	// Example usage:
-	//   metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
-	//   metrics.UsagelimiterDecisions.WithLabelValues("db", "denied").Inc()
-	UsagelimiterDecisions = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "usagelimiter",
-			Name:      "decisions_total",
-			Help:      "Total number of usage limiter decisions.",
-		},
-		[]string{"source", "outcome"},
-	)
+	UsagelimiterDecisions *prometheus.CounterVec
 
 	// UsagelimiterReplayOperations counts replay operations to the database by status
-	// This counter helps monitor the replay queue health and success rate.
-	//
-	// Example usage:
-	//   metrics.UsagelimiterReplayOperations.WithLabelValues("success").Inc()
-	//   metrics.UsagelimiterReplayOperations.WithLabelValues("error").Inc()
-	UsagelimiterReplayOperations = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "usagelimiter",
-			Name:      "replay_operations_total",
-			Help:      "Total number of credit replay operations to database.",
-		},
-		[]string{"status"},
-	)
+	UsagelimiterReplayOperations *prometheus.CounterVec
 
 	// UsagelimiterReplayLatency measures the latency of replay operations to the database
-	// This histogram helps track the performance of async database updates.
-	//
-	// Example usage:
-	//   defer func(start time.Time) {
-	//       metrics.UsagelimiterReplayLatency.Observe(time.Since(start).Seconds())
-	//   }(time.Now())
-	UsagelimiterReplayLatency = promauto.NewHistogram(
-		prometheus.HistogramOpts{
-			Namespace: "unkey",
-			Subsystem: "usagelimiter",
-			Name:      "replay_latency_seconds",
-			Help:      "Histogram of replay operation latencies in seconds.",
-			Buckets:   latencyBuckets,
-		},
-	)
-)
+	UsagelimiterReplayLatency prometheus.Histogram
+}
+
+// NewMetrics creates a new Metrics instance, registering all collectors with the given registerer.
+func NewMetrics(reg prometheus.Registerer) *Metrics {
+	factory := promauto.With(reg)
+
+	return &Metrics{
+		UsagelimiterDecisions: factory.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "usagelimiter",
+				Name:      "decisions_total",
+				Help:      "Total number of usage limiter decisions.",
+			},
+			[]string{"source", "outcome"},
+		),
+		UsagelimiterReplayOperations: factory.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "usagelimiter",
+				Name:      "replay_operations_total",
+				Help:      "Total number of credit replay operations to database.",
+			},
+			[]string{"status"},
+		),
+		UsagelimiterReplayLatency: factory.NewHistogram(
+			prometheus.HistogramOpts{
+				Namespace: "unkey",
+				Subsystem: "usagelimiter",
+				Name:      "replay_latency_seconds",
+				Help:      "Histogram of replay operation latencies in seconds.",
+				Buckets:   latencyBuckets,
+			},
+		),
+	}
+}

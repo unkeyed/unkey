@@ -10,37 +10,40 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-var (
+// Metrics holds all Prometheus metrics for the key verification system.
+type Metrics struct {
 	// KeyVerificationsTotal tracks the number of key verifications handled, labeled by type and outcome.
 	// The type should be either "root_key" or "key"
-	// Use this counter to monitor API traffic patterns.
-	//
-	// Example usage:
-	//   metrics.KeyVerificationsTotal.WithLabelValues("root_key", "VALID").Inc()
-	KeyVerificationsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "key",
-			Name:      "verifications_total",
-			Help:      "Total number of Key verifications processed.",
-		},
-		[]string{"type", "code"},
-	)
+	KeyVerificationsTotal *prometheus.CounterVec
 
 	// KeyVerificationErrorsTotal tracks the number of errors in key verifications.
 	// These are not errors in the keys themselves like "FORBIDDEN", or "RATE_LIMITED" but errors in
-	// program functionality. Use this with the unkey_key_verifications_total metric to calculate
-	// the error rate.
-	//
-	// Example usage:
-	//   metrics.KeyVerificationErrorsTotal.WithLabelValues("root_key").Inc()
-	KeyVerificationErrorsTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "key",
-			Name:      "verification_errors_total",
-			Help:      "Total number of key verification errors",
-		},
-		[]string{"type"},
-	)
-)
+	// program functionality.
+	KeyVerificationErrorsTotal *prometheus.CounterVec
+}
+
+// NewMetrics creates a new Metrics instance, registering all collectors with the given registerer.
+func NewMetrics(reg prometheus.Registerer) *Metrics {
+	factory := promauto.With(reg)
+
+	return &Metrics{
+		KeyVerificationsTotal: factory.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "key",
+				Name:      "verifications_total",
+				Help:      "Total number of Key verifications processed.",
+			},
+			[]string{"type", "code"},
+		),
+		KeyVerificationErrorsTotal: factory.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "key",
+				Name:      "verification_errors_total",
+				Help:      "Total number of key verification errors",
+			},
+			[]string{"type"},
+		),
+	}
+}

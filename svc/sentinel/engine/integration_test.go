@@ -10,11 +10,15 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/prometheus/client_golang/prometheus"
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	keysmetrics "github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	ratelimitmetrics "github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	usagelimitermetrics "github.com/unkeyed/unkey/internal/services/usagelimiter/metrics"
 	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	cachemetrics "github.com/unkeyed/unkey/pkg/cache/metrics"
@@ -63,6 +67,7 @@ func newTestHarness(t *testing.T) *testHarness {
 		Clock:         clk,
 		Counter:       redisCounter,
 		BufferMetrics: buffermetrics.NoopMetrics(),
+		Metrics:       ratelimitmetrics.NewMetrics(prometheus.DefaultRegisterer),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = rateLimiter.Close() })
@@ -87,6 +92,7 @@ func newTestHarness(t *testing.T) *testHarness {
 		TTL:           60 * time.Second,
 		ReplayWorkers: 2,
 		BufferMetrics: buffermetrics.NoopMetrics(),
+		Metrics:       usagelimitermetrics.NewMetrics(prometheus.DefaultRegisterer),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = usageLimiter.Close() })
@@ -110,6 +116,7 @@ func newTestHarness(t *testing.T) *testHarness {
 		UsageLimiter:     usageLimiter,
 		KeyCache:         keyCache,
 		QuotaCache:       nil,
+		Metrics:          keysmetrics.NewMetrics(prometheus.DefaultRegisterer),
 	})
 	require.NoError(t, err)
 

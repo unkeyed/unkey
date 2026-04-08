@@ -5,7 +5,7 @@ import (
 	"time"
 
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
-	"github.com/unkeyed/unkey/internal/services/keys/metrics"
+	keysmetrics "github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
@@ -56,6 +56,7 @@ type KeyVerifier struct {
 	usageLimiter     usagelimiter.Service                          // Usage limiting service
 	rBAC             *rbac.RBAC                                    // Role-based access control service
 	keyVerifications *batch.BatchProcessor[schema.KeyVerification] // Buffer for key verification telemetry
+	metrics          *keysmetrics.Metrics                          // Prometheus metrics for key verifications
 }
 
 // GetRatelimitConfigs returns the rate limit configurations
@@ -147,7 +148,7 @@ func (k *KeyVerifier) log() {
 	}
 
 	// Emit Prometheus metrics for key verification
-	metrics.KeyVerificationsTotal.WithLabelValues(
+	k.metrics.KeyVerificationsTotal.WithLabelValues(
 		keyType,
 		string(k.Status), // code
 	).Inc()

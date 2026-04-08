@@ -17,10 +17,13 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	keysmetrics "github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	ratelimitmetrics "github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	usagelimitermetrics "github.com/unkeyed/unkey/internal/services/usagelimiter/metrics"
 	"github.com/unkeyed/unkey/pkg/batch"
 	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
 	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
@@ -170,6 +173,7 @@ func NewHarness(t *testing.T) *Harness {
 		Clock:         clk,
 		Counter:       ctr,
 		BufferMetrics: buffermetrics.NoopMetrics(),
+		Metrics:       ratelimitmetrics.NewMetrics(prometheus.DefaultRegisterer),
 	})
 	require.NoError(t, err)
 
@@ -192,6 +196,7 @@ func NewHarness(t *testing.T) *Harness {
 		Counter:       ctr,
 		TTL:           60 * time.Second,
 		BufferMetrics: buffermetrics.NoopMetrics(),
+		Metrics:       usagelimitermetrics.NewMetrics(prometheus.DefaultRegisterer),
 	})
 	require.NoError(t, err)
 
@@ -228,6 +233,7 @@ func NewHarness(t *testing.T) *Harness {
 		KeyVerifications: keyVerifications,
 		Region:           "test",
 		UsageLimiter:     ulSvc,
+		Metrics:          keysmetrics.NewMetrics(prometheus.DefaultRegisterer),
 	})
 	require.NoError(t, err)
 

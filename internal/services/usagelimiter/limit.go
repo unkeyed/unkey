@@ -3,7 +3,6 @@ package usagelimiter
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/internal/services/usagelimiter/metrics"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
@@ -22,7 +21,7 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 
 	// Key doesn't have enough credits to cover the request cost
 	if req.Cost > 0 && remaining < req.Cost {
-		metrics.UsagelimiterDecisions.WithLabelValues("db", "denied").Inc()
+		s.metrics.UsagelimiterDecisions.WithLabelValues("db", "denied").Inc()
 		return UsageResponse{Valid: false, Remaining: 0}, nil
 	}
 
@@ -31,7 +30,7 @@ func (s *service) Limit(ctx context.Context, req UsageRequest) (UsageResponse, e
 		return UsageResponse{}, err
 	}
 
-	metrics.UsagelimiterDecisions.WithLabelValues("db", "allowed").Inc()
+	s.metrics.UsagelimiterDecisions.WithLabelValues("db", "allowed").Inc()
 	return UsageResponse{Valid: true, Remaining: max(0, remaining-req.Cost)}, nil
 }
 

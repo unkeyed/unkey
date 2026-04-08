@@ -20,10 +20,13 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	keysmetrics "github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	ratelimitmetrics "github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 
 	prom_sdk "github.com/prometheus/client_golang/prometheus"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	usagelimitermetrics "github.com/unkeyed/unkey/internal/services/usagelimiter/metrics"
 	"github.com/unkeyed/unkey/pkg/batch"
 	batchmetrics "github.com/unkeyed/unkey/pkg/batch/metrics"
 	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
@@ -220,6 +223,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clock:         clk,
 		Counter:       ctr,
 		BufferMetrics: buffermetrics.NoopMetrics(),
+		Metrics:       ratelimitmetrics.NewMetrics(prom_sdk.DefaultRegisterer),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
@@ -247,6 +251,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Counter:       ctr,
 		TTL:           60 * time.Second,
 		BufferMetrics: buffermetrics.NoopMetrics(),
+		Metrics:       usagelimitermetrics.NewMetrics(prom_sdk.DefaultRegisterer),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create usage limiter service: %w", err)
@@ -339,6 +344,7 @@ func Run(ctx context.Context, cfg Config) error {
 		KeyVerifications: keyVerifications,
 		Region:           cfg.Region,
 		UsageLimiter:     ulSvc,
+		Metrics:          keysmetrics.NewMetrics(prom_sdk.DefaultRegisterer),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)

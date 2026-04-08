@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/unkeyed/unkey/internal/services/usagelimiter/metrics"
+	usagelimitermetrics "github.com/unkeyed/unkey/internal/services/usagelimiter/metrics"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/buffer"
 	buffermetrics "github.com/unkeyed/unkey/pkg/buffer/metrics"
@@ -44,6 +44,9 @@ type RedisConfig struct {
 
 	// BufferMetrics provides metrics for the replay buffer.
 	BufferMetrics *buffermetrics.Metrics
+
+	// Metrics holds all Prometheus metrics for the usage limiter system.
+	Metrics *usagelimitermetrics.Metrics
 }
 
 // counterService implements usage limiting using the counter interface
@@ -52,6 +55,9 @@ type counterService struct {
 	findKeyCredits      FindKeyCreditsFunc
 	decrementKeyCredits DecrementKeyCreditsFunc
 	counter             counter.Counter
+
+	// metrics holds all Prometheus metrics for the usage limiter system
+	metrics *usagelimitermetrics.Metrics
 
 	// Fallback to direct DB implementation when Redis fails
 	dbFallback Service
@@ -85,6 +91,9 @@ type CounterConfig struct {
 
 	// BufferMetrics provides metrics for the replay buffer.
 	BufferMetrics *buffermetrics.Metrics
+
+	// Metrics holds all Prometheus metrics for the usage limiter system.
+	Metrics *usagelimitermetrics.Metrics
 }
 
 // NewCounter creates a new counter-based usage limiter implementation.
@@ -124,6 +133,7 @@ func NewCounter(config CounterConfig) (Service, error) {
 	dbFallback, err := New(Config{
 		FindKeyCredits:      config.FindKeyCredits,
 		DecrementKeyCredits: config.DecrementKeyCredits,
+		Metrics:             config.Metrics,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create DB fallback: %w", err)
@@ -133,6 +143,7 @@ func NewCounter(config CounterConfig) (Service, error) {
 		findKeyCredits:      config.FindKeyCredits,
 		decrementKeyCredits: config.DecrementKeyCredits,
 		counter:             config.Counter,
+		metrics:             config.Metrics,
 		dbFallback:          dbFallback,
 		ttl:                 ttl,
 		replayBuffer: buffer.New[CreditChange](buffer.Config{
@@ -220,13 +231,13 @@ func (s *counterService) handleResult(req UsageRequest, remaining int64, success
 			Cost:  req.Cost,
 		})
 
-		metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
+		s.metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
 		return UsageResponse{Valid: true, Remaining: int32(remaining)} //nolint: gosec
 
 	}
 
 	// Insufficient credits - return actual current count for accurate response
-	metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
+	s.metrics.UsagelimiterDecisions.WithLabelValues("redis", "denied").Inc()
 	return UsageResponse{Valid: false, Remaining: int32(remaining)} //nolint: gosec
 }
 
@@ -308,18 +319,18 @@ func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) er
 
 	start := time.Now()
 	defer func() {
-		metrics.UsagelimiterReplayLatency.Observe(time.Since(start).Seconds())
+		s.metrics.UsagelimiterReplayLatency.Observe(time.Since(start).Seconds())
 	}()
 
 	_, err := s.dbCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
 		return nil, s.decrementKeyCredits(ctx, change.KeyID, change.Cost)
 	})
 	if err != nil {
-		metrics.UsagelimiterReplayOperations.WithLabelValues("error").Inc()
+		s.metrics.UsagelimiterReplayOperations.WithLabelValues("error").Inc()
 		return err
 	}
 
-	metrics.UsagelimiterReplayOperations.WithLabelValues("success").Inc()
+	s.metrics.UsagelimiterReplayOperations.WithLabelValues("success").Inc()
 	return nil
 }
 

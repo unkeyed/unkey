@@ -169,6 +169,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			Key:                   key.FindKeyForVerificationRow,
 			startTime:             startTime,
 			spentCredits:          0,
+			metrics:               s.metrics,
 		}
 
 		return kv, kv.log, nil
@@ -240,6 +241,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		isRootKey:             key.ForWorkspaceID.Valid,
 		startTime:             startTime,
 		spentCredits:          0,
+		metrics:               s.metrics,
 
 		// By default we assume the key is valid unless proven otherwise
 		Status:            StatusValid,

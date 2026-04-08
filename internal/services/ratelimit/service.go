@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 
-	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
+	ratelimitmetrics "github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -52,6 +52,9 @@ type service struct {
 	// replayCircuitBreaker prevents cascading failures during peer communication
 	// Thread-safe internally
 	replayCircuitBreaker circuitbreaker.CircuitBreaker[int64]
+
+	// metrics holds all Prometheus metrics for the rate-limiting system
+	metrics *ratelimitmetrics.Metrics
 }
 
 // Config holds configuration for creating a new rate limiting service.
@@ -66,6 +69,9 @@ type Config struct {
 
 	// BufferMetrics provides metrics for the replay buffer.
 	BufferMetrics *buffermetrics.Metrics
+
+	// Metrics holds all Prometheus metrics for the rate-limiting system.
+	Metrics *ratelimitmetrics.Metrics
 }
 
 // New creates a new rate limiting service.
@@ -93,6 +99,7 @@ func New(config Config) (*service, error) {
 			Metrics:  config.BufferMetrics,
 		}),
 		replayCircuitBreaker: circuitbreaker.New[int64]("replayRatelimitRequest"),
+		metrics:              config.Metrics,
 	}
 
 	s.expireWindowsAndBuckets()
@@ -325,9 +332,9 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 
 		if exceeded {
 			b.strictUntil = req.Time.Add(req.Duration)
-			metrics.RatelimitDecision.WithLabelValues(decisionSource, "denied").Inc()
+			s.metrics.RatelimitDecision.WithLabelValues(decisionSource, "denied").Inc()
 		} else {
-			metrics.RatelimitDecision.WithLabelValues(decisionSource, "passed").Inc()
+			s.metrics.RatelimitDecision.WithLabelValues(decisionSource, "passed").Inc()
 		}
 
 		return RatelimitResponse{
@@ -374,7 +381,7 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 
 	if exceeded {
 		b.strictUntil = req.Time.Add(req.Duration)
-		metrics.RatelimitDecision.WithLabelValues(decisionSource, "denied").Inc()
+		s.metrics.RatelimitDecision.WithLabelValues(decisionSource, "denied").Inc()
 
 		return RatelimitResponse{
 			Success:   false,
@@ -385,7 +392,7 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 		}, nil
 	}
 
-	metrics.RatelimitDecision.WithLabelValues(decisionSource, "passed").Inc()
+	s.metrics.RatelimitDecision.WithLabelValues(decisionSource, "passed").Inc()
 
 	return RatelimitResponse{
 		Success:   true,

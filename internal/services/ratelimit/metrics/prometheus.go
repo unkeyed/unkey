@@ -31,152 +31,127 @@ var latencyBuckets = []float64{
 	10.0,  // 10s
 }
 
-var (
-
+// Metrics holds all Prometheus metrics for the rate-limiting system.
+type Metrics struct {
 	// RatelimitBuckets tracks how many rate-limit buckets are currently active.
-	// This gauge helps monitor the resource usage of the rate-limiting system.
-	//
-	// Example usage:
-	//   metrics.RatelimitBuckets.Set(float64(activeBuckets))
-	RatelimitBuckets = promauto.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: "unkey",
-			Subsystem: "ratelimit",
-			Name:      "buckets",
-			Help:      "Current number of active rate-limit buckets.",
-		},
-	)
+	RatelimitBuckets prometheus.Gauge
 
 	// RatelimitWindows tracks how many rate-limit time windows are currently active.
-	// This gauge helps monitor the resource usage of the rate-limiting system.
-	//
-	// Example usage:
-	//   metrics.RatelimitWindows.Set(float64(activeWindows))
-	RatelimitWindows = promauto.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: "unkey",
-			Subsystem: "ratelimit",
-			Name:      "windows",
-			Help:      "Current number of rate-limit windows.",
-		},
-	)
+	RatelimitWindows prometheus.Gauge
 
 	// RatelimitBucketsCreated counts how many rate-limit buckets were created.
-	// This counter helps track the creation rate and churn of rate-limit buckets.
-	//
-	// Example usage:
-	//   metrics.RatelimitBucketsCreated.Inc()
-	RatelimitBucketsCreated = promauto.NewCounter(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "ratelimit",
-			Name:      "buckets_created_total",
-			Help:      "Total number of rate-limit buckets created.",
-		},
-	)
+	RatelimitBucketsCreated prometheus.Counter
 
 	// RatelimitBucketsEvicted counts how many rate-limit buckets were evicted.
-	// This counter helps track the eviction rate and lifetime of rate-limit buckets.
-	//
-	// Example usage:
-	//   metrics.RatelimitBucketsEvicted.Inc()
-	RatelimitBucketsEvicted = promauto.NewCounter(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "ratelimit",
-			Name:      "buckets_evicted_total",
-			Help:      "Total number of rate-limit buckets evicted.",
-		},
-	)
+	RatelimitBucketsEvicted prometheus.Counter
 
 	// RatelimitWindowsCreated counts how many rate-limit time windows were created.
-	// This counter helps track the creation rate and churn of rate-limit windows.
-	//
-	// Example usage:
-	//   metrics.RatelimitWindowsCreated.Inc()
-	RatelimitWindowsCreated = promauto.NewCounter(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "ratelimit",
-			Name:      "windows_created_total",
-			Help:      "Total number of rate-limit time windows created.",
-		},
-	)
+	RatelimitWindowsCreated prometheus.Counter
 
 	// RatelimitWindowsEvicted counts how many rate-limit time windows were evicted.
-	// This counter helps track the eviction rate and lifetime of rate-limit windows.
-	//
-	// Example usage:
-	//   metrics.RatelimitWindowsEvicted.Inc()
-	RatelimitWindowsEvicted = promauto.NewCounter(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "ratelimit",
-			Name:      "windows_evicted_total",
-			Help:      "Total number of rate-limit time windows evicted.",
-		},
-	)
+	RatelimitWindowsEvicted prometheus.Counter
 
-	// RatelimitDecisions counts how often rate-limit decisions were resolved locally or remotely
+	// RatelimitDecision counts how often rate-limit decisions were resolved locally or remotely
 	// and whether they were allowed or denied.
-	// This counter helps understand the distribution of decision-making in the cluster.
-	//
-	// Example usage:
-	//   metrics.RatelimitDecisions.WithLabelValues("local", "passed").Inc()
-	//   metrics.RatelimitDecisions.WithLabelValues("origin", "denied").Inc()
-	RatelimitDecision = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "ratelimit",
-			Name:      "decisions_total",
-			Help:      "Total number of rate-limit decisions.",
-		},
-		[]string{"source", "outcome"},
-	)
+	RatelimitDecision *prometheus.CounterVec
 
 	// RatelimitRefreshFromOrigin counts how often rate-limits were refreshed from an origin.
-	// This counter helps understand the centralization of decision-making in the cluster.
-	//
-	// Example usage:
-	//   metrics.RatelimitRefreshFromOrigin.Inc()
-	RatelimitRefreshFromOrigin = promauto.NewCounter(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "ratelimit",
-			Name:      "refresh_from_origin_total",
-			Help:      "Total number of refreshes from an origin.",
-		},
-	)
+	RatelimitRefreshFromOrigin prometheus.Counter
 
 	// RatelimitOriginSyncLatency measures the latency of origin sync operations.
-	// This histogram helps track the performance and reliability of origin synchronization.
-	//
-	// Example usage:
-	//   timer := prometheus.NewTimer(prometheus.ObserverFunc(func(v float64) {
-	//       metrics.RatelimitOriginSyncLatency.Observe(v)
-	//   }))
-	//   defer timer.ObserveDuration()
-	RatelimitOriginSyncLatency = promauto.NewHistogram(
-		prometheus.HistogramOpts{
-			Namespace: "unkey",
-			Subsystem: "ratelimit",
-			Name:      "origin_sync_latency_seconds",
-			Help:      "Histogram of origin sync latencies in seconds.",
-			Buckets:   latencyBuckets,
-		},
-	)
+	RatelimitOriginSyncLatency prometheus.Histogram
 
 	// RatelimitRefreshFromOriginErrorsTotal tracks the total number of errors when refreshing
-	// rate-limits from an origin. Use this counter to monitor origin sync reliability.
-	//
-	// Example usage:
-	//   metrics.RatelimitRefreshFromOriginErrorsTotal.Inc()
-	RatelimitRefreshFromOriginErrorsTotal = promauto.NewCounter(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "ratelimit",
-			Name:      "refresh_from_origin_errors_total",
-			Help:      "Total number of errors when refreshing from an origin.",
-		},
-	)
-)
+	// rate-limits from an origin.
+	RatelimitRefreshFromOriginErrorsTotal prometheus.Counter
+}
+
+// NewMetrics creates a new Metrics instance, registering all collectors with the given registerer.
+func NewMetrics(reg prometheus.Registerer) *Metrics {
+	factory := promauto.With(reg)
+
+	return &Metrics{
+		RatelimitBuckets: factory.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "unkey",
+				Subsystem: "ratelimit",
+				Name:      "buckets",
+				Help:      "Current number of active rate-limit buckets.",
+			},
+		),
+		RatelimitWindows: factory.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "unkey",
+				Subsystem: "ratelimit",
+				Name:      "windows",
+				Help:      "Current number of rate-limit windows.",
+			},
+		),
+		RatelimitBucketsCreated: factory.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "ratelimit",
+				Name:      "buckets_created_total",
+				Help:      "Total number of rate-limit buckets created.",
+			},
+		),
+		RatelimitBucketsEvicted: factory.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "ratelimit",
+				Name:      "buckets_evicted_total",
+				Help:      "Total number of rate-limit buckets evicted.",
+			},
+		),
+		RatelimitWindowsCreated: factory.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "ratelimit",
+				Name:      "windows_created_total",
+				Help:      "Total number of rate-limit time windows created.",
+			},
+		),
+		RatelimitWindowsEvicted: factory.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "ratelimit",
+				Name:      "windows_evicted_total",
+				Help:      "Total number of rate-limit time windows evicted.",
+			},
+		),
+		RatelimitDecision: factory.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "ratelimit",
+				Name:      "decisions_total",
+				Help:      "Total number of rate-limit decisions.",
+			},
+			[]string{"source", "outcome"},
+		),
+		RatelimitRefreshFromOrigin: factory.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "ratelimit",
+				Name:      "refresh_from_origin_total",
+				Help:      "Total number of refreshes from an origin.",
+			},
+		),
+		RatelimitOriginSyncLatency: factory.NewHistogram(
+			prometheus.HistogramOpts{
+				Namespace: "unkey",
+				Subsystem: "ratelimit",
+				Name:      "origin_sync_latency_seconds",
+				Help:      "Histogram of origin sync latencies in seconds.",
+				Buckets:   latencyBuckets,
+			},
+		),
+		RatelimitRefreshFromOriginErrorsTotal: factory.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: "unkey",
+				Subsystem: "ratelimit",
+				Name:      "refresh_from_origin_errors_total",
+				Help:      "Total number of errors when refreshing from an origin.",
+			},
+		),
+	}
+}

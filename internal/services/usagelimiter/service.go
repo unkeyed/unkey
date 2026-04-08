@@ -3,6 +3,7 @@ package usagelimiter
 import (
 	"fmt"
 
+	usagelimitermetrics "github.com/unkeyed/unkey/internal/services/usagelimiter/metrics"
 	"github.com/unkeyed/unkey/pkg/assert"
 )
 
@@ -10,6 +11,7 @@ import (
 type service struct {
 	findKeyCredits      FindKeyCreditsFunc
 	decrementKeyCredits DecrementKeyCreditsFunc
+	metrics             *usagelimitermetrics.Metrics
 }
 
 var _ Service = (*service)(nil)
@@ -18,6 +20,7 @@ var _ Service = (*service)(nil)
 type Config struct {
 	FindKeyCredits      FindKeyCreditsFunc
 	DecrementKeyCredits DecrementKeyCreditsFunc
+	Metrics             *usagelimitermetrics.Metrics
 }
 
 // New creates a new direct DB-based usage limiter service.
@@ -34,6 +37,7 @@ func New(config Config) (*service, error) {
 	return &service{
 		findKeyCredits:      config.FindKeyCredits,
 		decrementKeyCredits: config.DecrementKeyCredits,
+		metrics:             config.Metrics,
 	}, nil
 }
 
@@ -63,5 +67,6 @@ func NewRedisWithCounter(config RedisConfig) (Service, error) {
 		Counter:             config.Counter,
 		TTL:                 config.TTL,
 		BufferMetrics:       config.BufferMetrics,
+		Metrics:             config.Metrics,
 	})
 }

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
+	ratelimitmetrics "github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 )
 
 // bucket maintains rate limit state for a specific identifier+duration combination.
@@ -47,6 +47,9 @@ type bucket struct {
 	// strictUntil is when this bucket must sync with origin
 	// Used after rate limit exceeded to ensure consistency
 	strictUntil time.Time
+
+	// metrics is the shared metrics instance from the ratelimit service.
+	metrics *ratelimitmetrics.Metrics
 }
 
 func (b *bucket) key() bucketKey {
@@ -103,7 +106,7 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 	defer s.bucketsMu.Unlock()
 	b, exists := s.buckets[key.toString()]
 	if !exists {
-		metrics.RatelimitBucketsCreated.Inc()
+		s.metrics.RatelimitBucketsCreated.Inc()
 		b = &bucket{
 			mu:          sync.RWMutex{},
 			name:        key.name,
@@ -111,6 +114,7 @@ func (s *service) getOrCreateBucket(key bucketKey) (*bucket, bool) {
 			duration:    key.duration,
 			windows:     make(map[int64]*window),
 			strictUntil: time.Time{},
+			metrics:     s.metrics,
 		}
 		s.buckets[key.toString()] = b
 	}
@@ -138,7 +142,7 @@ func (b *bucket) getCurrentWindow(now time.Time) (*window, bool) {
 
 	w, exists := b.windows[sequence]
 	if !exists {
-		w = newWindow(sequence, now.Truncate(b.duration), b.duration)
+		w = newWindow(sequence, now.Truncate(b.duration), b.duration, b.metrics)
 		b.windows[sequence] = w
 	}
 	return w, exists
@@ -164,7 +168,7 @@ func (b *bucket) getPreviousWindow(now time.Time) (*window, bool) {
 
 	w, exists := b.windows[sequence]
 	if !exists {
-		w = newWindow(sequence, now.Add(-b.duration).Truncate(b.duration), b.duration)
+		w = newWindow(sequence, now.Add(-b.duration).Truncate(b.duration), b.duration, b.metrics)
 		b.windows[sequence] = w
 	}
 

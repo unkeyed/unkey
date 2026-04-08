@@ -3,7 +3,6 @@ package ratelimit
 import (
 	"time"
 
-	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 	"github.com/unkeyed/unkey/pkg/repeat"
 )
 
@@ -48,21 +47,21 @@ func (s *service) expireWindowsAndBuckets() {
 			for sequence, window := range bucket.windows {
 				if s.clock.Now().After(window.start.Add(3 * window.duration)) {
 					delete(bucket.windows, sequence)
-					metrics.RatelimitWindowsEvicted.Inc()
+					s.metrics.RatelimitWindowsEvicted.Inc()
 				} else {
 					windows++
 				}
 			}
 			if len(bucket.windows) == 0 {
 				delete(s.buckets, bucketID)
-				metrics.RatelimitBucketsEvicted.Inc()
+				s.metrics.RatelimitBucketsEvicted.Inc()
 			}
 
 			bucket.mu.Unlock()
 		}
 
-		metrics.RatelimitBuckets.Set(float64(len(s.buckets)))
-		metrics.RatelimitWindows.Set(windows)
+		s.metrics.RatelimitBuckets.Set(float64(len(s.buckets)))
+		s.metrics.RatelimitWindows.Set(windows)
 	}, nil)
 
 }
