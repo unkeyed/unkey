@@ -152,12 +152,9 @@ export function fromWirePolicy(raw: unknown): SentinelPolicy {
   if (typeof raw !== "object" || raw === null) {
     throw new Error("policy must be an object");
   }
-  const obj = raw as Record<string, unknown>;
-  let withType: Record<string, unknown>;
+  const obj: Record<string, unknown> = { ...(raw as Record<string, unknown>) };
   if ("keyauth" in obj) {
-    withType = { ...obj, type: "keyauth" };
-  } else {
-    throw new Error("unknown sentinel policy variant");
+    return sentinelPolicySchema.parse({ ...obj, type: "keyauth" });
   }
-  return sentinelPolicySchema.parse(withType);
+  throw new Error("unknown sentinel policy variant");
 }

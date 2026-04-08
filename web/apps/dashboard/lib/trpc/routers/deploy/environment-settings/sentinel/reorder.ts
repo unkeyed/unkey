@@ -1,4 +1,5 @@
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
+import { db } from "@/lib/db";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../trpc";
 import { loadOwnedEnvironment, loadPolicies, savePolicies } from "./_shared";
@@ -11,14 +12,16 @@ export const reorder = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const [env, current] = await Promise.all([
-      loadOwnedEnvironment(ctx.workspace.id, input.environmentId),
-      loadPolicies(ctx.workspace.id, input.environmentId),
-    ]);
-    const reordered = reconcileOrder(current, input.policyIds);
-
-    await savePolicies(ctx.workspace.id, input.environmentId, env.appId, reordered);
-    return { policyIds: reordered.map((p) => p.id) };
+    const reorderedIds = await db.transaction(async (tx) => {
+      // PlanetScale's HTTP driver serializes queries on a tx connection —
+      // run sequentially, NOT via Promise.all.
+      const env = await loadOwnedEnvironment(ctx.workspace.id, input.environmentId, tx);
+      const current = await loadPolicies(ctx.workspace.id, input.environmentId, tx);
+      const reordered = reconcileOrder(current, input.policyIds);
+      await savePolicies(ctx.workspace.id, input.environmentId, env.appId, reordered, tx);
+      return reordered.map((p) => p.id);
+    });
+    return { policyIds: reorderedIds };
   });
 
 /**

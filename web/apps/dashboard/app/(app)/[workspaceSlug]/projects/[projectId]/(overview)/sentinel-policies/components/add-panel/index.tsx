@@ -16,15 +16,15 @@ import {
 } from "@unkey/ui";
 import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, type Control, useForm, useWatch } from "react-hook-form";
 import { AccordionSection } from "./accordion-section";
 import { MatchConditionEditorBody } from "./match-condition-editor";
 import { PolicyConfigFields } from "./policy-config-fields";
 import { summarizeMatchConditions, summarizePolicy } from "./policy-summaries";
 import {
   POLICY_TYPE_OPTIONS,
+  type MatchConditionFormValues,
   type PolicyFormValues,
-  type PolicyType,
   fromSentinelPolicy,
   getDefaultValues,
   policyFormSchema,
@@ -56,7 +56,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
   const { envASlug, envBSlug, isOpen, topOffset, onClose } = props;
   const isEdit = props.mode === "edit";
 
-  const { control, handleSubmit, watch, reset, setValue } = useForm<PolicyFormValues>({
+  const { control, handleSubmit, reset, setValue } = useForm<PolicyFormValues>({
     resolver: zodResolver(policyFormSchema),
     defaultValues: isEdit
       ? fromSentinelPolicy(props.initialPolicy, "__all__")
@@ -64,8 +64,11 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
         getDefaultValues("keyauth"),
   });
 
-  const watchedType = watch("type");
-  const watchedValues = watch();
+  // Only watch the discriminator at this level — summary subscriptions live in
+  // their own components below so a keystroke in one form field doesn't
+  // re-render the entire panel (form, accordion, both summaries, keyspace
+  // query, condition editor).
+  const watchedType = useWatch({ control, name: "type" });
 
   const { data: availableKeyspaces = {} } =
     trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery();
@@ -77,17 +80,6 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
   const [expanded, setExpanded] = useState<ExpandedSection>("config");
   const toggleSection = (section: Exclude<ExpandedSection, "none">) =>
     setExpanded((prev) => (prev === section ? "none" : section));
-
-  const handleTypeChange = (newType: PolicyType) => {
-    const currentValues = watch();
-    reset({
-      ...getDefaultValues(newType),
-      name: currentValues.name,
-      environmentId: currentValues.environmentId,
-      matchConditions: currentValues.matchConditions,
-    });
-    setExpanded("config");
-  };
 
   const onSubmit = (values: PolicyFormValues) => {
     if (props.mode === "edit") {
@@ -163,11 +155,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
                       htmlFor="policy-type-select"
                       tooltipContent="The kind of protection this policy enforces."
                     />
-                    <Select
-                      value={field.value}
-                      onValueChange={(v) => handleTypeChange(v as PolicyType)}
-                      disabled={isEdit}
-                    >
+                    <Select value={field.value} onValueChange={field.onChange} disabled={isEdit}>
                       <SelectTrigger
                         id="policy-type-select"
                         className="capitalize"
@@ -194,7 +182,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
               <div className="mt-6">
                 <AccordionSection
                   label="Policy Configuration"
-                  summary={summarizePolicy(watchedValues, keyspaceNames)}
+                  summary={<PolicySummary control={control} keyspaceNames={keyspaceNames} />}
                   active
                   onToggle={() => toggleSection("config")}
                 >
@@ -206,7 +194,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
               <div className="mt-6">
                 <AccordionSection
                   label="Match Conditions"
-                  summary={summarizeMatchConditions(watchedValues.matchConditions)}
+                  summary={<MatchConditionsSummary control={control} />}
                   active
                   onToggle={() => toggleSection("matchConditions")}
                   tooltipContent={
@@ -216,10 +204,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
                     </span>
                   }
                 >
-                  <MatchConditionEditorBody
-                    conditions={watchedValues.matchConditions}
-                    onChange={(next) => setValue("matchConditions", next, { shouldDirty: true })}
-                  />
+                  <MatchConditionsEditor control={control} setValue={setValue} />
                 </AccordionSection>
               </div>
             )}
@@ -228,7 +213,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
           {expanded !== "config" && (
             <AccordionSection
               label="Policy Configuration"
-              summary={summarizePolicy(watchedValues, keyspaceNames)}
+              summary={<PolicySummary control={control} keyspaceNames={keyspaceNames} />}
               active={false}
               onToggle={() => toggleSection("config")}
             >
@@ -236,31 +221,11 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
             </AccordionSection>
           )}
           {expanded !== "matchConditions" && (
-            <AccordionSection
-              label="Match Conditions"
-              summary={summarizeMatchConditions(watchedValues.matchConditions)}
-              active={false}
+            <MatchConditionsCollapsedSection
+              control={control}
+              setValue={setValue}
               onToggle={() => toggleSection("matchConditions")}
-              tooltipContent={
-                <span>
-                  All conditions must match (<span className="text-gray-12 font-medium">AND</span>{" "}
-                  logic).
-                </span>
-              }
-              headerAction={
-                watchedValues.matchConditions.length > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => setValue("matchConditions", [], { shouldDirty: true })}
-                    className="text-xs text-accent-11 hover:text-accent-12 transition-colors cursor-pointer"
-                  >
-                    Clear all
-                  </button>
-                ) : undefined
-              }
-            >
-              {null}
-            </AccordionSection>
+            />
           )}
 
           <div className="border-t border-grayA-4">
@@ -309,5 +274,106 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
         </form>
       </SlidePanel.Content>
     </SlidePanel.Root>
+  );
+}
+
+// ── Summary subcomponents ───────────────────────────────────────────────
+//
+// Each component subscribes to ONLY the form fields it actually renders, via
+// `useWatch`. Keeping these as siblings of the form (rather than computing
+// `watch()` in the parent) means a keystroke in the policy name field
+// re-renders just the relevant summary, not the entire panel tree.
+
+function PolicySummary({
+  control,
+  keyspaceNames,
+}: {
+  control: Control<PolicyFormValues>;
+  keyspaceNames: Record<string, string>;
+}) {
+  // Watch only the fields summarizePolicy actually reads. Named useWatch
+  // returns the precise field type (no DeepPartial) and keeps the
+  // re-render scope tight.
+  const type = useWatch({ control, name: "type" });
+  const name = useWatch({ control, name: "name" });
+  const environmentId = useWatch({ control, name: "environmentId" });
+  const keySpaceIds = useWatch({ control, name: "keySpaceIds" });
+  const locations = useWatch({ control, name: "locations" });
+  const permissionQuery = useWatch({ control, name: "permissionQuery" });
+
+  return (
+    <>
+      {summarizePolicy(
+        { type, name, environmentId, matchConditions: [], keySpaceIds, locations, permissionQuery },
+        keyspaceNames,
+      )}
+    </>
+  );
+}
+
+function MatchConditionsSummary({ control }: { control: Control<PolicyFormValues> }) {
+  const conditions = useWatch({ control, name: "matchConditions" });
+  return <>{summarizeMatchConditions(conditions ?? [])}</>;
+}
+
+function MatchConditionsEditor({
+  control,
+  setValue,
+}: {
+  control: Control<PolicyFormValues>;
+  setValue: (
+    name: "matchConditions",
+    value: MatchConditionFormValues[],
+    options: { shouldDirty: boolean },
+  ) => void;
+}) {
+  const conditions = useWatch({ control, name: "matchConditions" }) ?? [];
+  return (
+    <MatchConditionEditorBody
+      conditions={conditions}
+      onChange={(next) => setValue("matchConditions", next, { shouldDirty: true })}
+    />
+  );
+}
+
+function MatchConditionsCollapsedSection({
+  control,
+  setValue,
+  onToggle,
+}: {
+  control: Control<PolicyFormValues>;
+  setValue: (
+    name: "matchConditions",
+    value: MatchConditionFormValues[],
+    options: { shouldDirty: boolean },
+  ) => void;
+  onToggle: () => void;
+}) {
+  const conditions = useWatch({ control, name: "matchConditions" }) ?? [];
+  return (
+    <AccordionSection
+      label="Match Conditions"
+      summary={summarizeMatchConditions(conditions)}
+      active={false}
+      onToggle={onToggle}
+      tooltipContent={
+        <span>
+          All conditions must match (<span className="text-gray-12 font-medium">AND</span> logic).
+        </span>
+      }
+      headerAction={
+        conditions.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setValue("matchConditions", [], { shouldDirty: true })}
+            className="text-xs text-accent-11 hover:text-accent-12 transition-colors cursor-pointer"
+          >
+            Clear all
+          </button>
+        ) : undefined
+      }
+    >
+      {null}
+    </AccordionSection>
   );
 }

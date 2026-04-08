@@ -6,6 +6,8 @@ import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
 import { queryClient, trpcClient } from "../client";
 import { trackSave } from "./environment-settings";
+import { type SentinelPolicy, sentinelPolicySchema } from "./sentinel-policies.schema";
+import { parseEnvironmentIdFromWhere, validateEnvironmentIdInQuery } from "./utils";
 
 /**
  * Whole-list reorder. Accepts a batch of (environmentId, policyIds) so a
@@ -40,9 +42,6 @@ export async function reorderSentinelPolicies(
     queryClient.invalidateQueries({ queryKey: ["sentinelPolicies", r.environmentId] });
   }
 }
-import { type SentinelPolicy, sentinelPolicySchema } from "./sentinel-policies.schema";
-import { parseEnvironmentIdFromWhere, validateEnvironmentIdInQuery } from "./utils";
-
 /**
  * A row in the sentinelPolicies collection: a SentinelPolicy plus the
  * environmentId it belongs to. Same policy id may exist in two envs
@@ -182,9 +181,12 @@ export function nextSentinelPolicyOrder(environmentId: string): number {
   return max + 1;
 }
 
-function stripEnv(row: SentinelPolicyRow): SentinelPolicy {
+// Returns `unknown` on purpose: every caller re-runs `sentinelPolicySchema.parse`
+// which is the one source of truth for the SentinelPolicy shape. This avoids
+// fighting TS over discriminated-union narrowing across destructure-and-spread.
+function stripEnv(row: SentinelPolicyRow): unknown {
   const { environmentId: _envId, _order: _o, ...policy } = row;
-  return policy as SentinelPolicy;
+  return policy;
 }
 
 // ── Per-type dispatch ───────────────────────────────────────────────────

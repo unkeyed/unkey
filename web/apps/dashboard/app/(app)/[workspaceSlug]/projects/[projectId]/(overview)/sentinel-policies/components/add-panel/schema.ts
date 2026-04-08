@@ -3,6 +3,7 @@ import {
   type MatchExpr,
   SENTINEL_LIMITS,
   type StringMatch,
+  matchExprSchema,
   stringMatchModeSchema,
 } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { match } from "@unkey/match";
@@ -15,7 +16,9 @@ const pathConditionSchema = z.object({
   id: z.string(),
   type: z.literal("path"),
   mode: stringMatchModeSchema,
-  value: z.string(),
+  // Canonical stringMatchValue is min(1) — enforce here so users see a
+  // field-level error instead of a generic 500 from savePolicies.
+  value: z.string().min(1, "Value is required"),
 });
 
 const httpMethodSchema = z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
@@ -44,12 +47,30 @@ const queryParamConditionSchema = z.object({
   value: z.string().optional(),
 });
 
-export const matchConditionSchema = z.discriminatedUnion("type", [
-  pathConditionSchema,
-  methodConditionSchema,
-  headerConditionSchema,
-  queryParamConditionSchema,
-]);
+// Header/queryParam conditions match against a stringMatch whose value must be
+// non-empty (canonical stringMatchValue = min(1)) unless `present` is set.
+// Refine on the union so the error attaches to the `value` field — users see a
+// field-level error instead of a generic 500 from savePolicies.
+export const matchConditionSchema = z
+  .discriminatedUnion("type", [
+    pathConditionSchema,
+    methodConditionSchema,
+    headerConditionSchema,
+    queryParamConditionSchema,
+  ])
+  .superRefine((c, ctx) => {
+    if (
+      (c.type === "header" || c.type === "queryParam") &&
+      !c.present &&
+      (c.value ?? "").length === 0
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Value is required",
+        path: ["value"],
+      });
+    }
+  });
 
 export type MatchConditionFormValues = z.infer<typeof matchConditionSchema>;
 
@@ -143,21 +164,21 @@ function toMatchExpr(condition: MatchConditionFormValues): MatchExpr {
       c.present
         ? { header: { name: c.name, present: true } }
         : {
-            header: {
-              name: c.name,
-              value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
-            },
+          header: {
+            name: c.name,
+            value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
           },
+        },
     )
     .with({ type: "queryParam" }, (c) =>
       c.present
         ? { queryParam: { name: c.name, present: true } }
         : {
-            queryParam: {
-              name: c.name,
-              value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
-            },
+          queryParam: {
+            name: c.name,
+            value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
           },
+        },
     )
     .exhaustive();
 }
@@ -170,7 +191,7 @@ export function toSentinelPolicy(values: PolicyFormValues, existingId?: string):
     .with({ type: "keyauth" }, (v) => {
       const locations = v.locations.map((loc) =>
         match(loc.locationType)
-          .with("bearer", () => ({ bearer: {} as Record<string, never> }))
+          .with("bearer", () => ({ bearer: {} }))
           .with("header", () => ({
             header: {
               name: loc.name ?? "",
@@ -221,42 +242,35 @@ function stringMatchToMode(sm: {
 // the list and the editor can address rows individually (update/delete a single
 // condition without touching its siblings). We mint a fresh UUID on read here;
 // it's discarded again on save by toSentinelPolicy.
-function fromMatchExpr(expr: Record<string, unknown>): MatchConditionFormValues {
+function fromMatchExpr(raw: unknown): MatchConditionFormValues | null {
+  const parsed = matchExprSchema.safeParse(raw);
+  if (!parsed.success) {
+    return null;
+  }
+  const expr = parsed.data;
   const id = crypto.randomUUID();
   if ("path" in expr) {
-    const p = expr.path as { path: { exact?: string; prefix?: string; regex?: string } };
-    const { mode, value } = stringMatchToMode(p.path);
+    const { mode, value } = stringMatchToMode(expr.path.path);
     return { id, type: "path", mode, value };
   }
   if ("method" in expr) {
-    const m = expr.method as { methods: z.infer<typeof httpMethodSchema>[] };
-    return { id, type: "method", methods: m.methods };
+    return { id, type: "method", methods: expr.method.methods };
   }
   if ("header" in expr) {
-    const h = expr.header as {
-      name: string;
-      present?: true;
-      value?: { exact?: string; prefix?: string; regex?: string };
-    };
-    if (h.present) {
-      return { id, type: "header", name: h.name, present: true };
+    if ("present" in expr.header) {
+      return { id, type: "header", name: expr.header.name, present: true };
     }
-    const { mode, value } = stringMatchToMode(h.value ?? {});
-    return { id, type: "header", name: h.name, mode, value };
+    const { mode, value } = stringMatchToMode(expr.header.value);
+    return { id, type: "header", name: expr.header.name, mode, value };
   }
   if ("queryParam" in expr) {
-    const q = expr.queryParam as {
-      name: string;
-      present?: true;
-      value?: { exact?: string; prefix?: string; regex?: string };
-    };
-    if (q.present) {
-      return { id, type: "queryParam", name: q.name, present: true };
+    if ("present" in expr.queryParam) {
+      return { id, type: "queryParam", name: expr.queryParam.name, present: true };
     }
-    const { mode, value } = stringMatchToMode(q.value ?? {});
-    return { id, type: "queryParam", name: q.name, mode, value };
+    const { mode, value } = stringMatchToMode(expr.queryParam.value);
+    return { id, type: "queryParam", name: expr.queryParam.name, mode, value };
   }
-  throw new Error("unknown match expression");
+  return null;
 }
 
 export function fromSentinelPolicy(
@@ -281,9 +295,9 @@ export function fromSentinelPolicy(
         return { id, locationType: "queryParam", name: loc.queryParam.name };
       });
 
-      const matchConditions: MatchConditionFormValues[] = (p.match ?? []).map((expr) =>
-        fromMatchExpr(expr as unknown as Record<string, unknown>),
-      );
+      const matchConditions: MatchConditionFormValues[] = (p.match ?? [])
+        .map(fromMatchExpr)
+        .filter((c): c is MatchConditionFormValues => c !== null);
 
       return {
         type: "keyauth" as const,

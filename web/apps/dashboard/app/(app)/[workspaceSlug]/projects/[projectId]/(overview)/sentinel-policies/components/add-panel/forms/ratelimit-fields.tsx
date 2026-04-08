@@ -12,9 +12,28 @@ import {
 import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import type { Control } from "react-hook-form";
 import { useController } from "react-hook-form";
-import type { PolicyFormValues, RateLimitKeySource } from "../schema";
 
-type RatelimitFormValues = Extract<PolicyFormValues, { type: "ratelimit" }>;
+// Self-contained ratelimit form types. Not yet wired into the canonical
+// PolicyFormValues union — this file is a placeholder for an upcoming
+// ratelimit policy variant. Once `policyFormSchema` grows a `ratelimit`
+// branch, replace these with `Extract<PolicyFormValues, { type: "ratelimit" }>`
+// and the matching key-source enum from ../schema.
+export type RateLimitKeySource =
+  | "remoteIp"
+  | "header"
+  | "authenticatedSubject"
+  | "path"
+  | "principalClaim";
+
+type RatelimitFormValues = {
+  type: "ratelimit";
+  name: string;
+  environmentId: string;
+  limit: number;
+  windowMs: number;
+  keySource: RateLimitKeySource;
+  keyValue: string;
+};
 
 const KEY_SOURCE_OPTIONS: { value: RateLimitKeySource; label: string }[] = [
   { value: "remoteIp", label: "Remote IP" },

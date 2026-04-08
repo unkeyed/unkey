@@ -17,14 +17,23 @@ import { TRPCError } from "@trpc/server";
 import { appRuntimeSettings, environments } from "@unkey/db/src/schema";
 
 /**
+ * Per-policy mutations do read-modify-write on a single JSON blob, so they
+ * MUST run inside a transaction to avoid lost updates from concurrent edits
+ * (two tabs, fast drag-reorder, etc.). Helpers below accept an Executor so
+ * callers can pass either `db` (for plain reads) or a `tx` (for RMW).
+ */
+export type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
  * Look up an environment scoped to the caller's workspace.
  * Throws NOT_FOUND if missing or not owned by this workspace.
  */
 export async function loadOwnedEnvironment(
   workspaceId: string,
   environmentId: string,
+  executor: Executor = db,
 ): Promise<{ appId: string }> {
-  const env = await db.query.environments.findFirst({
+  const env = await executor.query.environments.findFirst({
     where: and(eq(environments.id, environmentId), eq(environments.workspaceId, workspaceId)),
     columns: { appId: true },
   });
@@ -77,8 +86,9 @@ export async function assertKeyspacesOwned(
 export async function loadPolicies(
   workspaceId: string,
   environmentId: string,
+  executor: Executor = db,
 ): Promise<SentinelPolicy[]> {
-  const row = await db.query.appRuntimeSettings.findFirst({
+  const row = await executor.query.appRuntimeSettings.findFirst({
     where: and(
       eq(appRuntimeSettings.workspaceId, workspaceId),
       eq(appRuntimeSettings.environmentId, environmentId),
@@ -123,13 +133,14 @@ export async function savePolicies(
   environmentId: string,
   appId: string,
   policies: SentinelPolicy[],
+  executor: Executor = db,
 ): Promise<void> {
   sentinelConfigSchema.parse({ policies });
 
   const blob = JSON.stringify({ policies: policies.map(toWirePolicy) });
   const now = Date.now();
 
-  await db
+  await executor
     .insert(appRuntimeSettings)
     .values({
       workspaceId,

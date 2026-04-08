@@ -75,17 +75,5 @@ export function summarizePolicy(
         )}
       </span>
     ))
-    .with({ type: "ratelimit" }, (v) => {
-      const seconds = v.windowMs >= 1000 ? `${(v.windowMs / 1000).toFixed(0)}s` : `${v.windowMs}ms`;
-      return (
-        <span className="text-gray-11">
-          Ratelimit
-          <Sep />
-          <Strong>{v.limit}</Strong> req / <Strong>{seconds}</Strong>
-          <Sep />
-          {v.keySource}
-        </span>
-      );
-    })
     .exhaustive();
 }

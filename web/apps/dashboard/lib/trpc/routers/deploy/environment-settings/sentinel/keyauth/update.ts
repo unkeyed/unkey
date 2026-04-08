@@ -1,4 +1,5 @@
 import { keyauthPolicySchema } from "@/lib/collections/deploy/sentinel-policies.schema";
+import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../../../trpc";
@@ -12,28 +13,28 @@ export const update = workspaceProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    // So if keyspaces are not owned this will prevent loading the policies
-    const [env, _, current] = await Promise.all([
-      loadOwnedEnvironment(ctx.workspace.id, input.environmentId),
-      assertKeyspacesOwned(ctx.workspace.id, input.policy.keyauth.keySpaceIds),
-      loadPolicies(ctx.workspace.id, input.environmentId),
-    ]);
-    const idx = current.findIndex((p) => p.id === input.policy.id);
-    if (idx === -1) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: `Policy ${input.policy.id} not found`,
-      });
-    }
-    if (current[idx].type !== "keyauth") {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: `Policy ${input.policy.id} is not a keyauth policy`,
-      });
-    }
+    await assertKeyspacesOwned(ctx.workspace.id, input.policy.keyauth.keySpaceIds);
 
-    const next = [...current];
-    next[idx] = input.policy;
-    await savePolicies(ctx.workspace.id, input.environmentId, env.appId, next);
+    await db.transaction(async (tx) => {
+      const env = await loadOwnedEnvironment(ctx.workspace.id, input.environmentId, tx);
+      const current = await loadPolicies(ctx.workspace.id, input.environmentId, tx);
+      const idx = current.findIndex((p) => p.id === input.policy.id);
+      if (idx === -1) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `Policy ${input.policy.id} not found`,
+        });
+      }
+      if (current[idx].type !== "keyauth") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Policy ${input.policy.id} is not a keyauth policy`,
+        });
+      }
+
+      const next = [...current];
+      next[idx] = input.policy;
+      await savePolicies(ctx.workspace.id, input.environmentId, env.appId, next, tx);
+    });
     return { policy: input.policy };
   });
