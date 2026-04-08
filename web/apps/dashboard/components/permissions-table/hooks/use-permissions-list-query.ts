@@ -41,6 +41,10 @@ const SORT_FIELD_TO_COLUMN_ID: Record<PermissionsSortField, string> = {
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
 
+const DEFAULT_SORT_PARAMS: SortUrlValue<PermissionsSortField>[] = [
+  { column: "lastUpdated", direction: "desc" },
+];
+
 function buildQueryParams(filters: PermissionsFilterValue[]): PermissionsFilterParams {
   const params: PermissionsFilterParams = {
     name: [],
@@ -80,9 +84,6 @@ export function usePermissionsListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   const { filters } = useFilters();
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
   const normalizedPage = Math.max(1, page);
-  const DEFAULT_SORT_PARAMS: SortUrlValue<PermissionsSortField>[] = [
-    { column: "lastUpdated", direction: "desc" },
-  ];
 
   const [sortParams, setSortParams] = useQueryState(
     "sort",

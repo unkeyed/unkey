@@ -1,5 +1,9 @@
 import type { PermissionsFilterOperator } from "@/app/(app)/[workspaceSlug]/authorization/permissions/filters.schema";
-import { permissionsQueryPayload } from "@/components/permissions-table/schema/permissions.schema";
+import {
+  type PermissionsSortField,
+  type PermissionsSortOrder,
+  permissionsQueryPayload,
+} from "@/components/permissions-table/schema/permissions.schema";
 import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
@@ -40,7 +44,11 @@ const SORT_FIELD_TO_OUTER_SQL: Record<string, string> = {
   totalConnectedKeys: "total_connected_keys",
 };
 
-function buildOrderBy(sortBy: string, sortOrder: string, context: "inner" | "outer") {
+function buildOrderBy(
+  sortBy: PermissionsSortField,
+  sortOrder: PermissionsSortOrder,
+  context: "inner" | "outer",
+) {
   const map = context === "inner" ? SORT_FIELD_TO_INNER_SQL : SORT_FIELD_TO_OUTER_SQL;
   const column = map[sortBy];
 
