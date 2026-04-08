@@ -16,7 +16,7 @@ export type SentinelPolicyActions = {
   addToEnv: (id: string, env: "envA" | "envB") => void;
   reorder: (envs: ("envA" | "envB")[], orderedIds: string[]) => void;
   add: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
-  save: (updated: SentinelPolicy) => void;
+  save: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
   delete: (id: string) => void;
 };
 
@@ -104,32 +104,35 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
   );
 
   const save = useCallback(
-    (updated: SentinelPolicy) => {
-      // Batch both env-rows into one transaction so the collection's onUpdate
-      // toast fires once, not twice (count is plural-aware).
-      const keys: string[] = [];
-      if (envAId && collection.sentinelPolicies.get(`${envAId}::${updated.id}`)) {
-        keys.push(`${envAId}::${updated.id}`);
-      }
-      if (envBId && collection.sentinelPolicies.get(`${envBId}::${updated.id}`)) {
-        keys.push(`${envBId}::${updated.id}`);
-      }
-      if (keys.length === 0) {
+    (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => {
+      const id = (prodPolicy ?? previewPolicy)?.id;
+      if (!id) {
         return;
       }
-      collection.sentinelPolicies.update(keys, (drafts) => {
-        for (const draft of drafts) {
-          // Preserve each environment's own enabled state. The caller passes
-          // initialPolicy.enabled from one specific env, so spreading it would
-          // clobber the other env's toggle.
-          const currentEnabled = draft.enabled;
-          const currentEnvId = draft.environmentId;
-          Object.assign(draft, updated, {
-            environmentId: currentEnvId,
-            enabled: currentEnabled,
+      const targets = [
+        { envId: envAId, policy: prodPolicy },
+        { envId: envBId, policy: previewPolicy },
+      ].filter((t) => t.envId);
+
+      for (const { envId, policy } of targets) {
+        const key = `${envId}::${id}`;
+        const existing = collection.sentinelPolicies.get(key);
+        if (existing) {
+          collection.sentinelPolicies.update(key, (draft) => {
+            if (policy) {
+              Object.assign(draft, policy, { environmentId: envId, enabled: true });
+            } else {
+              draft.enabled = false;
+            }
+          });
+        } else if (policy) {
+          collection.sentinelPolicies.insert({
+            ...policy,
+            environmentId: envId,
+            _order: nextSentinelPolicyOrder(envId),
           });
         }
-      });
+      }
     },
     [envAId, envBId],
   );

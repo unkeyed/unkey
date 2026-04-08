@@ -50,7 +50,8 @@ type AddProps = CommonProps & {
 type EditProps = CommonProps & {
   mode: "edit";
   initialPolicy: SentinelPolicy;
-  onSave: (updated: SentinelPolicy) => void;
+  initialEnvironmentId: string;
+  onSave: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
 };
 
 export type SentinelPolicyPanelProps = AddProps | EditProps;
@@ -62,7 +63,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
   const form = useForm<PolicyFormValues>({
     resolver: zodResolver(policyFormSchema),
     defaultValues: isEdit
-      ? fromSentinelPolicy(props.initialPolicy, "__all__")
+      ? fromSentinelPolicy(props.initialPolicy, props.initialEnvironmentId)
       : // For now we only have keyauth so we default to that
         getDefaultValues("keyauth"),
   });
@@ -86,14 +87,8 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
     setExpanded((prev) => (prev === section ? "none" : section));
 
   const onSubmit = (values: PolicyFormValues) => {
-    if (props.mode === "edit") {
-      const updated = toSentinelPolicy(values, props.initialPolicy.id);
-      props.onSave({ ...updated, enabled: props.initialPolicy.enabled });
-      onClose();
-      return;
-    }
-
-    const policy = toSentinelPolicy(values);
+    const id = props.mode === "edit" ? props.initialPolicy.id : undefined;
+    const policy = toSentinelPolicy(values, id);
     const prodPolicy =
       values.environmentId === "__all__" || values.environmentId === envASlug
         ? { ...policy, enabled: true }
@@ -102,6 +97,13 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       values.environmentId === "__all__" || values.environmentId === envBSlug
         ? { ...policy, enabled: true }
         : null;
+
+    if (props.mode === "edit") {
+      props.onSave(prodPolicy, previewPolicy);
+      onClose();
+      return;
+    }
+
     props.onAdd(prodPolicy, previewPolicy);
     onClose();
     reset(getDefaultValues("keyauth"));
@@ -241,7 +243,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
                         htmlFor="policy-env-select"
                         tooltipContent="Which environments this policy will be added to."
                       />
-                      <Select value={field.value} onValueChange={field.onChange} disabled={isEdit}>
+                      <Select value={field.value} onValueChange={field.onChange}>
                         <SelectTrigger
                           id="policy-env-select"
                           className="capitalize"

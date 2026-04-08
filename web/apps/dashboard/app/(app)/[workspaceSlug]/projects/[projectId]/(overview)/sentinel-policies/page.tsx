@@ -1,5 +1,6 @@
 "use client";
 
+import { match } from "@unkey/match";
 import { ProjectContentWrapper } from "../../components/project-content-wrapper";
 import { useOptionalProjectLayout } from "../layout-provider";
 import { SentinelPolicyPanel } from "./components/add-panel";
@@ -16,6 +17,17 @@ export default function SentinelPoliciesPage() {
   const { envAId, envBId, envASlug, envBSlug, merged, isLoading } = useSentinelPoliciesData();
   const actions = useSentinelPolicyActions({ envAId, envBId });
   const panels = useSentinelPolicyPanels();
+
+  const editingRow = panels.editing ? merged.find((m) => m.id === panels.editing?.id) : undefined;
+  const editingEnabled = {
+    a: editingRow?.envA?.enabled ?? false,
+    b: editingRow?.envB?.enabled ?? false,
+  };
+  const editingInitialEnvId = match(editingEnabled)
+    .with({ a: true, b: true }, () => "__all__")
+    .with({ a: true }, () => envASlug)
+    .with({ b: true }, () => envBSlug)
+    .otherwise(() => "__all__");
 
   return (
     <ProjectContentWrapper centered maxWidth="960px" className="mt-8">
@@ -56,8 +68,9 @@ export default function SentinelPoliciesPage() {
             topOffset={layout?.tableDistanceToTop ?? 0}
             onClose={panels.closeEdit}
             initialPolicy={panels.editing}
-            onSave={(updated) => {
-              actions.save(updated);
+            initialEnvironmentId={editingInitialEnvId}
+            onSave={(prodPolicy, previewPolicy) => {
+              actions.save(prodPolicy, previewPolicy);
               panels.closeEdit();
             }}
           />
