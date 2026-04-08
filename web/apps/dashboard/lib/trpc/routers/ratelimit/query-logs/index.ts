@@ -62,6 +62,13 @@ export const queryRatelimitLogs = workspaceProcedure
     const [countResult, logsResult] = await Promise.all([countQuery, logsQuery]);
 
     if (countResult.err || logsResult.err) {
+      const errMessage = countResult.err?.message ?? logsResult.err?.message ?? "";
+      console.error("Clickhouse ratelimit logs query failed", {
+        error: errMessage,
+        namespaceId: input.namespaceId,
+        startTime: input.startTime,
+        endTime: input.endTime,
+      });
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching data from clickhouse.",
