@@ -385,6 +385,8 @@ WITH filtered_ratelimits AS (
         AND (
             {cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)}
         )
+    ORDER BY time DESC
+    LIMIT {limit: Int}
 )
 SELECT
     fr.request_id,
@@ -422,9 +424,9 @@ LEFT JOIN (
     FROM default.api_requests_raw_v2
     WHERE workspace_id = {workspaceId: String}
         AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+        AND request_id IN (SELECT request_id FROM filtered_ratelimits)
 ) m ON fr.request_id = m.request_id
-ORDER BY fr.time DESC
-LIMIT {limit: Int}`,
+ORDER BY fr.time DESC`,
       params: extendedParamsSchema,
       schema: ratelimitLogs,
     });
