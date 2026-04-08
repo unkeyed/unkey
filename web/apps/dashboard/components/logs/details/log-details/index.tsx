@@ -1,12 +1,12 @@
 "use client";
 import { extractResponseField, safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
+import type { EnrichedRatelimitLog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/components/table/hooks/use-logs-query";
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
 import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import type { Log } from "@unkey/clickhouse/src/logs";
-import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
 import { LogFooter } from "./components/log-footer";
@@ -23,7 +23,7 @@ const createPanelStyle = (distanceToTop: number) => ({
   paddingBottom: "1rem",
 });
 
-export type StandardLogTypes = Log | RatelimitLog;
+export type StandardLogTypes = Log | EnrichedRatelimitLog;
 export type SupportedLogTypes =
   | StandardLogTypes
   | KeysOverviewLog
@@ -46,7 +46,7 @@ const LogDetailsContext = createContext<LogDetailsContextValue>({
 const useLogDetailsContext = () => useContext(LogDetailsContext);
 
 // Helper functions for standard logs
-const createLogSections = (log: Log | RatelimitLog) => [
+const createLogSections = (log: Log | EnrichedRatelimitLog) => [
   {
     title: "Request Header",
     content: log.request_headers.length ? log.request_headers : EMPTY_TEXT,
@@ -88,7 +88,7 @@ const createMetaContent = (log: SupportedLogTypes) => {
 
   // Standard log meta handling
   if ("request_body" in log || "response_body" in log) {
-    const meta = extractResponseField(log as Log | RatelimitLog, "meta");
+    const meta = extractResponseField(log as Log | EnrichedRatelimitLog, "meta");
     return JSON.stringify(meta, null, 2) === "null" ? (
       <span className="text-xs text-accent-12 truncate">{EMPTY_TEXT}</span>
     ) : (
@@ -100,7 +100,7 @@ const createMetaContent = (log: SupportedLogTypes) => {
 };
 
 // Type guards
-const isStandardLog = (log: SupportedLogTypes): log is Log | RatelimitLog => {
+const isStandardLog = (log: SupportedLogTypes): log is Log | EnrichedRatelimitLog => {
   return "request_headers" in log && "response_headers" in log;
 };
 
@@ -227,7 +227,9 @@ const Sections = ({
   const { log } = useLogDetailsContext();
 
   if (!isStandardLog(log)) {
-    console.warn("LogDetails.Sections can only be used with standard logs (Log | RatelimitLog)");
+    console.warn(
+      "LogDetails.Sections can only be used with standard logs (Log | EnrichedRatelimitLog)",
+    );
     return null;
   }
 

@@ -61,10 +61,9 @@ export const queryRatelimitLogs = workspaceProcedure
 
     const [countResult, logsResult] = await Promise.all([countQuery, logsQuery]);
 
-    if (countResult.err || logsResult.err) {
-      const errMessage = countResult.err?.message ?? logsResult.err?.message ?? "";
+    if (logsResult.err) {
       console.error("Clickhouse ratelimit logs query failed", {
-        error: errMessage,
+        error: logsResult.err.message,
         namespaceId: input.namespaceId,
         startTime: input.startTime,
         endTime: input.endTime,
@@ -75,10 +74,18 @@ export const queryRatelimitLogs = workspaceProcedure
       });
     }
 
+    if (countResult.err) {
+      console.warn("Clickhouse ratelimit count query failed, returning logs without total", {
+        error: countResult.err.message,
+        namespaceId: input.namespaceId,
+      });
+    }
+
     const logs = logsResult.val;
+    const total = countResult.err ? -1 : (countResult.val[0]?.total_count ?? -1);
     const response: RatelimitLogsResponse = {
       ratelimitLogs: logs,
-      total: countResult.val[0].total_count,
+      total,
       hasMore: logs.length === input.limit,
       nextCursor: logs.length > 0 ? logs[logs.length - 1].time : undefined,
     };
