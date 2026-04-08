@@ -1,5 +1,6 @@
 -- name: InsertGithubRepoConnection :exec
 INSERT INTO github_repo_connections (
+    workspace_id,
     project_id,
     app_id,
     installation_id,
@@ -9,6 +10,7 @@ INSERT INTO github_repo_connections (
     updated_at
 )
 VALUES (
+    sqlc.arg(workspace_id),
     sqlc.arg(project_id),
     sqlc.arg(app_id),
     sqlc.arg(installation_id),
