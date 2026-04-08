@@ -11,6 +11,7 @@ const pool = mysql.createPool({
   user: DATABASE_USERNAME,
   password: DATABASE_PASSWORD,
   database: "unkey",
+  enableKeepAlive: true,
   ...(isLocal ? {} : { ssl: { rejectUnauthorized: true } }),
 });
 
