@@ -1,10 +1,10 @@
-import type { StringMatchMode } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
+import type { StringMatchMode } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { ChevronDown, Trash } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import type { MatchConditionFormValues } from "../schema";
 import { ConditionFields } from "./condition-fields";
-import { MATCH_TYPE_OPTIONS } from "./constants";
+import { type HttpMethod, MATCH_TYPE_OPTIONS } from "./constants";
 
 export function MatchConditionCard({
   condition,
@@ -34,7 +34,7 @@ export function MatchConditionCard({
                 .with("method", () => ({
                   ...base,
                   type: "method" as const,
-                  methods: [] as string[],
+                  methods: [] as HttpMethod[],
                 }))
                 .with("header", () => ({ ...base, type: "header" as const, name: "" }))
                 .with("queryParam", () => ({ ...base, type: "queryParam" as const, name: "" }))

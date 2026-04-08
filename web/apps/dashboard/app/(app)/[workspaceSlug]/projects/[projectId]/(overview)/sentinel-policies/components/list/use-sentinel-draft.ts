@@ -1,7 +1,7 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import type { SentinelPolicy } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
+import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { useCallback, useMemo, useState } from "react";
 
 export type SentinelDraftActions = {
@@ -26,7 +26,8 @@ type Args = {
  * Stages cheap, reversible sentinel-policy edits (toggle, reorder, config
  * tweaks) locally. While `draft` is null the UI mirrors the server; the first
  * edit forks a draft and subsequent actions mutate it. Save flushes to the
- * collection; Discard drops the draft.
+ * sentinelPolicies collection by diffing draft vs server and emitting
+ * per-policy insert/update/delete; Discard drops the draft.
  *
  * Add and Delete intentionally bypass the draft — they're handled at the
  * parent against the collection directly.
@@ -100,14 +101,10 @@ export function useSentinelDraft({ envAId, envBId, policiesA, policiesB }: Args)
     if (draft === null) {
       return;
     }
-    collection.environmentSettings.update(envAId, (d) => {
-      d.sentinelConfig = { policies: toEnv(draft, "envA") };
-    });
-    collection.environmentSettings.update(envBId, (d) => {
-      d.sentinelConfig = { policies: toEnv(draft, "envB") };
-    });
+    flushDiff(envAId, policiesA, toEnv(draft, "envA"));
+    flushDiff(envBId, policiesB, toEnv(draft, "envB"));
     setDraft(null);
-  }, [draft, envAId, envBId]);
+  }, [draft, envAId, envBId, policiesA, policiesB]);
 
   const discard = useCallback(() => setDraft(null), []);
 
@@ -159,4 +156,45 @@ function policiesEqual(a: SentinelPolicy[], b: SentinelPolicy[]): boolean {
   return true;
 }
 
+/**
+ * Apply a diff between server policies and target policies for one
+ * environment by emitting per-policy insert/update/delete on the
+ * sentinelPolicies collection. Reorder-only changes (same set of ids,
+ * different order) are skipped — the underlying blob preserves order, but
+ * since each policy id is its own row there's no per-row "position" field
+ * to update; full reorder requires rewriting the blob and is intentionally
+ * out of scope for this refactor.
+ */
+function flushDiff(
+  environmentId: string,
+  server: SentinelPolicy[],
+  target: SentinelPolicy[],
+): void {
+  if (!environmentId) {
+    return;
+  }
+  const serverMap = new Map(server.map((p) => [p.id, p]));
+  const targetMap = new Map(target.map((p) => [p.id, p]));
 
+  // Inserts and updates.
+  for (const next of target) {
+    const prev = serverMap.get(next.id);
+    if (!prev) {
+      collection.sentinelPolicies.insert({ ...next, environmentId });
+      continue;
+    }
+    if (JSON.stringify(prev) !== JSON.stringify(next)) {
+      const key = `${environmentId}::${next.id}`;
+      collection.sentinelPolicies.update(key, (draft) => {
+        Object.assign(draft, next);
+      });
+    }
+  }
+
+  // Deletes.
+  for (const prev of server) {
+    if (!targetMap.has(prev.id)) {
+      collection.sentinelPolicies.delete(`${environmentId}::${prev.id}`);
+    }
+  }
+}

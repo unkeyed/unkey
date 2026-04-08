@@ -1,7 +1,7 @@
 "use client";
 
+import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { trpc } from "@/lib/trpc/client";
-import type { SentinelPolicy } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, DoubleChevronRight } from "@unkey/icons";
 import {
@@ -81,15 +81,17 @@ export function SentinelPolicyAddPanel({
     const policy = toSentinelPolicy(values);
 
     const prodPolicy =
-      values.environmentId === "__all__" || values.environmentId === envASlug ? policy : null;
+      values.environmentId === "__all__" || values.environmentId === envASlug
+        ? { ...policy, enabled: true }
+        : null;
     const previewPolicy =
       values.environmentId === "__all__" || values.environmentId === envBSlug
-        ? { ...policy, enabled: values.environmentId === envBSlug }
+        ? { ...policy, enabled: true }
         : null;
 
     onAdd(prodPolicy, previewPolicy);
     onClose();
-    reset(getDefaultValues("ratelimit"));
+    reset(getDefaultValues("keyauth"));
   };
 
   return (

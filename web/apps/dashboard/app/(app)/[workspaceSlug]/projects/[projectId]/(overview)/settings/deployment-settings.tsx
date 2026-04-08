@@ -18,7 +18,6 @@ import { Regions } from "./components/runtime-settings/regions";
 import { CustomDomains } from "./components/advanced-settings/custom-domains";
 
 import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
-import { Keyspaces } from "./components/sentinel-settings/keyspaces";
 import { SettingsGroup } from "./components/shared/settings-group";
 
 // build is only required to invalidate other defaults. E.g onboarding settings, passes build=true to prevent expanding other sections.
@@ -70,15 +69,6 @@ export const DeploymentSettings = ({
         <SettingCardGroup>
           <CustomDomains />
           <OpenapiSpecPath />
-        </SettingCardGroup>
-      </SettingsGroup>
-      <SettingsGroup
-        icon={<StackPerspective2 iconSize="md-medium" />}
-        title="Sentinel configurations"
-        defaultExpanded={Boolean(sections.sentinel)}
-      >
-        <SettingCardGroup>
-          <Keyspaces />
         </SettingCardGroup>
       </SettingsGroup>
     </div>

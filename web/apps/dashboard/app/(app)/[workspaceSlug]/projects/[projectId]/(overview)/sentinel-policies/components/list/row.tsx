@@ -1,7 +1,7 @@
 "use client";
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import type { SentinelPolicy } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
+import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { cn } from "@/lib/utils";
 import { Dots, GripDotsVertical, PenWriting3, Trash } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -36,11 +36,6 @@ type SentinelPolicyRowProps = {
 
 const POLICY_TYPE_LABELS: Record<SentinelPolicy["type"], string> = {
   keyauth: "Key Auth",
-  ratelimit: "Rate Limit",
-  jwt: "JWT Auth",
-  basicauth: "Basic Auth",
-  iprules: "IP Rules",
-  openapi: "OpenAPI",
 };
 
 function EnvBadge({

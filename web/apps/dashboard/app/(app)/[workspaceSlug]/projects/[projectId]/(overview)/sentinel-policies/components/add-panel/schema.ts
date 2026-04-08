@@ -1,26 +1,28 @@
-import type {
-  MatchExpr,
-  SentinelPolicy,
-  StringMatch,
-} from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
+import {
+  type KeyauthPolicy,
+  type MatchExpr,
+  SENTINEL_LIMITS,
+  type StringMatch,
+  stringMatchModeSchema,
+} from "@/lib/collections/deploy/sentinel-policies.schema";
 import { match } from "@unkey/match";
 import { z } from "zod";
 
-// ── Match condition form schema ─────────────────────────────────────────
-
-const stringMatchMode = z.enum(["exact", "prefix", "regex"]);
+export type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 
 const pathConditionSchema = z.object({
   id: z.string(),
   type: z.literal("path"),
-  mode: stringMatchMode,
+  mode: stringMatchModeSchema,
   value: z.string(),
 });
+
+const httpMethodSchema = z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
 
 const methodConditionSchema = z.object({
   id: z.string(),
   type: z.literal("method"),
-  methods: z.array(z.string()).min(1, "Select at least one method"),
+  methods: z.array(httpMethodSchema).min(1, "Select at least one method"),
 });
 
 const headerConditionSchema = z.object({
@@ -28,7 +30,7 @@ const headerConditionSchema = z.object({
   type: z.literal("header"),
   name: z.string().min(1, "Header name is required"),
   present: z.boolean().optional(),
-  mode: stringMatchMode.optional(),
+  mode: stringMatchModeSchema.optional(),
   value: z.string().optional(),
 });
 
@@ -37,7 +39,7 @@ const queryParamConditionSchema = z.object({
   type: z.literal("queryParam"),
   name: z.string().min(1, "Param name is required"),
   present: z.boolean().optional(),
-  mode: stringMatchMode.optional(),
+  mode: stringMatchModeSchema.optional(),
   value: z.string().optional(),
 });
 
@@ -50,7 +52,6 @@ export const matchConditionSchema = z.discriminatedUnion("type", [
 
 export type MatchConditionFormValues = z.infer<typeof matchConditionSchema>;
 
-// ── Key location form schema ────────────────────────────────────────────
 
 export const keyLocationTypeSchema = z.enum(["bearer", "header", "queryParam"]);
 export type KeyLocationType = z.infer<typeof keyLocationTypeSchema>;
@@ -64,18 +65,11 @@ const keyLocationFormSchema = z.object({
 
 export type KeyLocationFormValues = z.infer<typeof keyLocationFormSchema>;
 
-// ── Rate limit key source ───────────────────────────────────────────────
-
-export const rateLimitKeySourceSchema = z.enum([
-  "remoteIp",
-  "header",
-  "authenticatedSubject",
-  "path",
-  "principalClaim",
-]);
-export type RateLimitKeySource = z.infer<typeof rateLimitKeySourceSchema>;
-
-// ── Policy form schema (discriminated union on type) ────────────────────
+// ── Policy form schema ──────────────────────────────────────────────────
+//
+// Discriminated union on `type` so adding a new policy form (e.g. ratelimit)
+// later is just one extra branch here + one branch in toSentinelPolicy below.
+// Today only `keyauth` is wired through.
 
 const basePolicyFields = {
   name: z.string().min(1, "Name is required"),
@@ -83,32 +77,23 @@ const basePolicyFields = {
   matchConditions: z.array(matchConditionSchema),
 };
 
-const keyauthSchema = z.object({
+const keyauthFormSchema = z.object({
   ...basePolicyFields,
   type: z.literal("keyauth"),
-  keySpaceIds: z.array(z.string()).min(1, "Select at least one keyspace"),
+  keySpaceIds: z
+    .array(z.string())
+    .min(1, "Select at least one keyspace")
+    .max(SENTINEL_LIMITS.maxKeyspacesPerPolicy),
   locations: z.array(keyLocationFormSchema),
-  permissionQuery: z.string(),
+  permissionQuery: z.string().max(SENTINEL_LIMITS.permissionQueryMaxLength),
 });
 
-const ratelimitSchema = z.object({
-  ...basePolicyFields,
-  type: z.literal("ratelimit"),
-  limit: z.number().min(1, "Limit must be at least 1"),
-  windowMs: z.number().min(1, "Window must be at least 1ms"),
-  keySource: rateLimitKeySourceSchema,
-  keyValue: z.string(),
-});
-
-export const policyFormSchema = z.discriminatedUnion("type", [keyauthSchema, ratelimitSchema]);
-
+export const policyFormSchema = z.discriminatedUnion("type", [keyauthFormSchema]);
 export type PolicyFormValues = z.infer<typeof policyFormSchema>;
-
 export type PolicyType = PolicyFormValues["type"];
 
 export const POLICY_TYPE_OPTIONS: { value: PolicyType; label: string }[] = [
   { value: "keyauth", label: "Key Auth" },
-  { value: "ratelimit", label: "Ratelimit" },
 ];
 
 export function getDefaultValues(type: PolicyType): PolicyFormValues {
@@ -126,18 +111,10 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
       locations: [],
       permissionQuery: "",
     }))
-    .with("ratelimit", () => ({
-      ...base,
-      type: "ratelimit" as const,
-      limit: 100,
-      windowMs: 60000,
-      keySource: "remoteIp" as const,
-      keyValue: "",
-    }))
     .exhaustive();
 }
 
-// ── Form → protojson conversion ─────────────────────────────────────────
+// ── Form → canonical (protojson) conversion ─────────────────────────────
 
 function toStringMatch(
   mode: "exact" | "prefix" | "regex",
@@ -155,6 +132,7 @@ function toStringMatch(
 
 function toMatchExpr(condition: MatchConditionFormValues): MatchExpr {
   return match(condition)
+    .returnType<MatchExpr>()
     .with({ type: "path" }, (c) => ({
       path: { path: toStringMatch(c.mode, c.value) },
     }))
@@ -165,73 +143,59 @@ function toMatchExpr(condition: MatchConditionFormValues): MatchExpr {
       c.present
         ? { header: { name: c.name, present: true } }
         : {
-            header: {
-              name: c.name,
-              value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
-            },
+          header: {
+            name: c.name,
+            value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
           },
+        },
     )
     .with({ type: "queryParam" }, (c) =>
       c.present
         ? { queryParam: { name: c.name, present: true } }
         : {
-            queryParam: {
-              name: c.name,
-              value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
-            },
+          queryParam: {
+            name: c.name,
+            value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
           },
+        },
     )
     .exhaustive();
 }
 
-export function toSentinelPolicy(values: PolicyFormValues): SentinelPolicy {
+export function toSentinelPolicy(values: PolicyFormValues): KeyauthPolicy {
   const id = crypto.randomUUID();
   const matchExprs =
     values.matchConditions.length > 0 ? values.matchConditions.map(toMatchExpr) : undefined;
-
-  const base = { id, name: values.name, enabled: true, match: matchExprs };
 
   return match(values)
     .with({ type: "keyauth" }, (v) => {
       const locations =
         v.locations.length > 0
           ? v.locations.map((loc) =>
-              match(loc.locationType)
-                .with("bearer", () => ({ bearer: {} }))
-                .with("header", () => ({
-                  header: {
-                    name: loc.name ?? "",
-                    ...(loc.stripPrefix ? { stripPrefix: loc.stripPrefix } : {}),
-                  },
-                }))
-                .with("queryParam", () => ({ queryParam: { name: loc.name ?? "" } }))
-                .exhaustive(),
-            )
+            match(loc.locationType)
+              .with("bearer", () => ({ bearer: {} as Record<string, never> }))
+              .with("header", () => ({
+                header: {
+                  name: loc.name ?? "",
+                  ...(loc.stripPrefix ? { stripPrefix: loc.stripPrefix } : {}),
+                },
+              }))
+              .with("queryParam", () => ({ queryParam: { name: loc.name ?? "" } }))
+              .exhaustive(),
+          )
           : undefined;
 
       return {
-        ...base,
+        id,
+        name: v.name,
+        enabled: true,
         type: "keyauth" as const,
         keyauth: {
           keySpaceIds: v.keySpaceIds,
           ...(locations ? { locations } : {}),
           ...(v.permissionQuery ? { permissionQuery: v.permissionQuery } : {}),
         },
-      };
-    })
-    .with({ type: "ratelimit" }, (v) => {
-      const key = match(v.keySource)
-        .with("remoteIp", () => ({ remoteIp: {} }))
-        .with("header", () => ({ header: { name: v.keyValue } }))
-        .with("authenticatedSubject", () => ({ authenticatedSubject: {} }))
-        .with("path", () => ({ path: {} }))
-        .with("principalClaim", () => ({ principalClaim: { claimName: v.keyValue } }))
-        .exhaustive();
-
-      return {
-        ...base,
-        type: "ratelimit" as const,
-        ratelimit: { limit: v.limit, windowMs: v.windowMs, key },
+        ...(matchExprs ? { match: matchExprs } : {}),
       };
     })
     .exhaustive();

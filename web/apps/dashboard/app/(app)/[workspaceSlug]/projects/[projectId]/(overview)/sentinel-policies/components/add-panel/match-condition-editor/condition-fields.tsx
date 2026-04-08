@@ -1,7 +1,7 @@
 "use client";
 
+import type { StringMatchMode } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { trpc } from "@/lib/trpc/client";
-import type { StringMatchMode } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
 import { cn } from "@/lib/utils";
 import { ChevronDown, Sparkle3 } from "@unkey/icons";
 import { match } from "@unkey/match";
@@ -166,7 +166,7 @@ export function ConditionFields({
                 className={cn(
                   "px-2 py-0.5 rounded text-xs font-mono border transition-colors",
                   active
-                    ? "bg-accent-3 border-accent-6 text-accent-11"
+                    ? "bg-info-3 border-info-7 text-info-11"
                     : "bg-grayA-2 border-grayA-4 text-grayA-9 hover:text-gray-12",
                 )}
               >

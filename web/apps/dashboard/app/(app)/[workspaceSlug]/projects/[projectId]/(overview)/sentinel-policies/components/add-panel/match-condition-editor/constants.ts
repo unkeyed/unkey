@@ -1,7 +1,8 @@
-import type { StringMatchMode } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
+import type { StringMatchMode } from "@/lib/collections/deploy/sentinel-policies.schema";
 import type { MatchConditionFormValues } from "../schema";
 
-export const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
+export const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] as const;
+export type HttpMethod = (typeof HTTP_METHODS)[number];
 
 export const STRING_MATCH_MODES: { value: StringMatchMode; label: string }[] = [
   { value: "exact", label: "Exact" },

@@ -1,6 +1,6 @@
 "use client";
 
-import type { SentinelPolicy } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
+import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { useCallback, useState } from "react";
 import { SentinelPolicyRow } from "./row";
 import type { MergedPolicy, SentinelDraftActions } from "./use-sentinel-draft";

@@ -1,7 +1,7 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import type { SentinelPolicy } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
+import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useState } from "react";
 import { useProjectData } from "../data-provider";
@@ -25,20 +25,24 @@ export function SentinelPoliciesContent() {
 
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
 
-  const { data: dataA } = useLiveQuery(
-    (q) =>
-      q.from({ s: collection.environmentSettings }).where(({ s }) => eq(s.environmentId, envAId)),
+  const { data: rowsA } = useLiveQuery(
+    (q) => q.from({ p: collection.sentinelPolicies }).where(({ p }) => eq(p.environmentId, envAId)),
     [envAId],
   );
 
-  const { data: dataB } = useLiveQuery(
-    (q) =>
-      q.from({ s: collection.environmentSettings }).where(({ s }) => eq(s.environmentId, envBId)),
+  const { data: rowsB } = useLiveQuery(
+    (q) => q.from({ p: collection.sentinelPolicies }).where(({ p }) => eq(p.environmentId, envBId)),
     [envBId],
   );
 
-  const policiesA = dataA.at(0)?.sentinelConfig?.policies ?? [];
-  const policiesB = dataB.at(0)?.sentinelConfig?.policies ?? [];
+  // Strip the row-only `environmentId` field — downstream draft logic operates
+  // on bare SentinelPolicy values.
+  const policiesA: SentinelPolicy[] = rowsA.map(
+    ({ environmentId: _e, ...p }) => p as SentinelPolicy,
+  );
+  const policiesB: SentinelPolicy[] = rowsB.map(
+    ({ environmentId: _e, ...p }) => p as SentinelPolicy,
+  );
 
   const { merged, hasPending, actions, save, discard } = useSentinelDraft({
     envAId,
@@ -51,19 +55,11 @@ export function SentinelPoliciesContent() {
 
   const handleAdd = useCallback(
     (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => {
-      if (prodPolicy !== null) {
-        collection.environmentSettings.update(envAId, (draft) => {
-          draft.sentinelConfig = {
-            policies: [...(draft.sentinelConfig?.policies ?? []), prodPolicy],
-          };
-        });
+      if (prodPolicy !== null && envAId) {
+        collection.sentinelPolicies.insert({ ...prodPolicy, environmentId: envAId });
       }
-      if (previewPolicy !== null) {
-        collection.environmentSettings.update(envBId, (draft) => {
-          draft.sentinelConfig = {
-            policies: [...(draft.sentinelConfig?.policies ?? []), previewPolicy],
-          };
-        });
+      if (previewPolicy !== null && envBId) {
+        collection.sentinelPolicies.insert({ ...previewPolicy, environmentId: envBId });
       }
     },
     [envAId, envBId],
@@ -71,16 +67,14 @@ export function SentinelPoliciesContent() {
 
   const handleDelete = useCallback(
     (id: string) => {
-      collection.environmentSettings.update(envAId, (draft) => {
-        draft.sentinelConfig = {
-          policies: (draft.sentinelConfig?.policies ?? []).filter((p) => p.id !== id),
-        };
-      });
-      collection.environmentSettings.update(envBId, (draft) => {
-        draft.sentinelConfig = {
-          policies: (draft.sentinelConfig?.policies ?? []).filter((p) => p.id !== id),
-        };
-      });
+      const keyA = `${envAId}::${id}`;
+      const keyB = `${envBId}::${id}`;
+      if (collection.sentinelPolicies.get(keyA)) {
+        collection.sentinelPolicies.delete(keyA);
+      }
+      if (collection.sentinelPolicies.get(keyB)) {
+        collection.sentinelPolicies.delete(keyB);
+      }
     },
     [envAId, envBId],
   );
