@@ -161,18 +161,33 @@ export function useRatelimitLogsQuery({
       const minTime = Math.min(...times);
       const maxTime = Math.max(...times);
 
-      try {
-        const result = await queryClient.ratelimit.logs.enrichment.fetch({
-          requestIds: unenrichedIds,
-          startTime: minTime,
-          endTime: maxTime,
-        });
+      // Batch into chunks of 100 to stay within the tRPC endpoint limit
+      const BATCH_SIZE = 100;
+      const chunks: string[][] = [];
+      for (let i = 0; i < unenrichedIds.length; i += BATCH_SIZE) {
+        chunks.push(unenrichedIds.slice(i, i + BATCH_SIZE));
+      }
 
-        if (result.enrichment.length > 0) {
+      try {
+        const results = await Promise.all(
+          chunks.map((chunk) =>
+            queryClient.ratelimit.logs.enrichment.fetch({
+              requestIds: chunk,
+              startTime: minTime,
+              endTime: maxTime,
+            }),
+          ),
+        );
+
+        let added = false;
+        for (const result of results) {
           for (const item of result.enrichment) {
             enrichmentMapRef.current.set(item.request_id, item);
+            added = true;
           }
-          // Trigger re-render to merge enrichment into displayed logs
+        }
+
+        if (added) {
           setEnrichmentVersion((v) => v + 1);
         }
       } catch (error) {
