@@ -7,6 +7,7 @@ import { ChevronDown, Plus, Trash, XMark } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
+  FormDescription,
   FormInput,
   Select,
   SelectContent,
@@ -14,8 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import { FormDescription, FormLabel } from "@unkey/ui/src/components/form/form-helpers";
-import type { Control } from "react-hook-form";
+import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import { useController, useFormContext, useFormState } from "react-hook-form";
 import type { KeyLocationFormValues, KeyLocationType, PolicyFormValues } from "../schema";
 
@@ -27,7 +27,10 @@ const LOCATION_TYPE_OPTIONS: { value: KeyLocationType; label: string }[] = [
   { value: "queryParam", label: "Query Param" },
 ];
 
-export function KeyAuthFields({ control }: { control: Control<KeyauthFormValues> }) {
+export function KeyAuthFields() {
+  const { control, setValue } = useFormContext<KeyauthFormValues>();
+  const { errors, isSubmitted } = useFormState({ control });
+
   const {
     field: { value: keySpaceIds, onChange: setKeySpaceIds },
     fieldState: { error: keySpaceError },
@@ -41,8 +44,6 @@ export function KeyAuthFields({ control }: { control: Control<KeyauthFormValues>
     field: { value: permissionQuery, onChange: setPermissionQuery },
   } = useController({ control, name: "permissionQuery" });
 
-  const { setValue } = useFormContext<KeyauthFormValues>();
-  const { errors, isSubmitted } = useFormState({ control });
   const locationErrors = errors.locations as
     | Record<number, Partial<Record<string, { message?: string }>>>
     | undefined;

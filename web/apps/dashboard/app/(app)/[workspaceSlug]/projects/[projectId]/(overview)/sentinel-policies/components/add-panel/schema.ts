@@ -131,6 +131,23 @@ export const POLICY_TYPE_OPTIONS: { value: PolicyType; label: string }[] = [
   { value: "keyauth", label: "Key Auth" },
 ];
 
+export function getDefaultCondition(
+  type: MatchConditionFormValues["type"],
+  id?: string,
+): MatchConditionFormValues {
+  const base = { id: id ?? crypto.randomUUID() };
+  return match(type)
+    .with("path", () => ({ ...base, type: "path" as const, mode: "exact" as const, value: "" }))
+    .with("method", () => ({
+      ...base,
+      type: "method" as const,
+      methods: [] as z.infer<typeof httpMethodSchema>[],
+    }))
+    .with("header", () => ({ ...base, type: "header" as const, name: "" }))
+    .with("queryParam", () => ({ ...base, type: "queryParam" as const, name: "" }))
+    .exhaustive();
+}
+
 export function getDefaultValues(type: PolicyType): PolicyFormValues {
   const base = {
     name: "",

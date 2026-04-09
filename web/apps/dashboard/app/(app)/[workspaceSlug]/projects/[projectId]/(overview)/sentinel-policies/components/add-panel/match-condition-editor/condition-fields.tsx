@@ -17,12 +17,9 @@ import {
 } from "@unkey/ui";
 import { FormDescription, FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import { useState } from "react";
-import type { FieldError } from "react-hook-form";
 import type { MatchConditionFormValues } from "../schema";
+import type { ConditionFieldErrors } from "./condition-card";
 import { HTTP_METHODS, STRING_MATCH_MODES, validateRegexSyntax } from "./constants";
-
-/** Per-condition field errors. Keyed by field name, values are react-hook-form FieldError. */
-export type ConditionFieldErrors = Partial<Record<string, FieldError>> | undefined;
 
 export function ConditionFields({
   condition,

@@ -4,49 +4,41 @@ import { cn } from "@/lib/utils";
 import { Plus } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
 import { Fragment } from "react";
-import { useFormContext, useFormState, useWatch } from "react-hook-form";
+import { useFieldArray, useFormContext, useFormState, useWatch } from "react-hook-form";
 import { AccordionSection } from "../accordion-section";
 import { summarizeMatchConditions } from "../policy-summaries";
-import type { PolicyFormValues } from "../schema";
-import { MatchConditionCard } from "./condition-card";
-import type { ConditionFieldErrors } from "./condition-fields";
+import { type PolicyFormValues, getDefaultCondition } from "../schema";
+import { type ConditionFieldErrors, MatchConditionCard } from "./condition-card";
+import { SENTINEL_LIMITS } from "@/lib/collections/deploy/sentinel-policies.schema";
 
-export const MAX_MATCH_CONDITIONS = 10;
 
 export function MatchConditionEditorBody() {
-  const { control, setValue } = useFormContext<PolicyFormValues>();
-  const { errors, isSubmitted } = useFormState({ control });
-  const conditions = useWatch({ control, name: "matchConditions" }) ?? [];
+  const { control } = useFormContext<PolicyFormValues>();
+  const { errors } = useFormState({ control });
+  const { fields, append, remove, update } = useFieldArray({
+    control,
+    name: "matchConditions",
+  });
+
   const conditionErrors = errors.matchConditions as
     | Record<number, ConditionFieldErrors>
     | undefined;
-  const onChange = (next: typeof conditions) =>
-    setValue("matchConditions", next, {
-      shouldDirty: true,
-      // Only re-validate after a failed submit so errors clear as the user
-      // fixes them, but don't show errors before the first submit attempt.
-      shouldValidate: isSubmitted,
-    });
 
-  const atCap = conditions.length >= MAX_MATCH_CONDITIONS;
-  const hasConditions = conditions.length > 0;
+  const atCap = fields.length >= SENTINEL_LIMITS.maxMatchExprsPerPolicy;
+  const hasConditions = fields.length > 0;
   return (
     <div className="flex flex-col">
       {hasConditions && (
         <div className="flex flex-col gap-8 pt-3">
-          {conditions.map((cond, index) => (
-            <Fragment key={cond.id}>
+          {fields.map((field, index) => (
+            <Fragment key={field.id}>
               <MatchConditionCard
-                condition={cond}
+                condition={field}
                 errors={conditionErrors?.[index]}
-                onChange={(updated) =>
-                  onChange(conditions.map((c) => (c.id === updated.id ? updated : c)))
-                }
-                onDelete={(id) => {
-                  onChange(conditions.filter((c) => c.id !== id));
-                }}
+                onChange={(updated) => update(index, updated)}
+                onRemove={() => remove(index)}
               />
-              {index < conditions.length - 1 && <Separator className="bg-gray-4" />}
+              {index < fields.length - 1 && <Separator className="bg-gray-4" />}
             </Fragment>
           ))}
         </div>
@@ -58,18 +50,13 @@ export function MatchConditionEditorBody() {
           size="md"
           className="font-medium"
           disabled={atCap}
-          onClick={() =>
-            onChange([
-              ...conditions,
-              { id: crypto.randomUUID(), type: "path", mode: "exact", value: "" },
-            ])
-          }
+          onClick={() => append(getDefaultCondition("path"))}
         >
           <Plus iconSize="sm-regular" />
-          {conditions.length === 0 ? "Add First Condition" : "Add Condition"}
+          {fields.length === 0 ? "Add First Condition" : "Add Condition"}
         </Button>
         <span className="text-[12px] text-gray-11">
-          {conditions.length} / {MAX_MATCH_CONDITIONS}
+          {fields.length} / {SENTINEL_LIMITS.maxMatchExprsPerPolicy}
           {atCap && " · maximum reached"}
         </span>
       </div>

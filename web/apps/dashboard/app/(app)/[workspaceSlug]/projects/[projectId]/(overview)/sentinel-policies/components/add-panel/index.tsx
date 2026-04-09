@@ -3,18 +3,8 @@
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, DoubleChevronRight } from "@unkey/icons";
-import {
-  Button,
-  FormInput,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SlidePanel,
-} from "@unkey/ui";
-import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
+import { DoubleChevronRight } from "@unkey/icons";
+import { Button, FormInput, FormSelect, SlidePanel } from "@unkey/ui";
 import { useCallback, useState } from "react";
 import { Controller, type FieldErrors, FormProvider, useForm, useWatch } from "react-hook-form";
 import { AccordionSection } from "./accordion-section";
@@ -62,6 +52,12 @@ export type SentinelPolicyPanelProps = AddProps | EditProps;
 export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
   const { envASlug, envBSlug, isOpen, topOffset, onClose } = props;
   const isEdit = props.mode === "edit";
+
+  const envOptions = [
+    { value: "__all__", label: "All Environments" },
+    { value: envASlug, label: envASlug },
+    { value: envBSlug, label: envBSlug },
+  ];
 
   const form = useForm<PolicyFormValues>({
     resolver: zodResolver(policyFormSchema),
@@ -185,31 +181,16 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
                   control={control}
                   name="type"
                   render={({ field }) => (
-                    <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-                      <FormLabel
-                        label="Type"
-                        htmlFor="policy-type-select"
-                        tooltipContent="The kind of protection this policy enforces."
-                      />
-                      <Select value={field.value} onValueChange={field.onChange} disabled={isEdit}>
-                        <SelectTrigger
-                          id="policy-type-select"
-                          className="capitalize"
-                          rightIcon={
-                            <ChevronDown className="absolute right-2" iconSize="md-medium" />
-                          }
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {POLICY_TYPE_OPTIONS.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </fieldset>
+                    <FormSelect
+                      label="Type"
+                      options={POLICY_TYPE_OPTIONS}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isEdit}
+                      description="The kind of protection this policy enforces."
+                      descriptionPosition="label"
+                      triggerClassName="capitalize"
+                    />
                   )}
                 />
               </div>
@@ -222,7 +203,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
                     active
                     onToggle={() => toggleSection("config")}
                   >
-                    <PolicyConfigFields type={watchedType} control={control} />
+                    <PolicyConfigFields type={watchedType} />
                   </AccordionSection>
                 </div>
               )}
@@ -266,33 +247,15 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
                   control={control}
                   name="environmentId"
                   render={({ field }) => (
-                    <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-                      <FormLabel
-                        label="Environment"
-                        htmlFor="policy-env-select"
-                        tooltipContent="Which environments this policy will be added to."
-                      />
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger
-                          id="policy-env-select"
-                          className="capitalize"
-                          rightIcon={
-                            <ChevronDown className="absolute right-2" iconSize="md-medium" />
-                          }
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__all__">All Environments</SelectItem>
-                          <SelectItem value={envASlug} className="capitalize">
-                            {envASlug}
-                          </SelectItem>
-                          <SelectItem value={envBSlug} className="capitalize">
-                            {envBSlug}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </fieldset>
+                    <FormSelect
+                      label="Environment"
+                      options={envOptions}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      description="Which environments this policy will be added to."
+                      descriptionPosition="label"
+                      triggerClassName="capitalize"
+                    />
                   )}
                 />
               </div>
