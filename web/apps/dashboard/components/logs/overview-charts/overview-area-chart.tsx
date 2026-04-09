@@ -115,6 +115,18 @@ export const OverviewAreaChart = ({
     return null;
   };
 
+  // Check if a data point has any actual data (non-zero values)
+  const hasData = (index: number): boolean => {
+    if (!data || index < 0 || index >= data.length) {
+      return false;
+    }
+    const item = data[index];
+    return labels.metrics.some((metric) => {
+      const val = item[metric.key];
+      return typeof val === "number" && val > 0;
+    });
+  };
+
   // Handle mouse down on chart area
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!enableSelection || !chartAreaRef.current) {
@@ -172,6 +184,16 @@ export const OverviewAreaChart = ({
       currentSelection.end !== undefined &&
       onSelectionChange
     ) {
+      const isSingleClick = currentSelection.start === currentSelection.end;
+
+      // For single clicks, only trigger if the data point has data
+      if (isSingleClick && !hasData(Number(currentSelection.start))) {
+        isDragging.current = false;
+        dragStartData.current = null;
+        setSelection({ start: "", end: "", startTimestamp: undefined, endTimestamp: undefined });
+        return;
+      }
+
       if (
         currentSelection.startTimestamp !== undefined &&
         currentSelection.endTimestamp !== undefined
