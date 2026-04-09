@@ -87,17 +87,25 @@ export function summarizePolicy(
  */
 export function PolicySummary({ keyspaceNames }: { keyspaceNames: Record<string, string> }) {
   const { control } = useFormContext<PolicyFormValues>();
+  // Only watch fields actually used by summarizePolicy. name, environmentId,
+  // and permissionQuery are not rendered in the summary, so skip them to avoid
+  // unnecessary re-renders when those fields change.
   const type = useWatch({ control, name: "type" });
-  const name = useWatch({ control, name: "name" });
-  const environmentId = useWatch({ control, name: "environmentId" });
   const keySpaceIds = useWatch({ control, name: "keySpaceIds" });
   const locations = useWatch({ control, name: "locations" });
-  const permissionQuery = useWatch({ control, name: "permissionQuery" });
 
   return (
     <>
       {summarizePolicy(
-        { type, name, environmentId, matchConditions: [], keySpaceIds, locations, permissionQuery },
+        {
+          type,
+          name: "",
+          environmentId: "",
+          matchConditions: [],
+          keySpaceIds,
+          locations,
+          permissionQuery: "",
+        },
         keyspaceNames,
       )}
     </>

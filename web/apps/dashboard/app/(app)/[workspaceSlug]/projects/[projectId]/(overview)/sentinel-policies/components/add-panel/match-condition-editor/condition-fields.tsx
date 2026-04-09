@@ -17,19 +17,26 @@ import {
 } from "@unkey/ui";
 import { FormDescription, FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import { useState } from "react";
-import type { MatchConditionFormValues } from "../schema";
-import type { ConditionFieldErrors } from "./condition-card";
+import { useFormContext, useWatch } from "react-hook-form";
+import type { MatchConditionFormValues, PolicyFormValues } from "../schema";
 import { HTTP_METHODS, STRING_MATCH_MODES, validateRegexSyntax } from "./constants";
 
+type ConditionFieldErrors = Partial<Record<string, { message?: string }>> | undefined;
+
 export function ConditionFields({
-  condition,
-  onChange,
+  index,
   errors,
 }: {
-  condition: MatchConditionFormValues;
-  onChange: (updated: MatchConditionFormValues) => void;
+  index: number;
   errors?: ConditionFieldErrors;
 }) {
+  const { control, setValue } = useFormContext<PolicyFormValues>();
+  const condition = useWatch({ control, name: `matchConditions.${index}` });
+
+  const patch = (next: MatchConditionFormValues) => {
+    setValue(`matchConditions.${index}`, next);
+  };
+
   return match(condition)
     .with({ type: "path" }, (c) => (
       <div className="flex flex-col gap-4">
@@ -41,7 +48,7 @@ export function ConditionFields({
               </label>
               <Select
                 value={c.mode}
-                onValueChange={(v) => onChange({ ...c, mode: v as StringMatchMode })}
+                onValueChange={(v) => patch({ ...c, mode: v as StringMatchMode })}
               >
                 <SelectTrigger
                   id={`path-mode-${c.id}`}
@@ -64,7 +71,7 @@ export function ConditionFields({
             required
             placeholder={c.mode === "regex" ? "^/api/.*" : "/api/v1"}
             value={c.value}
-            onChange={(e) => onChange({ ...c, value: e.target.value })}
+            onChange={(e) => patch({ ...c, value: e.target.value })}
             className="flex-1"
             descriptionPosition="label"
             description={
@@ -81,7 +88,7 @@ export function ConditionFields({
         {c.mode === "regex" && (
           <RegexGenerateInput
             conditionType="path"
-            onGenerated={(pattern) => onChange({ ...c, value: pattern })}
+            onGenerated={(pattern) => patch({ ...c, value: pattern })}
           />
         )}
       </div>
@@ -113,7 +120,7 @@ export function ConditionFields({
                   type="button"
                   aria-pressed={active}
                   onClick={() =>
-                    onChange({
+                    patch({
                       ...c,
                       methods: active ? c.methods.filter((x) => x !== m) : [...c.methods, m],
                     })
@@ -148,7 +155,7 @@ export function ConditionFields({
             required
             placeholder={isHeader ? "X-Custom-Header" : "param_name"}
             value={c.name}
-            onChange={(e) => onChange({ ...c, name: e.target.value })}
+            onChange={(e) => patch({ ...c, name: e.target.value })}
             descriptionPosition="label"
             description={
               isHeader
@@ -167,7 +174,7 @@ export function ConditionFields({
                     </label>
                     <Select
                       value={c.mode ?? "exact"}
-                      onValueChange={(v) => onChange({ ...c, mode: v as StringMatchMode })}
+                      onValueChange={(v) => patch({ ...c, mode: v as StringMatchMode })}
                     >
                       <SelectTrigger
                         id={`hq-mode-${c.id}`}
@@ -192,7 +199,7 @@ export function ConditionFields({
                   required
                   placeholder="Expected value"
                   value={c.value ?? ""}
-                  onChange={(e) => onChange({ ...c, value: e.target.value })}
+                  onChange={(e) => patch({ ...c, value: e.target.value })}
                   className="flex-1"
                   error={
                     ((c.mode ?? "exact") === "regex"
@@ -204,7 +211,7 @@ export function ConditionFields({
               {(c.mode ?? "exact") === "regex" && (
                 <RegexGenerateInput
                   conditionType={conditionType}
-                  onGenerated={(pattern) => onChange({ ...c, value: pattern })}
+                  onGenerated={(pattern) => patch({ ...c, value: pattern })}
                 />
               )}
             </div>

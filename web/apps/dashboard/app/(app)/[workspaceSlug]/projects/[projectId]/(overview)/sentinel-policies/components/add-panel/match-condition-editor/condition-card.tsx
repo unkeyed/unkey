@@ -1,32 +1,44 @@
+"use client";
+
 import { ChevronDown, Trash } from "@unkey/icons";
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
-import type { FieldError } from "react-hook-form";
-import { type MatchConditionFormValues, getDefaultCondition } from "../schema";
+import { useFormContext, useFormState, useWatch } from "react-hook-form";
+import {
+  type MatchConditionFormValues,
+  type PolicyFormValues,
+  getDefaultCondition,
+} from "../schema";
 import { ConditionFields } from "./condition-fields";
 import { MATCH_TYPE_OPTIONS } from "./constants";
 
-export type ConditionFieldErrors = Partial<Record<string, FieldError>> | undefined;
-
 export function MatchConditionCard({
-  condition,
-  errors,
-  onChange,
+  index,
   onRemove,
 }: {
-  condition: MatchConditionFormValues;
-  errors?: ConditionFieldErrors;
-  onChange: (updated: MatchConditionFormValues) => void;
+  index: number;
   onRemove: () => void;
 }) {
+  const { control, setValue } = useFormContext<PolicyFormValues>();
+  // Watch only the fields the card header needs. ConditionFields has its own
+  // scoped watch for the rest, so typing in a field input won't re-render
+  // the type selector or remove button.
+  const type = useWatch({ control, name: `matchConditions.${index}.type` });
+  const id = useWatch({ control, name: `matchConditions.${index}.id` });
+  const { errors } = useFormState({ control, name: `matchConditions.${index}` });
+
+  const conditionErrors = (
+    errors.matchConditions as Record<number, Record<string, { message?: string }>> | undefined
+  )?.[index];
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-4">
         <div className="flex-1">
           <Select
-            value={condition.type}
+            value={type}
             onValueChange={(v) => {
-              const type = v as MatchConditionFormValues["type"];
-              onChange(getDefaultCondition(type, condition.id));
+              const newType = v as MatchConditionFormValues["type"];
+              setValue(`matchConditions.${index}`, getDefaultCondition(newType, id));
             }}
           >
             <SelectTrigger
@@ -55,7 +67,7 @@ export function MatchConditionCard({
           <Trash iconSize="sm-regular" />
         </Button>
       </div>
-      <ConditionFields condition={condition} onChange={onChange} errors={errors} />
+      <ConditionFields index={index} errors={conditionErrors} />
     </div>
   );
 }

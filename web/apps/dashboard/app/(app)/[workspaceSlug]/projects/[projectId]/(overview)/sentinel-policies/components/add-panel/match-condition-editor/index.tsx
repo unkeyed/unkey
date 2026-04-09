@@ -1,5 +1,6 @@
 "use client";
 
+import { SENTINEL_LIMITS } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { cn } from "@/lib/utils";
 import { Plus } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
@@ -8,21 +9,14 @@ import { useFieldArray, useFormContext, useFormState, useWatch } from "react-hoo
 import { AccordionSection } from "../accordion-section";
 import { summarizeMatchConditions } from "../policy-summaries";
 import { type PolicyFormValues, getDefaultCondition } from "../schema";
-import { type ConditionFieldErrors, MatchConditionCard } from "./condition-card";
-import { SENTINEL_LIMITS } from "@/lib/collections/deploy/sentinel-policies.schema";
-
+import { MatchConditionCard } from "./condition-card";
 
 export function MatchConditionEditorBody() {
   const { control } = useFormContext<PolicyFormValues>();
-  const { errors } = useFormState({ control });
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control,
     name: "matchConditions",
   });
-
-  const conditionErrors = errors.matchConditions as
-    | Record<number, ConditionFieldErrors>
-    | undefined;
 
   const atCap = fields.length >= SENTINEL_LIMITS.maxMatchExprsPerPolicy;
   const hasConditions = fields.length > 0;
@@ -32,12 +26,7 @@ export function MatchConditionEditorBody() {
         <div className="flex flex-col gap-8 pt-3">
           {fields.map((field, index) => (
             <Fragment key={field.id}>
-              <MatchConditionCard
-                condition={field}
-                errors={conditionErrors?.[index]}
-                onChange={(updated) => update(index, updated)}
-                onRemove={() => remove(index)}
-              />
+              <MatchConditionCard index={index} onRemove={() => remove(index)} />
               {index < fields.length - 1 && <Separator className="bg-gray-4" />}
             </Fragment>
           ))}
