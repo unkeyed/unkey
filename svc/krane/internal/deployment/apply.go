@@ -96,9 +96,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		Image:           req.GetImage(),
 		Name:            "deployment",
 		ImagePullPolicy: corev1.PullIfNotPresent,
-		SecurityContext: &corev1.SecurityContext{
-			ReadOnlyRootFilesystem: ptr.P(true),
-		},
+		SecurityContext: &corev1.SecurityContext{},
 		Env: []corev1.EnvVar{
 			{Name: "PORT", Value: strconv.Itoa(int(req.GetPort()))},
 			{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
@@ -139,19 +137,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		},
 	}
 
-	// Always mount an emptyDir at /tmp so runtimes that need a writable temp
-	// directory work with ReadOnlyRootFilesystem=true.
 	var volumes []corev1.Volume
-	volumes = append(volumes, corev1.Volume{
-		Name: "tmp",
-		VolumeSource: corev1.VolumeSource{
-			EmptyDir: &corev1.EmptyDirVolumeSource{},
-		},
-	})
-	container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
-		Name:      "tmp",
-		MountPath: "/tmp",
-	})
 
 	// Add ephemeral volume when storage is configured.
 	// Uses a Kubernetes generic ephemeral volume backed by the configured StorageClass.
@@ -272,6 +258,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		if err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext); err != nil {
 			return fmt.Errorf("failed to ensure deployment secret: %w", err)
 		}
+
 		if err := c.ensureDeploymentServiceAccount(ctx, req.GetK8SNamespace(), req.GetDeploymentId()); err != nil {
 			return fmt.Errorf("failed to ensure deployment service account: %w", err)
 		}
@@ -302,6 +289,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 			Controller:         ptr.P(true),
 			BlockOwnerDeletion: ptr.P(true),
 		}
+
 		resName := deploymentResourcePrefix(req.GetDeploymentId())
 		if err := c.patchOwnerRef(ctx, req.GetK8SNamespace(), resName, ownerRef); err != nil {
 			return fmt.Errorf("failed to patch owner references: %w", err)
