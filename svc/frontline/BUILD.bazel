@@ -22,6 +22,7 @@ go_library(
         "//pkg/otel",
         "//pkg/pprof",
         "//pkg/prometheus",
+        "//pkg/prometheus/lazy",
         "//pkg/ptr",
         "//pkg/rpc/interceptor",
         "//pkg/runner",
@@ -36,5 +37,7 @@ go_library(
         "//svc/frontline/services/proxy",
         "//svc/frontline/services/router",
         "@com_connectrpc_connect//:connect",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/collectors",
     ],
 )

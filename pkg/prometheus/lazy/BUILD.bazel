@@ -1,15 +1,16 @@
 load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "metrics",
+    name = "lazy",
     srcs = [
         "doc.go",
-        "prometheus.go",
+        "metric.go",
+        "registry.go",
     ],
-    importpath = "github.com/unkeyed/unkey/pkg/mysql/metrics",
+    importpath = "github.com/unkeyed/unkey/pkg/prometheus/lazy",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/prometheus/lazy",
         "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/promauto",
     ],
 )
