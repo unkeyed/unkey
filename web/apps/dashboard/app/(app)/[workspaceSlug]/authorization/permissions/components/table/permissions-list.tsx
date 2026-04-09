@@ -15,7 +15,7 @@ import { useCallback, useMemo, useState } from "react";
 export const PermissionsList = () => {
   const {
     permissions,
-    isLoading,
+    isInitialLoading,
     page,
     pageSize,
     totalPages,
@@ -59,7 +59,7 @@ export const PermissionsList = () => {
         data={permissions}
         columns={columns}
         getRowId={(permission) => permission.permissionId}
-        isLoading={isLoading}
+        isLoading={isInitialLoading}
         onRowClick={setSelectedPermission}
         selectedItem={selectedPermission}
         rowClassName={(permission) => getRowClassName(permission, selectedPermission)}

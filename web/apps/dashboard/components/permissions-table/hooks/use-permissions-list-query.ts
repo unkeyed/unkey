@@ -39,7 +39,8 @@ const SORT_FIELD_TO_COLUMN_ID: Record<PermissionsSortField, string> = {
 
 // Mirrors DEFAULT_LIMIT in query.ts
 const DEFAULT_PAGE_SIZE = 50;
-const MAX_PAGE_SIZE = 200;
+// Must match the server-side schema max (permissions.schema.ts)
+const MAX_PAGE_SIZE = 100;
 
 const DEFAULT_SORT_PARAMS: SortUrlValue<PermissionsSortField>[] = [
   { column: "lastUpdated", direction: "desc" },

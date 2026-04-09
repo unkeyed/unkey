@@ -4,9 +4,9 @@ import { STATUS_STYLES } from "@unkey/ui";
 
 export { STATUS_STYLES };
 
-export const getRowClassName = (log: Permission, selectedRow: Permission | null) => {
+export const getRowClassName = (permission: Permission, selectedRow: Permission | null) => {
   const style = STATUS_STYLES;
-  const isSelected = log.permissionId === selectedRow?.permissionId;
+  const isSelected = permission.permissionId === selectedRow?.permissionId;
 
   return cn(
     style.base,

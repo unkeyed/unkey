@@ -166,7 +166,7 @@ export const queryPermissions = workspaceProcedure
         description: row.description || "",
         slug: row.slug || "",
         lastUpdated: Number(row.updated_at_m) || 0,
-        totalConnectedRoles: Number(row.total_roles),
+        totalConnectedRoles: Number(row.total_roles) || 0,
         totalConnectedKeys: Number(row.total_connected_keys) || 0,
       };
     });
