@@ -84,10 +84,7 @@ export const PaginationFooter = memo(function PaginationFooter({
           <div className="flex flex-col w-full">
             {/* Header content */}
             {headerContent && <div className="flex items-center w-full">{headerContent}</div>}
-            <div
-              className="flex w-full justify-between items-center text-[13px] text-grayA-9 p-[18px] min-h-[60px]"
-              style={{ animationDelay: "0.3s" }}
-            >
+            <div className="flex w-full justify-between items-center text-[13px] text-grayA-9 p-[18px] min-h-[60px]">
               {/* Item count */}
               <div className="flex gap-2">
                 <span>Viewing</span>
