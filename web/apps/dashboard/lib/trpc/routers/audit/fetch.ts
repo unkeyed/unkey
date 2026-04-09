@@ -35,8 +35,8 @@ export const fetchAuditLog = workspaceProcedure
   .output(AuditLogsResponse)
   .query(async ({ ctx, input }) => {
     const params = transformFilters(input);
-    const pageSize = Math.min(params.limit, MAX_LIMIT) || LIMIT;
-    const page = params.page ?? 1;
+    const pageSize = Math.max(1, Math.min(params.limit ?? LIMIT, MAX_LIMIT));
+    const page = Math.max(1, params.page ?? 1);
     const offset = (page - 1) * pageSize;
 
     const whereConditions = buildWhereConditions(params, ctx.workspace);
