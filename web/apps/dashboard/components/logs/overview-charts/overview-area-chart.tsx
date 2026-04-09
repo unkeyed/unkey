@@ -58,6 +58,7 @@ export const OverviewAreaChart = ({
   granularity,
 }: TimeseriesAreaChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const chartAreaRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
 
   // Track if we're currently dragging for selection
@@ -114,13 +115,13 @@ export const OverviewAreaChart = ({
     return null;
   };
 
-  // Handle mouse down on container
+  // Handle mouse down on chart area
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!enableSelection || !chartRef.current) {
+    if (!enableSelection || !chartAreaRef.current) {
       return;
     }
 
-    const point = getDataPointFromEvent(e, chartRef.current);
+    const point = getDataPointFromEvent(e, chartAreaRef.current);
     if (!point) {
       return;
     }
@@ -136,13 +137,18 @@ export const OverviewAreaChart = ({
     });
   };
 
-  // Handle mouse move on container
+  // Handle mouse move on chart area
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!enableSelection || !isDragging.current || !dragStartData.current || !chartRef.current) {
+    if (
+      !enableSelection ||
+      !isDragging.current ||
+      !dragStartData.current ||
+      !chartAreaRef.current
+    ) {
       return;
     }
 
-    const point = getDataPointFromEvent(e, chartRef.current);
+    const point = getDataPointFromEvent(e, chartAreaRef.current);
     if (!point) {
       return;
     }
@@ -225,14 +231,7 @@ export const OverviewAreaChart = ({
   const primaryMetric = labelsWithDefaults.metrics[0];
 
   return (
-    <div
-      className="flex flex-col h-full"
-      ref={chartRef}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseLeave}
-    >
+    <div className="flex flex-col h-full" ref={chartRef}>
       <div
         className={cn(
           "pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10",
@@ -286,7 +285,14 @@ export const OverviewAreaChart = ({
         )}
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div
+        className={`flex-1 min-h-0${enableSelection ? " cursor-pointer" : ""}`}
+        ref={chartAreaRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+      >
         <ChartContainer config={config} className="w-full h-full aspect-auto">
           <AreaChart
             data={data}
