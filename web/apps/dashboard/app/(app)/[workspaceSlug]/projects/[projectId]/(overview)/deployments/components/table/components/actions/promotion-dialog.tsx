@@ -13,7 +13,6 @@ type PromotionDialogProps = {
   onClose: () => void;
   targetDeployment: Deployment;
   currentDeployment: Deployment;
-  isConfirmingRollback: boolean;
 };
 
 export const PromotionDialog = ({
@@ -21,7 +20,6 @@ export const PromotionDialog = ({
   onClose,
   targetDeployment,
   currentDeployment,
-  isConfirmingRollback,
 }: PromotionDialogProps) => {
   const utils = trpc.useUtils();
   const domains = useLiveQuery(
@@ -71,12 +69,8 @@ export const PromotionDialog = ({
     <DialogContainer
       isOpen={isOpen}
       onOpenChange={onClose}
-      title={isConfirmingRollback ? "Confirm Rollback" : "Promotion to version"}
-      subTitle={
-        isConfirmingRollback
-          ? "Confirm the rollback and re-enable automatic deployments"
-          : "Switch the active deployment to a target stable version"
-      }
+      title="Promote to version"
+      subTitle="Switch the active deployment to a target stable version"
       footer={
         <Button
           variant="primary"
@@ -86,38 +80,24 @@ export const PromotionDialog = ({
           loading={promote.isLoading}
           className="w-full rounded-lg"
         >
-          {isConfirmingRollback
-            ? "Confirm Rollback"
-            : `Promote to ${targetDeployment.gitCommitSha ? shortenId(targetDeployment.gitCommitSha) : targetDeployment.id}`}
+          {`Promote to ${targetDeployment.gitCommitSha ? shortenId(targetDeployment.gitCommitSha) : targetDeployment.id}`}
         </Button>
       }
     >
-      {isConfirmingRollback ? (
-        <div className="flex flex-col gap-9">
-          <DeploymentSection
-            title="Current Deployment"
-            deployment={currentDeployment}
-            isCurrent={true}
-            showSignal={true}
-          />
-          <DomainsSection domains={domains.data} />
-        </div>
-      ) : (
-        <div className="flex flex-col gap-9">
-          <DeploymentSection
-            title="Current Deployment"
-            deployment={currentDeployment}
-            isCurrent={true}
-            showSignal={true}
-          />
-          <DomainsSection domains={domains.data} />
-          <DeploymentSection
-            title="Target Deployment"
-            deployment={targetDeployment}
-            isCurrent={false}
-          />
-        </div>
-      )}
+      <div className="flex flex-col gap-9">
+        <DeploymentSection
+          title="Current Deployment"
+          deployment={currentDeployment}
+          isCurrent={true}
+          showSignal={true}
+        />
+        <DomainsSection domains={domains.data} />
+        <DeploymentSection
+          title="Target Deployment"
+          deployment={targetDeployment}
+          isCurrent={false}
+        />
+      </div>
     </DialogContainer>
   );
 };
