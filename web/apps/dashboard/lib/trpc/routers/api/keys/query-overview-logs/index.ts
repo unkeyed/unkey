@@ -39,7 +39,7 @@ export const queryKeysOverviewLogs = workspaceProcedure
 
     const transformedInputs = transformKeysFilters(input);
 
-    const clickhouseResult = await clickhouse.api.keys.logs({
+    const { logsQuery, countQuery } = await clickhouse.api.keys.logs({
       ...transformedInputs,
       workspaceId: ctx.workspace.id,
       keyspaceId: keyspaceId,
@@ -57,6 +57,8 @@ export const queryKeysOverviewLogs = workspaceProcedure
       identities: input.identities ?? null,
     });
 
+    const [clickhouseResult, countResult] = await Promise.all([logsQuery, countQuery]);
+
     if (!clickhouseResult || clickhouseResult.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
@@ -64,7 +66,15 @@ export const queryKeysOverviewLogs = workspaceProcedure
       });
     }
 
+    if (countResult.err) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Something went wrong when fetching count from ClickHouse.",
+      });
+    }
+
     const logs = clickhouseResult.val || [];
+    const totalCount = countResult.val[0]?.total_count ?? 0;
 
     if (logs.length === 0) {
       return {
@@ -103,7 +113,7 @@ export const queryKeysOverviewLogs = workspaceProcedure
       keysOverviewLogs,
       hasMore,
       nextCursor: hasMore ? logs[logs.length - 1].time : undefined,
-      total: keysOverviewLogs.length,
+      total: totalCount,
     };
 
     return response;
