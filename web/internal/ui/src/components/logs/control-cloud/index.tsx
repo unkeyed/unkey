@@ -141,10 +141,12 @@ export const ControlCloud = <TFilter extends FilterValue>({
         <button
           type="button"
           onClick={handleClearFilters}
-          className="flex items-center gap-2 cursor-pointer hover:text-gray-12 transition-colors"
+          className="group/clear flex items-center gap-2 cursor-pointer transition-colors"
         >
-          <span className="text-gray-9 text-[13px]">Clear filters</span>
-          <div className="max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
+          <span className="text-gray-9 group-hover/clear:text-gray-12 text-[13px] transition-colors">
+            Clear filters
+          </span>
+          <div className="max-w-0 opacity-0 group-hover/clear:max-w-[100px] group-hover/clear:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
             <KeyboardButton shortcut="⌥+⇧+A" />
           </div>
         </button>
@@ -152,10 +154,12 @@ export const ControlCloud = <TFilter extends FilterValue>({
         <button
           type="button"
           onClick={handleFocusFilters}
-          className="flex items-center gap-2 cursor-pointer hover:text-gray-12 transition-colors"
+          className="group/nav flex items-center gap-2 cursor-pointer transition-colors"
         >
-          <span className="text-gray-9 text-[13px]">Navigate filters</span>
-          <div className="max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
+          <span className="text-gray-9 group-hover/nav:text-gray-12 text-[13px] transition-colors">
+            Navigate filters
+          </span>
+          <div className="max-w-0 opacity-0 group-hover/nav:max-w-[100px] group-hover/nav:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
             <KeyboardButton shortcut="⌥+⇧+S" />
           </div>
         </button>
