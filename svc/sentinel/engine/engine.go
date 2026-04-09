@@ -8,10 +8,12 @@ import (
 
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	rl "github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
+	ratelimitExec "github.com/unkeyed/unkey/svc/sentinel/engine/ratelimit"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -21,8 +23,9 @@ const PrincipalHeader = "X-Unkey-Principal"
 
 // Config holds the configuration for creating a new Engine.
 type Config struct {
-	KeyService keys.KeyService
-	Clock      clock.Clock
+	KeyService  keys.KeyService
+	RateLimiter rl.Service
+	Clock       clock.Clock
 }
 
 // Evaluator evaluates sentinel middleware policies against incoming requests.
@@ -32,8 +35,9 @@ type Evaluator interface {
 
 // Engine implements Evaluator.
 type Engine struct {
-	keyAuth    *KeyAuthExecutor
-	regexCache *regexCache
+	keyAuth     *KeyAuthExecutor
+	rateLimiter *ratelimitExec.Executor
+	regexCache  *regexCache
 }
 
 var _ Evaluator = (*Engine)(nil)
@@ -50,7 +54,8 @@ func New(cfg Config) *Engine {
 			keyService: cfg.KeyService,
 			clock:      cfg.Clock,
 		},
-		regexCache: newRegexCache(),
+		rateLimiter: ratelimitExec.New(cfg.RateLimiter, cfg.Clock),
+		regexCache:  newRegexCache(),
 	}
 }
 
@@ -128,10 +133,21 @@ func (e *Engine) Evaluate(
 				sentinelEngineEvaluationsTotal.WithLabelValues("keyauth", "success").Inc()
 			}
 
+		case *sentinelv1.Policy_Ratelimit:
+			t := time.Now()
+			execErr := e.rateLimiter.Execute(ctx, sess, req, policy.GetId(), cfg.Ratelimit, result.Principal)
+			sentinelEngineEvaluationDuration.WithLabelValues("ratelimit").Observe(time.Since(t).Seconds())
+
+			if execErr != nil {
+				sentinelEngineEvaluationsTotal.WithLabelValues("ratelimit", classifyRatelimitError(execErr)).Inc()
+				return result, execErr
+			}
+
+			sentinelEngineEvaluationsTotal.WithLabelValues("ratelimit", "success").Inc()
+
 		// Future policy types will be added here:
 		// case *sentinelv1.Policy_Jwtauth:
 		// case *sentinelv1.Policy_Basicauth:
-		// case *sentinelv1.Policy_Ratelimit:
 		// case *sentinelv1.Policy_IpRules:
 		// case *sentinelv1.Policy_Openapi:
 

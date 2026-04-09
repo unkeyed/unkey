@@ -43,7 +43,6 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 	if cfg.Observability.Logging != nil {
-
 		logger.SetSampler(logger.TailSampler{
 			SlowThreshold: cfg.Observability.Logging.SlowThreshold,
 			SampleRate:    cfg.Observability.Logging.SampleRate,
@@ -102,6 +101,23 @@ func Run(ctx context.Context, cfg Config) error {
 			return nil
 		})
 	}
+
+	ctr, err := counter.NewRedis(counter.RedisConfig{
+		RedisURL: cfg.Redis.URL,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create counter: %w", err)
+	}
+	r.Defer(ctr.Close)
+
+	rlSvc, err := ratelimit.New(ratelimit.Config{
+		Clock:   clk,
+		Counter: ctr,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create ratelimit service: %w", err)
+	}
+	r.Defer(rlSvc.Close)
 
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
@@ -202,7 +218,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize middleware engine for KeyAuth and other sentinel policies.
 	// Uses Redis if configured, in-memory counters otherwise.
-	middlewareEngine, err := initMiddlewareEngine(r, cfg, database, keyVerifications, clk)
+	middlewareEngine, err := initMiddlewareEngine(r, cfg.Redis.URL, cfg.Region, rlSvc, database, keyVerifications, clk)
 	if err != nil {
 		return fmt.Errorf("unable to create middleware engine: %w", err)
 	}
@@ -269,11 +285,11 @@ func Run(ctx context.Context, cfg Config) error {
 // at startup does not prevent the engine from being created — the Redis client
 // reconnects lazily, and both the rate limiter and usage limiter degrade
 // gracefully (local windows / DB fallback) when Redis is temporarily unavailable.
-func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, keyVerifications *batch.BatchProcessor[schema.KeyVerification], clk clock.Clock) (engine.Evaluator, error) {
+func initMiddlewareEngine(r *runner.Runner, redisURL string, region string, rlSvc ratelimit.Service, database db.Database, keyVerifications *batch.BatchProcessor[schema.KeyVerification], clk clock.Clock) (engine.Evaluator, error) {
 	var ctr counter.Counter
-	if cfg.Redis.URL != "" {
+	if redisURL != "" {
 		redisCtr, redisErr := counter.NewRedis(counter.RedisConfig{
-			RedisURL: cfg.Redis.URL,
+			RedisURL: redisURL,
 		})
 		if redisErr != nil {
 			return nil, fmt.Errorf("failed to create redis counter: %w", redisErr)
@@ -321,7 +337,7 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 	}
 	r.Defer(usageLimiter.Close)
 
-	keyCache, err := cache.New[string, keysdb.CachedKeyData](cache.Config[string, keysdb.CachedKeyData]{
+	keyCache, err := cache.New(cache.Config[string, keysdb.CachedKeyData]{
 		Fresh:    10 * time.Second,
 		Stale:    10 * time.Minute,
 		MaxSize:  100_000,
@@ -337,7 +353,7 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 		RateLimiter:      rateLimiter,
 		RBAC:             rbac.New(),
 		KeyVerifications: keyVerifications,
-		Region:           cfg.Region,
+		Region:           region,
 		UsageLimiter:     usageLimiter,
 		KeyCache:         keyCache,
 		QuotaCache:       nil,
@@ -348,7 +364,8 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 
 	logger.Info("middleware engine initialized")
 	return engine.New(engine.Config{
-		KeyService: keyService,
-		Clock:      clk,
+		KeyService:  keyService,
+		RateLimiter: rlSvc,
+		Clock:       clk,
 	}), nil
 }

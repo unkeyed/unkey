@@ -65,6 +65,9 @@ type Config struct {
 	// Included in structured logs and used for routing decisions.
 	Region string `toml:"region" config:"required,nonempty"`
 
+	// Redis configures the Redis connection used for rate limiting.
+	Redis RedisConfig `toml:"redis"`
+
 	// HttpPort is the TCP port the sentinel server binds to.
 	HttpPort int `toml:"http_port" config:"default=8080,min=1,max=65535"`
 
@@ -76,10 +79,6 @@ type Config struct {
 
 	// ClickHouse configures analytics storage. See [ClickHouseConfig].
 	ClickHouse ClickHouseConfig `toml:"clickhouse"`
-
-	// Redis configures the Redis connection for rate limiting and usage limiting.
-	// Required when sentinel middleware policies use KeyAuth with auto-applied rate limits.
-	Redis RedisConfig `toml:"redis"`
 
 	// RequestTimeout is the maximum duration for proxied requests before the
 	// context is cancelled and a 504 is returned. Defaults to 15 minutes.
@@ -98,6 +97,5 @@ type Config struct {
 // struct tags alone. It implements [config.Validator] so that [config.Load]
 // calls it automatically after tag-level validation.
 func (c *Config) Validate() error {
-
 	return nil
 }
