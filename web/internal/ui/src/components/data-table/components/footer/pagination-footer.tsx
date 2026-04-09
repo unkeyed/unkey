@@ -37,7 +37,7 @@ export const PaginationFooter = memo(function PaginationFooter({
   const end = Math.min(page * pageSize, totalCount);
   const pageNumbers = useMemo(() => getPageNumbers(page, totalPages), [page, totalPages]);
 
-  if (hide) {
+  if (hide || (!loading && totalCount === 0)) {
     return null;
   }
 

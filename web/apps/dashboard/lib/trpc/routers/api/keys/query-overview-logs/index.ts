@@ -66,21 +66,11 @@ export const queryKeysOverviewLogs = workspaceProcedure
 
     const logs = clickhouseResult.val || [];
 
-    // Get total count of keys matching DB-level filters (names, identities)
-    const { keys: allMatchingKeys } = await queryApiKeys({
-      apiId: input.apiId,
-      workspaceId: ctx.workspace.id,
-      keyIds: input.keyIds || null,
-      names: input.names || null,
-      identities: input.identities || null,
-    });
-    const total = allMatchingKeys.length;
-
     if (logs.length === 0) {
       return {
         keysOverviewLogs: [],
         hasMore: false,
-        total,
+        total: 0,
       };
     }
 
@@ -107,11 +97,13 @@ export const queryKeysOverviewLogs = workspaceProcedure
         ...log,
         key_details: keyDetailsMap.get(log.key_id) || null,
       }));
+
+    const hasMore = logs.length === input.limit && keysOverviewLogs.length > 0;
     const response: KeysOverviewLogsResponse = {
       keysOverviewLogs,
-      hasMore: logs.length === input.limit && keysOverviewLogs.length > 0,
-      nextCursor: logs.length === input.limit ? logs[logs.length - 1].time : undefined,
-      total,
+      hasMore,
+      nextCursor: hasMore ? logs[logs.length - 1].time : undefined,
+      total: keysOverviewLogs.length,
     };
 
     return response;
