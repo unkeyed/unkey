@@ -14,7 +14,6 @@ type ControlCloudProps<TFilter extends FilterValue> = {
   updateFilters: (filters: TFilter[]) => void;
   formatFieldName: (field: string) => string;
   formatValue?: (value: string | number, field: string) => string;
-  historicalWindow?: number;
 };
 
 export const ControlCloud = <TFilter extends FilterValue>({
@@ -27,13 +26,16 @@ export const ControlCloud = <TFilter extends FilterValue>({
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
   const handleClearFilters = useCallback(() => {
-    updateFilters([] as TFilter[]);
+    updateFilters([]);
     setFocusedIndex(null);
   }, [updateFilters]);
 
   const handleFocusFilters = useCallback(() => {
+    if (filters.length === 0) {
+      return;
+    }
     setFocusedIndex(0);
-  }, []);
+  }, [filters.length]);
 
   useKeyboardShortcut("option+shift+a", handleClearFilters);
 
