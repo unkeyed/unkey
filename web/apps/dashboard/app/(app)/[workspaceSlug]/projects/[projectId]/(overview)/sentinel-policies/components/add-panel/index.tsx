@@ -3,8 +3,9 @@
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { KeyAuthFields } from "./forms/keyauth-fields";
+import { RateLimitFields } from "./forms/ratelimit-fields";
 import {
   MatchConditionEditorBody,
   MatchConditionsClearAll,
@@ -60,6 +61,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       : getDefaultValues("keyauth"),
   });
   const { control } = form;
+  const policyType = useWatch({ control, name: "type" });
 
   const onSubmit = (values: PolicyFormValues) => {
     const id = props.mode === "edit" ? props.initialPolicy.id : undefined;
@@ -129,7 +131,19 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
               label="Type"
               options={POLICY_TYPE_OPTIONS}
               value={field.value}
-              onValueChange={field.onChange}
+              onValueChange={(nextType) => {
+                if (nextType !== field.value) {
+                  const name = form.getValues("name");
+                  const environmentId = form.getValues("environmentId");
+                  const matchConditions = form.getValues("matchConditions");
+                  form.reset({
+                    ...getDefaultValues(nextType as PolicyFormValues["type"]),
+                    name,
+                    environmentId,
+                    matchConditions,
+                  });
+                }
+              }}
               disabled={isEdit}
               description="The kind of protection this policy enforces."
               descriptionPosition="label"
@@ -146,7 +160,8 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
           summary={<PolicySummary />}
           catchAll
         >
-          <KeyAuthFields />
+          {policyType === "keyauth" && <KeyAuthFields />}
+          {policyType === "ratelimit" && <RateLimitFields />}
         </PolicyForm.Section>
         <PolicyForm.Section
           id="matchConditions"

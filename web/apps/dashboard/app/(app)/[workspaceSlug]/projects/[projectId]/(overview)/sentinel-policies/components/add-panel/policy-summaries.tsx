@@ -5,9 +5,17 @@ import { cn } from "@/lib/utils";
 import { match } from "@unkey/match";
 import type { ReactNode } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import type { MatchConditionFormValues, PolicyFormValues } from "./schema";
+import type { MatchConditionFormValues, PolicyFormValues, RateLimitKeySource } from "./schema";
 
 type KeyauthValues = Extract<PolicyFormValues, { type: "keyauth" }>;
+
+const KEY_SOURCE_LABELS: Record<RateLimitKeySource, string> = {
+  remoteIp: "IP",
+  header: "Header",
+  authenticatedSubject: "Subject",
+  path: "Path",
+  principalClaim: "Claim",
+};
 
 const Strong = ({ children, className }: { children: ReactNode; className?: string }) => (
   <span className={cn("text-gray-12 font-medium", className)}>{children}</span>
@@ -72,6 +80,18 @@ export function summarizePolicy(
         )}
       </span>
     ))
+    .with({ type: "ratelimit" }, (v) => (
+      <span className="text-gray-11">
+        <Strong>{v.limit}</Strong> / {v.windowMs >= 1000 ? `${v.windowMs / 1000}s` : `${v.windowMs}ms`}
+        <Sep />
+        per <Strong>{KEY_SOURCE_LABELS[v.keySource]}</Strong>
+        {v.keyValue && (
+          <>
+            : <Strong>{v.keyValue}</Strong>
+          </>
+        )}
+      </span>
+    ))
     .exhaustive();
 }
 
@@ -80,12 +100,8 @@ export function summarizePolicy(
  * summary actually renders so a keystroke in (say) the policy name field
  * re-renders just this small subtree, not the entire panel.
  */
-export function PolicySummary() {
-  const { control } = useFormContext<PolicyFormValues>();
-  // Only watch fields actually used by summarizePolicy. name, environmentId,
-  // and permissionQuery are not rendered in the summary, so skip them to avoid
-  // unnecessary re-renders when those fields change.
-  const type = useWatch({ control, name: "type" });
+function KeyauthPolicySummary() {
+  const { control } = useFormContext<Extract<PolicyFormValues, { type: "keyauth" }>>();
   const keySpaceIds = useWatch({ control, name: "keySpaceIds" });
   const locations = useWatch({ control, name: "locations" });
 
@@ -99,7 +115,7 @@ export function PolicySummary() {
     <div className="max-w-75 truncate">
       {summarizePolicy(
         {
-          type,
+          type: "keyauth",
           name: "",
           environmentId: "",
           matchConditions: [],
@@ -111,4 +127,37 @@ export function PolicySummary() {
       )}
     </div>
   );
+}
+
+function RatelimitPolicySummary() {
+  const { control } = useFormContext<Extract<PolicyFormValues, { type: "ratelimit" }>>();
+  const limit = useWatch({ control, name: "limit" });
+  const windowMs = useWatch({ control, name: "windowMs" });
+  const keySource = useWatch({ control, name: "keySource" });
+  const keyValue = useWatch({ control, name: "keyValue" });
+
+  return (
+    <div className="max-w-75 truncate">
+      {summarizePolicy({
+        type: "ratelimit",
+        name: "",
+        environmentId: "",
+        matchConditions: [],
+        limit,
+        windowMs,
+        keySource,
+        keyValue,
+      })}
+    </div>
+  );
+}
+
+export function PolicySummary() {
+  const { control } = useFormContext<PolicyFormValues>();
+  const type = useWatch({ control, name: "type" });
+
+  if (type === "ratelimit") {
+    return <RatelimitPolicySummary />;
+  }
+  return <KeyauthPolicySummary />;
 }

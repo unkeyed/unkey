@@ -10,30 +10,10 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
-import type { Control } from "react-hook-form";
-import { useController } from "react-hook-form";
+import { useController, useFormContext } from "react-hook-form";
+import type { PolicyFormValues, RateLimitKeySource } from "../schema";
 
-// Self-contained ratelimit form types. Not yet wired into the canonical
-// PolicyFormValues union — this file is a placeholder for an upcoming
-// ratelimit policy variant. Once `policyFormSchema` grows a `ratelimit`
-// branch, replace these with `Extract<PolicyFormValues, { type: "ratelimit" }>`
-// and the matching key-source enum from ../schema.
-export type RateLimitKeySource =
-  | "remoteIp"
-  | "header"
-  | "authenticatedSubject"
-  | "path"
-  | "principalClaim";
-
-type RatelimitFormValues = {
-  type: "ratelimit";
-  name: string;
-  environmentId: string;
-  limit: number;
-  windowMs: number;
-  keySource: RateLimitKeySource;
-  keyValue: string;
-};
+type RatelimitFormValues = Extract<PolicyFormValues, { type: "ratelimit" }>;
 
 const KEY_SOURCE_OPTIONS: { value: RateLimitKeySource; label: string }[] = [
   { value: "remoteIp", label: "Remote IP" },
@@ -43,7 +23,8 @@ const KEY_SOURCE_OPTIONS: { value: RateLimitKeySource; label: string }[] = [
   { value: "principalClaim", label: "Principal Claim" },
 ];
 
-export function RateLimitFields({ control }: { control: Control<RatelimitFormValues> }) {
+export function RateLimitFields() {
+  const { control } = useFormContext<RatelimitFormValues>();
   const {
     field: { value: limit, onChange: onLimitChange },
     fieldState: { error: limitError },

@@ -118,9 +118,42 @@ export const keyauthPolicySchema = z
   .strict();
 export type KeyauthPolicy = z.infer<typeof keyauthPolicySchema>;
 
+// ── RateLimit policy ───────────────────────────────────────────────────
+
+const rateLimitKeySchema = z.union([
+  z.object({ remoteIp: z.object({}).strict() }).strict(),
+  z.object({ header: z.object({ name: z.string().min(1) }).strict() }).strict(),
+  z.object({ authenticatedSubject: z.object({}).strict() }).strict(),
+  z.object({ path: z.object({}).strict() }).strict(),
+  z
+    .object({
+      principalClaim: z.object({ claimName: z.string().min(1) }).strict(),
+    })
+    .strict(),
+]);
+export type RateLimitKey = z.infer<typeof rateLimitKeySchema>;
+
+export const ratelimitPolicySchema = z
+  .object({
+    ...policyBase,
+    type: z.literal("ratelimit"),
+    ratelimit: z
+      .object({
+        limit: z.number().int().min(1),
+        windowMs: z.number().int().min(1),
+        key: rateLimitKeySchema,
+      })
+      .strict(),
+  })
+  .strict();
+export type RatelimitPolicy = z.infer<typeof ratelimitPolicySchema>;
+
 // ── Sentinel policy (discriminated union — extend with new types here) ──
 
-export const sentinelPolicySchema = z.discriminatedUnion("type", [keyauthPolicySchema]);
+export const sentinelPolicySchema = z.discriminatedUnion("type", [
+  keyauthPolicySchema,
+  ratelimitPolicySchema,
+]);
 export type SentinelPolicy = z.infer<typeof sentinelPolicySchema>;
 export type SentinelPolicyType = SentinelPolicy["type"];
 
@@ -155,6 +188,9 @@ export function fromWirePolicy(raw: unknown): SentinelPolicy {
   const obj: Record<string, unknown> = { ...(raw as Record<string, unknown>) };
   if ("keyauth" in obj) {
     return sentinelPolicySchema.parse({ ...obj, type: "keyauth" });
+  }
+  if ("ratelimit" in obj) {
+    return sentinelPolicySchema.parse({ ...obj, type: "ratelimit" });
   }
   throw new Error("unknown sentinel policy variant");
 }
