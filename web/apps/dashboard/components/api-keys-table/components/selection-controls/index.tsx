@@ -2,7 +2,7 @@ import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/sche
 import { ArrowOppositeDirectionY, Ban, CircleCheck, Trash, XMark } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDeleteKey } from "../actions/components/hooks/use-delete-key";
 import { useBatchUpdateKeyStatus } from "../actions/components/hooks/use-update-key-status";
 import { BatchEditExternalId } from "./components/batch-edit-external-id";
@@ -27,6 +27,14 @@ export const SelectionControls = ({
   const disableButtonRef = useRef<HTMLButtonElement>(null);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
+  useEffect(() => {
+    if (selectedKeys.size === 0) {
+      setIsDisableConfirmOpen(false);
+      setIsDeleteConfirmOpen(false);
+      setIsBatchEditExternalIdOpen(false);
+    }
+  }, [selectedKeys.size]);
+
   const updateKeyStatus = useBatchUpdateKeyStatus();
   const deleteKey = useDeleteKey(() => {
     setSelectedKeys(new Set());
@@ -37,9 +45,13 @@ export const SelectionControls = ({
   };
 
   const performDisableKeys = () => {
+    const keyIds = Array.from(selectedKeys);
+    if (keyIds.length === 0) {
+      return;
+    }
     updateKeyStatus.mutate({
       enabled: false,
-      keyIds: Array.from(selectedKeys),
+      keyIds,
     });
   };
 
@@ -48,8 +60,12 @@ export const SelectionControls = ({
   };
 
   const performKeyDeletion = () => {
+    const keyIds = Array.from(selectedKeys);
+    if (keyIds.length === 0) {
+      return;
+    }
     deleteKey.mutate({
-      keyIds: Array.from(selectedKeys),
+      keyIds,
     });
   };
 
@@ -102,12 +118,16 @@ export const SelectionControls = ({
                   className="text-gray-12 font-medium text-[13px]"
                   disabled={getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isLoading}
                   loading={updateKeyStatus.isLoading}
-                  onClick={() =>
+                  onClick={() => {
+                    const keyIds = Array.from(selectedKeys);
+                    if (keyIds.length === 0) {
+                      return;
+                    }
                     updateKeyStatus.mutate({
                       enabled: true,
-                      keyIds: Array.from(selectedKeys),
-                    })
-                  }
+                      keyIds,
+                    });
+                  }}
                 >
                   <CircleCheck iconSize="sm-regular" />
                   Enable key
