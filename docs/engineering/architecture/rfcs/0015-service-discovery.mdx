@@ -1,0 +1,121 @@
+---
+title: "0015 Service Discovery"
+description: "Service discovery for our own services as well as customers"
+authors: ["Andreas Thomas"]
+---
+
+We're going to start leveraging gossip to emit cache-invalidation events to all relevant services, to lower the propagation delay of a customer's request. Right now deleting a key may take up to a few minutes to fully clear the SWR cache in all regions. That's not acceptable but we can not simply lower the TTL on the cache, cause that would lower our cache hit rate.\
+\
+Using gossip to broadcast events to all caches solves this because typically state changes converge on the order of seconds globally.
+
+In order for us to use gossip though, we need a way to individually address pods across regions, which requires two things.
+
+1. allow requests across regions → aws VPC peering
+2. discovering pods across regions → see below
+
+## Gossip clusters
+
+There will probably be multiple clusters because not every service cares about every event. Although there is also a point to be made about running one super cluster and services simply ignore events they do not care about. I'm not really sure yet.\
+\
+If we go with multiple clusters, we would have these:
+
+- One cluster where all frontlines gossip with each other, mostly about `frontline-route` invalidations
+- One cluster where all apis gossip, mostly about config invalidations such as keys or ratelimits
+- One cluster \*\*per \*\*a environment for sentinels, mostly about key config changes
+
+The problem with multiple clusters is that they do overlap sometimes, ie both sentinels and apis care about key config changes.
+
+## Architecture
+
+At a high level the architecture is pretty simple, we would deploy a new stateless (in the sense that it doesn't need a new persistent storage) service in each region, called `servicediscovery` . This service would watch the kubernetes api and maintains an in-memory state of all relevant pods. Relevant pods could be frontlines, unkey apis or sentinels, identified by their labels.
+
+<Frame>
+  ![Clean Shot 2026 03 25 At 10 11 55@2x](/images/CleanShot2026-03-25at10.11.55@2x.png)
+</Frame>
+
+Each `servicediscovery` is listening on `sd.<cluster>.<region>.<account>.aws.unkey.cloud` . These are well known and can be provided to each servicediscovery pod as env variables.\\
+
+### servicediscovery lifecycle
+
+When an `sd` pod comes up, it reads the addresses of its peers from environment variables or `unkey.toml` and bootstraps itself by joining the `sd` gossip cluster. From then on it watches the k8s api to find out about all current relevant pods in its own region and gossips with its peers so that every `sd` service has a global view of every pod running. We do not need to persist this durably, cause we can always rebuild the state from the k8s api.
+
+Once an `sd` pod is bootstrapped it exposes an HTTP API with its data.
+
+### Client lifecycle
+
+A client refers to either frontline, our api or a sentinel pod, who needs to find its peers.\
+Clients can ask their local `sd` about its peers and will receive an array of addresses, which they then use to join their gossip cluster.
+
+Clients should periodically ask `sd` about peers to make sure every client eventually joins the same cluster.
+
+API and frontline join their own global cluster respectively, whereas sentinels form smaller cluster. Each `app-evironment` would form their own cluster.
+
+### Servicediscovery API for unkey
+
+This isn't fleshed out yet, but the most generic approach would be for a client to simply request peers via labels.
+
+#### Request
+
+A client can request one or more labels, all pods that have all of these labels are returned.
+
+```text
+POST /v1/find
+{
+  [labelname]: labelvalue
+}
+```
+
+#### Response
+
+```text
+[
+  {
+    id: string
+    region: string
+    address: string
+  },
+  ...
+]
+```
+
+### Servicediscovery API for customers
+
+Once we have this service, we might as well offer it for our customers to find their instances.
+
+We wouldn't need to discover these through the watch api and keep in memory, because they already exist in our database and we can just query that.
+
+The idea is to add an env variable with the address of `sd` and then can call that to fetch the addresses of all pods in the current unkey-deployment. \
+\
+These are just ideas:
+
+| Request | Response |
+| --- | --- |
+| `GET $UNKEY_SD/deployment` | list of all instances of this deployment |
+| `GET $UNKEY_SD/apps/<appslug>/<envslug>` | list of all instances of the current deployment of another app. |
+
+How we authenticate customer requests is still unsolved.
+
+## Policies
+
+This new `sd` service must be reachable from frontline, api, sentinels and customer pods.
+
+In addition to that, we need frontlines to be able to talk to each other, apis to talk to each other and finally sentinels to talk with other sentinels in the same `app-env`, but that should be easy to do via existing labels.
+
+#### Frontline Policies
+
+1. Accept traffic from internet on `HTTP_PORT`
+2. Accept traffic from other frontlines on `GOSSIP_PORT` via `app.kubernetes.io/component=frontline` label
+3. Block rest
+
+#### Sentinel Policies
+
+1. Accept traffic from frontline on `HTTP_PORT` via `app.kubernetes.io/component=frontline` label
+2. Accept traffic from other sentinels on `GOSSIP_PORT` via `app.kubernetes.io/component=sentinel && unkey.com/environment.id=?` label
+3. Block rest
+
+## Future stuff
+
+This isn't relevant to service discovery directly, but for policies and general network layout
+
+- At some point, we'll offer customers a persistent KV-store as a service, which will very likely be a multitenant-service running in each region. Customers can read and write to that, so their pods need to be able to talk to it. Whether KV-pods will gossip with each other or use a central store and just cache locally is still undecided.
+- Similar to KV, there will be other value-add services, such as queues or external databases via planetscale
