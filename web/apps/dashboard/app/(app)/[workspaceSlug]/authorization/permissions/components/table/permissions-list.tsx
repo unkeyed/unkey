@@ -55,10 +55,6 @@ export const PermissionsList = () => {
 
   return (
     <>
-      <SelectionControls
-        selectedPermissions={selectedPermissions}
-        setSelectedPermissions={setSelectedPermissions}
-      />
       <DataTable
         data={permissions}
         columns={columns}
@@ -86,6 +82,12 @@ export const PermissionsList = () => {
         totalPages={totalPages}
         totalCount={totalCount}
         onPageChange={onPageChange}
+        headerContent={
+          <SelectionControls
+            selectedPermissions={selectedPermissions}
+            setSelectedPermissions={setSelectedPermissions}
+          />
+        }
       />
       {selectedPermission && (
         <EditPermission
