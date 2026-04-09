@@ -16,14 +16,7 @@ export const LogsDateTime = () => {
     }
   }, [title]);
 
-  // Sync title with filters - reset to default when time filters are removed
-  useEffect(() => {
-    const hasTimeFilters = filters.some((f) => ["startTime", "endTime", "since"].includes(f.field));
-
-    if (!hasTimeFilters && title !== "Last 12 hours") {
-      setTitle("Last 12 hours");
-    }
-  }, [filters, title]);
+  const hasTimeFilters = filters.some((f) => ["startTime", "endTime", "since"].includes(f.field));
 
   const timeValues = filters
     .filter((f) => ["startTime", "endTime", "since"].includes(f.field))
@@ -40,6 +33,7 @@ export const LogsDateTime = () => {
     <DatetimePopover
       maxDate={new Date()}
       initialTimeValues={timeValues}
+      initialTitle={hasTimeFilters ? (title ?? "") : "Last 12 hours"}
       onDateTimeChange={(startTime, endTime, since) => {
         const activeFilters = filters.filter(
           (f) => !["endTime", "startTime", "since"].includes(f.field),
@@ -74,7 +68,6 @@ export const LogsDateTime = () => {
         }
         updateFilters(activeFilters);
       }}
-      initialTitle={title ?? ""}
       onSuggestionChange={setTitle}
       customOptions={DEFAULT_OPTIONS.filter(
         (option) => !option.value || !option.value.endsWith("m"),

@@ -85,6 +85,7 @@ export const DatetimePopover = ({
   });
 
   useEffect(() => {
+    const noTimeFilters = !since && !startTime;
     const newTitle = since
       ? (OPTIONS.find((s) => s.value === since)?.display ?? CUSTOM_PLACEHOLDER)
       : startTime
@@ -92,6 +93,10 @@ export const DatetimePopover = ({
         : initialTitle;
 
     onSuggestionChange(newTitle);
+
+    if (noTimeFilters) {
+      setSuggestions(OPTIONS.map((s) => ({ ...s, checked: false })));
+    }
   }, [since, startTime, initialTitle, onSuggestionChange, OPTIONS]);
 
   const handleSuggestionChange = (id: number) => {

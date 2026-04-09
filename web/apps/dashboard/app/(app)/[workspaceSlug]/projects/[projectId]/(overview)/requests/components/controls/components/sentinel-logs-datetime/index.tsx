@@ -15,12 +15,7 @@ export const SentinelLogsDateTime = () => {
     }
   }, [title]);
 
-  useEffect(() => {
-    const hasTimeFilters = filters.some((f) => ["startTime", "endTime", "since"].includes(f.field));
-    if (!hasTimeFilters && title !== "Last 12 hours") {
-      setTitle("Last 12 hours");
-    }
-  }, [filters, title]);
+  const hasTimeFilters = filters.some((f) => ["startTime", "endTime", "since"].includes(f.field));
 
   const timeValues = filters
     .filter((f) => ["startTime", "endTime", "since"].includes(f.field))
@@ -37,6 +32,7 @@ export const SentinelLogsDateTime = () => {
     <DatetimePopover
       maxDate={new Date()}
       initialTimeValues={timeValues}
+      initialTitle={hasTimeFilters ? (title ?? "") : "Last 12 hours"}
       onDateTimeChange={(startTime, endTime, since) => {
         const activeFilters = filters.filter(
           (f) => !["endTime", "startTime", "since"].includes(f.field),
@@ -71,7 +67,6 @@ export const SentinelLogsDateTime = () => {
         }
         updateFilters(activeFilters);
       }}
-      initialTitle={title ?? ""}
       onSuggestionChange={setTitle}
     >
       <div className="group">
