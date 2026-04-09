@@ -56,7 +56,7 @@ export default function SentinelPoliciesPage() {
           isOpen={panels.isAddPanelOpen}
           topOffset={layout?.tableDistanceToTop ?? 0}
           onClose={panels.closeAdd}
-          onAdd={actions.add}
+          onSave={actions.save}
         />
         {panels.editing !== null && (
           <SentinelPolicyPanel

@@ -5,17 +5,18 @@ import {
   type SentinelPolicyRow,
   nextSentinelPolicyOrder,
   reorderSentinelPolicies,
+  rowKey,
 } from "@/lib/collections/deploy/sentinel-policies";
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { useCallback } from "react";
 
 type Args = { envAId: string; envBId: string };
+type Env = "envA" | "envB";
 
 export type SentinelPolicyActions = {
-  toggleEnv: (id: string, env: "envA" | "envB") => void;
-  addToEnv: (id: string, env: "envA" | "envB") => void;
-  reorder: (envs: ("envA" | "envB")[], orderedIds: string[]) => void;
-  add: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
+  toggleEnv: (id: string, env: Env) => void;
+  addToEnv: (id: string, env: Env) => void;
+  reorder: (envs: Env[], orderedIds: string[]) => void;
   save: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
   delete: (id: string) => void;
 };
@@ -25,18 +26,11 @@ export type SentinelPolicyActions = {
  * to the sentinelPolicies collection (or call `reorderSentinelPolicies`).
  */
 export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPolicyActions {
-  const envIdFor = useCallback(
-    (env: "envA" | "envB") => (env === "envA" ? envAId : envBId),
-    [envAId, envBId],
-  );
+  const envIdFor = useCallback((env: Env) => (env === "envA" ? envAId : envBId), [envAId, envBId]);
 
   const toggleEnv = useCallback(
-    (id: string, env: "envA" | "envB") => {
-      const envId = envIdFor(env);
-      if (!envId) {
-        return;
-      }
-      const key = `${envId}::${id}`;
+    (id: string, env: Env) => {
+      const key = rowKey(envIdFor(env), id);
       if (!collection.sentinelPolicies.get(key)) {
         return;
       }
@@ -48,13 +42,13 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
   );
 
   const addToEnv = useCallback(
-    (id: string, env: "envA" | "envB") => {
+    (id: string, env: Env) => {
       const targetEnvId = envIdFor(env);
       const sourceEnvId = env === "envA" ? envBId : envAId;
       if (!targetEnvId || !sourceEnvId) {
         return;
       }
-      const sourceRow = collection.sentinelPolicies.get(`${sourceEnvId}::${id}`);
+      const sourceRow = collection.sentinelPolicies.get(rowKey(sourceEnvId, id));
       if (!sourceRow) {
         return;
       }
@@ -70,7 +64,7 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
   );
 
   const reorder = useCallback(
-    (envs: ("envA" | "envB")[], orderedIds: string[]) => {
+    (envs: Env[], orderedIds: string[]) => {
       const reorders = envs
         .map((env) => ({ environmentId: envIdFor(env), policyIds: orderedIds }))
         .filter((r) => r.environmentId !== "");
@@ -79,30 +73,7 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
     [envIdFor],
   );
 
-  const add = useCallback(
-    (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => {
-      const rows: SentinelPolicyRow[] = [];
-      if (prodPolicy !== null && envAId) {
-        rows.push({
-          ...prodPolicy,
-          environmentId: envAId,
-          _order: nextSentinelPolicyOrder(envAId),
-        });
-      }
-      if (previewPolicy !== null && envBId) {
-        rows.push({
-          ...previewPolicy,
-          environmentId: envBId,
-          _order: nextSentinelPolicyOrder(envBId),
-        });
-      }
-      if (rows.length > 0) {
-        collection.sentinelPolicies.insert(rows);
-      }
-    },
-    [envAId, envBId],
-  );
-
+  /** Batched upsert across both envs. Existing rows are updated, missing ones inserted. */
   const save = useCallback(
     (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => {
       const id = (prodPolicy ?? previewPolicy)?.id;
@@ -114,24 +85,39 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
         { envId: envBId, policy: previewPolicy },
       ].filter((t) => t.envId);
 
-      for (const { envId, policy } of targets) {
-        const key = `${envId}::${id}`;
-        const existing = collection.sentinelPolicies.get(key);
-        if (existing) {
-          collection.sentinelPolicies.update(key, (draft) => {
-            if (policy) {
-              Object.assign(draft, policy, { environmentId: envId, enabled: true });
-            } else {
-              draft.enabled = false;
-            }
-          });
-        } else if (policy) {
-          collection.sentinelPolicies.insert({
-            ...policy,
-            environmentId: envId,
-            _order: nextSentinelPolicyOrder(envId),
+      const updateKeys: string[] = [];
+      const updateTargets: typeof targets = [];
+      const insertRows: SentinelPolicyRow[] = [];
+
+      for (const target of targets) {
+        const key = rowKey(target.envId, id);
+        if (collection.sentinelPolicies.get(key)) {
+          updateKeys.push(key);
+          updateTargets.push(target);
+        } else if (target.policy) {
+          insertRows.push({
+            ...target.policy,
+            environmentId: target.envId,
+            _order: nextSentinelPolicyOrder(target.envId),
           });
         }
+      }
+
+      if (updateKeys.length > 0) {
+        collection.sentinelPolicies.update(updateKeys, (drafts) => {
+          for (let i = 0; i < drafts.length; i++) {
+            const { envId, policy } = updateTargets[i];
+            if (policy) {
+              Object.assign(drafts[i], policy, { environmentId: envId, enabled: true });
+            } else {
+              drafts[i].enabled = false;
+            }
+          }
+        });
+      }
+
+      if (insertRows.length > 0) {
+        collection.sentinelPolicies.insert(insertRows);
       }
     },
     [envAId, envBId],
@@ -139,15 +125,9 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
 
   const remove = useCallback(
     (id: string) => {
-      // Batch both env-rows into one transaction so the collection's onDelete
-      // toast fires once, not twice (count is plural-aware).
-      const keys: string[] = [];
-      if (envAId && collection.sentinelPolicies.get(`${envAId}::${id}`)) {
-        keys.push(`${envAId}::${id}`);
-      }
-      if (envBId && collection.sentinelPolicies.get(`${envBId}::${id}`)) {
-        keys.push(`${envBId}::${id}`);
-      }
+      const keys = [envAId, envBId]
+        .filter((envId) => envId && collection.sentinelPolicies.get(rowKey(envId, id)))
+        .map((envId) => rowKey(envId, id));
       if (keys.length > 0) {
         collection.sentinelPolicies.delete(keys);
       }
@@ -155,5 +135,5 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
     [envAId, envBId],
   );
 
-  return { toggleEnv, addToEnv, reorder, add, save, delete: remove };
+  return { toggleEnv, addToEnv, reorder, save, delete: remove };
 }

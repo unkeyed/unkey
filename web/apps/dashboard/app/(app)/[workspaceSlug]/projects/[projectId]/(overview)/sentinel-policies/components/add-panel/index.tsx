@@ -31,7 +31,7 @@ type CommonProps = {
 
 type AddProps = CommonProps & {
   mode: "add";
-  onAdd: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
+  onSave: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
 };
 
 type EditProps = CommonProps & {
@@ -73,15 +73,11 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
         ? { ...policy, enabled: true }
         : null;
 
-    if (props.mode === "edit") {
-      props.onSave(prodPolicy, previewPolicy);
-      onClose();
-      return;
-    }
-
-    props.onAdd(prodPolicy, previewPolicy);
+    props.onSave(prodPolicy, previewPolicy);
     onClose();
-    form.reset(getDefaultValues("keyauth"));
+    if (props.mode === "add") {
+      form.reset(getDefaultValues("keyauth"));
+    }
   };
 
   return (

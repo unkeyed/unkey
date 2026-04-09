@@ -56,7 +56,7 @@ export type SentinelPolicyRow = SentinelPolicy & {
   _order?: number;
 };
 
-const rowKey = (environmentId: string, policyId: string) => `${environmentId}::${policyId}`;
+export const rowKey = (environmentId: string, policyId: string) => `${environmentId}::${policyId}`;
 
 /**
  * Sentinel policies collection — one row per (environment, policy).

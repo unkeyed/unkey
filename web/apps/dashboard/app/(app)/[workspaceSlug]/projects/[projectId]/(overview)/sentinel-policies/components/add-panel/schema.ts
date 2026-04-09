@@ -65,7 +65,7 @@ export const matchConditionSchema = z
       (c.value ?? "").length === 0
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Value is required",
         path: ["value"],
       });
@@ -90,7 +90,7 @@ const keyLocationFormSchema = z
       (!loc.name || loc.name.length === 0)
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message:
           loc.locationType === "header" ? "Header name is required" : "Parameter name is required",
         path: ["name"],
