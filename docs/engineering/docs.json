@@ -191,46 +191,14 @@
         "groups": [
           {
             "group": "Infra",
-            "pages": ["infra/index","infra/infra-work"]
+            "pages": ["infra/index"]
           },
           {
             "group": "Clusters",
             "pages": [
-              "infra/clusters/kubeconfig",
-              "infra/clusters/create-region",
               "infra/clusters/delete-cluster",
-              "infra/clusters/networks",
               "infra/clusters/scheduling"
             ]
-          },
-          {
-            "group": "Observability",
-            "pages": [
-              "infra/observability/alerting",
-              "infra/observability/checkly",
-              "infra/observability/incident-io"
-            ]
-          },
-          {
-            "group": "Metering",
-            "pages": [
-              "infra/metering/gauge"
-            ]
-          },
-          {
-            "group": "Deployments",
-            "pages": [
-              "infra/deployments/argocd-debugging",
-              "infra/deployments/cronjobs"
-            ]
-          },
-          {
-            "group": "Custom Domains",
-            "pages": ["infra/domain-connect"]
-          },
-          {
-            "group": "Secrets",
-            "pages": ["infra/secrets/aws-secrets"]
           },
           {
             "group": "ClickHouse",
@@ -256,16 +224,6 @@
                   "infra/clickhouse/users/vercel-dashboard"
                 ]
               }
-            ]
-          },
-          {
-            "group": "Legacy (2025)",
-            "pages": [
-              "infra/legacy-2025/github-oidc",
-              "infra/legacy-2025/github-actions-deploy-role-setup",
-              "infra/legacy-2025/pulumi-iac-esc",
-              "infra/legacy-2025/pulumi-infrastructure-architecture",
-              "infra/legacy-2025/pulumi-workflow"
             ]
           }
         ]
