@@ -30,11 +30,15 @@ export function ConditionFields({
   index: number;
   errors?: ConditionFieldErrors;
 }) {
-  const { control, setValue } = useFormContext<PolicyFormValues>();
+  const {
+    control,
+    setValue,
+    formState: { isSubmitted },
+  } = useFormContext<PolicyFormValues>();
   const condition = useWatch({ control, name: `matchConditions.${index}` });
 
   const patch = (next: MatchConditionFormValues) => {
-    setValue(`matchConditions.${index}`, next);
+    setValue(`matchConditions.${index}`, next, { shouldValidate: isSubmitted });
   };
 
   return match(condition)

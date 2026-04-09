@@ -1,5 +1,6 @@
 "use client";
 
+import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { match } from "@unkey/match";
 import type { ReactNode } from "react";
@@ -16,7 +17,7 @@ const Sep = () => <span className="text-gray-9 mx-1.5">·</span>;
 
 export function summarizeMatchConditions(conditions: MatchConditionFormValues[]): ReactNode {
   if (conditions.length === 0) {
-    return <span className="text-gray-11">No conditions</span>;
+    return null;
   }
   return (
     <span className="text-gray-11">
@@ -48,20 +49,14 @@ export function summarizePolicy(
   return match(values)
     .with({ type: "keyauth" }, (v) => (
       <span className="text-gray-11">
-        Key Auth
-        {v.keySpaceIds.length > 0 && (
+        {v.keySpaceIds.length > 0 && v.keySpaceIds.length > 3 ? (
           <>
-            <Sep />
-            {v.keySpaceIds.length > 3 ? (
-              <>
-                <Strong>{v.keySpaceIds.length}</Strong> keyspaces
-              </>
-            ) : (
-              <Strong className="inline-block max-w-[200px] truncate align-bottom">
-                {v.keySpaceIds.map((id) => keyspaceNames?.[id] ?? id).join(", ")}
-              </Strong>
-            )}
+            <Strong>{v.keySpaceIds.length}</Strong> keyspaces
           </>
+        ) : (
+          <Strong className="inline-block max-w-50 truncate align-bottom">
+            {v.keySpaceIds.map((id) => keyspaceNames?.[id] ?? id).join(", ")}
+          </Strong>
         )}
         {v.locations.length === 1 && (
           <>
@@ -85,7 +80,7 @@ export function summarizePolicy(
  * summary actually renders so a keystroke in (say) the policy name field
  * re-renders just this small subtree, not the entire panel.
  */
-export function PolicySummary({ keyspaceNames }: { keyspaceNames: Record<string, string> }) {
+export function PolicySummary() {
   const { control } = useFormContext<PolicyFormValues>();
   // Only watch fields actually used by summarizePolicy. name, environmentId,
   // and permissionQuery are not rendered in the summary, so skip them to avoid
@@ -94,8 +89,14 @@ export function PolicySummary({ keyspaceNames }: { keyspaceNames: Record<string,
   const keySpaceIds = useWatch({ control, name: "keySpaceIds" });
   const locations = useWatch({ control, name: "locations" });
 
+  const { data: availableKeyspaces = {} } =
+    trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery();
+  const keyspaceNames: Record<string, string> = Object.fromEntries(
+    Object.entries(availableKeyspaces).map(([id, ks]) => [id, ks?.api?.name ?? id]),
+  );
+
   return (
-    <>
+    <div className="max-w-75 truncate">
       {summarizePolicy(
         {
           type,
@@ -108,6 +109,6 @@ export function PolicySummary({ keyspaceNames }: { keyspaceNames: Record<string,
         },
         keyspaceNames,
       )}
-    </>
+    </div>
   );
 }

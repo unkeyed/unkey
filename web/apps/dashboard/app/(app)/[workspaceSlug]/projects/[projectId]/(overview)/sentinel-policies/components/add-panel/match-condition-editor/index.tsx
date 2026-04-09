@@ -6,7 +6,6 @@ import { Plus } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
 import { Fragment } from "react";
 import { useFieldArray, useFormContext, useFormState, useWatch } from "react-hook-form";
-import { AccordionSection } from "../accordion-section";
 import { summarizeMatchConditions } from "../policy-summaries";
 import { type PolicyFormValues, getDefaultCondition } from "../schema";
 import { MatchConditionCard } from "./condition-card";
@@ -64,43 +63,30 @@ export function MatchConditionsSummary() {
 }
 
 /**
- * The collapsed match-conditions accordion row, including its `Clear all`
- * header action. Reads `matchConditions` from form context so the parent
- * panel doesn't have to drill `control` / `setValue` through.
+ * Standalone "Clear all" button for the match-conditions accordion header.
+ * Reads form context internally so the parent doesn't need to drill props.
  */
-export function MatchConditionsCollapsedSection({ onToggle }: { onToggle: () => void }) {
+export function MatchConditionsClearAll() {
   const { control, setValue } = useFormContext<PolicyFormValues>();
   const { isSubmitted } = useFormState({ control });
   const conditions = useWatch({ control, name: "matchConditions" }) ?? [];
+
+  if (conditions.length === 0) {
+    return null;
+  }
+
   return (
-    <AccordionSection
-      label="Match Conditions"
-      summary={summarizeMatchConditions(conditions)}
-      active={false}
-      onToggle={onToggle}
-      tooltipContent={
-        <span>
-          All conditions must match (<span className="text-gray-12 font-medium">AND</span> logic).
-        </span>
+    <button
+      type="button"
+      onClick={() =>
+        setValue("matchConditions", [], {
+          shouldDirty: true,
+          shouldValidate: isSubmitted,
+        })
       }
-      headerAction={
-        conditions.length > 0 ? (
-          <button
-            type="button"
-            onClick={() =>
-              setValue("matchConditions", [], {
-                shouldDirty: true,
-                shouldValidate: isSubmitted,
-              })
-            }
-            className="text-xs text-accent-11 hover:text-accent-12 transition-colors cursor-pointer"
-          >
-            Clear all
-          </button>
-        ) : undefined
-      }
+      className="text-xs text-accent-11 hover:text-accent-12 transition-colors cursor-pointer"
     >
-      {null}
-    </AccordionSection>
+      Clear all
+    </button>
   );
 }

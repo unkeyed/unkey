@@ -85,6 +85,7 @@ export function KeyAuthFields() {
           label="Keyspaces"
           descriptionPosition="label"
           description="API keyspaces used to authenticate incoming requests."
+          error={keySpaceError?.message}
           options={comboboxOptions}
           value=""
           onSelect={(id) => {
@@ -129,11 +130,6 @@ export function KeyAuthFields() {
           }
           searchPlaceholder="Search keyspaces..."
           emptyMessage={<div className="mt-2">No keyspaces available.</div>}
-        />
-        <FormDescription
-          error={keySpaceError?.message}
-          descriptionId="keyspace-desc"
-          errorId="keyspace-error"
         />
       </div>
 
