@@ -77,12 +77,26 @@ export type MatchConditionFormValues = z.infer<typeof matchConditionSchema>;
 export const keyLocationTypeSchema = z.enum(["bearer", "header", "queryParam"]);
 export type KeyLocationType = z.infer<typeof keyLocationTypeSchema>;
 
-const keyLocationFormSchema = z.object({
-  id: z.string(),
-  locationType: keyLocationTypeSchema,
-  name: z.string().optional(),
-  stripPrefix: z.string().optional(),
-});
+const keyLocationFormSchema = z
+  .object({
+    id: z.string(),
+    locationType: keyLocationTypeSchema,
+    name: z.string().optional(),
+    stripPrefix: z.string().optional(),
+  })
+  .superRefine((loc, ctx) => {
+    if (
+      (loc.locationType === "header" || loc.locationType === "queryParam") &&
+      (!loc.name || loc.name.length === 0)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          loc.locationType === "header" ? "Header name is required" : "Parameter name is required",
+        path: ["name"],
+      });
+    }
+  });
 
 export type KeyLocationFormValues = z.infer<typeof keyLocationFormSchema>;
 

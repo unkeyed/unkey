@@ -3,15 +3,17 @@ import { ChevronDown, Trash } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import type { MatchConditionFormValues } from "../schema";
-import { ConditionFields } from "./condition-fields";
+import { type ConditionFieldErrors, ConditionFields } from "./condition-fields";
 import { type HttpMethod, MATCH_TYPE_OPTIONS } from "./constants";
 
 export function MatchConditionCard({
   condition,
+  errors,
   onChange,
   onDelete,
 }: {
   condition: MatchConditionFormValues;
+  errors?: ConditionFieldErrors;
   onChange: (updated: MatchConditionFormValues) => void;
   onDelete: (id: string) => void;
 }) {
@@ -68,7 +70,7 @@ export function MatchConditionCard({
           <Trash iconSize="sm-regular" />
         </Button>
       </div>
-      <ConditionFields condition={condition} onChange={onChange} />
+      <ConditionFields condition={condition} onChange={onChange} errors={errors} />
     </div>
   );
 }

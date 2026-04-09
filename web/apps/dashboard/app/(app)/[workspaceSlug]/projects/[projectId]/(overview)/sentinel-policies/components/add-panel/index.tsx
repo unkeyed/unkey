@@ -15,8 +15,8 @@ import {
   SlidePanel,
 } from "@unkey/ui";
 import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
-import { useState } from "react";
-import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
+import { useCallback, useState } from "react";
+import { Controller, type FieldErrors, FormProvider, useForm, useWatch } from "react-hook-form";
 import { AccordionSection } from "./accordion-section";
 import {
   MatchConditionEditorBody,
@@ -33,6 +33,9 @@ import {
   policyFormSchema,
   toSentinelPolicy,
 } from "./schema";
+
+// Fields always visible or with their own accordion section — everything else is "config".
+const NON_CONFIG_KEYS = new Set(["name", "type", "environmentId", "matchConditions"]);
 
 type CommonProps = {
   envASlug: string;
@@ -86,6 +89,31 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
   const toggleSection = (section: Exclude<ExpandedSection, "none">) =>
     setExpanded((prev) => (prev === section ? "none" : section));
 
+  const onInvalid = useCallback((fieldErrors: FieldErrors<PolicyFormValues>) => {
+    const hasConfigError = Object.keys(fieldErrors).some((k) => !NON_CONFIG_KEYS.has(k));
+    const hasMatchError = Boolean(fieldErrors.matchConditions);
+
+    // Expand the first section that has errors so the user sees them.
+    const target: ExpandedSection | null = hasConfigError
+      ? "config"
+      : hasMatchError
+        ? "matchConditions"
+        : null;
+
+    if (target) {
+      setExpanded(target);
+    }
+
+    // After React renders the expanded section, focus the first errored element.
+    requestAnimationFrame(() => {
+      const el = document.querySelector(
+        '[aria-invalid="true"], [data-error="true"]',
+      ) as HTMLElement | null;
+      el?.focus();
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, []);
+
   const onSubmit = (values: PolicyFormValues) => {
     const id = props.mode === "edit" ? props.initialPolicy.id : undefined;
     const policy = toSentinelPolicy(values, id);
@@ -133,7 +161,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
 
       <SlidePanel.Content>
         <FormProvider {...form}>
-          <form onSubmit={handleSubmit(onSubmit)} className="h-full flex flex-col">
+          <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="h-full flex flex-col">
             <div className="flex-1 overflow-y-auto pt-6 bg-grayA-2">
               <div className="flex flex-col gap-5 px-8">
                 <Controller
@@ -142,6 +170,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
                   render={({ field, fieldState }) => (
                     <FormInput
                       label="Name"
+                      required
                       descriptionPosition="label"
                       placeholder="e.g. API Key Auth, Rate Limit Public"
                       description="A descriptive name to identify this policy."

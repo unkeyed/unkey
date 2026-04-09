@@ -4,19 +4,29 @@ import { cn } from "@/lib/utils";
 import { Plus } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
 import { Fragment } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
+import { useFormContext, useFormState, useWatch } from "react-hook-form";
 import { AccordionSection } from "../accordion-section";
 import { summarizeMatchConditions } from "../policy-summaries";
 import type { PolicyFormValues } from "../schema";
 import { MatchConditionCard } from "./condition-card";
+import type { ConditionFieldErrors } from "./condition-fields";
 
 export const MAX_MATCH_CONDITIONS = 10;
 
 export function MatchConditionEditorBody() {
   const { control, setValue } = useFormContext<PolicyFormValues>();
+  const { errors, isSubmitted } = useFormState({ control });
   const conditions = useWatch({ control, name: "matchConditions" }) ?? [];
+  const conditionErrors = errors.matchConditions as
+    | Record<number, ConditionFieldErrors>
+    | undefined;
   const onChange = (next: typeof conditions) =>
-    setValue("matchConditions", next, { shouldDirty: true });
+    setValue("matchConditions", next, {
+      shouldDirty: true,
+      // Only re-validate after a failed submit so errors clear as the user
+      // fixes them, but don't show errors before the first submit attempt.
+      shouldValidate: isSubmitted,
+    });
 
   const atCap = conditions.length >= MAX_MATCH_CONDITIONS;
   const hasConditions = conditions.length > 0;
@@ -28,6 +38,7 @@ export function MatchConditionEditorBody() {
             <Fragment key={cond.id}>
               <MatchConditionCard
                 condition={cond}
+                errors={conditionErrors?.[index]}
                 onChange={(updated) =>
                   onChange(conditions.map((c) => (c.id === updated.id ? updated : c)))
                 }
@@ -83,6 +94,7 @@ export function MatchConditionsSummary() {
  */
 export function MatchConditionsCollapsedSection({ onToggle }: { onToggle: () => void }) {
   const { control, setValue } = useFormContext<PolicyFormValues>();
+  const { isSubmitted } = useFormState({ control });
   const conditions = useWatch({ control, name: "matchConditions" }) ?? [];
   return (
     <AccordionSection
@@ -99,7 +111,12 @@ export function MatchConditionsCollapsedSection({ onToggle }: { onToggle: () => 
         conditions.length > 0 ? (
           <button
             type="button"
-            onClick={() => setValue("matchConditions", [], { shouldDirty: true })}
+            onClick={() =>
+              setValue("matchConditions", [], {
+                shouldDirty: true,
+                shouldValidate: isSubmitted,
+              })
+            }
             className="text-xs text-accent-11 hover:text-accent-12 transition-colors cursor-pointer"
           >
             Clear all

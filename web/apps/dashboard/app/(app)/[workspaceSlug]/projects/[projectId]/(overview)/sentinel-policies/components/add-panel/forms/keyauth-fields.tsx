@@ -14,9 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
+import { FormDescription, FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import type { Control } from "react-hook-form";
-import { useController } from "react-hook-form";
+import { useController, useFormContext, useFormState } from "react-hook-form";
 import type { KeyLocationFormValues, KeyLocationType, PolicyFormValues } from "../schema";
 
 type KeyauthFormValues = Extract<PolicyFormValues, { type: "keyauth" }>;
@@ -41,6 +41,13 @@ export function KeyAuthFields({ control }: { control: Control<KeyauthFormValues>
     field: { value: permissionQuery, onChange: setPermissionQuery },
   } = useController({ control, name: "permissionQuery" });
 
+  const { setValue } = useFormContext<KeyauthFormValues>();
+  const { errors, isSubmitted } = useFormState({ control });
+  const locationErrors = errors.locations as
+    | Record<number, Partial<Record<string, { message?: string }>>>
+    | undefined;
+  const nameError = locationErrors?.[0]?.name;
+
   const { data: availableKeyspaces = {} } =
     trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery();
 
@@ -60,7 +67,8 @@ export function KeyAuthFields({ control }: { control: Control<KeyauthFormValues>
   };
 
   const updateLocation = (id: string, updates: Partial<KeyLocationFormValues>) => {
-    setLocations(locations.map((loc) => (loc.id === id ? { ...loc, ...updates } : loc)));
+    const next = locations.map((loc) => (loc.id === id ? { ...loc, ...updates } : loc));
+    setValue("locations", next, { shouldDirty: true, shouldValidate: isSubmitted });
   };
 
   const removeLocation = () => {
@@ -121,7 +129,11 @@ export function KeyAuthFields({ control }: { control: Control<KeyauthFormValues>
           searchPlaceholder="Search keyspaces..."
           emptyMessage={<div className="mt-2">No keyspaces available.</div>}
         />
-        {keySpaceError && <p className="text-error-11 text-[13px]">{keySpaceError.message}</p>}
+        <FormDescription
+          error={keySpaceError?.message}
+          descriptionId="keyspace-desc"
+          errorId="keyspace-error"
+        />
       </div>
 
       <fieldset className="flex flex-col gap-2 border-0 m-0 p-0">
@@ -139,78 +151,81 @@ export function KeyAuthFields({ control }: { control: Control<KeyauthFormValues>
           )}
         </div>
         {location && (
-          <div className="flex items-center gap-2">
-            <div className="w-32 shrink-0">
-              <Select
-                value={location.locationType}
-                onValueChange={(v) => {
-                  const locationType = v as KeyLocationType;
-                  updateLocation(location.id, {
-                    locationType,
-                    name: locationType === "bearer" ? undefined : "",
-                    stripPrefix: undefined,
-                  });
-                }}
-              >
-                <SelectTrigger
-                  aria-label="Location type"
-                  className="shrink-0 whitespace-pre"
-                  rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+          <>
+            <div className="flex items-center gap-2">
+              <div className="w-32 shrink-0">
+                <Select
+                  value={location.locationType}
+                  onValueChange={(v) => {
+                    const locationType = v as KeyLocationType;
+                    updateLocation(location.id, {
+                      locationType,
+                      name: locationType === "bearer" ? undefined : "",
+                      stripPrefix: undefined,
+                    });
+                  }}
                 >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LOCATION_TYPE_OPTIONS.map((opt) => (
-                    <SelectItem
-                      key={opt.value}
-                      value={opt.value}
-                      className="shrink-0 whitespace-pre"
-                    >
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  <SelectTrigger
+                    aria-label="Location type"
+                    className="shrink-0 whitespace-pre"
+                    rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LOCATION_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem
+                        key={opt.value}
+                        value={opt.value}
+                        className="shrink-0 whitespace-pre"
+                      >
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {match(location.locationType)
+                .with("bearer", () => (
+                  <span className="flex-1 text-[12px] text-gray-9">
+                    Authorization: Bearer &lt;key&gt;
+                  </span>
+                ))
+                .with("header", "queryParam", () => (
+                  <FormInput
+                    placeholder={location.locationType === "header" ? "X-API-Key" : "api_key"}
+                    required
+                    value={location.name ?? ""}
+                    onChange={(e) => updateLocation(location.id, { name: e.target.value })}
+                    className="flex-1"
+                    variant={nameError ? "error" : undefined}
+                    aria-invalid={Boolean(nameError)}
+                  />
+                ))
+                .exhaustive()}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-label="Remove location"
+                className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg"
+                onClick={removeLocation}
+              >
+                <Trash iconSize="sm-regular" />
+              </Button>
             </div>
-            {match(location.locationType)
-              .with("bearer", () => (
-                <span className="flex-1 text-[12px] text-gray-9">
-                  Authorization: Bearer &lt;key&gt;
-                </span>
-              ))
-              .with("header", () => (
-                <FormInput
-                  placeholder="X-API-Key"
-                  value={location.name ?? ""}
-                  onChange={(e) => updateLocation(location.id, { name: e.target.value })}
-                  className="flex-1"
-                />
-              ))
-              .with("queryParam", () => (
-                <FormInput
-                  placeholder="api_key"
-                  value={location.name ?? ""}
-                  onChange={(e) => updateLocation(location.id, { name: e.target.value })}
-                  className="flex-1"
-                />
-              ))
-              .exhaustive()}
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              aria-label="Remove location"
-              className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg"
-              onClick={removeLocation}
-            >
-              <Trash iconSize="sm-regular" />
-            </Button>
-          </div>
+            <FormDescription
+              error={nameError?.message}
+              descriptionId="location-name-desc"
+              errorId="location-name-error"
+            />
+          </>
         )}
       </fieldset>
 
       <FormInput
         label="Permission Query"
+        optional
         placeholder="e.g. api.read AND api.write"
         value={permissionQuery}
         onChange={(e) => setPermissionQuery(e.target.value)}
