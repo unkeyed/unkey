@@ -15,6 +15,13 @@ export const LogsDateTime = () => {
     }
   }, [title]);
 
+  useEffect(() => {
+    const hasTimeFilters = filters.some((f) => ["startTime", "endTime", "since"].includes(f.field));
+    if (!hasTimeFilters && title !== "Last 12 hours") {
+      setTitle("Last 12 hours");
+    }
+  }, [filters, title]);
+
   const timeValues = filters
     .filter((f) => ["startTime", "endTime", "since"].includes(f.field))
     .reduce(
