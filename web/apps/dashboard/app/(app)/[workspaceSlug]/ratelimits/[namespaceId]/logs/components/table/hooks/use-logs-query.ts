@@ -211,39 +211,44 @@ export function useRatelimitLogsQuery({
         return;
       }
 
+      // Build the list of new logs outside the updater to avoid mutation inside React setState
       const newLogs: RatelimitLog[] = [];
-      setRealtimeLogsMap((prevMap) => {
-        const newMap = new Map(prevMap);
-        let added = 0;
-
-        for (const log of result.ratelimitLogs) {
-          if (newMap.has(log.request_id) || historicalLogsMap.has(log.request_id)) {
-            continue;
-          }
-
-          const enriched: EnrichedRatelimitLog = {
-            ...ENRICHMENT_DEFAULTS,
-            ...log,
-            ...(enrichmentMapRef.current.get(log.request_id) ?? {}),
-          };
-          newMap.set(log.request_id, enriched);
-          newLogs.push(log);
-          added++;
-
-          if (newMap.size > Math.min(limit, REALTIME_DATA_LIMIT)) {
-            const entries = Array.from(newMap.entries());
-            const oldestEntry = entries.reduce((oldest, current) => {
-              return oldest[1].time < current[1].time ? oldest : current;
-            });
-            newMap.delete(oldestEntry[0]);
-          }
+      for (const log of result.ratelimitLogs) {
+        if (realtimeLogsMap.has(log.request_id) || historicalLogsMap.has(log.request_id)) {
+          continue;
         }
+        newLogs.push(log);
+      }
 
-        return added > 0 ? newMap : prevMap;
-      });
-
-      // Fire enrichment for new logs in background
       if (newLogs.length > 0) {
+        setRealtimeLogsMap((prevMap) => {
+          const newMap = new Map(prevMap);
+
+          for (const log of newLogs) {
+            if (newMap.has(log.request_id)) {
+              continue;
+            }
+
+            const enriched: EnrichedRatelimitLog = {
+              ...ENRICHMENT_DEFAULTS,
+              ...log,
+              ...(enrichmentMapRef.current.get(log.request_id) ?? {}),
+            };
+            newMap.set(log.request_id, enriched);
+
+            if (newMap.size > Math.min(limit, REALTIME_DATA_LIMIT)) {
+              const entries = Array.from(newMap.entries());
+              const oldestEntry = entries.reduce((oldest, current) => {
+                return oldest[1].time < current[1].time ? oldest : current;
+              });
+              newMap.delete(oldestEntry[0]);
+            }
+          }
+
+          return newMap;
+        });
+
+        // Fire enrichment for new logs in background
         fetchEnrichment(newLogs);
       }
     } catch (error) {
@@ -255,6 +260,7 @@ export function useRatelimitLogsQuery({
     limit,
     pollIntervalMs,
     historicalLogsMap,
+    realtimeLogsMap,
     realtimeLogs,
     historicalLogs,
     fetchEnrichment,
@@ -286,7 +292,7 @@ export function useRatelimitLogsQuery({
     }
   }, [initialData, fetchEnrichment]);
 
-  // Re-merge enrichment into historical logs when data or enrichment changes
+  // Re-merge enrichment into historical and realtime logs when enrichment changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: enrichmentVersion triggers re-merge when ref updates
   useEffect(() => {
     if (initialData) {
@@ -303,7 +309,33 @@ export function useRatelimitLogsQuery({
       }
       setHistoricalLogsMap(newMap);
     }
+
+    // Also re-merge enrichment into realtime logs
+    setRealtimeLogsMap((prevMap) => {
+      if (prevMap.size === 0) {
+        return prevMap;
+      }
+      const newMap = new Map<string, EnrichedRatelimitLog>();
+      let changed = false;
+      for (const [id, log] of prevMap) {
+        const enrichment = enrichmentMapRef.current.get(id);
+        if (enrichment) {
+          newMap.set(id, { ...log, ...enrichment });
+          changed = true;
+        } else {
+          newMap.set(id, log);
+        }
+      }
+      return changed ? newMap : prevMap;
+    });
   }, [initialData, enrichmentVersion]);
+
+  // Clear enrichment cache when query params change (filters, time range, namespace)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: queryParams covers all filter/time/namespace changes
+  useEffect(() => {
+    enrichmentMapRef.current.clear();
+    setEnrichmentVersion(0);
+  }, [queryParams]);
 
   // Reset realtime logs effect
   useEffect(() => {
