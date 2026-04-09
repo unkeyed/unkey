@@ -53,8 +53,8 @@ func (c *Controller) runResyncLoop(ctx context.Context) {
 							K8SName:      policy.GetName(),
 						}); err != nil {
 							logger.Error("unable to delete cilium network policy", "error", err.Error(), "policy_id", policyID)
-							continue
 						}
+						continue
 					}
 
 					logger.Error("unable to get desired cilium network policy state", "error", err.Error(), "policy_id", policyID)
