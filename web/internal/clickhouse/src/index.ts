@@ -54,6 +54,7 @@ import {
   getQuarterlyLatencyTimeseries,
   getQuarterlyRatelimitTimeseries,
   getRatelimitLastUsed,
+  getRatelimitLogEnrichment,
   getRatelimitLogs,
   getRatelimitOverviewLogs,
   getSixHourlyLatencyTimeseries,
@@ -205,6 +206,7 @@ export class ClickHouse {
     return {
       insert: insertRatelimit(this.inserter),
       logs: getRatelimitLogs(this.querier),
+      logEnrichment: getRatelimitLogEnrichment(this.querier),
       latest: getRatelimitLastUsed(this.querier),
       timeseries: {
         perMinute: getMinutelyRatelimitTimeseries(this.querier),
