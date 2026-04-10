@@ -4,7 +4,7 @@ import { Toaster } from "@unkey/ui";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import "@unkey/ui/css";
-import "@/styles/tailwind/tailwind.css";
+import "@/styles/tailwind.css";
 import * as Sentry from "@sentry/nextjs";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
