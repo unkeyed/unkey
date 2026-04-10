@@ -4,6 +4,7 @@ import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
+import { domains } from "./domains";
 import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
 
 const verificationStatusSchema = z.enum(["pending", "verifying", "verified", "failed"]);
@@ -92,6 +93,7 @@ export const customDomains = createCollection<CustomDomain, string>(
       });
 
       await mutation;
+      await customDomains.utils.refetch();
     },
     onDelete: async ({ transaction }) => {
       const original = transaction.mutations[0].original;
@@ -111,6 +113,7 @@ export const customDomains = createCollection<CustomDomain, string>(
       });
 
       await deleteMutation;
+      await domains.utils.refetch();
     },
   }),
 );

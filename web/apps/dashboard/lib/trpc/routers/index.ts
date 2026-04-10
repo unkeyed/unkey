@@ -154,6 +154,7 @@ import { listRatelimitOverrides } from "./ratelimit/overrides_list";
 import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
+import { queryRatelimitLogEnrichment } from "./ratelimit/query-logs/enrichment";
 import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
@@ -330,6 +331,7 @@ export const router = t.router({
   ratelimit: t.router({
     logs: t.router({
       query: queryRatelimitLogs,
+      enrichment: queryRatelimitLogEnrichment,
       ratelimitLlmSearch,
       queryRatelimitTimeseries,
     }),
