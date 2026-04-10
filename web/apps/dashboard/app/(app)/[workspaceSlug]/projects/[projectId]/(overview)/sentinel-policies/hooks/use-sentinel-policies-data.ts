@@ -14,6 +14,7 @@ type SentinelPoliciesData = {
   envBSlug: string;
   merged: MergedPolicy[];
   isLoading: boolean;
+  isError: boolean;
 };
 
 /**
@@ -31,7 +32,11 @@ export function useSentinelPoliciesData(): SentinelPoliciesData {
   const envASlug = envA?.slug ?? "production";
   const envBSlug = envB?.slug ?? "preview";
 
-  const { data: rowsA, isLoading: isLoadingA } = useLiveQuery(
+  const {
+    data: rowsA,
+    isLoading: isLoadingA,
+    isError: isErrorA,
+  } = useLiveQuery(
     (q) =>
       q
         .from({ p: collection.sentinelPolicies })
@@ -40,7 +45,11 @@ export function useSentinelPoliciesData(): SentinelPoliciesData {
     [envAId],
   );
 
-  const { data: rowsB, isLoading: isLoadingB } = useLiveQuery(
+  const {
+    data: rowsB,
+    isLoading: isLoadingB,
+    isError: isErrorB,
+  } = useLiveQuery(
     (q) =>
       q
         .from({ p: collection.sentinelPolicies })
@@ -66,5 +75,6 @@ export function useSentinelPoliciesData(): SentinelPoliciesData {
     envBSlug,
     merged,
     isLoading: isLoadingA || isLoadingB,
+    isError: isErrorA || isErrorB,
   };
 }
