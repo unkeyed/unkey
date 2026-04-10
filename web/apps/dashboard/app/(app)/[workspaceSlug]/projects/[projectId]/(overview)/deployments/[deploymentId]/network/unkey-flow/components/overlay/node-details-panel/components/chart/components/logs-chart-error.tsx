@@ -7,8 +7,7 @@ export const LogsChartError = () => {
         height={50}
         className="border-b border-grayA-4"
         width="100%"
-        minHeight={1}
-        minWidth={1}
+        initialDimension={{ width: 1, height: 1 }}
       >
         <div className="flex-1 flex items-center justify-center h-full">
           <div className="flex flex-col items-center gap-2">

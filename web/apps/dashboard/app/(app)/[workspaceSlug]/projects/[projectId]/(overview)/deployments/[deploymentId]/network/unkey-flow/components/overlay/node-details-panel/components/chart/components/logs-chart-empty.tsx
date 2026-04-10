@@ -21,8 +21,7 @@ export const LogsChartEmpty = ({ config, height }: LogsChartEmptyProps) => {
         height={height}
         className="border-b border-grayA-4"
         width="100%"
-        minHeight={1}
-        minWidth={1}
+        initialDimension={{ width: 1, height: 1 }}
       >
         <BarChart
           data={placeholderData}
