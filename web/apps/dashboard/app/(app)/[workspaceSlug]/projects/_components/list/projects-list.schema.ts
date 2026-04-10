@@ -21,8 +21,8 @@ const filterFieldsSchema = projectsListFilterFieldNames.reduce(
 
 const baseProjectsSchema = z.object(filterFieldsSchema);
 
-export const projectsQueryPayload = baseProjectsSchema.extend({
+const projectsQueryPayloadSchema = baseProjectsSchema.extend({
   cursor: z.number().nullish(),
 });
 
-export type ProjectsQueryPayload = z.infer<typeof projectsQueryPayload>;
+export type ProjectsQueryPayload = z.infer<typeof projectsQueryPayloadSchema>;
