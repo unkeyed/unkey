@@ -1,6 +1,7 @@
 ---
 title: "April 10, 2026"
 description: "Ephemeral disk storage, automatic DNS setup for custom domains, key requests table, and runtime log improvements."
+noindex: true
 ---
 
 ## New features
@@ -35,7 +36,6 @@ Environment names are now validated at creation time to prevent non-compliant na
 
 ## Bug fixes
 
-- Rate limit counters now unblock correctly after the window expires, resolving an issue where identifiers could remain throttled longer than expected.
 - Filter control bar buttons ("Clear filters" and filter navigation) are now clickable and functional. Clearing filters also resets the datetime range.
 - Chart click handlers are now restricted to the plot area only, preventing unintended interactions when clicking outside the chart.
 - Custom domains are now deduplicated correctly, preventing duplicate entries from appearing in the domain list.
