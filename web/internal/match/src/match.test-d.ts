@@ -209,3 +209,34 @@ describe("type: .when()", () => {
       .otherwise(() => 1);
   });
 });
+
+describe("type: partial boolean patterns on non-discriminated objects", () => {
+  type Flags = { a: boolean; b: boolean };
+
+  it("exhaustive() compiles after covering both boolean cases", () => {
+    const v = {} as Flags;
+    const result = match(v)
+      .with({ a: true }, () => "true branch")
+      .with({ a: false }, () => "false branch")
+      .exhaustive();
+    expectTypeOf(result).toEqualTypeOf<string>();
+  });
+
+  it("otherwise() receives correctly narrowed remainder after one boolean arm", () => {
+    const v = {} as Flags;
+    match(v)
+      .with({ a: true }, () => 1)
+      .otherwise((remaining) => {
+        expectTypeOf(remaining).toEqualTypeOf<{ a: false; b: boolean }>();
+        return 0;
+      });
+  });
+
+  it("exhaustive() errors when only one boolean arm is present", () => {
+    const v = {} as Flags;
+    match(v)
+      .with({ a: true }, () => "only true")
+      // @ts-expect-error TRemaining is { a: false; b: boolean }, not never
+      .exhaustive();
+  });
+});

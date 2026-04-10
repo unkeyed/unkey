@@ -4,14 +4,13 @@ import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
 import { Controller, useForm } from "react-hook-form";
-import { KeyAuthFields } from "./forms/keyauth-fields";
+import { KeyAuthFields, PolicySummary } from "./forms/keyauth-fields";
 import {
   MatchConditionEditorBody,
   MatchConditionsClearAll,
   MatchConditionsSummary,
 } from "./match-condition-editor";
 import { PolicyForm } from "./policy-form";
-import { PolicySummary } from "./policy-summaries";
 import {
   POLICY_TYPE_OPTIONS,
   type PolicyFormValues,
@@ -164,7 +163,6 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
           <MatchConditionEditorBody />
         </PolicyForm.Section>
       </PolicyForm.Accordion>
-
       <PolicyForm.Footer>
         <div className="border-t border-grayA-4">
           <div className="px-8 py-6">

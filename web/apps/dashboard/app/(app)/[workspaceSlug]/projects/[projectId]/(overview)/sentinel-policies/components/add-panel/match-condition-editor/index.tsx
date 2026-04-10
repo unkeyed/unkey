@@ -4,10 +4,13 @@ import { SENTINEL_LIMITS } from "@/lib/collections/deploy/sentinel-policies.sche
 import { cn } from "@/lib/utils";
 import { Plus } from "@unkey/icons";
 import { Button, Separator } from "@unkey/ui";
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import { useFieldArray, useFormContext, useFormState, useWatch } from "react-hook-form";
-import { summarizeMatchConditions } from "../policy-summaries";
-import { type PolicyFormValues, getDefaultCondition } from "../schema";
+import {
+  type MatchConditionFormValues,
+  type PolicyFormValues,
+  getDefaultCondition,
+} from "../schema";
 import { MatchConditionCard } from "./condition-card";
 
 export function MatchConditionEditorBody() {
@@ -52,14 +55,22 @@ export function MatchConditionEditorBody() {
   );
 }
 
-/**
- * Live-subscribing summary for the active fold's accordion header. Reads only
- * `matchConditions` from the surrounding `FormProvider`.
- */
 export function MatchConditionsSummary() {
   const { control } = useFormContext<PolicyFormValues>();
   const conditions = useWatch({ control, name: "matchConditions" });
   return <>{summarizeMatchConditions(conditions ?? [])}</>;
+}
+
+function summarizeMatchConditions(conditions: MatchConditionFormValues[]): ReactNode {
+  if (conditions.length === 0) {
+    return null;
+  }
+  return (
+    <span className="text-gray-11">
+      <span className="text-gray-12 font-medium">{conditions.length}</span> condition
+      {conditions.length === 1 ? "" : "s"}
+    </span>
+  );
 }
 
 /**
