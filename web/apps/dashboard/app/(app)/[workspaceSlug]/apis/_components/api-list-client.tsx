@@ -1,6 +1,5 @@
 "use client";
 
-import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
 import { trpc } from "@/lib/trpc/client";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
