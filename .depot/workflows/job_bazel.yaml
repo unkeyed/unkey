@@ -9,14 +9,6 @@ jobs:
     runs-on: depot-ubuntu-24.04-8
     timeout-minutes: 30
     steps:
-      - name: Disable IPv6 (workaround for proxy.golang.org resolution)
-        run: |
-          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
-          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
-          sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
-          echo 'precedence ::ffff:0:0/96 100' | sudo tee -a /etc/gai.conf
-          echo 'nameserver 8.8.8.8' | sudo tee /etc/resolv.conf
-          echo 'nameserver 8.8.4.4' | sudo tee -a /etc/resolv.conf
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
       - uses: bazel-contrib/setup-bazel@083175551ceeceebc757ebee2127fde78840ca77 # 0.18.0
         with:
@@ -30,7 +22,6 @@ jobs:
             common --remote_cache=https://cache.depot.dev
             common --remote_header=authorization=${{ secrets.DEPOT_BAZEL_CACHE_AUTHORIZATION }}
             common --remote_local_fallback
-            common --repo_env=GODEBUG=netdns=cgo
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
         with:
