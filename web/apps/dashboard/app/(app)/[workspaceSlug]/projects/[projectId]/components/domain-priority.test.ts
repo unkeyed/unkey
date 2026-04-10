@@ -209,9 +209,7 @@ describe("getDomainPriority", () => {
         }),
         makeDomain({ id: "d-a", fullyQualifiedDomainName: "a.example.com" }),
       ],
-      customDomains: [
-        makeCustomDomain({ id: "cd-1", domain: "custom.example.com" }),
-      ],
+      customDomains: [makeCustomDomain({ id: "cd-1", domain: "custom.example.com" })],
     });
 
     expect(result.all).toHaveLength(2);

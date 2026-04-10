@@ -15,7 +15,13 @@ export const LogsChartLoading = () => {
 
   return (
     <div className="w-full relative">
-      <ResponsiveContainer height={50} className="border-b border-grayA-4" width="100%">
+      <ResponsiveContainer
+        height={50}
+        className="border-b border-grayA-4"
+        width="100%"
+        minHeight={1}
+        minWidth={1}
+      >
         <BarChart margin={{ top: 0, right: -20, bottom: 0, left: -20 }} barGap={0} data={mockData}>
           <YAxis domain={[0, 1.2]} hide />
           <Bar dataKey="success" fill="hsl(var(--accent-3))" isAnimationActive={false} />

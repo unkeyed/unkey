@@ -17,7 +17,13 @@ export const LogsChartEmpty = ({ config, height }: LogsChartEmptyProps) => {
 
   return (
     <div className="w-full relative">
-      <ResponsiveContainer height={height} className="border-b border-grayA-4" width="100%">
+      <ResponsiveContainer
+        height={height}
+        className="border-b border-grayA-4"
+        width="100%"
+        minHeight={1}
+        minWidth={1}
+      >
         <BarChart
           data={placeholderData}
           margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
