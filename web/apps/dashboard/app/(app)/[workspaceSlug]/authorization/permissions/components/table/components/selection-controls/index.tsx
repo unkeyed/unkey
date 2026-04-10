@@ -37,22 +37,22 @@ export const SelectionControls = ({
         {selectedPermissions.size > 0 && (
           <motion.div
             key="selection-controls"
-            className="border-b border-grayA-3"
-            initial={{ opacity: 0, y: 10 }}
+            className="border-b border-grayA-3 w-full overflow-hidden"
+            initial={{ opacity: 0, height: 0 }}
             animate={{
               opacity: 1,
-              y: 5,
+              height: "auto",
               transition: {
+                height: { duration: 0.3, ease: "easeOut" },
                 opacity: { duration: 0.3, ease: "easeOut" },
-                y: { duration: 0.3, ease: "easeOut" },
               },
             }}
             exit={{
               opacity: 0,
-              y: 10,
+              height: 0,
               transition: {
-                opacity: { duration: 0.3, ease: "easeIn" },
-                y: { duration: 0.3, ease: "easeIn" },
+                opacity: { duration: 0.2, ease: "easeIn" },
+                height: { duration: 0.3, ease: "easeIn" },
               },
             }}
           >
