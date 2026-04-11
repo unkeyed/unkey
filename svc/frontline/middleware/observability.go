@@ -49,6 +49,16 @@ var (
 		},
 		[]string{"region"},
 	)
+
+	frontlineRequestErrorsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "frontline",
+			Name:      "request_errors_total",
+			Help:      "Total number of request errors by error type.",
+		},
+		[]string{"error_type"},
+	)
 )
 
 type ErrorResponse struct {
@@ -231,6 +241,9 @@ func WithObservability(region string, renderer errorpage.Renderer) zen.Middlewar
 
 			frontlineRequestsTotal.WithLabelValues(statusStr, errorType, region).Inc()
 			frontlineRequestDuration.WithLabelValues(statusStr, errorType, region).Observe(duration)
+			if errorType != "none" {
+				frontlineRequestErrorsTotal.WithLabelValues(errorType).Inc()
+			}
 
 			return nil
 		}
