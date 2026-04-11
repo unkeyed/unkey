@@ -12,17 +12,20 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
-// skipIfSuperseded marks the current deployment as skipped and returns
+// skipIfSuperseded marks the current deployment as superseded and returns
 // (true, nil) when a newer deployment for the same (app, environment, branch)
 // has already been queued. Rapid pushes to the same branch only build the
-// latest commit.
+// latest commit. `skipped` is reserved for "watch paths didn't match", so
+// supersession uses its own status here.
 //
 // Returns (false, nil) when the deployment should proceed normally, or
 // (false, err) if the dedup query or status update fails.
 //
-// The check is race-free because Deploy is keyed by app_id — when this
-// handler runs, any subsequent deploys for the same app are already queued
-// in the Restate VO inbox.
+// This catches the race where the proactive dedup in
+// services/deployment.create_deployment didn't manage to cancel the older
+// sibling before it started running (e.g. invocation_id hadn't been
+// persisted yet). The workflow self-checks at the top so it can bow out
+// before acquiring a build slot.
 func (w *Workflow) skipIfSuperseded(
 	ctx restate.ObjectContext,
 	deployment db.Deployment,
@@ -43,7 +46,7 @@ func (w *Workflow) skipIfSuperseded(
 		return false, nil
 	}
 
-	logger.Info("skipping superseded deployment",
+	logger.Info("self-superseding deployment",
 		"deployment_id", deployment.ID,
 		"app_id", deployment.AppID,
 		"branch", deployment.GitBranch.String,
@@ -53,7 +56,7 @@ func (w *Workflow) skipIfSuperseded(
 		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
 		if updErr := db.Query.UpdateDeploymentStatus(runCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
 			ID:        deployment.ID,
-			Status:    db.DeploymentsStatusSkipped,
+			Status:    db.DeploymentsStatusSuperseded,
 			UpdatedAt: now,
 		}); updErr != nil {
 			return updErr
@@ -64,8 +67,8 @@ func (w *Workflow) skipIfSuperseded(
 			EndedAt:      now,
 			Error:        sql.NullString{Valid: true, String: "superseded by newer commit"},
 		})
-	}, restate.WithName("mark deployment skipped")); err != nil {
-		return false, fault.Wrap(err, fault.Public("Failed to mark deployment as skipped."))
+	}, restate.WithName("mark deployment superseded")); err != nil {
+		return false, fault.Wrap(err, fault.Public("Failed to mark deployment as superseded."))
 	}
 
 	return true, nil

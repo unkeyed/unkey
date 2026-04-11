@@ -229,15 +229,17 @@ func Run(ctx context.Context, cfg Config) error {
 		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 	}),
-		// Retry with exponential backoff: 30s → 1m → 2m → 4m → 5m (capped),
-		// 10 attempts (~30 min total). A deploy that can't make progress
-		// after 10 retries (e.g. persistent MySQL EOF, Depot outage) should
-		// fail rather than stay stuck for hours.
+		// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
+		// 15 attempts (~5 min total). Short backoffs keep the worst-case
+		// cancel latency low — a user-initiated cancel only lands at the
+		// next attempt boundary, so longer intervals make cancels feel
+		// stuck. 5 minutes total is enough for transient blips; persistent
+		// failures should surface fast rather than retry for half an hour.
 		restate.WithInvocationRetryPolicy(
-			restate.WithInitialInterval(30*time.Second),
+			restate.WithInitialInterval(2*time.Second),
 			restate.WithExponentiationFactor(2.0),
-			restate.WithMaxInterval(5*time.Minute),
-			restate.WithMaxAttempts(10),
+			restate.WithMaxInterval(30*time.Second),
+			restate.WithMaxAttempts(15),
 			restate.KillOnMaxAttempts(),
 		),
 	))
