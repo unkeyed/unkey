@@ -18,14 +18,6 @@ jobs:
     env:
       DOCKER_CLI_EXPERIMENTAL: "enabled"
     steps:
-      - name: Disable IPv6 (workaround for proxy.golang.org resolution)
-        run: |
-          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
-          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
-          sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
-          echo 'precedence ::ffff:0:0/96 100' | sudo tee -a /etc/gai.conf
-          echo 'nameserver 8.8.8.8' | sudo tee /etc/resolv.conf
-          echo 'nameserver 8.8.4.4' | sudo tee -a /etc/resolv.conf
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -77,14 +69,6 @@ jobs:
     env:
       DOCKER_CLI_EXPERIMENTAL: "enabled"
     steps:
-      - name: Disable IPv6 (workaround for proxy.golang.org resolution)
-        run: |
-          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
-          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
-          sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
-          echo 'precedence ::ffff:0:0/96 100' | sudo tee -a /etc/gai.conf
-          echo 'nameserver 8.8.8.8' | sudo tee /etc/resolv.conf
-          echo 'nameserver 8.8.4.4' | sudo tee -a /etc/resolv.conf
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
