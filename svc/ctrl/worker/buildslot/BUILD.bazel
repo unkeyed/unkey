@@ -1,14 +1,13 @@
 load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "routing",
+    name = "buildslot",
     srcs = [
-        "assign_domains_handler.go",
-        "doc.go",
+        "acquire_handler.go",
+        "release_handler.go",
         "service.go",
-        "swap_live_handler.go",
     ],
-    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/routing",
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/buildslot",
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/hydra/v1:hydra",

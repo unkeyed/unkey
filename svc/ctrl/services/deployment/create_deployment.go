@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/validation"
+	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -44,8 +45,11 @@ type dockerSourceInfo struct {
 // apps deploy HEAD of their default branch, non-git apps reuse the live
 // deployment's Docker image.
 //
-// The workflow runs asynchronously keyed by workspace ID, so only one deployment
-// per workspace executes at a time during beta. Returns the deployment ID and initial status.
+// The workflow runs asynchronously keyed by {app, environment}, so different
+// environments (e.g. prod vs preview) for the same app deploy in parallel while
+// lifecycle operations within one environment remain serialized. Workspace-wide
+// build concurrency is enforced separately via BuildSlotService. Returns the
+// deployment ID and initial status.
 func (s *Service) CreateDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateDeploymentRequest],
@@ -286,8 +290,9 @@ func (s *Service) CreateDeployment(
 		"environment", env.Environment.ID,
 	)
 
-	// Send deployment request asynchronously, keyed by workspace ID
-	invocation, err := s.deploymentClient(workspaceID).
+	// Send deployment request asynchronously, keyed by deployment_id —
+	// each deployment runs as its own isolated workflow.
+	invocation, err := s.deploymentClient(deploymentID).
 		Deploy().
 		Send(ctx, deployReq)
 	if err != nil {
@@ -305,10 +310,39 @@ func (s *Service) CreateDeployment(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unable to start workflow: %w", err))
 	}
 
+	// Persist the invocation ID so the deployment can be cancelled later.
+	invocationID := invocation.Id()
+	if updateErr := db.Query.UpdateDeploymentInvocationID(ctx, s.db.RW(), db.UpdateDeploymentInvocationIDParams{
+		ID:           deploymentID,
+		InvocationID: sql.NullString{Valid: true, String: invocationID},
+		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	}); updateErr != nil {
+		logger.Error("failed to persist invocation id",
+			"deployment_id", deploymentID,
+			"invocation_id", invocationID,
+			"error", updateErr,
+		)
+		// Non-fatal: the deployment is already running. Cancellation may
+		// fail for this one deployment, but the workflow itself is fine.
+	}
+
 	logger.Info("deployment workflow started",
 		"deployment_id", deploymentID,
-		"invocation_id", invocation.Id,
+		"invocation_id", invocationID,
 	)
+
+	if cancelErr := s.dedup.CancelOlderSiblings(ctx, dedup.Newer{
+		ID:            deploymentID,
+		AppID:         app.ID,
+		EnvironmentID: env.Environment.ID,
+		GitBranch:     gitBranch,
+		CreatedAt:     now,
+	}); cancelErr != nil {
+		logger.Error("failed to cancel superseded siblings",
+			"deployment_id", deploymentID,
+			"error", cancelErr,
+		)
+	}
 
 	return connect.NewResponse(&ctrlv1.CreateDeploymentResponse{
 		DeploymentId: deploymentID,

@@ -27,7 +27,7 @@ Unkey receives a trigger: a GitHub webhook from a push, a CLI `unkey deploy` com
 
 <Step title="Queued">
 
-The deployment enters the build queue. Unkey allocates build capacity and prepares to fetch your source code. If you deployed a pre-built image via the CLI, this step is skipped.
+The deployment enters the build queue. Unkey checks if a build slot is available for your workspace (see [Build concurrency](#build-concurrency) below); if all slots are busy the deployment waits here until capacity frees up. Production pushes always get a slot immediately — they never wait behind preview builds. If you deployed a pre-built image via the CLI, this step is skipped.
 
 </Step>
 
@@ -82,6 +82,28 @@ Since the previous deployment is no longer receiving traffic, it will scale down
 Preview deployments stay running as long as they receive traffic. A preview deployment only spins down after six consecutive hours with zero requests.
 
 This keeps costs low for branches that are no longer being actively reviewed.
+
+## Build concurrency
+
+Each workspace has a maximum number of deployments that can build at the same time (`max_concurrent_builds`, defaults to 1). When the workspace is at capacity, new deployments queue in the **Pending** state until a running build finishes.
+
+**Production gets priority, not a free pass.** Production pushes count against `max_concurrent_builds` like any other build, but they jump to the head of the queue: a hot-fix won't wait behind a backlog of preview builds, but it also won't blow past your concurrency quota.
+
+Multiple deployments within the same environment can build in parallel — there is no per-environment serialization on the build path. The only serialization gate is the workspace-wide quota.
+
+## Superseded deployments
+
+If you push multiple commits to the same branch in quick succession, Unkey cancels older deployments **that are still queued** (haven't acquired a build slot yet) in favour of the newest one. Once a deployment starts building, it's committed — it will run to completion even if a newer commit lands on the same branch. This avoids the pathological case where rapid pushes keep cancelling builds and nothing ever finishes.
+
+You see this in the dashboard as **Superseded** — the deployment shows how far it got (it usually didn't get past the queued step) and why it stopped ("A newer commit on this branch replaced this deployment").
+
+This is the default behaviour. Rapid pushes don't burn build minutes on commits you're never going to ship.
+
+## Cancel a deployment
+
+You can manually abort an in-progress deployment from its detail page — click the small **Cancel deployment** button next to the page title. The cancellation stops the active build or deploy step immediately, marks the deployment as cancelled, and frees the build slot so the next queued deployment can start.
+
+Cancel is available while the deployment is still in any non-terminal state (pending, starting, building, deploying, network, finalizing, awaiting approval). Once a deployment is ready, failed, or already cancelled, the button disappears.
 
 ## Troubleshoot failed deployments
 

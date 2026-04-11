@@ -170,6 +170,12 @@ message AuthorizeDeploymentRequest {
 
 message AuthorizeDeploymentResponse {}
 
+message CancelDeploymentRequest {
+  string deployment_id = 1;
+}
+
+message CancelDeploymentResponse {}
+
 service DeployService {
   // Create a new deployment from a docker image or by auto-detecting
   // the appropriate source for the project.
@@ -186,4 +192,10 @@ service DeployService {
 
   // Authorize deployment for an external contributor's push on a branch
   rpc AuthorizeDeployment(AuthorizeDeploymentRequest) returns (AuthorizeDeploymentResponse) {}
+
+  // Cancel a running or queued deployment. Cancels the underlying Restate
+  // Deploy invocation, which triggers the workflow's compensation stack to
+  // transition the deployment to failed and release any held build slot.
+  // Idempotent: returns success if the deployment is already terminal.
+  rpc CancelDeployment(CancelDeploymentRequest) returns (CancelDeploymentResponse) {}
 }

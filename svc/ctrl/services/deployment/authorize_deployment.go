@@ -100,7 +100,9 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		},
 	}
 
-	_, sendErr := s.deploymentClient(deployment.ProjectID).Deploy().Send(ctx, deployReq)
+	// Keyed by deployment_id — each deployment runs as its own isolated
+	// workflow so multiple deployments can build in parallel.
+	invocation, sendErr := s.deploymentClient(deploymentID).Deploy().Send(ctx, deployReq)
 	if sendErr != nil {
 		// Revert status back to awaiting_approval since the deploy failed.
 		if _, revertErr := db.Query.CompareAndSwapDeploymentStatus(ctx, s.db.RW(), db.CompareAndSwapDeploymentStatusParams{
@@ -119,6 +121,20 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 			"error", sendErr,
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger deploy workflow: %w", sendErr))
+	}
+
+	// Persist the invocation ID so the deployment can be cancelled later.
+	invocationID := invocation.Id()
+	if updateErr := db.Query.UpdateDeploymentInvocationID(ctx, s.db.RW(), db.UpdateDeploymentInvocationIDParams{
+		ID:           deploymentID,
+		InvocationID: sql.NullString{Valid: true, String: invocationID},
+		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	}); updateErr != nil {
+		logger.Error("failed to persist invocation id",
+			"deployment_id", deploymentID,
+			"invocation_id", invocationID,
+			"error", updateErr,
+		)
 	}
 
 	// Update commit status on GitHub

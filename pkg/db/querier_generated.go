@@ -531,6 +531,14 @@ type Querier interface {
 	//      AND dt.deployment_id = ?
 	//  LIMIT 1
 	FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByIDAndRegionParams) (FindDeploymentTopologyByIDAndRegionRow, error)
+	// Returns the per-region minimum replica requirement for a deployment.
+	// Used by ReportDeploymentStatus to compute whether enough regions are
+	// healthy to call DeployService.NotifyInstancesReady.
+	//
+	//  SELECT region_id, autoscaling_replicas_min
+	//  FROM deployment_topology
+	//  WHERE deployment_id = ?
+	FindDeploymentTopologyMinReplicas(ctx context.Context, db DBTX, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
 	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
@@ -2427,6 +2435,21 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
+	// Only deployments still in the queue (haven't acquired a build slot yet)
+	// are eligible for supersession. Once a deployment transitions to `starting`
+	// (after slot acquisition) it's committed — we don't cancel work that's
+	// already running.
+	//
+	//  SELECT id, invocation_id
+	//  FROM deployments
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND git_branch = ?
+	//    AND status IN ('pending', 'awaiting_approval')
+	//    AND created_at < ?
+	//    AND id != ?
+	//  ORDER BY created_at ASC
+	ListOlderActiveDeploymentsForDedup(ctx context.Context, db DBTX, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error)
 	//ListPermissions
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
