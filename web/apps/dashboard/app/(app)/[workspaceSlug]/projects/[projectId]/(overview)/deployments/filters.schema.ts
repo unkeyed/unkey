@@ -15,6 +15,7 @@ const GROUPED_DEPLOYMENT_STATUSES = [
   "stopped",
   "failed",
   "skipped",
+  "cancelled",
 ] as const;
 
 const DEPLOYMENT_ENVIRONMENTS = ["production", "preview"] as const;

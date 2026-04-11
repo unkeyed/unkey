@@ -37,6 +37,8 @@ const (
 	DeploymentStatus_DEPLOYMENT_STATUS_SKIPPED           DeploymentStatus = 9
 	DeploymentStatus_DEPLOYMENT_STATUS_AWAITING_APPROVAL DeploymentStatus = 10
 	DeploymentStatus_DEPLOYMENT_STATUS_STOPPED           DeploymentStatus = 11
+	DeploymentStatus_DEPLOYMENT_STATUS_SUPERSEDED        DeploymentStatus = 12
+	DeploymentStatus_DEPLOYMENT_STATUS_CANCELLED         DeploymentStatus = 13
 )
 
 // Enum value maps for DeploymentStatus.
@@ -54,6 +56,8 @@ var (
 		9:  "DEPLOYMENT_STATUS_SKIPPED",
 		10: "DEPLOYMENT_STATUS_AWAITING_APPROVAL",
 		11: "DEPLOYMENT_STATUS_STOPPED",
+		12: "DEPLOYMENT_STATUS_SUPERSEDED",
+		13: "DEPLOYMENT_STATUS_CANCELLED",
 	}
 	DeploymentStatus_value = map[string]int32{
 		"DEPLOYMENT_STATUS_UNSPECIFIED":       0,
@@ -68,6 +72,8 @@ var (
 		"DEPLOYMENT_STATUS_SKIPPED":           9,
 		"DEPLOYMENT_STATUS_AWAITING_APPROVAL": 10,
 		"DEPLOYMENT_STATUS_STOPPED":           11,
+		"DEPLOYMENT_STATUS_SUPERSEDED":        12,
+		"DEPLOYMENT_STATUS_CANCELLED":         13,
 	}
 )
 
@@ -1300,7 +1306,7 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x0fPromoteResponse\"A\n" +
 	"\x1aAuthorizeDeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x1d\n" +
-	"\x1bAuthorizeDeploymentResponse*\x98\x03\n" +
+	"\x1bAuthorizeDeploymentResponse*\xdb\x03\n" +
 	"\x10DeploymentStatus\x12!\n" +
 	"\x1dDEPLOYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19DEPLOYMENT_STATUS_PENDING\x10\x01\x12\x1e\n" +
@@ -1314,7 +1320,9 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\x19DEPLOYMENT_STATUS_SKIPPED\x10\t\x12'\n" +
 	"#DEPLOYMENT_STATUS_AWAITING_APPROVAL\x10\n" +
 	"\x12\x1d\n" +
-	"\x19DEPLOYMENT_STATUS_STOPPED\x10\v*Z\n" +
+	"\x19DEPLOYMENT_STATUS_STOPPED\x10\v\x12 \n" +
+	"\x1cDEPLOYMENT_STATUS_SUPERSEDED\x10\f\x12\x1f\n" +
+	"\x1bDEPLOYMENT_STATUS_CANCELLED\x10\r*Z\n" +
 	"\n" +
 	"SourceType\x12\x1b\n" +
 	"\x17SOURCE_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
