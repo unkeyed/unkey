@@ -11,31 +11,9 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 )
 
-// replayRequests processes buffered rate limit events by synchronizing them with
-// the origin nodes. It ensures eventual consistency across the cluster by
-// replaying local decisions to the authoritative nodes.
-//
-// This method:
-// 1. Continuously consumes events from the replay buffer
-// 2. Forwards each event to its origin node
-// 3. Updates local state with the origin's response
-//
-// Thread Safety:
-//   - Must be run in a dedicated goroutine
-//   - Safe for concurrent buffer producers
-//   - Uses internal synchronization for state updates
-//
-// Performance:
-//   - Batches requests for efficiency
-//   - Uses circuit breaker to prevent cascading failures
-//   - Automatic retry on transient errors
-//
-// Example Usage:
-//
-//	// Start replay processing
-//	for range 8 {
-//	    go svc.replayRequests()
-//	}
+// replayRequests processes buffered rate limit events by synchronizing them
+// with Redis. It runs in a dedicated goroutine and consumes from the replay
+// buffer until the buffer is closed.
 func (s *service) replayRequests() {
 	for ptr := range s.replayBuffer.Consume() {
 		if ptr == nil {
@@ -48,6 +26,8 @@ func (s *service) replayRequests() {
 	}
 }
 
+// syncWithOrigin pushes a local rate limit increment to Redis and CAS-merges
+// the global count back into the local atomic counter. No locks are held.
 func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) error {
 	defer func(start time.Time) {
 		metrics.RatelimitOriginSyncLatency.Observe(time.Since(start).Seconds())
@@ -64,25 +44,22 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 		return err
 	}
 
-	key := bucketKey{
+	durationMs := req.Duration.Milliseconds()
+	sequence := calculateSequence(req.Time, req.Duration)
+	key := counterKey{
 		name:       req.Name,
 		identifier: req.Identifier,
-		duration:   req.Duration,
+		durationMs: durationMs,
+		sequence:   sequence,
 	}
 
-	// Compute the counter key without holding any lock — sequence is a pure
-	// function of time and duration, and the bucket key is immutable.
-	sequence := calculateSequence(req.Time, req.Duration)
-	redisKey := counterKey(key, sequence)
-
-	// Perform Redis Increment without holding bucket.mu.
 	newCounter, err := s.replayCircuitBreaker.Do(ctx, func(innerCtx context.Context) (int64, error) {
 		innerCtx, innerCancel := context.WithTimeout(innerCtx, 2*time.Second)
 		defer innerCancel()
 
 		return s.counter.Increment(
 			innerCtx,
-			redisKey,
+			redisKey(key),
 			req.Cost,
 			req.Duration*3,
 		)
@@ -93,15 +70,9 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 		return err
 	}
 
-	// Send the result to the bucket's channel. The next Ratelimit() call
-	// will drain it under lock. Non-blocking: drop if the channel is full
-	// — the next replay or origin fetch will correct the counter.
-	b, _ := s.getOrCreateBucket(key)
-	select {
-	case b.updates <- replayUpdate{sequence: sequence, newCounter: newCounter}:
-	default:
-		metrics.ReplayUpdatesDropped.Inc()
-	}
+	// CAS-merge: update local counter if Redis value is higher.
+	ptr, _ := s.loadCounter(key)
+	casMerge(ptr, newCounter)
 
 	return nil
 }

@@ -3,7 +3,6 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "ratelimit",
     srcs = [
-        "bucket.go",
         "doc.go",
         "interface.go",
         "janitor.go",
@@ -11,7 +10,6 @@ go_library(
         "sequence.go",
         "service.go",
         "util.go",
-        "window.go",
     ],
     importpath = "github.com/unkeyed/unkey/internal/services/ratelimit",
     visibility = ["//:__subpackages__"],
