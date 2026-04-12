@@ -29,6 +29,7 @@ export const githubRepoConnections = mysqlTable(
   "github_repo_connections",
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     projectId: varchar("project_id", { length: 64 }).notNull(),
     appId: varchar("app_id", { length: 64 }).notNull().unique(),
     installationId: bigint("installation_id", {
@@ -44,6 +45,10 @@ export const githubRepoConnections = mysqlTable(
 );
 
 export const githubRepoConnectionsRelations = relations(githubRepoConnections, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [githubRepoConnections.workspaceId],
+    references: [workspaces.id],
+  }),
   project: one(projects, {
     fields: [githubRepoConnections.projectId],
     references: [projects.id],

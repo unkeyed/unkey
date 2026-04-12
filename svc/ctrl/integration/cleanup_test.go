@@ -164,6 +164,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 
 	// GitHub repo connection
 	err = db.Query.InsertGithubRepoConnection(ctx, h.DB.RW(), db.InsertGithubRepoConnectionParams{
+		WorkspaceID:        workspaceID,
 		ProjectID:          project.ID,
 		AppID:              app.ID,
 		InstallationID:     12345,

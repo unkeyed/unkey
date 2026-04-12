@@ -1214,6 +1214,7 @@ type GithubAppInstallation struct {
 
 type GithubRepoConnection struct {
 	Pk                 uint64        `db:"pk"`
+	WorkspaceID        string        `db:"workspace_id"`
 	ProjectID          string        `db:"project_id"`
 	AppID              string        `db:"app_id"`
 	InstallationID     int64         `db:"installation_id"`

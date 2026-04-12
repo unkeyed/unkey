@@ -2,7 +2,7 @@ import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 
 const TITLE_EMPTY_DEFAULT = "Select Time Range";
@@ -10,14 +10,8 @@ export const DeploymentListDatetime = () => {
   const [title, setTitle] = useState<string | null>(TITLE_EMPTY_DEFAULT);
   const { filters, updateFilters } = useFilters();
 
-  useEffect(() => {
-    for (const filter of filters) {
-      if (["startTime", "endTime", "since"].includes(filter.field)) {
-        return;
-      }
-    }
-    setTitle(TITLE_EMPTY_DEFAULT);
-  }, [filters]);
+  const hasTimeFilters = filters.some((f) => ["startTime", "endTime", "since"].includes(f.field));
+  const displayTitle = hasTimeFilters ? (title ?? "Loading...") : TITLE_EMPTY_DEFAULT;
 
   const timeValues = filters
     .filter((f) => ["startTime", "endTime", "since"].includes(f.field))
@@ -68,7 +62,7 @@ export const DeploymentListDatetime = () => {
         }
         updateFilters(activeFilters);
       }}
-      initialTitle={title ?? ""}
+      initialTitle={displayTitle}
       onSuggestionChange={setTitle}
     >
       <div className="group">
@@ -77,16 +71,16 @@ export const DeploymentListDatetime = () => {
           size="md"
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
-            title ? "" : "opacity-50",
-            title !== TITLE_EMPTY_DEFAULT ? "bg-gray-4" : "",
+            displayTitle === "Loading..." ? "opacity-50" : "",
+            displayTitle !== TITLE_EMPTY_DEFAULT ? "bg-gray-4" : "",
           )}
           aria-label="Filter logs by time"
           aria-haspopup="true"
           title="Press 'T' to toggle filters"
-          disabled={!title}
+          disabled={displayTitle === "Loading..."}
         >
           <Calendar className="text-gray-9 size-4" />
-          <span className="text-gray-12 font-medium text-[13px]">{title ?? "Loading..."}</span>
+          <span className="text-gray-12 font-medium text-[13px]">{displayTitle}</span>
         </Button>
       </div>
     </DatetimePopover>

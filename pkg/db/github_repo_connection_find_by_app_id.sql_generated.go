@@ -12,6 +12,7 @@ import (
 const findGithubRepoConnectionByAppId = `-- name: FindGithubRepoConnectionByAppId :one
 SELECT
     pk,
+    workspace_id,
     project_id,
     app_id,
     installation_id,
@@ -27,6 +28,7 @@ WHERE app_id = ?
 //
 //	SELECT
 //	    pk,
+//	    workspace_id,
 //	    project_id,
 //	    app_id,
 //	    installation_id,
@@ -41,6 +43,7 @@ func (q *Queries) FindGithubRepoConnectionByAppId(ctx context.Context, db DBTX, 
 	var i GithubRepoConnection
 	err := row.Scan(
 		&i.Pk,
+		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.AppID,
 		&i.InstallationID,

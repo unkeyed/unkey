@@ -2,7 +2,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 var (
@@ -13,7 +13,7 @@ var (
 	//   - "resource_type": "deployment", "sentinel", or "cilium_network_policy"
 	//   - "operation": "apply" or "delete"
 	//   - "result": "success" or "error"
-	ReconcileOperationsTotal = promauto.NewCounterVec(
+	ReconcileOperationsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -28,7 +28,7 @@ var (
 	//
 	// Labels:
 	//   - "resource_type": "deployment", "sentinel", or "cilium_network_policy"
-	ResyncCorrectionsTotal = promauto.NewCounterVec(
+	ResyncCorrectionsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -41,7 +41,7 @@ var (
 	// WatcherFullSyncsTotal counts how often the watcher performs a full sync
 	// via SyncDesiredState. Under normal operation this fires once per
 	// fullSyncInterval (10 minutes) plus once on startup.
-	WatcherFullSyncsTotal = promauto.NewCounter(
+	WatcherFullSyncsTotal = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -52,7 +52,7 @@ var (
 
 	// WatcherVersionLastSeen is the current cursor position in the deployment_changes
 	// stream. If this flatlines, the stream is stuck or the watcher is not receiving events.
-	WatcherVersionLastSeen = promauto.NewGauge(
+	WatcherVersionLastSeen = lazy.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -65,7 +65,7 @@ var (
 	//
 	// Labels:
 	//   - "status": "success" or "error"
-	StreamConnectionsTotal = promauto.NewCounterVec(
+	StreamConnectionsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -76,7 +76,7 @@ var (
 	)
 
 	// StreamEventsReceivedTotal counts events received on the incremental stream.
-	StreamEventsReceivedTotal = promauto.NewCounter(
+	StreamEventsReceivedTotal = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -91,7 +91,7 @@ var (
 	//   - "source": "stream" or "full_sync"
 	//   - "resource_type": "deployment", "sentinel", or "cilium_network_policy"
 	//   - "status": "success" or "error"
-	DispatchTotal = promauto.NewCounterVec(
+	DispatchTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -102,7 +102,7 @@ var (
 	)
 
 	// FullSyncEventsReceivedTotal counts events received during a full sync.
-	FullSyncEventsReceivedTotal = promauto.NewCounter(
+	FullSyncEventsReceivedTotal = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -112,7 +112,7 @@ var (
 	)
 
 	// FullSyncDurationSeconds tracks how long the krane-side full sync takes.
-	FullSyncDurationSeconds = promauto.NewHistogram(
+	FullSyncDurationSeconds = lazy.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",

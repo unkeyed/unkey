@@ -15,6 +15,9 @@ export const NamespaceListDateTime = () => {
     }
   }, [title]);
 
+  const hasTimeFilters = filters.some((f) => ["startTime", "endTime", "since"].includes(f.field));
+  const displayTitle = hasTimeFilters ? (title ?? "Loading...") : "Last 12 hours";
+
   const timeValues = filters
     .filter((f) => ["startTime", "endTime", "since"].includes(f.field))
     .reduce(
@@ -30,6 +33,7 @@ export const NamespaceListDateTime = () => {
     <DatetimePopover
       maxDate={new Date()}
       initialTimeValues={timeValues}
+      initialTitle={displayTitle}
       onDateTimeChange={(startTime, endTime, since) => {
         const activeFilters = filters.filter(
           (f) => !["endTime", "startTime", "since"].includes(f.field),
@@ -64,7 +68,6 @@ export const NamespaceListDateTime = () => {
         }
         updateFilters(activeFilters);
       }}
-      initialTitle={title ?? ""}
       onSuggestionChange={setTitle}
     >
       <div className="group">
@@ -73,16 +76,16 @@ export const NamespaceListDateTime = () => {
           size="md"
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
-            title ? "" : "opacity-50",
-            title !== "Last 12 hours" ? "bg-gray-4" : "",
+            displayTitle === "Loading..." ? "opacity-50" : "",
+            displayTitle !== "Last 12 hours" ? "bg-gray-4" : "",
           )}
           aria-label="Filter logs by time"
           aria-haspopup="true"
           title="Press 'T' to toggle filters"
-          disabled={!title}
+          disabled={displayTitle === "Loading..."}
         >
           <Calendar className="text-gray-9 size-4" />
-          <span className="text-gray-12 font-medium text-[13px]">{title ?? "Loading..."}</span>
+          <span className="text-gray-12 font-medium text-[13px]">{displayTitle}</span>
         </Button>
       </div>
     </DatetimePopover>

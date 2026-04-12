@@ -2,13 +2,13 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 var (
 	// FullSyncDurationSeconds tracks how long full syncs take in the
 	// SyncDesiredState RPC. Growth indicates increasing resource count in the region.
-	FullSyncDurationSeconds = promauto.NewHistogram(
+	FullSyncDurationSeconds = lazy.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
@@ -22,7 +22,7 @@ var (
 	//
 	// Labels:
 	//   - "status": "success" or "error"
-	SyncDesiredStateTotal = promauto.NewCounterVec(
+	SyncDesiredStateTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
@@ -36,7 +36,7 @@ var (
 	//
 	// Labels:
 	//   - "resource_type": "deployment", "sentinel", or "cilium_network_policy"
-	SyncDesiredStateEventsSentTotal = promauto.NewCounterVec(
+	SyncDesiredStateEventsSentTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
@@ -51,7 +51,7 @@ var (
 	// Labels:
 	//   - "resource_type": "deployment_topology", "sentinel", "cilium_network_policy", or "unknown"
 	//   - "status": "success", "not_found", or "error"
-	DeploymentChangesProcessedTotal = promauto.NewCounterVec(
+	DeploymentChangesProcessedTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "control",
