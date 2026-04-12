@@ -7,12 +7,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useDelayLoader } from "@/hooks/use-delay-loader";
+import { slugify } from "@/lib/slugify";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@radix-ui/react-collapsible";
 import { CaretRight } from "@unkey/icons";
 import { usePathname, useRouter } from "next/navigation";
 import { useLayoutEffect, useState, useTransition } from "react";
-import { slugify } from "@/lib/slugify";
 import type { NavProps } from ".";
 import type { NavItem } from "../../../workspace-navigations";
 import { NavLink } from "../nav-link";

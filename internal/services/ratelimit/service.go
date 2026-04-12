@@ -211,6 +211,11 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 		defer b.mu.Unlock()
 	}
 
+	// Apply any pending replay updates before checking limits.
+	for _, b := range uniqueBuckets {
+		b.drainUpdates()
+	}
+
 	// Check all limits while holding locks
 	responses := make([]RatelimitResponse, len(reqs))
 	allPassed := true
@@ -285,6 +290,9 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	b, _ := s.getOrCreateBucket(key)
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
+	// Apply any pending replay updates before checking the rate limit.
+	b.drainUpdates()
 
 	// Use the shared method
 	res, err := s.checkBucketWithLockHeld(ctx, req, b)

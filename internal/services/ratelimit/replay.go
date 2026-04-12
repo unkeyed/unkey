@@ -70,30 +70,37 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 		duration:   req.Duration,
 	}
 
-	bucket, _ := s.getOrCreateBucket(key)
-	bucket.mu.Lock()
-	defer bucket.mu.Unlock()
-	currentWindow, _ := bucket.getCurrentWindow(req.Time)
+	// Compute the counter key without holding any lock — sequence is a pure
+	// function of time and duration, and the bucket key is immutable.
+	sequence := calculateSequence(req.Time, req.Duration)
+	redisKey := counterKey(key, sequence)
 
+	// Perform Redis Increment without holding bucket.mu.
 	newCounter, err := s.replayCircuitBreaker.Do(ctx, func(innerCtx context.Context) (int64, error) {
-		innerCtx, cancel = context.WithTimeout(innerCtx, 2*time.Second)
-		defer cancel()
+		innerCtx, innerCancel := context.WithTimeout(innerCtx, 2*time.Second)
+		defer innerCancel()
 
 		return s.counter.Increment(
 			innerCtx,
-			counterKey(key, currentWindow.sequence),
+			redisKey,
 			req.Cost,
-			currentWindow.duration*3,
+			req.Duration*3,
 		)
 	})
 
 	if err != nil {
 		tracing.RecordError(span, err)
-
 		return err
 	}
-	if newCounter > currentWindow.counter {
-		currentWindow.counter = newCounter
+
+	// Send the result to the bucket's channel. The next Ratelimit() call
+	// will drain it under lock. Non-blocking: drop if the channel is full
+	// — the next replay or origin fetch will correct the counter.
+	b, _ := s.getOrCreateBucket(key)
+	select {
+	case b.updates <- replayUpdate{sequence: sequence, newCounter: newCounter}:
+	default:
+		metrics.ReplayUpdatesDropped.Inc()
 	}
 
 	return nil

@@ -179,4 +179,17 @@ var (
 			Help:      "Total number of errors when refreshing from an origin.",
 		},
 	)
+
+	// ReplayUpdatesDropped counts replay updates that were dropped because
+	// the per-bucket channel was full. A sustained increase indicates the
+	// bucket is under extreme write pressure or Ratelimit() calls are too
+	// infrequent to drain the channel.
+	ReplayUpdatesDropped = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "replay_updates_dropped_total",
+			Help:      "Total number of replay updates dropped due to full channel.",
+		},
+	)
 )

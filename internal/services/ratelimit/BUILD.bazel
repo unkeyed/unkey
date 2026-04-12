@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "ratelimit",
@@ -27,4 +27,17 @@ go_library(
         "//pkg/repeat",
         "@io_opentelemetry_go_otel//attribute",
     ],
+)
+
+go_test(
+    name = "ratelimit_benchmark_test",
+    size = "medium",
+    srcs = ["service_benchmark_test.go"],
+    embed = [":ratelimit"],
+)
+
+go_test(
+    name = "ratelimit_test",
+    srcs = ["service_benchmark_test.go"],
+    embed = [":ratelimit"],
 )
