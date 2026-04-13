@@ -271,6 +271,7 @@ func insertDeploymentRecord(
 			StorageMib:                    runtimeSettings.StorageMib,
 			Port:                          runtimeSettings.Port,
 			ShutdownSignal:                db.DeploymentsShutdownSignal(runtimeSettings.ShutdownSignal),
+			UpstreamProtocol:              db.DeploymentsUpstreamProtocol(runtimeSettings.UpstreamProtocol),
 			Healthcheck:                   runtimeSettings.Healthcheck,
 			PrNumber:                      sql.NullInt64{Int64: req.GetPrNumber(), Valid: req.GetPrNumber() != 0},
 			ForkRepositoryFullName:        sql.NullString{String: req.GetForkRepositoryFullName(), Valid: req.GetForkRepositoryFullName() != ""},

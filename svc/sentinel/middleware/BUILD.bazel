@@ -18,10 +18,10 @@ go_library(
         "//pkg/fault",
         "//pkg/logger",
         "//pkg/otel/tracing",
+        "//pkg/prometheus/lazy",
         "//pkg/zen",
         "//svc/sentinel/routes/proxy",
         "@com_github_prometheus_client_golang//prometheus",
-        "@com_github_prometheus_client_golang//prometheus/promauto",
         "@io_opentelemetry_go_otel//attribute",
     ],
 )

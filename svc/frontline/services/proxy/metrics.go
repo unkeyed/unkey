@@ -2,7 +2,7 @@ package proxy
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 var (
@@ -12,7 +12,7 @@ var (
 	//   destination: "sentinel" (local h2c forward) or "region" (cross-region HTTPS forward)
 	//   error: "none", "timeout", "conn_refused", "conn_reset",
 	//          "dns_failure", "client_canceled", "backend_5xx", "other"
-	proxyForwardTotal = promauto.NewCounterVec(
+	proxyForwardTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
@@ -28,7 +28,7 @@ var (
 	//
 	// Labels:
 	//   destination: "sentinel" (local h2c forward) or "region" (cross-region HTTPS forward)
-	proxyBackendDuration = promauto.NewHistogramVec(
+	proxyBackendDuration = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
@@ -39,17 +39,39 @@ var (
 		[]string{"destination"},
 	)
 
-	// proxyHopsTotal tracks cross-region hop counts on incoming requests.
-	// Values > 1 indicate multi-hop routing which should be rare.
-	// Sustained high values suggest routing table issues.
-	proxyHopsTotal = promauto.NewHistogram(
+	// proxyHops tracks cross-region hop counts by source and destination region.
+	// Deviations from nominal hop counts per src→dst pair indicate routing shifts.
+	proxyHops = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
 			Name:      "hops",
-			Help:      "Distribution of frontline hop counts on cross-region requests.",
+			Help:      "Distribution of frontline hop counts by source and destination region.",
 			Buckets:   []float64{0, 1, 2, 3},
 		},
+		[]string{"src_region", "dst_region"},
+	)
+
+	// proxyForwardErrorsTotal is a convenience counter for forward errors.
+	proxyForwardErrorsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "frontline",
+			Name:      "forward_errors_total",
+			Help:      "Total proxy forward errors by destination.",
+		},
+		[]string{"destination"},
+	)
+
+	// proxyBackendErrorsTotal counts backend 5xx responses by destination and source.
+	proxyBackendErrorsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "frontline",
+			Name:      "backend_errors_total",
+			Help:      "Total backend 5xx errors by destination and source.",
+		},
+		[]string{"destination", "source"},
 	)
 
 	// proxyBackendResponseTotal tracks HTTP status codes returned by backends.
@@ -58,7 +80,7 @@ var (
 	//   destination: "sentinel" (local h2c forward) or "region" (cross-region HTTPS forward)
 	//   source: "sentinel" (sentinel itself errored) or "upstream" (customer pod response)
 	//   status_class: "2xx", "3xx", "4xx", "5xx"
-	proxyBackendResponseTotal = promauto.NewCounterVec(
+	proxyBackendResponseTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",

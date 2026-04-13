@@ -10,12 +10,28 @@ type DocumentedFormInputProps = DocumentedInputProps & {
   required?: boolean;
   optional?: boolean;
   error?: string;
+  descriptionPosition?: "inline" | "label";
 };
 
 type FormInputProps = InputProps & DocumentedFormInputProps;
 
 const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
-  ({ label, description, error, required, id, className, optional, variant, ...props }, ref) => {
+  (
+    {
+      label,
+      description,
+      error,
+      required,
+      id,
+      className,
+      optional,
+      variant,
+      descriptionPosition = "inline",
+      ...props
+    },
+    ref,
+  ) => {
+    const descriptionAsTooltip = descriptionPosition === "label";
     const inputVariant = error ? "error" : variant;
     const inputId = id || React.useId();
     const descriptionId = `${inputId}-helper`;
@@ -29,6 +45,7 @@ const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
           optional={optional}
           hasError={Boolean(error)}
           htmlFor={inputId}
+          tooltipContent={descriptionAsTooltip ? description : undefined}
         />
         <Input
           ref={ref}
@@ -40,7 +57,7 @@ const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
           {...props}
         />
         <FormDescription
-          description={description}
+          description={descriptionAsTooltip ? undefined : description}
           error={error}
           variant={variant}
           descriptionId={descriptionId}

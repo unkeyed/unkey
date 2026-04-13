@@ -13,6 +13,7 @@ type DocumentedFormCheckboxProps = {
   variant?: CheckboxProps["variant"];
   color?: CheckboxProps["color"];
   size?: CheckboxProps["size"];
+  descriptionPosition?: "inline" | "label";
 };
 
 type FormCheckboxProps = Omit<CheckboxProps, "size" | "variant" | "color"> &
@@ -31,10 +32,12 @@ const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProps>(
       variant = "primary",
       color,
       size = "md",
+      descriptionPosition = "inline",
       ...props
     },
     ref,
   ) => {
+    const descriptionAsTooltip = descriptionPosition === "label";
     const checkboxVariant = error ? "primary" : variant;
     const checkboxColor = error ? "danger" : color;
     const checkboxId = id || React.useId();
@@ -63,12 +66,13 @@ const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProps>(
                 optional={optional}
                 hasError={Boolean(error)}
                 htmlFor={checkboxId}
+                tooltipContent={descriptionAsTooltip ? description : undefined}
               />
             </div>
           )}
         </div>
         <FormDescription
-          description={description}
+          description={descriptionAsTooltip ? undefined : description}
           error={error}
           variant={color}
           descriptionId={descriptionId}

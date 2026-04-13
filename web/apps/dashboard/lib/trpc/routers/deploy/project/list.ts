@@ -83,7 +83,7 @@ export const listProjects = workspaceProcedure
       ORDER BY ${projects.updatedAt} DESC
     `);
 
-    return (result.rows as ProjectRow[]).map((row): Project => {
+    return (result[0] as unknown as ProjectRow[]).map((row): Project => {
       // Single source of truth for "has deployment" in the UI:
       // we consider a deployment present when we have commit metadata from the joined row.
       const hasDeployment = row.git_commit_timestamp !== null;

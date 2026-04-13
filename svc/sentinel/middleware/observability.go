@@ -7,18 +7,18 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/zen"
 	handler "github.com/unkeyed/unkey/svc/sentinel/routes/proxy"
 	"go.opentelemetry.io/otel/attribute"
 )
 
 var (
-	sentinelRequestsTotal = promauto.NewCounterVec(
+	sentinelRequestsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "sentinel",
@@ -28,7 +28,7 @@ var (
 		[]string{"status_code", "error_type", "region"},
 	)
 
-	sentinelRequestDuration = promauto.NewHistogramVec(
+	sentinelRequestDuration = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "sentinel",
@@ -39,7 +39,7 @@ var (
 		[]string{"status_code", "error_type", "region"},
 	)
 
-	sentinelActiveRequests = promauto.NewGaugeVec(
+	sentinelActiveRequests = lazy.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "sentinel",

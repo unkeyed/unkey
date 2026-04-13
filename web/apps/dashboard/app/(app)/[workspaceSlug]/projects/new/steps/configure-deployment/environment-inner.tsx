@@ -17,9 +17,11 @@ export const OnboardingEnvironmentSettingsInner = ({
   children,
   prodEnvId,
   environments,
+  onSettingsReady,
 }: PropsWithChildren<{
   prodEnvId: string;
   environments: { id: string; slug: string }[];
+  onSettingsReady: () => void;
 }>) => {
   const otherEnvIds = useMemo(
     () => environments.filter((e) => e.id !== prodEnvId).map((e) => e.id),
@@ -44,8 +46,12 @@ export const OnboardingEnvironmentSettingsInner = ({
   );
 
   useInitializeSettings(environments, availableRegions);
+  useEffect(() => {
+    if (settings) {
+      onSettingsReady();
+    }
+  }, [settings, onSettingsReady]);
 
-  // Setting cannot be null at this point coz they are preloaded
   if (!settings) {
     return null;
   }
@@ -100,7 +106,7 @@ function useInitializeSettings(
       healthcheck: null,
       regions: availableRegions.map((r) => ({ id: r.id, name: r.name, replicas: 1 })),
       shutdownSignal: d.shutdownSignal,
-      sentinelConfig: undefined,
+      upstreamProtocol: d.upstreamProtocol,
       openapiSpecPath: null,
     };
 
@@ -117,7 +123,7 @@ function useInitializeSettings(
       healthcheck: null,
       regions: [],
       shutdownSignal: "",
-      sentinelConfig: undefined,
+      upstreamProtocol: "http1",
       openapiSpecPath: null,
     };
 

@@ -46,6 +46,9 @@ export const appRuntimeSettings = mysqlTable(
       .notNull()
       .default("SIGTERM"),
 
+    // Protocol sentinel uses to proxy to the instance (h2c enables gRPC/Connect)
+    upstreamProtocol: mysqlEnum("upstream_protocol", ["http1", "h2c"]).notNull().default("http1"),
+
     sentinelConfig: longblob("sentinel_config").notNull(),
 
     // null = scraping disabled; non-null path (e.g. /openapi.yaml) enables scraping

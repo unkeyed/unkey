@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ProjectDataProvider } from "../../../[projectId]/(overview)/data-provider";
 import { ConfigureDeploymentContent } from "./content";
 import { OnboardingEnvironmentSettingsProvider } from "./environment-provider";
@@ -10,12 +11,14 @@ type ConfigureDeploymentStepProps = {
 };
 
 export const ConfigureDeploymentStep = ({ projectId }: ConfigureDeploymentStepProps) => {
+  const [settingsReady, setSettingsReady] = useState(false);
+
   return (
     <ProjectDataProvider projectId={projectId}>
-      <OnboardingEnvironmentSettingsProvider>
+      <OnboardingEnvironmentSettingsProvider onSettingsReady={() => setSettingsReady(true)}>
         <ConfigureDeploymentContent />
       </OnboardingEnvironmentSettingsProvider>
-      <ConfigureDeploymentFallback />
+      <ConfigureDeploymentFallback settingsReady={settingsReady} />
     </ProjectDataProvider>
   );
 };

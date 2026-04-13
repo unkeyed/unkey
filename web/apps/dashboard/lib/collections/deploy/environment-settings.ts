@@ -1,5 +1,4 @@
 "use client";
-import type { SentinelConfig } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
@@ -19,19 +18,6 @@ const healthcheckSchema = z
   })
   .nullable();
 
-const sentinelConfigSchema: z.ZodType<SentinelConfig | undefined> = z
-  .object({
-    policies: z.array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        enabled: z.boolean(),
-        keyauth: z.object({ keySpaceIds: z.array(z.string()) }),
-      }),
-    ),
-  })
-  .optional();
-
 const schema = z.object({
   environmentId: z.string(),
   // Build settings
@@ -47,7 +33,7 @@ const schema = z.object({
   healthcheck: healthcheckSchema,
   regions: z.array(z.object({ id: z.string(), name: z.string(), replicas: z.number().int() })),
   shutdownSignal: z.string(),
-  sentinelConfig: sentinelConfigSchema,
+  upstreamProtocol: z.enum(["http1", "h2c"]).default("http1"),
   openapiSpecPath: z.string().nullable().default(null),
 });
 
@@ -114,16 +100,13 @@ export const ENVIRONMENT_SETTINGS_DEFAULTS = {
   memoryMib: 256,
   storageMib: 0,
   shutdownSignal: "SIGTERM",
+  upstreamProtocol: "http1",
 } as const;
 
 type SettingsResponse = Awaited<ReturnType<typeof trpcClient.deploy.environmentSettings.get.query>>;
 
 function changed<T>(a: T, b: T): boolean {
   return JSON.stringify(a) !== JSON.stringify(b);
-}
-
-function extractKeyspaceIds(config: SentinelConfig | undefined): string[] {
-  return config?.policies.flatMap((p) => p.keyauth.keySpaceIds) ?? [];
 }
 
 function flattenSettingsResponse(
@@ -152,7 +135,7 @@ function flattenSettingsResponse(
         replicas: r.replicas,
       })),
     shutdownSignal: d.shutdownSignal,
-    sentinelConfig: runtime?.sentinelConfig,
+    upstreamProtocol: (runtime?.upstreamProtocol as "http1" | "h2c") ?? d.upstreamProtocol,
     openapiSpecPath: runtime?.openapiSpecPath ?? null,
   };
 }
@@ -278,11 +261,11 @@ export function buildSettingsMutations(
     );
   }
 
-  if (changed(original.sentinelConfig, modified.sentinelConfig)) {
+  if (modified.upstreamProtocol !== original.upstreamProtocol) {
     mutations.push(
-      trpcClient.deploy.environmentSettings.sentinel.updateMiddleware.mutate({
+      trpcClient.deploy.environmentSettings.runtime.updateUpstreamProtocol.mutate({
         environmentId,
-        keyspaceIds: extractKeyspaceIds(modified.sentinelConfig),
+        upstreamProtocol: modified.upstreamProtocol,
       }),
     );
   }
