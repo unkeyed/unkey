@@ -17,7 +17,7 @@ export const RootDirectory = () => {
   const { settings, variant } = useEnvironmentSettings();
   const { dockerContext: defaultValue } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
-  const { validatePath, findCaseInsensitiveMatch } = useRepoTree();
+  const { branch, validatePath, findCaseInsensitiveMatch } = useRepoTree();
 
   const {
     register,
@@ -69,8 +69,12 @@ export const RootDirectory = () => {
           </button>
           ?
         </span>
+      ) : branch ? (
+        <span>
+          Directory not found on branch <span className="font-medium text-gray-12">{branch}</span>
+        </span>
       ) : (
-        "This directory was not found in the connected repository"
+        "Directory not found on this branch"
       )
     ) : undefined;
 

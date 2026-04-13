@@ -39,7 +39,7 @@ export const queryKeysOverviewLogs = workspaceProcedure
 
     const transformedInputs = transformKeysFilters(input);
 
-    const clickhouseResult = await clickhouse.api.keys.logs({
+    const { logsQuery, countQuery } = await clickhouse.api.keys.logs({
       ...transformedInputs,
       workspaceId: ctx.workspace.id,
       keyspaceId: keyspaceId,
@@ -57,6 +57,8 @@ export const queryKeysOverviewLogs = workspaceProcedure
       identities: input.identities ?? null,
     });
 
+    const [clickhouseResult, countResult] = await Promise.all([logsQuery, countQuery]);
+
     if (!clickhouseResult || clickhouseResult.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
@@ -64,23 +66,21 @@ export const queryKeysOverviewLogs = workspaceProcedure
       });
     }
 
-    const logs = clickhouseResult.val || [];
+    if (countResult.err) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Something went wrong when fetching count from ClickHouse.",
+      });
+    }
 
-    // Get total count of keys matching DB-level filters (names, identities)
-    const { keys: allMatchingKeys } = await queryApiKeys({
-      apiId: input.apiId,
-      workspaceId: ctx.workspace.id,
-      keyIds: input.keyIds || null,
-      names: input.names || null,
-      identities: input.identities || null,
-    });
-    const total = allMatchingKeys.length;
+    const logs = clickhouseResult.val || [];
+    const totalCount = countResult.val[0]?.total_count ?? 0;
 
     if (logs.length === 0) {
       return {
         keysOverviewLogs: [],
         hasMore: false,
-        total,
+        total: 0,
       };
     }
 
@@ -107,11 +107,13 @@ export const queryKeysOverviewLogs = workspaceProcedure
         ...log,
         key_details: keyDetailsMap.get(log.key_id) || null,
       }));
+
+    const hasMore = logs.length === input.limit && keysOverviewLogs.length > 0;
     const response: KeysOverviewLogsResponse = {
       keysOverviewLogs,
-      hasMore: logs.length === input.limit && keysOverviewLogs.length > 0,
-      nextCursor: logs.length === input.limit ? logs[logs.length - 1].time : undefined,
-      total,
+      hasMore,
+      nextCursor: hasMore ? logs[logs.length - 1].time : undefined,
+      total: totalCount,
     };
 
     return response;
