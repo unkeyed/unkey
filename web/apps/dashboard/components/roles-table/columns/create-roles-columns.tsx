@@ -1,9 +1,8 @@
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { Key2, Page2 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { LastUpdatedCell, RowActionSkeleton, SortableHeader } from "@unkey/ui";
+import { AssignedCountCell, LastUpdatedCell, RowActionSkeleton, SortableHeader } from "@unkey/ui";
 import dynamic from "next/dynamic";
-import { AssignedCountCell } from "../components/cells/assigned-count-cell";
 import { RoleNameCell } from "../components/cells/role-name-cell";
 
 const RolesTableActions = dynamic(

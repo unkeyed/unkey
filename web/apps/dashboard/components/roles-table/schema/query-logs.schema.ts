@@ -1,5 +1,8 @@
+import {
+  rolesFilterOperatorEnum,
+  rolesListFilterFieldNames,
+} from "@/app/(app)/[workspaceSlug]/authorization/roles/filters.schema";
 import { z } from "zod";
-import { rolesFilterOperatorEnum, rolesListFilterFieldNames } from "../../filters.schema";
 
 const filterItemSchema = z.object({
   operator: rolesFilterOperatorEnum,

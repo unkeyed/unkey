@@ -9,6 +9,8 @@ export { CopyCell } from "./copy-cell";
 export type { CopyCellProps } from "./copy-cell";
 export { AssignedItemsCell } from "./assigned-items-cell";
 export type { AssignedItemsCellProps } from "./assigned-items-cell";
+export { AssignedCountCell } from "./assigned-count-cell";
+export type { AssignedCountCellProps } from "./assigned-count-cell";
 export { HiddenValueCell } from "./hidden-value-cell";
 export type { HiddenValueCellProps } from "./hidden-value-cell";
 export { LastUpdatedCell } from "./last-updated-cell";

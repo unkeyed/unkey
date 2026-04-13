@@ -1,5 +1,4 @@
-import type { RolesQueryPayload } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/table/query-logs.schema";
-import type { RolesSortField } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/table/query-logs.schema";
+import type { RolesQueryPayload, RolesSortField } from "../schema/query-logs.schema";
 import {
   type RolesFilterValue,
   rolesFilterFieldConfig,
