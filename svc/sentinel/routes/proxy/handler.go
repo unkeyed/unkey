@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -23,7 +24,7 @@ import (
 type Handler struct {
 	RouterService      router.Service
 	Clock              clock.Clock
-	Transport          *http.Transport
+	Transports         *TransportRegistry
 	SentinelID         string
 	Region             string
 	MaxRequestBodySize int64
@@ -91,8 +92,11 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		}
 	}
 
+	// For gRPC/streaming, don't buffer the body — pass it through as a stream.
 	var requestBody []byte
-	if req.Body != nil {
+	streaming := strings.HasPrefix(req.Header.Get("Content-Type"), "application/grpc") ||
+		strings.HasPrefix(req.Header.Get("Content-Type"), "application/connect+")
+	if req.Body != nil && !streaming {
 		requestBody, err = io.ReadAll(req.Body)
 		if err != nil {
 			return fault.Wrap(err,
@@ -119,6 +123,8 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		}
 		tracking.RequestBody = requestBody
 	}
+
+	transport := h.Transports.Get(deployment.UpstreamProtocol)
 
 	targetURL, err := url.Parse("http://" + instance.Address)
 	if err != nil {
@@ -153,7 +159,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 			outReq.Header.Set("X-Forwarded-Host", req.Host)
 			outReq.Header.Set("X-Forwarded-Proto", "http")
 		},
-		Transport: h.Transport,
+		Transport: transport,
 		ModifyResponse: func(resp *http.Response) error {
 			if tracking != nil {
 				tracking.InstanceEnd = h.Clock.Now()
@@ -167,8 +173,8 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 					upstreamDuration.WithLabelValues(statusClass).Observe(tracking.InstanceEnd.Sub(tracking.InstanceStart).Seconds())
 				}
 
-				// Capture response body for logging
-				if resp.Body != nil {
+				// Capture response body for logging (skip for streaming — would buffer the entire stream)
+				if resp.Body != nil && !streaming {
 					responseBody, err := io.ReadAll(resp.Body)
 					if err != nil {
 						return fault.Wrap(err,
