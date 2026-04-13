@@ -16,25 +16,35 @@ import (
 	"github.com/unkeyed/unkey/svc/kitchensink/env"
 	"github.com/unkeyed/unkey/svc/kitchensink/headers"
 	"github.com/unkeyed/unkey/svc/kitchensink/hello"
+	"github.com/unkeyed/unkey/svc/kitchensink/index"
 	"github.com/unkeyed/unkey/svc/kitchensink/logs"
 	"github.com/unkeyed/unkey/svc/kitchensink/principal"
 	"github.com/unkeyed/unkey/svc/kitchensink/sleep"
 	"github.com/unkeyed/unkey/svc/kitchensink/status"
 )
 
-// routes is the explicit registry of method+path → handler. To add a
-// new route, create a subpackage under svc/kitchensink/ that exports
-// `func Handler(w http.ResponseWriter, r *http.Request)` and append
-// one line here. See README.md.
-var routes = map[string]http.HandlerFunc{
-	"GET /hello":         hello.Handler,
-	"GET /env":           env.Handler,
-	"GET /principal":     principal.Handler,
-	"GET /headers":       headers.Handler,
-	"POST /echo":         echo.Handler,
-	"POST /log":          logs.Handler,
-	"GET /status/{code}": status.Handler,
-	"GET /sleep":         sleep.Handler,
+// route ties a ServeMux pattern to its handler and a human description
+// shown on the index page.
+type route struct {
+	Pattern     string
+	Description string
+	Fn          http.HandlerFunc
+}
+
+// routes is the explicit registry of every route the server serves.
+// To add one: create a subpackage under svc/kitchensink/ that exports
+// `func Handler(w http.ResponseWriter, r *http.Request)` and append a
+// line here. See README.md.
+var routes = []route{
+	{"GET /", "This page — lists every registered route.", index.Handler},
+	{"GET /hello", "Smoke test — returns 'hello, world'.", hello.Handler},
+	{"GET /env", "Process environment as JSON. Filter with ?prefix=.", env.Handler},
+	{"GET /principal", "Decodes X-Unkey-Principal and returns it.", principal.Handler},
+	{"GET /headers", "Incoming request headers as JSON.", headers.Handler},
+	{"POST /echo", "Returns the request body verbatim.", echo.Handler},
+	{"POST /log", "Logs the body at INFO, echoes it.", logs.Handler},
+	{"GET /status/{code}", "Returns whatever HTTP status you ask for.", status.Handler},
+	{"GET /sleep", "Sleeps ?d=<duration>, honors cancellation.", sleep.Handler},
 }
 
 func main() {
@@ -48,9 +58,10 @@ func main() {
 	addr := ":" + port
 
 	mux := http.NewServeMux()
-	for pattern, fn := range routes {
-		mux.HandleFunc(pattern, fn)
-		logger.Info("registered", "pattern", pattern)
+	for _, rt := range routes {
+		mux.HandleFunc(rt.Pattern, rt.Fn)
+		index.Register(rt.Pattern, rt.Description)
+		logger.Info("registered", "pattern", rt.Pattern)
 	}
 
 	srv := &http.Server{

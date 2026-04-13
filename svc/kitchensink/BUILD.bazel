@@ -10,6 +10,7 @@ go_library(
         "//svc/kitchensink/env",
         "//svc/kitchensink/headers",
         "//svc/kitchensink/hello",
+        "//svc/kitchensink/index",
         "//svc/kitchensink/logs",
         "//svc/kitchensink/principal",
         "//svc/kitchensink/sleep",
