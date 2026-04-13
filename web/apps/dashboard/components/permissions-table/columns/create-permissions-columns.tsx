@@ -55,8 +55,10 @@ export const createPermissionsColumns = ({
     ),
     enableSorting: true,
     meta: {
-      width: "20%",
-      headerClassName: "pl-[18px]",
+      width: {
+        min: 260,
+        max: 400,
+      },
     },
     cell: ({ row }) => {
       const permission = row.original;
@@ -79,7 +81,10 @@ export const createPermissionsColumns = ({
     ),
     enableSorting: true,
     meta: {
-      width: "20%",
+      width: {
+        min: 260,
+        max: 400,
+      },
     },
     cell: ({ row }) => {
       const permission = row.original;
@@ -100,7 +105,10 @@ export const createPermissionsColumns = ({
     ),
     enableSorting: true,
     meta: {
-      width: "20%",
+      width: {
+        min: 200,
+        max: 400,
+      },
     },
     cell: ({ row }) => {
       const permission = row.original;
@@ -123,7 +131,10 @@ export const createPermissionsColumns = ({
     ),
     enableSorting: true,
     meta: {
-      width: "20%",
+      width: {
+        min: 200,
+        max: 400,
+      },
     },
     cell: ({ row }) => {
       const permission = row.original;
@@ -145,7 +156,10 @@ export const createPermissionsColumns = ({
     ),
     enableSorting: true,
     meta: {
-      width: "12%",
+      width: {
+        min: 200,
+        max: 400,
+      },
     },
     cell: ({ row }) => {
       const permission = row.original;
@@ -162,7 +176,10 @@ export const createPermissionsColumns = ({
     header: "",
     enableSorting: false,
     meta: {
-      width: "auto",
+      width: {
+        min: 60,
+        max: 100,
+      },
     },
     cell: ({ row }) => {
       const permission = row.original;

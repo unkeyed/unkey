@@ -54,7 +54,7 @@ export const PermissionsList = () => {
   );
 
   return (
-    <>
+    <div className="overflow-auto">
       <DataTable
         data={permissions}
         columns={columns}
@@ -96,6 +96,6 @@ export const PermissionsList = () => {
           onClose={() => setSelectedPermission(null)}
         />
       )}
-    </>
+    </div>
   );
 };
