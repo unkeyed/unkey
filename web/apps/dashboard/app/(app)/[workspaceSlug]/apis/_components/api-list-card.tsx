@@ -8,9 +8,7 @@ import type { ApiOverview } from "@/lib/trpc/routers/api/overview/query-overview
 import { Key, ProgressBar } from "@unkey/icons";
 import { InfoTooltip, Loading } from "@unkey/ui";
 import { Suspense } from "react";
-import { useFetchKeyCount } from "./hooks/use-query-key-count";
 import { useFetchVerificationTimeseries } from "./hooks/use-query-timeseries";
-import { KeyCountSkeleton } from "./skeleton";
 
 type Props = {
   api: ApiOverview;
@@ -18,14 +16,7 @@ type Props = {
 
 export const ApiListCard = ({ api }: Props) => {
   const { timeseries, isError } = useFetchVerificationTimeseries(api.keyspaceId);
-  const {
-    count: keyCount,
-    isLoading: isLoadingKeyCount,
-    isError: isKeyCountError,
-    error: keyCountError,
-  } = useFetchKeyCount({
-    apiId: api.id,
-  });
+  const keyCount = api.keyCount;
   const workspace = useWorkspaceNavigation();
 
   const passed = timeseries?.reduce((acc, crr) => acc + crr.success, 0) ?? 0;
@@ -62,31 +53,17 @@ export const ApiListCard = ({ api }: Props) => {
               successLabel="VALID"
               errorLabel="INVALID"
             />
-            {isLoadingKeyCount ? (
-              <KeyCountSkeleton />
-            ) : isKeyCountError ? (
-              <div className="flex items-center gap-1.5 max-w-[40%]">
-                <Key className="text-red-11 shrink-0" iconSize="md-medium" />
-                <InfoTooltip
-                  content={keyCountError?.message || "Failed to load key count. Please try again."}
-                  triggerClassName="cursor-pointer"
-                >
-                  <div className="text-xs text-red-9 flex-1 min-w-0">Failed to load</div>
-                </InfoTooltip>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 max-w-[40%]">
-                <Key className="text-accent-11 shrink-0" iconSize="md-medium" />
-                <InfoTooltip
-                  content={`This API has ${keyCount.toLocaleString()} total ${keyCount === 1 ? "key" : "keys"}`}
-                  triggerClassName="cursor-pointer"
-                >
-                  <div className="text-xs text-accent-9 tabular-nums flex-1 min-w-0">
-                    {formatNumber(keyCount)} {keyCount === 1 ? "Key" : "Keys"}
-                  </div>
-                </InfoTooltip>
-              </div>
-            )}
+            <div className="flex items-center gap-1.5 max-w-[40%]">
+              <Key className="text-accent-11 shrink-0" iconSize="md-medium" />
+              <InfoTooltip
+                content={`This API has approximately ${keyCount.toLocaleString()} total ${keyCount === 1 ? "key" : "keys"}`}
+                triggerClassName="cursor-pointer"
+              >
+                <div className="text-xs text-accent-9 tabular-nums flex-1 min-w-0">
+                  {formatNumber(keyCount)} {keyCount === 1 ? "Key" : "Keys"}
+                </div>
+              </InfoTooltip>
+            </div>
           </>
         }
         icon={<ProgressBar className="text-accent-11" />}

@@ -32,6 +32,7 @@ export async function fetchApiOverview({
       keyAuth: {
         columns: {
           id: true,
+          sizeApprox: true,
         },
       },
     },
@@ -54,6 +55,7 @@ export async function fetchApiOverview({
         id: api.id,
         name: api.name,
         keyspaceId,
+        keyCount: api.keyAuth?.sizeApprox ?? 0,
       };
     }),
   );
@@ -79,7 +81,7 @@ type ApiWithKeyCount = {
   id: string;
   name: string;
   keyspaceId: string | null;
-  keys: Array<{ count: number }>;
+  keyCount: number;
 };
 
 export async function apiItemsWithApproxKeyCounts(
@@ -89,6 +91,6 @@ export async function apiItemsWithApproxKeyCounts(
     id: api.id,
     name: api.name,
     keyspaceId: api.keyAuthId,
-    keys: [{ count: api.keyAuth?.sizeApprox || 0 }],
+    keyCount: api.keyAuth?.sizeApprox ?? 0,
   }));
 }
