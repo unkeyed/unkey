@@ -6,7 +6,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";
 import { useUpdateAllEnvironments } from "../../hooks/use-update-all-environments";
-import { SettingDescription, SettingField } from "../shared/form-blocks";
+import { SettingField } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 import { useRepoTree } from "./use-repo-tree";
 
@@ -18,7 +18,7 @@ export const Dockerfile = () => {
   const { settings, variant } = useEnvironmentSettings();
   const { dockerfile: defaultValue, dockerContext } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
-  const { validateDockerfilePath, findDockerfileCaseMatch, getDockerfilesForContext } =
+  const { branch, validateDockerfilePath, findDockerfileCaseMatch, getDockerfilesForContext } =
     useRepoTree();
 
   const {
@@ -76,8 +76,12 @@ export const Dockerfile = () => {
           </button>
           ?
         </span>
+      ) : branch ? (
+        <span>
+          File not found on branch <span className="font-medium text-gray-12">{branch}</span>
+        </span>
       ) : (
-        "This file was not found in the connected repository"
+        "File not found on this branch"
       )
     ) : undefined;
 
@@ -95,6 +99,10 @@ export const Dockerfile = () => {
         <FormCombobox
           required
           label="Dockerfile"
+          description={
+            warningMessage ??
+            "Dockerfile location used for docker build. Changes apply on next deploy."
+          }
           options={options}
           value={currentDockerfile}
           onSelect={(val) => setValue("dockerfile", val, { shouldValidate: true })}
@@ -105,14 +113,6 @@ export const Dockerfile = () => {
           variant={inputVariant}
         />
       </SettingField>
-
-      {warningMessage ? (
-        <div className="text-[13px] leading-5 text-warning-11">{warningMessage}</div>
-      ) : (
-        <SettingDescription>
-          Dockerfile location used for docker build. Changes apply on next deploy.
-        </SettingDescription>
-      )}
     </FormSettingCard>
   );
 };
