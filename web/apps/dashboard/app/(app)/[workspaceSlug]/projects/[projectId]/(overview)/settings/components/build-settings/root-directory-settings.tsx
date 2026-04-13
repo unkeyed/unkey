@@ -70,7 +70,7 @@ export const RootDirectory = () => {
           ?
         </span>
       ) : (
-        "This directory was not found in the connected repository"
+        "Directory not found on this branch"
       )
     ) : undefined;
 

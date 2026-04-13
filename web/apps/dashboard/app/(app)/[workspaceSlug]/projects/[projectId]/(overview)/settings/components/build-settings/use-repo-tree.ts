@@ -29,7 +29,6 @@ export function useRepoTree() {
     { projectId },
     { staleTime: 5 * 60 * 1000 },
   );
-
   const tree = data?.tree ?? null;
   const isReady = !isLoading && !isError && tree !== null;
 
