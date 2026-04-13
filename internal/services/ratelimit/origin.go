@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -10,6 +11,33 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 )
+
+// fetchFromOrigin fetches the current counter value from the origin and
+// CAS-merges it into the local atomic counter. The call is wrapped in the
+// origin circuit breaker so that Redis outages fail fast instead of stalling
+// every request in strict mode. On any failure (circuit tripped, timeout,
+// or Redis error) the local counter is left unchanged — callers proceed
+// with whatever local state they have.
+func (s *service) fetchFromOrigin(ctx context.Context, key counterKey, ptr *atomic.Int64) {
+	rk := redisKey(key)
+
+	res, err := s.originCircuitBreaker.Do(ctx, func(ctx context.Context) (int64, error) {
+		start := time.Now()
+		res, err := s.origin.Get(ctx, rk)
+
+		metrics.RatelimitOriginLatency.WithLabelValues("fetch").Observe(time.Since(start).Seconds())
+		return res, err
+	})
+	if err != nil {
+		metrics.RatelimitOriginErrors.WithLabelValues("fetch").Inc()
+		logger.Error("unable to get counter value from origin",
+			"key", rk,
+			"error", err.Error(),
+		)
+		return
+	}
+	atomicMax(ptr, res)
+}
 
 // replayRequests processes buffered rate limit events by synchronizing them
 // with Redis. It runs in a dedicated goroutine and consumes from the replay
@@ -30,7 +58,7 @@ func (s *service) replayRequests() {
 // the global count back into the local atomic counter. No locks are held.
 func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) error {
 	defer func(start time.Time) {
-		metrics.RatelimitOriginSyncLatency.Observe(time.Since(start).Seconds())
+		metrics.RatelimitOriginLatency.WithLabelValues("sync").Observe(time.Since(start).Seconds())
 	}(time.Now())
 
 	ctx, span := tracing.Start(ctx, "syncWithOrigin")
@@ -53,11 +81,11 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 		sequence:   sequence,
 	}
 
-	newCounter, err := s.replayCircuitBreaker.Do(ctx, func(innerCtx context.Context) (int64, error) {
+	newCounter, err := s.originCircuitBreaker.Do(ctx, func(innerCtx context.Context) (int64, error) {
 		innerCtx, innerCancel := context.WithTimeout(innerCtx, 2*time.Second)
 		defer innerCancel()
 
-		return s.counter.Increment(
+		return s.origin.Increment(
 			innerCtx,
 			redisKey(key),
 			req.Cost,
@@ -66,13 +94,14 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 	})
 
 	if err != nil {
+		metrics.RatelimitOriginErrors.WithLabelValues("sync").Inc()
 		tracing.RecordError(span, err)
 		return err
 	}
 
 	// CAS-merge: update local counter if Redis value is higher.
 	ptr, _ := s.loadCounter(key)
-	casMerge(ptr, newCounter)
+	atomicMax(ptr, newCounter)
 
 	return nil
 }

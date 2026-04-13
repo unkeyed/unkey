@@ -6,10 +6,11 @@ go_library(
         "doc.go",
         "interface.go",
         "janitor.go",
-        "replay.go",
+        "keys.go",
+        "origin.go",
+        "ratelimit.go",
         "sequence.go",
         "service.go",
-        "util.go",
     ],
     importpath = "github.com/unkeyed/unkey/internal/services/ratelimit",
     visibility = ["//:__subpackages__"],
@@ -36,6 +37,18 @@ go_test(
 
 go_test(
     name = "ratelimit_test",
-    srcs = ["service_benchmark_test.go"],
+    srcs = [
+        "atomicmax_test.go",
+        "helpers_test.go",
+        "janitor_test.go",
+        "origin_test.go",
+        "ratelimit_test.go",
+        "service_benchmark_test.go",
+    ],
     embed = [":ratelimit"],
+    deps = [
+        "//pkg/clock",
+        "//pkg/counter",
+        "@com_github_stretchr_testify//require",
+    ],
 )
