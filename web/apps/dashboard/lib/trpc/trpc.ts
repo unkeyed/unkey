@@ -198,9 +198,6 @@ const requireUser = t.middleware(({ next, ctx }) => {
   return next({
     ctx: {
       user: ctx.user,
-      // Default to "member" role when tenant context is missing to prevent
-      // unintended privilege escalation. Previously defaulted to "owner" which
-      // could grant admin-level access to users without a proper org assignment.
       tenant: ctx.tenant ?? { id: ctx.user.id, role: "member" },
     },
   });
