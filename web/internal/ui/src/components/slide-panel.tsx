@@ -92,14 +92,14 @@ const SlidePanelRoot = ({
         inert={!isOpen || undefined}
         className={cn(
           "fixed dark:bg-black bg-white border border-gray-4 rounded-xl overflow-hidden z-51",
-          "transition-[transform,opacity] duration-300 ease-out",
+          "transition-transform duration-300 ease-out",
           "shadow-md",
           side === "right" ? "right-3" : "left-3",
           isOpen
-            ? "translate-x-0 opacity-100"
+            ? "translate-x-0"
             : side === "right"
-              ? "translate-x-full opacity-0"
-              : "-translate-x-full opacity-0",
+              ? "translate-x-[calc(100%+0.75rem)]"
+              : "-translate-x-[calc(100%+0.75rem)]",
           widthClassName,
           className,
         )}
