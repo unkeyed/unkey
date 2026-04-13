@@ -20,10 +20,23 @@ import (
 // Range covers sub-millisecond local decisions through multi-second origin
 // failures where the circuit breaker should have tripped.
 var latencyBuckets = []float64{
-	0.001, 0.002, 0.005,
-	0.01, 0.02, 0.05,
-	0.1, 0.2, 0.3, 0.4, 0.5, 0.75,
-	1.0, 2.0, 3.0, 5.0, 10.0,
+	0.001, // 1ms
+	0.002, // 2ms
+	0.005, // 5ms
+	0.01,  // 10ms
+	0.02,  // 20ms
+	0.05,  // 50ms
+	0.1,   // 100ms
+	0.2,   // 200ms
+	0.3,   // 300ms
+	0.4,   // 400ms
+	0.5,   // 500ms
+	0.75,  // 750ms
+	1.0,   // 1s
+	2.0,   // 2s
+	3.0,   // 3s
+	5.0,   // 5s
+	10.0,  // 10s
 }
 
 // Counter lifecycle: tracks the in-memory sync.Map entries that hold sliding
