@@ -258,23 +258,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			rateLimitsToInsert := make([]db.InsertIdentityRatelimitParams, 0)
-			// Update existing ratelimits or create new ones
+			// Update existing ratelimits via UPDATE by ID (row locks only), and
+			// INSERT only truly new rows. This avoids gap-lock contention from
+			// INSERT ... ON DUPLICATE KEY UPDATE that deadlocks under concurrent
+			// bulk identity updates.
 			for name, newRL := range newRatelimitMap {
 				existingRL, exists := existingRatelimitMap[name]
 
 				var ratelimitID string
 				if exists {
 					ratelimitID = existingRL.ID
-					rateLimitsToInsert = append(rateLimitsToInsert, db.InsertIdentityRatelimitParams{
-						ID:          existingRL.ID,
-						WorkspaceID: auth.AuthorizedWorkspaceID,
-						IdentityID:  sql.NullString{String: identityRow.ID, Valid: true},
-						Name:        newRL.Name,
-						Limit:       int32(newRL.Limit), // nolint:gosec
-						Duration:    newRL.Duration,
-						AutoApply:   newRL.AutoApply,
-						CreatedAt:   time.Now().UnixMilli(),
+
+					err = db.Query.UpdateRatelimit(ctx, tx, db.UpdateRatelimitParams{
+						ID:        existingRL.ID,
+						Name:      newRL.Name,
+						Limit:     int32(newRL.Limit), // nolint:gosec
+						Duration:  newRL.Duration,
+						AutoApply: newRL.AutoApply,
 					})
+					if err != nil {
+						// nolint:exhaustruct
+						return txResult{}, fault.Wrap(err,
+							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+							fault.Internal("database failed to update ratelimit"),
+							fault.Public("Failed to update ratelimit"),
+						)
+					}
 
 					auditLogs = append(auditLogs, auditlog.AuditLog{
 						WorkspaceID: auth.AuthorizedWorkspaceID,

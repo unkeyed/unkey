@@ -95,11 +95,14 @@ export const SelectRepo = ({
     setSearchQuery("");
   };
 
-  const handleSelectRepository = async (repo: {
-    id: number;
-    fullName: string;
-    installationId: number;
-  }) => {
+  const handleSelectRepository = async (
+    repo: {
+      id: number;
+      fullName: string;
+      installationId: number;
+    },
+    selectedBranch: string,
+  ) => {
     setMutatingRepoId(repo.id);
     try {
       await selectRepoMutation.mutateAsync({
@@ -107,6 +110,7 @@ export const SelectRepo = ({
         repositoryId: repo.id,
         repositoryFullName: repo.fullName,
         installationId: repo.installationId,
+        selectedBranch,
       });
       next();
     } finally {

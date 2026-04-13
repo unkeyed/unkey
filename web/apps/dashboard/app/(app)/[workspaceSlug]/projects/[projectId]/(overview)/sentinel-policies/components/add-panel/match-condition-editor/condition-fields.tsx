@@ -35,7 +35,8 @@ export function ConditionFields({
     setValue,
     formState: { isSubmitted },
   } = useFormContext<PolicyFormValues>();
-  const condition = useWatch({ control, name: `matchConditions.${index}` });
+  const allConditions = useWatch({ control, name: "matchConditions" });
+  const condition = allConditions?.[index];
 
   const patch = (next: MatchConditionFormValues) => {
     setValue(`matchConditions.${index}`, next, { shouldValidate: isSubmitted });
@@ -47,7 +48,8 @@ export function ConditionFields({
         <div className="flex gap-2">
           <div className="w-28 shrink-0">
             <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-              <label htmlFor={`path-mode-${c.id}`} className="text-gray-11 text-[13px]">
+              {/* h-[22px] needed to match the same height as Input below otherwise Require tag on input causing layout issues*/}
+              <label htmlFor={`path-mode-${c.id}`} className="text-gray-11 text-[13px] h-[22px]">
                 Mode
               </label>
               <Select

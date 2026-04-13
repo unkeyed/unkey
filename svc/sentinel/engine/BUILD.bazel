@@ -20,7 +20,6 @@ go_library(
         "//svc/sentinel/engine/keyauth",
         "//svc/sentinel/engine/ratelimit",
         "@com_github_prometheus_client_golang//prometheus",
-        "@com_github_prometheus_client_golang//prometheus/promauto",
         "@org_golang_google_protobuf//encoding/protojson",
     ],
 )

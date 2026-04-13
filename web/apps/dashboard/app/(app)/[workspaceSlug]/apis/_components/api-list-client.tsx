@@ -1,11 +1,10 @@
 "use client";
 
-import { EmptyComponentSpacer } from "@/components/empty-component-spacer";
 import { trpc } from "@/lib/trpc/client";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { type PropsWithChildren, useEffect, useMemo, useState } from "react";
 import { ApiListCard } from "./api-list-card";
 import { ApiListControlCloud } from "./control-cloud";
 import { ApiListControls } from "./controls";
@@ -128,6 +127,14 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
           </Empty>
         </EmptyComponentSpacer>
       )}
+    </div>
+  );
+};
+
+const EmptyComponentSpacer = ({ children }: PropsWithChildren) => {
+  return (
+    <div className="h-full min-h-[300px] flex items-center justify-center">
+      <div className="flex justify-center items-center">{children}</div>
     </div>
   );
 };

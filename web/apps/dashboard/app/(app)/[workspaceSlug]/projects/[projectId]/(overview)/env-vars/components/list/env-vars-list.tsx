@@ -36,20 +36,12 @@ export function EnvVarsList({
   sortBy,
 }: EnvVarsListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const closeEdit = useCallback(() => setEditingId(null), []);
   const deferredQuery = useDeferredValue(searchQuery);
 
   const toggleGroup = useCallback((key: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
+    setExpandedRow((prev) => (prev === key ? "" : key));
   }, []);
 
   const { data: envVarData, isLoading } = useLiveQuery(
@@ -103,12 +95,12 @@ export function EnvVarsList({
   const { selectedIds, toggleRowSelection, isRowSelected, handleBulkDelete, clearSelection } =
     useRowSelection(displayRows);
 
-  useCloseEditOnGroupCollapse(displayRows, expandedGroups, editingId, setEditingId);
+  useCloseEditOnGroupCollapse(displayRows, expandedRow, editingId, setEditingId);
 
   const { virtualizer, listRefCallback, scrollMargin } = useVirtualList(
     displayRows,
     editingId,
-    expandedGroups,
+    expandedRow,
   );
 
   if (isLoading) {
@@ -163,7 +155,7 @@ export function EnvVarsList({
                 ) : (
                   <GroupRow
                     row={row}
-                    isExpanded={expandedGroups.has(row.key)}
+                    isExpanded={expandedRow === row.key}
                     selected={isRowSelected(row)}
                     deferredQuery={deferredQuery}
                     editingId={editingId}
@@ -190,7 +182,7 @@ export function EnvVarsList({
 
 function useCloseEditOnGroupCollapse(
   displayRows: DisplayRow[],
-  expandedGroups: Set<string>,
+  expandedRow: string | null,
   editingId: string | null,
   setEditingId: (id: string | null) => void,
 ) {
@@ -199,12 +191,12 @@ function useCloseEditOnGroupCollapse(
       return;
     }
     for (const row of displayRows) {
-      if (row.kind === "group" && !expandedGroups.has(row.key)) {
+      if (row.kind === "group" && expandedRow !== row.key) {
         if (row.items.some((i) => i.id === editingId)) {
           setEditingId(null);
           break;
         }
       }
     }
-  }, [expandedGroups, displayRows, editingId, setEditingId]);
+  }, [expandedRow, displayRows, editingId, setEditingId]);
 }

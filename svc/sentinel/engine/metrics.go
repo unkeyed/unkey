@@ -2,13 +2,13 @@ package engine
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 var (
-	sentinelEngineEvaluationsTotal = promauto.NewCounterVec(
+	sentinelEngineEvaluationsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "sentinel",
@@ -18,7 +18,7 @@ var (
 		[]string{"policy_type", "result"},
 	)
 
-	sentinelEngineEvaluationDuration = promauto.NewHistogramVec(
+	sentinelEngineEvaluationDuration = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "sentinel",

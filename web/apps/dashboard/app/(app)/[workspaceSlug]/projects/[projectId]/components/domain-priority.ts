@@ -42,7 +42,11 @@ export function getDomainPriority(ctx: DomainPriorityContext): DomainPriorityRes
       customDomain: cd,
     }));
 
+  // Exclude platform domains that match a verified custom domain to avoid duplicates
+  const customHostnames = new Set(customDisplayDomains.map((cd) => cd.hostname));
+
   const platformDisplayDomains: ReadonlyArray<DisplayDomain> = [...ctx.domains]
+    .filter((d) => !customHostnames.has(d.fullyQualifiedDomainName))
     .sort((a, b) => a.fullyQualifiedDomainName.localeCompare(b.fullyQualifiedDomainName))
     .map((d) => ({
       source: "platform" as const,

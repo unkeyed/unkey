@@ -1,10 +1,6 @@
 package routes
 
 import (
-	"net"
-	"net/http"
-	"time"
-
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/sentinel/middleware"
@@ -27,16 +23,7 @@ func Register(srv *zen.Server, svc *Services) {
 		withProxyErrorHandling,
 	}
 
-	//nolint:exhaustruct
-	transport := &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   10 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		MaxIdleConns:        200,
-		MaxIdleConnsPerHost: 50,
-		IdleConnTimeout:     90 * time.Second,
-	}
+	transports := proxy.NewTransportRegistry()
 
 	if svc.Pprof != nil {
 		srv.RegisterRoute(
@@ -54,7 +41,7 @@ func Register(srv *zen.Server, svc *Services) {
 		&proxy.Handler{
 			RouterService:      svc.RouterService,
 			Clock:              svc.Clock,
-			Transport:          transport,
+			Transports:         transports,
 			SentinelID:         svc.SentinelID,
 			Region:             svc.Region,
 			MaxRequestBodySize: svc.MaxRequestBodySize,

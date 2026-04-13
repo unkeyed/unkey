@@ -179,7 +179,6 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
           <MatchConditionEditorBody />
         </PolicyForm.Section>
       </PolicyForm.Accordion>
-
       <PolicyForm.Footer>
         <div className="border-t border-grayA-4">
           <div className="px-8 py-6">

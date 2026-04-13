@@ -1,11 +1,10 @@
 "use client";
-
-import { match } from "@unkey/match";
 import { ProjectContentWrapper } from "../../components/project-content-wrapper";
 import { useOptionalProjectLayout } from "../layout-provider";
 import { SentinelPolicyPanel } from "./components/add-panel";
 import { SentinelPoliciesList } from "./components/list";
 import { SentinelPoliciesEmpty } from "./components/list/empty";
+import { SentinelPoliciesError } from "./components/list/error";
 import { SentinelPoliciesHeader } from "./components/list/header";
 import { SentinelPoliciesListSkeleton } from "./components/list/skeleton";
 import { useSentinelPoliciesData } from "./hooks/use-sentinel-policies-data";
@@ -14,7 +13,8 @@ import { useSentinelPolicyPanels } from "./hooks/use-sentinel-policy-panels";
 
 export default function SentinelPoliciesPage() {
   const layout = useOptionalProjectLayout();
-  const { envAId, envBId, envASlug, envBSlug, merged, isLoading } = useSentinelPoliciesData();
+  const { envAId, envBId, envASlug, envBSlug, merged, isLoading, isError } =
+    useSentinelPoliciesData();
   const actions = useSentinelPolicyActions({ envAId, envBId });
   const panels = useSentinelPolicyPanels();
 
@@ -23,17 +23,23 @@ export default function SentinelPoliciesPage() {
     a: editingRow?.envA?.enabled ?? false,
     b: editingRow?.envB?.enabled ?? false,
   };
-  const editingInitialEnvId = match(editingEnabled)
-    .with({ a: true, b: true }, () => "__all__")
-    .with({ a: true }, () => envASlug)
-    .with({ b: true }, () => envBSlug)
-    .otherwise(() => "__all__");
+
+  const editingInitialEnvId =
+    editingEnabled.a && editingEnabled.b
+      ? "__all__"
+      : editingEnabled.a
+        ? envASlug
+        : editingEnabled.b
+          ? envBSlug
+          : "__all__";
 
   return (
     <ProjectContentWrapper centered maxWidth="960px" className="mt-8">
       <div className="flex flex-col gap-5">
         <SentinelPoliciesHeader onAddPolicy={panels.openAdd} />
-        {isLoading ? (
+        {isError ? (
+          <SentinelPoliciesError />
+        ) : isLoading ? (
           <SentinelPoliciesListSkeleton />
         ) : merged.length === 0 ? (
           <SentinelPoliciesEmpty />
@@ -64,7 +70,7 @@ export default function SentinelPoliciesPage() {
             mode="edit"
             envASlug={envASlug}
             envBSlug={envBSlug}
-            isOpen
+            isOpen={panels.isEditPanelOpen}
             topOffset={layout?.tableDistanceToTop ?? 0}
             onClose={panels.closeEdit}
             initialPolicy={panels.editing}

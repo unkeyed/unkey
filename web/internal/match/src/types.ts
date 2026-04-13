@@ -73,3 +73,46 @@ export type Pattern<T> =
       : T extends object
         ? { readonly [K in keyof T]?: Pattern<T[K]> }
         : never);
+
+// ── Exhaustiveness subtraction ───────────────────────────────────────────────
+
+/**
+ * Collapses an object type to `never` if any of its property types is `never`.
+ * Tuple-wrapped `[T[K]] extends [never]` avoids distributive issues on union props.
+ */
+type NeverIfAnyPropIsNever<T> = true extends {
+  [K in keyof T]: [T[K]] extends [never] ? true : false;
+}[keyof T]
+  ? never
+  : T;
+
+/**
+ * Pattern-aware type subtraction. Computes the true leftover type after a
+ * pattern arm — the cases the pattern did NOT cover.
+ *
+ * Unlike `Exclude<T, NarrowByPattern<T, P>>`, handles partial object patterns
+ * by subtracting per-key (recursively) and collapsing to `never` when any key
+ * is fully exhausted.
+ *
+ * @example
+ * SubtractByPattern<{ a: boolean; b: boolean }, { a: true }>
+ *   // => { a: false; b: boolean }
+ *
+ * SubtractByPattern<
+ *   { kind: "circle"; r: number } | { kind: "rect"; w: number; h: number },
+ *   { kind: "circle" }
+ * > // => { kind: "rect"; w: number; h: number }
+ */
+export type SubtractByPattern<TInput, TPattern> = TInput extends unknown
+  ? TPattern extends PatternMatcher<infer TNarrow>
+    ? Exclude<TInput, TNarrow>
+    : TPattern extends Record<string, unknown>
+      ? TInput extends Record<string, unknown>
+        ? NeverIfAnyPropIsNever<{
+            [K in keyof TInput]: K extends keyof TPattern
+              ? SubtractByPattern<TInput[K], TPattern[K]>
+              : TInput[K];
+          }>
+        : TInput
+      : Exclude<TInput, TPattern>
+  : never;

@@ -2,11 +2,11 @@ package handler
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 var (
-	upstreamResponseTotal = promauto.NewCounterVec(
+	upstreamResponseTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "sentinel",
@@ -16,7 +16,7 @@ var (
 		[]string{"status_class"},
 	)
 
-	upstreamDuration = promauto.NewHistogramVec(
+	upstreamDuration = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "sentinel",

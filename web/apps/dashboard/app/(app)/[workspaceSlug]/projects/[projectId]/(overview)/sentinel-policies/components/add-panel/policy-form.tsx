@@ -1,107 +1,29 @@
 "use client";
 
-import { DoubleChevronRight } from "@unkey/icons";
-import { SlidePanel } from "@unkey/ui";
-import { Children, type ReactNode, isValidElement, useCallback, useRef } from "react";
+import { ChevronDown, CircleInfo, DoubleChevronRight } from "@unkey/icons";
+import { InfoTooltip, SlidePanel } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
+import {
+  Children,
+  type ReactNode,
+  createContext,
+  isValidElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   type FieldErrors,
   type FieldValues,
   FormProvider,
   type UseFormReturn,
 } from "react-hook-form";
-import { FormAccordion, type FormAccordionHandle } from "./form-accordion";
-
-type ChildrenOnlyProps = { children: ReactNode };
-
-/** Render-less slot — props are read by PolicyFormRoot via parseSlots. */
-function Fields(_props: ChildrenOnlyProps) {
-  return null;
-}
-
-type AccordionProps = { defaultExpanded?: string; children: ReactNode };
-/** Render-less slot — props are read by PolicyFormRoot via parseSlots. */
-function Accordion(_props: AccordionProps) {
-  return null;
-}
-
-const Section = FormAccordion.Section;
-
-/** Render-less slot — props are read by PolicyFormRoot via parseSlots. */
-function Footer(_props: ChildrenOnlyProps) {
-  return null;
-}
-
-type ParsedSlots = {
-  fields: ReactNode;
-  accordion: AccordionProps | null;
-  footer: ReactNode;
-};
-
-function parseSlots(children: ReactNode): ParsedSlots {
-  const result: ParsedSlots = { fields: null, accordion: null, footer: null };
-
-  Children.forEach(children, (child) => {
-    if (!isValidElement(child)) {
-      return;
-    }
-    switch (child.type) {
-      case Fields:
-        result.fields = (child.props as ChildrenOnlyProps).children;
-        break;
-      case Accordion:
-        result.accordion = child.props as AccordionProps;
-        break;
-      case Footer:
-        result.footer = (child.props as ChildrenOnlyProps).children;
-        break;
-      default:
-        if (process.env.NODE_ENV === "development") {
-          console.warn(
-            "[PolicyForm] Unknown child — only Fields, Accordion, Footer are valid slots.",
-            child,
-          );
-        }
-    }
-  });
-
-  return result;
-}
-
-type SectionMeta = { id: string; fields?: string[]; catchAll?: boolean };
-
-function parseSectionMeta(accordionChildren: ReactNode): SectionMeta[] {
-  const meta: SectionMeta[] = [];
-  Children.forEach(accordionChildren, (child) => {
-    if (isValidElement(child) && child.type === Section) {
-      const { id, fields, catchAll } = child.props as SectionMeta;
-      meta.push({ id, fields, catchAll });
-    }
-  });
-  return meta;
-}
-
-function findSectionToExpand<T extends FieldValues>(
-  errors: FieldErrors<T>,
-  sections: SectionMeta[],
-): string | null {
-  const errorKeys = new Set(Object.keys(errors));
-  let catchAllId: string | null = null;
-
-  for (const section of sections) {
-    if (section.catchAll) {
-      catchAllId = section.id;
-    }
-    if (section.fields?.some((f) => errorKeys.has(f))) {
-      return section.id;
-    }
-  }
-
-  return errorKeys.size > 0 ? catchAllId : null;
-}
 
 type PolicyFormRootProps<T extends FieldValues> = {
   title: string;
-  description: React.ReactNode;
+  description: ReactNode;
   isOpen: boolean;
   topOffset: number;
   onClose: () => void;
@@ -111,6 +33,14 @@ type PolicyFormRootProps<T extends FieldValues> = {
   children: ReactNode;
 };
 
+/**
+ * Compound component for sentinel policy slide-panel forms.
+ *
+ * Children are split at render time: `Footer` is pulled out and pinned
+ * below the scrollable body so it stays visible regardless of content height.
+ * Accordion state is shared via context so `handleInvalid` can auto-expand
+ * the section that owns the first validation error.
+ */
 function PolicyFormRoot<T extends FieldValues>({
   title,
   description,
@@ -122,23 +52,46 @@ function PolicyFormRoot<T extends FieldValues>({
   onInvalid,
   children,
 }: PolicyFormRootProps<T>) {
-  const accordionRef = useRef<FormAccordionHandle>(null);
-  const slots = parseSlots(children);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const sectionsRef = useRef<Map<string, SectionMeta>>(new Map());
 
-  const sectionsRef = useRef<SectionMeta[]>([]);
-  sectionsRef.current = slots.accordion ? parseSectionMeta(slots.accordion.children) : [];
+  const toggle = useCallback((id: string) => setExpanded((prev) => (prev === id ? null : id)), []);
+
+  const registerSection = useCallback((meta: SectionMeta) => {
+    sectionsRef.current.set(meta.id, meta);
+    return () => {
+      sectionsRef.current.delete(meta.id);
+    };
+  }, []);
+
+  const ctxValue: PolicyFormContextValue = { expanded, toggle, registerSection };
+  const { body, footer } = splitFooter(children);
 
   const handleInvalid = useCallback(
     (errors: FieldErrors<T>) => {
-      const target = findSectionToExpand(errors, sectionsRef.current);
-      if (target) {
-        accordionRef.current?.expand(target);
+      const errorKeys = new Set(Object.keys(errors));
+      let catchAllId: string | null = null;
+      let targetId: string | null = null;
+
+      for (const section of sectionsRef.current.values()) {
+        if (section.catchAll) {
+          catchAllId = section.id;
+        }
+        if (section.fields?.some((f) => errorKeys.has(f))) {
+          targetId = section.id;
+          break;
+        }
       }
+
+      const target = targetId ?? (errorKeys.size > 0 ? catchAllId : null);
+      if (target) {
+        setExpanded(target);
+      }
+
       setTimeout(() => {
         const container = document.querySelector(
           '[aria-invalid="true"], [data-error="true"]',
         ) as HTMLElement | null;
-        // For group containers (e.g. method toggles), focus the first interactive child
         const el =
           (container?.matches("input, button, select, textarea") ?? true)
             ? container
@@ -172,32 +125,151 @@ function PolicyFormRoot<T extends FieldValues>({
       </SlidePanel.Header>
 
       <SlidePanel.Content>
-        <FormProvider {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit, handleInvalid)}
-            className="h-full flex flex-col"
-          >
-            <div className="flex-1 overflow-y-auto pt-6 bg-grayA-2">
-              {slots.fields && <div className="flex flex-col gap-5 px-8">{slots.fields}</div>}
-
-              {slots.accordion && (
-                <div className="mt-6 border-b border-gray-4">
-                  <FormAccordion
-                    ref={accordionRef}
-                    defaultExpanded={slots.accordion.defaultExpanded}
-                  >
-                    {slots.accordion.children}
-                  </FormAccordion>
-                </div>
-              )}
-            </div>
-            {slots.footer}
-          </form>
-        </FormProvider>
+        <PolicyFormContext.Provider value={ctxValue}>
+          <FormProvider {...form}>
+            <form
+              onSubmit={form.handleSubmit(onSubmit, handleInvalid)}
+              className="h-full flex flex-col"
+            >
+              <div className="flex-1 overflow-y-auto pt-6 bg-grayA-2">{body}</div>
+              {footer}
+            </form>
+          </FormProvider>
+        </PolicyFormContext.Provider>
       </SlidePanel.Content>
     </SlidePanel.Root>
   );
 }
+
+function Fields({ children }: { children: ReactNode }) {
+  return <div className="flex flex-col gap-5 px-8">{children}</div>;
+}
+
+function Accordion({
+  defaultExpanded,
+  children,
+}: {
+  defaultExpanded?: string;
+  children: ReactNode;
+}) {
+  const { expanded, toggle } = usePolicyForm();
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (!initialized.current && defaultExpanded && expanded === null) {
+      toggle(defaultExpanded);
+      initialized.current = true;
+    }
+  }, [defaultExpanded, expanded, toggle]);
+
+  return <div className="mt-6 border-b border-gray-4">{children}</div>;
+}
+
+type SectionProps = {
+  id: string;
+  label: string;
+  summary: ReactNode;
+  children: ReactNode;
+  tooltipContent?: ReactNode;
+  collapsedAction?: ReactNode;
+  /** Errors on these fields auto-expand this section. */
+  fields?: string[];
+  /** Fallback section to expand when no other section claims the error field. */
+  catchAll?: boolean;
+};
+
+function Section({
+  id,
+  label,
+  summary,
+  children,
+  tooltipContent,
+  collapsedAction,
+  fields,
+  catchAll,
+}: SectionProps) {
+  const { expanded, toggle, registerSection } = usePolicyForm();
+  const isActive = expanded === id;
+
+  useEffect(() => {
+    return registerSection({ id, fields, catchAll });
+  }, [id, fields, catchAll, registerSection]);
+
+  return (
+    <div className="border-t border-grayA-4">
+      <div className="flex items-center hover:bg-grayA-2 transition-colors">
+        <button
+          type="button"
+          onClick={() => toggle(id)}
+          className="flex-1 min-w-0 px-8 py-3 flex items-center justify-between gap-4 cursor-pointer"
+        >
+          <span className="flex items-center gap-2 text-[13px] text-gray-11 font-medium">
+            <ChevronDown
+              iconSize="sm-regular"
+              className={cn("transition-transform duration-200", isActive ? "" : "-rotate-90")}
+            />
+            {label}
+            {tooltipContent && (
+              <InfoTooltip content={tooltipContent} asChild>
+                <span
+                  className="ml-0.5 inline-flex items-center text-gray-9 hover:text-gray-11"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  <CircleInfo iconSize="md-medium" aria-hidden="true" />
+                  <span className="sr-only">More info</span>
+                </span>
+              </InfoTooltip>
+            )}
+          </span>
+          <span className="text-[12px] text-gray-11 truncate">{summary}</span>
+        </button>
+        {!isActive && collapsedAction && (
+          <div className="pr-8 shrink-0 flex items-center">{collapsedAction}</div>
+        )}
+      </div>
+      {isActive && <div className="px-8 pb-6 pt-3">{children}</div>}
+    </div>
+  );
+}
+
+function Footer({ children }: { children: ReactNode }) {
+  return <>{children}</>;
+}
+
+/** Separates Footer from other children so it renders outside the scrollable area. */
+function splitFooter(children: ReactNode): { body: ReactNode[]; footer: ReactNode } {
+  const body: ReactNode[] = [];
+  let footer: ReactNode = null;
+
+  Children.forEach(children, (child) => {
+    if (isValidElement(child) && child.type === Footer) {
+      footer = child;
+    } else {
+      body.push(child);
+    }
+  });
+
+  return { body, footer };
+}
+
+function usePolicyForm() {
+  const ctx = useContext(PolicyFormContext);
+  if (!ctx) {
+    throw new Error("PolicyForm compound components must be rendered inside <PolicyForm>");
+  }
+  return ctx;
+}
+
+type SectionMeta = { id: string; fields?: string[]; catchAll?: boolean };
+
+type PolicyFormContextValue = {
+  expanded: string | null;
+  toggle: (id: string) => void;
+  registerSection: (meta: SectionMeta) => () => void;
+};
+
+const PolicyFormContext = createContext<PolicyFormContextValue | null>(null);
 
 export const PolicyForm = Object.assign(PolicyFormRoot, {
   Fields,

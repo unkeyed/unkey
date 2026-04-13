@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/buffer"
@@ -16,6 +17,12 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 	"go.opentelemetry.io/otel/attribute"
 )
+
+// originTimeout caps how long a hot-path counter.Get call can block waiting for
+// the origin (Redis). This protects request latency when the counter backend is
+// unreachable (e.g. DNS resolution hangs), allowing the service to fall back to
+// the local in-memory window value instead.
+const originTimeout = 150 * time.Millisecond
 
 // service implements distributed rate limiting using a sliding window algorithm.
 //
@@ -334,12 +341,17 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 		}, nil
 	}
 
-	// If we couldn't make a local decision, proceed with Redis checks if needed
+	// If we couldn't make a local decision, proceed with Redis checks if needed.
+	// Use a tight deadline so a DNS or network hang doesn't stall the request;
+	// the local counter value is still usable if the origin is unreachable.
 	goToOrigin := req.Time.UnixMilli() < b.strictUntil.UnixMilli()
+	originCtx, originCancel := context.WithTimeout(ctx, originTimeout)
+	defer originCancel()
+
 	if goToOrigin || !currentWindowExisted {
 		decisionSource = "origin"
 		currentKey := counterKey(b.key(), currentWindow.sequence)
-		res, err := s.counter.Get(ctx, currentKey)
+		res, err := s.counter.Get(originCtx, currentKey)
 		if err != nil {
 			logger.Error("unable to get counter value",
 				"key", currentKey,
@@ -353,7 +365,7 @@ func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequ
 	if goToOrigin || !previousWindowExisted {
 		decisionSource = "origin"
 		previousKey := counterKey(b.key(), previousWindow.sequence)
-		res, err := s.counter.Get(ctx, previousKey)
+		res, err := s.counter.Get(originCtx, previousKey)
 		if err != nil {
 			logger.Error("unable to get counter value",
 				"key", previousKey,

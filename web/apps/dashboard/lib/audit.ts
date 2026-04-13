@@ -1,5 +1,5 @@
 import type { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
-import { z } from "zod";
+import type { z } from "zod";
 
 import type { MaybeArray } from "@/lib/types";
 import { type Database, type Transaction, schema } from "@unkey/db";
@@ -7,56 +7,6 @@ import type { auditLog, auditLogTarget } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
 
 export const AUDIT_LOG_BUCKET = "unkey_mutations";
-
-export const auditLogsDataSchema = z
-  .object({
-    workspaceId: z.string(),
-    bucket: z.string(),
-    auditLogId: z.string(),
-    time: z.int(),
-    actorType: z.enum(["key", "user", "system"]),
-    actorId: z.string(),
-    actorName: z.string().nullable(),
-    actorMeta: z.string().nullable(),
-    event: z.string(),
-    description: z.string(),
-    resources: z.string().transform((rs) =>
-      z
-        .array(
-          z.object({
-            type: z.string(),
-            name: z.string(),
-            id: z.string(),
-            meta: z
-              .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
-              .optional(),
-          }),
-        )
-        .parse(JSON.parse(rs)),
-    ),
-
-    location: z.string(),
-    userAgent: z.string().nullable(),
-  })
-  .transform((l) => ({
-    workspaceId: l.workspaceId,
-    bucket: l.bucket,
-    auditLogId: l.auditLogId,
-    time: l.time,
-    actor: {
-      type: l.actorType,
-      id: l.actorId,
-      name: l.actorName,
-      meta: l.actorMeta ? JSON.parse(l.actorMeta) : undefined,
-    },
-    event: l.event,
-    description: l.description,
-    resources: l.resources,
-    context: {
-      location: l.location,
-      userAgent: l.userAgent,
-    },
-  }));
 
 export type UnkeyAuditLog = {
   workspaceId: string;

@@ -19,15 +19,15 @@ export const deleteEnvVar = workspaceProcedure
             eq(schema.appEnvironmentVariables.workspaceId, ctx.workspace.id),
           ),
         );
-
-      if (result.rowsAffected === 0) {
+      const affectedRows = result[0].affectedRows;
+      if (affectedRows === 0) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Environment variable(s) not found",
         });
       }
 
-      return { deletedCount: result.rowsAffected };
+      return { deletedCount: affectedRows };
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;

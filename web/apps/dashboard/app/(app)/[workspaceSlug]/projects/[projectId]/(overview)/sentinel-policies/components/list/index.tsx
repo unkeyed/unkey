@@ -79,29 +79,27 @@ export function SentinelPoliciesList({
 
   return (
     <div className="border border-grayA-4 rounded-[14px] overflow-hidden">
-      <div>
-        {merged.map((policy, i) => (
-          <SentinelPolicyRow
-            key={policy.id}
-            policy={policy}
-            index={i}
-            isLast={i === merged.length - 1}
-            isDragOver={dragOverIndex === i}
-            envASlug={envASlug}
-            envBSlug={envBSlug}
-            onToggleEnvA={handleToggleEnvA}
-            onToggleEnvB={handleToggleEnvB}
-            onAddToEnvA={handleAddToEnvA}
-            onAddToEnvB={handleAddToEnvB}
-            onDelete={onDelete}
-            onEdit={onEdit}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-            onDragEnd={handleDragEnd}
-          />
-        ))}
-      </div>
+      {merged.map((policy, i) => (
+        <SentinelPolicyRow
+          key={policy.id}
+          policy={policy}
+          index={i}
+          isLast={i === merged.length - 1}
+          isDragOver={dragOverIndex === i}
+          envASlug={envASlug}
+          envBSlug={envBSlug}
+          onToggleEnvA={handleToggleEnvA}
+          onToggleEnvB={handleToggleEnvB}
+          onAddToEnvA={handleAddToEnvA}
+          onAddToEnvB={handleAddToEnvB}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onDragEnd={handleDragEnd}
+        />
+      ))}
     </div>
   );
 }

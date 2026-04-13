@@ -19,11 +19,8 @@ export function MatchConditionCard({
   onRemove: () => void;
 }) {
   const { control, setValue } = useFormContext<PolicyFormValues>();
-  // Watch only the fields the card header needs. ConditionFields has its own
-  // scoped watch for the rest, so typing in a field input won't re-render
-  // the type selector or remove button.
-  const type = useWatch({ control, name: `matchConditions.${index}.type` });
-  const id = useWatch({ control, name: `matchConditions.${index}.id` });
+  const allConditions = useWatch({ control, name: "matchConditions" });
+  const condition = allConditions?.[index];
   const { errors } = useFormState({ control, name: `matchConditions.${index}` });
 
   const conditionErrors = (
@@ -35,10 +32,10 @@ export function MatchConditionCard({
       <div className="flex items-center gap-4">
         <div className="flex-1">
           <Select
-            value={type}
+            value={condition?.type}
             onValueChange={(v) => {
               const newType = v as MatchConditionFormValues["type"];
-              setValue(`matchConditions.${index}`, getDefaultCondition(newType, id));
+              setValue(`matchConditions.${index}`, getDefaultCondition(newType, condition?.id));
             }}
           >
             <SelectTrigger

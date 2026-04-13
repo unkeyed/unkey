@@ -331,3 +331,20 @@ describe("Object.is semantics", () => {
     expect(result).toBe("neg zero");
   });
 });
+
+describe("partial boolean patterns on non-discriminated objects", () => {
+  it("routes correctly to each boolean arm", () => {
+    type Flags = { a: boolean; b: boolean };
+
+    const run = (v: Flags) =>
+      match(v)
+        .with({ a: true }, () => "a-true")
+        .with({ a: false }, () => "a-false")
+        .exhaustive();
+
+    expect(run({ a: true, b: true })).toBe("a-true");
+    expect(run({ a: true, b: false })).toBe("a-true");
+    expect(run({ a: false, b: true })).toBe("a-false");
+    expect(run({ a: false, b: false })).toBe("a-false");
+  });
+});

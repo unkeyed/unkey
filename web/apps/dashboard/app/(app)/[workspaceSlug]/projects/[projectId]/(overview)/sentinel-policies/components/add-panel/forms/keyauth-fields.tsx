@@ -3,6 +3,7 @@
 import type { ComboboxOption } from "@/components/ui/combobox";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 import { ChevronDown, Plus, Trash, XMark } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
@@ -16,7 +17,8 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
-import { useController, useFormContext, useFormState } from "react-hook-form";
+import type { ReactNode } from "react";
+import { useController, useFormContext, useFormState, useWatch } from "react-hook-form";
 import type { KeyLocationFormValues, KeyLocationType, PolicyFormValues } from "../schema";
 
 type KeyauthFormValues = Extract<PolicyFormValues, { type: "keyauth" }>;
@@ -141,7 +143,13 @@ export function KeyAuthFields() {
             tooltipContent="Where to extract the API key from. Defaults to Bearer token if not configured."
           />
           {!location && (
-            <Button type="button" variant="ghost" size="sm" onClick={addLocation}>
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              className="font-medium"
+              onClick={addLocation}
+            >
               <Plus iconSize="sm-regular" />
               Add
             </Button>
@@ -238,3 +246,81 @@ export function KeyAuthFields() {
     </div>
   );
 }
+
+/**
+ * Watches only the fields rendered in the summary so edits to unrelated
+ * fields (name, environment) don't cause re-renders here.
+ */
+export function PolicySummary() {
+  const { control } = useFormContext<KeyauthFormValues>();
+  const keySpaceIds = useWatch({ control, name: "keySpaceIds" });
+  const locations = useWatch({ control, name: "locations" });
+
+  const { data: availableKeyspaces = {} } =
+    trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery();
+  const keyspaceNames: Record<string, string> = Object.fromEntries(
+    Object.entries(availableKeyspaces).map(([id, ks]) => [id, ks?.api?.name ?? id]),
+  );
+
+  return (
+    <div className="max-w-75 truncate">
+      {summarizeKeyauth(keySpaceIds, locations, keyspaceNames)}
+    </div>
+  );
+}
+
+function summarizeKeyauth(
+  keySpaceIds: string[],
+  locations: KeyauthFormValues["locations"],
+  keyspaceNames?: Record<string, string>,
+): ReactNode {
+  return (
+    <span className="text-gray-11">
+      {keySpaceIds.length === 0 ? (
+        <span className="text-gray-9">No keyspace selected</span>
+      ) : keySpaceIds.length > 3 ? (
+        <>
+          <Strong>{keySpaceIds.length}</Strong> keyspaces
+        </>
+      ) : (
+        <Strong className="inline-block max-w-50 truncate align-bottom">
+          {keySpaceIds.map((id) => keyspaceNames?.[id] ?? id).join(", ")}
+        </Strong>
+      )}
+      {locations.length === 1 && (
+        <>
+          <Sep />
+          {summarizeLocation(locations[0])}
+        </>
+      )}
+      {locations.length > 1 && (
+        <>
+          <Sep />
+          <Strong>{locations.length}</Strong> key locations
+        </>
+      )}
+    </span>
+  );
+}
+
+function summarizeLocation(loc: KeyauthFormValues["locations"][number]): ReactNode {
+  return match(loc.locationType)
+    .with("bearer", () => <Strong>Bearer</Strong>)
+    .with("header", () => (
+      <>
+        Header: <Strong>{loc.name || "—"}</Strong>
+      </>
+    ))
+    .with("queryParam", () => (
+      <>
+        Query: <Strong>{loc.name || "—"}</Strong>
+      </>
+    ))
+    .exhaustive();
+}
+
+const Strong = ({ children, className }: { children: ReactNode; className?: string }) => (
+  <span className={cn("text-gray-12 font-medium", className)}>{children}</span>
+);
+
+const Sep = () => <span className="text-gray-9 mx-1.5">·</span>;

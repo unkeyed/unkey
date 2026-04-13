@@ -33,6 +33,7 @@ const schema = z.object({
   healthcheck: healthcheckSchema,
   regions: z.array(z.object({ id: z.string(), name: z.string(), replicas: z.number().int() })),
   shutdownSignal: z.string(),
+  upstreamProtocol: z.enum(["http1", "h2c"]).default("http1"),
   openapiSpecPath: z.string().nullable().default(null),
 });
 
@@ -99,6 +100,7 @@ export const ENVIRONMENT_SETTINGS_DEFAULTS = {
   memoryMib: 256,
   storageMib: 0,
   shutdownSignal: "SIGTERM",
+  upstreamProtocol: "http1",
 } as const;
 
 type SettingsResponse = Awaited<ReturnType<typeof trpcClient.deploy.environmentSettings.get.query>>;
@@ -133,6 +135,7 @@ function flattenSettingsResponse(
         replicas: r.replicas,
       })),
     shutdownSignal: d.shutdownSignal,
+    upstreamProtocol: (runtime?.upstreamProtocol as "http1" | "h2c") ?? d.upstreamProtocol,
     openapiSpecPath: runtime?.openapiSpecPath ?? null,
   };
 }
@@ -254,6 +257,15 @@ export function buildSettingsMutations(
       trpcClient.deploy.environmentSettings.runtime.updateInstances.mutate({
         environmentId,
         replicasPerRegion: modReplicas,
+      }),
+    );
+  }
+
+  if (modified.upstreamProtocol !== original.upstreamProtocol) {
+    mutations.push(
+      trpcClient.deploy.environmentSettings.runtime.updateUpstreamProtocol.mutate({
+        environmentId,
+        upstreamProtocol: modified.upstreamProtocol,
       }),
     );
   }

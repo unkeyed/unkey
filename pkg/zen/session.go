@@ -71,42 +71,49 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 		s.r.Body = http.MaxBytesReader(w, s.r.Body, maxBodySize)
 	}
 
-	// Read and cache the request body so metrics middleware can access it even on early errors.
-	// We need to replace r.Body with a fresh reader afterwards so other middleware
-	// can still read the body if necessary.
-	var err error
-	s.requestBody, err = io.ReadAll(s.r.Body)
-	closeErr := s.r.Body.Close()
+	// For gRPC/streaming requests, skip body buffering — the body is a stream
+	// that must be forwarded incrementally. Buffering would deadlock because the
+	// client waits for a response before sending more frames.
+	if IsStreamingContentType(r.Header.Get("Content-Type")) {
+		s.requestBody = nil
+	} else {
+		// Read and cache the request body so metrics middleware can access it even on early errors.
+		// We need to replace r.Body with a fresh reader afterwards so other middleware
+		// can still read the body if necessary.
+		var err error
+		s.requestBody, err = io.ReadAll(s.r.Body)
+		closeErr := s.r.Body.Close()
 
-	// Handle read errors (including MaxBytesError)
-	if err != nil {
-		// Check if this is a MaxBytesError from http.MaxBytesReader
-		var maxBytesErr *http.MaxBytesError
-		if errors.As(err, &maxBytesErr) {
+		// Handle read errors (including MaxBytesError)
+		if err != nil {
+			// Check if this is a MaxBytesError from http.MaxBytesReader
+			var maxBytesErr *http.MaxBytesError
+			if errors.As(err, &maxBytesErr) {
+				return fault.Wrap(err,
+					fault.Code(codes.User.BadRequest.RequestBodyTooLarge.URN()),
+					fault.Internal(fmt.Sprintf("request body exceeds size limit of %d bytes", maxBytesErr.Limit)),
+					fault.Public(fmt.Sprintf("The request body exceeds the maximum allowed size of %d bytes.", maxBytesErr.Limit)),
+				)
+			}
+
 			return fault.Wrap(err,
-				fault.Code(codes.User.BadRequest.RequestBodyTooLarge.URN()),
-				fault.Internal(fmt.Sprintf("request body exceeds size limit of %d bytes", maxBytesErr.Limit)),
-				fault.Public(fmt.Sprintf("The request body exceeds the maximum allowed size of %d bytes.", maxBytesErr.Limit)),
+				fault.Code(codes.User.BadRequest.RequestBodyUnreadable.URN()),
+				fault.Internal("unable to read request body"),
+				fault.Public("The request body could not be read."),
 			)
 		}
 
-		return fault.Wrap(err,
-			fault.Code(codes.User.BadRequest.RequestBodyUnreadable.URN()),
-			fault.Internal("unable to read request body"),
-			fault.Public("The request body could not be read."),
-		)
-	}
+		// Handle close error (incase that ever happens)
+		if closeErr != nil {
+			return fault.Wrap(closeErr,
+				fault.Internal("failed to close request body"),
+				fault.Public("An error occurred processing the request."),
+			)
+		}
 
-	// Handle close error (incase that ever happens)
-	if closeErr != nil {
-		return fault.Wrap(closeErr,
-			fault.Internal("failed to close request body"),
-			fault.Public("An error occurred processing the request."),
-		)
+		// Replace body with a fresh reader for subsequent middleware
+		s.r.Body = io.NopCloser(bytes.NewReader(s.requestBody))
 	}
-
-	// Replace body with a fresh reader for subsequent middleware
-	s.r.Body = io.NopCloser(bytes.NewReader(s.requestBody))
 	s.WorkspaceID = ""
 	return nil
 }
@@ -505,6 +512,46 @@ func (s *Session) Plain(status int, body []byte) error {
 // Unlike [JSON], this method does not set any Content-Type header automatically.
 func (s *Session) Send(status int, body []byte) error {
 	return s.send(status, body)
+}
+
+// SetResponseBody allows proxy handlers to feed a captured response body back
+// into the session so zen middleware (WithLogging, WithMetrics) can log it.
+// This is necessary for proxied responses where the body is written directly
+// to the ResponseWriter, bypassing Session.send().
+func (s *Session) SetResponseBody(body []byte) {
+	s.responseBody = body
+}
+
+// MaxBodyCapture is the maximum number of bytes captured from streaming
+// request/response bodies for logging. Anything beyond this is silently dropped.
+const MaxBodyCapture = 1 << 20 // 1 MiB
+
+// LimitedWriter wraps an io.Writer and stops writing after N bytes.
+// Excess bytes are silently discarded — no error is returned so the
+// TeeReader (and therefore the stream) is never interrupted.
+type LimitedWriter struct {
+	W io.Writer
+	N int64
+}
+
+func (lw *LimitedWriter) Write(p []byte) (int, error) {
+	total := len(p)
+	if lw.N <= 0 {
+		return total, nil
+	}
+	if int64(len(p)) > lw.N {
+		p = p[:lw.N]
+	}
+	n, err := lw.W.Write(p)
+	lw.N -= int64(n)
+	return total, err
+}
+
+// IsStreamingContentType returns true for content types that use streaming
+// and must not have their body buffered (gRPC, Connect streaming).
+func IsStreamingContentType(ct string) bool {
+	return strings.HasPrefix(ct, "application/grpc") ||
+		strings.HasPrefix(ct, "application/connect+")
 }
 
 // reset is called automatically before the session is returned to the pool.

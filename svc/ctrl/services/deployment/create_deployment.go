@@ -263,6 +263,7 @@ func (s *Service) CreateDeployment(
 		StorageMib:                    appRuntimeSettings.StorageMib,
 		Port:                          appRuntimeSettings.Port,
 		ShutdownSignal:                db.DeploymentsShutdownSignal(appRuntimeSettings.ShutdownSignal),
+		UpstreamProtocol:              db.DeploymentsUpstreamProtocol(appRuntimeSettings.UpstreamProtocol),
 		Healthcheck:                   appRuntimeSettings.Healthcheck,
 		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
 		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},

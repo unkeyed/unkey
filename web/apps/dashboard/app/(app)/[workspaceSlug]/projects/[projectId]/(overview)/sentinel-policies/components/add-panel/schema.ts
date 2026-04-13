@@ -8,7 +8,7 @@ import {
   matchExprSchema,
   stringMatchModeSchema,
 } from "@/lib/collections/deploy/sentinel-policies.schema";
-import { P, match } from "@unkey/match";
+import { match } from "@unkey/match";
 import { z } from "zod";
 
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
@@ -348,34 +348,28 @@ function fromMatchExpr(raw: unknown): MatchConditionFormValues | null {
   }
   const expr = parsed.data;
   const id = crypto.randomUUID();
-  return match(expr)
-    .returnType<MatchConditionFormValues | null>()
-    .with({ path: P.nonNullable }, (e) => {
-      const { mode, value } = stringMatchToMode(e.path.path);
-      return { id, type: "path", mode, value };
-    })
-    .with({ method: P.nonNullable }, (e) => ({ id, type: "method", methods: e.method.methods }))
-    .with({ header: { present: true } }, (e) => ({
-      id,
-      type: "header",
-      name: e.header.name,
-      present: true,
-    }))
-    .with({ header: { value: P.nonNullable } }, (e) => {
-      const { mode, value } = stringMatchToMode(e.header.value);
-      return { id, type: "header", name: e.header.name, mode, value };
-    })
-    .with({ queryParam: { present: true } }, (e) => ({
-      id,
-      type: "queryParam",
-      name: e.queryParam.name,
-      present: true,
-    }))
-    .with({ queryParam: { value: P.nonNullable } }, (e) => {
-      const { mode, value } = stringMatchToMode(e.queryParam.value);
-      return { id, type: "queryParam", name: e.queryParam.name, mode, value };
-    })
-    .otherwise(() => null);
+ if ("path" in expr) {
+    const { mode, value } = stringMatchToMode(expr.path.path);
+    return { id, type: "path", mode, value };
+  }
+  if ("method" in expr) {
+    return { id, type: "method", methods: expr.method.methods };
+  }
+  if ("header" in expr) {
+    if ("present" in expr.header) {
+      return { id, type: "header", name: expr.header.name, present: true };
+    }
+    const { mode, value } = stringMatchToMode(expr.header.value);
+    return { id, type: "header", name: expr.header.name, mode, value };
+  }
+  if ("queryParam" in expr) {
+    if ("present" in expr.queryParam) {
+      return { id, type: "queryParam", name: expr.queryParam.name, present: true };
+    }
+    const { mode, value } = stringMatchToMode(expr.queryParam.value);
+    return { id, type: "queryParam", name: expr.queryParam.name, mode, value };
+  }
+  return null;
 }
 
 function fromRateLimitKey(key: RateLimitKey): {

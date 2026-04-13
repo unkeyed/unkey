@@ -45,7 +45,7 @@ The following providers are supported for automatic setup:
 - Vercel DNS
 
 <Note>
-  Automatic setup is available for subdomains only. Apex (root) domains require manual DNS configuration.
+  Automatic setup works for subdomains out of the box. For apex (root) domains, some providers like Cloudflare (via CNAME flattening) and Vercel (via ALIAS records through Domain Connect) also support automatic setup. If your provider does not support these features, configure DNS manually instead.
 </Note>
 
 </Tab>
@@ -68,7 +68,7 @@ Add both records at your DNS provider. Unkey checks for them automatically and v
 </Steps>
 
 <Warning>
-  Both DNS records must be verified within 24 hours. If verification doesn't complete in time, the domain enters a failed state. Remove the domain and add it again to restart the process.
+  Both DNS records must be verified within 24 hours. If verification doesn't complete in time, the domain enters a failed state. Click the **Retry** button to restart verification, or remove the domain and add it again.
 </Warning>
 
 ## Certificate provisioning

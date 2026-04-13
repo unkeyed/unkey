@@ -1,6 +1,6 @@
 import { NonExhaustiveError } from "./errors";
 import { matchPattern } from "./patterns";
-import type { HandlerReturn, NarrowByPattern, Pattern } from "./types";
+import type { HandlerReturn, NarrowByPattern, Pattern, SubtractByPattern } from "./types";
 
 type MatchState<TOutput> = { matched: true; value: TOutput } | { matched: false; value: undefined };
 
@@ -37,7 +37,7 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
   ): MatchBuilder<
     TInput,
     TOutput | HandlerReturn<TConstraint, TResult>,
-    Exclude<TRemaining, NarrowByPattern<TRemaining, TPattern>>,
+    SubtractByPattern<TRemaining, TPattern>,
     TConstraint
   >;
 
@@ -58,7 +58,7 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
   ): MatchBuilder<
     TInput,
     TOutput | HandlerReturn<TConstraint, TResult>,
-    Exclude<TRemaining, NarrowByPattern<TRemaining, P1> | NarrowByPattern<TRemaining, P2>>,
+    SubtractByPattern<SubtractByPattern<TRemaining, P1>, P2>,
     TConstraint
   >;
 
