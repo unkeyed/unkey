@@ -772,3 +772,71 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 		UpdatedAtM:  sql.NullInt64{Valid: false, Int64: 0},
 	}
 }
+
+type CreateRegionRequest struct {
+	Name     string
+	Platform string
+}
+
+func (s *Seeder) CreateRegion(ctx context.Context, req CreateRegionRequest) db.Region {
+	id := uid.New(uid.RegionPrefix)
+
+	err := db.Query.UpsertRegion(ctx, s.DB.RW(), db.UpsertRegionParams{
+		ID:       id,
+		Name:     req.Name,
+		Platform: req.Platform,
+	})
+	require.NoError(s.t, err)
+
+	region, err := db.Query.FindRegionByNameAndPlatform(ctx, s.DB.RO(), db.FindRegionByNameAndPlatformParams{
+		Name:     req.Name,
+		Platform: req.Platform,
+	})
+	require.NoError(s.t, err)
+
+	return region
+}
+
+type CreateInstanceRequest struct {
+	DeploymentID string
+	WorkspaceID  string
+	ProjectID    string
+	AppID        string
+	RegionID     string
+	Address      string
+}
+
+func (s *Seeder) CreateInstance(ctx context.Context, req CreateInstanceRequest) db.Instance {
+	id := uid.New("inst")
+
+	err := db.Query.UpsertInstance(ctx, s.DB.RW(), db.UpsertInstanceParams{
+		ID:            id,
+		DeploymentID:  req.DeploymentID,
+		WorkspaceID:   req.WorkspaceID,
+		ProjectID:     req.ProjectID,
+		AppID:         req.AppID,
+		RegionID:      req.RegionID,
+		K8sName:       uid.New("k8s"),
+		Address:       req.Address,
+		CpuMillicores: 100,
+		MemoryMib:     128,
+		Status:        db.InstancesStatusRunning,
+	})
+	require.NoError(s.t, err)
+
+	return db.Instance{
+		Pk:            0,
+		ID:            id,
+		DeploymentID:  req.DeploymentID,
+		WorkspaceID:   req.WorkspaceID,
+		ProjectID:     req.ProjectID,
+		AppID:         req.AppID,
+		RegionID:      req.RegionID,
+		K8sName:       "",
+		Address:       req.Address,
+		CpuMillicores: 100,
+		MemoryMib:     128,
+		StorageMib:    0,
+		Status:        db.InstancesStatusRunning,
+	}
+}
