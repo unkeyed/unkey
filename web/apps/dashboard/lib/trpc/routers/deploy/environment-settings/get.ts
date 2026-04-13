@@ -34,7 +34,12 @@ export const getEnvironmentSettings = workspaceProcedure
 
       return {
         buildSettings: buildSettings ?? null,
-        runtimeSettings: runtimeSettings ?? null,
+        runtimeSettings: runtimeSettings
+          ? {
+              ...runtimeSettings,
+              sentinelConfig: null,
+            }
+          : null,
         regionalSettings,
       };
     } catch (err) {

@@ -89,7 +89,7 @@ export const RepoListItem = ({
               >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="max-h-50">
+              <SelectContent className="max-h-50 w-62.5">
                 {(details.branches ?? []).map((branch) => (
                   <SelectItem
                     key={branch.name}
