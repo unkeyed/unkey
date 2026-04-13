@@ -22,6 +22,14 @@ const options: StatusOption[] = [
   },
   {
     id: 2,
+    status: 300,
+    display: "3xx",
+    label: "Redirect",
+    color: "bg-info-8",
+    checked: false,
+  },
+  {
+    id: 3,
     status: 400,
     display: "4xx",
     label: "Warning",
@@ -29,7 +37,7 @@ const options: StatusOption[] = [
     checked: false,
   },
   {
-    id: 3,
+    id: 4,
     status: 500,
     display: "5xx",
     label: "Error",
@@ -60,7 +68,9 @@ export const SentinelStatusFilter = () => {
               ? "bg-error-9"
               : option.status >= 400
                 ? "bg-warning-8"
-                : "bg-success-9",
+                : option.status >= 300
+                  ? "bg-info-8"
+                  : "bg-success-9",
         },
       })}
       filters={filters}
