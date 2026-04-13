@@ -317,15 +317,6 @@ func initMiddlewareEngine(cfg middlewareEngineCfg) (engine.Evaluator, error) {
 	}
 	cfg.Runner.Defer(rlSvc.Close)
 
-	rateLimiter, err := ratelimit.New(ratelimit.Config{
-		Clock:   cfg.Clock,
-		Counter: ctr,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create rate limiter: %w", err)
-	}
-	cfg.Runner.Defer(rateLimiter.Close)
-
 	usageLimiter, err := usagelimiter.NewCounter(usagelimiter.CounterConfig{
 		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
 			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
@@ -364,7 +355,7 @@ func initMiddlewareEngine(cfg middlewareEngineCfg) (engine.Evaluator, error) {
 
 	keyService, err := keys.New(keys.Config{
 		DB:               db.ToMySQL(cfg.Database),
-		RateLimiter:      rateLimiter,
+		RateLimiter:      rlSvc,
 		RBAC:             rbac.New(),
 		KeyVerifications: cfg.KeyVerifications,
 		Region:           cfg.Region,
