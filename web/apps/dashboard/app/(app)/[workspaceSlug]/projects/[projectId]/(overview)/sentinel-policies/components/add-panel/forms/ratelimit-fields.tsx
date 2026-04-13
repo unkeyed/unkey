@@ -10,7 +10,8 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
-import { useController, useFormContext } from "react-hook-form";
+import { useController, useFormContext, useWatch } from "react-hook-form";
+import { Sep, Strong } from "./summary-helpers";
 
 // Self-contained ratelimit form types. Not yet wired into the canonical
 // PolicyFormValues union — this file is a placeholder for an upcoming
@@ -32,6 +33,14 @@ type RatelimitFormValues = {
   windowMs: number;
   keySource: RateLimitKeySource;
   keyValue: string;
+};
+
+const KEY_SOURCE_LABELS: Record<RateLimitKeySource, string> = {
+  remoteIp: "IP",
+  header: "Header",
+  authenticatedSubject: "Subject",
+  path: "Path",
+  principalClaim: "Claim",
 };
 
 const KEY_SOURCE_OPTIONS: { value: RateLimitKeySource; label: string }[] = [
@@ -137,6 +146,29 @@ export function RateLimitFields() {
           }
         />
       )}
+    </div>
+  );
+}
+
+export function RatelimitPolicySummary() {
+  const { control } = useFormContext<RatelimitFormValues>();
+  const limit = useWatch({ control, name: "limit" });
+  const windowMs = useWatch({ control, name: "windowMs" });
+  const keySource = useWatch({ control, name: "keySource" });
+  const keyValue = useWatch({ control, name: "keyValue" });
+
+  return (
+    <div className="max-w-75 truncate">
+      <span className="text-gray-11">
+        <Strong>{limit}</Strong> / {windowMs >= 1000 ? `${windowMs / 1000}s` : `${windowMs}ms`}
+        <Sep />
+        per <Strong>{KEY_SOURCE_LABELS[keySource]}</Strong>
+        {keyValue && (
+          <>
+            : <Strong>{keyValue}</Strong>
+          </>
+        )}
+      </span>
     </div>
   );
 }

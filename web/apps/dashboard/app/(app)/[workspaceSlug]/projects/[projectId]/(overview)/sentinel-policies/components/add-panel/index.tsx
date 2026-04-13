@@ -4,15 +4,14 @@ import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { KeyAuthFields } from "./forms/keyauth-fields";
-import { RateLimitFields } from "./forms/ratelimit-fields";
+import { KeyAuthFields, KeyauthPolicySummary } from "./forms/keyauth-fields";
+import { RateLimitFields, RatelimitPolicySummary } from "./forms/ratelimit-fields";
 import {
   MatchConditionEditorBody,
   MatchConditionsClearAll,
   MatchConditionsSummary,
 } from "./match-condition-editor";
 import { PolicyForm } from "./policy-form";
-import { PolicySummary } from "./policy-summaries";
 import {
   POLICY_TYPE_OPTIONS,
   type PolicyFormValues,
@@ -157,7 +156,9 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
         <PolicyForm.Section
           id="config"
           label="Policy Configuration"
-          summary={<PolicySummary />}
+          summary={
+            policyType === "ratelimit" ? <RatelimitPolicySummary /> : <KeyauthPolicySummary />
+          }
           catchAll
         >
           {policyType === "keyauth" && <KeyAuthFields />}
