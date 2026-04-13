@@ -210,24 +210,9 @@ Health checks are optional. If you don't configure one, Unkey relies on process-
 
 ## Sentinel settings
 
-Sentinel settings control how [the Sentinel](/platform/sentinel/overview) processes requests before they reach your app.
+Sentinel policies have moved to a dedicated **Sentinel Policies** page, accessible from the project sidebar. From there you can create, edit, reorder, and delete policies, configure [match conditions](/platform/sentinel/policies/overview#match-expressions), and control which environments each policy applies to.
 
-### Keyspaces
-
-Select one or more keyspaces to enforce API key authentication. When configured, the Sentinel verifies API keys against the selected keyspaces before requests reach your application. Requests with missing or invalid keys receive a `401` response.
-
-See [API key authentication](/platform/sentinel/policies/api-key) for details on how verification works and what your application receives via the [Principal header](/platform/sentinel/authentication#the-principal).
-
-### Policy configuration
-
-Each Sentinel policy has these fields:
-
-| Field     | Description                                                   |
-| --------- | ------------------------------------------------------------- |
-| Name      | Human-readable label for identification                        |
-| Enabled   | Toggle to disable the policy without removing its configuration |
-
-Keyspace authentication is the only policy type configurable from the dashboard. For other policy types (rate limiting, IP rules, OpenAPI validation), see [Policies](/platform/sentinel/policies/overview) and contact [support@unkey.com](mailto:support@unkey.com) for configuration.
+See [Policies](/platform/sentinel/policies/overview) for the full list of policy types and [API key authentication](/platform/sentinel/policies/api-key) for details on configuring keyspace verification.
 
 ## Environment variables
 
