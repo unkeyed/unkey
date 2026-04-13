@@ -156,9 +156,10 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 	_, span := tracing.Start(ctx, "RatelimitMany")
 	defer span.End()
 
+	now := s.clock.Now()
 	for i := range reqs {
 		if reqs[i].Time.IsZero() {
-			reqs[i].Time = s.clock.Now()
+			reqs[i].Time = now
 		}
 
 		err := assert.All(
