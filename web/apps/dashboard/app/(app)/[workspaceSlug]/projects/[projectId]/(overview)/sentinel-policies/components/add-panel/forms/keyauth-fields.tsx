@@ -143,7 +143,7 @@ export function KeyAuthFields() {
             tooltipContent="Where to extract the API key from. Defaults to Bearer token if not configured."
           />
           {!location && (
-            <Button type="button" variant="ghost" size="sm" onClick={addLocation}>
+            <Button type="button" variant="outline" size="md" className="font-medium" onClick={addLocation}>
               <Plus iconSize="sm-regular" />
               Add
             </Button>
@@ -270,7 +270,9 @@ function summarizeKeyauth(
 ): ReactNode {
   return (
     <span className="text-gray-11">
-      {keySpaceIds.length > 3 ? (
+      {keySpaceIds.length === 0 ? (
+        <span className="text-gray-9">No keyspace selected</span>
+      ) : keySpaceIds.length > 3 ? (
         <>
           <Strong>{keySpaceIds.length}</Strong> keyspaces
         </>

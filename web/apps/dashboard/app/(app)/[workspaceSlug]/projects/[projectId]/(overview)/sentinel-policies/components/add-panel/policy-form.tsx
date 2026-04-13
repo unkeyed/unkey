@@ -225,7 +225,7 @@ function Section({
           </span>
           <span className="text-[12px] text-gray-11 truncate">{summary}</span>
         </button>
-        {!isActive && collapsedAction && <div className="pr-8 shrink-0">{collapsedAction}</div>}
+        {!isActive && collapsedAction && <div className="pr-8 shrink-0 flex items-center">{collapsedAction}</div>}
       </div>
       {isActive && <div className="px-8 pb-6 pt-3">{children}</div>}
     </div>
