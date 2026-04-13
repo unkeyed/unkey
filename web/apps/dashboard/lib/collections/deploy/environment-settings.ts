@@ -1,5 +1,4 @@
 "use client";
-import type { SentinelConfig } from "@/lib/trpc/routers/deploy/environment-settings/sentinel/update-middleware";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
@@ -19,19 +18,6 @@ const healthcheckSchema = z
   })
   .nullable();
 
-const sentinelConfigSchema: z.ZodType<SentinelConfig | undefined> = z
-  .object({
-    policies: z.array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        enabled: z.boolean(),
-        keyauth: z.object({ keySpaceIds: z.array(z.string()) }),
-      }),
-    ),
-  })
-  .optional();
-
 const schema = z.object({
   environmentId: z.string(),
   // Build settings
@@ -47,7 +33,6 @@ const schema = z.object({
   healthcheck: healthcheckSchema,
   regions: z.array(z.object({ id: z.string(), name: z.string(), replicas: z.number().int() })),
   shutdownSignal: z.string(),
-  sentinelConfig: sentinelConfigSchema,
   openapiSpecPath: z.string().nullable().default(null),
 });
 
@@ -122,10 +107,6 @@ function changed<T>(a: T, b: T): boolean {
   return JSON.stringify(a) !== JSON.stringify(b);
 }
 
-function extractKeyspaceIds(config: SentinelConfig | undefined): string[] {
-  return config?.policies.flatMap((p) => p.keyauth.keySpaceIds) ?? [];
-}
-
 function flattenSettingsResponse(
   environmentId: string,
   build: SettingsResponse["buildSettings"],
@@ -152,7 +133,6 @@ function flattenSettingsResponse(
         replicas: r.replicas,
       })),
     shutdownSignal: d.shutdownSignal,
-    sentinelConfig: runtime?.sentinelConfig,
     openapiSpecPath: runtime?.openapiSpecPath ?? null,
   };
 }
@@ -274,15 +254,6 @@ export function buildSettingsMutations(
       trpcClient.deploy.environmentSettings.runtime.updateInstances.mutate({
         environmentId,
         replicasPerRegion: modReplicas,
-      }),
-    );
-  }
-
-  if (changed(original.sentinelConfig, modified.sentinelConfig)) {
-    mutations.push(
-      trpcClient.deploy.environmentSettings.sentinel.updateMiddleware.mutate({
-        environmentId,
-        keyspaceIds: extractKeyspaceIds(modified.sentinelConfig),
       }),
     );
   }

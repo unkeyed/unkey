@@ -73,6 +73,12 @@ export const useBreadcrumbConfig = ({
       segment: "env-vars",
     },
     {
+      id: "sentinel-policies",
+      label: "Sentinel Policies",
+      href: `${basePath}/${projectId}/sentinel-policies`,
+      segment: "sentinel-policies",
+    },
+    {
       id: "settings",
       label: "Settings",
       href: `${basePath}/${projectId}/settings`,

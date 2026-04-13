@@ -73,7 +73,12 @@ import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/upd
 import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
 import { updateStorage } from "./deploy/environment-settings/runtime/update-storage";
-import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
+import { generateRegex } from "./deploy/environment-settings/sentinel/generate-regex";
+import { create as createKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/create";
+import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
+import { update as updateKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/update";
+import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
+import { reorder as reorderSentinelPolicies } from "./deploy/environment-settings/sentinel/reorder";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
 import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
@@ -417,7 +422,14 @@ export const router = t.router({
       getAvailableRegions,
       getAvailableKeyspaces,
       sentinel: t.router({
-        updateMiddleware,
+        list: listSentinelPolicies,
+        reorder: reorderSentinelPolicies,
+        keyauth: t.router({
+          create: createKeyauthPolicy,
+          update: updateKeyauthPolicy,
+          delete: deleteKeyauthPolicy,
+        }),
+        generateRegex,
       }),
       runtime: t.router({
         updateCpu,

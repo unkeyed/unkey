@@ -100,7 +100,6 @@ function useInitializeSettings(
       healthcheck: null,
       regions: availableRegions.map((r) => ({ id: r.id, name: r.name, replicas: 1 })),
       shutdownSignal: d.shutdownSignal,
-      sentinelConfig: undefined,
       openapiSpecPath: null,
     };
 
@@ -117,7 +116,6 @@ function useInitializeSettings(
       healthcheck: null,
       regions: [],
       shutdownSignal: "",
-      sentinelConfig: undefined,
       openapiSpecPath: null,
     };
 

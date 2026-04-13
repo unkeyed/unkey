@@ -792,3 +792,9 @@ code .line::before {
   animation: none !important;
   opacity: 0 !important;
 }
+
+/* While a SlidePanel is open, lift Radix-portaled floating UI (tooltips,
+   selects, popovers) above the panel (z-51) so they aren't clipped behind it. */
+body[data-slide-panel-open] [data-radix-popper-content-wrapper] {
+  z-index: 60 !important;
+}
