@@ -6,6 +6,7 @@ import { envVars } from "./deploy/env-vars";
 import { environmentSettings } from "./deploy/environment-settings";
 import { environments } from "./deploy/environments";
 import { projects } from "./deploy/projects";
+import { sentinelPolicies } from "./deploy/sentinel-policies";
 import { ratelimitNamespaces } from "./ratelimit/namespaces";
 import { ratelimitOverrides } from "./ratelimit/overrides";
 
@@ -18,6 +19,13 @@ export type { Domain } from "./deploy/domains";
 export type { EnvVar } from "./deploy/env-vars";
 export type { EnvironmentSettings } from "./deploy/environment-settings";
 export type { Project } from "./deploy/projects";
+export type { SentinelPolicyRow } from "./deploy/sentinel-policies";
+export type {
+  KeyauthPolicy,
+  SentinelConfig,
+  SentinelPolicy,
+  SentinelPolicyType,
+} from "./deploy/sentinel-policies.schema";
 export type { RatelimitNamespace } from "./ratelimit/namespaces";
 export type { RatelimitOverride } from "./ratelimit/overrides";
 export type { Environment } from "./deploy/environments";
@@ -33,6 +41,7 @@ export const collection = {
   customDomains,
   environmentSettings,
   envVars,
+  sentinelPolicies,
 } as const;
 
 export async function reset() {

@@ -20,9 +20,9 @@ go_library(
         "//pkg/db",
         "//pkg/fault",
         "//pkg/logger",
+        "//pkg/prometheus/lazy",
         "//pkg/uid",
         "//svc/sentinel/engine",
         "@com_github_prometheus_client_golang//prometheus",
-        "@com_github_prometheus_client_golang//prometheus/promauto",
     ],
 )

@@ -55,7 +55,7 @@ export const OverviewChartLoader = ({
       </div>
       {/* Chart area */}
       <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
           <BarChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
             <YAxis domain={[0, 1]} hide />
             <Bar

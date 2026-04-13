@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -23,7 +24,7 @@ import (
 type Handler struct {
 	RouterService      router.Service
 	Clock              clock.Clock
-	Transport          *http.Transport
+	Transports         *TransportRegistry
 	SentinelID         string
 	Region             string
 	MaxRequestBodySize int64
@@ -91,8 +92,17 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		}
 	}
 
+	streaming := strings.HasPrefix(req.Header.Get("Content-Type"), "application/grpc") ||
+		strings.HasPrefix(req.Header.Get("Content-Type"), "application/connect+")
+
+	// Capture the request body for logging.
+	// Streaming: TeeReader passes bytes through to the upstream while capturing a copy.
+	// Non-streaming: read the full body upfront so we can fail fast on unreadable bodies.
+	var requestBuf bytes.Buffer
 	var requestBody []byte
-	if req.Body != nil {
+	if req.Body != nil && streaming {
+		req.Body = io.NopCloser(io.TeeReader(req.Body, &zen.LimitedWriter{W: &requestBuf, N: zen.MaxBodyCapture}))
+	} else if req.Body != nil {
 		requestBody, err = io.ReadAll(req.Body)
 		if err != nil {
 			return fault.Wrap(err,
@@ -120,6 +130,8 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		tracking.RequestBody = requestBody
 	}
 
+	transport := h.Transports.Get(deployment.UpstreamProtocol)
+
 	targetURL, err := url.Parse("http://" + instance.Address)
 	if err != nil {
 		logger.Error("invalid instance address", "address", instance.Address, "error", err)
@@ -129,6 +141,11 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 			fault.Public("Service configuration error"),
 		)
 	}
+
+	// Buffer to capture streaming response body via TeeReader.
+	// Bytes are written here as they stream through to the client,
+	// so the full body is available for logging after proxy.ServeHTTP returns.
+	var responseBuf bytes.Buffer
 
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
 	// nolint:exhaustruct
@@ -153,32 +170,29 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 			outReq.Header.Set("X-Forwarded-Host", req.Host)
 			outReq.Header.Set("X-Forwarded-Proto", "http")
 		},
-		Transport: h.Transport,
+		Transport: transport,
 		ModifyResponse: func(resp *http.Response) error {
 			if tracking != nil {
-				tracking.InstanceEnd = h.Clock.Now()
 				tracking.ResponseStatus = int32(resp.StatusCode)
 				tracking.ResponseHeaders = resp.Header
 
-				// Record upstream metrics
+				// Record time-to-first-byte metrics (InstanceEnd is set after the
+				// full stream completes in the post-proxy block below).
+				ttfb := h.Clock.Now()
 				statusClass := upstreamStatusClass(resp.StatusCode)
 				upstreamResponseTotal.WithLabelValues(statusClass).Inc()
 				if !tracking.InstanceStart.IsZero() {
-					upstreamDuration.WithLabelValues(statusClass).Observe(tracking.InstanceEnd.Sub(tracking.InstanceStart).Seconds())
+					upstreamDuration.WithLabelValues(statusClass).Observe(ttfb.Sub(tracking.InstanceStart).Seconds())
 				}
 
-				// Capture response body for logging
+				// Capture response body for logging.
+				// Always use TeeReader — bytes flow through to the client while
+				// accumulating in responseBuf (capped at MaxBodyCapture).
+				// This avoids buffering the entire body (which blocks streaming)
+				// and removes the need to detect streaming via Content-Type.
 				if resp.Body != nil {
-					responseBody, err := io.ReadAll(resp.Body)
-					if err != nil {
-						return fault.Wrap(err,
-							fault.Code(codes.Sentinel.Proxy.BadGateway.URN()),
-							fault.Internal("failed to read response body for logging"),
-							fault.Public("Failed to process backend response"),
-						)
-					}
-					tracking.ResponseBody = responseBody
-					resp.Body = io.NopCloser(bytes.NewReader(responseBody))
+					responseBuf.Reset()
+					resp.Body = io.NopCloser(io.TeeReader(resp.Body, &zen.LimitedWriter{W: &responseBuf, N: zen.MaxBodyCapture}))
 				}
 			}
 
@@ -208,8 +222,6 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 			if tracking != nil {
-				tracking.InstanceEnd = h.Clock.Now()
-
 				sentinelDuration := h.Clock.Now().Sub(tracking.StartTime)
 				timing.Write(sess.ResponseWriter(), timing.Entry{
 					Name:     "sentinel",
@@ -238,5 +250,28 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	}
 
 	proxy.ServeHTTP(wrapper, req)
+
+	// Mark the true end of the instance interaction (includes full stream duration).
+	if tracking != nil {
+		tracking.InstanceEnd = h.Clock.Now()
+	}
+
+	// TeeReaders have now accumulated the full bodies for any streaming direction.
+	if tracking != nil {
+		if streaming && requestBuf.Len() > 0 {
+			tracking.RequestBody = requestBuf.Bytes()
+		}
+		if responseBuf.Len() > 0 {
+			tracking.ResponseBody = responseBuf.Bytes()
+		}
+	}
+
+	// Feed the captured response body back into the session so zen middleware
+	// (WithLogging, WithMetrics) can log it — the proxy writes directly to
+	// the ResponseWriter, bypassing Session.send().
+	if tracking != nil && len(tracking.ResponseBody) > 0 {
+		sess.SetResponseBody(tracking.ResponseBody)
+	}
+
 	return wrapper.Error()
 }

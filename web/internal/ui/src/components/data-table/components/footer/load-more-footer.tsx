@@ -96,14 +96,7 @@ export function LoadMoreFooter({
       >
         <div className="flex flex-col w-full">
           {/* Header content */}
-          {headerContent && (
-            <div
-              className="transition-all duration-200 animate-fade-in-up"
-              style={{ animationDelay: "0.2s" }}
-            >
-              {headerContent}
-            </div>
-          )}
+          {headerContent && <div className="flex items-center w-full">{headerContent}</div>}
 
           <div
             className="flex w-full justify-between items-center text-[13px] text-accent-9 p-[18px] transition-all duration-200 animate-fade-in-up"

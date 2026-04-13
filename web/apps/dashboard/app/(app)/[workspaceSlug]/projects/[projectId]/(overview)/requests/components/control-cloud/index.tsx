@@ -1,4 +1,3 @@
-import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { ControlCloud } from "@unkey/ui";
 import { format } from "date-fns";
 import { useSentinelLogsFilters } from "../../hooks/use-sentinel-logs-filters";
@@ -48,7 +47,6 @@ export const SentinelLogsControlCloud = () => {
   const { filters, updateFilters, removeFilter } = useSentinelLogsFilters();
   return (
     <ControlCloud
-      historicalWindow={HISTORICAL_DATA_WINDOW}
       formatValue={formatValue}
       formatFieldName={formatFieldName}
       filters={filters}
