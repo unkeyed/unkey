@@ -6,7 +6,7 @@
 @plugin '@tailwindcss/container-queries';
 
 
-@source '../../../../internal/ui/src/**/*.tsx';
+@source '../../../internal/ui/src/**/*.tsx';
 
 
 @custom-variant dark (&:is(.dark *));

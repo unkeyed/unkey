@@ -6,7 +6,7 @@ const filterItemSchema = z.object({
   value: z.string(),
 });
 
-export const deploymentListInputSchema = z.object({
+const deploymentListInputSchema = z.object({
   status: z.array(filterItemSchema).nullish(),
   environment: z.array(filterItemSchema).nullish(),
   branch: z.array(filterItemSchema).nullish(),
