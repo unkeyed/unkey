@@ -1,11 +1,9 @@
-package engine
+package keyauth
 
 import (
 	"context"
 	"fmt"
-	"math"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -19,15 +17,23 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// KeyAuthExecutor handles KeyAuth policy evaluation by wrapping the existing KeyService.
-type KeyAuthExecutor struct {
+// Executor handles KeyAuth policy evaluation by wrapping the existing KeyService.
+type Executor struct {
 	keyService keys.KeyService
 	clock      clock.Clock
 }
 
+// New creates a new KeyAuth policy executor.
+func New(keyService keys.KeyService, clk clock.Clock) *Executor {
+	return &Executor{
+		keyService: keyService,
+		clock:      clk,
+	}
+}
+
 // Execute evaluates a KeyAuth policy against the incoming request.
 // It extracts the API key, verifies it using KeyService, and returns a Principal on success.
-func (e *KeyAuthExecutor) Execute(
+func (e *Executor) Execute(
 	ctx context.Context,
 	sess *zen.Session,
 	req *http.Request,
@@ -35,7 +41,6 @@ func (e *KeyAuthExecutor) Execute(
 ) (*sentinelv1.Principal, error) {
 	rawKey := extractKey(req, cfg.GetLocations())
 	if rawKey == "" {
-
 		return nil, fault.New("missing API key",
 			fault.Code(codes.Sentinel.Auth.MissingCredentials.URN()),
 			fault.Internal("no API key found in request"),
@@ -179,44 +184,4 @@ func (e *KeyAuthExecutor) Execute(
 		Type:    sentinelv1.PrincipalType_PRINCIPAL_TYPE_API_KEY,
 		Claims:  claims,
 	}, nil
-}
-
-// writeRateLimitHeaders sets standard rate limit headers on the response.
-// When multiple rate limits exist, it uses the most restrictive one (lowest remaining).
-func writeRateLimitHeaders(w http.ResponseWriter, results map[string]keys.RatelimitConfigAndResult, clk clock.Clock) {
-	if len(results) == 0 {
-		return
-	}
-
-	// Find the most restrictive rate limit (lowest remaining).
-	var mostRestrictive *keys.RatelimitConfigAndResult
-	for _, r := range results {
-		if r.Response == nil {
-			continue
-		}
-
-		if mostRestrictive == nil || r.Response.Remaining < mostRestrictive.Response.Remaining {
-			rCopy := r
-			mostRestrictive = &rCopy
-		}
-	}
-
-	if mostRestrictive == nil {
-		return
-	}
-
-	resp := mostRestrictive.Response
-	h := w.Header()
-	h.Set("X-RateLimit-Limit", strconv.FormatInt(resp.Limit, 10))
-	h.Set("X-RateLimit-Remaining", strconv.FormatInt(resp.Remaining, 10))
-	h.Set("X-RateLimit-Reset", strconv.FormatInt(resp.Reset.Unix(), 10))
-
-	if !resp.Success {
-		retryAfter := math.Ceil(resp.Reset.Sub(clk.Now()).Seconds())
-		if retryAfter < 1 {
-			retryAfter = 1
-		}
-
-		h.Set("Retry-After", strconv.FormatInt(int64(retryAfter), 10))
-	}
 }

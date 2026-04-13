@@ -1,0 +1,32 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "keyauth",
+    srcs = [
+        "executor.go",
+        "headers.go",
+        "keyextract.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/sentinel/engine/keyauth",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/sentinel/v1:sentinel",
+        "//internal/services/keys",
+        "//pkg/clock",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/hash",
+        "//pkg/rbac",
+        "//pkg/zen",
+    ],
+)
+
+go_test(
+    name = "keyauth_test",
+    srcs = ["keyextract_test.go"],
+    embed = [":keyauth"],
+    deps = [
+        "//gen/proto/sentinel/v1:sentinel",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

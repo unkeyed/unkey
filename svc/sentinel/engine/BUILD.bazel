@@ -4,8 +4,6 @@ go_library(
     name = "engine",
     srcs = [
         "engine.go",
-        "keyauth.go",
-        "keyextract.go",
         "match.go",
         "metrics.go",
     ],
@@ -18,9 +16,8 @@ go_library(
         "//pkg/clock",
         "//pkg/codes",
         "//pkg/fault",
-        "//pkg/hash",
-        "//pkg/rbac",
         "//pkg/zen",
+        "//svc/sentinel/engine/keyauth",
         "//svc/sentinel/engine/ratelimit",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_prometheus_client_golang//prometheus/promauto",
@@ -33,7 +30,6 @@ go_test(
     srcs = [
         "engine_test.go",
         "integration_test.go",
-        "keyextract_test.go",
         "match_test.go",
     ],
     embed = [":engine"],

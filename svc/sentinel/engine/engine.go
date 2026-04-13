@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
+	keyauthExec "github.com/unkeyed/unkey/svc/sentinel/engine/keyauth"
 	ratelimitExec "github.com/unkeyed/unkey/svc/sentinel/engine/ratelimit"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -35,7 +36,7 @@ type Evaluator interface {
 
 // Engine implements Evaluator.
 type Engine struct {
-	keyAuth     *KeyAuthExecutor
+	keyAuth     *keyauthExec.Executor
 	rateLimiter *ratelimitExec.Executor
 	regexCache  *regexCache
 }
@@ -50,10 +51,7 @@ type Result struct {
 // New creates a new Engine with the given configuration.
 func New(cfg Config) *Engine {
 	return &Engine{
-		keyAuth: &KeyAuthExecutor{
-			keyService: cfg.KeyService,
-			clock:      cfg.Clock,
-		},
+		keyAuth:     keyauthExec.New(cfg.KeyService, cfg.Clock),
 		rateLimiter: ratelimitExec.New(cfg.RateLimiter, cfg.Clock),
 		regexCache:  newRegexCache(),
 	}
