@@ -1,6 +1,6 @@
 import { collection } from "@/lib/collections";
-import { eq, gt, gte, lte, or, useLiveQuery } from "@tanstack/react-db";
 import { parseDuration } from "@/lib/duration";
+import { eq, gt, gte, lte, or, useLiveQuery } from "@tanstack/react-db";
 import { useProjectData } from "../../data-provider";
 import type { DeploymentListFilterField } from "../filters.schema";
 import { useFilters } from "./use-filters";
