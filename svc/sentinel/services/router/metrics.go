@@ -2,7 +2,7 @@ package router
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 var (
@@ -10,7 +10,7 @@ var (
 	//
 	// Labels:
 	//   outcome: "not_found", "error"
-	sentinelDeploymentLookupTotal = promauto.NewCounterVec(
+	sentinelDeploymentLookupTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "sentinel",
@@ -24,7 +24,7 @@ var (
 	//
 	// Labels:
 	//   outcome: "success", "no_instances", "no_running_instances", "error"
-	sentinelInstanceSelectionTotal = promauto.NewCounterVec(
+	sentinelInstanceSelectionTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "sentinel",
@@ -38,7 +38,7 @@ var (
 	//
 	// Labels:
 	//   operation: "get_deployment", "select_instance"
-	sentinelRoutingDuration = promauto.NewHistogramVec(
+	sentinelRoutingDuration = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "sentinel",

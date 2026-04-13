@@ -8,18 +8,18 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"go.opentelemetry.io/otel/attribute"
 )
 
 var (
-	frontlineRequestsTotal = promauto.NewCounterVec(
+	frontlineRequestsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
@@ -29,7 +29,7 @@ var (
 		[]string{"status_code", "error_type", "region"},
 	)
 
-	frontlineRequestDuration = promauto.NewHistogramVec(
+	frontlineRequestDuration = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
@@ -40,7 +40,7 @@ var (
 		[]string{"status_code", "error_type", "region"},
 	)
 
-	frontlineActiveRequests = promauto.NewGaugeVec(
+	frontlineActiveRequests = lazy.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
@@ -48,6 +48,16 @@ var (
 			Help:      "Number of requests currently being processed",
 		},
 		[]string{"region"},
+	)
+
+	frontlineRequestErrorsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "frontline",
+			Name:      "request_errors_total",
+			Help:      "Total number of request errors by error type.",
+		},
+		[]string{"error_type"},
 	)
 )
 
@@ -231,6 +241,9 @@ func WithObservability(region string, renderer errorpage.Renderer) zen.Middlewar
 
 			frontlineRequestsTotal.WithLabelValues(statusStr, errorType, region).Inc()
 			frontlineRequestDuration.WithLabelValues(statusStr, errorType, region).Observe(duration)
+			if errorType != "none" {
+				frontlineRequestErrorsTotal.WithLabelValues(errorType).Inc()
+			}
 
 			return nil
 		}

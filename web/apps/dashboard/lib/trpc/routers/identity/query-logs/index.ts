@@ -49,11 +49,9 @@ export const queryIdentityLogs = workspaceProcedure
     // First, validate identity exists and get associated keys
     const identity = await db.query.identities
       .findFirst({
-        where: (table, { eq }) => eq(table.id, input.identityId),
+        where: (table, { eq, and }) =>
+          and(eq(table.id, input.identityId), eq(table.workspaceId, ctx.workspace.id)),
         with: {
-          workspace: {
-            columns: { id: true, orgId: true },
-          },
           keys: {
             where: (keysTable, { isNull }) => isNull(keysTable.deletedAtM),
             with: {
@@ -88,13 +86,6 @@ export const queryIdentityLogs = workspaceProcedure
       });
     }
 
-    if (identity.workspace.orgId !== ctx.tenant.id) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Identity not found in the specified workspace.",
-      });
-    }
-
     if (!identity.keys || identity.keys.length === 0) {
       // Return empty response if identity has no keys
       return {
@@ -107,7 +98,7 @@ export const queryIdentityLogs = workspaceProcedure
 
     // Transform filters and add keyIds from identity
     const keyIds = identity.keys.map((key) => key.id);
-    const transformedFilters = transformIdentityLogsFilters(input, identity.workspace.id, keyIds);
+    const transformedFilters = transformIdentityLogsFilters(input, ctx.workspace.id, keyIds);
 
     // Query ClickHouse for aggregated logs
     const result = await clickhouse.api.identity.logs(transformedFilters);

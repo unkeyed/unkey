@@ -70,11 +70,9 @@ export const queryIdentityTimeseries = workspaceProcedure
     // First, validate identity exists and get associated keys
     const identity = await db.query.identities
       .findFirst({
-        where: (table, { eq }) => eq(table.id, input.identityId),
+        where: (table, { eq, and }) =>
+          and(eq(table.id, input.identityId), eq(table.workspaceId, ctx.workspace.id)),
         with: {
-          workspace: {
-            columns: { id: true, orgId: true },
-          },
           keys: {
             where: (keysTable, { isNull }) => isNull(keysTable.deletedAtM),
             with: {
@@ -102,13 +100,6 @@ export const queryIdentityTimeseries = workspaceProcedure
       });
     }
 
-    if (identity.workspace.orgId !== ctx.tenant.id) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Identity not found in the specified workspace.",
-      });
-    }
-
     if (!identity.keys || identity.keys.length === 0) {
       // Return empty timeseries if identity has no keys
       return {
@@ -132,7 +123,7 @@ export const queryIdentityTimeseries = workspaceProcedure
     const keyIds = identity.keys.map((key) => key.id);
 
     const timeseriesParams = {
-      workspaceId: identity.workspace.id,
+      workspaceId: ctx.workspace.id,
       keyIds, // Array of key IDs for identity aggregation across keyspaces
       startTime: timeConfig.startTime,
       endTime: timeConfig.endTime,

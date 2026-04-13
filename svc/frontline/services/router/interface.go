@@ -35,5 +35,5 @@ type Config struct {
 	DB                     db.Querier
 	FrontlineRouteCache    cache.Cache[string, db.FindFrontlineRouteByFQDNRow]
 	SentinelsByEnvironment cache.Cache[string, []db.FindHealthyRoutableSentinelsByEnvironmentIDRow]
-	InstancesByDeployment  cache.Cache[string, []db.Instance]
+	InstancesByDeployment  cache.Cache[string, []db.FindInstancesByDeploymentIDRow]
 }

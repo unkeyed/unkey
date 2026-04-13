@@ -85,6 +85,25 @@ When adding a variable, you can select **All Environments** to set the same key-
 
 Variables configured in Unkey take precedence over any environment variables set in your Dockerfile with `ENV`. For example, if your Dockerfile sets `ENV PORT=8080` but you configure `PORT=8081` in Unkey, your application receives `8081` at runtime. This applies to all variables, not just `PORT` — Unkey's runtime values always override image defaults.
 
+## System variables
+
+In addition to variables you define, Unkey automatically injects several environment variables into every running instance. These provide context about the current deployment and runtime configuration.
+
+| Variable | Description |
+| --- | --- |
+| `PORT` | The [port](/platform/apps/settings#port) your app should listen on |
+| `UNKEY_DEPLOYMENT_ID` | Unique identifier for the current deployment |
+| `UNKEY_ENVIRONMENT_SLUG` | Slug of the environment (e.g., `production`, `staging`) |
+| `UNKEY_REGION` | Region where the instance is running |
+| `UNKEY_INSTANCE_ID` | Unique identifier for the specific running instance |
+| `UNKEY_GIT_COMMIT_SHA` | Git commit SHA that triggered the deployment |
+| `UNKEY_GIT_BRANCH` | Git branch that triggered the deployment |
+| `UNKEY_GIT_REPO` | Full repository name (e.g., `org/repo`) |
+| `UNKEY_GIT_COMMIT_MESSAGE` | Commit message of the deployed commit |
+| `UNKEY_EPHEMERAL_DISK_PATH` | Mount path for [ephemeral storage](/platform/apps/settings#ephemeral-storage) (`/data`). Only set when storage is configured. |
+
+Git-related variables are populated when your deployment is connected to a GitHub repository. You cannot override system variables — if you create a variable with the same name, the system value takes precedence.
+
 ## Variables and deployments
 
 Deployments are immutable. Variable changes don't affect running deployments. To apply updated variables, trigger a new deployment. A redeploy banner appears at the top of the page after you make changes as a reminder.

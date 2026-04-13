@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	promclient "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
@@ -18,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
@@ -76,6 +79,12 @@ func Run(ctx context.Context, cfg Config) error {
 	defer r.Recover()
 
 	r.DeferCtx(shutdownGrafana)
+
+	reg := promclient.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	//nolint:exhaustruct
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	lazy.SetRegistry(reg)
 
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
 		URL:         cfg.Control.URL,
@@ -145,14 +154,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{
-		ClientSet:     clientset,
-		DynamicClient: dynamicClient,
-		Cluster:       cluster,
-		Region:        cfg.Region,
-		Platform:      cfg.Platform,
-		Vault:         vaultClient,
-		Registry:      registryCfg,
-		Fingerprints:  fingerprintCache,
+		ClientSet:        clientset,
+		DynamicClient:    dynamicClient,
+		Cluster:          cluster,
+		Region:           cfg.Region,
+		Platform:         cfg.Platform,
+		Vault:            vaultClient,
+		Registry:         registryCfg,
+		Fingerprints:     fingerprintCache,
+		StorageClassName: cfg.StorageClassName,
 	})
 	if err := deploymentCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start deployment controller: %w", err)
@@ -224,7 +234,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 
-		prom, err := prometheus.New()
+		prom, err := prometheus.NewWithRegistry(reg)
 		if err != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", err)
 		}

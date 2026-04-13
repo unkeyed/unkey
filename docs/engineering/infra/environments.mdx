@@ -1,0 +1,33 @@
+---
+title: Environments
+description: Staging and production environment URLs and how traffic flows between them.
+---
+
+Unkey runs two primary environments. Staging auto-deploys from `main` and is used to validate changes before promoting them to production.
+
+## Staging
+
+| Service | URL |
+| ------- | --- |
+| API | `https://api.unkey-staging.com` |
+
+Staging tracks the `main` branch — every merge to main deploys to staging automatically via ArgoCD. See [promotions](/infra/infra-work#promotions) for details on how changes flow from staging to production.
+
+### When to use staging
+
+- Testing API changes before they reach production
+- Validating new features end-to-end against a live environment
+- Reproducing bugs without affecting production data
+- Running integration tests that need a real API
+
+<Warning>
+Staging data is not persistent. Do not rely on staging for long-term storage or as a substitute for production.
+</Warning>
+
+## Production
+
+| Service | URL |
+| ------- | --- |
+| API | `https://api.unkey.com` |
+
+Production is pinned to a specific commit SHA. Deploying to production requires explicitly updating this SHA through a reviewed promotion PR. See [deploying to production](/infra/infra-work#deploying-to-production) for the step-by-step process.

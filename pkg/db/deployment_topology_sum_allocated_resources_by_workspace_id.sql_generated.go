@@ -12,7 +12,8 @@ import (
 const sumAllocatedResourcesByWorkspaceID = `-- name: SumAllocatedResourcesByWorkspaceID :one
 SELECT
   CAST(COALESCE(SUM(d.` + "`" + `cpu_millicores` + "`" + ` * dt.` + "`" + `autoscaling_replicas_max` + "`" + `), 0) AS SIGNED) AS ` + "`" + `total_cpu_millicores` + "`" + `,
-  CAST(COALESCE(SUM(d.` + "`" + `memory_mib` + "`" + ` * dt.` + "`" + `autoscaling_replicas_max` + "`" + `), 0) AS SIGNED) AS ` + "`" + `total_memory_mib` + "`" + `
+  CAST(COALESCE(SUM(d.` + "`" + `memory_mib` + "`" + ` * dt.` + "`" + `autoscaling_replicas_max` + "`" + `), 0) AS SIGNED) AS ` + "`" + `total_memory_mib` + "`" + `,
+  CAST(COALESCE(SUM(d.` + "`" + `storage_mib` + "`" + ` * dt.` + "`" + `autoscaling_replicas_max` + "`" + `), 0) AS SIGNED) AS ` + "`" + `total_storage_mib` + "`" + `
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
 JOIN ` + "`" + `deployments` + "`" + ` d ON d.` + "`" + `id` + "`" + ` = dt.` + "`" + `deployment_id` + "`" + `
 WHERE dt.` + "`" + `workspace_id` + "`" + ` = ?
@@ -22,13 +23,15 @@ WHERE dt.` + "`" + `workspace_id` + "`" + ` = ?
 type SumAllocatedResourcesByWorkspaceIDRow struct {
 	TotalCpuMillicores int64 `db:"total_cpu_millicores"`
 	TotalMemoryMib     int64 `db:"total_memory_mib"`
+	TotalStorageMib    int64 `db:"total_storage_mib"`
 }
 
 // SumAllocatedResourcesByWorkspaceID
 //
 //	SELECT
 //	  CAST(COALESCE(SUM(d.`cpu_millicores` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_cpu_millicores`,
-//	  CAST(COALESCE(SUM(d.`memory_mib` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_memory_mib`
+//	  CAST(COALESCE(SUM(d.`memory_mib` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_memory_mib`,
+//	  CAST(COALESCE(SUM(d.`storage_mib` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_storage_mib`
 //	FROM `deployment_topology` dt
 //	JOIN `deployments` d ON d.`id` = dt.`deployment_id`
 //	WHERE dt.`workspace_id` = ?
@@ -36,6 +39,6 @@ type SumAllocatedResourcesByWorkspaceIDRow struct {
 func (q *Queries) SumAllocatedResourcesByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (SumAllocatedResourcesByWorkspaceIDRow, error) {
 	row := db.QueryRowContext(ctx, sumAllocatedResourcesByWorkspaceID, workspaceID)
 	var i SumAllocatedResourcesByWorkspaceIDRow
-	err := row.Scan(&i.TotalCpuMillicores, &i.TotalMemoryMib)
+	err := row.Scan(&i.TotalCpuMillicores, &i.TotalMemoryMib, &i.TotalStorageMib)
 	return i, err
 }

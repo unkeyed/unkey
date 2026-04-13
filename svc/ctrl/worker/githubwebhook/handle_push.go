@@ -268,6 +268,7 @@ func insertDeploymentRecord(
 			GitCommitTimestamp:            sql.NullInt64{Int64: commitTimestamp, Valid: commitTimestamp != 0},
 			CpuMillicores:                 runtimeSettings.CpuMillicores,
 			MemoryMib:                     runtimeSettings.MemoryMib,
+			StorageMib:                    runtimeSettings.StorageMib,
 			Port:                          runtimeSettings.Port,
 			ShutdownSignal:                db.DeploymentsShutdownSignal(runtimeSettings.ShutdownSignal),
 			Healthcheck:                   runtimeSettings.Healthcheck,

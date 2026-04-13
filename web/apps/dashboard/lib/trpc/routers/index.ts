@@ -72,6 +72,7 @@ import { updateMemory } from "./deploy/environment-settings/runtime/update-memor
 import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/update-openapi-spec-path";
 import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
+import { updateStorage } from "./deploy/environment-settings/runtime/update-storage";
 import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
@@ -148,6 +149,7 @@ import { listRatelimitOverrides } from "./ratelimit/overrides_list";
 import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
+import { queryRatelimitLogEnrichment } from "./ratelimit/query-logs/enrichment";
 import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
@@ -324,6 +326,7 @@ export const router = t.router({
   ratelimit: t.router({
     logs: t.router({
       query: queryRatelimitLogs,
+      enrichment: queryRatelimitLogEnrichment,
       ratelimitLlmSearch,
       queryRatelimitTimeseries,
     }),
@@ -419,6 +422,7 @@ export const router = t.router({
       runtime: t.router({
         updateCpu,
         updateMemory,
+        updateStorage,
         updatePort,
         updateCommand,
         updateHealthcheck,

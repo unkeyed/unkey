@@ -6,6 +6,7 @@ CREATE TABLE `app_runtime_settings` (
 	`port` int NOT NULL DEFAULT 8080,
 	`cpu_millicores` int NOT NULL DEFAULT 250,
 	`memory_mib` int NOT NULL DEFAULT 256,
+	`storage_mib` int unsigned NOT NULL DEFAULT 0,
 	`command` json NOT NULL DEFAULT ('[]'),
 	`healthcheck` json,
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',

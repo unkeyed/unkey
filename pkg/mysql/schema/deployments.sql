@@ -17,6 +17,7 @@ CREATE TABLE `deployments` (
 	`sentinel_config` longblob NOT NULL,
 	`cpu_millicores` int NOT NULL,
 	`memory_mib` int NOT NULL,
+	`storage_mib` int unsigned NOT NULL DEFAULT 0,
 	`desired_state` enum('running','standby','archived') NOT NULL DEFAULT 'running',
 	`encrypted_environment_variables` longblob NOT NULL,
 	`command` json NOT NULL DEFAULT ('[]'),

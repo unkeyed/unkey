@@ -4,13 +4,13 @@ import (
 	cachev1 "github.com/unkeyed/unkey/gen/proto/cache/v1"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 var (
 	// CacheClusteringInvalidationsSentTotal counts outbound invalidation events
 	// by cache name and action type.
-	CacheClusteringInvalidationsSentTotal = promauto.NewCounterVec(
+	CacheClusteringInvalidationsSentTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cache_clustering",
@@ -22,7 +22,7 @@ var (
 
 	// CacheClusteringInvalidationsReceivedTotal counts inbound invalidation events
 	// by cache name, action, and processing status.
-	CacheClusteringInvalidationsReceivedTotal = promauto.NewCounterVec(
+	CacheClusteringInvalidationsReceivedTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cache_clustering",
@@ -33,7 +33,7 @@ var (
 	)
 
 	// CacheClusteringBroadcastErrorsTotal counts failed broadcast attempts.
-	CacheClusteringBroadcastErrorsTotal = promauto.NewCounter(
+	CacheClusteringBroadcastErrorsTotal = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cache_clustering",
