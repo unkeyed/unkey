@@ -23,6 +23,16 @@ const STATUS_STYLES = {
     },
     focusRing: "focus:ring-accent-7",
   },
+  info: {
+    base: "text-info-11 bg-info-2",
+    hover: "hover:bg-info-3",
+    selected: "bg-info-3",
+    badge: {
+      default: "bg-info-4 text-info-11 group-hover:bg-info-5",
+      selected: "bg-info-5 text-info-11 hover:bg-info-5",
+    },
+    focusRing: "focus:ring-info-7",
+  },
   warning: {
     base: "text-warning-11 bg-warning-2",
     hover: "hover:bg-warning-3",
@@ -51,6 +61,9 @@ export const getStatusStyle = (status: number): StatusStyle => {
   }
   if (status >= 400) {
     return STATUS_STYLES.warning;
+  }
+  if (status >= 300) {
+    return STATUS_STYLES.info;
   }
   return STATUS_STYLES.success;
 };

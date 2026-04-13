@@ -85,7 +85,7 @@ const WarningIcon = ({ status }: { status: number }) => (
     iconSize="md-regular"
     className={cn(
       WARNING_ICON_STYLES.base,
-      status < 300 && "invisible",
+      status < 400 && "invisible",
       status >= 400 && status < 500 && WARNING_ICON_STYLES.warning,
       status >= 500 && WARNING_ICON_STYLES.error,
     )}
