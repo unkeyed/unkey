@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mysqlDrizzle, schema } from "@unkey/db";
+import { drizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { task } from "./util";
 
@@ -91,7 +91,7 @@ async function connectDatabase() {
         s.message("pinging database");
         await conn.ping();
         s.stop("connected to database");
-        return mysqlDrizzle(conn, { schema, mode: "default" });
+        return drizzle(conn, { schema, mode: "default" });
       } catch (e) {
         err = e as Error;
         await new Promise((r) => setTimeout(r, 1000 * i));

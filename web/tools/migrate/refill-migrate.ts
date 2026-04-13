@@ -1,4 +1,4 @@
-import { eq, isNull, mysqlDrizzle, schema } from "@unkey/db";
+import { eq, isNull, drizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 
 async function main() {
@@ -7,7 +7,7 @@ async function main() {
   );
 
   await conn.ping();
-  const db = mysqlDrizzle(conn, { schema, mode: "default" });
+  const db = drizzle(conn, { schema, mode: "default" });
 
   let cursor = "";
   let keyChanges = 0;

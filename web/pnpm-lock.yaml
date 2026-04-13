@@ -51,9 +51,6 @@ importers:
       '@marsidev/react-turnstile':
         specifier: 1.0.2
         version: 1.0.2(react-dom@19.2.4)(react@19.2.4)
-      '@planetscale/database':
-        specifier: 1.19.0
-        version: 1.19.0
       '@radix-ui/react-accordion':
         specifier: 1.2.0
         version: 1.2.0(@types/react-dom@19.2.3)(@types/react@19.2.4)(react-dom@19.2.4)(react@19.2.4)
@@ -228,6 +225,9 @@ importers:
       input-otp:
         specifier: 1.2.4
         version: 1.2.4(react-dom@19.2.4)(react@19.2.4)
+      mysql2:
+        specifier: 3.10.3
+        version: 3.10.3
       nanoid:
         specifier: ^5.1.6
         version: 5.1.6
@@ -366,15 +366,15 @@ importers:
 
   internal/db:
     dependencies:
-      '@planetscale/database':
-        specifier: 1.19.0
-        version: 1.19.0
       '@unkey/id':
         specifier: workspace:^
         version: link:../id
       drizzle-orm:
         specifier: 0.45.1
-        version: 0.45.1(@planetscale/database@1.19.0)(mysql2@3.10.3)
+        version: 0.45.1(mysql2@3.10.3)
+      mysql2:
+        specifier: 3.10.3
+        version: 3.10.3
     devDependencies:
       '@types/node':
         specifier: 20.14.9
@@ -388,9 +388,6 @@ importers:
       drizzle-kit:
         specifier: 0.31.4
         version: 0.31.4
-      mysql2:
-        specifier: 3.10.3
-        version: 3.10.3
       typescript:
         specifier: 5.5.3
         version: 5.5.3
@@ -3416,11 +3413,6 @@ packages:
     engines: {node: '>=14'}
     requiresBuild: true
     optional: true
-
-  /@planetscale/database@1.19.0:
-    resolution: {integrity: sha512-Tv4jcFUFAFjOWrGSio49H6R2ijALv0ZzVBfJKIdm+kl9X046Fh4LLawrF9OMsglVbK6ukqMJsUCeucGAFTBcMA==}
-    engines: {node: '>=16'}
-    dev: false
 
   /@polka/url@1.0.0-next.29:
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
@@ -8915,7 +8907,7 @@ packages:
       - supports-color
     dev: true
 
-  /drizzle-orm@0.45.1(@planetscale/database@1.19.0)(mysql2@3.10.3):
+  /drizzle-orm@0.45.1(mysql2@3.10.3):
     resolution: {integrity: sha512-Te0FOdKIistGNPMq2jscdqngBRfBpC8uMFVwqjf6gtTVJHIQ/dosgV/CLBU2N4ZJBsXL5savCba9b0YJskKdcA==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -9007,7 +8999,6 @@ packages:
       sqlite3:
         optional: true
     dependencies:
-      '@planetscale/database': 1.19.0
       mysql2: 3.10.3
     dev: false
 
