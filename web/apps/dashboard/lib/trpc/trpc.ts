@@ -198,7 +198,10 @@ const requireUser = t.middleware(({ next, ctx }) => {
   return next({
     ctx: {
       user: ctx.user,
-      tenant: ctx.tenant ?? { id: ctx.user.id, role: "owner" },
+      // Default to "member" role when tenant context is missing to prevent
+      // unintended privilege escalation. Previously defaulted to "owner" which
+      // could grant admin-level access to users without a proper org assignment.
+      tenant: ctx.tenant ?? { id: ctx.user.id, role: "member" },
     },
   });
 });
@@ -273,6 +276,17 @@ export const requireOrgAdmin = t.middleware(async ({ next, ctx, rawInput }) => {
       message: "Organization ID is required",
     });
   }
+
+  // Verify the requested orgId matches the caller's tenant to prevent
+  // cross-organization privilege escalation. Without this check, an admin
+  // in Org A could pass Org B's ID and the role check alone would pass.
+  if (orgId !== ctx.tenant?.id) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You do not have access to this organization.",
+    });
+  }
+
   try {
     const isAdmin = ctx.tenant?.role === "admin";
 
