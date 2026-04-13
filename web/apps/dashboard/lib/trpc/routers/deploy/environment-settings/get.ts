@@ -20,6 +20,9 @@ export const getEnvironmentSettings = workspaceProcedure
             eq(appRuntimeSettings.workspaceId, ctx.workspace.id),
             eq(appRuntimeSettings.environmentId, input.environmentId),
           ),
+          columns: {
+            sentinelConfig: false,
+          },
         }),
         db.query.appRegionalSettings.findMany({
           where: and(
@@ -34,12 +37,7 @@ export const getEnvironmentSettings = workspaceProcedure
 
       return {
         buildSettings: buildSettings ?? null,
-        runtimeSettings: runtimeSettings
-          ? {
-              ...runtimeSettings,
-              sentinelConfig: null,
-            }
-          : null,
+        runtimeSettings: runtimeSettings ?? null,
         regionalSettings,
       };
     } catch (err) {
