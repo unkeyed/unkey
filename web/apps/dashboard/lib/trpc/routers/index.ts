@@ -73,6 +73,7 @@ import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/upd
 import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
 import { updateStorage } from "./deploy/environment-settings/runtime/update-storage";
+import { updateUpstreamProtocol } from "./deploy/environment-settings/runtime/update-upstream-protocol";
 import { generateRegex } from "./deploy/environment-settings/sentinel/generate-regex";
 import { create as createKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/create";
 import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
@@ -441,6 +442,7 @@ export const router = t.router({
         updateRegions,
         updateInstances,
         updateOpenapiSpecPath,
+        updateUpstreamProtocol,
       }),
       build: t.router({
         updateDockerfile,
