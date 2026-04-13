@@ -39,10 +39,6 @@ JWTAuth is defined in the policy schema but is not executed by the sentinel engi
   Claim used as the principal subject. Defaults to `sub`.
 </ResponseField>
 
-<ResponseField name="forward_claims" type="string[]">
-  Reserved for future use. All validated JWT claims are forwarded under `source.jwt.payload` already, so the upstream can read any claim directly.
-</ResponseField>
-
 <ResponseField name="allow_anonymous" type="bool">
   When true, requests without a token are allowed through without setting a principal.
 </ResponseField>

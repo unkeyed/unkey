@@ -35,7 +35,7 @@ When no authentication policy is configured or the request has no credentials, t
 ## Top-level fields
 
 <ResponseField name="version" type="string" required>
-  The schema version of the Principal payload. Currently `"v1"`. Check this field if you need to handle different payload shapes during migrations. Unkey bumps the version when fields are removed or renamed, but adding new optional fields does not change the version. The value is always a string so future schemes (date-based like `"2026-04-13"`, semver, named releases) can replace the current value without changing the field's type.
+  The schema version of the Principal payload. Currently `"v1"`. Check this field if you need to handle different payload shapes during migrations. Unkey bumps the version when fields are removed or renamed, but adding new optional fields does not change the version.
 </ResponseField>
 
 <ResponseField name="subject" type="string" required>

@@ -70,11 +70,6 @@ type JWTAuth struct {
 	// claim for the primary identity (e.g., "uid" for some Okta
 	// configurations, or "email" when you want email-based identity).
 	SubjectClaim string `protobuf:"bytes,6,opt,name=subject_claim,json=subjectClaim,proto3" json:"subject_claim,omitempty"`
-	// Additional token claims to copy into the Principal's JWT source payload
-	// for convenience. All validated claims are already forwarded under
-	// source.jwt.payload; this field is reserved for future use and is
-	// currently a no-op.
-	ForwardClaims []string `protobuf:"bytes,7,rep,name=forward_claims,json=forwardClaims,proto3" json:"forward_claims,omitempty"`
 	// When true, requests without a Bearer token are allowed through without
 	// authentication. No [Principal] is produced for anonymous requests. This
 	// enables endpoints that serve both public and authenticated content,
@@ -190,13 +185,6 @@ func (x *JWTAuth) GetSubjectClaim() string {
 	return ""
 }
 
-func (x *JWTAuth) GetForwardClaims() []string {
-	if x != nil {
-		return x.ForwardClaims
-	}
-	return nil
-}
-
 func (x *JWTAuth) GetAllowAnonymous() bool {
 	if x != nil {
 		return x.AllowAnonymous
@@ -260,7 +248,7 @@ var File_policies_v1_jwtauth_proto protoreflect.FileDescriptor
 
 const file_policies_v1_jwtauth_proto_rawDesc = "" +
 	"\n" +
-	"\x19policies/v1/jwtauth.proto\x12\vsentinel.v1\"\x93\x03\n" +
+	"\x19policies/v1/jwtauth.proto\x12\vsentinel.v1\"\xec\x02\n" +
 	"\aJWTAuth\x12\x1b\n" +
 	"\bjwks_uri\x18\x01 \x01(\tH\x00R\ajwksUri\x12!\n" +
 	"\voidc_issuer\x18\x02 \x01(\tH\x00R\n" +
@@ -271,8 +259,7 @@ const file_policies_v1_jwtauth_proto_rawDesc = "" +
 	"\n" +
 	"algorithms\x18\x05 \x03(\tR\n" +
 	"algorithms\x12#\n" +
-	"\rsubject_claim\x18\x06 \x01(\tR\fsubjectClaim\x12%\n" +
-	"\x0eforward_claims\x18\a \x03(\tR\rforwardClaims\x12'\n" +
+	"\rsubject_claim\x18\x06 \x01(\tR\fsubjectClaim\x12'\n" +
 	"\x0fallow_anonymous\x18\b \x01(\bR\x0eallowAnonymous\x12\"\n" +
 	"\rclock_skew_ms\x18\t \x01(\x03R\vclockSkewMs\x12\"\n" +
 	"\rjwks_cache_ms\x18\n" +

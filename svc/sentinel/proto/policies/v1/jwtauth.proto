@@ -73,12 +73,6 @@ message JWTAuth {
   // configurations, or "email" when you want email-based identity).
   string subject_claim = 6;
 
-  // Additional token claims to copy into the Principal's JWT source payload
-  // for convenience. All validated claims are already forwarded under
-  // source.jwt.payload; this field is reserved for future use and is
-  // currently a no-op.
-  repeated string forward_claims = 7;
-
   // When true, requests without a Bearer token are allowed through without
   // authentication. No [Principal] is produced for anonymous requests. This
   // enables endpoints that serve both public and authenticated content,

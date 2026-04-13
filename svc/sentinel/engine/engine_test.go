@@ -74,11 +74,11 @@ func TestParseMiddleware_WithPolicies(t *testing.T) {
 	require.Equal(t, "p1", policies[0].GetId())
 }
 
-// TestSerializePrincipal_WireFormat pins the JSON wire format of the
+// TestPrincipal_Marshal_WireFormat pins the JSON wire format of the
 // Principal. The header contract documented in
 // docs/product/platform/sentinel/principal/overview.mdx is exactly this
 // output — if this test changes, update the docs in the same commit.
-func TestSerializePrincipal_WireFormat(t *testing.T) {
+func TestPrincipal_Marshal_WireFormat(t *testing.T) {
 	t.Parallel()
 
 	t.Run("minimal principal omits optional fields", func(t *testing.T) {
@@ -101,7 +101,7 @@ func TestSerializePrincipal_WireFormat(t *testing.T) {
 			},
 		}
 
-		s, err := SerializePrincipal(p)
+		s, err := p.Marshal()
 		require.NoError(t, err)
 		require.JSONEq(t, `{
 			"version": "v1",
@@ -139,7 +139,7 @@ func TestSerializePrincipal_WireFormat(t *testing.T) {
 			},
 		}
 
-		s, err := SerializePrincipal(p)
+		s, err := p.Marshal()
 		require.NoError(t, err)
 		require.JSONEq(t, `{
 			"version": "v1",

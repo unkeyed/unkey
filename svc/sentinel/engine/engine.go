@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -142,15 +141,4 @@ func (e *Engine) Evaluate(
 	}
 
 	return result, nil
-}
-
-// SerializePrincipal converts a Principal to the JSON string carried on the
-// X-Unkey-Principal header. The struct tags on [Principal] and its nested
-// types are the authoritative wire contract — see principal.go.
-func SerializePrincipal(p *Principal) (string, error) {
-	b, err := json.Marshal(p)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
 }

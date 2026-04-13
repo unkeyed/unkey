@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file policies/v1/jwtauth.proto.
  */
 export const file_policies_v1_jwtauth: GenFile = /*@__PURE__*/
-  fileDesc("Chlwb2xpY2llcy92MS9qd3RhdXRoLnByb3RvEgtzZW50aW5lbC52MSKKAgoHSldUQXV0aBISCghqd2tzX3VyaRgBIAEoCUgAEhUKC29pZGNfaXNzdWVyGAIgASgJSAASGAoOcHVibGljX2tleV9wZW0YCyABKAxIABIOCgZpc3N1ZXIYAyABKAkSEQoJYXVkaWVuY2VzGAQgAygJEhIKCmFsZ29yaXRobXMYBSADKAkSFQoNc3ViamVjdF9jbGFpbRgGIAEoCRIWCg5mb3J3YXJkX2NsYWltcxgHIAMoCRIXCg9hbGxvd19hbm9ueW1vdXMYCCABKAgSFQoNY2xvY2tfc2tld19tcxgJIAEoAxIVCg1qd2tzX2NhY2hlX21zGAogASgDQg0KC2p3a3Nfc291cmNlQqcBCg9jb20uc2VudGluZWwudjFCDEp3dGF1dGhQcm90b1ABWjlnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL3NlbnRpbmVsL3YxO3NlbnRpbmVsdjGiAgNTWFiqAgtTZW50aW5lbC5WMcoCC1NlbnRpbmVsXFYx4gIXU2VudGluZWxcVjFcR1BCTWV0YWRhdGHqAgxTZW50aW5lbDo6VjFiBnByb3RvMw");
+  fileDesc("Chlwb2xpY2llcy92MS9qd3RhdXRoLnByb3RvEgtzZW50aW5lbC52MSLyAQoHSldUQXV0aBISCghqd2tzX3VyaRgBIAEoCUgAEhUKC29pZGNfaXNzdWVyGAIgASgJSAASGAoOcHVibGljX2tleV9wZW0YCyABKAxIABIOCgZpc3N1ZXIYAyABKAkSEQoJYXVkaWVuY2VzGAQgAygJEhIKCmFsZ29yaXRobXMYBSADKAkSFQoNc3ViamVjdF9jbGFpbRgGIAEoCRIXCg9hbGxvd19hbm9ueW1vdXMYCCABKAgSFQoNY2xvY2tfc2tld19tcxgJIAEoAxIVCg1qd2tzX2NhY2hlX21zGAogASgDQg0KC2p3a3Nfc291cmNlQqcBCg9jb20uc2VudGluZWwudjFCDEp3dGF1dGhQcm90b1ABWjlnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL3NlbnRpbmVsL3YxO3NlbnRpbmVsdjGiAgNTWFiqAgtTZW50aW5lbC5WMcoCC1NlbnRpbmVsXFYx4gIXU2VudGluZWxcVjFcR1BCTWV0YWRhdGHqAgxTZW50aW5lbDo6VjFiBnByb3RvMw");
 
 /**
  * JWTAuth validates Bearer JSON Web Tokens using JWKS (JSON Web Key Sets)
@@ -119,16 +119,6 @@ export type JWTAuth = Message<"sentinel.v1.JWTAuth"> & {
    * @generated from field: string subject_claim = 6;
    */
   subjectClaim: string;
-
-  /**
-   * Additional token claims to copy into the Principal's JWT source payload
-   * for convenience. All validated claims are already forwarded under
-   * source.jwt.payload; this field is reserved for future use and is
-   * currently a no-op.
-   *
-   * @generated from field: repeated string forward_claims = 7;
-   */
-  forwardClaims: string[];
 
   /**
    * When true, requests without a Bearer token are allowed through without

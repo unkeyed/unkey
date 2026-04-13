@@ -3,14 +3,16 @@ title: "Principal"
 description: "Authenticated identity from auth policies"
 ---
 
-`engine.Principal` is the shared identity shape produced by authentication policies. It decouples the authentication mechanism from downstream authorization decisions and from upstream applications, which receive it as a JSON payload on the `X-Unkey-Principal` header. The struct is hand-written with `encoding/json` rather than generated from protobuf because the Principal is output-only (sentinel produces it, apps consume the JSON) and `protojson` conventions — stringified int64s, SCREAMING_SNAKE_CASE enum values, `structpb` wrapping for arbitrary JSON — would fight the contract.
+`engine.Principal` is the shared identity shape produced by authentication policies. It decouples the authentication mechanism from downstream authorization decisions and from upstream applications, which receive it as a JSON payload on the `X-Unkey-Principal` header.
+
+The struct is hand-written with `encoding/json` rather than generated from protobuf. The Principal is output-only (sentinel produces it, apps consume the JSON), so proto-as-IDL buys nothing while fighting the JSON contract we want to expose.
 
 The wire format is authoritative. For the full public reference, see the [product docs](/platform/sentinel/principal/overview).
 
 ## Fields
 
 <ResponseField name="version" type="string">
-  Schema version of the Principal payload. Currently `"v1"`. Bumped only on breaking changes to the JSON shape. Kept as a string so future schemes (date-based, semver, named) can replace the value without changing the field type.
+  Schema version of the Principal payload. Currently `"v1"`. Bumped only on breaking changes to the JSON shape.
 </ResponseField>
 
 <ResponseField name="subject" type="string">
@@ -18,7 +20,7 @@ The wire format is authoritative. For the full public reference, see the [produc
 </ResponseField>
 
 <ResponseField name="type" type="PrincipalType">
-  Which authentication method produced this Principal. `API_KEY` or `JWT`.
+  Which authentication method produced this Principal. `API_KEY` or `JWT`. Always matches the populated variant of `source`.
 </ResponseField>
 
 <ResponseField name="identity" type="Identity">

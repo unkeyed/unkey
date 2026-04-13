@@ -71,9 +71,17 @@ func (e *KeyAuthExecutor) Execute(
 		)
 	}
 
-	verifyOpts, err := buildVerifyOptions(cfg)
-	if err != nil {
-		return nil, err
+	verifyOpts := []keys.VerifyOption{keys.WithCredits(1)}
+	if pq := cfg.GetPermissionQuery(); pq != "" {
+		query, err := rbac.ParseQuery(pq)
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.Sentinel.Internal.InvalidConfiguration.URN()),
+				fault.Internal("invalid permission query: "+pq),
+				fault.Public("Service configuration error."),
+			)
+		}
+		verifyOpts = append(verifyOpts, keys.WithPermissions(query))
 	}
 
 	if err := verifier.Verify(ctx, verifyOpts...); err != nil {
@@ -88,8 +96,36 @@ func (e *KeyAuthExecutor) Execute(
 	// on both success (2xx) and rate-limited (429) responses.
 	writeRateLimitHeaders(sess.ResponseWriter(), verifier.RatelimitResults, e.clock)
 
-	if err := checkPostVerifyStatus(verifier.Status); err != nil {
-		return nil, err
+	switch verifier.Status {
+	case keys.StatusValid:
+		// OK
+	case keys.StatusInsufficientPermissions:
+		return nil, fault.New("insufficient permissions",
+			fault.Code(codes.Sentinel.Auth.InsufficientPermissions.URN()),
+			fault.Internal("key lacks required permissions"),
+			fault.Public("Access denied. The API key does not have the required permissions."),
+		)
+	case keys.StatusRateLimited:
+		return nil, fault.New("rate limited",
+			fault.Code(codes.Sentinel.Auth.RateLimited.URN()),
+			fault.Internal("auto-applied rate limit exceeded"),
+			fault.Public("Rate limit exceeded. Please try again later."),
+		)
+	case keys.StatusUsageExceeded:
+		return nil, fault.New("usage exceeded",
+			fault.Code(codes.Sentinel.Auth.RateLimited.URN()),
+			fault.Internal("usage limit exceeded"),
+			fault.Public("Usage limit exceeded. Please try again later."),
+		)
+	case keys.StatusNotFound, keys.StatusDisabled, keys.StatusExpired,
+		keys.StatusForbidden, keys.StatusWorkspaceDisabled, keys.StatusWorkspaceNotFound:
+		// These should have been caught by the pre-verify status check, but
+		// handle them here for exhaustiveness.
+		return nil, fault.New("key verification failed",
+			fault.Code(codes.Sentinel.Auth.InvalidKey.URN()),
+			fault.Internal("post-verification status: "+string(verifier.Status)),
+			fault.Public("Authentication failed."),
+		)
 	}
 
 	principal, err := keyPrincipalFromVerifier(verifier)
@@ -112,69 +148,6 @@ func keyspaceAllowed(keyspaceID string, allowed []string) bool {
 		}
 	}
 	return false
-}
-
-// buildVerifyOptions compiles the KeyAuth policy config into the set of
-// VerifyOptions passed to the keys service. Always deducts one credit per
-// request; an invalid permission query is surfaced as an internal config
-// error since the dashboard validates the query before persisting it.
-func buildVerifyOptions(cfg *sentinelv1.KeyAuth) ([]keys.VerifyOption, error) {
-	opts := []keys.VerifyOption{keys.WithCredits(1)}
-
-	if pq := cfg.GetPermissionQuery(); pq != "" {
-		query, err := rbac.ParseQuery(pq)
-		if err != nil {
-			return nil, fault.Wrap(err,
-				fault.Code(codes.Sentinel.Internal.InvalidConfiguration.URN()),
-				fault.Internal("invalid permission query: "+pq),
-				fault.Public("Service configuration error."),
-			)
-		}
-		opts = append(opts, keys.WithPermissions(query))
-	}
-
-	return opts, nil
-}
-
-// checkPostVerifyStatus maps a post-verification key status to the matching
-// fault, or nil when the key passed verification. The pre-verify branch in
-// Execute already rejects the terminal-failure statuses, so this function
-// only needs to translate the statuses Verify itself can set
-// (InsufficientPermissions, RateLimited, UsageExceeded). The remaining
-// cases are listed explicitly to keep the switch exhaustive.
-func checkPostVerifyStatus(status keys.KeyStatus) error {
-	switch status {
-	case keys.StatusValid:
-		return nil
-	case keys.StatusInsufficientPermissions:
-		return fault.New("insufficient permissions",
-			fault.Code(codes.Sentinel.Auth.InsufficientPermissions.URN()),
-			fault.Internal("key lacks required permissions"),
-			fault.Public("Access denied. The API key does not have the required permissions."),
-		)
-	case keys.StatusRateLimited:
-		return fault.New("rate limited",
-			fault.Code(codes.Sentinel.Auth.RateLimited.URN()),
-			fault.Internal("auto-applied rate limit exceeded"),
-			fault.Public("Rate limit exceeded. Please try again later."),
-		)
-	case keys.StatusUsageExceeded:
-		return fault.New("usage exceeded",
-			fault.Code(codes.Sentinel.Auth.RateLimited.URN()),
-			fault.Internal("usage limit exceeded"),
-			fault.Public("Usage limit exceeded. Please try again later."),
-		)
-	case keys.StatusNotFound, keys.StatusDisabled, keys.StatusExpired,
-		keys.StatusForbidden, keys.StatusWorkspaceDisabled, keys.StatusWorkspaceNotFound:
-		// These should have been caught by the pre-verify status check,
-		// but handle them here for exhaustiveness.
-		return fault.New("key verification failed",
-			fault.Code(codes.Sentinel.Auth.InvalidKey.URN()),
-			fault.Internal("post-verification status: "+string(status)),
-			fault.Public("Authentication failed."),
-		)
-	}
-	return nil
 }
 
 // writeRateLimitHeaders sets standard rate limit headers on the response.

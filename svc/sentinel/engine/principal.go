@@ -9,23 +9,25 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
+// Marshal serializes the Principal to the JSON string carried on the
+// X-Unkey-Principal header. The struct tags on [Principal] and its nested
+// types are the authoritative wire contract.
+func (p *Principal) Marshal() (string, error) {
+	b, err := json.Marshal(p)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
 // Principal is the authenticated identity that sentinel produces after a
 // successful authentication policy and forwards to the upstream on the
-// X-Unkey-Principal header as JSON. The struct tags on this file are the
-// authoritative wire contract — if any json tag, omitempty flag, or field
-// type changes here, update docs/product/platform/sentinel/principal/*.mdx
-// and the wire-format test in the same commit.
+// X-Unkey-Principal header as JSON.
 //
-// The shape is decoupled from the sentinel proto schema on purpose:
-//
-//   - The Principal is produced by sentinel and consumed by user
-//     applications via an HTTP header. It never crosses a proto wire, so
-//     proto-as-IDL buys nothing.
-//   - protojson has rigid behavior we have been fighting repeatedly: 64-bit
-//     integers always serialize as JSON strings, enum values must be
-//     SCREAMING_SNAKE_CASE, structpb dance for arbitrary JSON metadata.
-//     encoding/json on a hand-written struct gives us full control over
-//     the exact JSON we emit.
+// The struct tags on this file are the authoritative wire contract — if
+// any json tag, omitempty flag, or field type changes here, update
+// docs/product/platform/sentinel/principal/*.mdx and the wire-format test
+// in the same commit.
 //
 // Every Principal contains exactly one populated variant of Source matching
 // Type. If multiple authentication policies could match, only the first
@@ -33,12 +35,9 @@ import (
 type Principal struct {
 	// Version is the schema version of the Principal payload. Bumped on
 	// breaking changes (removed/renamed fields, changed field types).
-	// Additive changes do not bump it.
-	//
-	// Kept as a string so future schemes (date-based like "2026-04-13",
-	// semver, named releases) can replace the current "v1" without
-	// changing the field's type — which would itself be a breaking
-	// change.
+	// Additive changes do not bump it. A string rather than an integer so
+	// future schemes (dates, semver, named releases) don't require changing
+	// the field type.
 	Version string `json:"version"`
 
 	// Subject is the primary identifier of the authenticated entity. For
@@ -62,8 +61,7 @@ type Principal struct {
 }
 
 // PrincipalType identifies the authentication method that produced a
-// Principal. Kept as a named string so the JSON wire values are exactly
-// "API_KEY" or "JWT" — no SCREAMING_SNAKE_CASE prefix, no enum number.
+// Principal.
 type PrincipalType string
 
 const (
@@ -86,15 +84,12 @@ type Identity struct {
 	ExternalID string `json:"externalId"`
 
 	// Meta is arbitrary metadata attached to the identity. Always emitted
-	// as a JSON object — {} when no metadata was set. Callers must
-	// initialize this to a non-nil map; a nil map would serialize to
-	// null, which the contract forbids.
+	// as a JSON object — {} when no metadata was set. Must be non-nil.
 	Meta map[string]any `json:"meta"`
 }
 
 // Source is the discriminated union over method-specific detail. Exactly
-// one field is populated per Principal; the populated field name matches
-// the lowercase of Principal.Type (key for API_KEY, jwt for JWT).
+// one field is populated per Principal, matching Principal.Type.
 type Source struct {
 	// Key is populated when Type is API_KEY.
 	Key *KeySource `json:"key,omitempty"`
@@ -121,8 +116,7 @@ type KeySource struct {
 	ExpiresAt *int64 `json:"expiresAt,omitempty"`
 
 	// Meta is the custom metadata attached to the key. Always emitted
-	// as a JSON object — {} when no metadata was set. Callers must
-	// initialize this to a non-nil map.
+	// as a JSON object — {} when no metadata was set. Must be non-nil.
 	Meta map[string]any `json:"meta"`
 
 	// Roles are the raw RBAC role names attached to the key. Omitted
