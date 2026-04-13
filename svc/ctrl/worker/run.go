@@ -86,11 +86,12 @@ func Run(ctx context.Context, cfg Config) error {
 	var err error
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
-			Application:     "worker",
-			Version:         version.Version,
-			InstanceID:      cfg.InstanceID,
-			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
+			Application:        "worker",
+			Version:            version.Version,
+			InstanceID:         cfg.InstanceID,
+			CloudRegion:        cfg.Region,
+			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
+			PrometheusGatherer: nil,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
