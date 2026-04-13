@@ -111,16 +111,16 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			})
 
 			// Capture response body for logging via TeeReader.
-				// Streaming: bytes flow to the client while accumulating in responseBuf.
-				// Non-streaming: the proxy buffers internally, same result.
-				if resp.Body != nil {
-					responseBuf.Reset()
-					resp.Body = io.NopCloser(io.TeeReader(resp.Body, &zen.LimitedWriter{W: &responseBuf, N: zen.MaxBodyCapture}))
-				}
+			// Streaming: bytes flow to the client while accumulating in responseBuf.
+			// Non-streaming: the proxy buffers internally, same result.
+			if resp.Body != nil {
+				responseBuf.Reset()
+				resp.Body = io.NopCloser(io.TeeReader(resp.Body, &zen.LimitedWriter{W: &responseBuf, N: zen.MaxBodyCapture}))
+			}
 
-				if source != "sentinel" {
-					return nil
-				}
+			if source != "sentinel" {
+				return nil
+			}
 
 			if sentinelTime := resp.Header.Get(timing.HeaderName); sentinelTime != "" {
 				sess.ResponseWriter().Header().Add(timing.HeaderName, sentinelTime)

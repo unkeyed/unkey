@@ -30,7 +30,7 @@ export const RepoListItem = ({
 }: {
   repo: RepoItem;
   projectId: string;
-  onSelect: (repo: RepoItem) => void;
+  onSelect: (repo: RepoItem, selectedBranch: string) => void;
   disabled: boolean;
   loading: boolean;
 }) => {
@@ -87,7 +87,9 @@ export const RepoListItem = ({
                 leftIcon={<CodeBranch className="text-gray-12 size-3" iconSize="sm-regular" />}
                 rightIcon={<ChevronDown className="text-gray-9 size-3 right-2 absolute" />}
               >
-                <SelectValue />
+                <div className="truncate">
+                  <SelectValue />
+                </div>
               </SelectTrigger>
               <SelectContent className="max-h-50 w-62.5">
                 {(details.branches ?? []).map((branch) => (
@@ -108,7 +110,7 @@ export const RepoListItem = ({
           className="rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all px-3"
           disabled={disabled || isLoading}
           loading={loading}
-          onClick={() => onSelect(repo)}
+          onClick={() => onSelect(repo, selectedBranch)}
         >
           <span className="text-[13px] text-gray-12 font-medium">Select</span>
         </Button>
