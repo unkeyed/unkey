@@ -20,6 +20,9 @@ export const getEnvironmentSettings = workspaceProcedure
             eq(appRuntimeSettings.workspaceId, ctx.workspace.id),
             eq(appRuntimeSettings.environmentId, input.environmentId),
           ),
+          columns: {
+            sentinelConfig: false,
+          },
         }),
         db.query.appRegionalSettings.findMany({
           where: and(
