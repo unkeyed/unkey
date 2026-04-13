@@ -32,7 +32,6 @@ export async function fetchApiOverview({
       keyAuth: {
         columns: {
           id: true,
-          sizeApprox: true,
         },
       },
     },
