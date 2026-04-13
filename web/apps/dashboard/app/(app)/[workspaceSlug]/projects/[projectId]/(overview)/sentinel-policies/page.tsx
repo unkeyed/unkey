@@ -70,7 +70,7 @@ export default function SentinelPoliciesPage() {
             mode="edit"
             envASlug={envASlug}
             envBSlug={envBSlug}
-            isOpen
+            isOpen={panels.isEditPanelOpen}
             topOffset={layout?.tableDistanceToTop ?? 0}
             onClose={panels.closeEdit}
             initialPolicy={panels.editing}

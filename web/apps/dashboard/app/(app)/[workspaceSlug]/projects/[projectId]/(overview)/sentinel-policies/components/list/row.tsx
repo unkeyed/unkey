@@ -115,7 +115,16 @@ export function SentinelPolicyRow({
         className={cn(!isLast && "border-b border-grayA-4", isDragOver && "bg-grayA-3")}
       >
         <div className={cn(!isActiveAnywhere && "opacity-55")}>
-          <div className="group flex items-center hover:bg-grayA-2 transition-colors">
+          <button
+            type="button"
+            className="group flex items-center hover:bg-grayA-2 transition-colors cursor-pointer w-full text-left"
+            onClick={() => {
+              const target = policy.envA ?? policy.envB;
+              if (target) {
+                onEdit(target);
+              }
+            }}
+          >
             {/* Step number */}
             <div className="w-10 shrink-0 py-5 pl-4 flex items-center">
               <div
@@ -204,7 +213,7 @@ export function SentinelPolicyRow({
                 variant="danger"
               />
             </div>
-          </div>
+          </button>
         </div>
       </div>
     </>
