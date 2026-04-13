@@ -237,21 +237,21 @@ function toMatchExpr(condition: MatchConditionFormValues): MatchExpr {
       c.present
         ? { header: { name: c.name, present: true } }
         : {
-          header: {
-            name: c.name,
-            value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
+            header: {
+              name: c.name,
+              value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
+            },
           },
-        },
     )
     .with({ type: "queryParam" }, (c) =>
       c.present
         ? { queryParam: { name: c.name, present: true } }
         : {
-          queryParam: {
-            name: c.name,
-            value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
+            queryParam: {
+              name: c.name,
+              value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
+            },
           },
-        },
     )
     .exhaustive();
 }
@@ -348,7 +348,7 @@ function fromMatchExpr(raw: unknown): MatchConditionFormValues | null {
   }
   const expr = parsed.data;
   const id = crypto.randomUUID();
- if ("path" in expr) {
+  if ("path" in expr) {
     const { mode, value } = stringMatchToMode(expr.path.path);
     return { id, type: "path", mode, value };
   }
@@ -376,14 +376,19 @@ function fromRateLimitKey(key: RateLimitKey): {
   keySource: RateLimitKeySource;
   keyValue: string;
 } {
-  return match(key)
-    .returnType<{ keySource: RateLimitKeySource; keyValue: string }>()
-    .with({ remoteIp: P.nonNullable }, () => ({ keySource: "remoteIp", keyValue: "" }))
-    .with({ header: P.nonNullable }, (k) => ({ keySource: "header", keyValue: k.header.name }))
-    .with({ authenticatedSubject: P.nonNullable }, () => ({ keySource: "authenticatedSubject", keyValue: "" }))
-    .with({ path: P.nonNullable }, () => ({ keySource: "path", keyValue: "" }))
-    .with({ principalClaim: P.nonNullable }, (k) => ({ keySource: "principalClaim", keyValue: k.principalClaim.claimName }))
-    .exhaustive();
+  if ("remoteIp" in key) {
+    return { keySource: "remoteIp", keyValue: "" };
+  }
+  if ("header" in key) {
+    return { keySource: "header", keyValue: key.header.name };
+  }
+  if ("authenticatedSubject" in key) {
+    return { keySource: "authenticatedSubject", keyValue: "" };
+  }
+  if ("path" in key) {
+    return { keySource: "path", keyValue: "" };
+  }
+  return { keySource: "principalClaim", keyValue: key.principalClaim.claimName };
 }
 
 export function fromSentinelPolicy(
