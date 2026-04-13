@@ -74,14 +74,15 @@ import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
 import { updateStorage } from "./deploy/environment-settings/runtime/update-storage";
 import { updateUpstreamProtocol } from "./deploy/environment-settings/runtime/update-upstream-protocol";
+import { generatePolicies } from "./deploy/environment-settings/sentinel/generate-policies";
 import { generateRegex } from "./deploy/environment-settings/sentinel/generate-regex";
 import { create as createKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/create";
 import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
 import { update as updateKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/update";
+import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
 import { create as createRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/create";
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
-import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
 import { reorder as reorderSentinelPolicies } from "./deploy/environment-settings/sentinel/reorder";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
@@ -439,6 +440,7 @@ export const router = t.router({
           delete: deleteRatelimitPolicy,
         }),
         generateRegex,
+        generatePolicies,
       }),
       runtime: t.router({
         updateCpu,

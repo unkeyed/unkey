@@ -3,6 +3,7 @@
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
+import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { KeyAuthFields } from "./forms/keyauth-fields";
 import { RateLimitFields } from "./forms/ratelimit-fields";
@@ -32,6 +33,7 @@ type CommonProps = {
 
 type AddProps = CommonProps & {
   mode: "add";
+  initialValues?: PolicyFormValues;
   onSave: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
 };
 
@@ -56,12 +58,22 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
 
   const form = useForm<PolicyFormValues>({
     resolver: zodResolver(policyFormSchema),
+    mode: "onChange",
     defaultValues: isEdit
       ? fromSentinelPolicy(props.initialPolicy, props.initialEnvironmentId)
-      : getDefaultValues("keyauth"),
+      : props.mode === "add" && props.initialValues
+        ? props.initialValues
+        : getDefaultValues("keyauth"),
   });
   const { control } = form;
   const policyType = useWatch({ control, name: "type" });
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally run once on mount to surface validation errors for AI-prefilled values
+  useEffect(() => {
+    if (props.mode === "add" && props.initialValues) {
+      form.trigger();
+    }
+  }, []);
 
   const onSubmit = (values: PolicyFormValues) => {
     const id = props.mode === "edit" ? props.initialPolicy.id : undefined;

@@ -82,7 +82,8 @@ export function summarizePolicy(
     ))
     .with({ type: "ratelimit" }, (v) => (
       <span className="text-gray-11">
-        <Strong>{v.limit}</Strong> / {v.windowMs >= 1000 ? `${v.windowMs / 1000}s` : `${v.windowMs}ms`}
+        <Strong>{v.limit}</Strong> /{" "}
+        {v.windowMs >= 1000 ? `${v.windowMs / 1000}s` : `${v.windowMs}ms`}
         <Sep />
         per <Strong>{KEY_SOURCE_LABELS[v.keySource]}</Strong>
         {v.keyValue && (
