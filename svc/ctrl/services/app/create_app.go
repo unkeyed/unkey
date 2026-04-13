@@ -94,20 +94,21 @@ func (s *Service) CreateApp(
 			}
 
 			if txErr := db.Query.UpsertAppRuntimeSettings(txCtx, tx, db.UpsertAppRuntimeSettingsParams{
-				WorkspaceID:     workspaceID,
-				AppID:           appID,
-				EnvironmentID:   envID,
-				Port:            0,
-				CpuMillicores:   0,
-				MemoryMib:       0,
-				StorageMib:      0,
-				Command:         dbtype.StringSlice{},
-				Healthcheck:     dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-				ShutdownSignal:  db.AppRuntimeSettingsShutdownSignalSIGTERM,
-				SentinelConfig:  []byte("{}"),
-				OpenapiSpecPath: sql.NullString{Valid: false},
-				CreatedAt:       now,
-				UpdatedAt:       sql.NullInt64{Valid: true, Int64: now},
+				WorkspaceID:      workspaceID,
+				AppID:            appID,
+				EnvironmentID:    envID,
+				Port:             0,
+				CpuMillicores:    0,
+				MemoryMib:        0,
+				StorageMib:       0,
+				Command:          dbtype.StringSlice{},
+				Healthcheck:      dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
+				ShutdownSignal:   db.AppRuntimeSettingsShutdownSignalSIGTERM,
+				UpstreamProtocol: db.AppRuntimeSettingsUpstreamProtocolHttp1,
+				SentinelConfig:   []byte("{}"),
+				OpenapiSpecPath:  sql.NullString{Valid: false},
+				CreatedAt:        now,
+				UpdatedAt:        sql.NullInt64{Valid: true, Int64: now},
 			}); txErr != nil {
 				return fmt.Errorf("upsert %s runtime settings: %w", env.slug, txErr)
 			}
