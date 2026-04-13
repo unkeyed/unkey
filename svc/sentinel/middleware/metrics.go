@@ -8,11 +8,11 @@ import (
 	"syscall"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 var (
-	sentinelProxyErrorsTotal = promauto.NewCounterVec(
+	sentinelProxyErrorsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "sentinel",

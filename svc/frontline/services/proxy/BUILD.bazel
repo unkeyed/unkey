@@ -21,12 +21,12 @@ go_library(
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/logger",
+        "//pkg/prometheus/lazy",
         "//pkg/timing",
         "//pkg/zen",
         "//svc/frontline/internal/errorpage",
         "//svc/frontline/services/router",
         "@com_github_prometheus_client_golang//prometheus",
-        "@com_github_prometheus_client_golang//prometheus/promauto",
         "@org_golang_x_net//http2",
     ],
 )

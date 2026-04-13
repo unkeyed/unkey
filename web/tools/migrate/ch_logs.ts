@@ -1,6 +1,6 @@
 import { createClient } from "@clickhouse/client-web";
 import { ClickHouse } from "@unkey/clickhouse";
-import { type Identity, mysqlDrizzle, schema } from "@unkey/db";
+import { type Identity, drizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { z } from "zod";
 
@@ -52,7 +52,7 @@ const conn = await mysql.createConnection(
 );
 
 await conn.ping();
-const db = mysqlDrizzle(conn, { schema, mode: "default" });
+const db = drizzle(conn, { schema, mode: "default" });
 
 const CACHE_FILE = "identity_cache.json";
 

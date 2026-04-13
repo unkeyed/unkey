@@ -166,15 +166,6 @@ k8s_resource('vector-logs', resource_deps=['clickhouse', 'rbac'], labels=['obser
 k8s_yaml('k8s/manifests/s3.yaml')
 k8s_resource('s3', port_forwards=['3902:3902', '3903:3903'], resource_deps=[], labels=['database'])
 
-# PlanetScale HTTP driver
-k8s_yaml('k8s/manifests/planetscale.yaml')
-k8s_resource(
-    'planetscale',
-    port_forwards='3900:3900',
-    resource_deps=['mysql'],
-    labels=['database']
-)
-
 # Restate service
 k8s_yaml('k8s/manifests/restate.yaml')
 k8s_resource('restate', port_forwards=['8080:8080', '9070:9070'], resource_deps=[], labels=['database'])
@@ -308,7 +299,7 @@ local_resource(
       cd ../web && pnpm --filter=@unkey/dashboard dev
     ''',
     deps=[],
-    resource_deps=['planetscale', 'clickhouse', 'ctrl-api'],
+    resource_deps=['mysql', 'clickhouse', 'ctrl-api'],
     labels=['unkey'],
     auto_init=True,
     readiness_probe=probe(http_get=http_get_action(port=3000, path='/'), period_secs=5, failure_threshold=30),

@@ -75,7 +75,11 @@ export const ChartLoading = ({
     return (
       <div className={cn("flex flex-col h-full animate-pulse", className)}>
         <div className="flex-1 min-h-0">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            initialDimension={{ width: 1, height: 1 }}
+          >
             <BarChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <YAxis domain={[0, 1]} hide />
               <Bar
@@ -109,7 +113,12 @@ export const ChartLoading = ({
             </div>
           ))}
         </div>
-        <ResponsiveContainer height={height} className="border-b border-gray-4" width="100%">
+        <ResponsiveContainer
+          height={height}
+          className="border-b border-gray-4"
+          width="100%"
+          initialDimension={{ width: 1, height: 1 }}
+        >
           <BarChart
             margin={{ top: 0, right: -20, bottom: 0, left: -20 }}
             barGap={0}
@@ -132,7 +141,7 @@ export const ChartLoading = ({
   return (
     <div className={cn("flex flex-col h-full animate-pulse", className)}>
       <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
           <BarChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
             <YAxis domain={[0, 1]} hide />
             <Bar dataKey="success" fill="hsl(var(--accent-3))" isAnimationActive={false} />
@@ -277,7 +286,7 @@ function FullChartLoader({
 
       {/* Chart area */}
       <div className="flex-1 min-h-0">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
           <AreaChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
             <defs>
               {labelsWithDefaults.metrics.map((metric) => (

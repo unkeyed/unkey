@@ -4,7 +4,6 @@
  */
 
 import { Navigation } from "@/components/navigation/navigation";
-import { PageContent } from "@/components/page-content";
 import { getAuth } from "@/lib/auth";
 import { auth } from "@/lib/auth/server";
 import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
@@ -14,6 +13,7 @@ import { Vercel } from "@unkey/vercel";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Client } from "./client";
+import { PropsWithChildren } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -168,8 +168,8 @@ export default async function Page(props: Props) {
             Record<
               VercelBinding["resourceType"],
               | (VercelBinding & {
-                  updatedBy: { id: string; name: string; image: string | null };
-                })
+                updatedBy: { id: string; name: string; image: string | null };
+              })
               | null
             >
           >,
@@ -186,4 +186,9 @@ export default async function Page(props: Props) {
       </PageContent>
     </div>
   );
+}
+
+
+function PageContent({ children }: PropsWithChildren) {
+  return <div className="p-4">{children}</div>;
 }

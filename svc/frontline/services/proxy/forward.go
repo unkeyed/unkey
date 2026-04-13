@@ -119,6 +119,8 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			// 5xx from sentinel → fault error → frontline observability handles content negotiation
 			if resp.StatusCode >= 500 {
 				proxyForwardTotal.WithLabelValues(cfg.destination, "backend_5xx").Inc()
+				proxyForwardErrorsTotal.WithLabelValues(cfg.destination).Inc()
+				proxyBackendErrorsTotal.WithLabelValues(cfg.destination, source).Inc()
 
 				// Try to extract the original error code from sentinel's JSON response
 				// so we preserve the specific error (e.g. InvalidConfiguration → 500)
@@ -168,6 +170,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			return err
 		}
 		proxyForwardTotal.WithLabelValues(cfg.destination, categorizeProxyErrorType(err)).Inc()
+		proxyForwardErrorsTotal.WithLabelValues(cfg.destination).Inc()
 		urn, message := categorizeProxyError(err, cfg.destination)
 		return fault.Wrap(err,
 			fault.Code(urn),

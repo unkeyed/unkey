@@ -1,4 +1,4 @@
-import { mysqlDrizzle, schema } from "@unkey/db";
+import { drizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 
 /**
@@ -16,7 +16,7 @@ async function main() {
   );
 
   await conn.ping();
-  const db = mysqlDrizzle(conn, { schema, mode: "default" });
+  const db = drizzle(conn, { schema, mode: "default" });
 
   const runtimeSettings = await db.query.appRuntimeSettings.findMany({
     columns: {
