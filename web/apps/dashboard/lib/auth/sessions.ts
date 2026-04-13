@@ -46,7 +46,8 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
       } catch (_error) {
         headers.append(
           "Set-Cookie",
-          `${UNKEY_SESSION_COOKIE}=${localSessionToken}; Path=/; SameSite=Strict; Max-Age=${60 * 60 * 24 * 365 * 10
+          `${UNKEY_SESSION_COOKIE}=${localSessionToken}; Path=/; SameSite=Strict; Max-Age=${
+            60 * 60 * 24 * 365 * 10
           }`,
         );
       }
@@ -110,7 +111,8 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
             // For middleware/trpc routes with request object
             headers.append(
               "Set-Cookie",
-              `${UNKEY_SESSION_COOKIE}=${refreshedSession.newToken
+              `${UNKEY_SESSION_COOKIE}=${
+                refreshedSession.newToken
               }; ${await getCookieOptionsAsString({
                 expiresAt: refreshedSession.expiresAt,
               })}`,
@@ -127,7 +129,8 @@ export async function updateSession(request?: NextRequest): Promise<SessionResul
               // Fall back to headers approach if cookie setting fails
               headers.append(
                 "Set-Cookie",
-                `${UNKEY_SESSION_COOKIE}=${refreshedSession.newToken
+                `${UNKEY_SESSION_COOKIE}=${
+                  refreshedSession.newToken
                 }; ${await getCookieOptionsAsString({
                   expiresAt: refreshedSession.expiresAt,
                 })}`,

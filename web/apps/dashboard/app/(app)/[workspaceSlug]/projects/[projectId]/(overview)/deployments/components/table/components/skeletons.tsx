@@ -1,4 +1,4 @@
-import { Cloud, CodeBranch, Cube, Dots } from "@unkey/icons";
+import { Cloud, Cube, Dots } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 
 export const DeploymentIdColumnSkeleton = () => (

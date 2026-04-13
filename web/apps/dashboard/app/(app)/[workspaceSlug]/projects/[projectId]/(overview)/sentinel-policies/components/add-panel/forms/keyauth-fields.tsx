@@ -143,7 +143,13 @@ export function KeyAuthFields() {
             tooltipContent="Where to extract the API key from. Defaults to Bearer token if not configured."
           />
           {!location && (
-            <Button type="button" variant="outline" size="md" className="font-medium" onClick={addLocation}>
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              className="font-medium"
+              onClick={addLocation}
+            >
               <Plus iconSize="sm-regular" />
               Add
             </Button>
