@@ -243,9 +243,9 @@ export const githubRouter = t.router({
           return { tree: null };
         }
 
-        return { tree: result.tree };
+        return { tree: result.tree, branch: githubContext.defaultBranch };
       } catch {
-        return { tree: null };
+        return { tree: null, branch: githubContext.defaultBranch };
       }
     }),
 

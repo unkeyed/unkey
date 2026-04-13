@@ -18,7 +18,7 @@ export const Dockerfile = () => {
   const { settings, variant } = useEnvironmentSettings();
   const { dockerfile: defaultValue, dockerContext } = settings;
   const updateAllEnvironments = useUpdateAllEnvironments();
-  const { validateDockerfilePath, findDockerfileCaseMatch, getDockerfilesForContext } =
+  const { branch, validateDockerfilePath, findDockerfileCaseMatch, getDockerfilesForContext } =
     useRepoTree();
 
   const {
@@ -75,6 +75,10 @@ export const Dockerfile = () => {
             {caseMatch}
           </button>
           ?
+        </span>
+      ) : branch ? (
+        <span>
+          File not found on branch <span className="font-medium text-gray-12">{branch}</span>
         </span>
       ) : (
         "File not found on this branch"

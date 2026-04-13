@@ -30,6 +30,7 @@ export function useRepoTree() {
     { staleTime: 5 * 60 * 1000 },
   );
   const tree = data?.tree ?? null;
+  const branch = data?.branch ?? null;
   const isReady = !isLoading && !isError && tree !== null;
 
   const treeSet = useMemo(() => {
@@ -124,6 +125,7 @@ export function useRepoTree() {
   }
 
   return {
+    branch,
     validatePath,
     findCaseInsensitiveMatch,
     validateDockerfilePath,
