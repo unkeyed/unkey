@@ -39,9 +39,8 @@ import (
 
 type middlewareEngineCfg struct {
 	Runner           *runner.Runner
-	Counter          counter.Counter
+	RedisURL         string
 	Region           string
-	RateLimiter      ratelimit.Service
 	Database         db.Database
 	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
 	Clock            clock.Clock
@@ -120,31 +119,6 @@ func Run(ctx context.Context, cfg Config) error {
 			return nil
 		})
 	}
-
-	var ctr counter.Counter
-	if cfg.Redis.URL != "" {
-		redisCtr, ctrErr := counter.NewRedis(counter.RedisConfig{
-			RedisURL: cfg.Redis.URL,
-		})
-		if ctrErr != nil {
-			return fmt.Errorf("unable to create counter: %w", ctrErr)
-		}
-		r.Defer(redisCtr.Close)
-		ctr = redisCtr
-	} else {
-		memoryCtr := counter.NewMemory()
-		r.Defer(memoryCtr.Close)
-		ctr = memoryCtr
-	}
-
-	rlSvc, err := ratelimit.New(ratelimit.Config{
-		Clock:   clk,
-		Counter: ctr,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create ratelimit service: %w", err)
-	}
-	r.Defer(rlSvc.Close)
 
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
@@ -245,9 +219,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	middlewareEngine, err := initMiddlewareEngine(middlewareEngineCfg{
 		Runner:           r,
-		Counter:          ctr,
+		RedisURL:         cfg.Redis.URL,
 		Region:           cfg.Region,
-		RateLimiter:      rlSvc,
 		Database:         database,
 		KeyVerifications: keyVerifications,
 		Clock:            clk,
@@ -319,9 +292,34 @@ func Run(ctx context.Context, cfg Config) error {
 // reconnects lazily, and both the rate limiter and usage limiter degrade
 // gracefully (local windows / DB fallback) when Redis is temporarily unavailable.
 func initMiddlewareEngine(cfg middlewareEngineCfg) (engine.Evaluator, error) {
+	var ctr counter.Counter
+	if cfg.RedisURL != "" {
+		redisCtr, err := counter.NewRedis(counter.RedisConfig{
+			RedisURL: cfg.RedisURL,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create redis counter: %w", err)
+		}
+		cfg.Runner.Defer(redisCtr.Close)
+		ctr = redisCtr
+	} else {
+		memoryCtr := counter.NewMemory()
+		cfg.Runner.Defer(memoryCtr.Close)
+		ctr = memoryCtr
+	}
+
+	rlSvc, err := ratelimit.New(ratelimit.Config{
+		Clock:   cfg.Clock,
+		Counter: ctr,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ratelimit service: %w", err)
+	}
+	cfg.Runner.Defer(rlSvc.Close)
+
 	rateLimiter, err := ratelimit.New(ratelimit.Config{
 		Clock:   cfg.Clock,
-		Counter: cfg.Counter,
+		Counter: ctr,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rate limiter: %w", err)
@@ -344,7 +342,7 @@ func initMiddlewareEngine(cfg middlewareEngineCfg) (engine.Evaluator, error) {
 				Credits: sql.NullInt32{Int32: cost, Valid: true},
 			})
 		},
-		Counter:       cfg.Counter,
+		Counter:       ctr,
 		TTL:           60 * time.Second,
 		ReplayWorkers: 8,
 	})
@@ -381,7 +379,7 @@ func initMiddlewareEngine(cfg middlewareEngineCfg) (engine.Evaluator, error) {
 	logger.Info("middleware engine initialized")
 	return engine.New(engine.Config{
 		KeyService:  keyService,
-		RateLimiter: cfg.RateLimiter,
+		RateLimiter: rlSvc,
 		Clock:       cfg.Clock,
 	}), nil
 }
