@@ -13,7 +13,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 // latencyBuckets are standard histogram buckets for latency metrics in seconds.
@@ -35,7 +35,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitWindows.Set(float64(activeCounters))
-	RatelimitWindows = promauto.NewGauge(
+	RatelimitWindows = lazy.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -50,7 +50,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitWindowsCreated.Inc()
-	RatelimitWindowsCreated = promauto.NewCounter(
+	RatelimitWindowsCreated = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -65,7 +65,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitWindowsEvicted.Inc()
-	RatelimitWindowsEvicted = promauto.NewCounter(
+	RatelimitWindowsEvicted = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -87,7 +87,7 @@ var (
 	// Example usage:
 	//   metrics.RatelimitDecision.WithLabelValues("local", "passed").Inc()
 	//   metrics.RatelimitDecision.WithLabelValues("origin", "denied").Inc()
-	RatelimitDecision = promauto.NewCounterVec(
+	RatelimitDecision = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -104,7 +104,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitCASExhausted.Inc()
-	RatelimitCASExhausted = promauto.NewCounter(
+	RatelimitCASExhausted = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -121,7 +121,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.RatelimitStrictModeActivations.Inc()
-	RatelimitStrictModeActivations = promauto.NewCounter(
+	RatelimitStrictModeActivations = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -154,7 +154,7 @@ var (
 	// Example usage:
 	//   metrics.RatelimitOriginLatency.WithLabelValues("fetch").Observe(seconds)
 	//   metrics.RatelimitOriginLatency.WithLabelValues("sync").Observe(seconds)
-	RatelimitOriginLatency = promauto.NewHistogramVec(
+	RatelimitOriginLatency = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
@@ -175,7 +175,7 @@ var (
 	// Example usage:
 	//   metrics.RatelimitOriginErrors.WithLabelValues("fetch").Inc()
 	//   metrics.RatelimitOriginErrors.WithLabelValues("sync").Inc()
-	RatelimitOriginErrors = promauto.NewCounterVec(
+	RatelimitOriginErrors = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",

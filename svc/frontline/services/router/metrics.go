@@ -2,7 +2,7 @@ package router
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 var (
@@ -11,7 +11,7 @@ var (
 	// Labels:
 	//   decision: "local_sentinel" or "remote_region"
 	//   target_region: the region being routed to (local region name or remote region.platform)
-	routingDecisionsTotal = promauto.NewCounterVec(
+	routingDecisionsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
@@ -27,7 +27,7 @@ var (
 	//   reason: "no_running_instances", "no_sentinels_for_instances",
 	//           "config_not_found", "config_load_failed", "sentinel_load_failed",
 	//           "instance_load_failed", "no_reachable_region"
-	routingErrorsTotal = promauto.NewCounterVec(
+	routingErrorsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
@@ -38,7 +38,7 @@ var (
 	)
 
 	// routingDuration tracks how long the full Route() call takes (cache lookups + DB fallback).
-	routingDuration = promauto.NewHistogram(
+	routingDuration = lazy.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",

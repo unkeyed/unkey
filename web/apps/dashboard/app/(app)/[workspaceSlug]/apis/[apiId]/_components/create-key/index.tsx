@@ -104,15 +104,17 @@ export const CreateKeyDialog = ({
     reset(getDefaultValues());
     setIsSettingsOpen(false);
     resetValidSteps();
-    // Force dialog to remount and reset to initial state (general section)
-    setDialogKey((prev) => prev + 1);
+    requestAnimationFrame(() => {
+      setDialogKey((prev) => prev + 1);
+    });
   });
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       saveCurrentValues();
-      // Reset to general step when closing, so next time it opens on the first step
-      setDialogKey((prev) => prev + 1);
+      requestAnimationFrame(() => {
+        setDialogKey((prev) => prev + 1);
+      });
     }
     setIsSettingsOpen(open);
   };

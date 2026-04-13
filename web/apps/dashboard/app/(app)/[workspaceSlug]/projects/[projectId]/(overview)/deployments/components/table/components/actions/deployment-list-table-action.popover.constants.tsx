@@ -65,7 +65,6 @@ export const DeploymentListTableActions = ({
                 {...props}
                 currentDeployment={currentDeployment}
                 targetDeployment={selectedDeployment}
-                isConfirmingRollback={isRolledBack && selectedDeployment.id === currentDeploymentId}
               />
             )
           : undefined,
