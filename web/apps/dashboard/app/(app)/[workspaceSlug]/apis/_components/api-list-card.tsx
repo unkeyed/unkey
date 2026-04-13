@@ -56,7 +56,7 @@ export const ApiListCard = ({ api }: Props) => {
             <div className="flex items-center gap-1.5 max-w-[40%]">
               <Key className="text-accent-11 shrink-0" iconSize="md-medium" />
               <InfoTooltip
-                content={`This API has approximately ${keyCount.toLocaleString()} total ${keyCount === 1 ? "key" : "keys"}`}
+                content={`This API has ${keyCount.toLocaleString()} total ${keyCount === 1 ? "key" : "keys"}`}
                 triggerClassName="cursor-pointer"
               >
                 <div className="text-xs text-accent-9 tabular-nums flex-1 min-w-0">
