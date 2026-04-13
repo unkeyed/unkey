@@ -157,9 +157,9 @@ func TestRatelimit_StrictModeForcesOriginFetch(t *testing.T) {
 	// Poison origin with a value higher than local. If strict mode forces a
 	// fetch, the next prepareCheck will CAS-merge this into local.
 	const originValue int64 = 999
-	_, err = origin.Increment(context.Background(), redisKey(curKey), originValue)
+	_, err = origin.Increment(context.Background(), curKey.redisKey(), originValue)
 	require.NoError(t, err)
-	_, err = origin.Increment(context.Background(), redisKey(prevKey), originValue)
+	_, err = origin.Increment(context.Background(), prevKey.redisKey(), originValue)
 	require.NoError(t, err)
 
 	_, err = svc.Ratelimit(context.Background(), req)

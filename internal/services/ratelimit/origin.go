@@ -19,7 +19,7 @@ import (
 // or Redis error) the local counter is left unchanged — callers proceed
 // with whatever local state they have.
 func (s *service) fetchFromOrigin(ctx context.Context, key counterKey, ptr *atomic.Int64) {
-	rk := redisKey(key)
+	rk := key.redisKey()
 
 	res, err := s.originCircuitBreaker.Do(ctx, func(ctx context.Context) (int64, error) {
 		start := time.Now()
@@ -87,7 +87,7 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 
 		return s.origin.Increment(
 			innerCtx,
-			redisKey(key),
+			key.redisKey(),
 			req.Cost,
 			req.Duration*3,
 		)
