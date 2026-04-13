@@ -11,19 +11,19 @@ The logging policy records the full HTTP request and response for every matched 
 
 ## What gets logged
 
-The Sentinel captures the following for each request:
+The Sentinel captures the following for each request, including streaming protocols like gRPC and Connect:
 
 **Request data**
 
 - HTTP method, host, path, and query string
 - Request headers (Authorization headers are redacted)
-- Request body
+- Request body (up to 1 MiB)
 
 **Response data**
 
 - Status code
 - Response headers
-- Response body
+- Response body (up to 1 MiB)
 
 **Metadata**
 
@@ -40,6 +40,12 @@ The Sentinel captures the following for each request:
 | Total latency      | End-to-end time from when the Sentinel received the request   |
 | Instance latency   | Time your app spent processing the request                |
 | Sentinel latency   | Overhead added by the Sentinel (policy evaluation, routing)   |
+
+## Streaming support
+
+The Sentinel captures request and response bodies for streaming protocols (gRPC and Connect) alongside standard HTTP traffic. Body data is captured as it flows through the proxy without buffering the full stream, so there is no impact on latency or throughput.
+
+For bodies larger than 1 MiB, only the first 1 MiB is retained in the log entry. The full payload is still delivered to your application and to the client — the limit only applies to what is stored for logging.
 
 ## View logs
 
