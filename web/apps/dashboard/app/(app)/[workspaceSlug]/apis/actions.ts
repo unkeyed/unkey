@@ -45,8 +45,38 @@ export async function fetchApiOverview({
   const nextCursor =
     hasMore && apiItems.length > 0 ? { id: apiItems[apiItems.length - 1].id } : undefined;
 
+  const apiList = await attachKeyCounts(
+    workspaceId,
+    apiItems.map((api) => ({ id: api.id, name: api.name, keyAuthId: api.keyAuth?.id ?? null })),
+  );
+
+  return {
+    apiList,
+    hasMore,
+    nextCursor,
+    total,
+  };
+}
+
+type ApiItem = {
+  id: string;
+  name: string;
+  keyAuthId: string | null;
+};
+
+type ApiWithKeyCount = {
+  id: string;
+  name: string;
+  keyspaceId: string | null;
+  keyCount: number;
+};
+
+export async function attachKeyCounts(
+  workspaceId: string,
+  apiItems: Array<ApiItem>,
+): Promise<Array<ApiWithKeyCount>> {
   const keyAuthIds = apiItems
-    .map((api) => api.keyAuth?.id)
+    .map((api) => api.keyAuthId)
     .filter((id): id is string => Boolean(id));
 
   const keyCountsByKeyAuthId = new Map<string, number>();
@@ -71,47 +101,10 @@ export async function fetchApiOverview({
     }
   }
 
-  const apiList = apiItems.map((api) => {
-    const keyspaceId = api.keyAuth?.id || null;
-    return {
-      id: api.id,
-      name: api.name,
-      keyspaceId,
-      keyCount: keyspaceId ? (keyCountsByKeyAuthId.get(keyspaceId) ?? 0) : 0,
-    };
-  });
-
-  return {
-    apiList,
-    hasMore,
-    nextCursor,
-    total,
-  };
-}
-
-type ApiItem = {
-  id: string;
-  name: string;
-  keyAuthId: string | null;
-  keyAuth?: {
-    sizeApprox?: number;
-  } | null;
-};
-
-type ApiWithKeyCount = {
-  id: string;
-  name: string;
-  keyspaceId: string | null;
-  keyCount: number;
-};
-
-export async function apiItemsWithApproxKeyCounts(
-  apiItems: Array<ApiItem>,
-): Promise<Array<ApiWithKeyCount>> {
   return apiItems.map((api) => ({
     id: api.id,
     name: api.name,
     keyspaceId: api.keyAuthId,
-    keyCount: api.keyAuth?.sizeApprox ?? 0,
+    keyCount: api.keyAuthId ? (keyCountsByKeyAuthId.get(api.keyAuthId) ?? 0) : 0,
   }));
 }
