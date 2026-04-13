@@ -1,4 +1,4 @@
-import { eq, drizzle, schema } from "@unkey/db";
+import { drizzle, eq, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 
 async function main() {

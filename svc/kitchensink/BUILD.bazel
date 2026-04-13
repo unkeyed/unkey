@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "kitchensink_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/svc/kitchensink",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//svc/kitchensink/echo",
+        "//svc/kitchensink/env",
+        "//svc/kitchensink/headers",
+        "//svc/kitchensink/hello",
+        "//svc/kitchensink/logs",
+        "//svc/kitchensink/principal",
+        "//svc/kitchensink/sleep",
+        "//svc/kitchensink/status",
+    ],
+)
+
+go_binary(
+    name = "kitchensink",
+    embed = [":kitchensink_lib"],
+    visibility = ["//visibility:public"],
+)
