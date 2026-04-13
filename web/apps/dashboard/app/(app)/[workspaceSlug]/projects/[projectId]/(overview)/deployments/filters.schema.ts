@@ -5,7 +5,6 @@ import type {
 } from "@/components/logs/validation/filter.types";
 import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
-import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { z } from "zod";
 
 // Define grouped statuses for client filtering
@@ -73,26 +72,6 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ["is"],
   },
-};
-
-// Mapping function to expand grouped statuses to actual statuses
-export const expandGroupedStatus = (groupedStatus: GroupedDeploymentStatus): DeploymentStatus[] => {
-  switch (groupedStatus) {
-    case "pending":
-      return ["pending"];
-    case "deploying":
-      return ["starting", "building", "deploying", "network", "finalizing"];
-    case "ready":
-      return ["ready"];
-    case "failed":
-      return ["failed"];
-    case "skipped":
-      return ["skipped"];
-    case "stopped":
-      return ["stopped"];
-    default:
-      throw new Error(`Unknown grouped status: ${groupedStatus}`);
-  }
 };
 
 const allFilterFieldNames = Object.keys(
