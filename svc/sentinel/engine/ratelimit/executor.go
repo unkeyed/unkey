@@ -54,9 +54,8 @@ func (e *Executor) Execute(
 		Identifier: identifier,
 		Limit:      cfg.GetLimit(),
 		Duration:   time.Duration(cfg.GetWindowMs()) * time.Millisecond,
-		// NOTE: Move this to proto so users can configure cost
-		Cost: 1,
-		Time: time.Time{},
+		Cost:       1,
+		Time:       time.Time{},
 	})
 	if err != nil {
 		return fault.Wrap(err,

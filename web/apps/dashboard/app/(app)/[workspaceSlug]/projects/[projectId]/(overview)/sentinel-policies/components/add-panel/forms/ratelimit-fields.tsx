@@ -10,7 +10,6 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
-import type { Control } from "react-hook-form";
 import { useController, useFormContext } from "react-hook-form";
 
 // Self-contained ratelimit form types. Not yet wired into the canonical
@@ -44,7 +43,7 @@ const KEY_SOURCE_OPTIONS: { value: RateLimitKeySource; label: string }[] = [
 ];
 
 export function RateLimitFields() {
-  const { control  } = useFormContext<RatelimitFormValues>();
+  const { control } = useFormContext<RatelimitFormValues>();
 
   const {
     field: { value: limit, onChange: onLimitChange },

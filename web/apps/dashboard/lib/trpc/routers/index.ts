@@ -78,10 +78,10 @@ import { generateRegex } from "./deploy/environment-settings/sentinel/generate-r
 import { create as createKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/create";
 import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
 import { update as updateKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/update";
+import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
 import { create as createRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/create";
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
-import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
 import { reorder as reorderSentinelPolicies } from "./deploy/environment-settings/sentinel/reorder";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
