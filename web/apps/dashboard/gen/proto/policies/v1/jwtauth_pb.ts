@@ -21,12 +21,11 @@ export const file_policies_v1_jwtauth: GenFile = /*@__PURE__*/
  * claim validation, and key rotation logic. JWTAuth centralizes all of this
  * at the proxy layer.
  *
- * On successful validation, JWTAuth produces a [Principal] with type
- * PRINCIPAL_TYPE_JWT. The subject is extracted from a configurable token
- * claim (default "sub"), and selected claims are forwarded into
- * Principal.claims for use by downstream policies. This means a RateLimit
- * policy can throttle per-user or per-organization (via PrincipalClaimKey),
- * all without the upstream parsing the JWT itself.
+ * On successful validation, JWTAuth produces a [Principal] with type "jwt".
+ * The subject is extracted from a configurable token claim (default "sub"),
+ * and the full decoded token header, payload, and signature are forwarded
+ * under Principal.source.jwt. Downstream policies and the upstream can read
+ * any claim directly from the payload without parsing the token themselves.
  *
  * For common identity providers (Auth0, Clerk, Cognito, Okta), use the
  * oidc_issuer field instead of jwks_uri — sentinel auto-discovers the
@@ -122,10 +121,10 @@ export type JWTAuth = Message<"sentinel.v1.JWTAuth"> & {
   subjectClaim: string;
 
   /**
-   * Additional token claims to extract into [Principal].claims. These become
-   * available to downstream policies — for example, forwarding "org_id"
-   * lets a RateLimit policy with a PrincipalClaimKey apply per-organization
-   * limits.
+   * Additional token claims to copy into the Principal's JWT source payload
+   * for convenience. All validated claims are already forwarded under
+   * source.jwt.payload; this field is reserved for future use and is
+   * currently a no-op.
    *
    * @generated from field: repeated string forward_claims = 7;
    */

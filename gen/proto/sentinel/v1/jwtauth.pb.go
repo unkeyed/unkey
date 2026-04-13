@@ -29,12 +29,11 @@ const (
 // claim validation, and key rotation logic. JWTAuth centralizes all of this
 // at the proxy layer.
 //
-// On successful validation, JWTAuth produces a [Principal] with type
-// PRINCIPAL_TYPE_JWT. The subject is extracted from a configurable token
-// claim (default "sub"), and selected claims are forwarded into
-// Principal.claims for use by downstream policies. This means a RateLimit
-// policy can throttle per-user or per-organization (via PrincipalClaimKey),
-// all without the upstream parsing the JWT itself.
+// On successful validation, JWTAuth produces a [Principal] with type "jwt".
+// The subject is extracted from a configurable token claim (default "sub"),
+// and the full decoded token header, payload, and signature are forwarded
+// under Principal.source.jwt. Downstream policies and the upstream can read
+// any claim directly from the payload without parsing the token themselves.
 //
 // For common identity providers (Auth0, Clerk, Cognito, Okta), use the
 // oidc_issuer field instead of jwks_uri — sentinel auto-discovers the
@@ -71,10 +70,10 @@ type JWTAuth struct {
 	// claim for the primary identity (e.g., "uid" for some Okta
 	// configurations, or "email" when you want email-based identity).
 	SubjectClaim string `protobuf:"bytes,6,opt,name=subject_claim,json=subjectClaim,proto3" json:"subject_claim,omitempty"`
-	// Additional token claims to extract into [Principal].claims. These become
-	// available to downstream policies — for example, forwarding "org_id"
-	// lets a RateLimit policy with a PrincipalClaimKey apply per-organization
-	// limits.
+	// Additional token claims to copy into the Principal's JWT source payload
+	// for convenience. All validated claims are already forwarded under
+	// source.jwt.payload; this field is reserved for future use and is
+	// currently a no-op.
 	ForwardClaims []string `protobuf:"bytes,7,rep,name=forward_claims,json=forwardClaims,proto3" json:"forward_claims,omitempty"`
 	// When true, requests without a Bearer token are allowed through without
 	// authentication. No [Principal] is produced for anonymous requests. This

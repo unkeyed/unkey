@@ -15,12 +15,12 @@ These examples show how to parse the [Principal](/platform/sentinel/principal/ov
 import { Hono } from "hono";
 
 type KeyPrincipal = {
-  version: number;
+  version: string;
   subject: string;
-  type: "key";
+  type: "API_KEY";
   identity?: {
     externalId: string;
-    meta: Record<string, string>;
+    meta: Record<string, unknown>;
   };
   source: {
     key: {
@@ -28,9 +28,9 @@ type KeyPrincipal = {
       keySpaceId: string;
       name?: string;
       expiresAt?: number;
-      meta: Record<string, string>;
-      roles: string[];
-      permissions: string[];
+      meta: Record<string, unknown>;
+      roles?: string[];
+      permissions?: string[];
     };
   };
 };
@@ -69,12 +69,12 @@ export default app;
 import { NextRequest, NextResponse } from "next/server";
 
 type KeyPrincipal = {
-  version: number;
+  version: string;
   subject: string;
-  type: "key";
+  type: "API_KEY";
   identity?: {
     externalId: string;
-    meta: Record<string, string>;
+    meta: Record<string, unknown>;
   };
   source: {
     key: {
@@ -82,9 +82,9 @@ type KeyPrincipal = {
       keySpaceId: string;
       name?: string;
       expiresAt?: number;
-      meta: Record<string, string>;
-      roles: string[];
-      permissions: string[];
+      meta: Record<string, unknown>;
+      roles?: string[];
+      permissions?: string[];
     };
   };
 };
@@ -124,7 +124,7 @@ import (
 )
 
 type KeyPrincipal struct {
-	Version  int       `json:"version"`
+	Version  string    `json:"version"`
 	Subject  string    `json:"subject"`
 	Type     string    `json:"type"`
 	Identity *Identity `json:"identity,omitempty"`
@@ -134,18 +134,18 @@ type KeyPrincipal struct {
 }
 
 type Identity struct {
-	ExternalID string            `json:"externalId"`
-	Meta       map[string]string `json:"meta"`
+	ExternalID string         `json:"externalId"`
+	Meta       map[string]any `json:"meta"`
 }
 
 type KeySource struct {
-	KeyID       string            `json:"keyId"`
-	KeySpaceID  string            `json:"keySpaceId"`
-	Name        string            `json:"name,omitempty"`
-	ExpiresAt   int64             `json:"expiresAt,omitempty"`
-	Meta        map[string]string `json:"meta"`
-	Roles       []string          `json:"roles"`
-	Permissions []string          `json:"permissions"`
+	KeyID       string         `json:"keyId"`
+	KeySpaceID  string         `json:"keySpaceId"`
+	Name        string         `json:"name,omitempty"`
+	ExpiresAt   int64          `json:"expiresAt,omitempty"` // unix milliseconds
+	Meta        map[string]any `json:"meta"`
+	Roles       []string       `json:"roles,omitempty"`
+	Permissions []string       `json:"permissions,omitempty"`
 }
 
 func parsePrincipal(r *http.Request) (*KeyPrincipal, bool) {

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -40,7 +41,7 @@ var _ Evaluator = (*Engine)(nil)
 
 // Result holds the outcome of middleware evaluation.
 type Result struct {
-	Principal *sentinelv1.Principal
+	Principal *Principal
 }
 
 // New creates a new Engine with the given configuration.
@@ -130,7 +131,6 @@ func (e *Engine) Evaluate(
 
 		// Future policy types will be added here:
 		// case *sentinelv1.Policy_Jwtauth:
-		// case *sentinelv1.Policy_Basicauth:
 		// case *sentinelv1.Policy_Ratelimit:
 		// case *sentinelv1.Policy_IpRules:
 		// case *sentinelv1.Policy_Openapi:
@@ -144,13 +144,13 @@ func (e *Engine) Evaluate(
 	return result, nil
 }
 
-// SerializePrincipal converts a Principal to a JSON string for use in the
-// X-Unkey-Principal header.
-func SerializePrincipal(p *sentinelv1.Principal) (string, error) {
-	b, err := protojson.Marshal(p)
+// SerializePrincipal converts a Principal to the JSON string carried on the
+// X-Unkey-Principal header. The struct tags on [Principal] and its nested
+// types are the authoritative wire contract — see principal.go.
+func SerializePrincipal(p *Principal) (string, error) {
+	b, err := json.Marshal(p)
 	if err != nil {
 		return "", err
 	}
-
 	return string(b), nil
 }

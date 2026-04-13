@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/internal/services/keys"
@@ -25,17 +24,17 @@ type KeyAuthExecutor struct {
 	clock      clock.Clock
 }
 
-// Execute evaluates a KeyAuth policy against the incoming request.
-// It extracts the API key, verifies it using KeyService, and returns a Principal on success.
+// Execute evaluates a KeyAuth policy against the incoming request. It
+// extracts the API key, verifies it through KeyService, writes rate limit
+// headers, and returns a Principal on success.
 func (e *KeyAuthExecutor) Execute(
 	ctx context.Context,
 	sess *zen.Session,
 	req *http.Request,
 	cfg *sentinelv1.KeyAuth,
-) (*sentinelv1.Principal, error) {
+) (*Principal, error) {
 	rawKey := extractKey(req, cfg.GetLocations())
 	if rawKey == "" {
-
 		return nil, fault.New("missing API key",
 			fault.Code(codes.Sentinel.Auth.MissingCredentials.URN()),
 			fault.Internal("no API key found in request"),
@@ -54,7 +53,8 @@ func (e *KeyAuthExecutor) Execute(
 		)
 	}
 
-	// Check basic validation (not found, disabled, expired, workspace disabled, etc.)
+	// Fail fast on states that verification cannot recover from (not found,
+	// disabled, expired, workspace disabled, etc.) before spending a credit.
 	if verifier.Status != keys.StatusValid {
 		return nil, fault.New("invalid API key",
 			fault.Code(codes.Sentinel.Auth.InvalidKey.URN()),
@@ -63,16 +63,7 @@ func (e *KeyAuthExecutor) Execute(
 		)
 	}
 
-	allowedKeyspace := false
-	for _, allowedKeyspaceID := range cfg.GetKeySpaceIds() {
-		if verifier.Key.KeyAuthID == allowedKeyspaceID {
-			allowedKeyspace = true
-			break
-		}
-	}
-
-	// Verify the key belongs to the expected key space
-	if !allowedKeyspace {
+	if !keyspaceAllowed(verifier.Key.KeyAuthID, cfg.GetKeySpaceIds()) {
 		return nil, fault.New("key does not belong to expected key space",
 			fault.Code(codes.Sentinel.Auth.InvalidKey.URN()),
 			fault.Internal(fmt.Sprintf("key belongs to key space %s, expected one of %s", verifier.Key.KeyAuthID, strings.Join(cfg.GetKeySpaceIds(), ","))),
@@ -80,28 +71,13 @@ func (e *KeyAuthExecutor) Execute(
 		)
 	}
 
-	// Build verify options
-	var verifyOpts []keys.VerifyOption
-
-	if pq := cfg.GetPermissionQuery(); pq != "" {
-		query, parseErr := rbac.ParseQuery(pq)
-		if parseErr != nil {
-			return nil, fault.Wrap(parseErr,
-				fault.Code(codes.Sentinel.Internal.InvalidConfiguration.URN()),
-				fault.Internal("invalid permission query: "+pq),
-				fault.Public("Service configuration error."),
-			)
-		}
-
-		verifyOpts = append(verifyOpts, keys.WithPermissions(query))
+	verifyOpts, err := buildVerifyOptions(cfg)
+	if err != nil {
+		return nil, err
 	}
 
-	// Deduct 1 credit per request by default
-	verifyOpts = append(verifyOpts, keys.WithCredits(1))
-
-	verifyErr := verifier.Verify(ctx, verifyOpts...)
-	if verifyErr != nil {
-		return nil, fault.Wrap(verifyErr,
+	if err := verifier.Verify(ctx, verifyOpts...); err != nil {
+		return nil, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
 			fault.Internal("verification error"),
 			fault.Public("An internal error occurred during authentication."),
@@ -112,73 +88,93 @@ func (e *KeyAuthExecutor) Execute(
 	// on both success (2xx) and rate-limited (429) responses.
 	writeRateLimitHeaders(sess.ResponseWriter(), verifier.RatelimitResults, e.clock)
 
-	// Check post-verification status
-	switch verifier.Status {
+	if err := checkPostVerifyStatus(verifier.Status); err != nil {
+		return nil, err
+	}
+
+	principal, err := keyPrincipalFromVerifier(verifier)
+	if err != nil {
+		return nil, fault.Wrap(err,
+			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
+			fault.Internal("failed to build principal"),
+			fault.Public("An internal error occurred during authentication."),
+		)
+	}
+	return principal, nil
+}
+
+// keyspaceAllowed reports whether the key's keyspace is in the policy's
+// allowlist.
+func keyspaceAllowed(keyspaceID string, allowed []string) bool {
+	for _, id := range allowed {
+		if keyspaceID == id {
+			return true
+		}
+	}
+	return false
+}
+
+// buildVerifyOptions compiles the KeyAuth policy config into the set of
+// VerifyOptions passed to the keys service. Always deducts one credit per
+// request; an invalid permission query is surfaced as an internal config
+// error since the dashboard validates the query before persisting it.
+func buildVerifyOptions(cfg *sentinelv1.KeyAuth) ([]keys.VerifyOption, error) {
+	opts := []keys.VerifyOption{keys.WithCredits(1)}
+
+	if pq := cfg.GetPermissionQuery(); pq != "" {
+		query, err := rbac.ParseQuery(pq)
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.Sentinel.Internal.InvalidConfiguration.URN()),
+				fault.Internal("invalid permission query: "+pq),
+				fault.Public("Service configuration error."),
+			)
+		}
+		opts = append(opts, keys.WithPermissions(query))
+	}
+
+	return opts, nil
+}
+
+// checkPostVerifyStatus maps a post-verification key status to the matching
+// fault, or nil when the key passed verification. The pre-verify branch in
+// Execute already rejects the terminal-failure statuses, so this function
+// only needs to translate the statuses Verify itself can set
+// (InsufficientPermissions, RateLimited, UsageExceeded). The remaining
+// cases are listed explicitly to keep the switch exhaustive.
+func checkPostVerifyStatus(status keys.KeyStatus) error {
+	switch status {
 	case keys.StatusValid:
-		// OK
+		return nil
 	case keys.StatusInsufficientPermissions:
-		return nil, fault.New("insufficient permissions",
+		return fault.New("insufficient permissions",
 			fault.Code(codes.Sentinel.Auth.InsufficientPermissions.URN()),
 			fault.Internal("key lacks required permissions"),
 			fault.Public("Access denied. The API key does not have the required permissions."),
 		)
 	case keys.StatusRateLimited:
-		return nil, fault.New("rate limited",
+		return fault.New("rate limited",
 			fault.Code(codes.Sentinel.Auth.RateLimited.URN()),
 			fault.Internal("auto-applied rate limit exceeded"),
 			fault.Public("Rate limit exceeded. Please try again later."),
 		)
 	case keys.StatusUsageExceeded:
-		return nil, fault.New("usage exceeded",
+		return fault.New("usage exceeded",
 			fault.Code(codes.Sentinel.Auth.RateLimited.URN()),
 			fault.Internal("usage limit exceeded"),
 			fault.Public("Usage limit exceeded. Please try again later."),
 		)
 	case keys.StatusNotFound, keys.StatusDisabled, keys.StatusExpired,
 		keys.StatusForbidden, keys.StatusWorkspaceDisabled, keys.StatusWorkspaceNotFound:
-		// These should have been caught by the pre-verify status check above,
+		// These should have been caught by the pre-verify status check,
 		// but handle them here for exhaustiveness.
-		return nil, fault.New("key verification failed",
+		return fault.New("key verification failed",
 			fault.Code(codes.Sentinel.Auth.InvalidKey.URN()),
-			fault.Internal("post-verification status: "+string(verifier.Status)),
+			fault.Internal("post-verification status: "+string(status)),
 			fault.Public("Authentication failed."),
 		)
 	}
-
-	// Build the principal
-	subject := verifier.Key.ID
-	if verifier.Key.ExternalID.Valid && verifier.Key.ExternalID.String != "" {
-		subject = verifier.Key.ExternalID.String
-	}
-
-	claims := map[string]string{
-		"key_id":       verifier.Key.ID,
-		"key_space_id": verifier.Key.KeyAuthID,
-		"api_id":       verifier.Key.ApiID,
-		"workspace_id": verifier.Key.WorkspaceID,
-	}
-	if verifier.Key.Name.Valid && verifier.Key.Name.String != "" {
-		claims["name"] = verifier.Key.Name.String
-	}
-	if verifier.Key.IdentityID.Valid && verifier.Key.IdentityID.String != "" {
-		claims["identity_id"] = verifier.Key.IdentityID.String
-	}
-	if verifier.Key.ExternalID.Valid && verifier.Key.ExternalID.String != "" {
-		claims["external_id"] = verifier.Key.ExternalID.String
-	}
-	if verifier.Key.Meta.Valid && verifier.Key.Meta.String != "" {
-		claims["meta"] = verifier.Key.Meta.String
-	}
-	if verifier.Key.Expires.Valid {
-		claims["expires"] = verifier.Key.Expires.Time.Format(time.RFC3339)
-	}
-
-	//nolint:exhaustruct
-	return &sentinelv1.Principal{
-		Subject: subject,
-		Type:    sentinelv1.PrincipalType_PRINCIPAL_TYPE_API_KEY,
-		Claims:  claims,
-	}, nil
+	return nil
 }
 
 // writeRateLimitHeaders sets standard rate limit headers on the response.

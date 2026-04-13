@@ -11,7 +11,7 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
   JWT authentication is coming soon. The Principal format is documented here so you can plan your integration.
 </Note>
 
-When the [Principal's](/platform/sentinel/principal/overview) `type` is `"jwt"`, the `source.jwt` object contains the full decoded JWT, mirroring the three-part structure of a JWT token (header, payload, signature). The Sentinel forwards everything without renaming or filtering.
+When the [Principal's](/platform/sentinel/principal/overview) `type` is `"JWT"`, the `source.jwt` object contains the full decoded JWT, mirroring the three-part structure of a JWT token (header, payload, signature). The Sentinel forwards everything without renaming or filtering.
 
 ## Fields
 
@@ -47,9 +47,9 @@ Because the Sentinel forwards the raw JWT payload, the Principal contains exactl
 
 ```json WorkOS
 {
-  "version": 1,
+  "version": "v1",
   "subject": "user_01JCQ1E9ZV4JQXNCT0TD4V7DJ3",
-  "type": "jwt",
+  "type": "JWT",
   "source": {
     "jwt": {
       "header": {
@@ -78,9 +78,9 @@ Because the Sentinel forwards the raw JWT payload, the Principal contains exactl
 
 ```json Clerk
 {
-  "version": 1,
+  "version": "v1",
   "subject": "user_2urxDrHRFn0g7jbmVH88oTLuME6",
-  "type": "jwt",
+  "type": "JWT",
   "source": {
     "jwt": {
       "header": {
@@ -114,9 +114,9 @@ Because the Sentinel forwards the raw JWT payload, the Principal contains exactl
 
 ```json Auth0
 {
-  "version": 1,
+  "version": "v1",
   "subject": "auth0|507f1f77bcf86cd799439011",
-  "type": "jwt",
+  "type": "JWT",
   "source": {
     "jwt": {
       "header": {
@@ -148,9 +148,9 @@ Because the Sentinel forwards the raw JWT payload, the Principal contains exactl
 
 ```json With linked identity
 {
-  "version": 1,
+  "version": "v1",
   "subject": "user_01JCQ1E9ZV4JQXNCT0TD4V7DJ3",
-  "type": "jwt",
+  "type": "JWT",
   "identity": {
     "externalId": "user_01JCQ1E9ZV4JQXNCT0TD4V7DJ3",
     "meta": {

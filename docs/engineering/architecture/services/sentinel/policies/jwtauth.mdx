@@ -40,7 +40,7 @@ JWTAuth is defined in the policy schema but is not executed by the sentinel engi
 </ResponseField>
 
 <ResponseField name="forward_claims" type="string[]">
-  Claims to copy into the principal's claims map.
+  Reserved for future use. All validated JWT claims are forwarded under `source.jwt.payload` already, so the upstream can read any claim directly.
 </ResponseField>
 
 <ResponseField name="allow_anonymous" type="bool">
@@ -70,8 +70,7 @@ JWTAuth is defined in the policy schema but is not executed by the sentinel engi
       "jwtauth": {
         "oidc_issuer": "https://auth.example.com",
         "audiences": ["api.example.com"],
-        "algorithms": ["RS256"],
-        "forward_claims": ["email", "org_id"]
+        "algorithms": ["RS256"]
       }
     }
   ]
@@ -111,8 +110,7 @@ JWTAuth is defined in the policy schema but is not executed by the sentinel engi
       "jwtauth": {
         "oidc_issuer": "https://auth.example.com",
         "audiences": ["api.example.com"],
-        "allow_anonymous": true,
-        "forward_claims": ["sub", "email"]
+        "allow_anonymous": true
       }
     }
   ]

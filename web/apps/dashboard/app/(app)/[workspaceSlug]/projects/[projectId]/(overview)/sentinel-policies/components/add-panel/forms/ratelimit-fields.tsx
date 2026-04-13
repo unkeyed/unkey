@@ -23,7 +23,7 @@ export type RateLimitKeySource =
   | "header"
   | "authenticatedSubject"
   | "path"
-  | "principalClaim";
+  | "principalField";
 
 type RatelimitFormValues = {
   type: "ratelimit";
@@ -40,7 +40,7 @@ const KEY_SOURCE_OPTIONS: { value: RateLimitKeySource; label: string }[] = [
   { value: "header", label: "Header" },
   { value: "authenticatedSubject", label: "Authenticated Subject" },
   { value: "path", label: "Request Path" },
-  { value: "principalClaim", label: "Principal Claim" },
+  { value: "principalField", label: "Principal Field" },
 ];
 
 export function RateLimitFields({ control }: { control: Control<RatelimitFormValues> }) {
@@ -62,7 +62,7 @@ export function RateLimitFields({ control }: { control: Control<RatelimitFormVal
     field: { value: keyValue, onChange: onKeyValueChange },
   } = useController({ control, name: "keyValue" });
 
-  const needsKeyValue = keySource === "header" || keySource === "principalClaim";
+  const needsKeyValue = keySource === "header" || keySource === "principalField";
 
   return (
     <div className="flex flex-col gap-4">
@@ -124,15 +124,15 @@ export function RateLimitFields({ control }: { control: Control<RatelimitFormVal
 
       {needsKeyValue && (
         <FormInput
-          label={keySource === "header" ? "Header Name" : "Claim Name"}
+          label={keySource === "header" ? "Header Name" : "Field Path"}
           value={keyValue}
-          placeholder={keySource === "header" ? "X-Tenant-Id" : "org_id"}
+          placeholder={keySource === "header" ? "X-Tenant-Id" : "source.key.meta.org_id"}
           onChange={(e) => onKeyValueChange(e.target.value)}
           descriptionPosition="label"
           description={
             keySource === "header"
               ? "The header whose value becomes the rate limit bucket key."
-              : "The principal claim whose value becomes the rate limit bucket key."
+              : "Dotted path into the Principal JSON (for example, source.key.meta.org_id). The resolved string becomes the rate limit bucket key."
           }
         />
       )}
