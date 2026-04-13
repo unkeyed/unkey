@@ -1,9 +1,9 @@
 import { formatNumber } from "@/lib/fmt";
+import { formatMs } from "@/lib/ms";
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { ArrowDotAntiClockwise, Focus, TriangleWarning2 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
-import { formatMs } from "@/lib/ms";
 import { calculateBlockedPercentage } from "../utils/calculate-blocked-percentage";
 import { getStatusStyle } from "../utils/get-row-class";
 

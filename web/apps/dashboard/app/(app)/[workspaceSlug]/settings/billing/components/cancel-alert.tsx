@@ -1,7 +1,7 @@
 "use client";
+import { formatMs } from "@/lib/ms";
 import { trpc } from "@/lib/trpc/client";
 import { SettingsZone, SettingsZoneRow, toast } from "@unkey/ui";
-import { formatMs } from "@/lib/ms";
 import { useRouter } from "next/navigation";
 
 export const CancelAlert: React.FC<{ cancelAt?: number }> = (props) => {

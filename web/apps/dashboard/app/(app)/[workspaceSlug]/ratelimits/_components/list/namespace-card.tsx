@@ -4,9 +4,9 @@ import { StatsCard } from "@/components/stats-card";
 import { StatsTimeseriesBarChart } from "@/components/stats-card/components/chart/stats-chart";
 import { MetricStats } from "@/components/stats-card/components/metric-stats";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { formatMs } from "@/lib/ms";
 import { Clock, ProgressBar } from "@unkey/icons";
 import { Loading } from "@unkey/ui";
-import { formatMs } from "@/lib/ms";
 import { Suspense } from "react";
 
 type Props = {
