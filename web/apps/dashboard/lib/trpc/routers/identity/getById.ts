@@ -50,7 +50,8 @@ export const getIdentityById = workspaceProcedure
 
     try {
       const identity = await db.query.identities.findFirst({
-        where: (table, { eq }) => eq(table.id, identityId),
+        where: (table, { eq, and }) =>
+          and(eq(table.id, identityId), eq(table.workspaceId, workspace.id)),
         with: {
           workspace: {
             columns: {
@@ -73,7 +74,7 @@ export const getIdentityById = workspaceProcedure
         },
       });
 
-      if (!identity || identity.workspace.orgId !== workspace.orgId) {
+      if (!identity) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Identity not found",

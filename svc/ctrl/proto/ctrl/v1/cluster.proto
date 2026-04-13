@@ -11,6 +11,8 @@ syntax = "proto3";
 // orchestration across distributed clusters.
 package ctrl.v1;
 
+import "ctrl/v1/deployment.proto";
+
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
 // Health represents the health state of a resource (sentinel, deployment instance, etc.)
@@ -325,6 +327,12 @@ message ApplyDeployment {
   // Horizontal autoscaling policy. Krane creates an HPA with these values.
   // Populated from the horizontal_autoscaling_policies table via app_regional_settings.
   AutoscalingPolicy autoscaling = 27;
+
+  // ephemeral_storage configures an EBS-backed scratch volume for the deployment.
+  // When present, Krane provisions a PVC per pod using the specified storage class.
+  // The volume is created when the pod starts and deleted when the pod terminates.
+  // When absent, no ephemeral volume is attached.
+  optional EphemeralStorage ephemeral_storage = 29;
 }
 
 // AutoscalingPolicy configures horizontal pod autoscaling for a deployment.

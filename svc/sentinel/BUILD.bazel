@@ -26,6 +26,7 @@ go_library(
         "//pkg/logger",
         "//pkg/otel",
         "//pkg/prometheus",
+        "//pkg/prometheus/lazy",
         "//pkg/rbac",
         "//pkg/runner",
         "//pkg/version",
@@ -33,5 +34,7 @@ go_library(
         "//svc/sentinel/engine",
         "//svc/sentinel/routes",
         "//svc/sentinel/services/router",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/collectors",
     ],
 )

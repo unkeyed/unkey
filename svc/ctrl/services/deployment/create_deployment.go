@@ -260,6 +260,7 @@ func (s *Service) CreateDeployment(
 		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
 		CpuMillicores:                 appRuntimeSettings.CpuMillicores,
 		MemoryMib:                     appRuntimeSettings.MemoryMib,
+		StorageMib:                    appRuntimeSettings.StorageMib,
 		Port:                          appRuntimeSettings.Port,
 		ShutdownSignal:                db.DeploymentsShutdownSignal(appRuntimeSettings.ShutdownSignal),
 		Healthcheck:                   appRuntimeSettings.Healthcheck,

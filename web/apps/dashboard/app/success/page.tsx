@@ -82,9 +82,7 @@ function SuccessContent() {
         }
 
         // Get workspace details to get the slug
-        const workspace = await trpcUtils.workspace.getById.fetch({
-          workspaceId: workspaceId,
-        });
+        const workspace = await trpcUtils.workspace.getById.fetch();
 
         if (!isMounted) {
           return;
@@ -169,7 +167,9 @@ function SuccessContent() {
           await trpcUtils.billing.invalidate();
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Unknown error";
-          console.error("Failed to update workspace with payment method:", { error: errorMessage });
+          console.error("Failed to update workspace with payment method:", {
+            error: errorMessage,
+          });
           if (!isMounted) {
             return;
           }

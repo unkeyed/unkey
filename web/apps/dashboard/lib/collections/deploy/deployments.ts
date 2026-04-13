@@ -36,6 +36,7 @@ const schema = z.object({
   ),
   cpuMillicores: z.number().int(),
   memoryMib: z.number().int(),
+  storageMib: z.number().int(),
   createdAt: z.number(),
 });
 

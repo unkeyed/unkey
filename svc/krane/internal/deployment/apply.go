@@ -96,6 +96,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		Image:           req.GetImage(),
 		Name:            "deployment",
 		ImagePullPolicy: corev1.PullIfNotPresent,
+		SecurityContext: &corev1.SecurityContext{},
 		Env: []corev1.EnvVar{
 			{Name: "PORT", Value: strconv.Itoa(int(req.GetPort()))},
 			{Name: "UNKEY_DEPLOYMENT_ID", Value: req.GetDeploymentId()},
@@ -134,6 +135,38 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 				corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", req.GetMemoryMib())),
 			},
 		},
+	}
+
+	var volumes []corev1.Volume
+
+	// Add ephemeral volume when storage is configured.
+	// Uses a Kubernetes generic ephemeral volume backed by the configured StorageClass.
+	// The volume is auto-created when the pod starts and auto-deleted when the pod dies.
+	if es := req.GetEphemeralStorage(); es != nil && es.GetSizeMib() > 0 {
+		volumes = append(volumes, corev1.Volume{
+			Name: "data",
+			VolumeSource: corev1.VolumeSource{
+				Ephemeral: &corev1.EphemeralVolumeSource{
+					VolumeClaimTemplate: &corev1.PersistentVolumeClaimTemplate{
+						Spec: corev1.PersistentVolumeClaimSpec{
+							AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+							StorageClassName: ptr.P(c.storageClassName),
+							Resources: corev1.VolumeResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceStorage: resource.MustParse(fmt.Sprintf("%dMi", es.GetSizeMib())),
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+
+		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
+			Name:      "data",
+			MountPath: "/data",
+		})
+		container.Env = append(container.Env, corev1.EnvVar{Name: "UNKEY_EPHEMERAL_DISK_PATH", Value: "/data"})
 	}
 
 	// Configure healthcheck probes if provided
@@ -182,6 +215,10 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		Containers:                   []corev1.Container{container},
 	}
 
+	if len(volumes) > 0 {
+		podSpec.Volumes = volumes
+	}
+
 	if hasSecrets {
 		podSpec.ServiceAccountName = deploymentResourcePrefix(req.GetDeploymentId())
 	}
@@ -221,6 +258,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		if err := c.ensureDeploymentSecret(ctx, req.GetK8SNamespace(), req.GetDeploymentId(), plaintext); err != nil {
 			return fmt.Errorf("failed to ensure deployment secret: %w", err)
 		}
+
 		if err := c.ensureDeploymentServiceAccount(ctx, req.GetK8SNamespace(), req.GetDeploymentId()); err != nil {
 			return fmt.Errorf("failed to ensure deployment service account: %w", err)
 		}
@@ -251,6 +289,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 			Controller:         ptr.P(true),
 			BlockOwnerDeletion: ptr.P(true),
 		}
+
 		resName := deploymentResourcePrefix(req.GetDeploymentId())
 		if err := c.patchOwnerRef(ctx, req.GetK8SNamespace(), resName, ownerRef); err != nil {
 			return fmt.Errorf("failed to patch owner references: %w", err)

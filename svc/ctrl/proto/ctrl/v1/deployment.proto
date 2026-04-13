@@ -130,6 +130,17 @@ message Topology {
   int32 idle_timeout_seconds = 4; // 0 means no timeout
   string health_check_path = 5;
   int32 port = 6;
+
+  // Ephemeral storage (absent = no volume).
+  optional EphemeralStorage ephemeral_storage = 7;
+}
+
+// EphemeralStorage configures a per-pod scratch volume.
+// Krane applies its configured StorageClass (e.g. "ebs-csi-gp3", "standard")
+// when creating the PVC — the control plane doesn't need to know about K8s storage classes.
+message EphemeralStorage {
+  // size_mib is the volume size in mebibytes.
+  int64 size_mib = 1;
 }
 
 message RegionalConfig {

@@ -353,6 +353,32 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     }, [props.keyboard, isClickDisabled]);
     const Comp = asChild ? Slot : "button";
 
+    // When asChild is true, Slot expects exactly one React element child.
+    // Rendering multiple children (e.g. {false} and <div>) causes
+    // React.Children.count > 1 in React 19, which makes Slot throw.
+    if (asChild) {
+      return (
+        <Comp
+          className={cn(
+            buttonVariants({
+              variant: mappedVariant,
+              color: mappedColor,
+              size,
+              className,
+            }),
+          )}
+          onClick={loading ? undefined : props.onClick}
+          disabled={isVisuallyDisabled}
+          aria-disabled={isClickDisabled}
+          aria-busy={loading}
+          ref={ref}
+          {...props}
+        >
+          {props.children}
+        </Comp>
+      );
+    }
+
     return (
       <Comp
         className={cn(

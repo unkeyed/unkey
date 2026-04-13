@@ -52,6 +52,10 @@ type Config struct {
 	// Control configures the upstream control plane. See [config.ControlConfig].
 	Control config.ControlConfig `toml:"control"`
 
+	// StorageClassName is the Kubernetes StorageClass used for ephemeral EBS volumes.
+	// Defaults to "ebs-csi-gp3" (prod). Set to "standard" for local Minikube development.
+	StorageClassName string `toml:"storage_class_name" config:"default=ebs-csi-gp3"`
+
 	Observability config.Observability `toml:"observability"`
 
 	// Clock provides time operations and is injected for testability. Production

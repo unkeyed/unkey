@@ -191,7 +191,7 @@
         "groups": [
           {
             "group": "Infra",
-            "pages": ["infra/index","infra/infra-work"]
+            "pages": ["infra/index","infra/infra-work","infra/environments"]
           },
           {
             "group": "Clusters",

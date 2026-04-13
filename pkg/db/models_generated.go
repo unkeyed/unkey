@@ -984,6 +984,7 @@ type AppRuntimeSetting struct {
 	Port            int32                            `db:"port"`
 	CpuMillicores   int32                            `db:"cpu_millicores"`
 	MemoryMib       int32                            `db:"memory_mib"`
+	StorageMib      uint32                           `db:"storage_mib"`
 	Command         dbtype.StringSlice               `db:"command"`
 	Healthcheck     dbtype.NullHealthcheck           `db:"healthcheck"`
 	ShutdownSignal  AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
@@ -1119,6 +1120,7 @@ type Deployment struct {
 	SentinelConfig                []byte                    `db:"sentinel_config"`
 	CpuMillicores                 int32                     `db:"cpu_millicores"`
 	MemoryMib                     int32                     `db:"memory_mib"`
+	StorageMib                    uint32                    `db:"storage_mib"`
 	DesiredState                  DeploymentsDesiredState   `db:"desired_state"`
 	EncryptedEnvironmentVariables []byte                    `db:"encrypted_environment_variables"`
 	Command                       dbtype.StringSlice        `db:"command"`
@@ -1214,6 +1216,7 @@ type GithubAppInstallation struct {
 
 type GithubRepoConnection struct {
 	Pk                 uint64        `db:"pk"`
+	WorkspaceID        string        `db:"workspace_id"`
 	ProjectID          string        `db:"project_id"`
 	AppID              string        `db:"app_id"`
 	InstallationID     int64         `db:"installation_id"`
@@ -1260,6 +1263,7 @@ type Instance struct {
 	Address       string          `db:"address"`
 	CpuMillicores int32           `db:"cpu_millicores"`
 	MemoryMib     int32           `db:"memory_mib"`
+	StorageMib    uint32          `db:"storage_mib"`
 	Status        InstancesStatus `db:"status"`
 }
 
@@ -1373,6 +1377,10 @@ type Quotas struct {
 	RatelimitApiDuration        sql.NullInt32 `db:"ratelimit_api_duration"`
 	AllocatedCpuMillicoresTotal uint32        `db:"allocated_cpu_millicores_total"`
 	AllocatedMemoryMibTotal     uint32        `db:"allocated_memory_mib_total"`
+	AllocatedStorageMibTotal    uint32        `db:"allocated_storage_mib_total"`
+	MaxCpuMillicoresPerInstance uint32        `db:"max_cpu_millicores_per_instance"`
+	MaxMemoryMibPerInstance     uint32        `db:"max_memory_mib_per_instance"`
+	MaxStorageMibPerInstance    uint32        `db:"max_storage_mib_per_instance"`
 }
 
 type Ratelimit struct {
