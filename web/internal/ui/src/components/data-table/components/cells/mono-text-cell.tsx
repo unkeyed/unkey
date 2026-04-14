@@ -1,11 +1,14 @@
-import { cn } from "@/lib/utils";
+import { cn } from "../../../../lib/utils";
 
-type MonoTextCellProps = {
+export interface MonoTextCellProps {
   value: string;
   className?: string;
-};
+}
 
-export const MonoTextCell = ({ value, className }: MonoTextCellProps) => {
+/**
+ * Monospace text cell with truncation for table columns
+ */
+export function MonoTextCell({ value, className }: MonoTextCellProps) {
   return (
     <div
       className={cn(
@@ -16,4 +19,4 @@ export const MonoTextCell = ({ value, className }: MonoTextCellProps) => {
       {value}
     </div>
   );
-};
+}

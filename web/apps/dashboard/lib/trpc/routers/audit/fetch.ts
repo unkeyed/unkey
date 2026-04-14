@@ -22,6 +22,33 @@ import { transformFilters } from "./utils";
 const LIMIT = 50;
 const MAX_LIMIT = 200;
 
+// In-memory cache for audit log count queries to avoid re-counting on every page navigation
+const countCache = new Map<string, { count: number; timestamp: number }>();
+const COUNT_CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+
+function getCountCacheKey(workspaceId: string, params: Omit<AuditQueryLogsParams, "workspaceId">) {
+  return JSON.stringify({
+    workspaceId,
+    bucket: params.bucket,
+    events: params.events,
+    users: params.users,
+    rootKeys: params.rootKeys,
+    startTime: params.startTime,
+    endTime: params.endTime,
+  });
+}
+
+function getCachedCount(key: string): number | null {
+  const cached = countCache.get(key);
+  if (cached && Date.now() - cached.timestamp < COUNT_CACHE_TTL) {
+    return cached.count;
+  }
+  if (cached) {
+    countCache.delete(key);
+  }
+  return null;
+}
+
 const AuditLogsResponse = z.object({
   auditLogs: z.array(auditLog),
   total: z.number(),
@@ -40,22 +67,38 @@ export const fetchAuditLog = workspaceProcedure
     const offset = (page - 1) * pageSize;
 
     const whereConditions = buildWhereConditions(params, ctx.workspace);
+    const cacheKey = getCountCacheKey(ctx.workspace.id, params);
+    const cachedCount = getCachedCount(cacheKey);
 
-    const [totalResult, logs] = await Promise.all([
-      db
-        .select({ count: count() })
-        .from(schema.auditLog)
-        .where(and(...whereConditions)),
-      db.query.auditLog.findMany({
-        where: and(...whereConditions),
-        with: {
-          targets: true,
-        },
-        orderBy: (table, { desc }) => [desc(table.time), desc(table.id)],
-        limit: pageSize,
-        offset,
-      }),
-    ]);
+    const [totalCount, logs] = await (cachedCount !== null
+      ? Promise.all([
+          cachedCount,
+          db.query.auditLog.findMany({
+            where: and(...whereConditions),
+            with: { targets: true },
+            orderBy: (table, { desc }) => [desc(table.time), desc(table.id)],
+            limit: pageSize,
+            offset,
+          }),
+        ])
+      : Promise.all([
+          db
+            .select({ count: count() })
+            .from(schema.auditLog)
+            .where(and(...whereConditions))
+            .then((result) => {
+              const total = result[0]?.count ?? 0;
+              countCache.set(cacheKey, { count: total, timestamp: Date.now() });
+              return total;
+            }),
+          db.query.auditLog.findMany({
+            where: and(...whereConditions),
+            with: { targets: true },
+            orderBy: (table, { desc }) => [desc(table.time), desc(table.id)],
+            limit: pageSize,
+            offset,
+          }),
+        ]));
 
     const uniqueUsers = await fetchUsersFromLogs(logs);
 
@@ -92,8 +135,6 @@ export const fetchAuditLog = workspaceProcedure
         },
       };
     });
-
-    const totalCount = totalResult[0]?.count ?? 0;
 
     return {
       auditLogs: items,
