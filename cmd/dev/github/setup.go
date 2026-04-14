@@ -16,6 +16,23 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
+type githubAppManifest struct {
+	Name               string                 `json:"name"`
+	URL                string                 `json:"url"`
+	Public             bool                   `json:"public"`
+	HookAttributes     manifestHookAttributes `json:"hook_attributes"`
+	SetupURL           string                 `json:"setup_url"`
+	SetupOnUpdate      bool                   `json:"setup_on_update"`
+	RedirectURL        string                 `json:"redirect_url"`
+	DefaultPermissions map[string]string      `json:"default_permissions"`
+	DefaultEvents      []string               `json:"default_events"`
+}
+
+type manifestHookAttributes struct {
+	URL    string `json:"url"`
+	Active bool   `json:"active"`
+}
+
 var setupCmd = &cli.Command{
 	Name:  "setup",
 	Usage: "Create a GitHub App via manifest flow and write local dev credentials",
@@ -60,25 +77,25 @@ func setupGitHubApp(_ context.Context, cmd *cli.Command) error {
 	callbackURL := fmt.Sprintf("http://localhost:%s/callback", port)
 	listenAddr := fmt.Sprintf(":%s", port)
 
-	manifest := map[string]any{
-		"name":   appName,
-		"url":    "http://localhost:3000",
-		"public": false,
-		"hook_attributes": map[string]any{
-			"url":    webhookURL,
-			"active": true,
+	manifest := githubAppManifest{
+		Name:   appName,
+		URL:    "http://localhost:3000",
+		Public: false,
+		HookAttributes: manifestHookAttributes{
+			URL:    webhookURL,
+			Active: true,
 		},
-		"setup_url":       "http://localhost:3000/integrations/github/callback",
-		"setup_on_update": true,
-		"redirect_url":    callbackURL,
-		"default_permissions": map[string]string{
+		SetupURL:      "http://localhost:3000/integrations/github/callback",
+		SetupOnUpdate: true,
+		RedirectURL:   callbackURL,
+		DefaultPermissions: map[string]string{
 			"deployments":   "write",
 			"statuses":      "write",
 			"contents":      "read",
 			"pull_requests": "write",
 			"metadata":      "read",
 		},
-		"default_events": []string{"push", "pull_request"},
+		DefaultEvents: []string{"push", "pull_request"},
 	}
 
 	manifestJSON, err := json.Marshal(manifest)
