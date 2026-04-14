@@ -41,7 +41,7 @@ type newDomain struct {
 // 4. Per-live domain (production only): `<prefix>-<workspace>.<apex>`
 //   - Sticky to live, points to the active production deployment
 //
-// 5. Per-deployment domain: `<prefix>-dep-<deploymentID>-<workspace>.<apex>`
+// 5. Per-deployment domain: `<prefix>-<deploymentID>-<workspace>.<apex>`
 //   - Never reassigned, provides a stable deployment-specific URL
 //
 // Where <prefix> is `<project>-<app>` for custom app slugs, or just `<project>`
@@ -117,9 +117,8 @@ func buildDomains(workspaceSlug, projectSlug, appSlug, environmentSlug, gitSha, 
 	}
 
 	// deployment-specific domain for stable public access.
-	sanitizedDeploymentID := strings.ReplaceAll(deploymentID, "_", "-")
 	domains = append(domains, newDomain{
-		domain: fmt.Sprintf("%s-dep-%s-%s.%s", prefix, sanitizedDeploymentID, workspaceSlug, apex),
+		domain: fmt.Sprintf("%s-%s-%s.%s", prefix, sluggify(deploymentID), workspaceSlug, apex),
 		//nolint: exhaustruct
 		sticky: db.FrontlineRoutesStickyDeployment,
 	})
