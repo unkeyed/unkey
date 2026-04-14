@@ -5,8 +5,8 @@ import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 import { escapeLike } from "../utils/sql";
 
 const identitiesQueryPayload = z.object({
-  cursor: z.string().optional(),
-  limit: z.number().optional().prefault(50),
+  page: z.number().int().min(1).optional().default(1),
+  limit: z.number().int().min(1).max(100).optional().default(50),
   search: z.string().optional(),
 });
 
@@ -32,9 +32,10 @@ export const IdentityResponseSchema = z.object({
 
 const IdentitiesResponse = z.object({
   identities: z.array(IdentityResponseSchema),
-  hasMore: z.boolean(),
-  nextCursor: z.string().nullish(),
-  totalCount: z.number(),
+  total: z.number(),
+  page: z.number(),
+  pageSize: z.number(),
+  totalPages: z.number(),
 });
 
 export const queryIdentities = workspaceProcedure
@@ -43,8 +44,9 @@ export const queryIdentities = workspaceProcedure
   .output(IdentitiesResponse)
   .query(async ({ ctx, input }) => {
     try {
-      const { limit = 50, cursor, search } = input;
+      const { limit = 50, page = 1, search } = input;
       const workspaceId = ctx.workspace.id;
+      const offset = (page - 1) * limit;
 
       // Build base filter conditions for SQL queries
       const baseConditions = [
@@ -69,7 +71,7 @@ export const queryIdentities = workspaceProcedure
         .from(schema.identities)
         .where(and(...baseConditions));
 
-      const totalCount = countResult.count;
+      const total = countResult.count;
 
       // Helper function to build filter conditions for query API
       // biome-ignore lint/suspicious/noExplicitAny: Drizzle query builder types are complex and vary between schema and query contexts
@@ -94,18 +96,7 @@ export const queryIdentities = workspaceProcedure
       };
 
       const identitiesQuery = await db.query.identities.findMany({
-        where: (identity, helpers) => {
-          const { and, lt } = helpers;
-          // Get base filter conditions
-          const filterConditions = buildFilterConditions(identity, helpers);
-
-          // Add cursor condition for pagination only
-          if (cursor) {
-            return and(filterConditions, lt(identity.id, cursor));
-          }
-
-          return filterConditions;
-        },
+        where: buildFilterConditions,
         with: {
           keys: {
             columns: {
@@ -122,17 +113,12 @@ export const queryIdentities = workspaceProcedure
             },
           },
         },
-        limit: limit + 1, // Fetch one extra to determine if there are more results
-        orderBy: (identities, { desc }) => desc(identities.id),
+        limit,
+        offset,
+        orderBy: (identities, { desc }) => desc(identities.createdAt),
       });
 
-      // Determine if there are more results
-      const hasMore = identitiesQuery.length > limit;
-
-      // Remove the extra item if it exists
-      const identities = hasMore ? identitiesQuery.slice(0, limit) : identitiesQuery;
-
-      const transformedIdentities = identities.map((identity) => ({
+      const transformedIdentities = identitiesQuery.map((identity) => ({
         id: identity.id,
         externalId: identity.externalId,
         workspaceId: identity.workspaceId,
@@ -144,13 +130,14 @@ export const queryIdentities = workspaceProcedure
         ratelimits: identity.ratelimits,
       }));
 
-      const lastId = identities.length > 0 ? identities[identities.length - 1].id : null;
+      const totalPages = Math.max(1, Math.ceil(total / limit));
 
       return {
         identities: transformedIdentities,
-        hasMore,
-        nextCursor: hasMore && lastId ? lastId : undefined,
-        totalCount,
+        total,
+        page,
+        pageSize: limit,
+        totalPages,
       };
     } catch (error) {
       console.error("Error retrieving identities:", error);
