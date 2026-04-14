@@ -2,10 +2,11 @@
 
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { match } from "@unkey/match";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { FirewallFields, FirewallSummary } from "./forms/firewall-fields";
-import { KeyAuthFields, PolicySummary } from "./forms/keyauth-fields";
+import { KeyAuthFields, KeyauthSummary } from "./forms/keyauth-fields";
 import {
   MatchConditionEditorBody,
   MatchConditionsClearAll,
@@ -162,10 +163,16 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
         <PolicyForm.Section
           id="config"
           label="Policy Configuration"
-          summary={policyType === "firewall" ? <FirewallSummary /> : <PolicySummary />}
+          summary={match(policyType)
+            .with("keyauth", () => <KeyauthSummary />)
+            .with("firewall", () => <FirewallSummary />)
+            .exhaustive()}
           catchAll
         >
-          {policyType === "firewall" ? <FirewallFields /> : <KeyAuthFields />}
+          {match(policyType)
+            .with("keyauth", () => <KeyAuthFields />)
+            .with("firewall", () => <FirewallFields />)
+            .exhaustive()}
         </PolicyForm.Section>
         <PolicyForm.Section
           id="matchConditions"
