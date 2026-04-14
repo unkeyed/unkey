@@ -190,6 +190,16 @@ func keyPrincipalFromVerifier(verifier *keys.KeyVerifier) (*Principal, error) {
 		expiresAt = ptr.P(verifier.Key.Expires.Time.UnixMilli())
 	}
 
+	var roles []string
+	if len(verifier.Roles) > 0 {
+		roles = verifier.Roles
+	}
+
+	var permissions []string
+	if len(verifier.Permissions) > 0 {
+		permissions = verifier.Permissions
+	}
+
 	return &Principal{
 		Version:  PrincipalVersion,
 		Subject:  subject,
@@ -202,8 +212,8 @@ func keyPrincipalFromVerifier(verifier *keys.KeyVerifier) (*Principal, error) {
 				Name:        name,
 				ExpiresAt:   expiresAt,
 				Meta:        keyMeta,
-				Roles:       verifier.Roles,
-				Permissions: verifier.Permissions,
+				Roles:       roles,
+				Permissions: permissions,
 			},
 			JWT: nil,
 		},

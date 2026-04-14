@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/services/keys"
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 )
 
 func TestParseMetaBytes(t *testing.T) {
@@ -81,6 +83,34 @@ func TestParseMetaBytes(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
+}
+
+// TestKeyPrincipalFromVerifier_EmptySlices guards against a regression where
+// an initialized-but-empty Roles/Permissions slice from the verifier would
+// leak into the JSON as `[]` instead of being omitted. `omitempty` drops nil
+// slices, not empty non-nil slices — and the verifier produces the latter
+// when a key has no roles or permissions.
+func TestKeyPrincipalFromVerifier_EmptySlices(t *testing.T) {
+	t.Parallel()
+
+	verifier := &keys.KeyVerifier{
+		Key: keysdb.FindKeyForVerificationRow{
+			ID:        "key_abc",
+			KeyAuthID: "ks_456",
+		},
+		Roles:       []string{},
+		Permissions: []string{},
+	}
+
+	p, err := keyPrincipalFromVerifier(verifier)
+	require.NoError(t, err)
+	require.Nil(t, p.Source.Key.Roles, "empty Roles must be normalized to nil so omitempty drops it")
+	require.Nil(t, p.Source.Key.Permissions, "empty Permissions must be normalized to nil so omitempty drops it")
+
+	s, err := p.Marshal()
+	require.NoError(t, err)
+	require.NotContains(t, s, `"roles"`)
+	require.NotContains(t, s, `"permissions"`)
 }
 
 func TestParseMetaString(t *testing.T) {
