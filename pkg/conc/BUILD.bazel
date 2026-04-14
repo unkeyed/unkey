@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "conc",
+    srcs = [
+        "foreach.go",
+        "sem.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/conc",
+    visibility = ["//visibility:public"],
+    deps = ["@org_golang_x_sync//semaphore"],
+)
+
+go_test(
+    name = "conc_test",
+    srcs = ["foreach_test.go"],
+    embed = [":conc"],
+)

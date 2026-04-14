@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -53,6 +54,12 @@ type Config struct {
 	//
 	// As long as the sampling rate is greater than 0.0, all errors will be sampled.
 	TraceSampleRate float64
+
+	// PrometheusGatherer is the prometheus registry to gather metrics from when
+	// bridging prometheus metrics into OTLP. If nil, the default prometheus
+	// registry is used (which is almost certainly wrong when lazy metrics register
+	// to a custom registry).
+	PrometheusGatherer promclient.Gatherer
 }
 
 // InitGrafana initializes the global tracer and metric providers for OpenTelemetry,
@@ -177,7 +184,11 @@ func InitGrafana(ctx context.Context, config Config) (func(ctx context.Context) 
 		return nil, fmt.Errorf("failed to create metric exporter: %w", err)
 	}
 
-	bridge := prometheus.NewMetricProducer()
+	var bridgeOpts []prometheus.Option
+	if config.PrometheusGatherer != nil {
+		bridgeOpts = append(bridgeOpts, prometheus.WithGatherer(config.PrometheusGatherer))
+	}
+	bridge := prometheus.NewMetricProducer(bridgeOpts...)
 
 	reader := metricsdk.NewPeriodicReader(metricExporter, metricsdk.WithProducer(bridge), metricsdk.WithInterval(60*time.Second))
 

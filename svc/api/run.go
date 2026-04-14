@@ -75,15 +75,22 @@ func Run(ctx context.Context, cfg Config) error {
 
 	clk := clock.New()
 
+	reg := promclient.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	//nolint:exhaustruct
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	lazy.SetRegistry(reg)
+
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
 	var shutdownGrafana func(context.Context) error
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
-			Application:     "api",
-			Version:         version.Version,
-			InstanceID:      cfg.InstanceID,
-			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
+			Application:        "api",
+			Version:            version.Version,
+			InstanceID:         cfg.InstanceID,
+			CloudRegion:        cfg.Region,
+			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
+			PrometheusGatherer: reg,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -94,12 +101,6 @@ func Run(ctx context.Context, cfg Config) error {
 	defer r.Recover()
 
 	r.DeferCtx(shutdownGrafana)
-
-	reg := promclient.NewRegistry()
-	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
-	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	lazy.SetRegistry(reg)
 
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
