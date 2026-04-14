@@ -59,7 +59,20 @@ func shouldOverwrite(h http.Header, resp rl.RatelimitResponse) bool {
 	// Both are the same category (both denied or both allowed): lower remaining = more restrictive.
 	existingRemaining, err := strconv.ParseInt(existing, 10, 64)
 	if err != nil {
-		return false
+		return true
 	}
-	return resp.Remaining < existingRemaining
+	if resp.Remaining != existingRemaining {
+		return resp.Remaining < existingRemaining
+	}
+
+	// If both denied and remaining is tied, later reset is more restrictive.
+	if deniedNow {
+		existingReset, err := strconv.ParseInt(h.Get("X-RateLimit-Reset"), 10, 64)
+		if err != nil {
+			return true
+		}
+		return resp.Reset.Unix() > existingReset
+	}
+
+	return false
 }
