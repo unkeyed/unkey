@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
 var (
 	// ClusterMembershipEventsTotal counts LAN membership changes (join/leave).
-	ClusterMembershipEventsTotal = promauto.NewCounterVec(
+	ClusterMembershipEventsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cluster",
@@ -22,7 +22,7 @@ var (
 	)
 
 	// ClusterMembersCount tracks the current number of members in each pool.
-	ClusterMembersCount = promauto.NewGaugeVec(
+	ClusterMembersCount = lazy.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "cluster",
@@ -33,7 +33,7 @@ var (
 	)
 
 	// ClusterBridgeStatus indicates whether this node is currently the bridge (1) or not (0).
-	ClusterBridgeStatus = promauto.NewGauge(
+	ClusterBridgeStatus = lazy.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "cluster",
@@ -43,7 +43,7 @@ var (
 	)
 
 	// ClusterBridgeTransitionsTotal counts bridge promotions and demotions.
-	ClusterBridgeTransitionsTotal = promauto.NewCounterVec(
+	ClusterBridgeTransitionsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cluster",
@@ -54,7 +54,7 @@ var (
 	)
 
 	// ClusterBroadcastsTotal counts messages queued for broadcast.
-	ClusterBroadcastsTotal = promauto.NewCounterVec(
+	ClusterBroadcastsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cluster",
@@ -65,7 +65,7 @@ var (
 	)
 
 	// ClusterBroadcastErrorsTotal counts marshal/queue failures during broadcast.
-	ClusterBroadcastErrorsTotal = promauto.NewCounterVec(
+	ClusterBroadcastErrorsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cluster",
@@ -79,7 +79,7 @@ var (
 	// pool = which delegate received it (lan/wan).
 	// direction = msg.Direction from the proto (lan = intra-region, wan = cross-region relay).
 	// payload_type = short type name from the protobuf oneof.
-	ClusterMessagesReceivedTotal = promauto.NewCounterVec(
+	ClusterMessagesReceivedTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cluster",
@@ -92,7 +92,7 @@ var (
 	// ClusterMessageLatencySeconds measures end-to-end transport latency (sent_at_ms to now).
 	// direction=lan gives intra-region hop time, direction=wan gives full cross-region delivery time.
 	// source_region is the originating region, destination_region is the receiving region.
-	ClusterMessageLatencySeconds = promauto.NewHistogramVec(
+	ClusterMessageLatencySeconds = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "cluster",
@@ -104,7 +104,7 @@ var (
 	)
 
 	// ClusterMessageUnmarshalErrorsTotal counts proto deserialization failures.
-	ClusterMessageUnmarshalErrorsTotal = promauto.NewCounterVec(
+	ClusterMessageUnmarshalErrorsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cluster",
@@ -115,7 +115,7 @@ var (
 	)
 
 	// ClusterRelaysTotal counts bridge relay operations.
-	ClusterRelaysTotal = promauto.NewCounterVec(
+	ClusterRelaysTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cluster",
@@ -126,7 +126,7 @@ var (
 	)
 
 	// ClusterRelayErrorsTotal counts relay marshal failures.
-	ClusterRelayErrorsTotal = promauto.NewCounterVec(
+	ClusterRelayErrorsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cluster",
@@ -137,7 +137,7 @@ var (
 	)
 
 	// ClusterSeedJoinAttemptsTotal tracks seed join attempts by pool and status.
-	ClusterSeedJoinAttemptsTotal = promauto.NewCounterVec(
+	ClusterSeedJoinAttemptsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cluster",
@@ -149,7 +149,7 @@ var (
 
 	// ClusterMessagesSkippedSameRegionTotal counts WAN messages dropped because
 	// they originated in the same region.
-	ClusterMessagesSkippedSameRegionTotal = promauto.NewCounter(
+	ClusterMessagesSkippedSameRegionTotal = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "cluster",

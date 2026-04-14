@@ -225,6 +225,48 @@ func (ns NullAppRuntimeSettingsShutdownSignal) Value() (driver.Value, error) {
 	return string(ns.AppRuntimeSettingsShutdownSignal), nil
 }
 
+type AppRuntimeSettingsUpstreamProtocol string
+
+const (
+	AppRuntimeSettingsUpstreamProtocolHttp1 AppRuntimeSettingsUpstreamProtocol = "http1"
+	AppRuntimeSettingsUpstreamProtocolH2c   AppRuntimeSettingsUpstreamProtocol = "h2c"
+)
+
+func (e *AppRuntimeSettingsUpstreamProtocol) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AppRuntimeSettingsUpstreamProtocol(s)
+	case string:
+		*e = AppRuntimeSettingsUpstreamProtocol(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AppRuntimeSettingsUpstreamProtocol: %T", src)
+	}
+	return nil
+}
+
+type NullAppRuntimeSettingsUpstreamProtocol struct {
+	AppRuntimeSettingsUpstreamProtocol AppRuntimeSettingsUpstreamProtocol
+	Valid                              bool // Valid is true if AppRuntimeSettingsUpstreamProtocol is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAppRuntimeSettingsUpstreamProtocol) Scan(value interface{}) error {
+	if value == nil {
+		ns.AppRuntimeSettingsUpstreamProtocol, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AppRuntimeSettingsUpstreamProtocol.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAppRuntimeSettingsUpstreamProtocol) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AppRuntimeSettingsUpstreamProtocol), nil
+}
+
 type CustomDomainsChallengeType string
 
 const (
@@ -578,6 +620,48 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.DeploymentsStatus), nil
+}
+
+type DeploymentsUpstreamProtocol string
+
+const (
+	DeploymentsUpstreamProtocolHttp1 DeploymentsUpstreamProtocol = "http1"
+	DeploymentsUpstreamProtocolH2c   DeploymentsUpstreamProtocol = "h2c"
+)
+
+func (e *DeploymentsUpstreamProtocol) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentsUpstreamProtocol(s)
+	case string:
+		*e = DeploymentsUpstreamProtocol(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentsUpstreamProtocol: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentsUpstreamProtocol struct {
+	DeploymentsUpstreamProtocol DeploymentsUpstreamProtocol
+	Valid                       bool // Valid is true if DeploymentsUpstreamProtocol is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentsUpstreamProtocol) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentsUpstreamProtocol, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentsUpstreamProtocol.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentsUpstreamProtocol) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentsUpstreamProtocol), nil
 }
 
 type FrontlineRoutesSticky string
@@ -975,21 +1059,22 @@ type AppRegionalSetting struct {
 }
 
 type AppRuntimeSetting struct {
-	Pk              uint64                           `db:"pk"`
-	WorkspaceID     string                           `db:"workspace_id"`
-	AppID           string                           `db:"app_id"`
-	EnvironmentID   string                           `db:"environment_id"`
-	Port            int32                            `db:"port"`
-	CpuMillicores   int32                            `db:"cpu_millicores"`
-	MemoryMib       int32                            `db:"memory_mib"`
-	StorageMib      uint32                           `db:"storage_mib"`
-	Command         json.RawMessage                  `db:"command"`
-	Healthcheck     json.RawMessage                  `db:"healthcheck"`
-	ShutdownSignal  AppRuntimeSettingsShutdownSignal `db:"shutdown_signal"`
-	SentinelConfig  []byte                           `db:"sentinel_config"`
-	OpenapiSpecPath sql.NullString                   `db:"openapi_spec_path"`
-	CreatedAt       int64                            `db:"created_at"`
-	UpdatedAt       sql.NullInt64                    `db:"updated_at"`
+	Pk               uint64                             `db:"pk"`
+	WorkspaceID      string                             `db:"workspace_id"`
+	AppID            string                             `db:"app_id"`
+	EnvironmentID    string                             `db:"environment_id"`
+	Port             int32                              `db:"port"`
+	CpuMillicores    int32                              `db:"cpu_millicores"`
+	MemoryMib        int32                              `db:"memory_mib"`
+	StorageMib       uint32                             `db:"storage_mib"`
+	Command          json.RawMessage                    `db:"command"`
+	Healthcheck      json.RawMessage                    `db:"healthcheck"`
+	ShutdownSignal   AppRuntimeSettingsShutdownSignal   `db:"shutdown_signal"`
+	UpstreamProtocol AppRuntimeSettingsUpstreamProtocol `db:"upstream_protocol"`
+	SentinelConfig   []byte                             `db:"sentinel_config"`
+	OpenapiSpecPath  sql.NullString                     `db:"openapi_spec_path"`
+	CreatedAt        int64                              `db:"created_at"`
+	UpdatedAt        sql.NullInt64                      `db:"updated_at"`
 }
 
 type AuditLog struct {
@@ -1100,37 +1185,38 @@ type CustomDomain struct {
 }
 
 type Deployment struct {
-	Pk                            uint64                    `db:"pk"`
-	ID                            string                    `db:"id"`
-	K8sName                       string                    `db:"k8s_name"`
-	WorkspaceID                   string                    `db:"workspace_id"`
-	ProjectID                     string                    `db:"project_id"`
-	EnvironmentID                 string                    `db:"environment_id"`
-	AppID                         string                    `db:"app_id"`
-	Image                         sql.NullString            `db:"image"`
-	BuildID                       sql.NullString            `db:"build_id"`
-	GitCommitSha                  sql.NullString            `db:"git_commit_sha"`
-	GitBranch                     sql.NullString            `db:"git_branch"`
-	GitCommitMessage              sql.NullString            `db:"git_commit_message"`
-	GitCommitAuthorHandle         sql.NullString            `db:"git_commit_author_handle"`
-	GitCommitAuthorAvatarUrl      sql.NullString            `db:"git_commit_author_avatar_url"`
-	GitCommitTimestamp            sql.NullInt64             `db:"git_commit_timestamp"`
-	SentinelConfig                []byte                    `db:"sentinel_config"`
-	CpuMillicores                 int32                     `db:"cpu_millicores"`
-	MemoryMib                     int32                     `db:"memory_mib"`
-	StorageMib                    uint32                    `db:"storage_mib"`
-	DesiredState                  DeploymentsDesiredState   `db:"desired_state"`
-	EncryptedEnvironmentVariables []byte                    `db:"encrypted_environment_variables"`
-	Command                       json.RawMessage           `db:"command"`
-	Port                          int32                     `db:"port"`
-	ShutdownSignal                DeploymentsShutdownSignal `db:"shutdown_signal"`
-	Healthcheck                   json.RawMessage           `db:"healthcheck"`
-	PrNumber                      sql.NullInt64             `db:"pr_number"`
-	ForkRepositoryFullName        sql.NullString            `db:"fork_repository_full_name"`
-	GithubDeploymentID            sql.NullInt64             `db:"github_deployment_id"`
-	Status                        DeploymentsStatus         `db:"status"`
-	CreatedAt                     int64                     `db:"created_at"`
-	UpdatedAt                     sql.NullInt64             `db:"updated_at"`
+	Pk                            uint64                      `db:"pk"`
+	ID                            string                      `db:"id"`
+	K8sName                       string                      `db:"k8s_name"`
+	WorkspaceID                   string                      `db:"workspace_id"`
+	ProjectID                     string                      `db:"project_id"`
+	EnvironmentID                 string                      `db:"environment_id"`
+	AppID                         string                      `db:"app_id"`
+	Image                         sql.NullString              `db:"image"`
+	BuildID                       sql.NullString              `db:"build_id"`
+	GitCommitSha                  sql.NullString              `db:"git_commit_sha"`
+	GitBranch                     sql.NullString              `db:"git_branch"`
+	GitCommitMessage              sql.NullString              `db:"git_commit_message"`
+	GitCommitAuthorHandle         sql.NullString              `db:"git_commit_author_handle"`
+	GitCommitAuthorAvatarUrl      sql.NullString              `db:"git_commit_author_avatar_url"`
+	GitCommitTimestamp            sql.NullInt64               `db:"git_commit_timestamp"`
+	SentinelConfig                []byte                      `db:"sentinel_config"`
+	CpuMillicores                 int32                       `db:"cpu_millicores"`
+	MemoryMib                     int32                       `db:"memory_mib"`
+	StorageMib                    uint32                      `db:"storage_mib"`
+	DesiredState                  DeploymentsDesiredState     `db:"desired_state"`
+	EncryptedEnvironmentVariables []byte                      `db:"encrypted_environment_variables"`
+	Command                       json.RawMessage             `db:"command"`
+	Port                          int32                       `db:"port"`
+	ShutdownSignal                DeploymentsShutdownSignal   `db:"shutdown_signal"`
+	UpstreamProtocol              DeploymentsUpstreamProtocol `db:"upstream_protocol"`
+	Healthcheck                   json.RawMessage             `db:"healthcheck"`
+	PrNumber                      sql.NullInt64               `db:"pr_number"`
+	ForkRepositoryFullName        sql.NullString              `db:"fork_repository_full_name"`
+	GithubDeploymentID            sql.NullInt64               `db:"github_deployment_id"`
+	Status                        DeploymentsStatus           `db:"status"`
+	CreatedAt                     int64                       `db:"created_at"`
+	UpdatedAt                     sql.NullInt64               `db:"updated_at"`
 }
 
 type DeploymentChange struct {

@@ -2,13 +2,19 @@ package vault
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
+	promclient "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
+	"github.com/unkeyed/unkey/pkg/prometheus"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
@@ -32,11 +38,12 @@ func Run(ctx context.Context, cfg Config) error {
 	var shutdownGrafana func(context.Context) error
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
-			Application:     "vault",
-			Version:         version.Version,
-			InstanceID:      cfg.InstanceID,
-			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
+			Application:        "vault",
+			Version:            version.Version,
+			InstanceID:         cfg.InstanceID,
+			CloudRegion:        cfg.Region,
+			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
+			PrometheusGatherer: nil,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -47,6 +54,33 @@ func Run(ctx context.Context, cfg Config) error {
 	defer r.Recover()
 
 	r.DeferCtx(shutdownGrafana)
+
+	reg := promclient.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	//nolint:exhaustruct
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	lazy.SetRegistry(reg)
+
+	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
+		prom, promErr := prometheus.NewWithRegistry(reg)
+		if promErr != nil {
+			return fmt.Errorf("unable to start prometheus: %w", promErr)
+		}
+
+		promListener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Observability.Metrics.PrometheusPort))
+		if listenErr != nil {
+			return fmt.Errorf("unable to listen on port %d: %w", cfg.Observability.Metrics.PrometheusPort, listenErr)
+		}
+
+		r.DeferCtx(prom.Shutdown)
+		r.Go(func(ctx context.Context) error {
+			serveErr := prom.Serve(ctx, promListener)
+			if serveErr != nil && !errors.Is(serveErr, context.Canceled) {
+				return fmt.Errorf("prometheus server failed: %w", serveErr)
+			}
+			return nil
+		})
+	}
 
 	// Create the connect handler
 	mux := http.NewServeMux()

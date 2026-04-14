@@ -4,7 +4,6 @@
  */
 
 import { Navigation } from "@/components/navigation/navigation";
-import { PageContent } from "@/components/page-content";
 import { getAuth } from "@/lib/auth";
 import { auth } from "@/lib/auth/server";
 import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
@@ -13,6 +12,7 @@ import { Button, Code, Empty } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { PropsWithChildren } from "react";
 import { Client } from "./client";
 
 export const dynamic = "force-dynamic";
@@ -186,4 +186,8 @@ export default async function Page(props: Props) {
       </PageContent>
     </div>
   );
+}
+
+function PageContent({ children }: PropsWithChildren) {
+  return <div className="p-4">{children}</div>;
 }

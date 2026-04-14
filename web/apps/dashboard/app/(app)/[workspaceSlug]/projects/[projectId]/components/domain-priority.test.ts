@@ -32,6 +32,8 @@ function makeCustomDomain(overrides: Partial<CustomDomain> = {}): CustomDomain {
     checkAttempts: 0,
     lastCheckedAt: null,
     verificationError: null,
+    domainConnectProvider: null,
+    domainConnectUrl: null,
     createdAt: 0,
     updatedAt: null,
     ...overrides,
@@ -195,6 +197,25 @@ describe("getDomainPriority", () => {
       }
     });
   }
+
+  test("verified custom domain deduplicates matching platform domain", () => {
+    const result = getDomainPriority({
+      ...baseCtx,
+      domains: [
+        makeDomain({
+          id: "d-custom-route",
+          fullyQualifiedDomainName: "custom.example.com",
+          sticky: "live",
+        }),
+        makeDomain({ id: "d-a", fullyQualifiedDomainName: "a.example.com" }),
+      ],
+      customDomains: [makeCustomDomain({ id: "cd-1", domain: "custom.example.com" })],
+    });
+
+    expect(result.all).toHaveLength(2);
+    expect(result.all.map((d) => d.id)).toEqual(["cd-1", "d-a"]);
+    expect(result.primary?.id).toBe("cd-1");
+  });
 
   test("all order: custom → sticky live → sticky branch → rest alphabetically", () => {
     const result = getDomainPriority({

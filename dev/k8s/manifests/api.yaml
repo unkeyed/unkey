@@ -13,7 +13,6 @@ data:
     http_port = 7070
     redis_url = "redis://redis:6379"
     test_mode = false
-    prometheus_port = 0
     max_request_body_size = 10485760
 
     [database]
@@ -35,6 +34,13 @@ data:
     [control]
     url = "http://ctrl-api:7091"
     token = "your-local-dev-key"
+
+    [observability.tracing]
+    sample_rate = 1.0
+
+    [observability.logging]
+    sample_rate = 1.0
+    slow_threshold = "1s"
 
 ---
 apiVersion: apps/v1
@@ -59,6 +65,9 @@ spec:
           image: unkey/go:latest
           args: ["run", "api", "--config", "/etc/unkey/unkey.toml"]
           imagePullPolicy: Never # Use local images
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector:4318"
           ports:
             - containerPort: 7070
             - containerPort: 7946

@@ -93,7 +93,7 @@ export const queryPermissions = workspaceProcedure
     ORDER BY p.updated_at_m DESC
 `);
 
-    const rows = result.rows as {
+    const rows = result[0] as unknown as {
       id: string;
       name: string;
       description: string | null;

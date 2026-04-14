@@ -4,12 +4,12 @@ import { safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
-import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { BookBookmark } from "@unkey/icons";
 import { Badge, Button, Empty, TimestampInfo } from "@unkey/ui";
 import { useMemo } from "react";
 import { DEFAULT_STATUS_FLAG } from "../../constants";
 import { useRatelimitLogsContext } from "../../context/logs";
+import type { EnrichedRatelimitLog } from "./hooks/use-logs-query";
 import { useRatelimitLogsQuery } from "./hooks/use-logs-query";
 import { LogsTableAction } from "./logs-actions";
 
@@ -54,7 +54,7 @@ const getStatusStyle = (rejected: number): StatusStyle => {
   return STATUS_STYLES.success;
 };
 
-const getSelectedClassName = (log: RatelimitLog, isSelected: boolean) => {
+const getSelectedClassName = (log: EnrichedRatelimitLog, isSelected: boolean) => {
   if (!isSelected) {
     return "";
   }
@@ -71,7 +71,7 @@ export const RatelimitLogsTable = () => {
       pollIntervalMs: 2000,
     });
 
-  const getRowClassName = (log: RatelimitLog) => {
+  const getRowClassName = (log: EnrichedRatelimitLog) => {
     const style = getStatusStyle(log.status);
     const isSelected = selectedLog?.request_id === log.request_id;
 
@@ -95,7 +95,7 @@ export const RatelimitLogsTable = () => {
   };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: it's okay
-  const columns: Column<RatelimitLog>[] = useMemo(
+  const columns: Column<EnrichedRatelimitLog>[] = useMemo(
     () => [
       {
         key: "time",
@@ -224,8 +224,12 @@ export const RatelimitLogsTable = () => {
             <span className="text-accent-12">
               {new Intl.NumberFormat().format(historicalLogs.length)}
             </span>
-            <span>of</span>
-            {new Intl.NumberFormat().format(totalCount)}
+            {totalCount >= 0 && (
+              <>
+                <span>of</span>
+                {new Intl.NumberFormat().format(totalCount)}
+              </>
+            )}
             <span>ratelimit requests</span>
           </div>
         ),

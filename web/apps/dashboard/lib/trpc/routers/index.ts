@@ -73,7 +73,13 @@ import { updateOpenapiSpecPath } from "./deploy/environment-settings/runtime/upd
 import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
 import { updateStorage } from "./deploy/environment-settings/runtime/update-storage";
-import { updateMiddleware } from "./deploy/environment-settings/sentinel/update-middleware";
+import { updateUpstreamProtocol } from "./deploy/environment-settings/runtime/update-upstream-protocol";
+import { generateRegex } from "./deploy/environment-settings/sentinel/generate-regex";
+import { create as createKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/create";
+import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
+import { update as updateKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/update";
+import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
+import { reorder as reorderSentinelPolicies } from "./deploy/environment-settings/sentinel/reorder";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
 import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
@@ -149,6 +155,7 @@ import { listRatelimitOverrides } from "./ratelimit/overrides_list";
 import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
+import { queryRatelimitLogEnrichment } from "./ratelimit/query-logs/enrichment";
 import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
@@ -325,6 +332,7 @@ export const router = t.router({
   ratelimit: t.router({
     logs: t.router({
       query: queryRatelimitLogs,
+      enrichment: queryRatelimitLogEnrichment,
       ratelimitLlmSearch,
       queryRatelimitTimeseries,
     }),
@@ -415,7 +423,14 @@ export const router = t.router({
       getAvailableRegions,
       getAvailableKeyspaces,
       sentinel: t.router({
-        updateMiddleware,
+        list: listSentinelPolicies,
+        reorder: reorderSentinelPolicies,
+        keyauth: t.router({
+          create: createKeyauthPolicy,
+          update: updateKeyauthPolicy,
+          delete: deleteKeyauthPolicy,
+        }),
+        generateRegex,
       }),
       runtime: t.router({
         updateCpu,
@@ -427,6 +442,7 @@ export const router = t.router({
         updateRegions,
         updateInstances,
         updateOpenapiSpecPath,
+        updateUpstreamProtocol,
       }),
       build: t.router({
         updateDockerfile,

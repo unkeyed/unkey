@@ -298,8 +298,10 @@ export const ratelimitLogs = z.object({
   time: z.int(),
   identifier: z.string(),
   status: z.int(),
+});
 
-  // Fields from metrics table
+export const ratelimitLogEnrichment = z.object({
+  request_id: z.string(),
   host: z.string(),
   method: z.string(),
   path: z.string(),
@@ -314,6 +316,7 @@ export const ratelimitLogs = z.object({
 });
 
 export type RatelimitLog = z.infer<typeof ratelimitLogs>;
+export type RatelimitLogEnrichment = z.infer<typeof ratelimitLogEnrichment>;
 export type RatelimitLogsParams = z.infer<typeof ratelimitLogsParams>;
 
 interface ExtendedParams extends RatelimitLogsParams {
@@ -367,66 +370,23 @@ export function getRatelimitLogs(ch: Querier) {
 
     const logsQuery = ch.query({
       query: `
-WITH filtered_ratelimits AS (
-    SELECT
-        request_id,
-        time,
-        workspace_id,
-        namespace_id,
-        identifier,
-        toUInt8(passed) as status
-    FROM default.ratelimits_raw_v2 r
-    WHERE workspace_id = {workspaceId: String}
-        AND namespace_id = {namespaceId: String}
-        AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-        ${hasRequestIds ? "AND request_id IN {requestIds: Array(String)}" : ""}
-        AND (${identifierConditions})
-        AND (${statusCondition})
-        AND (
-            {cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)}
-        )
-    ORDER BY time DESC
-    LIMIT {limit: Int}
-)
 SELECT
-    fr.request_id,
-    fr.time,
-    fr.workspace_id,
-    fr.namespace_id,
-    fr.identifier,
-    fr.status,
-    m.host,
-    m.method,
-    m.path,
-    m.request_headers,
-    m.request_body,
-    m.response_status,
-    m.response_headers,
-    m.response_body,
-    m.service_latency,
-    m.user_agent,
-    m.region
-FROM filtered_ratelimits fr
-LEFT JOIN (
-    SELECT
-        request_id,
-        host,
-        method,
-        path,
-        request_headers,
-        request_body,
-        response_status,
-        response_headers,
-        response_body,
-        service_latency,
-        user_agent,
-        region
-    FROM default.api_requests_raw_v2
-    WHERE workspace_id = {workspaceId: String}
-        AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-        AND request_id IN (SELECT request_id FROM filtered_ratelimits)
-) m ON fr.request_id = m.request_id
-ORDER BY fr.time DESC`,
+    request_id,
+    time,
+    identifier,
+    toUInt8(passed) as status
+FROM default.ratelimits_raw_v2
+WHERE workspace_id = {workspaceId: String}
+    AND namespace_id = {namespaceId: String}
+    AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+    ${hasRequestIds ? "AND request_id IN {requestIds: Array(String)}" : ""}
+    AND (${identifierConditions})
+    AND (${statusCondition})
+    AND (
+        {cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)}
+    )
+ORDER BY time DESC
+LIMIT {limit: Int}`,
       params: extendedParamsSchema,
       schema: ratelimitLogs,
     });
@@ -452,6 +412,44 @@ WHERE workspace_id = {workspaceId: String}
       logsQuery: logsQuery(parameters),
       countQuery: countQuery(parameters),
     };
+  };
+}
+
+export const ratelimitLogEnrichmentParams = z.object({
+  workspaceId: z.string(),
+  requestIds: z.array(z.string()),
+  startTime: z.int(),
+  endTime: z.int(),
+});
+
+export type RatelimitLogEnrichmentParams = z.infer<typeof ratelimitLogEnrichmentParams>;
+
+export function getRatelimitLogEnrichment(ch: Querier) {
+  return async (args: RatelimitLogEnrichmentParams) => {
+    const query = ch.query({
+      query: `
+SELECT
+    request_id,
+    host,
+    method,
+    path,
+    request_headers,
+    request_body,
+    response_status,
+    response_headers,
+    response_body,
+    service_latency,
+    user_agent,
+    region
+FROM default.api_requests_raw_v2
+WHERE workspace_id = {workspaceId: String}
+    AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+    AND request_id IN {requestIds: Array(String)}`,
+      params: ratelimitLogEnrichmentParams,
+      schema: ratelimitLogEnrichment,
+    });
+
+    return query(args);
   };
 }
 

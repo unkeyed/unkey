@@ -18,6 +18,9 @@ export const logsFilterFieldConfig: FilterFieldConfigs = {
       if (value >= 400) {
         return "bg-warning-8";
       }
+      if (value >= 300) {
+        return "bg-info-8";
+      }
       return "bg-success-9";
     },
     validate: (value) => value >= 200 && value <= 599,

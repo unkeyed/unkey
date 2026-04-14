@@ -1,4 +1,3 @@
-import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { ControlCloud } from "@unkey/ui";
 import type { FilterValue } from "@unkey/ui/src/validation/filter.types";
 import type { KeysOverviewFilterValue } from "../../filters.schema";
@@ -29,7 +28,6 @@ export const KeysOverviewLogsControlCloud = () => {
   const { filters, updateFilters, removeFilter } = useFilters();
   return (
     <ControlCloud
-      historicalWindow={HISTORICAL_DATA_WINDOW}
       formatFieldName={formatFieldName}
       filters={filters as FilterValue[]}
       removeFilter={removeFilter}

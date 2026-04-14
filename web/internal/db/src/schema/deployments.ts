@@ -77,6 +77,9 @@ export const deployments = mysqlTable(
       .notNull()
       .default("SIGTERM"),
 
+    // Protocol sentinel uses to proxy to the instance (snapshotted from app_runtime_settings)
+    upstreamProtocol: mysqlEnum("upstream_protocol", ["http1", "h2c"]).notNull().default("http1"),
+
     // HTTP healthcheck configuration (null = no healthcheck)
     healthcheck: json("healthcheck").$type<import("./app_runtime_settings").Healthcheck>(),
 

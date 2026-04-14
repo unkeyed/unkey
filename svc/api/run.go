@@ -22,6 +22,8 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
+	promclient "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
@@ -34,6 +36,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
+	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
@@ -72,15 +75,22 @@ func Run(ctx context.Context, cfg Config) error {
 
 	clk := clock.New()
 
+	reg := promclient.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	//nolint:exhaustruct
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	lazy.SetRegistry(reg)
+
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
 	var shutdownGrafana func(context.Context) error
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
-			Application:     "api",
-			Version:         version.Version,
-			InstanceID:      cfg.InstanceID,
-			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
+			Application:        "api",
+			Version:            version.Version,
+			InstanceID:         cfg.InstanceID,
+			CloudRegion:        cfg.Region,
+			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
+			PrometheusGatherer: reg,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -103,7 +113,7 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(database.Close)
 
 	if cfg.Observability.Metrics != nil {
-		prom, promErr := prometheus.New()
+		prom, promErr := prometheus.NewWithRegistry(reg)
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}

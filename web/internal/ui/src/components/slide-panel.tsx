@@ -48,6 +48,29 @@ const SlidePanelRoot = ({
     [isOpen, onClose],
   );
 
+  React.useEffect(
+    function markBodyWhileOpen() {
+      if (!isOpen) {
+        return;
+      }
+      // Signal to global CSS that a SlidePanel is open so portaled
+      // floating UI (tooltips) can be lifted above the panel.
+      // Reference-counted to handle nested/sibling panels correctly.
+      const prev = document.body.dataset.slidePanelOpen;
+      const count = prev ? Number.parseInt(prev, 10) + 1 : 1;
+      document.body.dataset.slidePanelOpen = String(count);
+      return () => {
+        const next = Number.parseInt(document.body.dataset.slidePanelOpen ?? "1", 10) - 1;
+        if (next <= 0) {
+          delete document.body.dataset.slidePanelOpen;
+        } else {
+          document.body.dataset.slidePanelOpen = String(next);
+        }
+      };
+    },
+    [isOpen],
+  );
+
   const panel = (
     <SlidePanelProvider isOpen={isOpen} onClose={onClose}>
       {/* Backdrop 
@@ -69,14 +92,14 @@ const SlidePanelRoot = ({
         inert={!isOpen || undefined}
         className={cn(
           "fixed dark:bg-black bg-white border border-gray-4 rounded-xl overflow-hidden z-51",
-          "transition-[transform,opacity] duration-300 ease-out",
+          "transition-transform duration-350 ease-[cubic-bezier(0.32,0.72,0,1)]",
           "shadow-md",
           side === "right" ? "right-3" : "left-3",
           isOpen
-            ? "translate-x-0 opacity-100"
+            ? "translate-x-0"
             : side === "right"
-              ? "translate-x-full opacity-0"
-              : "-translate-x-full opacity-0",
+              ? "translate-x-[calc(100%+0.75rem)]"
+              : "-translate-x-[calc(100%+0.75rem)]",
           widthClassName,
           className,
         )}

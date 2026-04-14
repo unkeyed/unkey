@@ -55,11 +55,25 @@ export const queryRatelimitOverviewLogs = workspaceProcedure
 
     const [countResult, logsResult] = await Promise.all([countQuery, logsQuery]);
 
-    if (countResult.err || logsResult.err) {
+    if (logsResult.err) {
+      console.error("Clickhouse ratelimit overview logs query failed", {
+        error: logsResult.err.message,
+        namespaceId: input.namespaceId,
+      });
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching data from clickhouse.",
       });
+    }
+
+    if (countResult.err) {
+      console.warn(
+        "Clickhouse ratelimit overview count query failed, returning logs without total",
+        {
+          error: countResult.err.message,
+          namespaceId: input.namespaceId,
+        },
+      );
     }
 
     const logsWithOverrides = await checkIfIdentifierHasOverride(
@@ -68,9 +82,10 @@ export const queryRatelimitOverviewLogs = workspaceProcedure
       ctx.workspace.id,
     );
 
+    const total = countResult.err ? -1 : (countResult.val[0]?.total_count ?? -1);
     const response: RatelimitOverviewLogsResponse = {
       ratelimitOverviewLogs: logsWithOverrides,
-      total: countResult.val[0].total_count,
+      total,
       hasMore: logsWithOverrides.length === input.limit,
       nextCursor:
         logsWithOverrides.length === input.limit

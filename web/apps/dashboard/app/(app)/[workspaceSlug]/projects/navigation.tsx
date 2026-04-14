@@ -1,8 +1,9 @@
 "use client";
+import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { Cube } from "@unkey/icons";
-import { CreateProjectDialog } from "./_components/dialogs/create-project-dialog";
+import { Cube, Plus } from "@unkey/icons";
+import Link from "next/link";
 
 export function ProjectsListNavigation() {
   const workspace = useWorkspaceNavigation();
@@ -14,7 +15,12 @@ export function ProjectsListNavigation() {
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
       <Navbar.Actions>
-        <CreateProjectDialog />
+        <Link href={`/${workspace.slug}/projects/new`}>
+          <NavbarActionButton title="Create new project" className="cursor-pointer">
+            <Plus />
+            Create new project
+          </NavbarActionButton>
+        </Link>
       </Navbar.Actions>
     </Navbar>
   );

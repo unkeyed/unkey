@@ -67,7 +67,7 @@ export const queryRoles = workspaceProcedure
         ${permissionFilter}
     `);
 
-    const total = (countResult.rows[0] as { total: number }).total;
+    const total = (countResult[0] as unknown as { total: number }[])[0].total;
 
     if (total === 0) {
       return {
@@ -120,7 +120,7 @@ export const queryRoles = workspaceProcedure
       ${isComputedSort ? sql`LIMIT ${pageSize} OFFSET ${offset}` : sql``}
     `);
 
-    const rows = result.rows as {
+    const rows = result[0] as unknown as {
       id: string;
       name: string;
       description: string | null;
