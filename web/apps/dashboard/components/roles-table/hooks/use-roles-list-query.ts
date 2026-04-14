@@ -9,7 +9,7 @@ import { trpc } from "@/lib/trpc/client";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { RolesQueryPayload, RolesSortField } from "../schema/query-logs.schema";
+import type { RolesQueryPayload, RolesSortField } from "../schema/roles.schema";
 
 const PREFETCH_PAGES_AHEAD = 2;
 

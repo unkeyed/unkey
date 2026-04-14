@@ -50,6 +50,7 @@ export const createRolesColumns = ({
         {ROLE_COLUMN_IDS.ROLE.header}
       </SortableHeader>
     ),
+    enableSorting: true,
     meta: {
       width: {
         min: 260,
@@ -75,6 +76,7 @@ export const createRolesColumns = ({
   {
     id: ROLE_COLUMN_IDS.ASSIGNED_KEYS.id,
     accessorKey: ROLE_COLUMN_IDS.ASSIGNED_KEYS.accessorKey,
+    enableSorting: true,
     sortDescFirst: true,
     header: ({ header }) => (
       <SortableHeader key={ROLE_COLUMN_IDS.ASSIGNED_KEYS.id} header={header}>
@@ -102,6 +104,7 @@ export const createRolesColumns = ({
   {
     id: ROLE_COLUMN_IDS.PERMISSIONS.id,
     accessorKey: ROLE_COLUMN_IDS.PERMISSIONS.accessorKey,
+    enableSorting: true,
     sortDescFirst: true,
     header: ({ header }) => (
       <SortableHeader key={ROLE_COLUMN_IDS.PERMISSIONS.id} header={header}>
@@ -129,6 +132,7 @@ export const createRolesColumns = ({
   {
     id: ROLE_COLUMN_IDS.LAST_UPDATED.id,
     accessorKey: ROLE_COLUMN_IDS.LAST_UPDATED.accessorKey,
+    enableSorting: true,
     sortDescFirst: true,
     header: ({ header }) => (
       <SortableHeader key={ROLE_COLUMN_IDS.LAST_UPDATED.id} header={header}>
