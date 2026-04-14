@@ -6,7 +6,7 @@ import { z } from "zod";
 import { TIMESERIES_GRANULARITIES, getTimeseriesGranularity } from "../../utils/granularity";
 
 const batchTimeseriesPayload = z.object({
-  namespaceIds: z.array(z.string()).min(1).max(100),
+  namespaceIds: z.array(z.string()).min(1),
   startTime: z.int(),
   endTime: z.int(),
 });
