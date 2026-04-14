@@ -40,6 +40,12 @@ const (
 	// the workflow continues waiting for other regions and only fails if fewer than
 	// [waitForDeployments]'s required minimum become healthy within this window.
 	regionReadyTimeout = 15 * time.Minute
+
+	// noInstallationID is the zero value for a GitHub App installation ID.
+	// Proto3 omits zero-value int64 fields, so a missing installation ID arrives
+	// as 0. When this is the case the repo has no GitHub App connection and we
+	// fall back to unauthenticated API access (public repos only).
+	noInstallationID = int64(0)
 )
 
 // Deploy executes a full deployment workflow for a new application version.
@@ -314,7 +320,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		// a GitTarget that specifies only a branch)
 		if commitSHA == "" && source.Git.GetBranch() != "" {
 			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
-				if w.allowUnauthenticatedDeployments {
+				if w.allowUnauthenticatedDeployments && source.Git.GetInstallationId() == noInstallationID {
 					return w.github.GetBranchHeadCommitPublic(
 						source.Git.GetRepository(),
 						source.Git.GetBranch(),

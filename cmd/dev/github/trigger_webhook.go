@@ -55,6 +55,7 @@ var Cmd = &cli.Command{
 	Usage: "GitHub webhook simulation tools",
 	Commands: []*cli.Command{
 		triggerWebhookCmd,
+		setupCmd,
 	},
 }
 
