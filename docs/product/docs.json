@@ -187,7 +187,7 @@
                       "platform/sentinel/policies/logging",
                       "platform/sentinel/policies/jwt",
                       "platform/sentinel/policies/rate-limiting",
-                      "platform/sentinel/policies/ip-rules",
+                      "platform/sentinel/policies/firewall",
                       "platform/sentinel/policies/openapi-validation"
                     ]
                   }

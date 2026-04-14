@@ -5,7 +5,7 @@ go_library(
     srcs = [
         "basicauth.pb.go",
         "config.pb.go",
-        "iprules.pb.go",
+        "firewall.pb.go",
         "jwtauth.pb.go",
         "keyauth.pb.go",
         "match.pb.go",

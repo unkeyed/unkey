@@ -3,7 +3,8 @@
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { FirewallFields, FirewallSummary } from "./forms/firewall-fields";
 import { KeyAuthFields, PolicySummary } from "./forms/keyauth-fields";
 import {
   MatchConditionEditorBody,
@@ -14,6 +15,7 @@ import { PolicyForm } from "./policy-form";
 import {
   POLICY_TYPE_OPTIONS,
   type PolicyFormValues,
+  type PolicyType,
   fromSentinelPolicy,
   getDefaultValues,
   policyFormSchema,
@@ -59,6 +61,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       : getDefaultValues("keyauth"),
   });
   const { control } = form;
+  const policyType = useWatch({ control, name: "type" }) as PolicyType;
 
   const onSubmit = (values: PolicyFormValues) => {
     const id = props.mode === "edit" ? props.initialPolicy.id : undefined;
@@ -128,7 +131,24 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
               label="Type"
               options={POLICY_TYPE_OPTIONS}
               value={field.value}
-              onValueChange={field.onChange}
+              onValueChange={(next) => {
+                // Reset the form to the defaults of the newly-chosen type so
+                // type-specific fields don't leak between branches of the
+                // discriminated union. Shared fields (name, environmentId,
+                // matchConditions) are preserved so the user doesn't lose
+                // work when they switch types after starting to configure.
+                if (isEdit) {
+                  return;
+                }
+                const defaults = getDefaultValues(next as PolicyType);
+                form.reset({
+                  ...defaults,
+                  name: form.getValues("name"),
+                  environmentId: form.getValues("environmentId"),
+                  matchConditions: form.getValues("matchConditions"),
+                });
+                field.onChange(next);
+              }}
               disabled={isEdit}
               description="The kind of protection this policy enforces."
               descriptionPosition="label"
@@ -142,10 +162,10 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
         <PolicyForm.Section
           id="config"
           label="Policy Configuration"
-          summary={<PolicySummary />}
+          summary={policyType === "firewall" ? <FirewallSummary /> : <PolicySummary />}
           catchAll
         >
-          <KeyAuthFields />
+          {policyType === "firewall" ? <FirewallFields /> : <KeyAuthFields />}
         </PolicyForm.Section>
         <PolicyForm.Section
           id="matchConditions"

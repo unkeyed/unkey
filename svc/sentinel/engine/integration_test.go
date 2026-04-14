@@ -17,9 +17,11 @@ import (
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -581,4 +583,102 @@ func TestEvaluate_MatchFiltering(t *testing.T) {
 	result, err := h.engine.Evaluate(ctx, sess, req, policies)
 	require.NoError(t, err)
 	require.Nil(t, result.Principal)
+}
+
+// --- Firewall integration tests ---
+
+func TestFirewall_DenyByPath(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/xxx", nil)
+	sess := newSession(t, req)
+
+	policies := []*sentinelv1.Policy{
+		{
+			Id:      "block-xxx",
+			Name:    "Block /xxx",
+			Enabled: true,
+			Match: []*sentinelv1.MatchExpr{
+				{Expr: &sentinelv1.MatchExpr_Path{Path: &sentinelv1.PathMatch{
+					Path: &sentinelv1.StringMatch{Match: &sentinelv1.StringMatch_Prefix{Prefix: "/xxx"}},
+				}}},
+			},
+			Config: &sentinelv1.Policy_Firewall{
+				Firewall: &sentinelv1.Firewall{Action: sentinelv1.Action_ACTION_DENY},
+			},
+		},
+	}
+
+	_, err := h.engine.Evaluate(ctx, sess, req, policies)
+	require.Error(t, err)
+	urn, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Sentinel.Firewall.Denied.URN(), urn)
+}
+
+func TestFirewall_DenyByPath_NonMatchPasses(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	req := httptest.NewRequest(http.MethodGet, "/healthy", nil)
+	sess := newSession(t, req)
+
+	policies := []*sentinelv1.Policy{
+		{
+			Id:      "block-xxx",
+			Enabled: true,
+			Match: []*sentinelv1.MatchExpr{
+				{Expr: &sentinelv1.MatchExpr_Path{Path: &sentinelv1.PathMatch{
+					Path: &sentinelv1.StringMatch{Match: &sentinelv1.StringMatch_Prefix{Prefix: "/xxx"}},
+				}}},
+			},
+			Config: &sentinelv1.Policy_Firewall{
+				Firewall: &sentinelv1.Firewall{Action: sentinelv1.Action_ACTION_DENY},
+			},
+		},
+	}
+
+	_, err := h.engine.Evaluate(ctx, sess, req, policies)
+	require.NoError(t, err)
+}
+
+func TestFirewall_DenyRunsBeforeKeyAuth(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s := h.seed(ctx)
+
+	// Invalid bearer token — if keyauth ran, it would return its own error.
+	// Firewall DENY is placed first and should short-circuit before keyauth.
+	req := httptest.NewRequest(http.MethodGet, "/xxx", nil)
+	req.Header.Set("Authorization", "Bearer not-a-real-key")
+	sess := newSession(t, req)
+
+	policies := []*sentinelv1.Policy{
+		{
+			Id:      "block-xxx",
+			Enabled: true,
+			Match: []*sentinelv1.MatchExpr{
+				{Expr: &sentinelv1.MatchExpr_Path{Path: &sentinelv1.PathMatch{
+					Path: &sentinelv1.StringMatch{Match: &sentinelv1.StringMatch_Prefix{Prefix: "/xxx"}},
+				}}},
+			},
+			Config: &sentinelv1.Policy_Firewall{
+				Firewall: &sentinelv1.Firewall{Action: sentinelv1.Action_ACTION_DENY},
+			},
+		},
+		{
+			Id:      "auth",
+			Enabled: true,
+			Config: &sentinelv1.Policy_Keyauth{
+				Keyauth: &sentinelv1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
+			},
+		},
+	}
+
+	_, err := h.engine.Evaluate(ctx, sess, req, policies)
+	require.Error(t, err)
+	urn, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Sentinel.Firewall.Denied.URN(), urn)
 }
