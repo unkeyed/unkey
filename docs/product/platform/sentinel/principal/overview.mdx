@@ -71,7 +71,7 @@ When no authentication policy is configured or the request has no credentials, t
 </ResponseField>
 
 <ResponseField name="source" type="object" required>
-  Method-specific data from the authentication source. Contains exactly one field whose name is the lowercase of `type` (`key` for `API_KEY`, `jwt` for `JWT`). Most applications only need `subject` and `identity`, but `source` provides the full detail when you need it: key permissions, JWT claims, expiration times, and other method-specific attributes.
+  Method-specific data from the authentication source. Contains exactly one field depending on `type`: `source.key` is populated for `API_KEY`, and `source.jwt` is populated for `JWT`. Most applications only need `subject` and `identity`, but `source` provides the full detail when you need it: key permissions, JWT claims, expiration times, and other method-specific attributes.
 
   Each source type has its own reference page:
 
