@@ -9,6 +9,7 @@ import (
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	rl "github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -49,12 +50,19 @@ type Result struct {
 }
 
 // New creates a new Engine with the given configuration.
-func New(cfg Config) *Engine {
+func New(cfg Config) (*Engine, error) {
+	if err := assert.All(
+		assert.NotNil(cfg.KeyService, "cfg.KeyService must not be nil"),
+		assert.NotNil(cfg.RateLimiter, "cfg.RateLimiter must not be nil"),
+		assert.NotNil(cfg.Clock, "cfg.Clock must not be nil"),
+	); err != nil {
+		return nil, err
+	}
 	return &Engine{
 		keyAuth:     keyauthExec.New(cfg.KeyService, cfg.Clock),
 		rateLimiter: ratelimitExec.New(cfg.RateLimiter, cfg.Clock),
 		regexCache:  newRegexCache(),
-	}
+	}, nil
 }
 
 // ParseMiddleware performs lenient deserialization of sentinel_config bytes into

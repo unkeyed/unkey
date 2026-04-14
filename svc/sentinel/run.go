@@ -368,9 +368,13 @@ func initMiddlewareEngine(cfg middlewareEngineCfg) (engine.Evaluator, error) {
 	}
 
 	logger.Info("middleware engine initialized")
-	return engine.New(engine.Config{
+	eng, err := engine.New(engine.Config{
 		KeyService:  keyService,
 		RateLimiter: rlSvc,
 		Clock:       cfg.Clock,
-	}), nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize middleware engine: %w", err)
+	}
+	return eng, nil
 }

@@ -108,11 +108,12 @@ func newTestHarness(t *testing.T) *testHarness {
 	})
 	require.NoError(t, err)
 
-	eng := engine.New(engine.Config{
+	eng, err := engine.New(engine.Config{
 		KeyService:  keyService,
 		RateLimiter: rateLimiter,
 		Clock:       clk,
 	})
+	require.NoError(t, err)
 
 	return &testHarness{
 		t:          t,
