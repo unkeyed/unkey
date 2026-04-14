@@ -18,6 +18,7 @@ go_library(
         "//gen/rpc/ctrl",
         "//pkg/assert",
         "//pkg/circuitbreaker",
+        "//pkg/conc",
         "//pkg/config",
         "//pkg/logger",
         "//pkg/ptr",
