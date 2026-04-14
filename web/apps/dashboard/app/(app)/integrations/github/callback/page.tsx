@@ -49,7 +49,7 @@ export default function Page() {
 
   if (!state) {
     return (
-      <div className="w-full h-full flex justify-center items-center">
+      <div className="w-full min-h-[60vh] flex justify-center items-center">
         <Empty>
           <Empty.Title>Invalid callback state</Empty.Title>
           <Empty.Description>Missing or invalid GitHub installation state.</Empty.Description>
@@ -60,7 +60,7 @@ export default function Page() {
 
   if (installationIdNumber === null) {
     return (
-      <div className="w-full h-full flex justify-center items-center">
+      <div className="w-full min-h-[60vh] flex justify-center items-center">
         <Empty>
           <Empty.Title>Missing installation</Empty.Title>
           <Empty.Description>Missing or invalid GitHub installation id.</Empty.Description>
@@ -71,7 +71,7 @@ export default function Page() {
 
   if (mutation.isError) {
     return (
-      <div className="w-full h-full flex justify-center items-center">
+      <div className="w-full min-h-[60vh] flex justify-center items-center">
         <Empty>
           <Empty.Title>Installation failed</Empty.Title>
           <Empty.Description>{mutation.error.message}</Empty.Description>
