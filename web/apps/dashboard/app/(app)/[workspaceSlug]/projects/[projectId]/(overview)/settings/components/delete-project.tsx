@@ -4,7 +4,7 @@ import { collection } from "@/lib/collections";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
-import { Button, DialogContainer, Input, SettingsDangerZone, SettingsZoneRow } from "@unkey/ui";
+import { Button, DialogContainer, Input, SettingsZoneRow } from "@unkey/ui";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -49,18 +49,14 @@ export function DeleteProject() {
 
   return (
     <>
-      <div className="w-225 mx-auto mt-10 mb-14">
-        <SettingsDangerZone>
-          <SettingsZoneRow
-            title="Delete this project"
-            description="Once you delete a project, there is no going back. Please be certain."
-            action={{
-              label: "Delete this project",
-              onClick: () => setIsDialogOpen(true),
-            }}
-          />
-        </SettingsDangerZone>
-      </div>
+      <SettingsZoneRow
+        title="Delete this project"
+        description="Once you delete a project, there is no going back. Please be certain."
+        action={{
+          label: "Delete this project",
+          onClick: () => setIsDialogOpen(true),
+        }}
+      />
 
       <DialogContainer
         isOpen={isDialogOpen}
