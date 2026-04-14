@@ -243,9 +243,9 @@ export const githubRouter = t.router({
           return { tree: null };
         }
 
-        return { tree: result.tree };
+        return { tree: result.tree, branch: githubContext.defaultBranch };
       } catch {
-        return { tree: null };
+        return { tree: null, branch: githubContext.defaultBranch };
       }
     }),
 
@@ -448,6 +448,7 @@ export const githubRouter = t.router({
         repositoryId: z.number().int(),
         repositoryFullName: z.string(),
         installationId: z.number().int(),
+        selectedBranch: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -531,12 +532,11 @@ export const githubRouter = t.router({
           });
         });
 
-      // Persist the repo's default branch to the app so branch→environment
-      // resolution uses the actual GitHub default instead of hardcoded "main".
-      if (verifiedRepo.default_branch) {
+      const branchToStore = input.selectedBranch ?? verifiedRepo.default_branch;
+      if (branchToStore) {
         await db
           .update(schema.apps)
-          .set({ defaultBranch: verifiedRepo.default_branch, updatedAt: Date.now() })
+          .set({ defaultBranch: branchToStore, updatedAt: Date.now() })
           .where(eq(schema.apps.id, appId));
       }
 

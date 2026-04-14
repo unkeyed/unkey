@@ -3,6 +3,7 @@ import { CircleInfo, TriangleWarning2 } from "@unkey/icons";
 // biome-ignore lint/style/useImportType: Reqired for silencing Biome
 import React from "react";
 import { cn } from "../../lib/utils";
+import { InfoTooltip } from "../info-tooltip";
 import { OptionalTag, RequiredTag } from "./form-tags";
 
 export type FormHelperProps = {
@@ -69,9 +70,17 @@ export type FormLabelProps = {
   optional?: boolean;
   hasError?: boolean;
   htmlFor: string;
+  tooltipContent?: string | React.ReactNode;
 };
 
-export const FormLabel = ({ label, required, optional, hasError, htmlFor }: FormLabelProps) => {
+export const FormLabel = ({
+  label,
+  required,
+  optional,
+  hasError,
+  htmlFor,
+  tooltipContent,
+}: FormLabelProps) => {
   if (!label) {
     return null;
   }
@@ -85,6 +94,14 @@ export const FormLabel = ({ label, required, optional, hasError, htmlFor }: Form
       {label}
       {required && <RequiredTag hasError={hasError} />}
       {optional && <OptionalTag />}
+      {tooltipContent && (
+        <InfoTooltip content={tooltipContent} asChild>
+          <span className="ml-1.5 inline-flex items-center text-gray-9 hover:text-gray-11">
+            <CircleInfo iconSize="md-medium" aria-hidden="true" />
+            <span className="sr-only">More info</span>
+          </span>
+        </InfoTooltip>
+      )}
     </label>
   );
 };

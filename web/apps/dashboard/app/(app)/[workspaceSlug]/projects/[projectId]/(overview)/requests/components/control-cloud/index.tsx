@@ -1,4 +1,3 @@
-import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { ControlCloud } from "@unkey/ui";
 import { format } from "date-fns";
 import { useSentinelLogsFilters } from "../../hooks/use-sentinel-logs-filters";
@@ -16,7 +15,7 @@ const formatFieldName = (field: string): string => {
     case "methods":
       return "Method";
     case "deploymentId":
-      return "Deplyoment ID";
+      return "Deployment ID";
     case "since":
       return "";
     default:
@@ -32,6 +31,8 @@ const formatValue = (value: string | number, field: string): string => {
         return "5xx (Error)";
       case 4:
         return "4xx (Warning)";
+      case 3:
+        return "3xx (Redirect)";
       case 2:
         return "2xx (Success)";
       default:
@@ -48,7 +49,6 @@ export const SentinelLogsControlCloud = () => {
   const { filters, updateFilters, removeFilter } = useSentinelLogsFilters();
   return (
     <ControlCloud
-      historicalWindow={HISTORICAL_DATA_WINDOW}
       formatValue={formatValue}
       formatFieldName={formatFieldName}
       filters={filters}

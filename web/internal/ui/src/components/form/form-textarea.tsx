@@ -10,6 +10,7 @@ type DocumentedFormTextareaProps = DocumentedTextareaProps & {
   required?: boolean;
   optional?: boolean;
   error?: string;
+  descriptionPosition?: "inline" | "label";
 };
 
 type FormTextareaProps = TextareaProps & DocumentedFormTextareaProps;
@@ -28,10 +29,12 @@ const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
       leftIcon,
       rightIcon,
       wrapperClassName,
+      descriptionPosition = "inline",
       ...props
     },
     ref,
   ) => {
+    const descriptionAsTooltip = descriptionPosition === "label";
     const textareaVariant = error ? "error" : variant;
     const textareaId = id || React.useId();
     const descriptionId = `${textareaId}-helper`;
@@ -45,6 +48,7 @@ const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
           optional={optional}
           hasError={!!error}
           htmlFor={textareaId}
+          tooltipContent={descriptionAsTooltip ? description : undefined}
         />
 
         <Textarea
@@ -60,7 +64,7 @@ const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
           {...props}
         />
         <FormDescription
-          description={description}
+          description={descriptionAsTooltip ? undefined : description}
           error={error}
           variant={variant}
           descriptionId={descriptionId}

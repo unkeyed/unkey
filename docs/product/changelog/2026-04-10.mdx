@@ -1,0 +1,40 @@
+---
+title: "April 10, 2026"
+description: "Ephemeral disk storage for temporary files, automatic DNS setup for custom domains, and runtime log improvements for better debugging."
+noindex: true
+---
+
+## New features
+
+### Ephemeral disk storage
+
+Instances can now use dedicated ephemeral disk volumes for temporary file storage. Configure a volume size (up to 10 GiB) in your app's runtime settings, and Unkey mounts a writable disk at `/data` on each instance. Your app can read the mount path from the `UNKEY_EPHEMERAL_DISK_PATH` environment variable.
+
+Use this for workloads that need temporary disk access — media processing, file format conversion, or caching data before uploading to external storage. The volume is created when the instance starts and destroyed when it stops, so treat it as scratch space only. See the [app settings documentation](/platform/apps/settings#storage) for configuration options.
+
+### Automatic DNS setup for custom domains
+
+Custom domains now support one-click DNS configuration via the [Domain Connect](https://www.domainconnect.org/) protocol. If your DNS provider supports it, an **Automatic setup available** card appears when you add a domain. Click **Connect**, approve the changes at your provider, and Unkey configures the required DNS records automatically. Cloudflare and Vercel DNS are supported today. See the [custom domains documentation](/networking/domains#configure-dns-records) for details.
+
+## Updates
+
+### Runtime logs: region and instance filters
+
+The [Logs](/observability/logs) page now includes region and instance filters, making it easier to isolate output from specific instances when debugging multi-region deployments. Instance and region metadata also appear alongside log entries in the deployment progress view.
+
+### Improved pagination
+
+Pagination controls across the dashboard have been restyled for better readability and consistency.
+
+### Environment name validation
+
+Environment names are now validated at creation time to prevent non-compliant names. Validation rules are shared across the dashboard and API to ensure consistency.
+
+## Bug fixes
+
+- Filter control bar buttons ("Clear filters" and filter navigation) are now clickable and functional. Clearing filters also resets the datetime range.
+- Chart click handlers are now restricted to the plot area only, preventing unintended interactions when clicking outside the chart.
+- Custom domains are now deduplicated correctly, preventing duplicate entries from appearing in the domain list.
+- Traffic now routes only to regions with running instances for a deployment, avoiding requests to regions where no instances are active.
+- Fixed an overflow issue in the value cell on the environment variables page.
+- The promote deployment modal now shows the correct naming and labels.

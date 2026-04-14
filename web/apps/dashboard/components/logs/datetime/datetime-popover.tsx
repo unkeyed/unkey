@@ -85,14 +85,19 @@ export const DatetimePopover = ({
   });
 
   useEffect(() => {
+    const noTimeFilters = !since && !startTime && !endTime;
     const newTitle = since
       ? (OPTIONS.find((s) => s.value === since)?.display ?? CUSTOM_PLACEHOLDER)
-      : startTime
+      : startTime || endTime
         ? CUSTOM_PLACEHOLDER
         : initialTitle;
 
     onSuggestionChange(newTitle);
-  }, [since, startTime, initialTitle, onSuggestionChange, OPTIONS]);
+
+    if (noTimeFilters) {
+      setSuggestions(OPTIONS.map((s) => ({ ...s, checked: false })));
+    }
+  }, [since, startTime, endTime, initialTitle, onSuggestionChange, OPTIONS]);
 
   const handleSuggestionChange = (id: number) => {
     if (id === CURRENT_CUSTOM_OPTION_ID) {

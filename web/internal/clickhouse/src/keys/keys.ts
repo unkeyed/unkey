@@ -426,32 +426,73 @@ WITH
         .omit({ outcome_counts: true }),
     });
 
-    // Execute the ClickHouse query
-    const clickhouseResults = await query(parameters);
+    // Build count query to get total matching key_ids without LIMIT
+    const countCTE = isRollingWindow
+      ? `SELECT count(DISTINCT key_id) as total_count
+      FROM default.key_last_used_v1
+      WHERE workspace_id = {workspaceId: String}
+          AND key_space_id = {keyspaceId: String}
+          AND (${keyIdConditions})
+          AND time >= {startTime: UInt64}
+          AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+          AND (${tagConditions})`
+      : `SELECT count(DISTINCT key_id) as total_count
+      FROM (
+          SELECT key_id
+          FROM default.key_verifications_per_hour_v3
+          WHERE workspace_id = {workspaceId: String}
+              AND key_space_id = {keyspaceId: String}
+              AND time BETWEEN toDateTime(fromUnixTimestamp64Milli({startTime: UInt64}))
+                           AND toDateTime(fromUnixTimestamp64Milli({endTime: UInt64}))
+              AND (${keyIdConditions})
+              AND (${tagConditions})
+          UNION ALL
+          SELECT key_id
+          FROM default.key_verifications_raw_v2
+          WHERE workspace_id = {workspaceId: String}
+              AND key_space_id = {keyspaceId: String}
+              AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+              AND (${keyIdConditions})
+              AND (${tagConditions})
+      )`;
 
-    // Always transform the results to ensure consistent structure
-    return {
-      ...clickhouseResults,
-      val: (clickhouseResults.val || []).map((result) => {
-        // Convert outcome_counts_array from array of tuples to object
-        const outcomeCountsObj: Record<string, number> = {};
-        if (Array.isArray(result.outcome_counts_array)) {
-          result.outcome_counts_array.forEach(([outcome, count]) => {
-            outcomeCountsObj[outcome] = count;
-          });
-        }
-
-        // Create a new object with the correct structure
-        return {
-          key_id: result.key_id,
-          time: result.time,
-          request_id: result.request_id,
-          tags: result.tags,
-          valid_count: result.valid_count,
-          error_count: result.error_count,
-          outcome_counts: outcomeCountsObj,
-        };
+    const countQuery = ch.query({
+      query: countCTE,
+      params: extendedParamsSchema,
+      schema: z.object({
+        total_count: z.int(),
       }),
+    });
+
+    const transformResults = async () => {
+      const clickhouseResults = await query(parameters);
+      return {
+        ...clickhouseResults,
+        val: (clickhouseResults.val || []).map((result) => {
+          // Convert outcome_counts_array from array of tuples to object
+          const outcomeCountsObj: Record<string, number> = {};
+          if (Array.isArray(result.outcome_counts_array)) {
+            result.outcome_counts_array.forEach(([outcome, count]) => {
+              outcomeCountsObj[outcome] = count;
+            });
+          }
+
+          return {
+            key_id: result.key_id,
+            time: result.time,
+            request_id: result.request_id,
+            tags: result.tags,
+            valid_count: result.valid_count,
+            error_count: result.error_count,
+            outcome_counts: outcomeCountsObj,
+          };
+        }),
+      };
+    };
+
+    return {
+      logsQuery: transformResults(),
+      countQuery: countQuery(parameters),
     };
   };
 }

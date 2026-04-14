@@ -1,5 +1,5 @@
 import { ClickHouse } from "@unkey/clickhouse";
-import { type Workspace, mysqlDrizzle, schema } from "@unkey/db";
+import { type Workspace, drizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { z } from "zod";
 async function main() {
@@ -12,7 +12,7 @@ async function main() {
   );
 
   await conn.ping();
-  const db = mysqlDrizzle(conn, { schema, mode: "default" });
+  const db = drizzle(conn, { schema, mode: "default" });
 
   console.log("starting");
 

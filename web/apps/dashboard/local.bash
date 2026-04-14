@@ -3,13 +3,13 @@
 
 pnpm install --frozen-lockfile
 
-docker compose -f ../../../dev/docker-compose.yaml up -d planetscale vault clickhouse apiv2_lb
+docker compose -f ../../../dev/docker-compose.yaml up -d mysql vault clickhouse apiv2_lb
 
 # Write environment variables to .env if it doesn't exist
 if [ ! -f .env ]; then
 cat > .env << 'EOF'
 
-DATABASE_HOST="localhost:3900"
+DATABASE_HOST="localhost:3306"
 DATABASE_USERNAME="unkey"
 DATABASE_PASSWORD="password"
 

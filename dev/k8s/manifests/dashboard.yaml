@@ -23,7 +23,7 @@ spec:
                       - sh
                       - -c
                       - |
-                          until nc -z planetscale 3900 && nc -z agent 8080; do
+                          until nc -z mysql 3306 && nc -z agent 8080; do
                             echo waiting for dependencies
                             sleep 2
                           done
@@ -36,7 +36,7 @@ spec:
                   env:
                       # Database configuration
                       - name: DATABASE_HOST
-                        value: "planetscale:3900"
+                        value: "mysql:3306"
                       # ClickHouse configuration
                       - name: CLICKHOUSE_URL
                         value: "http://default:password@clickhouse:8123"

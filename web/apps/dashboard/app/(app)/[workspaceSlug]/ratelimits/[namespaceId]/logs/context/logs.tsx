@@ -1,13 +1,13 @@
 "use client";
 
-import type { RatelimitLog } from "@unkey/clickhouse/src/ratelimits";
 import { type PropsWithChildren, createContext, useContext, useState } from "react";
+import type { EnrichedRatelimitLog } from "../components/table/hooks/use-logs-query";
 
 type LogsContextType = {
   isLive: boolean;
   toggleLive: (value?: boolean) => void;
-  selectedLog: RatelimitLog | null;
-  setSelectedLog: (log: RatelimitLog | null) => void;
+  selectedLog: EnrichedRatelimitLog | null;
+  setSelectedLog: (log: EnrichedRatelimitLog | null) => void;
   namespaceId: string;
 };
 
@@ -17,7 +17,7 @@ export const RatelimitLogsProvider = ({
   children,
   namespaceId,
 }: PropsWithChildren<{ namespaceId: string }>) => {
-  const [selectedLog, setSelectedLog] = useState<RatelimitLog | null>(null);
+  const [selectedLog, setSelectedLog] = useState<EnrichedRatelimitLog | null>(null);
   const [isLive, setIsLive] = useState(false);
 
   const toggleLive = (value?: boolean) => {

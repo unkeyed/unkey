@@ -139,7 +139,7 @@ export const queryPermissions = workspaceProcedure
     ${isComputedSort ? sql`LIMIT ${pageSize} OFFSET ${offset}` : sql``}
 `);
 
-    const rows = result.rows as {
+    const rows = result[0] as unknown as {
       id: string;
       name: string;
       description: string | null;

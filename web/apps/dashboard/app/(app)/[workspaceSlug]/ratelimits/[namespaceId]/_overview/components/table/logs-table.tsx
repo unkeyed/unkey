@@ -222,8 +222,12 @@ export const RatelimitOverviewLogsTable = ({
             <span className="text-accent-12">
               {new Intl.NumberFormat().format(historicalLogs.length)}
             </span>
-            <span>of</span>
-            {new Intl.NumberFormat().format(totalCount)}
+            {totalCount >= 0 && (
+              <>
+                <span>of</span>
+                {new Intl.NumberFormat().format(totalCount)}
+              </>
+            )}
             <span>rate limit identifiers</span>
           </div>
         ),
