@@ -2,6 +2,8 @@ import { collection } from "@/lib/collections";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
 import { Bookmark } from "@unkey/icons";
 import { Button, CopyButton, Empty } from "@unkey/ui";
+import { useMemo } from "react";
+import { useBatchRatelimitTimeseries } from "../hooks/use-batch-timeseries";
 import { useNamespaceListFilters } from "../hooks/use-namespace-list-filters";
 import { NamespaceCard } from "./namespace-card";
 
@@ -28,6 +30,10 @@ export const NamespaceList = () => {
         .orderBy(({ namespace }) => namespace.id, "desc"),
     [nameFilter],
   );
+
+  const namespaceIds = useMemo(() => namespaces.map((ns) => ns.id), [namespaces]);
+  const { timeseriesByNamespace, isLoading, isError } =
+    useBatchRatelimitTimeseries(namespaceIds);
 
   if (namespaces.length === 0) {
     return (
@@ -68,7 +74,13 @@ export const NamespaceList = () => {
     <div className="p-4">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 md:gap-5">
         {namespaces.map((namespace) => (
-          <NamespaceCard namespace={namespace} key={namespace.id} />
+          <NamespaceCard
+            namespace={namespace}
+            key={namespace.id}
+            timeseries={timeseriesByNamespace[namespace.id]}
+            isLoading={isLoading}
+            isError={isError}
+          />
         ))}
       </div>
     </div>

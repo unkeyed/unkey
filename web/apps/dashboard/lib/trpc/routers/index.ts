@@ -158,6 +158,7 @@ import { queryRatelimitLogs } from "./ratelimit/query-logs";
 import { queryRatelimitLogEnrichment } from "./ratelimit/query-logs/enrichment";
 import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
+import { queryRatelimitTimeseriesBatch } from "./ratelimit/query-timeseries-batch";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
 import { updateOverride } from "./ratelimit/updateOverride";
 import { connectPermissionToRole } from "./rbac/connectPermissionToRole";
@@ -335,6 +336,7 @@ export const router = t.router({
       enrichment: queryRatelimitLogEnrichment,
       ratelimitLlmSearch,
       queryRatelimitTimeseries,
+      queryRatelimitTimeseriesBatch,
     }),
     overview: t.router({
       logs: t.router({

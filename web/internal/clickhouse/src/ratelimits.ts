@@ -216,6 +216,84 @@ function createTimeseriesQuerier(interval: TimeInterval) {
   };
 }
 
+// Batch timeseries: query multiple namespaces in a single ClickHouse call
+export const ratelimitBatchTimeseriesParams = z.object({
+  workspaceId: z.string(),
+  namespaceIds: z.array(z.string()),
+  startTime: z.int(),
+  endTime: z.int(),
+});
+
+export const ratelimitBatchTimeseriesDataPoint = z.object({
+  namespace_id: z.string(),
+  x: z.int(),
+  y: z.object({
+    passed: z.int().prefault(0),
+    total: z.int().prefault(0),
+  }),
+});
+
+export type RatelimitBatchTimeseriesParams = z.infer<typeof ratelimitBatchTimeseriesParams>;
+export type RatelimitBatchTimeseriesDataPoint = z.infer<typeof ratelimitBatchTimeseriesDataPoint>;
+
+function createBatchTimeseriesQuery(interval: TimeInterval) {
+  const intervalUnit = {
+    MINUTE: 60_000,
+    MINUTES: 60_000,
+    HOUR: 3600_000,
+    HOURS: 3600_000,
+    DAY: 86400_000,
+    MONTH: 2592000_000,
+  }[interval.step];
+
+  if (!intervalUnit) {
+    throw new Error("Unknown interval in 'createBatchTimeseriesQuery'");
+  }
+
+  const stepMs = intervalUnit * interval.stepSize;
+
+  return `
+    SELECT
+      namespace_id,
+      toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL ${interval.stepSize} ${interval.step}) AS DateTime64(3))) as x,
+      map(
+        'passed', sum(passed),
+        'total', sum(total)
+      ) as y
+    FROM ${interval.table}
+    WHERE workspace_id = {workspaceId: String}
+      AND namespace_id IN {namespaceIds: Array(String)}
+      AND time >= fromUnixTimestamp64Milli({startTime: Int64})
+      AND time <= fromUnixTimestamp64Milli({endTime: Int64})
+    GROUP BY namespace_id, x
+    ORDER BY namespace_id, x ASC`;
+}
+
+function createBatchTimeseriesQuerier(interval: TimeInterval) {
+  return (ch: Querier) => async (args: RatelimitBatchTimeseriesParams) => {
+    return ch.query({
+      query: createBatchTimeseriesQuery(interval),
+      params: ratelimitBatchTimeseriesParams,
+      schema: ratelimitBatchTimeseriesDataPoint,
+    })(args);
+  };
+}
+
+export const getBatchMinutelyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.minute);
+export const getBatchFiveMinuteRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.fiveMinutes);
+export const getBatchFifteenMinuteRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.fifteenMinutes);
+export const getBatchThirtyMinuteRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.thirtyMinutes);
+export const getBatchHourlyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.hour);
+export const getBatchTwoHourlyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.twoHours);
+export const getBatchFourHourlyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.fourHours);
+export const getBatchSixHourlyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.sixHours);
+export const getBatchTwelveHourlyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.twelveHours);
+export const getBatchDailyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.day);
+export const getBatchThreeDayRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.threeDays);
+export const getBatchWeeklyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.week);
+export const getBatchMonthlyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.month);
+export const getBatchQuarterlyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.quarter);
+
 export const getMinutelyRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.minute);
 export const getFiveMinuteRatelimitTimeseries = createTimeseriesQuerier(INTERVALS.fiveMinutes);
 export const getFifteenMinuteRatelimitTimeseries = createTimeseriesQuerier(
