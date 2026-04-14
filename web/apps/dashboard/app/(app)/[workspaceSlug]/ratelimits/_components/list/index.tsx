@@ -32,8 +32,7 @@ export const NamespaceList = () => {
   );
 
   const namespaceIds = useMemo(() => namespaces.map((ns) => ns.id), [namespaces]);
-  const { timeseriesByNamespace, isLoading, isError } =
-    useBatchRatelimitTimeseries(namespaceIds);
+  const { timeseriesByNamespace, isLoading, isError } = useBatchRatelimitTimeseries(namespaceIds);
 
   if (namespaces.length === 0) {
     return (

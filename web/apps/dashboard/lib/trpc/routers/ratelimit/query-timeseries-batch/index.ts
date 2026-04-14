@@ -104,12 +104,7 @@ export const queryRatelimitTimeseriesBatch = workspaceProcedure
     const stepMs = TIMESERIES_GRANULARITIES[granularity].ms;
     const timeseriesByNamespace: Record<string, TimeseriesPoint[]> = {};
     for (const nsId of validNamespaceIds) {
-      timeseriesByNamespace[nsId] = fillGaps(
-        rawByNamespace[nsId],
-        startTime,
-        endTime,
-        stepMs,
-      );
+      timeseriesByNamespace[nsId] = fillGaps(rawByNamespace[nsId], startTime, endTime, stepMs);
     }
 
     return { timeseriesByNamespace, granularity };

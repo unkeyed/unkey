@@ -250,8 +250,6 @@ function createBatchTimeseriesQuery(interval: TimeInterval) {
     throw new Error("Unknown interval in 'createBatchTimeseriesQuery'");
   }
 
-  const stepMs = intervalUnit * interval.stepSize;
-
   return `
     SELECT
       namespace_id,
@@ -280,16 +278,32 @@ function createBatchTimeseriesQuerier(interval: TimeInterval) {
 }
 
 export const getBatchMinutelyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.minute);
-export const getBatchFiveMinuteRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.fiveMinutes);
-export const getBatchFifteenMinuteRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.fifteenMinutes);
-export const getBatchThirtyMinuteRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.thirtyMinutes);
+export const getBatchFiveMinuteRatelimitTimeseries = createBatchTimeseriesQuerier(
+  INTERVALS.fiveMinutes,
+);
+export const getBatchFifteenMinuteRatelimitTimeseries = createBatchTimeseriesQuerier(
+  INTERVALS.fifteenMinutes,
+);
+export const getBatchThirtyMinuteRatelimitTimeseries = createBatchTimeseriesQuerier(
+  INTERVALS.thirtyMinutes,
+);
 export const getBatchHourlyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.hour);
-export const getBatchTwoHourlyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.twoHours);
-export const getBatchFourHourlyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.fourHours);
-export const getBatchSixHourlyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.sixHours);
-export const getBatchTwelveHourlyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.twelveHours);
+export const getBatchTwoHourlyRatelimitTimeseries = createBatchTimeseriesQuerier(
+  INTERVALS.twoHours,
+);
+export const getBatchFourHourlyRatelimitTimeseries = createBatchTimeseriesQuerier(
+  INTERVALS.fourHours,
+);
+export const getBatchSixHourlyRatelimitTimeseries = createBatchTimeseriesQuerier(
+  INTERVALS.sixHours,
+);
+export const getBatchTwelveHourlyRatelimitTimeseries = createBatchTimeseriesQuerier(
+  INTERVALS.twelveHours,
+);
 export const getBatchDailyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.day);
-export const getBatchThreeDayRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.threeDays);
+export const getBatchThreeDayRatelimitTimeseries = createBatchTimeseriesQuerier(
+  INTERVALS.threeDays,
+);
 export const getBatchWeeklyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.week);
 export const getBatchMonthlyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.month);
 export const getBatchQuarterlyRatelimitTimeseries = createBatchTimeseriesQuerier(INTERVALS.quarter);

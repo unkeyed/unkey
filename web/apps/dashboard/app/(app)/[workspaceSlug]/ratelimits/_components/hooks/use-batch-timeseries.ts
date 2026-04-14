@@ -20,14 +20,13 @@ export const useBatchRatelimitTimeseries = (namespaceIds: string[]) => {
 
   // The namespace list page is always a live view (no user-controlled time range),
   // so we auto-refresh every 10s to keep charts current.
-  const { data, isLoading, isError } =
-    trpc.ratelimit.logs.queryRatelimitTimeseriesBatch.useQuery(
-      { namespaceIds, startTime, endTime },
-      {
-        enabled: namespaceIds.length > 0,
-        refetchInterval: 10_000,
-      },
-    );
+  const { data, isLoading, isError } = trpc.ratelimit.logs.queryRatelimitTimeseriesBatch.useQuery(
+    { namespaceIds, startTime, endTime },
+    {
+      enabled: namespaceIds.length > 0,
+      refetchInterval: 10_000,
+    },
+  );
 
   const timeseriesByNamespace = useMemo(() => {
     if (!data) {
