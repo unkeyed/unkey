@@ -4,8 +4,9 @@ Local development tools for setting up and testing GitHub App-triggered deployme
 
 ## Commands
 
-- `go run . dev github setup` — create a GitHub App via manifest flow and write all credentials automatically
-- `go run . dev github trigger-webhook` — simulate a GitHub push webhook to trigger a deployment
+- `go run . dev github setup`: create a GitHub App via manifest flow and write all credentials automatically
+- `go run . dev github tunnel`: start an ngrok tunnel and update the GitHub App webhook URL automatically
+- `go run . dev github trigger-webhook`: simulate a GitHub push webhook to trigger a deployment
 
 ---
 
@@ -19,10 +20,10 @@ go run . dev github setup --app-name my-unkey-dev
 
 This opens a browser, walks you through GitHub's App creation UI, then writes:
 
-- `dev/.env.github` — app ID, webhook secret, app name
-- `dev/.github-private-key.pem` — private key for ctrl-worker
-- `web/apps/dashboard/.github-private-key.pem` — private key for the dashboard
-- `web/apps/dashboard/.env` — `GITHUB_APP_ID` and `NEXT_PUBLIC_GITHUB_APP_NAME`
+- `dev/.env.github`: app ID, webhook secret, app name
+- `dev/.github-private-key.pem`: private key for ctrl-worker
+- `web/apps/dashboard/.github-private-key.pem`: private key for the dashboard
+- `web/apps/dashboard/.env`: `GITHUB_APP_ID` and `NEXT_PUBLIC_GITHUB_APP_NAME`
 
 ### Step 2: Start the dev environment
 
@@ -59,6 +60,16 @@ go run . dev github trigger-webhook \
 | `--webhook-url` | Webhook URL (update in GitHub App settings once you have a tunnel) | `https://example.com/webhooks/github` |
 | `--port` | Local callback server port | `9999` |
 | `--out-dir` | Where to write `dev/` credentials | `dev` |
+
+### `tunnel`
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--port` | Local port to tunnel | `7091` |
+| `--env-file` | Path to `.env.github` | `dev/.env.github` |
+| `--pem-file` | Path to `.github-private-key.pem` | `dev/.github-private-key.pem` |
+
+Requires `ngrok` to be installed and authenticated (`ngrok config add-authtoken <token>`).
 
 ### `trigger-webhook`
 

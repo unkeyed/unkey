@@ -208,7 +208,7 @@ func writeCredentials(outDir string, app *manifestResponse) error {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// dev/.env.github — consumed by Tiltfile and ctrl-* services
+	// dev/.env.github: consumed by Tiltfile and ctrl-* services
 	envContent := fmt.Sprintf(
 		"UNKEY_GITHUB_APP_ID=%d\nUNKEY_GITHUB_APP_WEBHOOK_SECRET=%s\nNEXT_PUBLIC_GITHUB_APP_NAME=%q\nUNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=false\n",
 		app.ID,
@@ -219,12 +219,12 @@ func writeCredentials(outDir string, app *manifestResponse) error {
 		return fmt.Errorf("failed to write .env.github: %w", err)
 	}
 
-	// dev/.github-private-key.pem — consumed by Tiltfile
+	// dev/.github-private-key.pem: consumed by Tiltfile
 	if err := os.WriteFile(filepath.Join(outDir, ".github-private-key.pem"), []byte(app.PEM), 0o600); err != nil {
 		return fmt.Errorf("failed to write .github-private-key.pem: %w", err)
 	}
 
-	// web/apps/dashboard/ — write the PEM file and append GitHub vars to .env
+	// web/apps/dashboard/: write the PEM file and append GitHub vars to .env
 	dashboardDir := filepath.Join("web", "apps", "dashboard")
 
 	if err := os.WriteFile(filepath.Join(dashboardDir, ".github-private-key.pem"), []byte(app.PEM), 0o600); err != nil {
@@ -232,7 +232,7 @@ func writeCredentials(outDir string, app *manifestResponse) error {
 	}
 
 	dashboardVars := fmt.Sprintf(
-		"\n# GitHub App — written by `go run . dev github setup`\nGITHUB_APP_ID=%d\nNEXT_PUBLIC_GITHUB_APP_NAME=%q\n",
+		"\n# GitHub App (written by `go run . dev github setup`)\nGITHUB_APP_ID=%d\nNEXT_PUBLIC_GITHUB_APP_NAME=%q\n",
 		app.ID,
 		app.Slug,
 	)

@@ -6,6 +6,7 @@ go_library(
         "setup.go",
         "signature.go",
         "trigger_webhook.go",
+        "tunnel.go",
     ],
     importpath = "github.com/unkeyed/unkey/cmd/dev/github",
     visibility = ["//visibility:public"],
