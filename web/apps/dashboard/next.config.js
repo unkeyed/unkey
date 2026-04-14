@@ -12,6 +12,7 @@ const nextConfig = {
   productionBrowserSourceMaps: true,
   // we're open-source anyways
 
+  serverExternalPackages: ["mysql2"],
   poweredByHeader: false,
   webpack: (config) => {
     config.cache = Object.freeze({
