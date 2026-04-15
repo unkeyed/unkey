@@ -4,7 +4,6 @@ import type { Deployment, Environment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { CodeBranch, CodeCommit } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
@@ -40,14 +39,11 @@ export function DeploymentRow({
 }: DeploymentRowProps) {
   return (
     <div
-      className={cn(
-        "relative flex flex-col md:flex-row md:items-center px-4 py-3 gap-3 md:gap-0 transition-colors",
-        "hover:bg-grayA-2",
-      )}
+      className="relative flex flex-col md:flex-row md:items-center px-4 py-3 gap-3 md:gap-0 transition-colors hover:bg-grayA-2"
     >
       <Link
         href={href}
-        className="absolute inset-0 z-0"
+        className="absolute inset-0 z-10"
         aria-label={`Deployment ${shortenId(deployment.id)} ${deployment.status}`}
       />
       {/* Identity + Status */}
@@ -104,16 +100,20 @@ export function DeploymentRow({
 
       {/* Meta */}
       <div className="md:w-[30%] md:shrink-0 flex items-center md:justify-end gap-3">
-        <TimestampInfo
-          value={deployment.createdAt}
-          displayType="relative"
-          className="text-[13px] text-gray-9"
-        />
+        <span className="relative z-20">
+          <TimestampInfo
+            value={deployment.createdAt}
+            displayType="relative"
+            side="left"
+            align="center"
+            className="text-[13px] text-gray-9"
+          />
+        </span>
         <Avatar
           src={deployment.gitCommitAuthorAvatarUrl}
           alt={deployment.gitCommitAuthorHandle ?? "Author"}
         />
-        <div className="z-10" role="presentation">
+        <div className="relative z-20" role="presentation">
           <DeploymentListTableActions selectedDeployment={deployment} environment={environment} />
         </div>
       </div>
