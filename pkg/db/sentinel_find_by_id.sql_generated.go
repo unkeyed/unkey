@@ -10,13 +10,13 @@ import (
 )
 
 const findSentinelByID = `-- name: FindSentinelByID :one
-SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
+SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
 WHERE id = ? LIMIT 1
 `
 
 // FindSentinelByID
 //
-//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
+//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
 //	WHERE id = ? LIMIT 1
 func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error) {
 	row := db.QueryRowContext(ctx, findSentinelByID, id)
@@ -31,10 +31,12 @@ func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (Sen
 		&i.K8sAddress,
 		&i.RegionID,
 		&i.Image,
+		&i.RunningImage,
 		&i.DesiredState,
 		&i.Health,
 		&i.DesiredReplicas,
 		&i.AvailableReplicas,
+		&i.DeployStatus,
 		&i.CpuMillicores,
 		&i.MemoryMib,
 		&i.CreatedAt,

@@ -1,4 +1,27 @@
-package deploy
+// Package compensation provides a rollback mechanism for multi-step Restate workflows.
+//
+// When a workflow performs a sequence of side effects (database writes, API calls,
+// resource provisioning), a failure partway through leaves the system in a partially
+// mutated state. [Compensation] collects undo actions as the workflow progresses and
+// executes them in reverse order on failure, unwinding the setup sequence.
+//
+// This follows the saga compensation pattern: each forward step registers its
+// inverse, and the inverse runs only if the workflow fails after that step.
+//
+// # Usage
+//
+//	comp := compensation.New()
+//
+//	comp.Add("delete topology", func(ctx restate.RunContext) error {
+//	    return db.Query.DeleteTopology(ctx, tx, topologyID)
+//	})
+//
+//	// ... more steps, each registering their undo ...
+//
+//	if err != nil {
+//	    return errors.Join(err, comp.Execute(ctx))
+//	}
+package compensation
 
 import (
 	"errors"
@@ -9,7 +32,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 )
 
-// Compensation stores deployment rollback actions.
+// Compensation stores rollback actions for Restate workflows.
 //
 // Actions are registered in forward order with [Compensation.Add] and executed
 // in reverse order by [Compensation.Execute], so teardown naturally unwinds the
@@ -19,8 +42,8 @@ type Compensation struct {
 	operations []func(ctx restate.ObjectContext) error
 }
 
-// NewCompensation creates an empty [Compensation].
-func NewCompensation() *Compensation {
+// New creates an empty [Compensation].
+func New() *Compensation {
 	return &Compensation{
 		mu:         sync.Mutex{},
 		operations: []func(ctx restate.ObjectContext) error{},
