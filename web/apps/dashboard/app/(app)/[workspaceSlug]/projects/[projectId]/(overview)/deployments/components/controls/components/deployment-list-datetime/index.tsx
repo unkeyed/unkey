@@ -68,7 +68,7 @@ export const DeploymentListDatetime = () => {
       <div className="group">
         <Button
           variant="outline"
-          size="md"
+          size="lg"
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
             displayTitle === "Loading..." ? "opacity-50" : "",
@@ -80,7 +80,7 @@ export const DeploymentListDatetime = () => {
           disabled={displayTitle === "Loading..."}
         >
           <Calendar className="text-gray-9 size-4" />
-          <span className="text-gray-12 font-medium text-[13px]">{displayTitle}</span>
+          <span className="text-gray-12 font-normal text-[13px]">{displayTitle}</span>
         </Button>
       </div>
     </DatetimePopover>
