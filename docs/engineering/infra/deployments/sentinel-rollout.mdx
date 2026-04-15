@@ -11,14 +11,14 @@ This doc is the operator-facing recipe: how to actually start, monitor, and unst
 
 - The target image exists in `ghcr.io/unkeyed/sentinel` and passed CI.
 - You have a kubeconfig for the prod control-plane cluster.
-- You have the Restate ingress bearer token from the `restate-cloud-credentials` secret (AWS Secrets Manager).
 - A Slack webhook URL (optional but strongly recommended in prod — it's the only progress stream you'll get without tailing logs).
 
-Export the ingress URL and token for the rest of this doc:
+The Restate ingress URL and bearer token are already injected into the `restate-worker` pod as `UNKEY_RESTATE_INGRESS_URL` and `UNKEY_RESTATE_INGRESS_API_KEY` (see [worker configuration](/architecture/services/control-plane/worker/configuration#restate-configuration)). Pull them straight from the pod so you don't have to touch AWS Secrets Manager:
 
 ```bash
-export RESTATE_URL='https://<prod-ingress-url>'   # from restate-cloud-credentials
-export RESTATE_TOKEN='<bearer token>'             # from restate-cloud-credentials
+POD=$(kubectl -n unkey get pod -l app.kubernetes.io/component=restate-worker -o jsonpath='{.items[0].metadata.name}')
+export RESTATE_URL=$(kubectl -n unkey exec "$POD" -- printenv UNKEY_RESTATE_INGRESS_URL)
+export RESTATE_TOKEN=$(kubectl -n unkey exec "$POD" -- printenv UNKEY_RESTATE_INGRESS_API_KEY)
 ```
 
 ## Start a rollout (curl)

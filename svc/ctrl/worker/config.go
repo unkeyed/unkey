@@ -67,6 +67,18 @@ type RestateConfig struct {
 	// If set, this key will be sent with all requests to the Restate admin API.
 	APIKey string `toml:"api_key"`
 
+	// IngressURL is the Restate ingress endpoint URL used to invoke services
+	// (e.g. SentinelRolloutService) from operator tooling running inside the
+	// worker. Separate from AdminURL, which is service registration only.
+	// Example: "https://ingress.prod.restate.cloud".
+	IngressURL string `toml:"ingress_url"`
+
+	// IngressAPIKey is the bearer token for authenticating against the Restate
+	// ingress. Injected via environment variable from the same secret that
+	// backs the restate-worker deployment, so operators don't need to fetch
+	// credentials manually when driving rollouts.
+	IngressAPIKey string `toml:"ingress_api_key"`
+
 	// HttpPort is the port where the worker listens for Restate requests.
 	// This is the internal Restate server port, not the health check port.
 	HttpPort int `toml:"http_port" config:"default=9080,min=1,max=65535"`

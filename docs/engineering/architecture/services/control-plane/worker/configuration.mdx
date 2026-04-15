@@ -66,6 +66,8 @@ ACME settings live under `acme`. Enable Route53 DNS-01 challenges with `acme.rou
 | --- | --- | --- | --- |
 | `restate.admin_url` | string | `http://restate:9070` | Admin API endpoint.
 | `restate.api_key` | string | - | Optional Restate admin auth key.
+| `restate.ingress_url` | string | - | Restate ingress URL, used by operator tooling (e.g. sentinel rollouts). Injected from the same secret as the worker's Restate credentials.
+| `restate.ingress_api_key` | string | - | Bearer token for the Restate ingress. Injected via env.
 | `restate.http_port` | int | `9080` | Worker Restate ingress port.
 | `restate.register_as` | string | - | Optional self-registration URL.
 
@@ -146,6 +148,8 @@ region = "${UNKEY_ACME_ROUTE53_REGION}"
 
 [restate]
 admin_url = "${UNKEY_RESTATE_ADMIN_URL}"
+ingress_url = "${UNKEY_RESTATE_INGRESS_URL}"
+ingress_api_key = "${UNKEY_RESTATE_INGRESS_API_KEY}"
 http_port = 9080
 register_as = "${UNKEY_RESTATE_REGISTER_AS}"
 
