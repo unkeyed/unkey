@@ -1,5 +1,19 @@
 package github
 
+// setup.go implements the `dev github setup` subcommand.
+//
+// Flow (GitHub App Manifest):
+//  1. Builds a GitHub App manifest (permissions, events, webhook URL, redirect URL).
+//  2. Spins up a local HTTP server on :9999.
+//  3. Opens the browser to localhost:9999, which auto-submits the manifest to
+//     https://github.com/settings/apps/new -- GitHub presents an app-creation UI.
+//  4. After the user confirms, GitHub redirects to localhost:9999/callback with a
+//     one-time `code`.
+//  5. Exchanges the code at POST /app-manifests/{code}/conversions to get the app's
+//     ID, PEM private key, and webhook secret.
+//  6. Writes credentials to dev/.env.github, dev/.github-private-key.pem, and
+//     web/apps/dashboard/.env / .github-private-key.pem.
+
 import (
 	"context"
 	"encoding/json"

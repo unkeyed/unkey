@@ -1,5 +1,16 @@
 package github
 
+// tunnel.go implements the `dev github tunnel` subcommand.
+//
+// Flow:
+//  1. Reads UNKEY_GITHUB_APP_ID from dev/.env.github (written by `dev github setup`).
+//  2. Reads the app private key from dev/.github-private-key.pem.
+//  3. Starts an ngrok process and polls its local API (localhost:4040) until an HTTPS URL appears.
+//  4. Generates a short-lived GitHub App JWT signed with the private key; the JWT's `iss`
+//     claim is the app ID -- GitHub uses this to identify which app is authenticating.
+//  5. Calls PATCH /app/hook/config with the JWT; GitHub updates the webhook URL for the
+//     app identified by the JWT issuer, so no app ID is needed in the request URL.
+
 import (
 	"bytes"
 	"context"
