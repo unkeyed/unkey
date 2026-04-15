@@ -1,8 +1,10 @@
 import {
+  type FirewallPolicy,
   type KeyauthPolicy,
   type MatchExpr,
   SENTINEL_LIMITS,
   type StringMatch,
+  firewallActionSchema,
   matchExprSchema,
   stringMatchModeSchema,
 } from "@/lib/collections/deploy/sentinel-policies.schema";
@@ -104,7 +106,7 @@ export type KeyLocationFormValues = z.infer<typeof keyLocationFormSchema>;
 //
 // Discriminated union on `type` so adding a new policy form (e.g. ratelimit)
 // later is just one extra branch here + one branch in toSentinelPolicy below.
-// Today only `keyauth` is wired through.
+// `keyauth` and `firewall` are wired through today.
 
 const basePolicyFields = {
   name: z.string().min(1, "Name is required"),
@@ -123,12 +125,25 @@ const keyauthFormSchema = z.object({
   permissionQuery: z.string().max(SENTINEL_LIMITS.permissionQueryMaxLength),
 });
 
-export const policyFormSchema = z.discriminatedUnion("type", [keyauthFormSchema]);
+// Firewall has a single action today (DENY) and no other configuration.
+// The action is kept on the form so the wire payload stays self-describing
+// and so adding more actions later is purely additive.
+const firewallFormSchema = z.object({
+  ...basePolicyFields,
+  type: z.literal("firewall"),
+  action: firewallActionSchema,
+});
+
+export const policyFormSchema = z.discriminatedUnion("type", [
+  keyauthFormSchema,
+  firewallFormSchema,
+]);
 export type PolicyFormValues = z.infer<typeof policyFormSchema>;
 export type PolicyType = PolicyFormValues["type"];
 
 export const POLICY_TYPE_OPTIONS: { value: PolicyType; label: string }[] = [
   { value: "keyauth", label: "Key Auth" },
+  { value: "firewall", label: "Firewall" },
 ];
 
 export function getDefaultCondition(
@@ -162,6 +177,11 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
       keySpaceIds: [],
       locations: [],
       permissionQuery: "",
+    }))
+    .with("firewall", () => ({
+      ...base,
+      type: "firewall" as const,
+      action: "ACTION_DENY" as const,
     }))
     .exhaustive();
 }
@@ -214,11 +234,15 @@ function toMatchExpr(condition: MatchConditionFormValues): MatchExpr {
     .exhaustive();
 }
 
-export function toSentinelPolicy(values: PolicyFormValues, existingId?: string): KeyauthPolicy {
+export function toSentinelPolicy(
+  values: PolicyFormValues,
+  existingId?: string,
+): KeyauthPolicy | FirewallPolicy {
   const id = existingId ?? crypto.randomUUID();
   const matchExprs = values.matchConditions.map(toMatchExpr);
 
   return match(values)
+    .returnType<KeyauthPolicy | FirewallPolicy>()
     .with({ type: "keyauth" }, (v) => {
       const locations = v.locations.map((loc) =>
         match(loc.locationType)
@@ -246,6 +270,14 @@ export function toSentinelPolicy(values: PolicyFormValues, existingId?: string):
         match: matchExprs,
       };
     })
+    .with({ type: "firewall" }, (v) => ({
+      id,
+      name: v.name,
+      enabled: true,
+      type: "firewall" as const,
+      firewall: { action: v.action },
+      match: matchExprs,
+    }))
     .exhaustive();
 }
 
@@ -338,6 +370,19 @@ export function fromSentinelPolicy(
         keySpaceIds: p.keyauth.keySpaceIds,
         locations,
         permissionQuery: p.keyauth.permissionQuery ?? "",
+      };
+    })
+    .with({ type: "firewall" }, (p) => {
+      const matchConditions: MatchConditionFormValues[] = (p.match ?? [])
+        .map(fromMatchExpr)
+        .filter((c): c is MatchConditionFormValues => c !== null);
+
+      return {
+        type: "firewall" as const,
+        name: p.name,
+        environmentId,
+        matchConditions,
+        action: p.firewall.action,
       };
     })
     .exhaustive();
