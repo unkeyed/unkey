@@ -94,18 +94,18 @@ export const DeploymentListFilters = () => {
     <FiltersPopover items={filterItems} activeFilters={filters}>
       <div className="group">
         <Button
-          variant="ghost"
+          variant="outline"
+          size="lg"
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
             filters.length > 0 ? "bg-gray-4" : "",
           )}
           aria-label="Filter deployments"
           aria-haspopup="true"
-          size="md"
           title="Press 'F' to toggle filters"
         >
           <BarsFilter className="text-accent-9 size-4" />
-          <span className="text-accent-12 font-medium text-[13px]">Filter</span>
+          <span className="text-accent-12 font-normal text-[13px]">Filter</span>
           {filters.length > 0 && (
             <div className="bg-gray-7 rounded-sm h-4 px-1 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
               {filters.length}

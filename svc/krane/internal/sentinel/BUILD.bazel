@@ -9,6 +9,8 @@ go_library(
         "controller.go",
         "delete.go",
         "doc.go",
+        "health.go",
+        "pod_watch.go",
         "resync.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/krane/internal/sentinel",
