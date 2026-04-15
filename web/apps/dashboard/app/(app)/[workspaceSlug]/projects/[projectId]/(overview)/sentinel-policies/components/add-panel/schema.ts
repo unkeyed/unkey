@@ -1,10 +1,12 @@
 import {
+  type FirewallPolicy,
   type KeyauthPolicy,
   type MatchExpr,
   type RateLimitKey,
   type RatelimitPolicy,
   SENTINEL_LIMITS,
   type StringMatch,
+  firewallActionSchema,
   matchExprSchema,
   stringMatchModeSchema,
 } from "@/lib/collections/deploy/sentinel-policies.schema";
@@ -106,7 +108,7 @@ export type KeyLocationFormValues = z.infer<typeof keyLocationFormSchema>;
 //
 // Discriminated union on `type` so adding a new policy form (e.g. ratelimit)
 // later is just one extra branch here + one branch in toSentinelPolicy below.
-// Today only `keyauth` is wired through.
+// `keyauth` and `firewall` are wired through today.
 
 const basePolicyFields = {
   name: z.string().min(1, "Name is required"),
@@ -124,6 +126,7 @@ const keyauthFormSchema = z.object({
   locations: z.array(keyLocationFormSchema),
   permissionQuery: z.string().max(SENTINEL_LIMITS.permissionQueryMaxLength),
 });
+
 
 export const rateLimitKeySourceSchema = z.enum([
   "remoteIp",
@@ -153,9 +156,19 @@ const ratelimitFormSchema = z
     }
   });
 
+// Firewall has a single action today (DENY) and no other configuration.
+// The action is kept on the form so the wire payload stays self-describing
+// and so adding more actions later is purely additive.
+const firewallFormSchema = z.object({
+  ...basePolicyFields,
+  type: z.literal("firewall"),
+  action: firewallActionSchema,
+});
+
 export const policyFormSchema = z.discriminatedUnion("type", [
   keyauthFormSchema,
   ratelimitFormSchema,
+  firewallFormSchema,
 ]);
 export type PolicyFormValues = z.infer<typeof policyFormSchema>;
 export type PolicyType = PolicyFormValues["type"];
@@ -163,6 +176,7 @@ export type PolicyType = PolicyFormValues["type"];
 export const POLICY_TYPE_OPTIONS: { value: PolicyType; label: string }[] = [
   { value: "keyauth", label: "Key Auth" },
   { value: "ratelimit", label: "Rate Limit" },
+  { value: "firewall", label: "Firewall" },
 ];
 
 export function getDefaultCondition(
@@ -197,13 +211,18 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
       locations: [],
       permissionQuery: "",
     }))
-    .with("ratelimit", () => ({
+      .with("ratelimit", () => ({
       ...base,
       type: "ratelimit" as const,
       limit: 100,
       windowMs: 60000,
       keySource: "remoteIp" as const,
       keyValue: "",
+    }))
+    .with("firewall", () => ({
+      ...base,
+      type: "firewall" as const,
+      action: "ACTION_DENY" as const,
     }))
     .exhaustive();
 }
@@ -270,11 +289,12 @@ function toRateLimitKey(source: RateLimitKeySource, value: string): RateLimitKey
 export function toSentinelPolicy(
   values: PolicyFormValues,
   existingId?: string,
-): KeyauthPolicy | RatelimitPolicy {
+): KeyauthPolicy | RatelimitPolicy | FirewallPolicy {
   const id = existingId ?? crypto.randomUUID();
   const matchExprs = values.matchConditions.map(toMatchExpr);
 
   return match(values)
+    .returnType<KeyauthPolicy | RatelimitPolicy | FirewallPolicy>()
     .with({ type: "keyauth" }, (v) => {
       const locations = v.locations.map((loc) =>
         match(loc.locationType)
@@ -302,7 +322,7 @@ export function toSentinelPolicy(
         match: matchExprs,
       };
     })
-    .with({ type: "ratelimit" }, (v) => ({
+     .with({ type: "ratelimit" }, (v) => ({
       id,
       name: v.name,
       enabled: true,
@@ -312,6 +332,14 @@ export function toSentinelPolicy(
         windowMs: v.windowMs,
         key: toRateLimitKey(v.keySource, v.keyValue),
       },
+      match: matchExprs,
+    }))
+    .with({ type: "firewall" }, (v) => ({
+      id,
+      name: v.name,
+      enabled: true,
+      type: "firewall" as const,
+      firewall: { action: v.action },
       match: matchExprs,
     }))
     .exhaustive();
@@ -427,7 +455,7 @@ export function fromSentinelPolicy(
         permissionQuery: p.keyauth.permissionQuery ?? "",
       };
     })
-    .with({ type: "ratelimit" }, (p) => {
+       .with({ type: "ratelimit" }, (p) => {
       const { keySource, keyValue } = fromRateLimitKey(p.ratelimit.key);
       return {
         type: "ratelimit" as const,
@@ -438,6 +466,19 @@ export function fromSentinelPolicy(
         windowMs: p.ratelimit.windowMs,
         keySource,
         keyValue,
+      };
+    })
+    .with({ type: "firewall" }, (p) => {
+      const matchConditions: MatchConditionFormValues[] = (p.match ?? [])
+        .map(fromMatchExpr)
+        .filter((c): c is MatchConditionFormValues => c !== null);
+
+      return {
+        type: "firewall" as const,
+        name: p.name,
+        environmentId,
+        matchConditions,
+        action: p.firewall.action,
       };
     })
     .exhaustive();

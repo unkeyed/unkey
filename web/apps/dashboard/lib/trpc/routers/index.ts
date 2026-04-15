@@ -74,6 +74,9 @@ import { updatePort } from "./deploy/environment-settings/runtime/update-port";
 import { updateRegions } from "./deploy/environment-settings/runtime/update-regions";
 import { updateStorage } from "./deploy/environment-settings/runtime/update-storage";
 import { updateUpstreamProtocol } from "./deploy/environment-settings/runtime/update-upstream-protocol";
+import { create as createFirewallPolicy } from "./deploy/environment-settings/sentinel/firewall/create";
+import { remove as deleteFirewallPolicy } from "./deploy/environment-settings/sentinel/firewall/delete";
+import { update as updateFirewallPolicy } from "./deploy/environment-settings/sentinel/firewall/update";
 import { generateRegex } from "./deploy/environment-settings/sentinel/generate-regex";
 import { create as createKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/create";
 import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
@@ -433,7 +436,12 @@ export const router = t.router({
           update: updateKeyauthPolicy,
           delete: deleteKeyauthPolicy,
         }),
-        ratelimit: t.router({
+        firewall: t.router({
+          create: createFirewallPolicy,
+          update: updateFirewallPolicy,
+          delete: deleteFirewallPolicy,
+        }),
+  ratelimit: t.router({
           create: createRatelimitPolicy,
           update: updateRatelimitPolicy,
           delete: deleteRatelimitPolicy,

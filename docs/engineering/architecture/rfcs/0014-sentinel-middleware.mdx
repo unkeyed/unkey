@@ -51,7 +51,7 @@ The name "Principal" rather than "User" is deliberate — the authenticated enti
          │ KeyAuth  │──┐
          ├──────────┤  │     ┌───────────┐     ┌───────────┐
          │ JWTAuth  │──┼────▶│ Principal │────▶│ RateLimit │
-         └──────────┘  │     │           │     │ IPRules   │
+         └──────────┘  │     │           │     │ Firewall  │
                        │     │ version   │     │ ...       │
                              │ subject   │     └───────────┘
                              │ type      │
@@ -143,7 +143,7 @@ When a policy rejects a request, sentinel returns a fixed JSON response using th
 }
 ```
 
-Each policy maps to a standard HTTP status code: KeyAuth/JWTAuth → 401 for missing/invalid credentials, 403 for insufficient permissions (KeyAuth `permission_query`), RateLimit → 429, IPRules → 403, OpenAPI validation → 400. The `detail` field provides a human-readable explanation specific to the rejection reason. The `type` URI is stable per error kind and suitable for programmatic handling.
+Each policy maps to a standard HTTP status code: KeyAuth/JWTAuth → 401 for missing/invalid credentials, 403 for insufficient permissions (KeyAuth `permission_query`), RateLimit → 429, Firewall → 403, OpenAPI validation → 400. The `detail` field provides a human-readable explanation specific to the rejection reason. The `type` URI is stable per error kind and suitable for programmatic handling.
 
 Custom error responses are not supported in this version. Status codes are what API clients branch on, and the RFC 7807 format is a widely supported standard. If customization becomes necessary, it can be added as a per-status-code template on Middleware without breaking existing behavior.
 
@@ -160,7 +160,7 @@ No changes to the match system, evaluation engine, or other policies are needed.
 
 - **Durations as int64 milliseconds**: All time fields use `int64` milliseconds (e.g., `window_ms`, `clock_skew_ms`, `jwks_cache_ms`). No `google.protobuf.Duration` — consistent with the rest of the Unkey proto codebase.
 - **Policy-internal filtering vs. MatchExpr**: Some policies have their own filtering fields that are not redundant with MatchExpr. MatchExpr controls whether the policy _runs_. Internal fields control the policy's _behavior_ once running.
-- **Client IP derivation**: All client-IP-dependent behavior (IPRules, RateLimit with RemoteIpKey) uses the client IP derived from `Middleware.trusted_proxy_cidrs`. This is resolved once per request, not per policy.
+- **Client IP derivation**: All client-IP-dependent behavior (RateLimit with RemoteIpKey) uses the client IP derived from `Middleware.trusted_proxy_cidrs`. This is resolved once per request, not per policy.
 
 ## Proto Location
 
@@ -172,7 +172,7 @@ match.proto            ← MatchExpr expression tree
 keyauth.proto          ← individual policy configs...
 jwtauth.proto
 ratelimit.proto
-iprules.proto
+firewall.proto
 openapi.proto
 ```
 

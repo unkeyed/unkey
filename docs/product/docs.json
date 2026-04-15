@@ -185,7 +185,7 @@
                       "platform/sentinel/policies/api-key",
                       "platform/sentinel/policies/logging",
                       "platform/sentinel/policies/rate-limiting",
-                      "platform/sentinel/policies/ip-rules",
+                      "platform/sentinel/policies/firewall",
                       "platform/sentinel/policies/openapi-validation"
                     ]
                   }

@@ -2,10 +2,12 @@
 
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { match } from "@unkey/match";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { KeyAuthFields, KeyauthPolicySummary } from "./forms/keyauth-fields";
 import { RateLimitFields, RatelimitPolicySummary } from "./forms/ratelimit-fields";
+import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
 import {
   MatchConditionEditorBody,
   MatchConditionsClearAll,
@@ -15,6 +17,7 @@ import { PolicyForm } from "./policy-form";
 import {
   POLICY_TYPE_OPTIONS,
   type PolicyFormValues,
+  type PolicyType,
   fromSentinelPolicy,
   getDefaultValues,
   policyFormSchema,
@@ -130,18 +133,23 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
               label="Type"
               options={POLICY_TYPE_OPTIONS}
               value={field.value}
-              onValueChange={(nextType) => {
-                if (nextType !== field.value) {
-                  const name = form.getValues("name");
-                  const environmentId = form.getValues("environmentId");
-                  const matchConditions = form.getValues("matchConditions");
-                  form.reset({
-                    ...getDefaultValues(nextType as PolicyFormValues["type"]),
-                    name,
-                    environmentId,
-                    matchConditions,
-                  });
+              onValueChange={(next) => {
+                // Reset the form to the defaults of the newly-chosen type so
+                // type-specific fields don't leak between branches of the
+                // discriminated union. Shared fields (name, environmentId,
+                // matchConditions) are preserved so the user doesn't lose
+                // work when they switch types after starting to configure.
+                if (isEdit) {
+                  return;
                 }
+                const defaults = getDefaultValues(next as PolicyType);
+                form.reset({
+                  ...defaults,
+                  name: form.getValues("name"),
+                  environmentId: form.getValues("environmentId"),
+                  matchConditions: form.getValues("matchConditions"),
+                });
+                field.onChange(next);
               }}
               disabled={isEdit}
               description="The kind of protection this policy enforces."
@@ -156,13 +164,18 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
         <PolicyForm.Section
           id="config"
           label="Policy Configuration"
-          summary={
-            policyType === "ratelimit" ? <RatelimitPolicySummary /> : <KeyauthPolicySummary />
-          }
+          summary={match(policyType)
+            .with("keyauth", () => <KeyauthPolicySummary />)
+            .with("ratelimit", () => <RatelimitPolicySummary/>)
+            .with("firewall", () => <FirewallPolicySummary />)
+            .exhaustive()}
           catchAll
         >
-          {policyType === "keyauth" && <KeyAuthFields />}
-          {policyType === "ratelimit" && <RateLimitFields />}
+          {match(policyType)
+            .with("keyauth", () => <KeyAuthFields />)
+            .with("ratelimit", () => <RateLimitFields/>)
+            .with("firewall", () => <FirewallFields />)
+            .exhaustive()}
         </PolicyForm.Section>
         <PolicyForm.Section
           id="matchConditions"

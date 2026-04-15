@@ -139,6 +139,15 @@ func getErrorPageInfo(urn codes.URN) errorPageInfo {
 			Message: "Rate limit exceeded. Please try again later.",
 		}
 
+	// Sentinel Firewall Errors
+	case codes.Sentinel.Firewall.Denied.URN():
+		// Leave Message empty so the executor's "Forbidden" body (set via
+		// fault.Public) flows through to the client unchanged.
+		return errorPageInfo{
+			Status:  http.StatusForbidden,
+			Message: "",
+		}
+
 	// User/Client Errors
 	case codes.User.BadRequest.ClientClosedRequest.URN():
 		return errorPageInfo{
@@ -191,6 +200,9 @@ func categorizeErrorType(urn codes.URN, statusCode int, hasError bool) string {
 			codes.Sentinel.Auth.InvalidKey.URN(),
 			codes.Sentinel.Auth.InsufficientPermissions.URN(),
 			codes.Sentinel.Auth.RateLimited.URN():
+			return "user"
+
+		case codes.Sentinel.Firewall.Denied.URN():
 			return "user"
 		}
 
