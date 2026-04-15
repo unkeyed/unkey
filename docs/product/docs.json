@@ -171,8 +171,7 @@
                       {
                         "group": "Sources",
                         "pages": [
-                          "platform/sentinel/principal/sources/api-key",
-                          "platform/sentinel/principal/sources/jwt"
+                          "platform/sentinel/principal/sources/api-key"
                         ]
                       },
                       "platform/sentinel/principal/examples",
@@ -185,7 +184,6 @@
                       "platform/sentinel/policies/overview",
                       "platform/sentinel/policies/api-key",
                       "platform/sentinel/policies/logging",
-                      "platform/sentinel/policies/jwt",
                       "platform/sentinel/policies/rate-limiting",
                       "platform/sentinel/policies/ip-rules",
                       "platform/sentinel/policies/openapi-validation"

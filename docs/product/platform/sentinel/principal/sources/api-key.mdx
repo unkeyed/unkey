@@ -7,7 +7,7 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-When the [Principal's](/platform/sentinel/principal/overview) `type` is `"key"`, the `source.key` object contains the full details of the verified API key. This page documents every field in the API key source.
+When the [Principal's](/platform/sentinel/principal/overview) `type` is `"API_KEY"`, the `source.key` object contains the full details of the verified API key. This page documents every field in the API key source.
 
 ## Fields
 
@@ -24,19 +24,19 @@ When the [Principal's](/platform/sentinel/principal/overview) `type` is `"key"`,
 </ResponseField>
 
 <ResponseField name="source.key.expiresAt" type="integer">
-  Unix timestamp (seconds) when the key expires. Absent when the key has no expiry. The Sentinel already rejects expired keys, so if this field is present the key is still valid. Your application can use it to warn users about upcoming expiration.
+  Unix timestamp in **milliseconds** when the key expires. Absent when the key has no expiry. The Sentinel already rejects expired keys, so if this field is present the key is still valid. Your application can use it to warn users about upcoming expiration.
 </ResponseField>
 
 <ResponseField name="source.key.meta" type="object" required>
   Custom key-value metadata attached to the key. This is the same metadata you set through the Unkey API when creating or updating the key. Use it to pass per-key attributes to your application, for example an environment label or a customer tier. Empty `{}` when no metadata is set.
 </ResponseField>
 
-<ResponseField name="source.key.roles" type="string[]" required>
-  The roles attached to the key, as flat string identifiers (for example, `["admin", "billing"]`). Empty `[]` when no roles are attached. These are the raw role names from Unkey, available for your application's own authorization logic.
+<ResponseField name="source.key.roles" type="string[]">
+  The roles attached to the key, as flat string identifiers (for example, `["admin", "billing"]`). Omitted entirely when no roles are attached. These are the raw role names from Unkey, available for your application's own authorization logic.
 </ResponseField>
 
-<ResponseField name="source.key.permissions" type="string[]" required>
-  The permissions attached to the key, as flat string identifiers (for example, `["api.read", "api.write"]`). Empty `[]` when no permissions are attached.
+<ResponseField name="source.key.permissions" type="string[]">
+  The permissions attached to the key, as flat string identifiers (for example, `["api.read", "api.write"]`). Omitted entirely when no permissions are attached.
 
   These are the raw permissions from Unkey. If the Sentinel enforced a [permission query](/platform/sentinel/policies/api-key) and the key lacked the required permissions, the request was already rejected before reaching your app. The permissions here let your application make additional fine-grained authorization decisions beyond what the Sentinel enforces.
 </ResponseField>
@@ -47,15 +47,15 @@ When the [Principal's](/platform/sentinel/principal/overview) `type` is `"key"`,
 
 ```json Without identity
 {
-  "version": 1,
+  "version": "v1",
   "subject": "key_3xMpL9kF2nR",
-  "type": "key",
+  "type": "API_KEY",
   "source": {
     "key": {
       "keyId": "key_3xMpL9kF2nR",
       "keySpaceId": "ks_abc123",
       "name": "ACME Production Key",
-      "expiresAt": 1717200000,
+      "expiresAt": 1717200000000,
       "meta": {
         "environment": "production"
       },
@@ -68,9 +68,9 @@ When the [Principal's](/platform/sentinel/principal/overview) `type` is `"key"`,
 
 ```json With linked identity
 {
-  "version": 1,
+  "version": "v1",
   "subject": "user_42",
-  "type": "key",
+  "type": "API_KEY",
   "identity": {
     "externalId": "user_42",
     "meta": {
@@ -93,16 +93,14 @@ When the [Principal's](/platform/sentinel/principal/overview) `type` is `"key"`,
 
 ```json Minimal
 {
-  "version": 1,
+  "version": "v1",
   "subject": "key_3xMpL9kF2nR",
-  "type": "key",
+  "type": "API_KEY",
   "source": {
     "key": {
       "keyId": "key_3xMpL9kF2nR",
       "keySpaceId": "ks_abc123",
-      "meta": {},
-      "roles": [],
-      "permissions": []
+      "meta": {}
     }
   }
 }

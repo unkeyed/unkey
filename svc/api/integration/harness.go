@@ -12,8 +12,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	sharedconfig "github.com/unkeyed/unkey/pkg/config"
+	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/api"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -42,7 +42,11 @@ type Harness struct {
 	DB            db.Database
 	CH            clickhouse.ClickHouse
 	apiCluster    *ApiCluster
-	redisUrl      string
+	// counter is a shared in-memory counter used by all API nodes in the
+	// cluster. Using an in-process counter instead of real Redis ensures
+	// replay workers sync in microseconds, keeping up with simulated-time
+	// load tests that run many orders of magnitude faster than real time.
+	counter counter.Counter
 }
 
 // Config contains configuration options for the test harness
@@ -92,7 +96,7 @@ func New(t *testing.T, config Config) *Harness {
 		DB:            db,
 		CH:            ch,
 		apiCluster:    nil, // Will be set later
-		redisUrl:      dockertest.Redis(t),
+		counter:       counter.NewMemory(),
 	}
 
 	h.Seed.Seed(ctx)
@@ -132,15 +136,18 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 		clickhouseHostDSN := containers.ClickHouse(h.t)
 		vaultURL, vaultToken := containers.Vault(h.t)
 		apiConfig := api.Config{
-			HttpPort:           7070,
-			Platform:           "test",
-			Image:              "test",
-			Listener:           ln,
-			RedisURL:           h.redisUrl,
-			Region:             "test",
-			InstanceID:         fmt.Sprintf("test-node-%d", i),
-			Clock:              clock.New(),
-			TestMode:           true,
+			HttpPort:   7070,
+			Platform:   "test",
+			Image:      "test",
+			RedisURL:   "", // Ignored: Test.Counter overrides the backend.
+			Region:     "test",
+			InstanceID: fmt.Sprintf("test-node-%d", i),
+			Clock:      clock.New(),
+			Test: api.TestConfig{
+				Enabled:  true,
+				Counter:  h.counter,
+				Listener: ln,
+			},
 			TLSConfig:          nil,
 			MaxRequestBodySize: 0,
 			Database: sharedconfig.DatabaseConfig{
