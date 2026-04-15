@@ -35,7 +35,7 @@ export const listDeployments = workspaceProcedure
             eq(deployments.projectId, input.projectId),
           ),
         )
-        .orderBy(desc(deployments.createdAt))
+        .orderBy(desc(deployments.createdAt), desc(deployments.id))
         .limit(100);
 
       if (deploymentRows.length === 0) {
