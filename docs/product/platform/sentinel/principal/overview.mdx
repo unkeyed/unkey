@@ -81,7 +81,7 @@ When no authentication policy is configured or the request has no credentials, t
 
 ## Versioning
 
-The `version` field starts at `1`. Unkey follows these rules for changes:
+The `version` field starts at `"v1"`. Unkey follows these rules for changes:
 
 - **Additive changes** (new optional fields, new source types) don't bump the version. Applications that don't know about new fields ignore them.
 - **Breaking changes** (removing fields, changing field types, renaming fields) bump the version. Unkey supports both versions during a migration period so you have time to update your application code.
