@@ -14,12 +14,13 @@ const baseFilterArraySchema = z.array(filterItemSchema).nullish();
 
 type FilterFieldName = keyof FilterFieldConfigs;
 
-const filterFieldsSchema = permissionsListFilterFieldNames.reduce<
-  Partial<Record<FilterFieldName, typeof baseFilterArraySchema>>
->((acc, fieldName) => {
-  acc[fieldName] = baseFilterArraySchema;
-  return acc;
-}, {});
+const filterFieldsSchema = permissionsListFilterFieldNames.reduce(
+  (acc, fieldName) => {
+    acc[fieldName] = baseFilterArraySchema;
+    return acc;
+  },
+  {} as Record<FilterFieldName, typeof baseFilterArraySchema>,
+);
 
 const basePermissionsSchema = z.object(filterFieldsSchema);
 

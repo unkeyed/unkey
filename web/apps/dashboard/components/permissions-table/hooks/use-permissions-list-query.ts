@@ -115,7 +115,7 @@ export function usePermissionsListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
         .filter((s) => COLUMN_ID_TO_SORT_FIELD[s.id] !== undefined)
         .map((s) => ({
           column: COLUMN_ID_TO_SORT_FIELD[s.id],
-          direction: s.desc ? "desc" : "asc",
+          direction: (s.desc ? "desc" : "asc") as "asc" | "desc",
         }));
       setSortParams(mapped.length === 0 ? DEFAULT_SORT_PARAMS : mapped);
       setPage(1);

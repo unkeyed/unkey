@@ -51,7 +51,9 @@ export const createPermissionsColumns = ({
     id: PERMISSION_COLUMN_IDS.PERMISSION.id,
     accessorKey: PERMISSION_COLUMN_IDS.PERMISSION.accessorKey,
     header: ({ header }) => (
-      <SortableHeader header={header}>{PERMISSION_COLUMN_IDS.PERMISSION.header}</SortableHeader>
+      <div className="pl-5">
+        <SortableHeader header={header}>{PERMISSION_COLUMN_IDS.PERMISSION.header}</SortableHeader>
+      </div>
     ),
     enableSorting: true,
     meta: {
