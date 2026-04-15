@@ -1,6 +1,6 @@
 ---
 title: Policies
-description: "Policies are configurable rules the Sentinel evaluates on every request. Combine authentication, rate limiting, IP rules, and more."
+description: "Policies are configurable rules the Sentinel evaluates on every request. Combine authentication, rate limiting, firewall rules, and more."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
@@ -18,7 +18,7 @@ Every policy has four components:
 | `name`    | Human-readable label for identification                                        |
 | `enabled` | Toggle to disable the policy without removing it                               |
 | `match`   | Conditions that determine which requests the policy applies to                 |
-| `config`  | The action to perform (authentication, rate limiting, IP rules, or validation) |
+| `config`  | The action to perform (authentication, rate limiting, firewall, or validation) |
 
 You can disable a policy by setting `enabled` to `false`. This is useful during incidents when you need to bypass a misbehaving policy without deleting its configuration or triggering a redeploy.
 
@@ -100,5 +100,5 @@ The `type` URI is stable per error kind and suitable for programmatic handling. 
 | Authentication (missing or invalid)       | 401              |
 | Authentication (insufficient permissions) | 403              |
 | Rate limiting                             | 429              |
-| IP rules                                  | 403              |
+| Firewall                                  | 403              |
 | OpenAPI validation                        | 400              |
