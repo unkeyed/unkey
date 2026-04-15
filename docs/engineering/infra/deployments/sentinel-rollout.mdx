@@ -12,7 +12,8 @@ This doc is the operator-facing recipe: how to actually start, monitor, and unst
 - The target image exists in `ghcr.io/unkeyed/sentinel` and passed CI.
 - You have a kubeconfig for the prod control-plane cluster.
 - You have the Restate ingress bearer token from the `restate-cloud-credentials` secret (AWS Secrets Manager).
-- A Slack webhook URL (optional but strongly recommended in prod — it's the only progress stream you'll get without tailing logs).
+
+A default Slack webhook is configured on the worker via [`slack.sentinel_rollout_webhook_url`](/architecture/services/control-plane/worker/configuration#heartbeat-and-slack), so progress notifications fire automatically — you only need to pass `slack_webhook_url` on the request if you want to override the default channel.
 
 Export the ingress URL and token for the rest of this doc:
 
@@ -28,12 +29,11 @@ curl -X POST "$RESTATE_URL/hydra.v1.SentinelRolloutService/singleton/Rollout" \
   -H "Authorization: Bearer $RESTATE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "image": "ghcr.io/unkeyed/sentinel:v1.2.3",
-    "slack_webhook_url": "https://hooks.slack.com/services/..."
+    "image": "ghcr.io/unkeyed/sentinel:v1.2.3"
   }'
 ```
 
-Defaults: waves are `[1, 5, 25, 50, 100]` (cumulative percent). Pass `wave_percentages` to override, e.g. `[10, 100]` for a fast two-wave rollout on staging.
+Defaults: waves are `[1, 5, 25, 50, 100]` (cumulative percent). Pass `wave_percentages` to override, e.g. `[10, 100]` for a fast two-wave rollout on staging. Pass `slack_webhook_url` to override the worker's default Slack channel for this one rollout.
 
 The call is synchronous from Restate's perspective — the response returns when the rollout reaches `completed` or `paused`. Use `/send` instead of the path above if you want fire-and-forget and will monitor from Slack.
 
@@ -50,11 +50,10 @@ If you'd rather click than curl, the Restate Cloud UI exposes every handler as a
 5. Fill in the JSON body:
    ```json
    {
-     "image": "ghcr.io/unkeyed/sentinel:v1.2.3",
-     "slack_webhook_url": "https://hooks.slack.com/services/..."
+     "image": "ghcr.io/unkeyed/sentinel:v1.2.3"
    }
    ```
-   Add `"wave_percentages": [10, 100]` if you want to override the defaults.
+   Add `"wave_percentages": [10, 100]` to override the default waves, or `"slack_webhook_url": "..."` to override the worker's default Slack channel.
 6. Hit **Send** (blocks until `completed`/`paused`) or **Send async** (fire-and-forget — watch Slack).
 
 For `Resume`, `Cancel`, and `RollbackAll`, use the same flow: pick the handler on `SentinelRolloutService`, key `singleton`, empty `{}` body.

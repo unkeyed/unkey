@@ -89,11 +89,16 @@ func (s *RolloutService) Rollout(
 
 	waves := computeWaves(sentinelIDs, wavePercentages)
 
+	slackWebhookURL := req.GetSlackWebhookUrl()
+	if slackWebhookURL == "" {
+		slackWebhookURL = s.defaultSlackWebhookURL
+	}
+
 	state := &rolloutState{
 		State:           stateInProgress,
 		Image:           req.GetImage(),
 		PreviousImages:  previousImages,
-		SlackWebhookURL: req.GetSlackWebhookUrl(),
+		SlackWebhookURL: slackWebhookURL,
 		WavePercentages: wavePercentages,
 		Waves:           waves,
 		CurrentWave:     0,
