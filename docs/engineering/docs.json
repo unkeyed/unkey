@@ -250,6 +250,7 @@
                   "infra/clickhouse/users/github",
                   "infra/clickhouse/users/grafana",
                   "infra/clickhouse/users/sentinel",
+                  "infra/clickhouse/users/sentinelrollout",
                   "infra/clickhouse/users/unkey-admin",
                   "infra/clickhouse/users/vector",
                   "infra/clickhouse/users/vercel-dashboard"

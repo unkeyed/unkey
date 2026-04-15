@@ -14,6 +14,7 @@ Workspace users (`ws_*`) are also excluded, cuz we create them ourselves.
 | [`grafana`](./users/grafana) | Grafana dashboards | `grafana_readonly`, `readonly_role` |
 | [`apiv2`](./users/apiv2) | API v2 service | `insertonly_role`, `readonly_role` |
 | [`sentinel`](./users/sentinel) | Sentinel service | direct grants (see script) |
+| [`sentinelrollout`](./users/sentinelrollout) | Sentinel rollout service | `readonly_role` |
 | [`vector`](./users/vector) | Runtime logs | INSERT on `runtime_logs_raw_v1` |
 | [`github`](./users/github) | GitHub integrations | `readonly_role` |
 | [`vercel_dashboard`](./users/vercel-dashboard) | Vercel dashboard | `readonly_role` |
