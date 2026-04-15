@@ -1,7 +1,7 @@
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { Page2 } from "@unkey/icons";
 import { Checkbox } from "@unkey/ui";
-import { cn } from "@unkey/ui";
+import { cn } from "@/lib/utils";
 
 type PermissionNameCellProps = {
   permission: Permission;
