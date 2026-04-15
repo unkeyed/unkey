@@ -23,7 +23,10 @@ func (s *service) fetchFromOrigin(ctx context.Context, key counterKey, ptr *atom
 
 	res, err := s.originCircuitBreaker.Do(ctx, func(ctx context.Context) (int64, error) {
 		start := time.Now()
-		res, err := s.origin.Get(ctx, rk)
+		timeout, cancel := context.WithTimeout(ctx, time.Millisecond*150)
+		defer cancel()
+
+		res, err := s.origin.Get(timeout, rk)
 
 		metrics.RatelimitOriginLatency.WithLabelValues("fetch").Observe(time.Since(start).Seconds())
 		return res, err
@@ -92,7 +95,6 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 			req.Duration*3,
 		)
 	})
-
 	if err != nil {
 		metrics.RatelimitOriginErrors.WithLabelValues("sync").Inc()
 		tracing.RecordError(span, err)
