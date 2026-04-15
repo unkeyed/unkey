@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package sentinel.v1;
 
-import "policies/v1/basicauth.proto";
 import "policies/v1/iprules.proto";
 import "policies/v1/jwtauth.proto";
 import "policies/v1/keyauth.proto";
@@ -52,7 +51,6 @@ message Policy {
   oneof config {
     KeyAuth keyauth = 5;
     JWTAuth jwtauth = 6;
-    BasicAuth basicauth = 7;
     RateLimit ratelimit = 8;
     IPRules ip_rules = 9;
     OpenApiRequestValidation openapi = 10;
