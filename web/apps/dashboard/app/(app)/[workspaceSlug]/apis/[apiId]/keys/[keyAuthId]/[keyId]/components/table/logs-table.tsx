@@ -10,7 +10,7 @@ import { useQueryTime } from "@/providers/query-time-provider";
 import type { RowSelectionState } from "@tanstack/react-table";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { DataTable, PaginationFooter } from "@unkey/ui";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useKeyDetailsLogsContext } from "../../context/logs";
 
 type Props = {
@@ -42,30 +42,41 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
   const [hoveredLogId, setHoveredLogId] = useState<string | null>(null);
   const { queryTime: timestamp } = useQueryTime();
   const utils = trpc.useUtils();
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleRowHover = useCallback(
     (log: KeyDetailsLog) => {
       if (log.request_id !== hoveredLogId) {
         setHoveredLogId(log.request_id);
 
-        utils.logs.queryLogs.prefetch({
-          limit: 1,
-          startTime: 0,
-          endTime: timestamp,
-          host: { filters: [] },
-          method: { filters: [] },
-          path: { filters: [] },
-          status: { filters: [] },
-          requestId: {
-            filters: [
-              {
-                operator: "is",
-                value: log.request_id,
+        // Debounce the prefetch so rapid mouse movement across rows
+        // doesn't fire N separate queryLogs API calls.
+        if (hoverTimerRef.current) {
+          clearTimeout(hoverTimerRef.current);
+        }
+        hoverTimerRef.current = setTimeout(() => {
+          utils.logs.queryLogs.prefetch(
+            {
+              limit: 1,
+              startTime: 0,
+              endTime: timestamp,
+              host: { filters: [] },
+              method: { filters: [] },
+              path: { filters: [] },
+              status: { filters: [] },
+              requestId: {
+                filters: [
+                  {
+                    operator: "is",
+                    value: log.request_id,
+                  },
+                ],
               },
-            ],
-          },
-          since: "",
-        });
+              since: "",
+            },
+            { staleTime: Number.POSITIVE_INFINITY },
+          );
+        }, 150);
       }
     },
     [hoveredLogId, utils.logs.queryLogs, timestamp],
@@ -73,6 +84,10 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
 
   const handleRowMouseLeave = useCallback(() => {
     setHoveredLogId(null);
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
   }, []);
 
   const columns = useMemo(() => createKeyDetailsLogsColumns(), []);

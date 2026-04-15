@@ -24,7 +24,7 @@ import {
   TriangleWarning2,
 } from "@unkey/icons";
 import { Badge, Button, CopyButton, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useIdentityDetailsLogsContext } from "../../context/logs";
 import { useIdentityLogsQuery } from "./hooks/use-logs-query";
 
@@ -142,30 +142,41 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
   const [hoveredLogId, setHoveredLogId] = useState<string | null>(null);
   const { queryTime: timestamp } = useQueryTime();
   const utils = trpc.useUtils();
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleRowHover = useCallback(
     (log: IdentityLog) => {
       if (log.request_id !== hoveredLogId) {
         setHoveredLogId(log.request_id);
 
-        utils.logs.queryLogs.prefetch({
-          limit: 1,
-          startTime: 0,
-          endTime: timestamp,
-          host: { filters: [] },
-          method: { filters: [] },
-          path: { filters: [] },
-          status: { filters: [] },
-          requestId: {
-            filters: [
-              {
-                operator: "is",
-                value: log.request_id,
+        // Debounce the prefetch so rapid mouse movement across rows
+        // doesn't fire N separate queryLogs API calls.
+        if (hoverTimerRef.current) {
+          clearTimeout(hoverTimerRef.current);
+        }
+        hoverTimerRef.current = setTimeout(() => {
+          utils.logs.queryLogs.prefetch(
+            {
+              limit: 1,
+              startTime: 0,
+              endTime: timestamp,
+              host: { filters: [] },
+              method: { filters: [] },
+              path: { filters: [] },
+              status: { filters: [] },
+              requestId: {
+                filters: [
+                  {
+                    operator: "is",
+                    value: log.request_id,
+                  },
+                ],
               },
-            ],
-          },
-          since: "",
-        });
+              since: "",
+            },
+            { staleTime: Number.POSITIVE_INFINITY },
+          );
+        }, 150);
       }
     },
     [hoveredLogId, utils.logs.queryLogs, timestamp],
@@ -173,6 +184,10 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
 
   const handleRowMouseLeave = useCallback(() => {
     setHoveredLogId(null);
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
   }, []);
 
   const columns = (): Column<IdentityLog>[] => {
