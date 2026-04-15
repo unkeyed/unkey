@@ -120,6 +120,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	c := cluster.New(cluster.Config{
 		Database: database,
+		Restate:  restateClient,
 		Bearer:   cfg.AuthToken,
 	})
 

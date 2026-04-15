@@ -49,6 +49,7 @@ export const DeploymentListSearch = () => {
 
   return (
     <LLMSearch
+      fullWidth
       exampleQueries={[
         "show failed deployments",
         "production deployments",

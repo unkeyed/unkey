@@ -138,9 +138,8 @@
                       "architecture/services/sentinel/policies/principal",
                       "architecture/services/sentinel/policies/keyauth",
                       "architecture/services/sentinel/policies/jwtauth",
-                      "architecture/services/sentinel/policies/basicauth",
                       "architecture/services/sentinel/policies/ratelimit",
-                      "architecture/services/sentinel/policies/ip-rules",
+                      "architecture/services/sentinel/policies/firewall",
                       "architecture/services/sentinel/policies/openapi"
                     ]
                   }

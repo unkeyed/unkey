@@ -7,9 +7,78 @@ Sentinel runs as a Kubernetes Deployment managed by Krane. For details on how Kr
 
 ## When sentinels are created
 
-Sentinels are created as part of the deployment workflow in the control plane worker (`svc/ctrl/worker/deploy/deploy_handler.go`). During the deploying phase, the `ensureSentinels` step checks whether each target region already has a sentinel for the environment. If a region has no sentinel, the workflow inserts one into the database.
+Sentinels are created as part of the deployment workflow in the control plane worker (`svc/ctrl/worker/deploy/deploy_handler.go`). During the deploying phase, the `ensureSentinels` step checks whether each target region already has a sentinel for the environment. If a region has no sentinel, the workflow inserts one into the database and writes a `deployment_changes` outbox entry in the same transaction.
 
-Once the sentinel record exists in the database, Krane picks it up via its `WatchSentinels` stream and applies the corresponding Kubernetes resources.
+Once the outbox entry exists, Krane picks it up via the `WatchDeploymentChanges` stream and applies the corresponding Kubernetes resources.
+
+## Convergence tracking
+
+After creating a sentinel, the deploy workflow calls `SentinelService.Deploy()` (`svc/ctrl/worker/sentinel/`) and blocks until the sentinel has fully converged in Kubernetes. This ensures traffic can route to the sentinel before the deployment proceeds to domain assignment.
+
+`SentinelService` is a Restate virtual object keyed by sentinel ID, so calls for the same sentinel serialise automatically. A `Deploy` call:
+
+1. Reads the current sentinel row and merges the request fields over it (zero values mean "keep current"). If nothing changed and the sentinel is already healthy on the desired image, the call returns `READY` immediately.
+2. Writes the new config plus a `deployment_changes` outbox entry in a single transaction and sets `deploy_status = progressing`. Krane picks up the outbox entry and applies the update to Kubernetes.
+3. Creates a Restate awakeable and persists its ID under the `notify_ready_awakeable` state key, then suspends until either the awakeable resolves or a 10-minute timeout fires.
+4. The awakeable is resolved by `ReportSentinelStatus` on the control-plane cluster service: when Krane reports a sentinel whose `running_image` matches `image` and whose health is `healthy`, the RPC calls `SentinelService.NotifyReady` (a shared handler on the same virtual object), which resolves the stored awakeable ID and unblocks `Deploy`.
+5. On resolve, `deploy_status` is set to `ready` and the call returns. On timeout, `deploy_status` is set to `failed` — the single-sentinel path does not self-rollback; failed sentinels stay on whatever state Kubernetes ended up in, and fleet-level rollback is the operator's call via [`SentinelRolloutService.RollbackAll`](#fleet-wide-image-rollouts).
+
+Krane reports the following fields on every Deployment status change, which the control plane writes into the `sentinels` row so anything that needs to reason about rollout progress can do so from the DB:
+
+| Field | Purpose |
+| --- | --- |
+| `available_replicas` | Pods ready for MinReadySeconds |
+| `updated_replicas` | Pods running the current pod template spec |
+| `ready_replicas` | Pods passing readiness probes |
+| `observed_generation` | Last generation processed by K8s |
+
+The sentinel's `deploy_status` column is an enum with four values: `idle`, `progressing`, `ready`, `failed`. Fleet rollouts have their own lifecycle state (including `rolling_back`) which is stored in Restate K/V, not in the sentinel row — see the next section.
+
+## Fleet-wide image rollouts
+
+Changing the sentinel image for a single sentinel is a `SentinelService.Deploy` call. Rolling the image across the whole fleet is a separate service: `SentinelRolloutService` (`svc/ctrl/worker/sentinel/rollout_*.go`). The deploy workflow never does this implicitly — it only creates sentinels for regions that don't have one yet and never auto-upgrades existing sentinels. Fleet rollouts are initiated explicitly (e.g. operator tooling).
+
+`SentinelRolloutService` is a Restate virtual object keyed by the literal string `singleton`, which serialises all rollout operations globally. Its state lives in the Restate K/V store under the `rollout` key and tracks the full lifecycle so `Resume`, `Cancel`, and `RollbackAll` can pick up where the previous call left off.
+
+### Rollout lifecycle
+
+Rollout state is one of:
+
+| State | Meaning |
+| --- | --- |
+| `idle` | No rollout in flight (also the effective state before the first `Rollout` call). |
+| `in_progress` | A rollout is executing waves. |
+| `paused` | A wave had at least one failing sentinel. Waiting for operator to call `Resume` or `RollbackAll`. |
+| `rolling_back` | `RollbackAll` is reverting succeeded sentinels to their previous image. |
+| `cancelled` | Operator called `Cancel`, or a rollback finished. |
+| `completed` | All waves finished with no failures. |
+
+### Waves
+
+`Rollout(image, wavePercentages?, slackWebhookUrl?)` starts a rollout:
+
+1. Lists all running sentinels (paged) and their current image. Sentinels already on the target image are filtered out; the rest are captured into `PreviousImages` so a later rollback knows what to revert to.
+2. Splits the remaining sentinel IDs into waves by cumulative percentage. Defaults to `[1, 5, 25, 50, 100]` — e.g. with 100 sentinels, waves of `[1, 4, 20, 25, 50]`. Callers can override via `wave_percentages` (`computeWaves` in `rollout_state.go`).
+3. Persists the full `rolloutState` (image, waves, previous images, Slack webhook, counters) into Restate state and starts executing waves.
+
+Each wave fans out `SentinelService.Deploy` calls via `RequestFuture` and then collects all responses:
+
+- If every sentinel in the wave reports `READY`, the wave is recorded in `SucceededIDs` and the next wave starts.
+- If any sentinel fails or errors, the failed IDs are recorded in `FailedIDs`, the rollout transitions to `paused`, and the call returns. Sentinels that succeeded within the paused wave stay in `SucceededIDs`.
+
+### Resume, Cancel, RollbackAll
+
+Operator handlers on the paused rollout:
+
+- `Resume` — only valid from `paused`. Advances `CurrentWave` by one (skipping the wave that failed) and re-enters `executeWaves`. Sentinels that failed in the skipped wave are *not* retried; they stay in `FailedIDs`.
+- `Cancel` — valid from `in_progress` or `paused`. Flips the state to `cancelled`. Succeeded sentinels keep the new image; failed ones stay where they are. This is the "live with it" exit.
+- `RollbackAll` — valid from `paused` or `cancelled`. Fans out `SentinelService.Deploy` back to the per-sentinel entry in `PreviousImages` for everything in `SucceededIDs`. Failed sentinels are *not* touched — they already never made it to the new image. Returns the count of sentinels that reverted successfully, then transitions to `cancelled`.
+
+Re-entrancy: `Rollout` is rejected while a rollout is in any non-terminal state (i.e. anything that isn't `idle`, `completed`, or `cancelled`). This check is in `Rollout` itself rather than relying solely on the virtual-object lock, because clients can send multiple `Rollout` calls to the `singleton` object.
+
+### Slack notifications
+
+If `slack_webhook_url` is provided on the initial `Rollout` call, the service posts progress updates at each phase transition (rollout started, wave started, wave completed, rollout paused, rollout resumed, rollout completed, rollback started, rollback completed). Notification failures are logged but do not fail the rollout.
 
 ## Where sentinels run
 
@@ -43,7 +112,7 @@ The environment-scoped resources (headless Service, CiliumNetworkPolicy) are sha
 | Strategy          | RollingUpdate                                       |
 | Max Unavailable   | 0                                                   |
 | Max Surge         | 1                                                   |
-| Min Ready Seconds | 30                                                  |
+| Min Ready Seconds | 5                                                   |
 | Topology Spread   | maxSkew=1 across availability zones, ScheduleAnyway |
 | Ports             | 8040 (HTTP), 7946 (gossip TCP+UDP)                  |
 
@@ -82,6 +151,3 @@ All sentinel resources carry these labels:
 ## Cache prewarming
 
 On startup, the router service loads all deployments with status `READY` in the environment and prefetches their instances. This avoids cold-start latency spikes on the first requests after a pod restart.
-
-
-

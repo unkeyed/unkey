@@ -47,6 +47,7 @@ go_library(
         "//svc/ctrl/worker/project",
         "//svc/ctrl/worker/quotacheck",
         "//svc/ctrl/worker/routing",
+        "//svc/ctrl/worker/sentinel",
         "@com_connectrpc_connect//:connect",
         "@com_github_go_acme_lego_v4//challenge",
         "@com_github_prometheus_client_golang//prometheus",

@@ -83,7 +83,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		}
 
 		if result.Principal != nil {
-			principalJSON, serErr := engine.SerializePrincipal(result.Principal)
+			principalJSON, serErr := result.Principal.Marshal()
 			if serErr != nil {
 				logger.Error("failed to serialize principal", "error", serErr)
 			} else {

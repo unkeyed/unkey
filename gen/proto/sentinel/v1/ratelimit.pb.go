@@ -117,7 +117,7 @@ type RateLimitKey struct {
 	//	*RateLimitKey_Header
 	//	*RateLimitKey_AuthenticatedSubject
 	//	*RateLimitKey_Path
-	//	*RateLimitKey_PrincipalClaim
+	//	*RateLimitKey_PrincipalField
 	Source        isRateLimitKey_Source `protobuf_oneof:"source"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -196,10 +196,10 @@ func (x *RateLimitKey) GetPath() *PathKey {
 	return nil
 }
 
-func (x *RateLimitKey) GetPrincipalClaim() *PrincipalClaimKey {
+func (x *RateLimitKey) GetPrincipalField() *PrincipalFieldKey {
 	if x != nil {
-		if x, ok := x.Source.(*RateLimitKey_PrincipalClaim); ok {
-			return x.PrincipalClaim
+		if x, ok := x.Source.(*RateLimitKey_PrincipalField); ok {
+			return x.PrincipalField
 		}
 	}
 	return nil
@@ -231,8 +231,8 @@ type RateLimitKey_AuthenticatedSubject struct {
 	// Limit by the [Principal] subject produced by an upstream authn policy.
 	// This is the most accurate key source for authenticated APIs because
 	// it limits each authenticated identity independently, regardless of
-	// how many IPs or devices they use. Requires a [KeyAuth], [JWTAuth],
-	// or [BasicAuth] policy earlier in the policy list.
+	// how many IPs or devices they use. Requires a [KeyAuth] or [JWTAuth]
+	// policy earlier in the policy list.
 	AuthenticatedSubject *AuthenticatedSubjectKey `protobuf:"bytes,3,opt,name=authenticated_subject,json=authenticatedSubject,proto3,oneof"`
 }
 
@@ -243,15 +243,15 @@ type RateLimitKey_Path struct {
 	Path *PathKey `protobuf:"bytes,4,opt,name=path,proto3,oneof"`
 }
 
-type RateLimitKey_PrincipalClaim struct {
-	// Limit by a specific claim from the [Principal]. This enables
-	// per-organization or per-tenant rate limiting when the identity claim
-	// is more granular than what you want to throttle. For example, using
-	// claim_name "org_id" creates a shared rate limit bucket for all users
-	// within the same organization, regardless of which individual subject
-	// authenticated. Requires a [Principal] with the named claim present
-	// in its claims map.
-	PrincipalClaim *PrincipalClaimKey `protobuf:"bytes,5,opt,name=principal_claim,json=principalClaim,proto3,oneof"`
+type RateLimitKey_PrincipalField struct {
+	// Limit by a field reached through a dotted path into the [Principal].
+	// Enables per-organization or per-tenant rate limiting when the identity
+	// field is more granular than what you want to throttle. For example,
+	// path "source.key.meta.org_id" creates a shared rate limit bucket for
+	// all keys that share the same organization meta value, regardless of
+	// which individual subject authenticated. Requires a [Principal] with
+	// the named path resolvable to a string value.
+	PrincipalField *PrincipalFieldKey `protobuf:"bytes,5,opt,name=principal_field,json=principalField,proto3,oneof"`
 }
 
 func (*RateLimitKey_RemoteIp) isRateLimitKey_Source() {}
@@ -262,7 +262,7 @@ func (*RateLimitKey_AuthenticatedSubject) isRateLimitKey_Source() {}
 
 func (*RateLimitKey_Path) isRateLimitKey_Source() {}
 
-func (*RateLimitKey_PrincipalClaim) isRateLimitKey_Source() {}
+func (*RateLimitKey_PrincipalField) isRateLimitKey_Source() {}
 
 // RemoteIpKey derives the rate limit key from the client's IP address.
 type RemoteIpKey struct {
@@ -425,32 +425,45 @@ func (*PathKey) Descriptor() ([]byte, []int) {
 	return file_policies_v1_ratelimit_proto_rawDescGZIP(), []int{5}
 }
 
-// PrincipalClaimKey derives the rate limit key from a named claim in the
-// [Principal]'s claims map. If the claim is absent or the Principal does
-// not exist, the request is rate limited under a shared "unknown" bucket.
-type PrincipalClaimKey struct {
+// PrincipalFieldKey derives the rate limit key from a value reached through
+// a dotted path into the [Principal] JSON. Resolves against the serialized
+// Principal object, so any field is addressable — the top-level subject,
+// an identity field, or any source-specific detail.
+//
+// Examples:
+//
+//	"subject"                    — same identity used by AuthenticatedSubjectKey
+//	"identity.externalId"        — identity's external ID
+//	"identity.meta.plan"         — a tenant-level tier
+//	"source.key.meta.org_id"     — per-organization bucketing
+//	"source.jwt.payload.org_id"  — JWT claim-based bucketing
+//
+// If the path does not resolve, the value is not a string, or there is no
+// Principal at all, the request is rate limited under a shared "unknown"
+// bucket.
+type PrincipalFieldKey struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The claim name to read from [Principal].claims, e.g. "org_id" or
-	// "plan". The claim value becomes the rate limit bucket key.
-	ClaimName     string `protobuf:"bytes,1,opt,name=claim_name,json=claimName,proto3" json:"claim_name,omitempty"`
+	// The dotted path to read from the Principal JSON. Segments are the JSON
+	// field names (camelCase), separated by dots.
+	Path          string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *PrincipalClaimKey) Reset() {
-	*x = PrincipalClaimKey{}
+func (x *PrincipalFieldKey) Reset() {
+	*x = PrincipalFieldKey{}
 	mi := &file_policies_v1_ratelimit_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PrincipalClaimKey) String() string {
+func (x *PrincipalFieldKey) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PrincipalClaimKey) ProtoMessage() {}
+func (*PrincipalFieldKey) ProtoMessage() {}
 
-func (x *PrincipalClaimKey) ProtoReflect() protoreflect.Message {
+func (x *PrincipalFieldKey) ProtoReflect() protoreflect.Message {
 	mi := &file_policies_v1_ratelimit_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -462,14 +475,14 @@ func (x *PrincipalClaimKey) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PrincipalClaimKey.ProtoReflect.Descriptor instead.
-func (*PrincipalClaimKey) Descriptor() ([]byte, []int) {
+// Deprecated: Use PrincipalFieldKey.ProtoReflect.Descriptor instead.
+func (*PrincipalFieldKey) Descriptor() ([]byte, []int) {
 	return file_policies_v1_ratelimit_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *PrincipalClaimKey) GetClaimName() string {
+func (x *PrincipalFieldKey) GetPath() string {
 	if x != nil {
-		return x.ClaimName
+		return x.Path
 	}
 	return ""
 }
@@ -488,16 +501,15 @@ const file_policies_v1_ratelimit_proto_rawDesc = "" +
 	"\x06header\x18\x02 \x01(\v2\x16.sentinel.v1.HeaderKeyH\x00R\x06header\x12[\n" +
 	"\x15authenticated_subject\x18\x03 \x01(\v2$.sentinel.v1.AuthenticatedSubjectKeyH\x00R\x14authenticatedSubject\x12*\n" +
 	"\x04path\x18\x04 \x01(\v2\x14.sentinel.v1.PathKeyH\x00R\x04path\x12I\n" +
-	"\x0fprincipal_claim\x18\x05 \x01(\v2\x1e.sentinel.v1.PrincipalClaimKeyH\x00R\x0eprincipalClaimB\b\n" +
+	"\x0fprincipal_field\x18\x05 \x01(\v2\x1e.sentinel.v1.PrincipalFieldKeyH\x00R\x0eprincipalFieldB\b\n" +
 	"\x06source\"\r\n" +
 	"\vRemoteIpKey\"\x1f\n" +
 	"\tHeaderKey\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"\x19\n" +
 	"\x17AuthenticatedSubjectKey\"\t\n" +
-	"\aPathKey\"2\n" +
-	"\x11PrincipalClaimKey\x12\x1d\n" +
-	"\n" +
-	"claim_name\x18\x01 \x01(\tR\tclaimNameB\xa9\x01\n" +
+	"\aPathKey\"'\n" +
+	"\x11PrincipalFieldKey\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04pathB\xa9\x01\n" +
 	"\x0fcom.sentinel.v1B\x0eRatelimitProtoP\x01Z9github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1\xa2\x02\x03SXX\xaa\x02\vSentinel.V1\xca\x02\vSentinel\\V1\xe2\x02\x17Sentinel\\V1\\GPBMetadata\xea\x02\fSentinel::V1b\x06proto3"
 
 var (
@@ -520,7 +532,7 @@ var file_policies_v1_ratelimit_proto_goTypes = []any{
 	(*HeaderKey)(nil),               // 3: sentinel.v1.HeaderKey
 	(*AuthenticatedSubjectKey)(nil), // 4: sentinel.v1.AuthenticatedSubjectKey
 	(*PathKey)(nil),                 // 5: sentinel.v1.PathKey
-	(*PrincipalClaimKey)(nil),       // 6: sentinel.v1.PrincipalClaimKey
+	(*PrincipalFieldKey)(nil),       // 6: sentinel.v1.PrincipalFieldKey
 }
 var file_policies_v1_ratelimit_proto_depIdxs = []int32{
 	1, // 0: sentinel.v1.RateLimit.key:type_name -> sentinel.v1.RateLimitKey
@@ -528,7 +540,7 @@ var file_policies_v1_ratelimit_proto_depIdxs = []int32{
 	3, // 2: sentinel.v1.RateLimitKey.header:type_name -> sentinel.v1.HeaderKey
 	4, // 3: sentinel.v1.RateLimitKey.authenticated_subject:type_name -> sentinel.v1.AuthenticatedSubjectKey
 	5, // 4: sentinel.v1.RateLimitKey.path:type_name -> sentinel.v1.PathKey
-	6, // 5: sentinel.v1.RateLimitKey.principal_claim:type_name -> sentinel.v1.PrincipalClaimKey
+	6, // 5: sentinel.v1.RateLimitKey.principal_field:type_name -> sentinel.v1.PrincipalFieldKey
 	6, // [6:6] is the sub-list for method output_type
 	6, // [6:6] is the sub-list for method input_type
 	6, // [6:6] is the sub-list for extension type_name
@@ -546,7 +558,7 @@ func file_policies_v1_ratelimit_proto_init() {
 		(*RateLimitKey_Header)(nil),
 		(*RateLimitKey_AuthenticatedSubject)(nil),
 		(*RateLimitKey_Path)(nil),
-		(*RateLimitKey_PrincipalClaim)(nil),
+		(*RateLimitKey_PrincipalField)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
