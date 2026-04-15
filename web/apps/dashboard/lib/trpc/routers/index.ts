@@ -441,7 +441,7 @@ export const router = t.router({
           update: updateFirewallPolicy,
           delete: deleteFirewallPolicy,
         }),
-  ratelimit: t.router({
+        ratelimit: t.router({
           create: createRatelimitPolicy,
           update: updateRatelimitPolicy,
           delete: deleteRatelimitPolicy,

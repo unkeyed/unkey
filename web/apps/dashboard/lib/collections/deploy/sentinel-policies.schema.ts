@@ -169,7 +169,6 @@ export const firewallPolicySchema = z
   })
   .strict();
 
-
 export type RatelimitPolicy = z.infer<typeof ratelimitPolicySchema>;
 export type FirewallPolicy = z.infer<typeof firewallPolicySchema>;
 

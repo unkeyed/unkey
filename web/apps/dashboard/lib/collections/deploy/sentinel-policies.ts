@@ -210,7 +210,7 @@ function dispatchCreate(environmentId: string, policy: SentinelPolicy): Promise<
         policy: p,
       }),
     )
- .with({ type: "firewall" }, (p) =>
+    .with({ type: "firewall" }, (p) =>
       trpcClient.deploy.environmentSettings.sentinel.firewall.create.mutate({
         environmentId,
         policy: p,
@@ -233,7 +233,7 @@ function dispatchUpdate(environmentId: string, policy: SentinelPolicy): Promise<
         policy: p,
       }),
     )
-  .with({ type: "firewall" }, (p) =>
+    .with({ type: "firewall" }, (p) =>
       trpcClient.deploy.environmentSettings.sentinel.firewall.update.mutate({
         environmentId,
         policy: p,
@@ -256,7 +256,7 @@ function dispatchDelete(environmentId: string, policy: SentinelPolicy): Promise<
         policyId: p.id,
       }),
     )
- .with({ type: "firewall" }, (p) =>
+    .with({ type: "firewall" }, (p) =>
       trpcClient.deploy.environmentSettings.sentinel.firewall.delete.mutate({
         environmentId,
         policyId: p.id,

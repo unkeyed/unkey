@@ -10,7 +10,7 @@ import {
   matchExprSchema,
   stringMatchModeSchema,
 } from "@/lib/collections/deploy/sentinel-policies.schema";
-import { match } from "@unkey/match";
+import { P, match } from "@unkey/match";
 import { z } from "zod";
 
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
@@ -127,7 +127,6 @@ const keyauthFormSchema = z.object({
   permissionQuery: z.string().max(SENTINEL_LIMITS.permissionQueryMaxLength),
 });
 
-
 export const rateLimitKeySourceSchema = z.enum([
   "remoteIp",
   "header",
@@ -211,7 +210,7 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
       locations: [],
       permissionQuery: "",
     }))
-      .with("ratelimit", () => ({
+    .with("ratelimit", () => ({
       ...base,
       type: "ratelimit" as const,
       limit: 100,
@@ -322,7 +321,7 @@ export function toSentinelPolicy(
         match: matchExprs,
       };
     })
-     .with({ type: "ratelimit" }, (v) => ({
+    .with({ type: "ratelimit" }, (v) => ({
       id,
       name: v.name,
       enabled: true,
@@ -347,21 +346,13 @@ export function toSentinelPolicy(
 
 // ── Canonical → form conversion (inverse of toSentinelPolicy) ───────────
 
-function stringMatchToMode(sm: {
-  exact?: string;
-  prefix?: string;
-  regex?: string;
-}): { mode: "exact" | "prefix" | "regex"; value: string } {
-  if (typeof sm.exact === "string") {
-    return { mode: "exact", value: sm.exact };
-  }
-  if (typeof sm.prefix === "string") {
-    return { mode: "prefix", value: sm.prefix };
-  }
-  if (typeof sm.regex === "string") {
-    return { mode: "regex", value: sm.regex };
-  }
-  return { mode: "exact", value: "" };
+function stringMatchToMode(sm: StringMatch): { mode: "exact" | "prefix" | "regex"; value: string } {
+  return match(sm)
+    .returnType<{ mode: "exact" | "prefix" | "regex"; value: string }>()
+    .with({ exact: P.string }, (s) => ({ mode: "exact", value: s.exact }))
+    .with({ prefix: P.string }, (s) => ({ mode: "prefix", value: s.prefix }))
+    .with({ regex: P.string }, (s) => ({ mode: "regex", value: s.regex }))
+    .exhaustive();
 }
 
 // Match conditions and key locations have no id on the wire (they're protobuf
@@ -376,47 +367,48 @@ function fromMatchExpr(raw: unknown): MatchConditionFormValues | null {
   }
   const expr = parsed.data;
   const id = crypto.randomUUID();
-  if ("path" in expr) {
-    const { mode, value } = stringMatchToMode(expr.path.path);
-    return { id, type: "path", mode, value };
-  }
-  if ("method" in expr) {
-    return { id, type: "method", methods: expr.method.methods };
-  }
-  if ("header" in expr) {
-    if ("present" in expr.header) {
-      return { id, type: "header", name: expr.header.name, present: true };
-    }
-    const { mode, value } = stringMatchToMode(expr.header.value);
-    return { id, type: "header", name: expr.header.name, mode, value };
-  }
-  if ("queryParam" in expr) {
-    if ("present" in expr.queryParam) {
-      return { id, type: "queryParam", name: expr.queryParam.name, present: true };
-    }
-    const { mode, value } = stringMatchToMode(expr.queryParam.value);
-    return { id, type: "queryParam", name: expr.queryParam.name, mode, value };
-  }
-  return null;
+  return match(expr)
+    .returnType<MatchConditionFormValues>()
+    .with({ path: P._ }, (e) => {
+      const { mode, value } = stringMatchToMode(e.path.path);
+      return { id, type: "path" as const, mode, value };
+    })
+    .with({ method: P._ }, (e) => ({ id, type: "method" as const, methods: e.method.methods }))
+    .with({ header: P._ }, (e) => {
+      if ("present" in e.header) {
+        return { id, type: "header" as const, name: e.header.name, present: true as const };
+      }
+      const { mode, value } = stringMatchToMode(e.header.value);
+      return { id, type: "header" as const, name: e.header.name, mode, value };
+    })
+    .with({ queryParam: P._ }, (e) => {
+      if ("present" in e.queryParam) {
+        return { id, type: "queryParam" as const, name: e.queryParam.name, present: true as const };
+      }
+      const { mode, value } = stringMatchToMode(e.queryParam.value);
+      return { id, type: "queryParam" as const, name: e.queryParam.name, mode, value };
+    })
+    .exhaustive();
 }
 
 function fromRateLimitKey(key: RateLimitKey): {
   keySource: RateLimitKeySource;
   keyValue: string;
 } {
-  if ("remoteIp" in key) {
-    return { keySource: "remoteIp", keyValue: "" };
-  }
-  if ("header" in key) {
-    return { keySource: "header", keyValue: key.header.name };
-  }
-  if ("authenticatedSubject" in key) {
-    return { keySource: "authenticatedSubject", keyValue: "" };
-  }
-  if ("path" in key) {
-    return { keySource: "path", keyValue: "" };
-  }
-  return { keySource: "principalField", keyValue: key.principalField.path };
+  return match(key)
+    .returnType<{ keySource: RateLimitKeySource; keyValue: string }>()
+    .with({ remoteIp: P._ }, () => ({ keySource: "remoteIp" as const, keyValue: "" }))
+    .with({ header: P._ }, (k) => ({ keySource: "header" as const, keyValue: k.header.name }))
+    .with({ authenticatedSubject: P._ }, () => ({
+      keySource: "authenticatedSubject" as const,
+      keyValue: "",
+    }))
+    .with({ path: P._ }, () => ({ keySource: "path" as const, keyValue: "" }))
+    .with({ principalField: P._ }, (k) => ({
+      keySource: "principalField" as const,
+      keyValue: k.principalField.path,
+    }))
+    .exhaustive();
 }
 
 export function fromSentinelPolicy(
@@ -431,18 +423,21 @@ export function fromSentinelPolicy(
     .with({ type: "keyauth" }, (p) => {
       const locations: KeyLocationFormValues[] = (p.keyauth.locations ?? []).map((loc) => {
         const id = crypto.randomUUID();
-        if ("bearer" in loc) {
-          return { id, locationType: "bearer" };
-        }
-        if ("header" in loc) {
-          return {
+        return match(loc)
+          .returnType<KeyLocationFormValues>()
+          .with({ bearer: P._ }, () => ({ id, locationType: "bearer" as const }))
+          .with({ header: P._ }, (l) => ({
             id,
-            locationType: "header",
-            name: loc.header.name,
-            ...(loc.header.stripPrefix ? { stripPrefix: loc.header.stripPrefix } : {}),
-          };
-        }
-        return { id, locationType: "queryParam", name: loc.queryParam.name };
+            locationType: "header" as const,
+            name: l.header.name,
+            ...(l.header.stripPrefix ? { stripPrefix: l.header.stripPrefix } : {}),
+          }))
+          .with({ queryParam: P._ }, (l) => ({
+            id,
+            locationType: "queryParam" as const,
+            name: l.queryParam.name,
+          }))
+          .exhaustive();
       });
 
       return {
@@ -455,7 +450,7 @@ export function fromSentinelPolicy(
         permissionQuery: p.keyauth.permissionQuery ?? "",
       };
     })
-       .with({ type: "ratelimit" }, (p) => {
+    .with({ type: "ratelimit" }, (p) => {
       const { keySource, keyValue } = fromRateLimitKey(p.ratelimit.key);
       return {
         type: "ratelimit" as const,

@@ -5,9 +5,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { match } from "@unkey/match";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
+import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
 import { KeyAuthFields, KeyauthPolicySummary } from "./forms/keyauth-fields";
 import { RateLimitFields, RatelimitPolicySummary } from "./forms/ratelimit-fields";
-import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
 import {
   MatchConditionEditorBody,
   MatchConditionsClearAll,
@@ -166,14 +166,14 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
           label="Policy Configuration"
           summary={match(policyType)
             .with("keyauth", () => <KeyauthPolicySummary />)
-            .with("ratelimit", () => <RatelimitPolicySummary/>)
+            .with("ratelimit", () => <RatelimitPolicySummary />)
             .with("firewall", () => <FirewallPolicySummary />)
             .exhaustive()}
           catchAll
         >
           {match(policyType)
             .with("keyauth", () => <KeyAuthFields />)
-            .with("ratelimit", () => <RateLimitFields/>)
+            .with("ratelimit", () => <RateLimitFields />)
             .with("firewall", () => <FirewallFields />)
             .exhaustive()}
         </PolicyForm.Section>

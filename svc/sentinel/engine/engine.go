@@ -187,4 +187,3 @@ func (e *Engine) Evaluate(
 
 	return result, nil
 }
-
