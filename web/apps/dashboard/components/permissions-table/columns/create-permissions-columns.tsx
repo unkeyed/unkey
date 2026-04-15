@@ -1,9 +1,9 @@
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
+import { Page2 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { LastUpdatedCell, RowActionSkeleton, SortableHeader } from "@unkey/ui";
+import { LastUpdatedCell, RowActionSkeleton, SelectableNameCell, SortableHeader } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { AssignedItemsCell } from "../components/assigned-items-cell";
-import { PermissionNameCell } from "../components/permission-name-cell";
 
 const PermissionsTableActions = dynamic(
   () =>
@@ -65,12 +65,15 @@ export const createPermissionsColumns = ({
     cell: ({ row }) => {
       const permission = row.original;
       return (
-        <PermissionNameCell
-          permission={permission}
-          isChecked={selectedPermissions.has(permission.permissionId)}
+        <SelectableNameCell
+          name={permission.name}
+          description={permission.description}
+          icon={<Page2 iconSize="sm-regular" className="text-gray-12 cursor-pointer" />}
+          isSelected={selectedPermissions.has(permission.permissionId)}
           isHovered={hoveredPermissionName === permission.name}
-          onToggleSelection={onToggleSelection}
-          onHover={onHoverPermission}
+          onMouseEnter={() => onHoverPermission(permission.name)}
+          onMouseLeave={() => onHoverPermission(null)}
+          onCheckedChange={() => onToggleSelection(permission.permissionId)}
         />
       );
     },

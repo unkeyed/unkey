@@ -26,3 +26,5 @@ export type { RegionCellProps } from "./region-cell";
 export { TagsCell } from "./tags-cell";
 export type { TagsCellProps } from "./tags-cell";
 export type { OutcomePopoverCellProps } from "./outcome-popover-cell";
+export { SelectableNameCell } from "./selectable-name-cell";
+export type { SelectableNameCellProps } from "./selectable-name-cell";

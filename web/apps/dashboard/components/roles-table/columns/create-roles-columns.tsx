@@ -1,9 +1,14 @@
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
-import { Key2, Page2 } from "@unkey/icons";
+import { Key2, Page2, Tag } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { AssignedCountCell, LastUpdatedCell, RowActionSkeleton, SortableHeader } from "@unkey/ui";
+import {
+  AssignedCountCell,
+  LastUpdatedCell,
+  RowActionSkeleton,
+  SelectableNameCell,
+  SortableHeader,
+} from "@unkey/ui";
 import dynamic from "next/dynamic";
-import { RoleNameCell } from "../components/cells/role-name-cell";
 
 const RolesTableActions = dynamic(
   () =>
@@ -61,9 +66,12 @@ export const createRolesColumns = ({
     cell: ({ row }) => {
       const role = row.original;
       return (
-        <RoleNameCell
+        <SelectableNameCell
           name={role.name}
           description={role.description}
+          icon={
+            <Tag iconSize="sm-regular" className="text-gray-12 cursor-pointer w-[12px] h-[12px]" />
+          }
           isSelected={selectedRoles.has(role.roleId)}
           isHovered={hoveredRoleName === role.name}
           onMouseEnter={() => onHoverRole(role.name)}

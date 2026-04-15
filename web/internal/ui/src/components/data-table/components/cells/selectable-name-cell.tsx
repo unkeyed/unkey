@@ -1,10 +1,13 @@
-import { cn } from "@/lib/utils";
-import { Tag } from "@unkey/icons";
-import { Checkbox } from "@unkey/ui";
+// biome-ignore lint/correctness/noUnusedImports: React is needed for JSX
+import React from "react";
+import type { ReactNode } from "react";
+import { cn } from "../../../../lib/utils";
+import { Checkbox } from "../../../form/checkbox";
 
-type RoleNameCellProps = {
+export type SelectableNameCellProps = {
   name: string;
   description?: string;
+  icon: ReactNode;
   isSelected: boolean;
   isHovered: boolean;
   onMouseEnter: () => void;
@@ -12,15 +15,16 @@ type RoleNameCellProps = {
   onCheckedChange: () => void;
 };
 
-export const RoleNameCell = ({
+export const SelectableNameCell = ({
   name,
   description,
+  icon,
   isSelected,
   isHovered,
   onMouseEnter,
   onMouseLeave,
   onCheckedChange,
-}: RoleNameCellProps) => {
+}: SelectableNameCellProps) => {
   return (
     <div className="flex flex-col items-start px-[18px] py-[6px]">
       <div className="flex gap-4 items-center">
@@ -33,9 +37,7 @@ export const RoleNameCell = ({
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
         >
-          {!isSelected && !isHovered && (
-            <Tag iconSize="sm-regular" className="text-gray-12 cursor-pointer w-[12px] h-[12px]" />
-          )}
+          {!isSelected && !isHovered && icon}
           {(isSelected || isHovered) && (
             <Checkbox
               checked={isSelected}
