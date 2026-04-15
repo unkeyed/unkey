@@ -4,8 +4,10 @@ algorithm with atomic counters.
 
 # Architecture
 
-All rate limit state is stored in a flat sync.Map of *atomic.Int64 counters, keyed by
-(name, identifier, duration, sequence). There are no mutexes in the hot path:
+All rate limit state is stored in a flat sync.Map of counter entries, keyed by
+(name, identifier, duration, sequence). Each entry holds an atomic.Int64 counter
+plus a sync.Once that gates the first origin hydration. There are no mutexes in
+the hot path:
 
   - Denials are wait-free: two atomic loads, arithmetic, return.
   - Allows are lock-free: one atomic add after the check.

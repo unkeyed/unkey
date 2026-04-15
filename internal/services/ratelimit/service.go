@@ -18,22 +18,33 @@ import (
 // bounded by GOMAXPROCS; 100 is astronomically generous.
 const maxCASRetries = 100
 
-// atomicMax sets *ptr = max(*ptr, val) atomically via a bounded CAS loop.
+// atomicMax raises target to val atomically via a bounded CAS loop.
 // The value only ever moves forward — a smaller val is a no-op. If the retry
 // bound is exhausted, an error is logged and the function returns without
 // updating; callers that depend on monotonic progress must tolerate stale
 // values in that case.
-func atomicMax(ptr *atomic.Int64, val int64) {
+func atomicMax(target *atomic.Int64, val int64) {
 	for range maxCASRetries {
-		cur := ptr.Load()
+		cur := target.Load()
 		if val <= cur {
 			return
 		}
-		if ptr.CompareAndSwap(cur, val) {
+		if target.CompareAndSwap(cur, val) {
 			return
 		}
 	}
 	logger.Error("atomicMax retries exhausted, proceeding with stale counter")
+}
+
+// counterEntry pairs a sliding-window counter with a sync.Once that gates
+// origin hydration. Only the goroutine that inserted the entry runs the
+// first fetchFromOrigin; concurrent callers block inside Do until it
+// returns, then take the fast path (atomic load on Once.done) forever.
+// This closes the race where LoadOrStore would hand out a zero-valued
+// counter to late arrivals before the owner finished hydrating it.
+type counterEntry struct {
+	val  atomic.Int64
+	once sync.Once
 }
 
 // service implements lockless distributed rate limiting using a sliding window
@@ -42,8 +53,9 @@ func atomicMax(ptr *atomic.Int64, val int64) {
 // All rate limit state is stored in two flat sync.Maps with no mutexes in
 // the hot path:
 //
-//   - counters: per-window atomic counters keyed by (name, identifier,
-//     duration, sequence). Each entry is one sliding window's request count.
+//   - counters: per-window counter entries keyed by (name, identifier,
+//     duration, sequence). Each entry holds the window's request count plus
+//     a sync.Once coordinating the first origin hydration.
 //   - strictUntils: per-identifier deadlines keyed by (name, identifier,
 //     duration). Set when a request is denied; subsequent requests on the
 //     same identifier force an origin fetch until the deadline passes.
@@ -136,14 +148,21 @@ func (s *service) Close() error {
 	return nil
 }
 
-// loadCounter returns the atomic counter for the given key, creating it if needed.
-// The second return value is true if the counter already existed.
-func (s *service) loadCounter(key counterKey) (*atomic.Int64, bool) {
-	val, loaded := s.counters.LoadOrStore(key, &atomic.Int64{})
+// loadCounter returns the counter entry for the given key, creating it if needed.
+// Callers must invoke entry.once.Do(...) before reading entry.val to ensure the
+// counter has been hydrated from origin — otherwise late arrivals on a cold key
+// would observe a zero-valued counter before the first caller finishes its
+// Redis fetch.
+func (s *service) loadCounter(key counterKey) *counterEntry {
+	if v, ok := s.counters.Load(key); ok {
+		return v.(*counterEntry)
+	}
+	fresh := &counterEntry{} //nolint:exhaustruct // zero values are correct
+	actual, loaded := s.counters.LoadOrStore(key, fresh)
 	if !loaded {
 		metrics.RatelimitWindowsCreated.Inc()
 	}
-	return val.(*atomic.Int64), loaded
+	return actual.(*counterEntry)
 }
 
 // loadStrictUntil returns the unix-millis deadline for strict-enforcement

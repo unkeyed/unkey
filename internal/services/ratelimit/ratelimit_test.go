@@ -60,10 +60,10 @@ func TestRatelimit_SlidingWindowDecision(t *testing.T) {
 			// Seed both windows so prepareCheck takes the local fast path.
 			curKey := counterKey{name: "ns", identifier: "id", durationMs: durationMs, sequence: curSeq}
 			prevKey := counterKey{name: "ns", identifier: "id", durationMs: durationMs, sequence: curSeq - 1}
-			curPtr, _ := svc.loadCounter(curKey)
-			curPtr.Store(tt.curCount)
-			prevPtr, _ := svc.loadCounter(prevKey)
-			prevPtr.Store(tt.prevCount)
+			cur := svc.loadCounter(curKey)
+			cur.val.Store(tt.curCount)
+			prev := svc.loadCounter(prevKey)
+			prev.val.Store(tt.prevCount)
 
 			resp, err := svc.Ratelimit(context.Background(), RatelimitRequest{
 				Name:       "ns",
@@ -137,8 +137,8 @@ func TestRatelimit_StrictModeForcesOriginFetch(t *testing.T) {
 	prevKey := counterKey{name: "ns", identifier: "id", durationMs: durationMs, sequence: curSeq - 1}
 
 	// Warm local windows so the first denial does not trigger a cold-window fetch.
-	curPtr, _ := svc.loadCounter(curKey)
-	prevPtr, _ := svc.loadCounter(prevKey)
+	cur := svc.loadCounter(curKey)
+	prev := svc.loadCounter(prevKey)
 
 	req := RatelimitRequest{
 		Name:       "ns",
@@ -165,8 +165,8 @@ func TestRatelimit_StrictModeForcesOriginFetch(t *testing.T) {
 	_, err = svc.Ratelimit(context.Background(), req)
 	require.NoError(t, err)
 
-	require.GreaterOrEqual(t, curPtr.Load(), originValue, "current window should have picked up origin value")
-	require.GreaterOrEqual(t, prevPtr.Load(), originValue, "previous window should have picked up origin value")
+	require.GreaterOrEqual(t, cur.val.Load(), originValue, "current window should have picked up origin value")
+	require.GreaterOrEqual(t, prev.val.Load(), originValue, "previous window should have picked up origin value")
 }
 
 // TestRatelimitMany_RollsBackOnPartialFailure asserts that when any entry in
@@ -190,13 +190,13 @@ func TestRatelimitMany_RollsBackOnPartialFailure(t *testing.T) {
 	aPrev := counterKey{name: "A", identifier: "user", durationMs: durationMs, sequence: curSeq - 1}
 	bCur := counterKey{name: "B", identifier: "user", durationMs: durationMs, sequence: curSeq}
 	bPrev := counterKey{name: "B", identifier: "user", durationMs: durationMs, sequence: curSeq - 1}
-	aPtr, _ := svc.loadCounter(aCur)
-	_, _ = svc.loadCounter(aPrev)
-	bPtr, _ := svc.loadCounter(bCur)
-	_, _ = svc.loadCounter(bPrev)
+	a := svc.loadCounter(aCur)
+	_ = svc.loadCounter(aPrev)
+	b := svc.loadCounter(bCur)
+	_ = svc.loadCounter(bPrev)
 
 	// A is far below its limit. B is at 9 of 10 — a cost of 5 will exceed it.
-	bPtr.Store(9)
+	b.val.Store(9)
 
 	reqs := []RatelimitRequest{
 		{Name: "A", Identifier: "user", Limit: 10, Duration: duration, Cost: 1, Time: reqTime},
@@ -210,6 +210,6 @@ func TestRatelimitMany_RollsBackOnPartialFailure(t *testing.T) {
 	require.True(t, resp[0].Success, "A individually passed")
 	require.False(t, resp[1].Success, "B individually exceeded")
 
-	require.Equal(t, int64(0), aPtr.Load(), "A counter must be unchanged after batch failure")
-	require.Equal(t, int64(9), bPtr.Load(), "B counter must be rolled back after batch failure")
+	require.Equal(t, int64(0), a.val.Load(), "A counter must be unchanged after batch failure")
+	require.Equal(t, int64(9), b.val.Load(), "B counter must be rolled back after batch failure")
 }

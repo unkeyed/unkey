@@ -2,7 +2,6 @@ package ratelimit
 
 import (
 	"context"
-	"sync/atomic"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -15,8 +14,8 @@ import (
 
 // checkState holds the precomputed state needed for a sliding window check.
 type checkState struct {
-	curPtr        *atomic.Int64
-	prevPtr       *atomic.Int64
+	cur           *counterEntry
+	prev          *counterEntry
 	strictKey     strictKey
 	windowElapsed float64
 	reset         time.Time
@@ -34,22 +33,22 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	prevKey := counterKey{name: req.Name, identifier: req.Identifier, durationMs: durationMs, sequence: curSeq - 1}
 	sk := strictKey{name: req.Name, identifier: req.Identifier, durationMs: durationMs}
 
-	curPtr, curExisted := s.loadCounter(curKey)
-	prevPtr, prevExisted := s.loadCounter(prevKey)
+	cur := s.loadCounter(curKey)
+	prev := s.loadCounter(prevKey)
 
-	// Strict mode: a recent denial forces synchronous origin fetches until
-	// the deadline passes, catching up local state to the global count.
-	strictActive := req.Time.UnixMilli() < s.loadStrictUntil(sk)
+	// First caller per entry runs fetchFromOrigin; concurrent callers block
+	// inside Do until it returns, then take the fast path forever. This
+	// prevents late arrivals on a cold key from reading a zero counter while
+	// the owner is still fetching.
+	cur.once.Do(func() { s.fetchFromOrigin(ctx, curKey, &cur.val) })
+	prev.once.Do(func() { s.fetchFromOrigin(ctx, prevKey, &prev.val) })
 
-	source := "local"
-	if !curExisted || !prevExisted || strictActive {
-		source = "origin"
-		if !curExisted || strictActive {
-			s.fetchFromOrigin(ctx, curKey, curPtr)
-		}
-		if !prevExisted || strictActive {
-			s.fetchFromOrigin(ctx, prevKey, prevPtr)
-		}
+	// Strict mode: a recent denial forces an additional synchronous origin
+	// fetch until the deadline passes, catching up local state to the global
+	// count regardless of whether the entry was already hydrated.
+	if req.Time.UnixMilli() < s.loadStrictUntil(sk) {
+		s.fetchFromOrigin(ctx, curKey, &cur.val)
+		s.fetchFromOrigin(ctx, prevKey, &prev.val)
 	}
 
 	windowStartMs := curSeq * durationMs
@@ -58,19 +57,19 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	reset := time.UnixMilli(windowStartMs).Add(req.Duration)
 
 	return checkState{
-		curPtr:        curPtr,
-		prevPtr:       prevPtr,
+		cur:           cur,
+		prev:          prev,
 		strictKey:     sk,
 		windowElapsed: windowElapsed,
 		reset:         reset,
-		source:        source,
+		source:        "local",
 	}
 }
 
 // slidingWindowCount computes the effective request count for the sliding window
 // given the current window's counter value. The previous window is loaded atomically.
 func (cs *checkState) slidingWindowCount(curCount int64) int64 {
-	return curCount + int64(float64(cs.prevPtr.Load())*(1.0-cs.windowElapsed))
+	return curCount + int64(float64(cs.prev.val.Load())*(1.0-cs.windowElapsed))
 }
 
 func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (RatelimitResponse, error) {
@@ -103,7 +102,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	// request (fail closed) — this indicates pathological contention that
 	// should never occur in practice.
 	for range maxCASRetries {
-		curCount := cs.curPtr.Load()
+		curCount := cs.cur.val.Load()
 		effectiveCount := cs.slidingWindowCount(curCount) + req.Cost
 
 		if effectiveCount > req.Limit {
@@ -121,7 +120,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 			}, nil
 		}
 
-		if cs.curPtr.CompareAndSwap(curCount, curCount+req.Cost) {
+		if cs.cur.val.CompareAndSwap(curCount, curCount+req.Cost) {
 			s.replayBuffer.Buffer(req)
 			metrics.RatelimitDecision.WithLabelValues(cs.source, "passed").Inc()
 			span.SetAttributes(attribute.Bool("passed", true))
@@ -185,7 +184,7 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 	// so each goroutine sees its own increment reflected.
 	newCounts := make([]int64, len(reqs))
 	for i, req := range reqs {
-		newCounts[i] = checks[i].curPtr.Add(req.Cost)
+		newCounts[i] = checks[i].cur.val.Add(req.Cost)
 	}
 
 	// Check all limits using the post-increment values.
@@ -206,7 +205,7 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 	// false denials but never false allows — the transient state is conservative.
 	if !allPassed {
 		for i, req := range reqs {
-			checks[i].curPtr.Add(-req.Cost)
+			checks[i].cur.val.Add(-req.Cost)
 			// For each individual failure, set strict mode on its tuple.
 			if effectives[i] > req.Limit {
 				s.setStrictUntil(checks[i].strictKey, req.Time.Add(req.Duration).UnixMilli())

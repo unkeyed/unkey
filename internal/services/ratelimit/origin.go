@@ -18,7 +18,7 @@ import (
 // every request in strict mode. On any failure (circuit tripped, timeout,
 // or Redis error) the local counter is left unchanged — callers proceed
 // with whatever local state they have.
-func (s *service) fetchFromOrigin(ctx context.Context, key counterKey, ptr *atomic.Int64) {
+func (s *service) fetchFromOrigin(ctx context.Context, key counterKey, local *atomic.Int64) {
 	rk := key.redisKey()
 
 	res, err := s.originCircuitBreaker.Do(ctx, func(ctx context.Context) (int64, error) {
@@ -39,7 +39,7 @@ func (s *service) fetchFromOrigin(ctx context.Context, key counterKey, ptr *atom
 		)
 		return
 	}
-	atomicMax(ptr, res)
+	atomicMax(local, res)
 }
 
 // replayRequests processes buffered rate limit events by synchronizing them
@@ -102,8 +102,8 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 	}
 
 	// CAS-merge: update local counter if Redis value is higher.
-	ptr, _ := s.loadCounter(key)
-	atomicMax(ptr, newCounter)
+	counter := s.loadCounter(key)
+	atomicMax(&counter.val, newCounter)
 
 	return nil
 }
