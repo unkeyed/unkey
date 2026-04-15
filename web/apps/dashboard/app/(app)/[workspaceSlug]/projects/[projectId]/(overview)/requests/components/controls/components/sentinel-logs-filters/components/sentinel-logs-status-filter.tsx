@@ -162,7 +162,7 @@ export const SentinelStatusFilter = () => {
               }
             }}
             placeholder="418"
-            className="text-accent-9 text-xs bg-transparent border-b border-gray-6 outline-none w-[3ch] font-mono placeholder:text-accent-9/40 focus:border-accent-9"
+            className="text-accent-9 text-xs bg-transparent border-b border-gray-6 outline-none w-[3ch] font-mono placeholder:text-accent-9/40 focus:border-accent-9 [&::-webkit-inner-spin-button]:appearance-none"
           />
           {codeError ? (
             <span className="text-error-9 text-xs">100–599</span>
