@@ -9,6 +9,12 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 The [Principal](/platform/sentinel/principal/overview) is plain JSON with no encryption or signing. During local development, you can set the `X-Unkey-Principal` header yourself to test your application's authentication handling without running a Sentinel.
 
+<Warning>
+  The `X-Unkey-Principal` header has no cryptographic signature. When you deploy to Unkey, the Sentinel always sits in front of your app and strips any client-supplied header before setting its own. Traffic cannot reach your API without going through the Sentinel, so forged headers are not a concern.
+
+  If you self-host or expose your app through other infrastructure (direct port-forward, misconfigured ingress, or similar), anyone who reaches it directly can forge the header. Never expose your app to untrusted traffic without a Sentinel in front of it.
+</Warning>
+
 ## Send a Principal with curl
 
 Pass the Principal as a JSON string in the header:

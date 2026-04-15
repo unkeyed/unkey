@@ -51,8 +51,7 @@ app.use("*", async (c, next) => {
 app.get("/api/resource", (c) => {
   const principal = c.get("principal") as KeyPrincipal;
 
-  const { permissions } = principal.source.key;
-  if (!permissions.includes("api.read")) {
+  if (!principal.source.key.permissions?.includes("api.read")) {
     return c.json({ error: "Insufficient permissions" }, 403);
   }
 
@@ -108,10 +107,70 @@ export async function GET(req: NextRequest) {
 
   const userId = principal.subject;
   const plan = principal.identity?.meta?.plan ?? "free";
-  const canWrite = principal.source.key.permissions.includes("api.write");
+  const canWrite = principal.source.key.permissions?.includes("api.write") ?? false;
 
   return NextResponse.json({ userId, plan, canWrite });
 }
+```
+
+```ts Express
+import express, { Request, Response, NextFunction } from "express";
+
+type KeyPrincipal = {
+  version: string;
+  subject: string;
+  type: "API_KEY";
+  identity?: {
+    externalId: string;
+    meta: Record<string, unknown>;
+  };
+  source: {
+    key: {
+      keyId: string;
+      keySpaceId: string;
+      name?: string;
+      expiresAt?: number;
+      meta: Record<string, unknown>;
+      roles?: string[];
+      permissions?: string[];
+    };
+  };
+};
+
+declare global {
+  namespace Express {
+    interface Request {
+      principal?: KeyPrincipal;
+    }
+  }
+}
+
+const app = express();
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const header = req.header("x-unkey-principal");
+  if (!header) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  req.principal = JSON.parse(header) as KeyPrincipal;
+  next();
+});
+
+app.get("/api/resource", (req: Request, res: Response) => {
+  const principal = req.principal!;
+
+  if (!principal.source.key.permissions?.includes("api.read")) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
+  const userId = principal.subject;
+  const plan = principal.identity?.meta?.plan ?? "free";
+
+  res.json({ userId, plan });
+});
+
+app.listen(8080);
 ```
 
 ```go Go
@@ -168,6 +227,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Permissions is nil when the key has no permissions attached.
+	// slices.Contains on a nil slice returns false without panicking.
 	if !slices.Contains(principal.Source.Key.Permissions, "api.read") {
 		http.Error(w, `{"error":"Insufficient permissions"}`, http.StatusForbidden)
 		return
