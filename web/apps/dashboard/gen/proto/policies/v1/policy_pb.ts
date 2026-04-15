@@ -4,8 +4,6 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
-import type { BasicAuth } from "./basicauth_pb";
-import { file_policies_v1_basicauth } from "./basicauth_pb";
 import type { IPRules } from "./iprules_pb";
 import { file_policies_v1_iprules } from "./iprules_pb";
 import type { JWTAuth } from "./jwtauth_pb";
@@ -24,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file policies/v1/policy.proto.
  */
 export const file_policies_v1_policy: GenFile = /*@__PURE__*/
-  fileDesc("Chhwb2xpY2llcy92MS9wb2xpY3kucHJvdG8SC3NlbnRpbmVsLnYxIvQCCgZQb2xpY3kSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIPCgdlbmFibGVkGAMgASgIEiUKBW1hdGNoGAQgAygLMhYuc2VudGluZWwudjEuTWF0Y2hFeHByEicKB2tleWF1dGgYBSABKAsyFC5zZW50aW5lbC52MS5LZXlBdXRoSAASJwoHand0YXV0aBgGIAEoCzIULnNlbnRpbmVsLnYxLkpXVEF1dGhIABIrCgliYXNpY2F1dGgYByABKAsyFi5zZW50aW5lbC52MS5CYXNpY0F1dGhIABIrCglyYXRlbGltaXQYCCABKAsyFi5zZW50aW5lbC52MS5SYXRlTGltaXRIABIoCghpcF9ydWxlcxgJIAEoCzIULnNlbnRpbmVsLnYxLklQUnVsZXNIABI4CgdvcGVuYXBpGAogASgLMiUuc2VudGluZWwudjEuT3BlbkFwaVJlcXVlc3RWYWxpZGF0aW9uSABCCAoGY29uZmlnQqYBCg9jb20uc2VudGluZWwudjFCC1BvbGljeVByb3RvUAFaOWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vc2VudGluZWwvdjE7c2VudGluZWx2MaICA1NYWKoCC1NlbnRpbmVsLlYxygILU2VudGluZWxcVjHiAhdTZW50aW5lbFxWMVxHUEJNZXRhZGF0YeoCDFNlbnRpbmVsOjpWMWIGcHJvdG8z", [file_policies_v1_basicauth, file_policies_v1_iprules, file_policies_v1_jwtauth, file_policies_v1_keyauth, file_policies_v1_match, file_policies_v1_openapi, file_policies_v1_ratelimit]);
+  fileDesc("Chhwb2xpY2llcy92MS9wb2xpY3kucHJvdG8SC3NlbnRpbmVsLnYxIscCCgZQb2xpY3kSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIPCgdlbmFibGVkGAMgASgIEiUKBW1hdGNoGAQgAygLMhYuc2VudGluZWwudjEuTWF0Y2hFeHByEicKB2tleWF1dGgYBSABKAsyFC5zZW50aW5lbC52MS5LZXlBdXRoSAASJwoHand0YXV0aBgGIAEoCzIULnNlbnRpbmVsLnYxLkpXVEF1dGhIABIrCglyYXRlbGltaXQYCCABKAsyFi5zZW50aW5lbC52MS5SYXRlTGltaXRIABIoCghpcF9ydWxlcxgJIAEoCzIULnNlbnRpbmVsLnYxLklQUnVsZXNIABI4CgdvcGVuYXBpGAogASgLMiUuc2VudGluZWwudjEuT3BlbkFwaVJlcXVlc3RWYWxpZGF0aW9uSABCCAoGY29uZmlnQqYBCg9jb20uc2VudGluZWwudjFCC1BvbGljeVByb3RvUAFaOWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vc2VudGluZWwvdjE7c2VudGluZWx2MaICA1NYWKoCC1NlbnRpbmVsLlYxygILU2VudGluZWxcVjHiAhdTZW50aW5lbFxWMVxHUEJNZXRhZGF0YeoCDFNlbnRpbmVsOjpWMWIGcHJvdG8z", [file_policies_v1_iprules, file_policies_v1_jwtauth, file_policies_v1_keyauth, file_policies_v1_match, file_policies_v1_openapi, file_policies_v1_ratelimit]);
 
 /**
  * Policy is a single middleware layer in a deployment's configuration. Each policy
@@ -99,12 +97,6 @@ export type Policy = Message<"sentinel.v1.Policy"> & {
      */
     value: JWTAuth;
     case: "jwtauth";
-  } | {
-    /**
-     * @generated from field: sentinel.v1.BasicAuth basicauth = 7;
-     */
-    value: BasicAuth;
-    case: "basicauth";
   } | {
     /**
      * @generated from field: sentinel.v1.RateLimit ratelimit = 8;

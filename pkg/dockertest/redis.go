@@ -33,5 +33,5 @@ func Redis(t *testing.T) string {
 	})
 
 	port := ctr.Port(redisPort)
-	return fmt.Sprintf("redis://localhost:%s", port)
+	return fmt.Sprintf("redis://127.0.0.1:%s", port)
 }
