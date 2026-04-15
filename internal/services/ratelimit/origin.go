@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -11,17 +12,40 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 )
 
+// errorReason classifies err for the origin_errors_total{reason} label.
+// We only single out timeouts because they are the most actionable signal
+// (the per-call budget elapsed, not a Redis-side problem); everything else
+// — Redis errors, circuit-breaker trips, network failures — collapses to
+// "other".
+func errorReason(err error) string {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "timeout"
+	}
+	return "other"
+}
+
+// originFetchTimeout caps how long a single Redis GET on the hot path may
+// run before we fall back to local state. It is intentionally tight: the
+// rate-limit decision sits on every authenticated request, and a stalled
+// Redis must not propagate latency into customer traffic. If the fetch
+// times out we treat the origin as unavailable for this request — local
+// state is used, the circuit breaker tracks the failure, and the next
+// caller will retry.
+const originFetchTimeout = 150 * time.Millisecond
+
 // fetchFromOrigin returns the current counter value from the origin. The
 // call is wrapped in the origin circuit breaker so that Redis outages fail
-// fast instead of stalling every request in strict mode. Callers should
-// treat errors as "keep existing local state" — both the circuit-tripped
-// and Redis-error paths already increment the appropriate metrics and log.
-func (s *service) fetchFromOrigin(ctx context.Context, key counterKey) (int64, error) {
+// fast instead of stalling every request in strict mode. On any failure
+// (circuit tripped, timeout, or Redis error) it returns 0 — callers feed
+// this into atomicMax, which is a no-op against any existing positive
+// counter, so failed fetches preserve whatever local state is already
+// there.
+func (s *service) fetchFromOrigin(ctx context.Context, key counterKey) int64 {
 	rk := key.redisKey()
 
 	res, err := s.originCircuitBreaker.Do(ctx, func(ctx context.Context) (int64, error) {
 		start := time.Now()
-		timeout, cancel := context.WithTimeout(ctx, time.Millisecond*150)
+		timeout, cancel := context.WithTimeout(ctx, originFetchTimeout)
 		defer cancel()
 
 		res, err := s.origin.Get(timeout, rk)
@@ -30,14 +54,14 @@ func (s *service) fetchFromOrigin(ctx context.Context, key counterKey) (int64, e
 		return res, err
 	})
 	if err != nil {
-		metrics.RatelimitOriginErrors.WithLabelValues("fetch").Inc()
+		metrics.RatelimitOriginErrors.WithLabelValues("fetch", errorReason(err)).Inc()
 		logger.Error("unable to get counter value from origin",
 			"key", rk,
 			"error", err.Error(),
 		)
-		return 0, err
+		return 0
 	}
-	return res, nil
+	return res
 }
 
 // replayRequests processes buffered rate limit events by synchronizing them
@@ -94,7 +118,7 @@ func (s *service) syncWithOrigin(ctx context.Context, req RatelimitRequest) erro
 		)
 	})
 	if err != nil {
-		metrics.RatelimitOriginErrors.WithLabelValues("sync").Inc()
+		metrics.RatelimitOriginErrors.WithLabelValues("sync", errorReason(err)).Inc()
 		tracing.RecordError(span, err)
 		return err
 	}

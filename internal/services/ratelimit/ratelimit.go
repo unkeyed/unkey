@@ -47,12 +47,8 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	// fetch until the deadline passes, catching up local state to the global
 	// count regardless of whether the entry was already hydrated.
 	if req.Time.UnixMilli() < s.loadStrictUntil(sk) {
-		if v, err := s.fetchFromOrigin(ctx, curKey); err == nil {
-			atomicMax(&cur.val, v)
-		}
-		if v, err := s.fetchFromOrigin(ctx, prevKey); err == nil {
-			atomicMax(&prev.val, v)
-		}
+		atomicMax(&cur.val, s.fetchFromOrigin(ctx, curKey))
+		atomicMax(&prev.val, s.fetchFromOrigin(ctx, prevKey))
 	}
 
 	windowStartMs := curSeq * durationMs

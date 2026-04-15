@@ -50,25 +50,23 @@ type counterEntry struct {
 	val      atomic.Int64
 	once     sync.Once
 	hydrated atomic.Bool
-	fetch    func(context.Context) (int64, error)
+	fetch    func(context.Context) int64
 }
 
 // Hydrate populates val from the bound fetcher exactly once. The fetched
 // value is CAS-merged via atomicMax so the local counter only moves
 // forward. Concurrent callers on a cold entry block inside Do until the
 // first fetch returns; subsequent callers return after a single atomic
-// load of hydrated. Fetcher errors leave val unchanged but still mark the
-// entry hydrated — the entry is stuck at whatever val holds (typically 0)
-// until it's evicted and recreated, matching the pre-Hydrate behavior of
-// fetchFromOrigin.
+// load of hydrated. A fetch failure surfaces as a returned 0, which
+// atomicMax treats as a no-op — the entry is left at whatever val held
+// before (typically 0 on a failed first hydration) and marked hydrated
+// so the hot path stays fast.
 func (e *counterEntry) Hydrate(ctx context.Context) {
 	if e.hydrated.Load() {
 		return
 	}
 	e.once.Do(func() {
-		if v, err := e.fetch(ctx); err == nil {
-			atomicMax(&e.val, v)
-		}
+		atomicMax(&e.val, e.fetch(ctx))
 		e.hydrated.Store(true)
 	})
 }
@@ -184,7 +182,7 @@ func (s *service) loadCounter(key counterKey) *counterEntry {
 		return v.(*counterEntry)
 	}
 	fresh := &counterEntry{ //nolint:exhaustruct // other fields zero-initialize correctly
-		fetch: func(ctx context.Context) (int64, error) { return s.fetchFromOrigin(ctx, key) },
+		fetch: func(ctx context.Context) int64 { return s.fetchFromOrigin(ctx, key) },
 	}
 	actual, loaded := s.counters.LoadOrStore(key, fresh)
 	if !loaded {
