@@ -15,7 +15,7 @@ go_library(
 
 go_test(
     name = "firewall_test",
-    srcs = ["firewall_test.go"],
+    srcs = ["executor_test.go"],
     embed = [":firewall"],
     deps = [
         "//gen/proto/sentinel/v1:sentinel",
