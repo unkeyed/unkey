@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
 	keyauthExec "github.com/unkeyed/unkey/svc/sentinel/engine/keyauth"
+	"github.com/unkeyed/unkey/svc/sentinel/engine/principal"
 	ratelimitExec "github.com/unkeyed/unkey/svc/sentinel/engine/ratelimit"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -46,7 +47,7 @@ var _ Evaluator = (*Engine)(nil)
 
 // Result holds the outcome of middleware evaluation.
 type Result struct {
-	Principal *Principal
+	Principal *principal.Principal
 }
 
 // New creates a new Engine with the given configuration.

@@ -18,6 +18,7 @@ go_library(
         "//pkg/hash",
         "//pkg/rbac",
         "//pkg/zen",
+        "//svc/sentinel/engine/principal",
     ],
 )
 

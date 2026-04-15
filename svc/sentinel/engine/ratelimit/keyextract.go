@@ -5,6 +5,7 @@ import (
 
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/sentinel/engine/principal"
 )
 
 // extractIdentifier derives the rate limit bucket key from the request based
@@ -16,12 +17,12 @@ import (
 //   - HeaderKey:                value of the named request header
 //   - PathKey:                  request URL path
 //   - AuthenticatedSubjectKey:  subject from a principal set by a prior auth policy
-//   - PrincipalClaimKey:        named claim from a principal set by a prior auth policy
+//   - PrincipalFieldKey:        dotted-path field from a principal set by a prior auth policy
 func extractIdentifier(
 	sess *zen.Session,
 	req *http.Request,
 	key *sentinelv1.RateLimitKey,
-	principal *sentinelv1.Principal,
+	principal *principal.Principal,
 ) string {
 	if key == nil {
 		return ""
@@ -38,12 +39,12 @@ func extractIdentifier(
 		if principal == nil {
 			return ""
 		}
-		return principal.GetSubject()
-	case *sentinelv1.RateLimitKey_PrincipalClaim:
+		return principal.Subject
+	case *sentinelv1.RateLimitKey_PrincipalField:
 		if principal == nil {
 			return ""
 		}
-		return principal.GetClaims()[src.PrincipalClaim.GetClaimName()]
+		return principal.ResolveField(src.PrincipalField.GetPath())
 	default:
 		return ""
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/sentinel/engine/principal"
 )
 
 // Executor handles KeyAuth policy evaluation by wrapping the existing KeyService.
@@ -37,7 +38,7 @@ func (e *Executor) Execute(
 	sess *zen.Session,
 	req *http.Request,
 	cfg *sentinelv1.KeyAuth,
-) (*Principal, error) {
+) (*principal.Principal, error) {
 	rawKey := extractKey(req, cfg.GetLocations())
 	if rawKey == "" {
 		return nil, fault.New("missing API key",
@@ -133,7 +134,7 @@ func (e *Executor) Execute(
 		)
 	}
 
-	principal, err := keyPrincipalFromVerifier(verifier)
+	p, err := principal.KeyPrincipalFromVerifier(verifier)
 	if err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
@@ -141,7 +142,7 @@ func (e *Executor) Execute(
 			fault.Public("An internal error occurred during authentication."),
 		)
 	}
-	return principal, nil
+	return p, nil
 }
 
 // keyspaceAllowed reports whether the key's keyspace is in the policy's

@@ -25,6 +25,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/sentinel/engine"
+	"github.com/unkeyed/unkey/svc/sentinel/engine/principal"
 )
 
 // testHarness holds all real services needed for integration tests.
@@ -357,10 +358,10 @@ func TestKeyAuth_ValidKey(t *testing.T) {
 	require.NotNil(t, result.Principal)
 
 	// Subject falls back to key ID when no external ID is set
-	require.Equal(t, engine.PrincipalVersion, result.Principal.Version)
+	require.Equal(t, principal.PrincipalVersion, result.Principal.Version)
 	require.Equal(t, "v1", result.Principal.Version)
 	require.Equal(t, s.KeyID, result.Principal.Subject)
-	require.Equal(t, engine.PrincipalTypeAPIKey, result.Principal.Type)
+	require.Equal(t, principal.PrincipalTypeAPIKey, result.Principal.Type)
 	require.Nil(t, result.Principal.Identity)
 
 	key := result.Principal.Source.Key
@@ -706,19 +707,19 @@ func TestRateLimit_AuthenticatedSubject(t *testing.T) {
 	})
 }
 
-func TestRateLimit_PrincipalClaim(t *testing.T) {
+func TestRateLimit_PrincipalField(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := context.Background()
 	s1 := h.seed(ctx)
 	s2 := h.seed(ctx)
 
-	// s1 and s2 belong to different workspaces (each seed() creates a new workspace),
-	// so rate limiting by workspace_id gives them independent buckets.
+	// s1 and s2 are distinct keys with unique subjects, so rate limiting by
+	// the principal subject field gives them independent buckets.
 	policies := []*sentinelv1.Policy{
 		keyAuthPolicy("auth", []string{s1.KeySpaceID, s2.KeySpaceID}),
 		rateLimitPolicy("rl", 1, 60000, &sentinelv1.RateLimitKey{
-			Source: &sentinelv1.RateLimitKey_PrincipalClaim{
-				PrincipalClaim: &sentinelv1.PrincipalClaimKey{ClaimName: "workspace_id"},
+			Source: &sentinelv1.RateLimitKey_PrincipalField{
+				PrincipalField: &sentinelv1.PrincipalFieldKey{Path: "subject"},
 			},
 		}),
 	}
