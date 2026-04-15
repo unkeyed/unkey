@@ -170,6 +170,17 @@ k8s_resource('s3', port_forwards=['3902:3902', '3903:3903'], resource_deps=[], l
 k8s_yaml('k8s/manifests/restate.yaml')
 k8s_resource('restate', port_forwards=['8080:8080', '9070:9070'], resource_deps=[], labels=['database'])
 
+# Observability (Prometheus + OTEL Collector w/ Grafana)
+k8s_yaml('k8s/manifests/observability.yaml')
+k8s_resource('prometheus', resource_deps=[], labels=['observability'])
+k8s_resource(
+  'otel-collector',
+  port_forwards=['4000:3000'],
+  resource_deps=[],
+  labels=['observability'],
+  links=['http://localhost:4000'],
+)
+
 # Restate CronJobs (scheduled tasks that call Restate handlers)
 k8s_yaml(helm('k8s/charts/restate-cronjobs'))
 k8s_resource('restate-key-last-used-sync', resource_deps=['restate', 'ctrl-worker'], labels=['unkey'])
