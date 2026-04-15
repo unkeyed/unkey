@@ -57,7 +57,10 @@ function buildOrderBy(
   const innerColumn = column ?? "updated_at_m";
   const direction = sortOrder === "asc" ? sql`ASC` : sql`DESC`;
 
-  return sql`ORDER BY ${sql.raw(context === "inner" ? innerColumn : (column ?? "p.updated_at_m"))} ${direction}`;
+  const primaryCol = context === "inner" ? innerColumn : (column ?? "p.updated_at_m");
+  const tiebreaker = context === "inner" ? "id" : "p.id";
+
+  return sql`ORDER BY ${sql.raw(primaryCol)} ${direction}, ${sql.raw(tiebreaker)} ${direction}`;
 }
 
 export const queryPermissions = workspaceProcedure
@@ -151,9 +154,23 @@ export const queryPermissions = workspaceProcedure
     }[];
 
     if (rows.length === 0) {
+      // When LIMIT/OFFSET yields no rows the per-row grand_total is unavailable.
+      // Run a standalone count so pagination still reports the real total.
+      const countResult = await db.execute(sql`
+        SELECT COUNT(*) as total
+        FROM permissions
+        WHERE workspace_id = ${workspaceId}
+          ${nameFilter}
+          ${descriptionFilter}
+          ${slugFilter}
+          ${roleFilterForCount}
+      `);
+      const countRows = countResult[0] as unknown as { total: number }[];
+      const fallbackTotal = countRows.length > 0 ? Number(countRows[0].total) : 0;
+
       return {
         permissions: [],
-        total: 0,
+        total: fallbackTotal,
       };
     }
 

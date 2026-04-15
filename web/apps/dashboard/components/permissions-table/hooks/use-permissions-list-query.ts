@@ -92,10 +92,11 @@ export function usePermissionsListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   );
 
   // Ensure the default sort is always reflected in the URL
-  const effectiveSortParams = sortParams ?? DEFAULT_SORT_PARAMS;
+  const effectiveSortParams =
+    sortParams && sortParams.length > 0 ? sortParams : DEFAULT_SORT_PARAMS;
 
   useEffect(() => {
-    if (!sortParams) {
+    if (!sortParams || sortParams.length === 0) {
       setSortParams(DEFAULT_SORT_PARAMS);
     }
   }, [sortParams, setSortParams]);
@@ -114,7 +115,7 @@ export function usePermissionsListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
         .filter((s) => COLUMN_ID_TO_SORT_FIELD[s.id] !== undefined)
         .map((s) => ({
           column: COLUMN_ID_TO_SORT_FIELD[s.id],
-          direction: (s.desc ? "desc" : "asc") as "asc" | "desc",
+          direction: s.desc ? "desc" : "asc",
         }));
       setSortParams(mapped.length === 0 ? DEFAULT_SORT_PARAMS : mapped);
       setPage(1);
