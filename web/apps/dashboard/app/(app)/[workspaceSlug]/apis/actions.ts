@@ -75,9 +75,7 @@ export async function attachKeyCounts(
   workspaceId: string,
   apiItems: Array<ApiItem>,
 ): Promise<Array<ApiWithKeyCount>> {
-  const keyAuthIds = apiItems
-    .map((api) => api.keyAuthId)
-    .filter((id): id is string => Boolean(id));
+  const keyAuthIds = apiItems.map((api) => api.keyAuthId).filter((id): id is string => Boolean(id));
 
   const keyCountsByKeyAuthId = new Map<string, number>();
   if (keyAuthIds.length > 0) {
