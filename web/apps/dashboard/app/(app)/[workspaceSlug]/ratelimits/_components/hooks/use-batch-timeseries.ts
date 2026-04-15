@@ -1,6 +1,8 @@
+import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/hooks/use-filters";
 import { formatTimestampForChart } from "@/components/logs/chart/utils/format-timestamp";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
+import { getTimestampFromRelative } from "@/lib/utils";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useMemo } from "react";
 
@@ -14,12 +16,39 @@ export type NamespaceTimeseries = Array<{
 
 export const useBatchRatelimitTimeseries = (namespaceIds: string[]) => {
   const { queryTime: timestamp } = useQueryTime();
+  const { filters } = useFilters();
 
-  const startTime = timestamp - HISTORICAL_DATA_WINDOW;
-  const endTime = timestamp;
+  const { startTime, endTime } = useMemo(() => {
+    let start = timestamp - HISTORICAL_DATA_WINDOW;
+    let end = timestamp;
 
-  // The namespace list page is always a live view (no user-controlled time range),
-  // so we auto-refresh every 10s to keep charts current.
+    for (const filter of filters) {
+      switch (filter.field) {
+        case "since": {
+          if (typeof filter.value === "string" && filter.value !== "") {
+            start = getTimestampFromRelative(filter.value);
+            end = Date.now();
+          }
+          break;
+        }
+        case "startTime": {
+          if (typeof filter.value === "number") {
+            start = filter.value;
+          }
+          break;
+        }
+        case "endTime": {
+          if (typeof filter.value === "number") {
+            end = filter.value;
+          }
+          break;
+        }
+      }
+    }
+
+    return { startTime: start, endTime: end };
+  }, [filters, timestamp]);
+
   const { data, isLoading, isError } = trpc.ratelimit.logs.queryRatelimitTimeseriesBatch.useQuery(
     { namespaceIds, startTime, endTime },
     {
