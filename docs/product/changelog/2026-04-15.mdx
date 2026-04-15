@@ -1,0 +1,52 @@
+---
+title: "April 15, 2026"
+description: "Firewall policies, Sentinel policy management in the dashboard, h2c upstream protocol support, and a redesigned deployments page."
+noindex: true
+---
+
+## New features
+
+### Firewall policies
+
+Sentinel now includes a firewall policy type that lets you block requests before they reach your application. Define rules based on path, HTTP method, header, or query parameter — matching requests are rejected with a `403 Forbidden` and never forwarded upstream. Use this to restrict access to admin routes, block unwanted traffic patterns, or enforce request requirements at the edge. See the [firewall policy documentation](/platform/sentinel/policies/firewall) for setup details.
+
+### Sentinel policy management in the dashboard
+
+You can now create, edit, and manage Sentinel policies directly from the dashboard. A new slide-out panel lets you configure policy type, match conditions (path, method, header, query parameter), and scope policies to specific environments or apply them globally. Regex patterns are supported for match conditions, with an AI-assisted regex generator to help build complex expressions. See the [Sentinel policies overview](/platform/sentinel/policies/overview) for details.
+
+### Per-deployment upstream protocol (h2c) support
+
+Deployments now support cleartext HTTP/2 (h2c) as an upstream protocol. A new **Upstream Protocol** setting in your app's runtime configuration lets you choose between `http1` (default) and `h2c`. Select `h2c` when your application uses gRPC or Connect-based services that require HTTP/2 communication. The setting is scoped per environment and takes effect on the next deployment. See the [app settings documentation](/platform/apps/settings) for configuration options.
+
+### Request and response body capture for streaming
+
+Request and response bodies are now captured for streaming requests (gRPC, Connect) in addition to standard HTTP requests. Bodies appear in your [request logs](/observability/logs) without affecting stream performance, capped at 1 MiB per body.
+
+## Updates
+
+### Redesigned deployments page
+
+The [deployments page](/build-and-deploy/deployments) has been redesigned with a card-based layout. Each deployment is now a full-width row showing the deployment ID, status badge, git branch and commit, timestamp, and author avatar. The page also includes an updated header with a "Create Deployment" button and improved search and filter controls.
+
+### Change connected repository without disconnecting
+
+You can now switch the GitHub repository connected to a project directly from the settings page without disconnecting first. Select a different repo from the dropdown in your [project settings](/platform/projects/settings) — no need to disconnect and reconnect. The "Disconnect repository" action has been moved to a dedicated section at the bottom of the page.
+
+### Rate limiter performance improvements
+
+The rate limiting engine has been rewritten with a lockless design that reduces latency under high concurrency. A circuit breaker for Redis origin calls also prevents Redis slowdowns from stalling request processing. No configuration changes are required — rate limiting is faster and more resilient automatically.
+
+### 3xx redirect status filter in logs
+
+The [logs](/observability/logs) page now includes a **3xx (Redirect)** filter option alongside the existing 2xx, 4xx, and 5xx filters. Status class filters also now correctly match all statuses within the range (e.g., selecting "2xx" matches 200–299).
+
+## Bug fixes
+
+- Scrollbar styling has been fixed across the dashboard to prevent layout issues.
+- The API key count in the table footer now displays the correct total.
+- The onboarding wizard step progression now works correctly.
+- Rate limit updates use proper upsert logic to eliminate potential deadlocks under concurrent writes.
+- Ephemeral disk storage configuration is now correctly wired in the runtime settings API.
+- Virtual list overlaps in long tables have been fixed.
+- Dashboard charts now render correctly on initial load without requiring a resize.
+- Table footer headings are now properly aligned.
