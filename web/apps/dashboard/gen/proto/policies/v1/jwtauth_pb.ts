@@ -21,7 +21,7 @@ export const file_policies_v1_jwtauth: GenFile = /*@__PURE__*/
  * claim validation, and key rotation logic. JWTAuth centralizes all of this
  * at the proxy layer.
  *
- * On successful validation, JWTAuth produces a [Principal] with type "jwt".
+ * On successful validation, JWTAuth produces a [Principal] with type "JWT".
  * The subject is extracted from a configurable token claim (default "sub"),
  * and the full decoded token header, payload, and signature are forwarded
  * under Principal.source.jwt. Downstream policies and the upstream can read

@@ -63,34 +63,33 @@ Policies are evaluated in order and all matching policies execute until one reje
 
 ### Layering multiple concerns
 
-A typical production configuration layers auth, rate limiting, and validation:
+A typical production configuration layers firewall, auth, rate limiting, and validation:
 
 ```
-Policy 1: IP rules   match: all             → block known bad IPs
-Policy 2: KeyAuth    match: all             → authenticate, set Principal
-Policy 3: RateLimit  match: /v1/*           → 1000 req/min per subject
-Policy 4: RateLimit  match: /v1/expensive/* → 10 req/min per subject
-Policy 5: OpenAPI    match: all             → validate request shape
+Policy 1: Firewall   match: path prefix /admin → DENY admin routes from public traffic
+Policy 2: KeyAuth    match: all                → authenticate, set Principal
+Policy 3: RateLimit  match: /v1/*              → 1000 req/min per subject
+Policy 4: RateLimit  match: /v1/expensive/*    → 10 req/min per subject
+Policy 5: OpenAPI    match: all                → validate request shape
 ```
 
-Each policy can reject the request independently. A blocked IP never reaches auth. An invalid key never reaches rate limiting. A rate-limited request never reaches schema validation. Order matters.
+Each policy can reject the request independently. A blocked path never reaches auth. An invalid key never reaches rate limiting. A rate-limited request never reaches schema validation. Order matters.
 
 ## Full config example
 
-The `sentinel_config` column on a deployment stores a JSON-serialized `sentinel.v1.Config` protobuf. Here is a complete example that blocks bad IPs, authenticates with KeyAuth, and applies two rate limit tiers:
+The `sentinel_config` column on a deployment stores a JSON-serialized `sentinel.v1.Config` protobuf. Here is a complete example that blocks `/admin`, authenticates with KeyAuth, and applies two rate limit tiers:
 
 ```json
 {
   "policies": [
     {
-      "id": "block-bad-ips",
-      "name": "Block known bad IPs",
+      "id": "block-admin",
+      "name": "Block /admin",
       "enabled": true,
-      "match": [],
-      "ip_rules": {
-        "deny": ["198.51.100.0/24"],
-        "allow": []
-      }
+      "match": [
+        { "path": { "path": { "prefix": "/admin" } } }
+      ],
+      "firewall": { "action": "ACTION_DENY" }
     },
     {
       "id": "api-auth",
@@ -138,14 +137,14 @@ The `sentinel_config` column on a deployment stores a JSON-serialized `sentinel.
 
 What happens for `GET /v1/search?q=test` with a valid API key:
 
-1. `block-bad-ips` runs (match is empty, so it applies to all requests). Client IP is not in the deny list, so the request passes.
+1. `block-admin` match does not apply (path is `/v1/search`, not `/admin`), so the policy is skipped.
 2. `api-auth` runs. Extracts the Bearer token, verifies it against keyspace `ks_abc123`, checks the `api.read` permission, and sets the Principal.
 3. `search-ratelimit` runs. Both match expressions pass (path starts with `/v1/search` AND method is GET). Rate limits the request at 10/min using the authenticated subject as the bucket key.
 4. `global-ratelimit` match also passes (path starts with `/v1/`), but the request was already rate-limited by policy 3. Both policies evaluate independently.
 
 What happens for `POST /v1/keys` with an invalid key:
 
-1. `block-bad-ips` passes.
+1. `block-admin` is skipped (path does not match).
 2. `api-auth` rejects the request with 401. Evaluation stops. Policies 3 and 4 never run.
 
 ## Implementation status
@@ -155,9 +154,9 @@ The engine executes only KeyAuth. Other policy types are defined in the protobuf
 | Policy                                                                 | Implemented |
 | ---------------------------------------------------------------------- | ----------- |
 | [KeyAuth](/architecture/services/sentinel/policies/keyauth)            | Yes         |
+| [Firewall](/architecture/services/sentinel/policies/firewall)          | Yes         |
 | [JWTAuth](/architecture/services/sentinel/policies/jwtauth)            | Schema only |
 | [RateLimit](/architecture/services/sentinel/policies/ratelimit)        | Schema only |
-| [IP rules](/architecture/services/sentinel/policies/ip-rules)          | Schema only |
 | [OpenAPI validation](/architecture/services/sentinel/policies/openapi) | Schema only |
 
 ## Shared types
