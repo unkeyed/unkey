@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "firewall",
+    srcs = ["executor.go"],
+    importpath = "github.com/unkeyed/unkey/svc/sentinel/engine/firewall",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/sentinel/v1:sentinel",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/zen",
+    ],
+)
+
+go_test(
+    name = "firewall_test",
+    srcs = ["firewall_test.go"],
+    embed = [":firewall"],
+    deps = [
+        "//gen/proto/sentinel/v1:sentinel",
+        "//pkg/codes",
+        "//pkg/fault",
+        "@com_github_stretchr_testify//require",
+    ],
+)
