@@ -89,17 +89,24 @@ func (s *RolloutService) Rollout(
 
 	waves := computeWaves(sentinelIDs, wavePercentages)
 
+	slackWebhookURL := req.GetSlackWebhookUrl()
+	if slackWebhookURL == "" {
+		slackWebhookURL = s.defaultSlackWebhookURL
+	}
+
+	startedAt := nowMs(ctx)
 	state := &rolloutState{
 		State:           stateInProgress,
 		Image:           req.GetImage(),
 		PreviousImages:  previousImages,
-		SlackWebhookURL: req.GetSlackWebhookUrl(),
+		SlackWebhookURL: slackWebhookURL,
 		WavePercentages: wavePercentages,
 		Waves:           waves,
 		CurrentWave:     0,
 		SucceededIDs:    []string{},
 		FailedIDs:       []string{},
 		TotalSentinels:  len(sentinelIDs),
+		StartedAtMs:     startedAt,
 	}
 	restate.Set(ctx, stateKeyRollout, state)
 
@@ -109,7 +116,8 @@ func (s *RolloutService) Rollout(
 		"waves", len(waves),
 	)
 	notifySlack(ctx, state.SlackWebhookURL, "Sentinel rollout started",
-		fmt.Sprintf("Rolling out `%s` to %d sentinels in %d waves.", req.GetImage(), len(sentinelIDs), len(waves)))
+		fmt.Sprintf("Rolling out `%s` to *%d sentinels* across *%d waves* (`%v`%%).",
+			req.GetImage(), len(sentinelIDs), len(waves), wavePercentages))
 
 	return s.executeWaves(ctx, state)
 }
@@ -123,11 +131,14 @@ func (s *RolloutService) executeWaves(
 	for i := state.CurrentWave; i < len(state.Waves); i++ {
 		wave := state.Waves[i]
 		state.CurrentWave = i
+		state.WaveStartedAtMs = nowMs(ctx)
 		restate.Set(ctx, stateKeyRollout, state)
 
 		logger.Info("starting wave", "wave", i, "sentinels", len(wave))
-		notifySlack(ctx, state.SlackWebhookURL, "Wave started",
-			fmt.Sprintf("Wave %d/%d: deploying to %d sentinels.", i+1, len(state.Waves), len(wave)))
+		notifySlack(ctx, state.SlackWebhookURL, fmt.Sprintf("Wave %d/%d started", i+1, len(state.Waves)),
+			fmt.Sprintf("Deploying `%s` to *%d sentinels* in this wave. Progress: %d/%d (%d%%).",
+				state.Image, len(wave), len(state.SucceededIDs), state.TotalSentinels,
+				percent(len(state.SucceededIDs), state.TotalSentinels)))
 
 		// Fan out Deploy calls for all sentinels in this wave.
 		type deployFuture = restate.ResponseFuture[*hydrav1.SentinelServiceDeployResponse]
@@ -139,46 +150,63 @@ func (s *RolloutService) executeWaves(
 		}
 
 		// Collect results.
-		waveFailed := false
+		var waveFailures []string
 		for j, fut := range futures {
 			resp, err := fut.Response()
 			if err != nil {
 				state.FailedIDs = append(state.FailedIDs, wave[j])
-				waveFailed = true
+				waveFailures = append(waveFailures, wave[j])
 				logger.Error("sentinel deploy error", "sentinel_id", wave[j], "error", err)
 				continue
 			}
 			if resp.GetStatus() != hydrav1.SentinelDeployStatus_SENTINEL_DEPLOY_STATUS_READY {
 				state.FailedIDs = append(state.FailedIDs, wave[j])
-				waveFailed = true
+				waveFailures = append(waveFailures, wave[j])
 				logger.Warn("sentinel deploy failed", "sentinel_id", wave[j], "status", resp.GetStatus())
 			} else {
 				state.SucceededIDs = append(state.SucceededIDs, wave[j])
 			}
 		}
 
-		if waveFailed {
+		waveDuration := formatDuration(nowMs(ctx) - state.WaveStartedAtMs)
+
+		if len(waveFailures) > 0 {
 			state.State = statePaused
 			restate.Set(ctx, stateKeyRollout, state)
-			notifySlack(ctx, state.SlackWebhookURL, "Rollout paused",
-				fmt.Sprintf("Wave %d/%d had failures. %d succeeded, %d failed. Investigate and call Resume or RollbackAll.",
-					i+1, len(state.Waves), len(state.SucceededIDs), len(state.FailedIDs)))
+			notifySlack(ctx, state.SlackWebhookURL, fmt.Sprintf("Rollout paused after wave %d/%d", i+1, len(state.Waves)),
+				fmt.Sprintf("*%d failed*, %d succeeded in this wave (took %s).\nFailing sentinels: %s\nTotal so far: %d/%d succeeded, %d failed.\nCall `Resume` to continue, `Cancel` to stop, or `RollbackAll` to revert.",
+					len(waveFailures), len(wave)-len(waveFailures), waveDuration,
+					truncateIDs(waveFailures, 5),
+					len(state.SucceededIDs), state.TotalSentinels, len(state.FailedIDs)))
 			return &hydrav1.SentinelRolloutServiceRolloutResponse{
 				State: hydrav1.SentinelRolloutState_SENTINEL_ROLLOUT_STATE_PAUSED,
 			}, nil
 		}
 
-		notifySlack(ctx, state.SlackWebhookURL, "Wave completed",
-			fmt.Sprintf("Wave %d/%d complete. %d/%d sentinels updated.", i+1, len(state.Waves), len(state.SucceededIDs), state.TotalSentinels))
+		notifySlack(ctx, state.SlackWebhookURL, fmt.Sprintf("Wave %d/%d completed", i+1, len(state.Waves)),
+			fmt.Sprintf("%d sentinels updated in %s. Progress: %d/%d (%d%%).",
+				len(wave), waveDuration,
+				len(state.SucceededIDs), state.TotalSentinels,
+				percent(len(state.SucceededIDs), state.TotalSentinels)))
 	}
 
 	state.State = stateCompleted
 	restate.Set(ctx, stateKeyRollout, state)
+	total := formatDuration(nowMs(ctx) - state.StartedAtMs)
 	notifySlack(ctx, state.SlackWebhookURL, "Rollout completed",
-		fmt.Sprintf("All %d sentinels updated to `%s`.", state.TotalSentinels, state.Image))
+		fmt.Sprintf("All *%d sentinels* updated to `%s` in %s across %d waves.",
+			state.TotalSentinels, state.Image, total, len(state.Waves)))
 
-	logger.Info("sentinel rollout completed", "image", state.Image, "sentinels", state.TotalSentinels)
+	logger.Info("sentinel rollout completed", "image", state.Image, "sentinels", state.TotalSentinels, "duration", total)
 	return &hydrav1.SentinelRolloutServiceRolloutResponse{
 		State: hydrav1.SentinelRolloutState_SENTINEL_ROLLOUT_STATE_COMPLETED,
 	}, nil
+}
+
+// percent returns floor(100 * n / total), guarding against div-by-zero.
+func percent(n, total int) int {
+	if total == 0 {
+		return 0
+	}
+	return n * 100 / total
 }

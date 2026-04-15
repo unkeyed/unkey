@@ -27,11 +27,14 @@ func (s *RolloutService) Resume(
 	restate.Set(ctx, stateKeyRollout, state)
 
 	logger.Info("resuming sentinel rollout", "image", state.Image, "wave", state.CurrentWave)
+	elapsed := formatDuration(nowMs(ctx) - state.StartedAtMs)
 	notifySlack(
 		ctx,
 		state.SlackWebhookURL,
 		"Rollout resumed",
-		fmt.Sprintf("Resuming from wave %d/%d.", state.CurrentWave+1, len(state.Waves)),
+		fmt.Sprintf("Skipping the failed wave, continuing from wave %d/%d. Elapsed since start: %s. Progress: %d/%d, %d failed.",
+			state.CurrentWave+1, len(state.Waves), elapsed,
+			len(state.SucceededIDs), state.TotalSentinels, len(state.FailedIDs)),
 	)
 
 	resp, err := s.executeWaves(ctx, state)

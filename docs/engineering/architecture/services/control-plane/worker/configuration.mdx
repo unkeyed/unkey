@@ -106,6 +106,7 @@ GitHub configuration is optional and can be omitted for local development.
 | `heartbeat.quota_check_url` | string | Checkly heartbeat for quota checks.
 | `heartbeat.key_refill_url` | string | Checkly heartbeat for key refills.
 | `slack.quota_check_webhook_url` | string | Slack webhook for quota alerts.
+| `slack.sentinel_rollout_webhook_url` | string | Slack webhook used by `SentinelRolloutService` when the operator omits `slack_webhook_url` on a rollout request.
 
 ## Example
 
@@ -173,4 +174,5 @@ key_refill_url = "${UNKEY_KEY_REFILL_HEARTBEAT_URL}"
 
 [slack]
 quota_check_webhook_url = "${UNKEY_QUOTA_CHECK_SLACK_WEBHOOK_URL}"
+sentinel_rollout_webhook_url = "${UNKEY_SENTINEL_ROLLOUT_SLACK_WEBHOOK_URL}"
 ```

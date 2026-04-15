@@ -295,7 +295,8 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 
 	restateSrv.Bind(hydrav1.NewSentinelRolloutServiceServer(workersentinel.NewRolloutService(workersentinel.RolloutConfig{
-		DB: database,
+		DB:                     database,
+		DefaultSlackWebhookURL: cfg.Slack.SentinelRolloutWebhookURL,
 	})))
 
 	// Initialize domain cache for ACME providers

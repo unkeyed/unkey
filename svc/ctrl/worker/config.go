@@ -185,6 +185,15 @@ type SlackConfig struct {
 	// When set, Slack notifications are sent when workspaces exceed their quota.
 	// Optional - if empty, no Slack notifications are sent.
 	QuotaCheckWebhookURL string `toml:"quota_check_webhook_url"`
+
+	// SentinelRolloutWebhookURL is the Slack webhook URL used by the
+	// SentinelRolloutService to post progress for fleet-wide image rollouts.
+	// When set, the rollout service falls back to this URL when the operator
+	// does not pass slack_webhook_url on the Rollout request, so prod rollouts
+	// always notify even if the operator forgot to specify one.
+	// Optional - if empty and the request has no webhook, no notifications
+	// are sent.
+	SentinelRolloutWebhookURL string `toml:"sentinel_rollout_webhook_url"`
 }
 
 // Config holds the complete configuration for the Restate worker service.

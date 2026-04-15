@@ -38,11 +38,13 @@ func (s *RolloutService) RollbackAll(
 	restate.Set(ctx, stateKeyRollout, state)
 
 	logger.Info("rolling back all sentinels", "count", len(state.SucceededIDs))
+	rollbackStartedAt := nowMs(ctx)
 	notifySlack(
 		ctx,
 		state.SlackWebhookURL,
-		"Rollout rolling back",
-		fmt.Sprintf("Reverting %d sentinels to their previous images.", len(state.SucceededIDs)),
+		"Rollback started",
+		fmt.Sprintf("Reverting *%d sentinels* to their previous images. Rollout `%s` ran for %s before rollback.",
+			len(state.SucceededIDs), state.Image, formatDuration(rollbackStartedAt-state.StartedAtMs)),
 	)
 
 	// Fan out Deploy calls to revert each sentinel to its previous image.
@@ -72,9 +74,11 @@ func (s *RolloutService) RollbackAll(
 	state.State = stateCancelled
 	restate.Set(ctx, stateKeyRollout, state)
 
-	logger.Info("rollback completed", "reverted", reverted, "total", len(state.SucceededIDs))
+	rollbackDuration := formatDuration(nowMs(ctx) - rollbackStartedAt)
+	logger.Info("rollback completed", "reverted", reverted, "total", len(state.SucceededIDs), "duration", rollbackDuration)
 	notifySlack(ctx, state.SlackWebhookURL, "Rollback completed",
-		fmt.Sprintf("Reverted %d/%d sentinels to their previous images.", reverted, len(state.SucceededIDs)))
+		fmt.Sprintf("Reverted *%d/%d* sentinels to their previous images in %s.",
+			reverted, len(state.SucceededIDs), rollbackDuration))
 
 	return &hydrav1.SentinelRolloutServiceRollbackAllResponse{Reverted: reverted}, nil
 }
