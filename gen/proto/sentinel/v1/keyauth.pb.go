@@ -25,7 +25,7 @@ const (
 // authentication mechanism for sentinel because API key management is Unkey's
 // core product. When a request arrives, sentinel extracts the key from the
 // configured location, verifies it against the specified Unkey key space, and
-// on success produces a [Principal] with type PRINCIPAL_TYPE_API_KEY.
+// on success produces a [Principal] with type "key".
 //
 // The verification call to Unkey returns rich metadata about the key: its
 // owner identity, associated permissions, remaining quota, rate limit state,

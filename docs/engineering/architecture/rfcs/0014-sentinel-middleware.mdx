@@ -40,9 +40,9 @@ For OR semantics, create multiple policies with the same config and different ma
 
 ### Principal
 
-Principal is the composition seam between authentication and everything downstream. All authn policy types (KeyAuth, JWTAuth, BasicAuth) verify credentials in their own way, but they all produce the same output: a Principal with a `subject` (string identity), a `type` (which auth method produced it), and `claims` (key-value metadata from the auth source).
+Principal is the composition seam between authentication and everything downstream. Both authn policy types (KeyAuth, JWTAuth) verify credentials in their own way, but they produce the same top-level shape: `version`, `subject`, `type`, optional `identity`, and a discriminated `source` object with method-specific detail.
 
-Downstream policies consume the Principal without knowing or caring which auth method created it. RateLimit (with `authenticated_subject` or `principal_claim` key) throttles per-subject or per-claim. KeyAuth can enforce Unkey permissions via its `permission_query` field. This decoupling is what makes it possible to swap auth methods (e.g., migrate from API keys to JWT) without touching any other policy configuration.
+Downstream policies consume the Principal without caring which auth method created it. RateLimit throttles per-subject via `authenticated_subject`, or by a dotted path into the Principal JSON (`principal_field` with `source.key.meta.org_id`, `source.jwt.payload.org_id`, etc.). KeyAuth can enforce Unkey permissions via its `permission_query` field. This decoupling is what makes it possible to swap auth methods (for example, migrate from API keys to JWT) without touching any other policy configuration.
 
 The name "Principal" rather than "User" is deliberate — the authenticated entity might be a person, an API key, a service certificate, or an OAuth client.
 
@@ -51,10 +51,12 @@ The name "Principal" rather than "User" is deliberate — the authenticated enti
          │ KeyAuth  │──┐
          ├──────────┤  │     ┌───────────┐     ┌───────────┐
          │ JWTAuth  │──┼────▶│ Principal │────▶│ RateLimit │
-         ├──────────┤  │     │           │     │ IPRules   │
-         │BasicAuth │──┘     │ subject   │     │ ...       │
-                             │ type      │     └───────────┘
-                             │ claims    │
+         └──────────┘  │     │           │     │ IPRules   │
+                       │     │ version   │     │ ...       │
+                             │ subject   │     └───────────┘
+                             │ type      │
+                             │ identity? │
+                             │ source    │
                              └───────────┘
             authn              shared             consumers
            (produce)          contract            (consume)
@@ -64,48 +66,51 @@ Only one Principal exists per request. If multiple authn policies match, the fir
 
 ### Principal Forwarding
 
-After all policies execute, if a Principal exists, sentinel forwards the subject and claims as JSON in the `X-Unkey-Principal` request header. The type field is not forwarded — it is an internal detail useful for sentinel's own logging and policy evaluation, but meaningless to the upstream. Sentinel always strips any client-supplied `X-Unkey-Principal` header before policy evaluation, preventing spoofing.
+After all policies execute, if a Principal exists, sentinel serializes it to JSON and sets the entire payload on the `X-Unkey-Principal` request header. Sentinel always strips any client-supplied `X-Unkey-Principal` header before policy evaluation, preventing spoofing.
 
 The security model is network-level: the upstream must only be reachable through sentinel. This is the same trust model as Envoy, nginx, and every service mesh sidecar. No cryptographic signing is needed because sentinel controls the network path. If a request reaches the upstream, it came through sentinel, and the header is trustworthy.
 
 When no Principal exists (anonymous request), the header is absent. The upstream checks for header presence to distinguish authenticated from anonymous requests.
 
-Example: a request authenticated with an Unkey API key that has no identity attached. The key ID becomes the subject and key metadata flows into claims:
+Example: a request authenticated with an Unkey API key that has no identity attached. The key ID becomes the subject; key detail is carried under `source.key`:
 
 ```json
 {
+  "version": "v1",
   "subject": "<key_id>",
-  "claims": {
-    "key_id": "<key_id>",
-    "name": "<string>",
-    "meta": {},
-    ...
+  "type": "API_KEY",
+  "source": {
+    "key": {
+      "keyId": "<key_id>",
+      "keySpaceId": "<key_space_id>",
+      "meta": {}
+    }
   }
 }
-
 ```
 
-Example: a request authenticated with an Unkey API key that has an identity. The identity's external ID becomes the subject, and both key and identity metadata are available in claims:
+Example: a request authenticated with an Unkey API key that has an identity. The identity's external ID becomes the subject, and identity detail appears alongside the key source:
 
 ```json
 {
+  "version": "v1",
   "subject": "<external_id>",
-  "claims": {
-    "keyId": "<string>",
-    "name": "<string>",
-    "meta": {},
-    "identity": {
-      "id": "<string>",
-      "externalId": "<string>",
-      "meta": {},
-      ...
-    },
-  ...
+  "type": "API_KEY",
+  "identity": {
+    "externalId": "<external_id>",
+    "meta": {}
+  },
+  "source": {
+    "key": {
+      "keyId": "<key_id>",
+      "keySpaceId": "<key_space_id>",
+      "meta": {}
+    }
   }
 }
 ```
 
-For local development without sentinel, developers set the header manually (`-H 'X-Unkey-Principal: {"subject":"test"}'`) or omit it entirely for anonymous behavior. No key management or token generation required. At some point we should make it easy to run a sentinel in devmode as proxy.
+For local development without sentinel, developers set the header manually (`-H 'X-Unkey-Principal: {"version":"v1","subject":"test","type":"API_KEY","source":{"key":{"keyId":"key_test","keySpaceId":"ks_test","meta":{}}}}'`) or omit it entirely for anonymous behavior. No key management or token generation required. At some point we should make it easy to run a sentinel in devmode as proxy.
 
 ## Request Evaluation
 
@@ -138,7 +143,7 @@ When a policy rejects a request, sentinel returns a fixed JSON response using th
 }
 ```
 
-Each policy maps to a standard HTTP status code: KeyAuth/JWTAuth/BasicAuth → 401 for missing/invalid credentials, 403 for insufficient permissions (KeyAuth `permission_query`), RateLimit → 429, IPRules → 403, OpenAPI validation → 400. The `detail` field provides a human-readable explanation specific to the rejection reason. The `type` URI is stable per error kind and suitable for programmatic handling.
+Each policy maps to a standard HTTP status code: KeyAuth/JWTAuth → 401 for missing/invalid credentials, 403 for insufficient permissions (KeyAuth `permission_query`), RateLimit → 429, IPRules → 403, OpenAPI validation → 400. The `detail` field provides a human-readable explanation specific to the rejection reason. The `type` URI is stable per error kind and suitable for programmatic handling.
 
 Custom error responses are not supported in this version. Status codes are what API clients branch on, and the RFC 7807 format is a widely supported standard. If customization becomes necessary, it can be added as a per-status-code template on Middleware without breaking existing behavior.
 
@@ -162,16 +167,19 @@ No changes to the match system, evaluation engine, or other policies are needed.
 Proto directory: [`svc/sentinel/proto/middleware/v1/`](https://github.com/unkeyed/unkey/blob/main/svc/sentinel/proto/middleware/v1/).
 
 ```
-middleware.proto       ← Middleware + Policy (top-level container)
+policy.proto           ← Policy (top-level container)
 match.proto            ← MatchExpr expression tree
-principal.proto        ← Principal (shared authn output)
 keyauth.proto          ← individual policy configs...
 jwtauth.proto
-basicauth.proto
 ratelimit.proto
 iprules.proto
 openapi.proto
 ```
+
+The Principal is not defined in proto — it is a hand-written Go struct in
+`svc/sentinel/engine/principal.go` serialized with `encoding/json`. The
+shape is output-only (never crosses a proto wire) and `protojson` does
+not produce the JSON contract we want.
 
 Package: `sentinel.v1`
 Go import: `github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1`

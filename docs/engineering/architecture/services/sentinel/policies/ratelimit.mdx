@@ -64,7 +64,7 @@ RateLimit is defined in the policy schema but is not executed by the sentinel en
 }
 ```
 
-Requires a KeyAuth, JWTAuth, or BasicAuth policy earlier in the list to set the Principal.
+Requires a KeyAuth or JWTAuth policy earlier in the list to set the Principal.
 </Tab>
 <Tab title="Per header value">
 ```json
@@ -87,7 +87,7 @@ Requires a KeyAuth, JWTAuth, or BasicAuth policy earlier in the list to set the 
 
 Use only when the header is set by a trusted upstream proxy.
 </Tab>
-<Tab title="Per principal claim">
+<Tab title="Per principal field">
 ```json
 {
   "policies": [
@@ -99,14 +99,14 @@ Use only when the header is set by a trusted upstream proxy.
       "ratelimit": {
         "limit": 10000,
         "window_ms": 60000,
-        "key": { "principal_claim": { "claim_name": "org_id" } }
+        "key": { "principal_field": { "path": "source.key.meta.org_id" } }
       }
     }
   ]
 }
 ```
 
-Creates a shared bucket for all users within the same organization. Requires a Principal with the `org_id` claim.
+Creates a shared bucket for all keys that resolve to the same `org_id` meta value. The path is a dotted route into the Principal JSON — for JWT-authenticated traffic you might use `source.jwt.payload.org_id` instead.
 </Tab>
 <Tab title="Per path">
 ```json
@@ -141,4 +141,4 @@ Creates a separate bucket per URL path, protecting expensive endpoints without a
 | `header`             | Value of a named request header. Only use behind trusted proxies that set the header.            |
 | `authenticated_subject` | Principal subject from an upstream auth policy. Most accurate for authenticated APIs.         |
 | `path`               | Request URL path. Creates a separate bucket per endpoint.                                        |
-| `principal_claim`    | Named claim from the Principal's claims map (for example, `org_id` for per-organization limits). |
+| `principal_field`    | Value resolved from a dotted path into the Principal JSON (for example, `source.key.meta.org_id` for per-organization limits). |
