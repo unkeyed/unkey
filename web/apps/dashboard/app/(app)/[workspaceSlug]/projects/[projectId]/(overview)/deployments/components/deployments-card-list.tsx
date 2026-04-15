@@ -31,7 +31,7 @@ export function DeploymentsCardList() {
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
-                href="https://www.unkey.com/docs/deployments"
+                href="https://www.unkey.com/docs/build-and-deploy/deployments"
                 target="_blank"
                 rel="noopener noreferrer"
               >
