@@ -39,7 +39,7 @@ Policies are composable building blocks. The policy list is not a set of indepen
 
 ### Auth sets context for downstream policies
 
-Auth policies produce a [Principal](/architecture/services/sentinel/policies/principal) containing a subject and claims. Today only KeyAuth is implemented; JWTAuth and BasicAuth are defined in the protobuf schema but not yet executed by the engine (see [implementation status](#implementation-status)). Downstream policies will be able to reference this principal. For example, a RateLimit policy could use the authenticated subject as its bucket key, giving each user their own rate limit window instead of a shared one.
+Auth policies produce a [Principal](/architecture/services/sentinel/policies/principal) containing a subject and a method-specific `source` object. Today only KeyAuth is implemented; JWTAuth is defined in the protobuf schema but not yet executed by the engine (see [implementation status](#implementation-status)). Downstream policies reference this principal. For example, a RateLimit policy can use the authenticated subject as its bucket key, giving each user their own rate limit window instead of a shared one.
 
 ```
 Policy 1: KeyAuth        → authenticates the request, sets Principal
@@ -156,7 +156,6 @@ The engine executes only KeyAuth. Other policy types are defined in the protobuf
 | [KeyAuth](/architecture/services/sentinel/policies/keyauth)            | Yes         |
 | [Firewall](/architecture/services/sentinel/policies/firewall)          | Yes         |
 | [JWTAuth](/architecture/services/sentinel/policies/jwtauth)            | Schema only |
-| [BasicAuth](/architecture/services/sentinel/policies/basicauth)        | Schema only |
 | [RateLimit](/architecture/services/sentinel/policies/ratelimit)        | Schema only |
 | [OpenAPI validation](/architecture/services/sentinel/policies/openapi) | Schema only |
 

@@ -323,10 +323,19 @@ func TestKeyAuth_ValidKey(t *testing.T) {
 	require.NotNil(t, result.Principal)
 
 	// Subject falls back to key ID when no external ID is set
+	require.Equal(t, engine.PrincipalVersion, result.Principal.Version)
+	require.Equal(t, "v1", result.Principal.Version)
 	require.Equal(t, s.KeyID, result.Principal.Subject)
-	require.Equal(t, sentinelv1.PrincipalType_PRINCIPAL_TYPE_API_KEY, result.Principal.Type)
-	require.Equal(t, s.KeyID, result.Principal.Claims["key_id"])
-	require.Equal(t, s.WorkspaceID, result.Principal.Claims["workspace_id"])
+	require.Equal(t, engine.PrincipalTypeAPIKey, result.Principal.Type)
+	require.Nil(t, result.Principal.Identity)
+
+	key := result.Principal.Source.Key
+	require.NotNil(t, key)
+	require.Equal(t, s.KeyID, key.KeyID)
+	require.Equal(t, s.KeySpaceID, key.KeySpaceID)
+	require.NotNil(t, key.Meta)
+	require.Empty(t, key.Roles)
+	require.Empty(t, key.Permissions)
 }
 
 func TestKeyAuth_ValidKey_WithIdentity(t *testing.T) {
@@ -355,8 +364,11 @@ func TestKeyAuth_ValidKey_WithIdentity(t *testing.T) {
 
 	// Subject should be the external ID from the identity
 	require.NotEqual(t, s.KeyID, result.Principal.Subject)
-	require.NotEmpty(t, result.Principal.Claims["identity_id"])
-	require.NotEmpty(t, result.Principal.Claims["external_id"])
+	identity := result.Principal.Identity
+	require.NotNil(t, identity)
+	require.NotEmpty(t, identity.ExternalID)
+	require.Equal(t, identity.ExternalID, result.Principal.Subject)
+	require.NotNil(t, identity.Meta)
 }
 
 func TestKeyAuth_MissingKey_Reject(t *testing.T) {

@@ -41,7 +41,7 @@ var _ Evaluator = (*Engine)(nil)
 
 // Result holds the outcome of middleware evaluation.
 type Result struct {
-	Principal *sentinelv1.Principal
+	Principal *Principal
 }
 
 // New creates a new Engine with the given configuration.
@@ -152,7 +152,6 @@ func (e *Engine) Evaluate(
 
 		// Future policy types will be added here:
 		// case *sentinelv1.Policy_Jwtauth:
-		// case *sentinelv1.Policy_Basicauth:
 		// case *sentinelv1.Policy_Ratelimit:
 		// case *sentinelv1.Policy_Openapi:
 
@@ -176,15 +175,4 @@ func firewallActionLabel(a sentinelv1.Action) string {
 	default:
 		return "unspecified"
 	}
-}
-
-// SerializePrincipal converts a Principal to a JSON string for use in the
-// X-Unkey-Principal header.
-func SerializePrincipal(p *sentinelv1.Principal) (string, error) {
-	b, err := protojson.Marshal(p)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
 }
