@@ -47,6 +47,8 @@ const TimestampInfo: React.FC<{
   value: string | number;
   className?: string;
   displayType?: DisplayType;
+  side?: "left" | "right" | "top" | "bottom";
+  align?: "start" | "center" | "end";
   triggerRef?: React.RefObject<HTMLElement | null>;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -54,6 +56,8 @@ const TimestampInfo: React.FC<{
   value,
   className,
   displayType = "local",
+  side: sideProp,
+  align: alignProp,
   triggerRef: externalTriggerRef,
   open,
   onOpenChange,
@@ -61,6 +65,8 @@ const TimestampInfo: React.FC<{
   className?: string;
   value: string | number;
   displayType?: DisplayType;
+  side?: "left" | "right" | "top" | "bottom";
+  align?: "start" | "center" | "end";
   triggerRef?: React.RefObject<HTMLElement | null>;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -147,8 +153,8 @@ const TimestampInfo: React.FC<{
         </TooltipTrigger>
       )}
       <TooltipContent
-        align={align}
-        side="right"
+        align={alignProp ?? align}
+        side={sideProp ?? "right"}
         className="font-mono p-0 bg-gray-1 shadow-2xl text-xs border rounded-lg w-auto min-w-[280px] z-50 overflow-hidden border-grayA-4"
       >
         <div className="py-3">
