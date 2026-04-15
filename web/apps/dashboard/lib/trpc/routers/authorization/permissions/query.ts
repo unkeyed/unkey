@@ -1,5 +1,9 @@
-import { permissionsQueryPayload } from "@/app/(app)/[workspaceSlug]/authorization/permissions/components/table/query-logs.schema";
 import type { PermissionsFilterOperator } from "@/app/(app)/[workspaceSlug]/authorization/permissions/filters.schema";
+import {
+  type PermissionsSortField,
+  type PermissionsSortOrder,
+  permissionsQueryPayload,
+} from "@/components/permissions-table/schema/permissions.schema";
 import { db, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
@@ -20,10 +24,44 @@ export type Permission = z.infer<typeof permissions>;
 
 const permissionsResponse = z.object({
   permissions: z.array(permissions),
-  hasMore: z.boolean(),
   total: z.number(),
-  nextCursor: z.int().nullish(),
 });
+
+// Maps client sort field names to SQL expressions used in ORDER BY.
+// "totalConnectedRoles" and "totalConnectedKeys" are computed columns, so they
+// must be sorted in the outer query using their aliases.
+const SORT_FIELD_TO_INNER_SQL: Record<string, string> = {
+  name: "name",
+  slug: "slug",
+  lastUpdated: "updated_at_m",
+};
+
+const SORT_FIELD_TO_OUTER_SQL: Record<string, string> = {
+  name: "p.name",
+  slug: "p.slug",
+  lastUpdated: "p.updated_at_m",
+  totalConnectedRoles: "total_roles",
+  totalConnectedKeys: "total_connected_keys",
+};
+
+function buildOrderBy(
+  sortBy: PermissionsSortField,
+  sortOrder: PermissionsSortOrder,
+  context: "inner" | "outer",
+) {
+  const map = context === "inner" ? SORT_FIELD_TO_INNER_SQL : SORT_FIELD_TO_OUTER_SQL;
+  const column = map[sortBy];
+
+  // For computed columns (roles/keys counts), we can't sort in the inner subquery
+  // because the values aren't available there. Fall back to updated_at_m.
+  const innerColumn = column ?? "updated_at_m";
+  const direction = sortOrder === "asc" ? sql`ASC` : sql`DESC`;
+
+  const primaryCol = context === "inner" ? innerColumn : (column ?? "p.updated_at_m");
+  const tiebreaker = context === "inner" ? "id" : "p.id";
+
+  return sql`ORDER BY ${sql.raw(primaryCol)} ${direction}, ${sql.raw(tiebreaker)} ${direction}`;
+}
 
 export const queryPermissions = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -31,7 +69,10 @@ export const queryPermissions = workspaceProcedure
   .output(permissionsResponse)
   .query(async ({ ctx, input }) => {
     const workspaceId = ctx.workspace.id;
-    const { cursor, name, description, slug, roleName, roleId } = input;
+    const { page, limit, name, description, slug, roleName, roleId, sortBy, sortOrder } = input;
+
+    const pageSize = limit ?? DEFAULT_LIMIT;
+    const offset = ((page ?? 1) - 1) * pageSize;
 
     // Build filter conditions
     const nameFilter = buildFilterConditions(name, "name");
@@ -41,6 +82,14 @@ export const queryPermissions = workspaceProcedure
 
     // Build filter conditions for total count
     const roleFilterForCount = buildRoleFilter(roleName, roleId, workspaceId);
+
+    // For computed columns (totalConnectedRoles, totalConnectedKeys) we need to
+    // sort in the outer query, so fetch all filtered rows in the inner query and
+    // apply LIMIT/OFFSET in the outer query instead.
+    const isComputedSort = sortBy === "totalConnectedRoles" || sortBy === "totalConnectedKeys";
+
+    const innerOrderBy = buildOrderBy(sortBy, sortOrder, "inner");
+    const outerOrderBy = buildOrderBy(sortBy, sortOrder, "outer");
 
     const result = await db.execute(sql`
     SELECT
@@ -82,15 +131,15 @@ export const queryPermissions = workspaceProcedure
       SELECT id, name, description, slug, updated_at_m
       FROM permissions
       WHERE workspace_id = ${workspaceId}
-        ${cursor ? sql`AND updated_at_m < ${cursor}` : sql``}
         ${nameFilter}
         ${descriptionFilter}
         ${slugFilter}
         ${roleFilter}
-      ORDER BY updated_at_m DESC
-      LIMIT ${DEFAULT_LIMIT + 1}
+      ${innerOrderBy}
+      ${isComputedSort ? sql`` : sql`LIMIT ${pageSize} OFFSET ${offset}`}
     ) p
-    ORDER BY p.updated_at_m DESC
+    ${outerOrderBy}
+    ${isComputedSort ? sql`LIMIT ${pageSize} OFFSET ${offset}` : sql``}
 `);
 
     const rows = result[0] as unknown as {
@@ -105,38 +154,43 @@ export const queryPermissions = workspaceProcedure
     }[];
 
     if (rows.length === 0) {
+      // When LIMIT/OFFSET yields no rows the per-row grand_total is unavailable.
+      // Run a standalone count so pagination still reports the real total.
+      const countResult = await db.execute(sql`
+        SELECT COUNT(*) as total
+        FROM permissions
+        WHERE workspace_id = ${workspaceId}
+          ${nameFilter}
+          ${descriptionFilter}
+          ${slugFilter}
+          ${roleFilterForCount}
+      `);
+      const countRows = countResult[0] as unknown as { total: number }[];
+      const fallbackTotal = countRows.length > 0 ? Number(countRows[0].total) : 0;
+
       return {
         permissions: [],
-        hasMore: false,
-        total: 0,
-        nextCursor: undefined,
+        total: fallbackTotal,
       };
     }
 
     const total = rows[0].grand_total;
-    const hasMore = rows.length > DEFAULT_LIMIT;
-    const items = hasMore ? rows.slice(0, -1) : rows;
 
-    const permissionsResponseData: Permission[] = items.map((row) => {
+    const permissionsResponseData: Permission[] = rows.map((row) => {
       return {
         permissionId: row.id,
         name: row.name || "",
         description: row.description || "",
         slug: row.slug || "",
         lastUpdated: Number(row.updated_at_m) || 0,
-        totalConnectedRoles: Number(row.total_roles),
+        totalConnectedRoles: Number(row.total_roles) || 0,
         totalConnectedKeys: Number(row.total_connected_keys) || 0,
       };
     });
 
     return {
       permissions: permissionsResponseData,
-      hasMore,
       total: Number(total) || 0,
-      nextCursor:
-        hasMore && items.length > 0
-          ? Number(items[items.length - 1].updated_at_m) || undefined
-          : undefined,
     };
   });
 

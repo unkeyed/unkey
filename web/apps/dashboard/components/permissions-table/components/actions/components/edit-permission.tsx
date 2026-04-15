@@ -1,5 +1,5 @@
+import { UpsertPermissionDialog } from "@/app/(app)/[workspaceSlug]/authorization/permissions/components/upsert-permission";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
-import { UpsertPermissionDialog } from "../../../../upsert-permission";
 
 export const EditPermission = ({
   permission,
