@@ -27,7 +27,7 @@ export const useBatchRatelimitTimeseries = (namespaceIds: string[]) => {
         case "since": {
           if (typeof filter.value === "string" && filter.value !== "") {
             start = getTimestampFromRelative(filter.value);
-            end = Date.now();
+            end = timestamp;
           }
           break;
         }
