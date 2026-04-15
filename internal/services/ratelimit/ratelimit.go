@@ -37,18 +37,22 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	prev := s.loadCounter(prevKey)
 
 	// First caller per entry runs fetchFromOrigin; concurrent callers block
-	// inside Do until it returns, then take the fast path forever. This
-	// prevents late arrivals on a cold key from reading a zero counter while
-	// the owner is still fetching.
-	cur.once.Do(func() { s.fetchFromOrigin(ctx, curKey, &cur.val) })
-	prev.once.Do(func() { s.fetchFromOrigin(ctx, prevKey, &prev.val) })
+	// inside Do until it returns, then take the fast path (single atomic
+	// load of hydrated) forever. This prevents late arrivals on a cold key
+	// from reading a zero counter while the owner is still fetching.
+	cur.Hydrate(ctx)
+	prev.Hydrate(ctx)
 
 	// Strict mode: a recent denial forces an additional synchronous origin
 	// fetch until the deadline passes, catching up local state to the global
 	// count regardless of whether the entry was already hydrated.
 	if req.Time.UnixMilli() < s.loadStrictUntil(sk) {
-		s.fetchFromOrigin(ctx, curKey, &cur.val)
-		s.fetchFromOrigin(ctx, prevKey, &prev.val)
+		if v, err := s.fetchFromOrigin(ctx, curKey); err == nil {
+			atomicMax(&cur.val, v)
+		}
+		if v, err := s.fetchFromOrigin(ctx, prevKey); err == nil {
+			atomicMax(&prev.val, v)
+		}
 	}
 
 	windowStartMs := curSeq * durationMs

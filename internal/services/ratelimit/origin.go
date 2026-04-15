@@ -2,7 +2,6 @@ package ratelimit
 
 import (
 	"context"
-	"sync/atomic"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
@@ -12,13 +11,12 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 )
 
-// fetchFromOrigin fetches the current counter value from the origin and
-// CAS-merges it into the local atomic counter. The call is wrapped in the
-// origin circuit breaker so that Redis outages fail fast instead of stalling
-// every request in strict mode. On any failure (circuit tripped, timeout,
-// or Redis error) the local counter is left unchanged — callers proceed
-// with whatever local state they have.
-func (s *service) fetchFromOrigin(ctx context.Context, key counterKey, local *atomic.Int64) {
+// fetchFromOrigin returns the current counter value from the origin. The
+// call is wrapped in the origin circuit breaker so that Redis outages fail
+// fast instead of stalling every request in strict mode. Callers should
+// treat errors as "keep existing local state" — both the circuit-tripped
+// and Redis-error paths already increment the appropriate metrics and log.
+func (s *service) fetchFromOrigin(ctx context.Context, key counterKey) (int64, error) {
 	rk := key.redisKey()
 
 	res, err := s.originCircuitBreaker.Do(ctx, func(ctx context.Context) (int64, error) {
@@ -37,9 +35,9 @@ func (s *service) fetchFromOrigin(ctx context.Context, key counterKey, local *at
 			"key", rk,
 			"error", err.Error(),
 		)
-		return
+		return 0, err
 	}
-	atomicMax(local, res)
+	return res, nil
 }
 
 // replayRequests processes buffered rate limit events by synchronizing them

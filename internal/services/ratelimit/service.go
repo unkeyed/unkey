@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 
@@ -37,14 +38,39 @@ func atomicMax(target *atomic.Int64, val int64) {
 }
 
 // counterEntry pairs a sliding-window counter with a sync.Once that gates
-// origin hydration. Only the goroutine that inserted the entry runs the
-// first fetchFromOrigin; concurrent callers block inside Do until it
-// returns, then take the fast path (atomic load on Once.done) forever.
-// This closes the race where LoadOrStore would hand out a zero-valued
-// counter to late arrivals before the owner finished hydrating it.
+// origin hydration. The fetch closure is bound at entry creation so the
+// hot path doesn't need to allocate a per-call closure to pass into
+// Hydrate. The hydrated flag is a fast-path optimization: once set,
+// callers skip sync.Once.Do entirely. The sync.Once still enforces
+// correctness on the first call — concurrent callers on a cold entry
+// block inside Do until the first fetch returns, closing the race where
+// LoadOrStore would hand out a zero-valued counter to late arrivals
+// before the owner finished hydrating it.
 type counterEntry struct {
-	val  atomic.Int64
-	once sync.Once
+	val      atomic.Int64
+	once     sync.Once
+	hydrated atomic.Bool
+	fetch    func(context.Context) (int64, error)
+}
+
+// Hydrate populates val from the bound fetcher exactly once. The fetched
+// value is CAS-merged via atomicMax so the local counter only moves
+// forward. Concurrent callers on a cold entry block inside Do until the
+// first fetch returns; subsequent callers return after a single atomic
+// load of hydrated. Fetcher errors leave val unchanged but still mark the
+// entry hydrated — the entry is stuck at whatever val holds (typically 0)
+// until it's evicted and recreated, matching the pre-Hydrate behavior of
+// fetchFromOrigin.
+func (e *counterEntry) Hydrate(ctx context.Context) {
+	if e.hydrated.Load() {
+		return
+	}
+	e.once.Do(func() {
+		if v, err := e.fetch(ctx); err == nil {
+			atomicMax(&e.val, v)
+		}
+		e.hydrated.Store(true)
+	})
 }
 
 // service implements lockless distributed rate limiting using a sliding window
@@ -149,15 +175,17 @@ func (s *service) Close() error {
 }
 
 // loadCounter returns the counter entry for the given key, creating it if needed.
-// Callers must invoke entry.once.Do(...) before reading entry.val to ensure the
-// counter has been hydrated from origin — otherwise late arrivals on a cold key
-// would observe a zero-valued counter before the first caller finishes its
-// Redis fetch.
+// Newly created entries carry a fetcher closure bound to the key, so callers
+// only need to invoke entry.Hydrate(ctx) to ensure the counter has been
+// populated from origin. Callers that skip Hydrate risk reading a zero-valued
+// counter while another goroutine is mid-fetch.
 func (s *service) loadCounter(key counterKey) *counterEntry {
 	if v, ok := s.counters.Load(key); ok {
 		return v.(*counterEntry)
 	}
-	fresh := &counterEntry{} //nolint:exhaustruct // zero values are correct
+	fresh := &counterEntry{ //nolint:exhaustruct // other fields zero-initialize correctly
+		fetch: func(ctx context.Context) (int64, error) { return s.fetchFromOrigin(ctx, key) },
+	}
 	actual, loaded := s.counters.LoadOrStore(key, fresh)
 	if !loaded {
 		metrics.RatelimitWindowsCreated.Inc()
