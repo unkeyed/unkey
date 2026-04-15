@@ -74,7 +74,7 @@ export function ConditionFields({
           </div>
           <FormInput
             label="Path"
-            required
+            requirement="required"
             placeholder={c.mode === "regex" ? "^/api/.*" : "/api/v1"}
             value={c.value}
             onChange={(e) => patch({ ...c, value: e.target.value })}
@@ -106,7 +106,7 @@ export function ConditionFields({
           <FormLabel
             label="Allowed Methods"
             htmlFor={`method-group-${c.id}`}
-            required
+            requirement="required"
             hasError={Boolean(methodError)}
             tooltipContent="Select which HTTP methods this condition matches."
           />
@@ -158,7 +158,7 @@ export function ConditionFields({
         <div className="flex flex-col gap-4">
           <FormInput
             label={isHeader ? "Header Name" : "Parameter Name"}
-            required
+            requirement="required"
             placeholder={isHeader ? "X-Custom-Header" : "param_name"}
             value={c.name}
             onChange={(e) => patch({ ...c, name: e.target.value })}
@@ -202,7 +202,7 @@ export function ConditionFields({
                 </div>
                 <FormInput
                   label="Value"
-                  required
+                  requirement="required"
                   placeholder="Expected value"
                   value={c.value ?? ""}
                   onChange={(e) => patch({ ...c, value: e.target.value })}

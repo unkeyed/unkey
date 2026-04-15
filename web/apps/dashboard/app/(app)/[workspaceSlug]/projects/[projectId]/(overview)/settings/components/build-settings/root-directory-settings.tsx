@@ -91,7 +91,7 @@ export const RootDirectory = () => {
       <SettingField>
         <FormInput
           label="Root directory"
-          required
+          requirement="required"
           description={
             warningMessage ?? "Build context directory for Docker. Changes apply on next deploy."
           }
