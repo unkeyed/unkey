@@ -67,7 +67,7 @@ export const DeploymentListDatetime = () => {
     >
       <div className="group">
         <Button
-          variant="ghost"
+          variant="outline"
           size="md"
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
