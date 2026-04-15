@@ -4,6 +4,7 @@ go_library(
     name = "engine",
     srcs = [
         "engine.go",
+        "firewall.go",
         "keyauth.go",
         "keyextract.go",
         "match.go",
@@ -32,6 +33,7 @@ go_test(
     name = "engine_test",
     srcs = [
         "engine_test.go",
+        "firewall_test.go",
         "integration_test.go",
         "keyextract_test.go",
         "match_test.go",
@@ -46,9 +48,11 @@ go_test(
         "//internal/services/usagelimiter",
         "//pkg/cache",
         "//pkg/clock",
+        "//pkg/codes",
         "//pkg/counter",
         "//pkg/db",
         "//pkg/dockertest",
+        "//pkg/fault",
         "//pkg/hash",
         "//pkg/ptr",
         "//pkg/rbac",

@@ -33,6 +33,7 @@ type Evaluator interface {
 // Engine implements Evaluator.
 type Engine struct {
 	keyAuth    *KeyAuthExecutor
+	firewall   *FirewallExecutor
 	regexCache *regexCache
 }
 
@@ -50,6 +51,7 @@ func New(cfg Config) *Engine {
 			keyService: cfg.KeyService,
 			clock:      cfg.Clock,
 		},
+		firewall:   &FirewallExecutor{},
 		regexCache: newRegexCache(),
 	}
 }
@@ -82,6 +84,11 @@ func ParseMiddleware(raw []byte) ([]*sentinelv1.Policy, error) {
 // Evaluate processes all middleware policies against the incoming request.
 // Policies are evaluated in order. Disabled policies are skipped.
 // Authentication policies produce a Principal; the first successful auth sets it.
+//
+// Firewall policies short-circuit the request with a Firewall.Denied fault
+// when their match expressions hit and the action is ACTION_DENY. The
+// action enum exists for forward compatibility — additional outcomes will
+// be wired into the dispatch when they're added to the proto.
 func (e *Engine) Evaluate(
 	ctx context.Context,
 	sess *zen.Session,
@@ -128,10 +135,24 @@ func (e *Engine) Evaluate(
 				sentinelEngineEvaluationsTotal.WithLabelValues("keyauth", "success").Inc()
 			}
 
+		case *sentinelv1.Policy_Firewall:
+			t := time.Now()
+			action, execErr := e.firewall.Execute(ctx, sess, req, cfg.Firewall)
+			sentinelEngineEvaluationDuration.WithLabelValues("firewall").Observe(time.Since(t).Seconds())
+
+			sentinelFirewallMatchesTotal.WithLabelValues(policy.GetId(), firewallActionLabel(action)).Inc()
+
+			if execErr != nil {
+				sentinelEngineEvaluationsTotal.WithLabelValues("firewall", classifyFirewallError(execErr)).Inc()
+				return result, execErr
+			}
+
+			// ACTION_UNSPECIFIED (or unknown) — nothing to do.
+			sentinelEngineEvaluationsTotal.WithLabelValues("firewall", "noop").Inc()
+
 		// Future policy types will be added here:
 		// case *sentinelv1.Policy_Jwtauth:
 		// case *sentinelv1.Policy_Ratelimit:
-		// case *sentinelv1.Policy_IpRules:
 		// case *sentinelv1.Policy_Openapi:
 
 		default:
@@ -141,4 +162,17 @@ func (e *Engine) Evaluate(
 	}
 
 	return result, nil
+}
+
+// firewallActionLabel returns the metric label for a firewall action. Kept
+// separate from the proto String() so labels stay stable even if proto enum
+// names change.
+func firewallActionLabel(a sentinelv1.Action) string {
+	//nolint:exhaustive
+	switch a {
+	case sentinelv1.Action_ACTION_DENY:
+		return "deny"
+	default:
+		return "unspecified"
+	}
 }

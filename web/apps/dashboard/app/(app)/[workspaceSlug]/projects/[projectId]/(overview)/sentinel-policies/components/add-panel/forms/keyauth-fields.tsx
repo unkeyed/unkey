@@ -251,7 +251,7 @@ export function KeyAuthFields() {
  * Watches only the fields rendered in the summary so edits to unrelated
  * fields (name, environment) don't cause re-renders here.
  */
-export function PolicySummary() {
+export function KeyauthSummary() {
   const { control } = useFormContext<KeyauthFormValues>();
   const keySpaceIds = useWatch({ control, name: "keySpaceIds" });
   const locations = useWatch({ control, name: "locations" });

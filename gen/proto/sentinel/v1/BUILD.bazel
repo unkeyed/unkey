@@ -4,7 +4,7 @@ go_library(
     name = "sentinel",
     srcs = [
         "config.pb.go",
-        "iprules.pb.go",
+        "firewall.pb.go",
         "jwtauth.pb.go",
         "keyauth.pb.go",
         "match.pb.go",
