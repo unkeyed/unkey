@@ -13,9 +13,9 @@ When no authentication policy is configured or the request has no credentials, t
 
 ```json
 {
-  "version": 1,
+  "version": "v1",
   "subject": "user_42",
-  "type": "key",
+  "type": "API_KEY",
   "identity": {
     "externalId": "user_42",
     "meta": { "plan": "pro" }
@@ -34,8 +34,8 @@ When no authentication policy is configured or the request has no credentials, t
 
 ## Top-level fields
 
-<ResponseField name="version" type="integer" required>
-  The schema version of the Principal payload. Currently `1`. Check this field if you need to handle different payload shapes during migrations. Unkey bumps the version when fields are removed or renamed, but adding new optional fields does not change the version.
+<ResponseField name="version" type="string" required>
+  The schema version of the Principal payload. Currently `"v1"`. Check this field if you need to handle different payload shapes during migrations. Unkey bumps the version when fields are removed or renamed, but adding new optional fields does not change the version.
 </ResponseField>
 
 <ResponseField name="subject" type="string" required>
@@ -45,15 +45,15 @@ When no authentication policy is configured or the request has no credentials, t
 
   | Type | Subject value |
   | --- | --- |
-  | `key` (with identity) | The identity's external ID |
-  | `key` (without identity) | The key ID |
-  | `jwt` | The `sub` claim from the token |
+  | `API_KEY` (with identity) | The identity's external ID |
+  | `API_KEY` (without identity) | The key ID |
+  | `JWT` | The `sub` claim from the token |
 
   For API keys linked to an [identity](/platform/identities/overview), the subject is the identity's external ID rather than the key ID. This means all keys belonging to the same identity share the same subject, which is what you want for rate limiting and usage tracking at the user level rather than the key level. The specific key ID is always available at `source.key.keyId` when you need it.
 </ResponseField>
 
 <ResponseField name="type" type="string" required>
-  The authentication method that produced this Principal. One of `"key"` or `"jwt"`. This value always matches the field name inside `source`, so you can use it to determine which source object to read. For example, when `type` is `"key"`, the method-specific data is at `source.key`.
+  The authentication method that produced this Principal. One of `"API_KEY"` or `"JWT"`. The value tells you which variant of `source` is populated: `"API_KEY"` → `source.key`, `"JWT"` → `source.jwt`.
 </ResponseField>
 
 <ResponseField name="identity" type="object">
@@ -71,17 +71,16 @@ When no authentication policy is configured or the request has no credentials, t
 </ResponseField>
 
 <ResponseField name="source" type="object" required>
-  Method-specific data from the authentication source. Contains exactly one field whose name matches the `type` field. Most applications only need `subject` and `identity`, but `source` provides the full detail when you need it: key permissions, JWT claims, expiration times, and other method-specific attributes.
+  Method-specific data from the authentication source. Contains exactly one field depending on `type`: `source.key` is populated for `API_KEY`, and `source.jwt` is populated for `JWT`. Most applications only need `subject` and `identity`, but `source` provides the full detail when you need it: key permissions, JWT claims, expiration times, and other method-specific attributes.
 
   Each source type has its own reference page:
 
   - [API key source](/platform/sentinel/principal/sources/api-key)
-  - [JWT source](/platform/sentinel/principal/sources/jwt)
 </ResponseField>
 
 ## Versioning
 
-The `version` field starts at `1`. Unkey follows these rules for changes:
+The `version` field starts at `"v1"`. Unkey follows these rules for changes:
 
 - **Additive changes** (new optional fields, new source types) don't bump the version. Applications that don't know about new fields ignore them.
 - **Breaking changes** (removing fields, changing field types, renaming fields) bump the version. Unkey supports both versions during a migration period so you have time to update your application code.

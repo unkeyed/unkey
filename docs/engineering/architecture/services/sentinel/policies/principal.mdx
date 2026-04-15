@@ -3,20 +3,32 @@ title: "Principal"
 description: "Authenticated identity from auth policies"
 ---
 
-`sentinel.v1.Principal` is the shared identity shape produced by authentication policies. It decouples the authentication mechanism from downstream authorization decisions.
+`engine.Principal` is the shared identity shape produced by authentication policies. It decouples the authentication mechanism from downstream authorization decisions and from upstream applications, which receive it as a JSON payload on the `X-Unkey-Principal` header.
+
+The struct is hand-written with `encoding/json` rather than generated from protobuf. The Principal is output-only (sentinel produces it, apps consume the JSON), so proto-as-IDL buys nothing while fighting the JSON contract we want to expose.
+
+The wire format is authoritative. For the full public reference, see the [product docs](/platform/sentinel/principal/overview).
 
 ## Fields
 
+<ResponseField name="version" type="string">
+  Schema version of the Principal payload. Currently `"v1"`. Bumped only on breaking changes to the JSON shape.
+</ResponseField>
+
 <ResponseField name="subject" type="string">
-  The authenticated identity string. For KeyAuth, this is the external ID (if present) or the key ID.
+  The primary identifier of the authenticated entity. For KeyAuth, this is the identity's external ID when the key is linked to an identity, otherwise the key ID. For JWTAuth, this is the configured subject claim (default `sub`).
 </ResponseField>
 
 <ResponseField name="type" type="PrincipalType">
-  The authentication method that produced this principal. Values: `PRINCIPAL_TYPE_API_KEY`, `PRINCIPAL_TYPE_BASIC`, `PRINCIPAL_TYPE_JWT`.
+  Which authentication method produced this Principal. `API_KEY` or `JWT`. Always matches the populated variant of `source`.
 </ResponseField>
 
-<ResponseField name="claims" type="map<string, string>">
-  Key-value metadata from the auth policy. Contents vary by policy type.
+<ResponseField name="identity" type="Identity">
+  The Unkey identity linked to the credential, when present. Absent from the JSON entirely when no identity is linked — never `null` and never an empty object.
+</ResponseField>
+
+<ResponseField name="source" type="Source">
+  Discriminated union over method-specific detail. Contains exactly one populated variant matching `type`: `source.key` for API keys, `source.jwt` for JWT. The variant name is the lowercase of the type (minus the underscore).
 </ResponseField>
 
 ## What a principal looks like
@@ -25,15 +37,23 @@ description: "Authenticated identity from auth policies"
 <Tab title="KeyAuth principal">
 ```json
 {
+  "version": "v1",
   "subject": "user_abc123",
-  "type": "PRINCIPAL_TYPE_API_KEY",
-  "claims": {
-    "key_id": "key_xyz",
-    "key_space_id": "ks_abc123",
-    "api_id": "api_456",
-    "workspace_id": "ws_789",
-    "external_id": "user_abc123",
-    "meta": "{\"plan\": \"pro\"}"
+  "type": "API_KEY",
+  "identity": {
+    "externalId": "user_abc123",
+    "meta": { "plan": "pro" }
+  },
+  "source": {
+    "key": {
+      "keyId": "key_xyz",
+      "keySpaceId": "ks_abc123",
+      "name": "ACME Production",
+      "expiresAt": 1717200000000,
+      "meta": {},
+      "roles": ["admin"],
+      "permissions": ["api.read", "api.write"]
+    }
   }
 }
 ```
@@ -41,44 +61,44 @@ description: "Authenticated identity from auth policies"
 <Tab title="JWT principal">
 ```json
 {
+  "version": "v1",
   "subject": "auth0|abc123",
-  "type": "PRINCIPAL_TYPE_JWT",
-  "claims": {
-    "email": "user@example.com",
-    "org_id": "org_456"
+  "type": "JWT",
+  "source": {
+    "jwt": {
+      "header": { "alg": "RS256", "typ": "JWT", "kid": "key-1" },
+      "payload": {
+        "iss": "https://acme.com",
+        "sub": "auth0|abc123",
+        "aud": "api.acme.com",
+        "exp": 1711310400,
+        "email": "user@acme.com",
+        "org_id": "org_456"
+      },
+      "signature": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW..."
+    }
   }
-}
-```
-</Tab>
-<Tab title="BasicAuth principal">
-```json
-{
-  "subject": "admin",
-  "type": "PRINCIPAL_TYPE_BASIC",
-  "claims": {}
 }
 ```
 </Tab>
 </Tabs>
 
-## KeyAuth claims
+## KeyAuth source fields
 
-When produced by a KeyAuth policy, the principal includes these claims:
+When produced by a KeyAuth policy, `source.key` carries the verified key detail. Fields marked optional are omitted from the JSON when unset.
 
-| Claim          | Description                                    |
-| -------------- | ---------------------------------------------- |
-| `key_id`       | Unkey key identifier                           |
-| `key_space_id` | Keyspace the key belongs to                    |
-| `api_id`       | API identifier                                 |
-| `workspace_id` | Workspace identifier                           |
-| `name`         | Key name (if set)                              |
-| `identity_id`  | Identity ID (if set)                           |
-| `external_id`  | External ID (if set)                           |
-| `meta`         | Key metadata JSON (if set)                     |
-| `expires`      | Expiration time in RFC 3339 format (if set)    |
+| Field          | Optional | Description                                                                       |
+| -------------- | -------- | --------------------------------------------------------------------------------- |
+| `keyId`        |          | The ID of the verified key.                                                        |
+| `keySpaceId`   |          | The keyspace the key belongs to.                                                   |
+| `name`         | yes      | Human-readable key name, when set.                                                 |
+| `expiresAt`    | yes      | Unix timestamp in milliseconds (JSON number). Omitted when the key has no expiry.  |
+| `meta`         |          | Custom key metadata. Always emitted, `{}` when empty.                              |
+| `roles`        | yes      | Raw RBAC role names. Omitted when empty.                                           |
+| `permissions`  | yes      | Raw RBAC permissions. Omitted when empty.                                          |
 
 ## Header propagation
 
-Sentinel serializes the principal to JSON and sets it on the `X-Unkey-Principal` header before forwarding the request to the instance. The instance can read this header to make authorization decisions without re-verifying the API key.
+Sentinel serializes the principal to JSON and sets it on the `X-Unkey-Principal` header before forwarding to the instance. The instance reads this header to make authorization decisions without re-verifying the credential.
 
 The proxy handler strips any incoming `X-Unkey-Principal` header before policy evaluation to prevent clients from spoofing an authenticated identity.
