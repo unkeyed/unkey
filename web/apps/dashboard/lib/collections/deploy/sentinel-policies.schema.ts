@@ -127,7 +127,7 @@ const rateLimitKeySchema = z.union([
   z.object({ path: z.object({}).strict() }).strict(),
   z
     .object({
-      principalClaim: z.object({ claimName: z.string().min(1) }).strict(),
+      principalField: z.object({ path: z.string().min(1) }).strict(),
     })
     .strict(),
 ]);

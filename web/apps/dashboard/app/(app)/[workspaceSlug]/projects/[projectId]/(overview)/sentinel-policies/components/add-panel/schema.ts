@@ -130,7 +130,7 @@ export const rateLimitKeySourceSchema = z.enum([
   "header",
   "authenticatedSubject",
   "path",
-  "principalClaim",
+  "principalField",
 ]);
 export type RateLimitKeySource = z.infer<typeof rateLimitKeySourceSchema>;
 
@@ -144,10 +144,10 @@ const ratelimitFormSchema = z
     keyValue: z.string(),
   })
   .superRefine((v, ctx) => {
-    if ((v.keySource === "header" || v.keySource === "principalClaim") && v.keyValue.length === 0) {
+    if ((v.keySource === "header" || v.keySource === "principalField") && v.keyValue.length === 0) {
       ctx.addIssue({
         code: "custom",
-        message: v.keySource === "header" ? "Header name is required" : "Claim name is required",
+        message: v.keySource === "header" ? "Header name is required" : "Field path is required",
         path: ["keyValue"],
       });
     }
@@ -263,7 +263,7 @@ function toRateLimitKey(source: RateLimitKeySource, value: string): RateLimitKey
     .with("header", () => ({ header: { name: value } }))
     .with("authenticatedSubject", () => ({ authenticatedSubject: {} }))
     .with("path", () => ({ path: {} }))
-    .with("principalClaim", () => ({ principalClaim: { claimName: value } }))
+    .with("principalField", () => ({ principalField: { path: value } }))
     .exhaustive();
 }
 
@@ -388,7 +388,7 @@ function fromRateLimitKey(key: RateLimitKey): {
   if ("path" in key) {
     return { keySource: "path", keyValue: "" };
   }
-  return { keySource: "principalClaim", keyValue: key.principalClaim.claimName };
+  return { keySource: "principalField", keyValue: key.principalField.path };
 }
 
 export function fromSentinelPolicy(
