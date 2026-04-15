@@ -29,7 +29,7 @@ export const frontlineRoutes = mysqlTable(
     //     api.unkey.com
     //
     // - deployment: per-deployment stable URL, never reassigned
-    //     <projectslug>-<appslug>-dep-<id>-<workspaceslug>.unkey.app
+    //     <projectslug>-<appslug>-<id>-<workspaceslug>.unkey.app
     sticky: mysqlEnum("sticky", ["none", "branch", "environment", "live", "deployment"])
       .notNull()
       .default("none"),
