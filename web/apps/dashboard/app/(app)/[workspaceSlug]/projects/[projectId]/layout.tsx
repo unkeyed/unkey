@@ -33,7 +33,7 @@ const ProjectLayoutInner = ({ children }: PropsWithChildren) => {
         tableDistanceToTop,
       }}
     >
-      <div className="h-screen flex flex-col overflow-hidden">
+      <div className="h-full flex flex-col overflow-hidden">
         <ProjectNavigation
           onClick={() => setIsDetailsOpen(!isDetailsOpen)}
           isDetailsOpen={isDetailsOpen}

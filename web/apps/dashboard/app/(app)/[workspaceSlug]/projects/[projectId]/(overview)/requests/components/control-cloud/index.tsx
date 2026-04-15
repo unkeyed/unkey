@@ -15,7 +15,7 @@ const formatFieldName = (field: string): string => {
     case "methods":
       return "Method";
     case "deploymentId":
-      return "Deplyoment ID";
+      return "Deployment ID";
     case "since":
       return "";
     default:
@@ -31,6 +31,8 @@ const formatValue = (value: string | number, field: string): string => {
         return "5xx (Error)";
       case 4:
         return "4xx (Warning)";
+      case 3:
+        return "3xx (Redirect)";
       case 2:
         return "2xx (Success)";
       default:

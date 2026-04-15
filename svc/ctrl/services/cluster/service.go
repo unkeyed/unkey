@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/db"
 )
@@ -11,14 +12,18 @@ import (
 // and status reporting endpoints for agents to report observed state back to the control plane.
 type Service struct {
 	ctrlv1connect.UnimplementedClusterServiceHandler
-	db     db.Database
-	bearer string
+	db      db.Database
+	restate *ingress.Client
+	bearer  string
 }
 
 // Config holds the configuration for creating a new cluster [Service].
 type Config struct {
 	// Database provides read and write access for querying and updating resource state.
 	Database db.Database
+
+	// Restate is the ingress client used to trigger NotifyReady on sentinel virtual objects.
+	Restate *ingress.Client
 
 	// Bearer is the authentication token that agents must provide in the Authorization header.
 	Bearer string
@@ -30,6 +35,7 @@ func New(cfg Config) *Service {
 	return &Service{
 		UnimplementedClusterServiceHandler: ctrlv1connect.UnimplementedClusterServiceHandler{},
 		db:                                 cfg.Database,
+		restate:                            cfg.Restate,
 		bearer:                             cfg.Bearer,
 	}
 }

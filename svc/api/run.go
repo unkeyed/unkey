@@ -66,7 +66,7 @@ func Run(ctx context.Context, cfg Config) error {
 		slog.String("version", version.Version),
 	))
 
-	if cfg.TestMode {
+	if cfg.Test.Enabled {
 		logger.AddBaseAttrs(slog.Bool("testmode", true))
 	}
 	if cfg.TLSConfig != nil {
@@ -75,15 +75,22 @@ func Run(ctx context.Context, cfg Config) error {
 
 	clk := clock.New()
 
+	reg := promclient.NewRegistry()
+	reg.MustRegister(collectors.NewGoCollector())
+	//nolint:exhaustruct
+	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	lazy.SetRegistry(reg)
+
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
 	var shutdownGrafana func(context.Context) error
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
-			Application:     "api",
-			Version:         version.Version,
-			InstanceID:      cfg.InstanceID,
-			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
+			Application:        "api",
+			Version:            version.Version,
+			InstanceID:         cfg.InstanceID,
+			CloudRegion:        cfg.Region,
+			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
+			PrometheusGatherer: reg,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -94,12 +101,6 @@ func Run(ctx context.Context, cfg Config) error {
 	defer r.Recover()
 
 	r.DeferCtx(shutdownGrafana)
-
-	reg := promclient.NewRegistry()
-	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
-	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	lazy.SetRegistry(reg)
 
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cfg.Database.Primary,
@@ -184,7 +185,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// Caches will be created after invalidation consumer is set up
 	srv, err := zen.New(zen.Config{
 		Flags: &zen.Flags{
-			TestMode: cfg.TestMode,
+			TestMode: cfg.Test.Enabled,
 		},
 		TLS:                cfg.TLSConfig,
 		EnableH2C:          false,
@@ -204,11 +205,16 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create validator: %w", err)
 	}
 
-	ctr, err := counter.NewRedis(counter.RedisConfig{
-		RedisURL: cfg.RedisURL,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create counter: %w", err)
+	var ctr counter.Counter
+	if cfg.Test.Counter != nil {
+		ctr = cfg.Test.Counter
+	} else {
+		ctr, err = counter.NewRedis(counter.RedisConfig{
+			RedisURL: cfg.RedisURL,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create counter: %w", err)
+		}
 	}
 
 	rlSvc, err := ratelimit.New(ratelimit.Config{
@@ -394,16 +400,17 @@ func Run(ctx context.Context, cfg Config) error {
 			Region: cfg.Region,
 		})
 
-	if cfg.Listener == nil {
+	listener := cfg.Test.Listener
+	if listener == nil {
 		// Create listener from HttpPort (production)
-		cfg.Listener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
+		listener, err = net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
 		if err != nil {
 			return fmt.Errorf("unable to listen on port %d: %w", cfg.HttpPort, err)
 		}
 	}
 
 	r.Go(func(ctx context.Context) error {
-		serveErr := srv.Serve(ctx, cfg.Listener)
+		serveErr := srv.Serve(ctx, listener)
 		if serveErr != nil && !errors.Is(serveErr, context.Canceled) && !errors.Is(serveErr, http.ErrServerClosed) {
 			return fmt.Errorf("server failed: %w", serveErr)
 		}

@@ -9,13 +9,19 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 The [Principal](/platform/sentinel/principal/overview) is plain JSON with no encryption or signing. During local development, you can set the `X-Unkey-Principal` header yourself to test your application's authentication handling without running a Sentinel.
 
+<Warning>
+  The `X-Unkey-Principal` header has no cryptographic signature. When you deploy to Unkey, the Sentinel always sits in front of your app and strips any client-supplied header before setting its own. Traffic cannot reach your API without going through the Sentinel, so forged headers are not a concern.
+
+  If you self-host or expose your app through other infrastructure (direct port-forward, misconfigured ingress, or similar), anyone who reaches it directly can forge the header. Never expose your app to untrusted traffic without a Sentinel in front of it.
+</Warning>
+
 ## Send a Principal with curl
 
 Pass the Principal as a JSON string in the header:
 
 ```bash
 curl http://localhost:8080/api/resource \
-  -H 'X-Unkey-Principal: {"version":1,"subject":"test_user","type":"key","source":{"key":{"keyId":"key_test","keySpaceId":"ks_test","meta":{},"roles":["admin"],"permissions":["api.read","api.write"]}}}'
+  -H 'X-Unkey-Principal: {"version":"v1","subject":"test_user","type":"API_KEY","source":{"key":{"keyId":"key_test","keySpaceId":"ks_test","meta":{},"roles":["admin"],"permissions":["api.read","api.write"]}}}'
 ```
 
 ## Use a Principal file
@@ -25,9 +31,9 @@ For repeated testing, store the Principal in a file and reference it. This keeps
 ```bash
 cat > principal.json << 'EOF'
 {
-  "version": 1,
+  "version": "v1",
   "subject": "test_user",
-  "type": "key",
+  "type": "API_KEY",
   "identity": {
     "externalId": "test_user",
     "meta": { "plan": "pro" }
