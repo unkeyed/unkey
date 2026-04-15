@@ -14,17 +14,18 @@ export const PermissionInfo = ({
       </div>
       <div className="flex flex-col gap-1">
         <div className="text-accent-12 text-[13px] font-medium">{permissionDetails.name}</div>
-        <InfoTooltip
-          variant="inverted"
-          content={permissionDetails.description}
-          position={{ side: "bottom", align: "center" }}
-          asChild
-          disabled={!permissionDetails.description}
-        >
-          <div className="text-accent-9 text-xs max-w-40 truncate">
-            {permissionDetails.description}
-          </div>
-        </InfoTooltip>
+        {permissionDetails.description && (
+          <InfoTooltip
+            variant="inverted"
+            content={permissionDetails.description}
+            position={{ side: "bottom", align: "center" }}
+            asChild
+          >
+            <div className="text-accent-9 text-xs max-w-40 truncate">
+              {permissionDetails.description}
+            </div>
+          </InfoTooltip>
+        )}
       </div>
     </div>
   );
