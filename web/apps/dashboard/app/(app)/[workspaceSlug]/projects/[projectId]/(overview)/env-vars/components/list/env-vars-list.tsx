@@ -92,8 +92,14 @@ export function EnvVarsList({
     return rows;
   }, [envVarData, environments, deferredQuery, environmentFilter, sortBy]);
 
-  const { selectedIds, toggleRowSelection, isRowSelected, handleBulkDelete, clearSelection } =
-    useRowSelection(displayRows);
+  const {
+    selectedIds,
+    toggleRowSelection,
+    toggleItemSelection,
+    isRowSelected,
+    handleBulkDelete,
+    clearSelection,
+  } = useRowSelection(displayRows);
 
   useCloseEditOnGroupCollapse(displayRows, expandedRow, editingId, setEditingId);
 
@@ -114,7 +120,7 @@ export function EnvVarsList({
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <>
+    <div className="relative">
       <div ref={listRefCallback} className="border border-grayA-4 rounded-[14px] overflow-hidden">
         <div
           style={{
@@ -157,10 +163,12 @@ export function EnvVarsList({
                     row={row}
                     isExpanded={expandedRow === row.key}
                     selected={isRowSelected(row)}
+                    selectedIds={selectedIds}
                     deferredQuery={deferredQuery}
                     editingId={editingId}
                     onToggleGroup={() => toggleGroup(row.key)}
                     onToggleSelection={(shiftKey) => toggleRowSelection(virtualRow.index, shiftKey)}
+                    onToggleItemSelection={toggleItemSelection}
                     onEdit={setEditingId}
                     onCloseEdit={closeEdit}
                     hasSelection={selectedIds.size > 0}
@@ -176,7 +184,7 @@ export function EnvVarsList({
         onDelete={handleBulkDelete}
         onClearSelection={clearSelection}
       />
-    </>
+    </div>
   );
 }
 

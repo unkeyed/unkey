@@ -25,7 +25,13 @@ export function EnvVarSelectionBar({
 
   return (
     <>
-      <div className="sticky bottom-5 flex justify-center z-10 pointer-events-none">
+      <div
+        className="fixed bottom-5 flex justify-center z-10 pointer-events-none"
+        style={{
+          left: "var(--sidebar-width, 16rem)",
+          right: 0,
+        }}
+      >
         <div
           className={cn(
             "w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg shadow-sm pointer-events-auto",
