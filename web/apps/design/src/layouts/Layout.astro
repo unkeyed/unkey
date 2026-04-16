@@ -1,4 +1,9 @@
 ---
+// `@unkey/ui/css` brings in the Radix color-scale variables that every
+// component in the UI package references. Matches the dashboard's import
+// pattern so the two apps stay in sync on which assets flow from the
+// workspace package.
+import "@unkey/ui/css";
 import "../styles/global.css";
 import { nav, flatNav } from "../data/nav";
 import ThemeToggle from "../components/ThemeToggle.astro";

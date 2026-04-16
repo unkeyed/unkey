@@ -1,6 +1,18 @@
 import * as Icons from "@unkey/icons";
 import { useState } from "react";
 
+/**
+ * IconGallery renders every icon exported by `@unkey/icons` as a grid of
+ * click-to-copy cells. The set is discovered at build time — any new icon
+ * added to the package is picked up here without code changes.
+ *
+ * The export filter keeps components whose name starts with an uppercase
+ * letter and excludes the generic `Icon` template that the package uses as
+ * a JSX-fallback stub. That filter is intentionally loose (it accepts any
+ * PascalCase function export) rather than maintaining an allowlist — the
+ * package has one job, so a future helper named like a component is
+ * unlikely; the worst case is a stray cell, not a broken page.
+ */
 export function IconGallery() {
   const entries = (Object.entries(Icons) as [string, unknown][])
     .filter(
@@ -22,6 +34,16 @@ export function IconGallery() {
   );
 }
 
+/**
+ * Single cell rendering one icon. Click copies the JSX tag (e.g.
+ * `<ArrowRight />`) — not the import statement, because the Icons page
+ * covers import separately and users usually want the tag to paste into
+ * a component they're already editing.
+ *
+ * `Copy` silently becomes a no-op when the Clipboard API rejects (insecure
+ * context, focus issues). The cell's `aria-label` still announces the
+ * component name, so users can read it off and copy manually.
+ */
 function IconCell({
   name,
   Icon,
@@ -37,7 +59,7 @@ function IconCell({
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
     } catch {
-      /* ignored */
+      /* see comment above */
     }
   }
 

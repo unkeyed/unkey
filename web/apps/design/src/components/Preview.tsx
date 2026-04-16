@@ -2,10 +2,39 @@ import { useState, type ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
-  /** Derived from the JSX children at build time by the preview-code Vite plugin. */
+  /**
+   * The source snippet shown in the "Show code" drawer. Normally derived
+   * automatically at build time by the `previewCodePlugin` Vite transform
+   * from the element's JSX children — authors don't pass this themselves
+   * except when they want to override the default extraction (e.g.
+   * `ColorSwatch` injects a list of Tailwind class names instead of its own
+   * compiled JSX, which would be noise).
+   *
+   * Defaults to `""` so the copy button is a no-op when no code is wired
+   * up; preferable to crashing on an undefined write.
+   */
   code?: string;
 }
 
+/**
+ * Preview renders a component demo inside a framed "stage" that matches the
+ * dashboard's real rendering surface (`bg-background` with a thin
+ * `border-grayA-3`), plus an optional code drawer revealed by a Show/Hide
+ * toggle.
+ *
+ * Why it exists: component documentation needs to show the rendered result
+ * and the source side by side without drifting. The source is derived from
+ * the JSX children at build time via [previewCodePlugin], so authors write
+ * the demo once — whatever they type inside `<Preview>` is what lands both
+ * on the stage and in the code drawer. See
+ * `src/lib/vite-plugin-preview-code.ts` for the extraction rules.
+ *
+ * Authoring note: JSX-valued props (`prop={<X />}`) and compound React
+ * trees that rely on Context cannot be inlined directly inside `<Preview>`
+ * in an MDX file — MDX compiles those expressions with Astro's JSX runtime
+ * rather than React's. For those cases, wrap the demo in a sibling
+ * `_examples.tsx` React component and hydrate that as the island instead.
+ */
 export function Preview({ children, code = "" }: Props) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
