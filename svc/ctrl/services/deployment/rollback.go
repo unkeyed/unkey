@@ -9,6 +9,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // Rollback switches traffic from the source deployment to a previous target
@@ -17,6 +18,10 @@ import (
 // (blocking until complete) and is keyed by app ID to prevent concurrent
 // rollback operations on the same workspace.
 func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.RollbackRequest]) (*connect.Response[ctrlv1.RollbackResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	logger.Info("initiating rollback via Restate",
 		"source", req.Msg.GetSourceDeploymentId(),
 		"target", req.Msg.GetTargetDeploymentId(),

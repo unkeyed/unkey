@@ -11,12 +11,17 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // AuthorizeDeployment authorizes a deployment that is awaiting approval.
 // It looks up the deployment by ID, verifies it is in awaiting_approval status,
 // updates the status to pending, and triggers the deploy workflow.
 func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[ctrlv1.AuthorizeDeploymentRequest]) (*connect.Response[ctrlv1.AuthorizeDeploymentResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	deploymentID := req.Msg.GetDeploymentId()
 
 	if deploymentID == "" {
