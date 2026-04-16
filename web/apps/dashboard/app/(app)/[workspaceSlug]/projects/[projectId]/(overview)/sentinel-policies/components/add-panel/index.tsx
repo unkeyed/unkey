@@ -38,6 +38,7 @@ type AddProps = CommonProps & {
   mode: "add";
   initialValues?: PolicyFormValues;
   onSave: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
+  onDismiss?: (values: PolicyFormValues) => void;
 };
 
 type EditProps = CommonProps & {
@@ -50,8 +51,15 @@ type EditProps = CommonProps & {
 export type SentinelPolicyPanelProps = AddProps | EditProps;
 
 export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
-  const { envASlug, envBSlug, isOpen, topOffset, onClose } = props;
+  const { envASlug, envBSlug, isOpen, topOffset } = props;
   const isEdit = props.mode === "edit";
+
+  const handleClose = () => {
+    if (props.mode === "add" && props.onDismiss) {
+      props.onDismiss(form.getValues());
+    }
+    props.onClose();
+  };
 
   const envOptions = [
     { value: "__all__", label: "All Environments" },
@@ -91,7 +99,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
         : null;
 
     props.onSave(prodPolicy, previewPolicy);
-    onClose();
+    props.onClose();
     if (props.mode === "add") {
       form.reset(getDefaultValues("keyauth"));
     }
@@ -110,7 +118,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       }
       isOpen={isOpen}
       topOffset={topOffset}
-      onClose={onClose}
+      onClose={handleClose}
       form={form}
       onSubmit={onSubmit}
     >

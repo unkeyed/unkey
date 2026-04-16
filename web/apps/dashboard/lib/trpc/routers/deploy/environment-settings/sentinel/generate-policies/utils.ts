@@ -4,20 +4,29 @@ import type OpenAI from "openai";
 import { z } from "zod";
 
 // Flat schema — all fields required so OpenAI strict mode is happy.
-// For ratelimit: locationType/locationName/permissionQuery are ignored ("bearer"/""/""").
-// For keyauth:   limit/windowMs/keySource/keyValue are ignored (0/0/"remoteIp"/"").
+// For ratelimit: locationType/locationName/permissionQuery/action are ignored.
+// For keyauth:   limit/windowMs/identifierSource/identifierValue/action are ignored.
+// For firewall:  limit/windowMs/identifierSource/identifierValue/locationType/locationName/permissionQuery are ignored.
 const llmPolicySchema = z.object({
   name: z.string(),
-  type: z.enum(["ratelimit", "keyauth"]),
+  type: z.enum(["ratelimit", "keyauth", "firewall"]),
   // ratelimit fields
   limit: z.number().int().min(0),
   windowMs: z.number().int().min(0),
-  keySource: z.enum(["remoteIp", "authenticatedSubject", "principalClaim", "header", "path"]),
-  keyValue: z.string(),
+  identifierSource: z.enum([
+    "remoteIp",
+    "authenticatedSubject",
+    "principalField",
+    "header",
+    "path",
+  ]),
+  identifierValue: z.string(),
   // keyauth fields
   locationType: z.enum(["bearer", "header", "queryParam"]),
   locationName: z.string(),
   permissionQuery: z.string(),
+  // firewall fields
+  action: z.enum(["ACTION_DENY"]),
 });
 
 const llmOutputSchema = z.object({
@@ -95,6 +104,16 @@ export async function generatePoliciesFromLLM(
         };
       }
 
+      if (p.type === "firewall") {
+        return {
+          type: "firewall",
+          name: p.name,
+          environmentId: "__all__",
+          matchConditions: [],
+          action: p.action,
+        };
+      }
+
       return {
         type: "ratelimit",
         name: p.name,
@@ -102,8 +121,8 @@ export async function generatePoliciesFromLLM(
         matchConditions: [],
         limit: p.limit,
         windowMs: p.windowMs,
-        keySource: p.keySource,
-        keyValue: p.keyValue,
+        identifierSource: p.identifierSource,
+        identifierValue: p.identifierValue,
       };
     });
   } catch (error) {
@@ -130,56 +149,60 @@ export async function generatePoliciesFromLLM(
 }
 
 function getSystemPrompt(): string {
-  return `You generate sentinel policy configurations (keyauth and ratelimit) from natural language descriptions.
+  return `You generate sentinel policy configurations (keyauth, ratelimit, and firewall) from natural language descriptions.
 
 ## Policy types
 
-### keyauth — authenticates requests via API key
+### keyauth -- authenticates requests via API key
 - locationType: "bearer" (Authorization: Bearer <key>), "header" (custom header), "queryParam" (query param)
 - locationName: header name or param name (empty for bearer)
 - permissionQuery: optional permission filter like "api:read" (usually empty)
-- Set limit=0, windowMs=0, keySource="remoteIp", keyValue="" for keyauth policies
+- Set limit=0, windowMs=0, identifierSource="remoteIp", identifierValue="", action="ACTION_DENY" for keyauth policies
 
-### ratelimit — limits request rate
-- keySource: remoteIp | authenticatedSubject | principalClaim | header | path
-- keyValue: header name or claim name (key_id, workspace_id, identity_id, plan…); empty for others
+### ratelimit -- limits request rate
+- identifierSource: remoteIp | authenticatedSubject | principalField | header | path
+- identifierValue: header name or field path (workspace_id, identity_id, plan...); empty for others
 - windowMs: 1000=1s, 5000=5s, 60000=1min, 300000=5min, 3600000=1h
-- Set locationType="bearer", locationName="", permissionQuery="" for ratelimit policies
+- Set locationType="bearer", locationName="", permissionQuery="", action="ACTION_DENY" for ratelimit policies
+
+### firewall -- blocks requests matching conditions
+- action: "ACTION_DENY" (deny matching requests with 403)
+- Set limit=0, windowMs=0, identifierSource="remoteIp", identifierValue="" for firewall policies
+- Set locationType="bearer", locationName="", permissionQuery="" for firewall policies
 
 ## Rules
-- Return 1–3 policies
+- Return 1-5 policies
 - keyauth typically comes first (it authenticates the request; ratelimit can then use authenticatedSubject)
-- For burst: short window (1s–10s), low limit
-- For sustained: longer window (1min–1h), higher limit
-- Per-key → keySource=authenticatedSubject
-- Per-workspace → keySource=principalClaim, keyValue=workspace_id
-- Per-user → keySource=principalClaim, keyValue=identity_id
+- For burst: short window (1s-10s), low limit
+- For sustained: longer window (1min-1h), higher limit
+- Per-key: identifierSource=authenticatedSubject
+- Per-workspace: identifierSource=principalField, identifierValue=workspace_id
+- Per-user: identifierSource=principalField, identifierValue=identity_id
+- Firewall is used when the user wants to block/deny traffic (e.g. block a path, block unauthenticated requests)
 
 ## Examples
 
 Input: "authenticate with bearer token, rate limit 100/min per key"
 Output: [
-  { name: "Key Authentication", type: "keyauth", locationType: "bearer", locationName: "", permissionQuery: "", limit: 0, windowMs: 0, keySource: "remoteIp", keyValue: "" },
-  { name: "Per-Key Limit", type: "ratelimit", limit: 100, windowMs: 60000, keySource: "authenticatedSubject", keyValue: "", locationType: "bearer", locationName: "", permissionQuery: "" }
+  { name: "Key Authentication", type: "keyauth", locationType: "bearer", locationName: "", permissionQuery: "", limit: 0, windowMs: 0, identifierSource: "remoteIp", identifierValue: "", action: "ACTION_DENY" },
+  { name: "Per-Key Limit", type: "ratelimit", limit: 100, windowMs: 60000, identifierSource: "authenticatedSubject", identifierValue: "", locationType: "bearer", locationName: "", permissionQuery: "", action: "ACTION_DENY" }
 ]
 
 Input: "keyauth via X-API-Key header with api:read permission, then burst 5/s sustained 200/min"
 Output: [
-  { name: "Key Authentication", type: "keyauth", locationType: "header", locationName: "X-API-Key", permissionQuery: "api:read", limit: 0, windowMs: 0, keySource: "remoteIp", keyValue: "" },
-  { name: "Burst Protection", type: "ratelimit", limit: 5, windowMs: 1000, keySource: "authenticatedSubject", keyValue: "", locationType: "bearer", locationName: "", permissionQuery: "" },
-  { name: "Sustained Limit", type: "ratelimit", limit: 200, windowMs: 60000, keySource: "authenticatedSubject", keyValue: "", locationType: "bearer", locationName: "", permissionQuery: "" }
+  { name: "Key Authentication", type: "keyauth", locationType: "header", locationName: "X-API-Key", permissionQuery: "api:read", limit: 0, windowMs: 0, identifierSource: "remoteIp", identifierValue: "", action: "ACTION_DENY" },
+  { name: "Burst Protection", type: "ratelimit", limit: 5, windowMs: 1000, identifierSource: "authenticatedSubject", identifierValue: "", locationType: "bearer", locationName: "", permissionQuery: "", action: "ACTION_DENY" },
+  { name: "Sustained Limit", type: "ratelimit", limit: 200, windowMs: 60000, identifierSource: "authenticatedSubject", identifierValue: "", locationType: "bearer", locationName: "", permissionQuery: "", action: "ACTION_DENY" }
 ]
 
-Input: "burst 10 req/s per IP, sustained 300/min per IP, per-key 50/min"
+Input: "block all traffic to /admin"
 Output: [
-  { name: "Burst Protection", type: "ratelimit", limit: 10, windowMs: 1000, keySource: "remoteIp", keyValue: "", locationType: "bearer", locationName: "", permissionQuery: "" },
-  { name: "Sustained Limit", type: "ratelimit", limit: 300, windowMs: 60000, keySource: "remoteIp", keyValue: "", locationType: "bearer", locationName: "", permissionQuery: "" },
-  { name: "Per-Key Limit", type: "ratelimit", limit: 50, windowMs: 60000, keySource: "authenticatedSubject", keyValue: "", locationType: "bearer", locationName: "", permissionQuery: "" }
+  { name: "Block Admin", type: "firewall", action: "ACTION_DENY", limit: 0, windowMs: 0, identifierSource: "remoteIp", identifierValue: "", locationType: "bearer", locationName: "", permissionQuery: "" }
 ]
 
 Input: "per-key limit 20/min, per-workspace limit 100/min"
 Output: [
-  { name: "Per-Key Limit", type: "ratelimit", limit: 20, windowMs: 60000, keySource: "authenticatedSubject", keyValue: "", locationType: "bearer", locationName: "", permissionQuery: "" },
-  { name: "Per-Workspace Limit", type: "ratelimit", limit: 100, windowMs: 60000, keySource: "principalClaim", keyValue: "workspace_id", locationType: "bearer", locationName: "", permissionQuery: "" }
+  { name: "Per-Key Limit", type: "ratelimit", limit: 20, windowMs: 60000, identifierSource: "authenticatedSubject", identifierValue: "", locationType: "bearer", locationName: "", permissionQuery: "", action: "ACTION_DENY" },
+  { name: "Per-Workspace Limit", type: "ratelimit", limit: 100, windowMs: 60000, identifierSource: "principalField", identifierValue: "workspace_id", locationType: "bearer", locationName: "", permissionQuery: "", action: "ACTION_DENY" }
 ]`;
 }

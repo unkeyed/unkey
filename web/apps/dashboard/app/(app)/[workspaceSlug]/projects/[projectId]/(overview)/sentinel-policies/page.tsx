@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ProjectContentWrapper } from "../../components/project-content-wrapper";
 import { useOptionalProjectLayout } from "../layout-provider";
 import { SentinelPolicyPanel } from "./components/add-panel";
@@ -18,10 +18,43 @@ export default function SentinelPoliciesPage() {
   const layout = useOptionalProjectLayout();
   const { envAId, envBId, envASlug, envBSlug, merged, isLoading, isError } =
     useSentinelPoliciesData();
-  const actions = useSentinelPolicyActions({ envAId, envBId });
+  const actions = useSentinelPolicyActions({ envAId, envBId, envASlug, envBSlug });
   const panels = useSentinelPolicyPanels();
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const [aiPreview, setAiPreview] = useState<PolicyFormValues[]>([]);
+
+  const closeAiPanel = useCallback(() => setIsAiPanelOpen(false), []);
+  const handleOpenAddFromAi = useCallback(
+    (values: PolicyFormValues, index: number) => {
+      setIsAiPanelOpen(false);
+      panels.openAdd(values, true, index);
+    },
+    [panels.openAdd],
+  );
+
+  const handleAddAll = useCallback(() => {
+    const keyauthPolicies: PolicyFormValues[] = [];
+    const directSave: PolicyFormValues[] = [];
+
+    for (const p of aiPreview) {
+      if (p.type === "keyauth" && p.keySpaceIds.length === 0) {
+        keyauthPolicies.push(p);
+      } else {
+        directSave.push(p);
+      }
+    }
+
+    if (directSave.length > 0) {
+      actions.saveFromForm(directSave);
+    }
+
+    if (keyauthPolicies.length > 0) {
+      setAiPreview(keyauthPolicies);
+    } else {
+      setAiPreview([]);
+      setIsAiPanelOpen(false);
+    }
+  }, [aiPreview, actions]);
 
   const editingRow = panels.editing ? merged.find((m) => m.id === panels.editing?.id) : undefined;
   const editingEnabled = {
@@ -42,7 +75,7 @@ export default function SentinelPoliciesPage() {
     <ProjectContentWrapper centered maxWidth="960px" className="mt-8">
       <div className="flex flex-col gap-5">
         <SentinelPoliciesHeader
-          onAddPolicy={panels.openAdd}
+          onAddPolicy={() => panels.openAdd()}
           onGenerateWithAi={() => setIsAiPanelOpen(true)}
         />
         {isError ? (
@@ -66,13 +99,11 @@ export default function SentinelPoliciesPage() {
         <AiPolicyPrompt
           isOpen={isAiPanelOpen}
           topOffset={layout?.tableDistanceToTop ?? 0}
-          onClose={() => setIsAiPanelOpen(false)}
+          onClose={closeAiPanel}
           preview={aiPreview}
           onPreviewChange={setAiPreview}
-          onOpenAddPanel={(values, index) => {
-            setIsAiPanelOpen(false);
-            panels.openAdd(values, true, index);
-          }}
+          onOpenAddPanel={handleOpenAddFromAi}
+          onAddAll={handleAddAll}
         />
         <SentinelPolicyPanel
           key={panels.addKey}
@@ -86,6 +117,12 @@ export default function SentinelPoliciesPage() {
             panels.closeAdd();
             if (panels.addOpenedFromAi) {
               setIsAiPanelOpen(true);
+            }
+          }}
+          onDismiss={(values) => {
+            if (panels.addOpenedFromAi && panels.addAiPreviewIndex !== null) {
+              const idx = panels.addAiPreviewIndex;
+              setAiPreview((prev) => prev.map((p, i) => (i === idx ? values : p)));
             }
           }}
           onSave={(prodPolicy, previewPolicy) => {
