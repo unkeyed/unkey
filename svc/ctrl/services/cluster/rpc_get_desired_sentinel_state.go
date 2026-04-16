@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // GetDesiredSentinelState returns the target state for a single sentinel resource. This is
@@ -24,7 +25,7 @@ import (
 // or CodeInternal for database errors or unhandled states.
 func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredSentinelStateRequest]) (*connect.Response[ctrlv1.SentinelState], error) {
 
-	if err := s.authenticate(req); err != nil {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
 

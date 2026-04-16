@@ -14,6 +14,7 @@ go_library(
         "//pkg/logger",
         "//pkg/restate/admin",
         "//pkg/uid",
+        "//svc/ctrl/internal/auth",
         "@com_connectrpc_connect//:connect",
         "@com_github_restatedev_sdk_go//ingress",
     ],

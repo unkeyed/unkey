@@ -1,18 +1,15 @@
 "use client";
-import { VirtualTable, type VirtualTableRef } from "@/components/virtual-table";
-import type { Column } from "@/components/virtual-table/types";
-import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import { Key, MathFunction } from "@unkey/icons";
-import { Badge, TimestampInfo } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
-import { useEffect, useRef } from "react";
-import { useAuditLogsQuery } from "./hooks/use-logs-query";
 import {
+  EmptyAuditLogs,
+  createAuditLogColumns,
   getAuditRowClassName,
   getAuditSelectedClassName,
-  getAuditStatusStyle,
-  getEventType,
-} from "./utils/get-row-class";
+  renderAuditLogSkeletonRow,
+  useAuditLogsQuery,
+} from "@/components/audit-logs-table";
+import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
+import { DataTable, type DataTableRef, PaginationFooter } from "@unkey/ui";
+import { useEffect, useMemo, useRef } from "react";
 
 type Props = {
   selectedLog: AuditLog | null;
@@ -21,125 +18,51 @@ type Props = {
 };
 
 export const AuditLogsTable = ({ selectedLog, setSelectedLog, onMount }: Props) => {
-  const tableRef = useRef<VirtualTableRef>(null);
-  const { historicalLogs, loadMore, isLoadingMore, isLoading } = useAuditLogsQuery({});
+  const tableRef = useRef<DataTableRef>(null);
+  const { auditLogs, isLoading, page, pageSize, totalPages, totalCount, onPageChange } =
+    useAuditLogsQuery();
 
   useEffect(() => {
     const distanceToTop = tableRef.current?.containerRef?.getBoundingClientRect().top ?? 0;
     onMount(distanceToTop);
   }, [onMount]);
 
+  useEffect(() => {
+    if (selectedLog && !auditLogs.some((log) => log.auditLog.id === selectedLog.auditLog.id)) {
+      setSelectedLog(null);
+    }
+  }, [auditLogs, selectedLog, setSelectedLog]);
+
+  const columns = useMemo(() => createAuditLogColumns({ selectedLog }), [selectedLog]);
+
   return (
-    <VirtualTable
-      ref={tableRef}
-      data={historicalLogs}
-      columns={columns(selectedLog)}
-      isLoading={isLoading}
-      isFetchingNextPage={isLoadingMore}
-      onLoadMore={loadMore}
-      rowClassName={(log) =>
-        getAuditRowClassName(
-          log,
-          selectedLog?.auditLog.id === log.auditLog.id,
-          Boolean(selectedLog),
-        )
-      }
-      selectedItem={selectedLog}
-      onRowClick={setSelectedLog}
-      selectedClassName={getAuditSelectedClassName}
-      keyExtractor={(log) => log.auditLog.id}
-      config={{
-        loadingRows: 50,
-      }}
-    />
+    <>
+      <DataTable
+        ref={tableRef}
+        data={auditLogs}
+        columns={columns}
+        getRowId={(log) => log.auditLog.id}
+        isLoading={isLoading}
+        onRowClick={setSelectedLog}
+        selectedItem={selectedLog}
+        rowClassName={(log) => getAuditRowClassName(log, selectedLog)}
+        selectedClassName={getAuditSelectedClassName}
+        renderSkeletonRow={renderAuditLogSkeletonRow}
+        emptyState={<EmptyAuditLogs />}
+        config={{
+          rowHeight: 26,
+          layout: "classic",
+          rowBorders: true,
+          loadingRows: 50,
+        }}
+      />
+      <PaginationFooter
+        page={page}
+        pageSize={pageSize}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        onPageChange={onPageChange}
+      />
+    </>
   );
 };
-
-export const columns = (selectedLog: AuditLog | null): Column<AuditLog>[] => [
-  {
-    key: "time",
-    header: "Time",
-    width: "12%",
-    headerClassName: "pl-2",
-    render: (log) => {
-      return (
-        <TimestampInfo
-          value={log.auditLog.time}
-          className={cn(
-            "font-mono group-hover:underline decoration-dotted pl-2",
-            selectedLog && selectedLog.auditLog.id !== log.auditLog.id && "pointer-events-none",
-          )}
-        />
-      );
-    },
-  },
-  {
-    key: "actor",
-    header: "Actor",
-    width: "15%",
-    render: (log) => (
-      <div className="flex items-center gap-3 truncate">
-        {log.auditLog.actor.type === "user" && log.user ? (
-          <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
-            <span className="text-xs whitespace-nowrap secret truncate">
-              {`${log.user.firstName ?? ""} ${log.user.lastName ?? ""}`}
-            </span>
-          </div>
-        ) : log.auditLog.actor.type === "key" ? (
-          <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
-            <Key iconSize="sm-thin" />
-            <span className="font-mono text-xs truncate secret">{log.auditLog.actor.id}</span>
-          </div>
-        ) : (
-          <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
-            <MathFunction iconSize="sm-thin" />
-            <span className="font-mono text-xs truncate secret">{log.auditLog.actor.id}</span>
-          </div>
-        )}
-      </div>
-    ),
-  },
-  {
-    key: "action",
-    header: "Action",
-    width: "10%",
-    render: (log) => {
-      const eventType = getEventType(log.auditLog.event);
-      const style = getAuditStatusStyle(log);
-      const isSelected = log.auditLog.id === selectedLog?.auditLog.id;
-
-      return (
-        <div className="flex items-center gap-3 group/action">
-          <Badge
-            className={cn(
-              "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-              isSelected ? style.badge.selected : style.badge.default,
-            )}
-          >
-            {eventType}
-          </Badge>
-        </div>
-      );
-    },
-  },
-  {
-    key: "event",
-    header: "Event",
-    width: "25%",
-    render: (log) => (
-      <div className="flex items-center gap-2 font-mono text-xs overflow-hidden">
-        <span className="truncate">{log.auditLog.event}</span>
-      </div>
-    ),
-  },
-  {
-    key: "event-description",
-    header: "Description",
-    width: "38%",
-    render: (log) => (
-      <div className="font-mono text-xs overflow-hidden text-ellipsis whitespace-nowrap truncate min-w-0">
-        {log.auditLog.description}
-      </div>
-    ),
-  },
-];

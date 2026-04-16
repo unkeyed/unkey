@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // Heartbeat registers or refreshes a krane agent's cluster and region in the
@@ -19,7 +20,7 @@ import (
 // The method upserts into regions (keyed by region name) and clusters
 // (keyed by region_id), updating the heartbeat timestamp on each call.
 func (s *Service) Heartbeat(ctx context.Context, req *connect.Request[ctrlv1.HeartbeatRequest]) (*connect.Response[ctrlv1.HeartbeatResponse], error) {
-	if err := s.authenticate(req); err != nil {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
 
