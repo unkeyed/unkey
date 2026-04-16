@@ -220,7 +220,8 @@
             "group": "Deployments",
             "pages": [
               "infra/deployments/argocd-debugging",
-              "infra/deployments/cronjobs"
+              "infra/deployments/cronjobs",
+              "infra/deployments/sentinel-rollout"
             ]
           },
           {

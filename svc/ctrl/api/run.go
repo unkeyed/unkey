@@ -120,6 +120,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	c := cluster.New(cluster.Config{
 		Database: database,
+		Restate:  restateClient,
 		Bearer:   cfg.AuthToken,
 	})
 
@@ -172,9 +173,13 @@ func Run(ctx context.Context, cfg Config) error {
 		Database: database,
 		Restate:  restateClient,
 		GitHub:   ghClient,
+		Bearer:   cfg.AuthToken,
 	})))
 
-	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(database)))
+	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(openapi.Config{
+		Database: database,
+		Bearer:   cfg.AuthToken,
+	})))
 	mux.Handle(ctrlv1connect.NewAcmeServiceHandler(acme.New(acme.Config{
 		DB:             database,
 		DomainCache:    domainCache,
@@ -199,6 +204,7 @@ func Run(ctx context.Context, cfg Config) error {
 		RestateAdmin:               restateAdminClient,
 		CnameDomain:                cfg.CnameDomain,
 		DomainConnectPrivateKeyPEM: dcPrivateKeyPEM,
+		Bearer:                     cfg.AuthToken,
 	})))
 	appSvc := app.New(app.Config{
 		Database: database,

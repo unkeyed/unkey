@@ -5,7 +5,6 @@ go_library(
     srcs = [
         "build.go",
         "cilium_policy.go",
-        "compensation.go",
         "deploy_handler.go",
         "deployment_step.go",
         "doc.go",
@@ -30,6 +29,7 @@ go_library(
         "//pkg/fault",
         "//pkg/logger",
         "//pkg/ptr",
+        "//pkg/restate/compensation",
         "//pkg/uid",
         "//svc/ctrl/worker/github",
         "//svc/krane/pkg/labels",

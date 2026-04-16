@@ -3,7 +3,6 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "cluster",
     srcs = [
-        "auth.go",
         "doc.go",
         "rpc_get_desired_cilium_network_policy_state.go",
         "rpc_get_desired_deployment_state.go",
@@ -20,6 +19,7 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//gen/proto/hydra/v1:hydra",
         "//pkg/assert",
         "//pkg/db",
         "//pkg/logger",
@@ -28,6 +28,7 @@ go_library(
         "//svc/ctrl/internal/auth",
         "//svc/ctrl/pkg/metrics",
         "@com_connectrpc_connect//:connect",
+        "@com_github_restatedev_sdk_go//ingress",
     ],
 )
 
