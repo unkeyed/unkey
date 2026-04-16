@@ -2,8 +2,11 @@ package sentinel
 
 import (
 	"context"
+	"math/rand/v2"
+	"time"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/conc"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	appsv1 "k8s.io/api/apps/v1"
@@ -15,61 +18,85 @@ import (
 // and reports actual state changes back to the control plane in real-time.
 //
 // The watch filters for resources with the "managed-by: krane" and "component: sentinel"
-// labels. When a Deployment's available replica count changes, the method reports
-// the actual state to the control plane so it knows which sentinels are ready.
+// labels. When a Deployment's status changes, the method evaluates health via
+// [determineHealth] and reports it to the control plane.
+//
+// Events are processed concurrently via [conc.Sem] so that a slow RPC for one
+// sentinel does not block reporting for others.
+//
+// The initial watch must succeed for the controller to start. After that the
+// goroutine automatically reconnects with jittered backoff (1-5s) when the
+// watch disconnects or times out.
 func (c *Controller) runActualStateReportLoop(ctx context.Context) error {
-	w, err := c.clientSet.AppsV1().Deployments(NamespaceSentinel).Watch(ctx, metav1.ListOptions{
-		LabelSelector: labels.New().
-			ManagedByKrane().
-			ComponentSentinel().
-			ToString(),
-	})
+	w, err := c.watchSentinels(ctx)
 	if err != nil {
 		return err
 	}
 
 	go func() {
-		for event := range w.ResultChan() {
-			switch event.Type {
-			case watch.Error:
-				logger.Error("error watching sentinel", "event", event.Object)
-			case watch.Bookmark:
-			case watch.Added, watch.Modified:
-				sentinel, ok := event.Object.(*appsv1.Deployment)
-				if !ok {
-					logger.Error("unable to cast object to deployment")
-					continue
-				}
-				logger.Info("sentinel added/modified", "name", sentinel.Name)
+		sem := conc.NewSem(conc.DefaultConcurrency)
+		defer sem.Wait()
 
-				desiredReplicas := int32(0)
-				if sentinel.Spec.Replicas != nil {
-					desiredReplicas = *sentinel.Spec.Replicas
-				}
+		for {
+			c.drainSentinelWatch(ctx, w, sem)
 
-				var health ctrlv1.Health
-				if desiredReplicas == 0 {
-					health = ctrlv1.Health_HEALTH_PAUSED
-				} else if sentinel.Status.AvailableReplicas > 0 {
-					health = ctrlv1.Health_HEALTH_HEALTHY
-				} else {
-					health = ctrlv1.Health_HEALTH_UNHEALTHY
-				}
+			if ctx.Err() != nil {
+				return
+			}
 
-				err := c.reportSentinelStatus(ctx, &ctrlv1.ReportSentinelStatusRequest{
-					K8SName:           sentinel.Name,
-					AvailableReplicas: sentinel.Status.AvailableReplicas,
-					Health:            health,
-				})
-				if err != nil {
-					logger.Error("error reporting sentinel status", "error", err.Error())
-				}
-			case watch.Deleted:
-				sentinel, ok := event.Object.(*appsv1.Deployment)
-				if !ok {
-					logger.Error("unable to cast object to deployment")
-					continue
-				}
+			backoff := time.Second + time.Millisecond*time.Duration(rand.Float64()*4000)
+			logger.Warn("sentinel watch: disconnected, reconnecting", "backoff", backoff)
+			time.Sleep(backoff)
+
+			var watchErr error
+			w, watchErr = c.watchSentinels(ctx)
+			if watchErr != nil {
+				logger.Error("sentinel watch: unable to re-establish watch", "error", watchErr.Error())
+				continue
+			}
+		}
+	}()
+
+	return nil
+}
+
+// watchSentinels creates a new Kubernetes watch for krane-managed sentinel Deployments.
+func (c *Controller) watchSentinels(ctx context.Context) (watch.Interface, error) {
+	return c.clientSet.AppsV1().Deployments(NamespaceSentinel).Watch(ctx, metav1.ListOptions{
+		LabelSelector: labels.New().
+			ManagedByKrane().
+			ComponentSentinel().
+			ToString(),
+	})
+}
+
+// drainSentinelWatch processes events from a sentinel Deployment watch until
+// the channel closes or the context is cancelled. Reports are dispatched
+// concurrently through sem so a slow RPC doesn't block other events.
+func (c *Controller) drainSentinelWatch(ctx context.Context, w watch.Interface, sem *conc.Sem) {
+	for event := range w.ResultChan() {
+		switch event.Type {
+		case watch.Error:
+			logger.Error("error watching sentinel", "event", event.Object)
+		case watch.Bookmark:
+		case watch.Added, watch.Modified:
+			sentinel, ok := event.Object.(*appsv1.Deployment)
+			if !ok {
+				logger.Error("unable to cast object to deployment")
+				continue
+			}
+
+			sem.Go(ctx, func(ctx context.Context) {
+				c.reportSentinelState(ctx, sentinel)
+			})
+		case watch.Deleted:
+			sentinel, ok := event.Object.(*appsv1.Deployment)
+			if !ok {
+				logger.Error("unable to cast object to deployment")
+				continue
+			}
+
+			sem.Go(ctx, func(ctx context.Context) {
 				logger.Info("sentinel deleted", "name", sentinel.Name)
 				err := c.reportSentinelStatus(ctx, &ctrlv1.ReportSentinelStatusRequest{
 					K8SName:           sentinel.Name,
@@ -79,9 +106,25 @@ func (c *Controller) runActualStateReportLoop(ctx context.Context) error {
 				if err != nil {
 					logger.Error("error reporting sentinel status", "error", err.Error())
 				}
-			}
+			})
 		}
-	}()
+	}
+}
 
-	return nil
+// reportSentinelState computes and reports the health of a sentinel Deployment.
+func (c *Controller) reportSentinelState(ctx context.Context, sentinel *appsv1.Deployment) {
+	logger.Info("sentinel added/modified", "name", sentinel.Name)
+
+	health := determineHealth(sentinel)
+	sentinelID := sentinel.Labels[labels.LabelKeySentinelID]
+	err := c.reportSentinelStatus(ctx, &ctrlv1.ReportSentinelStatusRequest{
+		K8SName:           sentinel.Name,
+		AvailableReplicas: sentinel.Status.AvailableReplicas,
+		Health:            health,
+		SentinelId:        sentinelID,
+		RunningImage:      convergedImage(sentinel),
+	})
+	if err != nil {
+		logger.Error("error reporting sentinel status", "error", err.Error())
+	}
 }

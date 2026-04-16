@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/sentinel/engine/principal"
 )
 
 // Executor handles standalone RateLimit policy evaluation. This is distinct
@@ -38,9 +39,9 @@ func (e *Executor) Execute(
 	req *http.Request,
 	policyID string,
 	cfg *sentinelv1.RateLimit,
-	principal *sentinelv1.Principal,
+	principal *principal.Principal,
 ) error {
-	identifier := extractIdentifier(sess, req, cfg.GetKey(), principal)
+	identifier := extractIdentifier(sess, req, cfg.GetIdentifier(), principal)
 	if identifier == "" {
 		return fault.New("missing rate limit identifier",
 			fault.Code(codes.Sentinel.Auth.RateLimited.URN()),
@@ -54,9 +55,8 @@ func (e *Executor) Execute(
 		Identifier: identifier,
 		Limit:      cfg.GetLimit(),
 		Duration:   time.Duration(cfg.GetWindowMs()) * time.Millisecond,
-		// NOTE: Move this to proto so users can configure cost
-		Cost: 1,
-		Time: time.Time{},
+		Cost:       1,
+		Time:       time.Time{},
 	})
 	if err != nil {
 		return fault.Wrap(err,

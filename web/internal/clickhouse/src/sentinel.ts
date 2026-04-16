@@ -138,8 +138,13 @@ export function getSentinelLogs(ch: Querier) {
       AND (CASE WHEN {environmentId: Nullable(String)} IS NOT NULL
            THEN position(environment_id, {environmentId: Nullable(String)}) > 0
            ELSE TRUE END)
+      -- Class codes (200,300,400,500) match via intDiv: intDiv(404,100)*100=400.
+      -- Specific codes (401,503) match via exact IN; their class won't be in the array.
       AND (CASE WHEN length({statusCodes: Array(Int32)}) > 0
-           THEN response_status IN {statusCodes: Array(Int32)}
+           THEN (
+             response_status IN {statusCodes: Array(Int32)}
+             OR intDiv(response_status, 100) * 100 IN {statusCodes: Array(Int32)}
+           )
            ELSE TRUE END)
       AND (CASE WHEN length({methods: Array(String)}) > 0
            THEN method IN {methods: Array(String)}

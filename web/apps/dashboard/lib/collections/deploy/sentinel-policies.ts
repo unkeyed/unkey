@@ -65,8 +65,9 @@ export const rowKey = (environmentId: string, policyId: string) => `${environmen
  * .where(({ p }) => eq(p.environmentId, environmentId))
  *
  * Mutations route by `policy.type` to the matching tRPC endpoint
- * (sentinel.keyauth.{create,update,delete} for now). To add a new policy
- * type, extend `sentinelPolicySchema` and add a branch in each handler.
+ * (sentinel.keyauth.{create,update,delete} and sentinel.firewall.{create,
+ * update,delete} today). To add a new policy type, extend
+ * `sentinelPolicySchema` and add a branch in each dispatch* helper below.
  */
 export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
   queryCollectionOptions({
@@ -209,6 +210,12 @@ function dispatchCreate(environmentId: string, policy: SentinelPolicy): Promise<
         policy: p,
       }),
     )
+    .with({ type: "firewall" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.firewall.create.mutate({
+        environmentId,
+        policy: p,
+      }),
+    )
     .exhaustive();
 }
 
@@ -226,6 +233,12 @@ function dispatchUpdate(environmentId: string, policy: SentinelPolicy): Promise<
         policy: p,
       }),
     )
+    .with({ type: "firewall" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.firewall.update.mutate({
+        environmentId,
+        policy: p,
+      }),
+    )
     .exhaustive();
 }
 
@@ -239,6 +252,12 @@ function dispatchDelete(environmentId: string, policy: SentinelPolicy): Promise<
     )
     .with({ type: "ratelimit" }, (p) =>
       trpcClient.deploy.environmentSettings.sentinel.ratelimit.delete.mutate({
+        environmentId,
+        policyId: p.id,
+      }),
+    )
+    .with({ type: "firewall" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.firewall.delete.mutate({
         environmentId,
         policyId: p.id,
       }),

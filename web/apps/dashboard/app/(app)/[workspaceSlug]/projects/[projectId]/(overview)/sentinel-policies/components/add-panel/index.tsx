@@ -2,21 +2,24 @@
 
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { match } from "@unkey/match";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
 import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { KeyAuthFields } from "./forms/keyauth-fields";
-import { RateLimitFields } from "./forms/ratelimit-fields";
+import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
+import { KeyAuthFields, KeyauthPolicySummary } from "./forms/keyauth-fields";
+import { RateLimitFields, RatelimitPolicySummary } from "./forms/ratelimit-fields";
+import { DocsLink } from "./forms/summary-helpers";
 import {
   MatchConditionEditorBody,
   MatchConditionsClearAll,
   MatchConditionsSummary,
 } from "./match-condition-editor";
 import { PolicyForm } from "./policy-form";
-import { PolicySummary } from "./policy-summaries";
 import {
   POLICY_TYPE_OPTIONS,
   type PolicyFormValues,
+  type PolicyType,
   fromSentinelPolicy,
   getDefaultValues,
   policyFormSchema,
@@ -100,15 +103,9 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       description={
         <div className="flex gap-2 items-center">
           {isEdit ? "Update this sentinel policy." : "Configure and add a new sentinel policy."}
-          <a
-            href="https://www.unkey.com/docs/platform/sentinel/policies/overview"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span className="font-medium text-gray-12 underline underline-offset-2 decoration-grayA-6 group-hover:decoration-gray-12 transition-colors decoration-dotted">
-              See docs for more
-            </span>
-          </a>
+          <DocsLink href="https://www.unkey.com/docs/platform/sentinel/policies/overview">
+            See docs for more
+          </DocsLink>
         </div>
       }
       isOpen={isOpen}
@@ -143,18 +140,23 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
               label="Type"
               options={POLICY_TYPE_OPTIONS}
               value={field.value}
-              onValueChange={(nextType) => {
-                if (nextType !== field.value) {
-                  const name = form.getValues("name");
-                  const environmentId = form.getValues("environmentId");
-                  const matchConditions = form.getValues("matchConditions");
-                  form.reset({
-                    ...getDefaultValues(nextType as PolicyFormValues["type"]),
-                    name,
-                    environmentId,
-                    matchConditions,
-                  });
+              onValueChange={(next) => {
+                // Reset the form to the defaults of the newly-chosen type so
+                // type-specific fields don't leak between branches of the
+                // discriminated union. Shared fields (name, environmentId,
+                // matchConditions) are preserved so the user doesn't lose
+                // work when they switch types after starting to configure.
+                if (isEdit) {
+                  return;
                 }
+                const defaults = getDefaultValues(next as PolicyType);
+                form.reset({
+                  ...defaults,
+                  name: form.getValues("name"),
+                  environmentId: form.getValues("environmentId"),
+                  matchConditions: form.getValues("matchConditions"),
+                });
+                field.onChange(next);
               }}
               disabled={isEdit}
               description="The kind of protection this policy enforces."
@@ -169,11 +171,18 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
         <PolicyForm.Section
           id="config"
           label="Policy Configuration"
-          summary={<PolicySummary />}
+          summary={match(policyType)
+            .with("keyauth", () => <KeyauthPolicySummary />)
+            .with("ratelimit", () => <RatelimitPolicySummary />)
+            .with("firewall", () => <FirewallPolicySummary />)
+            .exhaustive()}
           catchAll
         >
-          {policyType === "keyauth" && <KeyAuthFields />}
-          {policyType === "ratelimit" && <RateLimitFields />}
+          {match(policyType)
+            .with("keyauth", () => <KeyAuthFields />)
+            .with("ratelimit", () => <RateLimitFields />)
+            .with("firewall", () => <FirewallFields />)
+            .exhaustive()}
         </PolicyForm.Section>
         <PolicyForm.Section
           id="matchConditions"

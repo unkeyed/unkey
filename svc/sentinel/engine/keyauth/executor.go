@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/internal/services/keys"
@@ -15,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/sentinel/engine/principal"
 )
 
 // Executor handles KeyAuth policy evaluation by wrapping the existing KeyService.
@@ -38,7 +38,7 @@ func (e *Executor) Execute(
 	sess *zen.Session,
 	req *http.Request,
 	cfg *sentinelv1.KeyAuth,
-) (*sentinelv1.Principal, error) {
+) (*principal.Principal, error) {
 	rawKey := extractKey(req, cfg.GetLocations())
 	if rawKey == "" {
 		return nil, fault.New("missing API key",
@@ -59,7 +59,8 @@ func (e *Executor) Execute(
 		)
 	}
 
-	// Check basic validation (not found, disabled, expired, workspace disabled, etc.)
+	// Fail fast on states that verification cannot recover from (not found,
+	// disabled, expired, workspace disabled, etc.) before spending a credit.
 	if verifier.Status != keys.StatusValid {
 		return nil, fault.New("invalid API key",
 			fault.Code(codes.Sentinel.Auth.InvalidKey.URN()),
@@ -68,16 +69,7 @@ func (e *Executor) Execute(
 		)
 	}
 
-	allowedKeyspace := false
-	for _, allowedKeyspaceID := range cfg.GetKeySpaceIds() {
-		if verifier.Key.KeyAuthID == allowedKeyspaceID {
-			allowedKeyspace = true
-			break
-		}
-	}
-
-	// Verify the key belongs to the expected key space
-	if !allowedKeyspace {
+	if !keyspaceAllowed(verifier.Key.KeyAuthID, cfg.GetKeySpaceIds()) {
 		return nil, fault.New("key does not belong to expected key space",
 			fault.Code(codes.Sentinel.Auth.InvalidKey.URN()),
 			fault.Internal(fmt.Sprintf("key belongs to key space %s, expected one of %s", verifier.Key.KeyAuthID, strings.Join(cfg.GetKeySpaceIds(), ","))),
@@ -85,28 +77,21 @@ func (e *Executor) Execute(
 		)
 	}
 
-	// Build verify options
-	var verifyOpts []keys.VerifyOption
-
+	verifyOpts := []keys.VerifyOption{keys.WithCredits(1)}
 	if pq := cfg.GetPermissionQuery(); pq != "" {
-		query, parseErr := rbac.ParseQuery(pq)
-		if parseErr != nil {
-			return nil, fault.Wrap(parseErr,
+		query, err := rbac.ParseQuery(pq)
+		if err != nil {
+			return nil, fault.Wrap(err,
 				fault.Code(codes.Sentinel.Internal.InvalidConfiguration.URN()),
 				fault.Internal("invalid permission query: "+pq),
 				fault.Public("Service configuration error."),
 			)
 		}
-
 		verifyOpts = append(verifyOpts, keys.WithPermissions(query))
 	}
 
-	// Deduct 1 credit per request by default
-	verifyOpts = append(verifyOpts, keys.WithCredits(1))
-
-	verifyErr := verifier.Verify(ctx, verifyOpts...)
-	if verifyErr != nil {
-		return nil, fault.Wrap(verifyErr,
+	if err := verifier.Verify(ctx, verifyOpts...); err != nil {
+		return nil, fault.Wrap(err,
 			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
 			fault.Internal("verification error"),
 			fault.Public("An internal error occurred during authentication."),
@@ -117,7 +102,6 @@ func (e *Executor) Execute(
 	// on both success (2xx) and rate-limited (429) responses.
 	writeRateLimitHeaders(sess.ResponseWriter(), verifier.RatelimitResults, e.clock)
 
-	// Check post-verification status
 	switch verifier.Status {
 	case keys.StatusValid:
 		// OK
@@ -141,8 +125,8 @@ func (e *Executor) Execute(
 		)
 	case keys.StatusNotFound, keys.StatusDisabled, keys.StatusExpired,
 		keys.StatusForbidden, keys.StatusWorkspaceDisabled, keys.StatusWorkspaceNotFound:
-		// These should have been caught by the pre-verify status check above,
-		// but handle them here for exhaustiveness.
+		// These should have been caught by the pre-verify status check, but
+		// handle them here for exhaustiveness.
 		return nil, fault.New("key verification failed",
 			fault.Code(codes.Sentinel.Auth.InvalidKey.URN()),
 			fault.Internal("post-verification status: "+string(verifier.Status)),
@@ -150,38 +134,24 @@ func (e *Executor) Execute(
 		)
 	}
 
-	// Build the principal
-	subject := verifier.Key.ID
-	if verifier.Key.ExternalID.Valid && verifier.Key.ExternalID.String != "" {
-		subject = verifier.Key.ExternalID.String
+	p, err := principal.KeyPrincipalFromVerifier(verifier)
+	if err != nil {
+		return nil, fault.Wrap(err,
+			fault.Code(codes.Sentinel.Internal.InternalServerError.URN()),
+			fault.Internal("failed to build principal"),
+			fault.Public("An internal error occurred during authentication."),
+		)
 	}
+	return p, nil
+}
 
-	claims := map[string]string{
-		"key_id":       verifier.Key.ID,
-		"key_space_id": verifier.Key.KeyAuthID,
-		"api_id":       verifier.Key.ApiID,
-		"workspace_id": verifier.Key.WorkspaceID,
+// keyspaceAllowed reports whether the key's keyspace is in the policy's
+// allowlist.
+func keyspaceAllowed(keyspaceID string, allowed []string) bool {
+	for _, id := range allowed {
+		if keyspaceID == id {
+			return true
+		}
 	}
-	if verifier.Key.Name.Valid && verifier.Key.Name.String != "" {
-		claims["name"] = verifier.Key.Name.String
-	}
-	if verifier.Key.IdentityID.Valid && verifier.Key.IdentityID.String != "" {
-		claims["identity_id"] = verifier.Key.IdentityID.String
-	}
-	if verifier.Key.ExternalID.Valid && verifier.Key.ExternalID.String != "" {
-		claims["external_id"] = verifier.Key.ExternalID.String
-	}
-	if verifier.Key.Meta.Valid && verifier.Key.Meta.String != "" {
-		claims["meta"] = verifier.Key.Meta.String
-	}
-	if verifier.Key.Expires.Valid {
-		claims["expires"] = verifier.Key.Expires.Time.Format(time.RFC3339)
-	}
-
-	//nolint:exhaustruct
-	return &sentinelv1.Principal{
-		Subject: subject,
-		Type:    sentinelv1.PrincipalType_PRINCIPAL_TYPE_API_KEY,
-		Claims:  claims,
-	}, nil
+	return false
 }

@@ -75,6 +75,9 @@ import { updateRegions } from "./deploy/environment-settings/runtime/update-regi
 import { updateStorage } from "./deploy/environment-settings/runtime/update-storage";
 import { updateUpstreamProtocol } from "./deploy/environment-settings/runtime/update-upstream-protocol";
 import { generatePolicies } from "./deploy/environment-settings/sentinel/generate-policies";
+import { create as createFirewallPolicy } from "./deploy/environment-settings/sentinel/firewall/create";
+import { remove as deleteFirewallPolicy } from "./deploy/environment-settings/sentinel/firewall/delete";
+import { update as updateFirewallPolicy } from "./deploy/environment-settings/sentinel/firewall/update";
 import { generateRegex } from "./deploy/environment-settings/sentinel/generate-regex";
 import { create as createKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/create";
 import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
@@ -162,6 +165,7 @@ import { queryRatelimitLogs } from "./ratelimit/query-logs";
 import { queryRatelimitLogEnrichment } from "./ratelimit/query-logs/enrichment";
 import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
+import { queryRatelimitTimeseriesBatch } from "./ratelimit/query-timeseries-batch";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
 import { updateOverride } from "./ratelimit/updateOverride";
 import { connectPermissionToRole } from "./rbac/connectPermissionToRole";
@@ -339,6 +343,7 @@ export const router = t.router({
       enrichment: queryRatelimitLogEnrichment,
       ratelimitLlmSearch,
       queryRatelimitTimeseries,
+      queryRatelimitTimeseriesBatch,
     }),
     overview: t.router({
       logs: t.router({
@@ -433,6 +438,11 @@ export const router = t.router({
           create: createKeyauthPolicy,
           update: updateKeyauthPolicy,
           delete: deleteKeyauthPolicy,
+        }),
+        firewall: t.router({
+          create: createFirewallPolicy,
+          update: updateFirewallPolicy,
+          delete: deleteFirewallPolicy,
         }),
         ratelimit: t.router({
           create: createRatelimitPolicy,

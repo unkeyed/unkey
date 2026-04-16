@@ -3,12 +3,13 @@
  *
  * Wire shape vs. Go service:
  *   The Go sentinel service (svc/sentinel) parses these blobs as protojson with
- *   `DiscardUnknown: true`. Policy is a protobuf oneof keyed on `keyauth | jwtauth | ...`,
+ *   `DiscardUnknown: true`. Policy is a protobuf oneof keyed on `keyauth | firewall | ...`,
  *   with no `type` discriminator field. We keep a client-side `type` field to drive
  *   zod's discriminated union and the UI router; the Go side silently ignores it.
  *
- *   Currently only `keyauth` is supported here. Add new branches by extending the
- *   discriminated union below — the collection's per-type routing will pick them up.
+ *   `keyauth` and `firewall` are supported today. Add a new branch by extending the
+ *   discriminated union below and wiring it through `fromWirePolicy` — the
+ *   collection's per-type routing will pick it up.
  */
 import { z } from "zod";
 
@@ -120,18 +121,18 @@ export type KeyauthPolicy = z.infer<typeof keyauthPolicySchema>;
 
 // ── RateLimit policy ───────────────────────────────────────────────────
 
-const rateLimitKeySchema = z.union([
+const rateLimitIdentifierSchema = z.union([
   z.object({ remoteIp: z.object({}).strict() }).strict(),
   z.object({ header: z.object({ name: z.string().min(1) }).strict() }).strict(),
   z.object({ authenticatedSubject: z.object({}).strict() }).strict(),
   z.object({ path: z.object({}).strict() }).strict(),
   z
     .object({
-      principalClaim: z.object({ claimName: z.string().min(1) }).strict(),
+      principalField: z.object({ path: z.string().min(1) }).strict(),
     })
     .strict(),
 ]);
-export type RateLimitKey = z.infer<typeof rateLimitKeySchema>;
+export type RateLimitIdentifier = z.infer<typeof rateLimitIdentifierSchema>;
 
 export const ratelimitPolicySchema = z
   .object({
@@ -141,18 +142,42 @@ export const ratelimitPolicySchema = z
       .object({
         limit: z.number().int().min(1),
         windowMs: z.number().int().min(1),
-        key: rateLimitKeySchema,
+        identifier: rateLimitIdentifierSchema,
       })
       .strict(),
   })
   .strict();
+
+// ── Firewall policy ─────────────────────────────────────────────────────
+
+// Wire values match sentinel.v1.Action enum names. Kept as string literals so
+// protojson round-trips them by name rather than numeric value. The MVP only
+// has ACTION_DENY; the enum exists so additional outcomes can land later
+// without changing the schema shape.
+export const firewallActionSchema = z.enum(["ACTION_DENY"]);
+export type FirewallAction = z.infer<typeof firewallActionSchema>;
+
+export const firewallPolicySchema = z
+  .object({
+    ...policyBase,
+    type: z.literal("firewall"),
+    firewall: z
+      .object({
+        action: firewallActionSchema,
+      })
+      .strict(),
+  })
+  .strict();
+
 export type RatelimitPolicy = z.infer<typeof ratelimitPolicySchema>;
+export type FirewallPolicy = z.infer<typeof firewallPolicySchema>;
 
 // ── Sentinel policy (discriminated union — extend with new types here) ──
 
 export const sentinelPolicySchema = z.discriminatedUnion("type", [
   keyauthPolicySchema,
   ratelimitPolicySchema,
+  firewallPolicySchema,
 ]);
 export type SentinelPolicy = z.infer<typeof sentinelPolicySchema>;
 export type SentinelPolicyType = SentinelPolicy["type"];
@@ -191,6 +216,9 @@ export function fromWirePolicy(raw: unknown): SentinelPolicy {
   }
   if ("ratelimit" in obj) {
     return sentinelPolicySchema.parse({ ...obj, type: "ratelimit" });
+  }
+  if ("firewall" in obj) {
+    return sentinelPolicySchema.parse({ ...obj, type: "firewall" });
   }
   throw new Error("unknown sentinel policy variant");
 }

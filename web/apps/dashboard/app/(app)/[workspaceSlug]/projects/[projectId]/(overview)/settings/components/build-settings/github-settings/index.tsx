@@ -1,6 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
+import { match } from "@unkey/match";
 import { useProjectData } from "../../../../data-provider";
 import { SelectedConfig } from "../../shared/selected-config";
 import { GitHubConnected } from "./github-connected";
@@ -55,50 +56,47 @@ export const GitHub = ({ readOnly = false, onBeforeNavigate }: GitHubProps) => {
     return { status: "no-repo", appId, installUrl };
   })();
 
-  switch (connectionState.status) {
-    case "loading":
-      return (
-        <GitHubSettingCard chevronState="disabled">
-          <ComboboxSkeleton />
-        </GitHubSettingCard>
-      );
-    // No-app means user haven't connected an app to unkey yet
-    case "no-app":
-      return (
-        <GitHubSettingCard chevronState="disabled">
-          <ManageGitHubAppLink
-            installUrl={connectionState.installUrl}
-            variant="outline"
-            className="px-2.5 py-3 text-gray-12 font-medium text-[13px] bg-grayA-2 shadow-md hover:bg-grayA-3"
-            onBeforeNavigate={onBeforeNavigate}
-          />
-        </GitHubSettingCard>
-      );
-    // User connected to unkey, but haven't selected a repo yet
-    case "no-repo":
-      return (
-        <GitHubNoRepo
-          projectId={projectId}
-          appId={connectionState.appId}
-          installUrl={connectionState.installUrl}
+  return match(connectionState)
+    .with({ status: "loading" }, () => (
+      <GitHubSettingCard chevronState="disabled">
+        <ComboboxSkeleton />
+      </GitHubSettingCard>
+    ))
+    .with({ status: "no-app" }, ({ installUrl: url }) => (
+      <GitHubSettingCard chevronState="disabled">
+        <ManageGitHubAppLink
+          installUrl={url}
+          variant="outline"
+          className="px-2.5 py-3 text-gray-12 font-medium text-[13px] hover:bg-grayA-2"
           onBeforeNavigate={onBeforeNavigate}
         />
-      );
-    case "connected":
+      </GitHubSettingCard>
+    ))
+    .with({ status: "no-repo" }, ({ appId, installUrl: url }) => (
+      <GitHubNoRepo
+        projectId={projectId}
+        appId={appId}
+        installUrl={url}
+        onBeforeNavigate={onBeforeNavigate}
+      />
+    ))
+    .with({ status: "connected" }, ({ appId, repoFullName, installUrl: url }) => {
       if (readOnly) {
         return (
           <GitHubSettingCard chevronState="disabled">
-            <SelectedConfig label={<RepoNameLabel fullName={connectionState.repoFullName} />} />
+            <SelectedConfig label={<RepoNameLabel fullName={repoFullName} />} />
           </GitHubSettingCard>
         );
       }
       return (
         <GitHubConnected
-          appId={connectionState.appId}
-          installUrl={connectionState.installUrl}
-          repoFullName={connectionState.repoFullName}
+          projectId={projectId}
+          appId={appId}
+          installUrl={url}
+          repoFullName={repoFullName}
           onBeforeNavigate={onBeforeNavigate}
         />
       );
-  }
+    })
+    .exhaustive();
 };

@@ -51,6 +51,7 @@ import (
 	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
+	workersentinel "github.com/unkeyed/unkey/svc/ctrl/worker/sentinel"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -86,11 +87,12 @@ func Run(ctx context.Context, cfg Config) error {
 	var err error
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
-			Application:     "worker",
-			Version:         version.Version,
-			InstanceID:      cfg.InstanceID,
-			CloudRegion:     cfg.Region,
-			TraceSampleRate: cfg.Observability.Tracing.SampleRate,
+			Application:        "worker",
+			Version:            version.Version,
+			InstanceID:         cfg.InstanceID,
+			CloudRegion:        cfg.Region,
+			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
+			PrometheusGatherer: nil,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -287,6 +289,14 @@ func Run(ctx context.Context, cfg Config) error {
 			restate.KillOnMaxAttempts(),
 		),
 	))
+
+	restateSrv.Bind(hydrav1.NewSentinelServiceServer(workersentinel.New(workersentinel.Config{
+		DB: database,
+	})))
+
+	restateSrv.Bind(hydrav1.NewSentinelRolloutServiceServer(workersentinel.NewRolloutService(workersentinel.RolloutConfig{
+		DB: database,
+	})))
 
 	// Initialize domain cache for ACME providers
 	clk := cfg.Clock

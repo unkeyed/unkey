@@ -37,20 +37,42 @@ func writePolicyRateLimitHeaders(w http.ResponseWriter, resp rl.RatelimitRespons
 func shouldOverwrite(h http.Header, resp rl.RatelimitResponse) bool {
 	existing := h.Get("X-RateLimit-Remaining")
 
-	// First policy to set headers
+	// No headers written yet, always overwrite.
 	if existing == "" {
 		return true
 	}
 
-	// Denial always takes precedence
-	if !resp.Success {
+	// Retry-After is only set on denial.
+	deniedBefore := h.Get("Retry-After") != ""
+	deniedNow := !resp.Success
+
+	// Already rate limited, don't overwrite.
+	if deniedBefore && !deniedNow {
+		return false
+	}
+
+	// Newly rate limited, overwrite.
+	if deniedNow && !deniedBefore {
 		return true
 	}
 
-	// Lower remaining = more restrictive
+	// Both are the same category (both denied or both allowed): lower remaining = more restrictive.
 	existingRemaining, err := strconv.ParseInt(existing, 10, 64)
 	if err != nil {
-		return false
+		return true
 	}
-	return resp.Remaining < existingRemaining
+	if resp.Remaining != existingRemaining {
+		return resp.Remaining < existingRemaining
+	}
+
+	// If both denied and remaining is tied, later reset is more restrictive.
+	if deniedNow {
+		existingReset, err := strconv.ParseInt(h.Get("X-RateLimit-Reset"), 10, 64)
+		if err != nil {
+			return true
+		}
+		return resp.Reset.Unix() > existingReset
+	}
+
+	return false
 }

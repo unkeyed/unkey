@@ -16,5 +16,6 @@ go_library(
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/zen",
+        "//svc/sentinel/engine/principal",
     ],
 )

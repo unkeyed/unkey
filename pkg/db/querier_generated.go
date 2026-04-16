@@ -1214,12 +1214,26 @@ type Querier interface {
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindSentinelByID
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
 	//  WHERE id = ? LIMIT 1
 	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
+	// FindSentinelDeployContextByK8sName returns the sentinel's deploy status
+	// along with its desired and observed running image. Used by
+	// ReportSentinelStatus to determine whether to trigger NotifyReady — the
+	// awakeable should only be resolved when the desired image is actually
+	// running.
+	//
+	//  SELECT
+	//      id,
+	//      deploy_status,
+	//      image AS desired_image,
+	//      running_image
+	//  FROM sentinels
+	//  WHERE k8s_name = ? LIMIT 1
+	FindSentinelDeployContextByK8sName(ctx context.Context, db DBTX, k8sName string) (FindSentinelDeployContextByK8sNameRow, error)
 	//FindSentinelsByEnvironmentID
 	//
-	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
+	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error)
 	//FindVerifiedCustomDomainByDomainExcludingWorkspace
 	//
@@ -1996,15 +2010,11 @@ type Querier interface {
 	//      k8s_name,
 	//      region_id,
 	//      image,
-	//      health,
 	//      desired_replicas,
-	//      available_replicas,
 	//      cpu_millicores,
 	//      memory_mib,
 	//      created_at
 	//  ) VALUES (
-	//      ?,
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2077,7 +2087,7 @@ type Querier interface {
 	// ListAllSentinelsByRegion returns sentinels for a region, paginated by pk.
 	// Used during full sync (version=0) to bootstrap krane agents with current state.
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM `sentinels`
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM `sentinels`
 	//  WHERE region_id = ? AND pk > ?
 	//  ORDER BY pk ASC
 	//  LIMIT ?
@@ -2145,7 +2155,7 @@ type Querier interface {
 	// ListDesiredSentinels returns all sentinels matching the desired state for a region.
 	// Used during bootstrap to stream all running sentinels to krane.
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at
 	//  FROM `sentinels`
 	//  WHERE (? = '' OR region_id = ?)
 	//      AND desired_state = ?
@@ -2546,6 +2556,17 @@ type Querier interface {
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
 	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)
+	// ListRunningSentinelIDsAndImages returns IDs, images, and regions of all
+	// running sentinels, paginated by id. Used by the rollout service to plan
+	// wave assignments without fetching full sentinel rows.
+	//
+	//  SELECT id, image, region_id
+	//  FROM sentinels
+	//  WHERE desired_state = 'running'
+	//    AND id > ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListRunningSentinelIDsAndImages(ctx context.Context, db DBTX, arg ListRunningSentinelIDsAndImagesParams) ([]ListRunningSentinelIDsAndImagesRow, error)
 	//ListWorkspaces
 	//
 	//  SELECT
@@ -2955,14 +2976,39 @@ type Querier interface {
 	//      updated_at_m= ?
 	//  WHERE id = ?
 	UpdateRatelimitOverride(ctx context.Context, db DBTX, arg UpdateRatelimitOverrideParams) (sql.Result, error)
-	//UpdateSentinelAvailableReplicasAndHealth
+	// UpdateSentinelConfig updates a sentinel's configuration and deploy status.
+	// Used by SentinelService.Deploy() to apply new config before triggering krane.
 	//
 	//  UPDATE sentinels SET
-	//  available_replicas = ?,
-	//  health = ?,
-	//  updated_at = ?
+	//    image = ?,
+	//    cpu_millicores = ?,
+	//    memory_mib = ?,
+	//    desired_replicas = ?,
+	//    deploy_status = ?,
+	//    updated_at = ?
+	//  WHERE id = ?
+	UpdateSentinelConfig(ctx context.Context, db DBTX, arg UpdateSentinelConfigParams) error
+	// UpdateSentinelDeployStatus updates only the deploy status field.
+	// Used after convergence check or rollback completes.
+	//
+	//  UPDATE sentinels SET
+	//    deploy_status = ?,
+	//    updated_at = ?
+	//  WHERE id = ?
+	UpdateSentinelDeployStatus(ctx context.Context, db DBTX, arg UpdateSentinelDeployStatusParams) error
+	// UpdateSentinelObservedState writes observed state from a krane agent:
+	// the current health, available replica count, and the image that is
+	// actually running on the pods. The running image is used to detect
+	// rollout convergence — a deploy is only complete when running_image
+	// matches the desired image.
+	//
+	//  UPDATE sentinels SET
+	//    available_replicas = ?,
+	//    health = ?,
+	//    running_image = ?,
+	//    updated_at = ?
 	//  WHERE k8s_name = ?
-	UpdateSentinelAvailableReplicasAndHealth(ctx context.Context, db DBTX, arg UpdateSentinelAvailableReplicasAndHealthParams) error
+	UpdateSentinelObservedState(ctx context.Context, db DBTX, arg UpdateSentinelObservedStateParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`

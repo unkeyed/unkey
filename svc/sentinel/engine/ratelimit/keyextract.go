@@ -5,45 +5,46 @@ import (
 
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/sentinel/engine/principal"
 )
 
 // extractIdentifier derives the rate limit bucket key from the request based
-// on the configured RateLimitKey source. Returns an empty string if the key
-// cannot be resolved (nil config, missing header, no principal, etc).
+// on the configured RateLimitIdentifier source. Returns an empty string if the
+// identifier cannot be resolved (nil config, missing header, no principal, etc).
 //
-// Supported key sources:
+// Supported identifier sources:
 //   - RemoteIpKey:              client IP via sess.Location()
 //   - HeaderKey:                value of the named request header
 //   - PathKey:                  request URL path
 //   - AuthenticatedSubjectKey:  subject from a principal set by a prior auth policy
-//   - PrincipalClaimKey:        named claim from a principal set by a prior auth policy
+//   - PrincipalFieldKey:        dotted-path field from a principal set by a prior auth policy
 func extractIdentifier(
 	sess *zen.Session,
 	req *http.Request,
-	key *sentinelv1.RateLimitKey,
-	principal *sentinelv1.Principal,
+	identifier *sentinelv1.RateLimitIdentifier,
+	principal *principal.Principal,
 ) string {
-	if key == nil {
+	if identifier == nil {
 		return ""
 	}
 
-	switch src := key.GetSource().(type) {
-	case *sentinelv1.RateLimitKey_RemoteIp:
+	switch src := identifier.GetSource().(type) {
+	case *sentinelv1.RateLimitIdentifier_RemoteIp:
 		return sess.Location()
-	case *sentinelv1.RateLimitKey_Header:
+	case *sentinelv1.RateLimitIdentifier_Header:
 		return req.Header.Get(src.Header.GetName())
-	case *sentinelv1.RateLimitKey_Path:
+	case *sentinelv1.RateLimitIdentifier_Path:
 		return req.URL.Path
-	case *sentinelv1.RateLimitKey_AuthenticatedSubject:
+	case *sentinelv1.RateLimitIdentifier_AuthenticatedSubject:
 		if principal == nil {
 			return ""
 		}
-		return principal.GetSubject()
-	case *sentinelv1.RateLimitKey_PrincipalClaim:
+		return principal.Subject
+	case *sentinelv1.RateLimitIdentifier_PrincipalField:
 		if principal == nil {
 			return ""
 		}
-		return principal.GetClaims()[src.PrincipalClaim.GetClaimName()]
+		return principal.ResolveField(src.PrincipalField.GetPath())
 	default:
 		return ""
 	}

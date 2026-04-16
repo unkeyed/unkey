@@ -53,17 +53,31 @@ func findMostRestrictive(results map[string]keys.RatelimitConfigAndResult) *keys
 			continue
 		}
 
-		// Denial takes precedence over non-denial
-		if !r.Response.Success && best.Response.Success {
-			rCopy := r
-			best = &rCopy
+		deniedBefore := !best.Response.Success
+		deniedNow := !r.Response.Success
+
+		// Already rate limited, don't overwrite.
+		if deniedBefore && !deniedNow {
 			continue
 		}
 
-		// Lower remaining = more restrictive
+		// Newly rate limited, overwrite.
+		if deniedNow && !deniedBefore {
+			rCopy := r
+			best = &rCopy
+			if r.Response.Remaining == 0 {
+				return best
+			}
+			continue
+		}
+
+		// Lower remaining = more restrictive.
 		if r.Response.Remaining < best.Response.Remaining {
 			rCopy := r
 			best = &rCopy
+			if deniedNow && r.Response.Remaining == 0 {
+				return best
+			}
 		}
 	}
 

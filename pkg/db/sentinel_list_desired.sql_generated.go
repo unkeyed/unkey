@@ -10,7 +10,7 @@ import (
 )
 
 const listDesiredSentinels = `-- name: ListDesiredSentinels :many
-SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at
+SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at
 FROM ` + "`" + `sentinels` + "`" + `
 WHERE (? = '' OR region_id = ?)
     AND desired_state = ?
@@ -29,7 +29,7 @@ type ListDesiredSentinelsParams struct {
 // ListDesiredSentinels returns all sentinels matching the desired state for a region.
 // Used during bootstrap to stream all running sentinels to krane.
 //
-//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at
+//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at
 //	FROM `sentinels`
 //	WHERE (? = '' OR region_id = ?)
 //	    AND desired_state = ?
@@ -61,10 +61,12 @@ func (q *Queries) ListDesiredSentinels(ctx context.Context, db DBTX, arg ListDes
 			&i.K8sAddress,
 			&i.RegionID,
 			&i.Image,
+			&i.RunningImage,
 			&i.DesiredState,
 			&i.Health,
 			&i.DesiredReplicas,
 			&i.AvailableReplicas,
+			&i.DeployStatus,
 			&i.CpuMillicores,
 			&i.MemoryMib,
 			&i.CreatedAt,
