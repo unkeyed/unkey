@@ -41,7 +41,7 @@ func (e *Executor) Execute(
 	cfg *sentinelv1.RateLimit,
 	principal *principal.Principal,
 ) error {
-	identifier := extractIdentifier(sess, req, cfg.GetKey(), principal)
+	identifier := extractIdentifier(sess, req, cfg.GetIdentifier(), principal)
 	if identifier == "" {
 		return fault.New("missing rate limit identifier",
 			fault.Code(codes.Sentinel.Auth.RateLimited.URN()),

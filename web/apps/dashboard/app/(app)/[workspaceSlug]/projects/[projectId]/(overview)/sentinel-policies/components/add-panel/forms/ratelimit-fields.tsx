@@ -1,24 +1,11 @@
 "use client";
 
-import { ChevronDown } from "@unkey/icons";
-import {
-  FormInput,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@unkey/ui";
-import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
+import { FormInput, FormSelect } from "@unkey/ui";
+import type React from "react";
 import { useController, useFormContext, useWatch } from "react-hook-form";
-import { Sep, Strong } from "./summary-helpers";
+import { DocsLink, Sep, Strong } from "./summary-helpers";
 
-// Self-contained ratelimit form types. Not yet wired into the canonical
-// PolicyFormValues union — this file is a placeholder for an upcoming
-// ratelimit policy variant. Once `policyFormSchema` grows a `ratelimit`
-// branch, replace these with `Extract<PolicyFormValues, { type: "ratelimit" }>`
-// and the matching key-source enum from ../schema.
-export type RateLimitKeySource =
+export type RateLimitIdentifierSource =
   | "remoteIp"
   | "header"
   | "authenticatedSubject"
@@ -31,11 +18,11 @@ type RatelimitFormValues = {
   environmentId: string;
   limit: number;
   windowMs: number;
-  keySource: RateLimitKeySource;
-  keyValue: string;
+  identifierSource: RateLimitIdentifierSource;
+  identifierValue: string;
 };
 
-const KEY_SOURCE_LABELS: Record<RateLimitKeySource, string> = {
+const IDENTIFIER_SOURCE_LABELS: Record<RateLimitIdentifierSource, string> = {
   remoteIp: "IP",
   header: "Header",
   authenticatedSubject: "Subject",
@@ -43,7 +30,27 @@ const KEY_SOURCE_LABELS: Record<RateLimitKeySource, string> = {
   principalField: "Field",
 };
 
-const KEY_SOURCE_OPTIONS: { value: RateLimitKeySource; label: string }[] = [
+const RATE_LIMIT_DOCS_URL =
+  "https://www.unkey.com/docs/platform/sentinel/policies/rate-limiting#rate-limit-subjects";
+
+const IDENTIFIER_SOURCE_DESCRIPTIONS: Record<RateLimitIdentifierSource, React.ReactNode> = {
+  remoteIp: "Limit by client IP address.",
+  header: "Limit by a specific request header (e.g. X-Tenant-Id).",
+  authenticatedSubject: (
+    <>
+      Limit by the authenticated Principal's subject field. <DocsLink href={RATE_LIMIT_DOCS_URL} />
+    </>
+  ),
+  path: "Create separate limits per endpoint.",
+  principalField: (
+    <>
+      Limit by a field from the Principal's source (e.g. source.key.meta.org_id for per-organization
+      limits). <DocsLink href={RATE_LIMIT_DOCS_URL} />
+    </>
+  ),
+};
+
+const IDENTIFIER_SOURCE_OPTIONS: { value: RateLimitIdentifierSource; label: string }[] = [
   { value: "remoteIp", label: "Remote IP" },
   { value: "header", label: "Header" },
   { value: "authenticatedSubject", label: "Authenticated Subject" },
@@ -65,14 +72,15 @@ export function RateLimitFields() {
   } = useController({ control, name: "windowMs" });
 
   const {
-    field: { value: keySource, onChange: onKeySourceChange },
-  } = useController({ control, name: "keySource" });
+    field: { value: identifierSource, onChange: onIdentifierSourceChange },
+  } = useController({ control, name: "identifierSource" });
 
   const {
-    field: { value: keyValue, onChange: onKeyValueChange },
-  } = useController({ control, name: "keyValue" });
+    field: { value: identifierValue, onChange: onIdentifierValueChange },
+  } = useController({ control, name: "identifierValue" });
 
-  const needsKeyValue = keySource === "header" || keySource === "principalField";
+  const needsIdentifierValue =
+    identifierSource === "header" || identifierSource === "principalField";
 
   return (
     <div className="flex flex-col gap-4">
@@ -103,46 +111,33 @@ export function RateLimitFields() {
         />
       </div>
 
-      <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-        <FormLabel
-          label="Key Source"
-          htmlFor="ratelimit-key-source"
-          tooltipContent="Determines how the rate limit bucket is keyed (per IP, per header value, per authenticated identity, etc.)."
-        />
-        <Select
-          value={keySource}
-          onValueChange={(v) => {
-            onKeySourceChange(v as RateLimitKeySource);
-            onKeyValueChange("");
-          }}
-        >
-          <SelectTrigger
-            id="ratelimit-key-source"
-            rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {KEY_SOURCE_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </fieldset>
+      <FormSelect
+        label="Identifier"
+        options={IDENTIFIER_SOURCE_OPTIONS}
+        value={identifierSource}
+        onValueChange={(v) => {
+          onIdentifierSourceChange(v as RateLimitIdentifierSource);
+          onIdentifierValueChange("");
+        }}
+        description={IDENTIFIER_SOURCE_DESCRIPTIONS[identifierSource]}
+      />
 
-      {needsKeyValue && (
+      {needsIdentifierValue && (
         <FormInput
-          label={keySource === "header" ? "Header Name" : "Field Path"}
-          value={keyValue}
-          placeholder={keySource === "header" ? "X-Tenant-Id" : "subject"}
-          onChange={(e) => onKeyValueChange(e.target.value)}
-          descriptionPosition="label"
+          label={identifierSource === "header" ? "Header Name" : "Field Path"}
+          value={identifierValue}
+          placeholder={identifierSource === "header" ? "X-Tenant-Id" : "subject"}
+          onChange={(e) => onIdentifierValueChange(e.target.value)}
+          descriptionPosition="inline"
           description={
-            keySource === "header"
-              ? "The header whose value becomes the rate limit bucket key."
-              : 'Dotted path into the principal JSON (e.g. "subject" or "source.key.meta.org_id").'
+            identifierSource === "header" ? (
+              "The header whose value becomes the rate limit identifier."
+            ) : (
+              <>
+                Dotted path into the principal JSON (e.g. "subject" or "source.key.meta.org_id").{" "}
+                <DocsLink href="https://www.unkey.com/docs/platform/sentinel/principal/overview" />
+              </>
+            )
           }
         />
       )}
@@ -154,18 +149,18 @@ export function RatelimitPolicySummary() {
   const { control } = useFormContext<RatelimitFormValues>();
   const limit = useWatch({ control, name: "limit" });
   const windowMs = useWatch({ control, name: "windowMs" });
-  const keySource = useWatch({ control, name: "keySource" });
-  const keyValue = useWatch({ control, name: "keyValue" });
+  const identifierSource = useWatch({ control, name: "identifierSource" });
+  const identifierValue = useWatch({ control, name: "identifierValue" });
 
   return (
     <div className="max-w-75 truncate">
       <span className="text-gray-11">
         <Strong>{limit}</Strong> / {windowMs >= 1000 ? `${windowMs / 1000}s` : `${windowMs}ms`}
         <Sep />
-        per <Strong>{KEY_SOURCE_LABELS[keySource]}</Strong>
-        {keyValue && (
+        per <Strong>{IDENTIFIER_SOURCE_LABELS[identifierSource]}</Strong>
+        {identifierValue && (
           <>
-            : <Strong>{keyValue}</Strong>
+            : <Strong>{identifierValue}</Strong>
           </>
         )}
       </span>

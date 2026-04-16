@@ -121,7 +121,7 @@ export type KeyauthPolicy = z.infer<typeof keyauthPolicySchema>;
 
 // ── RateLimit policy ───────────────────────────────────────────────────
 
-const rateLimitKeySchema = z.union([
+const rateLimitIdentifierSchema = z.union([
   z.object({ remoteIp: z.object({}).strict() }).strict(),
   z.object({ header: z.object({ name: z.string().min(1) }).strict() }).strict(),
   z.object({ authenticatedSubject: z.object({}).strict() }).strict(),
@@ -132,7 +132,7 @@ const rateLimitKeySchema = z.union([
     })
     .strict(),
 ]);
-export type RateLimitKey = z.infer<typeof rateLimitKeySchema>;
+export type RateLimitIdentifier = z.infer<typeof rateLimitIdentifierSchema>;
 
 export const ratelimitPolicySchema = z
   .object({
@@ -142,7 +142,7 @@ export const ratelimitPolicySchema = z
       .object({
         limit: z.number().int().min(1),
         windowMs: z.number().int().min(1),
-        key: rateLimitKeySchema,
+        identifier: rateLimitIdentifierSchema,
       })
       .strict(),
   })

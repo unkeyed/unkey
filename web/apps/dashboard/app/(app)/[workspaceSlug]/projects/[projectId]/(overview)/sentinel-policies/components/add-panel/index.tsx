@@ -8,6 +8,7 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
 import { KeyAuthFields, KeyauthPolicySummary } from "./forms/keyauth-fields";
 import { RateLimitFields, RatelimitPolicySummary } from "./forms/ratelimit-fields";
+import { DocsLink } from "./forms/summary-helpers";
 import {
   MatchConditionEditorBody,
   MatchConditionsClearAll,
@@ -90,15 +91,9 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       description={
         <div className="flex gap-2 items-center">
           {isEdit ? "Update this sentinel policy." : "Configure and add a new sentinel policy."}
-          <a
-            href="https://www.unkey.com/docs/platform/sentinel/policies/overview"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span className="font-medium text-gray-12 underline underline-offset-2 decoration-grayA-6 group-hover:decoration-gray-12 transition-colors decoration-dotted">
-              See docs for more
-            </span>
-          </a>
+          <DocsLink href="https://www.unkey.com/docs/platform/sentinel/policies/overview">
+            See docs for more
+          </DocsLink>
         </div>
       }
       isOpen={isOpen}

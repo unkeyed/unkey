@@ -2,7 +2,7 @@ import {
   type FirewallPolicy,
   type KeyauthPolicy,
   type MatchExpr,
-  type RateLimitKey,
+  type RateLimitIdentifier,
   type RatelimitPolicy,
   SENTINEL_LIMITS,
   type StringMatch,
@@ -127,14 +127,14 @@ const keyauthFormSchema = z.object({
   permissionQuery: z.string().max(SENTINEL_LIMITS.permissionQueryMaxLength),
 });
 
-export const rateLimitKeySourceSchema = z.enum([
+export const rateLimitIdentifierSourceSchema = z.enum([
   "remoteIp",
   "header",
   "authenticatedSubject",
   "path",
   "principalField",
 ]);
-export type RateLimitKeySource = z.infer<typeof rateLimitKeySourceSchema>;
+export type RateLimitIdentifierSource = z.infer<typeof rateLimitIdentifierSourceSchema>;
 
 const ratelimitFormSchema = z
   .object({
@@ -142,15 +142,19 @@ const ratelimitFormSchema = z
     type: z.literal("ratelimit"),
     limit: z.number().int().min(1, "Limit must be at least 1"),
     windowMs: z.number().int().min(1, "Window must be at least 1ms"),
-    keySource: rateLimitKeySourceSchema,
-    keyValue: z.string(),
+    identifierSource: rateLimitIdentifierSourceSchema,
+    identifierValue: z.string(),
   })
   .superRefine((v, ctx) => {
-    if ((v.keySource === "header" || v.keySource === "principalField") && v.keyValue.length === 0) {
+    if (
+      (v.identifierSource === "header" || v.identifierSource === "principalField") &&
+      v.identifierValue.length === 0
+    ) {
       ctx.addIssue({
         code: "custom",
-        message: v.keySource === "header" ? "Header name is required" : "Field path is required",
-        path: ["keyValue"],
+        message:
+          v.identifierSource === "header" ? "Header name is required" : "Field path is required",
+        path: ["identifierValue"],
       });
     }
   });
@@ -215,8 +219,8 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
       type: "ratelimit" as const,
       limit: 100,
       windowMs: 60000,
-      keySource: "remoteIp" as const,
-      keyValue: "",
+      identifierSource: "remoteIp" as const,
+      identifierValue: "",
     }))
     .with("firewall", () => ({
       ...base,
@@ -274,9 +278,12 @@ function toMatchExpr(condition: MatchConditionFormValues): MatchExpr {
     .exhaustive();
 }
 
-function toRateLimitKey(source: RateLimitKeySource, value: string): RateLimitKey {
+function toRateLimitIdentifier(
+  source: RateLimitIdentifierSource,
+  value: string,
+): RateLimitIdentifier {
   return match(source)
-    .returnType<RateLimitKey>()
+    .returnType<RateLimitIdentifier>()
     .with("remoteIp", () => ({ remoteIp: {} }))
     .with("header", () => ({ header: { name: value } }))
     .with("authenticatedSubject", () => ({ authenticatedSubject: {} }))
@@ -329,7 +336,7 @@ export function toSentinelPolicy(
       ratelimit: {
         limit: v.limit,
         windowMs: v.windowMs,
-        key: toRateLimitKey(v.keySource, v.keyValue),
+        identifier: toRateLimitIdentifier(v.identifierSource, v.identifierValue),
       },
       match: matchExprs,
     }))
@@ -391,22 +398,25 @@ function fromMatchExpr(raw: unknown): MatchConditionFormValues | null {
     .exhaustive();
 }
 
-function fromRateLimitKey(key: RateLimitKey): {
-  keySource: RateLimitKeySource;
-  keyValue: string;
+function fromRateLimitIdentifier(key: RateLimitIdentifier): {
+  identifierSource: RateLimitIdentifierSource;
+  identifierValue: string;
 } {
   return match(key)
-    .returnType<{ keySource: RateLimitKeySource; keyValue: string }>()
-    .with({ remoteIp: P._ }, () => ({ keySource: "remoteIp" as const, keyValue: "" }))
-    .with({ header: P._ }, (k) => ({ keySource: "header" as const, keyValue: k.header.name }))
-    .with({ authenticatedSubject: P._ }, () => ({
-      keySource: "authenticatedSubject" as const,
-      keyValue: "",
+    .returnType<{ identifierSource: RateLimitIdentifierSource; identifierValue: string }>()
+    .with({ remoteIp: P._ }, () => ({ identifierSource: "remoteIp" as const, identifierValue: "" }))
+    .with({ header: P._ }, (k) => ({
+      identifierSource: "header" as const,
+      identifierValue: k.header.name,
     }))
-    .with({ path: P._ }, () => ({ keySource: "path" as const, keyValue: "" }))
+    .with({ authenticatedSubject: P._ }, () => ({
+      identifierSource: "authenticatedSubject" as const,
+      identifierValue: "",
+    }))
+    .with({ path: P._ }, () => ({ identifierSource: "path" as const, identifierValue: "" }))
     .with({ principalField: P._ }, (k) => ({
-      keySource: "principalField" as const,
-      keyValue: k.principalField.path,
+      identifierSource: "principalField" as const,
+      identifierValue: k.principalField.path,
     }))
     .exhaustive();
 }
@@ -451,7 +461,7 @@ export function fromSentinelPolicy(
       };
     })
     .with({ type: "ratelimit" }, (p) => {
-      const { keySource, keyValue } = fromRateLimitKey(p.ratelimit.key);
+      const { identifierSource, identifierValue } = fromRateLimitIdentifier(p.ratelimit.identifier);
       return {
         type: "ratelimit" as const,
         name: p.name,
@@ -459,8 +469,8 @@ export function fromSentinelPolicy(
         matchConditions,
         limit: p.ratelimit.limit,
         windowMs: p.ratelimit.windowMs,
-        keySource,
-        keyValue,
+        identifierSource,
+        identifierValue,
       };
     })
     .with({ type: "firewall" }, (p) => {

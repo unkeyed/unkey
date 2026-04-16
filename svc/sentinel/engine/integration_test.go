@@ -320,15 +320,15 @@ func keyAuthPolicy(id string, keySpaceIDs []string) *sentinelv1.Policy {
 	}
 }
 
-func rateLimitPolicy(id string, limit int64, windowMs int64, key *sentinelv1.RateLimitKey) *sentinelv1.Policy {
+func rateLimitPolicy(id string, limit int64, windowMs int64, identifier *sentinelv1.RateLimitIdentifier) *sentinelv1.Policy {
 	return &sentinelv1.Policy{
 		Id:      id,
 		Enabled: true,
 		Config: &sentinelv1.Policy_Ratelimit{
 			Ratelimit: &sentinelv1.RateLimit{
-				Limit:    limit,
-				WindowMs: windowMs,
-				Key:      key,
+				Limit:      limit,
+				WindowMs:   windowMs,
+				Identifier: identifier,
 			},
 		},
 	}
@@ -641,8 +641,8 @@ func TestRateLimit_RemoteIP(t *testing.T) {
 	ctx := context.Background()
 
 	policies := []*sentinelv1.Policy{
-		rateLimitPolicy("rl", 2, 60000, &sentinelv1.RateLimitKey{
-			Source: &sentinelv1.RateLimitKey_RemoteIp{
+		rateLimitPolicy("rl", 2, 60000, &sentinelv1.RateLimitIdentifier{
+			Source: &sentinelv1.RateLimitIdentifier_RemoteIp{
 				RemoteIp: &sentinelv1.RemoteIpKey{},
 			},
 		}),
@@ -672,8 +672,8 @@ func TestRateLimit_AuthenticatedSubject(t *testing.T) {
 
 	policies := []*sentinelv1.Policy{
 		keyAuthPolicy("auth", []string{s1.KeySpaceID, s2.KeySpaceID}),
-		rateLimitPolicy("rl", 1, 60000, &sentinelv1.RateLimitKey{
-			Source: &sentinelv1.RateLimitKey_AuthenticatedSubject{
+		rateLimitPolicy("rl", 1, 60000, &sentinelv1.RateLimitIdentifier{
+			Source: &sentinelv1.RateLimitIdentifier_AuthenticatedSubject{
 				AuthenticatedSubject: &sentinelv1.AuthenticatedSubjectKey{},
 			},
 		}),
@@ -719,8 +719,8 @@ func TestRateLimit_PrincipalField(t *testing.T) {
 	// the principal subject field gives them independent buckets.
 	policies := []*sentinelv1.Policy{
 		keyAuthPolicy("auth", []string{s1.KeySpaceID, s2.KeySpaceID}),
-		rateLimitPolicy("rl", 1, 60000, &sentinelv1.RateLimitKey{
-			Source: &sentinelv1.RateLimitKey_PrincipalField{
+		rateLimitPolicy("rl", 1, 60000, &sentinelv1.RateLimitIdentifier{
+			Source: &sentinelv1.RateLimitIdentifier_PrincipalField{
 				PrincipalField: &sentinelv1.PrincipalFieldKey{Path: "subject"},
 			},
 		}),
@@ -762,8 +762,8 @@ func TestRateLimit_NoPrincipal(t *testing.T) {
 	// RateLimit with AuthenticatedSubjectKey but no prior auth policy — identifier
 	// resolves to empty string, which the executor rejects.
 	policies := []*sentinelv1.Policy{
-		rateLimitPolicy("rl", 10, 60000, &sentinelv1.RateLimitKey{
-			Source: &sentinelv1.RateLimitKey_AuthenticatedSubject{
+		rateLimitPolicy("rl", 10, 60000, &sentinelv1.RateLimitIdentifier{
+			Source: &sentinelv1.RateLimitIdentifier_AuthenticatedSubject{
 				AuthenticatedSubject: &sentinelv1.AuthenticatedSubjectKey{},
 			},
 		}),
