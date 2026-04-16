@@ -103,14 +103,13 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		return
 	}
 
-	// Branch deletions and restorations don't need deployments.
-	// Deleted branches have no code to build; restored branches are
-	// just re-created refs pointing at an existing commit.
-	if payload.Deleted || payload.Created {
-		logger.Info("Ignoring branch delete/restore push",
+	// Deleted branches have no code to build — `after` is all zeros and there
+	// is nothing to deploy. `created: true` is NOT skipped: GitHub sets it on
+	// every first push of a new branch (e.g. `git push -u origin feature`),
+	// which is the main way preview deployments get triggered.
+	if payload.Deleted {
+		logger.Info("Ignoring branch delete push",
 			"ref", payload.Ref,
-			"deleted", payload.Deleted,
-			"created", payload.Created,
 		)
 		w.WriteHeader(http.StatusOK)
 		return
