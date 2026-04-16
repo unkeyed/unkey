@@ -40,7 +40,7 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
           <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/ratelimits`}>
             Ratelimits
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group" noop>
+          <Navbar.Breadcrumbs.Link href="#" className="group" noop>
             <div className="h-6 w-20 bg-grayA-3 rounded-sm animate-pulse transition-all " />
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="#" noop active>
@@ -74,7 +74,6 @@ export const NamespaceNavbar = ({ namespaceId, activePage }: NamespaceNavbarProp
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
             href={`/${workspace.slug}/ratelimits/${namespaceId}`}
-            isIdentifier
             className="group"
             noop
           >
