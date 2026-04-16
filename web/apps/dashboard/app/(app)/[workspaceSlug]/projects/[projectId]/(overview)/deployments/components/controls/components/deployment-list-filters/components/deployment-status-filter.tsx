@@ -40,6 +40,11 @@ const baseOptions: StatusOption[] = [
     status: "stopped",
     display: "Stopped",
   },
+  {
+    id: 7,
+    status: "cancelled",
+    display: "Cancelled",
+  },
 ];
 
 export const DeploymentStatusFilter = () => {
