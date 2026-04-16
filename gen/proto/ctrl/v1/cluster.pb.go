@@ -809,8 +809,15 @@ type ReportSentinelStatusRequest struct {
 	K8SName           string                 `protobuf:"bytes,1,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
 	AvailableReplicas int32                  `protobuf:"varint,2,opt,name=available_replicas,json=availableReplicas,proto3" json:"available_replicas,omitempty"`
 	Health            Health                 `protobuf:"varint,3,opt,name=health,proto3,enum=ctrl.v1.Health" json:"health,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// sentinel_id is the control-plane ID for this sentinel, extracted from
+	// the Deployment's labels. Used to address the SentinelService virtual
+	// object when triggering NotifyReady.
+	SentinelId string `protobuf:"bytes,4,opt,name=sentinel_id,json=sentinelId,proto3" json:"sentinel_id,omitempty"`
+	// running_image is the actual container image from the k8s Deployment spec.
+	// Used to detect when the desired image has converged with what's running.
+	RunningImage  string `protobuf:"bytes,5,opt,name=running_image,json=runningImage,proto3" json:"running_image,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ReportSentinelStatusRequest) Reset() {
@@ -862,6 +869,20 @@ func (x *ReportSentinelStatusRequest) GetHealth() Health {
 		return x.Health
 	}
 	return Health_HEALTH_UNSPECIFIED
+}
+
+func (x *ReportSentinelStatusRequest) GetSentinelId() string {
+	if x != nil {
+		return x.SentinelId
+	}
+	return ""
+}
+
+func (x *ReportSentinelStatusRequest) GetRunningImage() string {
+	if x != nil {
+		return x.RunningImage
+	}
+	return ""
 }
 
 type ReportSentinelStatusResponse struct {
@@ -2011,11 +2032,14 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x06Delete\x12\x19\n" +
 	"\bk8s_name\x18\x01 \x01(\tR\ak8sNameB\b\n" +
 	"\x06change\" \n" +
-	"\x1eReportDeploymentStatusResponse\"\x90\x01\n" +
+	"\x1eReportDeploymentStatusResponse\"\xd6\x01\n" +
 	"\x1bReportSentinelStatusRequest\x12\x19\n" +
 	"\bk8s_name\x18\x01 \x01(\tR\ak8sName\x12-\n" +
 	"\x12available_replicas\x18\x02 \x01(\x05R\x11availableReplicas\x12'\n" +
-	"\x06health\x18\x03 \x01(\x0e2\x0f.ctrl.v1.HealthR\x06health\"\x1e\n" +
+	"\x06health\x18\x03 \x01(\x0e2\x0f.ctrl.v1.HealthR\x06health\x12\x1f\n" +
+	"\vsentinel_id\x18\x04 \x01(\tR\n" +
+	"sentinelId\x12#\n" +
+	"\rrunning_image\x18\x05 \x01(\tR\frunningImage\"\x1e\n" +
 	"\x1cReportSentinelStatusResponse\"\x95\x01\n" +
 	"\rSentinelState\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\x04R\aversion\x12.\n" +

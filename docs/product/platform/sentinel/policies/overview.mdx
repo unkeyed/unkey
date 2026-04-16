@@ -37,11 +37,7 @@ Order matters. Place authentication policies before policies that depend on an a
 
 ## Match expressions
 
-<Note>
-  Match expressions are coming soon. Policies configured through the dashboard apply to all requests. Contact [support@unkey.com](mailto:support@unkey.com) for custom match expression configuration.
-</Note>
-
-Match expressions control which requests a policy applies to. A policy can have multiple match conditions, and all conditions must match for the policy to run (AND logic). An empty match list applies the policy to all requests.
+Match expressions control which requests a policy applies to. You can add match conditions when creating or editing a policy from the **Sentinel Policies** page in your project dashboard. A policy can have multiple match conditions, and all conditions must match for the policy to run (AND logic). An empty match list applies the policy to all requests.
 
 ### Available match types
 
@@ -72,9 +68,9 @@ To create OR conditions, create separate policies with the same action but diffe
 | ---------------------------------------------------------------------- | ----------- | ---------------------------------------------------------- |
 | [API key authentication](/platform/sentinel/policies/api-key)          | Available   | Verify Unkey API keys and forward identity to your app  |
 | [Logging](/platform/sentinel/policies/logging)                         | Available   | Record full HTTP requests and responses for debugging        |
-| [JWT authentication](/platform/sentinel/policies/jwt)                  | Coming soon | Validate Bearer JWTs using JWKS, OIDC, or PEM public keys  |
+| JWT authentication                                                     | Coming soon | Validate Bearer JWTs using JWKS, OIDC, or PEM public keys  |
 | [Rate limiting](/platform/sentinel/policies/rate-limiting)             | Coming soon | Enforce per-IP, per-key, or per-subject rate limits         |
-| [IP rules](/platform/sentinel/policies/ip-rules)                       | Coming soon | Allow or deny requests based on CIDR ranges                 |
+| [Firewall](/platform/sentinel/policies/firewall)                       | Available   | Deny requests based on path, method, header, or query |
 | [OpenAPI validation](/platform/sentinel/policies/openapi-validation)   | Coming soon | Validate requests against an OpenAPI 3.0/3.1 specification |
 
 ## Error response format

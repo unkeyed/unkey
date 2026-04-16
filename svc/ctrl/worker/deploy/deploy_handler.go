@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/compensation"
 	"github.com/unkeyed/unkey/pkg/uid"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -79,7 +80,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// compensations are executed in reverse order on failure to clean up any partial state.
 	// We use this for steps that have side effects which need to be undone if a later step fails, such as updating deployment status or inserting topologies.
-	compensation := NewCompensation()
+	compensation := compensation.New()
 
 	defer func() {
 		if retErr != nil {
@@ -481,7 +482,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 // never remove topologies created by a newer attempt.
 func (w *Workflow) createTopologies(
 	ctx restate.ObjectContext,
-	compensation *Compensation,
+	compensation *compensation.Compensation,
 	workspace db.Workspace,
 	deployment db.Deployment,
 ) ([]db.InsertDeploymentTopologyParams, error) {
@@ -691,62 +692,90 @@ func (w *Workflow) ensureSentinels(
 		existingSentinelsByRegion[row.Region.ID] = row.Sentinel
 	}
 
+	desiredReplicas := int32(1)
+	if environment.Slug == "production" {
+		desiredReplicas = 3
+	}
+
+	// Insert a sentinel row (and outbox entry) for every region that doesn't
+	// already have one, so krane can pick them up.
+	var newSentinelIDs []string
 	for _, topology := range topologies {
 		_, ok := existingSentinelsByRegion[topology.RegionID]
-		if !ok {
-
-			desiredReplicas := int32(1)
-			if environment.Slug == "production" {
-				desiredReplicas = 3
-			}
-
-			err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				region, err := db.Query.FindRegionById(runCtx, w.db.RO(), topology.RegionID)
-				if err != nil {
-					return fmt.Errorf("failed to find region by id %s: %w", topology.RegionID, err)
-				}
-
-				sentinelID := uid.New(uid.SentinelPrefix)
-				sentinelK8sName := uid.DNS1035()
-
-				err = db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-					err := db.Query.InsertSentinel(txCtx, tx, db.InsertSentinelParams{
-						ID:                sentinelID,
-						WorkspaceID:       workspace.ID,
-						EnvironmentID:     environment.ID,
-						ProjectID:         project.ID,
-						K8sAddress:        fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
-						K8sName:           sentinelK8sName,
-						RegionID:          region.ID,
-						Image:             w.sentinelImage,
-						Health:            db.SentinelsHealthUnknown,
-						DesiredReplicas:   desiredReplicas,
-						AvailableReplicas: 0,
-						CpuMillicores:     250,
-						MemoryMib:         256,
-						CreatedAt:         time.Now().UnixMilli(),
-					})
-					if err != nil {
-						if db.IsDuplicateKeyError(err) {
-							return nil
-						}
-						return err
-					}
-					return db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
-						ResourceType: db.DeploymentChangesResourceTypeSentinel,
-						ResourceID:   sentinelID,
-						RegionID:     region.ID,
-						CreatedAt:    time.Now().UnixMilli(),
-					})
-				})
-				return err
-			}, restate.WithName("ensure sentinel exists in db"))
-			if err != nil {
-				return fault.Wrap(err, fault.Public("Traffic proxy could not be created for a region."))
-			}
-
+		if ok {
+			continue
 		}
 
+		sentinelID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+			id := uid.New(uid.SentinelPrefix)
+			sentinelK8sName := uid.DNS1035()
+
+			err := db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+				err := db.Query.InsertSentinel(txCtx, tx, db.InsertSentinelParams{
+					ID:              id,
+					WorkspaceID:     workspace.ID,
+					EnvironmentID:   environment.ID,
+					ProjectID:       project.ID,
+					K8sAddress:      fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
+					K8sName:         sentinelK8sName,
+					RegionID:        topology.RegionID,
+					Image:           w.sentinelImage,
+					DesiredReplicas: desiredReplicas,
+					CpuMillicores:   250,
+					MemoryMib:       256,
+					CreatedAt:       time.Now().UnixMilli(),
+				})
+				if err != nil {
+					if db.IsDuplicateKeyError(err) {
+						return nil
+					}
+					return err
+				}
+				return db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
+					ResourceType: db.DeploymentChangesResourceTypeSentinel,
+					ResourceID:   id,
+					RegionID:     topology.RegionID,
+					CreatedAt:    time.Now().UnixMilli(),
+				})
+			})
+			return id, err
+		}, restate.WithName("ensure sentinel exists in db"))
+		if err != nil {
+			return fault.Wrap(err, fault.Public("Traffic proxy could not be created for a region."))
+		}
+
+		newSentinelIDs = append(newSentinelIDs, sentinelID)
+	}
+
+	if len(newSentinelIDs) == 0 {
+		return nil
+	}
+
+	// Fan out Deploy calls for every new sentinel and wait for all of them to
+	// converge. Each call blocks until krane reports the desired image as
+	// running or until the deploy timeout fires.
+	var sentinelFutures []restate.ResponseFuture[*hydrav1.SentinelServiceDeployResponse]
+	for _, id := range newSentinelIDs {
+		fut := hydrav1.NewSentinelServiceClient(ctx, id).
+			Deploy().
+			RequestFuture(&hydrav1.SentinelServiceDeployRequest{
+				Image:           w.sentinelImage,
+				DesiredReplicas: desiredReplicas,
+				CpuMillicores:   250,
+				MemoryMib:       256,
+			})
+		sentinelFutures = append(sentinelFutures, fut)
+	}
+
+	for i, fut := range sentinelFutures {
+		resp, err := fut.Response()
+		if err != nil {
+			return fault.Wrap(err, fault.Public("Traffic proxy failed to start."))
+		}
+		if resp.GetStatus() != hydrav1.SentinelDeployStatus_SENTINEL_DEPLOY_STATUS_READY {
+			return fault.New(fmt.Sprintf("sentinel %s deploy status: %s", newSentinelIDs[i], resp.GetStatus()),
+				fault.Public("Traffic proxy failed to start."))
+		}
 	}
 
 	return nil

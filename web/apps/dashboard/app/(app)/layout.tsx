@@ -71,15 +71,15 @@ export default function Layout({ children }: LayoutProps) {
           <AppSidebar workspace={workspaceWithQuotas} className="bg-gray-1 border-grayA-4" />
 
           {/* Main content area */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto" style={{ scrollbarGutter: "stable" }}>
             <div
-              className="isolate bg-base-12 w-full overflow-x-auto flex flex-col items-center"
+              className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
               id="layout-wrapper"
             >
               {/* Mobile sidebar at the top of content */}
               <SidebarMobile />
 
-              <div className="w-full">
+              <div className="w-full flex-1 flex flex-col">
                 {workspace.enabled ? (
                   <QueryTimeProvider>{children}</QueryTimeProvider>
                 ) : (

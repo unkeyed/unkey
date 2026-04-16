@@ -54,10 +54,12 @@ const formSchema = z.object({
 
 type Props = {
   defaultOpen?: boolean;
+  renderTrigger?: (props: { onClick: () => void }) => React.ReactNode;
 };
 
 export const CreateDeploymentButton = ({
   defaultOpen,
+  renderTrigger,
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
   const router = useRouter();
@@ -144,15 +146,19 @@ export const CreateDeploymentButton = ({
 
   return (
     <>
-      <NavbarActionButton
-        {...rest}
-        color="default"
-        variant="outline"
-        className="size-7"
-        onClick={() => setIsOpen(true)}
-      >
-        <Plus iconSize="sm-regular" />
-      </NavbarActionButton>
+      {renderTrigger ? (
+        renderTrigger({ onClick: () => setIsOpen(true) })
+      ) : (
+        <NavbarActionButton
+          {...rest}
+          color="default"
+          variant="outline"
+          className="size-7"
+          onClick={() => setIsOpen(true)}
+        >
+          <Plus iconSize="sm-regular" />
+        </NavbarActionButton>
+      )}
       <DynamicDialogContainer
         isOpen={isOpen}
         onOpenChange={setIsOpen}
