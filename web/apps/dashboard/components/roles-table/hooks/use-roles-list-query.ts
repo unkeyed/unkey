@@ -20,7 +20,7 @@ type RolesFilterParams = Pick<
 
 // Mirrors DEFAULT_LIMIT in query.ts — kept here to avoid importing the server-side router
 const DEFAULT_PAGE_SIZE = 50;
-const MAX_PAGE_SIZE = 200;
+const MAX_PAGE_SIZE = 100;
 
 // Maps TanStack column IDs to server sort field names (and reverse)
 const COLUMN_ID_TO_SORT_FIELD: Record<string, RolesSortField> = {
@@ -150,10 +150,13 @@ export function useRolesListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
 
   // Clamp page to valid range after data/totalPages updates.
   useEffect(() => {
+    if (data == null) {
+      return;
+    }
     if (normalizedPage > totalPages) {
       setPage(totalPages);
     }
-  }, [normalizedPage, totalPages, setPage]);
+  }, [data, normalizedPage, totalPages, setPage]);
 
   // Prefetch the next few pages so navigation feels instant.
   useEffect(() => {

@@ -66,6 +66,7 @@ export const RolesList = () => {
         sorting={sorting}
         onSortingChange={onSortingChange}
         onRowClick={setSelectedRole}
+        selectedItem={selectedRole}
         rowClassName={(role) => getRowClassName(role, selectedRole)}
         renderSkeletonRow={renderRolesSkeletonRow}
         emptyState={
