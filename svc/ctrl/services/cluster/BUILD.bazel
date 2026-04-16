@@ -3,7 +3,6 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "cluster",
     srcs = [
-        "auth.go",
         "doc.go",
         "rpc_get_desired_cilium_network_policy_state.go",
         "rpc_get_desired_deployment_state.go",
