@@ -10,7 +10,7 @@ import { useQueryTime } from "@/providers/query-time-provider";
 import type { RowSelectionState } from "@tanstack/react-table";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { DataTable, PaginationFooter } from "@unkey/ui";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useKeyDetailsLogsContext } from "../../context/logs";
 
 type Props = {
@@ -43,6 +43,16 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
   const { queryTime: timestamp } = useQueryTime();
   const utils = trpc.useUtils();
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear any pending hover-prefetch timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+        hoverTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const handleRowHover = useCallback(
     (log: KeyDetailsLog) => {

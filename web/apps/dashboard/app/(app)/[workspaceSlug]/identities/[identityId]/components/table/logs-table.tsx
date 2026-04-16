@@ -24,7 +24,7 @@ import {
   TriangleWarning2,
 } from "@unkey/icons";
 import { Badge, Button, CopyButton, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useIdentityDetailsLogsContext } from "../../context/logs";
 import { useIdentityLogsQuery } from "./hooks/use-logs-query";
 
@@ -143,6 +143,16 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
   const { queryTime: timestamp } = useQueryTime();
   const utils = trpc.useUtils();
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear any pending hover-prefetch timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+        hoverTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const handleRowHover = useCallback(
     (log: IdentityLog) => {
