@@ -120,7 +120,7 @@ export function EnvVarsList({
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div className="relative">
+    <>
       <div ref={listRefCallback} className="border border-grayA-4 rounded-[14px] overflow-hidden">
         <div
           style={{
@@ -184,7 +184,7 @@ export function EnvVarsList({
         onDelete={handleBulkDelete}
         onClearSelection={clearSelection}
       />
-    </div>
+    </>
   );
 }
 
