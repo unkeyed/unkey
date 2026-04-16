@@ -17,6 +17,25 @@ Each row in the table shows the timestamp, the region that handled the request, 
 
 Combine filters to narrow results by status code, HTTP method, path, deployment, environment, and time range. Filters persist in the URL, so you can bookmark or share a filtered view.
 
+### Status code filter
+
+The status code filter lets you narrow requests by HTTP response status. You can filter by class or by a specific code.
+
+**Filter by class** — select one or more status code ranges to show all requests in that class:
+
+| Range | Label    |
+| ----- | -------- |
+| 2xx   | Success  |
+| 3xx   | Redirect |
+| 4xx   | Warning  |
+| 5xx   | Error    |
+
+Use the **Select All** checkbox to toggle every range at once.
+
+**Filter by specific code** — enter an exact status code (100–599) in the custom code input to isolate a single response type, for example `429` for rate-limited requests or `503` for service unavailable responses. When you type a custom code, range selections are cleared automatically.
+
+Click **Apply Filter** to update the results.
+
 <Frame caption="Requests page with the detail panel open for a selected request">
   <img src="/observability/requests-light.png" alt="Requests page" className="block dark:hidden" />
   <img src="/observability/requests-dark.png" alt="Requests page" className="hidden dark:block" />
