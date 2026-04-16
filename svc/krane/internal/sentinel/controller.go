@@ -72,6 +72,10 @@ func (c *Controller) Start(ctx context.Context) error {
 		return err
 	}
 
+	if err := c.runPodWatchLoop(ctx); err != nil {
+		return err
+	}
+
 	return nil
 }
 
