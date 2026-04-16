@@ -9,8 +9,9 @@ import {
 } from "@/lib/collections/deploy/sentinel-policies";
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { useCallback } from "react";
+import { type PolicyFormValues, toSentinelPolicy } from "../components/add-panel/schema";
 
-type Args = { envAId: string; envBId: string };
+type Args = { envAId: string; envBId: string; envASlug: string; envBSlug: string };
 type Env = "envA" | "envB";
 
 export type SentinelPolicyActions = {
@@ -18,6 +19,7 @@ export type SentinelPolicyActions = {
   addToEnv: (id: string, env: Env) => void;
   reorder: (envs: Env[], orderedIds: string[]) => void;
   save: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
+  saveFromForm: (values: PolicyFormValues | PolicyFormValues[]) => void;
   delete: (id: string) => void;
 };
 
@@ -25,7 +27,12 @@ export type SentinelPolicyActions = {
  * Per-row mutation handlers under the LWW model. All callbacks write directly
  * to the sentinelPolicies collection (or call `reorderSentinelPolicies`).
  */
-export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPolicyActions {
+export function useSentinelPolicyActions({
+  envAId,
+  envBId,
+  envASlug,
+  envBSlug,
+}: Args): SentinelPolicyActions {
   const envIdFor = useCallback((env: Env) => (env === "envA" ? envAId : envBId), [envAId, envBId]);
 
   const toggleEnv = useCallback(
@@ -135,5 +142,41 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
     [envAId, envBId],
   );
 
-  return { toggleEnv, addToEnv, reorder, save, delete: remove };
+  const saveFromForm = useCallback(
+    (values: PolicyFormValues | PolicyFormValues[]) => {
+      const items = Array.isArray(values) ? values : [values];
+      const insertRows: SentinelPolicyRow[] = [];
+
+      for (const v of items) {
+        const policy = toSentinelPolicy(v);
+        const envIds: string[] = [];
+        if (v.environmentId === "__all__" || v.environmentId === envASlug) {
+          envIds.push(envAId);
+        }
+        if (v.environmentId === "__all__" || v.environmentId === envBSlug) {
+          envIds.push(envBId);
+        }
+        for (const envId of envIds) {
+          if (!envId) {
+            continue;
+          }
+          insertRows.push({
+            ...policy,
+            enabled: true,
+            environmentId: envId,
+            _order:
+              nextSentinelPolicyOrder(envId) +
+              insertRows.filter((r) => r.environmentId === envId).length,
+          });
+        }
+      }
+
+      if (insertRows.length > 0) {
+        collection.sentinelPolicies.insert(insertRows);
+      }
+    },
+    [envAId, envBId, envASlug, envBSlug],
+  );
+
+  return { toggleEnv, addToEnv, reorder, save, saveFromForm, delete: remove };
 }
