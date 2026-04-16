@@ -1,8 +1,6 @@
 package deploy
 
 import (
-	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
@@ -85,31 +83,65 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		)
 	}
 
-	if isConfirmingRollback {
-		logger.Info("confirming rollback", "deployment_id", targetDeployment.ID, "app_id", app.ID)
-
-		// Clear isRolledBack flag, routes already point to the correct deployment.
-		// Re-read the app inside a transaction to avoid using a stale CurrentDeploymentID
-		_, err = restate.Run(ctx, func(runCtx restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-				currentApp, findErr := db.Query.FindAppById(txCtx, tx, targetDeployment.AppID)
-				if findErr != nil {
-					return findErr
-				}
-				return db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
-					AppID:               currentApp.ID,
-					CurrentDeploymentID: currentApp.CurrentDeploymentID,
-					IsRolledBack:        false,
-					UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				})
+	// Resolve routes for normal promotion. Confirm-rollback skips this since
+	// the routes already point at the target.
+	var routeIDs []string
+	if !isConfirmingRollback {
+		frontlineRoutes, findErr := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRouteForPromotionRow, error) {
+			return db.Query.FindFrontlineRouteForPromotion(stepCtx, w.db.RO(), db.FindFrontlineRouteForPromotionParams{
+				EnvironmentID: targetDeployment.EnvironmentID,
+				Sticky: []db.FrontlineRoutesSticky{
+					db.FrontlineRoutesStickyLive,
+					db.FrontlineRoutesStickyEnvironment,
+				},
 			})
-		}, restate.WithName("clearing isRolledBack flag"))
-		if err != nil {
-			return nil, fault.Wrap(err, fault.Public("Failed to confirm rollback"))
+		}, restate.WithName("finding frontlineRoutes for promotion"))
+		if findErr != nil {
+			return nil, fault.Wrap(findErr, fault.Public("Failed to find routes for promotion"))
 		}
 
-		// Find the deployment that was rolled back from and schedule it for standby
-		oldDeploymentID, err := restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
+		if len(frontlineRoutes) == 0 {
+			return nil, fault.Wrap(
+				restate.TerminalError(fmt.Errorf("no frontline routes found for promotion"), 400),
+				fault.Public("No routes found to promote"),
+			)
+		}
+
+		logger.Info("found frontlineRoutes for promotion", "count", len(frontlineRoutes), "deployment_id", targetDeployment.ID)
+
+		for _, route := range frontlineRoutes {
+			routeIDs = append(routeIDs, route.ID)
+		}
+	}
+
+	// Atomic swap inside the env-keyed Routing VO. For normal promotion this
+	// reassigns the routes AND swaps current_deployment_id. For
+	// confirm-rollback, routes are empty so it just clears is_rolled_back
+	// (current_deployment_id is already the target, so the write is a no-op).
+	swapResp, err := hydrav1.NewRoutingServiceClient(ctx, targetDeployment.EnvironmentID).
+		SwapLiveDeployment().Request(&hydrav1.SwapLiveDeploymentRequest{
+		DeploymentId:      targetDeployment.ID,
+		FrontlineRouteIds: routeIDs,
+		SetRollbackFlag:   false,
+	})
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Public("Failed to swap live deployment"))
+	}
+
+	// Ensure the newly-promoted deployment is not spun down by any pending
+	// standby schedule from when it was previously demoted.
+	_, err = hydrav1.NewDeploymentServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Request(&hydrav1.ClearScheduledStateChangesRequest{})
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Public("Failed to clear scheduled state changes on the promoted deployment"))
+	}
+
+	// Schedule the deployment that just got demoted for standby. For
+	// normal promotion this is the previous current_deployment_id; for
+	// confirm-rollback we look up the latest ready deployment that isn't
+	// the target (the one that was rolled back from).
+	var oldDeploymentID string
+	if isConfirmingRollback {
+		oldDeploymentID, err = restate.Run(ctx, func(stepCtx restate.RunContext) (string, error) {
 			return db.Query.FindLatestReadyDeploymentByAppAndEnv(stepCtx, w.db.RO(), db.FindLatestReadyDeploymentByAppAndEnvParams{
 				AppID:         targetDeployment.AppID,
 				EnvironmentID: targetDeployment.EnvironmentID,
@@ -119,98 +151,23 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Public("Failed to find old deployment to schedule for standby"))
 		}
+	} else {
+		oldDeploymentID = swapResp.GetPreviousDeploymentId()
+	}
+
+	if oldDeploymentID != "" {
 		hydrav1.NewDeploymentServiceClient(ctx, oldDeploymentID).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
 			State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
 			DelayMillis: (30 * time.Minute).Milliseconds(),
 		})
 		logger.Info("scheduled old deployment for standby", "old_deployment_id", oldDeploymentID)
-
-		logger.Info("rollback confirmed successfully", "deployment_id", targetDeployment.ID)
-		return &hydrav1.PromoteResponse{}, nil
-	}
-
-	// Get all frontlineRoutes for promotion
-	frontlineRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRouteForPromotionRow, error) {
-		return db.Query.FindFrontlineRouteForPromotion(stepCtx, w.db.RO(), db.FindFrontlineRouteForPromotionParams{
-			EnvironmentID: targetDeployment.EnvironmentID,
-			Sticky: []db.FrontlineRoutesSticky{
-				db.FrontlineRoutesStickyLive,
-				db.FrontlineRoutesStickyEnvironment,
-			},
-		})
-	}, restate.WithName("finding frontlineRoutes for promotion"))
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Public("Failed to find routes for promotion"))
-	}
-
-	if len(frontlineRoutes) == 0 {
-		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("no frontline routes found for promotion"), 400),
-			fault.Public("No routes found to promote"),
-		)
-	}
-
-	logger.Info("found frontlineRoutes for promotion", "count", len(frontlineRoutes), "deployment_id", targetDeployment.ID)
-
-	// Collect domain IDs
-	var routeIDs []string
-	for _, route := range frontlineRoutes {
-		routeIDs = append(routeIDs, route.ID)
-	}
-
-	// Call RoutingService to switch routes atomically, keyed by app ID
-	routingClient := hydrav1.NewRoutingServiceClient(ctx, app.ID)
-	_, err = routingClient.AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
-		DeploymentId:      targetDeployment.ID,
-		FrontlineRouteIds: routeIDs,
-	})
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Public("Failed to switch routes to the promoted deployment"))
-	}
-
-	// Atomically read the current deployment and swap it to the promoted one.
-	//  we capture the previous deployment ID from fresh DB state so that retries don't schedule
-	// the wrong deployment for standby.
-	previousDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
-		return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (sql.NullString, error) {
-			currentApp, findErr := db.Query.FindAppById(txCtx, tx, targetDeployment.AppID)
-			if findErr != nil {
-				return sql.NullString{}, findErr
-			}
-			updateErr := db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
-				AppID:               currentApp.ID,
-				CurrentDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
-				IsRolledBack:        false,
-				UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			})
-			if updateErr != nil {
-				return sql.NullString{}, fault.Wrap(updateErr, fault.Internal("failed to update app's current deployment id"))
-			}
-			logger.Info("updated app current deployment", "app_id", currentApp.ID, "current_deployment_id", targetDeployment.ID)
-			return currentApp.CurrentDeploymentID, nil
-		})
-	}, restate.WithName("updating app current deployment"))
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Public("Failed to update the project after promotion"))
-	}
-
-	// ensure the new promoted deployment does not get spun down from existing scheduled actions
-	_, err = hydrav1.NewDeploymentServiceClient(ctx, targetDeployment.ID).ClearScheduledStateChanges().Request(&hydrav1.ClearScheduledStateChangesRequest{})
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Public("Failed to clear scheduled state changes on the promoted deployment"))
-	}
-
-	// schedule old deployment to be spun down using the fresh previous ID captured in the transaction
-	if previousDeploymentID.Valid {
-		hydrav1.NewDeploymentServiceClient(ctx, previousDeploymentID.String).ScheduleDesiredStateChange().Send(&hydrav1.ScheduleDesiredStateChangeRequest{
-			State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
-			DelayMillis: (30 * time.Minute).Milliseconds(),
-		})
 	}
 
 	logger.Info("promotion completed successfully",
 		"target", req.GetTargetDeploymentId(),
-		"domains_promoted", len(routeIDs))
+		"domains_promoted", len(routeIDs),
+		"confirm_rollback", isConfirmingRollback,
+	)
 
 	return &hydrav1.PromoteResponse{}, nil
 }

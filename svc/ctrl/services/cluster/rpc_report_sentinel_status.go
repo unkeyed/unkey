@@ -67,7 +67,7 @@ func (s *Service) ReportSentinelStatus(ctx context.Context, req *connect.Request
 	// When a deploy is in progress and the desired image is actually running,
 	// resolve the pending awakeable so Deploy can complete.
 	if s.restate != nil {
-		row, err := db.Query.FindSentinelDeployContextByK8sName(ctx, s.db.RO(), req.Msg.GetK8SName())
+		sentinel, err := db.Query.FindSentinelDeployContextByK8sName(ctx, s.db.RO(), req.Msg.GetK8SName())
 		if errors.Is(err, sql.ErrNoRows) {
 			// Sentinel row not found — nothing to notify. Krane may be reporting
 			// on a sentinel that has just been deleted.
@@ -78,15 +78,17 @@ func (s *Service) ReportSentinelStatus(ctx context.Context, req *connect.Request
 			// above is idempotent, so the retry is safe.
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
-		if row.DeployStatus == db.SentinelsDeployStatusProgressing &&
+		if sentinel.DeployStatus == db.SentinelsDeployStatusProgressing &&
 			health == db.SentinelsHealthHealthy &&
-			row.RunningImage != "" &&
-			row.RunningImage == row.DesiredImage {
-			_, err := hydrav1.NewSentinelServiceIngressClient(s.restate, row.ID).
-				NotifyReady().
-				Send(ctx, &hydrav1.SentinelServiceNotifyReadyRequest{})
-			if err != nil {
-				logger.Error("failed to notify sentinel ready", "sentinel_id", row.ID, "error", err)
+			sentinel.RunningImage != "" &&
+			sentinel.RunningImage == sentinel.DesiredImage {
+			if s.notifiedReady.AddIfAbsent(sentinel.ID) {
+				_, err := hydrav1.NewSentinelServiceIngressClient(s.restate, sentinel.ID).
+					NotifyReady().
+					Send(ctx, &hydrav1.SentinelServiceNotifyReadyRequest{})
+				if err != nil {
+					logger.Error("failed to notify sentinel ready", "sentinel_id", sentinel.ID, "error", err)
+				}
 			}
 		}
 	}
