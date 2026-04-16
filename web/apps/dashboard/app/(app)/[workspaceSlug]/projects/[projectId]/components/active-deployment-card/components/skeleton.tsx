@@ -56,13 +56,9 @@ export function ActiveDeploymentCardSkeleton() {
             </div>
           </div>
           <div className="flex items-center gap-1.5" aria-hidden="true">
-            <span className="text-xs text-grayA-9">
-              Requests
-            </span>
+            <span className="text-xs text-grayA-9">Requests</span>
             <span className="text-grayA-6">|</span>
-            <span className="text-xs text-grayA-9">
-              Logs
-            </span>
+            <span className="text-xs text-grayA-9">Logs</span>
             <span className="inline-flex items-center justify-center size-7">
               <ChevronDown
                 className={cn("text-grayA-9 size-3! transition-transform duration-200")}
