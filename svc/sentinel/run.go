@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
+	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -30,7 +31,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/runner"
-	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/sentinel/engine"
 	"github.com/unkeyed/unkey/svc/sentinel/routes"
@@ -60,7 +60,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:        "sentinel",
-			Version:            version.Version,
+			Version:            buildinfo.Version,
 			InstanceID:         cfg.SentinelID,
 			CloudRegion:        cfg.Region,
 			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
@@ -78,7 +78,7 @@ func Run(ctx context.Context, cfg Config) error {
 		slog.String("environmentID", cfg.EnvironmentID),
 		slog.String("platform", cfg.Platform),
 		slog.String("region", cfg.Region),
-		slog.String("version", version.Version),
+		slog.String("version", buildinfo.Version),
 	))
 
 	r := runner.New()
@@ -91,6 +91,7 @@ func Run(ctx context.Context, cfg Config) error {
 	//nolint:exhaustruct
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	lazy.SetRegistry(reg)
+	buildinfo.RegisterBuildInfoMetrics("sentinel")
 
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 		prom, promErr := prometheus.NewWithRegistry(reg)

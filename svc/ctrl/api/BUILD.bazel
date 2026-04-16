@@ -15,6 +15,7 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//gen/proto/hydra/v1:hydra",
+        "//pkg/buildinfo",
         "//pkg/cache",
         "//pkg/clock",
         "//pkg/config",
@@ -27,7 +28,6 @@ go_library(
         "//pkg/restate/admin",
         "//pkg/runner",
         "//pkg/uid",
-        "//pkg/version",
         "//svc/ctrl/services/acme",
         "//svc/ctrl/services/app",
         "//svc/ctrl/services/cluster",

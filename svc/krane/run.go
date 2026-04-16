@@ -15,6 +15,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -24,7 +25,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
-	pkgversion "github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
@@ -58,7 +58,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:        "krane",
-			Version:            pkgversion.Version,
+			Version:            buildinfo.Version,
 			InstanceID:         cfg.InstanceID,
 			CloudRegion:        cfg.Region,
 			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
@@ -73,7 +73,7 @@ func Run(ctx context.Context, cfg Config) error {
 	logger.AddBaseAttrs(slog.GroupAttrs("instance",
 		slog.String("id", cfg.InstanceID),
 		slog.String("region", cfg.Region),
-		slog.String("version", pkgversion.Version),
+		slog.String("version", buildinfo.Version),
 	))
 
 	r := runner.New()
@@ -86,6 +86,7 @@ func Run(ctx context.Context, cfg Config) error {
 	//nolint:exhaustruct
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	lazy.SetRegistry(reg)
+	buildinfo.RegisterBuildInfoMetrics("krane")
 
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
 		URL:         cfg.Control.URL,
