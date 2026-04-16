@@ -1,12 +1,14 @@
 import { z } from "zod";
 
 export const DEFAULT_BUCKET_NAME = "unkey_mutations";
-export const auditQueryLogsPayload = z.object({
-  limit: z.int(),
-  startTime: z.int().optional(),
-  endTime: z.int().optional(),
+
+export const auditLogsQueryPayload = z.object({
+  limit: z.number().int().positive().max(100).default(50),
+  page: z.number().int().min(1).optional().default(1),
+  startTime: z.number().int().optional(),
+  endTime: z.number().int().optional(),
   since: z.string(),
-  bucket: z.string().prefault(DEFAULT_BUCKET_NAME),
+  bucket: z.string().default(DEFAULT_BUCKET_NAME),
   events: z
     .object({
       filters: z.array(
@@ -37,7 +39,6 @@ export const auditQueryLogsPayload = z.object({
       ),
     })
     .nullable(),
-  cursor: z.number().optional().nullable(),
 });
 
-export type AuditQueryLogsPayload = z.infer<typeof auditQueryLogsPayload>;
+export type AuditLogsQueryPayload = z.infer<typeof auditLogsQueryPayload>;

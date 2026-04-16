@@ -1,33 +1,108 @@
-import { auditQueryLogsPayload } from "@/app/(app)/[workspaceSlug]/audit/components/table/query-logs.schema";
+import { auditLogsQueryPayload } from "@/components/audit-logs-table/schema/audit-logs.schema";
 import { auth } from "@/lib/auth/server";
 import type { User } from "@/lib/auth/types";
-import { type Quotas, type Workspace, db } from "@/lib/db";
+import {
+  type Quotas,
+  type Workspace,
+  and,
+  between,
+  count,
+  db,
+  eq,
+  gte,
+  inArray,
+  schema,
+} from "@/lib/db";
 import { freeTierQuotas } from "@/lib/quotas";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { z } from "zod";
 import { type AuditLogWithTargets, type AuditQueryLogsParams, auditLog } from "./schema";
 import { transformFilters } from "./utils";
 
+const LIMIT = 50;
+const MAX_LIMIT = 200;
+
+// In-memory cache for audit log count queries to avoid re-counting on every page navigation
+const countCache = new Map<string, { count: number; timestamp: number }>();
+const COUNT_CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+
+function getCountCacheKey(workspaceId: string, params: Omit<AuditQueryLogsParams, "workspaceId">) {
+  return JSON.stringify({
+    workspaceId,
+    bucket: params.bucket,
+    events: params.events,
+    users: params.users,
+    rootKeys: params.rootKeys,
+    startTime: params.startTime,
+    endTime: params.endTime,
+  });
+}
+
+function getCachedCount(key: string): number | null {
+  const cached = countCache.get(key);
+  if (cached && Date.now() - cached.timestamp < COUNT_CACHE_TTL) {
+    return cached.count;
+  }
+  if (cached) {
+    countCache.delete(key);
+  }
+  return null;
+}
+
 const AuditLogsResponse = z.object({
   auditLogs: z.array(auditLog),
-  hasMore: z.boolean(),
-  nextCursor: z.number().optional(),
+  total: z.number(),
 });
 
 type AuditLogsResponse = z.infer<typeof AuditLogsResponse>;
 
 export const fetchAuditLog = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
-  .input(auditQueryLogsPayload)
+  .input(auditLogsQueryPayload)
   .output(AuditLogsResponse)
   .query(async ({ ctx, input }) => {
     const params = transformFilters(input);
-    const logs = await queryAuditLogs(params, ctx.workspace);
+    const pageSize = Math.max(1, Math.min(params.limit ?? LIMIT, MAX_LIMIT));
+    const page = Math.max(1, params.page ?? 1);
+    const offset = (page - 1) * pageSize;
 
-    const { slicedItems, hasMore } = omitLastItemForPagination(logs, params.limit);
-    const uniqueUsers = await fetchUsersFromLogs(slicedItems);
+    const whereConditions = buildWhereConditions(params, ctx.workspace);
+    const cacheKey = getCountCacheKey(ctx.workspace.id, params);
+    const cachedCount = getCachedCount(cacheKey);
 
-    const items: AuditLogsResponse["auditLogs"] = slicedItems.map((l) => {
+    const [totalCount, logs] = await (cachedCount !== null
+      ? Promise.all([
+          cachedCount,
+          db.query.auditLog.findMany({
+            where: and(...whereConditions),
+            with: { targets: true },
+            orderBy: (table, { desc }) => [desc(table.time), desc(table.id)],
+            limit: pageSize,
+            offset,
+          }),
+        ])
+      : Promise.all([
+          db
+            .select({ count: count() })
+            .from(schema.auditLog)
+            .where(and(...whereConditions))
+            .then((result) => {
+              const total = result[0]?.count ?? 0;
+              countCache.set(cacheKey, { count: total, timestamp: Date.now() });
+              return total;
+            }),
+          db.query.auditLog.findMany({
+            where: and(...whereConditions),
+            with: { targets: true },
+            orderBy: (table, { desc }) => [desc(table.time), desc(table.id)],
+            limit: pageSize,
+            offset,
+          }),
+        ]));
+
+    const uniqueUsers = await fetchUsersFromLogs(logs);
+
+    const items: AuditLogsResponse["auditLogs"] = logs.map((l) => {
       const user = uniqueUsers[l.actorId];
       return {
         user: user
@@ -63,76 +138,63 @@ export const fetchAuditLog = workspaceProcedure
 
     return {
       auditLogs: items,
-      hasMore,
-      nextCursor: hasMore && items.length > 0 ? items[items.length - 1].auditLog.time : undefined,
+      total: totalCount,
     };
   });
 
-export const queryAuditLogs = async (
+function buildWhereConditions(
   params: Omit<AuditQueryLogsParams, "workspaceId">,
   workspace: Workspace & { quotas: Quotas | null },
-) => {
+) {
   const events = (params.events ?? []).map((e) => e.value);
   const userValues = (params.users ?? []).map((u) => u.value);
   const rootKeyValues = (params.rootKeys ?? []).map((r) => r.value);
   const users = [...userValues, ...rootKeyValues];
 
-  const cursor = params.cursor;
-
   const retentionDays =
     workspace.quotas?.auditLogsRetentionDays || freeTierQuotas.auditLogsRetentionDays;
   const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
-  // By default we need the last "50"(LIMIT) records.
   const hasTimeFilter = params.startTime !== undefined || params.endTime !== undefined;
 
-  const logs = await db.query.auditLog.findMany({
-    where: (table, { eq, and, inArray, between, lt, gte }) =>
-      and(
-        eq(table.workspaceId, workspace.id),
-        eq(table.bucket, params.bucket),
-        events.length > 0 ? inArray(table.event, events) : undefined,
-        // Apply time filters only if explicitly provided, otherwise just respect retention period
-        hasTimeFilter
-          ? between(
-              table.time,
-              Math.max(params.startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
-              params.endTime ?? Date.now(),
-            )
-          : gte(table.time, retentionCutoffUnixMilli), // Only enforce retention period
-        users.length > 0 ? inArray(table.actorId, users) : undefined,
-        cursor ? lt(table.time, cursor) : undefined,
-      ),
-    with: {
-      targets: true,
-    },
-    orderBy: (table, { desc }) => desc(table.time),
-    limit: params.limit + 1,
-  });
-  return logs;
-};
+  const conditions = [
+    eq(schema.auditLog.workspaceId, workspace.id),
+    eq(schema.auditLog.bucket, params.bucket),
+  ];
 
-export function omitLastItemForPagination(items: AuditLogWithTargets[], limit: number) {
-  // If we got limit + 1 results, there are more pages
-  const hasMore = items.length > limit;
-  // Remove the extra item we used to check for more pages
-  const slicedItems = hasMore ? items.slice(0, -1) : items;
-  return { slicedItems, hasMore };
+  if (events.length > 0) {
+    conditions.push(inArray(schema.auditLog.event, events));
+  }
+
+  if (hasTimeFilter) {
+    conditions.push(
+      between(
+        schema.auditLog.time,
+        Math.max(params.startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
+        params.endTime ?? Date.now(),
+      ),
+    );
+  } else {
+    conditions.push(gte(schema.auditLog.time, retentionCutoffUnixMilli));
+  }
+
+  if (users.length > 0) {
+    conditions.push(inArray(schema.auditLog.actorId, users));
+  }
+
+  return conditions;
 }
 
 export const fetchUsersFromLogs = async (
   logs: AuditLogWithTargets[],
 ): Promise<Record<string, User>> => {
   try {
-    // Get unique user IDs from logs
     const userIds = [...new Set(logs.filter((l) => l.actorType === "user").map((l) => l.actorId))];
 
-    // Fetch all users in parallel
     const users = await Promise.all(
       userIds.map((userId) => auth.getUser(userId).catch(() => null)),
     );
 
-    // Convert array to record object
     return users.reduce(
       (acc, user) => {
         if (user) {

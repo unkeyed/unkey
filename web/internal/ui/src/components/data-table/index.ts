@@ -50,6 +50,8 @@ export { RegionCell } from "./components/cells";
 export type { RegionCellProps } from "./components/cells";
 export { TagsCell } from "./components/cells";
 export type { TagsCellProps } from "./components/cells";
+export { MonoTextCell } from "./components/cells";
+export type { MonoTextCellProps } from "./components/cells";
 
 // Skeletons
 export {
