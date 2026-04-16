@@ -22,7 +22,11 @@
 // It creates deployment topologies for every configured region (each with its
 // own deployment_changes entry), ensures sentinel containers and Cilium
 // network policies exist per region, and polls in parallel until all instances
-// are running. Once healthy, it generates frontline routes for per-commit,
+// are running. New sentinels are tracked via [SentinelService.Deploy], which
+// blocks until the sentinel has converged in Kubernetes before proceeding.
+// Existing sentinels are not auto-upgraded during deploys; image rollouts
+// are a separate operation.
+// Once healthy, it generates frontline routes for per-commit,
 // per-branch, and per-environment domains, reassigns sticky routes through
 // RoutingService, marks the deployment ready, and — for non-rolled-back
 // production environments — updates the app's live deployment pointer.

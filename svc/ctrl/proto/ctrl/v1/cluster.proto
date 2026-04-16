@@ -162,6 +162,15 @@ message ReportSentinelStatusRequest {
   string k8s_name = 1;
   int32 available_replicas = 2;
   Health health = 3;
+
+  // sentinel_id is the control-plane ID for this sentinel, extracted from
+  // the Deployment's labels. Used to address the SentinelService virtual
+  // object when triggering NotifyReady.
+  string sentinel_id = 4;
+
+  // running_image is the actual container image from the k8s Deployment spec.
+  // Used to detect when the desired image has converged with what's running.
+  string running_image = 5;
 }
 
 message ReportSentinelStatusResponse {}

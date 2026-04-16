@@ -38,9 +38,7 @@ export function DeploymentRow({
   href,
 }: DeploymentRowProps) {
   return (
-    <div
-      className="relative flex flex-col md:flex-row md:items-center px-4 py-3 gap-3 md:gap-0 transition-colors hover:bg-grayA-2"
-    >
+    <div className="relative flex flex-col md:flex-row md:items-center px-4 py-3 gap-3 md:gap-0 transition-colors hover:bg-grayA-2">
       <Link
         href={href}
         className="absolute inset-0 z-10"

@@ -20,6 +20,7 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1:ctrl",
         "//gen/proto/ctrl/v1/ctrlv1connect",
+        "//gen/proto/hydra/v1:hydra",
         "//pkg/assert",
         "//pkg/db",
         "//pkg/logger",
@@ -28,6 +29,7 @@ go_library(
         "//svc/ctrl/internal/auth",
         "//svc/ctrl/pkg/metrics",
         "@com_connectrpc_connect//:connect",
+        "@com_github_restatedev_sdk_go//ingress",
     ],
 )
 
