@@ -56,11 +56,11 @@ export function ActiveDeploymentCardSkeleton() {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <button className="text-xs text-grayA-9" type="button" disabled aria-hidden="true">
+            <button className="text-xs text-grayA-9" type="button" disabled tabIndex={-1}>
               Requests
             </button>
             <span className="text-grayA-6">|</span>
-            <button className="text-xs text-grayA-9" type="button" disabled aria-hidden="true">
+            <button className="text-xs text-grayA-9" type="button" disabled tabIndex={-1}>
               Logs
             </button>
             <Button size="icon" variant="ghost" disabled aria-hidden="true" tabIndex={-1}>

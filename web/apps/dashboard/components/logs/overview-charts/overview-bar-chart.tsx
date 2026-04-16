@@ -232,17 +232,17 @@ export function OverviewBarChart({
   if (isError) {
     return <OverviewChartError labels={labels} />;
   }
-  if (isLoading) {
+  if (isLoading || !data) {
     return <OverviewChartLoader labels={labels} />;
   }
 
   // Calculate totals based on the provided keys
-  const totalCount = (data ?? []).reduce(
+  const totalCount = data.reduce(
     (acc, crr) => acc + (crr[labels.primaryKey] as number) + (crr[labels.secondaryKey] as number),
     0,
   );
 
-  // Show empty state when there's no data
+  // Show empty state only after data has loaded and is genuinely empty
   if (totalCount === 0) {
     return <OverviewChartEmpty labels={labels} />;
   }
