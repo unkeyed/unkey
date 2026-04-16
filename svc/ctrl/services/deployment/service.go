@@ -16,6 +16,7 @@ type Service struct {
 	db      db.Database
 	restate *restateingress.Client
 	github  githubclient.GitHubClient
+	bearer  string
 }
 
 // deploymentClient creates a typed Restate ingress client for the DeployService
@@ -32,6 +33,8 @@ type Config struct {
 	Restate *restateingress.Client
 	// GitHub is the client for GitHub API operations (fetching HEAD, etc.).
 	GitHub githubclient.GitHubClient
+	// Bearer is the preshared token that callers must provide in the Authorization header.
+	Bearer string
 }
 
 // New creates a new [Service] with the given configuration. All fields in
@@ -42,5 +45,6 @@ func New(cfg Config) *Service {
 		db:                                cfg.Database,
 		restate:                           cfg.Restate,
 		github:                            cfg.GitHub,
+		bearer:                            cfg.Bearer,
 	}
 }

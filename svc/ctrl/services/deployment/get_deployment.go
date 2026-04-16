@@ -8,6 +8,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // GetDeployment retrieves a deployment by ID including its current status,
@@ -19,6 +20,10 @@ func (s *Service) GetDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.GetDeploymentRequest],
 ) (*connect.Response[ctrlv1.GetDeploymentResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	// Query deployment from database
 	deployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), req.Msg.GetDeploymentId())
 	if err != nil {
