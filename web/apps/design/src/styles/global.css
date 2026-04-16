@@ -263,14 +263,4 @@
     @apply bg-gray-1 text-gray-12 font-sans antialiased;
     font-feature-settings: "ss01", "cv11";
   }
-
-  /* Dot grid background for preview surfaces */
-  .preview-grid {
-    background-image: radial-gradient(
-      circle at 1px 1px,
-      hsla(var(--grayA-5)) 1px,
-      transparent 0
-    );
-    background-size: 16px 16px;
-  }
 }
