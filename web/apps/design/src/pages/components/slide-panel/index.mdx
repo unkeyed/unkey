@@ -1,0 +1,227 @@
+---
+layout: ../../../layouts/Layout.astro
+title: SlidePanel
+description: A side-anchored panel that slides in beside the page content, for editing a resource without losing sight of the surrounding context.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  BasicExample,
+  SideExample,
+  WidthExample,
+  TopOffsetExample,
+} from "./_examples.tsx";
+
+SlidePanel is a portaled, controlled panel that animates in from the left or
+right edge of the viewport. It sits next to the page rather than on top of
+it: the rest of the UI stays visible behind a soft backdrop blur, and the
+panel body lives inside a rounded, bordered surface that is inset from the
+viewport by 12px on three sides. Reach for it when the user needs to create,
+edit, or inspect something without losing their place in the list or view
+they came from.
+
+Where a Drawer covers the full edge of the screen and a Drover takes over
+the viewport entirely, SlidePanel is deliberately lighter. It shares the
+page with the content that launched it, so filter selections, table rows, or
+surrounding state remain readable through the translucent backdrop. The
+compound API is fully controlled via `isOpen` and `onClose`, closes on
+`Escape` and backdrop click, and guards its subtree with `inert` while
+closed so tabbing and screen-reader focus don't leak in.
+
+## Import
+
+```tsx
+import { SlidePanel } from "@unkey/ui";
+```
+
+All subcomponents are accessed as properties of `SlidePanel`:
+`SlidePanel.Root`, `SlidePanel.Header`, `SlidePanel.Content`,
+`SlidePanel.Footer`, and `SlidePanel.Close`.
+
+## Basic
+
+Drive the panel from a `useState` boolean. `SlidePanel.Root` renders the
+backdrop and the sliding surface; compose it with a header, a content
+region, and an optional footer. `SlidePanel.Close` wires itself to the
+root's `onClose` handler via context, so any button inside the panel can
+dismiss it without prop drilling.
+
+<BasicExample client:only="react" />
+
+## Side
+
+Pass `side="left"` to anchor the panel to the left edge. The panel still
+translates the same distance, but in the opposite direction. Use the
+left variant when the trigger or related context lives on the right half
+of the page, so the panel appears on the side nearest to the user's
+attention.
+
+<SideExample client:only="react" />
+
+## Width
+
+The default width is `w-175` (43.75rem) which suits a form or a detail
+view. Override `widthClassName` when the contents want more room, for
+example a diff, a request inspector, or a wide table. Use a responsive
+clamp (`w-[min(100vw-1.5rem,64rem)]`) so the panel doesn't overflow on
+narrow viewports.
+
+<WidthExample client:only="react" />
+
+## Top offset
+
+`topOffset` pushes the panel down by a pixel amount, and shrinks its
+height to match. Use it when the application renders a fixed page header
+or tab bar that the panel should visually sit underneath, so the top of
+the panel aligns with the start of the underlying content instead of
+overlapping the chrome above it.
+
+<TopOffsetExample client:only="react" />
+
+## Accessibility
+
+The panel is a controlled component: the parent owns `isOpen` and
+`onClose`, and SlidePanel wires up two dismissal paths on top of whatever
+the parent does. Pressing `Escape` anywhere on the document calls
+`onClose`, and clicking the backdrop does the same. Neither listener is
+attached while the panel is closed, so global keybindings elsewhere on
+the page are unaffected.
+
+While `isOpen` is `false`, the panel surface carries `aria-hidden="true"`
+and the `inert` attribute, which removes it from the accessibility tree
+and skips every descendant when tabbing. The animation uses a CSS
+transform rather than unmounting, so assistive tech sees a clean open/
+close rather than a DOM churn each time.
+
+`SlidePanel` also sets `document.body.dataset.slidePanelOpen` as a
+reference-counted marker while any panel is open. Global CSS uses that
+hook to lift portaled floating UI (like Tooltips) above the panel's
+`z-51` stacking context.
+
+Provide a label on `SlidePanel.Close` (for example
+`aria-label="Close panel"`) when the button is icon-only. The header is
+a plain flex row, so consumers are responsible for marking up the panel
+title with the right heading level for their page.
+
+## Props
+
+### SlidePanel.Root
+
+Portals its children into `document.body`, renders the backdrop and the
+sliding surface, and provides the close context to descendants.
+
+<Props>
+  <Prop name="isOpen" type="boolean" required>
+    Controlled open state. The panel animates in when this flips to
+    `true` and out when it flips back to `false`.
+  </Prop>
+  <Prop name="onClose" type="() => void" required>
+    Called when the user presses `Escape`, clicks the backdrop, or
+    activates a `SlidePanel.Close` button. The parent is responsible for
+    flipping `isOpen` back to `false`.
+  </Prop>
+  <Prop name="side" type={`"left" | "right"`} default={`"right"`}>
+    Which edge the panel slides in from. `right` is the default; `left`
+    mirrors all transforms.
+  </Prop>
+  <Prop name="topOffset" type="number" default="0">
+    Pixel offset from the top of the viewport. The panel's top edge sits
+    at `topOffset + 12` and its height shrinks to match, so the panel
+    fits under a fixed header without overlapping it.
+  </Prop>
+  <Prop name="widthClassName" type="string" default={`"w-175"`}>
+    Tailwind width class for the panel surface. Replace the default when
+    the contents need more or less room than 43.75rem.
+  </Prop>
+  <Prop name="className" type="string">
+    Extra Tailwind classes merged onto the panel surface via `cn`.
+    Useful for per-instance padding, background, or shadow overrides.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The panel tree. Typically a `SlidePanel.Header`,
+    `SlidePanel.Content`, and optional `SlidePanel.Footer`.
+  </Prop>
+</Props>
+
+### SlidePanel.Header
+
+A horizontal flex row with a bottom border and 2rem horizontal padding.
+Holds the title block and a dismiss control.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Override spacing, alignment, or
+    background when the default chrome does not fit.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Usually the panel title and description on one side, and a
+    `SlidePanel.Close` button on the other.
+  </Prop>
+</Props>
+
+### SlidePanel.Content
+
+The flexible middle region. Expands to fill the space between header and
+footer, and by default staggers in from the right with a fade so the
+content lands slightly after the panel itself.
+
+<Props>
+  <Prop name="stagger" type="boolean" default="true">
+    When `true`, the content slides and fades in after the panel. Set to
+    `false` for content that should appear immediately (for example,
+    when the panel is used as a persistent drawer).
+  </Prop>
+  <Prop name="staggerDelay" type="number" default="150">
+    Delay in milliseconds between the panel opening and the content
+    animating in. Ignored when `stagger` is `false`.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Commonly used to add internal padding
+    or make the content area scroll (`overflow-y-auto`).
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The body of the panel.
+  </Prop>
+</Props>
+
+### SlidePanel.Footer
+
+A fixed-height row at the bottom of the panel, with a top border and
+2rem horizontal padding. Use it for primary and secondary actions.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Typical overrides are `justify-end` or
+    `justify-between` depending on how the footer actions are arranged.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Usually one or two action `<Button>`s.
+  </Prop>
+</Props>
+
+### SlidePanel.Close
+
+A `<button type="button">` that pulls `onClose` from context and calls
+it on click. Place one in the header, or anywhere else the user should
+be able to dismiss the panel from.
+
+<Props>
+  <Prop name="onClick" type="(event: MouseEvent<HTMLButtonElement>) => void">
+    Optional handler that runs before `onClose`. Call
+    `event.preventDefault()` inside it to stop the panel from closing
+    (for example, to confirm unsaved changes first).
+  </Prop>
+  <Prop name="...rest" type="ButtonHTMLAttributes<HTMLButtonElement>">
+    All standard button attributes pass through, including `className`,
+    `aria-label`, and `disabled`.
+  </Prop>
+</Props>
+
+## Related
+
+- **Drawer** — a full-height sheet that covers the edge of the viewport,
+  for flows that should feel modal and capture full attention.
+- **Drover** — a fuller takeover panel for multi-step flows where the
+  surrounding context should fade away entirely.
+- **Dialog** — for short, focused decisions that block the page.

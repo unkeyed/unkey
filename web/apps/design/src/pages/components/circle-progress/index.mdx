@@ -1,0 +1,152 @@
+---
+layout: ../../../layouts/Layout.astro
+title: CircleProgress
+description: A circular progress indicator that fills clockwise and swaps to a checkmark once the task is complete.
+---
+
+import { CircleProgress } from "@unkey/ui";
+import { Preview } from "../../../components/Preview.tsx";
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+
+CircleProgress is a compact ring that visualises `value` out of `total` as a
+clockwise arc. When `value >= total` the arc fades out and a checkmark fades
+in on top of a filled ring. Both transitions are 200–300ms, so the component
+is at home inline with status text.
+
+Reach for CircleProgress when the reader benefits from seeing a *proportion*
+at a glance: three of five onboarding steps done, forty of a hundred records
+imported. For an open-ended wait where no percentage is available, use
+`<Loading>` instead.
+
+## Import
+
+```tsx
+import { CircleProgress } from "@unkey/ui";
+```
+
+## Progress
+
+The arc grows clockwise from twelve o'clock as `value` approaches `total`.
+Any ratio above 1 is clamped to 100%, at which point the checkmark state
+takes over.
+
+<Preview client:load>
+  <CircleProgress value={0} total={100} />
+  <CircleProgress value={25} total={100} />
+  <CircleProgress value={50} total={100} />
+  <CircleProgress value={75} total={100} />
+  <CircleProgress value={100} total={100} />
+</Preview>
+
+## Variants
+
+`variant` recolors the progress arc, the completed ring, and the checkmark
+together. `primary` is the neutral default; `success`, `warning`, and `error`
+signal semantic intent; `secondary` sits quietly next to body copy.
+
+<Preview client:load>
+  <CircleProgress value={3} total={5} variant="primary" />
+  <CircleProgress value={3} total={5} variant="secondary" />
+  <CircleProgress value={3} total={5} variant="success" />
+  <CircleProgress value={3} total={5} variant="warning" />
+  <CircleProgress value={3} total={5} variant="error" />
+</Preview>
+
+## Size
+
+`iconSize` uses the shared `size-weight` system from `@unkey/icons`, so the
+ring aligns with neighboring icons and text. Size picks the outer diameter
+(`sm`, `md`, `lg`, `xl`, `2xl`); weight picks the stroke thickness (`thin`,
+`medium`, `regular`, `bold`).
+
+<Preview client:load>
+  <CircleProgress value={3} total={5} iconSize="sm-regular" />
+  <CircleProgress value={3} total={5} iconSize="md-regular" />
+  <CircleProgress value={3} total={5} iconSize="lg-regular" />
+  <CircleProgress value={3} total={5} iconSize="xl-regular" />
+  <CircleProgress value={3} total={5} iconSize="2xl-regular" />
+</Preview>
+
+Stroke weight scales independently of diameter. Pair a larger ring with a
+thinner stroke when the component sits in a hero empty state, or a smaller
+ring with a bolder stroke to keep it legible inside a table row.
+
+<Preview client:load>
+  <CircleProgress value={3} total={5} iconSize="2xl-thin" />
+  <CircleProgress value={3} total={5} iconSize="2xl-medium" />
+  <CircleProgress value={3} total={5} iconSize="2xl-regular" />
+  <CircleProgress value={3} total={5} iconSize="2xl-bold" />
+</Preview>
+
+## Completion
+
+When `value` reaches or exceeds `total`, the arc fades out and a filled
+ring with a checkmark fades in. The swap happens automatically — you don't
+need to conditionally render a separate "done" state.
+
+<Preview client:load>
+  <CircleProgress value={5} total={5} variant="success" iconSize="xl-regular" />
+  <CircleProgress value={5} total={5} variant="primary" iconSize="xl-regular" />
+  <CircleProgress value={5} total={5} variant="warning" iconSize="xl-regular" />
+</Preview>
+
+## Accessibility
+
+CircleProgress renders a decorative `<svg>` inside a plain `<div>` with no
+built-in ARIA semantics. When the ring represents a real in-flight
+operation, add the semantics on the wrapping element yourself:
+
+- Set `role="progressbar"` and the matching `aria-valuenow`, `aria-valuemin`,
+  and `aria-valuemax` on the wrapping `<div>` (via the pass-through
+  props), or on a sibling container.
+- Add an `aria-label` or `aria-labelledby` that names *what* is progressing:
+  `"Onboarding steps"`, `"Import progress"`. A generic "progress" is rarely
+  enough.
+- Once `value >= total`, announce completion through the surrounding region
+  (for example with an `aria-live="polite"` status message). The checkmark
+  swap is purely visual.
+
+If the ring is decorative (say, a placeholder glyph), leave it unlabeled and
+wrap it in a container with `aria-hidden="true"`.
+
+## Props
+
+<Props>
+  <Prop name="value" type="number" required>
+    Current progress, expressed in the same units as `total`. Must be
+    non-negative and finite; the component throws if it isn't.
+  </Prop>
+  <Prop name="total" type="number" required>
+    The value that represents 100% completion. Must be greater than zero and
+    finite; the component throws otherwise. Ratios above 1 are clamped.
+  </Prop>
+  <Prop
+    name="variant"
+    type={`"primary" | "secondary" | "success" | "warning" | "error"`}
+    default={`"primary"`}
+  >
+    Semantic color applied to the progress arc, the completed ring, and the
+    checkmark. Pick the intent that matches the state, not the hue.
+  </Prop>
+  <Prop name="iconSize" type={`"sm-thin" | "sm-medium" | ... | "2xl-bold"`} default={`"md-regular"`}>
+    Size token from the shared `@unkey/icons` sizing system. The first half
+    (`sm` through `2xl`) picks the outer diameter (12px through 30px); the
+    second half (`thin`, `medium`, `regular`, `bold`) picks the stroke
+    thickness.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with the variant classes via `cn`.
+  </Prop>
+  <Prop name="...rest" type="HTMLAttributes<HTMLDivElement>">
+    All standard `<div>` attributes pass through to the wrapping element, so
+    this is where you attach `role="progressbar"`, `aria-valuenow`, and
+    friends.
+  </Prop>
+</Props>
+
+## Related
+
+- **Loading** — for open-ended waits where you can't express a percentage.
+- **Button** — `<Button loading>` embeds its own spinner when the action is
+  tied to a button press.

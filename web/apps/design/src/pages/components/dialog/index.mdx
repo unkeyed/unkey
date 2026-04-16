@@ -1,0 +1,482 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Dialog
+description: A modal surface for focused tasks, confirmations, and stepped flows — built on Radix Dialog.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  DialogExample,
+  DialogContainerExample,
+  ConfirmationPopoverExample,
+  NavigableDialogExample,
+} from "./_examples.tsx";
+
+The Dialog family is a set of four related primitives that all trap focus and
+present content above the page. `Dialog` is the low-level Radix wrapper with
+its own overlay, close button, and escape handling. `DialogContainer` is the
+opinionated shell we use for most workspace dialogs, with a titled header, a
+scrollable body, and a bordered footer already wired up. `ConfirmationPopover`
+is a small inline popover for "Are you sure?" moments anchored to the button
+that triggered the action. `NavigableDialog` is a larger stepped surface with
+a left-hand nav for multi-pane flows.
+
+Reach for `Dialog` when you want full control over structure. Reach for
+`DialogContainer` when the task fits the standard header/body/footer layout
+and you do not want to re-derive the chrome. Use `ConfirmationPopover` for
+destructive confirmations that should feel local to the trigger. Use
+`NavigableDialog` when the flow has distinct sections (settings, wizards,
+multi-step forms) that users need to move between without losing the
+surrounding context.
+
+## Import
+
+```tsx
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+  DialogContainer,
+  ConfirmPopover,
+  NavigableDialogRoot,
+  NavigableDialogHeader,
+  NavigableDialogBody,
+  NavigableDialogNav,
+  NavigableDialogContent,
+  NavigableDialogFooter,
+} from "@unkey/ui";
+```
+
+## Dialog
+
+`Dialog` is the Radix primitive with default chrome. Compose it from
+`DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogTitle`,
+`DialogDescription`, `DialogFooter`, and `DialogClose`. The content renders
+through a portal, so it escapes `overflow: hidden` ancestors, and it ships
+with a built-in close button in the top-right corner.
+
+Controlled open state is the common pattern. Drive it with `useState` so the
+dialog can be opened from outside the trigger (for example, from a menu item
+elsewhere in the page) and closed imperatively once an action completes.
+
+<DialogExample client:load />
+
+## DialogContainer
+
+`DialogContainer` is a styled wrapper around `DialogContent`. It accepts
+`title`, `subTitle`, `footer`, and `children` and renders the standard
+workspace chrome: bordered header, content area with scroll, bordered
+footer. The width steps through responsive breakpoints up to a 600px cap.
+
+Use it when the dialog is essentially a form or a short flow with a single
+set of actions. For anything more elaborate (multi-step, side navigation),
+step up to `NavigableDialog` instead.
+
+<DialogContainerExample client:load />
+
+`showCloseWarning` combined with `onAttemptClose` lets you intercept the
+close intent. Escape key, overlay click, and the X button all route through
+`onAttemptClose` instead of closing the dialog directly, so you can anchor a
+`ConfirmPopover` to the X button before losing unsaved input.
+`preventOutsideClose` is the blunter tool. It suppresses overlay clicks
+entirely, which matters when a secondary surface (a sheet, a command menu)
+is layered on top.
+
+## ConfirmationPopover
+
+`ConfirmPopover` is a popover, not a dialog, but it lives in the dialog
+family because it solves the destructive-action confirmation case. It
+anchors to a `triggerRef` you pass in, renders a small titled panel with a
+confirm and cancel button, and closes automatically after the user
+confirms.
+
+Use it for revocations, deletions, and any other action where a full
+modal would be overkill. Pair the `danger` variant with a danger-colored
+button on the trigger.
+
+<ConfirmationPopoverExample client:load />
+
+## NavigableDialog
+
+`NavigableDialog` is the composed, stepped version. The root provides a
+shared active-step context, `NavigableDialogNav` renders the left-hand
+rail, and `NavigableDialogContent` cross-fades between panes keyed by the
+same ids. Navigation can be gated with `onNavigate`, which returns a
+boolean (or a promise of one) so you can validate the current pane before
+letting the user leave it.
+
+<NavigableDialogExample client:load />
+
+Panes are all mounted at once and toggled with opacity and translate, which
+keeps form state alive between steps without remounting inputs. If your
+panes are expensive to render, guard them with a condition on `activeId`.
+
+## Accessibility
+
+Every variant in this family delegates to Radix Dialog or Radix Popover, so
+the heavy lifting is already done. The content root carries `role="dialog"`
+with `aria-modal="true"`, focus is trapped inside on open, and focus
+returns to the trigger on close. Escape closes the dialog unless
+`showCloseWarning` intercepts it, and the built-in X button has an explicit
+`aria-label`.
+
+Label every dialog by putting a `DialogTitle` inside `DialogContent`. Radix
+wires `aria-labelledby` automatically when the title is present. Pair it
+with `DialogDescription` for supporting copy so `aria-describedby` points
+somewhere meaningful. For `DialogContainer` the `title` prop is always
+rendered, so the labelling happens by default. For `NavigableDialog`, mount
+a `NavigableDialogHeader` at the top for the same reason.
+
+`ConfirmPopover` is not a modal. It does not trap focus. Screen reader users
+reach the confirm button via the normal tab order after the trigger, so
+keep the title and description short and unambiguous.
+
+## Props
+
+### Dialog
+
+Root state container. A thin re-export of `Radix.Dialog.Root`.
+
+<Props>
+  <Prop name="open" type="boolean">
+    Controlled open state. Pair with `onOpenChange`.
+  </Prop>
+  <Prop name="defaultOpen" type="boolean">
+    Initial open state for uncontrolled use.
+  </Prop>
+  <Prop name="onOpenChange" type="(open: boolean) => void">
+    Fires when the open state changes, whether by trigger, escape, overlay
+    click, or programmatic control.
+  </Prop>
+  <Prop name="modal" type="boolean" default="true">
+    When `true`, the dialog traps focus and blocks pointer interaction with
+    everything underneath. Set to `false` for a non-blocking surface (rare).
+  </Prop>
+</Props>
+
+### DialogTrigger
+
+The element that opens the dialog. Almost always rendered with `asChild`
+so an existing Button keeps its semantics.
+
+<Props>
+  <Prop name="asChild" type="boolean" default="false">
+    Merge the trigger behavior into a single child instead of rendering a
+    wrapping `<button>`.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The trigger element. With `asChild`, must be a single element that
+    accepts a ref and pointer handlers.
+  </Prop>
+</Props>
+
+### DialogContent
+
+The portal-rendered modal surface. Carries `role="dialog"`,
+`aria-modal="true"`, the animated overlay, and the close button.
+
+<Props>
+  <Prop name="showCloseWarning" type="boolean" default="false">
+    When `true`, escape, overlay click, and the X button call
+    `onAttemptClose` instead of closing. Use to guard unsaved input.
+  </Prop>
+  <Prop name="onAttemptClose" type="() => void">
+    Fires when the user tries to close while `showCloseWarning` is set.
+    Open a `ConfirmPopover` or swap the X for a confirmation flow here.
+  </Prop>
+  <Prop name="xButtonRef" type="RefObject<HTMLButtonElement>">
+    Ref to the built-in X button. Used as the anchor when pairing with
+    `ConfirmPopover` on attempted close.
+  </Prop>
+  <Prop name="preventOutsideClose" type="boolean" default="false">
+    Suppress overlay clicks and interact-outside events. Keep enabled when
+    a secondary surface (sheet, command menu) is layered above.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with the default chrome via `cn`.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Typically `DialogHeader`, body content, and `DialogFooter`.
+  </Prop>
+</Props>
+
+### DialogHeader
+
+Flex column with tight spacing. Sits at the top of `DialogContent`.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Usually `DialogTitle` and/or `DialogDescription`.
+  </Prop>
+</Props>
+
+### DialogTitle
+
+Renders as the Radix title. Wire up `aria-labelledby` automatically.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    A short phrase. Keep it under one line.
+  </Prop>
+</Props>
+
+### DialogDescription
+
+Renders as the Radix description. Wires up `aria-describedby` automatically.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    One or two sentences of supporting copy.
+  </Prop>
+</Props>
+
+### DialogFooter
+
+Horizontal flex row on desktop, reversed column on mobile. For action buttons.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Common overrides include `justify-between`.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Usually one or more `Button`s, with the primary action last.
+  </Prop>
+</Props>
+
+### DialogClose
+
+Closes the surrounding dialog when clicked. Render with `asChild` to wrap
+an existing Button.
+
+<Props>
+  <Prop name="asChild" type="boolean" default="false">
+    Merge the close behavior into a single child instead of rendering a
+    wrapping `<button>`.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The element that should close the dialog on click.
+  </Prop>
+</Props>
+
+### DialogContainer
+
+Pre-styled wrapper that owns its own `Dialog` and `DialogContent` and
+renders the standard header, body, and footer layout.
+
+<Props>
+  <Prop name="isOpen" type="boolean" required>
+    Controlled open state.
+  </Prop>
+  <Prop name="onOpenChange" type="(value: boolean) => void" required>
+    Fires when the open state changes.
+  </Prop>
+  <Prop name="title" type="string" required>
+    Header title. Renders inside the accessible `DialogTitle`.
+  </Prop>
+  <Prop name="subTitle" type="string">
+    Optional secondary line beneath the title.
+  </Prop>
+  <Prop name="footer" type="ReactNode">
+    Content for the bordered footer. Usually one or more action buttons. If
+    omitted, the footer area is not rendered at all.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The body content. Rendered in a scrollable area between the header and
+    the footer.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes for the outer `DialogContent`.
+  </Prop>
+  <Prop name="contentClassName" type="string">
+    Additional Tailwind classes for the inner scroll container.
+  </Prop>
+  <Prop name="preventAutoFocus" type="boolean" default="false">
+    Suppress Radix's initial autofocus. Use when the first focusable element
+    would be a destructive button or an expensive side effect.
+  </Prop>
+  <Prop name="modal" type="boolean" default="true">
+    Forwarded to the underlying `Dialog`. Set to `false` for a
+    non-blocking surface.
+  </Prop>
+  <Prop name="showCloseWarning" type="boolean" default="false">
+    Route close attempts through `onAttemptClose` instead of closing.
+  </Prop>
+  <Prop name="onAttemptClose" type="() => void">
+    Fires when the user tries to close while `showCloseWarning` is set.
+  </Prop>
+  <Prop name="preventOutsideClose" type="boolean" default="false">
+    Suppress overlay clicks and interact-outside events.
+  </Prop>
+</Props>
+
+### ConfirmPopover
+
+Popover-based confirmation for destructive or warning actions. Anchored to
+a ref you provide, not to its own trigger.
+
+<Props>
+  <Prop name="isOpen" type="boolean" required>
+    Controlled open state.
+  </Prop>
+  <Prop name="onOpenChange" type="(open: boolean) => void" required>
+    Fires when the open state changes.
+  </Prop>
+  <Prop name="onConfirm" type="() => void" required>
+    Fires when the user presses the confirm button. The popover closes
+    automatically afterwards.
+  </Prop>
+  <Prop name="triggerRef" type="RefObject<HTMLElement | null>" required>
+    Element the popover anchors to. Usually the button that opened it, or
+    the X button of a surrounding dialog.
+  </Prop>
+  <Prop name="title" type="string" default={`"Confirm action"`}>
+    Heading shown at the top of the popover.
+  </Prop>
+  <Prop name="description" type="string" default={`"Are you sure you want to perform this action?"`}>
+    Supporting copy between the divider and the buttons.
+  </Prop>
+  <Prop name="confirmButtonText" type="string" default={`"Confirm"`}>
+    Label for the primary action button.
+  </Prop>
+  <Prop name="cancelButtonText" type="string" default={`"Cancel"`}>
+    Label for the ghost cancel button.
+  </Prop>
+  <Prop name="variant" type={`"warning" | "danger"`} default={`"warning"`}>
+    Visual tone. `warning` pairs an amber icon with an amber button.
+    `danger` pairs a red icon with a red button.
+  </Prop>
+  <Prop name="popoverProps" type="Partial<PopoverContentProps>">
+    Forwarded to the underlying `PopoverContent`. Use to override `side`,
+    `align`, `sideOffset`, or `className`.
+  </Prop>
+</Props>
+
+### NavigableDialogRoot
+
+Outer shell for the stepped dialog. Provides the active-step context and
+the Radix dialog primitives.
+
+<Props>
+  <Prop name="isOpen" type="boolean" required>
+    Controlled open state.
+  </Prop>
+  <Prop name="onOpenChange" type="(value: boolean) => void" required>
+    Fires when the open state changes.
+  </Prop>
+  <Prop name="children" type="ReactNode" required>
+    The dialog layout. Expect `NavigableDialogHeader`,
+    `NavigableDialogBody` (wrapping `Nav` + `Content`), and
+    `NavigableDialogFooter`.
+  </Prop>
+  <Prop name="dialogClassName" type="string">
+    Additional Tailwind classes for the `DialogContent`. Use to override
+    the default width.
+  </Prop>
+  <Prop name="preventAutoFocus" type="boolean" default="false">
+    Suppress initial autofocus on open.
+  </Prop>
+</Props>
+
+### NavigableDialogHeader
+
+Styled title block. Thin wrapper around the shared default header.
+
+<Props>
+  <Prop name="title" type="string" required>
+    Main heading.
+  </Prop>
+  <Prop name="subTitle" type="string">
+    Optional secondary line.
+  </Prop>
+</Props>
+
+### NavigableDialogBody
+
+Flex container that places `NavigableDialogNav` beside `NavigableDialogContent`.
+
+<Props>
+  <Prop name="children" type="ReactNode" required>
+    Typically a `NavigableDialogNav` followed by a `NavigableDialogContent`.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes.
+  </Prop>
+</Props>
+
+### NavigableDialogNav
+
+Left-hand rail of buttons. Each item has an `id` that must match a
+content item's `id`.
+
+<Props>
+  <Prop name="items" type="{ id: string; label: ReactNode; icon?: FC<IconProps> }[]" required>
+    Navigation entries. The active item gets a filled background, and a
+    leading icon is optional per item.
+  </Prop>
+  <Prop name="onNavigate" type="(fromId: string) => boolean | Promise<boolean>">
+    Gate leaving the current pane. Return `false` (or a promise that
+    resolves to `false`) to cancel the navigation, for example when a form
+    in the current pane is invalid.
+  </Prop>
+  <Prop name="initialSelectedId" type="string">
+    Starting pane. Falls back to the first item when omitted or unknown.
+  </Prop>
+  <Prop name="disabledIds" type="string[]">
+    Items rendered but not interactive. Useful for steps that unlock only
+    after prior steps complete.
+  </Prop>
+  <Prop name="navWidthClass" type="string" default={`"w-[220px]"`}>
+    Tailwind width class for the nav column.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes for the nav column.
+  </Prop>
+</Props>
+
+### NavigableDialogContent
+
+Cross-fading pane container. Items are keyed by the same `id` as the nav.
+
+<Props>
+  <Prop name="items" type="{ id: string; content: ReactNode }[]" required>
+    The panes themselves. All panes are mounted at once and toggled with
+    opacity and translate, which preserves form state between steps.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes for the scroll area.
+  </Prop>
+</Props>
+
+### NavigableDialogFooter
+
+Bordered footer. Wraps the shared default footer styling.
+
+<Props>
+  <Prop name="children" type="ReactNode" required>
+    Usually the primary and secondary action buttons for the whole flow.
+  </Prop>
+</Props>
+
+## Related
+
+- **Drawer** — when the surface should slide in from an edge instead of
+  centering over the page; better on mobile and for side-by-side context.
+- **Popover** — for small, non-modal floating content attached to a
+  trigger, without focus trapping.
+- **Alert** — for inline, non-interrupting notices that belong in the
+  document flow rather than on a modal surface.

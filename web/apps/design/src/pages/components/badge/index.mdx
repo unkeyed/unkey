@@ -1,0 +1,94 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Badge
+description: A small, inline label for conveying state, category, or count. Not interactive on its own.
+---
+
+import { Badge } from "@unkey/ui";
+import { Preview } from "../../../components/Preview.tsx";
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+
+Badge is a visual chip you drop inline next to a piece of text to classify it:
+an environment (`production`), a status (`active`), a count (`3 failed`), a
+role (`admin`). It renders as a `<span>` with no built-in behaviour, so it's
+safe to place inside buttons, links, table cells, or any flow context.
+
+Reach for Badge when the reader needs to scan and spot a classification at a
+glance. If the label should do something on click, wrap it in a Button or a
+link instead — Badge has hover styles but no semantics of its own.
+
+## Import
+
+```tsx
+import { Badge } from "@unkey/ui";
+```
+
+## Variants
+
+The `variant` prop selects a semantic color. `primary` is neutral and the
+default. `success`, `warning`, and `error` signal intent. `blocked` (orange)
+calls out a state that's halted but recoverable. `secondary` is the lightest
+weight, used when the badge should sit quietly next to its label.
+
+<Preview client:load>
+  <Badge variant="primary">Primary</Badge>
+  <Badge variant="secondary">Secondary</Badge>
+  <Badge variant="success">Active</Badge>
+  <Badge variant="warning">Pending</Badge>
+  <Badge variant="blocked">Blocked</Badge>
+  <Badge variant="error">Failed</Badge>
+</Preview>
+
+## Size
+
+`sm` trims the horizontal padding for tighter contexts like table cells and
+breadcrumbs.
+
+<Preview client:load>
+  <Badge size="sm">Small</Badge>
+  <Badge>Default</Badge>
+</Preview>
+
+## Monospace
+
+Set `font="mono"` when the label is an identifier, a version, or any value
+whose exact characters matter. Mono spacing also aligns digits, which reads
+cleaner for counts.
+
+<Preview client:load>
+  <Badge font="mono">v2.4.1</Badge>
+  <Badge variant="success" font="mono">usr_123abc</Badge>
+</Preview>
+
+## Props
+
+<Props>
+  <Prop
+    name="variant"
+    type={`"primary" | "secondary" | "success" | "warning" | "blocked" | "error"`}
+    default={`"primary"`}
+  >
+    Visual treatment and semantic color. Pick the intent that matches the
+    state you're describing, not the hue you want.
+  </Prop>
+  <Prop name="size" type={`"DEFAULT" | "sm"`} default={`"DEFAULT"`}>
+    `sm` reduces horizontal padding. Use inside dense layouts.
+  </Prop>
+  <Prop name="font" type={`"mono"`}>
+    Switches to the monospace font. Use for identifiers, versions, and
+    counts where column alignment matters.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with variant classes via `cn`.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The label. Keep it short — Badge is meant for a word or two, not a
+    sentence.
+  </Prop>
+</Props>
+
+## Related
+
+- **Button** — when the label needs to do something on click.
+- **Alert** — when the message needs its own block of space and announcement.

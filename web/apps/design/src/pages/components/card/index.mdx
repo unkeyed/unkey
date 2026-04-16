@@ -1,0 +1,232 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Card
+description: A surface for grouping related content — title, description, body, and an optional footer row.
+---
+
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+  Button,
+} from "@unkey/ui";
+import { Preview } from "../../../components/Preview.tsx";
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+
+Card is a bordered surface with consistent padding. It's the right container
+when a set of elements belongs together but needs visual separation from the
+surrounding page — a settings panel, a stat tile, a small preview of a
+resource.
+
+The subcomponents are composable and optional: you can render a card with
+only `<CardContent>`, or with a full header + content + footer layout, or
+anywhere in between.
+
+## Import
+
+```tsx
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@unkey/ui";
+```
+
+## Anatomy
+
+<Preview client:load>
+  <Card className="max-w-md">
+    <CardHeader>
+      <CardTitle>Production</CardTitle>
+      <CardDescription>
+        Keys created in this workspace will hit your production API.
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div className="text-sm text-gray-11">
+        2,431 keys · 12,486 verifications today
+      </div>
+    </CardContent>
+    <CardFooter>
+      <Button variant="outline" size="sm">Manage</Button>
+    </CardFooter>
+  </Card>
+</Preview>
+
+## Minimal
+
+A card with only content. Use this for a single block of information that
+doesn't need a title — a callout, a summary row, an embedded editor.
+
+<Preview client:load>
+  <Card className="max-w-md">
+    <CardContent>
+      <p className="text-sm text-gray-11">
+        You're on the free plan. Your first 1,000 verifications each month are
+        on us.
+      </p>
+    </CardContent>
+  </Card>
+</Preview>
+
+## Composition
+
+`<Card>` is a thin bordered `<div>`. The subcomponents each have their own
+padding and spacing rules so they compose predictably:
+
+- **`<CardHeader>`** — flex column with 1.5rem horizontal padding, 1.5rem
+  top padding, zero bottom (so it sits flush against `<CardContent>`).
+- **`<CardTitle>`** — an `<h2>` with tight tracking, medium weight.
+- **`<CardDescription>`** — a muted `<p>` sized for supporting copy.
+- **`<CardContent>`** — 1.5rem padding on all sides.
+- **`<CardFooter>`** — horizontal flex row, 1.5rem side padding, a top
+  border, and a small top margin so it visually separates from the content.
+
+All accept `className` and are forwarded refs, so you can restyle or hook
+into them without breaking composition.
+
+## Accessibility
+
+Card does not impose any ARIA landmark. If the card represents a
+navigational region or a labelled section, give it a semantic role and a
+label at the call site:
+
+```tsx
+<Card role="region" aria-labelledby="prod-card-title">
+  <CardHeader>
+    <CardTitle id="prod-card-title">Production</CardTitle>
+    …
+  </CardHeader>
+</Card>
+```
+
+`<CardTitle>` renders as `<h2>`. If the card is nested inside a section
+that already has an `<h2>` (or the page layout requires different heading
+levels), override the element via a wrapping `<h3>` and render your own
+title text — Card doesn't prescribe heading hierarchy.
+
+## Props
+
+### Card
+
+Renders a bordered `<div>` with rounded corners and a subtle border. The
+outer shell.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Commonly used to constrain width
+    (`max-w-md`) or adjust spacing.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Typically `<CardHeader>`, `<CardContent>`, and/or `<CardFooter>`.
+  </Prop>
+  <Prop name="...rest" type="HTMLAttributes<HTMLDivElement>">
+    All standard div attributes pass through — useful for `role`,
+    `aria-labelledby`, `onClick`, etc.
+  </Prop>
+</Props>
+
+### CardHeader
+
+A flex column with 1.5rem horizontal and top padding, zero bottom padding.
+Sits flush against `<CardContent>`. Holds `<CardTitle>` and
+`<CardDescription>`.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Override spacing (`py-4`) or layout
+    (`flex-row items-center`) when the default layout doesn't fit.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Usually `<CardTitle>` and/or `<CardDescription>`, optionally with a
+    trailing action button.
+  </Prop>
+  <Prop name="...rest" type="HTMLAttributes<HTMLDivElement>">
+    Standard div attributes pass through.
+  </Prop>
+</Props>
+
+### CardTitle
+
+Renders as `<h2>` with semi-bold weight, tight tracking, and no bottom
+margin. The primary label for the card.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Override `text-2xl` when the card needs a
+    smaller or larger title, or change the color for emphasis.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The title text. Keep it short — a single short phrase.
+  </Prop>
+  <Prop name="...rest" type="HTMLAttributes<HTMLHeadingElement>">
+    Standard heading attributes pass through. Useful for `id` when pairing
+    with `aria-labelledby` on the wrapping `<Card>`.
+  </Prop>
+</Props>
+
+### CardDescription
+
+Renders as `<p>` in muted color and small size. Supporting copy that sits
+beneath the title.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The body text. Keep it to one or two sentences; longer prose belongs in
+    `<CardContent>`.
+  </Prop>
+  <Prop name="...rest" type="HTMLAttributes<HTMLParagraphElement>">
+    Standard paragraph attributes pass through.
+  </Prop>
+</Props>
+
+### CardContent
+
+1.5rem padding on all sides. The main body of the card.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Override padding (`p-0`) when embedding
+    content that provides its own padding (e.g. a data table).
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The body content — text, form fields, data, whatever the card is for.
+  </Prop>
+  <Prop name="...rest" type="HTMLAttributes<HTMLDivElement>">
+    Standard div attributes pass through.
+  </Prop>
+</Props>
+
+### CardFooter
+
+Horizontal flex row with 1.5rem side padding, small vertical padding, a top
+border, and a small top margin. Use for action buttons or metadata that
+belongs at the bottom.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Typical overrides are `justify-between`
+    or `justify-end` depending on footer content alignment.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Usually one or more action `<Button>`s, or secondary metadata text.
+  </Prop>
+  <Prop name="...rest" type="HTMLAttributes<HTMLDivElement>">
+    Standard div attributes pass through.
+  </Prop>
+</Props>
+
+## Related
+
+- **Alert** — for time-sensitive context that should announce itself.
+- **Separator** — to divide regions inside a card without adding subcards.

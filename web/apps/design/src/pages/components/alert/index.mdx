@@ -1,0 +1,163 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Alert
+description: Display a prominent message that needs the reader's attention — usually a warning, error, or non-dismissible system notice.
+---
+
+import { Alert, AlertTitle, AlertDescription } from "@unkey/ui";
+import { Preview } from "../../../components/Preview.tsx";
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+
+Alert is an inline, non-dismissible region. It sits in the document flow and
+stays visible until the underlying condition changes. Reach for `<Alert>` when
+the user needs to *read* the message before continuing, but not necessarily
+*act* on it immediately.
+
+Alert carries `role="alert"`, which tells assistive technology to announce the
+message as soon as it enters the DOM. Use it sparingly — every alert competes
+for the same announcement channel.
+
+## Import
+
+```tsx
+import { Alert, AlertTitle, AlertDescription } from "@unkey/ui";
+```
+
+## When to use Alert
+
+Use `<Alert>` for context that:
+
+- Lives on the page for as long as the condition lasts (e.g. a deprecated API
+  banner, a payment-failed notice, a "read-only mode" indicator).
+- Does not have a single, obvious action attached. If the message is "click to
+  retry", prefer a `<Button variant="outline" color="danger">` plus body copy.
+- Is tied to the surrounding content — it explains or modifies what the user
+  is looking at.
+
+For ephemeral feedback that appears after an action (saved, copied, deleted),
+reach for a toast instead. For blocking confirmation of a dangerous action,
+use a dialog.
+
+## Default
+
+The default variant is neutral. Use it for passive, informational context —
+something the reader should notice but isn't a problem.
+
+<Preview client:load>
+  <Alert>
+    <AlertTitle>Heads up</AlertTitle>
+    <AlertDescription>
+      Your workspace is on the free plan. Upgrade to raise your rate limits.
+    </AlertDescription>
+  </Alert>
+</Preview>
+
+## Warn
+
+Use `warn` for cautionary context: the user should pay attention because an
+action is needed soon, or a non-fatal edge case has been detected. Warn does
+not imply that anything is currently broken.
+
+<Preview client:load>
+  <Alert variant="warn">
+    <AlertTitle>Action required</AlertTitle>
+    <AlertDescription>
+      Your API key expires in 7 days. Rotate it now to avoid service interruption.
+    </AlertDescription>
+  </Alert>
+</Preview>
+
+## Alert
+
+Use `alert` for destructive or failure context: something has gone wrong, or
+the user is about to perform an irreversible action. Alert is the highest
+visual weight and should be the rarest of the three.
+
+<Preview client:load>
+  <Alert variant="alert">
+    <AlertTitle>Request failed</AlertTitle>
+    <AlertDescription>
+      We couldn't reach our auth provider. Please try again in a few minutes.
+    </AlertDescription>
+  </Alert>
+</Preview>
+
+## Composition
+
+`<Alert>` is a plain container. `<AlertTitle>` renders as a semi-bold
+`<h3>`, and `<AlertDescription>` renders the body copy at a smaller size with
+relaxed leading. Both are optional — you can render only the description (for
+a one-line notice) or only the title (for a headline).
+
+<Preview client:load>
+  <Alert variant="warn">
+    <AlertTitle>Scheduled maintenance on Sunday at 02:00 UTC.</AlertTitle>
+  </Alert>
+</Preview>
+
+Anything else you pass as a child is rendered inline. A leading `<svg>` is
+absolutely positioned in the top-left corner (the container reserves `pl-7`
+for it); wrap titles and descriptions after the icon.
+
+## Accessibility
+
+`<Alert>` renders a `role="alert"` live region. When the element first enters
+the DOM, screen readers announce its text immediately, interrupting the
+current announcement. Two implications:
+
+- **Don't mount an empty Alert and fill it later.** The announcement fires on
+  insertion; mutating text afterward is not reliably announced. Render the
+  Alert only once its message is final.
+- **Don't use Alert for every piece of text.** The announcement channel is
+  shared. Restrict Alert to messages that genuinely need to interrupt the
+  reader.
+
+For a non-interrupting live region (e.g. a "saved" indicator), use a plain
+`<div aria-live="polite">` instead.
+
+## Props
+
+### `<Alert>`
+
+<Props>
+  <Prop name="variant" type={`"default" | "warn" | "alert"`} default={`"default"`}>
+    Semantic intent. `default` is neutral, `warn` signals caution (amber
+    border on an amber-tinted background), `alert` signals failure or
+    destruction (red border on a red-tinted background).
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with the variant classes via `cn`;
+    later classes win over earlier ones.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Typically an `<AlertTitle>`, an `<AlertDescription>`, or both. A leading
+    `<svg>` is absolutely positioned in the top-left.
+  </Prop>
+</Props>
+
+### `<AlertTitle>`
+
+Renders as `<h3>` with medium weight and tight tracking.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes.
+  </Prop>
+</Props>
+
+### `<AlertDescription>`
+
+Renders as a `<div>` with small-caps text sizing and relaxed leading.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes.
+  </Prop>
+</Props>
+
+## Related
+
+- **Button** — for actions the user can take in response to an alert.
+- **Toast** — for ephemeral confirmation after a successful action.
+- **Dialog** — for confirming destructive or blocking decisions.

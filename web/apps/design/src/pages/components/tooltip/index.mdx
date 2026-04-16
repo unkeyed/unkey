@@ -1,0 +1,206 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Tooltip
+description: Reveal a short, supplementary label on hover or keyboard focus — never the only place a piece of information lives.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  BasicExample,
+  PositioningExample,
+  DelayExample,
+} from "./_examples.tsx";
+
+Tooltip is a thin wrapper around Radix's tooltip primitive. It shows a small
+floating label when the user hovers or keyboard-focuses a trigger, and hides
+again on blur, escape, or pointer-leave. Reach for it when a control has a
+short, non-essential explanation — a keyboard shortcut next to an icon
+button, the full form of a truncated string, a hint about what a subtle
+affordance does.
+
+Do not put anything load-bearing inside a Tooltip. It never appears on
+touch devices, it's invisible until the user discovers the trigger, and
+screen readers only announce it when the trigger is focused. If the user
+*needs* the information to act, put it in the visible UI. Icon-only buttons
+still require an `aria-label`; the Tooltip is a supplement, not a substitute.
+
+## Import
+
+```tsx
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@unkey/ui";
+```
+
+A single `<TooltipProvider>` should wrap the part of the tree that contains
+tooltips (typically near the app root). It coordinates the shared open/close
+timing so that once one tooltip is visible, neighbouring tooltips skip the
+delay.
+
+## Basic
+
+Wrap a trigger in `<TooltipTrigger asChild>` so the Button remains the real
+focusable element, then pair it with a `<TooltipContent>`. The whole tree
+lives inside a `<TooltipProvider>`.
+
+<BasicExample client:load />
+
+## Positioning
+
+`side` picks which edge of the trigger the tooltip anchors to (`top`,
+`right`, `bottom`, `left`), `align` controls cross-axis alignment
+(`start`, `center`, `end`), and `sideOffset` sets the pixel gap between
+trigger and content. Radix flips the tooltip automatically when there
+isn't room on the requested side, so `side` is a preference, not a
+guarantee.
+
+<PositioningExample client:load />
+
+## Delay
+
+`delayDuration` controls how long the pointer must rest on the trigger
+before the tooltip opens. Set it on the provider to apply a shared default
+to every tooltip underneath, or on a single `<Tooltip>` to override. A
+short delay (0–150ms) feels snappy but can flicker on casual mouse
+movement; a longer delay (400–700ms) is kinder to users brushing past
+controls on the way to something else.
+
+<DelayExample client:load />
+
+## Accessibility
+
+Radix handles the fiddly parts. `TooltipContent` carries `role="tooltip"`,
+the trigger is described by the content via `aria-describedby`, and the
+tooltip opens on keyboard focus as well as pointer hover. `Escape` closes
+an open tooltip, and pointer-leave on the trigger closes it after a short
+grace period so users can move toward the content without it vanishing.
+
+Two rules keep tooltips honest. First, a tooltip must never be the only
+source of an action's meaning. An icon-only `<Button aria-label="Delete">`
+works with or without a Tooltip; an icon-only `<Button>` that relies on
+the tooltip to say "Delete" is broken for touch users, screen readers with
+hover disabled, and anyone using the keyboard without focus-visible
+styles. Second, don't wrap disabled controls directly — the browser
+suppresses pointer events on `disabled` elements, so the tooltip never
+opens. Wrap the disabled button in a focusable span, or use
+`aria-disabled` instead.
+
+## Props
+
+### Tooltip
+
+The root state container. Controls a single tooltip's open/close state.
+
+<Props>
+  <Prop name="defaultOpen" type="boolean">
+    Whether the tooltip is open on first render. Use for uncontrolled
+    components that should start open (rare — tooltips are almost always
+    dormant until hovered).
+  </Prop>
+  <Prop name="open" type="boolean">
+    Controlled open state. Pair with `onOpenChange` when the parent needs
+    to drive visibility (for example, to pin a tooltip open while a
+    tutorial is active).
+  </Prop>
+  <Prop name="onOpenChange" type="(open: boolean) => void">
+    Fires whenever the open state changes, whether by hover, focus,
+    escape, or programmatic control.
+  </Prop>
+  <Prop name="delayDuration" type="number">
+    Per-tooltip override of the provider's `delayDuration`. Milliseconds
+    to wait after hover before opening.
+  </Prop>
+  <Prop name="disableHoverableContent" type="boolean" default="false">
+    When `true`, the tooltip closes as soon as the pointer leaves the
+    trigger, skipping the grace period that normally lets users move
+    onto the content.
+  </Prop>
+</Props>
+
+### TooltipProvider
+
+Wraps a subtree so sibling tooltips share timing. Mount once near the
+app root.
+
+<Props>
+  <Prop name="delayDuration" type="number" default="700">
+    Default delay in milliseconds before any tooltip beneath the provider
+    opens on hover. Individual `<Tooltip>` instances can override this.
+  </Prop>
+  <Prop name="skipDelayDuration" type="number" default="300">
+    Window in milliseconds after a tooltip closes during which moving to
+    a neighbouring trigger opens its tooltip instantly. Makes scanning a
+    toolbar feel responsive.
+  </Prop>
+  <Prop name="disableHoverableContent" type="boolean" default="false">
+    When `true`, every tooltip in the subtree closes the instant the
+    pointer leaves its trigger.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The subtree that may contain tooltips.
+  </Prop>
+</Props>
+
+### TooltipTrigger
+
+The element that, when hovered or focused, reveals the tooltip. Almost
+always rendered with `asChild` so an existing control (Button, IconButton,
+link) keeps its own semantics and focus ring.
+
+<Props>
+  <Prop name="asChild" type="boolean" default="false">
+    Merge the trigger's behavior into its single child instead of
+    rendering a wrapping `<button>`. Use this to keep a Button as the
+    focusable element.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The trigger content. With `asChild`, must be a single element that
+    accepts a ref and standard pointer/focus handlers.
+  </Prop>
+</Props>
+
+### TooltipContent
+
+The floating label itself. Rendered into a portal so it escapes
+`overflow: hidden` ancestors.
+
+<Props>
+  <Prop name="side" type={`"top" | "right" | "bottom" | "left"`} default={`"top"`}>
+    Preferred side of the trigger to anchor to. Radix flips
+    automatically when the requested side doesn't fit in the viewport.
+  </Prop>
+  <Prop name="align" type={`"start" | "center" | "end"`} default={`"center"`}>
+    Alignment on the cross axis. With `side="bottom"`, `start` means
+    left-aligned with the trigger, `end` means right-aligned.
+  </Prop>
+  <Prop name="sideOffset" type="number" default="4">
+    Pixel gap between the trigger and the tooltip on the chosen side.
+  </Prop>
+  <Prop name="alignOffset" type="number" default="0">
+    Pixel shift along the cross axis, relative to the chosen `align`.
+    Useful for nudging a tooltip past a decorative icon.
+  </Prop>
+  <Prop name="avoidCollisions" type="boolean" default="true">
+    When `true`, Radix flips or shifts the tooltip to stay inside the
+    viewport. Set to `false` only if you've already constrained layout.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with the default chrome
+    (`bg-gray-1`, `text-gray-12`, rounded corners, drop shadow) via `cn`.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The label content. Keep it to a short sentence or a phrase — tooltips
+    are for a quick read, not a paragraph.
+  </Prop>
+</Props>
+
+## Related
+
+- **InfoTooltip** — for an always-visible info glyph that opens a tooltip
+  explicitly designed for help text, with a persistent affordance.
+- **Popover** — when the floating content is interactive (buttons, forms,
+  links) or long enough that the user needs to read at their own pace.

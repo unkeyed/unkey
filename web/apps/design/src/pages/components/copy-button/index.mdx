@@ -1,0 +1,133 @@
+---
+layout: ../../../layouts/Layout.astro
+title: CopyButton
+description: A small icon button that writes a string to the clipboard and flips to a confirmation glyph for two seconds.
+---
+
+import { CopyButton } from "@unkey/ui";
+import { Preview } from "../../../components/Preview.tsx";
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  StandaloneExample,
+  InsideCodeExample,
+  WithToastMessageExample,
+} from "./_examples.tsx";
+
+CopyButton is a thin specialisation of `<Button>` that owns a single concern:
+take a string, write it to the clipboard, and show the user it worked. It
+renders a square icon button (no label), flips its glyph from an empty task
+circle to a checked one for two seconds, and fires a toast so the confirmation
+is announced even when the button is out of the user's gaze.
+
+Reach for it wherever a user needs to grab a literal value out of the UI: an
+API key they just minted, a webhook signing secret, a resource identifier in
+a details panel. The primary real-world home is the `copyButton` slot on
+`<Code>`, where it sits flush against the code it copies. Standalone usage
+works too, but the default `size="icon"` is tuned for sitting next to other
+chrome, not anchoring a form.
+
+## Import
+
+```tsx
+import { CopyButton } from "@unkey/ui";
+```
+
+## Standalone
+
+The component renders as a small icon-only button. Click it and the clipboard
+receives `value`; the glyph flips to a checkmark, and two seconds later it
+flips back.
+
+<StandaloneExample client:load />
+
+The toast this emits travels through `@unkey/ui`'s toaster. This design app
+does not mount a `<Toaster>`, so you won't see the toast pop up here. The
+clipboard write itself still works. Mount a `<Toaster>` at the root of your
+app to get the full experience.
+
+## Inside a Code block
+
+The common case. Pass a `<CopyButton>` into the `copyButton` slot on `<Code>`
+and it pins to the top-right of the block, right where users look for it.
+
+<InsideCodeExample client:load />
+
+## Custom toast description
+
+`toastMessage` is forwarded to the toast's `description` field. Use it when
+the copied value carries a caveat the user should see on confirmation
+(a secret that should be treated as a password, a key that expires soon, a
+URL that only works from one environment).
+
+<WithToastMessageExample client:load />
+
+## Accessibility
+
+CopyButton carries `aria-label="Copy to clipboard"` and a visually hidden
+`"Copy"` text node inside the button, so screen readers announce it clearly
+even though the visual label is an icon. The `title` attribute doubles as a
+native tooltip on hover. Because the underlying element is a real `<button>`
+with `type="button"`, it participates in tab order and activates on both
+`Enter` and `Space`.
+
+Two details worth knowing. The click handler calls `e.stopPropagation()`
+before running, so placing a CopyButton inside another clickable surface
+(a table row, a card) won't also trigger the parent's `onClick`. And the
+two-second confirmation state is purely visual; the authoritative "it
+worked" signal is the toast, which screen readers pick up via the toaster's
+live region.
+
+## Props
+
+CopyButton extends `<Button>`, so every Button prop (`variant`, `color`,
+`size`, `disabled`, `loading`, `className`, the full set of
+`ButtonHTMLAttributes`) passes through. The three additions below are what
+makes it a CopyButton rather than a plain Button.
+
+<Props>
+  <Prop name="value" type="string" required>
+    The string written to the clipboard on click. Evaluated at click time, so
+    it's safe to pass a value that changes across renders.
+  </Prop>
+  <Prop name="toastMessage" type="string">
+    Optional description shown beneath the "Copied to clipboard" toast title.
+    Use it to add context the user should read on confirmation (e.g. "Treat
+    this like a password").
+  </Prop>
+  <Prop name="src" type="string">
+    Free-form tag attached to the copy action for analytics — the component
+    where the copy originated. Not user-visible.
+  </Prop>
+  <Prop name="variant" type={`"primary" | "outline" | "ghost"`} default={`"outline"`}>
+    Inherited from Button, but CopyButton defaults to `outline` so the
+    affordance reads as a secondary action.
+  </Prop>
+  <Prop name="size" type={`"sm" | "md" | "lg" | "xlg" | "2xlg" | "icon"`} default={`"icon"`}>
+    Inherited from Button; pinned to `icon` so the button stays square and
+    the glyph centres correctly. Overriding this is supported but the
+    rendered content is a single icon, so non-icon sizes will feel loose.
+  </Prop>
+  <Prop name="onClick" type="(e: MouseEvent<HTMLButtonElement>) => void">
+    Called after the clipboard write and the confirmation flip. Call
+    `e.preventDefault()` in a parent handler to skip the copy entirely.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with the component's own classes
+    (which include `focus:ring-0 focus:border-grayA-6 secret`) via `cn`;
+    later classes win.
+  </Prop>
+  <Prop name="...rest" type="ButtonProps">
+    Every other prop accepted by `<Button>` passes through unchanged —
+    `color`, `disabled`, `loading`, `aria-*`, `data-*`, and the full set of
+    `ButtonHTMLAttributes<HTMLButtonElement>`.
+  </Prop>
+</Props>
+
+## Related
+
+- **Button** — the base component CopyButton extends. Reach for it directly
+  when the copy action needs a visible text label.
+- **Code** — the most common host for CopyButton, via its `copyButton` slot.
+- **Toast** — where the "Copied to clipboard" confirmation surfaces. Mount a
+  `<Toaster>` at your app root so the toast is visible.

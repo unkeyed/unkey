@@ -1,0 +1,108 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Code
+description: A bordered block that wraps a `<pre>` with optional slots for copy and visibility toggles, for rendering code at runtime in the product.
+---
+
+import { Code } from "@unkey/ui";
+import { Preview } from "../../../components/Preview.tsx";
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import { WithCopyButtonExample } from "./_examples.tsx";
+
+Code renders a small, self-contained card around a `<pre>` element. It draws
+the border, handles wrapping and overflow, and reserves space on the right for
+two optional slots: a copy button and a visibility (reveal/hide) button. The
+children you pass become the pre's content.
+
+Reach for `<Code>` when you are rendering code or a code-shaped value at
+runtime in the product: a freshly minted API key the user needs to copy, a
+webhook signing secret that should be masked by default, an installation
+snippet on an onboarding page, a copyable resource identifier in a details
+panel. For static code in documentation, prefer an MDX fenced block
+(```` ```ts ````) — it gives you syntax highlighting and is cheaper to author.
+`<Code>` is for the cases where the string is only known at runtime or needs
+interactive chrome around it.
+
+## Import
+
+```tsx
+import { Code } from "@unkey/ui";
+```
+
+## Default
+
+The default variant draws a subtle border on a solid background. Use it when
+the code block needs to stand apart from the surrounding surface — inside
+cards, dialogs, or onboarding steps.
+
+<Preview client:load>
+  <Code>npm install @unkey/ui</Code>
+</Preview>
+
+## Ghost
+
+`ghost` drops the border and the background. Use it when the code already
+sits inside a container that provides its own chrome (a card, a table cell,
+a list row) and a second border would feel heavy.
+
+<Preview client:load>
+  <Code variant="ghost">curl https://api.unkey.com/v2/keys.verifyKey</Code>
+</Preview>
+
+## Button slots
+
+The `copyButton` prop accepts any React node and pins it to the top-right of
+the block. `visibleButton` is symmetric — rendered to the left of
+`copyButton`, meant for reveal/hide toggles of sensitive values. Both slots
+stay out of the text flow so the `<pre>` content keeps its natural width
+and wrapping behaviour.
+
+<WithCopyButtonExample client:load />
+
+## Props
+
+<Props>
+  <Prop name="variant" type={`"default" | "ghost" | "legacy"`} default={`"default"`}>
+    Visual treatment. `default` is a bordered card on a solid background,
+    `ghost` drops both the border and the background for embedding inside
+    another container. `legacy` exists for backward compatibility with older
+    layouts that rely on the previous `bg-background-subtle` / `border-primary`
+    palette and is not demoed here.
+  </Prop>
+  <Prop name="copyButton" type="ReactNode">
+    Node rendered in the top-right of the block, typically a small copy
+    affordance. Not wired up for you — supply your own handler.
+  </Prop>
+  <Prop name="visibleButton" type="ReactNode">
+    Node rendered to the left of `copyButton`, for revealing or hiding the
+    contents. Useful for secrets that should be masked by default.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes on the outer wrapper. Merged via `cn`; later
+    classes win over the variant classes.
+  </Prop>
+  <Prop name="buttonsClassName" type="string">
+    Classes applied to the flex container that holds `visibleButton` and
+    `copyButton`. Use it to tweak spacing or alignment of the button cluster.
+  </Prop>
+  <Prop name="preClassName" type="string">
+    Classes applied to the inner `<pre>`. Use it to override font size, line
+    height, or padding without affecting the outer frame.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Rendered inside the inner `<pre>`. Pass a string, a single `<span>`, or
+    any inline nodes you want displayed as code.
+  </Prop>
+  <Prop name="...rest" type="HTMLAttributes<HTMLPreElement>">
+    Any remaining props pass through to the inner `<pre>` element.
+  </Prop>
+</Props>
+
+## Related
+
+- **Button** — the natural fit for the `copyButton` and `visibleButton` slots.
+- **Fenced MDX blocks** — for static code in documentation, reach for a
+  ```` ```ts ```` block instead; you get syntax highlighting for free.
+- **Preview** — the design-system wrapper used on this page to render live
+  examples next to their source.

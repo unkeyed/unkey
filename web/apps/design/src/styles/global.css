@@ -1,0 +1,40 @@
+@import "tailwindcss";
+@import "../../../../internal/ui/tailwind.css";
+
+@source "../../../../internal/ui/src/**/*.tsx";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans:
+    "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:
+    "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-serif: "Instrument Serif", "Iowan Old Style", "Apple Garamond", Baskerville, serif;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply bg-gray-1 text-gray-12 font-sans antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  /* Dot grid background for preview surfaces */
+  .preview-grid {
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      hsla(var(--grayA-5)) 1px,
+      transparent 0
+    );
+    background-size: 16px 16px;
+  }
+}

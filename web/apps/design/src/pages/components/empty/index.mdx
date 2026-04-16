@@ -1,0 +1,224 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Empty
+description: A centered placeholder for a region that has nothing to show — a list with no rows, a search with no results, a page awaiting its first resource.
+---
+
+import { Empty, Button } from "@unkey/ui";
+import { InputSearch, Key } from "@unkey/icons";
+import { Preview } from "../../../components/Preview.tsx";
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+
+Empty fills a container that would otherwise be blank: a framed icon, a short
+headline, a line of supporting copy, and room for one or two actions that
+lead the user out of the empty state. It's the component you reach for when
+the zero case is a normal, expected outcome rather than an error.
+
+Don't use Empty for failures or missing permissions — those want an
+`<Alert>` with recovery context. Use Empty when the region simply has no
+data yet and the user can do something about it: create the first resource,
+adjust a filter, connect an integration.
+
+## Import
+
+```tsx
+import { Empty } from "@unkey/ui";
+```
+
+The component is a compound: `Empty` is the wrapper, and `Empty.Icon`,
+`Empty.Title`, `Empty.Description`, and `Empty.Actions` are the slots.
+
+## Default
+
+With no icon child, `Empty.Icon` renders the `Ufo` glyph from `@unkey/icons`
+inside a framed tile with crosshair dividers. Use the default when the
+region is empty in a generic, friendly way and no specific icon adds
+meaning.
+
+<Preview client:load>
+  <Empty>
+    <Empty.Icon />
+    <Empty.Title>Nothing here yet</Empty.Title>
+    <Empty.Description>
+      When you create your first resource, it will show up here.
+    </Empty.Description>
+  </Empty>
+</Preview>
+
+## Custom icon
+
+Pass any icon from `@unkey/icons` as the child of `Empty.Icon` to replace
+the default. The framed tile, the crosshair dividers, and the 28px sizing
+are preserved — only the glyph changes.
+
+<Preview client:load>
+  <Empty>
+    <Empty.Icon>
+      <InputSearch />
+    </Empty.Icon>
+    <Empty.Title>No matches</Empty.Title>
+    <Empty.Description>
+      We couldn't find anything for that query. Try a shorter search term or
+      clear your filters.
+    </Empty.Description>
+  </Empty>
+</Preview>
+
+## With actions
+
+`Empty.Actions` is a centered flex row with a small top margin and a gap
+between children. Put one primary action and, optionally, a secondary
+outline or ghost button beside it. Two actions is the ceiling — more than
+that turns the empty state into a menu.
+
+<Preview client:load>
+  <Empty>
+    <Empty.Icon>
+      <Key />
+    </Empty.Icon>
+    <Empty.Title>No keys yet</Empty.Title>
+    <Empty.Description>
+      Create your first API key to start authenticating requests against
+      this workspace.
+    </Empty.Description>
+    <Empty.Actions>
+      <Button variant="primary">Create key</Button>
+      <Button variant="outline">Read the docs</Button>
+    </Empty.Actions>
+  </Empty>
+</Preview>
+
+## Headline only
+
+Every slot is optional. For dense layouts (a small table cell, a sidebar
+panel) you can drop the description and keep just the icon and title.
+
+<Preview client:load>
+  <Empty>
+    <Empty.Icon />
+    <Empty.Title>No activity in the last 24 hours</Empty.Title>
+  </Empty>
+</Preview>
+
+## Accessibility
+
+Empty is a plain `<div>` with no implicit role. It's a visual affordance,
+not a live region — screen readers read it as the heading and paragraph
+inside.
+
+`Empty.Title` renders as `<h2>`. If the empty state is nested below an
+existing `<h2>` on the page, the heading hierarchy will skip. In that case,
+override with a wrapping `<h3>` at the call site and pass plain text into
+`Empty.Title`'s children, or restyle via `className`.
+
+Any button placed inside `Empty.Actions` keeps its native semantics; follow
+the usual `<Button>` accessibility rules (accessible name, sensible
+`aria-label` for icon-only buttons).
+
+## Props
+
+### Empty
+
+The outer wrapper. A flex column that fills its parent (`h-full w-full`)
+and centers its children vertically and horizontally with 2rem of padding.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Override `h-full` when the empty state
+    should size to its content (`h-auto`), or tighten padding (`p-4`) in
+    compact layouts.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Typically `<Empty.Icon>`, `<Empty.Title>`, `<Empty.Description>`, and
+    `<Empty.Actions>`, in that order. All are optional.
+  </Prop>
+  <Prop name="...rest" type="HTMLAttributes<HTMLDivElement>">
+    Standard div attributes pass through — useful for `role="status"` when
+    you want assistive tech to announce the empty state as it appears.
+  </Prop>
+</Props>
+
+### Empty.Icon
+
+A 7rem square tile containing a 4rem framed glyph, flanked by thin
+crosshair dividers. If no child is provided, renders the `Ufo` icon from
+`@unkey/icons` at `iconSize="2xl-regular"`.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes applied to the outer 7rem container. The
+    inner framed tile's size and border are not exposed — restyle with a
+    wrapping element if you need a different frame.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The glyph to render inside the framed tile. Any icon from
+    `@unkey/icons` works; the tile constrains SVGs to 1.75rem
+    (`[&_svg]:size-7`). When omitted, defaults to `<Ufo iconSize="2xl-regular" />`.
+  </Prop>
+</Props>
+
+### Empty.Title
+
+Renders as `<h2>` with semi-bold weight, 15px size, and 1.5rem leading. The
+headline sits 0.75rem below the icon.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Override `text-accent-12` when the empty
+    state is placed on a colored surface, or tighten `mt-3` when combined
+    with a larger icon.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The headline text. Keep it to a short phrase — "No keys yet", "Nothing
+    to show". Long sentences belong in `<Empty.Description>`.
+  </Prop>
+  <Prop name="...rest" type="HTMLAttributes<HTMLHeadingElement>">
+    Standard heading attributes pass through (`id` for `aria-labelledby`,
+    etc.).
+  </Prop>
+</Props>
+
+### Empty.Description
+
+Renders as `<p>` in the muted `text-accent-11` color at 12px size with
+1.5rem leading and a 0.25rem top margin.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Widen with `max-w-sm mx-auto` when the
+    copy wraps awkwardly in a wide container.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Supporting copy — one or two sentences that explain the empty state
+    and hint at the next step.
+  </Prop>
+  <Prop name="...rest" type="HTMLAttributes<HTMLParagraphElement>">
+    Standard paragraph attributes pass through.
+  </Prop>
+</Props>
+
+### Empty.Actions
+
+Horizontal flex row, centered, with a 1rem gap between children and a
+0.5rem top margin. Intended for one or two `<Button>`s.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Switch to `flex-col gap-2` for stacked
+    actions in narrow containers.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Usually one primary `<Button>` and, optionally, a secondary `outline`
+    or `ghost` button beside it.
+  </Prop>
+  <Prop name="...rest" type="HTMLAttributes<HTMLDivElement>">
+    Standard div attributes pass through.
+  </Prop>
+</Props>
+
+## Related
+
+- **Alert** — for failure or permission states that need to announce themselves.
+- **Card** — when the empty region is a panel that should carry its own border.
+- **Button** — for the action(s) inside `<Empty.Actions>`.

@@ -1,0 +1,97 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Separator
+description: A thin divider between sections. Horizontal by default, optionally vertical.
+---
+
+import { Separator } from "@unkey/ui";
+import { Preview } from "../../../components/Preview.tsx";
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+
+Separator is a visual rule that groups related elements while preserving the
+surrounding flow. It wraps Radix's `SeparatorPrimitive.Root`, which renders
+an HTML `<div>` with the correct ARIA semantics for the chosen mode.
+
+Reach for Separator when whitespace alone is not enough — for example
+between two columns in a card footer, between the header and body of a
+settings panel, or between groups of navigation items. If the sections
+already sit in distinct containers (different cards, different tabs),
+whitespace is usually enough and Separator just adds noise.
+
+## Import
+
+```tsx
+import { Separator } from "@unkey/ui";
+```
+
+## Horizontal
+
+The default orientation. Renders as a 1px full-width rule. The parent
+container controls width.
+
+<Preview client:load>
+  <div className="w-full max-w-md">
+    <div className="text-sm text-gray-11">Workspace</div>
+    <div className="text-base text-gray-12 font-medium">ACME, Inc.</div>
+    <Separator className="my-4" />
+    <div className="text-sm text-gray-11">Plan</div>
+    <div className="text-base text-gray-12 font-medium">Pro</div>
+  </div>
+</Preview>
+
+## Vertical
+
+For vertical dividers, set `orientation="vertical"`. The parent must give
+the separator a height — either explicitly (`h-6`) or implicitly via its
+flex/grid context — otherwise the rule collapses.
+
+<Preview client:load>
+  <div className="flex items-center gap-3 text-sm text-gray-11">
+    <span>Drafts</span>
+    <Separator orientation="vertical" className="h-4" />
+    <span>Published</span>
+    <Separator orientation="vertical" className="h-4" />
+    <span>Archived</span>
+  </div>
+</Preview>
+
+## Accessibility
+
+Separator defaults to `decorative={true}`, which means screen readers skip
+it entirely — appropriate when the rule is purely visual and the surrounding
+semantic structure (headings, landmarks, lists) already conveys the grouping.
+
+Set `decorative={false}` when the rule is the *only* thing that distinguishes
+sections that would otherwise read as one block. Radix then renders it with
+`role="separator"` and the appropriate `aria-orientation`, so screen readers
+announce the boundary.
+
+<Preview client:load>
+  <div className="w-full max-w-md">
+    <div className="flex items-center gap-2">
+      <span className="text-base font-medium text-gray-12">Billing</span>
+    </div>
+    <Separator decorative={false} className="my-3" />
+    <div className="text-sm text-gray-11">Invoices, usage, and payment methods.</div>
+  </div>
+</Preview>
+
+## Props
+
+<Props>
+  <Prop name="orientation" type={`"horizontal" | "vertical"`} default={`"horizontal"`}>
+    Axis of the rule. Vertical separators require the parent (or a
+    `className`) to set a height.
+  </Prop>
+  <Prop name="decorative" type="boolean" default="true">
+    When `true`, the separator is hidden from assistive technology (no
+    `role`). When `false`, Radix emits `role="separator"` with
+    `aria-orientation`. Default to `true` unless the rule is the only
+    structural cue.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Typically used to set vertical height
+    (`h-4`, `h-6`) or override spacing (`my-4`).
+  </Prop>
+</Props>

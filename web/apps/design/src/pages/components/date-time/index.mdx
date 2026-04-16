@@ -1,0 +1,197 @@
+---
+layout: ../../../layouts/Layout.astro
+title: DateTime
+description: Pick a single date or a date range with per-endpoint time inputs, wired together by a shared context.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import { RangeExample, SingleExample, BoundedExample } from "./_examples.tsx";
+
+DateTime is a compound component built around a shared context. `<DateTime>`
+is the root state container. `<DateTime.Calendar>` renders a
+`react-day-picker` grid in either `single` or `range` mode, `<DateTime.TimeInput>`
+renders split hours/minutes/seconds inputs for the start (and, in range mode,
+the end), and `<DateTime.Actions>` is a padded footer for your own buttons.
+Every change flows back through the root's `onChange` callback as
+`(range, startTime, endTime)`.
+
+The root always manages a `DateRange` internally (`{ from, to }`), even in
+`single` mode — the picked date lives on `range.from` and `range.to` stays
+`undefined`. Reach for DateTime when you need a self-contained picker surface
+inside a popover, drawer, or inline panel. For a compact read-only label that
+formats a timestamp, use `TimestampInfo` instead.
+
+## Import
+
+```tsx
+import {
+  DateTime,
+  type Range,
+  type TimeUnit,
+} from "@unkey/ui";
+```
+
+`DateTime.Calendar`, `DateTime.TimeInput`, and `DateTime.Actions` are attached
+to the root and are only meaningful inside a `<DateTime>` tree — they read
+from its context and will throw if rendered standalone. `react-day-picker` is
+bundled with `@unkey/ui`, so no extra setup is needed at the consumer.
+
+## Range picker
+
+Pass `mode="range"` to the calendar and `type="range"` to the time input to
+collect a start/end pair. The first click sets `from`, the second click sets
+`to` (and swaps them if the user clicks earlier than the current start).
+Clicking the current start with no end clears the selection.
+
+<RangeExample client:load />
+
+Time inputs normalise their values on blur (single-digit entries pad to two
+digits, empty fields fall back to `00`). If the start time and end time share
+the same day and the user enters a start later than the end, the end is
+bumped forward to match; the inverse applies when editing the end.
+
+## Single date picker
+
+`mode="single"` keeps the same context shape but only tracks `range.from`.
+Clicking the selected day again clears it. `type="single"` hides the end-time
+input, leaving just one hours/minutes/seconds strip.
+
+<SingleExample client:load />
+
+## Bounding the selection
+
+Pass `minDate` and `maxDate` on the root to constrain which days the user can
+pick. The calendar greys out days outside the window and blocks clicks. For
+more complex rules (specific blackout ranges, fixed weekdays), use the
+calendar's `disabledDates` prop, which accepts an array of
+`{ from, to }`, `{ before }`, or `{ after }` matchers.
+
+<BoundedExample client:load />
+
+## Accessibility
+
+The day grid is rendered by `react-day-picker`, which exposes each day as a
+focusable `<button>` inside a `<table role="grid">`. Arrow keys move focus
+between days, `Home`/`End` jump to the start and end of the week,
+`PageUp`/`PageDown` jump a month, and `Enter` or `Space` selects the focused
+day. Today is indicated with a small dot beneath the day number, selected
+days get a filled background, and disabled days are dimmed with
+`aria-disabled="true"`.
+
+The time inputs are plain `<input type="text">` fields, each labelled via
+`aria-label` (`"Hours"`, `"Minutes"`, `"Seconds"`). The focused field
+highlights its container border. Values are clamped on entry (hours max 23,
+minutes and seconds max 59) and padded on blur. Because the inputs are text,
+not number, assistive tech announces them as editable text fields — callers
+who need a stricter numeric affordance should wrap the picker in a form with
+its own validation.
+
+Header month-nav buttons (prev/next) are native `<button>` elements and
+become `disabled` at the edges of the bounded range.
+
+## Props
+
+### `<DateTime>`
+
+The root. Provides context to every subcomponent and owns the current range
+and both time values.
+
+<Props>
+  <Prop name="onChange" type="(date?: Range, start?: TimeUnit, end?: TimeUnit) => void">
+    Fires on every date click and every time-input blur. `date` is the
+    current `{ from, to }` (in `single` mode, `to` is always undefined).
+    `start` and `end` are `{ HH, mm, ss }` strings, already zero-padded.
+  </Prop>
+  <Prop name="initialRange" type="Range">
+    Starting `{ from, to }`. If `from` is set, the start-time input seeds
+    its `HH`/`mm`/`ss` from `from.getHours()` etc.; same for `to` and the
+    end-time input. Omit for an empty picker (start defaults to `00:00:00`,
+    end to `23:59:59`).
+  </Prop>
+  <Prop name="minDate" type="Date">
+    Earliest selectable day. Days before this are disabled in the
+    calendar.
+  </Prop>
+  <Prop name="maxDate" type="Date">
+    Latest selectable day. Days after this are disabled in the calendar.
+  </Prop>
+  <Prop name="className" type="string">
+    Appended to the root's wrapping `<div>` (which is a fixed-width
+    `w-80` flex column). Use to override width or spacing.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Typically `<DateTime.Calendar>`, `<DateTime.TimeInput>`, and
+    `<DateTime.Actions>` in whatever order the layout requires.
+  </Prop>
+</Props>
+
+### `<DateTime.Calendar>`
+
+Renders the `react-day-picker` grid and wires day clicks back to the
+context. Header navigation (prev/next month) is built in.
+
+<Props>
+  <Prop name="mode" type={`"single" | "range"`}>
+    `single` writes the click to `range.from` and ignores `range.to`.
+    `range` fills `from` on the first click and `to` on the second,
+    swapping if the second click is earlier than the first.
+  </Prop>
+  <Prop name="showOutsideDays" type="boolean" default="true">
+    Show leading/trailing days from neighbouring months to keep the grid
+    rectangular. Outside days are dimmed.
+  </Prop>
+  <Prop name="disabledDates" type="Array<{ from?: Date; to?: Date; before?: Date; after?: Date }>">
+    Extra disabled-day matchers, combined with `minDate`/`maxDate` from
+    the root. Accepts ranges (`from`/`to`), open-ended lower bounds
+    (`before`), or open-ended upper bounds (`after`).
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes on the `DayPicker` root.
+  </Prop>
+  <Prop name="classNames" type="Record<string, string>">
+    Merged over the built-in `react-day-picker` class map. Keys are
+    slots like `day`, `day_button`, `range_start`, `selected`, `today`.
+    Use to override individual parts without re-styling the whole grid.
+  </Prop>
+</Props>
+
+### `<DateTime.TimeInput>`
+
+Renders the split `HH:mm:ss` inputs. In `range` mode, two groups side by
+side; in `single` mode, just the start group.
+
+<Props>
+  <Prop name="type" type={`"single" | "range"`}>
+    `range` shows both start and end time groups. `single` shows only
+    start. Must match the calendar's `mode` for consistent behavior.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes on the wrapping flex row.
+  </Prop>
+</Props>
+
+### `<DateTime.Actions>`
+
+A padded, centered flex row for action buttons (Apply, Cancel, quick
+presets). Holds whatever children you pass — no built-in buttons.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Override `justify-center` when action
+    buttons should space to the edges (`justify-between`).
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Usually one or two `<Button>`s, optionally paired with a small status
+    readout.
+  </Prop>
+</Props>
+
+## Related
+
+- **TimestampInfo** — a passive, read-only formatter for a single timestamp.
+  Use this when you only need to *display* a date, not pick one.
+- **Popover** — the usual host for `<DateTime>` in dashboard chrome: a
+  trigger button opens a popover whose content is the picker.
+- **Button** — for the Apply/Cancel actions rendered inside
+  `<DateTime.Actions>`.

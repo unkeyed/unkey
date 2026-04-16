@@ -1,0 +1,201 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Drover
+description: A responsive overlay that renders as a popover on desktop and a bottom drawer on mobile, with a single compound API.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  BasicExample,
+  ControlledExample,
+  NestedExample,
+} from "./_examples.tsx";
+
+Drover is a responsive floating container. Above the mobile breakpoint it
+mounts as a Radix Popover anchored to the trigger; below it, the same tree
+re-mounts as a Vaul bottom Drawer with a swipe-dismissable sheet. You write
+one compound markup and the component picks the right primitive at runtime
+based on viewport width.
+
+Reach for Drover when the content is the same on every screen but the
+ergonomics should differ: a workspace switcher, a filter panel, an actions
+menu that's fine as a popover on a laptop but deserves the full-width sheet
+treatment on a phone. If the content is always a modal-scale form, use
+`Dialog`. If you want a bottom sheet on every device, use `Drawer` directly.
+If the content is a persistent side panel, reach for `SlidePanel`.
+
+## Import
+
+```tsx
+import { Drover } from "@unkey/ui";
+```
+
+Drover is a compound component exported as a namespace. You assemble the
+overlay from `Drover.Root`, `Drover.Trigger`, `Drover.Content`, and
+optionally `Drover.Close` and `Drover.Nested`.
+
+## Basic
+
+Wrap a control with `Drover.Trigger asChild` so the Button stays the real
+focusable element, then pair it with `Drover.Content`. Resize the viewport
+below `768px` to see the popover turn into a bottom drawer.
+
+<BasicExample client:load />
+
+## Controlled
+
+Pass `open` and `onOpenChange` to `Drover.Root` when the parent needs to
+drive visibility (for example, opening the drover in response to an event
+outside the trigger tree). When uncontrolled, use `defaultOpen` to start
+open on first render.
+
+<ControlledExample client:load />
+
+## Nested
+
+`Drover.Nested` stacks a second drover inside the first. On mobile, Vaul
+animates the parent sheet back so the nested sheet owns the viewport;
+closing the nested drover programmatically closes its parent as well, so
+the user never ends up with a dangling root.
+
+<NestedExample client:load />
+
+## Accessibility
+
+Each underlying primitive carries the right semantics on its own branch.
+On desktop, `Drover.Content` is a Radix Popover: it renders into a portal,
+traps nothing (so tab order continues through the document), closes on
+`Escape`, and restores focus to the trigger on dismiss. On mobile, it is a
+Vaul drawer: focus moves into the sheet on open, `Escape` closes it, and
+swiping down or clicking the scrim dismisses.
+
+Two things to keep in mind when composing. First, `Drover.Trigger` renders
+a `<button>` by default. Use `asChild` to merge its behavior into an
+existing focusable control so you don't nest two buttons. Second, the
+switch between popover and drawer happens at `768px` viewport width and
+is driven by `window.matchMedia`. On the server and during first paint the
+component assumes desktop to avoid hydration mismatches, so a phone user
+will see the popover shape for a frame before it swaps to the drawer.
+Keep the first render's layout forgiving (no absolute widths pinned to the
+trigger) so the transition isn't jarring.
+
+## Props
+
+### Drover.Root
+
+The state container. Mounts either a Popover or a Drawer root depending on
+viewport width.
+
+<Props>
+  <Prop name="open" type="boolean">
+    Controlled open state. Pair with `onOpenChange` when the parent needs
+    to drive visibility.
+  </Prop>
+  <Prop name="defaultOpen" type="boolean" default="false">
+    Uncontrolled initial open state. Ignored if `open` is provided.
+  </Prop>
+  <Prop name="onOpenChange" type="(open: boolean) => void">
+    Fires whenever the open state changes, whether by trigger, close,
+    escape, swipe dismiss, or programmatic control.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    A `Drover.Trigger` and a `Drover.Content`, optionally with a
+    `Drover.Close` or a `Drover.Nested` inside the content.
+  </Prop>
+</Props>
+
+### Drover.Trigger
+
+The control that opens the drover. Forwards to Popover's trigger on
+desktop and Vaul's trigger on mobile.
+
+<Props>
+  <Prop name="asChild" type="boolean" default="false">
+    Merge the trigger behavior into a single child instead of rendering a
+    wrapping `<button>`. Use this to keep a Button as the focusable
+    element.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The trigger content. With `asChild`, must be a single element that
+    accepts a ref and standard pointer/focus handlers.
+  </Prop>
+  <Prop name="...rest" type="ButtonHTMLAttributes<HTMLButtonElement>">
+    Standard button attributes pass through to the underlying primitive.
+  </Prop>
+</Props>
+
+### Drover.Content
+
+The floating surface. On desktop, applies popover chrome (`min-w-60`,
+`bg-gray-1`, `shadow-2xl`, `border-gray-6`, `rounded-lg`, 0.5rem padding)
+and anchors with `align="start"`. On mobile, renders Vaul's sheet chrome
+(rounded top corners, drop shadow, max 82vh height) directly.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with the desktop popover chrome
+    only; the mobile drawer chrome is applied by the underlying
+    `Drawer.Content` and not overridden here.
+  </Prop>
+  <Prop name="onKeyDown" type="(e: KeyboardEvent) => void">
+    Key handler forwarded to the underlying popover or drawer content.
+  </Prop>
+  <Prop name="onAnimationEnd" type="(e: AnimationEvent) => void">
+    Animation-end handler forwarded to the underlying primitive.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The content body. Keep layout fluid so the switch between popover and
+    drawer at `768px` doesn't cause a jarring reflow.
+  </Prop>
+</Props>
+
+### Drover.Close
+
+A button that closes the drover by calling `onOpenChange(false)` on the
+root. Uses a Radix `Slot` when `asChild` is set, letting an existing
+button provide its own styling and focus ring.
+
+<Props>
+  <Prop name="asChild" type="boolean" default="false">
+    Merge the close behavior into a single child instead of rendering a
+    wrapping `<button>`.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The close trigger content. Usually a Button with a dismissive label.
+  </Prop>
+  <Prop name="...rest" type="ButtonHTMLAttributes<HTMLButtonElement>">
+    Standard button attributes pass through.
+  </Prop>
+</Props>
+
+### Drover.Nested
+
+A second drover mounted inside an open drover. On mobile, uses Vaul's
+`NestedRoot` so the parent sheet animates back while the child takes
+focus. Closing the nested drover also closes the parent root, preventing
+orphaned overlays.
+
+<Props>
+  <Prop name="open" type="boolean">
+    Controlled open state for the nested drover.
+  </Prop>
+  <Prop name="defaultOpen" type="boolean" default="false">
+    Uncontrolled initial open state for the nested drover.
+  </Prop>
+  <Prop name="onOpenChange" type="(open: boolean) => void">
+    Fires on nested open-state changes.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    A `Drover.Trigger` and a `Drover.Content` for the nested layer.
+  </Prop>
+</Props>
+
+## Related
+
+- **Drawer** — when you always want a bottom sheet, regardless of
+  viewport. Drover uses this primitive under the hood on mobile.
+- **Dialog** — for a centered, modal surface that blocks interaction with
+  the page until confirmed or dismissed.
+- **SlidePanel** — for a persistent side panel that coexists with the
+  underlying page layout instead of floating above it.
