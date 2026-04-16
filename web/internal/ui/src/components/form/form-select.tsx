@@ -1,7 +1,7 @@
 import { ChevronDown } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../../lib/utils";
-import { FormDescription, FormLabel } from "./form-helpers";
+import { FormDescription, FormLabel, type Requirement } from "./form-helpers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 
 export type FormSelectOption = { value: string; label: React.ReactNode };
@@ -10,8 +10,7 @@ export type FormSelectOption = { value: string; label: React.ReactNode };
 type DocumentedFormSelectProps = {
   label?: string;
   description?: string | React.ReactNode;
-  required?: boolean;
-  optional?: boolean;
+  requirement?: Requirement;
   error?: string;
   descriptionPosition?: "inline" | "label";
 };
@@ -33,8 +32,7 @@ function FormSelect({
   label,
   description,
   error,
-  required,
-  optional,
+  requirement,
   id,
   className,
   triggerClassName,
@@ -57,8 +55,7 @@ function FormSelect({
     <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
       <FormLabel
         label={label}
-        required={required}
-        optional={optional}
+        requirement={requirement}
         hasError={Boolean(error)}
         htmlFor={selectId}
         tooltipContent={descriptionAsTooltip ? description : undefined}
@@ -70,7 +67,7 @@ function FormSelect({
           className={triggerClassName}
           aria-describedby={error ? errorId : description ? descriptionId : undefined}
           aria-invalid={!!error}
-          aria-required={required}
+          aria-required={requirement === "required"}
           rightIcon={rightIcon ?? <ChevronDown className="absolute right-2" iconSize="md-medium" />}
         >
           <SelectValue placeholder={placeholder} />

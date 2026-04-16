@@ -179,7 +179,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
               })}
               placeholder="Enter workspace name"
               label="Workspace name"
-              required
+              requirement="required"
               error={form.formState.errors.workspaceName?.message}
               disabled={isLoading || workspaceCreated}
             />
@@ -199,7 +199,7 @@ export const useWorkspaceStep = (): OnboardingStep => {
               })}
               placeholder={isMounted ? "enter-a-handle" : ""}
               label="Workspace URL handle"
-              required
+              requirement="required"
               error={form.formState.errors.slug?.message}
               prefix="app.unkey.com/"
               maxLength={64}

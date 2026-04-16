@@ -1,18 +1,18 @@
 import type { Deployment } from "@/lib/collections";
 import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
 import {
-  Bolt,
   ChartActivity,
   CircleHalfDottedClock,
   CodeBranch,
   CodeCommit,
   Connections,
+  Database,
   Github,
-  Grid,
-  Harddrive,
   Heart,
   Location2,
   MessageWriting,
+  Microchip,
+  Ram,
   User,
 } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
@@ -139,7 +139,7 @@ export const createDetailSections = (
           ),
         },
         {
-          icon: <Bolt className="size-[14px] text-gray-12" iconSize="md-regular" />,
+          icon: <Microchip className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "CPU",
           content: (() => {
             const cpu = formatCpuParts(details.cpuMillicores);
@@ -152,7 +152,7 @@ export const createDetailSections = (
           })(),
         },
         {
-          icon: <Grid className="size-[14px] text-gray-12" iconSize="md-regular" />,
+          icon: <Ram className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Memory",
           content: (() => {
             const mem = formatMemoryParts(details.memoryMib);
@@ -165,7 +165,7 @@ export const createDetailSections = (
           })(),
         },
         {
-          icon: <Harddrive className="size-[14px] text-gray-12" iconSize="md-regular" />,
+          icon: <Database className="size-[14px] text-gray-12" iconSize="md-regular" />,
           label: "Storage",
           disabled: true,
           content: <span className="text-grayA-10">—</span>,
