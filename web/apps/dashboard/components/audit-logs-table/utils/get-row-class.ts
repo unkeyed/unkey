@@ -1,9 +1,6 @@
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { cn } from "@/lib/utils";
 
-/**
- * Determines the event type based on the event name
- */
 export const getEventType = (event: string): "create" | "update" | "delete" | "other" => {
   const eventLower = event.toLowerCase();
 
@@ -69,20 +66,16 @@ export const AUDIT_STATUS_STYLES = {
   },
 };
 
-/**
- * Get the style configuration for an audit log entry
- */
 export const getAuditStatusStyle = (item: AuditLog) => {
   const eventType = getEventType(item.auditLog.event);
   return AUDIT_STATUS_STYLES[eventType];
 };
 
-/**
- * Get the row class name for an audit log entry
- */
-export const getAuditRowClassName = (item: AuditLog, isSelected: boolean, logSelected: boolean) => {
+export const getAuditRowClassName = (item: AuditLog, selectedLog: AuditLog | null) => {
   const eventType = getEventType(item.auditLog.event);
   const style = AUDIT_STATUS_STYLES[eventType];
+  const isSelected = item.auditLog.id === selectedLog?.auditLog.id;
+  const logSelected = Boolean(selectedLog);
 
   return cn(
     style.base,
@@ -98,9 +91,6 @@ export const getAuditRowClassName = (item: AuditLog, isSelected: boolean, logSel
   );
 };
 
-/**
- * Get the selected class name for an audit log entry
- */
 export const getAuditSelectedClassName = (item: AuditLog, isSelected: boolean) => {
   if (!isSelected) {
     return "";

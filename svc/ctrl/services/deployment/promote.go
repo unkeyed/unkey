@@ -9,6 +9,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // Promote reassigns all domains to the target deployment via a Restate workflow.
@@ -17,6 +18,10 @@ import (
 // The workflow runs synchronously (blocking until complete) and is keyed by
 // workspace ID to prevent concurrent promotion operations on the same workspace.
 func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.PromoteRequest]) (*connect.Response[ctrlv1.PromoteResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	logger.Info("initiating promotion via Restate",
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
