@@ -16,6 +16,10 @@ import { workspaces } from "./workspaces";
 /**
  * We store one row per logical sentinel. That means each set of sentinel pods in a single region is one row.
  * Therefore each sentinel also has a single kubernetes service name.
+ *
+ * `image` is the desired image (what we want deployed).
+ * `running_image` is the observed image (what krane reports k8s is actually running).
+ * When they differ, the last deploy hasn't converged yet.
  */
 export const sentinels = mysqlTable(
   "sentinels",
@@ -30,15 +34,19 @@ export const sentinels = mysqlTable(
 
     regionId: varchar("region_id", { length: 255 }).notNull(),
     image: varchar("image", { length: 255 }).notNull(),
+    runningImage: varchar("running_image", { length: 255 }).notNull().default(""),
     desiredState: mysqlEnum("desired_state", ["running", "standby", "archived"])
       .notNull()
       .default("running"),
 
     health: mysqlEnum("health", ["unknown", "paused", "healthy", "unhealthy"])
       .notNull()
-      .default("unknown"), // needs better status types
+      .default("unknown"),
     desiredReplicas: int("desired_replicas").notNull(),
-    availableReplicas: int("available_replicas").notNull(),
+    availableReplicas: int("available_replicas").notNull().default(0),
+    deployStatus: mysqlEnum("deploy_status", ["idle", "progressing", "ready", "failed"])
+      .notNull()
+      .default("idle"),
     cpuMillicores: int("cpu_millicores").notNull(),
     memoryMib: int("memory_mib").notNull(),
 

@@ -795,6 +795,50 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 	return string(ns.KeyMigrationsAlgorithm), nil
 }
 
+type SentinelsDeployStatus string
+
+const (
+	SentinelsDeployStatusIdle        SentinelsDeployStatus = "idle"
+	SentinelsDeployStatusProgressing SentinelsDeployStatus = "progressing"
+	SentinelsDeployStatusReady       SentinelsDeployStatus = "ready"
+	SentinelsDeployStatusFailed      SentinelsDeployStatus = "failed"
+)
+
+func (e *SentinelsDeployStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SentinelsDeployStatus(s)
+	case string:
+		*e = SentinelsDeployStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SentinelsDeployStatus: %T", src)
+	}
+	return nil
+}
+
+type NullSentinelsDeployStatus struct {
+	SentinelsDeployStatus SentinelsDeployStatus
+	Valid                 bool // Valid is true if SentinelsDeployStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSentinelsDeployStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.SentinelsDeployStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SentinelsDeployStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSentinelsDeployStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SentinelsDeployStatus), nil
+}
+
 type SentinelsDesiredState string
 
 const (
@@ -1541,10 +1585,12 @@ type Sentinel struct {
 	K8sAddress        string                `db:"k8s_address"`
 	RegionID          string                `db:"region_id"`
 	Image             string                `db:"image"`
+	RunningImage      string                `db:"running_image"`
 	DesiredState      SentinelsDesiredState `db:"desired_state"`
 	Health            SentinelsHealth       `db:"health"`
 	DesiredReplicas   int32                 `db:"desired_replicas"`
 	AvailableReplicas int32                 `db:"available_replicas"`
+	DeployStatus      SentinelsDeployStatus `db:"deploy_status"`
 	CpuMillicores     int32                 `db:"cpu_millicores"`
 	MemoryMib         int32                 `db:"memory_mib"`
 	CreatedAt         int64                 `db:"created_at"`

@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "sentinel",
+    srcs = [
+        "deploy.go",
+        "doc.go",
+        "rollout_cancel.go",
+        "rollout_notify.go",
+        "rollout_resume.go",
+        "rollout_rollback_all.go",
+        "rollout_rollout.go",
+        "rollout_service.go",
+        "rollout_state.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/sentinel",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/db",
+        "//pkg/logger",
+        "//svc/ctrl/internal/slack",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)
