@@ -16,7 +16,10 @@ import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-e
 import { MetadataCell } from "./components/metadata-cell";
 import { ActiveDeploymentCardSkeleton } from "./components/skeleton";
 
-function GitHubLink({ href, children }: { href: string; children: React.ReactNode }) {
+function GitHubLink({ href, children }: { href: string | undefined; children: React.ReactNode }) {
+  if (!href) {
+    return children;
+  }
   return (
     <a href={href} target="_blank" rel="noopener noreferrer" className="hover:opacity-80">
       {children}
@@ -76,9 +79,13 @@ export function ActiveDeploymentCard({
             )}
           </div>
           <div className="flex items-center gap-3 min-w-0">
-            {deployment.gitCommitMessage && deployment.gitCommitSha && commitRepo ? (
+            {deployment.gitCommitMessage && (
               <GitHubLink
-                href={`https://github.com/${commitRepo}/commit/${deployment.gitCommitSha}`}
+                href={
+                  deployment.gitCommitSha && commitRepo
+                    ? `https://github.com/${commitRepo}/commit/${deployment.gitCommitSha}`
+                    : undefined
+                }
               >
                 <div className="flex items-center gap-1.5 min-w-0">
                   <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
@@ -87,14 +94,7 @@ export function ActiveDeploymentCard({
                   </span>
                 </div>
               </GitHubLink>
-            ) : deployment.gitCommitMessage ? (
-              <div className="flex items-center gap-1.5 min-w-0">
-                <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
-                <span className="text-xs text-accent-12 truncate">
-                  {deployment.gitCommitMessage}
-                </span>
-              </div>
-            ) : null}
+            )}
             {statusBadge}
           </div>
         </div>
@@ -123,8 +123,14 @@ export function ActiveDeploymentCard({
 
           <MetadataCell label="Source">
             <div className="flex items-center gap-2 min-w-0">
-              {deployment.gitBranch && branchRepo ? (
-                <GitHubLink href={`https://github.com/${branchRepo}/tree/${deployment.gitBranch}`}>
+              {deployment.gitBranch && (
+                <GitHubLink
+                  href={
+                    branchRepo
+                      ? `https://github.com/${branchRepo}/tree/${deployment.gitBranch}`
+                      : undefined
+                  }
+                >
                   <span className="flex items-center gap-1">
                     <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
                     <span className="font-mono text-xs text-accent-12 truncate max-w-32">
@@ -132,30 +138,21 @@ export function ActiveDeploymentCard({
                     </span>
                   </span>
                 </GitHubLink>
-              ) : deployment.gitBranch ? (
-                <span className="flex items-center gap-1">
-                  <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
-                  <span className="font-mono text-xs text-accent-12 truncate max-w-32">
-                    {deployment.gitBranch}
-                  </span>
-                </span>
-              ) : null}
+              )}
               {deployment.gitCommitSha && (
                 <>
                   <span className="text-gray-9 text-xs">·</span>
-                  {commitRepo ? (
-                    <GitHubLink
-                      href={`https://github.com/${commitRepo}/commit/${deployment.gitCommitSha}`}
-                    >
-                      <span className="font-mono text-xs text-accent-12">
-                        {deployment.gitCommitSha.slice(0, 7)}
-                      </span>
-                    </GitHubLink>
-                  ) : (
+                  <GitHubLink
+                    href={
+                      commitRepo
+                        ? `https://github.com/${commitRepo}/commit/${deployment.gitCommitSha}`
+                        : undefined
+                    }
+                  >
                     <span className="font-mono text-xs text-accent-12">
                       {deployment.gitCommitSha.slice(0, 7)}
                     </span>
-                  )}
+                  </GitHubLink>
                 </>
               )}
             </div>
