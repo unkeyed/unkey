@@ -3,70 +3,74 @@ import { Badge, Button, Card } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { StatusIndicator } from "../../../components/status-indicator";
 
-export const ActiveDeploymentCardSkeleton = () => (
-  <Card className="pt-[14px] flex justify-between flex-col overflow-hidden">
-    <div className="flex w-full justify-between items-center px-[22px] h-9">
-      <div className="flex gap-5 items-center">
-        <StatusIndicator />
-        <div className="flex flex-col gap-1">
-          <div className="h-2.5 w-16 bg-grayA-3 rounded-sm animate-pulse" />
-          <div className="h-2.5 w-32 bg-grayA-3 rounded-sm animate-pulse" />
-        </div>
-      </div>
-      <div className="flex items-center gap-4">
-        <Badge variant="success" className="text-successA-11 font-medium">
-          <div className="flex items-center gap-2">
-            {<CircleCheck />}
-            Loading
-          </div>
-        </Badge>
-        <div className="items-center flex gap-2">
-          <div className="flex gap-2 items-center">
-            <span className="text-gray-9 text-xs">Created by</span>
-            <div className="rounded-full size-5 bg-grayA-3 animate-pulse" />
-            <div className="h-2.5 w-20 bg-grayA-3 rounded-sm animate-pulse" />
+export function ActiveDeploymentCardSkeleton() {
+  return (
+    <Card className="pt-[14px] flex justify-between flex-col overflow-hidden">
+      <div className="flex w-full justify-between items-center px-[22px] h-9">
+        <div className="flex gap-5 items-center">
+          <StatusIndicator />
+          <div className="flex flex-col gap-1">
+            <div className="h-2.5 w-16 bg-grayA-3 rounded-sm animate-pulse" />
+            <div className="h-2.5 w-32 bg-grayA-3 rounded-sm animate-pulse" />
           </div>
         </div>
+        <div className="flex items-center gap-4">
+          <Badge variant="success" className="text-successA-11 font-medium">
+            <div className="flex items-center gap-2">
+              {<CircleCheck />}
+              Loading
+            </div>
+          </Badge>
+          <div className="items-center flex gap-2">
+            <div className="flex gap-2 items-center">
+              <span className="text-gray-9 text-xs">Created by</span>
+              <div className="rounded-full size-5 bg-grayA-3 animate-pulse" />
+              <div className="h-2.5 w-20 bg-grayA-3 rounded-sm animate-pulse" />
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div className="bg-gray-1 rounded-b-[14px]">
-      <div className="relative h-4 flex items-center justify-center">
-        <div className="absolute top-0 left-0 right-0 h-4 border-b border-gray-4 rounded-b-[14px] bg-white dark:bg-black" />
-      </div>
+      <div className="bg-gray-1 rounded-b-[14px]">
+        <div className="relative h-4 flex items-center justify-center">
+          <div className="absolute top-0 left-0 right-0 h-4 border-b border-gray-4 rounded-b-[14px] bg-white dark:bg-black" />
+        </div>
 
-      <div className="pb-2.5 pt-2 flex justify-between items-center px-3">
-        <div className="flex items-center gap-2.5">
-          <div className="h-2.5 w-16 bg-grayA-3 rounded-sm animate-pulse" />
+        <div className="pb-2.5 pt-2 flex justify-between items-center px-3">
+          <div className="flex items-center gap-2.5">
+            <div className="h-2.5 w-16 bg-grayA-3 rounded-sm animate-pulse" />
+            <div className="flex items-center gap-1.5">
+              <div className="bg-grayA-3 items-center flex gap-1.5 p-1.5 rounded-md w-fit animate-pulse h-[22px]">
+                <CodeBranch iconSize="sm-regular" className="text-gray-12 opacity-50" />
+                <div className="h-2 w-12 bg-grayA-4 rounded-sm" />
+              </div>
+              <div className="bg-grayA-3 items-center flex gap-1.5 p-1.5 rounded-md w-fit animate-pulse h-[22px]">
+                <CodeCommit iconSize="sm-regular" className="text-gray-12 opacity-50" />
+                <div className="h-2 w-16 bg-grayA-4 rounded-sm" />
+              </div>
+            </div>
+            <div className="text-grayA-9 text-xs">using image</div>
+            <div className="bg-grayA-3 items-center flex gap-1.5 p-1.5 rounded-md w-fit animate-pulse h-[22px]">
+              <FolderCloud iconSize="sm-regular" className="text-gray-12 opacity-50" />
+              <div className="h-2 w-24 bg-grayA-4 rounded-sm" />
+            </div>
+          </div>
           <div className="flex items-center gap-1.5">
-            <div className="bg-grayA-3 items-center flex gap-1.5 p-1.5 rounded-md w-fit animate-pulse h-[22px]">
-              <CodeBranch iconSize="sm-regular" className="text-gray-12 opacity-50" />
-              <div className="h-2 w-12 bg-grayA-4 rounded-sm" />
-            </div>
-            <div className="bg-grayA-3 items-center flex gap-1.5 p-1.5 rounded-md w-fit animate-pulse h-[22px]">
-              <CodeCommit iconSize="sm-regular" className="text-gray-12 opacity-50" />
-              <div className="h-2 w-16 bg-grayA-4 rounded-sm" />
-            </div>
+            <button className="text-xs text-grayA-9" type="button" disabled aria-hidden="true">
+              Requests
+            </button>
+            <span className="text-grayA-6">|</span>
+            <button className="text-xs text-grayA-9" type="button" disabled aria-hidden="true">
+              Logs
+            </button>
+            <Button size="icon" variant="ghost" disabled aria-hidden="true" tabIndex={-1}>
+              <ChevronDown
+                className={cn("text-grayA-9 size-3! transition-transform duration-200")}
+              />
+            </Button>
           </div>
-          <div className="text-grayA-9 text-xs">using image</div>
-          <div className="bg-grayA-3 items-center flex gap-1.5 p-1.5 rounded-md w-fit animate-pulse h-[22px]">
-            <FolderCloud iconSize="sm-regular" className="text-gray-12 opacity-50" />
-            <div className="h-2 w-24 bg-grayA-4 rounded-sm" />
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <button className="text-xs text-grayA-9" type="button">
-            Requests
-          </button>
-          <span className="text-grayA-6">|</span>
-          <button className="text-xs text-grayA-9" type="button">
-            Logs
-          </button>
-          <Button size="icon" variant="ghost">
-            <ChevronDown className={cn("text-grayA-9 size-3! transition-transform duration-200")} />
-          </Button>
         </div>
       </div>
-    </div>
-  </Card>
-);
+    </Card>
+  );
+}
