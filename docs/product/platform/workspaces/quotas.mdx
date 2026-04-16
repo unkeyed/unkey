@@ -54,6 +54,12 @@ How much memory your workspace can allocate across all running deployments at th
 
 If a new deployment would push the workspace's total memory usage beyond the limit, Unkey rejects the deployment. To free up capacity, scale down or remove existing deployments.
 
+## Concurrent builds
+
+How many non-production deployments your workspace can build at the same time. When a new deployment is triggered and the workspace is already at the concurrent build limit, the deployment is queued until a build slot becomes available.
+
+The Free plan defaults to 1 concurrent build. Upgrading your plan increases this limit.
+
 ## Workspace API rate limit
 
 Some plans include a workspace-level API rate limit that caps the number of requests your workspace can make within a time window. This is separate from the monthly request limit and operates on a shorter window (for example, requests per second).
