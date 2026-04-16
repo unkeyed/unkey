@@ -30,7 +30,7 @@ export const metrics: Array<{
     config: {
       active_instances: {
         label: "Active instances",
-        color: "hsl(var(--error-8))",
+        color: "var(--error-8)",
       },
     },
     dataConfig: {
@@ -53,7 +53,7 @@ export const metrics: Array<{
     config: {
       requests: {
         label: "Requests",
-        color: "hsl(var(--warning-8))",
+        color: "var(--warning-8)",
       },
     },
     dataConfig: {
@@ -76,7 +76,7 @@ export const metrics: Array<{
     config: {
       cpu_usage: {
         label: "CPU usage",
-        color: "hsl(var(--feature-8))",
+        color: "var(--feature-8)",
       },
     },
     dataConfig: {
@@ -104,7 +104,7 @@ export const metrics: Array<{
     config: {
       memory_usage: {
         label: "Memory usage",
-        color: "hsl(var(--info-8))",
+        color: "var(--info-8)",
       },
     },
     dataConfig: {
@@ -132,7 +132,7 @@ export const metrics: Array<{
     config: {
       storage_usage: {
         label: "Storage usage",
-        color: "hsl(var(--cyan-8))",
+        color: "var(--cyan-8)",
       },
     },
     dataConfig: {
@@ -199,7 +199,7 @@ export const metrics: Array<{
     config: {
       latency: {
         label: "Latency",
-        color: "hsl(var(--bronze-8))",
+        color: "var(--bronze-8)",
       },
     },
     dataConfig: {
@@ -227,7 +227,7 @@ export const metrics: Array<{
     config: {
       uptime: {
         label: "Uptime",
-        color: "hsl(var(--success-8))",
+        color: "var(--success-8)",
       },
     },
     dataConfig: {

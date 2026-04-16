@@ -52,17 +52,17 @@ export function LogsChart({
         success: {
           label: "Success",
           subLabel: "2xx",
-          color: "hsl(var(--accent-4))",
+          color: "var(--accent-4)",
         },
         warning: {
           label: "Warning",
           subLabel: "4xx",
-          color: "hsl(var(--warning-9))",
+          color: "var(--warning-9)",
         },
         error: {
           label: "Error",
           subLabel: "5xx",
-          color: "hsl(var(--error-9))",
+          color: "var(--error-9)",
         },
       }}
       onMount={onMount}

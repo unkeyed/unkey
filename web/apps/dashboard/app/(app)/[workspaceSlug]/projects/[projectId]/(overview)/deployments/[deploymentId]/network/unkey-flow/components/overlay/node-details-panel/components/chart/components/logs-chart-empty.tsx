@@ -13,7 +13,7 @@ export const LogsChartEmpty = ({ config, height }: LogsChartEmptyProps) => {
   }));
 
   const dataKey = Object.keys(config)[0];
-  const color = config[dataKey]?.color || "hsl(var(--gray-6))";
+  const color = config[dataKey]?.color || "var(--gray-6)";
 
   return (
     <div className="w-full relative">

@@ -89,7 +89,7 @@ export function EmailSignIn() {
         <button
           type="button"
           onClick={() => setTurnstileChallenge(null)}
-          className="text-sm text-gray-400 hover:text-white underline cursor-pointer"
+          className="text-sm text-gray-11 hover:text-white underline cursor-pointer"
         >
           Try a different email
         </button>

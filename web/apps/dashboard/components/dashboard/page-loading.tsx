@@ -17,7 +17,7 @@ const PageLoading = ({
     <div className={`flex items-center justify-center w-full h-full min-h-[600px] ${className}`}>
       <div className="flex flex-col items-center gap-4">
         <Loading size={size} type={spinnerType} />
-        <p className="text-sm text-gray-600 dark:text-gray-400">{message}</p>
+        <p className="text-sm text-gray-11">{message}</p>
       </div>
     </div>
   );

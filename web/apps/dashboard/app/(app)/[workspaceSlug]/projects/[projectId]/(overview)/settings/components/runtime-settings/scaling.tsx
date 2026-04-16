@@ -89,8 +89,7 @@ export const Scaling = () => {
             }}
             className="flex-1 max-w-[var(--setting-w)]"
             rangeStyle={{
-              background:
-                "linear-gradient(to right, hsla(var(--featureA-4)), hsla(var(--featureA-12)))",
+              background: "linear-gradient(to right, var(--featureA-4), var(--featureA-12))",
               backgroundRepeat: "no-repeat",
             }}
           />
@@ -121,8 +120,7 @@ export const Scaling = () => {
             }}
             className="flex-1 max-w-[var(--setting-w)]"
             rangeStyle={{
-              background:
-                "linear-gradient(to right, hsla(var(--warningA-4)), hsla(var(--warningA-12)))",
+              background: "linear-gradient(to right, var(--warningA-4), var(--warningA-12))",
               backgroundRepeat: "no-repeat",
             }}
           />

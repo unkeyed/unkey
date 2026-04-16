@@ -65,11 +65,11 @@ export const RatelimitOverviewLogsCharts = ({
   // const latencyChartConfig = {
   //   avgLatency: {
   //     label: "Average Latency",
-  //     color: "hsl(var(--accent-11))",
+  //     color: "var(--accent-11)",
   //   },
   //   p99Latency: {
   //     label: "P99 Latency",
-  //     color: "hsl(var(--warning-11))",
+  //     color: "var(--warning-11)",
   //   },
   // };
   //
@@ -81,13 +81,13 @@ export const RatelimitOverviewLogsCharts = ({
   //     {
   //       key: "avgLatency",
   //       label: "AVG",
-  //       color: "hsl(var(--accent-11))",
+  //       color: "var(--accent-11)",
   //       formatter: formatLatency,
   //     },
   //     {
   //       key: "p99Latency",
   //       label: "P99",
-  //       color: "hsl(var(--warning-11))",
+  //       color: "var(--warning-11)",
   //       formatter: formatLatency,
   //     },
   //   ],
@@ -106,11 +106,11 @@ export const RatelimitOverviewLogsCharts = ({
           config={{
             success: {
               label: "Passed",
-              color: "hsl(var(--accent-4))",
+              color: "var(--accent-4)",
             },
             error: {
               label: "Blocked",
-              color: "hsl(var(--orange-9))",
+              color: "var(--orange-9)",
             },
           }}
           labels={{
