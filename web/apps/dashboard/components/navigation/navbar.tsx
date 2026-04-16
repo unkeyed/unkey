@@ -62,13 +62,7 @@ const BreadcrumbsLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
   ({ children, href, className, active, isLast, noop, ...props }, ref) => (
     <li className="flex items-center gap-3">
       {noop ? (
-        <span
-          className={cn(
-            "text-sm",
-            active ? "text-accent-12" : "text-accent-10",
-            className,
-          )}
-        >
+        <span className={cn("text-sm", active ? "text-accent-12" : "text-accent-10", className)}>
           {children}
         </span>
       ) : (

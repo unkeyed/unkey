@@ -60,6 +60,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			InstallationID: req.GetInstallationId(),
 			RepositoryID:   req.GetRepositoryId(),
 			Branch:         branch,
+			IsForkPr:       boolToInt64(req.GetIsForkPr()),
 		})
 	}, restate.WithName("list env vars"))
 	if err != nil {
@@ -128,7 +129,11 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			continue
 		}
 
-		needsApproval := !s.allowUnauthenticatedDeployments && s.requiresApproval(ctx, req, repo)
+		// Approval decision is independent of allowUnauthenticatedDeployments:
+		// the flag only controls whether we reach out to GitHub (e.g. to post
+		// the "awaiting authorization" commit status — see blockDeploymentForApproval).
+		// Fork PRs run external code and must always be gated, even in dev.
+		needsApproval := s.requiresApproval(ctx, req, repo)
 
 		status := db.DeploymentsStatusPending
 		if needsApproval {
