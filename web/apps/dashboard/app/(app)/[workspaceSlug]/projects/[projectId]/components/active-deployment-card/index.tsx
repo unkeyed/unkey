@@ -47,8 +47,7 @@ export function ActiveDeploymentCard({
   const { getDeploymentById, isDeploymentsLoading, project } = useProjectData();
   const deployment = deploymentId ? getDeploymentById(deploymentId) : undefined;
   const repoFullName = project?.repositoryFullName;
-  const branchRepo = deployment?.forkRepositoryFullName || repoFullName;
-  const commitRepo = repoFullName;
+  const sourceRepo = deployment?.forkRepositoryFullName || repoFullName;
 
   if (isDeploymentsLoading) {
     return <ActiveDeploymentCardSkeleton />;
@@ -82,8 +81,8 @@ export function ActiveDeploymentCard({
             {deployment.gitCommitMessage && (
               <GitHubLink
                 href={
-                  deployment.gitCommitSha && commitRepo
-                    ? `https://github.com/${commitRepo}/commit/${deployment.gitCommitSha}`
+                  deployment.gitCommitSha && sourceRepo
+                    ? `https://github.com/${sourceRepo}/commit/${deployment.gitCommitSha}`
                     : undefined
                 }
               >
@@ -126,8 +125,8 @@ export function ActiveDeploymentCard({
               {deployment.gitBranch && (
                 <GitHubLink
                   href={
-                    branchRepo
-                      ? `https://github.com/${branchRepo}/tree/${deployment.gitBranch}`
+                    sourceRepo
+                      ? `https://github.com/${sourceRepo}/tree/${deployment.gitBranch}`
                       : undefined
                   }
                 >
@@ -144,8 +143,8 @@ export function ActiveDeploymentCard({
                   <span className="text-gray-9 text-xs">·</span>
                   <GitHubLink
                     href={
-                      commitRepo
-                        ? `https://github.com/${commitRepo}/commit/${deployment.gitCommitSha}`
+                      sourceRepo
+                        ? `https://github.com/${sourceRepo}/commit/${deployment.gitCommitSha}`
                         : undefined
                     }
                   >

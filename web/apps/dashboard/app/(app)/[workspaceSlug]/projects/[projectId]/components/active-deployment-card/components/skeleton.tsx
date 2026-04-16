@@ -56,14 +56,14 @@ export function ActiveDeploymentCardSkeleton() {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <button className="text-xs text-grayA-9" type="button">
+            <button className="text-xs text-grayA-9" type="button" disabled aria-hidden="true">
               Requests
             </button>
             <span className="text-grayA-6">|</span>
-            <button className="text-xs text-grayA-9" type="button">
+            <button className="text-xs text-grayA-9" type="button" disabled aria-hidden="true">
               Logs
             </button>
-            <Button size="icon" variant="ghost">
+            <Button size="icon" variant="ghost" disabled aria-hidden="true" tabIndex={-1}>
               <ChevronDown
                 className={cn("text-grayA-9 size-3! transition-transform duration-200")}
               />
