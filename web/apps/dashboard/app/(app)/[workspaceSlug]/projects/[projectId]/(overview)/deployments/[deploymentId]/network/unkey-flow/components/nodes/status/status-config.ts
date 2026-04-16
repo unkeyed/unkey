@@ -28,7 +28,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
     showBanner: false,
     colors: {
       dotBg: "bg-success-9",
-      dotRing: "hsl(var(--successA-4))",
+      dotRing: "var(--successA-4)",
       dotTextColor: "text-gray-9",
       bannerBg: "bg-success-2",
       bannerBorder: "border-successA-2",
@@ -44,7 +44,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
     showBanner: true,
     colors: {
       dotBg: "bg-error-9",
-      dotRing: "hsl(var(--errorA-4))",
+      dotRing: "var(--errorA-4)",
       dotTextColor: "text-errorA-7",
       bannerBg: "bg-error-2",
       bannerBorder: "border-errorA-3",
@@ -60,7 +60,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
     showBanner: true,
     colors: {
       dotBg: "bg-info-9",
-      dotRing: "hsl(var(--infoA-4))",
+      dotRing: "var(--infoA-4)",
       dotTextColor: "text-infoA-7",
       bannerBg: "bg-info-2",
       bannerBorder: "border-infoA-2",
@@ -76,7 +76,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
     showBanner: true,
     colors: {
       dotBg: "bg-gray-9",
-      dotRing: "hsl(var(--grayA-4))",
+      dotRing: "var(--grayA-4)",
       dotTextColor: "text-grayA-7",
       bannerBg: "bg-gray-2",
       bannerBorder: "border-grayA-3",
@@ -92,7 +92,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
     showBanner: true,
     colors: {
       dotBg: "bg-gray-9",
-      dotRing: "hsl(var(--grayA-4))",
+      dotRing: "var(--grayA-4)",
       dotTextColor: "text-grayA-7",
       bannerBg: "bg-gray-2",
       bannerBorder: "border-grayA-3",
