@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // Service implements the CustomDomainService ConnectRPC API. It coordinates
@@ -29,6 +30,7 @@ type Service struct {
 	restateAdmin               *restateadmin.Client
 	cnameDomain                string
 	domainConnectPrivateKeyPEM []byte
+	bearer                     string
 }
 
 // Config holds the configuration for creating a new [Service].
@@ -44,6 +46,8 @@ type Config struct {
 	// DomainConnectPrivateKeyPEM is the PEM-encoded RSA private key for signing
 	// Domain Connect redirect URLs. If empty, Domain Connect is disabled.
 	DomainConnectPrivateKeyPEM []byte
+	// Bearer is the preshared token that callers must provide in the Authorization header.
+	Bearer string
 }
 
 // New creates a new [Service] with the given configuration.
@@ -55,6 +59,7 @@ func New(cfg Config) *Service {
 		restateAdmin:                            cfg.RestateAdmin,
 		cnameDomain:                             cfg.CnameDomain,
 		domainConnectPrivateKeyPEM:              cfg.DomainConnectPrivateKeyPEM,
+		bearer:                                  cfg.Bearer,
 	}
 }
 
@@ -74,6 +79,10 @@ func (s *Service) AddCustomDomain(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.AddCustomDomainRequest],
 ) (*connect.Response[ctrlv1.AddCustomDomainResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	domain := req.Msg.GetDomain()
 
 	// Validate domain format
@@ -186,6 +195,10 @@ func (s *Service) DeleteCustomDomain(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.DeleteCustomDomainRequest],
 ) (*connect.Response[ctrlv1.DeleteCustomDomainResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	// Find the domain scoped to workspace
 	domain, err := db.Query.FindCustomDomainByWorkspaceAndDomain(ctx, s.db.RO(), db.FindCustomDomainByWorkspaceAndDomainParams{
 		WorkspaceID: req.Msg.GetWorkspaceId(),
@@ -246,6 +259,10 @@ func (s *Service) RetryVerification(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.RetryVerificationRequest],
 ) (*connect.Response[ctrlv1.RetryVerificationResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	// Find the domain scoped to workspace
 	domain, err := db.Query.FindCustomDomainByWorkspaceAndDomain(ctx, s.db.RO(), db.FindCustomDomainByWorkspaceAndDomainParams{
 		WorkspaceID: req.Msg.GetWorkspaceId(),

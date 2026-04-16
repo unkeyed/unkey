@@ -38,4 +38,9 @@ export * from "./components/slider";
 export * from "./components/step-wizard";
 export * from "./hooks/use-mobile";
 export * from "./components/data-table";
+
+/* Styles Export */
 export * from "../css";
+
+/* Lib Export */
+export * from "./lib/utils";

@@ -1,7 +1,7 @@
 "use client";
 
 import { formatMemoryParts } from "@/lib/utils/deployment-formatters";
-import { ScanCode } from "@unkey/icons";
+import { Ram } from "@unkey/icons";
 import { type ResourceSliderConfig, ResourceSliderSetting } from "../shared/resource-slider";
 
 const MEMORY_OPTIONS = [
@@ -16,7 +16,7 @@ const MEMORY_OPTIONS = [
 ] as const;
 
 const memoryConfig: ResourceSliderConfig = {
-  icon: <ScanCode className="text-gray-12" iconSize="xl-medium" />,
+  icon: <Ram className="text-gray-12" iconSize="xl-medium" />,
   title: "Memory",
   description: "Memory allocation for each instance",
   settingDescription:

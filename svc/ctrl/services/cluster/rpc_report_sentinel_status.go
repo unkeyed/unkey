@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // ReportSentinelStatus records observed sentinel state from a krane agent and
@@ -24,7 +25,7 @@ import (
 // failed but whose old pods are still serving.
 func (s *Service) ReportSentinelStatus(ctx context.Context, req *connect.Request[ctrlv1.ReportSentinelStatusRequest]) (*connect.Response[ctrlv1.ReportSentinelStatusResponse], error) {
 
-	if err := s.authenticate(req); err != nil {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
 

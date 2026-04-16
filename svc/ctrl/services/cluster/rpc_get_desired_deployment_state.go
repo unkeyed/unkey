@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // GetDesiredDeploymentState returns the target state for a single deployment in the caller's
@@ -26,7 +27,7 @@ import (
 // ID in the specified region, or CodeInternal for database errors or unhandled states.
 func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredDeploymentStateRequest]) (*connect.Response[ctrlv1.DeploymentState], error) {
 
-	if err := s.authenticate(req); err != nil {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
 

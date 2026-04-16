@@ -13,8 +13,6 @@ type LinkProps = {
   href: string;
   /** Indicates if this breadcrumb represents the current page */
   active?: boolean;
-  /** If true, applies monospace font styling (useful for dynamic params like  -[namespaceId]- ) */
-  isIdentifier?: boolean;
   /** Indicates if this is the last item in the breadcrumb trail */
   isLast?: boolean;
   /** Additional CSS classes to apply to the link */
@@ -61,14 +59,13 @@ const NavbarUser = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
 NavbarUser.displayName = "GlobalNavbar.User";
 
 const BreadcrumbsLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
-  ({ children, href, className, active, isIdentifier: dynamic, isLast, noop, ...props }, ref) => (
+  ({ children, href, className, active, isLast, noop, ...props }, ref) => (
     <li className="flex items-center gap-3">
       {noop ? (
         <span
           className={cn(
             "text-sm",
             active ? "text-accent-12" : "text-accent-10",
-            dynamic && "font-mono",
             className,
           )}
         >
@@ -81,7 +78,6 @@ const BreadcrumbsLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
           className={cn(
             "text-sm transition-colors",
             active ? "text-accent-12" : "text-accent-10 hover:text-accent-11",
-            dynamic && "font-mono",
             className,
           )}
           {...(active || isLast ? { "aria-current": "page" } : {})}

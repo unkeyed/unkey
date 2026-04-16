@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/validation"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -49,6 +50,10 @@ func (s *Service) CreateDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CreateDeploymentRequest],
 ) (*connect.Response[ctrlv1.CreateDeploymentResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	if req.Msg.GetProjectId() == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("project_id is required"))
