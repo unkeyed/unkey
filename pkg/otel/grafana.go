@@ -42,10 +42,6 @@ type Config struct {
 	// This appears in Grafana dashboards and alerts.
 	Application string
 
-	// Version is the current version of your application, allowing you to correlate
-	// behavior changes with specific releases.
-	Version string
-
 	// TraceSampleRate controls what percentage of traces are sampled.
 	// Values range from 0.0 to 1.0, where:
 	// - 1.0 means all traces are sampled (100%)
@@ -80,7 +76,6 @@ type Config struct {
 //	shutdown, err := otel.InitGrafana(ctx, otel.Config{
 //	    GrafanaEndpoint: "https://otlp-sentinel-prod-us-east-0.grafana.net/otlp",
 //	    Application:     "unkey-api",
-//	    Version:         buildinfo.Version,
 //	})
 //
 //	if err != nil {
@@ -95,7 +90,7 @@ func InitGrafana(ctx context.Context, config Config) (func(ctx context.Context) 
 		resource.WithAttributes(
 			semconv.ServiceNamespace("unkey"),
 			semconv.ServiceName(config.Application),
-			semconv.ServiceVersion(config.Version),
+			semconv.ServiceVersion(buildinfo.Version),
 			semconv.ServiceInstanceID(config.InstanceID),
 			semconv.CloudRegion(config.CloudRegion),
 		),

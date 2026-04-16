@@ -39,7 +39,6 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:        "vault",
-			Version:            buildinfo.Version,
 			InstanceID:         cfg.InstanceID,
 			CloudRegion:        cfg.Region,
 			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
