@@ -42,6 +42,7 @@ import { listCustomDomains } from "./deploy/custom-domains/list";
 import { retryVerification } from "./deploy/custom-domains/retry";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
+import { cancelDeployment } from "./deploy/deployment/cancel";
 import { createDeploy } from "./deploy/deployment/create-deploy";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getById as getDeploymentById } from "./deploy/deployment/getById";
@@ -492,6 +493,7 @@ export const router = t.router({
       redeploy,
       create: createDeploy,
       authorize: authorizeDeployment,
+      cancel: cancelDeployment,
     }),
     sentinelLogs: t.router({
       query: querySentinelLogs,
