@@ -5,8 +5,8 @@ Local development tools for setting up and testing GitHub App-triggered deployme
 ## Commands
 
 - `go run . dev github setup`: create a GitHub App via manifest flow and write all credentials automatically
-- `go run . dev github tunnel`: start an ngrok tunnel and update the GitHub App webhook URL automatically
 - `go run . dev github trigger-webhook`: simulate a GitHub push webhook to trigger a deployment
+- `go run . dev github tunnel`: start an ngrok tunnel and update the GitHub App webhook URL. Usually not needed; Tilt runs this for you.
 
 ---
 
@@ -31,22 +31,23 @@ This opens a browser, walks you through GitHub's App creation UI, then writes:
 make dev
 ```
 
+Tilt spins up a `github-tunnel` resource that runs ngrok against ctrl-api and patches the GitHub App's webhook URL to point at the public ngrok address. No manual tunnel step needed.
+
 ### Step 3: Seed the database
 
 ```bash
 go run . dev seed local
 ```
 
-This outputs a project ID you'll need in the next step.
-
 ### Step 4: Trigger a deployment
 
 ```bash
 go run . dev github trigger-webhook \
-  --project-id proj_abc123 \
-  --repository owner/repo \
-  --commit-sha <full-40-char-sha>
+  --project local-api \
+  --repository owner/repo
 ```
+
+Omitting `--commit-sha` deploys the HEAD of the repo's default branch (resolved via the GitHub API). Pass `--commit-sha <40-char-sha>` and `--branch <name>` to pin a specific commit.
 
 ---
 
@@ -57,11 +58,13 @@ go run . dev github trigger-webhook \
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--app-name` | GitHub App name (must be globally unique) | `unkey-dev` |
-| `--webhook-url` | Webhook URL (update in GitHub App settings once you have a tunnel) | `https://example.com/webhooks/github` |
+| `--webhook-url` | Initial webhook URL; Tilt's `github-tunnel` overwrites this on boot | `https://example.com/webhooks/github` |
 | `--port` | Local callback server port | `9999` |
 | `--out-dir` | Where to write `dev/` credentials | `dev` |
 
 ### `tunnel`
+
+Tilt's `github-tunnel` resource invokes this automatically when `dev/.env.github` and `dev/.github-private-key.pem` are present. The command is kept for manual use (debugging, running outside Tilt).
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -69,18 +72,18 @@ go run . dev github trigger-webhook \
 | `--env-file` | Path to `.env.github` | `dev/.env.github` |
 | `--pem-file` | Path to `.github-private-key.pem` | `dev/.github-private-key.pem` |
 
-Requires `ngrok` to be installed and authenticated (`ngrok config add-authtoken <token>`).
+Requires `ngrok` to be installed.
 
 ### `trigger-webhook`
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--project-id` | Unkey project ID | **required** |
+| `--project` | Unkey project slug (e.g. `local-api`) | **required** |
 | `--repository` | Full repository name (`owner/repo`) | **required** |
-| `--commit-sha` | Full 40-char commit SHA | **required** |
-| `--branch` | Branch name | `main` |
+| `--commit-sha` | Full 40-char commit SHA; empty means HEAD of default branch | unset |
+| `--branch` | Branch name; ignored when `--commit-sha` is empty | `main` |
 | `--webhook-url` | Webhook endpoint | `http://localhost:7091/webhooks/github` |
-| `--webhook-secret` | HMAC signing secret | `supersecret` |
+| `--webhook-secret` | HMAC signing secret; read from `dev/.env.github` if empty | unset |
 | `--database-url` | MySQL DSN | local default |
 
 ---
