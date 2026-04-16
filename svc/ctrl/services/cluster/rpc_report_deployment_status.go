@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // ReportDeploymentStatus reconciles the observed deployment state reported by a krane agent.
@@ -31,7 +32,7 @@ import (
 func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Request[ctrlv1.ReportDeploymentStatusRequest]) (*connect.Response[ctrlv1.ReportDeploymentStatusResponse], error) {
 	logger.Info("reporting deployment status", "req", req.Msg)
 
-	if err := s.authenticate(req); err != nil {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
 	regionName := req.Header().Get("X-Krane-Region")
