@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -28,16 +29,22 @@ const (
 	maxCommitAuthorAvatarLength = 512
 )
 
+// commitFields holds git commit metadata used on a deployment row. Empty
+// fields mean "unknown" and are eligible to be filled from GitHub.
+type commitFields struct {
+	SHA             string
+	Branch          string
+	Message         string
+	AuthorHandle    string
+	AuthorAvatarURL string
+	Timestamp       int64
+}
+
 // dockerSourceInfo holds the Docker image and inherited git metadata from a
 // current deployment, used when redeploying a non-git project.
 type dockerSourceInfo struct {
-	commitSHA       string
-	branch          string
-	commitMessage   string
-	authorHandle    string
-	authorAvatarURL string
-	commitTimestamp int64
-	dockerImage     string
+	commitFields
+	dockerImage string
 }
 
 // CreateDeployment creates a new deployment record and initiates an async Restate
@@ -146,8 +153,6 @@ func (s *Service) CreateDeployment(
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()
 
-	var gitCommitSha, gitBranch, gitCommitMessage, gitCommitAuthorHandle, gitCommitAuthorAvatarURL string
-	var gitCommitTimestamp int64
 	var deployReq *hydrav1.DeployRequest
 
 	// Resolve request-level overrides once so all branches can use them.
@@ -158,18 +163,44 @@ func (s *Service) CreateDeployment(
 	}
 	command := req.Msg.GetCommand()
 
-	if dockerImage := req.Msg.GetDockerImage(); dockerImage != "" {
-		// Explicit docker image (CLI, REST API)
-		gitBranch = branchFromGitCommit(req.Msg.GetGitCommit(), appWithSettings.App.DefaultBranch)
+	// Populate git fields from caller-provided info. Empty branch falls back
+	// to the app's default branch so git-connected redeploys without a branch
+	// still have something to resolve HEAD against.
+	var commit commitFields
+	commit.Branch = branchFromGitCommit(req.Msg.GetGitCommit(), appWithSettings.App.DefaultBranch)
+	if gc := req.Msg.GetGitCommit(); gc != nil {
+		commit.SHA = gc.GetCommitSha()
+		commit.Message = trimLength(gc.GetCommitMessage(), maxCommitMessageLength)
+		commit.AuthorHandle = trimLength(strings.TrimSpace(gc.GetAuthorHandle()), maxCommitAuthorHandleLength)
+		commit.AuthorAvatarURL = trimLength(strings.TrimSpace(gc.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
+		commit.Timestamp = gc.GetTimestamp()
+	}
 
-		if gitCommit := req.Msg.GetGitCommit(); gitCommit != nil {
-			gitCommitSha = gitCommit.GetCommitSha()
-			gitCommitMessage = trimLength(gitCommit.GetCommitMessage(), maxCommitMessageLength)
-			gitCommitAuthorHandle = trimLength(strings.TrimSpace(gitCommit.GetAuthorHandle()), maxCommitAuthorHandleLength)
-			gitCommitAuthorAvatarURL = trimLength(strings.TrimSpace(gitCommit.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
-			gitCommitTimestamp = gitCommit.GetTimestamp()
+	// Look up the GitHub repo connection once. Used both to decide source type
+	// (git vs docker) and to resolve missing commit metadata synchronously.
+	repoConn, repoErr := db.Query.FindGithubRepoConnectionByAppId(ctx, s.db.RO(), app.ID)
+	hasRepoConnection := repoErr == nil
+	if repoErr != nil && !db.IsNotFound(repoErr) {
+		return nil, connect.NewError(connect.CodeInternal,
+			fmt.Errorf("failed to lookup github repo connection: %w", repoErr))
+	}
+
+	// Fill missing commit metadata synchronously so the deployment row has
+	// complete info at insert time. buildImage no longer fetches these.
+	if hasRepoConnection {
+		if err := commit.fillFromGitHub(
+			s.github, repoConn.InstallationID, repoConn.RepositoryFullName,
+			s.allowUnauthenticatedDeployments,
+		); err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition,
+				fmt.Errorf("failed to resolve git commit metadata: %w", err))
 		}
+	}
 
+	switch {
+	case req.Msg.GetDockerImage() != "":
+		// Explicit docker image (CLI, REST API): skip rebuild, redeploy as-is.
+		dockerImage := req.Msg.GetDockerImage()
 		logger.Info("deployment will use prebuilt image",
 			"deployment_id", deploymentID,
 			"app_id", app.ID,
@@ -185,65 +216,43 @@ func (s *Service) CreateDeployment(
 				},
 			},
 		}
-	} else {
-		// Source omitted (dashboard redeploy w/o commit SHA): auto-detect from app config
-		repoConn, repoErr := db.Query.FindGithubRepoConnectionByAppId(ctx, s.db.RO(), app.ID)
-		hasRepoConnection := repoErr == nil
-		if repoErr != nil && !db.IsNotFound(repoErr) {
-			return nil, connect.NewError(connect.CodeInternal,
-				fmt.Errorf("failed to lookup github repo connection: %w", repoErr))
+
+	case hasRepoConnection:
+		// Git-connected app: build from git. SHA is guaranteed non-empty by
+		// the fill step above.
+		deployReq = &hydrav1.DeployRequest{
+			DeploymentId: deploymentID,
+			KeyAuthId:    keyAuthID,
+			Command:      command,
+			Source: &hydrav1.DeployRequest_Git{
+				Git: &hydrav1.GitSource{
+					InstallationId: repoConn.InstallationID,
+					Repository:     repoConn.RepositoryFullName,
+					CommitSha:      commit.SHA,
+					ContextPath:    appBuildSettings.DockerContext,
+					DockerfilePath: appBuildSettings.Dockerfile,
+					Branch:         commit.Branch,
+				},
+			},
 		}
 
-		if hasRepoConnection {
-			// Has github_repo_connections row: build from git source.
-			gitBranch = branchFromGitCommit(req.Msg.GetGitCommit(), appWithSettings.App.DefaultBranch)
+	default:
+		// No docker image, no repo connection: reuse current deployment's image.
+		dockerInfo, dockerErr := buildDockerSource(ctx, s.db, app, deploymentID)
+		if dockerErr != nil {
+			return nil, dockerErr
+		}
+		commit = dockerInfo.commitFields
 
-			if gitCommit := req.Msg.GetGitCommit(); gitCommit != nil {
-				gitCommitSha = gitCommit.GetCommitSha()
-				gitCommitMessage = trimLength(gitCommit.GetCommitMessage(), maxCommitMessageLength)
-				gitCommitAuthorHandle = trimLength(strings.TrimSpace(gitCommit.GetAuthorHandle()), maxCommitAuthorHandleLength)
-				gitCommitAuthorAvatarURL = trimLength(strings.TrimSpace(gitCommit.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
-				gitCommitTimestamp = gitCommit.GetTimestamp()
-			}
-
-			deployReq = &hydrav1.DeployRequest{
-				DeploymentId: deploymentID,
-				KeyAuthId:    keyAuthID,
-				Command:      command,
-				Source: &hydrav1.DeployRequest_Git{
-					Git: &hydrav1.GitSource{
-						InstallationId: repoConn.InstallationID,
-						Repository:     repoConn.RepositoryFullName,
-						CommitSha:      gitCommitSha,
-						ContextPath:    appBuildSettings.DockerContext,
-						DockerfilePath: appBuildSettings.Dockerfile,
-						Branch:         gitBranch,
-					},
+		deployReq = &hydrav1.DeployRequest{
+			DeploymentId: deploymentID,
+			KeyAuthId:    keyAuthID,
+			Command:      command,
+			Source: &hydrav1.DeployRequest_DockerImage{
+				DockerImage: &hydrav1.DockerImage{
+					Image: dockerInfo.dockerImage,
 				},
-			}
-		} else {
-			// No repo connection: redeploy the current deployment's Docker image
-			dockerInfo, dockerErr := buildDockerSource(ctx, s.db, app, deploymentID)
-			if dockerErr != nil {
-				return nil, dockerErr
-			}
-			gitCommitSha = dockerInfo.commitSHA
-			gitBranch = dockerInfo.branch
-			gitCommitMessage = dockerInfo.commitMessage
-			gitCommitAuthorHandle = dockerInfo.authorHandle
-			gitCommitAuthorAvatarURL = dockerInfo.authorAvatarURL
-			gitCommitTimestamp = dockerInfo.commitTimestamp
-
-			deployReq = &hydrav1.DeployRequest{
-				DeploymentId: deploymentID,
-				KeyAuthId:    keyAuthID,
-				Command:      command,
-				Source: &hydrav1.DeployRequest_DockerImage{
-					DockerImage: &hydrav1.DockerImage{
-						Image: dockerInfo.dockerImage,
-					},
-				},
-			}
+			},
 		}
 	}
 
@@ -261,12 +270,12 @@ func (s *Service) CreateDeployment(
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
-		GitCommitSha:                  sql.NullString{String: gitCommitSha, Valid: gitCommitSha != ""},
-		GitBranch:                     sql.NullString{String: gitBranch, Valid: gitBranch != ""},
-		GitCommitMessage:              sql.NullString{String: gitCommitMessage, Valid: gitCommitMessage != ""},
-		GitCommitAuthorHandle:         sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
-		GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
-		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
+		GitCommitSha:                  sql.NullString{String: commit.SHA, Valid: commit.SHA != ""},
+		GitBranch:                     sql.NullString{String: commit.Branch, Valid: commit.Branch != ""},
+		GitCommitMessage:              sql.NullString{String: commit.Message, Valid: commit.Message != ""},
+		GitCommitAuthorHandle:         sql.NullString{String: commit.AuthorHandle, Valid: commit.AuthorHandle != ""},
+		GitCommitAuthorAvatarUrl:      sql.NullString{String: commit.AuthorAvatarURL, Valid: commit.AuthorAvatarURL != ""},
+		GitCommitTimestamp:            sql.NullInt64{Int64: commit.Timestamp, Valid: commit.Timestamp != 0},
 		CpuMillicores:                 appRuntimeSettings.CpuMillicores,
 		MemoryMib:                     appRuntimeSettings.MemoryMib,
 		StorageMib:                    appRuntimeSettings.StorageMib,
@@ -335,7 +344,7 @@ func (s *Service) CreateDeployment(
 		ID:            deploymentID,
 		AppID:         app.ID,
 		EnvironmentID: env.Environment.ID,
-		GitBranch:     gitBranch,
+		GitBranch:     commit.Branch,
 		CreatedAt:     now,
 	}); cancelErr != nil {
 		logger.Error("failed to cancel superseded siblings",
@@ -397,13 +406,15 @@ func buildDockerSource(
 		"image", currentDeployment.Image.String)
 
 	return dockerSourceInfo{
-		dockerImage:     currentDeployment.Image.String,
-		commitSHA:       currentDeployment.GitCommitSha.String,
-		branch:          currentDeployment.GitBranch.String,
-		commitMessage:   currentDeployment.GitCommitMessage.String,
-		authorHandle:    currentDeployment.GitCommitAuthorHandle.String,
-		authorAvatarURL: currentDeployment.GitCommitAuthorAvatarUrl.String,
-		commitTimestamp: currentDeployment.GitCommitTimestamp.Int64,
+		dockerImage: currentDeployment.Image.String,
+		commitFields: commitFields{
+			SHA:             currentDeployment.GitCommitSha.String,
+			Branch:          currentDeployment.GitBranch.String,
+			Message:         currentDeployment.GitCommitMessage.String,
+			AuthorHandle:    currentDeployment.GitCommitAuthorHandle.String,
+			AuthorAvatarURL: currentDeployment.GitCommitAuthorAvatarUrl.String,
+			Timestamp:       currentDeployment.GitCommitTimestamp.Int64,
+		},
 	}, nil
 }
 
@@ -414,4 +425,59 @@ func trimLength(s string, characters int) string {
 		return s[:characters]
 	}
 	return s
+}
+
+// fillFromGitHub fills any empty fields by fetching commit metadata from
+// GitHub. No-op when there's nothing worth fetching. The public (unauth)
+// path has no lookup-by-SHA, so that branch is skipped when we can't
+// authenticate (matches the previous behavior in deploy_handler.buildImage).
+func (cf *commitFields) fillFromGitHub(
+	gh githubclient.GitHubClient,
+	installationID int64,
+	repo string,
+	allowUnauth bool,
+) error {
+	// Use the authenticated GitHub path whenever a real installation is
+	// available; only fall back to the public API when unauth is explicitly
+	// enabled and we have no installation to auth with.
+	hasAuth := !allowUnauth || installationID != 0
+
+	var info githubclient.CommitInfo
+	var err error
+
+	switch {
+	case cf.SHA == "":
+		if cf.Branch == "" {
+			return nil
+		}
+		if hasAuth {
+			info, err = gh.GetBranchHeadCommit(installationID, repo, cf.Branch)
+		} else {
+			info, err = gh.GetBranchHeadCommitPublic(repo, cf.Branch)
+		}
+	case cf.Message == "" && hasAuth:
+		info, err = gh.GetCommitBySHA(installationID, repo, cf.SHA)
+	default:
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	if cf.SHA == "" {
+		cf.SHA = info.SHA
+	}
+	if cf.Message == "" {
+		cf.Message = trimLength(info.Message, maxCommitMessageLength)
+	}
+	if cf.AuthorHandle == "" {
+		cf.AuthorHandle = trimLength(strings.TrimSpace(info.AuthorHandle), maxCommitAuthorHandleLength)
+	}
+	if cf.AuthorAvatarURL == "" {
+		cf.AuthorAvatarURL = trimLength(strings.TrimSpace(info.AuthorAvatarURL), maxCommitAuthorAvatarLength)
+	}
+	if cf.Timestamp == 0 && !info.Timestamp.IsZero() {
+		cf.Timestamp = info.Timestamp.UnixMilli()
+	}
+	return nil
 }

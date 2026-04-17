@@ -36,6 +36,11 @@ type GitHubConfig struct {
 	// PrivateKeyPEM is the GitHub App private key in PEM format.
 	// Required for deployment authorization (fetching branch HEAD).
 	PrivateKeyPEM string `toml:"private_key_pem"`
+
+	// AllowUnauthenticatedDeployments controls whether deployments can skip
+	// GitHub authentication. Set to true only for local development.
+	// Production should keep this false to require GitHub App authentication.
+	AllowUnauthenticatedDeployments bool `toml:"allow_unauthenticated_deployments"`
 }
 
 // DomainConnectConfig holds Domain Connect protocol configuration for

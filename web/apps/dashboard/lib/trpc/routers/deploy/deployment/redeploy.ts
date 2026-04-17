@@ -45,16 +45,19 @@ export const redeploy = workspaceProcedure
         });
       }
 
+      // Git-sourced deployments trigger a fresh build from the same commit.
+      // Non-git deployments reuse this specific deployment's docker image.
+      const isGitSourced = deployment.gitCommitSha !== null || (deployment.gitBranch ?? "") !== "";
+
       const result = await ctrl
         .createDeployment({
           projectId: deployment.project.id,
           appId: deployment.appId,
           environmentSlug: deployment.environment?.slug ?? "",
-          dockerImage: deployment.image ?? "",
-          ...(deployment.gitCommitSha
+          ...(isGitSourced
             ? {
                 gitCommit: {
-                  commitSha: deployment.gitCommitSha,
+                  commitSha: deployment.gitCommitSha ?? "",
                   branch: deployment.gitBranch ?? "",
                   commitMessage: deployment.gitCommitMessage ?? "",
                   authorHandle: deployment.gitCommitAuthorHandle ?? "",
@@ -62,7 +65,7 @@ export const redeploy = workspaceProcedure
                   timestamp: BigInt(deployment.gitCommitTimestamp ?? 0),
                 },
               }
-            : {}),
+            : { dockerImage: deployment.image ?? "" }),
         })
         .catch((err) => {
           console.error(err);
