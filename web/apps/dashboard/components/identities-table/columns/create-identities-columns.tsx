@@ -1,8 +1,8 @@
 "use client";
 
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
-import type { DataTableColumnDef, TimestampCellProps } from "@unkey/ui";
-import { TimestampCell } from "@unkey/ui";
+import type { DataTableColumnDef } from "@unkey/ui";
+import { SortableHeader, TimestampCell } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import type { z } from "zod";
 import { IdentityExternalIdCell } from "../components/cells/identity-external-id-cell";
@@ -12,9 +12,9 @@ type Identity = z.infer<typeof IdentityResponseSchema>;
 
 const IdentityTableActionPopover = dynamic(
   () =>
-    import(
-      "@/app/(app)/[workspaceSlug]/identities/_components/table/identity-table-actions"
-    ).then((mod) => mod.IdentityTableActions),
+    import("@/app/(app)/[workspaceSlug]/identities/_components/table/identity-table-actions").then(
+      (mod) => mod.IdentityTableActions,
+    ),
   { ssr: false },
 );
 
@@ -37,8 +37,8 @@ export const createIdentitiesColumns = ({
   {
     id: IDENTITY_COLUMN_IDS.EXTERNAL_ID,
     accessorKey: "externalId",
-    header: "External ID",
-    enableSorting: false,
+    header: ({ header }) => <SortableHeader header={header}>External ID</SortableHeader>,
+    enableSorting: true,
     meta: {
       width: "20%",
       headerClassName: "pl-[18px]",
@@ -76,8 +76,9 @@ export const createIdentitiesColumns = ({
   {
     id: IDENTITY_COLUMN_IDS.CREATED,
     accessorKey: "createdAt",
-    header: "Created",
-    enableSorting: false,
+    sortDescFirst: true,
+    header: ({ header }) => <SortableHeader header={header}>Created</SortableHeader>,
+    enableSorting: true,
     meta: {
       width: "15%",
     },

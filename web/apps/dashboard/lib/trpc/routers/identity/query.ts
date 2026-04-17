@@ -1,14 +1,9 @@
+import { identitiesQueryPayload } from "@/components/identities-table/schema/identities.schema";
 import { and, count, db, eq, like, or, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 import { escapeLike } from "../utils/sql";
-
-const identitiesQueryPayload = z.object({
-  page: z.number().int().min(1).optional().default(1),
-  limit: z.number().int().min(1).max(100).optional().default(50),
-  search: z.string().optional(),
-});
 
 export const IdentityResponseSchema = z.object({
   id: z.string(),
@@ -44,7 +39,7 @@ export const queryIdentities = workspaceProcedure
   .output(IdentitiesResponse)
   .query(async ({ ctx, input }) => {
     try {
-      const { limit = 50, page = 1, search } = input;
+      const { limit = 50, page = 1, search, sortBy = "createdAt", sortOrder = "desc" } = input;
       const workspaceId = ctx.workspace.id;
       const offset = (page - 1) * limit;
 
@@ -115,7 +110,17 @@ export const queryIdentities = workspaceProcedure
         },
         limit,
         offset,
-        orderBy: (identities, { desc }) => desc(identities.createdAt),
+        orderBy: (identities, { asc, desc }) => {
+          const direction = sortOrder === "asc" ? asc : desc;
+          switch (sortBy) {
+            case "externalId": {
+              return direction(identities.externalId);
+            }
+            default: {
+              return direction(identities.createdAt);
+            }
+          }
+        },
       });
 
       const transformedIdentities = identitiesQuery.map((identity) => ({

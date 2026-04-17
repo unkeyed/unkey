@@ -8,11 +8,11 @@ import {
 } from "@/components/identities-table";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
-import { parseAsString, useQueryState } from "nuqs";
 import { BookBookmark } from "@unkey/icons";
 import { Button, DataTable, Empty, PaginationFooter } from "@unkey/ui";
-import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { parseAsString, useQueryState } from "nuqs";
+import { useCallback, useMemo, useState } from "react";
 import type { z } from "zod";
 
 type Identity = z.infer<typeof IdentityResponseSchema>;
@@ -46,6 +46,8 @@ export const IdentitiesList = () => {
     totalPages,
     totalCount,
     onPageChange,
+    sorting,
+    onSortingChange,
   } = useIdentitiesQuery();
 
   const handleRowClick = useCallback(
@@ -79,6 +81,10 @@ export const IdentitiesList = () => {
         columns={columns}
         getRowId={(identity) => identity.id}
         isLoading={isLoading}
+        enableSorting={true}
+        manualSorting={true}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
         onRowClick={handleRowClick}
         selectedItem={selectedIdentity}
         rowClassName={getRowClassNameMemoized}
