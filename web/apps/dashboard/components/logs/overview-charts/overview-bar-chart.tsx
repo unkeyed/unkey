@@ -236,25 +236,18 @@ export function OverviewBarChart({
     return <OverviewChartLoader labels={labels} />;
   }
 
+  const toNumber = (value: unknown) =>
+    typeof value === "number" && Number.isFinite(value) ? value : 0;
+
   // Calculate totals based on the provided keys
-  const totalCount = data.reduce(
-    (acc, crr) => acc + (crr[labels.primaryKey] as number) + (crr[labels.secondaryKey] as number),
-    0,
-  );
+  const primaryCount = data.reduce((acc, crr) => acc + toNumber(crr[labels.primaryKey]), 0);
+  const secondaryCount = data.reduce((acc, crr) => acc + toNumber(crr[labels.secondaryKey]), 0);
+  const totalCount = primaryCount + secondaryCount;
 
   // Show empty state only after data has loaded and is genuinely empty
   if (totalCount === 0) {
     return <OverviewChartEmpty labels={labels} />;
   }
-
-  const primaryCount = (data ?? []).reduce(
-    (acc, crr) => acc + (crr[labels.primaryKey] as number),
-    0,
-  );
-  const secondaryCount = (data ?? []).reduce(
-    (acc, crr) => acc + (crr[labels.secondaryKey] as number),
-    0,
-  );
 
   return (
     <div className="flex flex-col h-full" ref={chartRef}>
