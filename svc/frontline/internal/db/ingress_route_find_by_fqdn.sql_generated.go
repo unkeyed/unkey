@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findFrontlineRouteByFQDN = `-- name: FindFrontlineRouteByFQDN :one
@@ -18,8 +19,8 @@ WHERE fully_qualified_domain_name = ?
 `
 
 type FindFrontlineRouteByFQDNRow struct {
-	EnvironmentID string `db:"environment_id"`
-	DeploymentID  string `db:"deployment_id"`
+	EnvironmentID sql.NullString `db:"environment_id"`
+	DeploymentID  sql.NullString `db:"deployment_id"`
 }
 
 // FindFrontlineRouteByFQDN resolves a hostname to the environment and
