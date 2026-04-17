@@ -1,5 +1,5 @@
 import { identitiesQueryPayload } from "@/components/identities-table/schema/identities.schema";
-import { and, count, db, eq, like, or, schema } from "@/lib/db";
+import { and, asc, count, db, desc, eq, like, or, schema, sql } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
@@ -68,6 +68,50 @@ export const queryIdentities = workspaceProcedure
 
       const total = countResult.count;
 
+      const isCountSort = sortBy === "keyCount" || sortBy === "ratelimitCount";
+
+      // For count-based sorts, first get the sorted page of identity IDs via SQL builder
+      // with LEFT JOIN + GROUP BY + COUNT, then fetch full relational data for those IDs.
+      // For direct column sorts, use the relational query directly.
+      let sortedIds: string[] | null = null;
+
+      if (isCountSort) {
+        const countQuery = db.select({ id: schema.identities.id }).from(schema.identities);
+
+        if (sortBy === "keyCount") {
+          countQuery.leftJoin(schema.keys, eq(schema.keys.identityId, schema.identities.id));
+        } else {
+          countQuery.leftJoin(
+            schema.ratelimits,
+            eq(schema.ratelimits.identityId, schema.identities.id),
+          );
+        }
+
+        const countResults = await countQuery
+          .where(and(...baseConditions))
+          .groupBy(schema.identities.id)
+          .orderBy(
+            sortOrder === "asc" ? asc(sql`count(*)`) : desc(sql`count(*)`),
+            desc(schema.identities.createdAt),
+          )
+          .limit(limit)
+          .offset(offset);
+
+        sortedIds = countResults.map((r) => r.id);
+
+        // No matching identities for this page — return early
+        if (sortedIds.length === 0) {
+          const totalPages = Math.max(1, Math.ceil(total / limit));
+          return {
+            identities: [],
+            total,
+            page,
+            pageSize: limit,
+            totalPages,
+          };
+        }
+      }
+
       // Helper function to build filter conditions for query API
       // biome-ignore lint/suspicious/noExplicitAny: Drizzle query builder types are complex and vary between schema and query contexts
       const buildFilterConditions = (identity: any, helpers: any) => {
@@ -85,6 +129,11 @@ export const queryIdentities = workspaceProcedure
           if (searchCondition) {
             conditions.push(searchCondition);
           }
+        }
+
+        // When sorting by count, filter to only the pre-sorted IDs
+        if (sortedIds !== null && sortedIds.length > 0) {
+          conditions.push(helpers.inArray(identity.id, sortedIds));
         }
 
         return helpers.and(...conditions);
@@ -108,13 +157,24 @@ export const queryIdentities = workspaceProcedure
             },
           },
         },
-        limit,
-        offset,
-        orderBy: (identities, { asc, desc }) => {
-          const direction = sortOrder === "asc" ? asc : desc;
+        // When sorting by count, pagination is handled by the count query above
+        ...(isCountSort
+          ? {}
+          : {
+              limit,
+              offset,
+            }),
+        orderBy: (identities, { asc: a, desc: d }) => {
+          const direction = sortOrder === "asc" ? a : d;
           switch (sortBy) {
             case "externalId": {
               return direction(identities.externalId);
+            }
+            case "keyCount":
+            case "ratelimitCount": {
+              // Relational query doesn't support count ordering;
+              // results are re-sorted in JS after fetch
+              return d(identities.createdAt);
             }
             default: {
               return direction(identities.createdAt);
@@ -123,7 +183,7 @@ export const queryIdentities = workspaceProcedure
         },
       });
 
-      const transformedIdentities = identitiesQuery.map((identity) => ({
+      let transformedIdentities = identitiesQuery.map((identity) => ({
         id: identity.id,
         externalId: identity.externalId,
         workspaceId: identity.workspaceId,
@@ -134,6 +194,14 @@ export const queryIdentities = workspaceProcedure
         keys: identity.keys,
         ratelimits: identity.ratelimits,
       }));
+
+      // Re-sort by count in JS to match the order from the count query
+      if (sortedIds !== null && sortedIds.length > 0) {
+        const idOrder = new Map(sortedIds.map((id, index) => [id, index]));
+        transformedIdentities = transformedIdentities.sort(
+          (a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0),
+        );
+      }
 
       const totalPages = Math.max(1, Math.ceil(total / limit));
 

@@ -49,8 +49,9 @@ export const createIdentitiesColumns = ({
   },
   {
     id: IDENTITY_COLUMN_IDS.KEYS,
-    header: "Keys",
-    enableSorting: false,
+    accessorFn: (row) => row.keys.length,
+    header: ({ header }) => <SortableHeader header={header}>Keys</SortableHeader>,
+    enableSorting: true,
     meta: {
       width: "10%",
     },
@@ -62,8 +63,9 @@ export const createIdentitiesColumns = ({
   },
   {
     id: IDENTITY_COLUMN_IDS.RATELIMITS,
-    header: "Ratelimits",
-    enableSorting: false,
+    accessorFn: (row) => row.ratelimits.length,
+    header: ({ header }) => <SortableHeader header={header}>Ratelimits</SortableHeader>,
+    enableSorting: true,
     meta: {
       width: "10%",
     },

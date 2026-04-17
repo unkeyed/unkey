@@ -31,9 +31,6 @@ export const IdentityLastUsedCell = ({ identityId, isSelected }: IdentityLastUse
   }
 
   return (
-    <LastUpdatedCell
-      isSelected={isSelected}
-      lastUpdated={data?.lastVerificationTime ?? null}
-    />
+    <LastUpdatedCell isSelected={isSelected} lastUpdated={data?.lastVerificationTime ?? null} />
   );
 };

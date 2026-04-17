@@ -14,7 +14,10 @@ type IdentityExternalIdCellProps = {
   workspaceSlug: string;
 };
 
-export const IdentityExternalIdCell = ({ identity, workspaceSlug }: IdentityExternalIdCellProps) => {
+export const IdentityExternalIdCell = ({
+  identity,
+  workspaceSlug,
+}: IdentityExternalIdCellProps) => {
   const truncatedExternalId =
     identity.externalId.length > 50
       ? `${identity.externalId.slice(0, 50)}...`

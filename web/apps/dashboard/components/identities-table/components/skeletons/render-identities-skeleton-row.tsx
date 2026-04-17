@@ -1,12 +1,12 @@
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { cn } from "@/lib/utils";
+import { Fingerprint } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   ActionColumnSkeleton,
   CreatedAtColumnSkeleton,
   LastUpdatedColumnSkeleton,
 } from "@unkey/ui";
-import { Fingerprint } from "@unkey/icons";
 import type { z } from "zod";
 import { IDENTITY_COLUMN_IDS } from "../../columns/create-identities-columns";
 
@@ -37,9 +37,7 @@ type RenderIdentitiesSkeletonRowProps = {
   rowHeight: number;
 };
 
-export const renderIdentitiesSkeletonRow = ({
-  columns,
-}: RenderIdentitiesSkeletonRowProps) =>
+export const renderIdentitiesSkeletonRow = ({ columns }: RenderIdentitiesSkeletonRowProps) =>
   columns.map((column) => (
     <td
       key={column.id}

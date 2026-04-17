@@ -13,10 +13,14 @@ const MAX_PAGE_SIZE = 100;
 const COLUMN_ID_TO_SORT_FIELD: Record<string, IdentitiesSortField> = {
   externalId: "externalId",
   created: "createdAt",
+  keys: "keyCount",
+  ratelimits: "ratelimitCount",
 };
 const SORT_FIELD_TO_COLUMN_ID: Record<IdentitiesSortField, string> = {
   externalId: "externalId",
   createdAt: "created",
+  keyCount: "keys",
+  ratelimitCount: "ratelimits",
 };
 
 export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {

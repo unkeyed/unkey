@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-export const identitiesSortFields = ["externalId", "createdAt"] as const;
+export const identitiesSortFields = [
+  "externalId",
+  "createdAt",
+  "keyCount",
+  "ratelimitCount",
+] as const;
 export type IdentitiesSortField = (typeof identitiesSortFields)[number];
 
 export const identitiesQueryPayload = z.object({
