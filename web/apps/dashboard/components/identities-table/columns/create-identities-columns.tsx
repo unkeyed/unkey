@@ -12,7 +12,7 @@ type Identity = z.infer<typeof IdentityResponseSchema>;
 
 const IdentityTableActionPopover = dynamic(
   () =>
-    import("@/app/(app)/[workspaceSlug]/identities/_components/table/identity-table-actions").then(
+    import("@/components/identities-table/components/identity-table-actions").then(
       (mod) => mod.IdentityTableActions,
     ),
   { ssr: false },
