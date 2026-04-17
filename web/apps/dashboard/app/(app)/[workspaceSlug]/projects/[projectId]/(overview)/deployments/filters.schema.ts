@@ -7,10 +7,9 @@ import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
 import { z } from "zod";
 
-// Define grouped statuses for client filtering
-const GROUPED_DEPLOYMENT_STATUSES = [
+export const GROUPED_DEPLOYMENT_STATUSES = [
   "pending",
-  "deploying", // represents all deploying states
+  "deploying",
   "ready",
   "stopped",
   "failed",
@@ -22,6 +21,22 @@ const DEPLOYMENT_ENVIRONMENTS = ["production", "preview"] as const;
 
 export type GroupedDeploymentStatus = (typeof GROUPED_DEPLOYMENT_STATUSES)[number];
 export type DeploymentEnvironment = (typeof DEPLOYMENT_ENVIRONMENTS)[number];
+
+export const DEPLOYMENT_STATUS_META: Record<
+  GroupedDeploymentStatus,
+  { label: string; colorClass: string }
+> = {
+  pending: { label: "Pending", colorClass: "bg-gray-9" },
+  deploying: { label: "Deploying", colorClass: "bg-info-9" },
+  ready: { label: "Ready", colorClass: "bg-success-9" },
+  stopped: { label: "Stopped", colorClass: "bg-gray-9" },
+  failed: { label: "Failed", colorClass: "bg-error-9" },
+  skipped: { label: "Skipped", colorClass: "bg-gray-9" },
+  cancelled: { label: "Cancelled", colorClass: "bg-gray-9" },
+};
+
+const isGroupedDeploymentStatus = (v: string): v is GroupedDeploymentStatus =>
+  v in DEPLOYMENT_STATUS_META;
 
 const allOperators = ["is", "contains"] as const;
 
@@ -42,15 +57,8 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
     type: "string",
     operators: ["is"],
     validValues: GROUPED_DEPLOYMENT_STATUSES,
-    getColorClass: (value) => {
-      if (value === "ready") {
-        return "bg-success-9";
-      }
-      if (value === "failed") {
-        return "bg-error-9";
-      }
-      return "bg-info-9";
-    },
+    getColorClass: (value) =>
+      isGroupedDeploymentStatus(value) ? DEPLOYMENT_STATUS_META[value].colorClass : "bg-info-9",
   },
   environment: {
     type: "string",

@@ -12,9 +12,9 @@ export function BranchSelect() {
   const { filters, updateFilters } = useFilters();
   const [search, setSearch] = useState("");
 
-  const selectedBranches = filters
-    .filter((f) => f.field === "branch")
-    .map((f) => f.value as string);
+  const selectedBranches = filters.flatMap((f) =>
+    f.field === "branch" && typeof f.value === "string" ? [f.value] : [],
+  );
 
   const branches = useMemo(() => {
     const seen = new Set<string>();

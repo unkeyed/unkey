@@ -10,7 +10,8 @@ export function EnvironmentSelect() {
   const { filters, updateFilters } = useFilters();
 
   const activeEnvFilter = filters.find((f) => f.field === "environment");
-  const currentValue = (activeEnvFilter?.value as string) ?? "all";
+  const currentValue =
+    activeEnvFilter && typeof activeEnvFilter.value === "string" ? activeEnvFilter.value : "all";
 
   const handleChange = (value: string) => {
     const otherFilters = filters.filter((f) => f.field !== "environment");

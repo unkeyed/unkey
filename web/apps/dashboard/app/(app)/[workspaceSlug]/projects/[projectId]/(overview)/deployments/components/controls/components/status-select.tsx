@@ -3,24 +3,24 @@
 import { ChevronDown } from "@unkey/icons";
 import { Checkbox, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import type { GroupedDeploymentStatus } from "../../../filters.schema";
+import {
+  DEPLOYMENT_STATUS_META,
+  GROUPED_DEPLOYMENT_STATUSES,
+  type GroupedDeploymentStatus,
+} from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
 
-const STATUS_OPTIONS: { value: GroupedDeploymentStatus; label: string; colorClass: string }[] = [
-  { value: "pending", label: "Pending", colorClass: "bg-gray-9" },
-  { value: "deploying", label: "Deploying", colorClass: "bg-info-9" },
-  { value: "ready", label: "Ready", colorClass: "bg-success-9" },
-  { value: "failed", label: "Failed", colorClass: "bg-error-9" },
-  { value: "skipped", label: "Skipped", colorClass: "bg-gray-9" },
-  { value: "stopped", label: "Stopped", colorClass: "bg-gray-9" },
-];
+const STATUS_OPTIONS = GROUPED_DEPLOYMENT_STATUSES.map((value) => ({
+  value,
+  ...DEPLOYMENT_STATUS_META[value],
+}));
 
 export function StatusSelect() {
   const { filters, updateFilters } = useFilters();
 
-  const selectedStatuses = filters
-    .filter((f) => f.field === "status")
-    .map((f) => f.value as string);
+  const selectedStatuses = filters.flatMap((f) =>
+    f.field === "status" && typeof f.value === "string" ? [f.value] : [],
+  );
 
   const toggleStatus = (status: GroupedDeploymentStatus) => {
     const isSelected = selectedStatuses.includes(status);
