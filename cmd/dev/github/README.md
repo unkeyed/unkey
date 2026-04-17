@@ -1,105 +1,89 @@
-# GitHub Webhook Simulator
+# GitHub Dev Tools
 
-Simulates GitHub push webhooks for local development and testing of deployment pipelines.
+Local development tools for setting up and testing GitHub App-triggered deployments.
 
-## Prerequisites
+## Commands
 
-1. **Local dev environment running**:
+- `go run . dev github setup`: create a GitHub App via manifest flow and write all credentials automatically
+- `go run . dev github tunnel`: start an ngrok tunnel and update the GitHub App webhook URL automatically
+- `go run . dev github trigger-webhook`: simulate a GitHub push webhook to trigger a deployment
 
-   ```bash
-   make dev  # Starts Tilt with ctrl-api
-   ```
+---
 
-2. **Configure webhook secret and unauthenticated mode** in `dev/.env.github`:
+## Setup
 
-   ```bash
-   UNKEY_GITHUB_APP_WEBHOOK_SECRET=supersecret
-   UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=true
-   ```
+### Step 1: Create the GitHub App
 
-   Setting `UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=true` allows deployments without GitHub App authentication (for local dev with public repos).
+```bash
+go run . dev github setup --app-name my-unkey-dev
+```
 
-3. **Depot credentials** in `dev/.env.depot`:
+This opens a browser, walks you through GitHub's App creation UI, then writes:
 
-   ```bash
-   DEPOT_TOKEN=your_depot_token_here
-   ```
+- `dev/.env.github`: app ID, webhook secret, app name
+- `dev/.github-private-key.pem`: private key for ctrl-worker
+- `web/apps/dashboard/.github-private-key.pem`: private key for the dashboard
+- `web/apps/dashboard/.env`: `GITHUB_APP_ID` and `NEXT_PUBLIC_GITHUB_APP_NAME`
 
-   Required for container builds during deployment.
+### Step 2: Start the dev environment
 
-4. **Public repository**: The repository must be publicly accessible on GitHub (for local dev without GitHub App)
+```bash
+make dev
+```
 
-## Quick Start
-
-### Step 1: Seed Database
-
-Initialize your local database with test data:
+### Step 3: Seed the database
 
 ```bash
 go run . dev seed local
 ```
 
-This creates:
+This outputs a project ID you'll need in the next step.
 
-- Local workspace (`ws_local`)
-- Test project with a project ID
-- Preview and production environments
-- Root API key for testing
-- GitHub repository connection
-
-The seed command outputs the project ID you'll use in the next step.
-
-### Step 2: Trigger Webhook
+### Step 4: Trigger a deployment
 
 ```bash
-# Get any commit SHA from GitHub (e.g., https://github.com/ogzhanolguncu/demo_api/commits)
-# Or use git rev-parse if you have the repo locally
-COMMIT_SHA=abc123def456...
-
-# Trigger deployment
 go run . dev github trigger-webhook \
   --project-id proj_abc123 \
-  --repository ogzhanolguncu/demo_api \
-  --commit-sha $COMMIT_SHA
+  --repository owner/repo \
+  --commit-sha <full-40-char-sha>
 ```
+
+---
 
 ## Flags
 
-### Required
+### `setup`
 
-- `--project-id` - Your Unkey project ID (e.g., `proj_abc123`)
-- `--repository` - Full repository name (e.g., `ogzhanolguncu/demo_api`)
-- `--commit-sha` - Git commit SHA to deploy (full 40-char SHA)
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--app-name` | GitHub App name (must be globally unique) | `unkey-dev` |
+| `--webhook-url` | Webhook URL (update in GitHub App settings once you have a tunnel) | `https://example.com/webhooks/github` |
+| `--port` | Local callback server port | `9999` |
+| `--out-dir` | Where to write `dev/` credentials | `dev` |
 
-### Optional
+### `tunnel`
 
-- `--branch` - Branch name (default: `main`)
-- `--webhook-url` - Webhook endpoint (default: `http://localhost:7091/webhooks/github`)
-- `--webhook-secret` - HMAC signing secret (default: `supersecret`)
-- `--database-url` - MySQL DSN (default: `unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true`)
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--port` | Local port to tunnel | `7091` |
+| `--env-file` | Path to `.env.github` | `dev/.env.github` |
+| `--pem-file` | Path to `.github-private-key.pem` | `dev/.github-private-key.pem` |
 
-## How It Works
+Requires `ngrok` to be installed and authenticated (`ngrok config add-authtoken <token>`).
 
-1. **Fetches repository metadata** from GitHub API (repository ID)
-2. **Creates database record** in `github_repo_connections` table (uses `installation_id=1` for local dev)
-3. **Builds webhook payload** matching GitHub's push event format
-4. **Signs payload** with HMAC-SHA256 (X-Hub-Signature-256 header)
-5. **Sends POST request** to ctrl-api webhook endpoint
-6. **Ctrl-api processes webhook** and triggers deployment workflow
-7. **Worker checks** `ALLOW_UNAUTHENTICATED_DEPLOYMENTS` config
-   - If `true`: skips GitHub auth (for local dev with public repos)
-   - If `false`: requires real GitHub App authentication (production)
+### `trigger-webhook`
 
-## Examples
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--project-id` | Unkey project ID | **required** |
+| `--repository` | Full repository name (`owner/repo`) | **required** |
+| `--commit-sha` | Full 40-char commit SHA | **required** |
+| `--branch` | Branch name | `main` |
+| `--webhook-url` | Webhook endpoint | `http://localhost:7091/webhooks/github` |
+| `--webhook-secret` | HMAC signing secret | `supersecret` |
+| `--database-url` | MySQL DSN | local default |
 
-### Basic deployment
-
-```bash
-go run . dev github trigger-webhook \
-  --project-id proj_2tF8Qr7QHvwp5JN6J4K9vR3sL1M \
-  --repository ogzhanolguncu/demo_api \
-  --commit-sha d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3
-```
+---
 
 ## Troubleshooting
 
@@ -110,17 +94,14 @@ go run . dev github trigger-webhook \
 
 ### ✗ Webhook rejected: invalid signature
 
-- Check `UNKEY_GITHUB_APP_WEBHOOK_SECRET` matches ctrl-api config
-- Default for local dev: `supersecret`
+- Check `UNKEY_GITHUB_APP_WEBHOOK_SECRET` in `dev/.env.github` matches ctrl-api config
 
 ### ✗ Failed to fetch repository ID
 
-- Repository must exist on GitHub
-- Repository must be publicly accessible (for local dev)
-- Check repository name format: `owner/repo` (no `.git` suffix)
+- Repository must exist on GitHub and be publicly accessible
+- Format: `owner/repo` (no `.git` suffix)
 
-### ✗ Commit SHA not found / Build fails
+### ✗ Build fails with 404 on private repo
 
-- Verify the commit SHA exists in the repository
-- Check GitHub commits page: `https://github.com/owner/repo/commits`
-- Copy full 40-character SHA from GitHub UI
+- Make sure `UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS=false` in `dev/.env.github`
+- The GitHub App must be installed on the repository
