@@ -7,9 +7,23 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-When you connect a GitHub repository to your project, Unkey deploys your application automatically on every push. No CI/CD pipeline needed.
+When you connect a GitHub repository to your project, Unkey deploys your application automatically on every push. No CI/CD pipeline needed. Both public and private repositories are supported.
 
 For the initial setup walkthrough, see [Deploy your first app](/quickstart/deploy).
+
+## Public and private repositories
+
+Unkey works with both public and private GitHub repositories. When you install the Unkey GitHub App on your organization or account, Unkey uses the app's installation credentials to fetch source code during builds. This means private repositories work out of the box — no extra tokens or configuration required.
+
+The GitHub App requests the minimum permissions needed:
+
+- **Contents** (read): to fetch your source code at the specific commit SHA
+- **Deployments** (write): to report deployment status back to GitHub
+- **Statuses** (write): to set commit statuses on your pull requests
+- **Pull requests** (write): to post deployment preview links as PR comments
+- **Metadata** (read): to read repository metadata
+
+If the GitHub App is not installed on a repository, Unkey falls back to unauthenticated access. This only works for public repositories — private repositories require the app to be installed.
 
 ## Branch-to-environment mapping
 
@@ -71,6 +85,14 @@ If a push doesn't trigger a deployment:
 2. Check that the repository is connected in your project's **Settings** tab.
 3. If watch paths are configured, confirm that the push includes changes matching at least one pattern.
 4. Check your project's **Deployments** tab for a failed deployment with error details.
+
+### Build fails on a private repository
+
+If builds fail with a source code fetch error on a private repository:
+
+1. Confirm the Unkey GitHub App is installed on the repository's organization or account.
+2. Verify the app has access to the specific repository — in your GitHub settings, check that the repository is included under the app's repository access.
+3. Make sure the commit SHA exists in the repository and hasn't been force-pushed away.
 
 ## Next steps
 
