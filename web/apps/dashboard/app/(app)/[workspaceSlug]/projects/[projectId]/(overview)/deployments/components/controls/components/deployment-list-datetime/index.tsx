@@ -1,7 +1,6 @@
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
 import { cn } from "@/lib/utils";
-import { Calendar } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Calendar, ChevronDown } from "@unkey/icons";
 import { useState } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 
@@ -27,6 +26,7 @@ export const DeploymentListDatetime = () => {
   return (
     <DatetimePopover
       maxDate={new Date()}
+      align="end"
       initialTimeValues={timeValues}
       onDateTimeChange={(startTime, endTime, since) => {
         const activeFilters = filters.filter(
@@ -65,24 +65,25 @@ export const DeploymentListDatetime = () => {
       initialTitle={displayTitle}
       onSuggestionChange={setTitle}
     >
-      <div className="group">
-        <Button
-          variant="outline"
-          size="lg"
-          className={cn(
-            "group-data-[state=open]:bg-gray-4 px-2 rounded-lg",
-            displayTitle === "Loading..." ? "opacity-50" : "",
-            displayTitle !== TITLE_EMPTY_DEFAULT ? "bg-gray-4" : "",
-          )}
-          aria-label="Filter logs by time"
-          aria-haspopup="true"
-          title="Press 'T' to toggle filters"
-          disabled={displayTitle === "Loading..."}
-        >
-          <Calendar className="text-gray-9 size-4" />
-          <span className="text-gray-12 font-normal text-[13px]">{displayTitle}</span>
-        </Button>
-      </div>
+      <button
+        type="button"
+        aria-label="Filter logs by time"
+        aria-haspopup="true"
+        title="Press 'T' to toggle filters"
+        disabled={displayTitle === "Loading..."}
+        className={cn(
+          "flex items-center gap-2 h-9 px-3 w-full",
+          "bg-gray-1 border border-grayA-4 rounded-lg",
+          "text-[13px] text-accent-12 font-normal",
+          "hover:bg-gray-2 transition-colors",
+          hasTimeFilters && "bg-gray-2",
+          displayTitle === "Loading..." && "opacity-50",
+        )}
+      >
+        <Calendar iconSize="md-medium" className="text-gray-9 shrink-0" />
+        <span className="truncate">{displayTitle}</span>
+        <ChevronDown className="ml-auto shrink-0" iconSize="md-medium" />
+      </button>
     </DatetimePopover>
   );
 };

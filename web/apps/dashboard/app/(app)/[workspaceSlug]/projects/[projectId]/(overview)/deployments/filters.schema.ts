@@ -59,7 +59,7 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
   },
   branch: {
     type: "string",
-    operators: ["contains"],
+    operators: ["is"],
   },
   startTime: {
     type: "number",
