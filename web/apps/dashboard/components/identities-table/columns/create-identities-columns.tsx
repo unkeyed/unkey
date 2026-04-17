@@ -107,17 +107,7 @@ export const createIdentitiesColumns = ({
       width: "15%",
     },
     cell: ({ row }) => (
-      <div
-        className="flex items-center justify-end px-3 py-1"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.stopPropagation();
-          }
-        }}
-      >
-        <IdentityTableActionPopover identity={row.original} />
-      </div>
+      <IdentityTableActionPopover identity={row.original} />
     ),
   },
 ];
