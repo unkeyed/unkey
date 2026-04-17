@@ -435,7 +435,8 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 
 		// When a SHA is known (either provided directly or just resolved from branch)
 		// but the deployment record is still missing git metadata, fetch it from GitHub.
-		if commitSHA != "" && !deployment.GitCommitMessage.Valid && !w.allowUnauthenticatedDeployments {
+		hasGitHubAuth := !w.allowUnauthenticatedDeployments || source.Git.GetInstallationId() != noInstallationID
+		if commitSHA != "" && !deployment.GitCommitMessage.Valid && hasGitHubAuth {
 			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
 				return w.github.GetCommitBySHA(
 					source.Git.GetInstallationId(),
