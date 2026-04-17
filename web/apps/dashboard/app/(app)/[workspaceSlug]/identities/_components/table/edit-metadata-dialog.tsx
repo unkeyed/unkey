@@ -47,6 +47,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
   const methods = useForm<z.infer<typeof metadataSchema>>({
     resolver: zodResolver(metadataSchema) as DiscriminatedUnionResolver<typeof metadataSchema>,
     defaultValues: getDefaultValues(),
+    mode: "onChange",
   });
 
   // Reset form when dialog opens
