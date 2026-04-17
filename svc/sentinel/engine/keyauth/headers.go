@@ -41,45 +41,21 @@ func writeRateLimitHeaders(w http.ResponseWriter, results map[string]keys.Rateli
 // A denial always takes precedence, otherwise the one with the lowest remaining wins.
 func findMostRestrictive(results map[string]keys.RatelimitConfigAndResult) *keys.RatelimitConfigAndResult {
 	var best *keys.RatelimitConfigAndResult
-
 	for _, r := range results {
 		if r.Response == nil {
 			continue
 		}
-
-		if best == nil {
-			rCopy := r
-			best = &rCopy
-			continue
-		}
-
-		deniedBefore := !best.Response.Success
-		deniedNow := !r.Response.Success
-
-		// Already rate limited, don't overwrite.
-		if deniedBefore && !deniedNow {
-			continue
-		}
-
-		// Newly rate limited, overwrite.
-		if deniedNow && !deniedBefore {
-			rCopy := r
-			best = &rCopy
-			if r.Response.Remaining == 0 {
-				return best
-			}
-			continue
-		}
-
-		// Lower remaining = more restrictive.
-		if r.Response.Remaining < best.Response.Remaining {
-			rCopy := r
-			best = &rCopy
-			if deniedNow && r.Response.Remaining == 0 {
-				return best
-			}
+		if best == nil || moreRestrictive(r, *best) {
+			best = &r
 		}
 	}
-
 	return best
+}
+
+func moreRestrictive(a, b keys.RatelimitConfigAndResult) bool {
+	aDenied, bDenied := !a.Response.Success, !b.Response.Success
+	if aDenied != bDenied {
+		return aDenied
+	}
+	return a.Response.Remaining < b.Response.Remaining
 }
