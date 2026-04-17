@@ -45,16 +45,25 @@ export const redeploy = workspaceProcedure
         });
       }
 
+      // Source type is determined by whether the app has a GitHub repo
+      // connection, not by commit metadata on the deployment row — docker
+      // redeploys carry forward git metadata from the previous deployment
+      // and would otherwise be misclassified as git-sourced.
+      const repoConnection = await db.query.githubRepoConnections.findFirst({
+        where: (table, { eq }) => eq(table.appId, deployment.appId),
+        columns: { appId: true },
+      });
+      const isGitSourced = repoConnection != null;
+
       const result = await ctrl
         .createDeployment({
           projectId: deployment.project.id,
           appId: deployment.appId,
           environmentSlug: deployment.environment?.slug ?? "",
-          dockerImage: deployment.image ?? "",
-          ...(deployment.gitCommitSha
+          ...(isGitSourced
             ? {
                 gitCommit: {
-                  commitSha: deployment.gitCommitSha,
+                  commitSha: deployment.gitCommitSha ?? "",
                   branch: deployment.gitBranch ?? "",
                   commitMessage: deployment.gitCommitMessage ?? "",
                   authorHandle: deployment.gitCommitAuthorHandle ?? "",
@@ -62,7 +71,7 @@ export const redeploy = workspaceProcedure
                   timestamp: BigInt(deployment.gitCommitTimestamp ?? 0),
                 },
               }
-            : {}),
+            : { dockerImage: deployment.image ?? "" }),
         })
         .catch((err) => {
           console.error(err);

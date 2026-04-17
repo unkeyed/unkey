@@ -15,12 +15,13 @@ import (
 // workflow execution to Restate.
 type Service struct {
 	ctrlv1connect.UnimplementedDeployServiceHandler
-	db           db.Database
-	restate      *restateingress.Client
-	restateAdmin *restateadmin.Client
-	github       githubclient.GitHubClient
-	bearer       string
-	dedup        *dedup.Service
+	db                              db.Database
+	restate                         *restateingress.Client
+	restateAdmin                    *restateadmin.Client
+	github                          githubclient.GitHubClient
+	allowUnauthenticatedDeployments bool
+	bearer                          string
+	dedup                           *dedup.Service
 }
 
 // deploymentClient creates a typed Restate ingress client for the DeployService
@@ -44,6 +45,9 @@ type Config struct {
 	RestateAdmin *restateadmin.Client
 	// GitHub is the client for GitHub API operations (fetching HEAD, etc.).
 	GitHub githubclient.GitHubClient
+	// AllowUnauthenticatedDeployments toggles the public GitHub API path for
+	// local development with public repositories. Production keeps this false.
+	AllowUnauthenticatedDeployments bool
 	// Bearer is the preshared token that callers must provide in the Authorization header.
 	Bearer string
 }
@@ -56,6 +60,7 @@ func New(cfg Config) *Service {
 		restate:                           cfg.Restate,
 		restateAdmin:                      cfg.RestateAdmin,
 		github:                            cfg.GitHub,
+		allowUnauthenticatedDeployments:   cfg.AllowUnauthenticatedDeployments,
 		bearer:                            cfg.Bearer,
 		dedup:                             dedup.New(cfg.Database, cfg.RestateAdmin),
 	}
