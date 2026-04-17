@@ -1,5 +1,5 @@
 import { ChevronDown, CircleCheck, CodeBranch, CodeCommit, FolderCloud } from "@unkey/icons";
-import { Badge, Button, Card } from "@unkey/ui";
+import { Badge, Card } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { StatusIndicator } from "../../../components/status-indicator";
 
@@ -55,19 +55,15 @@ export function ActiveDeploymentCardSkeleton() {
               <div className="h-2 w-24 bg-grayA-4 rounded-sm" />
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <button className="text-xs text-grayA-9" type="button" disabled>
-              Requests
-            </button>
+          <div className="flex items-center gap-1.5" aria-hidden="true">
+            <span className="text-xs text-grayA-9">Requests</span>
             <span className="text-grayA-6">|</span>
-            <button className="text-xs text-grayA-9" type="button" disabled>
-              Logs
-            </button>
-            <Button size="icon" variant="ghost" disabled aria-hidden="true" tabIndex={-1}>
+            <span className="text-xs text-grayA-9">Logs</span>
+            <span className="inline-flex items-center justify-center size-7">
               <ChevronDown
                 className={cn("text-grayA-9 size-3! transition-transform duration-200")}
               />
-            </Button>
+            </span>
           </div>
         </div>
       </div>
