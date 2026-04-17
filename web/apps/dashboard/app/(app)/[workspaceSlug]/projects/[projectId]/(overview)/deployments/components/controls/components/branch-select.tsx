@@ -1,96 +1,48 @@
 "use client";
 
-import { ChevronDown, CodeBranch, Magnifier } from "@unkey/icons";
+import { CodeBranch, Magnifier } from "@unkey/icons";
 import { Checkbox, FormInput, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useProjectData } from "../../../../data-provider";
 import { useFilters } from "../../../hooks/use-filters";
+import { FilterTriggerButton } from "./filter-trigger-button";
 
 export function BranchSelect() {
   const { deployments } = useProjectData();
-  const { filters, updateFilters } = useFilters();
+  const { filters, toggleArrayFilter } = useFilters();
   const [search, setSearch] = useState("");
 
   const selectedBranches = filters.flatMap((f) =>
     f.field === "branch" && typeof f.value === "string" ? [f.value] : [],
   );
 
-  const branches = useMemo(() => {
-    const seen = new Set<string>();
-    const ordered: string[] = [];
-    for (const branch of selectedBranches) {
-      if (!seen.has(branch)) {
-        seen.add(branch);
-        ordered.push(branch);
-      }
+  const branches: string[] = [];
+  const seen = new Set<string>();
+  for (const b of selectedBranches) {
+    if (!seen.has(b)) {
+      seen.add(b);
+      branches.push(b);
     }
-    for (const d of deployments) {
-      const b = d.gitBranch;
-      if (b && !seen.has(b)) {
-        seen.add(b);
-        ordered.push(b);
-      }
+  }
+  for (const d of deployments) {
+    if (d.gitBranch && !seen.has(d.gitBranch)) {
+      seen.add(d.gitBranch);
+      branches.push(d.gitBranch);
     }
-    return ordered;
-  }, [deployments, selectedBranches]);
+  }
 
-  const visibleBranches = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) {
-      return branches;
-    }
-    return branches.filter((b) => b.toLowerCase().includes(q));
-  }, [branches, search]);
-
-  const toggleBranch = (branch: string) => {
-    const isSelected = selectedBranches.includes(branch);
-    const otherFilters = filters.filter((f) => f.field !== "branch");
-    const currentBranchFilters = filters.filter((f) => f.field === "branch");
-
-    if (isSelected) {
-      const remaining = currentBranchFilters.filter((f) => f.value !== branch);
-      updateFilters([...otherFilters, ...remaining]);
-    } else {
-      updateFilters([
-        ...otherFilters,
-        ...currentBranchFilters,
-        {
-          field: "branch",
-          id: crypto.randomUUID(),
-          operator: "is",
-          value: branch,
-        },
-      ]);
-    }
-  };
-
-  const count = selectedBranches.length;
+  const q = search.trim().toLowerCase();
+  const visibleBranches = q ? branches.filter((b) => b.toLowerCase().includes(q)) : branches;
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            "flex items-center gap-2 h-9 px-3 w-full",
-            "bg-gray-1 border border-grayA-4 rounded-lg",
-            "text-[13px] text-accent-12 font-normal",
-            "hover:bg-gray-2 transition-colors",
-            count > 0 && "bg-gray-2",
-          )}
-        >
-          <CodeBranch iconSize="md-medium" className="text-gray-9 shrink-0" />
-          <span className="truncate">
-            Branch
-            {count > 0 && (
-              <span className="ml-1.5 inline-flex items-center justify-center bg-gray-7 rounded-sm h-4 px-1 text-[11px] font-medium">
-                {count}
-              </span>
-            )}
-          </span>
-          <ChevronDown className="ml-auto shrink-0" iconSize="md-medium" />
-        </button>
+        <FilterTriggerButton
+          icon={<CodeBranch iconSize="md-medium" className="text-gray-9 shrink-0" />}
+          label="Branch"
+          count={selectedBranches.length}
+          isActive={selectedBranches.length > 0}
+        />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 p-1">
         <div className="p-1">
@@ -113,7 +65,7 @@ export function BranchSelect() {
                 type="button"
                 key={branch}
                 className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-3 cursor-pointer text-[13px] w-full"
-                onClick={() => toggleBranch(branch)}
+                onClick={() => toggleArrayFilter("branch", branch)}
               >
                 <Checkbox
                   variant="primary"
