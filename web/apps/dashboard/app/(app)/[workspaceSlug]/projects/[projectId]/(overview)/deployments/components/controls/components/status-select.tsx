@@ -39,9 +39,6 @@ export function StatusSelect() {
           id: crypto.randomUUID(),
           operator: "is",
           value: status,
-          metadata: {
-            colorClass: STATUS_OPTIONS.find((o) => o.value === status)?.colorClass ?? "bg-info-9",
-          },
         },
       ]);
     }

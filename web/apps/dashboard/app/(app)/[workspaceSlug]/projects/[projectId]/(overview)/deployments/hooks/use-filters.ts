@@ -13,10 +13,7 @@ import {
   deploymentListFilterFieldConfig,
 } from "../filters.schema";
 
-const parseAsFilterValArray = parseAsFilterValueArray<DeploymentListFilterOperator>([
-  "is",
-  "contains",
-]);
+const parseAsFilterValArray = parseAsFilterValueArray<DeploymentListFilterOperator>(["is"]);
 
 export const queryParamsPayload = {
   status: parseAsFilterValArray,

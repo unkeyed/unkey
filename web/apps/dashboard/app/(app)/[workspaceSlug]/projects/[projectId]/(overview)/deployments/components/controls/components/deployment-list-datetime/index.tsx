@@ -10,6 +10,7 @@ export const DeploymentListDatetime = () => {
   const { filters, updateFilters } = useFilters();
 
   const hasTimeFilters = filters.some((f) => ["startTime", "endTime", "since"].includes(f.field));
+  const isLoading = hasTimeFilters && title === null;
   const displayTitle = hasTimeFilters ? (title ?? "Loading...") : TITLE_EMPTY_DEFAULT;
 
   const timeValues = filters
@@ -67,17 +68,16 @@ export const DeploymentListDatetime = () => {
     >
       <button
         type="button"
-        aria-label="Filter logs by time"
+        aria-label="Filter deployments by time"
         aria-haspopup="true"
-        title="Press 'T' to toggle filters"
-        disabled={displayTitle === "Loading..."}
+        disabled={isLoading}
         className={cn(
           "flex items-center gap-2 h-9 px-3 w-full",
           "bg-gray-1 border border-grayA-4 rounded-lg",
           "text-[13px] text-accent-12 font-normal",
           "hover:bg-gray-2 transition-colors",
           hasTimeFilters && "bg-gray-2",
-          displayTitle === "Loading..." && "opacity-50",
+          isLoading && "opacity-50",
         )}
       >
         <Calendar iconSize="md-medium" className="text-gray-9 shrink-0" />

@@ -43,7 +43,7 @@ export const deploymentListFilterFieldConfig: FilterFieldConfigs = {
     operators: ["is"],
     validValues: GROUPED_DEPLOYMENT_STATUSES,
     getColorClass: (value) => {
-      if (value === "completed") {
+      if (value === "ready") {
         return "bg-success-9";
       }
       if (value === "failed") {
