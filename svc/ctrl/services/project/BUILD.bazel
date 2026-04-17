@@ -3,7 +3,6 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "project",
     srcs = [
-        "auth.go",
         "create_project.go",
         "delete_project.go",
         "service.go",

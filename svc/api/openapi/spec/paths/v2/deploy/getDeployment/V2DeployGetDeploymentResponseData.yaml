@@ -23,6 +23,8 @@ properties:
       - SKIPPED
       - AWAITING_APPROVAL
       - STOPPED
+      - SUPERSEDED
+      - CANCELLED
     example: "READY"
     x-speakeasy-unknown-values: allow
   errorMessage:

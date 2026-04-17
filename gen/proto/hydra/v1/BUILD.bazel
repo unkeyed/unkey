@@ -5,6 +5,8 @@ go_library(
     srcs = [
         "app.pb.go",
         "app_restate.pb.go",
+        "build_slot.pb.go",
+        "build_slot_restate.pb.go",
         "certificate.pb.go",
         "certificate_restate.pb.go",
         "clickhouse_user.pb.go",
@@ -34,6 +36,8 @@ go_library(
         "quota_check_restate.pb.go",
         "routing.pb.go",
         "routing_restate.pb.go",
+        "sentinel.pb.go",
+        "sentinel_restate.pb.go",
     ],
     importpath = "github.com/unkeyed/unkey/gen/proto/hydra/v1",
     visibility = ["//visibility:public"],

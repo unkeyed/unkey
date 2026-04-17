@@ -2,9 +2,13 @@
 
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { match } from "@unkey/match";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
-import { Controller, useForm } from "react-hook-form";
-import { KeyAuthFields, PolicySummary } from "./forms/keyauth-fields";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
+import { KeyAuthFields, KeyauthPolicySummary } from "./forms/keyauth-fields";
+import { RateLimitFields, RatelimitPolicySummary } from "./forms/ratelimit-fields";
+import { DocsLink } from "./forms/summary-helpers";
 import {
   MatchConditionEditorBody,
   MatchConditionsClearAll,
@@ -14,6 +18,7 @@ import { PolicyForm } from "./policy-form";
 import {
   POLICY_TYPE_OPTIONS,
   type PolicyFormValues,
+  type PolicyType,
   fromSentinelPolicy,
   getDefaultValues,
   policyFormSchema,
@@ -59,6 +64,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       : getDefaultValues("keyauth"),
   });
   const { control } = form;
+  const policyType = useWatch({ control, name: "type" });
 
   const onSubmit = (values: PolicyFormValues) => {
     const id = props.mode === "edit" ? props.initialPolicy.id : undefined;
@@ -85,15 +91,9 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       description={
         <div className="flex gap-2 items-center">
           {isEdit ? "Update this sentinel policy." : "Configure and add a new sentinel policy."}
-          <a
-            href="https://www.unkey.com/docs/platform/sentinel/policies/overview"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span className="font-medium text-gray-12 underline underline-offset-2 decoration-grayA-6 group-hover:decoration-gray-12 transition-colors decoration-dotted">
-              See docs for more
-            </span>
-          </a>
+          <DocsLink href="https://www.unkey.com/docs/platform/sentinel/policies/overview">
+            See docs for more
+          </DocsLink>
         </div>
       }
       isOpen={isOpen}
@@ -109,7 +109,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
           render={({ field, fieldState }) => (
             <FormInput
               label="Name"
-              required
+              requirement="required"
               descriptionPosition="label"
               placeholder="e.g. API Key Auth, Rate Limit Public"
               description="A descriptive name to identify this policy."
@@ -128,7 +128,24 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
               label="Type"
               options={POLICY_TYPE_OPTIONS}
               value={field.value}
-              onValueChange={field.onChange}
+              onValueChange={(next) => {
+                // Reset the form to the defaults of the newly-chosen type so
+                // type-specific fields don't leak between branches of the
+                // discriminated union. Shared fields (name, environmentId,
+                // matchConditions) are preserved so the user doesn't lose
+                // work when they switch types after starting to configure.
+                if (isEdit) {
+                  return;
+                }
+                const defaults = getDefaultValues(next as PolicyType);
+                form.reset({
+                  ...defaults,
+                  name: form.getValues("name"),
+                  environmentId: form.getValues("environmentId"),
+                  matchConditions: form.getValues("matchConditions"),
+                });
+                field.onChange(next);
+              }}
               disabled={isEdit}
               description="The kind of protection this policy enforces."
               descriptionPosition="label"
@@ -142,10 +159,18 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
         <PolicyForm.Section
           id="config"
           label="Policy Configuration"
-          summary={<PolicySummary />}
+          summary={match(policyType)
+            .with("keyauth", () => <KeyauthPolicySummary />)
+            .with("ratelimit", () => <RatelimitPolicySummary />)
+            .with("firewall", () => <FirewallPolicySummary />)
+            .exhaustive()}
           catchAll
         >
-          <KeyAuthFields />
+          {match(policyType)
+            .with("keyauth", () => <KeyAuthFields />)
+            .with("ratelimit", () => <RateLimitFields />)
+            .with("firewall", () => <FirewallFields />)
+            .exhaustive()}
         </PolicyForm.Section>
         <PolicyForm.Section
           id="matchConditions"

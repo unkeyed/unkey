@@ -8,6 +8,7 @@ import { ProjectContentWrapper } from "../../../components/project-content-wrapp
 import { useProjectData } from "../../data-provider";
 import { DeploymentApproval } from "./(deployment-progress)/deployment-approval";
 import { DeploymentBuild } from "./(deployment-progress)/deployment-build";
+import { DeploymentCancelled } from "./(deployment-progress)/deployment-cancelled";
 import { DeploymentInfo } from "./(deployment-progress)/deployment-info";
 import { DeploymentProgress } from "./(deployment-progress)/deployment-progress";
 import { DeploymentSkipped } from "./(deployment-progress)/deployment-skipped";
@@ -23,14 +24,19 @@ export default function DeploymentOverview() {
 
   const ready = deployment.status === "ready";
   const skipped = deployment.status === "skipped";
+  const superseded = deployment.status === "superseded";
+  const cancelled = deployment.status === "cancelled";
   const awaitingApproval = deployment.status === "awaiting_approval";
+  // Steps don't change until the user authorizes (awaiting_approval) or
+  // until the deployment reaches a true terminal state — no point polling.
+  const stepsAreStable = ready || skipped || superseded || cancelled || awaitingApproval;
 
   const stepsQuery = trpc.deploy.deployment.steps.useQuery(
     { deploymentId: deployment.id },
     {
-      refetchInterval: ready || skipped || awaitingApproval ? false : 1_000,
+      refetchInterval: stepsAreStable ? false : 1_000,
       refetchOnWindowFocus: false,
-      enabled: !skipped,
+      enabled: !skipped && !superseded && !cancelled,
     },
   );
 
@@ -64,6 +70,24 @@ export default function DeploymentOverview() {
     .with("skipped", () => (
       <div key="skipped" className="animate-fade-slide-in">
         <DeploymentSkipped />
+      </div>
+    ))
+    .with("superseded", () => (
+      <div key="superseded" className="animate-fade-slide-in">
+        <DeploymentCancelled
+          deployment={deployment}
+          stepsData={stepsQuery.data}
+          reason="superseded"
+        />
+      </div>
+    ))
+    .with("cancelled", () => (
+      <div key="cancelled" className="animate-fade-slide-in">
+        <DeploymentCancelled
+          deployment={deployment}
+          stepsData={stepsQuery.data}
+          reason="cancelled"
+        />
       </div>
     ))
     .with("ready", () => (

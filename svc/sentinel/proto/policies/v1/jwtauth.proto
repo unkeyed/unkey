@@ -12,12 +12,11 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/sentinel/v1;sentinelv1";
 // claim validation, and key rotation logic. JWTAuth centralizes all of this
 // at the proxy layer.
 //
-// On successful validation, JWTAuth produces a [Principal] with type
-// PRINCIPAL_TYPE_JWT. The subject is extracted from a configurable token
-// claim (default "sub"), and selected claims are forwarded into
-// Principal.claims for use by downstream policies. This means a RateLimit
-// policy can throttle per-user or per-organization (via PrincipalClaimKey),
-// all without the upstream parsing the JWT itself.
+// On successful validation, JWTAuth produces a [Principal] with type "JWT".
+// The subject is extracted from a configurable token claim (default "sub"),
+// and the full decoded token header, payload, and signature are forwarded
+// under Principal.source.jwt. Downstream policies and the upstream can read
+// any claim directly from the payload without parsing the token themselves.
 //
 // For common identity providers (Auth0, Clerk, Cognito, Okta), use the
 // oidc_issuer field instead of jwks_uri — sentinel auto-discovers the
@@ -73,12 +72,6 @@ message JWTAuth {
   // claim for the primary identity (e.g., "uid" for some Okta
   // configurations, or "email" when you want email-based identity).
   string subject_claim = 6;
-
-  // Additional token claims to extract into [Principal].claims. These become
-  // available to downstream policies — for example, forwarding "org_id"
-  // lets a RateLimit policy with a PrincipalClaimKey apply per-organization
-  // limits.
-  repeated string forward_claims = 7;
 
   // When true, requests without a Bearer token are allowed through without
   // authentication. No [Principal] is produced for anonymous requests. This
