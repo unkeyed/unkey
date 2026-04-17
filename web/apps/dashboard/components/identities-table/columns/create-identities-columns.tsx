@@ -2,11 +2,10 @@
 
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { SortableHeader, TimestampCell } from "@unkey/ui";
+import { LastUpdatedCell, RowActionSkeleton, SortableHeader, TimestampInfo } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import type { z } from "zod";
 import { IdentityExternalIdCell } from "../components/cells/identity-external-id-cell";
-import { IdentityLastUsedCell } from "../components/cells/identity-last-used-cell";
 
 type Identity = z.infer<typeof IdentityResponseSchema>;
 
@@ -15,7 +14,7 @@ const IdentityTableActionPopover = dynamic(
     import("@/components/identities-table/components/identity-table-actions").then(
       (mod) => mod.IdentityTableActions,
     ),
-  { ssr: false },
+  { loading: () => <RowActionSkeleton /> },
 );
 
 export const IDENTITY_COLUMN_IDS = {
@@ -55,11 +54,7 @@ export const createIdentitiesColumns = ({
     meta: {
       width: "10%",
     },
-    cell: ({ row }) => (
-      <div className="flex items-center px-3 py-1">
-        <span className="text-xs text-accent-11">{row.original.keys.length}</span>
-      </div>
-    ),
+    cell: ({ row }) => <span className="text-xs text-accent-11">{row.original.keys.length}</span>,
   },
   {
     id: IDENTITY_COLUMN_IDS.RATELIMITS,
@@ -85,15 +80,15 @@ export const createIdentitiesColumns = ({
       width: "15%",
     },
     cell: ({ row }) => (
-      <div className="flex items-center px-3 py-1">
-        <TimestampCell timestamp={row.original.createdAt} format="absolute" />
-      </div>
+      <TimestampInfo
+        value={row.original.createdAt}
+        className="font-mono group-hover:underline decoration-dotted"
+      />
     ),
   },
   {
     id: IDENTITY_COLUMN_IDS.LAST_USED,
-    // Dummy accessor required for TanStack getCanSort() — actual sorting is server-side (manualSorting).
-    accessorFn: () => 0,
+    accessorKey: "lastUsed",
     sortDescFirst: true,
     header: ({ header }) => <SortableHeader header={header}>Last Used</SortableHeader>,
     enableSorting: true,
@@ -101,9 +96,7 @@ export const createIdentitiesColumns = ({
       width: "15%",
     },
     cell: ({ row }) => (
-      <div className="flex items-center px-3 py-1">
-        <IdentityLastUsedCell identityId={row.original.id} isSelected={row.getIsSelected()} />
-      </div>
+      <LastUpdatedCell isSelected={row.getIsSelected()} lastUpdated={row.original.lastUsed} />
     ),
   },
   {

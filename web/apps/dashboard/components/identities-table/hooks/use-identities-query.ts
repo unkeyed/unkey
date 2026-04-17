@@ -149,7 +149,8 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
 
   return {
     identities: data?.identities ?? [],
-    isLoading: isInitialLoading,
+    isLoading,
+    isInitialLoading,
     isFetching,
     page: normalizedPage,
     pageSize: normalizedPageSize,

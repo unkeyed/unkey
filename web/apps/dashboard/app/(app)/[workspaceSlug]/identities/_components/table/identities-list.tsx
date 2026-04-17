@@ -39,7 +39,7 @@ export const IdentitiesList = () => {
 
   const {
     identities,
-    isLoading,
+    isInitialLoading,
     isFetching,
     page,
     pageSize,
@@ -72,7 +72,7 @@ export const IdentitiesList = () => {
     [workspace.slug],
   );
 
-  const isNavigating = isFetching && !isLoading;
+  const isNavigating = isFetching && !isInitialLoading;
 
   return (
     <>
@@ -80,7 +80,7 @@ export const IdentitiesList = () => {
         data={identities}
         columns={columns}
         getRowId={(identity) => identity.id}
-        isLoading={isLoading}
+        isLoading={isInitialLoading}
         enableSorting={true}
         manualSorting={true}
         sorting={sorting}
@@ -123,7 +123,7 @@ export const IdentitiesList = () => {
         totalCount={totalCount}
         onPageChange={onPageChange}
         itemLabel="identities"
-        loading={isLoading}
+        loading={isInitialLoading}
         disabled={isNavigating}
       />
     </>

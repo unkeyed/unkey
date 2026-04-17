@@ -27,6 +27,7 @@ export const IdentityResponseSchema = z.object({
   meta: z.record(z.string(), z.unknown()).nullable(),
   createdAt: z.number(),
   updatedAt: z.number().nullable(),
+  lastUsed: z.number().nullable(),
   keys: z.array(z.object({ id: z.string() })),
   ratelimits: z.array(
     z.object({
@@ -284,6 +285,43 @@ export const queryIdentities = workspaceProcedure
         },
       });
 
+      // Batch-fetch last-used timestamps from ClickHouse for all identities on this page.
+      // On ClickHouse failure, degrade gracefully — identities render with "Never used"
+      // rather than failing the entire query.
+      const identityIds = identitiesQuery.map((i) => i.id);
+      const lastUsedMap = new Map<string, number>();
+
+      if (identityIds.length > 0) {
+        const lastUsedQuery = clickhouse.querier.query({
+          query: `
+            SELECT
+              identity_id,
+              maxOrNull(toUnixTimestamp(time) * 1000) as last_used
+            FROM default.key_verifications_per_minute_v3
+            WHERE workspace_id = {workspaceId: String}
+              AND identity_id IN ({identityIds: Array(String)})
+            GROUP BY identity_id
+          `,
+          params: z.object({
+            workspaceId: z.string(),
+            identityIds: z.array(z.string()),
+          }),
+          schema: z.object({
+            identity_id: z.string(),
+            last_used: z.number().nullable(),
+          }),
+        });
+
+        const chResult = await lastUsedQuery({ workspaceId, identityIds });
+        if (!chResult.err) {
+          for (const row of chResult.val) {
+            if (row.last_used !== null) {
+              lastUsedMap.set(row.identity_id, row.last_used);
+            }
+          }
+        }
+      }
+
       let transformedIdentities = identitiesQuery.map((identity) => ({
         id: identity.id,
         externalId: identity.externalId,
@@ -292,6 +330,7 @@ export const queryIdentities = workspaceProcedure
         meta: identity.meta,
         createdAt: identity.createdAt,
         updatedAt: identity.updatedAt ? identity.updatedAt : null,
+        lastUsed: lastUsedMap.get(identity.id) ?? null,
         keys: identity.keys,
         ratelimits: identity.ratelimits,
       }));

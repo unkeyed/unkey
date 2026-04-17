@@ -103,7 +103,6 @@ import { githubRouter } from "./github";
 import { createIdentity } from "./identity/create";
 import { deleteIdentity } from "./identity/delete";
 import { getIdentityById } from "./identity/getById";
-import { identityLastVerificationTime } from "./identity/latestVerification";
 import { queryIdentities } from "./identity/query";
 import { queryIdentityLogs } from "./identity/query-logs";
 import { queryIdentityTimeseries } from "./identity/query-timeseries";
@@ -395,7 +394,6 @@ export const router = t.router({
     query: queryIdentities,
     search: searchIdentities,
     getById: getIdentityById,
-    latestVerification: identityLastVerificationTime,
     logs: t.router({
       query: queryIdentityLogs,
       timeseries: queryIdentityTimeseries,
