@@ -17,13 +17,13 @@ type MetricConfig = {
 const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   latency: {
     label: "Latency",
-    color: "hsl(var(--bronze-8))",
+    color: "var(--bronze-8)",
     unit: "ms",
     percentiles: ["p50", "p75", "p90", "p95", "p99"],
   },
   rps: {
     label: "RPS",
-    color: "hsl(var(--feature-8))",
+    color: "var(--feature-8)",
     unit: "req/s",
   },
 };

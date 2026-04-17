@@ -346,7 +346,7 @@ export const OverviewAreaChart = ({
               horizontal
               vertical={false}
               strokeDasharray="3 3"
-              stroke="hsl(var(--gray-6))"
+              stroke="var(--gray-6)"
               strokeOpacity={0.3}
               strokeWidth={1}
             />
@@ -355,7 +355,7 @@ export const OverviewAreaChart = ({
               isAnimationActive
               wrapperStyle={{ zIndex: 1000 }}
               cursor={{
-                stroke: "hsl(var(--accent-3))",
+                stroke: "var(--accent-3)",
                 strokeWidth: 1,
                 strokeDasharray: "5 5",
                 strokeOpacity: 0.7,
@@ -400,7 +400,7 @@ export const OverviewAreaChart = ({
               <ReferenceArea
                 x1={Math.min(Number(selection.start), Number(selection.end))}
                 x2={Math.max(Number(selection.start), Number(selection.end))}
-                fill="hsl(var(--chart-selection))"
+                fill="var(--chart-selection)"
                 fillOpacity={0.3}
               />
             )}

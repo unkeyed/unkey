@@ -19,7 +19,7 @@ export const CanvasBoundary = ({ children }: PropsWithChildren) => {
               className="relative dark:bg-grayA-1 bg-white border border-grayA-5 rounded-xl overflow-hidden"
               style={{
                 boxShadow:
-                  "0 4px 16px -4px rgba(0,0,0,0.15), 0 0 0 1px hsl(var(--errorA-3)), 0 0 30px color-mix(in srgb, hsl(var(--errorA-9)) 20%, transparent)",
+                  "0 4px 16px -4px rgba(0,0,0,0.15), 0 0 0 1px var(--errorA-3), 0 0 30px color-mix(in srgb, var(--errorA-9) 20%, transparent)",
               }}
             >
               {/* Error state indicator - top section */}
