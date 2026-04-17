@@ -84,14 +84,18 @@ export const ProjectDataProvider = ({
         .orderBy(({ domain }) => domain.createdAt, "desc"),
     [projectId],
   );
-  // refetch domains only when current deployment actually changes (not on initial mount)
+  // refetch domains only when current deployment actually changes (not on initial mount/hydration)
   const prevDeploymentIdRef = useRef(project?.currentDeploymentId);
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+  }, []);
   useEffect(() => {
     const currentId = project?.currentDeploymentId;
-    if (currentId && prevDeploymentIdRef.current !== currentId) {
-      prevDeploymentIdRef.current = currentId;
+    if (mountedRef.current && currentId && prevDeploymentIdRef.current !== currentId) {
       collection.domains.utils.refetch();
     }
+    prevDeploymentIdRef.current = currentId;
   }, [project?.currentDeploymentId]);
 
   const environmentsQuery = useLiveQuery(
