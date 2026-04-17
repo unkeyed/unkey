@@ -173,6 +173,10 @@ func generateAppJWT(appID int64, privateKeyPEM string) (string, error) {
 		IssuedAt:  now.Add(-60 * time.Second).Unix(),
 		ExpiresAt: now.Add(10 * time.Minute).Unix(),
 		Issuer:    strconv.FormatInt(appID, 10),
+		Subject:   "",
+		Audience:  nil,
+		NotBefore: 0,
+		ID:        "",
 	}
 
 	return signer.Sign(claims)

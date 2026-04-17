@@ -140,7 +140,7 @@ func setupGitHubApp(_ context.Context, cmd *cli.Command) error {
 			errCh <- fmt.Errorf("GitHub did not return a code")
 			return
 		}
-		fmt.Fprintf(w, "<html><body><p>App created! You can close this tab.</p></body></html>")
+		_, _ = fmt.Fprintf(w, "<html><body><p>App created! You can close this tab.</p></body></html>")
 		codeCh <- code
 	})
 
