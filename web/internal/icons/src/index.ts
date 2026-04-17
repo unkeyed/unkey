@@ -133,6 +133,7 @@ export * from "./icons/paperclip-2";
 export * from "./icons/pen-writing-3";
 export * from "./icons/plus";
 export * from "./icons/progress-bar";
+export * from "./icons/progress-circle";
 export * from "./icons/pulse";
 export * from "./icons/ram";
 export * from "./icons/refresh-3";

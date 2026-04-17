@@ -13,6 +13,14 @@ stringData:
   UNKEY_DATABASE_PRIMARY: "unkey:password@tcp(mysql.unkey.svc.cluster.local:3306)/unkey?parseTime=true&interpolateParams=true"
   UNKEY_DATABASE_REPLICA: "unkey:password@tcp(mysql.unkey.svc.cluster.local:3306)/unkey?parseTime=true&interpolateParams=true"
   UNKEY_CLICKHOUSE_URL: "clickhouse://default:password@clickhouse.unkey.svc.cluster.local:9000?secure=false&skip_verify=true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis
+  namespace: sentinel
+type: Opaque
+stringData:
   UNKEY_REDIS_URL: "redis://default:password@redis.unkey.svc.cluster.local:6379"
 ---
 apiVersion: v1
@@ -34,7 +42,7 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
-    resourceNames: ["database", "pprof"]
+    resourceNames: ["database", "redis", "pprof"]
     verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

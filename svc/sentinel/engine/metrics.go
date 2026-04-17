@@ -44,6 +44,22 @@ var (
 	)
 )
 
+// classifyRatelimitError maps a ratelimit executor error to a metric result label.
+func classifyRatelimitError(err error) string {
+	urn, ok := fault.GetCode(err)
+	if !ok {
+		return "error"
+	}
+
+	//nolint:exhaustive
+	switch urn {
+	case codes.Sentinel.Auth.RateLimited.URN():
+		return "denied"
+	default:
+		return "error"
+	}
+}
+
 // classifyKeyauthError maps a keyauth executor error to a metric result label.
 func classifyKeyauthError(err error) string {
 	urn, ok := fault.GetCode(err)
