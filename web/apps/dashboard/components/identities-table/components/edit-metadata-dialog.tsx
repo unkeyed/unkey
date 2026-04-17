@@ -1,5 +1,6 @@
 "use client";
 
+import { IdentityInfo } from "@/app/(app)/[workspaceSlug]/identities/_components/dialogs/identity-info";
 import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
 import { metadataSchema } from "@/lib/schemas/metadata";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
@@ -10,7 +11,6 @@ import { Button, DialogContainer, toast } from "@unkey/ui";
 import { type FC, useCallback, useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import type { z } from "zod";
-import { IdentityInfo } from "../dialogs/identity-info";
 
 type Identity = z.infer<typeof IdentityResponseSchema>;
 
@@ -47,6 +47,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
   const methods = useForm<z.infer<typeof metadataSchema>>({
     resolver: zodResolver(metadataSchema) as DiscriminatedUnionResolver<typeof metadataSchema>,
     defaultValues: getDefaultValues(),
+    mode: "onChange",
   });
 
   // Reset form when dialog opens
