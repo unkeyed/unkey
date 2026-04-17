@@ -1,68 +1,52 @@
 package ratelimit
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 	"github.com/unkeyed/unkey/pkg/repeat"
 )
 
-// expireWindowsAndBuckets runs a periodic cleanup of expired rate limit windows
-// and empty buckets. It prevents unbounded memory growth by removing state that
-// is no longer needed for rate limit decisions.
-//
-// The janitor runs every minute and:
-// 1. Removes windows that are older than 3x their duration
-// 2. Removes buckets that have no remaining windows
-// 3. Updates metrics for monitoring
-//
-// Thread Safety:
-//   - Safe for concurrent access with rate limit operations
-//   - Uses appropriate locks to prevent race conditions
-//
-// Performance:
-//   - O(n) where n is total number of windows
-//   - Runs in background goroutine
-//   - Minimal impact on rate limit operations
-//
-// Memory Management:
-//   - Prevents memory leaks from abandoned rate limits
-//   - Gracefully handles varying load patterns
-//   - Maintains optimal memory usage over time
-//
-// Example lifecycle:
-//   - Window created at t=0 with 1-minute duration
-//   - Window becomes inactive after 1 minute
-//   - Window removed by janitor after 3 minutes
-//   - Bucket removed when last window expires
-func (s *service) expireWindowsAndBuckets() {
+// startJanitor schedules runJanitorOnce to run every minute.
+func (s *service) startJanitor() {
+	repeat.Every(time.Minute, s.runJanitorOnce)
+}
 
-	repeat.Every(time.Minute, func() {
-		s.bucketsMu.Lock()
-		defer s.bucketsMu.Unlock()
+// runJanitorOnce performs a single cleanup pass. It prevents unbounded memory
+// growth from two sources:
+//
+//   - Sliding-window counters whose window ended more than 3x its duration ago.
+//   - Strict-mode deadlines that are already in the past.
+//
+// Uses sync.Map.Range + CompareAndDelete so cleanup never blocks rate limit
+// operations.
+func (s *service) runJanitorOnce() {
+	now := s.clock.Now()
+	activeCounters := float64(0)
 
-		windows := float64(0)
+	s.counters.Range(func(key, value any) bool {
+		k := key.(counterKey)
 
-		for bucketID, bucket := range s.buckets {
-			bucket.mu.Lock()
-			for sequence, window := range bucket.windows {
-				if s.clock.Now().After(window.start.Add(3 * window.duration)) {
-					delete(bucket.windows, sequence)
-					metrics.RatelimitWindowsEvicted.Inc()
-				} else {
-					windows++
-				}
-			}
-			if len(bucket.windows) == 0 {
-				delete(s.buckets, bucketID)
-				metrics.RatelimitBucketsEvicted.Inc()
-			}
+		windowStartMs := k.sequence * k.durationMs
+		duration := time.Duration(k.durationMs) * time.Millisecond
 
-			bucket.mu.Unlock()
+		if now.After(time.UnixMilli(windowStartMs).Add(3 * duration)) {
+			s.counters.CompareAndDelete(key, value)
+			metrics.RatelimitWindowsEvicted.Inc()
+		} else {
+			activeCounters++
 		}
-
-		metrics.RatelimitBuckets.Set(float64(len(s.buckets)))
-		metrics.RatelimitWindows.Set(windows)
+		return true
 	})
 
+	metrics.RatelimitWindows.Set(activeCounters)
+
+	nowMs := now.UnixMilli()
+	s.strictUntils.Range(func(key, value any) bool {
+		if value.(*atomic.Int64).Load() < nowMs {
+			s.strictUntils.CompareAndDelete(key, value)
+		}
+		return true
+	})
 }

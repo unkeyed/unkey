@@ -51,6 +51,12 @@ type sentinelAuth struct {
 	RateLimited Code
 }
 
+// sentinelFirewall defines errors raised by the Firewall policy.
+type sentinelFirewall struct {
+	// Denied represents a 403 error - request rejected by a Firewall policy with action=DENY
+	Denied Code
+}
+
 // UnkeySentinelErrors defines all sentinel-related errors in the Unkey system.
 // These errors occur when the sentinel service has issues routing requests to instances.
 type UnkeySentinelErrors struct {
@@ -65,6 +71,9 @@ type UnkeySentinelErrors struct {
 
 	// Auth contains errors related to sentinel authentication and authorization.
 	Auth sentinelAuth
+
+	// Firewall contains errors raised by the Firewall policy.
+	Firewall sentinelFirewall
 }
 
 // Sentinel contains all predefined sentinel error codes.
@@ -91,5 +100,8 @@ var Sentinel = UnkeySentinelErrors{
 		InvalidKey:              Code{SystemSentinel, CategoryUnauthorized, "invalid_key"},
 		InsufficientPermissions: Code{SystemSentinel, CategoryForbidden, "insufficient_permissions"},
 		RateLimited:             Code{SystemSentinel, CategoryRateLimited, "rate_limited"},
+	},
+	Firewall: sentinelFirewall{
+		Denied: Code{SystemSentinel, CategoryForbidden, "firewall_denied"},
 	},
 }

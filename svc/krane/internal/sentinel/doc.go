@@ -16,7 +16,9 @@
 //     control plane's SyncSentinels stream and applies it to Kubernetes.
 //
 //   - [Controller.runActualStateReportLoop]: Watches Kubernetes for Deployment
-//     changes and reports actual state back to the control plane.
+//     changes and reports actual state back to the control plane, including
+//     updated_replicas, ready_replicas, and observed_generation for rollout
+//     convergence tracking.
 //
 //   - [Controller.runResyncLoop]: Periodically re-queries the control plane
 //     for each existing sentinel to ensure eventual consistency.

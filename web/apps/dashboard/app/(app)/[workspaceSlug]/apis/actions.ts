@@ -1,5 +1,5 @@
 "use server";
-import { and, db, eq, isNull, schema, sql } from "@/lib/db";
+import { and, count, db, eq, inArray, isNull, schema, sql } from "@/lib/db";
 import type { ApisOverviewResponse } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
 
 export type ApiOverviewOptions = {
@@ -45,17 +45,9 @@ export async function fetchApiOverview({
   const nextCursor =
     hasMore && apiItems.length > 0 ? { id: apiItems[apiItems.length - 1].id } : undefined;
 
-  // Transform the data to include key information
-  const apiList = await Promise.all(
-    apiItems.map(async (api) => {
-      const keyspaceId = api.keyAuth?.id || null;
-
-      return {
-        id: api.id,
-        name: api.name,
-        keyspaceId,
-      };
-    }),
+  const apiList = await attachKeyCounts(
+    workspaceId,
+    apiItems.map((api) => ({ id: api.id, name: api.name, keyAuthId: api.keyAuth?.id ?? null })),
   );
 
   return {
@@ -70,25 +62,47 @@ type ApiItem = {
   id: string;
   name: string;
   keyAuthId: string | null;
-  keyAuth?: {
-    sizeApprox?: number;
-  } | null;
 };
 
 type ApiWithKeyCount = {
   id: string;
   name: string;
   keyspaceId: string | null;
-  keys: Array<{ count: number }>;
+  keyCount: number;
 };
 
-export async function apiItemsWithApproxKeyCounts(
+export async function attachKeyCounts(
+  workspaceId: string,
   apiItems: Array<ApiItem>,
 ): Promise<Array<ApiWithKeyCount>> {
+  const keyAuthIds = apiItems.map((api) => api.keyAuthId).filter((id): id is string => Boolean(id));
+
+  const keyCountsByKeyAuthId = new Map<string, number>();
+  if (keyAuthIds.length > 0) {
+    const rows = await db
+      .select({
+        keyAuthId: schema.keys.keyAuthId,
+        count: count(schema.keys.id),
+      })
+      .from(schema.keys)
+      .where(
+        and(
+          eq(schema.keys.workspaceId, workspaceId),
+          inArray(schema.keys.keyAuthId, keyAuthIds),
+          isNull(schema.keys.deletedAtM),
+        ),
+      )
+      .groupBy(schema.keys.keyAuthId);
+
+    for (const row of rows) {
+      keyCountsByKeyAuthId.set(row.keyAuthId, Number(row.count));
+    }
+  }
+
   return apiItems.map((api) => ({
     id: api.id,
     name: api.name,
     keyspaceId: api.keyAuthId,
-    keys: [{ count: api.keyAuth?.sizeApprox || 0 }],
+    keyCount: api.keyAuthId ? (keyCountsByKeyAuthId.get(api.keyAuthId) ?? 0) : 0,
   }));
 }

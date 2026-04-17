@@ -27,6 +27,7 @@ go_library(
         "//pkg/assert",
         "//pkg/cache",
         "//pkg/circuitbreaker",
+        "//pkg/conc",
         "//pkg/db/types",
         "//pkg/hash",
         "//pkg/logger",

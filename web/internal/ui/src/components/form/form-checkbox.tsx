@@ -1,14 +1,13 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import { Checkbox, type CheckboxProps } from "./checkbox";
-import { FormDescription, FormLabel } from "./form-helpers";
+import { FormDescription, FormLabel, type Requirement } from "./form-helpers";
 
 // Hack to populate fumadocs' AutoTypeTable
 type DocumentedFormCheckboxProps = {
   label?: string;
   description?: string | React.ReactNode;
-  required?: boolean;
-  optional?: boolean;
+  requirement?: Requirement;
   error?: string;
   variant?: CheckboxProps["variant"];
   color?: CheckboxProps["color"];
@@ -25,10 +24,9 @@ const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProps>(
       label,
       description,
       error,
-      required,
+      requirement,
       id,
       className,
-      optional,
       variant = "primary",
       color,
       size = "md",
@@ -55,15 +53,14 @@ const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProps>(
             size={size}
             aria-describedby={error ? errorId : description ? descriptionId : undefined}
             aria-invalid={Boolean(error)}
-            aria-required={required}
+            aria-required={requirement === "required"}
             {...props}
           />
           {label && (
             <div className="flex flex-col gap-1">
               <FormLabel
                 label={label}
-                required={required}
-                optional={optional}
+                requirement={requirement}
                 hasError={Boolean(error)}
                 htmlFor={checkboxId}
                 tooltipContent={descriptionAsTooltip ? description : undefined}

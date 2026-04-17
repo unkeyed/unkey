@@ -1,61 +1,44 @@
 /*
-Package ratelimit implements a distributed rate limiting system using a sliding window algorithm
-with cluster-wide state synchronization. It provides precise rate limiting across multiple nodes
-while maintaining low latency through local decision making and asynchronous state propagation.
+Package ratelimit implements lockless distributed rate limiting using a sliding window
+algorithm with atomic counters.
 
 # Architecture
 
-The rate limiter uses a sliding window algorithm with the following key components:
+All rate limit state is stored in a flat sync.Map of counter entries, keyed by
+(name, identifier, duration, sequence). Each entry holds an atomic.Int64 counter
+plus a sync.Once that gates the first origin hydration. There are no mutexes in
+the hot path:
 
-  - Buckets: Track rate limit state for each unique identifier+limit+duration combination
-  - Windows: Time-based counters that slide to maintain accurate request counts
-  - Origin Nodes: Designated by consistent hashing to be the source of truth for each identifier
-  - State Propagation: Asynchronous updates to maintain eventual consistency across the cluster
+  - Denials are wait-free: two atomic loads, arithmetic, return.
+  - Allows are lock-free: one atomic add after the check.
+
+Local counters are eventually consistent with Redis. Background replay workers push
+local increments via INCRBY and CAS-merge the global count back into the local atomic.
 
 # Rate Limit Algorithm
 
 The sliding window implementation:
 
- 1. Maintains separate counters for current and previous time windows
- 2. Calculates effective request count by combining:
-    - 100% of current window
-    - Weighted portion of previous window based on elapsed time
- 3. Uses consistent hashing to route requests to origin nodes
- 4. Propagates state changes asynchronously to maintain cluster-wide consistency
-
-# Usage
-
-To create a new rate limiting service:
-
-	svc, err := ratelimit.New(ratelimit.Config{
-	    Cluster: cluster,
-	    Clock:   clock,
-	})
-
-To check if a request is allowed:
-
-	resp, err := svc.Ratelimit(ctx, RatelimitRequest{
-	    Identifier: "user-123",
-	    Limit:      100,
-	    Duration:   time.Minute,
-	    Cost:      1,
-	})
+ 1. Computes sequence numbers for current and previous windows from the request time.
+ 2. Loads both atomic counters from the sync.Map (creating them if needed).
+ 3. Calculates effective request count: 100% of current window + weighted portion
+    of previous window based on elapsed time in the current window.
+ 4. If the effective count exceeds the limit, denies the request.
+ 5. Otherwise, atomically increments the current window counter and buffers
+    the request for async replay to Redis.
 
 # Thread Safety
 
-The package is designed to be thread-safe and can handle concurrent requests across
-multiple goroutines and nodes. All state modifications are protected by appropriate
-mutex locks.
+All operations are safe for concurrent use without external synchronization.
+The service uses sync.Map for counter storage and sync/atomic for counter updates.
 
 # Error Handling
 
 The service handles various error conditions:
-  - Invalid configurations (negative limits, zero durations)
-  - Network partitions between nodes
-  - Node failures and cluster changes
-  - Race conditions in distributed state
+  - Invalid configurations (empty identifiers, zero limits, short durations)
+  - Redis unavailability (continues with local-only decisions)
+  - Circuit breaker trips during sustained Redis failures
 
-See the RatelimitRequest and RatelimitResponse types for detailed documentation
-of the API contract and error conditions.
+See the [RatelimitRequest] and [RatelimitResponse] types for the API contract.
 */
 package ratelimit

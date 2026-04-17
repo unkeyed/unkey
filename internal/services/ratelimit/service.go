@@ -2,72 +2,133 @@ package ratelimit
 
 import (
 	"context"
-	"sort"
 	"sync"
-	"time"
+	"sync/atomic"
 
-	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/buffer"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/otel/tracing"
 
 	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
-	"go.opentelemetry.io/otel/attribute"
 )
 
-// originTimeout caps how long a hot-path counter.Get call can block waiting for
-// the origin (Redis). This protects request latency when the counter backend is
-// unreachable (e.g. DNS resolution hangs), allowing the service to fall back to
-// the local in-memory window value instead.
-const originTimeout = 150 * time.Millisecond
+// maxCASRetries bounds every CAS loop in the package to prevent livelock
+// under pathological contention. Under normal load, CAS retries are rare and
+// bounded by GOMAXPROCS; 100 is astronomically generous.
+const maxCASRetries = 100
 
-// service implements distributed rate limiting using a sliding window algorithm.
+// atomicMax raises target to val atomically via a bounded CAS loop.
+// The value only ever moves forward — a smaller val is a no-op. If the retry
+// bound is exhausted, an error is logged and the function returns without
+// updating; callers that depend on monotonic progress must tolerate stale
+// values in that case.
+func atomicMax(target *atomic.Int64, val int64) {
+	for range maxCASRetries {
+		cur := target.Load()
+		if val <= cur {
+			return
+		}
+		if target.CompareAndSwap(cur, val) {
+			return
+		}
+	}
+	logger.Error("atomicMax retries exhausted, proceeding with stale counter")
+}
+
+// counterEntry pairs a sliding-window counter with a sync.Once that gates
+// origin hydration. The fetch closure is bound at entry creation so the
+// hot path doesn't need to allocate a per-call closure to pass into
+// Hydrate. The hydrated flag is a fast-path optimization: once set,
+// callers skip sync.Once.Do entirely. The sync.Once still enforces
+// correctness on the first call — concurrent callers on a cold entry
+// block inside Do until the first fetch returns, closing the race where
+// LoadOrStore would hand out a zero-valued counter to late arrivals
+// before the owner finished hydrating it.
+type counterEntry struct {
+	val      atomic.Int64
+	once     sync.Once
+	hydrated atomic.Bool
+	fetch    func(context.Context) int64
+}
+
+// Hydrate populates val from the bound fetcher exactly once. The fetched
+// value is CAS-merged via atomicMax so the local counter only moves
+// forward. Concurrent callers on a cold entry block inside Do until the
+// first fetch returns; subsequent callers return after a single atomic
+// load of hydrated. A fetch failure surfaces as a returned 0, which
+// atomicMax treats as a no-op — the entry is left at whatever val held
+// before (typically 0 on a failed first hydration) and marked hydrated
+// so the hot path stays fast.
+func (e *counterEntry) Hydrate(ctx context.Context) {
+	if e.hydrated.Load() {
+		return
+	}
+	e.once.Do(func() {
+		atomicMax(&e.val, e.fetch(ctx))
+		e.hydrated.Store(true)
+	})
+}
+
+// service implements lockless distributed rate limiting using a sliding window
+// algorithm with atomic counters.
 //
-// The service maintains an in-memory cache of rate limit windows that is synchronized
-// with Redis via an async replay buffer. This hybrid approach provides low latency
-// for common cases while ensuring accuracy across multiple nodes.
+// All rate limit state is stored in two flat sync.Maps with no mutexes in
+// the hot path:
 //
-// Local counters are eventually consistent with Redis. During the brief window before
-// replay completes, multiple nodes may each allow slightly more requests than the
-// configured limit (over-admission). This trade-off was chosen to minimize latency
-// for the 99% case while accepting occasional slack in the rate limit.
+//   - counters: per-window counter entries keyed by (name, identifier,
+//     duration, sequence). Each entry holds the window's request count plus
+//     a sync.Once coordinating the first origin hydration.
+//   - strictUntils: per-identifier deadlines keyed by (name, identifier,
+//     duration). Set when a request is denied; subsequent requests on the
+//     same identifier force an origin fetch until the deadline passes.
+//
+// Keeping them in separate maps means strictUntil's lifecycle is decoupled
+// from any single window's sequence, which matches the semantics: a denial
+// in window N triggers strict enforcement that can extend into window N+1.
+//
+// Ratelimit uses a CAS loop: denials are wait-free (single atomic Load), allows
+// retry only when another goroutine incremented the same counter between Load
+// and CAS. RatelimitMany uses optimistic Add with rollback for atomic
+// all-or-nothing batch semantics.
+//
+// Local counters are eventually consistent with Redis. Background replay workers
+// push local increments to Redis and CAS-merge the global count back into the
+// local atomic counter.
 type service struct {
-	// clock provides time-related functionality, can be mocked for testing
 	clock clock.Clock
 
-	// shutdownCh signals service shutdown
-	shutdownCh chan struct{}
+	// counters maps counterKey -> *atomic.Int64.
+	// Each entry is one sliding window's request count for a specific
+	// (name, identifier, duration) combination.
+	counters sync.Map
 
-	// bucketsMu protects access to the buckets map
-	bucketsMu sync.RWMutex
+	// strictUntils maps strictKey -> *atomic.Int64 storing unix millis.
+	// When non-zero and in the future, Ratelimit forces a synchronous origin
+	// fetch for the keyed (name, identifier, duration) tuple before deciding,
+	// trading latency for tighter convergence after a denial.
+	strictUntils sync.Map
 
-	// buckets maps identifier+sequence to rate limit buckets
-	// Protected by bucketsMu
-	buckets map[string]*bucket
+	// origin is the distributed source-of-truth counter (typically Redis).
+	// Local atomics in `counters` converge toward origin via async replay.
+	origin counter.Counter
 
-	// counter is the distributed counter implementation
-	counter counter.Counter
-
-	// replayBuffer holds rate limit events for async propagation
-	// Thread-safe internally
+	// replayBuffer holds rate limit events for async propagation to Redis.
 	replayBuffer *buffer.Buffer[RatelimitRequest]
 
-	// replayCircuitBreaker prevents cascading failures during peer communication
-	// Thread-safe internally
-	replayCircuitBreaker circuitbreaker.CircuitBreaker[int64]
+	// originCircuitBreaker wraps every call to the origin counter (both
+	// replay INCR and cold/strict-mode GET). When tripped, requests use
+	// whatever local state is available rather than blocking on Redis.
+	originCircuitBreaker circuitbreaker.CircuitBreaker[int64]
 }
 
 // Config holds configuration for creating a new rate limiting service.
 type Config struct {
-
 	// Clock for time-related operations. If nil, uses system clock.
 	Clock clock.Clock
 
 	// Counter is the distributed counter backend (typically Redis).
-	// Required - rate limiting cannot function without a counter.
 	Counter counter.Counter
 }
 
@@ -75,7 +136,7 @@ type Config struct {
 //
 // The service starts 8 background goroutines to process the replay buffer,
 // synchronizing local rate limit state with Redis. It also starts a goroutine
-// to periodically clean up expired rate limit windows.
+// to periodically clean up expired counters.
 //
 // Call Close when done to release resources.
 func New(config Config) (*service, error) {
@@ -84,22 +145,20 @@ func New(config Config) (*service, error) {
 	}
 
 	s := &service{
-		clock:      config.Clock,
-		shutdownCh: make(chan struct{}),
-		bucketsMu:  sync.RWMutex{},
-		buckets:    make(map[string]*bucket),
-		counter:    config.Counter,
+		clock:        config.Clock,
+		counters:     sync.Map{}, //nolint:exhaustruct // sync.Map zero value is ready to use
+		strictUntils: sync.Map{}, //nolint:exhaustruct // sync.Map zero value is ready to use
+		origin:       config.Counter,
 		replayBuffer: buffer.New[RatelimitRequest](buffer.Config{
 			Name:     "ratelimit_replays",
 			Capacity: 10_000,
 			Drop:     true,
 		}),
-		replayCircuitBreaker: circuitbreaker.New[int64]("replayRatelimitRequest"),
+		originCircuitBreaker: circuitbreaker.New[int64]("ratelimitOrigin"),
 	}
 
-	s.expireWindowsAndBuckets()
+	s.startJanitor()
 
-	// start multiple goroutines to do replays
 	for range 8 {
 		go s.replayRequests()
 	}
@@ -108,297 +167,46 @@ func New(config Config) (*service, error) {
 }
 
 // Close stops the replay buffer and releases resources.
-// The service must not be used after calling Close.
 func (s *service) Close() error {
 	s.replayBuffer.Close()
 	return nil
 }
 
-// calculateRateLimit implements the sliding window algorithm to determine if a request
-// would exceed the rate limit.
-//
-// The algorithm smoothly transitions between time windows by weighting the previous
-// window's count based on how far into the current window we are. This provides more
-// accurate rate limiting than fixed windows while remaining simple to implement.
-//
-// Returns (exceeded, effectiveCount, remaining) where remaining can be negative if
-// the limit is exceeded. Callers should clamp remaining to 0 before returning to users.
-func (s *service) calculateRateLimit(req RatelimitRequest, currentWindow, previousWindow *window) (bool, int64, int64) {
-	// Calculate time elapsed in current window (as a fraction)
-	windowElapsed := float64(req.Time.Sub(currentWindow.start).Milliseconds()) / float64(req.Duration.Milliseconds())
-
-	// Pure sliding window calculation:
-	// - We count 100% of current window
-	// - We count a decreasing portion of previous window based on how far we are into current window
-	effectiveCount := currentWindow.counter + int64(float64(previousWindow.counter)*(1.0-windowElapsed))
-
-	effectiveCount += req.Cost
-
-	// Calculate remaining (could be negative if limit is exceeded)
-	remaining := req.Limit - effectiveCount
-
-	// Check if this request would exceed the limit
-	exceeded := effectiveCount > req.Limit
-
-	return exceeded, effectiveCount, remaining
+// loadCounter returns the counter entry for the given key, creating it if needed.
+// Newly created entries carry a fetcher closure bound to the key, so callers
+// only need to invoke entry.Hydrate(ctx) to ensure the counter has been
+// populated from origin. Callers that skip Hydrate risk reading a zero-valued
+// counter while another goroutine is mid-fetch.
+func (s *service) loadCounter(key counterKey) *counterEntry {
+	if v, ok := s.counters.Load(key); ok {
+		return v.(*counterEntry)
+	}
+	fresh := &counterEntry{ //nolint:exhaustruct // other fields zero-initialize correctly
+		fetch: func(ctx context.Context) int64 { return s.fetchFromOrigin(ctx, key) },
+	}
+	actual, loaded := s.counters.LoadOrStore(key, fresh)
+	if !loaded {
+		metrics.RatelimitWindowsCreated.Inc()
+	}
+	return actual.(*counterEntry)
 }
 
-// Type to track request with its key and index
-type reqWithKey struct {
-	req   RatelimitRequest
-	key   bucketKey
-	index int
+// loadStrictUntil returns the unix-millis deadline for strict-enforcement
+// mode on this (name, identifier, duration) tuple, or 0 if no deadline is set.
+func (s *service) loadStrictUntil(key strictKey) int64 {
+	val, ok := s.strictUntils.Load(key)
+	if !ok {
+		return 0
+	}
+	return val.(*atomic.Int64).Load()
 }
 
-// RatelimitMany checks multiple rate limits atomically.
-//
-// All rate limit checks must pass for the request to be allowed. If any limit fails,
-// none of the counters are incremented. This all-or-nothing behavior prevents counter
-// leaks when a key has multiple rate limits (e.g., per-minute and per-month).
-//
-// The method acquires locks on all unique buckets (sorted to prevent deadlock) and
-// holds them while checking limits and incrementing counters. This ensures no race
-// conditions occur between check and increment.
-//
-// Returns validation errors for invalid request parameters (empty identifier, zero limit,
-// negative cost, or duration less than 1 second).
-func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([]RatelimitResponse, error) {
-	_, span := tracing.Start(ctx, "RatelimitMany")
-	defer span.End()
-
-	for i := range reqs {
-		if reqs[i].Time.IsZero() {
-			reqs[i].Time = s.clock.Now()
-		}
-
-		err := assert.All(
-			assert.NotEmpty(reqs[i].Name, "ratelimit name must not be empty"),
-			assert.NotEmpty(reqs[i].Identifier, "ratelimit identifier must not be empty"),
-			assert.Greater(reqs[i].Limit, 0, "ratelimit limit must be greater than zero"),
-			assert.GreaterOrEqual(reqs[i].Cost, 0, "ratelimit cost must not be negative"),
-			assert.GreaterOrEqual(reqs[i].Duration.Milliseconds(), 1000, "ratelimit duration must be at least 1s"),
-			assert.False(reqs[i].Time.IsZero(), "request time must not be zero"),
-		)
-		if err != nil {
-			return []RatelimitResponse{}, err
-		}
-	}
-
-	// Build and sort keys first (before getting buckets)
-	reqsWithKeys := make([]reqWithKey, len(reqs))
-	for i, req := range reqs {
-		key := bucketKey{name: req.Name, identifier: req.Identifier, duration: req.Duration}
-		reqsWithKeys[i] = reqWithKey{
-			req:   req,
-			key:   key,
-			index: i,
-		}
-	}
-
-	// Sort by key to ensure consistent ordering (prevents deadlock)
-	sort.Slice(reqsWithKeys, func(i, j int) bool {
-		return reqsWithKeys[i].key.toString() < reqsWithKeys[j].key.toString()
-	})
-
-	// Get unique buckets in sorted order and deduplicate
-	uniqueBuckets := make([]*bucket, 0, len(reqs))
-	bucketMap := make(map[bucketKey]*bucket)
-
-	for _, rwk := range reqsWithKeys {
-		if _, exists := bucketMap[rwk.key]; !exists {
-			b, _ := s.getOrCreateBucket(rwk.key)
-			bucketMap[rwk.key] = b
-			uniqueBuckets = append(uniqueBuckets, b)
-		}
-	}
-
-	// Acquire locks on unique buckets only (already sorted)
-	for _, b := range uniqueBuckets {
-		b.mu.Lock()
-		defer b.mu.Unlock()
-	}
-
-	// Check all limits while holding locks
-	responses := make([]RatelimitResponse, len(reqs))
-	allPassed := true
-
-	for _, rwk := range reqsWithKeys {
-		bucket := bucketMap[rwk.key]
-
-		// Check limit with lock already held
-		res, err := s.checkBucketWithLockHeld(ctx, rwk.req, bucket)
-		if err != nil {
-			return nil, err
-		}
-		responses[rwk.index] = res
-
-		if !res.Success {
-			allPassed = false
-			// Don't break - check all limits to return complete status
-		}
-	}
-
-	span.SetAttributes(attribute.Bool("passed", allPassed))
-
-	// If all passed, increment all counters (still holding locks!)
-	if allPassed {
-		for _, rwk := range reqsWithKeys {
-			bucket := bucketMap[rwk.key]
-			currentWindow, _ := bucket.getCurrentWindow(rwk.req.Time)
-			currentWindow.counter += rwk.req.Cost
-
-			s.replayBuffer.Buffer(rwk.req)
-		}
-	} else {
-
-		// At least one failed - adjust remaining values
-		for i, res := range responses {
-			if res.Success {
-				responses[i].Remaining += reqs[i].Cost
-			}
-		}
-	}
-
-	// Clamp all remaining values
-	for i := range responses {
-		responses[i].Remaining = max(0, responses[i].Remaining)
-	}
-
-	return responses, nil
-}
-
-func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (RatelimitResponse, error) {
-	_, span := tracing.Start(ctx, "Ratelimit")
-	defer span.End()
-
-	if req.Time.IsZero() {
-		req.Time = s.clock.Now()
-	}
-
-	err := assert.All(
-		assert.NotEmpty(req.Identifier, "ratelimit identifier must not be empty"),
-		assert.NotEmpty(req.Name, "ratelimit name must not be empty"),
-		assert.Greater(req.Limit, 0, "ratelimit limit must be greater than zero"),
-		assert.GreaterOrEqual(req.Cost, 0, "ratelimit cost must not be negative"),
-		assert.GreaterOrEqual(req.Duration.Milliseconds(), 1000, "ratelimit duration must be at least 1s"),
-		assert.False(req.Time.IsZero(), "request time must not be zero"),
-	)
-	if err != nil {
-		return RatelimitResponse{}, err
-	}
-
-	key := bucketKey{name: req.Name, identifier: req.Identifier, duration: req.Duration}
-	span.SetAttributes(attribute.String("key", key.toString()))
-	b, _ := s.getOrCreateBucket(key)
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	// Use the shared method
-	res, err := s.checkBucketWithLockHeld(ctx, req, b)
-	if err != nil {
-		return RatelimitResponse{}, err
-	}
-	span.SetAttributes(attribute.Bool("passed", res.Success))
-
-	// If successful, increment counter and buffer
-	if res.Success {
-		currentWindow, _ := b.getCurrentWindow(req.Time)
-		currentWindow.counter += req.Cost
-		s.replayBuffer.Buffer(req)
-	}
-
-	return res, nil
-}
-
-// checkBucketWithLockHeld evaluates a rate limit request with the bucket lock already held.
-// The caller MUST hold bucket.mu.Lock() before calling this.
-func (s *service) checkBucketWithLockHeld(ctx context.Context, req RatelimitRequest, b *bucket) (RatelimitResponse, error) {
-	_, span := tracing.Start(ctx, "checkBucketWithLockHeld")
-	defer span.End()
-
-	currentWindow, currentWindowExisted := b.getCurrentWindow(req.Time)
-	previousWindow, previousWindowExisted := b.getPreviousWindow(req.Time)
-
-	decisionSource := "local"
-
-	// First, try to make a decision based only on local data
-	if currentWindowExisted && previousWindowExisted {
-		exceeded, effectiveCount, remaining := s.calculateRateLimit(req, currentWindow, previousWindow)
-
-		if exceeded {
-			b.strictUntil = req.Time.Add(req.Duration)
-			metrics.RatelimitDecision.WithLabelValues(decisionSource, "denied").Inc()
-		} else {
-			metrics.RatelimitDecision.WithLabelValues(decisionSource, "passed").Inc()
-		}
-
-		return RatelimitResponse{
-			Success:   !exceeded,
-			Remaining: max(0, remaining),
-			Reset:     currentWindow.start.Add(currentWindow.duration),
-			Limit:     req.Limit,
-			Current:   effectiveCount,
-		}, nil
-	}
-
-	// If we couldn't make a local decision, proceed with Redis checks if needed.
-	// Use a tight deadline so a DNS or network hang doesn't stall the request;
-	// the local counter value is still usable if the origin is unreachable.
-	goToOrigin := req.Time.UnixMilli() < b.strictUntil.UnixMilli()
-	originCtx, originCancel := context.WithTimeout(ctx, originTimeout)
-	defer originCancel()
-
-	if goToOrigin || !currentWindowExisted {
-		decisionSource = "origin"
-		currentKey := counterKey(b.key(), currentWindow.sequence)
-		res, err := s.counter.Get(originCtx, currentKey)
-		if err != nil {
-			logger.Error("unable to get counter value",
-				"key", currentKey,
-				"error", err.Error(),
-			)
-		} else {
-			currentWindow.counter = max(currentWindow.counter, res)
-		}
-	}
-
-	if goToOrigin || !previousWindowExisted {
-		decisionSource = "origin"
-		previousKey := counterKey(b.key(), previousWindow.sequence)
-		res, err := s.counter.Get(originCtx, previousKey)
-		if err != nil {
-			logger.Error("unable to get counter value",
-				"key", previousKey,
-				"error", err.Error(),
-			)
-		} else {
-			previousWindow.counter = max(previousWindow.counter, res)
-		}
-	}
-
-	// Now check again with potentially updated data from Redis
-	exceeded, effectiveCount, remaining := s.calculateRateLimit(req, currentWindow, previousWindow)
-
-	if exceeded {
-		b.strictUntil = req.Time.Add(req.Duration)
-		metrics.RatelimitDecision.WithLabelValues(decisionSource, "denied").Inc()
-
-		return RatelimitResponse{
-			Success:   false,
-			Remaining: max(0, remaining),
-			Reset:     currentWindow.start.Add(currentWindow.duration),
-			Limit:     req.Limit,
-			Current:   effectiveCount,
-		}, nil
-	}
-
-	metrics.RatelimitDecision.WithLabelValues(decisionSource, "passed").Inc()
-
-	return RatelimitResponse{
-		Success:   true,
-		Remaining: remaining,
-		Reset:     currentWindow.start.Add(currentWindow.duration),
-		Limit:     req.Limit,
-		Current:   effectiveCount,
-	}, nil
+// setStrictUntil raises the strict-enforcement deadline to untilMs, atomically.
+// The deadline only ever moves forward — a concurrent caller setting an earlier
+// deadline is a no-op. Every call counts as a strict-mode activation for
+// observability, regardless of whether the deadline actually advanced.
+func (s *service) setStrictUntil(key strictKey, untilMs int64) {
+	val, _ := s.strictUntils.LoadOrStore(key, &atomic.Int64{})
+	atomicMax(val.(*atomic.Int64), untilMs)
+	metrics.RatelimitStrictModeActivations.Inc()
 }

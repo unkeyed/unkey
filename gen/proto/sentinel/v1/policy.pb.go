@@ -60,9 +60,8 @@ type Policy struct {
 	//
 	//	*Policy_Keyauth
 	//	*Policy_Jwtauth
-	//	*Policy_Basicauth
 	//	*Policy_Ratelimit
-	//	*Policy_IpRules
+	//	*Policy_Firewall
 	//	*Policy_Openapi
 	Config        isPolicy_Config `protobuf_oneof:"config"`
 	unknownFields protoimpl.UnknownFields
@@ -152,15 +151,6 @@ func (x *Policy) GetJwtauth() *JWTAuth {
 	return nil
 }
 
-func (x *Policy) GetBasicauth() *BasicAuth {
-	if x != nil {
-		if x, ok := x.Config.(*Policy_Basicauth); ok {
-			return x.Basicauth
-		}
-	}
-	return nil
-}
-
 func (x *Policy) GetRatelimit() *RateLimit {
 	if x != nil {
 		if x, ok := x.Config.(*Policy_Ratelimit); ok {
@@ -170,10 +160,10 @@ func (x *Policy) GetRatelimit() *RateLimit {
 	return nil
 }
 
-func (x *Policy) GetIpRules() *IPRules {
+func (x *Policy) GetFirewall() *Firewall {
 	if x != nil {
-		if x, ok := x.Config.(*Policy_IpRules); ok {
-			return x.IpRules
+		if x, ok := x.Config.(*Policy_Firewall); ok {
+			return x.Firewall
 		}
 	}
 	return nil
@@ -200,16 +190,12 @@ type Policy_Jwtauth struct {
 	Jwtauth *JWTAuth `protobuf:"bytes,6,opt,name=jwtauth,proto3,oneof"`
 }
 
-type Policy_Basicauth struct {
-	Basicauth *BasicAuth `protobuf:"bytes,7,opt,name=basicauth,proto3,oneof"`
-}
-
 type Policy_Ratelimit struct {
 	Ratelimit *RateLimit `protobuf:"bytes,8,opt,name=ratelimit,proto3,oneof"`
 }
 
-type Policy_IpRules struct {
-	IpRules *IPRules `protobuf:"bytes,9,opt,name=ip_rules,json=ipRules,proto3,oneof"`
+type Policy_Firewall struct {
+	Firewall *Firewall `protobuf:"bytes,9,opt,name=firewall,proto3,oneof"`
 }
 
 type Policy_Openapi struct {
@@ -220,11 +206,9 @@ func (*Policy_Keyauth) isPolicy_Config() {}
 
 func (*Policy_Jwtauth) isPolicy_Config() {}
 
-func (*Policy_Basicauth) isPolicy_Config() {}
-
 func (*Policy_Ratelimit) isPolicy_Config() {}
 
-func (*Policy_IpRules) isPolicy_Config() {}
+func (*Policy_Firewall) isPolicy_Config() {}
 
 func (*Policy_Openapi) isPolicy_Config() {}
 
@@ -232,7 +216,7 @@ var File_policies_v1_policy_proto protoreflect.FileDescriptor
 
 const file_policies_v1_policy_proto_rawDesc = "" +
 	"\n" +
-	"\x18policies/v1/policy.proto\x12\vsentinel.v1\x1a\x1bpolicies/v1/basicauth.proto\x1a\x19policies/v1/iprules.proto\x1a\x19policies/v1/jwtauth.proto\x1a\x19policies/v1/keyauth.proto\x1a\x17policies/v1/match.proto\x1a\x19policies/v1/openapi.proto\x1a\x1bpolicies/v1/ratelimit.proto\"\xc8\x03\n" +
+	"\x18policies/v1/policy.proto\x12\vsentinel.v1\x1a\x1apolicies/v1/firewall.proto\x1a\x19policies/v1/jwtauth.proto\x1a\x19policies/v1/keyauth.proto\x1a\x17policies/v1/match.proto\x1a\x19policies/v1/openapi.proto\x1a\x1bpolicies/v1/ratelimit.proto\"\x92\x03\n" +
 	"\x06Policy\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
@@ -240,9 +224,8 @@ const file_policies_v1_policy_proto_rawDesc = "" +
 	"\x05match\x18\x04 \x03(\v2\x16.sentinel.v1.MatchExprR\x05match\x120\n" +
 	"\akeyauth\x18\x05 \x01(\v2\x14.sentinel.v1.KeyAuthH\x00R\akeyauth\x120\n" +
 	"\ajwtauth\x18\x06 \x01(\v2\x14.sentinel.v1.JWTAuthH\x00R\ajwtauth\x126\n" +
-	"\tbasicauth\x18\a \x01(\v2\x16.sentinel.v1.BasicAuthH\x00R\tbasicauth\x126\n" +
-	"\tratelimit\x18\b \x01(\v2\x16.sentinel.v1.RateLimitH\x00R\tratelimit\x121\n" +
-	"\bip_rules\x18\t \x01(\v2\x14.sentinel.v1.IPRulesH\x00R\aipRules\x12A\n" +
+	"\tratelimit\x18\b \x01(\v2\x16.sentinel.v1.RateLimitH\x00R\tratelimit\x123\n" +
+	"\bfirewall\x18\t \x01(\v2\x15.sentinel.v1.FirewallH\x00R\bfirewall\x12A\n" +
 	"\aopenapi\x18\n" +
 	" \x01(\v2%.sentinel.v1.OpenApiRequestValidationH\x00R\aopenapiB\b\n" +
 	"\x06configB\xa6\x01\n" +
@@ -266,24 +249,22 @@ var file_policies_v1_policy_proto_goTypes = []any{
 	(*MatchExpr)(nil),                // 1: sentinel.v1.MatchExpr
 	(*KeyAuth)(nil),                  // 2: sentinel.v1.KeyAuth
 	(*JWTAuth)(nil),                  // 3: sentinel.v1.JWTAuth
-	(*BasicAuth)(nil),                // 4: sentinel.v1.BasicAuth
-	(*RateLimit)(nil),                // 5: sentinel.v1.RateLimit
-	(*IPRules)(nil),                  // 6: sentinel.v1.IPRules
-	(*OpenApiRequestValidation)(nil), // 7: sentinel.v1.OpenApiRequestValidation
+	(*RateLimit)(nil),                // 4: sentinel.v1.RateLimit
+	(*Firewall)(nil),                 // 5: sentinel.v1.Firewall
+	(*OpenApiRequestValidation)(nil), // 6: sentinel.v1.OpenApiRequestValidation
 }
 var file_policies_v1_policy_proto_depIdxs = []int32{
 	1, // 0: sentinel.v1.Policy.match:type_name -> sentinel.v1.MatchExpr
 	2, // 1: sentinel.v1.Policy.keyauth:type_name -> sentinel.v1.KeyAuth
 	3, // 2: sentinel.v1.Policy.jwtauth:type_name -> sentinel.v1.JWTAuth
-	4, // 3: sentinel.v1.Policy.basicauth:type_name -> sentinel.v1.BasicAuth
-	5, // 4: sentinel.v1.Policy.ratelimit:type_name -> sentinel.v1.RateLimit
-	6, // 5: sentinel.v1.Policy.ip_rules:type_name -> sentinel.v1.IPRules
-	7, // 6: sentinel.v1.Policy.openapi:type_name -> sentinel.v1.OpenApiRequestValidation
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	4, // 3: sentinel.v1.Policy.ratelimit:type_name -> sentinel.v1.RateLimit
+	5, // 4: sentinel.v1.Policy.firewall:type_name -> sentinel.v1.Firewall
+	6, // 5: sentinel.v1.Policy.openapi:type_name -> sentinel.v1.OpenApiRequestValidation
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_policies_v1_policy_proto_init() }
@@ -291,8 +272,7 @@ func file_policies_v1_policy_proto_init() {
 	if File_policies_v1_policy_proto != nil {
 		return
 	}
-	file_policies_v1_basicauth_proto_init()
-	file_policies_v1_iprules_proto_init()
+	file_policies_v1_firewall_proto_init()
 	file_policies_v1_jwtauth_proto_init()
 	file_policies_v1_keyauth_proto_init()
 	file_policies_v1_match_proto_init()
@@ -301,9 +281,8 @@ func file_policies_v1_policy_proto_init() {
 	file_policies_v1_policy_proto_msgTypes[0].OneofWrappers = []any{
 		(*Policy_Keyauth)(nil),
 		(*Policy_Jwtauth)(nil),
-		(*Policy_Basicauth)(nil),
 		(*Policy_Ratelimit)(nil),
-		(*Policy_IpRules)(nil),
+		(*Policy_Firewall)(nil),
 		(*Policy_Openapi)(nil),
 	}
 	type x struct{}

@@ -112,14 +112,21 @@ func New(cfg Config) *Controller {
 
 // Start launches the background control loops.
 //
-// The method starts [Controller.runResyncLoop] as a background goroutine and
-// initializes [Controller.runPodWatchLoop]'s Kubernetes watch before returning.
-// Desired state is received externally via the watcher package.
-// If watch initialization fails, Start returns the error.
+// Three independent loops run concurrently:
+//   - [Controller.runActualStateResyncLoop]: periodic safety net for instance
+//     state reporting (complements the real-time pod watch).
+//   - [Controller.runDesiredStateResyncLoop]: periodic reconciliation of desired
+//     state from the control plane (complements the streaming channel).
+//   - [Controller.runPodWatchLoop]: real-time Kubernetes watch for pod events.
 //
+// The actual-state and desired-state loops are decoupled so that slow control
+// plane RPCs cannot delay instance reporting.
+//
+// If watch initialization fails, Start returns the error.
 // All loops continue until the context is cancelled or [Controller.Stop] is called.
 func (c *Controller) Start(ctx context.Context) error {
-	go c.runResyncLoop(ctx)
+	go c.runActualStateResyncLoop(ctx)
+	go c.runDesiredStateResyncLoop(ctx)
 
 	if err := c.runPodWatchLoop(ctx); err != nil {
 		return err

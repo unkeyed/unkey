@@ -19,7 +19,7 @@ export const GeneralSetup = () => {
         {...register("externalId")}
         placeholder="user_123 or user@example.com"
         data-1p-ignore
-        required
+        requirement="required"
       />
     </div>
   );

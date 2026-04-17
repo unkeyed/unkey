@@ -7,36 +7,24 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // Promote reassigns all domains to the target deployment via a Restate workflow.
-// This is typically used after a rollback to restore the original deployment, or
-// to switch traffic to a new deployment that was previously in a preview state.
-// The workflow runs synchronously (blocking until complete) and is keyed by
-// workspace ID to prevent concurrent promotion operations on the same workspace.
+// The atomic mutation (route reassignment + apps.current_deployment_id update)
+// runs inside RoutingService.SwapLiveDeployment, which is per-env serialized.
+// The workflow itself is keyed by target deployment_id.
 func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.PromoteRequest]) (*connect.Response[ctrlv1.PromoteResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	logger.Info("initiating promotion via Restate",
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
 
-	// Get target deployment to determine workspace ID for keying
-	targetDeployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), req.Msg.GetTargetDeploymentId())
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", req.Msg.GetTargetDeploymentId()))
-		}
-		logger.Error("failed to get deployment",
-			"deployment_id", req.Msg.GetTargetDeploymentId(),
-			"error", err.Error(),
-		)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
-	}
-
-	// Call the Restate workflow using workspace ID as the key
-	// This ensures only one operation per workspace can run at a time during beta
-	_, err = s.deploymentClient(targetDeployment.WorkspaceID).
+	_, err := s.deploymentClient(req.Msg.GetTargetDeploymentId()).
 		Promote().
 		Request(ctx, &hydrav1.PromoteRequest{
 			TargetDeploymentId: req.Msg.GetTargetDeploymentId(),

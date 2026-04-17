@@ -8,10 +8,16 @@ import (
 
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	rl "github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
+	firewallExec "github.com/unkeyed/unkey/svc/sentinel/engine/firewall"
+	keyauthExec "github.com/unkeyed/unkey/svc/sentinel/engine/keyauth"
+	"github.com/unkeyed/unkey/svc/sentinel/engine/principal"
+	ratelimitExec "github.com/unkeyed/unkey/svc/sentinel/engine/ratelimit"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -21,8 +27,9 @@ const PrincipalHeader = "X-Unkey-Principal"
 
 // Config holds the configuration for creating a new Engine.
 type Config struct {
-	KeyService keys.KeyService
-	Clock      clock.Clock
+	KeyService  keys.KeyService
+	RateLimiter rl.Service
+	Clock       clock.Clock
 }
 
 // Evaluator evaluates sentinel middleware policies against incoming requests.
@@ -32,26 +39,34 @@ type Evaluator interface {
 
 // Engine implements Evaluator.
 type Engine struct {
-	keyAuth    *KeyAuthExecutor
-	regexCache *regexCache
+	keyAuth     *keyauthExec.Executor
+	rateLimiter *ratelimitExec.Executor
+	firewall    *firewallExec.Executor
+	regexCache  *regexCache
 }
 
 var _ Evaluator = (*Engine)(nil)
 
 // Result holds the outcome of middleware evaluation.
 type Result struct {
-	Principal *sentinelv1.Principal
+	Principal *principal.Principal
 }
 
 // New creates a new Engine with the given configuration.
-func New(cfg Config) *Engine {
-	return &Engine{
-		keyAuth: &KeyAuthExecutor{
-			keyService: cfg.KeyService,
-			clock:      cfg.Clock,
-		},
-		regexCache: newRegexCache(),
+func New(cfg Config) (*Engine, error) {
+	if err := assert.All(
+		assert.NotNil(cfg.KeyService, "cfg.KeyService must not be nil"),
+		assert.NotNil(cfg.RateLimiter, "cfg.RateLimiter must not be nil"),
+		assert.NotNil(cfg.Clock, "cfg.Clock must not be nil"),
+	); err != nil {
+		return nil, err
 	}
+	return &Engine{
+		keyAuth:     keyauthExec.New(cfg.KeyService, cfg.Clock),
+		rateLimiter: ratelimitExec.New(cfg.RateLimiter, cfg.Clock),
+		firewall:    firewallExec.New(),
+		regexCache:  newRegexCache(),
+	}, nil
 }
 
 // ParseMiddleware performs lenient deserialization of sentinel_config bytes into
@@ -82,6 +97,11 @@ func ParseMiddleware(raw []byte) ([]*sentinelv1.Policy, error) {
 // Evaluate processes all middleware policies against the incoming request.
 // Policies are evaluated in order. Disabled policies are skipped.
 // Authentication policies produce a Principal; the first successful auth sets it.
+//
+// Firewall policies short-circuit the request with a Firewall.Denied fault
+// when their match expressions hit and the action is ACTION_DENY. The
+// action enum exists for forward compatibility — additional outcomes will
+// be wired into the dispatch when they're added to the proto.
 func (e *Engine) Evaluate(
 	ctx context.Context,
 	sess *zen.Session,
@@ -128,11 +148,35 @@ func (e *Engine) Evaluate(
 				sentinelEngineEvaluationsTotal.WithLabelValues("keyauth", "success").Inc()
 			}
 
+		case *sentinelv1.Policy_Ratelimit:
+			t := time.Now()
+			execErr := e.rateLimiter.Execute(ctx, sess, req, policy.GetId(), cfg.Ratelimit, result.Principal)
+			sentinelEngineEvaluationDuration.WithLabelValues("ratelimit").Observe(time.Since(t).Seconds())
+
+			if execErr != nil {
+				sentinelEngineEvaluationsTotal.WithLabelValues("ratelimit", classifyRatelimitError(execErr)).Inc()
+				return result, execErr
+			}
+
+			sentinelEngineEvaluationsTotal.WithLabelValues("ratelimit", "success").Inc()
+		case *sentinelv1.Policy_Firewall:
+			t := time.Now()
+			action, execErr := e.firewall.Execute(ctx, sess, req, cfg.Firewall)
+			sentinelEngineEvaluationDuration.WithLabelValues("firewall").Observe(time.Since(t).Seconds())
+
+			sentinelFirewallMatchesTotal.WithLabelValues(policy.GetId(), firewallExec.ActionLabel(action)).Inc()
+
+			if execErr != nil {
+				sentinelEngineEvaluationsTotal.WithLabelValues("firewall", classifyFirewallError(execErr)).Inc()
+				return result, execErr
+			}
+
+			// ACTION_UNSPECIFIED (or unknown) — nothing to do.
+			sentinelEngineEvaluationsTotal.WithLabelValues("firewall", "noop").Inc()
+
 		// Future policy types will be added here:
 		// case *sentinelv1.Policy_Jwtauth:
-		// case *sentinelv1.Policy_Basicauth:
 		// case *sentinelv1.Policy_Ratelimit:
-		// case *sentinelv1.Policy_IpRules:
 		// case *sentinelv1.Policy_Openapi:
 
 		default:
@@ -142,15 +186,4 @@ func (e *Engine) Evaluate(
 	}
 
 	return result, nil
-}
-
-// SerializePrincipal converts a Principal to a JSON string for use in the
-// X-Unkey-Principal header.
-func SerializePrincipal(p *sentinelv1.Principal) (string, error) {
-	b, err := protojson.Marshal(p)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
 }

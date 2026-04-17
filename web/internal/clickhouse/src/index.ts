@@ -37,6 +37,20 @@ import {
   getWeeklyLogsTimeseries,
 } from "./logs";
 import {
+  getBatchDailyRatelimitTimeseries,
+  getBatchFifteenMinuteRatelimitTimeseries,
+  getBatchFiveMinuteRatelimitTimeseries,
+  getBatchFourHourlyRatelimitTimeseries,
+  getBatchHourlyRatelimitTimeseries,
+  getBatchMinutelyRatelimitTimeseries,
+  getBatchMonthlyRatelimitTimeseries,
+  getBatchQuarterlyRatelimitTimeseries,
+  getBatchSixHourlyRatelimitTimeseries,
+  getBatchThirtyMinuteRatelimitTimeseries,
+  getBatchThreeDayRatelimitTimeseries,
+  getBatchTwelveHourlyRatelimitTimeseries,
+  getBatchTwoHourlyRatelimitTimeseries,
+  getBatchWeeklyRatelimitTimeseries,
   getDailyLatencyTimeseries,
   getDailyRatelimitTimeseries,
   getFifteenMinuteLatencyTimeseries,
@@ -242,6 +256,22 @@ export class ClickHouse {
       },
       overview: {
         logs: getRatelimitOverviewLogs(this.querier),
+      },
+      batchTimeseries: {
+        perMinute: getBatchMinutelyRatelimitTimeseries(this.querier),
+        per5Minutes: getBatchFiveMinuteRatelimitTimeseries(this.querier),
+        per15Minutes: getBatchFifteenMinuteRatelimitTimeseries(this.querier),
+        per30Minutes: getBatchThirtyMinuteRatelimitTimeseries(this.querier),
+        perHour: getBatchHourlyRatelimitTimeseries(this.querier),
+        per2Hours: getBatchTwoHourlyRatelimitTimeseries(this.querier),
+        per4Hours: getBatchFourHourlyRatelimitTimeseries(this.querier),
+        per6Hours: getBatchSixHourlyRatelimitTimeseries(this.querier),
+        per12Hours: getBatchTwelveHourlyRatelimitTimeseries(this.querier),
+        perDay: getBatchDailyRatelimitTimeseries(this.querier),
+        per3Days: getBatchThreeDayRatelimitTimeseries(this.querier),
+        perWeek: getBatchWeeklyRatelimitTimeseries(this.querier),
+        perMonth: getBatchMonthlyRatelimitTimeseries(this.querier),
+        perQuarter: getBatchQuarterlyRatelimitTimeseries(this.querier),
       },
     };
   }

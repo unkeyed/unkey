@@ -7,6 +7,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // GetDesiredCiliumNetworkPolicyState returns the target state for a single Cilium network policy
@@ -20,7 +21,7 @@ func (s *Service) GetDesiredCiliumNetworkPolicyState(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.GetDesiredCiliumNetworkPolicyStateRequest],
 ) (*connect.Response[ctrlv1.CiliumNetworkPolicyState], error) {
-	if err := s.authenticate(req); err != nil {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
 

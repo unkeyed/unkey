@@ -40,6 +40,8 @@ The worker groups multiple Restate services into one process. Each service uses 
 | CustomDomainService | `domain` | Domain ownership verification and post-verify actions. |
 | CertificateService | `domain` | Certificate issuance and renewal with ACME and Vault. |
 | ClickhouseUserService | `workspace_id` | ClickHouse user provisioning and quota updates when enabled. |
+| SentinelService | `sentinel_id` | Deploys a single sentinel: updates config, suspends on an awakeable until Krane reports healthy, marks failed on timeout. |
+| SentinelRolloutService | `singleton` | Fleet-wide progressive rollout of sentinel images using percentage waves, with pause-on-failure and RollbackAll. |
 | QuotaCheckService | `billing_period` | Periodic quota checks and notifications. |
 | KeyRefillService | `date` | Periodic key usage refills with resumable state. |
 

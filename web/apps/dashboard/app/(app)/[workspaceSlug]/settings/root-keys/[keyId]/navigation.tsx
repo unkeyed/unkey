@@ -20,7 +20,6 @@ export function Navigation({ keyId }: { keyId: string }) {
           href={`/${workspace.slug}/settings/root-keys/${keyId}`}
           className="w-[200px] truncate"
           active
-          isIdentifier
         >
           {keyId}
         </Navbar.Breadcrumbs.Link>

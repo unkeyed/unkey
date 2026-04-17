@@ -30,7 +30,7 @@ export function ProjectContentWrapper({
     <div
       className={cn(
         "transition-all duration-300 ease-in-out",
-        isDetailsOpen ? "w-[calc(100vw-616px)]" : "w-[calc(100vw-256px)]",
+        isDetailsOpen ? "w-[calc(100%-360px)]" : "w-full",
         centered ? "flex justify-center pb-20 px-8" : "flex flex-col",
         className,
       )}

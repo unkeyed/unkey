@@ -53,20 +53,26 @@ func New(cfg Config) *Controller {
 
 // Start launches the background control loops:
 //
-//   - [Controller.runActualStateReportLoop]: Watches Kubernetes for Deployment
-//     changes and reports actual state back to the control plane.
+//   - [Controller.runActualStateReportLoop]: Real-time Kubernetes watch for
+//     Deployment changes, reports actual state back to the control plane.
+//   - [Controller.runActualStateResyncLoop]: Periodic safety net for health
+//     reporting (complements the real-time watch).
+//   - [Controller.runDesiredStateResyncLoop]: Periodic reconciliation of desired
+//     state from the control plane (complements the streaming channel).
 //
-//   - [Controller.runResyncLoop]: Periodically re-queries the control plane for
-//     each existing sentinel to ensure eventual consistency.
-//
-// Desired state is received externally via the watcher package, which calls
-// [Controller.ApplySentinel] and [Controller.DeleteSentinel] directly.
+// The actual-state and desired-state resync loops are decoupled so that slow
+// control plane RPCs cannot delay health reporting.
 //
 // All loops continue until the context is cancelled or [Controller.Stop] is called.
 func (c *Controller) Start(ctx context.Context) error {
-	go c.runResyncLoop(ctx)
+	go c.runActualStateResyncLoop(ctx)
+	go c.runDesiredStateResyncLoop(ctx)
 
 	if err := c.runActualStateReportLoop(ctx); err != nil {
+		return err
+	}
+
+	if err := c.runPodWatchLoop(ctx); err != nil {
 		return err
 	}
 

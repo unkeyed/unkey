@@ -109,7 +109,14 @@ export const ConfirmPopover = ({
         </div>
         <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4">{description}</div>
         <div className="space-x-3 w-full px-4 pb-4">
-          <Button color={buttonColor} onClick={handleConfirm} className="px-4">
+          <Button
+            color={buttonColor}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleConfirm();
+            }}
+            className="px-4"
+          >
             {confirmButtonText}
           </Button>
           <PopoverClose asChild>

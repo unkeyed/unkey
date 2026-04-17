@@ -36,6 +36,8 @@ type SentinelPolicyRowProps = {
 
 const POLICY_TYPE_LABELS: Record<SentinelPolicy["type"], string> = {
   keyauth: "Key Auth",
+  ratelimit: "Rate Limit",
+  firewall: "Firewall",
 };
 
 export function SentinelPolicyRow({

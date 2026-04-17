@@ -25,7 +25,7 @@ export const GitHubSettingCard = ({
 );
 
 export const ComboboxSkeleton = () => (
-  <div className="w-[185px] h-8 rounded-lg border border-gray-5 bg-gray-2 flex items-center justify-between px-3 py-2">
+  <div className="w-[185px] h-7 rounded-lg border border-gray-5 bg-gray-2 flex items-center justify-between px-3 py-2">
     <div className="flex gap-1.5 items-center">
       <div className="h-3.5 w-16 bg-grayA-3 rounded animate-pulse" />
       <div className="h-3.5 w-24 bg-grayA-3 rounded animate-pulse" />
@@ -47,13 +47,13 @@ export const RepoNameLabel = ({ fullName }: { fullName: string }) => {
 
 export const ManageGitHubAppLink = ({
   installUrl,
-  variant = "ghost",
-  className = "-ml-3 px-3 py-2 rounded-lg",
+  variant = "primary",
+  className = "px-3 py-2 rounded-md",
   text = "Manage Github App",
   onBeforeNavigate,
 }: {
   installUrl: string;
-  variant?: "outline" | "ghost";
+  variant?: "outline" | "ghost" | "primary";
   className?: string;
   text?: React.ReactNode;
   onBeforeNavigate?: () => void;
@@ -61,7 +61,7 @@ export const ManageGitHubAppLink = ({
   <Button variant={variant} className={className}>
     <a
       href={installUrl}
-      className="text-sm text-gray-12"
+      className="text-sm"
       target="_blank"
       rel="noopener noreferrer"
       onClick={onBeforeNavigate}

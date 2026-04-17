@@ -39,10 +39,6 @@ JWTAuth is defined in the policy schema but is not executed by the sentinel engi
   Claim used as the principal subject. Defaults to `sub`.
 </ResponseField>
 
-<ResponseField name="forward_claims" type="string[]">
-  Claims to copy into the principal's claims map.
-</ResponseField>
-
 <ResponseField name="allow_anonymous" type="bool">
   When true, requests without a token are allowed through without setting a principal.
 </ResponseField>
@@ -70,8 +66,7 @@ JWTAuth is defined in the policy schema but is not executed by the sentinel engi
       "jwtauth": {
         "oidc_issuer": "https://auth.example.com",
         "audiences": ["api.example.com"],
-        "algorithms": ["RS256"],
-        "forward_claims": ["email", "org_id"]
+        "algorithms": ["RS256"]
       }
     }
   ]
@@ -111,8 +106,7 @@ JWTAuth is defined in the policy schema but is not executed by the sentinel engi
       "jwtauth": {
         "oidc_issuer": "https://auth.example.com",
         "audiences": ["api.example.com"],
-        "allow_anonymous": true,
-        "forward_claims": ["sub", "email"]
+        "allow_anonymous": true
       }
     }
   ]

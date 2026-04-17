@@ -19,15 +19,11 @@ INSERT INTO sentinels (
     k8s_name,
     region_id,
     image,
-    health,
     desired_replicas,
-    available_replicas,
     cpu_millicores,
     memory_mib,
     created_at
 ) VALUES (
-    ?,
-    ?,
     ?,
     ?,
     ?,
@@ -44,20 +40,18 @@ INSERT INTO sentinels (
 `
 
 type InsertSentinelParams struct {
-	ID                string          `db:"id"`
-	WorkspaceID       string          `db:"workspace_id"`
-	EnvironmentID     string          `db:"environment_id"`
-	ProjectID         string          `db:"project_id"`
-	K8sAddress        string          `db:"k8s_address"`
-	K8sName           string          `db:"k8s_name"`
-	RegionID          string          `db:"region_id"`
-	Image             string          `db:"image"`
-	Health            SentinelsHealth `db:"health"`
-	DesiredReplicas   int32           `db:"desired_replicas"`
-	AvailableReplicas int32           `db:"available_replicas"`
-	CpuMillicores     int32           `db:"cpu_millicores"`
-	MemoryMib         int32           `db:"memory_mib"`
-	CreatedAt         int64           `db:"created_at"`
+	ID              string `db:"id"`
+	WorkspaceID     string `db:"workspace_id"`
+	EnvironmentID   string `db:"environment_id"`
+	ProjectID       string `db:"project_id"`
+	K8sAddress      string `db:"k8s_address"`
+	K8sName         string `db:"k8s_name"`
+	RegionID        string `db:"region_id"`
+	Image           string `db:"image"`
+	DesiredReplicas int32  `db:"desired_replicas"`
+	CpuMillicores   int32  `db:"cpu_millicores"`
+	MemoryMib       int32  `db:"memory_mib"`
+	CreatedAt       int64  `db:"created_at"`
 }
 
 // InsertSentinel
@@ -71,15 +65,11 @@ type InsertSentinelParams struct {
 //	    k8s_name,
 //	    region_id,
 //	    image,
-//	    health,
 //	    desired_replicas,
-//	    available_replicas,
 //	    cpu_millicores,
 //	    memory_mib,
 //	    created_at
 //	) VALUES (
-//	    ?,
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -103,9 +93,7 @@ func (q *Queries) InsertSentinel(ctx context.Context, db DBTX, arg InsertSentine
 		arg.K8sName,
 		arg.RegionID,
 		arg.Image,
-		arg.Health,
 		arg.DesiredReplicas,
-		arg.AvailableReplicas,
 		arg.CpuMillicores,
 		arg.MemoryMib,
 		arg.CreatedAt,

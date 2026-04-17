@@ -8,10 +8,21 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	"golang.org/x/net/publicsuffix"
 )
+
+// The _domainconnect TXT value is set by whoever controls DNS for the user-
+// submitted domain, so it is attacker-controlled. Without this allowlist, the
+// control plane would fetch https://<any-host>/v2/<domain>/settings from its
+// own network, i.e. SSRF. Add a new entry only when onboarding a provider.
+var allowedDomainConnectHosts = map[string]struct{}{
+	"api.cloudflare.com":       {},
+	"domainconnect.vercel.com": {},
+}
 
 // Config holds the Domain Connect settings discovered for a domain.
 // These fields are populated from two sources: DNS lookup (domain structure)
@@ -86,7 +97,12 @@ func discoverConfig(ctx context.Context, domain string) (*Config, error) {
 		return nil, err
 	}
 
-	settingsURL := fmt.Sprintf("https://%s/v2/%s/settings", dcHost, domainRoot)
+	dcBase, err := validateDomainConnectHost(dcHost)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrUnsupportedDomainConnectHost, err)
+	}
+
+	settingsURL := fmt.Sprintf("https://%s/v2/%s/settings", dcBase, domainRoot)
 	var settings ProviderSettings
 	if err := doJSON(ctx, settingsURL, &settings); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrNoDomainConnectSettings, err)
@@ -111,6 +127,22 @@ func discoverConfig(ctx context.Context, domain string) (*Config, error) {
 	}, nil
 }
 
+// validateDomainConnectHost checks the TXT value against allowedDomainConnectHosts
+// and returns a normalized "host[/path]" base for building the settings URL.
+// The value may include a path (Cloudflare's is "api.cloudflare.com/client/v4/dns/domainconnect").
+// Returning host+path explicitly drops userinfo/query/fragment, so an attacker
+// who controls the TXT record cannot inject those into the outbound URL.
+func validateDomainConnectHost(dcHost string) (string, error) {
+	u, err := url.Parse("https://" + dcHost)
+	if err != nil {
+		return "", fmt.Errorf("invalid domainconnect host: %w", err)
+	}
+	if _, ok := allowedDomainConnectHosts[u.Host]; !ok {
+		return "", fmt.Errorf("unsupported domainconnect host: %q", u.Host)
+	}
+	return u.Host + u.EscapedPath(), nil
+}
+
 // lookupDomainConnectRecord looks up the _domainconnect TXT record for a domain.
 func lookupDomainConnectRecord(ctx context.Context, domain string) (string, error) {
 	name := "_domainconnect." + domain
@@ -131,6 +163,15 @@ func lookupDomainConnectRecord(ctx context.Context, domain string) (string, erro
 	return strings.Join(records, ""), nil
 }
 
+// domainConnectHTTPClient refuses redirects so an allowlisted provider host
+// cannot bounce the request to a non-allowlisted destination.
+var domainConnectHTTPClient = &http.Client{
+	Timeout: 10 * time.Second,
+	CheckRedirect: func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	},
+}
+
 // doJSON performs a GET request and decodes the JSON response.
 func doJSON(ctx context.Context, url string, result any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -139,7 +180,7 @@ func doJSON(ctx context.Context, url string, result any) error {
 	}
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := domainConnectHTTPClient.Do(req)
 	if err != nil {
 		return err
 	}

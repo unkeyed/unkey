@@ -154,7 +154,6 @@ export const ProjectNavigation = ({
         id: "projects",
         children: "Projects",
         href: basePath,
-        isIdentifier: false,
         noop: false,
         active: false,
         isLast: false,
@@ -163,7 +162,6 @@ export const ProjectNavigation = ({
         id: "project",
         children: <div className="h-6 w-24 bg-grayA-3 rounded-sm animate-pulse transition-all" />,
         href: "#",
-        isIdentifier: true,
         className: "group max-md:hidden",
         noop: true,
         active: false,
@@ -186,7 +184,6 @@ export const ProjectNavigation = ({
             <Navbar.Breadcrumbs.Link
               key={crumb.id}
               href={crumb.href}
-              isIdentifier={crumb.isIdentifier}
               className={crumb.className}
               noop={crumb.noop}
               active={crumb.active}
@@ -204,13 +201,7 @@ export const ProjectNavigation = ({
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Cube />}>
-          <Navbar.Breadcrumbs.Link
-            href={basePath}
-            isIdentifier={false}
-            noop={false}
-            active={false}
-            isLast={false}
-          >
+          <Navbar.Breadcrumbs.Link href={basePath} noop={false} active={false} isLast={false}>
             Projects
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
@@ -225,7 +216,6 @@ export const ProjectNavigation = ({
           <Navbar.Breadcrumbs.Link
             key={breadcrumb.id}
             href={breadcrumb.href}
-            isIdentifier={breadcrumb.isIdentifier}
             active={breadcrumb.active}
             isLast={breadcrumb.isLast}
             noop={breadcrumb.noop}

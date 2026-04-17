@@ -89,23 +89,28 @@ func (c *Controller) ApplySentinel(ctx context.Context, req *ctrlv1.ApplySentine
 		return err
 	}
 
-	var health ctrlv1.Health
-	if req.GetReplicas() == 0 {
-		health = ctrlv1.Health_HEALTH_PAUSED
-	} else if sentinel.Status.AvailableReplicas > 0 {
-		health = ctrlv1.Health_HEALTH_HEALTHY
-	} else {
-		health = ctrlv1.Health_HEALTH_UNHEALTHY
+	// Re-read the deployment to get the latest status. The object returned by
+	// ensureSentinelExists has pre-reconciliation status. The fresh read may
+	// still be slightly stale (k8s reconciliation is async), but the
+	// ObservedGeneration check in determineHealth will correctly return
+	// UNHEALTHY if k8s hasn't caught up yet — which is the safe default.
+	fresh, err := c.clientSet.AppsV1().Deployments(NamespaceSentinel).
+		Get(ctx, req.GetK8SName(), metav1.GetOptions{})
+	if err != nil {
+		logger.Error("failed to re-read sentinel deployment", "k8s_name", req.GetK8SName(), "error", err)
+		return nil // non-fatal: the watch loop will report health eventually
 	}
 
+	health := determineHealth(fresh)
 	err = c.reportSentinelStatus(ctx, &ctrlv1.ReportSentinelStatusRequest{
 		K8SName:           req.GetK8SName(),
-		AvailableReplicas: sentinel.Status.AvailableReplicas,
+		AvailableReplicas: fresh.Status.AvailableReplicas,
 		Health:            health,
+		SentinelId:        req.GetSentinelId(),
+		RunningImage:      convergedImage(fresh),
 	})
 	if err != nil {
-		logger.Error("failed to reconcile sentinel", "sentinel_id", req.GetSentinelId(), "error", err)
-		return err
+		logger.Error("failed to report sentinel status after apply", "k8s_name", req.GetK8SName(), "error", err)
 	}
 
 	return nil
@@ -204,7 +209,8 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 					MaxSurge:       ptr.P(intstr.FromInt(1)),
 				},
 			},
-			MinReadySeconds: 30,
+			MinReadySeconds:         5,
+			ProgressDeadlineSeconds: ptr.P(int32(300)),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{

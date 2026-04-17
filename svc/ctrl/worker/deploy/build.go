@@ -138,7 +138,7 @@ func (w *Workflow) buildDockerImageFromGit(
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
 		// Get GitHub installation token for BuildKit to fetch the repo
 		var ghToken githubclient.InstallationToken
-		if w.allowUnauthenticatedDeployments {
+		if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
 			// Unauthenticated mode - skip GitHub auth for public repos (local dev only)
 			logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
 				"repository", params.Repository)
@@ -244,7 +244,7 @@ func (w *Workflow) buildDockerImageFromGit(
 
 		// Choose solver options based on authentication mode
 		var solverOptions client.SolveOpt
-		if w.allowUnauthenticatedDeployments {
+		if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
 			solverOptions, err = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, envVars)
 		} else {
 			solverOptions, err = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, envVars)

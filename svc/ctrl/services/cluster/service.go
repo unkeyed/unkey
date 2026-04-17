@@ -1,9 +1,20 @@
 package cluster
 
 import (
+	"time"
+
+	"github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/repeat"
 )
+
+// notifiedReadyTTL is how long an entry in notifiedReady is kept before
+// being eligible for cleanup. Five minutes is comfortably longer than any
+// deployment's notify-ready window — once a deployment transitions to ready
+// or terminal there's no value in remembering its entry.
+const notifiedReadyTTL = 5 * time.Minute
 
 // Service implements [ctrlv1connect.ClusterServiceHandler] to synchronize desired state
 // between the control plane and krane agents. It provides streaming RPCs for watching
@@ -11,8 +22,13 @@ import (
 // and status reporting endpoints for agents to report observed state back to the control plane.
 type Service struct {
 	ctrlv1connect.UnimplementedClusterServiceHandler
-	db     db.Database
-	bearer string
+	db      db.Database
+	restate *ingress.Client
+	bearer  string
+	// notifiedReady dedups Restate NotifyReady / NotifyInstancesReady calls
+	// so we don't fire on every krane status report once the threshold is
+	// met. Keys are "deployment:<id>" or "sentinel:<id>".
+	notifiedReady *expiringSet[string]
 }
 
 // Config holds the configuration for creating a new cluster [Service].
@@ -20,18 +36,31 @@ type Config struct {
 	// Database provides read and write access for querying and updating resource state.
 	Database db.Database
 
+	// Restate is the ingress client used to trigger NotifyReady on sentinel virtual objects.
+	Restate *ingress.Client
+
 	// Bearer is the authentication token that agents must provide in the Authorization header.
 	Bearer string
 }
 
 // New creates a new cluster [Service] with the given configuration. The returned service
-// is ready to be registered with a Connect server.
+// is ready to be registered with a Connect server. A background sweeper is
+// started that periodically drops stale entries from notifiedReady so the
+// set doesn't grow unbounded.
 func New(cfg Config) *Service {
-	return &Service{
+	s := &Service{
 		UnimplementedClusterServiceHandler: ctrlv1connect.UnimplementedClusterServiceHandler{},
 		db:                                 cfg.Database,
+		restate:                            cfg.Restate,
 		bearer:                             cfg.Bearer,
+		notifiedReady:                      newExpiringSet[string](notifiedReadyTTL),
 	}
+	repeat.Every(notifiedReadyTTL, func() {
+		if dropped := s.notifiedReady.Sweep(); dropped > 0 {
+			logger.Info("swept stale notifiedReady entries", "dropped", dropped)
+		}
+	})
+	return s
 }
 
 var _ ctrlv1connect.ClusterServiceHandler = (*Service)(nil)

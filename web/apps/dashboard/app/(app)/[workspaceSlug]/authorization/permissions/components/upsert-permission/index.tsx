@@ -184,7 +184,7 @@ export const UpsertPermissionDialog = ({
                 description="A human-readable name for this permission that describes what it allows."
                 error={errors.name?.message}
                 variant="default"
-                required
+                requirement="required"
                 {...register("name")}
               />
 
@@ -196,7 +196,7 @@ export const UpsertPermissionDialog = ({
                 description="A unique identifier used in code."
                 error={errors.slug?.message}
                 variant="default"
-                required
+                requirement="required"
                 {...register("slug")}
               />
 
@@ -207,7 +207,7 @@ export const UpsertPermissionDialog = ({
                 maxLength={512}
                 description="Add a detailed description to help others understand what this permission grants access to."
                 error={errors.description?.message}
-                optional
+                requirement="optional"
                 {...register("description")}
               />
             </div>

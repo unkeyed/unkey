@@ -105,6 +105,15 @@ export const quotas = mysqlTable("quota", {
   })
     .notNull()
     .default(10240 /* 10 GiB */),
+
+  // maxConcurrentBuilds caps how many deployments in this workspace can be actively
+  // building/deploying at the same time. Additional deployments wait for a slot.
+  // Production deployments bypass this limit.
+  maxConcurrentBuilds: int("max_concurrent_builds", {
+    unsigned: true,
+  })
+    .notNull()
+    .default(1),
 });
 export const quotasRelations = relations(quotas, ({ one }) => ({
   workspace: one(workspaces, {

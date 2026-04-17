@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
@@ -29,7 +30,7 @@ func (s *Service) WatchDeploymentChanges(
 	req *connect.Request[ctrlv1.WatchDeploymentChangesRequest],
 	stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent],
 ) error {
-	if err := s.authenticate(req); err != nil {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return err
 	}
 

@@ -62,6 +62,7 @@ go_test(
         "//pkg/db",
         "//pkg/dockertest",
         "//pkg/logger",
+        "//pkg/rpc/interceptor",
         "//pkg/uid",
         "//svc/ctrl/integration/seed",
         "@com_connectrpc_connect//:connect",

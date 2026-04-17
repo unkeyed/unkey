@@ -1,0 +1,124 @@
+---
+title: Sentinel Rollout
+description: How to roll out a new sentinel image across the fleet.
+---
+
+A fleet rollout is driven by `SentinelRolloutService` — a Restate virtual object keyed by the literal string `singleton`. There is only ever one rollout in flight. Architecture and lifecycle details live in [Sentinel Deployment](/architecture/services/sentinel/deployment#fleet-wide-image-rollouts).
+
+This doc is the operator-facing recipe: how to actually start, monitor, and unstick a rollout in prod.
+
+## Prerequisites
+
+- The target image exists in `ghcr.io/unkeyed/sentinel` and passed CI.
+- You have a kubeconfig for the prod control-plane cluster.
+- You have the Restate ingress bearer token from the `restate-cloud-credentials` secret (AWS Secrets Manager).
+- A Slack webhook URL (optional but strongly recommended in prod — it's the only progress stream you'll get without tailing logs).
+
+Export the ingress URL and token for the rest of this doc:
+
+```bash
+export RESTATE_URL='https://<prod-ingress-url>'   # from restate-cloud-credentials
+export RESTATE_TOKEN='<bearer token>'             # from restate-cloud-credentials
+```
+
+## Start a rollout (curl)
+
+```bash
+curl -X POST "$RESTATE_URL/hydra.v1.SentinelRolloutService/singleton/Rollout" \
+  -H "Authorization: Bearer $RESTATE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image": "ghcr.io/unkeyed/sentinel:v1.2.3",
+    "slack_webhook_url": "https://hooks.slack.com/services/..."
+  }'
+```
+
+Defaults: waves are `[1, 5, 25, 50, 100]` (cumulative percent). Pass `wave_percentages` to override, e.g. `[10, 100]` for a fast two-wave rollout on staging.
+
+The call is synchronous from Restate's perspective — the response returns when the rollout reaches `completed` or `paused`. Use `/send` instead of the path above if you want fire-and-forget and will monitor from Slack.
+
+The rollout is rejected if another rollout is active (any state that isn't `idle`, `completed`, or `cancelled`). Cancel or roll back the previous one first.
+
+## Start a rollout (Restate UI)
+
+If you'd rather click than curl, the Restate Cloud UI exposes every handler as a button.
+
+1. Open the Restate Cloud dashboard for the target environment and sign in.
+2. Go to **Services** → **`hydra.v1.SentinelRolloutService`**.
+3. Click the **`Rollout`** handler. The playground opens with a request form.
+4. Set the virtual-object key to `singleton` (the service only accepts this key).
+5. Fill in the JSON body:
+   ```json
+   {
+     "image": "ghcr.io/unkeyed/sentinel:v1.2.3",
+     "slack_webhook_url": "https://hooks.slack.com/services/..."
+   }
+   ```
+   Add `"wave_percentages": [10, 100]` if you want to override the defaults.
+6. Hit **Send** (blocks until `completed`/`paused`) or **Send async** (fire-and-forget — watch Slack).
+
+For `Resume`, `Cancel`, and `RollbackAll`, use the same flow: pick the handler on `SentinelRolloutService`, key `singleton`, empty `{}` body.
+
+**Observing a running rollout in the UI:**
+
+- **Invocations** tab — find the active `Rollout` invocation; inspect its journal to see which wave is executing, what each `SentinelService.Deploy` call returned, and where it's suspended.
+- **State** tab on the `SentinelRolloutService` / `singleton` object — the current `rolloutState` (wave index, succeeded/failed IDs, previous images) is stored here and updates live.
+
+## Monitor progress
+
+- **Slack:** messages fire on every phase transition (rollout started, wave started/completed, paused, resumed, rollback started/completed).
+- **Logs:** tail the control-plane worker — look for `starting sentinel rollout`, `starting wave`, `sentinel deploy failed`.
+- **DB:** `sentinels.deploy_status` moves `progressing → ready` (or `failed`) as each wave runs.
+
+## When a wave fails
+
+The rollout transitions to `paused` and returns. Sentinels that succeeded in the paused wave stay on the new image; failed ones stay wherever Kubernetes left them. Investigate the failure (sentinel logs, Krane logs, `deploy_status = failed` rows), then pick one:
+
+### Resume — skip the failed wave and continue
+
+```bash
+curl -X POST "$RESTATE_URL/hydra.v1.SentinelRolloutService/singleton/Resume" \
+  -H "Authorization: Bearer $RESTATE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+Advances to the next wave. **Failed sentinels from the skipped wave are not retried** — they stay on the old image until you deploy them individually or kick off a new rollout.
+
+### Cancel — stop here, keep the new image on whatever succeeded
+
+```bash
+curl -X POST "$RESTATE_URL/hydra.v1.SentinelRolloutService/singleton/Cancel" \
+  -H "Authorization: Bearer $RESTATE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+The "live with it" exit. Succeeded sentinels keep the new image; failed ones stay where they are. Valid from `in_progress` or `paused`.
+
+### RollbackAll — revert every sentinel that took the new image
+
+```bash
+curl -X POST "$RESTATE_URL/hydra.v1.SentinelRolloutService/singleton/RollbackAll" \
+  -H "Authorization: Bearer $RESTATE_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+Fans `SentinelService.Deploy` back to each sentinel's previous image (captured at rollout start). Failed sentinels are not touched — they never took the new image. Valid from `paused` or `cancelled`. Response returns the count of sentinels successfully reverted.
+
+## State reference
+
+| State | Next legal ops |
+| --- | --- |
+| `idle` / `completed` / `cancelled` | `Rollout` |
+| `in_progress` | `Cancel` |
+| `paused` | `Resume`, `Cancel`, `RollbackAll` |
+| `rolling_back` | wait |
+
+## Tips
+
+- **Test on staging first.** The same RPCs exist on the staging control-plane — use the staging ingress URL and always run a full rollout there before prod.
+- **Don't skip the Slack webhook in prod.** If you `/send` the rollout and forget to pass it, your only progress signal is worker logs.
+- **Custom waves for emergencies.** Rolling back a bad image via a fresh rollout of the last-known-good tag is often faster than `RollbackAll` if most sentinels are already on the bad image — but think about what `previousImages` will capture before you do it.
+- **The `singleton` key is intentional.** Don't try to run two rollouts at once by varying the key — clients always address `singleton`.

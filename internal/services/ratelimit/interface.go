@@ -95,7 +95,7 @@ type RatelimitRequest struct {
 	Cost int64
 
 	// Time of the request
-	// If not specified or zero, the ratelimiter will use its own clock.
+	// If not specified or if zero, the ratelimiter will use its own clock.
 	Time time.Time
 }
 

@@ -1,0 +1,48 @@
+config:
+  target: "https://api.unkey.com"
+  dotenv: ".env"
+
+  phases:
+    - duration: 5m
+      arrivalRate: 1
+      rampTo: 100
+      name: "Warm up"
+    #- duration: 300
+    #  arrivalRate: 100
+    #  rampTo: 250000
+    #  name: "Ramp to 15M RPM"
+    #- duration: 600
+    #  arrivalRate: 250000
+    #  name: "Sustain 15M RPM"
+    #- duration: 60
+    #  arrivalRate: 250000
+    #  rampTo: 100
+    #  name: "Cool down"
+
+  http:
+    timeout: 10
+
+  ensure:
+    thresholds:
+      - http.response_time.p99: 10000
+
+  # ~47K unique identifiers from 3-char random strings.
+  # At 250K RPS with limit=100/60s each bucket sees ~5.4 req/s,
+  # enough to trigger rate limiting across the test.
+
+scenarios:
+  - name: "Ratelimit check"
+    flow:
+      - post:
+          url: "/v2/ratelimit.limit"
+          headers:
+            Content-Type: "application/json"
+            Authorization: "Bearer {{ $env.UNKEY_ROOT_KEY }}"
+          json:
+            namespace: "artillery_loadtest"
+            identifier: "{{ $randomString(3) }}"
+            limit: 100
+            duration: 60000
+            cost: 1
+          expect:
+            - statusCode: 200

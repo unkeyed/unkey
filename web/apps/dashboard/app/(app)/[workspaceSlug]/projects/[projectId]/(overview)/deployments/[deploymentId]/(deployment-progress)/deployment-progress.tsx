@@ -189,9 +189,6 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
               </div>
             ) : null
           }
-          defaultExpanded={
-            Boolean(deploying && !deploying.endedAt) || deployingStep.status === "error"
-          }
         />
         <DeploymentStep
           icon={<Earth iconSize="sm-medium" className="size-[18px]" />}

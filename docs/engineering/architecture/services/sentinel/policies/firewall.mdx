@@ -1,0 +1,42 @@
+---
+title: "Firewall"
+description: "Policy that denies matched requests"
+---
+
+Firewall denies any request that matches the policy's [match expressions](/architecture/services/sentinel/policies/match-expressions) (path, method, header, or query parameter). The MVP has a single action and no other configuration — when a match hits, sentinel rejects the request with HTTP 403 and a fixed `Forbidden` body. The action enum exists so additional outcomes (allow, log, challenge) can be added later without restructuring the message.
+
+## Fields
+
+<ResponseField name="action" type="Action">
+  The outcome to apply when the policy's match expressions all succeed. Only `ACTION_DENY` is defined today.
+</ResponseField>
+
+## Actions
+
+| Action        | Behavior                                                                                                        |
+| ------------- | --------------------------------------------------------------------------------------------------------------- |
+| `ACTION_DENY` | Rejects the request with HTTP 403 and body `Forbidden`. Short-circuits the whole policy chain — no downstream policies run. |
+
+## Examples
+
+Block everything below `/admin`:
+
+```json
+{
+  "policies": [
+    {
+      "id": "block-admin",
+      "name": "Block /admin",
+      "enabled": true,
+      "match": [
+        { "path": { "path": { "prefix": "/admin" } } }
+      ],
+      "firewall": { "action": "ACTION_DENY" }
+    }
+  ]
+}
+```
+
+## Observability
+
+Every Firewall match increments `sentinel_firewall_matches_total{policy_id, action}`. Denied requests do not currently produce a ClickHouse request log row — they never reach an instance, and the existing request-log pipeline gates on instance presence. Dedicated observability for firewall matches is deferred.

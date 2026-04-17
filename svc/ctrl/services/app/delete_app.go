@@ -9,6 +9,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // DeleteApp enqueues a durable Restate workflow that cascades through
@@ -19,7 +20,7 @@ func (s *Service) DeleteApp(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.DeleteAppRequest],
 ) (*connect.Response[ctrlv1.DeleteAppResponse], error) {
-	if err := s.authenticate(req); err != nil {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
 	if err := assert.NotEmpty(req.Msg.GetAppId(), "app_id is required"); err != nil {

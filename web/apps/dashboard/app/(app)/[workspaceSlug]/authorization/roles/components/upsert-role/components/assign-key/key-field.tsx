@@ -126,7 +126,7 @@ export const KeyField = ({
   return (
     <div className="flex flex-col gap-3">
       <FormCombobox
-        optional
+        requirement="optional"
         label="Assign keys"
         description="Select keys from your workspace."
         options={selectableOptions}

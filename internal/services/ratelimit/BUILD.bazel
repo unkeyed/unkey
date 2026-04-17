@@ -1,17 +1,16 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "ratelimit",
     srcs = [
-        "bucket.go",
         "doc.go",
         "interface.go",
         "janitor.go",
-        "replay.go",
+        "keys.go",
+        "origin.go",
+        "ratelimit.go",
         "sequence.go",
         "service.go",
-        "util.go",
-        "window.go",
     ],
     importpath = "github.com/unkeyed/unkey/internal/services/ratelimit",
     visibility = ["//:__subpackages__"],
@@ -26,5 +25,30 @@ go_library(
         "//pkg/otel/tracing",
         "//pkg/repeat",
         "@io_opentelemetry_go_otel//attribute",
+    ],
+)
+
+go_test(
+    name = "ratelimit_benchmark_test",
+    size = "medium",
+    srcs = ["service_benchmark_test.go"],
+    embed = [":ratelimit"],
+)
+
+go_test(
+    name = "ratelimit_test",
+    srcs = [
+        "atomicmax_test.go",
+        "helpers_test.go",
+        "janitor_test.go",
+        "origin_test.go",
+        "ratelimit_test.go",
+        "service_benchmark_test.go",
+    ],
+    embed = [":ratelimit"],
+    deps = [
+        "//pkg/clock",
+        "//pkg/counter",
+        "@com_github_stretchr_testify//require",
     ],
 )

@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "openapi",
@@ -16,5 +16,15 @@ go_library(
         "//pkg/logger",
         "//pkg/uid",
         "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)
+
+go_test(
+    name = "openapi_test",
+    size = "small",
+    srcs = ["scrape_handler_test.go"],
+    embed = [":openapi"],
+    deps = [
+        "@com_github_stretchr_testify//require",
     ],
 )

@@ -6,6 +6,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/config"
+	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/tls"
 )
 
@@ -35,9 +36,9 @@ type ClickHouseConfig struct {
 // any field left at its zero value after parsing, and validation runs
 // automatically via [Config.Validate].
 //
-// Three fields — Listener, Clock, and TLSConfig — are runtime-only and cannot
-// be set through a config file. They are tagged toml:"-" and must be set
-// programmatically after loading.
+// Several fields — Clock, TLSConfig, and the [TestConfig] group — are
+// runtime-only and cannot be set through a config file. They are tagged
+// toml:"-" and must be set programmatically after loading.
 type Config struct {
 	// InstanceID identifies this particular API server instance. Used in log
 	// attribution, Kafka consumer group membership, and cache invalidation
@@ -53,8 +54,9 @@ type Config struct {
 	// Logged at startup for correlating deployments with behavior changes.
 	Image string `toml:"image"`
 
-	// HttpPort is the TCP port the API server binds to. Ignored when Listener
-	// is set, which is the case in test harnesses that use ephemeral ports.
+	// HttpPort is the TCP port the API server binds to. Ignored when
+	// [TestConfig.Listener] is set, which is the case in test harnesses that
+	// use ephemeral ports.
 	HttpPort int `toml:"http_port" config:"default=7070,min=1,max=65535"`
 
 	// Region is the geographic region identifier (e.g. "us-east-1", "eu-west-1").
@@ -66,12 +68,6 @@ type Config struct {
 	// distributed rate limiting counters and usage tracking.
 	// Example: "redis://redis:6379"
 	RedisURL string `toml:"redis_url" config:"required,nonempty"`
-
-	// TestMode relaxes certain security checks and trusts client-supplied
-	// headers that would normally be rejected. This exists for integration
-	// tests that need to inject specific request metadata.
-	// Do not enable in production.
-	TestMode bool `toml:"test_mode" config:"default=false"`
 
 	Observability config.Observability `toml:"observability"`
 
@@ -104,11 +100,6 @@ type Config struct {
 	// When nil (section omitted), pprof endpoints are not registered.
 	Pprof *config.PprofConfig `toml:"pprof"`
 
-	// Listener is a pre-created [net.Listener] for the HTTP server. When set,
-	// the server uses this listener instead of binding to HttpPort. This is
-	// intended for tests that need ephemeral ports to avoid conflicts.
-	Listener net.Listener `toml:"-"`
-
 	// Clock provides time operations and is injected for testability. Production
 	// callers set this to [clock.New]; tests can substitute a fake clock to
 	// control time progression.
@@ -118,6 +109,29 @@ type Config struct {
 	// and [TLSFiles.KeyFile] at startup. This field is populated by the CLI
 	// entrypoint after loading the config file and must not be set in TOML.
 	TLSConfig *tls.Config `toml:"-"`
+
+	// Test groups runtime-only overrides for integration tests. Zero in
+	// production — no fields can be set from TOML.
+	Test TestConfig `toml:"-"`
+}
+
+// TestConfig groups runtime-only flags and overrides used by integration
+// tests. All fields are zero in production; setting any of them enables
+// test-specific behavior that MUST NOT be reachable from a TOML config file.
+type TestConfig struct {
+	// Enabled relaxes certain security checks and trusts client-supplied
+	// headers like X-Test-Time that would normally be rejected.
+	Enabled bool
+
+	// Counter overrides the distributed counter backend. Multi-node tests
+	// share one in-memory counter across all nodes so replays sync in
+	// microseconds rather than blocking on real Redis I/O.
+	Counter counter.Counter
+
+	// Listener is a pre-created net.Listener for the HTTP server. When set,
+	// the server uses this listener instead of binding to HttpPort. Tests
+	// use ephemeral ports (":0") to avoid conflicts when running in parallel.
+	Listener net.Listener
 }
 
 // Validate checks cross-field constraints that cannot be expressed through

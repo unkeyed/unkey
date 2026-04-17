@@ -35,11 +35,13 @@ func TestContextCancellation(t *testing.T) {
 	config := api.Config{
 		Platform:   "test",
 		Image:      "test",
-		Listener:   ln,
 		Region:     "test-region",
 		Clock:      nil, // Will use real clock
 		InstanceID: uid.New(uid.InstancePrefix),
 		RedisURL:   redisUrl,
+		Test: api.TestConfig{
+			Listener: ln,
+		},
 		Database: sharedconfig.DatabaseConfig{
 			Primary: dbDsn,
 		},

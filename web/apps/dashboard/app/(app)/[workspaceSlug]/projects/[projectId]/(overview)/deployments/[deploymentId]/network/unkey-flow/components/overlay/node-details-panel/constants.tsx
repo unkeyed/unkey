@@ -1,12 +1,12 @@
 import type { ChartConfig } from "@/components/ui/chart";
 import {
-  Bolt,
   ChartActivity,
   ChevronExpandY,
-  Focus,
+  Database,
   Grid,
   HalfDottedCirclePlay,
-  Storage,
+  Microchip,
+  Ram,
   TimeClock,
 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
@@ -66,7 +66,7 @@ export const metrics: Array<{
     },
   },
   {
-    icon: <Bolt iconSize="sm-regular" className="shrink-0" />,
+    icon: <Microchip iconSize="sm-regular" className="shrink-0" />,
     label: "CPU usage",
     value: (
       <span className="text-gray-12 font-medium text-[13px]">
@@ -89,7 +89,7 @@ export const metrics: Array<{
     },
   },
   {
-    icon: <Focus iconSize="sm-regular" className="shrink-0" />,
+    icon: <Ram iconSize="sm-regular" className="shrink-0" />,
     label: "Memory usage",
     value: (
       <div className="flex gap-2.5 items-center">
@@ -117,7 +117,7 @@ export const metrics: Array<{
     },
   },
   {
-    icon: <Storage iconSize="sm-regular" className="shrink-0" />,
+    icon: <Database iconSize="sm-regular" className="shrink-0" />,
     label: "Storage usage",
     value: (
       <div className="flex gap-2.5 items-center">

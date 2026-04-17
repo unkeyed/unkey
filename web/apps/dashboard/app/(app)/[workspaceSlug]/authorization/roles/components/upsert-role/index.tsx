@@ -205,7 +205,7 @@ export const UpsertRoleDialog = ({
                 description="A unique name for your role. You will use this when managing roles through the API. These are not customer facing."
                 error={errors.roleName?.message}
                 variant="default"
-                required
+                requirement="required"
                 {...register("roleName")}
               />
 
@@ -216,7 +216,7 @@ export const UpsertRoleDialog = ({
                 maxLength={512}
                 description="Add a description to help others understand what this role represents."
                 error={errors.roleDescription?.message}
-                optional
+                requirement="optional"
                 {...register("roleDescription")}
               />
 
