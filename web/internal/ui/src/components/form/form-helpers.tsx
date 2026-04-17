@@ -5,6 +5,7 @@ import React from "react";
 import { cn } from "../../lib/utils";
 import { InfoTooltip } from "../info-tooltip";
 import { OptionalTag, RequiredTag } from "./form-tags";
+export { DocsTag } from "./form-tags";
 
 export type FormHelperProps = {
   description?: string | React.ReactNode;

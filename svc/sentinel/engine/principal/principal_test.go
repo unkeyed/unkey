@@ -1,4 +1,4 @@
-package engine
+package principal
 
 import (
 	"database/sql"
@@ -102,7 +102,7 @@ func TestKeyPrincipalFromVerifier_EmptySlices(t *testing.T) {
 		Permissions: []string{},
 	}
 
-	p, err := keyPrincipalFromVerifier(verifier)
+	p, err := KeyPrincipalFromVerifier(verifier)
 	require.NoError(t, err)
 	require.Nil(t, p.Source.Key.Roles, "empty Roles must be normalized to nil so omitempty drops it")
 	require.Nil(t, p.Source.Key.Permissions, "empty Permissions must be normalized to nil so omitempty drops it")

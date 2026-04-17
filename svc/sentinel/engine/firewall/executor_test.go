@@ -1,4 +1,4 @@
-package engine
+package firewall
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 func TestFirewallExecutor_Deny(t *testing.T) {
 	t.Parallel()
 
-	e := &FirewallExecutor{}
+	e := &Executor{}
 	req := httptest.NewRequest("GET", "/xxx", nil)
 
 	//nolint:exhaustruct
@@ -34,7 +34,7 @@ func TestFirewallExecutor_Deny(t *testing.T) {
 func TestFirewallExecutor_Unspecified(t *testing.T) {
 	t.Parallel()
 
-	e := &FirewallExecutor{}
+	e := &Executor{}
 	req := httptest.NewRequest("GET", "/xxx", nil)
 
 	//nolint:exhaustruct
@@ -47,8 +47,8 @@ func TestFirewallExecutor_Unspecified(t *testing.T) {
 
 func TestFirewallActionLabel(t *testing.T) {
 	t.Parallel()
-	require.Equal(t, "deny", firewallActionLabel(sentinelv1.Action_ACTION_DENY))
-	require.Equal(t, "unspecified", firewallActionLabel(sentinelv1.Action_ACTION_UNSPECIFIED))
+	require.Equal(t, "deny", ActionLabel(sentinelv1.Action_ACTION_DENY))
+	require.Equal(t, "unspecified", ActionLabel(sentinelv1.Action_ACTION_UNSPECIFIED))
 }
 
 // Execute should not touch the incoming request or HTTP response — it's a
@@ -56,7 +56,7 @@ func TestFirewallActionLabel(t *testing.T) {
 func TestFirewallExecutor_DoesNotTouchRequest(t *testing.T) {
 	t.Parallel()
 
-	e := &FirewallExecutor{}
+	e := &Executor{}
 	req := httptest.NewRequest("GET", "/xxx", nil)
 	req.Header.Set("X-Original", "yes")
 	_, _ = e.Execute(context.Background(), nil, req, &sentinelv1.Firewall{ //nolint:exhaustruct

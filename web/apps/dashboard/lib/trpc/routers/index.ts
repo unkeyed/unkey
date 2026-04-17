@@ -83,6 +83,9 @@ import { create as createKeyauthPolicy } from "./deploy/environment-settings/sen
 import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
 import { update as updateKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/update";
 import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
+import { create as createRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/create";
+import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
+import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
 import { reorder as reorderSentinelPolicies } from "./deploy/environment-settings/sentinel/reorder";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
@@ -440,6 +443,11 @@ export const router = t.router({
           create: createFirewallPolicy,
           update: updateFirewallPolicy,
           delete: deleteFirewallPolicy,
+        }),
+        ratelimit: t.router({
+          create: createRatelimitPolicy,
+          update: updateRatelimitPolicy,
+          delete: deleteRatelimitPolicy,
         }),
         generateRegex,
       }),
