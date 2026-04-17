@@ -19,6 +19,7 @@ type DeployServiceClient interface {
 	Rollback(ctx context.Context, req *v1.RollbackRequest) (*v1.RollbackResponse, error)
 	Promote(ctx context.Context, req *v1.PromoteRequest) (*v1.PromoteResponse, error)
 	AuthorizeDeployment(ctx context.Context, req *v1.AuthorizeDeploymentRequest) (*v1.AuthorizeDeploymentResponse, error)
+	CancelDeployment(ctx context.Context, req *v1.CancelDeploymentRequest) (*v1.CancelDeploymentResponse, error)
 }
 
 var _ DeployServiceClient = (*ConnectDeployServiceClient)(nil)
@@ -89,6 +90,19 @@ func (c *ConnectDeployServiceClient) AuthorizeDeployment(ctx context.Context, re
 	ctx, span := tracing.Start(ctx, "DeployService.AuthorizeDeployment")
 	defer span.End()
 	resp, err := c.inner.AuthorizeDeployment(ctx, connect.NewRequest(req))
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectDeployServiceClient) CancelDeployment(ctx context.Context, req *v1.CancelDeploymentRequest) (*v1.CancelDeploymentResponse, error) {
+	ctx, span := tracing.Start(ctx, "DeployService.CancelDeployment")
+	defer span.End()
+	resp, err := c.inner.CancelDeployment(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)

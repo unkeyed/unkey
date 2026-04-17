@@ -109,6 +109,20 @@ const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
   },
+  superseded: {
+    icon: Ban,
+    label: "Superseded",
+    bgColor: "bg-grayA-3",
+    textColor: "text-grayA-11",
+    iconColor: "text-gray-11",
+  },
+  cancelled: {
+    icon: Ban,
+    label: "Cancelled",
+    bgColor: "bg-grayA-3",
+    textColor: "text-grayA-11",
+    iconColor: "text-gray-11",
+  },
 };
 
 type DeploymentStatusBadgeProps = {

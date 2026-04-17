@@ -201,12 +201,7 @@ export const ProjectNavigation = ({
     return (
       <Navbar>
         <Navbar.Breadcrumbs icon={<Cube />}>
-          <Navbar.Breadcrumbs.Link
-            href={basePath}
-            noop={false}
-            active={false}
-            isLast={false}
-          >
+          <Navbar.Breadcrumbs.Link href={basePath} noop={false} active={false} isLast={false}>
             Projects
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>

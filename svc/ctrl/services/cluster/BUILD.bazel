@@ -4,6 +4,7 @@ go_library(
     name = "cluster",
     srcs = [
         "doc.go",
+        "expiring_set.go",
         "rpc_get_desired_cilium_network_policy_state.go",
         "rpc_get_desired_deployment_state.go",
         "rpc_get_desired_sentinel_state.go",
@@ -24,6 +25,7 @@ go_library(
         "//pkg/db",
         "//pkg/logger",
         "//pkg/ptr",
+        "//pkg/repeat",
         "//pkg/uid",
         "//svc/ctrl/internal/auth",
         "//svc/ctrl/pkg/metrics",

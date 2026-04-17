@@ -1,0 +1,70 @@
+---
+title: "April 17, 2026"
+description: "Cancel in-progress deployments, Sentinel firewall policy, request body streaming in logs, and dashboard performance improvements."
+noindex: true
+---
+
+## New features
+
+### Cancel in-progress deployments
+
+You can now cancel a deployment that is still building. Open the actions menu on any active deployment in the deployments list and select **Cancel build** to abort it immediately. This is useful when you've pushed the wrong commit or want to free up build capacity for a more urgent change.
+
+### Firewall policy for Sentinel
+
+A new [Firewall policy](/platform/sentinel/policies/firewall) replaces the previous IP rules configuration. Firewall rules let you block requests based on path, method, headers, or query parameters — not just IP address. Rules are evaluated top-to-bottom and denied requests receive a `403 Forbidden` response before reaching your application.
+
+### Sentinel policies dashboard
+
+Sentinel policies can now be configured directly from the dashboard. Enable, disable, and reorder policies per environment without editing configuration files. The new UI also supports AI-assisted regex generation for pattern-based rules.
+
+### Request body streaming in logs
+
+Request logs now include response body content for requests proxied through Sentinel. This gives you deeper visibility into what your API returns without adding logging to your application code.
+
+### HTTP/2 cleartext (h2c) upstream support
+
+Deployments can now use HTTP/2 cleartext (h2c) to communicate with your upstream service. Configure the upstream protocol in your app's runtime settings to enable gRPC or HTTP/2 workloads that don't require TLS between Sentinel and your application.
+
+### Custom status code filters for request logs
+
+The request logs page now supports filtering by individual status codes and status code ranges. Filter by specific codes (e.g., `429`), or select any `2xx` or `3xx` range to narrow down the requests you're investigating.
+
+## Updates
+
+### Redesigned deployments list
+
+The deployments page now uses a card-based layout with semantic resource icons, replacing the previous table view. Each card shows deployment status, git metadata, and timing at a glance.
+
+### Improved audit logs table
+
+The audit logs page now uses paginated navigation with sorting and keyboard shortcuts, replacing the previous infinite scroll. The table loads faster and is consistent with other tables across the dashboard.
+
+### Change connected repository without disconnecting
+
+You can now switch your project's connected GitHub repository directly from deployment settings without disconnecting and reconnecting. This preserves your existing configuration while pointing to a new repo.
+
+### Dashboard performance improvements
+
+Several N+1 query issues have been resolved across the dashboard:
+- The API overview page no longer makes individual key count queries for each API.
+- Request log hover previews are debounced and batched to reduce API calls.
+- Rate limit timeseries charts load in a single batched request.
+- The deployments list loads significantly faster with optimized queries.
+
+### Improved loading states for ratelimits
+
+Data enrichment in the ratelimits logs now shows smoother loading states, reducing visual flickering when pages load additional context.
+
+## Bug fixes
+
+- Rate limit updates no longer cause occasional deadlocks under concurrent writes.
+- Scrollbar rendering is now consistent across all dashboard pages.
+- The environment variable add panel no longer reopens after deleting a variable.
+- Footer key counts now display the correct total.
+- The onboarding wizard step progression works correctly again.
+- API settings schema validation now applies the correct constraints.
+- Ephemeral disk storage configuration now saves correctly from the runtime settings page.
+- Environment selection in filters now allows picking a specific environment and highlights the active selection.
+- Breadcrumb identifiers use a consistent font style across the dashboard.
+- Layout width calculations are now correct across all viewport sizes.

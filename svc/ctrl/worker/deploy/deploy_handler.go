@@ -91,7 +91,10 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	logger.Info("deployment workflow started", "req", fmt.Sprintf("%+v", req))
 
 	compensation.Add("mark deployment as failed", func(runCtx restate.RunContext) error {
-		return db.Query.UpdateDeploymentStatus(runCtx, w.db.RW(), db.UpdateDeploymentStatusParams{
+		// Use the conditional update so we don't overwrite a status that was
+		// set intentionally by the dedup path (superseded) or by a successful
+		// completion (ready). Only transitions from active statuses to failed.
+		return db.Query.UpdateDeploymentStatusIfActive(runCtx, w.db.RW(), db.UpdateDeploymentStatusIfActiveParams{
 			ID:        req.GetDeploymentId(),
 			Status:    db.DeploymentsStatusFailed,
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -103,6 +106,50 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}, restate.WithName("finding deployment"), restate.WithMaxRetryDuration(time.Minute))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
+	}
+
+	// --- Deduplication: skip if a newer deployment is queued for the same app+env+branch ---
+	//
+	// Because the DeployService VO is keyed by app_id, by the time we run here any
+	// subsequent deploys for the same app are already queued in the VO inbox — so a
+	// newer-pending check here is race-free.
+	if deployment.GitBranch.Valid {
+		skipped, skipErr := w.skipIfSuperseded(ctx, deployment)
+		if skipErr != nil {
+			return nil, skipErr
+		}
+		if skipped {
+			return &hydrav1.DeployResponse{}, nil
+		}
+	}
+
+	// --- Concurrency gate: acquire a build slot from the workspace's BuildSlotService ---
+	//
+	// We need to know whether this is a production deployment to decide whether the
+	// gate should be bypassed. The Starting step below re-fetches the environment so
+	// we don't need to plumb it through — this extra read is cheap compared to a build.
+	gateEnvironment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
+		return db.Query.FindEnvironmentById(runCtx, w.db.RO(), deployment.EnvironmentID)
+	}, restate.WithName("find environment for concurrency gate"))
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Public("Failed to read environment for build gate."))
+	}
+	isProduction := gateEnvironment.Slug == "production"
+
+	// Register the slot release as a durable compensation BEFORE calling
+	// AcquireOrWait. This ensures the slot is returned on ANY failure path:
+	// cancellation, crash, or normal error. Release is idempotent — it
+	// handles both active slots and wait_list entries, so calling it when
+	// we were never granted a slot is a no-op.
+	//
+	// Uses AddCtx (not Add) because Release().Send() needs an ObjectContext
+	// to dispatch the fire-and-forget call to BuildSlotService.
+	compensation.AddCtx(func(ctx restate.ObjectContext) error {
+		releaseBuildSlot(ctx, deployment.WorkspaceID, deployment.ID)
+		return nil
+	})
+	if err := w.waitForBuildSlot(ctx, deployment, isProduction); err != nil {
+		return nil, err
 	}
 
 	// --- Dequeue ---
@@ -211,7 +258,10 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return fault.Wrap(err, fault.Public("Regional deployment targets could not be prepared."))
 		}
 
-		if err = w.ensureSentinels(stepCtx, workspace, project, environment, topologies); err != nil {
+		// Create sentinel DB rows + outbox entries first — these are just
+		// inserts, they don't block.
+		newSentinelIDs, err := w.ensureSentinelRows(stepCtx, workspace, project, environment, topologies)
+		if err != nil {
 			return fault.Wrap(err, fault.Public("Sentinels could not be started."))
 		}
 
@@ -219,8 +269,18 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return fault.Wrap(err, fault.Public("Applying network policies failed."))
 		}
 
-		if err = w.waitForDeployments(stepCtx, deployment.ID, topologies); err != nil {
+		// Fire off SentinelService.Deploy for each new sentinel WITHOUT
+		// waiting, then start the pod-readiness awakeable wait. Krane can
+		// work on both in parallel; we drain the sentinel futures after
+		// waitForDeployments returns so the two waits overlap.
+		sentinelFutures := w.fanOutSentinelDeploys(stepCtx, newSentinelIDs, sentinelReplicasForEnv(environment))
+
+		if err = w.waitForDeployments(stepCtx, compensation, deployment.ID, topologies); err != nil {
 			return fault.Wrap(err, fault.Public("Instances did not become healthy in time."))
+		}
+
+		if err := w.waitForSentinels(newSentinelIDs, sentinelFutures); err != nil {
+			return fault.Wrap(err, fault.Public("Sentinels could not be started."))
 		}
 		return nil
 	})
@@ -292,6 +352,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			DeploymentId: deployment.ID,
 		},
 	)
+
+	// Release the build slot on the happy path. The compensation only runs
+	// on error, so we release explicitly here. Release is idempotent, so a
+	// double-release (if compensation also fires for some reason) is safe.
+	releaseBuildSlot(ctx, deployment.WorkspaceID, deployment.ID)
 
 	return &hydrav1.DeployResponse{}, nil
 }
@@ -632,17 +697,22 @@ func (w *Workflow) createTopologies(
 		)
 	}
 
-	// In case anything goes wrong, delete the inserted topologies.
-	// Safe because Restate serializes invocations per virtual object key —
-	// compensations complete before any retry begins.
+	// On failure, mark each topology desired_status=stopped so krane scales
+	// the pods to zero immediately via the streaming change feed. Deleting
+	// the row instead would also work (the 60s reconciliation safety net
+	// catches it) but updating gives an explicit signal with no cleanup
+	// lag, and preserves the topology row for debugging.
 	for _, topo := range topologies {
 		compensation.Add(
-			fmt.Sprintf("delete deployment topology %s/%s", topo.DeploymentID, topo.RegionID),
+			fmt.Sprintf("stop deployment topology %s/%s", topo.DeploymentID, topo.RegionID),
 			func(runCtx restate.RunContext) error {
 				return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-					err := db.Query.DeleteDeploymentTopologyByDeploymentRegion(txCtx, tx, db.DeleteDeploymentTopologyByDeploymentRegionParams{
-						DeploymentID: topo.DeploymentID,
-						RegionID:     topo.RegionID,
+					now := time.Now().UnixMilli()
+					err := db.Query.UpdateDeploymentTopologyDesiredStatus(txCtx, tx, db.UpdateDeploymentTopologyDesiredStatusParams{
+						DeploymentID:  topo.DeploymentID,
+						RegionID:      topo.RegionID,
+						DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
+						UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 					})
 					if err != nil {
 						return err
@@ -651,7 +721,7 @@ func (w *Workflow) createTopologies(
 						ResourceType: db.DeploymentChangesResourceTypeDeploymentTopology,
 						ResourceID:   topo.DeploymentID,
 						RegionID:     topo.RegionID,
-						CreatedAt:    time.Now().UnixMilli(),
+						CreatedAt:    now,
 					})
 				})
 			},
@@ -661,27 +731,38 @@ func (w *Workflow) createTopologies(
 	return topologies, nil
 }
 
-// ensureSentinels creates sentinel instances in any region that doesn't already
-// have one for this environment. Sentinels are the reverse-proxy layer that
-// routes frontline traffic to deployment containers, so every region serving
-// traffic needs one.
+// sentinelReplicasForEnv returns the desired sentinel replica count based
+// on the environment slug. Production gets extra replicas for availability.
+func sentinelReplicasForEnv(environment db.Environment) int32 {
+	if environment.Slug == "production" {
+		return 3
+	}
+	return 1
+}
+
+// ensureSentinelRows inserts a sentinel DB row (and outbox entry) for every
+// region in topologies that doesn't already have one for this environment.
+// Returns the IDs of the newly inserted sentinels.
 //
-// Production environments get 3 sentinel replicas for availability; all others
-// get 1. The insert relies on a unique index on (environment_id, region) to be
+// The insert relies on a unique index on (environment_id, region) to be
 // idempotent — if a concurrent workflow already created the sentinel, the
-// duplicate key error is silently ignored.
-func (w *Workflow) ensureSentinels(
+// duplicate key error is silently ignored. This is the DB-mutating half of
+// what used to be ensureSentinels; the waiting half is now
+// [Workflow.fanOutSentinelDeploys] + [Workflow.waitForSentinels] so
+// that the sentinel Deploys can be fired off in parallel with the pod
+// readiness wait.
+func (w *Workflow) ensureSentinelRows(
 	ctx restate.ObjectContext,
 	workspace db.Workspace,
 	project db.Project,
 	environment db.Environment,
 	topologies []db.InsertDeploymentTopologyParams,
-) error {
+) ([]string, error) {
 	existingSentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.FindSentinelsByEnvironmentIDRow, error) {
 		return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
 	}, restate.WithName("find existing sentinels"))
 	if err != nil {
-		return fault.Wrap(
+		return nil, fault.Wrap(
 			fmt.Errorf("failed to find existing sentinels: %w", err),
 			fault.Public("Failed to read from database. Please try again."),
 		)
@@ -692,10 +773,7 @@ func (w *Workflow) ensureSentinels(
 		existingSentinelsByRegion[row.Region.ID] = row.Sentinel
 	}
 
-	desiredReplicas := int32(1)
-	if environment.Slug == "production" {
-		desiredReplicas = 3
-	}
+	desiredReplicas := sentinelReplicasForEnv(environment)
 
 	// Insert a sentinel row (and outbox entry) for every region that doesn't
 	// already have one, so krane can pick them up.
@@ -741,20 +819,32 @@ func (w *Workflow) ensureSentinels(
 			return id, err
 		}, restate.WithName("ensure sentinel exists in db"))
 		if err != nil {
-			return fault.Wrap(err, fault.Public("Traffic proxy could not be created for a region."))
+			return nil, fault.Wrap(err, fault.Public("Traffic proxy could not be created for a region."))
 		}
 
 		newSentinelIDs = append(newSentinelIDs, sentinelID)
 	}
 
+	return newSentinelIDs, nil
+}
+
+// fanOutSentinelDeploys kicks off non-blocking RequestFuture calls to
+// SentinelService.Deploy for each newly created sentinel. Returns the
+// futures so the caller can drain them concurrently with other waits
+// (e.g. [Workflow.waitForDeployments]).
+//
+// Each SentinelService.Deploy invocation is awakeable-based and blocks
+// inside the sentinel VO until krane reports the desired image as running
+// or until its own 10-minute deploy timeout fires.
+func (w *Workflow) fanOutSentinelDeploys(
+	ctx restate.ObjectContext,
+	newSentinelIDs []string,
+	desiredReplicas int32,
+) []restate.ResponseFuture[*hydrav1.SentinelServiceDeployResponse] {
 	if len(newSentinelIDs) == 0 {
 		return nil
 	}
-
-	// Fan out Deploy calls for every new sentinel and wait for all of them to
-	// converge. Each call blocks until krane reports the desired image as
-	// running or until the deploy timeout fires.
-	var sentinelFutures []restate.ResponseFuture[*hydrav1.SentinelServiceDeployResponse]
+	futures := make([]restate.ResponseFuture[*hydrav1.SentinelServiceDeployResponse], 0, len(newSentinelIDs))
 	for _, id := range newSentinelIDs {
 		fut := hydrav1.NewSentinelServiceClient(ctx, id).
 			Deploy().
@@ -764,10 +854,20 @@ func (w *Workflow) ensureSentinels(
 				CpuMillicores:   250,
 				MemoryMib:       256,
 			})
-		sentinelFutures = append(sentinelFutures, fut)
+		futures = append(futures, fut)
 	}
+	return futures
+}
 
-	for i, fut := range sentinelFutures {
+// waitForSentinels blocks until every sentinel Deploy future resolves
+// or one of them fails. Called after the pod readiness wait so that both
+// sentinels and pods converge in parallel on krane's side; by the time we
+// drain, most futures should already have resolved.
+func (w *Workflow) waitForSentinels(
+	newSentinelIDs []string,
+	futures []restate.ResponseFuture[*hydrav1.SentinelServiceDeployResponse],
+) error {
+	for i, fut := range futures {
 		resp, err := fut.Response()
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Traffic proxy failed to start."))
@@ -777,7 +877,6 @@ func (w *Workflow) ensureSentinels(
 				fault.Public("Traffic proxy failed to start."))
 		}
 	}
-
 	return nil
 }
 
@@ -904,8 +1003,9 @@ func (w *Workflow) configureRouting(
 		)
 	}
 
-	// Key routing service by app ID for per-app serialization
-	_, err = hydrav1.NewRoutingServiceClient(ctx, app.ID).
+	// Routing VO is keyed by env_id — per-env serialization for both route
+	// reassignment and live-deployment swaps.
+	_, err = hydrav1.NewRoutingServiceClient(ctx, environment.ID).
 		AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
 		DeploymentId:      deployment.ID,
 		FrontlineRouteIds: routeIDs,
@@ -920,16 +1020,13 @@ func (w *Workflow) configureRouting(
 	return nil
 }
 
-// swapLiveDeployment atomically updates the apps's live deployment pointer to
-// this deployment and schedules the previous live deployment for standby after
-// 30 minutes via [hydrav1.DeploymentServiceClient.ScheduleDesiredStateChange].
+// swapLiveDeployment delegates the live-deployment swap to RoutingService,
+// which performs it atomically inside the env-keyed VO. The route reassignment
+// happened earlier in [Workflow.assignFrontlineRoutes], so we pass an empty
+// route list — this call only touches apps.current_deployment_id.
 //
-// The read-then-update happens inside a single transaction to prevent a race where
-// two concurrent deploys both capture the same previous deployment ID and one of
-// them never gets scheduled for standby.
-//
-// This only applies to production environments that are not in a rolled-back state;
-// for all other cases the method is a no-op and returns nil.
+// This only applies to production environments that are not in a rolled-back
+// state; for all other cases the method is a no-op and returns nil.
 func (w *Workflow) swapLiveDeployment(
 	ctx restate.ObjectContext,
 	deployment db.Deployment,
@@ -940,41 +1037,23 @@ func (w *Workflow) swapLiveDeployment(
 		return nil
 	}
 
-	// Atomically read the current deployment and swap it to the new one.
-	// This prevents a race where two concurrent deploys both capture the same
-	// currentDeploymentID and one of them never gets scheduled for standby.
-	previousDeploymentID, err := restate.Run(ctx, func(runCtx restate.RunContext) (sql.NullString, error) {
-		return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (sql.NullString, error) {
-			currentApp, findErr := db.Query.FindAppById(txCtx, tx, deployment.AppID)
-			if findErr != nil {
-				return sql.NullString{}, findErr
-			}
-
-			updateErr := db.Query.UpdateAppDeployments(txCtx, tx, db.UpdateAppDeploymentsParams{
-				IsRolledBack:        false,
-				AppID:               deployment.AppID,
-				CurrentDeploymentID: sql.NullString{Valid: true, String: deployment.ID},
-				UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			})
-			if updateErr != nil {
-				return sql.NullString{}, updateErr
-			}
-
-			return currentApp.CurrentDeploymentID, nil
-		})
-	}, restate.WithName("swapping app live deployment"))
+	swapResp, err := hydrav1.NewRoutingServiceClient(ctx, environment.ID).
+		SwapLiveDeployment().Request(&hydrav1.SwapLiveDeploymentRequest{
+		DeploymentId:    deployment.ID,
+		SetRollbackFlag: false,
+	})
 	if err != nil {
 		return fault.Wrap(err, fault.Public("App live deployment could not be updated."))
 	}
 
-	if previousDeploymentID.Valid {
-		_, err = hydrav1.NewDeploymentServiceClient(ctx, previousDeploymentID.String).
+	if swapResp.GetPreviousDeploymentId() != "" {
+		_, err = hydrav1.NewDeploymentServiceClient(ctx, swapResp.GetPreviousDeploymentId()).
 			ScheduleDesiredStateChange().Request(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
 				DelayMillis: (30 * time.Minute).Milliseconds(),
 				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STANDBY,
 			},
-			restate.WithIdempotencyKey(previousDeploymentID.String),
+			restate.WithIdempotencyKey(swapResp.GetPreviousDeploymentId()),
 		)
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Previous live deployment could not be scheduled for standby."))
@@ -984,11 +1063,31 @@ func (w *Workflow) swapLiveDeployment(
 	return nil
 }
 
-// waitForDeployments polls instance status until enough regions are healthy,
-// or [regionReadyTimeout] elapses. A region is considered healthy when it has
-// at least autoscaling_replicas_min running instances. The check tolerates one
-// full regional outage: it requires (numRegions - 1) healthy regions, minimum 1.
-func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID string, topologies []db.InsertDeploymentTopologyParams) error {
+// waitForDeployments blocks until enough regions are healthy, or
+// [regionReadyTimeout] elapses. A region is considered healthy when it has
+// at least autoscaling_replicas_min running instances. The check tolerates
+// one full regional outage: it requires (numRegions - 1) healthy regions,
+// minimum 1.
+//
+// The wait is push-based via a Restate awakeable. The handler:
+//  1. Stores {awakeable_id, deployment_id} in VO state under
+//     [instancesReadyAwakeableKey]
+//  2. Does an initial DB check in case instances are already healthy (e.g.
+//     a redeploy against already-running pods, or a report that landed
+//     between createTopologies and here) and self-resolves the awakeable
+//     if so
+//  3. Races the awakeable against a [regionReadyTimeout] timeout via
+//     [restate.WaitFirst]
+//
+// The awakeable is resolved by [Workflow.NotifyInstancesReady], which is
+// called from services/cluster's ReportDeploymentStatus RPC whenever krane
+// reports an instance status change that pushes the deployment past the
+// healthy-region threshold.
+//
+// State cleanup: the caller passes `compensation` so the state clear can
+// be registered as a durable compensation (survives Restate cancellation)
+// rather than relying on a Go defer.
+func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, compensation *compensation.Compensation, deploymentID string, topologies []db.InsertDeploymentTopologyParams) error {
 	// Build per-region minimum replica requirements.
 	regionMinReplicas := make(map[string]uint32, len(topologies))
 	for _, topo := range topologies {
@@ -1002,51 +1101,91 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, deploymentID st
 		"required_regions", requiredRegions,
 	)
 
-	_, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
-		deadline := time.Now().Add(regionReadyTimeout)
+	// Create awakeable and stash it in VO state BEFORE doing the initial
+	// health check. This prevents a race where an instance report lands
+	// between our check and the state write, causing NotifyInstancesReady
+	// to find no awakeable and return a no-op.
+	awk := restate.Awakeable[restate.Void](ctx)
+	restate.Set(ctx, instancesReadyAwakeableKey, awk.Id())
 
-		for time.Now().Before(deadline) {
-			time.Sleep(time.Second)
+	// Clear state on failure so the VO doesn't keep a stale awakeable_id
+	// around after the deployment terminates.
+	compensation.AddCtx(func(ctx restate.ObjectContext) error {
+		restate.Clear(ctx, instancesReadyAwakeableKey)
+		return nil
+	})
 
-			instances, err := db.Query.FindInstancesByDeploymentId(runCtx, w.db.RO(), deploymentID)
-			if err != nil {
-				return false, err
-			}
-
-			// Count running instances per region.
-			runningPerRegion := make(map[string]uint32)
-			for _, instance := range instances {
-				if instance.Status == db.InstancesStatusRunning {
-					runningPerRegion[instance.RegionID]++
-				}
-			}
-
-			// A region is healthy when it has >= its minReplicas running.
-			healthyRegions := 0
-			for regionID, minReplicas := range regionMinReplicas {
-				if runningPerRegion[regionID] >= minReplicas {
-					healthyRegions++
-				}
-			}
-
-			logger.Info("checking instances",
-				"deployment_id", deploymentID,
-				"healthy_regions", healthyRegions,
-				"required_regions", requiredRegions,
-			)
-			if healthyRegions >= requiredRegions {
-				return true, nil
-			}
-		}
-
-		return false, restate.TerminalErrorf("not enough regions became healthy, required %d of %d", requiredRegions, len(regionMinReplicas))
-	}, restate.WithName(fmt.Sprintf("wait for %d healthy regions", requiredRegions)))
+	// Initial check: if instances are already healthy, resolve immediately.
+	alreadyHealthy, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
+		return w.checkInstancesHealthy(runCtx, deploymentID, regionMinReplicas, requiredRegions)
+	}, restate.WithName("initial healthy-regions check"))
 	if err != nil {
-		return fault.Wrap(err, fault.Public("Not enough regions became healthy in time."))
+		return fault.Wrap(err, fault.Public("Failed to check deployment health."))
+	}
+	if alreadyHealthy {
+		restate.ResolveAwakeable[restate.Void](ctx, awk.Id(), restate.Void{})
 	}
 
-	logger.Info("deployments ready", "deployment_id", deploymentID)
-	return nil
+	// Race the awakeable against a timeout.
+	timeout := restate.After(ctx, regionReadyTimeout)
+	winner, err := restate.WaitFirst(ctx, awk, timeout)
+	if err != nil {
+		return fmt.Errorf("wait for healthy regions or timeout: %w", err)
+	}
+
+	if winner == awk {
+		// Drain the result to surface any rejection error.
+		if _, err := awk.Result(); err != nil {
+			return fmt.Errorf("awakeable result: %w", err)
+		}
+		// Clear eagerly on the happy path. The compensation registered
+		// above still runs on any later error in the Deploy workflow.
+		restate.Clear(ctx, instancesReadyAwakeableKey)
+		logger.Info("deployments ready", "deployment_id", deploymentID)
+		return nil
+	}
+
+	return fault.Wrap(
+		restate.TerminalErrorf("not enough regions became healthy in %v, required %d of %d", regionReadyTimeout, requiredRegions, len(regionMinReplicas)),
+		fault.Public("Not enough regions became healthy in time."),
+	)
+}
+
+// checkInstancesHealthy returns true if the current running-instance counts
+// satisfy the per-region minimum replica requirements for at least
+// requiredRegions. It is the same logic used by ReportDeploymentStatus in
+// services/cluster to decide whether to call NotifyInstancesReady.
+func (w *Workflow) checkInstancesHealthy(
+	ctx context.Context,
+	deploymentID string,
+	regionMinReplicas map[string]uint32,
+	requiredRegions int,
+) (bool, error) {
+	instances, err := db.Query.FindInstancesByDeploymentId(ctx, w.db.RO(), deploymentID)
+	if err != nil {
+		return false, err
+	}
+
+	runningPerRegion := make(map[string]uint32)
+	for _, instance := range instances {
+		if instance.Status == db.InstancesStatusRunning {
+			runningPerRegion[instance.RegionID]++
+		}
+	}
+
+	healthyRegions := 0
+	for regionID, minReplicas := range regionMinReplicas {
+		if runningPerRegion[regionID] >= minReplicas {
+			healthyRegions++
+		}
+	}
+
+	logger.Info("checked instances",
+		"deployment_id", deploymentID,
+		"healthy_regions", healthyRegions,
+		"required_regions", requiredRegions,
+	)
+	return healthyRegions >= requiredRegions, nil
 }
 
 // ghStatusReporter wraps a GitHubStatusServiceClient and silently skips all

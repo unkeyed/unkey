@@ -5,6 +5,8 @@ go_library(
     srcs = [
         "app.pb.go",
         "app_restate.pb.go",
+        "build_slot.pb.go",
+        "build_slot_restate.pb.go",
         "certificate.pb.go",
         "certificate_restate.pb.go",
         "clickhouse_user.pb.go",
