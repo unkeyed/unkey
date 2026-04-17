@@ -5,6 +5,7 @@ export const identitiesSortFields = [
   "createdAt",
   "keyCount",
   "ratelimitCount",
+  "lastUsed",
 ] as const;
 export type IdentitiesSortField = (typeof identitiesSortFields)[number];
 

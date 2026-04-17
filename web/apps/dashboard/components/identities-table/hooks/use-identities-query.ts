@@ -15,12 +15,14 @@ const COLUMN_ID_TO_SORT_FIELD: Record<string, IdentitiesSortField> = {
   created: "createdAt",
   keys: "keyCount",
   ratelimits: "ratelimitCount",
+  last_used: "lastUsed",
 };
 const SORT_FIELD_TO_COLUMN_ID: Record<IdentitiesSortField, string> = {
   externalId: "externalId",
   createdAt: "created",
   keyCount: "keys",
   ratelimitCount: "ratelimits",
+  lastUsed: "last_used",
 };
 
 export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {

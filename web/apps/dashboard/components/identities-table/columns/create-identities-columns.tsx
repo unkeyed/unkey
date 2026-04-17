@@ -92,8 +92,11 @@ export const createIdentitiesColumns = ({
   },
   {
     id: IDENTITY_COLUMN_IDS.LAST_USED,
-    header: "Last Used",
-    enableSorting: false,
+    // Dummy accessor required for TanStack getCanSort() — actual sorting is server-side (manualSorting).
+    accessorFn: () => 0,
+    sortDescFirst: true,
+    header: ({ header }) => <SortableHeader header={header}>Last Used</SortableHeader>,
+    enableSorting: true,
     meta: {
       width: "15%",
     },

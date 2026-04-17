@@ -1,5 +1,19 @@
 import { identitiesQueryPayload } from "@/components/identities-table/schema/identities.schema";
-import { and, asc, count, db, desc, eq, like, or, schema, sql } from "@/lib/db";
+import { clickhouse } from "@/lib/clickhouse";
+import {
+  and,
+  asc,
+  count,
+  db,
+  desc,
+  eq,
+  inArray,
+  like,
+  notInArray,
+  or,
+  schema,
+  sql,
+} from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
@@ -32,6 +46,84 @@ const IdentitiesResponse = z.object({
   pageSize: z.number(),
   totalPages: z.number(),
 });
+
+type BaseCondition = ReturnType<typeof eq>;
+
+/**
+ * Gets identity IDs sorted by last verification time from ClickHouse,
+ * merged with never-verified identities from MySQL, then paginated.
+ * Never-verified identities appear last when sorting descending, first when ascending.
+ */
+async function getLastUsedSortedIds(params: {
+  workspaceId: string;
+  baseConditions: BaseCondition[];
+  sortOrder: "asc" | "desc";
+  limit: number;
+  offset: number;
+}): Promise<string[]> {
+  const { workspaceId, baseConditions, sortOrder, limit: pageLimit, offset } = params;
+
+  const lastUsedQuery = clickhouse.querier.query({
+    query: `
+      SELECT identity_id
+      FROM default.key_verifications_per_minute_v3
+      WHERE workspace_id = {workspaceId: String}
+      GROUP BY identity_id
+      ORDER BY max(time) ${sortOrder === "asc" ? "ASC" : "DESC"}
+    `,
+    params: z.object({
+      workspaceId: z.string(),
+    }),
+    schema: z.object({
+      identity_id: z.string(),
+    }),
+  });
+
+  const chResult = await lastUsedQuery({ workspaceId });
+
+  if (chResult.err) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Something went wrong when fetching data from ClickHouse.",
+    });
+  }
+
+  const verifiedIds = chResult.val.map((r) => r.identity_id);
+
+  // Get identity IDs that have never been verified (not in ClickHouse).
+  const neverUsedResults = await db
+    .select({ id: schema.identities.id })
+    .from(schema.identities)
+    .where(
+      and(
+        ...baseConditions,
+        ...(verifiedIds.length > 0 ? [notInArray(schema.identities.id, verifiedIds)] : []),
+      ),
+    )
+    .orderBy(desc(schema.identities.createdAt));
+
+  const neverUsedIds = neverUsedResults.map((r) => r.id);
+
+  // Filter verified IDs to only those matching base conditions.
+  // ClickHouse may return IDs for deleted identities or ones not matching search.
+  let filteredVerifiedIds = verifiedIds;
+  if (verifiedIds.length > 0) {
+    const matchingVerified = await db
+      .select({ id: schema.identities.id })
+      .from(schema.identities)
+      .where(and(...baseConditions, inArray(schema.identities.id, verifiedIds)));
+    const matchingSet = new Set(matchingVerified.map((r) => r.id));
+    filteredVerifiedIds = verifiedIds.filter((id) => matchingSet.has(id));
+  }
+
+  // Ascending = never-used first, descending = verified first.
+  const allSortedIds =
+    sortOrder === "asc"
+      ? [...neverUsedIds, ...filteredVerifiedIds]
+      : [...filteredVerifiedIds, ...neverUsedIds];
+
+  return allSortedIds.slice(offset, offset + pageLimit);
+}
 
 export const queryIdentities = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -68,14 +160,15 @@ export const queryIdentities = workspaceProcedure
 
       const total = countResult.count;
 
-      const isCountSort = sortBy === "keyCount" || sortBy === "ratelimitCount";
+      const isPreSorted =
+        sortBy === "keyCount" || sortBy === "ratelimitCount" || sortBy === "lastUsed";
 
-      // For count-based sorts, first get the sorted page of identity IDs via SQL builder
-      // with LEFT JOIN + GROUP BY + COUNT, then fetch full relational data for those IDs.
+      // For count-based and ClickHouse-based sorts, first get the sorted page of identity IDs,
+      // then fetch full relational data for those IDs.
       // For direct column sorts, use the relational query directly.
       let sortedIds: string[] | null = null;
 
-      if (isCountSort) {
+      if (sortBy === "keyCount" || sortBy === "ratelimitCount") {
         const countQuery = db.select({ id: schema.identities.id }).from(schema.identities);
 
         if (sortBy === "keyCount") {
@@ -98,18 +191,26 @@ export const queryIdentities = workspaceProcedure
           .offset(offset);
 
         sortedIds = countResults.map((r) => r.id);
+      } else if (sortBy === "lastUsed") {
+        sortedIds = await getLastUsedSortedIds({
+          workspaceId,
+          baseConditions,
+          sortOrder,
+          limit,
+          offset,
+        });
+      }
 
-        // No matching identities for this page — return early
-        if (sortedIds.length === 0) {
-          const totalPages = Math.max(1, Math.ceil(total / limit));
-          return {
-            identities: [],
-            total,
-            page,
-            pageSize: limit,
-            totalPages,
-          };
-        }
+      // No matching identities for this page — return early
+      if (isPreSorted && sortedIds !== null && sortedIds.length === 0) {
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+        return {
+          identities: [],
+          total,
+          page,
+          pageSize: limit,
+          totalPages,
+        };
       }
 
       // Helper function to build filter conditions for query API
@@ -131,7 +232,7 @@ export const queryIdentities = workspaceProcedure
           }
         }
 
-        // When sorting by count, filter to only the pre-sorted IDs
+        // When pre-sorted, filter to only the pre-sorted IDs
         if (sortedIds !== null && sortedIds.length > 0) {
           conditions.push(helpers.inArray(identity.id, sortedIds));
         }
@@ -157,8 +258,8 @@ export const queryIdentities = workspaceProcedure
             },
           },
         },
-        // When sorting by count, pagination is handled by the count query above
-        ...(isCountSort
+        // When pre-sorted, pagination is handled by the pre-sort query above
+        ...(isPreSorted
           ? {}
           : {
               limit,
@@ -171,9 +272,9 @@ export const queryIdentities = workspaceProcedure
               return direction(identities.externalId);
             }
             case "keyCount":
-            case "ratelimitCount": {
-              // Relational query doesn't support count ordering;
-              // results are re-sorted in JS after fetch
+            case "ratelimitCount":
+            case "lastUsed": {
+              // Pre-sorted: results are re-ordered in JS after fetch
               return d(identities.createdAt);
             }
             default: {
@@ -195,7 +296,7 @@ export const queryIdentities = workspaceProcedure
         ratelimits: identity.ratelimits,
       }));
 
-      // Re-sort by count in JS to match the order from the count query
+      // Re-sort in JS to match the order from the pre-sort query
       if (sortedIds !== null && sortedIds.length > 0) {
         const idOrder = new Map(sortedIds.map((id, index) => [id, index]));
         transformedIdentities = transformedIdentities.sort(
