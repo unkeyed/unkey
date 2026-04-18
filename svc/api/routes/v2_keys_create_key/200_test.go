@@ -30,6 +30,7 @@ func TestCreateKeySuccess(t *testing.T) {
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
+		Caches:    h.Caches,
 	}
 
 	h.Register(route)
@@ -80,6 +81,7 @@ func TestCreateKeyWithOptionalFields(t *testing.T) {
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
+		Caches:    h.Caches,
 	}
 
 	h.Register(route)
@@ -142,6 +144,7 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
+		Caches:    h.Caches,
 	}
 
 	h.Register(route)
@@ -207,6 +210,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
+		Caches:    h.Caches,
 	}
 
 	h.Register(route)
@@ -286,6 +290,7 @@ func TestCreateKeyWithCreditsRemainingNull(t *testing.T) {
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
+		Caches:    h.Caches,
 	}
 
 	h.Register(route)
