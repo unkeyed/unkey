@@ -98,6 +98,22 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create in-cluster config: %w", err)
 	}
+	// Raise the client-side rate limits above client-go's defaults
+	// (QPS=5, Burst=10). Krane is a controller: on every pod watch
+	// event it does a ReplicaSet GET plus a pods LIST, and on reconnect
+	// or resync it bursts many LISTs at once. The defaults trigger
+	// multi-second "client-side throttling" waits on the critical path
+	// between ContainersReady and the status report.
+	//
+	// Nil out RateLimiter explicitly: if anything earlier in the call
+	// chain set one, QPS/Burst would be silently ignored.
+	inClusterConfig.RateLimiter = nil
+	inClusterConfig.QPS = float32(cfg.K8s.QPS)
+	inClusterConfig.Burst = cfg.K8s.Burst
+	logger.Info("k8s client rate limits",
+		"qps", inClusterConfig.QPS,
+		"burst", inClusterConfig.Burst,
+	)
 
 	clientset, err := kubernetes.NewForConfig(inClusterConfig)
 	if err != nil {
@@ -153,17 +169,55 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create fingerprint cache: %w", err)
 	}
 
+	// Cache for deduplicating sentinel status reports.
+	sentinelFingerprintCache, err := cache.New(cache.Config[string, string]{
+		Fresh:    5 * time.Minute,
+		Stale:    10 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "sentinel_fingerprints",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create sentinel fingerprint cache: %w", err)
+	}
+
+	// Caches for deduplicating pod watch lag samples per (pod UID,
+	// transition time). Entries auto-expire so deleted pods don't
+	// leak memory.
+	deploymentTransitionsCache, err := cache.New(cache.Config[string, time.Time]{
+		Fresh:    5 * time.Minute,
+		Stale:    15 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "deployment_pod_transitions",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create deployment transitions cache: %w", err)
+	}
+
+	sentinelTransitionsCache, err := cache.New(cache.Config[string, time.Time]{
+		Fresh:    5 * time.Minute,
+		Stale:    15 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "sentinel_pod_transitions",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create sentinel transitions cache: %w", err)
+	}
+
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{
-		ClientSet:        clientset,
-		DynamicClient:    dynamicClient,
-		Cluster:          cluster,
-		Region:           cfg.Region,
-		Platform:         cfg.Platform,
-		Vault:            vaultClient,
-		Registry:         registryCfg,
-		Fingerprints:     fingerprintCache,
-		StorageClassName: cfg.StorageClassName,
+		ClientSet:           clientset,
+		DynamicClient:       dynamicClient,
+		Cluster:             cluster,
+		Region:              cfg.Region,
+		Platform:            cfg.Platform,
+		Vault:               vaultClient,
+		Registry:            registryCfg,
+		Fingerprints:        fingerprintCache,
+		ObservedTransitions: deploymentTransitionsCache,
+		StorageClassName:    cfg.StorageClassName,
 	})
 	if err := deploymentCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start deployment controller: %w", err)
@@ -172,11 +226,13 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Start the sentinel controller (independent control loop)
 	sentinelCtrl := sentinel.New(sentinel.Config{
-		ClientSet:     clientset,
-		DynamicClient: dynamicClient,
-		Cluster:       cluster,
-		Region:        cfg.Region,
-		Platform:      cfg.Platform,
+		ClientSet:           clientset,
+		DynamicClient:       dynamicClient,
+		Cluster:             cluster,
+		Region:              cfg.Region,
+		Platform:            cfg.Platform,
+		Fingerprints:        sentinelFingerprintCache,
+		ObservedTransitions: sentinelTransitionsCache,
 	})
 	if err := sentinelCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start sentinel controller: %w", err)
