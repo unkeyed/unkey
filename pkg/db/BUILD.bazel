@@ -279,6 +279,7 @@ go_library(
         "network_policy_list_desired.sql_generated.go",
         "openapi_spec_find_by_deployment.sql_generated.go",
         "openapi_spec_upsert.sql_generated.go",
+        "parallel.go",
         "permission_delete_by_id.sql_generated.go",
         "permission_find_by_id.sql_generated.go",
         "permission_find_by_id_or_slug.sql_generated.go",
@@ -381,6 +382,7 @@ go_library(
         "//pkg/retry",
         "@com_github_go_sql_driver_mysql//:mysql",
         "@io_opentelemetry_go_otel//attribute",
+        "@org_golang_x_sync//errgroup",
     ],
 )
 
@@ -389,6 +391,7 @@ go_test(
     size = "small",
     srcs = [
         "key_data_test.go",
+        "parallel_test.go",
         "retry_test.go",
     ],
     embed = [":db"],

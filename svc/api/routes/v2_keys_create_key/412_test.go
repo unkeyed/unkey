@@ -26,6 +26,7 @@ func TestPreconditionError(t *testing.T) {
 		Keys:      h.Keys,
 		Vault:     h.Vault,
 		Auditlogs: h.Auditlogs,
+		Caches:    h.Caches,
 	}
 
 	h.Register(route)
