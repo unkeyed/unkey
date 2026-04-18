@@ -78,7 +78,7 @@ export const PermissionSheet = ({
           <div className="w-full h-full">
             <div className="flex flex-col h-full">
               <div
-                className={`flex flex-col ${
+                className={`flex flex-col overflow-hidden ${
                   hasNextPage ? "max-h-[calc(100%-80px)]" : "max-h-[calc(100%-40px)]"
                 }`}
               >
