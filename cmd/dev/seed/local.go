@@ -102,7 +102,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Slug:         slug,
 				CreatedAtM:   now,
 				Tier:         sql.NullString{String: "Free", Valid: true},
-				BetaFeatures: json.RawMessage(`{"deployments":true}`),
+				BetaFeatures: json.RawMessage(`{}`),
 			},
 			{
 				ID:           rootWorkspaceID,
