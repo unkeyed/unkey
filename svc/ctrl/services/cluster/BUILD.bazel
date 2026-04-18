@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "doc.go",
         "expiring_set.go",
+        "region_lookup.go",
         "rpc_get_desired_cilium_network_policy_state.go",
         "rpc_get_desired_deployment_state.go",
         "rpc_get_desired_sentinel_state.go",
@@ -22,6 +23,7 @@ go_library(
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//gen/proto/hydra/v1:hydra",
         "//pkg/assert",
+        "//pkg/cache",
         "//pkg/db",
         "//pkg/logger",
         "//pkg/ptr",

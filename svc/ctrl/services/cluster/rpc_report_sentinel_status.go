@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
+	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
 // ReportSentinelStatus records observed sentinel state from a krane agent and
@@ -23,7 +24,21 @@ import (
 // separately by comparing the reported running_image against the desired
 // image. This lets frontline keep routing to a sentinel whose last deploy
 // failed but whose old pods are still serving.
-func (s *Service) ReportSentinelStatus(ctx context.Context, req *connect.Request[ctrlv1.ReportSentinelStatusRequest]) (*connect.Response[ctrlv1.ReportSentinelStatusResponse], error) {
+func (s *Service) ReportSentinelStatus(ctx context.Context, req *connect.Request[ctrlv1.ReportSentinelStatusRequest]) (response *connect.Response[ctrlv1.ReportSentinelStatusResponse], retErr error) {
+	start := time.Now()
+	defer func() {
+		elapsed := time.Since(start)
+		result := "success"
+		if retErr != nil {
+			result = "error"
+		}
+		metrics.ReportSentinelStatusDurationSeconds.WithLabelValues(result).Observe(elapsed.Seconds())
+		logger.Info("report sentinel status: handled",
+			"k8s_name", req.Msg.GetK8SName(),
+			"duration_ms", elapsed.Milliseconds(),
+			"result", result,
+		)
+	}()
 
 	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
@@ -64,69 +79,114 @@ func (s *Service) ReportSentinelStatus(ctx context.Context, req *connect.Request
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	// When a deploy is in progress and the desired image is actually running,
-	// resolve the pending awakeable so Deploy can complete.
-	if s.restate != nil {
-		sentinel, err := db.Query.FindSentinelDeployContextByK8sName(ctx, s.db.RO(), req.Msg.GetK8SName())
-		if errors.Is(err, sql.ErrNoRows) {
-			// Sentinel row not found — nothing to notify. Krane may be reporting
-			// on a sentinel that has just been deleted.
-			return connect.NewResponse(&ctrlv1.ReportSentinelStatusResponse{}), nil
-		}
-		if err != nil {
-			// Return the error so krane retries. UpdateSentinelObservedState
-			// above is idempotent, so the retry is safe.
-			return nil, connect.NewError(connect.CodeInternal, err)
-		}
-		// Convergence: deploy_status=progressing AND the observed state matches
-		// the desired state on every dimension (image, replicas, health).
-		// Previously this only checked image, which caused two real bugs:
-		//   - Replica scale-ups flipped to ready prematurely on the first
-		//     report (pre-scale), because RunningImage already matched.
-		//   - Orphaned awakeables (e.g. Deploy worker killed between "mark
-		//     progressing" and "create awakeable") left sentinels stuck at
-		//     progressing until the 10-minute Deploy timeout.
-		//
-		// Fix: this handler is now the authoritative state-machine driver.
-		// On convergence it flips deploy_status=ready directly AND fires
-		// NotifyReady. The awakeable is now an optimization: if the Deploy
-		// handler is alive, it resolves quickly; if it's dead, Deploy on
-		// the next invocation reads deploy_status=ready and short-circuits
-		// through its noConfigChange+Ready early-return.
-		converged := sentinel.DeployStatus == db.SentinelsDeployStatusProgressing &&
-			health == db.SentinelsHealthHealthy &&
-			sentinel.RunningImage != "" &&
-			sentinel.RunningImage == sentinel.DesiredImage &&
-			req.Msg.GetAvailableReplicas() >= sentinel.DesiredReplicas
-
-		if converged {
-			if err := db.Query.UpdateSentinelDeployStatus(ctx, s.db.RW(), db.UpdateSentinelDeployStatusParams{
-				ID:           sentinel.ID,
-				DeployStatus: db.SentinelsDeployStatusReady,
-				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			}); err != nil {
-				// Log and continue — krane will retry the whole report,
-				// at which point we'll retry the flip. Don't fail the RPC
-				// because the observed-state write above already succeeded.
-				logger.Error("failed to flip sentinel to ready on convergence",
-					"sentinel_id", sentinel.ID,
-					"error", err,
-				)
-			}
-
-			// Belt-and-suspenders: fire NotifyReady so a Deploy handler
-			// currently parked on the awakeable resolves without waiting
-			// for its next poll. ResolveAwakeable is idempotent on
-			// already-resolved awakeables and a no-op when no awakeable
-			// is stored.
-			_, err := hydrav1.NewSentinelServiceIngressClient(s.restate, sentinel.ID).
-				NotifyReady().
-				Send(ctx, &hydrav1.SentinelServiceNotifyReadyRequest{})
-			if err != nil {
-				logger.Error("failed to notify sentinel ready", "sentinel_id", sentinel.ID, "error", err)
-			}
-		}
-	}
+	s.maybeNotifySentinelReady(ctx, req.Msg, health)
 
 	return connect.NewResponse(&ctrlv1.ReportSentinelStatusResponse{}), nil
+}
+
+// maybeNotifySentinelReady evaluates whether the reported observed state
+// means the pending deploy has converged, and if so flips deploy_status to
+// ready and fires NotifyReady on the Sentinel workflow. Best-effort: errors
+// are logged but not returned, mirroring ReportDeploymentStatus's
+// maybeNotifyInstancesReady.
+func (s *Service) maybeNotifySentinelReady(ctx context.Context, req *ctrlv1.ReportSentinelStatusRequest, health db.SentinelsHealth) {
+	if s.restate == nil {
+		metrics.NotifySentinelReadyTotal.WithLabelValues("restate_disabled").Inc()
+		return
+	}
+
+	sentinel, err := db.Query.FindSentinelDeployContextByK8sName(ctx, s.db.RO(), req.GetK8SName())
+	if errors.Is(err, sql.ErrNoRows) {
+		// Sentinel row not found — nothing to notify. Krane may be reporting
+		// on a sentinel that has just been deleted.
+		metrics.NotifySentinelReadyTotal.WithLabelValues("notfound").Inc()
+		logger.Info("notify sentinel ready: skipped",
+			"k8s_name", req.GetK8SName(),
+			"outcome", "notfound",
+		)
+		return
+	}
+	if err != nil {
+		metrics.NotifySentinelReadyTotal.WithLabelValues("lookup_error").Inc()
+		logger.Error("notify sentinel ready: lookup failed",
+			"k8s_name", req.GetK8SName(),
+			"outcome", "lookup_error",
+			"error", err,
+		)
+		return
+	}
+
+	// Convergence: deploy_status=progressing AND the observed state matches
+	// the desired state on every dimension (image, replicas, health).
+	// Previously this only checked image, which caused two real bugs:
+	//   - Replica scale-ups flipped to ready prematurely on the first
+	//     report (pre-scale), because RunningImage already matched.
+	//   - Orphaned awakeables (e.g. Deploy worker killed between "mark
+	//     progressing" and "create awakeable") left sentinels stuck at
+	//     progressing until the 10-minute Deploy timeout.
+	converged := sentinel.DeployStatus == db.SentinelsDeployStatusProgressing &&
+		health == db.SentinelsHealthHealthy &&
+		sentinel.RunningImage != "" &&
+		sentinel.RunningImage == sentinel.DesiredImage &&
+		req.GetAvailableReplicas() >= sentinel.DesiredReplicas
+
+	if !converged {
+		metrics.NotifySentinelReadyTotal.WithLabelValues("not_converged").Inc()
+		logger.Info("notify sentinel ready: not converged",
+			"sentinel_id", sentinel.ID,
+			"k8s_name", req.GetK8SName(),
+			"outcome", "not_converged",
+			"deploy_status", sentinel.DeployStatus,
+			"health", health,
+			"running_image", sentinel.RunningImage,
+			"desired_image", sentinel.DesiredImage,
+			"available_replicas", req.GetAvailableReplicas(),
+			"desired_replicas", sentinel.DesiredReplicas,
+		)
+		return
+	}
+
+	// This handler is the authoritative state-machine driver on convergence:
+	// flip deploy_status=ready directly AND fire NotifyReady. The awakeable
+	// is an optimization — if the Deploy handler is alive, it resolves
+	// quickly; if dead, the next Deploy invocation reads deploy_status=ready
+	// and short-circuits through its noConfigChange+Ready early-return.
+	if err := db.Query.UpdateSentinelDeployStatus(ctx, s.db.RW(), db.UpdateSentinelDeployStatusParams{
+		ID:           sentinel.ID,
+		DeployStatus: db.SentinelsDeployStatusReady,
+		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+	}); err != nil {
+		// Log and continue — krane will retry the whole report, at which
+		// point we'll retry the flip. The observed-state write already
+		// succeeded, so don't fail the RPC on this.
+		metrics.NotifySentinelReadyTotal.WithLabelValues("flip_error").Inc()
+		logger.Error("notify sentinel ready: flip to ready failed",
+			"sentinel_id", sentinel.ID,
+			"outcome", "flip_error",
+			"error", err,
+		)
+		return
+	}
+
+	// Belt-and-suspenders: fire NotifyReady so a Deploy handler currently
+	// parked on the awakeable resolves without waiting for its next poll.
+	// ResolveAwakeable is idempotent on already-resolved awakeables and a
+	// no-op when no awakeable is stored.
+	if _, err := hydrav1.NewSentinelServiceIngressClient(s.restate, sentinel.ID).
+		NotifyReady().
+		Send(ctx, &hydrav1.SentinelServiceNotifyReadyRequest{}); err != nil {
+		metrics.NotifySentinelReadyTotal.WithLabelValues("restate_error").Inc()
+		logger.Error("notify sentinel ready: restate call failed",
+			"sentinel_id", sentinel.ID,
+			"outcome", "restate_error",
+			"error", err,
+		)
+		return
+	}
+
+	metrics.NotifySentinelReadyTotal.WithLabelValues("notified").Inc()
+	logger.Info("notify sentinel ready: sent",
+		"sentinel_id", sentinel.ID,
+		"outcome", "notified",
+	)
 }

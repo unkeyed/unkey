@@ -55,12 +55,17 @@ go_library(
 
 go_test(
     name = "deployment_test",
-    srcs = ["controller_test.go"],
+    srcs = [
+        "controller_test.go",
+        "state_test.go",
+    ],
     embed = [":deployment"],
     deps = [
+        "//gen/proto/ctrl/v1:ctrl",
         "//pkg/cache",
         "//svc/krane/internal/testutil",
         "@com_github_stretchr_testify//require",
+        "@io_k8s_api//apps/v1:apps",
         "@io_k8s_api//core/v1:core",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
         "@io_k8s_apimachinery//pkg/runtime",
