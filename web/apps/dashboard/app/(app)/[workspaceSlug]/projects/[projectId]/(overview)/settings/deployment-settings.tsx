@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleHalfDottedClock, Gear } from "@unkey/icons";
+import { CircleHalfDottedClock, Gear, Microchip } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
@@ -19,6 +19,7 @@ import { Storage } from "./components/runtime-settings/storage";
 import { CustomDomains } from "./components/advanced-settings/custom-domains";
 import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
 import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";
+import { SentinelSettings } from "./components/sentinel-settings";
 import { SettingsGroup } from "./components/shared/settings-group";
 
 // build is only required to invalidate other defaults. E.g onboarding settings, passes build=true to prevent expanding other sections.
@@ -60,6 +61,13 @@ export const DeploymentSettings = ({
           {/* Temporarily disabled */}
           {/* <Scaling /> */}
         </SettingCardGroup>
+      </SettingsGroup>
+      <SettingsGroup
+        icon={<Microchip iconSize="md-medium" />}
+        title="Sentinels"
+        defaultExpanded={Boolean(sections.sentinel)}
+      >
+        <SentinelSettings />
       </SettingsGroup>
       <SettingsGroup
         icon={<Gear iconSize="md-medium" />}

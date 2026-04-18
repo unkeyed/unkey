@@ -1,4 +1,5 @@
 import { ProjectService } from "@/gen/proto/ctrl/v1/project_pb";
+import { SentinelService } from "@/gen/proto/ctrl/v1/sentinel_pb";
 import { env } from "@/lib/env";
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
@@ -28,6 +29,7 @@ export function getCtrlClients() {
   const transport = getTransport();
   return {
     project: createClient(ProjectService, transport),
+    sentinel: createClient(SentinelService, transport),
     // more typed clients can be added here
   };
 }

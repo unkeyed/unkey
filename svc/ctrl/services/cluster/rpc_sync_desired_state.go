@@ -128,9 +128,9 @@ func (s *Service) syncSentinels(
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, err)
 		}
-		for _, sentinel := range rows {
-			afterPk = sentinel.Pk
-			state := s.sentinelToState(sentinel, 0)
+		for _, joined := range rows {
+			afterPk = joined.Sentinel.Pk
+			state := s.sentinelToState(joined.Sentinel, joined.SentinelSubscription, 0)
 			if state == nil {
 				continue
 			}

@@ -15,16 +15,14 @@ INSERT INTO sentinels (
     workspace_id,
     environment_id,
     project_id,
+    subscription_id,
     k8s_address,
     k8s_name,
     region_id,
     image,
     desired_replicas,
-    cpu_millicores,
-    memory_mib,
     created_at
 ) VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -44,13 +42,12 @@ type InsertSentinelParams struct {
 	WorkspaceID     string `db:"workspace_id"`
 	EnvironmentID   string `db:"environment_id"`
 	ProjectID       string `db:"project_id"`
+	SubscriptionID  string `db:"subscription_id"`
 	K8sAddress      string `db:"k8s_address"`
 	K8sName         string `db:"k8s_name"`
 	RegionID        string `db:"region_id"`
 	Image           string `db:"image"`
 	DesiredReplicas int32  `db:"desired_replicas"`
-	CpuMillicores   int32  `db:"cpu_millicores"`
-	MemoryMib       int32  `db:"memory_mib"`
 	CreatedAt       int64  `db:"created_at"`
 }
 
@@ -61,16 +58,14 @@ type InsertSentinelParams struct {
 //	    workspace_id,
 //	    environment_id,
 //	    project_id,
+//	    subscription_id,
 //	    k8s_address,
 //	    k8s_name,
 //	    region_id,
 //	    image,
 //	    desired_replicas,
-//	    cpu_millicores,
-//	    memory_mib,
 //	    created_at
 //	) VALUES (
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -89,13 +84,12 @@ func (q *Queries) InsertSentinel(ctx context.Context, db DBTX, arg InsertSentine
 		arg.WorkspaceID,
 		arg.EnvironmentID,
 		arg.ProjectID,
+		arg.SubscriptionID,
 		arg.K8sAddress,
 		arg.K8sName,
 		arg.RegionID,
 		arg.Image,
 		arg.DesiredReplicas,
-		arg.CpuMillicores,
-		arg.MemoryMib,
 		arg.CreatedAt,
 	)
 	return err

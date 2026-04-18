@@ -99,6 +99,10 @@ import { createProject } from "./deploy/project/create";
 import { creationContext } from "./deploy/project/creation-context";
 import { deleteProject } from "./deploy/project/delete";
 import { listProjects } from "./deploy/project/list";
+import { changeReplicas as changeSentinelReplicas } from "./deploy/sentinel/change-replicas";
+import { changeTier as changeSentinelTier } from "./deploy/sentinel/change-tier";
+import { listSentinels } from "./deploy/sentinel/list";
+import { listTiers as listSentinelTiers } from "./deploy/sentinel/list-tiers";
 
 import { listInstances } from "./deploy/runtime-logs/list-instances";
 import { llmSearch as runtimeLogsLlmSearch } from "./deploy/runtime-logs/llm-search";
@@ -426,6 +430,12 @@ export const router = t.router({
       create: createProject,
       delete: deleteProject,
       creationContext,
+    }),
+    sentinel: t.router({
+      list: listSentinels,
+      listTiers: listSentinelTiers,
+      changeTier: changeSentinelTier,
+      changeReplicas: changeSentinelReplicas,
     }),
     environmentSettings: t.router({
       get: getEnvironmentSettings,

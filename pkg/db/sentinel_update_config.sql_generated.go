@@ -13,8 +13,6 @@ import (
 const updateSentinelConfig = `-- name: UpdateSentinelConfig :exec
 UPDATE sentinels SET
   image = ?,
-  cpu_millicores = ?,
-  memory_mib = ?,
   desired_replicas = ?,
   deploy_status = ?,
   updated_at = ?
@@ -23,8 +21,6 @@ WHERE id = ?
 
 type UpdateSentinelConfigParams struct {
 	Image           string                `db:"image"`
-	CpuMillicores   int32                 `db:"cpu_millicores"`
-	MemoryMib       int32                 `db:"memory_mib"`
 	DesiredReplicas int32                 `db:"desired_replicas"`
 	DeployStatus    SentinelsDeployStatus `db:"deploy_status"`
 	UpdatedAt       sql.NullInt64         `db:"updated_at"`
@@ -33,11 +29,12 @@ type UpdateSentinelConfigParams struct {
 
 // UpdateSentinelConfig updates a sentinel's configuration and deploy status.
 // Used by SentinelService.Deploy() to apply new config before triggering krane.
+// Resource changes (cpu/memory/tier) are performed by inserting a new
+// sentinel_subscriptions row and repointing sentinels.subscription_id via
+// UpdateSentinelSubscription.
 //
 //	UPDATE sentinels SET
 //	  image = ?,
-//	  cpu_millicores = ?,
-//	  memory_mib = ?,
 //	  desired_replicas = ?,
 //	  deploy_status = ?,
 //	  updated_at = ?
@@ -45,8 +42,6 @@ type UpdateSentinelConfigParams struct {
 func (q *Queries) UpdateSentinelConfig(ctx context.Context, db DBTX, arg UpdateSentinelConfigParams) error {
 	_, err := db.ExecContext(ctx, updateSentinelConfig,
 		arg.Image,
-		arg.CpuMillicores,
-		arg.MemoryMib,
 		arg.DesiredReplicas,
 		arg.DeployStatus,
 		arg.UpdatedAt,

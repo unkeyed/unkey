@@ -29,6 +29,8 @@ export * from "./custom_domains";
 export * from "./acme_challenges";
 
 export * from "./sentinels";
+export * from "./sentinel_subscriptions";
+export * from "./sentinel_tiers";
 export * from "./instances";
 export * from "./certificates";
 export * from "./frontline_routes";

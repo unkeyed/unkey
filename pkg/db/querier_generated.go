@@ -1234,26 +1234,47 @@ type Querier interface {
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindSentinelByID
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
-	//  WHERE id = ? LIMIT 1
-	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
-	// FindSentinelDeployContextByK8sName returns the sentinel's deploy status
-	// along with its desired and observed running image. Used by
-	// ReportSentinelStatus to determine whether to trigger NotifyReady — the
-	// awakeable should only be resolved when the desired image is actually
-	// running.
+	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.subscription_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.created_at, s.updated_at, sub.pk, sub.id, sub.sentinel_id, sub.workspace_id, sub.region_id, sub.tier_id, sub.tier_version, sub.cpu_millicores, sub.memory_mib, sub.replicas, sub.price_per_second, sub.created_at, sub.terminated_at, sub.open_sentinel_id
+	//  FROM sentinels s
+	//  INNER JOIN sentinel_subscriptions sub ON sub.id = s.subscription_id
+	//  WHERE s.id = ?
+	//  LIMIT 1
+	FindSentinelByID(ctx context.Context, db DBTX, id string) (FindSentinelByIDRow, error)
+	// Returns the sentinel fields ReportSentinelStatus needs to decide whether
+	// a rollout has converged: deploy_status (gates), image comparison, and
+	// desired replica count.
 	//
 	//  SELECT
 	//      id,
 	//      deploy_status,
 	//      image AS desired_image,
-	//      running_image
+	//      running_image,
+	//      desired_replicas
 	//  FROM sentinels
-	//  WHERE k8s_name = ? LIMIT 1
+	//  WHERE k8s_name = ?
+	//  LIMIT 1
 	FindSentinelDeployContextByK8sName(ctx context.Context, db DBTX, k8sName string) (FindSentinelDeployContextByK8sNameRow, error)
+	//FindSentinelSubscriptionByID
+	//
+	//  SELECT pk, id, sentinel_id, workspace_id, region_id, tier_id, tier_version, cpu_millicores, memory_mib, replicas, price_per_second, created_at, terminated_at, open_sentinel_id FROM sentinel_subscriptions
+	//  WHERE id = ?
+	//  LIMIT 1
+	FindSentinelSubscriptionByID(ctx context.Context, db DBTX, id string) (SentinelSubscription, error)
+	// FindSentinelTier returns the tier catalog row for a (tier_id, version) pair.
+	// Called by ProvisionSentinel to read the canonical tier values before
+	// denormalizing them onto a new sentinel_subscriptions row.
+	//
+	//  SELECT pk, id, tier_id, version, cpu_millicores, memory_mib, price_per_second, effective_from, effective_until FROM sentinel_tiers
+	//  WHERE tier_id = ? AND version = ?
+	//  LIMIT 1
+	FindSentinelTier(ctx context.Context, db DBTX, arg FindSentinelTierParams) (SentinelTier, error)
 	//FindSentinelsByEnvironmentID
 	//
-	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
+	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.subscription_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.created_at, s.updated_at, sub.pk, sub.id, sub.sentinel_id, sub.workspace_id, sub.region_id, sub.tier_id, sub.tier_version, sub.cpu_millicores, sub.memory_mib, sub.replicas, sub.price_per_second, sub.created_at, sub.terminated_at, sub.open_sentinel_id, r.pk, r.id, r.name, r.platform, r.can_schedule
+	//  FROM sentinels s
+	//  INNER JOIN sentinel_subscriptions sub ON sub.id = s.subscription_id
+	//  LEFT JOIN regions r ON s.region_id = r.id
+	//  WHERE s.environment_id = ?
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error)
 	//FindVerifiedCustomDomainByDomainExcludingWorkspace
 	//
@@ -2041,16 +2062,14 @@ type Querier interface {
 	//      workspace_id,
 	//      environment_id,
 	//      project_id,
+	//      subscription_id,
 	//      k8s_address,
 	//      k8s_name,
 	//      region_id,
 	//      image,
 	//      desired_replicas,
-	//      cpu_millicores,
-	//      memory_mib,
 	//      created_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2064,6 +2083,55 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertSentinel(ctx context.Context, db DBTX, arg InsertSentinelParams) error
+	//InsertSentinelSubscription
+	//
+	//  INSERT INTO sentinel_subscriptions (
+	//      id,
+	//      sentinel_id,
+	//      workspace_id,
+	//      region_id,
+	//      tier_id,
+	//      tier_version,
+	//      cpu_millicores,
+	//      memory_mib,
+	//      replicas,
+	//      price_per_second,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertSentinelSubscription(ctx context.Context, db DBTX, arg InsertSentinelSubscriptionParams) error
+	// InsertSentinelTier inserts a tier row. INSERT IGNORE so repeated seed calls
+	// in tests / migrations are no-ops on the unique (tier_id, version) key.
+	//
+	//  INSERT IGNORE INTO sentinel_tiers (
+	//      id,
+	//      tier_id,
+	//      version,
+	//      cpu_millicores,
+	//      memory_mib,
+	//      price_per_second,
+	//      effective_from
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertSentinelTier(ctx context.Context, db DBTX, arg InsertSentinelTierParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (
@@ -2091,6 +2159,13 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertWorkspace(ctx context.Context, db DBTX, arg InsertWorkspaceParams) error
+	// ListActiveSentinelTiers returns tiers currently offered to new subscriptions.
+	// A row is considered active when effective_until is NULL.
+	//
+	//  SELECT pk, id, tier_id, version, cpu_millicores, memory_mib, price_per_second, effective_from, effective_until FROM sentinel_tiers
+	//  WHERE effective_until IS NULL
+	//  ORDER BY tier_id ASC, version ASC
+	ListActiveSentinelTiers(ctx context.Context, db DBTX) ([]SentinelTier, error)
 	// ListAllCiliumNetworkPoliciesByRegion returns cilium network policies for a region, paginated by pk.
 	// Used during full sync (version=0) to bootstrap krane agents with current state.
 	//
@@ -2122,11 +2197,13 @@ type Querier interface {
 	// ListAllSentinelsByRegion returns sentinels for a region, paginated by pk.
 	// Used during full sync (version=0) to bootstrap krane agents with current state.
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM `sentinels`
-	//  WHERE region_id = ? AND pk > ?
-	//  ORDER BY pk ASC
+	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.subscription_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.created_at, s.updated_at, sub.pk, sub.id, sub.sentinel_id, sub.workspace_id, sub.region_id, sub.tier_id, sub.tier_version, sub.cpu_millicores, sub.memory_mib, sub.replicas, sub.price_per_second, sub.created_at, sub.terminated_at, sub.open_sentinel_id
+	//  FROM sentinels s
+	//  INNER JOIN sentinel_subscriptions sub ON sub.id = s.subscription_id
+	//  WHERE s.region_id = ? AND s.pk > ?
+	//  ORDER BY s.pk ASC
 	//  LIMIT ?
-	ListAllSentinelsByRegion(ctx context.Context, db DBTX, arg ListAllSentinelsByRegionParams) ([]Sentinel, error)
+	ListAllSentinelsByRegion(ctx context.Context, db DBTX, arg ListAllSentinelsByRegionParams) ([]ListAllSentinelsByRegionRow, error)
 	//ListAppIdsByProject
 	//
 	//  SELECT id FROM apps WHERE project_id = ?
@@ -2190,14 +2267,15 @@ type Querier interface {
 	// ListDesiredSentinels returns all sentinels matching the desired state for a region.
 	// Used during bootstrap to stream all running sentinels to krane.
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at
-	//  FROM `sentinels`
-	//  WHERE (? = '' OR region_id = ?)
-	//      AND desired_state = ?
-	//      AND id > ?
-	//  ORDER BY id ASC
+	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.subscription_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.created_at, s.updated_at, sub.pk, sub.id, sub.sentinel_id, sub.workspace_id, sub.region_id, sub.tier_id, sub.tier_version, sub.cpu_millicores, sub.memory_mib, sub.replicas, sub.price_per_second, sub.created_at, sub.terminated_at, sub.open_sentinel_id
+	//  FROM sentinels s
+	//  INNER JOIN sentinel_subscriptions sub ON sub.id = s.subscription_id
+	//  WHERE (? = '' OR s.region_id = ?)
+	//      AND s.desired_state = ?
+	//      AND s.id > ?
+	//  ORDER BY s.id ASC
 	//  LIMIT ?
-	ListDesiredSentinels(ctx context.Context, db DBTX, arg ListDesiredSentinelsParams) ([]Sentinel, error)
+	ListDesiredSentinels(ctx context.Context, db DBTX, arg ListDesiredSentinelsParams) ([]ListDesiredSentinelsRow, error)
 	//ListDirectPermissionsByKeyID
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -2659,6 +2737,18 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
+	// Conditional flip to `failed`, only when the sentinel is currently
+	// `progressing`. Used by Deploy's compensation on abnormal exit so a
+	// concurrent ReportSentinelStatus that already flipped the sentinel to
+	// `ready` (the authoritative convergence path) doesn't get overwritten
+	// with `failed`.
+	//
+	//  UPDATE sentinels
+	//  SET deploy_status = 'failed',
+	//      updated_at    = ?
+	//  WHERE id = ?
+	//    AND deploy_status = 'progressing'
+	MarkSentinelFailedIfProgressing(ctx context.Context, db DBTX, arg MarkSentinelFailedIfProgressingParams) error
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes
@@ -2759,6 +2849,27 @@ type Querier interface {
 	//  WHERE dt.`workspace_id` = ?
 	//    AND dt.`desired_status` = 'running'
 	SumAllocatedResourcesByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (SumAllocatedResourcesByWorkspaceIDRow, error)
+	// Closes the single open subscription row for a sentinel. Paired with
+	// InsertSentinelSubscription to rotate tier / replica eras in one tx; the
+	// `one_open_subscription_per_sentinel` unique constraint would reject a
+	// second open row if the terminate step is skipped.
+	//
+	//  UPDATE sentinel_subscriptions
+	//  SET terminated_at = ?
+	//  WHERE sentinel_id = ?
+	//    AND terminated_at IS NULL
+	TerminateOpenSentinelSubscription(ctx context.Context, db DBTX, arg TerminateOpenSentinelSubscriptionParams) error
+	// Bulk-closes every open subscription for sentinels in the given
+	// environment. Called during environment deletion before the sentinels
+	// themselves are soft-deleted, so every subscription row has a clean
+	// `terminated_at` at deletion time.
+	//
+	//  UPDATE sentinel_subscriptions sub
+	//  INNER JOIN sentinels s ON s.id = sub.sentinel_id
+	//  SET sub.terminated_at = ?
+	//  WHERE s.environment_id = ?
+	//    AND sub.terminated_at IS NULL
+	TerminateOpenSentinelSubscriptionsByEnvironment(ctx context.Context, db DBTX, arg TerminateOpenSentinelSubscriptionsByEnvironmentParams) error
 	//UpdateAcmeChallengePending
 	//
 	//  UPDATE acme_challenges
@@ -3051,11 +3162,12 @@ type Querier interface {
 	UpdateRatelimitOverride(ctx context.Context, db DBTX, arg UpdateRatelimitOverrideParams) (sql.Result, error)
 	// UpdateSentinelConfig updates a sentinel's configuration and deploy status.
 	// Used by SentinelService.Deploy() to apply new config before triggering krane.
+	// Resource changes (cpu/memory/tier) are performed by inserting a new
+	// sentinel_subscriptions row and repointing sentinels.subscription_id via
+	// UpdateSentinelSubscription.
 	//
 	//  UPDATE sentinels SET
 	//    image = ?,
-	//    cpu_millicores = ?,
-	//    memory_mib = ?,
 	//    desired_replicas = ?,
 	//    deploy_status = ?,
 	//    updated_at = ?
@@ -3082,6 +3194,16 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE k8s_name = ?
 	UpdateSentinelObservedState(ctx context.Context, db DBTX, arg UpdateSentinelObservedStateParams) error
+	// UpdateSentinelSubscription repoints a sentinel at a new (already-inserted)
+	// sentinel_subscriptions row. This is how tier / resource changes take effect:
+	// insert a new subscription, call this, let the control-plane watcher roll
+	// the pod against the new resource envelope.
+	//
+	//  UPDATE sentinels SET
+	//    subscription_id = ?,
+	//    updated_at = ?
+	//  WHERE id = ?
+	UpdateSentinelSubscription(ctx context.Context, db DBTX, arg UpdateSentinelSubscriptionParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`

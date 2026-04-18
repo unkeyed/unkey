@@ -20,9 +20,10 @@ import (
 // and execute serially, preventing concurrent config changes from racing.
 // Different sentinels deploy in parallel.
 type SentinelServiceClient interface {
-	// Deploy updates a sentinel's configuration (image, cpu, memory, replicas)
-	// and waits for krane to report the sentinel as healthy. If the sentinel
-	// does not become healthy within the timeout, the deploy is marked as failed.
+	// Deploy updates a sentinel's image or desired replica count and waits for
+	// krane to report the sentinel as healthy. Tier (CPU/memory) changes are
+	// not done here — they flow through a subscription swap at the DB layer,
+	// which then produces a deployment_changes outbox entry independently.
 	Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*SentinelServiceDeployRequest, *SentinelServiceDeployResponse]
 	// NotifyReady is called by the control plane when krane reports a sentinel
 	// as healthy. It resolves the awakeable created by Deploy, unblocking it.
@@ -64,9 +65,10 @@ func (c *sentinelServiceClient) NotifyReady(opts ...sdk_go.ClientOption) sdk_go.
 //
 // This client is used to call the service from outside of a Restate context.
 type SentinelServiceIngressClient interface {
-	// Deploy updates a sentinel's configuration (image, cpu, memory, replicas)
-	// and waits for krane to report the sentinel as healthy. If the sentinel
-	// does not become healthy within the timeout, the deploy is marked as failed.
+	// Deploy updates a sentinel's image or desired replica count and waits for
+	// krane to report the sentinel as healthy. Tier (CPU/memory) changes are
+	// not done here — they flow through a subscription swap at the DB layer,
+	// which then produces a deployment_changes outbox entry independently.
 	Deploy() ingress.Requester[*SentinelServiceDeployRequest, *SentinelServiceDeployResponse]
 	// NotifyReady is called by the control plane when krane reports a sentinel
 	// as healthy. It resolves the awakeable created by Deploy, unblocking it.
@@ -107,9 +109,10 @@ func (c *sentinelServiceIngressClient) NotifyReady() ingress.Requester[*Sentinel
 // and execute serially, preventing concurrent config changes from racing.
 // Different sentinels deploy in parallel.
 type SentinelServiceServer interface {
-	// Deploy updates a sentinel's configuration (image, cpu, memory, replicas)
-	// and waits for krane to report the sentinel as healthy. If the sentinel
-	// does not become healthy within the timeout, the deploy is marked as failed.
+	// Deploy updates a sentinel's image or desired replica count and waits for
+	// krane to report the sentinel as healthy. Tier (CPU/memory) changes are
+	// not done here — they flow through a subscription swap at the DB layer,
+	// which then produces a deployment_changes outbox entry independently.
 	Deploy(ctx sdk_go.ObjectContext, req *SentinelServiceDeployRequest) (*SentinelServiceDeployResponse, error)
 	// NotifyReady is called by the control plane when krane reports a sentinel
 	// as healthy. It resolves the awakeable created by Deploy, unblocking it.

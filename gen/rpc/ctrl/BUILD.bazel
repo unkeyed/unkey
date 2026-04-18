@@ -11,6 +11,7 @@ go_library(
         "environment_generated.go",
         "openapi_generated.go",
         "project_generated.go",
+        "sentinel_generated.go",
         "service_generated.go",
     ],
     importpath = "github.com/unkeyed/unkey/gen/rpc/ctrl",

@@ -3,6 +3,7 @@ package sentinel
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/compensation"
 )
 
 const (
@@ -25,77 +27,90 @@ const (
 // Deploy updates a sentinel's configuration and waits for krane to report
 // it as healthy via a Restate awakeable. If the sentinel does not become
 // healthy within the timeout, the deploy is marked as failed.
+//
+// Compensation: any abnormal exit (non-nil retErr) flips deploy_status back
+// to `failed` via MarkSentinelFailedIfProgressing. Conditional so a concurrent
+// ReportSentinelStatus that already observed convergence and flipped to
+// `ready` isn't overwritten.
 func (s *Service) Deploy(
 	ctx restate.ObjectContext,
 	req *hydrav1.SentinelServiceDeployRequest,
-) (*hydrav1.SentinelServiceDeployResponse, error) {
+) (_ *hydrav1.SentinelServiceDeployResponse, retErr error) {
 	sentinelID := restate.Key(ctx)
 
+	comp := compensation.New()
+	defer func() {
+		if retErr != nil {
+			retErr = errors.Join(retErr, comp.Execute(ctx))
+		}
+	}()
+
 	// Read current config to detect no-ops and to merge partial updates.
-	current, err := restate.Run(ctx, func(rc restate.RunContext) (db.Sentinel, error) {
+	joined, err := restate.Run(ctx, func(rc restate.RunContext) (db.FindSentinelByIDRow, error) {
 		return db.Query.FindSentinelByID(rc, s.db.RO(), sentinelID)
 	}, restate.WithName("read current sentinel"))
 	if err != nil {
 		return nil, fmt.Errorf("read sentinel %s: %w", sentinelID, err)
 	}
+	sentinel := joined.Sentinel
+
+	// Register the progressing→failed reset as soon as we know we might
+	// flip status to progressing. Runs in reverse order if we exit with
+	// an error after this point. Uses the conditional update so a
+	// successful "mark ready" immediately before the error is not
+	// overwritten.
+	comp.Add("reset stuck sentinel to failed", func(rc restate.RunContext) error {
+		return db.Query.MarkSentinelFailedIfProgressing(rc, s.db.RW(), db.MarkSentinelFailedIfProgressingParams{
+			ID:        sentinelID,
+			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+	})
 
 	// Merge request fields over current config (zero values mean "keep current").
-	newImage := current.Image
+	// Replica changes are NOT driven through Deploy — ChangeReplicas writes
+	// them synchronously before enqueuing this workflow. Deploy handles only
+	// image rollouts here; any DesiredReplicas on the request is ignored.
+	newImage := sentinel.Image
 	if req.GetImage() != "" {
 		newImage = req.GetImage()
 	}
 
-	newCPU := current.CpuMillicores
-	if req.GetCpuMillicores() != 0 {
-		newCPU = req.GetCpuMillicores()
-	}
+	noConfigChange := newImage == sentinel.Image
 
-	newMem := current.MemoryMib
-	if req.GetMemoryMib() != 0 {
-		newMem = req.GetMemoryMib()
-	}
-
-	newReplicas := current.DesiredReplicas
-	if req.GetDesiredReplicas() != 0 {
-		newReplicas = req.GetDesiredReplicas()
-	}
-
-	noConfigChange := newImage == current.Image && newCPU == current.CpuMillicores &&
-		newMem == current.MemoryMib && newReplicas == current.DesiredReplicas
-
-	// No config change, already serving, and desired image is actually running: nothing to do.
-	if noConfigChange &&
-		current.Health == db.SentinelsHealthHealthy &&
-		current.RunningImage == current.Image {
+	// Steady state: nothing changing here AND no rollout is already in flight
+	// (e.g. one kicked off by ChangeTier, which marks progressing in its own
+	// tx without touching image or replicas). deploy_status is the authoritative
+	// rollout signal; Health + RunningImage are observational and can lie — on
+	// a tier swap the image is unchanged so RunningImage trivially matches
+	// until krane picks up the outbox.
+	if noConfigChange && sentinel.DeployStatus == db.SentinelsDeployStatusReady {
 		return &hydrav1.SentinelServiceDeployResponse{
 			Status: hydrav1.SentinelDeployStatus_SENTINEL_DEPLOY_STATUS_READY,
 		}, nil
 	}
 
-	// Apply new config if changed, or just mark progressing if waiting for first startup.
+	// Apply new config if this invocation carries one. If the caller already
+	// wrote config + outbox + progressing elsewhere (ChangeTier, or a prior
+	// Deploy that resumed) we fall through straight to awaiting NotifyReady.
 	if !noConfigChange {
 		logger.Info("deploying sentinel",
 			"sentinel_id", sentinelID,
 			"image", newImage,
-			"cpu", newCPU,
-			"mem", newMem,
-			"replicas", newReplicas,
 		)
 
-		err := s.applyConfigAndNotify(ctx, sentinelID, current.RegionID, db.UpdateSentinelConfigParams{
+		err := s.applyConfigAndNotify(ctx, sentinelID, sentinel.RegionID, db.UpdateSentinelConfigParams{
 			ID:              sentinelID,
 			Image:           newImage,
-			CpuMillicores:   newCPU,
-			MemoryMib:       newMem,
-			DesiredReplicas: newReplicas,
+			DesiredReplicas: sentinel.DesiredReplicas,
 			DeployStatus:    db.SentinelsDeployStatusProgressing,
 			UpdatedAt:       sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		}, "apply config")
 		if err != nil {
 			return nil, fmt.Errorf("apply config: %w", err)
 		}
-	} else {
-		// No config change but not healthy yet (first startup). Mark progressing.
+	} else if sentinel.DeployStatus != db.SentinelsDeployStatusProgressing {
+		// No config change and no rollout marker yet (rare path: first Deploy
+		// after a sentinel insert that didn't flip status for us). Mark it.
 		_, err := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
 			return restate.Void{}, db.Query.UpdateSentinelDeployStatus(rc, s.db.RW(), db.UpdateSentinelDeployStatusParams{
 				ID:           sentinelID,
@@ -189,6 +204,9 @@ func (s *Service) NotifyReady(
 // applyConfigAndNotify updates sentinel config and inserts a deployment_changes
 // outbox entry in a single transaction. Krane picks up the outbox entry and
 // applies the new config to Kubernetes.
+//
+// Billing / subscription rotation lives at the intent layer (ChangeTier,
+// ChangeReplicas) — Deploy is purely the convergence mechanism.
 func (s *Service) applyConfigAndNotify(
 	ctx restate.ObjectContext,
 	sentinelID string,

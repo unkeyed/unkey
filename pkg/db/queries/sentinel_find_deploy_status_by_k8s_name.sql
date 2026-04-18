@@ -1,13 +1,13 @@
 -- name: FindSentinelDeployContextByK8sName :one
--- FindSentinelDeployContextByK8sName returns the sentinel's deploy status
--- along with its desired and observed running image. Used by
--- ReportSentinelStatus to determine whether to trigger NotifyReady — the
--- awakeable should only be resolved when the desired image is actually
--- running.
+-- Returns the sentinel fields ReportSentinelStatus needs to decide whether
+-- a rollout has converged: deploy_status (gates), image comparison, and
+-- desired replica count.
 SELECT
     id,
     deploy_status,
     image AS desired_image,
-    running_image
+    running_image,
+    desired_replicas
 FROM sentinels
-WHERE k8s_name = sqlc.arg(k8s_name) LIMIT 1;
+WHERE k8s_name = sqlc.arg(k8s_name)
+LIMIT 1;

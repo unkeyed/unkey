@@ -127,7 +127,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			CreatedAt:        time.Now().UnixMilli(),
 			UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
 		})
-		if err != nil {
+		if err != nil && !db.IsDuplicateKeyError(err) {
 			return fmt.Errorf("failed to create project: %w", err)
 		}
 
@@ -144,7 +144,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
 			},
 		})
-		if err != nil {
+		if err != nil && !db.IsDuplicateKeyError(err) {
 			return fmt.Errorf("failed to create apps: %w", err)
 		}
 
@@ -169,7 +169,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
 			},
 		})
-		if err != nil {
+		if err != nil && !db.IsDuplicateKeyError(err) {
 			return fmt.Errorf("failed to create environments: %w", err)
 		}
 
@@ -261,6 +261,24 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to find region after upsert: %w", err)
 		}
 		regionID = existingRegion.ID
+
+		// Seed the sentinel tier catalog. deploy_handler provisions every
+		// new sentinel against `st-250`/`2026-04` (the default); the rest
+		// are here so the tier-change UI has something to switch between.
+		// INSERT IGNORE makes repeated seed runs idempotent.
+		seedTiers := []db.InsertSentinelTierParams{
+			{ID: "", TierID: "st-250", Version: "2026-04", CpuMillicores: 250, MemoryMib: 256, PricePerSecond: "0", EffectiveFrom: 0},
+			{ID: "", TierID: "st-500", Version: "2026-04", CpuMillicores: 500, MemoryMib: 512, PricePerSecond: "0.00000694", EffectiveFrom: 0},
+			{ID: "", TierID: "st-1000", Version: "2026-04", CpuMillicores: 1000, MemoryMib: 1024, PricePerSecond: "0.00001389", EffectiveFrom: 0},
+			{ID: "", TierID: "st-2000", Version: "2026-04", CpuMillicores: 2000, MemoryMib: 2048, PricePerSecond: "0.00002778", EffectiveFrom: 0},
+		}
+		for _, t := range seedTiers {
+			t.ID = uid.New(uid.SentinelTierPrefix)
+			t.EffectiveFrom = now
+			if err := db.Query.InsertSentinelTier(ctx, tx, t); err != nil {
+				return fmt.Errorf("failed to seed sentinel tier %s/%s: %w", t.TierID, t.Version, err)
+			}
+		}
 
 		// Create regional settings so deployments work without manually saving each environment
 		err = db.BulkQuery.UpsertAppRegionalSettings(ctx, tx, []db.UpsertAppRegionalSettingsParams{
