@@ -1170,10 +1170,6 @@ type Querier interface {
 	//  FROM regions
 	//  WHERE id = ? LIMIT 1
 	FindRegionById(ctx context.Context, db DBTX, regionID string) (Region, error)
-	//FindRegionByNameAndPlatform
-	//
-	//  SELECT pk, id, name, platform, can_schedule FROM regions WHERE name = ? AND platform = ?
-	FindRegionByNameAndPlatform(ctx context.Context, db DBTX, arg FindRegionByNameAndPlatformParams) (Region, error)
 	//FindRegionByPlatformAndName
 	//
 	//  SELECT

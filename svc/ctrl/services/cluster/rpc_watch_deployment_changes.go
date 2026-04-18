@@ -10,7 +10,6 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -34,22 +33,9 @@ func (s *Service) WatchDeploymentChanges(
 		return err
 	}
 
-	regionName := req.Header().Get("X-Krane-Region")
-	platform := req.Header().Get("X-Krane-Platform")
-	if err := assert.All(
-		assert.NotEmpty(regionName, "region is required"),
-		assert.NotEmpty(platform, "platform is required"),
-	); err != nil {
-		return connect.NewError(connect.CodeInvalidArgument, err)
-	}
-
-	region, err := db.Query.FindRegionByNameAndPlatform(ctx, s.db.RO(), db.FindRegionByNameAndPlatformParams{
-		Name:     regionName,
-		Platform: platform,
-	})
+	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
 	if err != nil {
-		logger.Error("failed to find region for WatchDeploymentChanges", "error", err, "region_name", regionName, "platform", platform)
-		return connect.NewError(connect.CodeInternal, err)
+		return err
 	}
 
 	versionCursor := req.Msg.GetVersionLastSeen()

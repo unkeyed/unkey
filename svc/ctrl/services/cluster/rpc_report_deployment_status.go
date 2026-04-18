@@ -8,7 +8,6 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -48,23 +47,11 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
-	regionName := req.Header().Get("X-Krane-Region")
-	platform := req.Header().Get("X-Krane-Platform")
-
-	if err := assert.All(
-		assert.NotEmpty(regionName, "region is required"),
-		assert.NotEmpty(platform, "platform is required"),
-	); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
 
 	// TODO: cache this lookup to avoid hitting the database on every status report
-	region, err := db.Query.FindRegionByPlatformAndName(ctx, s.db.RO(), db.FindRegionByPlatformAndNameParams{
-		Platform: platform,
-		Name:     regionName,
-	})
+	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, err
 	}
 
 	// Captured from the Update transaction so we can call NotifyInstancesReady

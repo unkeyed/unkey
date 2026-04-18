@@ -6,7 +6,6 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
@@ -21,21 +20,16 @@ import (
 // Unhandled desired states result in CodeInternal.
 //
 // Returns CodeUnauthenticated if bearer token is invalid, CodeInvalidArgument if
-// region or platform is missing, CodeNotFound if no sentinel exists with the given ID,
-// or CodeInternal for database errors or unhandled states.
+// region is missing, CodeNotFound if no sentinel exists with the given ID, or
+// CodeInternal for database errors or unhandled states.
 func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredSentinelStateRequest]) (*connect.Response[ctrlv1.SentinelState], error) {
 
 	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
 
-	region := req.Header().Get("X-Krane-Region")
-	platform := req.Header().Get("X-Krane-Platform")
-	if err := assert.All(
-		assert.NotEmpty(region, "region is required"),
-		assert.NotEmpty(platform, "platform is required"),
-	); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	if err := validateRegionKey(req.Msg.GetRegion()); err != nil {
+		return nil, err
 	}
 
 	sentinel, err := db.Query.FindSentinelByID(ctx, s.db.RO(), req.Msg.GetSentinelId())

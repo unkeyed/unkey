@@ -9,7 +9,6 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
@@ -29,14 +28,8 @@ func (s *Service) ReportSentinelStatus(ctx context.Context, req *connect.Request
 		return nil, err
 	}
 
-	region := req.Header().Get("X-Krane-Region")
-	platform := req.Header().Get("X-Krane-Platform")
-
-	if err := assert.All(
-		assert.NotEmpty(region, "region is required"),
-		assert.NotEmpty(platform, "platform is required"),
-	); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	if err := validateRegionKey(req.Msg.GetRegion()); err != nil {
+		return nil, err
 	}
 
 	var health db.SentinelsHealth

@@ -58,6 +58,7 @@ func (c *Controller) resyncCiliumNetworkPolicy(ctx context.Context, policy *unst
 	}
 
 	res, err := c.cluster.GetDesiredCiliumNetworkPolicyState(ctx, &ctrlv1.GetDesiredCiliumNetworkPolicyStateRequest{
+		Region:                c.regionKey(),
 		CiliumNetworkPolicyId: policyID,
 	})
 	if err != nil {

@@ -23,6 +23,16 @@ enum Health {
   HEALTH_PAUSED = 3;
 }
 
+// RegionKey identifies a region on the wire. Every ClusterService RPC scoped
+// to a single region carries this as its first field.
+message RegionKey {
+  // platform is the infrastructure provider (e.g. "aws", "gcp", "local").
+  string platform = 1;
+
+  // name is the geographic region name (e.g. "us-east-1").
+  string name = 2;
+}
+
 // ClusterService coordinates deployment and sentinel configurations across multiple clusters.
 //
 // Agents in each cluster establish watch streams to receive configuration events
@@ -72,7 +82,7 @@ service ClusterService {
 }
 
 message WatchDeploymentChangesRequest {
-  string region = 1;
+  RegionKey region = 1;
   uint64 version_last_seen = 2;
 
   // When true and version_last_seen is 0, replay all changes from the
@@ -80,7 +90,9 @@ message WatchDeploymentChangesRequest {
   bool replay = 3;
 }
 
-message SyncDesiredStateRequest {}
+message SyncDesiredStateRequest {
+  RegionKey region = 1;
+}
 
 message DeploymentChangeEvent {
   uint64 version = 1;
@@ -112,15 +124,18 @@ message CiliumNetworkPolicyState {
   }
 }
 message GetDesiredCiliumNetworkPolicyStateRequest {
-  string cilium_network_policy_id = 1;
+  RegionKey region = 1;
+  string cilium_network_policy_id = 2;
 }
 
 message GetDesiredSentinelStateRequest {
-  string sentinel_id = 1;
+  RegionKey region = 1;
+  string sentinel_id = 2;
 }
 
 message GetDesiredDeploymentStateRequest {
-  string deployment_id = 1;
+  RegionKey region = 1;
+  string deployment_id = 2;
 }
 
 // ReportDeploymentStatusRequest reports the actual state of a deployment from the agent.
@@ -148,6 +163,8 @@ message ReportDeploymentStatusRequest {
     string k8s_name = 1;
   }
 
+  RegionKey region = 3;
+
   oneof change {
     Update update = 1;
     Delete delete = 2;
@@ -171,6 +188,8 @@ message ReportSentinelStatusRequest {
   // running_image is the actual container image from the k8s Deployment spec.
   // Used to detect when the desired image has converged with what's running.
   string running_image = 5;
+
+  RegionKey region = 6;
 }
 
 message ReportSentinelStatusResponse {}
@@ -373,11 +392,7 @@ message DeleteDeployment {
 // presence. The control plane uses this to populate regions and
 // clusters tables.
 message HeartbeatRequest {
-  // region is the geographic region name (e.g. "us-east-1").
-  string region = 1;
-
-  // platform is the infrastructure provider (e.g. "aws", "gcp", "local").
-  string platform = 2;
+  RegionKey region = 1;
 }
 
 message HeartbeatResponse {}

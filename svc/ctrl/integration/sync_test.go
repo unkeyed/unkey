@@ -81,10 +81,13 @@ func (m *mockStream) ResponseTrailer() http.Header {
 
 // newService creates a cluster service for testing.
 func newService(t *testing.T, database db.Database) *cluster.Service {
-	return cluster.New(cluster.Config{
+	t.Helper()
+	svc, err := cluster.New(cluster.Config{
 		Database: database,
 		Bearer:   "test-bearer",
 	})
+	require.NoError(t, err)
+	return svc
 }
 
 // findDeploymentApply finds the first deployment apply message in the stream.

@@ -23,11 +23,11 @@ func TestFindMostRestrictive(t *testing.T) {
 	}
 
 	tests := []struct {
-		name            string
-		results         map[string]keys.RatelimitConfigAndResult
-		wantNil         bool
-		wantSuccess     bool
-		wantRemaining   int64
+		name          string
+		results       map[string]keys.RatelimitConfigAndResult
+		wantNil       bool
+		wantSuccess   bool
+		wantRemaining int64
 	}{
 		{
 			name:    "empty map",
