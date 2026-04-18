@@ -38,7 +38,7 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	sentinel, err := db.Query.FindSentinelByID(ctx, s.db.RO(), req.Msg.GetSentinelId())
+	joined, err := db.Query.FindSentinelByID(ctx, s.db.RO(), req.Msg.GetSentinelId())
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, err)
@@ -47,6 +47,8 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeInternal, err)
 
 	}
+	sentinel := joined.Sentinel
+	sub := joined.SentinelSubscription
 
 	logger.Info("desired sentinel", "state", sentinel.DesiredState)
 	switch sentinel.DesiredState {
@@ -70,8 +72,8 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 					EnvironmentId: sentinel.EnvironmentID,
 					Replicas:      sentinel.DesiredReplicas,
 					Image:         sentinel.Image,
-					CpuMillicores: int64(sentinel.CpuMillicores),
-					MemoryMib:     int64(sentinel.MemoryMib),
+					CpuMillicores: int64(sub.CpuMillicores),
+					MemoryMib:     int64(sub.MemoryMib),
 				},
 			},
 		}), nil

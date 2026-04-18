@@ -10,37 +10,61 @@ import (
 )
 
 const findSentinelByID = `-- name: FindSentinelByID :one
-SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
-WHERE id = ? LIMIT 1
+SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.subscription_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.created_at, s.updated_at, sub.pk, sub.id, sub.sentinel_id, sub.workspace_id, sub.region_id, sub.tier_id, sub.tier_version, sub.cpu_millicores, sub.memory_mib, sub.replicas, sub.price_per_second, sub.created_at, sub.terminated_at, sub.open_sentinel_id
+FROM sentinels s
+INNER JOIN sentinel_subscriptions sub ON sub.id = s.subscription_id
+WHERE s.id = ?
+LIMIT 1
 `
+
+type FindSentinelByIDRow struct {
+	Sentinel             Sentinel             `db:"sentinel"`
+	SentinelSubscription SentinelSubscription `db:"sentinel_subscription"`
+}
 
 // FindSentinelByID
 //
-//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
-//	WHERE id = ? LIMIT 1
-func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error) {
+//	SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.subscription_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.created_at, s.updated_at, sub.pk, sub.id, sub.sentinel_id, sub.workspace_id, sub.region_id, sub.tier_id, sub.tier_version, sub.cpu_millicores, sub.memory_mib, sub.replicas, sub.price_per_second, sub.created_at, sub.terminated_at, sub.open_sentinel_id
+//	FROM sentinels s
+//	INNER JOIN sentinel_subscriptions sub ON sub.id = s.subscription_id
+//	WHERE s.id = ?
+//	LIMIT 1
+func (q *Queries) FindSentinelByID(ctx context.Context, db DBTX, id string) (FindSentinelByIDRow, error) {
 	row := db.QueryRowContext(ctx, findSentinelByID, id)
-	var i Sentinel
+	var i FindSentinelByIDRow
 	err := row.Scan(
-		&i.Pk,
-		&i.ID,
-		&i.WorkspaceID,
-		&i.ProjectID,
-		&i.EnvironmentID,
-		&i.K8sName,
-		&i.K8sAddress,
-		&i.RegionID,
-		&i.Image,
-		&i.RunningImage,
-		&i.DesiredState,
-		&i.Health,
-		&i.DesiredReplicas,
-		&i.AvailableReplicas,
-		&i.DeployStatus,
-		&i.CpuMillicores,
-		&i.MemoryMib,
-		&i.CreatedAt,
-		&i.UpdatedAt,
+		&i.Sentinel.Pk,
+		&i.Sentinel.ID,
+		&i.Sentinel.WorkspaceID,
+		&i.Sentinel.ProjectID,
+		&i.Sentinel.EnvironmentID,
+		&i.Sentinel.SubscriptionID,
+		&i.Sentinel.K8sName,
+		&i.Sentinel.K8sAddress,
+		&i.Sentinel.RegionID,
+		&i.Sentinel.Image,
+		&i.Sentinel.RunningImage,
+		&i.Sentinel.DesiredState,
+		&i.Sentinel.Health,
+		&i.Sentinel.DesiredReplicas,
+		&i.Sentinel.AvailableReplicas,
+		&i.Sentinel.DeployStatus,
+		&i.Sentinel.CreatedAt,
+		&i.Sentinel.UpdatedAt,
+		&i.SentinelSubscription.Pk,
+		&i.SentinelSubscription.ID,
+		&i.SentinelSubscription.SentinelID,
+		&i.SentinelSubscription.WorkspaceID,
+		&i.SentinelSubscription.RegionID,
+		&i.SentinelSubscription.TierID,
+		&i.SentinelSubscription.TierVersion,
+		&i.SentinelSubscription.CpuMillicores,
+		&i.SentinelSubscription.MemoryMib,
+		&i.SentinelSubscription.Replicas,
+		&i.SentinelSubscription.PricePerSecond,
+		&i.SentinelSubscription.CreatedAt,
+		&i.SentinelSubscription.TerminatedAt,
+		&i.SentinelSubscription.OpenSentinelID,
 	)
 	return i, err
 }

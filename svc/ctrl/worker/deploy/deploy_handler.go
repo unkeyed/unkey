@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/sentinelpolicy"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -35,6 +36,14 @@ const (
 	// sentinelPort is the port exposed by sentinel services for frontline traffic
 	// and must match the container port and service configuration.
 	sentinelPort = 8040
+
+	// defaultSentinelTierID / defaultSentinelTierVersion name the tier every
+	// newly-provisioned sentinel is assigned to. Seeded by migrations and by
+	// the integration-test harness. Resource envelopes (CPU / memory) come
+	// from the tier row, so changing the defaults here without seeding a
+	// matching row will cause provision to fail.
+	defaultSentinelTierID      = "st-250"
+	defaultSentinelTierVersion = "2026-04"
 
 	// regionReadyTimeout is how long to wait for all instances in a region to become
 	// ready before considering that region's deployment failed. This is a soft timeout:
@@ -732,13 +741,11 @@ func (w *Workflow) createTopologies(
 	return topologies, nil
 }
 
-// sentinelReplicasForEnv returns the desired sentinel replica count based
-// on the environment slug. Production gets extra replicas for availability.
+// sentinelReplicasForEnv returns the desired sentinel replica count for a
+// freshly provisioned sentinel. Thin wrapper around the shared floor so
+// new sentinels default to the minimum HA count for their environment.
 func sentinelReplicasForEnv(environment db.Environment) int32 {
-	if environment.Slug == "production" {
-		return 3
-	}
-	return 1
+	return sentinelpolicy.MinReplicasForEnv(environment.Slug)
 }
 
 // ensureSentinelRows inserts a sentinel DB row (and outbox entry) for every
@@ -770,8 +777,8 @@ func (w *Workflow) ensureSentinelRows(
 	}
 
 	existingSentinelsByRegion := make(map[string]db.Sentinel)
-	for _, row := range existingSentinels {
-		existingSentinelsByRegion[row.Region.ID] = row.Sentinel
+	for _, joined := range existingSentinels {
+		existingSentinelsByRegion[joined.Region.ID] = joined.Sentinel
 	}
 
 	desiredReplicas := sentinelReplicasForEnv(environment)
@@ -788,39 +795,70 @@ func (w *Workflow) ensureSentinelRows(
 		sentinelID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 			id := uid.New(uid.SentinelPrefix)
 			sentinelK8sName := uid.DNS1035()
+			subscriptionID := uid.New(uid.SentinelSubscriptionPrefix)
+			now := time.Now().UnixMilli()
 
 			err := db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-				err := db.Query.InsertSentinel(txCtx, tx, db.InsertSentinelParams{
+				tier, err := db.Query.FindSentinelTier(txCtx, tx, db.FindSentinelTierParams{
+					TierID:  defaultSentinelTierID,
+					Version: defaultSentinelTierVersion,
+				})
+				if err != nil {
+					return fmt.Errorf("find sentinel tier %s/%s: %w", defaultSentinelTierID, defaultSentinelTierVersion, err)
+				}
+				if err := db.Query.InsertSentinelSubscription(txCtx, tx, db.InsertSentinelSubscriptionParams{
+					ID:             subscriptionID,
+					SentinelID:     id,
+					WorkspaceID:    workspace.ID,
+					RegionID:       topology.RegionID,
+					TierID:         tier.TierID,
+					TierVersion:    tier.Version,
+					CpuMillicores:  tier.CpuMillicores,
+					MemoryMib:      tier.MemoryMib,
+					Replicas:       desiredReplicas,
+					PricePerSecond: tier.PricePerSecond,
+					CreatedAt:      now,
+				}); err != nil {
+					return fmt.Errorf("insert sentinel subscription: %w", err)
+				}
+				// On dup-key (sentinel already exists for this env+region), return
+				// the error so the tx rolls back — otherwise the freshly-inserted
+				// subscription row would be left orphaned.
+				if err := db.Query.InsertSentinel(txCtx, tx, db.InsertSentinelParams{
 					ID:              id,
 					WorkspaceID:     workspace.ID,
 					EnvironmentID:   environment.ID,
 					ProjectID:       project.ID,
+					SubscriptionID:  subscriptionID,
 					K8sAddress:      fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
 					K8sName:         sentinelK8sName,
 					RegionID:        topology.RegionID,
 					Image:           w.sentinelImage,
 					DesiredReplicas: desiredReplicas,
-					CpuMillicores:   250,
-					MemoryMib:       256,
-					CreatedAt:       time.Now().UnixMilli(),
-				})
-				if err != nil {
-					if db.IsDuplicateKeyError(err) {
-						return nil
-					}
+					CreatedAt:       now,
+				}); err != nil {
 					return err
 				}
 				return db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
 					ResourceType: db.DeploymentChangesResourceTypeSentinel,
 					ResourceID:   id,
 					RegionID:     topology.RegionID,
-					CreatedAt:    time.Now().UnixMilli(),
+					CreatedAt:    now,
 				})
 			})
-			return id, err
+			if err != nil {
+				if db.IsDuplicateKeyError(err) {
+					return "", nil
+				}
+				return "", err
+			}
+			return id, nil
 		}, restate.WithName("ensure sentinel exists in db"))
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Public("Traffic proxy could not be created for a region."))
+		}
+		if sentinelID == "" {
+			continue
 		}
 
 		newSentinelIDs = append(newSentinelIDs, sentinelID)
@@ -852,8 +890,6 @@ func (w *Workflow) fanOutSentinelDeploys(
 			RequestFuture(&hydrav1.SentinelServiceDeployRequest{
 				Image:           w.sentinelImage,
 				DesiredReplicas: desiredReplicas,
-				CpuMillicores:   250,
-				MemoryMib:       256,
 			})
 		futures = append(futures, fut)
 	}

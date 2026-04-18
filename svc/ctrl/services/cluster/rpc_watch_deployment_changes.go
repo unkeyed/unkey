@@ -168,11 +168,11 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 		}, nil
 
 	case db.DeploymentChangesResourceTypeSentinel:
-		sentinel, err := db.Query.FindSentinelByID(ctx, s.db.RW(), change.ResourceID)
+		joined, err := db.Query.FindSentinelByID(ctx, s.db.RW(), change.ResourceID)
 		if err != nil {
 			return nil, err
 		}
-		state := s.sentinelToState(sentinel, change.Pk)
+		state := s.sentinelToState(joined.Sentinel, joined.SentinelSubscription, change.Pk)
 		if state == nil {
 			return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
 		}
@@ -301,8 +301,9 @@ func (s *Service) deploymentRowToState(row deploymentRow, version uint64) (*ctrl
 	}
 }
 
-// sentinelToState converts a sentinel DB row to a proto SentinelState message.
-func (s *Service) sentinelToState(sentinel db.Sentinel, version uint64) *ctrlv1.SentinelState {
+// sentinelToState converts a sentinel DB row (joined with its subscription
+// for the current resource envelope) to a proto SentinelState message.
+func (s *Service) sentinelToState(sentinel db.Sentinel, sub db.SentinelSubscription, version uint64) *ctrlv1.SentinelState {
 	switch sentinel.DesiredState {
 	case db.SentinelsDesiredStateArchived, db.SentinelsDesiredStateStandby:
 		return &ctrlv1.SentinelState{
@@ -325,8 +326,8 @@ func (s *Service) sentinelToState(sentinel db.Sentinel, version uint64) *ctrlv1.
 					EnvironmentId: sentinel.EnvironmentID,
 					Replicas:      sentinel.DesiredReplicas,
 					Image:         sentinel.Image,
-					CpuMillicores: int64(sentinel.CpuMillicores),
-					MemoryMib:     int64(sentinel.MemoryMib),
+					CpuMillicores: int64(sub.CpuMillicores),
+					MemoryMib:     int64(sub.MemoryMib),
 				},
 			},
 		}

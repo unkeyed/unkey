@@ -248,25 +248,45 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 
 	sentinelID := uid.New("sen")
 	k8sName := uid.New("k8s")
+	subscriptionID := uid.New(uid.SentinelSubscriptionPrefix)
 
 	desiredState := req.DesiredState
 	if desiredState == "" {
 		desiredState = db.SentinelsDesiredStateRunning
 	}
 
-	err := db.Query.InsertSentinel(ctx, h.DB.RW(), db.InsertSentinelParams{
-		ID:              sentinelID,
-		WorkspaceID:     workspaceID,
-		EnvironmentID:   env.ID,
-		ProjectID:       project.ID,
-		K8sAddress:      "http://localhost:8080",
-		K8sName:         k8sName,
-		RegionID:        req.RegionID,
-		Image:           "sentinel:1.0",
-		DesiredReplicas: 1,
-		CpuMillicores:   100,
-		MemoryMib:       128,
-		CreatedAt:       h.Now(),
+	err := db.Tx(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		if err := h.seedSentinelTier(txCtx, tx); err != nil {
+			return err
+		}
+		if err := db.Query.InsertSentinelSubscription(txCtx, tx, db.InsertSentinelSubscriptionParams{
+			ID:             subscriptionID,
+			SentinelID:     sentinelID,
+			WorkspaceID:    workspaceID,
+			RegionID:       req.RegionID,
+			TierID:         integrationSentinelTierID,
+			TierVersion:    integrationSentinelTierVersion,
+			CpuMillicores:  100,
+			MemoryMib:      128,
+			Replicas:       1,
+			PricePerSecond: "0",
+			CreatedAt:      h.Now(),
+		}); err != nil {
+			return err
+		}
+		return db.Query.InsertSentinel(txCtx, tx, db.InsertSentinelParams{
+			ID:              sentinelID,
+			WorkspaceID:     workspaceID,
+			EnvironmentID:   env.ID,
+			ProjectID:       project.ID,
+			SubscriptionID:  subscriptionID,
+			K8sAddress:      "http://localhost:8080",
+			K8sName:         k8sName,
+			RegionID:        req.RegionID,
+			Image:           "sentinel:1.0",
+			DesiredReplicas: 1,
+			CreatedAt:       h.Now(),
+		})
 	})
 	require.NoError(h.t, err)
 
@@ -286,8 +306,27 @@ func (h *Harness) CreateSentinel(ctx context.Context, req CreateSentinelRequest)
 		require.NoError(h.t, err)
 	}
 
-	sentinel, err := db.Query.FindSentinelByID(ctx, h.DB.RO(), sentinelID)
+	joined, err := db.Query.FindSentinelByID(ctx, h.DB.RO(), sentinelID)
 	require.NoError(h.t, err)
 
-	return sentinel
+	return joined.Sentinel
+}
+
+const (
+	integrationSentinelTierID      = "mx-test"
+	integrationSentinelTierVersion = "test"
+)
+
+// seedSentinelTier inserts the fixed tier row used by integration-test
+// sentinels. INSERT IGNORE via InsertSentinelTier makes repeated calls safe.
+func (h *Harness) seedSentinelTier(ctx context.Context, tx db.DBTX) error {
+	return db.Query.InsertSentinelTier(ctx, tx, db.InsertSentinelTierParams{
+		ID:             "tier_integration",
+		TierID:         integrationSentinelTierID,
+		Version:        integrationSentinelTierVersion,
+		CpuMillicores:  100,
+		MemoryMib:      128,
+		PricePerSecond: "0",
+		EffectiveFrom:  h.Now(),
+	})
 }

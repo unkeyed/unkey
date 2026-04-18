@@ -111,23 +111,41 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Sentinel
-	err = db.Query.InsertSentinel(ctx, h.DB.RW(), db.InsertSentinelParams{
-		ID:                uid.New("sen"),
-		WorkspaceID:       workspaceID,
-		EnvironmentID:     env.ID,
-		ProjectID:         project.ID,
-		K8sAddress:        "http://localhost:9090",
-		K8sName:           uid.New("k8s"),
-		RegionID:          region.ID,
-		Image:             "sentinel:1.0",
-		Health:            db.SentinelsHealthHealthy,
-		DesiredReplicas:   1,
-		AvailableReplicas: 1,
-		CpuMillicores:     100,
-		MemoryMib:         128,
-		Version:           1,
-		CreatedAt:         now,
+	// Sentinel (with its subscription and tier)
+	sentinelID := uid.New("sen")
+	subscriptionID := uid.New(uid.SentinelSubscriptionPrefix)
+	err = db.Tx(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		if err := h.seedSentinelTier(txCtx, tx); err != nil {
+			return err
+		}
+		if err := db.Query.InsertSentinelSubscription(txCtx, tx, db.InsertSentinelSubscriptionParams{
+			ID:             subscriptionID,
+			SentinelID:     sentinelID,
+			WorkspaceID:    workspaceID,
+			RegionID:       region.ID,
+			TierID:         integrationSentinelTierID,
+			TierVersion:    integrationSentinelTierVersion,
+			CpuMillicores:  100,
+			MemoryMib:      128,
+			Replicas:       1,
+			PricePerSecond: "0",
+			CreatedAt:      now,
+		}); err != nil {
+			return err
+		}
+		return db.Query.InsertSentinel(txCtx, tx, db.InsertSentinelParams{
+			ID:              sentinelID,
+			WorkspaceID:     workspaceID,
+			EnvironmentID:   env.ID,
+			ProjectID:       project.ID,
+			SubscriptionID:  subscriptionID,
+			K8sAddress:      "http://localhost:9090",
+			K8sName:         uid.New("k8s"),
+			RegionID:        region.ID,
+			Image:           "sentinel:1.0",
+			DesiredReplicas: 1,
+			CreatedAt:       now,
+		})
 	})
 	require.NoError(t, err)
 
