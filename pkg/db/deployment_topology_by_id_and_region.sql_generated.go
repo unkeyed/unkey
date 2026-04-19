@@ -48,7 +48,7 @@ INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON d.workspace_id = w.id
 INNER JOIN ` + "`" + `regions` + "`" + ` r ON dt.region_id = r.id
 INNER JOIN ` + "`" + `environments` + "`" + ` e ON d.environment_id = e.id
 LEFT JOIN ` + "`" + `github_repo_connections` + "`" + ` grc ON d.app_id = grc.app_id
-WHERE  r.name = ?
+WHERE  dt.region_id = ?
     AND dt.deployment_id = ?
 LIMIT 1
 `
@@ -126,7 +126,7 @@ type FindDeploymentTopologyByIDAndRegionRow struct {
 //	INNER JOIN `regions` r ON dt.region_id = r.id
 //	INNER JOIN `environments` e ON d.environment_id = e.id
 //	LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
-//	WHERE  r.name = ?
+//	WHERE  dt.region_id = ?
 //	    AND dt.deployment_id = ?
 //	LIMIT 1
 func (q *Queries) FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByIDAndRegionParams) (FindDeploymentTopologyByIDAndRegionRow, error) {

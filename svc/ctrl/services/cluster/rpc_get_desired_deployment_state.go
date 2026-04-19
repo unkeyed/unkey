@@ -30,13 +30,14 @@ func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Re
 		return nil, err
 	}
 
-	if err := validateRegionKey(req.Msg.GetRegion()); err != nil {
+	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
+	if err != nil {
 		return nil, err
 	}
 
 	deployment, err := db.Query.FindDeploymentTopologyByIDAndRegion(ctx, s.db.RO(), db.FindDeploymentTopologyByIDAndRegionParams{
 		DeploymentID: req.Msg.GetDeploymentId(),
-		Region:       req.Msg.GetRegion().GetName(),
+		Region:       region.ID,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {

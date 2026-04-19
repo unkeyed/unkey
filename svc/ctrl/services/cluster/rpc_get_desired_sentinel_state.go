@@ -28,7 +28,8 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 		return nil, err
 	}
 
-	if err := validateRegionKey(req.Msg.GetRegion()); err != nil {
+	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
+	if err != nil {
 		return nil, err
 	}
 
@@ -40,6 +41,10 @@ func (s *Service) GetDesiredSentinelState(ctx context.Context, req *connect.Requ
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 
+	}
+
+	if sentinel.RegionID != region.ID {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("sentinel %s not found in region %s/%s", req.Msg.GetSentinelId(), region.Platform, region.Name))
 	}
 
 	logger.Info("desired sentinel", "state", sentinel.DesiredState)
