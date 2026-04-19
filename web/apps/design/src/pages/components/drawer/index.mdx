@@ -1,0 +1,226 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Drawer
+description: A bottom-anchored panel that slides up over the page, built on Vaul for native-feeling drag-to-dismiss.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  BasicExample,
+  ControlledExample,
+  NestedExample,
+} from "./_examples.tsx";
+
+Drawer is a thin wrapper around Vaul. It renders a panel that slides up from
+the bottom of the viewport, sits at partial height (up to 82vh), and dismisses
+when the user drags it down, swipes past the threshold, clicks the overlay, or
+presses escape. Reach for it on mobile, or for secondary flows where a
+full-page modal would feel too heavy. A settings sheet behind a list item, a
+date-range picker triggered from a toolbar, a confirmation for an action the
+user initiated by tapping a row.
+
+Pick Dialog instead when the flow is desktop-first, genuinely modal (the user
+cannot continue without resolving it), or needs to be centered in the
+viewport for emphasis. Drawer keeps the page visible above it and invites
+dismissal. Dialog demands attention. If you need a side-anchored panel that
+stays open while the user works around it, SlidePanel is the right primitive.
+
+## Import
+
+```tsx
+import { Drawer } from "@unkey/ui";
+```
+
+Drawer ships as a compound component. `Drawer.Root` owns the open state,
+`Drawer.Trigger` is the control that opens it, `Drawer.Content` is the sliding
+panel, and `Drawer.Title` / `Drawer.Description` label the contents for
+assistive technology. `Drawer.Nested` lets you stack a second drawer on top of
+an open one.
+
+## Basic
+
+Wrap a `Drawer.Trigger asChild` around the control that opens the drawer, and
+put the body inside `Drawer.Content`. The overlay, portal, and rounded-top
+chrome are applied automatically.
+
+<BasicExample client:load />
+
+## Controlled
+
+Pass `open` and `onOpenChange` to `Drawer.Root` when the parent needs to drive
+visibility (for example, to open a drawer from a keyboard shortcut, a URL
+param, or another component). Omit the `Drawer.Trigger` and open the drawer
+from whatever handler you like.
+
+<ControlledExample client:load />
+
+## Nested
+
+`Drawer.Nested` stacks a second drawer on top of an open one. The parent
+drawer slides back slightly to signal depth, and the nested drawer inherits
+the same drag-to-dismiss gestures. Use this sparingly. Two levels of stacking
+is usually the limit before the interaction gets confusing.
+
+<NestedExample client:load />
+
+## Accessibility
+
+Vaul implements the WAI-ARIA dialog pattern. `Drawer.Content` carries
+`role="dialog"` and `aria-modal="true"`, focus is trapped inside while open,
+and focus returns to the trigger on close. Escape closes the drawer, clicking
+the overlay closes the drawer, and dragging past the dismiss threshold closes
+the drawer.
+
+Always render a `Drawer.Title` inside `Drawer.Content`. Vaul (like Radix
+Dialog) wires the title into `aria-labelledby` so screen readers announce the
+drawer with a name. If the title would be visually redundant, wrap it in
+`VisuallyHidden` rather than omitting it. Pair it with `Drawer.Description`
+whenever the drawer's purpose needs more than a heading to be understood.
+
+Because drawers are dismissable by drag, keep the primary action reachable by
+keyboard and do not rely on swipe gestures as the only way to confirm or
+cancel. Every drawer should have an explicit close affordance inside its
+content for keyboard and assistive-technology users.
+
+## Props
+
+### Drawer.Root
+
+The state container. Owns open/close state and coordinates dismissal
+behavior. All Vaul `Root` props pass through.
+
+<Props>
+  <Prop name="open" type="boolean">
+    Controlled open state. Pair with `onOpenChange` when the parent drives
+    visibility.
+  </Prop>
+  <Prop name="defaultOpen" type="boolean" default="false">
+    Uncontrolled initial open state. Use when the drawer manages itself
+    through its trigger.
+  </Prop>
+  <Prop name="onOpenChange" type="(open: boolean) => void">
+    Fires on every open/close transition (trigger click, escape, overlay
+    click, drag dismissal, programmatic change).
+  </Prop>
+  <Prop name="modal" type="boolean" default="true">
+    When `true`, the overlay blocks interaction with the page behind. Set to
+    `false` for a non-modal sheet that lets the user scroll or click through
+    to the page below.
+  </Prop>
+  <Prop name="dismissible" type="boolean" default="true">
+    When `false`, the drawer cannot be closed by drag, overlay click, or
+    escape. Use for flows the user must complete, and pair with a visible
+    action to close programmatically.
+  </Prop>
+  <Prop name="shouldScaleBackground" type="boolean" default="false">
+    When `true`, scales the page behind the drawer slightly, matching the iOS
+    sheet aesthetic. Requires a `[data-vaul-drawer-wrapper]` ancestor on the
+    page.
+  </Prop>
+  <Prop name="snapPoints" type="(string | number)[]">
+    Percentages (`"50%"`) or pixel offsets the drawer snaps to. Pair with
+    `activeSnapPoint` / `setActiveSnapPoint` for controlled snapping.
+  </Prop>
+  <Prop name="closeThreshold" type="number" default="0.25">
+    Fraction of the drawer's height the user must drag past before release
+    dismisses it.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Typically a `Drawer.Trigger` and a `Drawer.Content`.
+  </Prop>
+</Props>
+
+### Drawer.Trigger
+
+The control that opens the drawer. Render with `asChild` so an existing
+Button keeps its own focus ring and semantics.
+
+<Props>
+  <Prop name="asChild" type="boolean" default="false">
+    Merge the trigger's behavior onto its single child instead of rendering a
+    wrapping `<button>`.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The trigger content. With `asChild`, must be a single focusable element.
+  </Prop>
+</Props>
+
+### Drawer.Content
+
+The sliding panel itself. Rendered into a portal with an overlay underneath,
+anchored to the bottom of the viewport, capped at 82vh, with a rounded top
+edge and a drop shadow.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with the default chrome via `cn`.
+    Commonly used to constrain `max-h` below 82vh or add internal padding.
+  </Prop>
+  <Prop name="onOpenAutoFocus" type="(event: Event) => void">
+    Fires when focus moves into the drawer on open. Call `event.preventDefault()`
+    to keep focus on the trigger.
+  </Prop>
+  <Prop name="onCloseAutoFocus" type="(event: Event) => void">
+    Fires when focus returns on close. Call `event.preventDefault()` to route
+    focus elsewhere.
+  </Prop>
+  <Prop name="onEscapeKeyDown" type="(event: KeyboardEvent) => void">
+    Fires before escape closes the drawer. Call `event.preventDefault()` to
+    override.
+  </Prop>
+  <Prop name="onPointerDownOutside" type="(event) => void">
+    Fires on pointer-down outside the drawer (overlay or outside the portal).
+    Prevent default to keep the drawer open.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The drawer body. Should include a `Drawer.Title` (visually or via
+    `VisuallyHidden`) for accessible naming.
+  </Prop>
+</Props>
+
+### Drawer.Title
+
+Renders the accessible name for the drawer. Style as a heading at the call
+site.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Apply your heading styles here.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    A short phrase. Use `VisuallyHidden` around it when a visible title would
+    duplicate a label already on screen.
+  </Prop>
+</Props>
+
+### Drawer.Description
+
+Supporting copy wired into `aria-describedby`. Optional but recommended when
+the title alone doesn't explain the drawer's purpose.
+
+<Props>
+  <Prop name="className" type="string">
+    Additional Tailwind classes.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    One or two sentences. Longer prose belongs in the body.
+  </Prop>
+</Props>
+
+### Drawer.Nested
+
+A second-level drawer that stacks on top of an open parent. Accepts the same
+props as `Drawer.Root` and is used identically.
+
+<Props>
+  <Prop name="children" type="ReactNode">
+    A nested `Drawer.Trigger` and `Drawer.Content` pair.
+  </Prop>
+</Props>
+
+## Related
+
+- **Dialog** — for centered, desktop-first modals that demand full focus.
+- **SlidePanel** — for a side-anchored panel that can stay open while the
+  user interacts with the page.

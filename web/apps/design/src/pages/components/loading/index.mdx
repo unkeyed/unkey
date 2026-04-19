@@ -1,0 +1,128 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Loading
+description: Render an inline progress indicator — a segmented spinner or three pulsing dots — for operations that haven't completed yet.
+---
+
+import { Loading } from "@unkey/ui";
+import { Preview } from "../../../components/Preview.tsx";
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+
+Loading is a decorative SVG indicator for operations that are in flight. It
+ships in two flavors: a segmented spinner that fades through eight positions,
+and three dots that pulse in sequence. Both inherit `currentColor`, so they
+pick up the text color of whatever they sit inside.
+
+Reach for `<Loading>` when you need a *freestanding* progress mark — inside a
+table cell, next to a row label, in an empty state while data streams in.
+`<Button loading>` already embeds a spinner with all the ARIA wiring; use
+this component when there is no button to hang the spinner on.
+
+## Import
+
+```tsx
+import { Loading } from "@unkey/ui";
+```
+
+## Spinner
+
+The default `type`. Eight segments rotate clockwise, each fading in and out
+to imply motion. Good for open-ended waits where you can't show a percentage.
+
+<Preview client:load>
+  <Loading client:load />
+</Preview>
+
+## Dots
+
+Set `type="dots"` for three horizontally-arranged circles that contract and
+expand in sequence. The dots read as softer than the spinner and work well in
+dense tabular contexts where a spinning ring would draw too much attention.
+
+<Preview client:load>
+  <Loading client:load type="dots" />
+</Preview>
+
+## Size
+
+`size` is a number in pixels and sets both width and height. The spinner
+defaults to `18`, the dots to `24`. Scale up for hero empty states, scale
+down to sit alongside small body copy.
+
+<Preview client:load>
+  <Loading client:load size={16} />
+  <Loading client:load size={24} />
+  <Loading client:load size={48} />
+</Preview>
+
+## Duration
+
+`duration` accepts a CSS time string — either `"124ms"` or `"0.75s"`. For the
+spinner, it controls the time each segment holds before the next lights up
+(default is ~125ms per segment, so one full rotation takes roughly one
+second). For dots, it's the total cycle length of a single pulse (default
+`"0.75s"`).
+
+<Preview client:load>
+  <Loading client:load duration="60ms" />
+  <Loading client:load duration="300ms" />
+  <Loading client:load type="dots" duration="1.5s" />
+</Preview>
+
+A shorter duration reads as "working hard"; a longer one reads as "patiently
+waiting". Match the perceived urgency of the underlying task, and avoid
+durations so short that the motion becomes a distraction.
+
+## Accessibility
+
+`<Loading>` renders a bare, unlabeled `<svg>`. Screen readers will not
+announce it on their own. When the indicator represents a real
+in-flight operation, pair it with a sibling element that carries the
+semantics:
+
+- Mark the region that is loading with `aria-busy="true"` so assistive tech
+  knows its contents are stale.
+- Add an `sr-only` label that names *what* is loading — `"Loading API keys"`,
+  `"Fetching logs"` — next to the spinner. A generic "loading" is rarely
+  enough.
+- The spinner honors `prefers-reduced-motion` via the `animate-spin-slow`
+  utility. The dots animation uses SMIL and pauses accordingly in browsers
+  that respect the preference.
+
+If the indicator is purely ornamental (e.g. a placeholder glyph during a
+skeleton render), leave it unlabeled — an empty `aria-hidden="true"` on a
+wrapping element is enough.
+
+## Props
+
+<Props>
+  <Prop name="type" type={`"spinner" | "dots"`} default={`"spinner"`}>
+    Which indicator to render. `spinner` is the eight-segment rotating ring,
+    `dots` is three horizontal pulsing circles.
+  </Prop>
+  <Prop name="size" type="number" default="18 (spinner), 24 (dots)">
+    Width and height in pixels. The SVG scales uniformly; use whole numbers
+    that match the font size of neighboring text.
+  </Prop>
+  <Prop name="duration" type="string">
+    Animation timing as a CSS time string (`"124ms"` or `"0.75s"`). For the
+    spinner, this is the dwell time per segment. For dots, it's the total
+    cycle length of one pulse.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with `fill-current` so the indicator
+    inherits text color from its parent.
+  </Prop>
+  <Prop name="...rest" type="SVGProps<SVGSVGElement>">
+    All standard SVG attributes (`role`, `aria-label`, `style`, etc.) pass
+    through to the underlying `<svg>`.
+  </Prop>
+</Props>
+
+## Related
+
+- **Button** — use `<Button loading>` when the indicator belongs to a button
+  press; it embeds this spinner plus the required `aria-busy` wiring.
+- **Alert** — for states where the wait is long enough to warrant an
+  explanation, not just a spinner.

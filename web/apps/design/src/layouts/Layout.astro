@@ -1,0 +1,397 @@
+---
+// `@unkey/ui/css` brings in the Radix color-scale variables that every
+// component in the UI package references. Matches the dashboard's import
+// pattern so the two apps stay in sync on which assets flow from the
+// workspace package.
+import "@unkey/ui/css";
+import "../styles/global.css";
+import { nav, flatNav } from "../data/nav";
+import ThemeToggle from "../components/ThemeToggle.astro";
+
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Frontmatter {
+  title: string;
+  description?: string;
+  toc?: { id: string; label: string; depth?: number }[];
+}
+
+interface Props extends Frontmatter {
+  frontmatter?: Frontmatter;
+  headings?: Heading[];
+}
+
+const { frontmatter, headings, ...direct } = Astro.props as Props;
+const merged = { ...direct, ...(frontmatter ?? {}) };
+const { title, description } = merged;
+
+const toc =
+  merged.toc ??
+  (headings ?? [])
+    .filter((h) => h.depth === 2 || h.depth === 3)
+    .map((h) => ({ id: h.slug, label: h.text, depth: h.depth }));
+
+const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
+const currentIndex = flatNav.findIndex((i) => i.href === currentPath);
+const prev = currentIndex > 0 ? flatNav[currentIndex - 1] : null;
+const next =
+  currentIndex >= 0 && currentIndex < flatNav.length - 1
+    ? flatNav[currentIndex + 1]
+    : null;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} — Unkey Design</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <script is:inline>
+      (() => {
+        const stored = localStorage.getItem("theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const dark = stored === "dark" || (!stored && prefersDark);
+        if (dark) document.documentElement.classList.add("dark");
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="min-h-screen flex flex-col">
+      <!-- Top header — ultra thin, breathable, no border -->
+      <header
+        class="sticky top-0 z-20 h-16 md:h-20 bg-gray-1/70 backdrop-blur-md flex items-center justify-between px-6 md:px-12"
+      >
+        <div class="flex items-center gap-4">
+          <button
+            id="nav-toggle"
+            type="button"
+            aria-label="Open navigation"
+            class="md:hidden text-[10px] font-medium uppercase tracking-[0.2em] text-gray-11 hover:text-gray-12 transition-colors duration-200"
+          >
+            Menu
+          </button>
+          <a
+            href="/"
+            class="font-sans font-medium text-gray-12 text-[12px] md:text-[13px] tracking-[0.08em] uppercase"
+          >
+            Unkey — Design
+          </a>
+        </div>
+        <ThemeToggle />
+      </header>
+
+      <!-- Mobile nav backdrop -->
+      <div
+        id="nav-backdrop"
+        class="md:hidden fixed inset-0 z-10 bg-grayA-9 opacity-0 pointer-events-none transition-opacity duration-200"
+      >
+      </div>
+
+      <div
+        class="flex-1 md:grid md:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_260px] gap-0"
+      >
+        <!-- Left sidebar — airy, sparse, confident. Slides in on mobile. -->
+        <aside
+          id="nav"
+          class="fixed inset-y-0 left-0 z-20 w-[280px] pt-24 pb-10 pl-6 pr-6 bg-gray-1 overflow-y-auto -translate-x-full transition-transform duration-300 md:sticky md:top-20 md:self-start md:h-[calc(100vh-5rem)] md:w-auto md:py-16 md:pl-12 md:pr-8 md:bg-transparent md:translate-x-0 md:transition-none"
+        >
+          <nav class="flex flex-col gap-16">
+            {
+              nav.map((group) => (
+                <div class="flex flex-col gap-4">
+                  <div class="text-[10px] font-medium uppercase tracking-[0.18em] text-gray-9">
+                    {group.label}
+                  </div>
+                  <div class="flex flex-col gap-3">
+                    {group.items.map((item) => {
+                      const active = currentPath === item.href;
+                      const cls = active
+                        ? "text-gray-12"
+                        : "text-gray-10 hover:text-gray-12";
+                      return (
+                        <a
+                          href={item.href}
+                          class={`text-[14px] font-normal transition-colors duration-200 ${cls}`}
+                        >
+                          {item.label}
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            }
+          </nav>
+        </aside>
+
+        <!-- Main content — generous air, narrower measure -->
+        <main class="min-w-0">
+          <div class="max-w-[680px] mx-auto w-full px-6 md:px-12 pt-16 md:pt-32 pb-24 md:pb-40">
+            <header class="mb-16 md:mb-24">
+              <h1 class="page-title">{title}</h1>
+              {
+                description && (
+                  <p class="mt-5 md:mt-8 text-[15px] md:text-[17px] text-gray-11 leading-[1.6] md:leading-[1.7] max-w-[520px] font-light">
+                    {description}
+                  </p>
+                )
+              }
+            </header>
+
+            <article class="doc-body">
+              <slot />
+            </article>
+
+            <!-- Prev/Next — borderless, reliant on type alone -->
+            {
+              (prev || next) && (
+                <nav class="mt-24 md:mt-40 pt-10 md:pt-16 border-t border-grayA-3 flex flex-col gap-10 md:grid md:grid-cols-2 md:gap-8">
+                  {prev ? (
+                    <a
+                      href={prev.href}
+                      class="group flex flex-col items-start gap-2"
+                    >
+                      <span class="text-[10px] font-medium uppercase tracking-[0.18em] text-gray-9">
+                        Previous
+                      </span>
+                      <span class="text-[16px] md:text-[18px] font-normal text-gray-11 group-hover:text-gray-12 transition-colors duration-200">
+                        ← {prev.label}
+                      </span>
+                    </a>
+                  ) : (
+                    <div class="hidden md:block" />
+                  )}
+                  {next ? (
+                    <a
+                      href={next.href}
+                      class="group flex flex-col items-start md:items-end gap-2 md:text-right"
+                    >
+                      <span class="text-[10px] font-medium uppercase tracking-[0.18em] text-gray-9">
+                        Next
+                      </span>
+                      <span class="text-[16px] md:text-[18px] font-normal text-gray-11 group-hover:text-gray-12 transition-colors duration-200">
+                        {next.label} →
+                      </span>
+                    </a>
+                  ) : (
+                    <div class="hidden md:block" />
+                  )}
+                </nav>
+              )
+            }
+          </div>
+        </main>
+
+        <!-- Right TOC — sparse vertical index -->
+        {
+          toc.length > 0 && (
+            <aside class="hidden xl:block pt-32 pr-12 pl-4 sticky top-20 self-start h-[calc(100vh-5rem)] overflow-y-auto">
+              <div class="text-[10px] font-medium uppercase tracking-[0.18em] text-gray-9 mb-6">
+                Contents
+              </div>
+              <ul class="flex flex-col gap-3">
+                {toc.map((item) => (
+                  <li class:list={[item.depth === 3 && "pl-3"]}>
+                    <a
+                      href={`#${item.id}`}
+                      class="text-[13px] text-gray-10 hover:text-gray-12 transition-colors duration-200 block leading-snug"
+                    >
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </aside>
+          )
+        }
+      </div>
+    </div>
+
+    <script>
+      const toggle = document.getElementById("nav-toggle");
+      const nav = document.getElementById("nav");
+      const backdrop = document.getElementById("nav-backdrop");
+
+      function setOpen(open: boolean) {
+        if (!nav || !backdrop || !toggle) return;
+        nav.classList.toggle("translate-x-0", open);
+        nav.classList.toggle("-translate-x-full", !open);
+        backdrop.classList.toggle("opacity-60", open);
+        backdrop.classList.toggle("pointer-events-auto", open);
+        toggle.setAttribute("aria-expanded", String(open));
+        document.body.style.overflow = open ? "hidden" : "";
+      }
+
+      toggle?.addEventListener("click", () => {
+        setOpen(!nav?.classList.contains("translate-x-0"));
+      });
+      backdrop?.addEventListener("click", () => setOpen(false));
+      nav?.querySelectorAll("a").forEach((a) =>
+        a.addEventListener("click", () => setOpen(false)),
+      );
+      // Close the mobile drawer if the viewport grows past the md breakpoint.
+      window.matchMedia("(min-width: 768px)").addEventListener("change", (e) => {
+        if (e.matches) setOpen(false);
+      });
+    </script>
+
+    <style is:global>
+      .page-title {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-style: italic;
+        font-size: clamp(3rem, 7vw, 5.5rem);
+        letter-spacing: -0.02em;
+        line-height: 0.95;
+        color: hsl(var(--gray-12));
+        overflow-wrap: break-word;
+      }
+
+      /*
+       * Editorial typography for the article body. Every rule is scoped to
+       * direct children of `.doc-body` so it can't leak into <Preview>'s
+       * stage or into component internals nested inside the article.
+       */
+
+      /* Headings — Instrument Serif italic with a `#` hover anchor */
+      .doc-body > h2,
+      .doc-body > h3 {
+        position: relative;
+        font-family: var(--font-serif);
+        font-style: italic;
+        font-weight: 400;
+        color: hsl(var(--gray-12));
+        scroll-margin-top: 6rem;
+      }
+      .doc-body > h2 {
+        font-size: 32px;
+        letter-spacing: -0.02em;
+        line-height: 1.05;
+        margin-top: 3.5rem;
+        margin-bottom: 1rem;
+      }
+      .doc-body > h3 {
+        font-size: 24px;
+        letter-spacing: -0.015em;
+        line-height: 1.15;
+        margin-top: 2.5rem;
+        margin-bottom: 0.75rem;
+      }
+      @media (min-width: 768px) {
+        .doc-body > h2 {
+          font-size: 42px;
+          margin-top: 5rem;
+          margin-bottom: 1.5rem;
+        }
+        .doc-body > h3 {
+          font-size: 30px;
+          margin-top: 3rem;
+          margin-bottom: 1rem;
+        }
+      }
+      .doc-body > h2[id]::before,
+      .doc-body > h3[id]::before {
+        content: "#";
+        position: absolute;
+        left: -1.25rem;
+        color: hsl(var(--gray-8));
+        opacity: 0;
+        transition: opacity 200ms ease;
+        font-weight: 400;
+      }
+      .doc-body > h2[id]:hover::before,
+      .doc-body > h3[id]:hover::before {
+        opacity: 1;
+      }
+
+      /* Body copy — a touch muted, relaxed leading */
+      .doc-body > p {
+        font-size: 15px;
+        line-height: 1.85;
+        color: hsl(var(--gray-11));
+        margin-bottom: 1.5rem;
+        font-weight: 400;
+      }
+      .doc-body > p strong {
+        color: hsl(var(--gray-12));
+        font-weight: 500;
+      }
+
+      /* Links inside top-level prose */
+      .doc-body > p a,
+      .doc-body > ul a {
+        color: hsl(var(--gray-12));
+        text-decoration: underline;
+        text-decoration-color: hsl(var(--gray-7));
+        text-underline-offset: 4px;
+        text-decoration-thickness: 1px;
+      }
+      .doc-body > p a:hover,
+      .doc-body > ul a:hover {
+        text-decoration-color: hsl(var(--gray-11));
+      }
+
+      /* Inline code — no chip, just monospace */
+      .doc-body > p code,
+      .doc-body > ul code {
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+        background: transparent;
+        border: none;
+        color: hsl(var(--gray-12));
+        padding: 0;
+      }
+
+      /* Fenced code blocks — match Preview's code drawer */
+      .doc-body > pre {
+        margin: 1.5rem 0;
+        padding: 1.25rem 1.5rem;
+        border-radius: 0.5rem;
+        background: hsla(var(--grayA-2));
+        color: hsl(var(--gray-12));
+        font-size: 12.5px;
+        line-height: 1.7;
+        overflow-x: auto;
+      }
+      .doc-body > pre code {
+        font-family: var(--font-mono);
+        background: transparent;
+        border: none;
+        padding: 0;
+        color: inherit;
+        font-size: inherit;
+      }
+
+      /* Em-dash list marker */
+      .doc-body > ul {
+        list-style: none;
+        padding-left: 0;
+        margin-bottom: 1.5rem;
+        color: hsl(var(--gray-11));
+        font-size: 15px;
+        line-height: 1.85;
+      }
+      .doc-body > ul > li {
+        margin-bottom: 0.5rem;
+        padding-left: 1.5rem;
+        position: relative;
+      }
+      .doc-body > ul > li::before {
+        content: "—";
+        position: absolute;
+        left: 0;
+        color: hsl(var(--gray-9));
+      }
+    </style>
+  </body>
+</html>

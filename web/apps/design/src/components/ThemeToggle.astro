@@ -1,0 +1,32 @@
+---
+---
+
+<button
+  type="button"
+  id="theme-toggle"
+  aria-label="Toggle theme"
+  class="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-11 hover:text-gray-12 transition-colors duration-200"
+>
+  <span class="theme-label-light">Dark</span>
+  <span class="theme-label-dark">Light</span>
+</button>
+
+<style is:global>
+  .theme-label-dark {
+    display: none;
+  }
+  .dark .theme-label-light {
+    display: none;
+  }
+  .dark .theme-label-dark {
+    display: inline;
+  }
+</style>
+
+<script>
+  const btn = document.getElementById("theme-toggle");
+  btn?.addEventListener("click", () => {
+    const isDark = document.documentElement.classList.toggle("dark");
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+  });
+</script>

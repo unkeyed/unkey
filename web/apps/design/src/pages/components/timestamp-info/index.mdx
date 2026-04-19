@@ -1,0 +1,140 @@
+---
+layout: ../../../layouts/Layout.astro
+title: TimestampInfo
+description: Render a compact human-readable timestamp that reveals UTC, local, relative, and raw values on hover or keyboard focus.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  BasicExample,
+  DisplayTypesExample,
+  InputFormatsExample,
+  PositioningExample,
+} from "./_examples.tsx";
+
+TimestampInfo is a small inline label for a point in time. The visible text is
+a short, scannable rendering (relative by default, or a formatted local or UTC
+string) and a tooltip reveals the same moment in several other formats so the
+reader can cross-reference without leaving the page. Every row in the tooltip
+is click-to-copy, which matters when the value is a log timestamp a user
+wants to paste into a query.
+
+Reach for TimestampInfo wherever a log, audit entry, or metric carries a
+timestamp. It accepts an ISO 8601 string, a millisecond epoch number, or a
+16-digit unix-micro value, and quietly picks the right parser. Because it
+opens a Radix Tooltip, it must live underneath a `<TooltipProvider>` near the
+app root, just like any other Tooltip-based control.
+
+## Import
+
+```tsx
+import { TimestampInfo, TooltipProvider } from "@unkey/ui";
+```
+
+## Basic
+
+Pass a timestamp and TimestampInfo renders the relative-friendly local form
+("Apr 16 14:00:00") with the full cross-format breakdown in the tooltip.
+Hover or focus the trigger to open it.
+
+<BasicExample client:load />
+
+## Display types
+
+`displayType` picks which formatting the trigger shows. `local` is the
+default and reads as `MMM dd HH:mm:ss` in the browser's timezone. `utc`
+writes the same moment as `MMM d,yyyy HH:mm:ss` in UTC, which is worth
+choosing when the surrounding UI is already timezone-aware. `relative`
+("5 minutes ago", "2 hours ago") is best for activity feeds and recent-event
+lists. `local_hours_with_millis` trims to `HH:mm:ss.SSS` for dense log
+tables where the date is already implied by the row grouping.
+
+<DisplayTypesExample client:load />
+
+## Input formats
+
+The same instant can arrive as three different wire formats. TimestampInfo
+detects a 16-digit string or number as unix microseconds, and otherwise
+hands the value to `new Date(...)`. All three rows below render identically.
+
+<InputFormatsExample client:load />
+
+## Positioning
+
+`side` and `align` forward directly to the underlying `TooltipContent`. By
+default the component anchors the tooltip to the right of the trigger and
+auto-aligns `start` or `end` based on the trigger's vertical position in
+the viewport, so tooltips near the bottom of the screen flip upward without
+clipping. Pass `side` or `align` to override that behavior.
+
+<PositioningExample client:load />
+
+## Accessibility
+
+The trigger is a real `<button>` (or the element referenced by `triggerRef`),
+so it is tab-reachable and the tooltip opens on keyboard focus as well as
+pointer hover. The tooltip content itself carries `role="tooltip"` via Radix
+and is described to the trigger through `aria-describedby`.
+
+Two honest caveats. The tooltip is the only surface that shows UTC, relative,
+and raw values, and tooltips do not appear on touch devices, so do not rely
+on TimestampInfo as the only way to expose an exact timestamp if precision is
+load-bearing for the reader. Mirror the critical value elsewhere in that
+case. The rows inside the tooltip write to the clipboard on click using a
+`<span>` with an `onClick` handler; copying from the keyboard alone is not
+supported in the current implementation.
+
+## Props
+
+<Props>
+  <Prop name="value" type="string | number" required>
+    The timestamp to render. An ISO 8601 string, a JavaScript millisecond
+    epoch, or a 16-digit unix microsecond string/number. Detection is based
+    on digit length, so do not pass a second-precision unix timestamp.
+  </Prop>
+  <Prop
+    name="displayType"
+    type={`"local" | "utc" | "relative" | "local_hours_with_millis"`}
+    default={`"local"`}
+  >
+    Which formatter drives the trigger text. The tooltip always shows all
+    four representations regardless of this choice.
+  </Prop>
+  <Prop name="side" type={`"top" | "right" | "bottom" | "left"`} default={`"right"`}>
+    Preferred edge of the trigger to anchor the tooltip to. Radix flips
+    automatically when the chosen side would clip.
+  </Prop>
+  <Prop name="align" type={`"start" | "center" | "end"`}>
+    Cross-axis alignment. When omitted, the component sets `start` for
+    triggers in the upper half of the viewport and `end` for triggers in
+    the lower half, so the tooltip grows away from the edge of the screen.
+  </Prop>
+  <Prop name="triggerRef" type="React.RefObject<HTMLElement | null>">
+    Use an external element as the tooltip trigger instead of the built-in
+    button. Useful when the timestamp text needs to sit inline inside a
+    larger focusable container (for example, a table row). When provided,
+    the trigger renders as a `<span>` and the referenced element drives
+    focus and hover.
+  </Prop>
+  <Prop name="open" type="boolean">
+    Controlled open state. Pair with `onOpenChange` when the parent needs
+    to pin the tooltip open (a keyboard shortcut overlay, a walkthrough
+    step).
+  </Prop>
+  <Prop name="onOpenChange" type="(open: boolean) => void">
+    Fires whenever the tooltip opens or closes, whether driven by hover,
+    focus, escape, or the `open` prop.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes merged onto the trigger via `cn`. The
+    trigger is `text-xs` by default.
+  </Prop>
+</Props>
+
+## Related
+
+- **Tooltip** — the lower-level primitive TimestampInfo builds on. Use it
+  directly when the floating content is anything other than a timestamp.
+- **Badge** — for a non-time classification (environment, status, role)
+  that should read as a chip instead of a timestamp.

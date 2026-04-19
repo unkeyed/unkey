@@ -1,0 +1,73 @@
+---
+layout: ../layouts/Layout.astro
+title: Introduction
+description: The Unkey design system. A living reference for the components, tokens, and icons that make up every Unkey surface.
+---
+
+What you see on this site is what ships in the product. Every component is
+imported directly from `@unkey/ui`, every color scale is read from the same
+Tailwind theme our apps compile against, and every icon is rendered from the
+same `@unkey/icons` set the dashboard uses. No second implementation, no
+drift.
+
+## What's in here
+
+**Foundations** are the raw materials. [Colors](/colors) walks through the
+twelve-step Radix scales we tune against — gray, accent, the semantic hues
+(success, warning, error, info) and the transparent overlays. [Icons](/icons)
+is the full set of hand-drawn glyphs, ready to copy as JSX tags.
+
+**Components** are everything you'd assemble into a view. Buttons and badges,
+dialogs and drawers, tabs and tooltips, a dozen more. Each page shows the
+component rendered on the real dashboard surface, the variants it supports,
+an accessibility pass, and a precise prop table.
+
+## How to read a component page
+
+Every component page follows the same shape. A short introduction explains
+what the component is and when to reach for it versus the nearest
+alternative. An **Import** snippet shows the exact import line. **Variants**,
+**sizes**, and **states** are demonstrated in live previews — click *Show
+code* under any example to see the JSX that produced it. An **Accessibility**
+section calls out the guarantees the component provides and the things the
+caller is still on the hook for. A **Props** table enumerates every prop
+with its type, default, and a description. A **Related** list points at
+adjacent components that solve neighbouring problems.
+
+## Using the design system in an app
+
+Install `@unkey/ui` from the workspace, then import components as named
+exports.
+
+```tsx
+import { Button, Alert, AlertTitle, AlertDescription } from "@unkey/ui";
+
+<Alert variant="warn">
+  <AlertTitle>Action required</AlertTitle>
+  <AlertDescription>
+    Your API key expires in 7 days.
+  </AlertDescription>
+</Alert>
+```
+
+For styles, import the package's Tailwind entrypoint alongside Tailwind
+itself in your app's CSS — you get every scale, token, and variable the
+components expect:
+
+```css
+@import "tailwindcss";
+@import "@unkey/ui/tailwind.css";
+```
+
+That's it. Dark mode flips on `.dark`, no per-app theme wiring.
+
+## Contributing
+
+To add or change a component, edit it in `internal/ui/` and add a matching
+page here under `src/pages/components/`. The page template is small —
+frontmatter, a short intro, live previews, a Props table. Examples with
+JSX-valued props live in a sibling `_examples.tsx` file (see any existing
+page for the pattern).
+
+New icons dropped into `internal/icons/src/icons/` show up on the Icons page
+automatically; no edits here needed.

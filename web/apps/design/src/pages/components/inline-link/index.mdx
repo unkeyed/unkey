@@ -1,0 +1,108 @@
+---
+layout: ../../../layouts/Layout.astro
+title: InlineLink
+description: A text-weight anchor for links that sit inside a sentence or a line of UI copy, with an optional decorative icon.
+---
+
+import { InlineLink } from "@unkey/ui";
+import { Preview } from "../../../components/Preview.tsx";
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  IconRightExample,
+  IconLeftExample,
+  ExternalExample,
+} from "./_examples.tsx";
+
+InlineLink renders a plain `<a>` with an underline and a small hover fade. It
+is meant to flow inside prose, caption text, or a compact toolbar label,
+where a full button would pull too much weight.
+
+Use InlineLink when the affordance should read as part of the surrounding
+sentence. For navigation that deserves its own hit target (a CTA, a card
+action, a primary nav entry), reach for `<Button asChild>` wrapping an
+`<a>` instead.
+
+## Import
+
+```tsx
+import { InlineLink } from "@unkey/ui";
+```
+
+## Default
+
+Pass a `label` and an `href`. The link picks up an underline so it stays
+identifiable without href-colored chrome.
+
+<Preview client:load>
+  <InlineLink label="Read the docs" href="/docs" />
+</Preview>
+
+## With icon on the right
+
+An icon on the right is the common pattern for "go somewhere else" links.
+`iconPosition` defaults to `"right"`.
+
+<IconRightExample client:load />
+
+## With icon on the left
+
+Set `iconPosition="left"` when the icon categorizes the destination (a book
+for docs, a key for credentials) rather than signaling direction.
+
+<IconLeftExample client:load />
+
+## External
+
+For links that leave the app, pair an upward-right arrow with
+`target="_blank"` and `rel="noopener noreferrer"`. Anchor HTML attributes
+pass through as rest props.
+
+<ExternalExample client:load />
+
+## Accessibility
+
+The icon slot is wrapped in `aria-hidden="true"`, which is the right default
+for purely decorative glyphs (a directional arrow next to the label). If the
+icon is the only thing carrying meaning (for example, a lock glyph on an
+otherwise generic "Settings" link), add alternative text by passing
+`aria-label` on the InlineLink — the icon itself is not announced.
+
+Links that open in a new tab or window should set `target="_blank"`
+alongside `rel="noopener noreferrer"` so the destination cannot access
+`window.opener` and the referrer is not leaked. When the new-tab behavior is
+not obvious from the surrounding copy, mention it in the label or add an
+`aria-label` that does.
+
+## Props
+
+<Props>
+  <Prop name="href" type="string" required>
+    The URL to link to. Passed straight to the underlying `<a>`.
+  </Prop>
+  <Prop name="label" type="string">
+    The text to render between the optional icons. Omit to render icon-only
+    (in which case pair with `aria-label`).
+  </Prop>
+  <Prop name="icon" type="ReactNode">
+    A decorative icon rendered next to the label. Wrapped in
+    `aria-hidden="true"`, so it is not announced to assistive tech.
+  </Prop>
+  <Prop name="iconPosition" type={`"left" | "right"`} default={`"right"`}>
+    Which side of the label the icon sits on. `right` for directional
+    affordances, `left` for categorical ones.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with the built-in
+    `underline inline-flex hover:opacity-70` via `cn`; later classes win.
+  </Prop>
+  <Prop name="...rest" type="AnchorHTMLAttributes<HTMLAnchorElement>">
+    All standard anchor attributes (`target`, `rel`, `aria-label`,
+    `onClick`, `download`, etc.) pass through to the underlying `<a>`.
+  </Prop>
+</Props>
+
+## Related
+
+- **Button** with `asChild` — for link-as-button CTAs that need their own hit target.
+- **Alert** — when the linked context deserves its own block of space.

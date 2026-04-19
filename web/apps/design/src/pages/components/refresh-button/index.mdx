@@ -1,0 +1,116 @@
+---
+layout: ../../../layouts/Layout.astro
+title: RefreshButton
+description: A single-purpose button for pulling fresh data into a view, with a built-in cooldown, live-mode pause, and a keyboard shortcut.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  BasicExample,
+  DisabledExample,
+  LiveModeExample,
+} from "./_examples.tsx";
+
+RefreshButton is the small "Refresh" control that sits above data views in
+the dashboard. It owns three concerns the caller would otherwise have to
+stitch together: a one-second visual cooldown so rapid clicks don't spam the
+backend, coordination with a parent "live" toggle so an in-flight refresh
+temporarily pauses streaming, and a global `⌥+⇧+W` shortcut that users can
+discover by hovering the button.
+
+Reach for it when a view has a clear "reload this dataset" action and the
+caller owns both the refetch logic and, optionally, a live-mode flag. When
+the button is disabled, an inverted tooltip explains why, and the shortcut
+is unbound until it becomes enabled again. The internal loading state is
+self-managed, so the caller never needs to wire a spinner.
+
+## Import
+
+```tsx
+import { RefreshButton } from "@unkey/ui";
+```
+
+## Basic
+
+Pass `onRefresh` and set `isEnabled` to `true`. The button handles its own
+loading state for one second after each click, during which further clicks
+are ignored.
+
+<BasicExample client:load />
+
+## Disabled
+
+Set `isEnabled` to `false` when the current view cannot be refreshed. The
+button is dimmed, the keyboard shortcut is unbound, and an inverted tooltip
+appears on hover to explain the state. The tooltip copy is fixed ("Refresh
+unavailable — please select a relative time filter in the 'Since' dropdown")
+because this button has one canonical reason to be disabled in the
+dashboard; prefer a different affordance if your reason differs.
+
+<DisabledExample client:load />
+
+## With live mode
+
+When a parent view also offers a "live" tailing mode, pass the current state
+via `isLive` and a setter via `toggleLive`. On click, the button flips live
+mode off, fires `onRefresh`, and after the one-second cooldown restores
+live mode if it was on before. This avoids a race between the streaming
+updater and the manual refetch.
+
+<LiveModeExample client:load />
+
+## Accessibility
+
+The button renders the shared `<Button>` primitive underneath, so all the
+standard keyboard and assistive tech behavior carries over: `Enter` and
+`Space` activate it, it participates in tab order, and `aria-busy` is set
+while the one-second cooldown is in flight.
+
+The global `⌥+⇧+W` shortcut is registered at the document level and only
+while `isEnabled` is `true`. The hook ignores the shortcut when the user is
+typing in an input, textarea, select, or contentEditable element, so the
+binding does not collide with normal text entry. A `<kbd>`-styled hint
+reveals itself on hover so the shortcut is discoverable without reading
+documentation; the hint is hidden on screens narrower than `md`, where
+keyboard shortcuts are not applicable.
+
+Because the button is registered globally, avoid mounting more than one
+`<RefreshButton>` on the same page. The last one mounted wins the shortcut,
+which is rarely what the user expects.
+
+## Props
+
+<Props>
+  <Prop name="onRefresh" type="() => void" required>
+    Called once per click (or shortcut press) that passes the cooldown
+    gate. The caller is responsible for the actual refetch. Do not return a
+    promise; the one-second cooldown is independent of how long the
+    refetch takes.
+  </Prop>
+  <Prop name="isEnabled" type="boolean" required>
+    Whether the button can be activated. When `false`, the native
+    `disabled` attribute is set, the keyboard shortcut is unbound, and
+    hovering reveals a tooltip explaining that the user must select a
+    relative time filter first.
+  </Prop>
+  <Prop name="isLive" type="boolean">
+    Current value of the parent view's live-mode flag. Read-only from the
+    button's perspective; used to decide whether to restore live mode after
+    the cooldown expires.
+  </Prop>
+  <Prop name="toggleLive" type="(value: boolean) => void">
+    Setter for the parent view's live-mode flag. Called with `false` at
+    click time and, if `isLive` was `true`, called again with `true` after
+    the one-second cooldown. Omit when the parent has no live mode.
+  </Prop>
+</Props>
+
+## Related
+
+- **Button** — the underlying primitive. Use it directly when you need a
+  refresh-style action without the cooldown, live-mode coordination, or the
+  canonical disabled-state tooltip.
+- **KeyboardButton** — the `<kbd>` treatment used inside the button to
+  reveal the shortcut on hover.
+- **InfoTooltip** — the tooltip that surfaces the disabled-state message.
