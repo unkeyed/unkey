@@ -7,9 +7,14 @@ export * from "./skeleton-node/skeleton-node";
 export * from "./origin-node";
 
 export {
+  COLLAPSE_THRESHOLD,
+  DEFAULT_NODE_HEIGHT,
+  DEFAULT_NODE_WIDTH,
   isOriginNode,
   isSentinelNode,
   isInstanceNode,
   isSkeletonNode,
   type DeploymentNode,
+  type InstanceNode,
+  type OriginNode,
 } from "./types";

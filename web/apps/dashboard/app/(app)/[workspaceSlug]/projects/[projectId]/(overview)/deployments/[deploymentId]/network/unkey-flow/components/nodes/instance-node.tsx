@@ -9,9 +9,10 @@ type InstanceNodeProps = {
   node: InstanceNodeType;
   flagCode: SentinelNodeType["metadata"]["flagCode"];
   deploymentId?: string;
+  stacked?: boolean;
 };
 
-export function InstanceNode({ node, flagCode, deploymentId }: InstanceNodeProps) {
+export function InstanceNode({ node, flagCode, deploymentId, stacked }: InstanceNodeProps) {
   const { cpu, memory, health } = node.metadata;
 
   const { data: rps } = trpc.deploy.network.getInstanceRps.useQuery(
@@ -19,13 +20,13 @@ export function InstanceNode({ node, flagCode, deploymentId }: InstanceNodeProps
       instanceId: node.id,
     },
     {
-      enabled: Boolean(deploymentId),
+      enabled: Boolean(deploymentId) && !stacked,
       refetchInterval: 5000,
     },
   );
 
   return (
-    <NodeWrapper health={health}>
+    <NodeWrapper health={health} showBanner={!stacked}>
       <CardHeader
         type="instance"
         icon={
