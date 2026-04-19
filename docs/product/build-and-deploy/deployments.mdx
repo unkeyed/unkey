@@ -69,6 +69,26 @@ The previous deployment stays running as part of [instant rollbacks](#instant-ro
 </Step>
 </Steps>
 
+## Deployment statuses
+
+Each deployment has a status that reflects where it is in the lifecycle.
+
+| Status | Description |
+| --- | --- |
+| **Pending** | The deployment record has been created but hasn't entered the build queue yet. |
+| **Queued** | The deployment is waiting for build capacity. |
+| **Building** | Source code is being fetched and the container image is being built. |
+| **Deploying** | The built image is being scheduled across your configured regions. |
+| **Assigning domains** | Commit, branch, and environment domains are being configured. |
+| **Finalizing** | Routes are being configured and traffic is switching to the new deployment. |
+| **Ready** | The deployment is live and serving traffic. |
+| **Failed** | The deployment encountered an error during build or runtime. See [troubleshoot failed deployments](#troubleshoot-failed-deployments). |
+| **Skipped** | The deployment was skipped because it was not needed (for example, no relevant file changes matched the configured [watch paths](/platform/apps/settings#watch-paths)). |
+| **Awaiting approval** | The deployment is paused and waiting for manual approval before proceeding. |
+| **Stopped** | The deployment was manually stopped after it was running. |
+| **Superseded** | A newer deployment for the same environment was triggered before this one finished, so it was automatically replaced. The in-progress build or deploy is cancelled and the newer deployment takes over. |
+| **Cancelled** | The deployment was explicitly cancelled by a user before it completed. |
+
 ## Instant rollbacks
 
 When a new production deployment goes live, the previous deployment isn't torn down immediately. It stays running so you can [roll back](/build-and-deploy/rollbacks) instantly if something goes wrong. No rebuild, no container startup, just an immediate domain reassignment back to the known-good version.
