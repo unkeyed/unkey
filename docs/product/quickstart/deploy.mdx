@@ -52,12 +52,20 @@ Choose your repository and branch. Unkey auto-detects Dockerfiles and shows thei
 
 <Step title="Configure build settings">
 
-Review the defaults for root directory, Dockerfile path, and watch paths. Expand **Runtime settings** to configure regions, CPU, and memory. Expand **Advanced configurations** to add environment variables.
+Review the defaults for root directory, Dockerfile path, and watch paths. Expand **Runtime settings** to configure regions, CPU, and memory.
 
 <Frame caption="Configure deployment settings">
   <img src="/build-and-deploy/github-configure-light.png" alt="Configure deployment" className="block dark:hidden" />
   <img src="/build-and-deploy/github-configure-dark.png" alt="Configure deployment" className="hidden dark:block" />
 </Frame>
+
+</Step>
+
+<Step title="Add environment variables">
+
+Add any environment variables your app needs, such as database URLs, API keys, or feature flags. Each variable is encrypted and scoped to the current environment. You can skip this step and add variables later from your project's **Environment Variables** tab.
+
+See [Variables](/platform/variables/overview) for details on bulk import, sensitive values, and environment scoping.
 
 </Step>
 
