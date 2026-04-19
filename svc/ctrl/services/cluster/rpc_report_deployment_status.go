@@ -48,7 +48,6 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 		return nil, err
 	}
 
-	// TODO: cache this lookup to avoid hitting the database on every status report
 	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
 	if err != nil {
 		return nil, err
