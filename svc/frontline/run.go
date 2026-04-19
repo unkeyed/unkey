@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/cluster"
@@ -27,7 +28,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
-	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
@@ -65,7 +65,6 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:        "frontline",
-			Version:            version.Version,
 			InstanceID:         cfg.InstanceID,
 			CloudRegion:        cfg.Region,
 			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
@@ -88,8 +87,8 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.AddBaseAttrs(slog.String("region", cfg.Region))
 	}
 
-	if version.Version != "" {
-		logger.AddBaseAttrs(slog.String("version", version.Version))
+	if buildinfo.Version != "" {
+		logger.AddBaseAttrs(slog.String("version", buildinfo.Version))
 	}
 
 	r := runner.New()
@@ -102,6 +101,7 @@ func Run(ctx context.Context, cfg Config) error {
 	//nolint:exhaustruct
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	lazy.SetRegistry(reg)
+	buildinfo.RegisterBuildInfoMetrics("frontline")
 
 	if cfg.PrometheusPort > 0 {
 		prom, promErr := prometheus.NewWithRegistry(reg)

@@ -18,8 +18,8 @@ go_library(
         "//cmd/healthcheck",
         "//cmd/run",
         "//cmd/version",
+        "//pkg/buildinfo",
         "//pkg/cli",
-        "//pkg/version",
     ],
 )
 

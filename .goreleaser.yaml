@@ -30,7 +30,9 @@ builds:
 
     ldflags:
       - -s -w
-      - -X 'github.com/unkeyed/unkey/pkg/version.Version={{.Version}}'
+      - -X 'github.com/unkeyed/unkey/pkg/buildinfo.Version={{.Version}}'
+      - -X 'github.com/unkeyed/unkey/pkg/buildinfo.Revision={{.FullCommit}}'
+      - -X 'github.com/unkeyed/unkey/pkg/buildinfo.BuildTime={{.Date}}'
 
 upx:
   - enabled: true
