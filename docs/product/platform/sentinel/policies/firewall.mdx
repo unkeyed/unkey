@@ -1,28 +1,95 @@
 ---
 title: Firewall
-description: "Deny HTTP requests at the Sentinel based on path, method, header, or query parameter."
+description: "Block unwanted HTTP requests before they reach your app using path, method, header, or query parameter rules."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-The Firewall policy rejects requests before they reach your application. It is the Sentinel's surface for blocking unwanted traffic at the deployment layer.
+The Firewall policy rejects requests before they reach your application. Use it to block access to admin routes, restrict HTTP methods, or deny traffic that matches specific headers or query parameters — all without changing your application code.
 
-## Actions
+## When to use the firewall
 
-Every firewall rule denies the request when its match conditions hit. Sentinel responds with HTTP `403 Forbidden` and skips all downstream policies — your upstream service is never invoked.
+- **Block sensitive paths** — prevent external access to `/admin`, `/internal`, or debug endpoints
+- **Restrict HTTP methods** — deny `DELETE` or `PUT` on read-only routes
+- **Filter by header** — block requests from specific user agents or missing required headers
+- **Match query parameters** — reject requests with known-bad parameter values
+
+## How it works
+
+Each firewall policy has a **deny** action and one or more [match conditions](/platform/sentinel/policies/overview#match-expressions). When all match conditions on a rule succeed, the Sentinel immediately returns HTTP `403 Forbidden` and skips all remaining policies. Your upstream service is never invoked.
 
 Rules are evaluated top-to-bottom. The first matching rule blocks the request.
 
-## Match conditions
+## Configure a firewall policy
 
-Firewall rules reuse Sentinel's shared match conditions: path, method, request header (including `User-Agent`), and query parameter. A rule can combine multiple conditions — all of them must match for the rule to apply.
+To add a firewall policy:
+
+1. Navigate to your project's **Settings** page in the Unkey dashboard.
+2. Scroll to the **Sentinel policies** section.
+3. Click **Add policy** and select **Firewall**.
+4. Give the policy a name and add one or more match conditions.
+5. Save your changes.
+
+The policy takes effect on the next request — no redeploy is required.
+
+### Example: block an admin path
+
+Block all requests to paths starting with `/admin`:
+
+| Field       | Value            |
+| ----------- | ---------------- |
+| Name        | Block admin      |
+| Match type  | Path prefix      |
+| Match value | `/admin`         |
+| Action      | Deny             |
+
+Any request to `/admin`, `/admin/users`, or `/admin/settings` returns `403 Forbidden`.
+
+### Example: deny DELETE requests
+
+Deny all `DELETE` requests across your API:
+
+| Field       | Value            |
+| ----------- | ---------------- |
+| Name        | Block DELETE      |
+| Match type  | HTTP method      |
+| Match value | `DELETE`         |
+| Action      | Deny             |
+
+### Example: combine conditions
+
+Block `POST` requests to paths starting with `/api/v1/webhooks` — useful when you need to temporarily disable a specific endpoint:
+
+| Condition    | Type        | Value                |
+| ------------ | ----------- | -------------------- |
+| Condition 1  | Path prefix | `/api/v1/webhooks`   |
+| Condition 2  | Method      | `POST`               |
+
+When a policy has multiple match conditions, all conditions must match for the rule to fire (AND logic). To create OR conditions, add separate firewall policies.
+
+## Error response
+
+When the firewall blocks a request, the Sentinel returns:
+
+```json
+{
+  "meta": { "requestId": "req_abc123" },
+  "error": {
+    "title": "Forbidden",
+    "detail": "Forbidden",
+    "status": 403,
+    "type": "https://unkey.com/docs/errors/sentinel/forbidden"
+  }
+}
+```
 
 ## Observability
 
 Denied requests are not currently written to the request log. Per-request visibility for firewall matches will land in a later release.
 
-## Not a DDoS mitigation
+## Limitations
 
-The Sentinel firewall runs after traffic has entered the platform. It's the right place to protect your application from unwanted traffic and avoid invoking your instances for denied requests, but it is not an infrastructure-level DDoS shield. Platform-level abuse protection lives at the edge and is handled separately.
+- The firewall only supports **deny** rules. Allow-listing is not available yet.
+- The Sentinel firewall runs after traffic has entered the platform. It protects your application from unwanted requests and avoids invoking your instances for denied traffic, but it is not an infrastructure-level DDoS shield. Platform-level abuse protection is handled at the edge separately.
