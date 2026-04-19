@@ -52,7 +52,11 @@ The toolbar above the variable list lets you:
 
 ## Edit and delete variables
 
-Click any variable row to open the inline editor. You can update the key, value, or note. Use the action menu on each row to delete a variable.
+Click any variable row to open the inline editor. You can update the key, value, note, or environment. Use the action menu on each row to delete a variable.
+
+### Change environment
+
+You can reassign a variable to a different environment directly from the inline editor — no need to delete it and re-create it. Select a new environment from the dropdown and save. Unkey validates that no variable with the same key already exists in the target environment before applying the change.
 
 <Frame>
   <img className="block dark:hidden" src="/platform/variables/edit-variable-light.png" alt="Edit variable inline editor" />
