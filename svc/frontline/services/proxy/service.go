@@ -112,10 +112,18 @@ func New(cfg Config) (*service, error) {
 }
 
 func (s *service) Forward(ctx context.Context, sess *zen.Session, decision router.RouteDecision) error {
-	if decision.Destination == router.DestinationLocalSentinel {
+	switch decision.Destination {
+	case router.DestinationLocalSentinel:
 		return s.forwardToSentinel(ctx, sess, decision.Address, decision.DeploymentID)
+	case router.DestinationRemoteRegion:
+		return s.forwardToRegion(ctx, sess, decision.Address)
+	default:
+		return fault.New("unknown route destination: "+string(decision.Destination),
+			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
+			fault.Internal("unhandled route destination type"),
+			fault.Public("Internal routing error"),
+		)
 	}
-	return s.forwardToRegion(ctx, sess, decision.Address)
 }
 
 func (s *service) forwardToSentinel(ctx context.Context, sess *zen.Session, sentinelAddress string, deploymentID string) error {

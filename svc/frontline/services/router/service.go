@@ -36,7 +36,12 @@ func New(cfg Config) (*service, error) {
 func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, error) {
 	start := time.Now()
 
-	route, sentinels, err := s.lookupByHostname(ctx, hostname)
+	route, err := s.findRoute(ctx, hostname)
+	if err != nil {
+		return RouteDecision{}, err
+	}
+
+	sentinels, err := s.lookupSentinels(ctx, route)
 	if err != nil {
 		return RouteDecision{}, err
 	}

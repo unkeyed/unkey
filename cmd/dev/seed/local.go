@@ -28,6 +28,7 @@ var localCmd = &cli.Command{
 		cli.String("ctrl-url", "Control plane API URL", cli.Default("http://localhost:7091"), cli.EnvVar("UNKEY_CTRL_URL")),
 		cli.String("api-key", "API key for control plane authentication", cli.Default("your-local-dev-key"), cli.EnvVar("UNKEY_API_KEY")),
 		cli.String("output", "Path to write generated environment variables", cli.Default("dev/.env.seed")),
+		cli.Bool("portal", "Also seed portal configuration and branding for this workspace"),
 	},
 	Action: seedLocal,
 }
@@ -449,6 +450,39 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		err = db.BulkQuery.InsertKeyPermissions(ctx, tx, keyPermissionParams)
 		if err != nil && !db.IsDuplicateKeyError(err) {
 			return fmt.Errorf("failed to insert key permissions: %w", err)
+		}
+
+		// Optionally seed portal configuration and branding.
+		if cmd.Bool("portal") {
+			portalConfigID := fmt.Sprintf("portal_%s", slug)
+
+			err = db.Query.InsertPortalConfig(ctx, tx, db.InsertPortalConfigParams{
+				ID:          portalConfigID,
+				WorkspaceID: workspaceID,
+				AppID:       sql.NullString{},
+				KeyAuthID:   sql.NullString{Valid: true, String: userKeySpaceID},
+				Enabled:     true,
+				ReturnUrl:   sql.NullString{Valid: true, String: "http://localhost:3000/portal-return"},
+				CreatedAt:   now,
+				UpdatedAt:   sql.NullInt64{},
+			})
+			if err != nil && !db.IsDuplicateKeyError(err) {
+				return fmt.Errorf("failed to create portal config: %w", err)
+			}
+
+			err = db.Query.UpsertPortalBranding(ctx, tx, db.UpsertPortalBrandingParams{
+				PortalConfigID: portalConfigID,
+				LogoUrl:        sql.NullString{Valid: true, String: "https://avatars.githubusercontent.com/u/138932600"},
+				PrimaryColor:   sql.NullString{Valid: true, String: "#2563eb"},
+				SecondaryColor: sql.NullString{Valid: true, String: "#f0f9ff"},
+				CreatedAt:      now,
+				UpdatedAt:      sql.NullInt64{},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create portal branding: %w", err)
+			}
+
+			logger.Info("portal seeded", "portalConfigId", portalConfigID)
 		}
 
 		return nil

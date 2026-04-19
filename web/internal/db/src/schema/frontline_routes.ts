@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
+import { portalConfigurations } from "./portal_configurations";
 import { projects } from "./projects";
 import { lifecycleDates } from "./util/lifecycle_dates";
 
@@ -9,10 +10,20 @@ export const frontlineRoutes = mysqlTable(
   {
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 128 }).notNull().unique(),
-    projectId: varchar("project_id", { length: 255 }).notNull(),
-    appId: varchar("app_id", { length: 64 }).notNull(),
-    deploymentId: varchar("deployment_id", { length: 255 }).notNull(),
-    environmentId: varchar("environment_id", { length: 255 }).notNull(),
+
+    // Route type: deployment routes go through Sentinel, portal routes go directly to portal service
+    routeType: mysqlEnum("route_type", ["deployment", "portal"]).notNull().default("deployment"),
+
+    // Deploy-specific columns (nullable for portal routes)
+    projectId: varchar("project_id", { length: 255 }),
+    appId: varchar("app_id", { length: 64 }),
+    deploymentId: varchar("deployment_id", { length: 255 }),
+    environmentId: varchar("environment_id", { length: 255 }),
+
+    // Portal-specific columns (nullable for deployment routes)
+    portalConfigId: varchar("portal_config_id", { length: 64 }),
+    pathPrefix: varchar("path_prefix", { length: 128 }),
+
     fullyQualifiedDomainName: varchar("fully_qualified_domain_name", {
       length: 256,
     })
@@ -56,5 +67,9 @@ export const frontlineRelations = relations(frontlineRoutes, ({ one }) => ({
   project: one(projects, {
     fields: [frontlineRoutes.projectId],
     references: [projects.id],
+  }),
+  portalConfiguration: one(portalConfigurations, {
+    fields: [frontlineRoutes.portalConfigId],
+    references: [portalConfigurations.id],
   }),
 }));

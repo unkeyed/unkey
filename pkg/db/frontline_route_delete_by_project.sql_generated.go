@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const deleteFrontlineRoutesByProjectId = `-- name: DeleteFrontlineRoutesByProjectId :exec
@@ -16,7 +17,7 @@ DELETE FROM frontline_routes WHERE project_id = ?
 // DeleteFrontlineRoutesByProjectId
 //
 //	DELETE FROM frontline_routes WHERE project_id = ?
-func (q *Queries) DeleteFrontlineRoutesByProjectId(ctx context.Context, db DBTX, projectID string) error {
+func (q *Queries) DeleteFrontlineRoutesByProjectId(ctx context.Context, db DBTX, projectID sql.NullString) error {
 	_, err := db.ExecContext(ctx, deleteFrontlineRoutesByProjectId, projectID)
 	return err
 }

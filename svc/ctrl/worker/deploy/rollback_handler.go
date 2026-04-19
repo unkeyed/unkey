@@ -96,7 +96,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	// Get all frontlineRoutes on the current deployment that are sticky
 	frontlineRoutes, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRoutesForRollbackRow, error) {
 		return db.Query.FindFrontlineRoutesForRollback(stepCtx, w.db.RO(), db.FindFrontlineRoutesForRollbackParams{
-			EnvironmentID: sourceDeployment.EnvironmentID,
+			EnvironmentID: sql.NullString{Valid: true, String: sourceDeployment.EnvironmentID},
 			Sticky: []db.FrontlineRoutesSticky{
 				db.FrontlineRoutesStickyLive,
 				db.FrontlineRoutesStickyEnvironment,
