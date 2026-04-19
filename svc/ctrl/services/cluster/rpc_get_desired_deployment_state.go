@@ -7,7 +7,6 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -23,26 +22,21 @@ import (
 // database. Unhandled desired states result in CodeInternal.
 //
 // Returns CodeUnauthenticated if bearer token is invalid, CodeInvalidArgument if
-// region or platform is missing, CodeNotFound if no deployment exists with the given
-// ID in the specified region, or CodeInternal for database errors or unhandled states.
+// region is missing, CodeNotFound if no deployment exists with the given ID in
+// the specified region, or CodeInternal for database errors or unhandled states.
 func (s *Service) GetDesiredDeploymentState(ctx context.Context, req *connect.Request[ctrlv1.GetDesiredDeploymentStateRequest]) (*connect.Response[ctrlv1.DeploymentState], error) {
 
 	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
 	}
 
-	region := req.Header().Get("X-Krane-Region")
-	platform := req.Header().Get("X-Krane-Platform")
-	if err := assert.All(
-		assert.NotEmpty(region, "region is required"),
-		assert.NotEmpty(platform, "platform is required"),
-	); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	if err := validateRegionKey(req.Msg.GetRegion()); err != nil {
+		return nil, err
 	}
 
 	deployment, err := db.Query.FindDeploymentTopologyByIDAndRegion(ctx, s.db.RO(), db.FindDeploymentTopologyByIDAndRegionParams{
 		DeploymentID: req.Msg.GetDeploymentId(),
-		Region:       region,
+		Region:       req.Msg.GetRegion().GetName(),
 	})
 	if err != nil {
 		if db.IsNotFound(err) {

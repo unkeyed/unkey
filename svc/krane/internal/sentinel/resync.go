@@ -87,6 +87,7 @@ func (c *Controller) reconcileDesiredState(ctx context.Context, deployment *apps
 	}
 
 	res, err := c.cluster.GetDesiredSentinelState(ctx, &ctrlv1.GetDesiredSentinelStateRequest{
+		Region:     c.regionKey(),
 		SentinelId: sentinelID,
 	})
 	if err != nil {

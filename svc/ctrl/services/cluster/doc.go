@@ -30,8 +30,8 @@
 //
 // # Authentication
 //
-// All RPCs require bearer token authentication via the Authorization header. Agents must
-// also provide their region in the X-Krane-Region header for region-scoped operations.
+// All RPCs require bearer token authentication via the Authorization header. Region-scoped
+// RPCs carry a [ctrlv1.RegionKey] (platform + region name) on the request message.
 //
 // # Key Types
 //

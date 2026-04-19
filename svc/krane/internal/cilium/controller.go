@@ -3,6 +3,7 @@ package cilium
 import (
 	"context"
 
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -22,13 +23,14 @@ type Controller struct {
 	cluster       ctrl.ClusterServiceClient
 	done          chan struct{}
 	region        string
+	platform      string
 }
 
 // Config holds the configuration required to create a new [Controller].
 //
 // All fields are required. The ClientSet and DynamicClient are used for Kubernetes
 // operations, while Cluster provides the control plane RPC client for state
-// synchronization. Region determines which policies this controller manages.
+// synchronization. Region and Platform determine which policies this controller manages.
 type Config struct {
 	// ClientSet provides typed Kubernetes API access for Kubernetes operations.
 	ClientSet kubernetes.Interface
@@ -42,6 +44,9 @@ type Config struct {
 
 	// Region identifies the cluster region for filtering policy streams.
 	Region string
+
+	// Platform identifies the infrastructure provider (e.g. "aws", "gcp", "local").
+	Platform string
 }
 
 // New creates a [Controller] ready to be started with [Controller.Start].
@@ -56,7 +61,12 @@ func New(cfg Config) *Controller {
 		cluster:       cfg.Cluster,
 		done:          make(chan struct{}),
 		region:        cfg.Region,
+		platform:      cfg.Platform,
 	}
+}
+
+func (c *Controller) regionKey() *ctrlv1.RegionKey {
+	return &ctrlv1.RegionKey{Platform: c.platform, Name: c.region}
 }
 
 // Start launches the resync loop as a background goroutine.
