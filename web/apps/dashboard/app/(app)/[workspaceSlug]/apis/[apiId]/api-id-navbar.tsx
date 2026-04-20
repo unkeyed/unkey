@@ -72,7 +72,7 @@ const LoadingNavbar = ({ workspace }: LoadingNavbarProps) => (
   <Navbar>
     <Navbar.Breadcrumbs icon={<Nodes />}>
       <Navbar.Breadcrumbs.Link href={`/${workspace.slug}/apis`}>APIs</Navbar.Breadcrumbs.Link>
-      <Navbar.Breadcrumbs.Link href="#" isIdentifier className="group" noop>
+      <Navbar.Breadcrumbs.Link href="#" className="group" noop>
         <div className="h-6 w-20 bg-grayA-3 rounded-sm animate-pulse transition-all " />
       </Navbar.Breadcrumbs.Link>
       <Navbar.Breadcrumbs.Link href="#" noop active>
@@ -171,7 +171,6 @@ const NavbarContent = ({
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
             href={base}
-            isIdentifier
             className={isMobile ? "hidden" : "group max-md:hidden"}
             noop
           >

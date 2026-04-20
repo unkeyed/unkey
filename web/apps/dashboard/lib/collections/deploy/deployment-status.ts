@@ -10,6 +10,8 @@ export const DEPLOYMENT_STATUSES = [
   "skipped",
   "awaiting_approval",
   "stopped",
+  "superseded",
+  "cancelled",
 ] as const;
 
 export type DeploymentStatus = (typeof DEPLOYMENT_STATUSES)[number];

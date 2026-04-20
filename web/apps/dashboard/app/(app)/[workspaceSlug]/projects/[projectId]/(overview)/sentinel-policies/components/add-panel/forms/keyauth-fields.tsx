@@ -199,7 +199,7 @@ export function KeyAuthFields() {
                 .with("header", "queryParam", () => (
                   <FormInput
                     placeholder={location.locationType === "header" ? "X-API-Key" : "api_key"}
-                    required
+                    requirement="required"
                     value={location.name ?? ""}
                     onChange={(e) => updateLocation(location.id, { name: e.target.value })}
                     className="flex-1"
@@ -230,7 +230,7 @@ export function KeyAuthFields() {
 
       <FormInput
         label="Permission Query"
-        optional
+        requirement="optional"
         placeholder="e.g. api.read AND api.write"
         value={permissionQuery}
         onChange={(e) => setPermissionQuery(e.target.value)}

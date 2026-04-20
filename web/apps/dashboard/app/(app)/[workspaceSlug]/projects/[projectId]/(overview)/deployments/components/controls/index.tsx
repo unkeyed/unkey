@@ -1,15 +1,23 @@
+import { BranchSelect } from "./components/branch-select";
 import { DeploymentListDatetime } from "./components/deployment-list-datetime";
-import { DeploymentListFilters } from "./components/deployment-list-filters";
-import { DeploymentListSearch } from "./components/deployment-list-search";
+import { EnvironmentSelect } from "./components/environment-select";
+import { StatusSelect } from "./components/status-select";
 
 export function DeploymentsListControls() {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="border border-grayA-4 rounded-lg overflow-hidden flex-1 [&_div.group>div]:!h-9 [&_input]:!font-normal">
-        <DeploymentListSearch />
+    <div className="flex flex-col md:flex-row items-stretch gap-2">
+      <div className="w-full md:flex-1">
+        <EnvironmentSelect />
       </div>
-      <DeploymentListFilters />
-      <DeploymentListDatetime />
+      <div className="w-full md:flex-1">
+        <StatusSelect />
+      </div>
+      <div className="w-full md:flex-1">
+        <BranchSelect />
+      </div>
+      <div className="w-full md:flex-1">
+        <DeploymentListDatetime />
+      </div>
     </div>
   );
 }

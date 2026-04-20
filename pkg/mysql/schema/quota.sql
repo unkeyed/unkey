@@ -13,6 +13,7 @@ CREATE TABLE `quota` (
 	`max_cpu_millicores_per_instance` int unsigned NOT NULL DEFAULT 2000,
 	`max_memory_mib_per_instance` int unsigned NOT NULL DEFAULT 4096,
 	`max_storage_mib_per_instance` int unsigned NOT NULL DEFAULT 10240,
+	`max_concurrent_builds` int unsigned NOT NULL DEFAULT 1,
 	CONSTRAINT `quota_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `quota_workspace_id_unique` UNIQUE(`workspace_id`)
 );

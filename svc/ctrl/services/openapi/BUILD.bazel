@@ -17,6 +17,7 @@ go_library(
         "//pkg/db",
         "//pkg/fault",
         "//pkg/ptr",
+        "//svc/ctrl/internal/auth",
         "@com_connectrpc_connect//:connect",
         "@com_github_getkin_kin_openapi//openapi3",
         "@com_github_oasdiff_oasdiff//checker",

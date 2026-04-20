@@ -6,6 +6,7 @@ go_library(
         "assign_domains_handler.go",
         "doc.go",
         "service.go",
+        "swap_live_handler.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/routing",
     visibility = ["//visibility:public"],

@@ -3,9 +3,10 @@ import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
-import { ArrowDottedRotateAnticlockwise, ChevronUp, Hammer2, Layers3 } from "@unkey/icons";
+import { ArrowDottedRotateAnticlockwise, Ban, ChevronUp, Hammer2, Layers3 } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { CancelDialog } from "./cancel-dialog";
 import { getDeploymentActionEligibility } from "./deployment-action-eligibility";
 import { PromotionDialog } from "./promotion-dialog";
 import { RedeployDialog } from "./redeploy-dialog";
@@ -31,7 +32,7 @@ export const DeploymentListTableActions = ({
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: its okay
   const menuItems = useMemo((): MenuItem[] => {
-    const { canRollback, canPromote, canRedeploy } = getDeploymentActionEligibility({
+    const { canRollback, canPromote, canRedeploy, canCancel } = getDeploymentActionEligibility({
       selectedDeployment,
       currentDeploymentId,
       isRolledBack,
@@ -77,6 +78,13 @@ export const DeploymentListTableActions = ({
         ActionComponent: (props) => (
           <RedeployDialog {...props} selectedDeployment={selectedDeployment} />
         ),
+      },
+      {
+        id: "cancel",
+        label: "Cancel deployment",
+        icon: <Ban iconSize="md-regular" />,
+        disabled: !canCancel,
+        ActionComponent: (props) => <CancelDialog {...props} deployment={selectedDeployment} />,
       },
       {
         id: "sentinel-logs",

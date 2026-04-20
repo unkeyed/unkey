@@ -129,7 +129,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
           render={({ field, fieldState }) => (
             <FormInput
               label="Name"
-              required
+              requirement="required"
               descriptionPosition="label"
               placeholder="e.g. API Key Auth, Rate Limit Public"
               description="A descriptive name to identify this policy."

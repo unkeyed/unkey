@@ -49,12 +49,6 @@ export const workspaces = mysqlTable("workspaces", {
       identities?: boolean;
 
       /**
-       * Can access /projects
-       */
-
-      deployments?: boolean;
-
-      /**
        * Can access customer billing portal
        */
       portal?: boolean;

@@ -133,7 +133,7 @@ export const PermissionField = ({
   return (
     <div className="flex flex-col gap-3">
       <FormCombobox
-        optional
+        requirement="optional"
         label="Assign permissions"
         description="Select permissions from your workspace."
         options={selectableOptions}

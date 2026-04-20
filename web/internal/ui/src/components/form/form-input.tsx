@@ -1,14 +1,13 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
-import { FormDescription, FormLabel } from "./form-helpers";
+import { FormDescription, FormLabel, type Requirement } from "./form-helpers";
 import { type DocumentedInputProps, Input, type InputProps } from "./input";
 
 // Hack to populate fumadocs' AutoTypeTable
 type DocumentedFormInputProps = DocumentedInputProps & {
   label?: string;
   description?: string | React.ReactNode;
-  required?: boolean;
-  optional?: boolean;
+  requirement?: Requirement;
   error?: string;
   descriptionPosition?: "inline" | "label";
 };
@@ -21,10 +20,9 @@ const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
       label,
       description,
       error,
-      required,
+      requirement,
       id,
       className,
-      optional,
       variant,
       descriptionPosition = "inline",
       ...props
@@ -41,8 +39,7 @@ const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
       <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
         <FormLabel
           label={label}
-          required={required}
-          optional={optional}
+          requirement={requirement}
           hasError={Boolean(error)}
           htmlFor={inputId}
           tooltipContent={descriptionAsTooltip ? description : undefined}
@@ -53,7 +50,7 @@ const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
           variant={inputVariant}
           aria-describedby={error ? errorId : description ? descriptionId : undefined}
           aria-invalid={!!error}
-          aria-required={required}
+          aria-required={requirement === "required"}
           {...props}
         />
         <FormDescription
