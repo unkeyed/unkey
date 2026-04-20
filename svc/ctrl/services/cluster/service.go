@@ -5,6 +5,7 @@ import (
 
 	"github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/repeat"
@@ -29,6 +30,13 @@ type Service struct {
 	// so we don't fire on every krane status report once the threshold is
 	// met. Keys are "deployment:<id>" or "sentinel:<id>".
 	notifiedReady *expiringSet[string]
+	// topologyCache caches FindDeploymentTopologyMinReplicas lookups
+	// keyed by deployment_id. Topology is written once at deploy time,
+	// then read on every instance status report, so caching removes an
+	// RO hit from the notify path. Empty results are not cached (see
+	// findTopologyMinReplicas) because a missed race against the
+	// topology write must be retried, not sealed in.
+	topologyCache cache.Cache[string, []db.FindDeploymentTopologyMinReplicasRow]
 }
 
 // Config holds the configuration for creating a new cluster [Service].
@@ -41,6 +49,10 @@ type Config struct {
 
 	// Bearer is the authentication token that agents must provide in the Authorization header.
 	Bearer string
+
+	// TopologyCache backs FindDeploymentTopologyMinReplicas lookups on
+	// the notify-ready path. Required.
+	TopologyCache cache.Cache[string, []db.FindDeploymentTopologyMinReplicasRow]
 }
 
 // New creates a new cluster [Service] with the given configuration. The returned service
@@ -54,6 +66,7 @@ func New(cfg Config) *Service {
 		restate:                            cfg.Restate,
 		bearer:                             cfg.Bearer,
 		notifiedReady:                      newExpiringSet[string](notifiedReadyTTL),
+		topologyCache:                      cfg.TopologyCache,
 	}
 	repeat.Every(notifiedReadyTTL, func() {
 		if dropped := s.notifiedReady.Sweep(); dropped > 0 {

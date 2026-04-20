@@ -98,6 +98,22 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create in-cluster config: %w", err)
 	}
+	// Raise the client-side rate limits above client-go's defaults
+	// (QPS=5, Burst=10). Krane is a controller: on every pod watch
+	// event it does a ReplicaSet GET plus a pods LIST, and on reconnect
+	// or resync it bursts many LISTs at once. The defaults trigger
+	// multi-second "client-side throttling" waits on the critical path
+	// between ContainersReady and the status report.
+	//
+	// Nil out RateLimiter explicitly: if anything earlier in the call
+	// chain set one, QPS/Burst would be silently ignored.
+	inClusterConfig.RateLimiter = nil
+	inClusterConfig.QPS = 100
+	inClusterConfig.Burst = 200
+	logger.Info("k8s client rate limits",
+		"qps", inClusterConfig.QPS,
+		"burst", inClusterConfig.Burst,
+	)
 
 	clientset, err := kubernetes.NewForConfig(inClusterConfig)
 	if err != nil {
@@ -153,6 +169,18 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create fingerprint cache: %w", err)
 	}
 
+	// Cache for deduplicating sentinel status reports.
+	sentinelFingerprintCache, err := cache.New(cache.Config[string, string]{
+		Fresh:    5 * time.Minute,
+		Stale:    10 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "sentinel_fingerprints",
+		Clock:    clock.New(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create sentinel fingerprint cache: %w", err)
+	}
+
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{
 		ClientSet:        clientset,
@@ -177,6 +205,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Cluster:       cluster,
 		Region:        cfg.Region,
 		Platform:      cfg.Platform,
+		Fingerprints:  sentinelFingerprintCache,
 	})
 	if err := sentinelCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start sentinel controller: %w", err)
