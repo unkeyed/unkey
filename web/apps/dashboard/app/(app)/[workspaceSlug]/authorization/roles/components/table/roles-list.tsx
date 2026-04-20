@@ -1,13 +1,12 @@
 "use client";
 import {
   createRolesColumns,
-  getRowClassName,
   renderRolesSkeletonRow,
   useRolesListPaginated,
 } from "@/components/roles-table";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { BookBookmark } from "@unkey/icons";
-import { Button, DataTable, Empty, PaginationFooter } from "@unkey/ui";
+import { Button, DataTable, Empty, PaginationFooter, getSelectableRowClassName } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 import { EditRole } from "./components/actions/components/edit-role";
 import { SelectionControls } from "./components/selection-controls";
@@ -67,7 +66,7 @@ export const RolesList = () => {
         onSortingChange={onSortingChange}
         onRowClick={setSelectedRole}
         selectedItem={selectedRole}
-        rowClassName={(role) => getRowClassName(role, selectedRole)}
+        rowClassName={(role) => getSelectableRowClassName(role.roleId === selectedRole?.roleId)}
         renderSkeletonRow={renderRolesSkeletonRow}
         emptyState={
           <div className="w-full flex justify-center items-center h-full">

@@ -1,9 +1,15 @@
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
-import { Page2 } from "@unkey/icons";
+import { Key2, Page2, Tag } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { LastUpdatedCell, RowActionSkeleton, SelectableNameCell, SortableHeader } from "@unkey/ui";
+import {
+  AssignedCountCell,
+  LastUpdatedCell,
+  RowActionSkeleton,
+  SelectableNameCell,
+  SortableHeader,
+} from "@unkey/ui";
 import dynamic from "next/dynamic";
-import { AssignedItemsCell } from "../components/assigned-items-cell";
+import { SlugCell } from "../components/slug-cell";
 
 const PermissionsTableActions = dynamic(
   () =>
@@ -94,8 +100,7 @@ export const createPermissionsColumns = ({
     cell: ({ row }) => {
       const permission = row.original;
       return (
-        <AssignedItemsCell
-          kind="slug"
+        <SlugCell
           value={permission.slug}
           isSelected={permission.permissionId === selectedPermissionId}
         />
@@ -119,9 +124,10 @@ export const createPermissionsColumns = ({
     cell: ({ row }) => {
       const permission = row.original;
       return (
-        <AssignedItemsCell
-          kind="roles"
-          totalCount={permission.totalConnectedRoles}
+        <AssignedCountCell
+          count={permission.totalConnectedRoles}
+          icon={<Tag iconSize="md-medium" className="opacity-50" />}
+          singularLabel="Role"
           isSelected={permission.permissionId === selectedPermissionId}
         />
       );
@@ -146,9 +152,10 @@ export const createPermissionsColumns = ({
     cell: ({ row }) => {
       const permission = row.original;
       return (
-        <AssignedItemsCell
-          kind="keys"
-          totalCount={permission.totalConnectedKeys}
+        <AssignedCountCell
+          count={permission.totalConnectedKeys}
+          icon={<Key2 iconSize="md-medium" className="opacity-50" />}
+          singularLabel="Key"
           isSelected={permission.permissionId === selectedPermissionId}
         />
       );

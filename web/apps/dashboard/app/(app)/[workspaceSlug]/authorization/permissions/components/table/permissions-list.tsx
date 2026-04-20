@@ -2,14 +2,13 @@
 import {
   EmptyPermissions,
   createPermissionsColumns,
-  getRowClassName,
   renderPermissionsSkeletonRow,
   usePermissionsListPaginated,
 } from "@/components/permissions-table";
 import { EditPermission } from "@/components/permissions-table/components/actions/components/edit-permission";
 import { SelectionControls } from "@/components/permissions-table/components/selection-controls";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
-import { DataTable, PaginationFooter } from "@unkey/ui";
+import { DataTable, PaginationFooter, getSelectableRowClassName } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 
 export const PermissionsList = () => {
@@ -62,7 +61,9 @@ export const PermissionsList = () => {
         isLoading={isInitialLoading}
         onRowClick={setSelectedPermission}
         selectedItem={selectedPermission}
-        rowClassName={(permission) => getRowClassName(permission, selectedPermission)}
+        rowClassName={(permission) =>
+          getSelectableRowClassName(permission.permissionId === selectedPermission?.permissionId)
+        }
         renderSkeletonRow={renderPermissionsSkeletonRow}
         emptyState={<EmptyPermissions />}
         enableSorting={true}

@@ -89,3 +89,4 @@ export { RealtimeSeparator } from "./components/utils/realtime-separator";
 // Utils
 export { calculateColumnWidth } from "./utils/column-width";
 export { getPageNumbers } from "./utils/get-page-numbers";
+export { getSelectableRowClassName } from "./utils/get-selectable-row-class";
