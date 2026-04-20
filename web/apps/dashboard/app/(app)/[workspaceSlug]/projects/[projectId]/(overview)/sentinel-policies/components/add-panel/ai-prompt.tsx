@@ -3,10 +3,10 @@
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChevronRight, DoubleChevronRight, Sparkle3, XMark } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Button, FormInput, SlidePanel, toast } from "@unkey/ui";
-import { useMemo, useState } from "react";
-import type { KeyLocationFormValues } from "./schema";
-import type { PolicyFormValues } from "./schema";
+import { useState } from "react";
+import type { KeyLocationFormValues, PolicyFormValues, PolicyType } from "./schema";
 
 type Props = {
   isOpen: boolean;
@@ -28,71 +28,6 @@ export function AiPolicyPrompt({
   onAddAll,
 }: Props) {
   const [prompt, setPrompt] = useState("");
-
-  const previewList = useMemo(
-    () =>
-      preview.length > 0 ? (
-        <div className="border border-grayA-4 rounded-md overflow-hidden">
-          {preview.map((p, i) => (
-            <div
-              key={`${p.name}-${i}`}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3",
-                i < preview.length - 1 && "border-b border-grayA-4",
-              )}
-            >
-              <button
-                type="button"
-                onClick={() => onOpenAddPanel(p, i)}
-                className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity cursor-pointer"
-              >
-                <div className="size-6 rounded-full border bg-info-3 border-info-7 text-info-11 text-[11px] font-medium flex items-center justify-center shrink-0">
-                  {i + 1}
-                </div>
-                <span className="text-[13px] font-medium text-gray-12 flex-1 min-w-0 truncate">
-                  {p.name}
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-grayA-2 border border-grayA-4 text-gray-11 shrink-0">
-                  {p.type === "keyauth"
-                    ? "Key Auth"
-                    : p.type === "ratelimit"
-                      ? "Rate Limit"
-                      : "Firewall"}
-                </span>
-                {p.type === "ratelimit" && (
-                  <span className="text-[13px] text-gray-11 shrink-0 tabular-nums">
-                    {p.limit} / {formatWindow(p.windowMs)}
-                  </span>
-                )}
-                {p.type === "ratelimit" && (
-                  <span className="text-[13px] text-gray-10 shrink-0">
-                    {formatIdentifierSource(p.identifierSource, p.identifierValue)}
-                  </span>
-                )}
-                {p.type === "keyauth" && (
-                  <span className="text-[13px] text-gray-10 shrink-0">
-                    {formatLocation(p.locations[0])}
-                  </span>
-                )}
-                {p.type === "firewall" && (
-                  <span className="text-[13px] text-gray-10 shrink-0">Deny</span>
-                )}
-                <ChevronRight iconSize="sm-regular" className="text-gray-9 shrink-0 ml-auto" />
-              </button>
-              <button
-                type="button"
-                onClick={() => onPreviewChange(preview.filter((_, idx) => idx !== i))}
-                className="shrink-0 size-5 flex items-center justify-center rounded-sm hover:bg-grayA-3 transition-colors cursor-pointer"
-                aria-label={`Remove ${p.name}`}
-              >
-                <XMark iconSize="sm-regular" className="text-gray-9" />
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : null,
-    [preview, onOpenAddPanel, onPreviewChange],
-  );
 
   const generate = trpc.deploy.environmentSettings.sentinel.generatePolicies.useMutation({
     onSuccess(data) {
@@ -176,7 +111,65 @@ export function AiPolicyPrompt({
                 </div>
               )}
 
-              {previewList}
+              {preview.length > 0 && (
+                <div className="border border-grayA-4 rounded-md overflow-hidden">
+                  {preview.map((p, i) => (
+                    <div
+                      key={`${p.name}-${i}`}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3",
+                        i < preview.length - 1 && "border-b border-grayA-4",
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => onOpenAddPanel(p, i)}
+                        className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity cursor-pointer"
+                      >
+                        <div className="size-6 rounded-full border bg-info-3 border-info-7 text-info-11 text-[11px] font-medium flex items-center justify-center shrink-0">
+                          {i + 1}
+                        </div>
+                        <span className="text-[13px] font-medium text-gray-12 flex-1 min-w-0 truncate">
+                          {p.name}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-grayA-2 border border-grayA-4 text-gray-11 shrink-0">
+                          {formatPolicyTypeLabel(p.type)}
+                        </span>
+                        {p.type === "ratelimit" && (
+                          <span className="text-[13px] text-gray-11 shrink-0 tabular-nums">
+                            {p.limit} / {formatWindow(p.windowMs)}
+                          </span>
+                        )}
+                        {p.type === "ratelimit" && (
+                          <span className="text-[13px] text-gray-10 shrink-0">
+                            {formatIdentifierSource(p.identifierSource, p.identifierValue)}
+                          </span>
+                        )}
+                        {p.type === "keyauth" && (
+                          <span className="text-[13px] text-gray-10 shrink-0">
+                            {formatLocation(p.locations[0])}
+                          </span>
+                        )}
+                        {p.type === "firewall" && (
+                          <span className="text-[13px] text-gray-10 shrink-0">Deny</span>
+                        )}
+                        <ChevronRight
+                          iconSize="sm-regular"
+                          className="text-gray-9 shrink-0 ml-auto"
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onPreviewChange(preview.filter((_, idx) => idx !== i))}
+                        className="shrink-0 size-5 flex items-center justify-center rounded-sm hover:bg-grayA-3 transition-colors cursor-pointer"
+                        aria-label={`Remove ${p.name}`}
+                      >
+                        <XMark iconSize="sm-regular" className="text-gray-9" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -209,6 +202,14 @@ export function AiPolicyPrompt({
       </SlidePanel.Content>
     </SlidePanel.Root>
   );
+}
+
+function formatPolicyTypeLabel(type: PolicyType): string {
+  return match(type)
+    .with("keyauth", () => "Key Auth")
+    .with("ratelimit", () => "Rate Limit")
+    .with("firewall", () => "Firewall")
+    .exhaustive();
 }
 
 function formatWindow(ms: number): string {

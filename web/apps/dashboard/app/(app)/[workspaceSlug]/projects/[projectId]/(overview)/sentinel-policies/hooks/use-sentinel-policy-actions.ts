@@ -9,7 +9,11 @@ import {
 } from "@/lib/collections/deploy/sentinel-policies";
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { useCallback } from "react";
-import { type PolicyFormValues, toSentinelPolicy } from "../components/add-panel/schema";
+import {
+  type PolicyFormValues,
+  resolveTargetEnvs,
+  toSentinelPolicy,
+} from "../components/add-panel/schema";
 
 type Args = { envAId: string; envBId: string; envASlug: string; envBSlug: string };
 type Env = "envA" | "envB";
@@ -146,28 +150,21 @@ export function useSentinelPolicyActions({
     (values: PolicyFormValues | PolicyFormValues[]) => {
       const items = Array.isArray(values) ? values : [values];
       const insertRows: SentinelPolicyRow[] = [];
+      const orderOffsets = new Map<string, number>();
 
       for (const v of items) {
         const policy = toSentinelPolicy(v);
-        const envIds: string[] = [];
-        if (v.environmentId === "__all__" || v.environmentId === envASlug) {
-          envIds.push(envAId);
-        }
-        if (v.environmentId === "__all__" || v.environmentId === envBSlug) {
-          envIds.push(envBId);
-        }
+        const { envA, envB } = resolveTargetEnvs(v.environmentId, envASlug, envBSlug);
+        const envIds = [envA ? envAId : "", envB ? envBId : ""].filter(Boolean);
         for (const envId of envIds) {
-          if (!envId) {
-            continue;
-          }
+          const offset = orderOffsets.get(envId) ?? 0;
           insertRows.push({
             ...policy,
             enabled: true,
             environmentId: envId,
-            _order:
-              nextSentinelPolicyOrder(envId) +
-              insertRows.filter((r) => r.environmentId === envId).length,
+            _order: nextSentinelPolicyOrder(envId) + offset,
           });
+          orderOffsets.set(envId, offset + 1);
         }
       }
 

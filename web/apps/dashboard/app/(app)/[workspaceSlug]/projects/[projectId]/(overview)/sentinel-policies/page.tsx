@@ -23,13 +23,19 @@ export default function SentinelPoliciesPage() {
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const [aiPreview, setAiPreview] = useState<PolicyFormValues[]>([]);
 
+  const { openAdd, closeAdd, addOpenedFromAi, addAiPreviewIndex } = panels;
+  const { saveFromForm, save } = actions;
+
+  const openAiPanel = useCallback(() => setIsAiPanelOpen(true), []);
   const closeAiPanel = useCallback(() => setIsAiPanelOpen(false), []);
+  const openAddPolicy = useCallback(() => openAdd(), [openAdd]);
+
   const handleOpenAddFromAi = useCallback(
     (values: PolicyFormValues, index: number) => {
       setIsAiPanelOpen(false);
-      panels.openAdd(values, true, index);
+      openAdd(values, true, index);
     },
-    [panels.openAdd],
+    [openAdd],
   );
 
   const handleAddAll = useCallback(() => {
@@ -45,7 +51,7 @@ export default function SentinelPoliciesPage() {
     }
 
     if (directSave.length > 0) {
-      actions.saveFromForm(directSave);
+      saveFromForm(directSave);
     }
 
     if (keyauthPolicies.length > 0) {
@@ -54,7 +60,33 @@ export default function SentinelPoliciesPage() {
       setAiPreview([]);
       setIsAiPanelOpen(false);
     }
-  }, [aiPreview, actions]);
+  }, [aiPreview, saveFromForm]);
+
+  const handleAddPanelDismiss = useCallback(
+    (values: PolicyFormValues) => {
+      if (addOpenedFromAi && addAiPreviewIndex !== null) {
+        const idx = addAiPreviewIndex;
+        setAiPreview((prev) => prev.map((p, i) => (i === idx ? values : p)));
+        setIsAiPanelOpen(true);
+      }
+    },
+    [addOpenedFromAi, addAiPreviewIndex],
+  );
+
+  const handleAddPanelSave = useCallback(
+    (prodPolicy: Parameters<typeof save>[0], previewPolicy: Parameters<typeof save>[1]) => {
+      save(prodPolicy, previewPolicy);
+      if (addOpenedFromAi && addAiPreviewIndex !== null) {
+        const idx = addAiPreviewIndex;
+        setAiPreview((prev) => prev.filter((_, i) => i !== idx));
+        // Reopen the AI panel only if other preview rows remain to edit.
+        if (aiPreview.length > 1) {
+          setIsAiPanelOpen(true);
+        }
+      }
+    },
+    [save, addOpenedFromAi, addAiPreviewIndex, aiPreview.length],
+  );
 
   const editingRow = panels.editing ? merged.find((m) => m.id === panels.editing?.id) : undefined;
   const editingEnabled = {
@@ -74,10 +106,7 @@ export default function SentinelPoliciesPage() {
   return (
     <ProjectContentWrapper centered maxWidth="960px" className="mt-8">
       <div className="flex flex-col gap-5">
-        <SentinelPoliciesHeader
-          onAddPolicy={() => panels.openAdd()}
-          onGenerateWithAi={() => setIsAiPanelOpen(true)}
-        />
+        <SentinelPoliciesHeader onAddPolicy={openAddPolicy} onGenerateWithAi={openAiPanel} />
         {isError ? (
           <SentinelPoliciesError />
         ) : isLoading ? (
@@ -113,25 +142,9 @@ export default function SentinelPoliciesPage() {
           envBSlug={envBSlug}
           isOpen={panels.isAddPanelOpen}
           topOffset={layout?.tableDistanceToTop ?? 0}
-          onClose={() => {
-            panels.closeAdd();
-            if (panels.addOpenedFromAi) {
-              setIsAiPanelOpen(true);
-            }
-          }}
-          onDismiss={(values) => {
-            if (panels.addOpenedFromAi && panels.addAiPreviewIndex !== null) {
-              const idx = panels.addAiPreviewIndex;
-              setAiPreview((prev) => prev.map((p, i) => (i === idx ? values : p)));
-            }
-          }}
-          onSave={(prodPolicy, previewPolicy) => {
-            actions.save(prodPolicy, previewPolicy);
-            if (panels.addOpenedFromAi && panels.addAiPreviewIndex !== null) {
-              const idx = panels.addAiPreviewIndex;
-              setAiPreview((prev) => prev.filter((_, i) => i !== idx));
-            }
-          }}
+          onClose={closeAdd}
+          onDismiss={handleAddPanelDismiss}
+          onSave={handleAddPanelSave}
         />
         {panels.editing !== null && (
           <SentinelPolicyPanel

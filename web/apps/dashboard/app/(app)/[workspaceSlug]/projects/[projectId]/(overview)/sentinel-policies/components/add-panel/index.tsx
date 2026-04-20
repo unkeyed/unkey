@@ -23,6 +23,7 @@ import {
   fromSentinelPolicy,
   getDefaultValues,
   policyFormSchema,
+  resolveTargetEnvs,
   toSentinelPolicy,
 } from "./schema";
 
@@ -54,13 +55,6 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
   const { envASlug, envBSlug, isOpen, topOffset } = props;
   const isEdit = props.mode === "edit";
 
-  const handleClose = () => {
-    if (props.mode === "add" && props.onDismiss) {
-      props.onDismiss(form.getValues());
-    }
-    props.onClose();
-  };
-
   const envOptions = [
     { value: "__all__", label: "All Environments" },
     { value: envASlug, label: envASlug },
@@ -86,19 +80,23 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
     }
   }, []);
 
+  const handleClose = () => {
+    if (props.mode === "add" && props.onDismiss) {
+      props.onDismiss(form.getValues());
+    }
+    props.onClose();
+  };
+
   const onSubmit = (values: PolicyFormValues) => {
     const id = props.mode === "edit" ? props.initialPolicy.id : undefined;
     const policy = toSentinelPolicy(values, id);
-    const prodPolicy =
-      values.environmentId === "__all__" || values.environmentId === envASlug
-        ? { ...policy, enabled: true }
-        : null;
-    const previewPolicy =
-      values.environmentId === "__all__" || values.environmentId === envBSlug
-        ? { ...policy, enabled: true }
-        : null;
+    const { envA, envB } = resolveTargetEnvs(values.environmentId, envASlug, envBSlug);
+    const prodPolicy = envA ? { ...policy, enabled: true } : null;
+    const previewPolicy = envB ? { ...policy, enabled: true } : null;
 
     props.onSave(prodPolicy, previewPolicy);
+    // Bypass handleClose so onDismiss doesn't fire — save already removed
+    // any AI preview row, and we don't want to re-insert one.
     props.onClose();
     if (props.mode === "add") {
       form.reset(getDefaultValues("keyauth"));

@@ -230,6 +230,17 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
     .exhaustive();
 }
 
+export function resolveTargetEnvs(
+  selection: string,
+  envASlug: string,
+  envBSlug: string,
+): { envA: boolean; envB: boolean } {
+  return {
+    envA: selection === "__all__" || selection === envASlug,
+    envB: selection === "__all__" || selection === envBSlug,
+  };
+}
+
 // ── Form → canonical (protojson) conversion ─────────────────────────────
 
 function toStringMatch(

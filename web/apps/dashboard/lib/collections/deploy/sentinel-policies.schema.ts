@@ -16,7 +16,7 @@ import { z } from "zod";
 // ── Limits ──────────────────────────────────────────────────────────────
 
 export const SENTINEL_LIMITS = {
-  maxPolicies: 10,
+  maxPolicies: 25,
   maxKeyspacesPerPolicy: 5,
   maxMatchExprsPerPolicy: 10,
   // Documented in svc/sentinel/proto/policies/v1/keyauth.proto:60

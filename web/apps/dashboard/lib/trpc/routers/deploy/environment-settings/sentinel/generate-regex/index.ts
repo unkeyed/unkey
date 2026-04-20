@@ -1,14 +1,7 @@
-import { env } from "@/lib/env";
+import { openai } from "@/lib/openai";
 import { withLlmAccess, workspaceProcedure } from "@/lib/trpc/trpc";
-import OpenAI from "openai";
 import { z } from "zod";
 import { generateRegexFromLLM } from "./utils";
-
-const openai = env().OPENAI_API_KEY
-  ? new OpenAI({
-      apiKey: env().OPENAI_API_KEY,
-    })
-  : null;
 
 export const generateRegex = workspaceProcedure
   .use(withLlmAccess())

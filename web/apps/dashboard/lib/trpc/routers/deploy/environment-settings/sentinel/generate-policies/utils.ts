@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import type OpenAI from "openai";
 import { z } from "zod";
 
-// Flat schema — all fields required so OpenAI strict mode is happy.
+// Flat schema, all fields required so OpenAI strict mode is happy.
 // For ratelimit: locationType/locationName/permissionQuery/action are ignored.
 // For keyauth:   limit/windowMs/identifierSource/identifierValue/action are ignored.
 // For firewall:  limit/windowMs/identifierSource/identifierValue/locationType/locationName/permissionQuery are ignored.
