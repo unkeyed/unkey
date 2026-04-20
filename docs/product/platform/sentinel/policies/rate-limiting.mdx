@@ -9,19 +9,32 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 The rate limiting policy enforces request limits on any route that matches the policy's [match expressions](/platform/sentinel/policies/overview#match-expressions). Requests that exceed a configured limit receive a `429` response, protecting your app from traffic spikes and abuse.
 
-Each rate limit policy specifies a maximum number of requests within a time window (for example, 100 requests per 60 seconds) and a subject that identifies the entity being limited.
+Each rate limit policy specifies a maximum number of requests within a time window (for example, 100 requests per 60 seconds) and an identifier that determines how the Sentinel groups requests for counting.
 
-## Rate limit subjects
+Rate limit state is managed by Unkey's distributed rate limiting service, so limits are consistent across multiple Sentinel replicas.
 
-The subject determines how the Sentinel groups requests for counting:
+## Configuration
 
-| Subject               | Description                                                                                       |
+You can create and manage rate limit policies from the **Sentinel Policies** page in your project dashboard. Each policy requires:
+
+- **Limit**: the maximum number of requests allowed in the window
+- **Window**: the time window in which the limit applies (for example, 60 seconds)
+- **Identifier**: how the Sentinel determines which requests share a rate limit bucket
+- **Match conditions**: which requests the policy applies to (optional — an empty match list applies to all requests)
+
+Place authentication policies before rate limit policies in your policy list if you want to use an authenticated identifier (such as the authenticated subject or a principal field).
+
+## Identifiers
+
+The identifier determines how the Sentinel groups requests for counting:
+
+| Identifier            | Description                                                                                       |
 | --------------------- | ------------------------------------------------------------------------------------------------- |
-| Remote IP             | Limit by client IP address                                                                         |
-| Header value          | Limit by a specific request header (for example, `X-Tenant-Id`)                                   |
-| Authenticated subject | Limit by the authenticated [Principal's](/platform/sentinel/principal/overview) `subject` field     |
-| URL path              | Create separate limits per endpoint                                                                |
-| Source field           | Limit by a field from the Principal's source (for example, `source.key.meta.org_id` for per-organization limits) |
+| Remote IP             | Limit by client IP address. Effective for anonymous traffic but can over-limit users behind shared NATs or proxies. |
+| Header value          | Limit by a specific request header (for example, `X-Tenant-Id`). Use only when the header is set by a trusted upstream. |
+| Authenticated subject | Limit by the authenticated [Principal's](/platform/sentinel/principal/overview) `subject` field. Requires an authentication policy earlier in the list. |
+| URL path              | Create separate limits per endpoint, useful for protecting expensive routes.                       |
+| Principal field       | Limit by a dotted-path field from the Principal (for example, `source.key.meta.org_id` for per-organization limits). Requires an authentication policy earlier in the list. |
 
 ## Response headers
 
@@ -34,7 +47,7 @@ When the Sentinel evaluates a rate limit, it includes the rate limit state in th
 | `X-RateLimit-Reset`     | Unix timestamp (seconds) when the window resets             |
 | `Retry-After`           | Seconds until the client can retry (only present on `429`)  |
 
-These headers appear on both successful and rate-limited responses, so your clients can monitor their usage proactively.
+These headers appear on both successful and rate-limited responses, so your clients can monitor their usage proactively. When multiple policies write rate limit headers (for example, a per-key limit from API key authentication and a standalone rate limit policy), the Sentinel keeps the most restrictive values.
 
 ## Exceeded rate limit behavior
 

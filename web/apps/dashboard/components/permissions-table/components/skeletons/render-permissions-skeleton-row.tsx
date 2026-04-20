@@ -1,7 +1,10 @@
+import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { cn } from "@/lib/utils";
 import { ChartActivity2, Dots, Key2, Page2, Tag } from "@unkey/icons";
+import type { DataTableColumnDef } from "@unkey/ui";
+import { PERMISSION_COLUMN_IDS } from "../../columns/create-permissions-columns";
 
-export const RoleColumnSkeleton = () => (
+const PermissionColumnSkeleton = () => (
   <div className="flex flex-col items-start px-[18px] py-[6px]">
     <div className="flex gap-4 items-center">
       <div className="size-5 rounded-sm flex items-center justify-center border border-grayA-3 bg-grayA-3 animate-pulse">
@@ -15,7 +18,7 @@ export const RoleColumnSkeleton = () => (
   </div>
 );
 
-export const SlugColumnSkeleton = () => (
+const SlugColumnSkeleton = () => (
   <div className="flex flex-col gap-1 py-2 max-w-[200px]">
     <div className="rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 border border-dashed bg-grayA-3 border-grayA-6 animate-pulse h-[22px]">
       <Page2 iconSize="md-medium" className="opacity-50" />
@@ -24,7 +27,7 @@ export const SlugColumnSkeleton = () => (
   </div>
 );
 
-export const AssignedKeysColumnSkeleton = () => (
+const AssignedRolesColumnSkeleton = () => (
   <div className="flex flex-col gap-1 py-2 max-w-[200px]">
     <div className="rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 border border-dashed bg-grayA-3 border-grayA-6 animate-pulse h-[22px]">
       <Tag iconSize="md-medium" className="opacity-50" />
@@ -33,7 +36,7 @@ export const AssignedKeysColumnSkeleton = () => (
   </div>
 );
 
-export const AssignedToKeysColumnSkeleton = () => (
+const AssignedKeysColumnSkeleton = () => (
   <div className="flex flex-col gap-1 py-2 max-w-[200px]">
     <div className="rounded-md py-[2px] px-1.5 items-center w-fit flex gap-2 border border-dashed bg-grayA-3 border-grayA-6 animate-pulse h-[22px]">
       <Key2 iconSize="md-medium" className="opacity-50" />
@@ -42,14 +45,14 @@ export const AssignedToKeysColumnSkeleton = () => (
   </div>
 );
 
-export const LastUpdatedColumnSkeleton = () => (
+const LastUpdatedColumnSkeleton = () => (
   <div className="px-1.5 rounded-md flex gap-2 items-center max-w-min h-[22px] bg-grayA-3 border-none animate-pulse">
     <ChartActivity2 iconSize="sm-regular" className="opacity-50" />
     <div className="h-2 w-16 bg-grayA-3 rounded-sm animate-pulse" />
   </div>
 );
 
-export const ActionColumnSkeleton = () => (
+const ActionColumnSkeleton = () => (
   <button
     type="button"
     className={cn(
@@ -60,3 +63,23 @@ export const ActionColumnSkeleton = () => (
     <Dots className="text-gray-11" iconSize="sm-regular" />
   </button>
 );
+
+type RenderPermissionsSkeletonRowProps = {
+  columns: DataTableColumnDef<Permission>[];
+  rowHeight: number;
+};
+
+export const renderPermissionsSkeletonRow = ({ columns }: RenderPermissionsSkeletonRowProps) =>
+  columns.map((column) => (
+    <td
+      key={column.id}
+      className={cn("text-xs align-middle whitespace-nowrap", column.meta?.cellClassName)}
+    >
+      {column.id === PERMISSION_COLUMN_IDS.PERMISSION.id && <PermissionColumnSkeleton />}
+      {column.id === PERMISSION_COLUMN_IDS.SLUG.id && <SlugColumnSkeleton />}
+      {column.id === PERMISSION_COLUMN_IDS.USED_IN_ROLES.id && <AssignedRolesColumnSkeleton />}
+      {column.id === PERMISSION_COLUMN_IDS.ASSIGNED_TO_KEYS.id && <AssignedKeysColumnSkeleton />}
+      {column.id === PERMISSION_COLUMN_IDS.LAST_UPDATED.id && <LastUpdatedColumnSkeleton />}
+      {column.id === PERMISSION_COLUMN_IDS.ACTION.id && <ActionColumnSkeleton />}
+    </td>
+  ));
