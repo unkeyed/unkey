@@ -124,7 +124,7 @@ export function AiPolicyPrompt({
                         key={`${p.name}-${i}`}
                         className={cn(
                           "flex items-center gap-3 px-4 py-3 rounded-md border",
-                          invalid ? "bg-error-2 border-error-9" : "border-grayA-4",
+                          invalid ? "bg-error-2 border-error-7" : "border-grayA-4",
                         )}
                       >
                         <button
@@ -132,7 +132,14 @@ export function AiPolicyPrompt({
                           onClick={() => onOpenAddPanel(p, i)}
                           className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity cursor-pointer"
                         >
-                          <div className="size-6 rounded-full border bg-info-3 border-info-7 text-info-11 text-[11px] font-medium flex items-center justify-center shrink-0">
+                          <div
+                            className={cn(
+                              "size-6 rounded-full border text-[11px] font-medium flex items-center justify-center shrink-0",
+                              invalid
+                                ? "bg-error-3 border-error-7 text-error-11"
+                                : "bg-info-3 border-info-7 text-info-11",
+                            )}
+                          >
                             {i + 1}
                           </div>
                           <span className="text-[13px] font-medium text-gray-12 flex-1 min-w-0 truncate">
@@ -153,10 +160,12 @@ export function AiPolicyPrompt({
                           )}
                           {p.type === "keyauth" &&
                             (invalid ? (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-error-3 border border-error-7 text-error-11 shrink-0 flex items-center gap-1">
-                                <TriangleWarning2 iconSize="sm-regular" />
-                                Select a keyspace
-                              </span>
+                              <InfoTooltip content="Pick a keyspace to continue" asChild>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-error-3 border border-error-7 text-error-11 shrink-0 flex items-center gap-1">
+                                  <TriangleWarning2 iconSize="sm-regular" />
+                                  Select a keyspace
+                                </span>
+                              </InfoTooltip>
                             ) : (
                               <span className="text-[13px] text-gray-10 shrink-0">
                                 {formatLocation(p.locations[0])}
