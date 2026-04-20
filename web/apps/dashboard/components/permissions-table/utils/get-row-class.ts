@@ -2,10 +2,8 @@ import type { Permission } from "@/lib/trpc/routers/authorization/permissions/qu
 import { cn } from "@/lib/utils";
 import { STATUS_STYLES } from "@unkey/ui";
 
-export { STATUS_STYLES };
-
-export const getRowClassName = (permission: Permission, selectedRow: Permission | null) => {
-  const isSelected = permission.permissionId === selectedRow?.permissionId;
+export const getRowClassName = (permission: Permission, selectedPermission: Permission | null) => {
+  const isSelected = permission.permissionId === selectedPermission?.permissionId;
 
   return cn(
     STATUS_STYLES.base,

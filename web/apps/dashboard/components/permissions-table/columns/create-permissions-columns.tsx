@@ -109,6 +109,7 @@ export const createPermissionsColumns = ({
       <SortableHeader header={header}>{PERMISSION_COLUMN_IDS.USED_IN_ROLES.header}</SortableHeader>
     ),
     enableSorting: true,
+    sortDescFirst: true,
     meta: {
       width: {
         min: 200,
@@ -135,6 +136,7 @@ export const createPermissionsColumns = ({
       </SortableHeader>
     ),
     enableSorting: true,
+    sortDescFirst: true,
     meta: {
       width: {
         min: 200,

@@ -2,8 +2,6 @@ import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { cn } from "@/lib/utils";
 import { STATUS_STYLES } from "@unkey/ui";
 
-export { STATUS_STYLES };
-
 export const getRowClassName = (role: RoleBasic, selectedRole: RoleBasic | null) => {
   const isSelected = role.roleId === selectedRole?.roleId;
 

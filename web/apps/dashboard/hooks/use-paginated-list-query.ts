@@ -70,6 +70,11 @@ export type PaginatedListConfig<
   usePrefetchNextPage: () => (params: TFilterParams & PageSortQueryParams<TSortField>) => void;
 };
 
+// Shared backbone for server-paginated list views (roles, permissions, ...).
+// Owns URL-synced `page` and `sort` state, translates filter hook output into
+// tRPC query params, clamps the page to totals, and prefetches the next few
+// pages so navigation feels instant. Callers supply the filter hook, the list
+// query, and the prefetch helper so feature-specific types flow through.
 export function usePaginatedListQuery<
   TResponse extends PaginatedResponse,
   TFilter extends FilterLike,

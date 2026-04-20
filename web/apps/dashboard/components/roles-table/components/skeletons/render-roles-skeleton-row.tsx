@@ -12,7 +12,6 @@ import { RoleColumnSkeleton } from "./role-column-skeleton";
 
 type RenderRolesSkeletonRowProps = {
   columns: DataTableColumnDef<RoleBasic>[];
-  rowHeight: number;
 };
 
 export const renderRolesSkeletonRow = ({ columns }: RenderRolesSkeletonRowProps) =>
