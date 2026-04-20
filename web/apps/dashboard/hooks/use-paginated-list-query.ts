@@ -1,0 +1,250 @@
+import {
+  type SortUrlValue,
+  parseAsSortArray,
+} from "@/components/logs/validation/utils/nuqs-parsers";
+import type { SortingState } from "@tanstack/react-table";
+import { parseAsInteger, useQueryState } from "nuqs";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+
+const PREFETCH_PAGES_AHEAD = 2;
+
+// Shared tRPC options — cached-forever paginated lists use the same defaults.
+export const PAGINATED_LIST_QUERY_OPTIONS = {
+  staleTime: Number.POSITIVE_INFINITY,
+  refetchOnMount: false,
+  refetchOnWindowFocus: false,
+  keepPreviousData: true,
+} as const;
+
+export const PAGINATED_LIST_PREFETCH_OPTIONS = {
+  staleTime: Number.POSITIVE_INFINITY,
+} as const;
+
+type FilterLike = {
+  field: string;
+  operator: string;
+  value: unknown;
+};
+
+type FilterFieldConfig = {
+  operators: readonly string[];
+};
+
+type PaginatedResponse = {
+  total: number;
+};
+
+export type PageSortQueryParams<TSortField extends string> = {
+  page: number;
+  limit: number;
+  sortBy: TSortField;
+  sortOrder: "asc" | "desc";
+};
+
+type FilterParamsConstraint = Record<
+  string,
+  { operator: string; value: string }[] | null | undefined
+>;
+
+export type PaginatedListConfig<
+  TResponse extends PaginatedResponse,
+  TFilter extends FilterLike,
+  TSortField extends string,
+  TFilterParams extends FilterParamsConstraint,
+> = {
+  pageSize: number;
+  defaultPageSize: number;
+  maxPageSize: number;
+  defaultSortField: TSortField;
+  defaultSortDirection?: "asc" | "desc";
+  columnIdToSortField: Record<string, TSortField>;
+  sortFieldToColumnId: Record<TSortField, string>;
+  useFilters: () => { filters: TFilter[] };
+  filterFieldNames: readonly string[];
+  filterFieldConfig: Record<string, FilterFieldConfig>;
+  useListQuery: (params: TFilterParams & PageSortQueryParams<TSortField>) => {
+    data: TResponse | undefined;
+    isLoading: boolean;
+    isFetching: boolean;
+  };
+  usePrefetchNextPage: () => (params: TFilterParams & PageSortQueryParams<TSortField>) => void;
+};
+
+export function usePaginatedListQuery<
+  TResponse extends PaginatedResponse,
+  TFilter extends FilterLike,
+  TSortField extends string,
+  TFilterParams extends FilterParamsConstraint,
+>(config: PaginatedListConfig<TResponse, TFilter, TSortField, TFilterParams>) {
+  const {
+    pageSize,
+    defaultPageSize,
+    maxPageSize,
+    defaultSortField,
+    defaultSortDirection = "desc",
+    columnIdToSortField,
+    sortFieldToColumnId,
+    useFilters,
+    filterFieldNames,
+    filterFieldConfig,
+    useListQuery,
+    usePrefetchNextPage,
+  } = config;
+
+  const defaultSortParams = useMemo<SortUrlValue<TSortField>[]>(
+    () => [{ column: defaultSortField, direction: defaultSortDirection }],
+    [defaultSortField, defaultSortDirection],
+  );
+
+  const normalizedPageSize =
+    Number.isFinite(pageSize) && pageSize > 0
+      ? Math.min(Math.floor(pageSize), maxPageSize)
+      : defaultPageSize;
+
+  const { filters } = useFilters();
+  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
+  const normalizedPage = Math.max(1, page);
+  const [sortParams, setSortParams] = useQueryState("sort", parseAsSortArray<TSortField>());
+
+  // Ensure the default sort is always reflected in the URL.
+  const effectiveSortParams = sortParams && sortParams.length > 0 ? sortParams : defaultSortParams;
+
+  useEffect(() => {
+    if (!sortParams || sortParams.length === 0) {
+      setSortParams(defaultSortParams);
+    }
+  }, [sortParams, setSortParams, defaultSortParams]);
+
+  const sorting: SortingState = useMemo(() => {
+    return effectiveSortParams.map((s) => ({
+      id: sortFieldToColumnId[s.column] ?? s.column,
+      desc: s.direction === "desc",
+    }));
+  }, [effectiveSortParams, sortFieldToColumnId]);
+
+  const onSortingChange = useCallback(
+    (updater: SortingState | ((old: SortingState) => SortingState)) => {
+      const next = typeof updater === "function" ? updater(sorting) : updater;
+      const mapped = next
+        .filter((s) => columnIdToSortField[s.id] !== undefined)
+        .map((s) => ({
+          column: columnIdToSortField[s.id],
+          direction: (s.desc ? "desc" : "asc") as "asc" | "desc",
+        }));
+      setSortParams(mapped.length === 0 ? defaultSortParams : mapped);
+      setPage(1);
+    },
+    [sorting, setSortParams, setPage, columnIdToSortField, defaultSortParams],
+  );
+
+  // Stable string key from filter content — prevents spurious page resets when
+  // the filter hook returns a new array reference for the same values.
+  const filtersKey = useMemo(
+    () => filters.map((f) => `${f.field}:${f.operator}:${String(f.value)}`).join("|"),
+    [filters],
+  );
+
+  // Reset to page 1 only when filter content actually changes, not on mount.
+  const prevFiltersKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevFiltersKeyRef.current === null) {
+      prevFiltersKeyRef.current = filtersKey;
+      return;
+    }
+    if (filtersKey !== prevFiltersKeyRef.current) {
+      prevFiltersKeyRef.current = filtersKey;
+      setPage(1);
+    }
+  }, [filtersKey, setPage]);
+
+  const filterParams = useMemo<TFilterParams>(() => {
+    const params = Object.fromEntries(
+      filterFieldNames.map((name) => [name, []]),
+    ) as unknown as TFilterParams;
+    for (const filter of filters) {
+      if (!filterFieldNames.includes(filter.field)) {
+        continue;
+      }
+      const bucket = params[filter.field];
+      if (!bucket) {
+        continue;
+      }
+      const fieldConfig = filterFieldConfig[filter.field];
+      if (!fieldConfig || !fieldConfig.operators.includes(filter.operator)) {
+        continue;
+      }
+      if (typeof filter.value === "string") {
+        bucket.push({
+          operator: filter.operator,
+          value: filter.value,
+        });
+      }
+    }
+    return params;
+  }, [filters, filterFieldNames, filterFieldConfig]);
+
+  const queryParams = useMemo(
+    () =>
+      ({
+        ...filterParams,
+        page: normalizedPage,
+        limit: normalizedPageSize,
+        sortBy: effectiveSortParams[0].column,
+        sortOrder: effectiveSortParams[0].direction,
+      }) as TFilterParams & PageSortQueryParams<TSortField>,
+    [filterParams, normalizedPage, normalizedPageSize, effectiveSortParams],
+  );
+
+  const { data, isLoading, isFetching } = useListQuery(queryParams);
+  const prefetchPage = usePrefetchNextPage();
+
+  const isInitialLoading = isLoading && !data;
+  const totalCount = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / normalizedPageSize));
+
+  // Clamp page to valid range after data/totalPages updates.
+  useEffect(() => {
+    if (data == null) {
+      return;
+    }
+    if (normalizedPage > totalPages) {
+      setPage(totalPages);
+    }
+  }, [data, normalizedPage, totalPages, setPage]);
+
+  // Prefetch the next few pages so navigation feels instant.
+  useEffect(() => {
+    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
+      const nextPage = normalizedPage + i;
+      if (nextPage > totalPages) {
+        break;
+      }
+      prefetchPage({ ...queryParams, page: nextPage });
+    }
+  }, [normalizedPage, totalPages, prefetchPage, queryParams]);
+
+  const onPageChange = useCallback(
+    (newPage: number) => {
+      if (newPage < 1 || newPage > totalPages) {
+        return;
+      }
+      setPage(newPage);
+    },
+    [totalPages, setPage],
+  );
+
+  return {
+    data,
+    isLoading,
+    isInitialLoading,
+    isPending: isFetching,
+    isFetching,
+    page: normalizedPage,
+    pageSize: normalizedPageSize,
+    totalPages,
+    totalCount,
+    onPageChange,
+    sorting,
+    onSortingChange,
+  };
+}
