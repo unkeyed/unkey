@@ -30,19 +30,19 @@ All of the Sentinel's request processing is built on [policies](/platform/sentin
 - [**Rate limiting**](/platform/sentinel/policies/rate-limiting): Enforces rate limits on specific routes or subjects, rejecting excess traffic before it reaches your instances
 - [**Logging**](/platform/sentinel/policies/logging): Records the full HTTP request and response, including headers and body, for debugging and observability
 
-Other policy types include [IP rules](/platform/sentinel/policies/ip-rules), [OpenAPI request validation](/platform/sentinel/policies/openapi-validation), and more. See [Policies](/platform/sentinel/policies/overview) for the full list.
+Other policy types include the [Firewall](/platform/sentinel/policies/firewall), [OpenAPI request validation](/platform/sentinel/policies/openapi-validation), and more. See [Policies](/platform/sentinel/policies/overview) for the full list.
 
 ## Configuration
 
 <Note>
-  The Sentinel dashboard is still in development. Today you can configure API key authentication through the dashboard. For other policy types, contact [support@unkey.com](mailto:support@unkey.com).
+  The Sentinel dashboard is still in development. Today you can configure API key authentication, rate limiting, and firewall policies through the dashboard. For other policy types, contact [support@unkey.com](mailto:support@unkey.com).
 </Note>
 
-To configure API key authentication:
+To configure policies:
 
-1. Navigate to your project's **Settings** page.
-2. Scroll to the **Sentinel configurations** section.
-3. Select one or more keyspaces to enforce.
+1. Navigate to your project's **Sentinel Policies** page.
+2. Create a new policy and select the policy type (API key authentication, rate limiting, or firewall).
+3. Configure match conditions and policy-specific settings.
 4. Save your changes.
 
-See [Authentication](/platform/sentinel/authentication) for details on the Principal header your app receives after successful verification.
+See [Authentication](/platform/sentinel/authentication) for details on the Principal header your app receives after successful API key verification, or [Rate limiting](/platform/sentinel/policies/rate-limiting) for configuring request limits.

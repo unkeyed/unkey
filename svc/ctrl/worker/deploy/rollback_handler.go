@@ -1,9 +1,7 @@
 package deploy
 
 import (
-	"database/sql"
 	"fmt"
-	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -124,33 +122,19 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 		}
 	}
 
-	// Call RoutingService to switch frontlineRoutes atomically, keyed by app ID
-	routingClient := hydrav1.NewRoutingServiceClient(ctx, app.ID)
-	_, err = routingClient.AssignFrontlineRoutes().Request(&hydrav1.AssignFrontlineRoutesRequest{
+	// Atomic swap inside the env-keyed Routing VO: reassign frontline routes
+	// AND flip apps.current_deployment_id to the target with is_rolled_back=true.
+	_, err = hydrav1.NewRoutingServiceClient(ctx, sourceDeployment.EnvironmentID).
+		SwapLiveDeployment().Request(&hydrav1.SwapLiveDeploymentRequest{
 		DeploymentId:      targetDeployment.ID,
 		FrontlineRouteIds: routeIDs,
+		SetRollbackFlag:   true,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to switch frontlineRoutes: %w", err)
+		return nil, fmt.Errorf("failed to swap live deployment: %w", err)
 	}
 
-	// Update app's current deployment
-	_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
-		err = db.Query.UpdateAppDeployments(stepCtx, w.db.RW(), db.UpdateAppDeploymentsParams{
-			AppID:               app.ID,
-			CurrentDeploymentID: sql.NullString{Valid: true, String: targetDeployment.ID},
-			IsRolledBack:        true,
-			UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		})
-		if err != nil {
-			return restate.Void{}, fmt.Errorf("failed to update app's current deployment id: %w", err)
-		}
-		logger.Info("updated app current deployment", "app_id", app.ID, "current_deployment_id", targetDeployment.ID)
-		return restate.Void{}, nil
-	}, restate.WithName("updating app current deployment"))
-	if err != nil {
-		return nil, err
-	}
+	logger.Info("updated app current deployment", "app_id", app.ID, "current_deployment_id", targetDeployment.ID)
 
 	logger.Info("rollback completed successfully",
 		"source", req.GetSourceDeploymentId(),

@@ -7,37 +7,26 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 )
 
 // Rollback switches traffic from the source deployment to a previous target
-// deployment via a Restate workflow. This is typically called from the dashboard
-// when a deployment needs to be reverted. The workflow runs synchronously
-// (blocking until complete) and is keyed by app ID to prevent concurrent
-// rollback operations on the same workspace.
+// deployment via a Restate workflow. The actual atomic mutation
+// (route reassignment + apps.current_deployment_id update) is performed
+// inside RoutingService.SwapLiveDeployment, which is per-env serialized.
+// The workflow itself is keyed by source deployment_id.
 func (s *Service) Rollback(ctx context.Context, req *connect.Request[ctrlv1.RollbackRequest]) (*connect.Response[ctrlv1.RollbackResponse], error) {
+	if err := auth.Authenticate(req, s.bearer); err != nil {
+		return nil, err
+	}
+
 	logger.Info("initiating rollback via Restate",
 		"source", req.Msg.GetSourceDeploymentId(),
 		"target", req.Msg.GetTargetDeploymentId(),
 	)
 
-	// Get source deployment to determine workspace ID for keying
-	sourceDeployment, err := db.Query.FindDeploymentById(ctx, s.db.RO(), req.Msg.GetSourceDeploymentId())
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("deployment not found: %s", req.Msg.GetSourceDeploymentId()))
-		}
-		logger.Error("failed to get deployment",
-			"deployment_id", req.Msg.GetSourceDeploymentId(),
-			"error", err.Error(),
-		)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
-	}
-
-	// Call the Restate workflow using workspace ID as the key
-	// This ensures only one rollback per workspace can run at a time during beta
-	_, err = s.deploymentClient(sourceDeployment.WorkspaceID).
+	_, err := s.deploymentClient(req.Msg.GetSourceDeploymentId()).
 		Rollback().
 		Request(ctx, &hydrav1.RollbackRequest{
 			SourceDeploymentId: req.Msg.GetSourceDeploymentId(),

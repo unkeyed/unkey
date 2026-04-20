@@ -10,7 +10,7 @@ import (
 )
 
 const listAllSentinelsByRegion = `-- name: ListAllSentinelsByRegion :many
-SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM ` + "`" + `sentinels` + "`" + `
+SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM ` + "`" + `sentinels` + "`" + `
 WHERE region_id = ? AND pk > ?
 ORDER BY pk ASC
 LIMIT ?
@@ -25,7 +25,7 @@ type ListAllSentinelsByRegionParams struct {
 // ListAllSentinelsByRegion returns sentinels for a region, paginated by pk.
 // Used during full sync (version=0) to bootstrap krane agents with current state.
 //
-//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM `sentinels`
+//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM `sentinels`
 //	WHERE region_id = ? AND pk > ?
 //	ORDER BY pk ASC
 //	LIMIT ?
@@ -48,10 +48,12 @@ func (q *Queries) ListAllSentinelsByRegion(ctx context.Context, db DBTX, arg Lis
 			&i.K8sAddress,
 			&i.RegionID,
 			&i.Image,
+			&i.RunningImage,
 			&i.DesiredState,
 			&i.Health,
 			&i.DesiredReplicas,
 			&i.AvailableReplicas,
+			&i.DeployStatus,
 			&i.CpuMillicores,
 			&i.MemoryMib,
 			&i.CreatedAt,

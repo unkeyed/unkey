@@ -1,7 +1,7 @@
 "use client";
 
 import { formatStorageParts } from "@/lib/utils/deployment-formatters";
-import { Harddrive } from "@unkey/icons";
+import { Database } from "@unkey/icons";
 import { type ResourceSliderConfig, ResourceSliderSetting } from "../shared/resource-slider";
 
 const STORAGE_OPTIONS = [
@@ -14,7 +14,7 @@ const STORAGE_OPTIONS = [
 ] as const;
 
 const storageConfig: ResourceSliderConfig = {
-  icon: <Harddrive className="text-gray-12" iconSize="xl-medium" />,
+  icon: <Database className="text-gray-12" iconSize="xl-medium" />,
   title: "Storage",
   description: "Ephemeral disk space per instance",
   settingDescription:

@@ -98,6 +98,5 @@ type Config struct {
 // struct tags alone. It implements [config.Validator] so that [config.Load]
 // calls it automatically after tag-level validation.
 func (c *Config) Validate() error {
-
 	return nil
 }

@@ -23,21 +23,37 @@ const formatFieldName = (field: string): string => {
   }
 };
 
-const formatValue = (value: string | number, field: string): string => {
-  if (typeof value === "string" && /^\d+$/.test(value)) {
-    const statusFamily = Math.floor(Number.parseInt(value) / 100);
-    switch (statusFamily) {
-      case 5:
-        return "5xx (Error)";
-      case 4:
-        return "4xx (Warning)";
-      case 3:
-        return "3xx (Redirect)";
-      case 2:
-        return "2xx (Success)";
-      default:
-        return `${statusFamily}xx`;
+const RANGE_STATUS_VALUES = new Set(["200", "300", "400", "500"]);
+
+const formatStatusCode = (raw: string): string => {
+  const code = Number.parseInt(raw);
+  if (RANGE_STATUS_VALUES.has(raw)) {
+    if (code >= 500) {
+      return "5xx (Error)";
     }
+    if (code >= 400) {
+      return "4xx (Warning)";
+    }
+    if (code >= 300) {
+      return "3xx (Redirect)";
+    }
+    return "2xx (Success)";
+  }
+  if (code >= 500) {
+    return `${raw} (Error)`;
+  }
+  if (code >= 400) {
+    return `${raw} (Warning)`;
+  }
+  if (code >= 300) {
+    return `${raw} (Redirect)`;
+  }
+  return `${raw} (Success)`;
+};
+
+const formatValue = (value: string | number, field: string): string => {
+  if (field === "status" && /^\d+$/.test(String(value))) {
+    return formatStatusCode(String(value));
   }
   if (typeof value === "number" && (field === "startTime" || field === "endTime")) {
     return format(value, "MMM d, yyyy HH:mm:ss");

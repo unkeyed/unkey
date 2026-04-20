@@ -60,6 +60,14 @@ function buildOrderBy(
   const primaryCol = context === "inner" ? innerColumn : (column ?? "p.updated_at_m");
   const tiebreaker = context === "inner" ? "id" : "p.id";
 
+  // Validate that resolved columns are from the allowlist before passing to sql.raw().
+  const VALID_COLUMNS = new Set([...Object.values(map), "id", "p.id"]);
+  if (!VALID_COLUMNS.has(primaryCol)) {
+    throw new Error(`Invalid sort column: ${primaryCol}`);
+  }
+  if (!VALID_COLUMNS.has(tiebreaker)) {
+    throw new Error(`Invalid tiebreaker column: ${tiebreaker}`);
+  }
   return sql`ORDER BY ${sql.raw(primaryCol)} ${direction}, ${sql.raw(tiebreaker)} ${direction}`;
 }
 
@@ -79,9 +87,6 @@ export const queryPermissions = workspaceProcedure
     const descriptionFilter = buildFilterConditions(description, "description");
     const slugFilter = buildFilterConditions(slug, "slug");
     const roleFilter = buildRoleFilter(roleName, roleId, workspaceId);
-
-    // Build filter conditions for total count
-    const roleFilterForCount = buildRoleFilter(roleName, roleId, workspaceId);
 
     // For computed columns (totalConnectedRoles, totalConnectedKeys) we need to
     // sort in the outer query, so fetch all filtered rows in the inner query and
@@ -124,7 +129,7 @@ export const queryPermissions = workspaceProcedure
           ${nameFilter}
           ${descriptionFilter}
           ${slugFilter}
-          ${roleFilterForCount}
+          ${roleFilter}
       ) as grand_total
 
     FROM (
@@ -163,7 +168,7 @@ export const queryPermissions = workspaceProcedure
           ${nameFilter}
           ${descriptionFilter}
           ${slugFilter}
-          ${roleFilterForCount}
+          ${roleFilter}
       `);
       const countRows = countResult[0] as unknown as { total: number }[];
       const fallbackTotal = countRows.length > 0 ? Number(countRows[0].total) : 0;
@@ -179,9 +184,9 @@ export const queryPermissions = workspaceProcedure
     const permissionsResponseData: Permission[] = rows.map((row) => {
       return {
         permissionId: row.id,
-        name: row.name || "",
-        description: row.description || "",
-        slug: row.slug || "",
+        name: row.name ?? "",
+        description: row.description ?? "",
+        slug: row.slug ?? "",
         lastUpdated: Number(row.updated_at_m) || 0,
         totalConnectedRoles: Number(row.total_roles) || 0,
         totalConnectedKeys: Number(row.total_connected_keys) || 0,
@@ -194,110 +199,66 @@ export const queryPermissions = workspaceProcedure
     };
   });
 
-function buildRoleFilter(
-  nameFilters:
-    | {
-        value: string;
-        operator: PermissionsFilterOperator;
-      }[]
-    | null
-    | undefined,
-  idFilters:
-    | {
-        value: string;
-        operator: PermissionsFilterOperator;
-      }[]
-    | null
-    | undefined,
+type FilterInput = { value: string; operator: PermissionsFilterOperator }[] | null | undefined;
+
+// Builds a role-based subquery condition for a single filter entry.
+// The roleColumn must be "r.name" or "r.id" — these are hardcoded callers, not user input.
+function buildRoleCondition(
+  roleColumn: "r.name" | "r.id",
+  filter: { value: string; operator: PermissionsFilterOperator },
   workspaceId: string,
 ) {
+  const { value, operator } = filter;
+  const columnFragment = sql.raw(roleColumn);
+
+  switch (operator) {
+    case "is":
+      return sql`id IN (
+        SELECT DISTINCT rp.permission_id
+        FROM roles_permissions rp
+        JOIN roles r ON rp.role_id = r.id
+        WHERE rp.workspace_id = ${workspaceId}
+          AND ${columnFragment} = ${value}
+      )`;
+    case "contains":
+      return sql`id IN (
+        SELECT DISTINCT rp.permission_id
+        FROM roles_permissions rp
+        JOIN roles r ON rp.role_id = r.id
+        WHERE rp.workspace_id = ${workspaceId}
+          AND ${columnFragment} LIKE ${`%${value}%`}
+      )`;
+    case "startsWith":
+      return sql`id IN (
+        SELECT DISTINCT rp.permission_id
+        FROM roles_permissions rp
+        JOIN roles r ON rp.role_id = r.id
+        WHERE rp.workspace_id = ${workspaceId}
+          AND ${columnFragment} LIKE ${`${value}%`}
+      )`;
+    case "endsWith":
+      return sql`id IN (
+        SELECT DISTINCT rp.permission_id
+        FROM roles_permissions rp
+        JOIN roles r ON rp.role_id = r.id
+        WHERE rp.workspace_id = ${workspaceId}
+          AND ${columnFragment} LIKE ${`%${value}`}
+      )`;
+    default:
+      throw new Error(`Invalid operator: ${operator}`);
+  }
+}
+
+function buildRoleFilter(nameFilters: FilterInput, idFilters: FilterInput, workspaceId: string) {
   const conditions = [];
 
-  // Handle name filters
   if (nameFilters && nameFilters.length > 0) {
-    const nameConditions = nameFilters.map((filter) => {
-      const value = filter.value;
-      switch (filter.operator) {
-        case "is":
-          return sql`id IN (
-            SELECT DISTINCT rp.permission_id
-            FROM roles_permissions rp
-            JOIN roles r ON rp.role_id = r.id
-            WHERE rp.workspace_id = ${workspaceId}
-              AND r.name = ${value}
-          )`;
-        case "contains":
-          return sql`id IN (
-            SELECT DISTINCT rp.permission_id
-            FROM roles_permissions rp
-            JOIN roles r ON rp.role_id = r.id
-            WHERE rp.workspace_id = ${workspaceId}
-              AND r.name LIKE ${`%${value}%`}
-          )`;
-        case "startsWith":
-          return sql`id IN (
-            SELECT DISTINCT rp.permission_id
-            FROM roles_permissions rp
-            JOIN roles r ON rp.role_id = r.id
-            WHERE rp.workspace_id = ${workspaceId}
-              AND r.name LIKE ${`${value}%`}
-          )`;
-        case "endsWith":
-          return sql`id IN (
-            SELECT DISTINCT rp.permission_id
-            FROM roles_permissions rp
-            JOIN roles r ON rp.role_id = r.id
-            WHERE rp.workspace_id = ${workspaceId}
-              AND r.name LIKE ${`%${value}`}
-          )`;
-        default:
-          throw new Error(`Invalid operator: ${filter.operator}`);
-      }
-    });
+    const nameConditions = nameFilters.map((f) => buildRoleCondition("r.name", f, workspaceId));
     conditions.push(sql`(${sql.join(nameConditions, sql` OR `)})`);
   }
 
-  // Handle ID filters
   if (idFilters && idFilters.length > 0) {
-    const idConditions = idFilters.map((filter) => {
-      const value = filter.value;
-      switch (filter.operator) {
-        case "is":
-          return sql`id IN (
-            SELECT DISTINCT rp.permission_id
-            FROM roles_permissions rp
-            JOIN roles r ON rp.role_id = r.id
-            WHERE rp.workspace_id = ${workspaceId}
-              AND r.id = ${value}
-          )`;
-        case "contains":
-          return sql`id IN (
-            SELECT DISTINCT rp.permission_id
-            FROM roles_permissions rp
-            JOIN roles r ON rp.role_id = r.id
-            WHERE rp.workspace_id = ${workspaceId}
-              AND r.id LIKE ${`%${value}%`}
-          )`;
-        case "startsWith":
-          return sql`id IN (
-            SELECT DISTINCT rp.permission_id
-            FROM roles_permissions rp
-            JOIN roles r ON rp.role_id = r.id
-            WHERE rp.workspace_id = ${workspaceId}
-              AND r.id LIKE ${`${value}%`}
-          )`;
-        case "endsWith":
-          return sql`id IN (
-            SELECT DISTINCT rp.permission_id
-            FROM roles_permissions rp
-            JOIN roles r ON rp.role_id = r.id
-            WHERE rp.workspace_id = ${workspaceId}
-              AND r.id LIKE ${`%${value}`}
-          )`;
-        default:
-          throw new Error(`Invalid operator: ${filter.operator}`);
-      }
-    });
+    const idConditions = idFilters.map((f) => buildRoleCondition("r.id", f, workspaceId));
     conditions.push(sql`(${sql.join(idConditions, sql` OR `)})`);
   }
 
@@ -305,7 +266,6 @@ function buildRoleFilter(
     return sql``;
   }
 
-  // Join name and ID conditions with AND
   return sql`AND (${sql.join(conditions, sql` AND `)})`;
 }
 

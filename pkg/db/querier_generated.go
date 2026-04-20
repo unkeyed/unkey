@@ -272,11 +272,23 @@ type Querier interface {
 	//
 	//  DELETE FROM sentinels WHERE project_id = ?
 	DeleteSentinelsByProjectId(ctx context.Context, db DBTX, projectID string) error
+	//EndActiveDeploymentStepsForDeployments
+	//
+	//  UPDATE `deployment_steps`
+	//  SET ended_at = ?, error = ?
+	//  WHERE deployment_id IN (/*SLICE:deployment_ids*/?) AND ended_at IS NULL
+	EndActiveDeploymentStepsForDeployments(ctx context.Context, db DBTX, arg EndActiveDeploymentStepsForDeploymentsParams) error
+	//EndActiveDeploymentStepsWithError
+	//
+	//  UPDATE `deployment_steps`
+	//  SET ended_at = ?, error = ?
+	//  WHERE deployment_id = ? AND ended_at IS NULL
+	EndActiveDeploymentStepsWithError(ctx context.Context, db DBTX, arg EndActiveDeploymentStepsWithErrorParams) error
 	//EndDeploymentStep
 	//
 	//  UPDATE `deployment_steps`
 	//  SET ended_at = ?, error = ?
-	//  WHERE deployment_id = ? AND step = ?
+	//  WHERE deployment_id = ? AND step = ? AND ended_at IS NULL
 	EndDeploymentStep(ctx context.Context, db DBTX, arg EndDeploymentStepParams) error
 	//FindAcmeChallengeByToken
 	//
@@ -404,7 +416,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      c.pk, c.workspace_id, c.username, c.password_encrypted, c.quota_duration_seconds, c.max_queries_per_window, c.max_execution_time_per_window, c.max_query_execution_time, c.max_query_memory_bytes, c.max_query_result_rows, c.created_at, c.updated_at,
-	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance
+	//      q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds
 	//  FROM `clickhouse_workspace_settings` c
 	//  JOIN `quota` q ON c.workspace_id = q.workspace_id
 	//  WHERE c.workspace_id = ?
@@ -445,11 +457,11 @@ type Querier interface {
 	FindCustomDomainWithCertByDomain(ctx context.Context, db DBTX, domain string) (FindCustomDomainWithCertByDomainRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentByK8sName
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, db DBTX, k8sName string) (Deployment, error)
 	// Returns all regions where a deployment is configured.
 	// Used for fan-out: when a deployment changes, emit state_change to each region.
@@ -464,7 +476,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.status, d.created_at, d.updated_at,
+	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
 	//      r.name AS region_name,
@@ -519,6 +531,14 @@ type Querier interface {
 	//      AND dt.deployment_id = ?
 	//  LIMIT 1
 	FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByIDAndRegionParams) (FindDeploymentTopologyByIDAndRegionRow, error)
+	// Returns the per-region minimum replica requirement for a deployment.
+	// Used by ReportDeploymentStatus to compute whether enough regions are
+	// healthy to call DeployService.NotifyInstancesReady.
+	//
+	//  SELECT region_id, autoscaling_replicas_min
+	//  FROM deployment_topology
+	//  WHERE deployment_id = ?
+	FindDeploymentTopologyMinReplicas(ctx context.Context, db DBTX, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
 	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.delete_protection, environments.created_at, environments.updated_at FROM environments
@@ -1094,7 +1114,7 @@ type Querier interface {
 	FindProjectByWorkspaceSlug(ctx context.Context, db DBTX, arg FindProjectByWorkspaceSlugParams) (FindProjectByWorkspaceSlugRow, error)
 	//FindQuotaByWorkspaceID
 	//
-	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance
+	//  SELECT pk, workspace_id, requests_per_month, logs_retention_days, audit_logs_retention_days, team, ratelimit_api_limit, ratelimit_api_duration, allocated_cpu_millicores_total, allocated_memory_mib_total, allocated_storage_mib_total, max_cpu_millicores_per_instance, max_memory_mib_per_instance, max_storage_mib_per_instance, max_concurrent_builds
 	//  FROM `quota`
 	//  WHERE workspace_id = ?
 	FindQuotaByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Quotas, error)
@@ -1214,12 +1234,26 @@ type Querier interface {
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
 	//FindSentinelByID
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
 	//  WHERE id = ? LIMIT 1
 	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
+	// FindSentinelDeployContextByK8sName returns the sentinel's deploy status
+	// along with its desired and observed running image. Used by
+	// ReportSentinelStatus to determine whether to trigger NotifyReady — the
+	// awakeable should only be resolved when the desired image is actually
+	// running.
+	//
+	//  SELECT
+	//      id,
+	//      deploy_status,
+	//      image AS desired_image,
+	//      running_image
+	//  FROM sentinels
+	//  WHERE k8s_name = ? LIMIT 1
+	FindSentinelDeployContextByK8sName(ctx context.Context, db DBTX, k8sName string) (FindSentinelDeployContextByK8sNameRow, error)
 	//FindSentinelsByEnvironmentID
 	//
-	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
+	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error)
 	//FindVerifiedCustomDomainByDomainExcludingWorkspace
 	//
@@ -1274,6 +1308,21 @@ type Querier interface {
 	//  WHERE id = ?
 	//  AND delete_protection = false
 	HardDeleteWorkspace(ctx context.Context, db DBTX, id string) (sql.Result, error)
+	// Check whether a newer deployment exists for the same (app, env, branch) that
+	// makes building this one pointless. Matches any non-terminal status including
+	// 'ready' — if a newer commit is already deployed there is no reason to build
+	// an older one.
+	//
+	//  SELECT EXISTS (
+	//      SELECT 1 FROM deployments
+	//      WHERE app_id = ?
+	//        AND environment_id = ?
+	//        AND git_branch = ?
+	//        AND status NOT IN ('failed', 'skipped', 'stopped', 'superseded', 'cancelled')
+	//        AND created_at > ?
+	//        AND id != ?
+	//  ) AS has_newer
+	HasNewerActiveDeployment(ctx context.Context, db DBTX, arg HasNewerActiveDeploymentParams) (bool, error)
 	//InsertAcmeChallenge
 	//
 	//  INSERT INTO acme_challenges (
@@ -1996,15 +2045,11 @@ type Querier interface {
 	//      k8s_name,
 	//      region_id,
 	//      image,
-	//      health,
 	//      desired_replicas,
-	//      available_replicas,
 	//      cpu_millicores,
 	//      memory_mib,
 	//      created_at
 	//  ) VALUES (
-	//      ?,
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2059,7 +2104,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.status, d.created_at, d.updated_at,
+	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
 	//      r.name AS region_name,
@@ -2077,7 +2122,7 @@ type Querier interface {
 	// ListAllSentinelsByRegion returns sentinels for a region, paginated by pk.
 	// Used during full sync (version=0) to bootstrap krane agents with current state.
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at FROM `sentinels`
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM `sentinels`
 	//  WHERE region_id = ? AND pk > ?
 	//  ORDER BY pk ASC
 	//  LIMIT ?
@@ -2111,7 +2156,7 @@ type Querier interface {
 	ListDeploymentChangesByRegionAll(ctx context.Context, db DBTX, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, status, created_at, updated_at FROM `deployments`
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, created_at, updated_at FROM `deployments`
 	//  WHERE environment_id = ?
 	//    AND status = ?
 	//    AND created_at < ?
@@ -2122,7 +2167,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.status, d.created_at, d.updated_at,
+	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.created_at, d.updated_at,
 	//      w.k8s_namespace
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
@@ -2145,7 +2190,7 @@ type Querier interface {
 	// ListDesiredSentinels returns all sentinels matching the desired state for a region.
 	// Used during bootstrap to stream all running sentinels to krane.
 	//
-	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, desired_state, health, desired_replicas, available_replicas, cpu_millicores, memory_mib, created_at, updated_at
+	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at
 	//  FROM `sentinels`
 	//  WHERE (? = '' OR region_id = ?)
 	//      AND desired_state = ?
@@ -2390,6 +2435,21 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
+	// Only deployments still in the queue (haven't acquired a build slot yet)
+	// are eligible for supersession. Once a deployment transitions to `starting`
+	// (after slot acquisition) it's committed — we don't cancel work that's
+	// already running.
+	//
+	//  SELECT id, invocation_id
+	//  FROM deployments
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	//    AND git_branch = ?
+	//    AND status IN ('pending', 'awaiting_approval')
+	//    AND created_at < ?
+	//    AND id != ?
+	//  ORDER BY created_at ASC
+	ListOlderActiveDeploymentsForDedup(ctx context.Context, db DBTX, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error)
 	//ListPermissions
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -2546,11 +2606,22 @@ type Querier interface {
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
 	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)
+	// ListRunningSentinelIDsAndImages returns IDs, images, and regions of all
+	// running sentinels, paginated by id. Used by the rollout service to plan
+	// wave assignments without fetching full sentinel rows.
+	//
+	//  SELECT id, image, region_id
+	//  FROM sentinels
+	//  WHERE desired_state = 'running'
+	//    AND id > ?
+	//  ORDER BY id ASC
+	//  LIMIT ?
+	ListRunningSentinelIDsAndImages(ctx context.Context, db DBTX, arg ListRunningSentinelIDsAndImagesParams) ([]ListRunningSentinelIDsAndImagesRow, error)
 	//ListWorkspaces
 	//
 	//  SELECT
 	//     w.pk, w.id, w.org_id, w.name, w.slug, w.k8s_namespace, w.tier, w.stripe_customer_id, w.stripe_subscription_id, w.beta_features, w.subscriptions, w.enabled, w.delete_protection, w.created_at_m, w.updated_at_m, w.deleted_at_m,
-	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance
+	//     q.pk, q.workspace_id, q.requests_per_month, q.logs_retention_days, q.audit_logs_retention_days, q.team, q.ratelimit_api_limit, q.ratelimit_api_duration, q.allocated_cpu_millicores_total, q.allocated_memory_mib_total, q.allocated_storage_mib_total, q.max_cpu_millicores_per_instance, q.max_memory_mib_per_instance, q.max_storage_mib_per_instance, q.max_concurrent_builds
 	//  FROM `workspaces` w
 	//  LEFT JOIN quota q ON w.id = q.workspace_id
 	//  WHERE w.id > ?
@@ -2825,12 +2896,34 @@ type Querier interface {
 	//  SET image = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentImage(ctx context.Context, db DBTX, arg UpdateDeploymentImageParams) error
+	//UpdateDeploymentInvocationID
+	//
+	//  UPDATE deployments
+	//  SET invocation_id = ?, updated_at = ?
+	//  WHERE id = ?
+	UpdateDeploymentInvocationID(ctx context.Context, db DBTX, arg UpdateDeploymentInvocationIDParams) error
 	//UpdateDeploymentStatus
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, db DBTX, arg UpdateDeploymentStatusParams) error
+	//UpdateDeploymentStatusBatch
+	//
+	//  UPDATE deployments
+	//  SET status = ?, updated_at = ?
+	//  WHERE id IN (/*SLICE:ids*/?)
+	UpdateDeploymentStatusBatch(ctx context.Context, db DBTX, arg UpdateDeploymentStatusBatchParams) error
+	// Transition a deployment's status only when its current status is still
+	// "active" (non-terminal). Prevents the Deploy handler's compensation
+	// stack from overwriting a status that was set intentionally by the dedup
+	// path (e.g. superseded) or by a successful completion (ready).
+	//
+	//  UPDATE deployments
+	//  SET status = ?, updated_at = ?
+	//  WHERE id = ?
+	//    AND status NOT IN ('ready', 'failed', 'superseded', 'skipped', 'stopped', 'cancelled')
+	UpdateDeploymentStatusIfActive(ctx context.Context, db DBTX, arg UpdateDeploymentStatusIfActiveParams) error
 	// UpdateDeploymentTopologyDesiredStatus updates the desired_status of a topology entry.
 	//
 	//  UPDATE `deployment_topology`
@@ -2955,14 +3048,39 @@ type Querier interface {
 	//      updated_at_m= ?
 	//  WHERE id = ?
 	UpdateRatelimitOverride(ctx context.Context, db DBTX, arg UpdateRatelimitOverrideParams) (sql.Result, error)
-	//UpdateSentinelAvailableReplicasAndHealth
+	// UpdateSentinelConfig updates a sentinel's configuration and deploy status.
+	// Used by SentinelService.Deploy() to apply new config before triggering krane.
 	//
 	//  UPDATE sentinels SET
-	//  available_replicas = ?,
-	//  health = ?,
-	//  updated_at = ?
+	//    image = ?,
+	//    cpu_millicores = ?,
+	//    memory_mib = ?,
+	//    desired_replicas = ?,
+	//    deploy_status = ?,
+	//    updated_at = ?
+	//  WHERE id = ?
+	UpdateSentinelConfig(ctx context.Context, db DBTX, arg UpdateSentinelConfigParams) error
+	// UpdateSentinelDeployStatus updates only the deploy status field.
+	// Used after convergence check or rollback completes.
+	//
+	//  UPDATE sentinels SET
+	//    deploy_status = ?,
+	//    updated_at = ?
+	//  WHERE id = ?
+	UpdateSentinelDeployStatus(ctx context.Context, db DBTX, arg UpdateSentinelDeployStatusParams) error
+	// UpdateSentinelObservedState writes observed state from a krane agent:
+	// the current health, available replica count, and the image that is
+	// actually running on the pods. The running image is used to detect
+	// rollout convergence — a deploy is only complete when running_image
+	// matches the desired image.
+	//
+	//  UPDATE sentinels SET
+	//    available_replicas = ?,
+	//    health = ?,
+	//    running_image = ?,
+	//    updated_at = ?
 	//  WHERE k8s_name = ?
-	UpdateSentinelAvailableReplicasAndHealth(ctx context.Context, db DBTX, arg UpdateSentinelAvailableReplicasAndHealthParams) error
+	UpdateSentinelObservedState(ctx context.Context, db DBTX, arg UpdateSentinelObservedStateParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`

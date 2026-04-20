@@ -54,6 +54,8 @@ export { TagsCell } from "./components/cells";
 export type { TagsCellProps } from "./components/cells";
 export { SelectableNameCell } from "./components/cells";
 export type { SelectableNameCellProps } from "./components/cells";
+export { MonoTextCell } from "./components/cells";
+export type { MonoTextCellProps } from "./components/cells";
 
 // Skeletons
 export {

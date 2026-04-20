@@ -28,3 +28,5 @@ export type { TagsCellProps } from "./tags-cell";
 export type { OutcomePopoverCellProps } from "./outcome-popover-cell";
 export { SelectableNameCell } from "./selectable-name-cell";
 export type { SelectableNameCellProps } from "./selectable-name-cell";
+export { MonoTextCell } from "./mono-text-cell";
+export type { MonoTextCellProps } from "./mono-text-cell";

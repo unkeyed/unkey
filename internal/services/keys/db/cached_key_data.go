@@ -5,4 +5,7 @@ package db
 type CachedKeyData struct {
 	FindKeyForVerificationRow
 	ParsedIPWhitelist map[string]struct{} // Pre-parsed IP addresses for O(1) lookup
+	Roles             []string
+	Permissions       []string
+	RatelimitConfigs  map[string]KeyFindForVerificationRatelimit
 }

@@ -86,6 +86,7 @@ The watcher resets its cursor to 0 every 5 minutes, triggering a full sync. This
 Every code path that mutates deployment state must insert a `deployment_changes` row in the same transaction. The current write sites are:
 
 - [`deploy_handler.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy/deploy_handler.go) — `createTopologies` (bulk insert + deployment_changes per region) and `ensureSentinels` (sentinel insert + deployment_changes).
+- [`sentinel/deploy.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/sentinel/deploy.go) — `SentinelService.Deploy` (sentinel config update + deployment_changes, used for image/resource changes and rollback).
 - [`cilium_policy.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy/cilium_policy.go) — `ensureCiliumNetworkPolicy` (insert or update + deployment_changes).
 - [`deployment_state.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment/deployment_state.go) — `ChangeDesiredState` (topology status update + deployment_changes per region).
 
