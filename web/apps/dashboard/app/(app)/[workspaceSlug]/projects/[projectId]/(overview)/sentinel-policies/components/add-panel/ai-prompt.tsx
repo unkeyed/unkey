@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { ChevronRight, DoubleChevronRight, Sparkle3, XMark } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Button, FormInput, SlidePanel, toast } from "@unkey/ui";
+import { Button, FormInput, InfoTooltip, SlidePanel, toast } from "@unkey/ui";
 import { useState } from "react";
 import type { KeyLocationFormValues, PolicyFormValues, PolicyType } from "./schema";
 
@@ -43,22 +43,26 @@ export function AiPolicyPrompt({
 
   return (
     <SlidePanel.Root isOpen={isOpen} onClose={onClose} topOffset={topOffset}>
-      <SlidePanel.Header>
-        <div className="flex flex-col">
+      <SlidePanel.Header className="items-center">
+        <div className="flex flex-col min-w-0">
           <span className="text-gray-12 font-medium text-base leading-8">Generate with AI</span>
           <span className="text-gray-11 text-[13px] leading-5">
             Describe what to protect and how: keyauth, rate limits, and firewall.
           </span>
         </div>
-        <SlidePanel.Close
-          aria-label="Close panel"
-          className="mt-0.5 inline-flex items-center justify-center size-9 rounded-md hover:bg-grayA-3 transition-colors cursor-pointer"
-        >
-          <DoubleChevronRight
-            iconSize="lg-medium"
-            className="text-gray-10 transition-transform duration-300 ease-out"
-          />
-        </SlidePanel.Close>
+        <InfoTooltip content="Close panel" asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="md"
+            shape="square"
+            aria-label="Close panel"
+            onClick={onClose}
+            className="shrink-0"
+          >
+            <DoubleChevronRight iconSize="sm-regular" className="text-gray-10" />
+          </Button>
+        </InfoTooltip>
       </SlidePanel.Header>
 
       <SlidePanel.Content>
