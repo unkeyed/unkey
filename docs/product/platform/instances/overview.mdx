@@ -3,10 +3,6 @@ title: Instances
 description: "Understand instances in Unkey — running container replicas of your app deployed to specific regions with automatic scaling and routing."
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 An instance is a single running container of your [app](/platform/apps/overview) in a specific [region](/build-and-deploy/regions). When Unkey deploys your app, it creates one or more instances per region based on your configuration. Each instance runs the same container image with the same [variables](/platform/variables/overview) and serves traffic independently. Instances are ephemeral — [ephemeral storage](/platform/apps/settings#storage) does not persist across deployments or restarts.
 
 During deployments and scale-down, Unkey sends the configured [shutdown signal](/platform/apps/settings#shutdown-signal) (default `SIGTERM`) to give your app time to drain connections and finish in-flight requests before the instance stops.

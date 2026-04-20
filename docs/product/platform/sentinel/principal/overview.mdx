@@ -3,10 +3,6 @@ title: Principal
 description: "The Principal is the verified identity object the Sentinel produces after authentication and forwards to your application via headers."
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 The Principal is a JSON object the Sentinel sets on the `X-Unkey-Principal` header after a request passes [authentication](/platform/sentinel/authentication). It contains a stable set of top-level fields that are the same across all authentication methods, plus a `source` object with method-specific detail.
 
 When no authentication policy is configured or the request has no credentials, the header is absent. Check for header presence to distinguish authenticated from anonymous requests.

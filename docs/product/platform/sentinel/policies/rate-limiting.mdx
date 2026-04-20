@@ -3,10 +3,6 @@ title: Rate limiting
 description: "Enforce rate limits on matching routes using the Sentinel reverse proxy. Configure limits per route pattern with no application code changes."
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 The rate limiting policy enforces request limits on any route that matches the policy's [match expressions](/platform/sentinel/policies/overview#match-expressions). Requests that exceed a configured limit receive a `429` response, protecting your app from traffic spikes and abuse.
 
 Each rate limit policy specifies a maximum number of requests within a time window (for example, 100 requests per 60 seconds) and a subject that identifies the entity being limited.

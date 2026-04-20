@@ -3,10 +3,6 @@ title: Overview
 description: "Learn how the Sentinel reverse proxy authenticates incoming requests and forwards verified identity information to your application."
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 Authentication policies verify credentials before requests reach your app. On success, the Sentinel produces a [Principal](/platform/sentinel/principal/overview), a verified identity object, and forwards it to your app via the `X-Unkey-Principal` request header. Your app receives the authenticated identity without performing its own credential checks.
 
 The Sentinel supports [API key authentication](/platform/sentinel/policies/api-key) today, with JWT coming soon. All authentication methods produce the same [Principal structure](/platform/sentinel/principal/overview), so your app handles identity the same way regardless of how the request was authenticated.

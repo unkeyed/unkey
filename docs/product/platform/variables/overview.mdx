@@ -3,10 +3,6 @@ title: Variables
 description: "Manage encrypted environment variables in Unkey. Inject key-value pairs into your app at runtime, scoped by environment for each deploy."
 ---
 
-import DeployBeta from "/snippets/deploy-beta.mdx";
-
-<DeployBeta />
-
 Every variable is **encrypted before it is written to the database** — Unkey never stores unencrypted values. Variables are injected into your application as environment variables at runtime. Each variable is scoped to a specific [environment](/environments/overview), so production and preview can have different values.
 
 You manage variables from the **Environment Variables** tab in your project dashboard.
