@@ -5,18 +5,15 @@ import type { z } from "zod";
 
 type Identity = z.infer<typeof IdentityResponseSchema>;
 
-export { STATUS_STYLES };
-
 export const getRowClassName = (identity: Identity, selectedIdentity: Identity | null): string => {
-  const style = STATUS_STYLES;
   const isSelected = identity.id === selectedIdentity?.id;
 
   return cn(
-    style.base,
-    style.hover,
+    STATUS_STYLES.base,
+    STATUS_STYLES.hover,
     "group rounded",
     "focus:outline-none focus:ring-1 focus:ring-opacity-40",
-    style.focusRing,
-    isSelected && style.selected,
+    STATUS_STYLES.focusRing,
+    isSelected && STATUS_STYLES.selected,
   );
 };

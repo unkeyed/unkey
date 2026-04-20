@@ -1,19 +1,6 @@
 import { identitiesQueryPayload } from "@/components/identities-table/schema/identities.schema";
 import { clickhouse } from "@/lib/clickhouse";
-import {
-  and,
-  asc,
-  count,
-  db,
-  desc,
-  eq,
-  inArray,
-  like,
-  notInArray,
-  or,
-  schema,
-  sql,
-} from "@/lib/db";
+import { and, asc, count, db, desc, eq, inArray, like, notInArray, or, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
@@ -170,6 +157,12 @@ export const queryIdentities = workspaceProcedure
       let sortedIds: string[] | null = null;
 
       if (sortBy === "keyCount" || sortBy === "ratelimitCount") {
+        // Count the joined column rather than count(*). With a LEFT JOIN, identities
+        // with zero matches still produce one row (with NULL columns), which count(*)
+        // would count as 1 — ranking them identically to identities with one match.
+        const countColumn = sortBy === "keyCount" ? schema.keys.id : schema.ratelimits.id;
+        const countExpr = count(countColumn);
+
         const countQuery = db.select({ id: schema.identities.id }).from(schema.identities);
 
         if (sortBy === "keyCount") {
@@ -185,7 +178,7 @@ export const queryIdentities = workspaceProcedure
           .where(and(...baseConditions))
           .groupBy(schema.identities.id)
           .orderBy(
-            sortOrder === "asc" ? asc(sql`count(*)`) : desc(sql`count(*)`),
+            sortOrder === "asc" ? asc(countExpr) : desc(countExpr),
             desc(schema.identities.createdAt),
           )
           .limit(limit)
@@ -214,35 +207,32 @@ export const queryIdentities = workspaceProcedure
         };
       }
 
-      // Helper function to build filter conditions for query API
-      // biome-ignore lint/suspicious/noExplicitAny: Drizzle query builder types are complex and vary between schema and query contexts
-      const buildFilterConditions = (identity: any, helpers: any) => {
-        const conditions = [
-          helpers.eq(identity.workspaceId, workspaceId),
-          helpers.eq(identity.deleted, false),
-        ];
-
-        if (search) {
-          const escapedSearch = escapeLike(search);
-          const searchCondition = helpers.or(
-            helpers.like(identity.externalId, `%${escapedSearch}%`),
-            helpers.like(identity.id, `%${escapedSearch}%`),
-          );
-          if (searchCondition) {
-            conditions.push(searchCondition);
-          }
-        }
-
-        // When pre-sorted, filter to only the pre-sorted IDs
-        if (sortedIds !== null && sortedIds.length > 0) {
-          conditions.push(helpers.inArray(identity.id, sortedIds));
-        }
-
-        return helpers.and(...conditions);
-      };
-
       const identitiesQuery = await db.query.identities.findMany({
-        where: buildFilterConditions,
+        where: (identity, helpers) => {
+          const conditions = [
+            helpers.eq(identity.workspaceId, workspaceId),
+            helpers.eq(identity.deleted, false),
+          ];
+
+          if (search) {
+            const escapedSearch = escapeLike(search);
+            const searchCondition = helpers.or(
+              helpers.like(identity.externalId, `%${escapedSearch}%`),
+              helpers.like(identity.id, `%${escapedSearch}%`),
+            );
+            if (searchCondition) {
+              conditions.push(searchCondition);
+            }
+          }
+
+          // When pre-sorted, restrict to the pre-sorted IDs so relational hydration
+          // matches the sort window.
+          if (sortedIds !== null && sortedIds.length > 0) {
+            conditions.push(helpers.inArray(identity.id, sortedIds));
+          }
+
+          return helpers.and(...conditions);
+        },
         with: {
           keys: {
             columns: {

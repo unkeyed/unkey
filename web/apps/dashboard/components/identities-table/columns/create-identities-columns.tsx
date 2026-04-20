@@ -106,8 +106,6 @@ export const createIdentitiesColumns = ({
     meta: {
       width: "15%",
     },
-    cell: ({ row }) => (
-      <IdentityTableActionPopover identity={row.original} />
-    ),
+    cell: ({ row }) => <IdentityTableActionPopover identity={row.original} />,
   },
 ];

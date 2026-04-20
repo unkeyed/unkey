@@ -58,9 +58,7 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
 
   const [isRedeployOpen, setIsRedeployOpen] = useState(false);
   const targetDeploymentId = routeDeploymentId ?? currentDeploymentId ?? null;
-  const selectedDeployment = targetDeploymentId
-    ? getDeploymentById(targetDeploymentId)
-    : undefined;
+  const selectedDeployment = targetDeploymentId ? getDeploymentById(targetDeploymentId) : undefined;
 
   // Close the redeploy dialog when the target deployment changes (e.g. navigation)
   const prevDeploymentIdRef = useRef(targetDeploymentId);
