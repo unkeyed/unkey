@@ -64,23 +64,32 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
   const form = useForm<PolicyFormValues>({
     resolver: zodResolver(policyFormSchema),
     mode: "onChange",
-    defaultValues: isEdit
+    defaultValues: getDefaultValues("keyauth"),
+    // `values` re-syncs the form when the prop changes (RHF ≥7.43), so opening
+    // the panel with a new AI-prefilled policy updates the fields without a
+    // remount. `defaultValues` is only used on first mount for the blank case.
+    values: isEdit
       ? fromSentinelPolicy(props.initialPolicy, props.initialEnvironmentId)
       : props.mode === "add" && props.initialValues
         ? props.initialValues
-        : getDefaultValues("keyauth"),
+        : undefined,
   });
   const { control } = form;
   const policyType = useWatch({ control, name: "type" });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally run once on mount to surface validation errors for AI-prefilled values
+  // AI-prefilled values may be invalid (e.g. keyauth without a keyspace);
+  // trigger validation whenever a new prefill comes in so errors surface
+  // before the user submits.
+  const initialValues = props.mode === "add" ? props.initialValues : undefined;
   useEffect(() => {
-    if (props.mode === "add" && props.initialValues) {
+    if (initialValues) {
       form.trigger();
     }
-  }, []);
+  }, [initialValues, form]);
 
   const handleClose = () => {
+    // Hand current form values back on dismiss so the caller (AI flow) can
+    // fold in-progress edits into its preview row before reopening.
     if (props.mode === "add" && props.onDismiss) {
       props.onDismiss(form.getValues());
     }
@@ -95,7 +104,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
     const previewPolicy = envB ? { ...policy, enabled: true } : null;
 
     props.onSave(prodPolicy, previewPolicy);
-    // Bypass handleClose so onDismiss doesn't fire — save already removed
+    // Bypass handleClose so onDismiss doesn't fire, save already removed
     // any AI preview row, and we don't want to re-insert one.
     props.onClose();
     if (props.mode === "add") {

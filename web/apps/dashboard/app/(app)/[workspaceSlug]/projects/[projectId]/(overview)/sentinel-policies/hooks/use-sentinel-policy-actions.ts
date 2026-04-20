@@ -150,6 +150,9 @@ export function useSentinelPolicyActions({
     (values: PolicyFormValues | PolicyFormValues[]) => {
       const items = Array.isArray(values) ? values : [values];
       const insertRows: SentinelPolicyRow[] = [];
+      // `nextSentinelPolicyOrder` reads the collection, which hasn't been
+      // updated yet within this loop, so every call returns the same slot.
+      // Track a per-env offset so batched inserts land in distinct positions.
       const orderOffsets = new Map<string, number>();
 
       for (const v of items) {

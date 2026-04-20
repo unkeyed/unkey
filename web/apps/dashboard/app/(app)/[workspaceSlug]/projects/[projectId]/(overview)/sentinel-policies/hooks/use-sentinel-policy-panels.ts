@@ -7,7 +7,6 @@ import type { PolicyFormValues } from "../components/add-panel/schema";
 export function useSentinelPolicyPanels() {
   const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
   const [addInitialValues, setAddInitialValues] = useState<PolicyFormValues | null>(null);
-  const [addKey, setAddKey] = useState(0);
   const [addOpenedFromAi, setAddOpenedFromAi] = useState(false);
   const [addAiPreviewIndex, setAddAiPreviewIndex] = useState<number | null>(null);
   const [isEditPanelOpen, setIsEditPanelOpen] = useState(false);
@@ -18,7 +17,6 @@ export function useSentinelPolicyPanels() {
       setAddInitialValues(initialValues ?? null);
       setAddOpenedFromAi(fromAi);
       setAddAiPreviewIndex(aiPreviewIndex ?? null);
-      setAddKey((k) => k + 1);
       setIsAddPanelOpen(true);
     },
     [],
@@ -41,7 +39,6 @@ export function useSentinelPolicyPanels() {
   return {
     isAddPanelOpen,
     addInitialValues,
-    addKey,
     addOpenedFromAi,
     addAiPreviewIndex,
     openAdd,

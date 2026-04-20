@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { ProjectContentWrapper } from "../../components/project-content-wrapper";
 import { useOptionalProjectLayout } from "../layout-provider";
 import { SentinelPolicyPanel } from "./components/add-panel";
@@ -26,19 +26,16 @@ export default function SentinelPoliciesPage() {
   const { openAdd, closeAdd, addOpenedFromAi, addAiPreviewIndex } = panels;
   const { saveFromForm, save } = actions;
 
-  const openAiPanel = useCallback(() => setIsAiPanelOpen(true), []);
-  const closeAiPanel = useCallback(() => setIsAiPanelOpen(false), []);
-  const openAddPolicy = useCallback(() => openAdd(), [openAdd]);
+  const openAiPanel = () => setIsAiPanelOpen(true);
+  const closeAiPanel = () => setIsAiPanelOpen(false);
+  const openAddPolicy = () => openAdd();
 
-  const handleOpenAddFromAi = useCallback(
-    (values: PolicyFormValues, index: number) => {
-      setIsAiPanelOpen(false);
-      openAdd(values, true, index);
-    },
-    [openAdd],
-  );
+  const handleOpenAddFromAi = (values: PolicyFormValues, index: number) => {
+    setIsAiPanelOpen(false);
+    openAdd(values, true, index);
+  };
 
-  const handleAddAll = useCallback(() => {
+  const handleAddAll = () => {
     const keyauthPolicies: PolicyFormValues[] = [];
     const directSave: PolicyFormValues[] = [];
 
@@ -54,39 +51,42 @@ export default function SentinelPoliciesPage() {
       saveFromForm(directSave);
     }
 
+    // Keyauth without a keyspace can't be saved; keep them in the preview so
+    // the user can open each one and pick a keyspace before retrying.
     if (keyauthPolicies.length > 0) {
       setAiPreview(keyauthPolicies);
     } else {
       setAiPreview([]);
       setIsAiPanelOpen(false);
     }
-  }, [aiPreview, saveFromForm]);
+  };
 
-  const handleAddPanelDismiss = useCallback(
-    (values: PolicyFormValues) => {
-      if (addOpenedFromAi && addAiPreviewIndex !== null) {
-        const idx = addAiPreviewIndex;
-        setAiPreview((prev) => prev.map((p, i) => (i === idx ? values : p)));
-        setIsAiPanelOpen(true);
-      }
-    },
-    [addOpenedFromAi, addAiPreviewIndex],
-  );
+  const handleAddPanelDismiss = (values: PolicyFormValues) => {
+    if (addOpenedFromAi && addAiPreviewIndex !== null) {
+      const idx = addAiPreviewIndex;
+      setAiPreview((prev) => prev.map((p, i) => (i === idx ? values : p)));
+      setIsAiPanelOpen(true);
+    }
+  };
 
-  const handleAddPanelSave = useCallback(
-    (prodPolicy: Parameters<typeof save>[0], previewPolicy: Parameters<typeof save>[1]) => {
-      save(prodPolicy, previewPolicy);
-      if (addOpenedFromAi && addAiPreviewIndex !== null) {
-        const idx = addAiPreviewIndex;
-        setAiPreview((prev) => prev.filter((_, i) => i !== idx));
-        // Reopen the AI panel only if other preview rows remain to edit.
-        if (aiPreview.length > 1) {
+  const handleAddPanelSave = (
+    prodPolicy: Parameters<typeof save>[0],
+    previewPolicy: Parameters<typeof save>[1],
+  ) => {
+    save(prodPolicy, previewPolicy);
+    if (addOpenedFromAi && addAiPreviewIndex !== null) {
+      const idx = addAiPreviewIndex;
+      // Reopen the AI panel so the user can keep editing the remaining
+      // preview rows; skip it once this was the last one.
+      setAiPreview((prev) => {
+        const next = prev.filter((_, i) => i !== idx);
+        if (next.length > 0) {
           setIsAiPanelOpen(true);
         }
-      }
-    },
-    [save, addOpenedFromAi, addAiPreviewIndex, aiPreview.length],
-  );
+        return next;
+      });
+    }
+  };
 
   const editingRow = panels.editing ? merged.find((m) => m.id === panels.editing?.id) : undefined;
   const editingEnabled = {
@@ -135,7 +135,6 @@ export default function SentinelPoliciesPage() {
           onAddAll={handleAddAll}
         />
         <SentinelPolicyPanel
-          key={panels.addKey}
           mode="add"
           initialValues={panels.addInitialValues ?? undefined}
           envASlug={envASlug}
