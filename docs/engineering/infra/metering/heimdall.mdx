@@ -1,0 +1,386 @@
+---
+title: heimdall (per-pod metering agent)
+description: How we collect per-pod CPU, memory, disk, and network counters from kernel sources and write them to ClickHouse.
+---
+
+## What this is
+
+Heimdall is the agent that reads kernel counters off every node hosting customer pods and writes them to ClickHouse. It runs as a DaemonSet on the `untrusted` nodepool and writes one row per container per tick (plus extras when containers start or stop). Anything that bills from this data (future work) computes at query time; heimdall itself only emits raw counter snapshots.
+
+Two things to keep in mind for the rest of this doc:
+
+> **Collection must never inflate a reading. Undercount is acceptable.**
+
+Every design choice flows from that rule — if a reading is lost or skipped, the downstream aggregate is smaller than the truth, never larger.
+
+> **Heimdall stores snapshots of monotone counters, not rates or events.**
+
+This is the part most people get wrong. The rest of the doc explains why.
+
+## Why snapshots and not rates
+
+The short version: snapshots of cumulative kernel counters are idempotent under duplicate writes; rate or delta rows aren't. For the full walkthrough of the pipeline (counter vs gauge, the five stages from kernel to chart, why duplicates are invariant) see [metrics-architecture](./metrics-architecture). For the citation-heavy defence against "just write deltas" proposals specifically, see [why-counters-not-deltas](./why-counters-not-deltas).
+
+The rest of this doc covers what's specific to heimdall as an agent: how a tick works, the network metering, the ClickHouse layout, and the local-dev TopoLVM setup.
+
+## How a tick works
+
+```mermaid
+flowchart LR
+    cgroup["cgroup v2 files<br/>(cpu.stat, memory.current)"]
+    cri["containerd CRI socket<br/>(TaskStart, TaskExit)"]
+    informer["K8s pod informer<br/>(state transitions)"]
+
+    cgroup --> heimdall
+    cri --> heimdall
+    informer --> heimdall
+
+    heimdall["heimdall<br/>(reads counters, builds checkpoints)"]
+
+    heimdall --> buf["in-memory batch buffer"]
+    buf -->|every 5s or 10k rows| ch["ClickHouse:<br/>instance_checkpoints_v1"]
+```
+
+Three signals feed heimdall and they feed it in parallel.
+
+The **5 second tick** is the workhorse. Every 5 seconds heimdall walks the list of billable pods on the node and reads three files per pod under `/sys/fs/cgroup`:
+
+| File | What it gives us |
+|------|------------------|
+| `cpu.stat:usage_usec` | Cumulative CPU microseconds (the monotone counter) |
+| `memory.current` | Total memory bytes |
+| `memory.stat:inactive_file` | Reclaimable page cache (subtracted from `memory.current` so we bill the working set, not file cache the kernel can drop) |
+
+Working-set memory matches what kubelet's OOM killer uses and what `container_memory_working_set_bytes` reports. If we billed `memory.current` raw we would be charging for cached files that the customer cannot shed, which violates the invariant.
+
+The **CRI event stream** gives us millisecond precision on container start and stop. Heimdall opens a gRPC subscription on `/run/containerd/containerd.sock` and reads from `/tasks/start` and `/tasks/exit`. When an event arrives heimdall reads the cgroup immediately and emits a checkpoint with `event_kind=start` or `event_kind=stop`. Without this we would lose up to one tick of CPU at the start and end of every container.
+
+The **pod informer** is a backup. Containerd is known to drop CRI events under load ([containerd#3177](https://github.com/containerd/containerd/issues/3177)). The informer watches the K8s API for pod status transitions and fires the same checkpoint path. If both fire we get two checkpoints, which is fine, the math is invariant to extras.
+
+The **5 second cadence** was chosen so that every 15 second dashboard bucket gets at least 2 samples (so `max - min` produces a real CPU delta) without burning excess syscalls. At 50 pods per node times 3 syscalls per tick, that's 30 syscalls per second on a busy node. Negligible.
+
+## Network: tc-eBPF on the host-side veth
+
+### Networking background (skip if you know this)
+
+A few terms show up repeatedly below. Quick definitions so the rest reads cleanly.
+
+- **Network namespace (netns).** A Linux kernel feature that gives a process its own isolated view of networking: its own interfaces, its own routing table, its own firewall rules. Every Kubernetes pod runs in its own netns, so from the pod's perspective it has its own `eth0`, its own IP, its own everything. The host sits in its own separate netns.
+- **veth pair.** Literally a virtual ethernet cable with two ends. You plug one end into the pod's netns (shows up as `eth0` inside the pod), and the other end into the host's netns. Packets written to one end come out the other. This is how pods talk to the outside world: everything a pod sends goes through its end of the veth, crosses to the host end, and then onward.
+- **CNI (Container Network Interface).** The plugin model Kubernetes uses for networking. Our CNI is Cilium. When a pod starts, Cilium creates the veth pair, puts one end in the pod, and keeps the other end on the host.
+- **The `lxc<hash>@ifN` notation.** When you run `ip link show` on the host, veth ends Cilium created look like `lxc973da285c857@if12`. The `lxc<hash>` part is just Cilium's naming scheme for a host-side veth end (nothing to do with the LXC container runtime; Cilium inherited the name from earlier tooling). The `@if12` part means "my other end is interface 12 in the peer netns". So `lxc<hash>@ifN` is just "host end of a veth pair; other end is interface N inside the pod".
+- **`ifindex`.** Every network interface has a small integer ID unique within its namespace. The host veth end has one ifindex, the pod's `eth0` has another. We use the host ifindex as the map key in our BPF program.
+- **`tc` (traffic control).** A kernel subsystem with hook points where you can attach programs that run on every packet passing through a specific network interface. Two directions: `tc-ingress` (packets arriving at the interface) and `tc-egress` (packets leaving). You can attach an eBPF program to either, and the kernel runs it for every packet.
+- **TCX.** The newer (Linux 6.6+) attachment mechanism for tc eBPF programs. Supports multiple programs on the same hook in a chain, with clean ordering. We use it to coexist with Cilium's own tc programs on the same veth.
+- **`cgroup_skb`.** An older kernel hook type that runs a BPF program when a packet is sent or received by a process inside a specific cgroup. Works fine for normal containers, but is useless for gVisor pods (customer syscalls never reach the host kernel, so the hook sees nothing).
+
+That's enough to follow the rest of this section.
+
+### Why the obvious approaches don't work
+
+CPU, memory, and disk all come from sysfs files. Network is different because there is no per-pod byte counter exposed by the kernel via files, and on this cluster the two obvious alternatives are both blocked:
+
+- **`cgroup_skb` at the pod cgroup** (the first thing we built) is useless under gVisor. `runsc` is a userspace kernel. Customer syscalls are trapped inside it and never reach the host's socket layer, so the cgroup hook sees only whatever runsc does on its own sockets, not per-packet customer traffic. Verified in local dev: every BPF map entry showed zero for every public counter even with pods doing real downloads. This is why we never shipped it.
+- **Reading Cilium's per-endpoint counters** looks attractive since Cilium already tags traffic by pod. But Cilium has declined per-endpoint byte counters four separate times ([cilium#13173](https://github.com/cilium/cilium/issues/13173), [cilium#29586](https://github.com/cilium/cilium/issues/29586), [cilium#32193](https://github.com/cilium/cilium/issues/32193), [cilium#21252](https://github.com/cilium/cilium/issues/21252)); `cilium_forward_bytes_total` is node-aggregated only. Not a supported per-pod surface.
+
+What does work is to attach at the packet layer on the pod's host-side veth. Every packet that leaves a pod, gVisor or not, crosses `lxc<hash>@ifN`, the Cilium-created veth peer of the pod's `eth0`. tc-eBPF (TCX) on that interface sees the real L3 packet with the real destination IP.
+
+### The eBPF program
+
+Two `SEC("tc")` programs, one per direction, share one `BPF_MAP_TYPE_LRU_HASH` keyed by the host-side veth's `ifindex` (u32). Value is four u64 counters.
+
+- `count_egress` attaches to the veth's **tc-ingress**. Packets arriving here come _from_ the pod (the pod's egress direction).
+- `count_ingress` attaches to the veth's **tc-egress**. Packets leaving here are heading _into_ the pod (the pod's ingress direction).
+
+The program skips the 14-byte Ethernet header (tc on veth sees L2-framed skbs), branches on `skb->protocol`, reads the remote IP (`iph->daddr` on pod-egress, `iph->saddr` on pod-ingress), classifies it via the same RFC1918 check the old cgroup_skb collector used, and `__sync_fetch_and_add`s `skb->len` into the right slot.
+
+The same idempotent counter math used for CPU works here: `max(network_egress_public_bytes) - min(...)` over any window is replay-safe and unaffected by extra readings. Two heimdall pods overlapping during a rolling update both see the same monotone counter value, write distinct rows, and the aggregated reading stays correct.
+
+### The TCX return-code trap
+
+Both programs return **`TC_ACT_UNSPEC`**, not `TC_ACT_OK`. This distinction is the single most important thing to understand in this file.
+
+In a TCX multi-program chain these two look equivalent at first glance ("don't drop the packet"), but they're actually opposite:
+
+- `TC_ACT_UNSPEC` (-1) is `TCX_NEXT`. Non-terminating; hand off to the next program in the chain.
+- `TC_ACT_OK` (0) is `TCX_PASS`. Accept the packet AND terminate the chain.
+
+Our program must be non-terminating because Cilium's `cil_from_container` runs right after us in the same chain, and that program is where gVisor pods get their ClusterIP → pod-IP translation done. gVisor pods bypass Cilium's socket-LB (the kernel's BPF cgroup socket hooks don't see gVisor's userspace connect/bind calls), so the veth's tc-BPF is the only place service IPs like coredns's `10.96.0.10` get rewritten to an actual pod IP. Returning `TC_ACT_OK` from a head-anchored program terminates the chain before Cilium's translator runs, so DNS to coredns silently breaks for every gVisor pod on the node.
+
+Retina's `packetparser` plugin uses the exact same `TC_ACT_UNSPEC`-observer-at-head pattern for the same reason ([retina packetparser.c](https://github.com/microsoft/retina/blob/main/pkg/plugin/packetparser/_cprog/packetparser.c)). If you are editing `bpf/network.bpf.c`, do not change this return code.
+
+We attach with `Anchor: link.Head()` so we run upstream of Cilium's `TC_ACT_REDIRECT` for pod-outbound packets; a tail-anchored observer would never see egress traffic because Cilium terminates the chain on redirect.
+
+### Safety invariants
+
+The metering datapath sits on every customer packet, so it is designed to be incapable of breaking the pod it's measuring. The properties that make this true:
+
+1. **Read-only.** The BPF program reads `skb->len` and the IP header. It never calls a helper that mutates the skb (no `bpf_skb_store_bytes`, no checksum helpers, no redirect helpers). The packet is byte-identical before and after our program runs.
+2. **Unconditionally non-terminating.** Every code path (truncated packet, non-IP protocol, classifier failure, map-full) exits through a single `return TC_ACT_UNSPEC` at the bottom of each program. There is no path that returns `TC_ACT_SHOT` or `TC_ACT_OK`. The verifier will not accept a program that drops the invariant, so this is enforced at load time.
+3. **Stateless packet processing.** No conntrack, no flow tables, no packet buffering. An atomic increment failing (wouldn't happen; `__sync_fetch_and_add` on a per-cgroup map entry can't fail) would only undercount, never drop.
+4. **Userspace failures never touch the datapath.** A `link.AttachTCX` error, a containerd gRPC timeout, a netns lookup failure: all surface as `Attach` returning an error to heimdall. The pod simply ends up not attached. Uncounted, but running normally.
+5. **Detach is never forced.** If the veth goes away (pod teardown), the kernel auto-detaches the TCX link. Heimdall's `Detach` path is best-effort cleanup.
+
+Concretely: a bug in this package can cause undercount of network bytes, or crash heimdall itself (which is isolated on the node). It cannot drop, corrupt, or reorder customer packets, and it cannot break customer pod networking.
+
+### What counts, what doesn't
+
+The counter increments by `skb->len` per packet that classifies as IPv4 or IPv6. A few specifics worth knowing:
+
+- **TCP retransmits count each transmission.** `skb->len` increments for every re-sent packet, so a flow that retransmits 3× shows 3× the bytes. This is "wire bytes," which is the industry-standard thing to bill for (AWS, Cloudflare, GCP all do the same). Customers don't get a refund for their own packet loss.
+- **GSO/TSO packets count pre-segmentation bytes.** On egress, a large skb (up to 64 KiB) represents a single transport-layer write before the NIC splits it into MTU-sized wire packets. `skb->len` is the pre-split size, so we miss the few per-segment L2+IP+TCP header bytes that get replicated on the real wire. Effectively a ~1–2 % undercount on TCP-heavy workloads. Safe direction per the never-inflate invariant.
+- **IP fragments count each fragment.** Each fragment is its own skb with its own length, and they share the same saddr/daddr, so the classifier bills each fragment to the right pair of counters. Total bytes are correct.
+- **ARP, LLDP, and other non-IP L2 traffic is not counted.** `skb->protocol` matches only `ETH_P_IP` and `ETH_P_IPV6`; everything else returns early. Control-plane L2 chatter doesn't count against a customer's egress number.
+- **VLAN-tagged traffic is silently skipped.** `skb->protocol` is `ETH_P_8021Q` (0x8100) for tagged frames and neither IPv4 nor IPv6 matches. Cilium's native pod networking doesn't tag on the pod-side veth so this doesn't fire today — but if the network config ever changes (e.g. a multi-tenant overlay with VLAN separation), we'd undercount. Worth catching via sample-density alerts if it ever happens.
+
+### Resolving the pod → veth mapping
+
+We need the host-side veth's ifindex to attach to. Finding it under gVisor is non-obvious because:
+
+- PIDs in the pod's cgroup live in gVisor's **sandbox** netns, not the CNI netns where the veth lives. The usual trick of `/proc/<pid>/ns/net` lands you in runsc's internal netstack, not the Cilium netns.
+- The CNI netns has no IP assigned to `eth0` under gVisor (the IP lives in runsc's userspace stack), so you can't match by pod IP either.
+
+The only reliable reference is the containerd sandbox container's OCI spec. On every attach, heimdall queries containerd for the container whose labels are `io.kubernetes.pod.uid=<uid>` and `io.cri-containerd.kind=sandbox`, loads its OCI spec, and reads `linux.namespaces[type=network].path`. That's the `/var/run/netns/cni-<uuid>` path the CNI plugin created. From there: `setns` into the CNI netns, `netlink.LinkList()`, find the first veth, read its `ParentIndex` (which netlink reports from the peer's perspective, i.e. the host's), `setns` back.
+
+```mermaid
+flowchart LR
+    kubelet["K8s informer<br/>pod uid"] --> heimdall
+    heimdall["heimdall Attach(uid)"] -->|containerd gRPC| cd["sandbox container<br/>OCI spec"]
+    cd -->|"linux.namespaces[network].path"| path["/var/run/netns/cni-&lt;uuid&gt;"]
+    path -->|"setns + netlink"| veth["host-side veth ifindex"]
+    veth -->|"link.AttachTCX Head"| attach["tc-ingress + tc-egress<br/>on lxc&lt;hash&gt;"]
+```
+
+### Data path
+
+```mermaid
+flowchart LR
+    skb["packet"] --> tc["tc hook on lxc&lt;hash&gt;"]
+    tc --> ebpf["count_egress / count_ingress<br/>skip L2, classify IP, add skb-&gt;len"]
+    ebpf --> map["BPF map<br/>LRU hash, key=ifindex, 4 counters"]
+    ebpf -->|"TC_ACT_UNSPEC"| cilium["cil_from_container<br/>(gVisor ClusterIP translation)"]
+    heimdall["heimdall tick (5s)"] --> map
+    map --> heimdall
+    heimdall --> ch["ClickHouse:<br/>4 network columns on the next checkpoint"]
+```
+
+Host-network pods (heimdall itself, kube-proxy, sentinels) share the host net namespace and have no veth, so heimdall skips them via `pod.Spec.HostNetwork`. Completed/Failed pods are also skipped because their sandbox containers have been GC'd from containerd.
+
+### Deployment requirements
+
+The DaemonSet needs, in addition to the cgroup and kubelet mounts CPU/memory uses:
+
+- `hostNetwork: true` and `hostPID: true`, since we operate on the host's veths.
+- Capabilities `CAP_BPF`, `CAP_NET_ADMIN`, `CAP_SYS_ADMIN`. `SYS_ADMIN` relaxes the verifier's pointer-arithmetic restrictions that CAP_BPF alone keeps on (CAP_BPF runs in "unprivileged BPF" mode, which rejects some LRU map update patterns).
+- Host mounts: `/run/containerd/containerd.sock` (rw, for sandbox lookups), `/var/run/netns` (ro, `HostToContainer`, for the CNI netns files we `setns` into), `/sys/kernel/btf` (ro, CO-RE relocations).
+
+The Go code lives under `svc/heimdall/internal/network/`:
+
+- `network_linux.go`. The `Reader` interface implementation (lifecycle + TCX attach).
+- `sandbox_linux.go`. Resolves the containerd sandbox to its CNI netns path.
+- `veth_linux.go`. `setns` and netlink peer-ifindex resolution.
+- `bpf/network.bpf.c`. The eBPF program, compiled by `bpf2go` into Go bindings and an embedded `.o`. Run `make generate-bpf` after editing.
+
+## What a checkpoint actually contains
+
+```text
+identity         workspace_id, project_id, environment_id,
+                 resource_type, resource_id,
+                 container_uid     (= pod_uid + restart_count, stable per
+                                      container lifetime; changes on restart),
+                 instance_id       (= pod name, used for filtering charts
+                                      to one replica)
+
+when             ts                (unix milliseconds, sourced from
+                                      pkg/clock.MonotonicClock so the value
+                                      cannot regress on NTP backward jumps)
+                 event_kind        (start | stop | checkpoint)
+
+what             cpu_usage_usec               (Int64, raw kernel counter)
+                 memory_bytes                 (Int64, working set)
+                 cpu_allocated_millicores     (Int32, from pod.Spec.Limits)
+                 memory_allocated_bytes       (Int64, from pod.Spec.Limits)
+                 disk_allocated_bytes         (Int64, from PVC request)
+                 disk_used_bytes              (Int64, statfs on the volume mount)
+                 network_{eg,in}gress_{pub,priv}  (Int64, populated by the
+                                      cgroup_skb eBPF collector; see Network
+                                      section above)
+```
+
+Note that all resource columns are `Int64`, not `UInt64`. A forgotten clamp on a UInt64 column would underflow to ~1.8 × 10^19 — an 18-digit garbage number that any downstream consumer (dashboard, billing, admin query) would silently propagate. Int64 underflow shows up as a visible negative value, which fails loud.
+
+## The math, with a worked example
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant K as Kernel cgroup<br/>cpu_usage_usec
+    participant H as Heimdall
+    participant CH as ClickHouse
+
+    K->>H: 1_000_000 (t=0s)
+    H->>CH: checkpoint
+    K->>H: 1_500_000 (t=5s)
+    H->>CH: checkpoint
+    K->>H: 2_000_000 (t=10s)
+    H->>CH: checkpoint
+
+    Note over CH: bill = max(2_000_000) - min(1_000_000)<br/>     = 1_000_000 µs<br/>     = 1 CPU-second
+```
+
+A container ran for exactly one hour at exactly one vCPU. We do not know how often heimdall sampled it. The aggregated reading is the same in all three cases.
+
+| Sampling cadence | Checkpoints written | `max - min` | Result |
+|------------------|---------------------|-------------|--------|
+| Every 1 second | 3,600 | 3.6 × 10^9 µs | 1 vCPU-hour |
+| Every 10 minutes | 6 | 3.6 × 10^9 µs | 1 vCPU-hour |
+| Once at start, once at end | 2 | 3.6 × 10^9 µs | 1 vCPU-hour |
+
+What does change with sample density:
+
+* **Memory integration accuracy.** Memory is a gauge, not a counter, so consumers have to integrate over samples. More samples means the mean is closer to the true integral. Fewer samples means the same shape, blurrier.
+* **Worst case undercount on container exit.** If the container dies between the last periodic tick and CRI catching the exit event, we miss whatever CPU it used in that gap. Bounded by the tick interval (currently 5 seconds).
+
+## Replay safety, rolling updates, restarts
+
+```
+1. Replay (same checkpoint written twice)
+   → max and min over the window do not change
+   → aggregate unchanged
+
+2. Rolling update (two heimdall pods write concurrently)
+   → more rows in the window, but max and min are unchanged
+   → aggregate unchanged
+
+3. Container restart (kernel counter resets to 0)
+   → container_uid changes (pod_uid + restart_count)
+   → new container_uid starts its own window
+   → we never diff across the reset
+```
+
+`container_uid = pod_uid + restart_count` is the key. It is the unique metering entity for a single container incarnation. When kubelet restarts a container, restart_count increments and the new container is a fresh counter series from t=0.
+
+The raw table uses `ReplacingMergeTree` for eventually-consistent dedup. Because dedup happens at merge time (not insert time), every read goes through `instance_checkpoints` (the `FINAL` view) so unmerged duplicates do not leak into queries.
+
+## ClickHouse layout
+
+```
+instance_checkpoints_v1                ← raw, ReplacingMergeTree, 95 day TTL
+    │   (daily partitions, bloom filters, Delta/DoubleDelta codecs)
+    │
+    ├─→ instance_resources_per_15s_v1     ← dashboard MV, 7 day TTL
+    ├─→ instance_resources_per_minute_v1  ← dashboard MV, 30 day TTL
+    └─→ instance_resources_per_hour_v1    ← dashboard MV, 90 day TTL
+```
+
+Every materialized view reads the **raw table directly**. They do not chain off each other. This keeps each MV's correctness independent and avoids cascading merge latency, at the cost of around 3x write amplification on raw inserts.
+
+The dashboard MVs are explicitly marked "DASHBOARD ONLY" because their `*_sum` columns can double-count under ReplacingMergeTree dedup races (MVs fire on inserts, not on merges). Any future consumer that needs idempotent aggregates (billing, audit exports) reads the raw table through `FINAL` or a purpose-built aggregate — not these MVs.
+
+## Dashboard queries
+
+Dashboards stitch two sources together. The cold tail comes from the appropriate MV. The live tip (the bucket that is currently being filled, where the MV has not aggregated yet) comes from the raw `instance_checkpoints` view. The two are unioned and ordered by time:
+
+```
+SELECT time, value FROM (
+    -- cold tail: closed buckets from the MV
+    SELECT time, agg(...) AS value
+    FROM instance_resources_per_15s_v1
+    WHERE ... AND time < toStartOfInterval(now(), INTERVAL 15 SECOND)
+    GROUP BY time
+
+    UNION ALL
+
+    -- live tip: current bucket, computed on demand from raw
+    SELECT toStartOfInterval(now(), INTERVAL 15 SECOND) AS time,
+           agg(...) AS value
+    FROM instance_checkpoints
+    WHERE ... AND ts >= toUnixTimestamp(toStartOfInterval(now(), INTERVAL 15 SECOND)) * 1000
+    HAVING value > 0
+)
+ORDER BY time
+```
+
+The live tip is filtered with `HAVING value > 0` so the chart does not render a phantom zero bar at the right edge before any checkpoint has landed in the current bucket.
+
+The four metric queries (CPU, memory, disk, instance count) all share this exact structure. They differ only in the aggregate function, so they're built from a single hybrid query template parameterized by the metric. See `web/internal/clickhouse/src/resources.ts`.
+
+## Failure modes we accept by design
+
+| Failure | What happens | Why it does not inflate the reading |
+|---------|--------------|----------------------------|
+| Heimdall pod crashes | In-flight buffer is lost (a few seconds of data). Next checkpoint after restart sets a fresh `min` for that window. | Kernel counter does not reset. The lost interval is undercounted, never overcounted. |
+| Node dies | Same. | Same. |
+| ClickHouse outage | Buffer backpressures, collector slows down. Nothing is lost from what was already captured. | Resumes when ClickHouse is back. If the buffer fills entirely, the collector stalls (visible failure mode, not silent data loss). |
+| CRI TaskExit event dropped | Last periodic tick is treated as the final reading. | Bounded undercount of one collection interval (currently 5 seconds). |
+| Two heimdall pods overlap during rollout | Both write checkpoints for the same containers briefly. | `max - min` is invariant to extra rows. |
+| Wall clock jumps backward (NTP correction) | `ts` comes from `pkg/clock.MonotonicClock`, anchored once at process start. | Monotone, can never regress. |
+| Container has only one checkpoint | `max == min`, so `max - min = 0`. | Mitigated by CRI giving us a `start` event for any container that lives longer than CRI delivery latency. |
+| Heimdall not running on a node | Everything on that node goes unmeasured. | Code cannot detect absence; mitigation is alerting at ingestion (no checkpoints from a known node for N minutes). |
+
+There is no on-disk WAL. An early design sketch included one (with S3 overflow), but we never built it. The monotonic counter already provides most of the durability guarantee: a fresh process picks up from the kernel's own value and only loses the gap between crash and restart. A WAL would have meant a dedicated EBS volume per node, S3 cleanup logic, and re-ingest SQL for marginal benefit over what the kernel counter already gives us. We can add it later if operational data shows we need it.
+
+## Local dev: how it mirrors prod
+
+In production a customer pod gets an ephemeral PVC backed by a real CSI driver (currently `ebs-csi-gp3`). Each PVC is its own EBS volume with its own filesystem and a real size limit enforced by the kernel. `statfs` inside the container returns volume-specific bytes used / free / total, and writes past the limit return `ENOSPC`.
+
+The minikube default StorageClass uses an in-tree hostpath provisioner that bind-mounts a shared host directory into the pod. `statfs` inside the container then returns host-wide stats and there is no size enforcement. Heimdall would either see nothing (the kubelet volumes path is empty for in-tree hostpath) or report 200+ GiB of "used" bytes spanning every other pod on the node. Neither is useful.
+
+To mirror prod we run TopoLVM in dev. A bootstrap script inside the minikube node creates a sparse loopback file (default 20 GiB), wraps it in an LVM volume group (`topolvm-vg`), and TopoLVM carves a real LV per PVC out of that VG. Each LV is its own ext4 filesystem on its own block device, so:
+
+* `statfs` inside the container reports the right numbers
+* Writes past the allocated size hit `ENOSPC`
+* Heimdall's statfs path works the same as in prod (no special dev branch needed)
+
+The setup lives in `dev/k8s/topolvm/`:
+
+```
+dev/k8s/topolvm/setup-vg.sh        idempotent loopback + VG creation
+                                    (also reattaches after `minikube stop/start`)
+dev/k8s/topolvm/values.yaml        TopoLVM helm values (cert-manager and
+                                    webhooks both off; single-node only needs
+                                    the controller and the node DaemonSet)
+dev/k8s/topolvm/storageclass.yaml  StorageClass `topolvm-ssd` that krane points at
+```
+
+The Tiltfile wires it: `topolvm-disable-old-csi → topolvm-vg → topolvm-controller / topolvm-node / topolvm-lvmd-0 → topolvm-storageclass → krane`.
+
+## Operational notes
+
+| Setting | Value |
+|---------|-------|
+| Collection interval | default 5s (configurable via `collection_interval`) |
+| Cgroup mount | `/sys/fs/cgroup` (read-only) |
+| Containerd socket | `/run/containerd/containerd.sock` |
+| Kubelet socket mount | `/var/lib/kubelet` (HostToContainer propagation, needed for statfs) |
+| CPU request / limit | 20m / 50m |
+| Memory request / limit | 32Mi / 64Mi |
+
+Manifest at `dev/k8s/manifests/heimdall.yaml`; production equivalents live in the infra repo.
+
+## Production deployment
+
+Production heimdall ships via the `unkeyed/infra` repo's standard Helm + ArgoCD + promotions flow. Key components:
+
+- **Helm chart**: `eks-cluster/helm-chart/heimdall/` in the infra repo. Ports the dev manifest (hostNetwork/hostPID, six host mounts, CAP_SYS_ADMIN+BPF+NET_ADMIN, BPF map pin dir `/sys/fs/bpf/heimdall/v1`). Values pull `UNKEY_CLICKHOUSE_URL` from AWS Secrets Manager via an ExternalSecret.
+- **ArgoCD ApplicationSet**: `eks-cluster/argocd/heimdall.yaml`, sync-wave 2 (needs external-secrets from wave 1). Matrix generator: clusters × per-environment promotion files.
+- **Promotions**: `eks-cluster/promotions/{staging,production001}/heimdall.yaml`. Revision is pinned per environment. Use `./scripts/promote <env> heimdall <sha>` to advance.
+- **Prometheus alerts**: `eks-cluster/helm-chart/observability/templates/prometheus-alerts-heimdall.yaml` ships 7 warning-level alerts (DaemonSet health, no-checkpoints-while-alive, ticks skipped, BPF map near capacity, CRI reconnect storm, attach failures, informer cache unsynced). Promote to critical once thresholds are validated.
+- **ClickHouse user**: `heimdall` user granted `metering_writer_role` — see [users/heimdall](/infra/clickhouse/users/heimdall) and [roles/metering-writer-role](/infra/clickhouse/roles/metering-writer-role). SQL runs once per ClickHouse Cloud cluster.
+- **Secret source**: AWS Secrets Manager `unkey/heimdall` with key `UNKEY_CLICKHOUSE_URL`.
+
+Dashboard panels to build in Grafana: checkpoints written per node, collection duration p50/p95/p99, krane pods per node, BPF map depth vs 16384 cap, lifecycle drops by reason, CRI events by kind, network attach failures by reason.
+
+## Code map
+
+| File | What it does |
+|------|--------------|
+| `svc/heimdall/internal/collector/collect.go` | Periodic tick, walks billable pods, calls cgroup + statfs |
+| `svc/heimdall/internal/collector/cri_linux.go` | CRI event stream (start/stop) |
+| `svc/heimdall/internal/collector/cgroup_linux.go` | Reads `cpu.stat`, `memory.current`, etc. |
+| `svc/heimdall/internal/collector/volumefs_linux.go` | `statfs` on PVC mount points for `disk_used_bytes` |
+| `pkg/clock/monotonic_clock.go` | Monotone-anchored timestamp source |
+| `pkg/clickhouse/schema/025_instance_checkpoints_v1.sql` | Raw table |
+| `pkg/clickhouse/schema/027_instance_resources_per_minute_v1.sql` | Per-minute dashboard MV (similar files for 15s, hour) |
+| `web/internal/clickhouse/src/resources.ts` | Dashboard hybrid queries (single template, four metrics) |
+

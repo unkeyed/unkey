@@ -123,6 +123,47 @@ type BuildStepLogV1 struct {
 	Message      string `ch:"message" json:"message"`
 }
 
+// InstanceCheckpoint is a single counter reading for one container, written
+// by heimdall. Billing math is done at query time as max(counter)-min(counter)
+// over a window, which is monotone and idempotent on replay. We never store
+// rates, only raw counters.
+//
+// Retry safety: retries of the same write carry identical values in every
+// column, so ReplacingMergeTree's last-inserted-wins is correct regardless
+// of which copy survives.
+type InstanceCheckpoint struct {
+	NodeID        string `ch:"node_id" json:"node_id"`
+	WorkspaceID   string `ch:"workspace_id" json:"workspace_id"`
+	ProjectID     string `ch:"project_id" json:"project_id"`
+	EnvironmentID string `ch:"environment_id" json:"environment_id"`
+	ResourceType  string `ch:"resource_type" json:"resource_type"`
+	ResourceID    string `ch:"resource_id" json:"resource_id"`
+	PodUID        string `ch:"pod_uid" json:"pod_uid"`
+	InstanceID    string `ch:"instance_id" json:"instance_id"`
+	ContainerUID  string `ch:"container_uid" json:"container_uid"`
+	RestartCount  uint32 `ch:"restart_count" json:"restart_count"`
+	Ts            int64  `ch:"ts" json:"ts"`
+	EventKind     string `ch:"event_kind" json:"event_kind"`
+	CPUUsageUsec  int64  `ch:"cpu_usage_usec" json:"cpu_usage_usec"`
+	MemoryBytes   int64  `ch:"memory_bytes" json:"memory_bytes"`
+	// Allocated from pod spec. Observational (utilization%), not billed.
+	// Captured every tick so resize events appear as value changes over time.
+	CPUAllocatedMillicores int32 `ch:"cpu_allocated_millicores" json:"cpu_allocated_millicores"`
+	MemoryAllocatedBytes   int64 `ch:"memory_allocated_bytes" json:"memory_allocated_bytes"`
+	DiskAllocatedBytes     int64 `ch:"disk_allocated_bytes" json:"disk_allocated_bytes"`
+	DiskUsedBytes          int64 `ch:"disk_used_bytes" json:"disk_used_bytes"`
+	// Network byte counters, monotonic per container_uid. Reserved for a
+	// future eBPF cgroup_skb / Hubble flow aggregator. Currently always 0
+	// (the struct's zero value), which leaves billing unaffected because
+	// max-min over zeros is zero.
+	NetworkEgressPublicBytes   int64  `ch:"network_egress_public_bytes" json:"network_egress_public_bytes"`
+	NetworkEgressPrivateBytes  int64  `ch:"network_egress_private_bytes" json:"network_egress_private_bytes"`
+	NetworkIngressPublicBytes  int64  `ch:"network_ingress_public_bytes" json:"network_ingress_public_bytes"`
+	NetworkIngressPrivateBytes int64  `ch:"network_ingress_private_bytes" json:"network_ingress_private_bytes"`
+	Region                     string `ch:"region" json:"region"`
+	Platform                   string `ch:"platform" json:"platform"`
+}
+
 // SentinelRequest represents the v1 sentinel request raw table structure.
 // This tracks requests routed through sentinel proxy to deployment instances
 // with deployment routing, performance breakdown, and error categorization.
