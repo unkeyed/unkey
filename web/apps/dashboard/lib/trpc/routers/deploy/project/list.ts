@@ -61,7 +61,7 @@ export const listProjects = workspaceProcedure
           SELECT fr.fully_qualified_domain_name
           FROM ${frontlineRoutes} fr
           WHERE fr.project_id = ${projects.id}
-          ORDER BY fr.updated_at DESC
+          ORDER BY (fr.sticky = 'live') DESC, fr.updated_at DESC
           LIMIT 1
         ) as domain,
         (
