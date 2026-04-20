@@ -1,0 +1,199 @@
+name: unkey-dashboard-dev
+services:
+  mysql:
+    networks:
+      - default
+    container_name: mysql
+    build:
+      context: ../../../..
+      dockerfile: dev/Dockerfile.mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: unkey
+      MYSQL_USER: unkey
+      MYSQL_PASSWORD: password
+    command: ["--max_connections=1000", "--skip-log-bin"]
+    ports:
+      - 3306:3306
+    volumes:
+      - mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      timeout: 20s
+      retries: 10
+      start_period: 40s
+      interval: 10s
+
+  clickhouse:
+    networks:
+      - default
+    build:
+      context: ../../../..
+      dockerfile: dev/Dockerfile.clickhouse
+    container_name: clickhouse
+    environment:
+      CLICKHOUSE_ADMIN_USER: default
+      CLICKHOUSE_ADMIN_PASSWORD: password
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse:/bitnami/clickhouse
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "clickhouse-client",
+          "--host",
+          "localhost",
+          "--user",
+          "default",
+          "--password",
+          "password",
+          "--query",
+          "SELECT 1",
+        ]
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+      interval: 5s
+
+  redis:
+    networks:
+      - default
+    container_name: redis
+    image: redis:8.0
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+      interval: 5s
+
+  s3:
+    networks:
+      - default
+    container_name: s3
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
+    ports:
+      - 3902:3902
+      - 3903:3903
+    environment:
+      MINIO_ROOT_USER: minio_root_user
+      MINIO_ROOT_PASSWORD: minio_root_password
+      MINIO_API_PORT_NUMBER: 3902
+      MINIO_CONSOLE_PORT_NUMBER: 3903
+    volumes:
+      - s3:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3902/minio/health/live"]
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+      interval: 5s
+
+  vault:
+    networks:
+      - default
+    container_name: vault
+    image: unkey/unkey:latest
+    pull_policy: never
+    command: ["run", "vault", "--config", "/etc/unkey/vault.toml"]
+    ports:
+      - "8060:8060"
+    depends_on:
+      - s3
+    volumes:
+      - ./vault.toml:/etc/unkey/vault.toml:ro
+    healthcheck:
+      test: ["CMD", "/unkey", "healthcheck", "http://localhost:8060/health/live"]
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+      interval: 10s
+
+  restate:
+    networks:
+      - default
+    container_name: restate
+    image: docker.io/restatedev/restate:1.6.0
+    ports:
+      - "8081:8080"
+      - "9070:9070"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9070/health"]
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+      interval: 5s
+
+  ctrl-api:
+    networks:
+      - default
+    image: unkey/unkey:latest
+    pull_policy: never
+    container_name: ctrl-api
+    command: ["run", "ctrl", "api", "--config", "/etc/unkey/ctrl-api.toml"]
+    ports:
+      - "7091:7091"
+    depends_on:
+      - mysql
+      - s3
+      - restate
+      - clickhouse
+    volumes:
+      - ./ctrl-api.toml:/etc/unkey/ctrl-api.toml:ro
+
+  ctrl-worker:
+    networks:
+      - default
+    image: unkey/unkey:latest
+    pull_policy: never
+    container_name: ctrl-worker
+    command: ["run", "ctrl", "worker", "--config", "/etc/unkey/ctrl-worker.toml"]
+    ports:
+      - "9080:9080"
+    healthcheck:
+      test: ["CMD", "/unkey", "healthcheck", "http://localhost:9080/health/live"]
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+      interval: 5s
+    depends_on:
+      - mysql
+      - s3
+      - restate
+      - clickhouse
+      - vault
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./ctrl-worker.toml:/etc/unkey/ctrl-worker.toml:ro
+
+  api:
+    networks:
+      - default
+    container_name: api
+    image: unkey/unkey:latest
+    pull_policy: never
+    command: ["run", "api", "--config", "/etc/unkey/api.toml"]
+    ports:
+      - 7070:7070
+    depends_on:
+      - mysql
+      - redis
+      - clickhouse
+      - vault
+      - ctrl-api
+    volumes:
+      - ./api.toml:/etc/unkey/api.toml:ro
+
+volumes:
+  mysql:
+  clickhouse:
+  s3:
+
+networks:
+  default:

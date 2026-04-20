@@ -150,7 +150,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create GitHub client for deployment authorization (optional)
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
-	if cfg.GitHub.AppID != 0 && cfg.GitHub.PrivateKeyPEM != "" {
+	if cfg.GitHub != nil && cfg.GitHub.AppID != 0 && cfg.GitHub.PrivateKeyPEM != "" {
 		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
 			AppID:         cfg.GitHub.AppID,
 			PrivateKeyPEM: cfg.GitHub.PrivateKeyPEM,
@@ -220,7 +220,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Bearer:     cfg.AuthToken,
 	})))
 
-	if cfg.GitHub.WebhookSecret != "" {
+	if cfg.GitHub != nil && cfg.GitHub.WebhookSecret != "" {
 		mux.Handle("POST /webhooks/github", &GitHubWebhook{
 			restate:       restateClient,
 			webhookSecret: cfg.GitHub.WebhookSecret,

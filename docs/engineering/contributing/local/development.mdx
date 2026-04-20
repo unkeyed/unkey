@@ -65,6 +65,22 @@ You get:
 - Various services port-forwarded
 - Dashboard at `http://localhost:3000`
 
+### Dashboard-only development
+
+If you are iterating on the dashboard and do not need the full Kubernetes stack, `make dashboard` is a lighter alternative. It runs the backend services in Docker via `docker compose` and then starts the Next.js dev server with hot reload. It does not require Tilt, minikube, or ctlptl.
+
+Before the first run, make sure dependencies are installed:
+
+```bash
+make install
+```
+
+Then start the dashboard dev environment:
+
+```bash
+make dashboard
+```
+
 ## Local HTTPS with Frontline (optional)
 
 Set up local TLS for `*.unkey.local`:

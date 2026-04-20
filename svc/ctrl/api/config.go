@@ -103,8 +103,10 @@ type Config struct {
 	// Restate configures workflow engine integration. See [RestateConfig].
 	Restate RestateConfig `toml:"restate"`
 
-	// GitHub configures GitHub App webhook integration. See [GitHubConfig].
-	GitHub GitHubConfig `toml:"github"`
+	// GitHub configures GitHub App webhook integration. Optional; when absent,
+	// deployment authorization runs with a noop client and the /webhooks/github
+	// handler is not registered. See [GitHubConfig].
+	GitHub *GitHubConfig `toml:"github"`
 
 	// DomainConnect configures the Domain Connect protocol for one-click DNS setup.
 	// See [DomainConnectConfig].
