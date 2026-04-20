@@ -33,6 +33,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
 	"github.com/unkeyed/unkey/svc/ctrl/services/project"
+	"github.com/unkeyed/unkey/svc/ctrl/services/sentinel"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -218,6 +219,11 @@ func Run(ctx context.Context, cfg Config) error {
 		Restate:    restateClient,
 		AppService: appSvc,
 		Bearer:     cfg.AuthToken,
+	})))
+	mux.Handle(ctrlv1connect.NewSentinelServiceHandler(sentinel.New(sentinel.Config{
+		Database: database,
+		Restate:  restateClient,
+		Bearer:   cfg.AuthToken,
 	})))
 
 	if cfg.GitHub.WebhookSecret != "" {

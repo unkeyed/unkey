@@ -36,6 +36,7 @@ go_library(
         "//svc/ctrl/services/deployment",
         "//svc/ctrl/services/openapi",
         "//svc/ctrl/services/project",
+        "//svc/ctrl/services/sentinel",
         "//svc/ctrl/worker/github",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_prometheus_client_golang//prometheus/collectors",

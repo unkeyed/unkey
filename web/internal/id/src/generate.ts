@@ -18,6 +18,7 @@ const prefixes = {
   secret: "sec",
   headerRewrite: "hrw",
   sentinel: "gw",
+  sentinelSubscription: "sub",
   llmSentinel: "lgw",
   webhook: "wh",
   event: "evt",

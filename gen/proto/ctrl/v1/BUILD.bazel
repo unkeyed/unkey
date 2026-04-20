@@ -13,6 +13,7 @@ go_library(
         "openapi.pb.go",
         "project.pb.go",
         "secrets.pb.go",
+        "sentinel.pb.go",
         "service.pb.go",
     ],
     importpath = "github.com/unkeyed/unkey/gen/proto/ctrl/v1",

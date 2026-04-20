@@ -198,7 +198,12 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Restate Server - uses logging.GetHandler() for slog integration
+	// Restate Server - uses logging.GetHandler() for slog integration.
+	// sdk-go v0.24+ skips journal byte-checks for any codec implementing
+	// encoding.NonDeterministicSerializer; ProtoJSONCodec sets that to
+	// true out of the box, which sidesteps protojson's detrand whitespace
+	// quirk that otherwise trips journal-mismatch checks on resumed
+	// workflows after a deploy. See restatedev/sdk-go#116 / #122.
 	restateSrv := restateServer.NewRestate().WithLogger(logger.GetHandler(), false)
 
 	// Shared Restate admin client used both for service registration and

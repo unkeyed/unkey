@@ -1,7 +1,10 @@
 package environment
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -27,7 +30,7 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.DeleteSentinelsByEnvironmentId(runCtx, s.db.RW(), envID)
+		return s.terminateSubscriptionsAndDeleteSentinels(runCtx, envID)
 	}, restate.WithName("delete sentinels")); err != nil {
 		return nil, fmt.Errorf("delete sentinels: %w", err)
 	}
@@ -95,4 +98,29 @@ func (s *Service) Delete(
 	logger.Info("environment deletion complete", "environment_id", envID)
 
 	return &hydrav1.DeleteEnvironmentResponse{}, nil
+}
+
+// terminateSubscriptionsAndDeleteSentinels closes every open billing
+// subscription for sentinels in this environment, then hard-deletes the
+// sentinel rows. Terminating first is required so the subscription
+// interval log has a clean `terminated_at` at the moment of deletion —
+// otherwise billing would read the open row as "still running forever."
+//
+// Krane learns about the deletion via its 60s desired-state resync loop:
+// `GetDesiredSentinelState` returns CodeNotFound for the deleted sentinel,
+// and krane tears down the k8s Deployment. No incremental-watch Delete
+// event is emitted because `deployment_changes` doesn't carry enough info
+// for the watch handler to resolve a hard-deleted resource (a follow-up
+// PR adds `op` + `k8s_name` + `k8s_namespace` columns to close that gap
+// for all resource types).
+func (s *Service) terminateSubscriptionsAndDeleteSentinels(ctx context.Context, envID string) error {
+	return db.Tx(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		if err := db.Query.TerminateOpenSentinelSubscriptionsByEnvironment(txCtx, tx, db.TerminateOpenSentinelSubscriptionsByEnvironmentParams{
+			TerminatedAt:  sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			EnvironmentID: envID,
+		}); err != nil {
+			return fmt.Errorf("terminate sentinel subscriptions: %w", err)
+		}
+		return db.Query.DeleteSentinelsByEnvironmentId(txCtx, tx, envID)
+	})
 }
