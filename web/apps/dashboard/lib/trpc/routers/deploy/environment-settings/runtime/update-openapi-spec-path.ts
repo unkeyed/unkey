@@ -8,7 +8,14 @@ export const updateOpenapiSpecPath = workspaceProcedure
   .input(
     z.object({
       environmentId: z.string(),
-      openapiSpecPath: z.string().max(512).nullable(),
+      openapiSpecPath: z
+        .string()
+        .max(512)
+        .refine(
+          (value) => value.startsWith("/") && !value.startsWith("//"),
+          "OpenAPI spec path must start with a single '/'",
+        )
+        .nullable(),
     }),
   )
   .mutation(async ({ ctx, input }) => {

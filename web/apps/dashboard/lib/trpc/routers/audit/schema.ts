@@ -96,7 +96,7 @@ export const auditQueryLogsParamsSchema = z.object({
       }),
     )
     .nullable(),
-  cursor: z.int().nullable().optional(),
+  page: z.int().min(1).optional(),
 });
 
 export type AuditQueryLogsParams = z.infer<typeof auditQueryLogsParamsSchema>;

@@ -36,6 +36,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
@@ -200,6 +201,13 @@ func Run(ctx context.Context, cfg Config) error {
 	// Restate Server - uses logging.GetHandler() for slog integration
 	restateSrv := restateServer.NewRestate().WithLogger(logger.GetHandler(), false)
 
+	// Shared Restate admin client used both for service registration and
+	// for in-flight invocation cancellation (e.g. superseded sibling cleanup).
+	restateAdminClient := restateadmin.New(restateadmin.Config{
+		BaseURL: cfg.Restate.AdminURL,
+		APIKey:  cfg.Restate.APIKey,
+	})
+
 	buildPlatform, err := cfg.GetBuildPlatform()
 	if err != nil {
 		return fmt.Errorf("invalid build platform: %w", err)
@@ -221,12 +229,17 @@ func Run(ctx context.Context, cfg Config) error {
 		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 	}),
-		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~24 hours total
+		// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
+		// 15 attempts (~5 min total). Short backoffs keep the worst-case
+		// cancel latency low — a user-initiated cancel only lands at the
+		// next attempt boundary, so longer intervals make cancels feel
+		// stuck. 5 minutes total is enough for transient blips; persistent
+		// failures should surface fast rather than retry for half an hour.
 		restate.WithInvocationRetryPolicy(
-			restate.WithInitialInterval(1*time.Minute),
+			restate.WithInitialInterval(2*time.Second),
 			restate.WithExponentiationFactor(2.0),
-			restate.WithMaxInterval(10*time.Minute),
-			restate.WithMaxAttempts(150),
+			restate.WithMaxInterval(30*time.Second),
+			restate.WithMaxAttempts(15),
 			restate.KillOnMaxAttempts(),
 		),
 	))
@@ -262,6 +275,7 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewGitHubWebhookServiceServer(githubwebhook.New(githubwebhook.Config{
 		DB:                              database,
 		GitHub:                          ghClient,
+		RestateAdmin:                    restateAdminClient,
 		DashboardURL:                    cfg.DashboardURL,
 		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
 	})))
@@ -275,6 +289,17 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewEnvironmentServiceServer(workerenvironment.New(workerenvironment.Config{
 		DB: database,
 	})))
+
+	// BuildSlotService is short-lived coordination — AcquireOrWait/Release
+	// journals have no debugging value (each invocation just reads state,
+	// maybe resolves an awakeable, and returns), so keep their retention
+	// minimal.
+	restateSrv.Bind(hydrav1.NewBuildSlotServiceServer(buildslot.New(buildslot.Config{
+		DB: database,
+	}),
+		restate.WithIngressPrivate(true),
+		restate.WithJournalRetention(1*time.Minute),
+	))
 
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
 		DB:          database,
@@ -295,7 +320,8 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 
 	restateSrv.Bind(hydrav1.NewSentinelRolloutServiceServer(workersentinel.NewRolloutService(workersentinel.RolloutConfig{
-		DB: database,
+		DB:              database,
+		SlackWebhookURL: cfg.Slack.SentinelRolloutWebhookURL,
 	})))
 
 	// Initialize domain cache for ACME providers
@@ -496,20 +522,15 @@ func Run(ctx context.Context, cfg Config) error {
 	// Register with Restate admin API (only if RegisterAs is configured)
 	// In k8s environments, registration is handled externally
 	if cfg.Restate.RegisterAs != "" {
-		adminClient := restateadmin.New(restateadmin.Config{
-			BaseURL: cfg.Restate.AdminURL,
-			APIKey:  cfg.Restate.APIKey,
-		})
 		r.Go(func(ctx context.Context) error {
 			logger.Info("Registering with Restate", "service_uri", cfg.Restate.RegisterAs)
-			if err := adminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs, true); err != nil {
+			if err := restateAdminClient.RegisterDeployment(ctx, cfg.Restate.RegisterAs, true); err != nil {
 				logger.Error("failed to register with Restate", "error", err)
 				return err
 			}
 			logger.Info("Successfully registered with Restate")
 			return nil
 		})
-
 	} else {
 		logger.Info("Skipping Restate registration (restate-register-as not configured)")
 	}

@@ -97,7 +97,7 @@ export const Dockerfile = () => {
     >
       <SettingField>
         <FormCombobox
-          required
+          requirement="required"
           label="Dockerfile"
           description={
             warningMessage ??

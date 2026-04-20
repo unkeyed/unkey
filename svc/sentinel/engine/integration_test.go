@@ -27,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/sentinel/engine"
+	"github.com/unkeyed/unkey/svc/sentinel/engine/principal"
 )
 
 // testHarness holds all real services needed for integration tests.
@@ -110,10 +111,12 @@ func newTestHarness(t *testing.T) *testHarness {
 	})
 	require.NoError(t, err)
 
-	eng := engine.New(engine.Config{
-		KeyService: keyService,
-		Clock:      clk,
+	eng, err := engine.New(engine.Config{
+		KeyService:  keyService,
+		RateLimiter: rateLimiter,
+		Clock:       clk,
 	})
+	require.NoError(t, err)
 
 	return &testHarness{
 		t:          t,
@@ -297,6 +300,40 @@ func newSession(t *testing.T, req *http.Request) *zen.Session {
 	return sess
 }
 
+func newSessionWithRecorder(t *testing.T, req *http.Request) (*zen.Session, *httptest.ResponseRecorder) {
+	t.Helper()
+	w := httptest.NewRecorder()
+	//nolint:exhaustruct
+	sess := &zen.Session{}
+	err := sess.Init(w, req, 0)
+	require.NoError(t, err)
+	return sess, w
+}
+
+func keyAuthPolicy(id string, keySpaceIDs []string) *sentinelv1.Policy {
+	return &sentinelv1.Policy{
+		Id:      id,
+		Enabled: true,
+		Config: &sentinelv1.Policy_Keyauth{
+			Keyauth: &sentinelv1.KeyAuth{KeySpaceIds: keySpaceIDs},
+		},
+	}
+}
+
+func rateLimitPolicy(id string, limit int64, windowMs int64, identifier *sentinelv1.RateLimitIdentifier) *sentinelv1.Policy {
+	return &sentinelv1.Policy{
+		Id:      id,
+		Enabled: true,
+		Config: &sentinelv1.Policy_Ratelimit{
+			Ratelimit: &sentinelv1.RateLimit{
+				Limit:      limit,
+				WindowMs:   windowMs,
+				Identifier: identifier,
+			},
+		},
+	}
+}
+
 // --- KeyAuth integration tests ---
 
 func TestKeyAuth_ValidKey(t *testing.T) {
@@ -323,10 +360,10 @@ func TestKeyAuth_ValidKey(t *testing.T) {
 	require.NotNil(t, result.Principal)
 
 	// Subject falls back to key ID when no external ID is set
-	require.Equal(t, engine.PrincipalVersion, result.Principal.Version)
+	require.Equal(t, principal.PrincipalVersion, result.Principal.Version)
 	require.Equal(t, "v1", result.Principal.Version)
 	require.Equal(t, s.KeyID, result.Principal.Subject)
-	require.Equal(t, engine.PrincipalTypeAPIKey, result.Principal.Type)
+	require.Equal(t, principal.PrincipalTypeAPIKey, result.Principal.Type)
 	require.Nil(t, result.Principal.Identity)
 
 	key := result.Principal.Source.Key
@@ -595,6 +632,148 @@ func TestEvaluate_MatchFiltering(t *testing.T) {
 	result, err := h.engine.Evaluate(ctx, sess, req, policies)
 	require.NoError(t, err)
 	require.Nil(t, result.Principal)
+}
+
+// --- RateLimit integration tests ---
+
+func TestRateLimit_RemoteIP(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	policies := []*sentinelv1.Policy{
+		rateLimitPolicy("rl", 2, 60000, &sentinelv1.RateLimitIdentifier{
+			Source: &sentinelv1.RateLimitIdentifier_RemoteIp{
+				RemoteIp: &sentinelv1.RemoteIpKey{},
+			},
+		}),
+	}
+
+	for range 2 {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		sess, w := newSessionWithRecorder(t, req)
+		_, err := h.engine.Evaluate(ctx, sess, req, policies)
+		require.NoError(t, err)
+		require.Equal(t, "2", w.Header().Get("X-RateLimit-Limit"))
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	sess, w := newSessionWithRecorder(t, req)
+	_, err := h.engine.Evaluate(ctx, sess, req, policies)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "rate limited")
+	require.NotEmpty(t, w.Header().Get("Retry-After"))
+}
+
+func TestRateLimit_AuthenticatedSubject(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s1 := h.seed(ctx)
+	s2 := h.seed(ctx)
+
+	policies := []*sentinelv1.Policy{
+		keyAuthPolicy("auth", []string{s1.KeySpaceID, s2.KeySpaceID}),
+		rateLimitPolicy("rl", 1, 60000, &sentinelv1.RateLimitIdentifier{
+			Source: &sentinelv1.RateLimitIdentifier_AuthenticatedSubject{
+				AuthenticatedSubject: &sentinelv1.AuthenticatedSubjectKey{},
+			},
+		}),
+	}
+
+	t.Run("first request allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s1.RawKey)
+		sess, w := newSessionWithRecorder(t, req)
+		result, err := h.engine.Evaluate(ctx, sess, req, policies)
+		require.NoError(t, err)
+		require.NotNil(t, result.Principal)
+		require.Equal(t, "1", w.Header().Get("X-RateLimit-Limit"))
+		require.Equal(t, "0", w.Header().Get("X-RateLimit-Remaining"))
+	})
+
+	t.Run("same key rate limited on second request", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s1.RawKey)
+		sess, _ := newSessionWithRecorder(t, req)
+		_, err := h.engine.Evaluate(ctx, sess, req, policies)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "rate limited")
+	})
+
+	t.Run("different key has separate bucket", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s2.RawKey)
+		sess, _ := newSessionWithRecorder(t, req)
+		result, err := h.engine.Evaluate(ctx, sess, req, policies)
+		require.NoError(t, err)
+		require.NotNil(t, result.Principal)
+	})
+}
+
+func TestRateLimit_PrincipalField(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+	s1 := h.seed(ctx)
+	s2 := h.seed(ctx)
+
+	// s1 and s2 are distinct keys with unique subjects, so rate limiting by
+	// the principal subject field gives them independent buckets.
+	policies := []*sentinelv1.Policy{
+		keyAuthPolicy("auth", []string{s1.KeySpaceID, s2.KeySpaceID}),
+		rateLimitPolicy("rl", 1, 60000, &sentinelv1.RateLimitIdentifier{
+			Source: &sentinelv1.RateLimitIdentifier_PrincipalField{
+				PrincipalField: &sentinelv1.PrincipalFieldKey{Path: "subject"},
+			},
+		}),
+	}
+
+	t.Run("first request allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s1.RawKey)
+		sess, w := newSessionWithRecorder(t, req)
+		result, err := h.engine.Evaluate(ctx, sess, req, policies)
+		require.NoError(t, err)
+		require.NotNil(t, result.Principal)
+		require.Equal(t, "1", w.Header().Get("X-RateLimit-Limit"))
+	})
+
+	t.Run("same workspace exceeds limit", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s1.RawKey)
+		sess, _ := newSessionWithRecorder(t, req)
+		_, err := h.engine.Evaluate(ctx, sess, req, policies)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "rate limited")
+	})
+
+	t.Run("different workspace has separate bucket", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+s2.RawKey)
+		sess, _ := newSessionWithRecorder(t, req)
+		result, err := h.engine.Evaluate(ctx, sess, req, policies)
+		require.NoError(t, err)
+		require.NotNil(t, result.Principal)
+	})
+}
+
+func TestRateLimit_NoPrincipal(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	// RateLimit with AuthenticatedSubjectKey but no prior auth policy — identifier
+	// resolves to empty string, which the executor rejects.
+	policies := []*sentinelv1.Policy{
+		rateLimitPolicy("rl", 10, 60000, &sentinelv1.RateLimitIdentifier{
+			Source: &sentinelv1.RateLimitIdentifier_AuthenticatedSubject{
+				AuthenticatedSubject: &sentinelv1.AuthenticatedSubjectKey{},
+			},
+		}),
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	sess, _ := newSessionWithRecorder(t, req)
+	_, err := h.engine.Evaluate(ctx, sess, req, policies)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "missing rate limit identifier")
 }
 
 // --- Firewall integration tests ---

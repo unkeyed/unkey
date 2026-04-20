@@ -2,7 +2,11 @@
 
 import { cn } from "@/lib/utils";
 import { CopyButton } from "@unkey/ui";
-import { FormDescription, FormLabel } from "@unkey/ui/src/components/form/form-helpers";
+import {
+  FormDescription,
+  FormLabel,
+  type Requirement,
+} from "@unkey/ui/src/components/form/form-helpers";
 import * as React from "react";
 import { Combobox } from "./combobox";
 
@@ -17,17 +21,13 @@ export type DocumentedFormComboboxProps = {
    */
   description?: string | React.ReactNode;
   /**
-   * Whether the field is required
-   */
-  required?: boolean;
-  /**
-   * Whether the field is optional (displays optional tag)
-   */
-  optional?: boolean;
-  /**
    * Error message to display
    */
   error?: string;
+  /**
+   * Whether the field is required or optional
+   */
+  requirement?: Requirement;
   /**
    * Whether to show indicator for loading
    */
@@ -57,8 +57,7 @@ export const FormCombobox = React.forwardRef<HTMLDivElement, FormComboboxProps>(
       label,
       description,
       error,
-      required,
-      optional,
+      requirement,
       className,
       wrapperClassName,
       variant,
@@ -80,8 +79,7 @@ export const FormCombobox = React.forwardRef<HTMLDivElement, FormComboboxProps>(
       <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
         <FormLabel
           label={label}
-          required={required}
-          optional={optional}
+          requirement={requirement}
           hasError={!!error}
           htmlFor={inputId}
           tooltipContent={descriptionAsTooltip ? description : undefined}
@@ -93,7 +91,7 @@ export const FormCombobox = React.forwardRef<HTMLDivElement, FormComboboxProps>(
             wrapperClassName={wrapperClassName}
             aria-describedby={error ? errorId : description ? descriptionId : undefined}
             aria-invalid={!!error}
-            aria-required={required}
+            aria-required={requirement === "required"}
             {...props}
           />
           {copyValue && (
