@@ -1,13 +1,13 @@
 "use client";
 
+import { DeleteIdentityDialog } from "@/app/(app)/[workspaceSlug]/identities/_components/dialogs/delete-identity-dialog";
+import { EditRatelimitDialog } from "@/app/(app)/[workspaceSlug]/identities/_components/dialogs/edit-ratelimit-dialog";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { Clone, Code, Gauge, Trash } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import type { z } from "zod";
-import { DeleteIdentityDialog } from "../dialogs/delete-identity-dialog";
-import { EditRatelimitDialog } from "../dialogs/edit-ratelimit-dialog";
 import { EditMetadataDialog } from "./edit-metadata-dialog";
 
 type Identity = z.infer<typeof IdentityResponseSchema>;
