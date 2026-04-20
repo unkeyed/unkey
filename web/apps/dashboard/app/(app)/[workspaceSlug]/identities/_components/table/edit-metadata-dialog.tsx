@@ -60,8 +60,8 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
     onSuccess: () => {
       toast.success("Metadata updated successfully");
       // Invalidate queries to refresh the data
-      utils.identity.query.invalidate();
-      utils.identity.getById.invalidate();
+      utils.identity.query.invalidate(undefined, { refetchType: "all" });
+      utils.identity.getById.invalidate(undefined, { refetchType: "all" });
       onOpenChange(false);
     },
     onError: (error) => {

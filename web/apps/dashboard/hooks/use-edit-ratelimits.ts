@@ -92,7 +92,8 @@ export function useEditRatelimits(entityType: EntityType, onSuccess?: () => void
         duration: 5000,
       });
 
-      trpcUtils.identity.query.invalidate();
+      trpcUtils.identity.query.invalidate(undefined, { refetchType: "all" });
+      trpcUtils.identity.getById.invalidate(undefined, { refetchType: "all" });
       if (onSuccess) {
         onSuccess();
       }

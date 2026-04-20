@@ -1,9 +1,11 @@
 "use client";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { trpc } from "@/lib/trpc/client";
 import { Fingerprint } from "@unkey/icons";
 
 import type { JSX } from "react";
+import { IdentitySettings } from "./components/identity-settings";
 
 type NavigationProps = {
   readonly identityId: string;
@@ -11,6 +13,7 @@ type NavigationProps = {
 
 export function Navigation({ identityId }: NavigationProps): JSX.Element {
   const workspace = useWorkspaceNavigation();
+  const { data: identity } = trpc.identity.getById.useQuery({ identityId });
 
   return (
     <Navbar>
@@ -26,6 +29,11 @@ export function Navigation({ identityId }: NavigationProps): JSX.Element {
           {identityId}
         </Navbar.Breadcrumbs.Link>
       </Navbar.Breadcrumbs>
+      {identity ? (
+        <Navbar.Actions>
+          <IdentitySettings identity={identity} />
+        </Navbar.Actions>
+      ) : null}
     </Navbar>
   );
 }

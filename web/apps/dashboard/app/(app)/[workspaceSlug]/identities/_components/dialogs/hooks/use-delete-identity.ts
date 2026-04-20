@@ -5,15 +5,17 @@ export const useDeleteIdentity = (onSuccess: () => void) => {
   const trpcUtils = trpc.useUtils();
 
   const deleteIdentity = trpc.identity.delete.useMutation({
-    onSuccess() {
+    async onSuccess() {
       toast.success("Identity Deleted", {
         description:
           "The identity has been permanently deleted and can no longer be used for verification.",
       });
 
-      trpcUtils.identity.query.invalidate();
-      trpcUtils.identity.search.invalidate();
-      trpcUtils.identity.searchWithRelations.invalidate();
+      await Promise.all([
+        trpcUtils.identity.query.invalidate(undefined, { refetchType: "all" }),
+        trpcUtils.identity.search.invalidate(undefined, { refetchType: "all" }),
+        trpcUtils.identity.searchWithRelations.invalidate(undefined, { refetchType: "all" }),
+      ]);
 
       onSuccess();
     },
