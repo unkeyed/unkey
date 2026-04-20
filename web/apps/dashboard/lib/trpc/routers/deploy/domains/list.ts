@@ -1,8 +1,7 @@
-import { db } from "@/lib/db";
+import { and, db, desc, eq } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { frontlineRoutes, projects } from "@unkey/db/src/schema";
-import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 export const listDomains = workspaceProcedure
