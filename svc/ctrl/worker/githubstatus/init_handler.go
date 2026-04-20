@@ -8,6 +8,12 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
+)
+
+const (
+	workflowGitHubStatusInit   = "github_status_init"
+	workflowGitHubStatusReport = "github_status_report"
 )
 
 // Restate K/V state keys.
@@ -20,7 +26,9 @@ const (
 
 // Init creates the GitHub deployment and PR comment, persisting their IDs in
 // Restate state. It is called once per deployment, after the build step.
-func (s *Service) Init(ctx restate.ObjectContext, req *hydrav1.GitHubStatusInitRequest) (*hydrav1.GitHubStatusInitResponse, error) {
+func (s *Service) Init(ctx restate.ObjectContext, req *hydrav1.GitHubStatusInitRequest) (resp *hydrav1.GitHubStatusInitResponse, retErr error) {
+	defer observability.RunTimer(workflowGitHubStatusInit, &retErr)()
+
 	if req.GetInstallationId() == 0 || req.GetRepo() == "" {
 		return &hydrav1.GitHubStatusInitResponse{}, nil
 	}

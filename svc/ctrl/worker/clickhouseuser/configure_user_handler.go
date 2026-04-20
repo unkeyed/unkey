@@ -13,7 +13,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
 )
+
+const workflowClickhouseUserConfigure = "clickhouse_user_configure"
 
 const (
 	// defaultQuotaDurationSeconds defines the quota window used for rate limits.
@@ -59,7 +62,9 @@ type quotaSettings struct {
 func (s *Service) ConfigureUser(
 	ctx restate.ObjectContext,
 	req *hydrav1.ConfigureUserRequest,
-) (*hydrav1.ConfigureUserResponse, error) {
+) (resp *hydrav1.ConfigureUserResponse, retErr error) {
+	defer observability.RunTimer(workflowClickhouseUserConfigure, &retErr)()
+
 	workspaceID := restate.Key(ctx)
 	logger.Info("configuring clickhouse user", "workspace_id", workspaceID)
 

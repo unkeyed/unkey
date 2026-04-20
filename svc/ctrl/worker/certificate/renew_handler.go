@@ -8,7 +8,10 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
 )
+
+const workflowAcmeRenew = "acme_renew_expiring"
 
 // RenewExpiringCertificates renews certificates before they expire.
 //
@@ -22,7 +25,9 @@ import (
 func (s *Service) RenewExpiringCertificates(
 	ctx restate.ObjectContext,
 	req *hydrav1.RenewExpiringCertificatesRequest,
-) (*hydrav1.RenewExpiringCertificatesResponse, error) {
+) (resp *hydrav1.RenewExpiringCertificatesResponse, retErr error) {
+	defer observability.RunTimer(workflowAcmeRenew, &retErr)()
+
 	logger.Info("starting certificate renewal check")
 
 	challengeTypes := []db.AcmeChallengesChallengeType{

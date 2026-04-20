@@ -9,6 +9,12 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
+)
+
+const (
+	workflowDeploymentSchedule = "deployment_schedule_state_change"
+	workflowDeploymentChange   = "deployment_change_desired_state"
 )
 
 const transitionKey = "transition"
@@ -26,7 +32,9 @@ type transition struct {
 // state, and sends a delayed ChangeDesiredState call to itself. If called again
 // before the delay elapses, the new nonce overwrites the old one, causing the
 // previous delayed call to no-op on nonce mismatch.
-func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, req *hydrav1.ScheduleDesiredStateChangeRequest) (*hydrav1.ScheduleDesiredStateChangeResponse, error) {
+func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, req *hydrav1.ScheduleDesiredStateChangeRequest) (resp *hydrav1.ScheduleDesiredStateChangeResponse, retErr error) {
+	defer observability.RunTimer(workflowDeploymentSchedule, &retErr)()
+
 	nonce := restate.UUID(ctx).String()
 
 	t := transition{
@@ -58,7 +66,9 @@ func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, re
 // without making any changes. On match, it maps the protobuf state enum to the
 // database representation, updates the deployment's desired state and all
 // topology entries, and clears the stored transition.
-func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydrav1.ChangeDesiredStateRequest) (*hydrav1.ChangeDesiredStateResponse, error) {
+func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydrav1.ChangeDesiredStateRequest) (resp *hydrav1.ChangeDesiredStateResponse, retErr error) {
+	defer observability.RunTimer(workflowDeploymentChange, &retErr)()
+
 	deploymentID := restate.Key(ctx)
 
 	t, err := restate.Get[*transition](ctx, transitionKey)
