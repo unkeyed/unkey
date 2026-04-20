@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, CircleInfo, DoubleChevronRight } from "@unkey/icons";
-import { InfoTooltip, SlidePanel } from "@unkey/ui";
+import { Button, InfoTooltip, SlidePanel } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import {
   Children,
@@ -30,6 +30,7 @@ type PolicyFormRootProps<T extends FieldValues> = {
   form: UseFormReturn<T>;
   onSubmit: (values: T) => void;
   onInvalid?: (errors: FieldErrors<T>) => void;
+  leadingAction?: ReactNode;
   children: ReactNode;
 };
 
@@ -50,6 +51,7 @@ function PolicyFormRoot<T extends FieldValues>({
   form,
   onSubmit,
   onInvalid,
+  leadingAction,
   children,
 }: PolicyFormRootProps<T>) {
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -108,20 +110,27 @@ function PolicyFormRoot<T extends FieldValues>({
 
   return (
     <SlidePanel.Root isOpen={isOpen} onClose={onClose} topOffset={topOffset}>
-      <SlidePanel.Header>
-        <div className="flex flex-col">
-          <span className="text-gray-12 font-medium text-base leading-8">{title}</span>
-          <span className="text-gray-11 text-[13px] leading-5">{description}</span>
+      <SlidePanel.Header className="items-center">
+        <div className="flex items-center gap-2 min-w-0">
+          {leadingAction}
+          <div className="flex flex-col min-w-0">
+            <span className="text-gray-12 font-medium text-base leading-8">{title}</span>
+            <span className="text-gray-11 text-[13px] leading-5">{description}</span>
+          </div>
         </div>
-        <SlidePanel.Close
-          aria-label="Close panel"
-          className="mt-0.5 inline-flex items-center justify-center size-9 rounded-md hover:bg-grayA-3 transition-colors cursor-pointer"
-        >
-          <DoubleChevronRight
-            iconSize="lg-medium"
-            className="text-gray-10 transition-transform duration-300 ease-out group-hover:text-gray-12"
-          />
-        </SlidePanel.Close>
+        <InfoTooltip content="Close panel" asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="md"
+            shape="square"
+            aria-label="Close panel"
+            onClick={onClose}
+            className="shrink-0"
+          >
+            <DoubleChevronRight iconSize="sm-regular" className="text-gray-10" />
+          </Button>
+        </InfoTooltip>
       </SlidePanel.Header>
 
       <SlidePanel.Content>

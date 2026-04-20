@@ -69,6 +69,13 @@ export default function SentinelPoliciesPage() {
     }
   };
 
+  const handleAddPanelQuit = (values: PolicyFormValues) => {
+    if (addOpenedFromAi && addAiPreviewIndex !== null) {
+      const idx = addAiPreviewIndex;
+      setAiPreview((prev) => prev.map((p, i) => (i === idx ? values : p)));
+    }
+  };
+
   const handleAddPanelSave = (
     prodPolicy: Parameters<typeof save>[0],
     previewPolicy: Parameters<typeof save>[1],
@@ -137,12 +144,14 @@ export default function SentinelPoliciesPage() {
         <SentinelPolicyPanel
           mode="add"
           initialValues={panels.addInitialValues ?? undefined}
+          openedFromAi={addOpenedFromAi}
           envASlug={envASlug}
           envBSlug={envBSlug}
           isOpen={panels.isAddPanelOpen}
           topOffset={layout?.tableDistanceToTop ?? 0}
           onClose={closeAdd}
           onDismiss={handleAddPanelDismiss}
+          onQuit={handleAddPanelQuit}
           onSave={handleAddPanelSave}
         />
         {panels.editing !== null && (

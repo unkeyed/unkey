@@ -2,8 +2,9 @@
 
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DoubleChevronLeft } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Button, FormInput, FormSelect } from "@unkey/ui";
+import { Button, FormInput, FormSelect, InfoTooltip } from "@unkey/ui";
 import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
@@ -38,8 +39,13 @@ type CommonProps = {
 type AddProps = CommonProps & {
   mode: "add";
   initialValues?: PolicyFormValues;
+  openedFromAi?: boolean;
   onSave: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
+  // Back-to-draft: fold edits into the preview row and reopen the AI panel.
   onDismiss?: (values: PolicyFormValues) => void;
+  // Quit: fold edits into the preview row but leave the AI panel closed.
+  // Draft is preserved in state either way.
+  onQuit?: (values: PolicyFormValues) => void;
 };
 
 type EditProps = CommonProps & {
@@ -87,11 +93,23 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
     }
   }, [initialValues, form]);
 
-  const handleClose = () => {
-    // Hand current form values back on dismiss so the caller (AI flow) can
-    // fold in-progress edits into its preview row before reopening.
+  const openedFromAi = props.mode === "add" && props.openedFromAi === true;
+
+  // Left chevron: return to the AI draft list. Folds edits back and reopens
+  // the AI panel via onDismiss.
+  const handleBack = () => {
     if (props.mode === "add" && props.onDismiss) {
       props.onDismiss(form.getValues());
+    }
+    props.onClose();
+  };
+
+  // Right chevron / ESC / overlay: close the add panel without returning to
+  // the draft list. Edits are still folded into the preview so the draft is
+  // preserved if the user reopens the AI panel later.
+  const handleClose = () => {
+    if (props.mode === "add" && props.onQuit) {
+      props.onQuit(form.getValues());
     }
     props.onClose();
   };
@@ -128,6 +146,23 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       onClose={handleClose}
       form={form}
       onSubmit={onSubmit}
+      leadingAction={
+        openedFromAi ? (
+          <InfoTooltip content="Back to draft" asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="md"
+              shape="square"
+              aria-label="Back to draft"
+              onClick={handleBack}
+              className="shrink-0"
+            >
+              <DoubleChevronLeft iconSize="sm-regular" className="text-gray-10" />
+            </Button>
+          </InfoTooltip>
+        ) : undefined
+      }
     >
       <PolicyForm.Fields>
         <Controller
