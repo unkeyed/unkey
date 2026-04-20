@@ -13,8 +13,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
+
+const workflowKeyRefill = "key_refill"
 
 const stateKeyProcessedKeys = "processed_keys"
 
@@ -27,7 +30,9 @@ const batchSize = 100
 func (s *Service) RunRefill(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunRefillRequest,
-) (*hydrav1.RunRefillResponse, error) {
+) (resp *hydrav1.RunRefillResponse, retErr error) {
+	defer observability.RunTimer(workflowKeyRefill, &retErr)()
+
 	dateKey := restate.Key(ctx)
 	logger.Info("running key refill", "date", dateKey)
 

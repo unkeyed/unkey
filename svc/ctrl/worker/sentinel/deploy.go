@@ -8,9 +8,14 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
 )
+
+const workflowSentinelDeploy = "sentinel_deploy"
 
 const (
 	// deployTimeout is how long Deploy waits for krane to report the sentinel
@@ -28,7 +33,9 @@ const (
 func (s *Service) Deploy(
 	ctx restate.ObjectContext,
 	req *hydrav1.SentinelServiceDeployRequest,
-) (*hydrav1.SentinelServiceDeployResponse, error) {
+) (resp *hydrav1.SentinelServiceDeployResponse, retErr error) {
+	defer observability.RunTimer(workflowSentinelDeploy, &retErr)()
+
 	sentinelID := restate.Key(ctx)
 
 	// Read current config to detect no-ops and to merge partial updates.
@@ -162,9 +169,24 @@ func (s *Service) Deploy(
 		return nil, fmt.Errorf("mark failed: %w", err)
 	}
 
-	return &hydrav1.SentinelServiceDeployResponse{
+	// The caller relies on the FAILED status field rather than a returned
+	// error (so Restate doesn't retry the whole handler). Force the deferred
+	// RunTimer to see a categorized error so this terminal-failure path
+	// shows up correctly in metrics.
+	retErr = fault.Wrap(
+		fmt.Errorf("sentinel %s did not become healthy in %v", sentinelID, deployTimeout),
+		fault.Code(codes.Workflow.Infra.SentinelDeployTimeout.URN()),
+	)
+	logger.Error("sentinel deploy timed out, returning FAILED status",
+		"sentinel_id", sentinelID, "error", retErr)
+
+	resp = &hydrav1.SentinelServiceDeployResponse{
 		Status: hydrav1.SentinelDeployStatus_SENTINEL_DEPLOY_STATUS_FAILED,
-	}, nil
+	}
+	// Convert to a terminal so Restate treats it as final (not retried),
+	// matching the original (FAILED, nil) intent while exposing the cause.
+	retErr = restate.TerminalError(retErr)
+	return resp, retErr
 }
 
 // NotifyReady resolves the awakeable created by Deploy, unblocking it.

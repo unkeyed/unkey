@@ -7,7 +7,10 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
 )
+
+const workflowKeyLastUsedSync = "key_last_used_sync"
 
 // defaultPartitions is the number of concurrent hash-partition workers.
 const defaultPartitions = 8
@@ -18,7 +21,9 @@ const defaultPartitions = 8
 func (s *Service) RunSync(
 	ctx restate.Context,
 	_ *hydrav1.RunSyncRequest,
-) (*hydrav1.RunSyncResponse, error) {
+) (resp *hydrav1.RunSyncResponse, retErr error) {
+	defer observability.RunTimer(workflowKeyLastUsedSync, &retErr)()
+
 	logger.Info("running key last used sync", "partitions", defaultPartitions)
 
 	// Fan out to partition services — each is an independent virtual object

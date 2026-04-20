@@ -36,6 +36,12 @@ const (
 
 	// SystemAws indicates errors related to AWS integration.
 	SystemAws System = "aws"
+
+	// SystemDepot indicates errors originating from the Depot remote build provider.
+	SystemDepot System = "depot"
+
+	// SystemAcme indicates errors originating from ACME / Let's Encrypt.
+	SystemAcme System = "acme"
 )
 
 // Category represents an error category within a system domain, providing
@@ -96,6 +102,22 @@ const (
 
 	// CategoryUnkeyVault represents vault-related errors.
 	CategoryUnkeyVault Category = "vault"
+
+	// Workflow categories — used by the observability layer to classify the
+	// source of a workflow failure regardless of the underlying System.
+
+	// CategoryWorkflowInfra indicates a failure in our own infrastructure
+	// (database, krane, control plane).
+	CategoryWorkflowInfra Category = "infra"
+
+	// CategoryWorkflowProvider indicates a failure in an external provider
+	// (Depot, ACME / Let's Encrypt, GitHub, AWS).
+	CategoryWorkflowProvider Category = "provider"
+
+	// CategoryWorkflowApp indicates a failure caused by the user's own
+	// application code (Dockerfile broken, healthcheck never green, instance
+	// crashed at startup).
+	CategoryWorkflowApp Category = "app"
 )
 
 // Code represents a specific error with its metadata. It contains all components

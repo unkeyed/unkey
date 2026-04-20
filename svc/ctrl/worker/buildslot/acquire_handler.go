@@ -7,7 +7,10 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
 )
+
+const workflowBuildSlotAcquire = "buildslot_acquire"
 
 const (
 	stateKeyActiveSlots     = "active_slots"
@@ -36,7 +39,9 @@ type waitEntry struct {
 func (s *Service) AcquireOrWait(
 	ctx restate.ObjectContext,
 	req *hydrav1.AcquireOrWaitRequest,
-) (*hydrav1.AcquireOrWaitResponse, error) {
+) (resp *hydrav1.AcquireOrWaitResponse, retErr error) {
+	defer observability.RunTimer(workflowBuildSlotAcquire, &retErr)()
+
 	workspaceID := restate.Key(ctx)
 	deploymentID := req.GetDeploymentId()
 	awakeableID := req.GetAwakeableId()

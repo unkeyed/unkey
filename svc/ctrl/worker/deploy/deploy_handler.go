@@ -13,10 +13,12 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
 	"github.com/unkeyed/unkey/pkg/uid"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -84,7 +86,9 @@ const (
 //
 // Returns terminal errors for validation failures and retryable errors for
 // transient system failures.
-func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (_ *hydrav1.DeployResponse, retErr error) {
+func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (resp *hydrav1.DeployResponse, retErr error) {
+	defer observability.RunTimer(workflowDeploy, &retErr)()
+
 	err := assert.All(
 		assert.NotEmpty(req.GetDeploymentId(), "deployment_id is required"),
 	)
@@ -1105,7 +1109,13 @@ func (w *Workflow) swapLiveDeployment(
 // State cleanup: the caller passes `compensation` so the state clear can
 // be registered as a durable compensation (survives Restate cancellation)
 // rather than relying on a Go defer.
-func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, compensation *compensation.Compensation, deploymentID string, topologies []db.InsertDeploymentTopologyParams) error {
+func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, compensation *compensation.Compensation, deploymentID string, topologies []db.InsertDeploymentTopologyParams) (retErr error) {
+	waitStart := time.Now()
+	defer func() {
+		outcome, category := observability.Classify(retErr)
+		observability.RecordPhase(workflowDeploy, "instances_ready_wait", time.Since(waitStart), outcome, category)
+	}()
+
 	// Build per-region minimum replica requirements.
 	regionMinReplicas := make(map[string]uint32, len(topologies))
 	for _, topo := range topologies {
@@ -1171,6 +1181,7 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, compensation *c
 
 	return fault.Wrap(
 		restate.TerminalErrorf("not enough regions became healthy in %v, required %d of %d", regionReadyTimeout, requiredRegions, len(regionMinReplicas)),
+		fault.Code(codes.Workflow.App.InstanceNotReady.URN()),
 		fault.Public("Not enough regions became healthy in time."),
 	)
 }

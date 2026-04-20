@@ -2,12 +2,16 @@ package sentinel
 
 import (
 	"fmt"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
 )
+
+const workflowSentinelRollout = "sentinel_rollout"
 
 // Rollout starts a progressive rollout of a new sentinel image. It queries all
 // running sentinels, splits them into waves, and deploys each wave by fanning
@@ -16,7 +20,9 @@ import (
 func (s *RolloutService) Rollout(
 	ctx restate.ObjectContext,
 	req *hydrav1.SentinelRolloutServiceRolloutRequest,
-) (*hydrav1.SentinelRolloutServiceRolloutResponse, error) {
+) (resp *hydrav1.SentinelRolloutServiceRolloutResponse, retErr error) {
+	defer observability.RunTimer(workflowSentinelRollout, &retErr)()
+
 	if req.GetImage() == "" {
 		return nil, restate.TerminalError(fmt.Errorf("image is required"))
 	}
@@ -164,7 +170,21 @@ func (s *RolloutService) executeWaves(
 			}
 		}
 
-		waveDuration := durationMs(nowMs(ctx) - state.WaveStartedAtMs)
+		waveElapsedMs := nowMs(ctx) - state.WaveStartedAtMs
+		waveDuration := durationMs(waveElapsedMs)
+
+		// Per-wave metric. Wave index is intentionally NOT a label (high
+		// cardinality across rollouts and visible in Restate UI per
+		// invocation already). Outcome distinguishes paused-on-failure from
+		// successful waves.
+		waveOutcome := observability.OutcomeSuccess
+		waveCategory := observability.CategoryNone
+		if len(waveFailures) > 0 {
+			waveOutcome = observability.OutcomeFailed
+			waveCategory = observability.CategoryInfra
+		}
+		observability.RecordPhase(workflowSentinelRollout, "wave",
+			time.Duration(waveElapsedMs)*time.Millisecond, waveOutcome, waveCategory)
 
 		if len(waveFailures) > 0 {
 			state.State = statePaused

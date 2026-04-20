@@ -9,6 +9,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
 )
 
 // AssignFrontlineRoutes reassigns a set of frontline routes to a new deployment.
@@ -20,7 +21,9 @@ import (
 //
 // Returns an empty response on success. Database errors from the route updates
 // propagate directly to the caller.
-func (s *Service) AssignFrontlineRoutes(ctx restate.ObjectContext, req *hydrav1.AssignFrontlineRoutesRequest) (*hydrav1.AssignFrontlineRoutesResponse, error) {
+func (s *Service) AssignFrontlineRoutes(ctx restate.ObjectContext, req *hydrav1.AssignFrontlineRoutesRequest) (resp *hydrav1.AssignFrontlineRoutesResponse, retErr error) {
+	defer observability.RunTimer(workflowRoutingAssign, &retErr)()
+
 	logger.Info("assigning domains",
 		"deployment_id", req.GetDeploymentId(),
 		"frontline_routes", req.GetFrontlineRouteIds(),

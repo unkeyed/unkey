@@ -7,6 +7,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
 )
 
 // githubDeploymentStateToString maps the proto enum to the GitHub API string.
@@ -22,7 +23,9 @@ var githubDeploymentStateToString = map[hydrav1.GitHubDeploymentState]string{
 
 // ReportStatus updates both the GitHub deployment status and the PR comment.
 // All calls are fire-and-forget — errors are logged, never propagated.
-func (s *Service) ReportStatus(ctx restate.ObjectContext, req *hydrav1.GitHubStatusReportRequest) (*hydrav1.GitHubStatusReportResponse, error) {
+func (s *Service) ReportStatus(ctx restate.ObjectContext, req *hydrav1.GitHubStatusReportRequest) (resp *hydrav1.GitHubStatusReportResponse, retErr error) {
+	defer observability.RunTimer(workflowGitHubStatusReport, &retErr)()
+
 	config, err := restate.Get[*hydrav1.GitHubStatusInitRequest](ctx, stateConfig)
 	if err != nil || config == nil {
 		return &hydrav1.GitHubStatusReportResponse{}, nil

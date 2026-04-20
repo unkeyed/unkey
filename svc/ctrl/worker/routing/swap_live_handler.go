@@ -10,6 +10,12 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
+)
+
+const (
+	workflowRoutingSwap   = "routing_swap_live"
+	workflowRoutingAssign = "routing_assign_frontline"
 )
 
 // SwapLiveDeployment atomically performs the three operations that make a
@@ -26,7 +32,9 @@ import (
 func (s *Service) SwapLiveDeployment(
 	ctx restate.ObjectContext,
 	req *hydrav1.SwapLiveDeploymentRequest,
-) (*hydrav1.SwapLiveDeploymentResponse, error) {
+) (resp *hydrav1.SwapLiveDeploymentResponse, retErr error) {
+	defer observability.RunTimer(workflowRoutingSwap, &retErr)()
+
 	deploymentID := req.GetDeploymentId()
 
 	// Reassign routes first — if the update fails, the live-deployment
