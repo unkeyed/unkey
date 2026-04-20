@@ -9,6 +9,8 @@ export const LogSection = ({
   details: LogSectionDetails;
   title: string;
 }) => {
+  const copyValue = getFormattedContent(details);
+
   return (
     <div className="flex flex-col gap-1 mt-[16px] px-4">
       <div className="border bg-gray-2 border-gray-4 rounded-[10px] relative group">
@@ -37,13 +39,15 @@ export const LogSection = ({
               : details}
           </pre>
         </div>
-        <CopyButton
-          value={getFormattedContent(details)}
-          shape="square"
-          variant="outline"
-          className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4 bg-gray-2 hover:bg-gray-2 size-2"
-          aria-label="Copy content"
-        />
+        {copyValue && (
+          <CopyButton
+            value={copyValue}
+            shape="square"
+            variant="outline"
+            className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4 bg-gray-2 hover:bg-gray-2 size-2"
+            aria-label="Copy content"
+          />
+        )}
       </div>
     </div>
   );
