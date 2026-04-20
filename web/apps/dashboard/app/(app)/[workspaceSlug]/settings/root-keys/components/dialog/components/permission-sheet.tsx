@@ -75,10 +75,10 @@ export const PermissionSheet = ({
               onChange={handleSearchChange}
             />
           </SheetHeader>
-          <div className="w-full h-full">
+          <div className="w-full flex-1 min-h-0">
             <div className="flex flex-col h-full">
               <div
-                className={`flex flex-col overflow-hidden ${
+                className={`flex flex-col overflow-hidden flex-1 min-h-0 ${
                   hasNextPage ? "max-h-[calc(100%-80px)]" : "max-h-[calc(100%-40px)]"
                 }`}
               >
