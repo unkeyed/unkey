@@ -1,21 +1,24 @@
 import { trpc } from "@/lib/trpc/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
+import { removeIdentityFromCache } from "../../identity-cache";
 
 export const useDeleteIdentity = (onSuccess: () => void) => {
   const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   const deleteIdentity = trpc.identity.delete.useMutation({
-    async onSuccess() {
+    onSuccess(_data, variables) {
       toast.success("Identity Deleted", {
         description:
           "The identity has been permanently deleted and can no longer be used for verification.",
       });
 
-      await Promise.all([
-        trpcUtils.identity.query.invalidate(undefined, { refetchType: "all" }),
-        trpcUtils.identity.search.invalidate(undefined, { refetchType: "all" }),
-        trpcUtils.identity.searchWithRelations.invalidate(undefined, { refetchType: "all" }),
-      ]);
+      removeIdentityFromCache(queryClient, variables.identityId);
+
+      trpcUtils.identity.query.invalidate(undefined, { refetchType: "all" });
+      trpcUtils.identity.search.invalidate(undefined, { refetchType: "all" });
+      trpcUtils.identity.searchWithRelations.invalidate(undefined, { refetchType: "all" });
 
       onSuccess();
     },

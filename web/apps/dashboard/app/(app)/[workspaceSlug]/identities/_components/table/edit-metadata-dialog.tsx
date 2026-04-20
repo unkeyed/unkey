@@ -6,11 +6,13 @@ import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { trpc } from "@/lib/trpc/client";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { type FC, useCallback, useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import type { z } from "zod";
 import { IdentityInfo } from "../dialogs/identity-info";
+import { updateIdentityInCache } from "../identity-cache";
 
 type Identity = z.infer<typeof IdentityResponseSchema>;
 
@@ -26,6 +28,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
   onOpenChange,
 }) => {
   const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getDefaultValues = useCallback(() => {
@@ -57,9 +60,18 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
   }, [open, getDefaultValues, methods.reset]);
 
   const updateMetadata = trpc.identity.update.metadata.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       toast.success("Metadata updated successfully");
-      // Invalidate queries to refresh the data
+
+      const nextMeta =
+        variables.metadata?.enabled && variables.metadata.data
+          ? (JSON.parse(variables.metadata.data) as Record<string, unknown>)
+          : null;
+      updateIdentityInCache(queryClient, variables.identityId, (cached) => ({
+        ...cached,
+        meta: nextMeta,
+      }));
+
       utils.identity.query.invalidate(undefined, { refetchType: "all" });
       utils.identity.getById.invalidate(undefined, { refetchType: "all" });
       onOpenChange(false);

@@ -1,4 +1,6 @@
+import { updateIdentityInCache } from "@/app/(app)/[workspaceSlug]/identities/_components/identity-cache";
 import { trpc } from "@/lib/trpc/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
 import { formatDuration, intervalToDuration } from "date-fns";
 
@@ -14,6 +16,7 @@ export function useEditRatelimits(
 ): ReturnType<typeof trpc.identity.update.ratelimit.useMutation>;
 export function useEditRatelimits(entityType: EntityType, onSuccess?: () => void) {
   const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   const updateKeyRatelimit = trpc.key.update.ratelimit.useMutation({
     onSuccess(data, variables) {
@@ -91,6 +94,20 @@ export function useEditRatelimits(entityType: EntityType, onSuccess?: () => void
         description,
         duration: 5000,
       });
+
+      const nextRatelimits = variables.ratelimit?.enabled
+        ? variables.ratelimit.data.map((rule) => ({
+            id: rule.id ?? crypto.randomUUID(),
+            name: rule.name,
+            limit: Number(rule.limit),
+            duration: Number(rule.refillInterval),
+            autoApply: rule.autoApply ?? false,
+          }))
+        : [];
+      updateIdentityInCache(queryClient, data.identityId, (identity) => ({
+        ...identity,
+        ratelimits: nextRatelimits,
+      }));
 
       trpcUtils.identity.query.invalidate(undefined, { refetchType: "all" });
       trpcUtils.identity.getById.invalidate(undefined, { refetchType: "all" });
