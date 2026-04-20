@@ -23,16 +23,16 @@ const filterFieldsSchema = rolesListFilterFieldNames.reduce(
 
 const baseRolesSchema = z.object(filterFieldsSchema);
 
+const rolesSortByEnum = z.enum(["name", "lastUpdated", "assignedKeys", "assignedPermissions"]);
+const rolesSortOrderEnum = z.enum(["asc", "desc"]);
+
 export const rolesQueryPayload = baseRolesSchema.extend({
   page: z.number().int().min(1).optional().default(1),
   limit: z.number().int().min(1).max(100).optional(),
-  sortBy: z
-    .enum(["name", "lastUpdated", "assignedKeys", "assignedPermissions"])
-    .optional()
-    .default("lastUpdated"),
-  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+  sortBy: rolesSortByEnum.optional().default("lastUpdated"),
+  sortOrder: rolesSortOrderEnum.optional().default("desc"),
 });
 
-export type RolesSortField = "name" | "lastUpdated" | "assignedKeys" | "assignedPermissions";
-export type RolesSortOrder = "asc" | "desc";
+export type RolesSortField = z.infer<typeof rolesSortByEnum>;
+export type RolesSortOrder = z.infer<typeof rolesSortOrderEnum>;
 export type RolesQueryPayload = z.infer<typeof rolesQueryPayload>;

@@ -1,6 +1,21 @@
 import { cn } from "@/lib/utils";
 import { Key2, Page2, Tag } from "@unkey/icons";
 import { CopyButton } from "@unkey/ui";
+import type { ReactNode } from "react";
+
+type AssignedItemKind = "roles" | "keys" | "slug";
+
+const ICONS: Record<AssignedItemKind, ReactNode> = {
+  roles: <Tag iconSize="md-medium" className="opacity-50" />,
+  keys: <Key2 iconSize="md-medium" className="opacity-50" />,
+  slug: <Page2 iconSize="md-medium" className="opacity-50" />,
+};
+
+const LABELS: Record<AssignedItemKind, { singular: string; plural: string }> = {
+  roles: { singular: "Role", plural: "Roles" },
+  keys: { singular: "Key", plural: "Keys" },
+  slug: { singular: "Slug", plural: "Slugs" },
+};
 
 export const AssignedItemsCell = ({
   totalCount,
@@ -11,45 +26,11 @@ export const AssignedItemsCell = ({
   totalCount?: number;
   value?: string;
   isSelected?: boolean;
-  kind: "roles" | "keys" | "permissions" | "slug";
+  kind: AssignedItemKind;
 }) => {
-  const getIcon = () => {
-    switch (kind) {
-      case "roles":
-        return <Tag iconSize="md-medium" className="opacity-50" />;
-      case "keys":
-        return <Key2 iconSize="md-medium" className="opacity-50" />;
-      case "slug":
-        return <Page2 iconSize="md-medium" className="opacity-50" />;
-      default:
-        throw new Error(`Invalid type: ${kind}`);
-    }
-  };
-
+  const icon = ICONS[kind];
   const getDisplayText = (count: number) => {
-    if (count === 1) {
-      switch (kind) {
-        case "roles":
-          return "Role";
-        case "keys":
-          return "Key";
-        case "permissions":
-          return "Permission";
-        default:
-          throw new Error(`Invalid type: ${kind}`);
-      }
-    }
-
-    switch (kind) {
-      case "roles":
-        return "Roles";
-      case "keys":
-        return "Keys";
-      case "permissions":
-        return "Permissions";
-      default:
-        throw new Error(`Invalid type: ${kind}`);
-    }
+    return count === 1 ? LABELS[kind].singular : LABELS[kind].plural;
   };
 
   const itemClassName = cn(
@@ -67,7 +48,7 @@ export const AssignedItemsCell = ({
       return (
         <div className="flex flex-col gap-1 py-2 max-w-[200px] animate-in fade-in slide-in-from-top-2 duration-300">
           <div className={emptyClassName}>
-            {getIcon()}
+            {icon}
             <span className="text-grayA-9 text-xs">No slug</span>
           </div>
         </div>
@@ -80,7 +61,7 @@ export const AssignedItemsCell = ({
           className={cn(itemClassName, "animate-in fade-in slide-in-from-left-2", "group")}
           style={{ animationDelay: "50ms" }}
         >
-          {getIcon()}
+          {icon}
           <div className="text-grayA-11 text-xs max-w-[150px] truncate" title={value}>
             {value}
           </div>
@@ -98,7 +79,7 @@ export const AssignedItemsCell = ({
     return (
       <div className="flex flex-col gap-1 py-2 max-w-[200px] animate-in fade-in slide-in-from-top-2 duration-300">
         <div className={emptyClassName}>
-          {getIcon()}
+          {icon}
           <span className="text-grayA-9 text-xs">None assigned</span>
         </div>
       </div>
@@ -111,7 +92,7 @@ export const AssignedItemsCell = ({
         className={cn(itemClassName, "animate-in fade-in slide-in-from-left-2")}
         style={{ animationDelay: "50ms" }}
       >
-        {getIcon()}
+        {icon}
         <div className="text-grayA-11 text-xs max-w-[150px] truncate">
           {totalCount} {getDisplayText(totalCount)}
         </div>

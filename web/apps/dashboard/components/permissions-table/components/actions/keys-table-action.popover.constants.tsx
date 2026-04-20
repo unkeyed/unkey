@@ -6,47 +6,43 @@ import { toast } from "@unkey/ui";
 import { DeletePermission } from "./components/delete-permission";
 import { EditPermission } from "./components/edit-permission";
 
+export const getPermissionsTableActionItems = (permission: Permission): MenuItem[] => [
+  {
+    id: "edit-permission",
+    label: "Edit permission...",
+    icon: <PenWriting3 iconSize="md-medium" />,
+    ActionComponent: (props) => <EditPermission permission={permission} {...props} />,
+  },
+  {
+    id: "copy",
+    label: "Copy permission",
+    className: "mt-1",
+    icon: <Clone iconSize="md-medium" />,
+    onClick: () => {
+      navigator.clipboard
+        .writeText(JSON.stringify(permission))
+        .then(() => {
+          toast.success("Permission data copied to clipboard");
+        })
+        .catch((error) => {
+          console.error("Failed to copy to clipboard:", error);
+          toast.error("Failed to copy to clipboard");
+        });
+    },
+    divider: true,
+  },
+  {
+    id: "delete-permission",
+    label: "Delete permission",
+    icon: <Trash iconSize="md-medium" />,
+    ActionComponent: (props) => <DeletePermission {...props} permissionDetails={permission} />,
+  },
+];
+
 type PermissionsTableActionsProps = {
   permission: Permission;
 };
 
 export const PermissionsTableActions = ({ permission }: PermissionsTableActionsProps) => {
-  const getPermissionsTableActionItems = (permission: Permission): MenuItem[] => {
-    return [
-      {
-        id: "edit-permission",
-        label: "Edit permission...",
-        icon: <PenWriting3 iconSize="md-medium" />,
-        ActionComponent: (props) => <EditPermission permission={permission} {...props} />,
-      },
-      {
-        id: "copy",
-        label: "Copy permission",
-        className: "mt-1",
-        icon: <Clone iconSize="md-medium" />,
-        onClick: () => {
-          navigator.clipboard
-            .writeText(JSON.stringify(permission))
-            .then(() => {
-              toast.success("Permission data copied to clipboard");
-            })
-            .catch((error) => {
-              console.error("Failed to copy to clipboard:", error);
-              toast.error("Failed to copy to clipboard");
-            });
-        },
-        divider: true,
-      },
-      {
-        id: "delete-permision",
-        label: "Delete permission",
-        icon: <Trash iconSize="md-medium" />,
-        ActionComponent: (props) => <DeletePermission {...props} permissionDetails={permission} />,
-      },
-    ];
-  };
-
-  const menuItems = getPermissionsTableActionItems(permission);
-
-  return <TableActionPopover items={menuItems} />;
+  return <TableActionPopover items={getPermissionsTableActionItems(permission)} />;
 };

@@ -85,6 +85,8 @@ export const queryRoles = workspaceProcedure
     const innerOrderColumn = sql.raw(SORT_FIELD_TO_INNER_SQL[sortBy] ?? "updated_at_m");
     const outerOrderColumn = sql.raw(SORT_FIELD_TO_OUTER_SQL[sortBy] ?? "r.updated_at_m");
 
+    // Break ties on `id` so rows with equal sort keys (e.g. same updated_at_m)
+    // don't shuffle between pages.
     const result = await db.execute(sql`
       SELECT
         r.id,
@@ -101,7 +103,7 @@ export const queryRoles = workspaceProcedure
           ${descriptionFilter}
           ${keyFilter}
           ${permissionFilter}
-        ORDER BY ${innerOrderColumn} ${direction}
+        ORDER BY ${innerOrderColumn} ${direction}, id ${direction}
         ${isComputedSort ? sql`` : sql`LIMIT ${pageSize} OFFSET ${offset}`}
       ) r
       LEFT JOIN (
@@ -116,7 +118,7 @@ export const queryRoles = workspaceProcedure
         WHERE workspace_id = ${workspaceId}
         GROUP BY role_id
       ) rp_count ON rp_count.role_id = r.id
-      ORDER BY ${outerOrderColumn} ${direction}
+      ORDER BY ${outerOrderColumn} ${direction}, r.id ${direction}
       ${isComputedSort ? sql`LIMIT ${pageSize} OFFSET ${offset}` : sql``}
     `);
 

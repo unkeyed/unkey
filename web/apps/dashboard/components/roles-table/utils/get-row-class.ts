@@ -5,15 +5,14 @@ import { STATUS_STYLES } from "@unkey/ui";
 export { STATUS_STYLES };
 
 export const getRowClassName = (role: RoleBasic, selectedRole: RoleBasic | null) => {
-  const style = STATUS_STYLES;
   const isSelected = role.roleId === selectedRole?.roleId;
 
   return cn(
-    style.base,
-    style.hover,
+    STATUS_STYLES.base,
+    STATUS_STYLES.hover,
     "group rounded-sm",
     "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
-    style.focusRing,
-    isSelected && style.selected,
+    STATUS_STYLES.focusRing,
+    isSelected && STATUS_STYLES.selected,
   );
 };

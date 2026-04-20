@@ -4,7 +4,10 @@ import {
   rolesListFilterFieldNames,
 } from "@/app/(app)/[workspaceSlug]/authorization/roles/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/authorization/roles/hooks/use-filters";
-import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
+import {
+  type SortUrlValue,
+  parseAsSortArray,
+} from "@/components/logs/validation/utils/nuqs-parsers";
 import { trpc } from "@/lib/trpc/client";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
@@ -35,6 +38,10 @@ const SORT_FIELD_TO_COLUMN_ID: Record<RolesSortField, string> = {
   assignedKeys: "assignedKeys",
   assignedPermissions: "permissions",
 };
+
+const DEFAULT_SORT_PARAMS: SortUrlValue<RolesSortField>[] = [
+  { column: "lastUpdated", direction: "desc" },
+];
 
 function buildQueryParams(filters: RolesFilterValue[]): RolesFilterParams {
   const params = Object.fromEntries(
@@ -73,29 +80,33 @@ export function useRolesListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
   const normalizedPage = Math.max(1, page);
   const [sortParams, setSortParams] = useQueryState("sort", parseAsSortArray<RolesSortField>());
 
-  const sorting: SortingState = useMemo(() => {
+  // Ensure the default sort is always reflected in the URL
+  const effectiveSortParams =
+    sortParams && sortParams.length > 0 ? sortParams : DEFAULT_SORT_PARAMS;
+
+  useEffect(() => {
     if (!sortParams || sortParams.length === 0) {
-      return [{ id: "last_updated", desc: true }];
+      setSortParams(DEFAULT_SORT_PARAMS);
     }
-    return sortParams.map((s) => ({
+  }, [sortParams, setSortParams]);
+
+  const sorting: SortingState = useMemo(() => {
+    return effectiveSortParams.map((s) => ({
       id: SORT_FIELD_TO_COLUMN_ID[s.column] ?? s.column,
       desc: s.direction === "desc",
     }));
-  }, [sortParams]);
+  }, [effectiveSortParams]);
 
   const onSortingChange = useCallback(
     (updater: SortingState | ((old: SortingState) => SortingState)) => {
       const next = typeof updater === "function" ? updater(sorting) : updater;
-      setSortParams(
-        next.length === 0
-          ? null
-          : next
-              .filter((s) => COLUMN_ID_TO_SORT_FIELD[s.id] !== undefined)
-              .map((s) => ({
-                column: COLUMN_ID_TO_SORT_FIELD[s.id],
-                direction: s.desc ? "desc" : "asc",
-              })),
-      );
+      const mapped = next
+        .filter((s) => COLUMN_ID_TO_SORT_FIELD[s.id] !== undefined)
+        .map((s) => ({
+          column: COLUMN_ID_TO_SORT_FIELD[s.id],
+          direction: (s.desc ? "desc" : "asc") as "asc" | "desc",
+        }));
+      setSortParams(mapped.length === 0 ? DEFAULT_SORT_PARAMS : mapped);
       setPage(1);
     },
     [sorting, setSortParams, setPage],
@@ -128,10 +139,10 @@ export function useRolesListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
       ...baseParams,
       page: normalizedPage,
       limit: normalizedPageSize,
-      sortBy: sortParams?.[0]?.column ?? "lastUpdated",
-      sortOrder: sortParams?.[0]?.direction ?? "desc",
+      sortBy: effectiveSortParams[0].column,
+      sortOrder: effectiveSortParams[0].direction,
     }),
-    [baseParams, normalizedPage, normalizedPageSize, sortParams],
+    [baseParams, normalizedPage, normalizedPageSize, effectiveSortParams],
   );
 
   const utils = trpc.useUtils();

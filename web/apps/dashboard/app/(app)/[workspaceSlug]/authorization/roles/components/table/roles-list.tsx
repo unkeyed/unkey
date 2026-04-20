@@ -15,7 +15,7 @@ import { SelectionControls } from "./components/selection-controls";
 export const RolesList = () => {
   const {
     roles,
-    isLoading,
+    isInitialLoading,
     isFetching,
     page,
     pageSize,
@@ -60,7 +60,7 @@ export const RolesList = () => {
         data={roles}
         columns={columns}
         getRowId={(role) => role.roleId}
-        isLoading={isLoading}
+        isLoading={isInitialLoading}
         enableSorting={true}
         manualSorting={true}
         sorting={sorting}
@@ -107,7 +107,7 @@ export const RolesList = () => {
         totalCount={totalCount}
         onPageChange={onPageChange}
         itemLabel="roles"
-        hide={isLoading}
+        hide={isInitialLoading}
         disabled={isFetching}
         headerContent={
           <SelectionControls selectedRoles={selectedRoles} setSelectedRoles={setSelectedRoles} />
