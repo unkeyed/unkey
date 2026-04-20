@@ -16,10 +16,10 @@ import { ThemeProvider } from "./theme-provider";
 export function generateMetadata(): Metadata {
   return {
     metadataBase: new URL("https://unkey.dev"),
-    title: "Open Source API Authentication",
+    title: "Dashboard | Unkey",
     description: "Build better APIs faster",
     openGraph: {
-      title: "Open Source API Authentication",
+      title: "Dashboard | Unkey",
       description: "Build better APIs faster ",
       url: "https://app.unkey.com",
       siteName: "app.unkey.com",
