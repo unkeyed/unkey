@@ -235,12 +235,20 @@ func Run(ctx context.Context, cfg Config) error {
 		// next attempt boundary, so longer intervals make cancels feel
 		// stuck. 5 minutes total is enough for transient blips; persistent
 		// failures should surface fast rather than retry for half an hour.
+		//
+		// PauseOnMaxAttempts (not Kill) so compensations can still run:
+		// on KILL the invocation is torn down without re-entering the
+		// handler, so the Go defer that fires compensation.Execute never
+		// runs. Individual restate.Run calls should each set
+		// WithMaxRetryDuration so they return TerminalError into Go on
+		// exhaustion — that's the normal path. This service-level policy
+		// is a safety net for failures that escape Run-level bounds.
 		restate.WithInvocationRetryPolicy(
 			restate.WithInitialInterval(2*time.Second),
 			restate.WithExponentiationFactor(2.0),
 			restate.WithMaxInterval(30*time.Second),
 			restate.WithMaxAttempts(15),
-			restate.KillOnMaxAttempts(),
+			restate.PauseOnMaxAttempts(),
 		),
 	))
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
@@ -262,13 +270,14 @@ func Run(ctx context.Context, cfg Config) error {
 	}), restate.WithIngressPrivate(true),
 		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~1 hour total.
 		// Scraping is best-effort (fire-and-forget from deploy); bound retries to avoid
-		// wasting resources on permanently broken endpoints.
+		// wasting resources on permanently broken endpoints. Pause (not kill) on
+		// exhaustion so any future compensation logic can run via re-entry.
 		restate.WithInvocationRetryPolicy(
 			restate.WithInitialInterval(1*time.Minute),
 			restate.WithExponentiationFactor(2.0),
 			restate.WithMaxInterval(10*time.Minute),
 			restate.WithMaxAttempts(10),
-			restate.KillOnMaxAttempts(),
+			restate.PauseOnMaxAttempts(),
 		),
 	))
 
@@ -305,13 +314,15 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:          database,
 		CnameDomain: cfg.CnameDomain,
 	}),
-		// Retry every 1 minute for up to 24 hours (1440 attempts)
+		// Retry every 1 minute for up to 24 hours (1440 attempts). Pause (not
+		// kill) on exhaustion so compensations remain possible via operator
+		// cancel.
 		restate.WithInvocationRetryPolicy(
 			restate.WithInitialInterval(1*time.Minute),
 			restate.WithExponentiationFactor(1.0), // Fixed interval, no exponential backoff
 			restate.WithMaxInterval(1*time.Minute),
 			restate.WithMaxAttempts(1440),
-			restate.KillOnMaxAttempts(),
+			restate.PauseOnMaxAttempts(),
 		),
 	))
 
@@ -458,12 +469,13 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("create key last used sync service: %w", err)
 	}
 	// Retry quickly (deadlocks resolve fast), but cap attempts since this runs on a schedule.
+	// Pause on exhaustion so stuck invocations are visible rather than silently discarded.
 	keyLastUsedRetryPolicy := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
 		restate.WithMaxAttempts(5),
-		restate.KillOnMaxAttempts(),
+		restate.PauseOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewKeyLastUsedSyncServiceServer(keyLastUsedSyncSvc, keyLastUsedRetryPolicy))
 
