@@ -4,12 +4,12 @@ import {
   renderRolesSkeletonRow,
   useRolesListPaginated,
 } from "@/components/roles-table";
+import { EditRole } from "@/components/roles-table/components/actions/components/edit-role";
+import { SelectionControls } from "@/components/roles-table/components/selection-controls";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { BookBookmark } from "@unkey/icons";
 import { Button, DataTable, Empty, PaginationFooter, getSelectableRowClassName } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
-import { EditRole } from "./components/actions/components/edit-role";
-import { SelectionControls } from "./components/selection-controls";
 
 export const RolesList = () => {
   const {

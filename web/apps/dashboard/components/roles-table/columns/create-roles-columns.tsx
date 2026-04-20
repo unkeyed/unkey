@@ -12,9 +12,9 @@ import dynamic from "next/dynamic";
 
 const RolesTableActions = dynamic(
   () =>
-    import(
-      "@/app/(app)/[workspaceSlug]/authorization/roles/components/table/components/actions/keys-table-action.popover.constants"
-    ).then((mod) => mod.RolesTableActions),
+    import("@/components/roles-table/components/actions/keys-table-action.popover.constants").then(
+      (mod) => mod.RolesTableActions,
+    ),
   {
     loading: () => <RowActionSkeleton />,
   },
