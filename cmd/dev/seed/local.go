@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -80,6 +81,25 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	})
 	if err != nil {
 		return fmt.Errorf("failed to generate root key: %w", err)
+	}
+
+	// Idempotency guard: if the project already exists for this workspace + slug,
+	// skip the entire seeding transaction so Tilt / repeat runs don't fail on the
+	// unique (workspace_id, slug) index.
+	existing, err := db.Query.FindProjectByWorkspaceSlug(ctx, database.RO(), db.FindProjectByWorkspaceSlugParams{
+		WorkspaceID: workspaceID,
+		Slug:        projectSlug,
+	})
+	if err == nil {
+		logger.Info("project already seeded; skipping",
+			"workspace", workspaceID,
+			"project_id", existing.ID,
+			"slug", projectSlug,
+		)
+		return nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("failed to check for existing project: %w", err)
 	}
 
 	// Create project via control plane API

@@ -1,7 +1,8 @@
 "use client";
 
-import { AppSidebar } from "@/components/navigation/sidebar/app-sidebar";
 import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
+import { VariantSwitcher } from "@/components/navigation/variant-switcher";
+import { NavbarVariant } from "@/components/navigation/variants";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 import { LoadingState } from "@/components/loading-state";
@@ -67,8 +68,8 @@ export default function Layout({ children }: LayoutProps) {
     <div className="h-dvh relative flex flex-col overflow-hidden bg-white dark:bg-base-12 lg:flex-row">
       <SidebarProvider>
         <div className="flex flex-1 overflow-hidden">
-          {/* Desktop Sidebar */}
-          <AppSidebar workspace={workspaceWithQuotas} className="bg-gray-1 border-grayA-4" />
+          {/* Desktop Sidebar (variant-dispatched: current | v1a | v1b) */}
+          <NavbarVariant workspace={workspaceWithQuotas} className="bg-gray-1 border-grayA-4" />
 
           {/* Main content area */}
           <div className="flex-1 overflow-auto" style={{ scrollbarGutter: "stable" }}>
@@ -110,6 +111,7 @@ export default function Layout({ children }: LayoutProps) {
             ) : null}
           </div>
         </div>
+        <VariantSwitcher />
       </SidebarProvider>
     </div>
   );

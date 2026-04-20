@@ -3,7 +3,7 @@ import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import Link from "next/link";
 import React from "react";
-import { UserButton } from "./sidebar/user-button";
+import { ConditionalUserButton } from "./conditional-user-button";
 
 type BaseProps = React.PropsWithChildren<React.HTMLAttributes<HTMLElement>>;
 
@@ -52,7 +52,7 @@ NavbarActions.displayName = "GlobalNavbar.Actions";
 const NavbarUser = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div ref={ref} className={cn("hidden md:flex items-center ml-3", className)} {...props}>
-      <UserButton />
+      <ConditionalUserButton />
     </div>
   ),
 );

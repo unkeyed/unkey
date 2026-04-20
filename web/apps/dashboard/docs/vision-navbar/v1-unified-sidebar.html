@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vision navbar — v1 unified sidebar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      :root {
+        --gray-1: #fdfdfc;
+        --gray-2: #f9f9f8;
+        --gray-3: #f1f0ef;
+        --gray-4: #e9e8e6;
+        --gray-5: #e2e1de;
+        --gray-6: #dad9d6;
+        --gray-7: #cfceca;
+        --gray-8: #bcbbb5;
+        --gray-9: #8d8d86;
+        --gray-10: #82827c;
+        --gray-11: #63635e;
+        --gray-12: #21201c;
+        --accent-12: #21201c;
+        --background: #fff;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+        background: var(--gray-1);
+        color: var(--gray-12);
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.375rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 13px;
+        color: var(--gray-12);
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        line-height: 1.25rem;
+      }
+      .nav-item:hover {
+        background: var(--gray-3);
+      }
+      .nav-item.active {
+        background: var(--gray-4);
+        font-weight: 500;
+      }
+      .nav-item .chev {
+        margin-left: auto;
+        color: var(--gray-9);
+      }
+      .nav-section-label {
+        padding: 0.5rem 0.5rem 0.375rem;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--gray-11);
+      }
+      .sidebar-divider {
+        height: 1px;
+        background: var(--gray-4);
+        margin: 0.5rem 0;
+      }
+      .sidebar-scroll::-webkit-scrollbar {
+        width: 0;
+      }
+      .leaf {
+        position: absolute;
+        inset: 0;
+        background: var(--gray-1);
+        display: flex;
+        flex-direction: column;
+        transform: translateX(100%);
+        transition: transform 180ms cubic-bezier(0.32, 0.72, 0.26, 1);
+        pointer-events: none;
+      }
+      .leaf.open {
+        transform: translateX(0);
+        pointer-events: auto;
+      }
+      .crumb-chevron {
+        color: var(--gray-9);
+        margin: 0 0.25rem;
+      }
+      .breadcrumb-link {
+        font-size: 13px;
+        color: var(--gray-11);
+        cursor: pointer;
+      }
+      .breadcrumb-link:hover {
+        color: var(--gray-12);
+      }
+      .breadcrumb-link.active {
+        color: var(--gray-12);
+      }
+      .top-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: 1px solid var(--gray-5);
+        background: var(--background);
+        color: var(--gray-11);
+        cursor: pointer;
+      }
+      .top-action-btn:hover {
+        background: var(--gray-3);
+      }
+      [data-lucide] {
+        width: 16px;
+        height: 16px;
+        stroke-width: 1.75;
+      }
+      .sb-icon[data-lucide] {
+        width: 16px;
+        height: 16px;
+        color: var(--gray-11);
+      }
+      .nav-item.active .sb-icon {
+        color: var(--gray-12);
+      }
+      .list-grid {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--gray-4);
+        border-radius: 10px;
+        background: var(--background);
+        overflow: hidden;
+      }
+      .list-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--gray-4);
+        background: transparent;
+        cursor: pointer;
+        text-align: left;
+      }
+      .list-row:last-child {
+        border-bottom: 0;
+      }
+      .list-row:hover {
+        background: var(--gray-2);
+      }
+      .list-row-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .list-row-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--gray-3);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--gray-11);
+      }
+      .list-row-icon [data-lucide] {
+        width: 16px;
+        height: 16px;
+      }
+      .list-row-title {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--gray-12);
+      }
+      .list-row-sub {
+        font-size: 12px;
+        color: var(--gray-9);
+        font-family: ui-monospace, SFMono-Regular, monospace;
+      }
+      .list-row-chev {
+        color: var(--gray-9);
+      }
+      /* Variant toggles */
+      body[data-variant="v1a"] [data-variant="v1b"] {
+        display: none !important;
+      }
+      body[data-variant="v1b"] [data-variant="v1a"] {
+        display: none !important;
+      }
+      .variant-switcher {
+        position: fixed;
+        bottom: 12px;
+        right: 12px;
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 3px;
+        background: var(--gray-12);
+        color: #fff;
+        border-radius: 999px;
+        font-size: 12px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+        z-index: 50;
+      }
+      .variant-switcher button {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: #e5e5e3;
+        padding: 5px 10px;
+        border-radius: 999px;
+        cursor: pointer;
+        font-weight: 500;
+        line-height: 1;
+      }
+      .variant-switcher button.active {
+        background: #fff;
+        color: var(--gray-12);
+      }
+      .variant-switcher .vs-label {
+        padding: 0 8px 0 10px;
+        color: #9a9a93;
+        font-size: 11px;
+        letter-spacing: 0.02em;
+      }
+      /* Home (v1b) — aggregated cards */
+      .home-wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 32px;
+        width: 100%;
+      }
+      .home-header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .home-header h1 {
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--gray-12);
+      }
+      .home-header p {
+        font-size: 13px;
+        color: var(--gray-11);
+      }
+      .home-section-label {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--gray-11);
+        margin: 24px 0 10px;
+      }
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 12px;
+      }
+      .card {
+        appearance: none;
+        text-align: left;
+        background: var(--background);
+        border: 1px solid var(--gray-4);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: border-color 120ms;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .card:hover {
+        border-color: var(--gray-7);
+      }
+
+      /* Top regions (88px tall, type-specific content) */
+      .card-top {
+        height: 96px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* API top: chart */
+      .card-chart {
+        height: 100%;
+        background: linear-gradient(to bottom, var(--gray-2), var(--background));
+        display: flex;
+        align-items: end;
+        gap: 2px;
+        padding: 10px;
+      }
+      .card-bar {
+        flex: 1;
+        background: var(--gray-7);
+        border-radius: 1px;
+        min-height: 4px;
+      }
+      .card-bar.err {
+        background: #f97316;
+      }
+
+      /* Project top: status panel */
+      .card-status {
+        height: 100%;
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        position: relative;
+      }
+      .card-status::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--status-color, var(--gray-7));
+      }
+      .card-status[data-status="ready"] {
+        --status-color: #16a34a;
+        --status-bg: #f0fdf4;
+      }
+      .card-status[data-status="building"] {
+        --status-color: #d97706;
+        --status-bg: #fffbeb;
+      }
+      .card-status[data-status="failed"] {
+        --status-color: #dc2626;
+        --status-bg: #fef2f2;
+      }
+      .card-status-line {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--gray-11);
+        letter-spacing: 0.02em;
+      }
+      .card-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--status-color);
+      }
+      .card-status-label {
+        text-transform: uppercase;
+        color: var(--status-color);
+        font-weight: 600;
+      }
+      .card-status-time {
+        color: var(--gray-9);
+      }
+      .card-status-commit {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--gray-12);
+        line-height: 1.4;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+      }
+      .card-status-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--gray-11);
+        margin-top: auto;
+      }
+      .card-status-meta [data-lucide] {
+        width: 12px;
+        height: 12px;
+      }
+
+      /* Shared bottom (header + stats) */
+      .card-bot {
+        padding: 14px 18px 16px;
+        border-top: 1px solid var(--gray-4);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .card-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--gray-3);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--gray-12);
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+        flex-shrink: 0;
+      }
+      .card-icon [data-lucide] {
+        width: 18px;
+        height: 18px;
+      }
+      .card-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .card-head-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+        flex: 1;
+      }
+      .card-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--gray-12);
+        line-height: 1.1;
+      }
+      .card-secondary {
+        font-size: 11px;
+        color: var(--gray-11);
+        font-family: ui-monospace, SFMono-Regular, monospace;
+      }
+      .card-stats {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+      .card-stat {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .card-stat-label {
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--gray-11);
+        letter-spacing: 0.04em;
+      }
+      .card-stat-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--gray-12);
+        font-variant-numeric: tabular-nums;
+      }
+      .card-stat-value.err {
+        color: #ea580c;
+      }
+      .card-stat-trail {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--gray-11);
+      }
+      .card-stat-trail [data-lucide] {
+        width: 14px;
+        height: 14px;
+      }
+    </style>
+  </head>
+  <body class="antialiased">
+    <div class="flex h-dvh overflow-hidden">
+      <!-- Sidebar -->
+      <aside
+        class="w-[264px] shrink-0 border-r flex flex-col relative overflow-hidden"
+        style="background: var(--gray-1); border-color: var(--gray-4)"
+      >
+        <!-- Workspace switcher (top) -->
+        <div
+          class="p-3 border-b"
+          style="border-color: var(--gray-4)"
+        >
+          <button
+            class="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--gray-3)] transition"
+            style="border: 1px solid var(--gray-5)"
+          >
+            <div
+              class="w-5 h-5 rounded"
+              style="
+                background: linear-gradient(135deg, #21201c 0%, #63635e 100%);
+              "
+            ></div>
+            <span class="text-[13px] font-medium flex-1 text-left truncate">Unkey</span>
+            <span
+              class="text-[10px] font-medium px-1.5 py-0.5 rounded"
+              style="
+                background: #eef2ff;
+                color: #4338ca;
+              "
+              >Pro</span
+            >
+            <i data-lucide="chevrons-up-down" class="sb-icon"></i>
+          </button>
+        </div>
+
+        <!-- Nav stack: main view + leaf views -->
+        <div class="relative flex-1 overflow-hidden">
+          <!-- Main nav view -->
+          <div
+            id="main-nav"
+            class="absolute inset-0 flex flex-col overflow-y-auto sidebar-scroll"
+          >
+            <div class="p-2 flex-1">
+              <!-- Home -->
+              <a class="nav-item" data-route="home" data-active="home">
+                <i data-lucide="home" class="sb-icon"></i>
+                <span>Home</span>
+              </a>
+
+              <div class="sidebar-divider"></div>
+
+              <!-- Deploy section -->
+              <div class="nav-section-label">Deploy</div>
+              <!-- v1a: inline project list -->
+              <a class="nav-item" data-drill="project-1" data-variant="v1a">
+                <i data-lucide="box" class="sb-icon"></i>
+                <span>Project 1</span>
+                <i data-lucide="chevron-right" class="sb-icon chev"></i>
+              </a>
+              <a class="nav-item" data-drill="project-2" data-variant="v1a">
+                <i data-lucide="box" class="sb-icon"></i>
+                <span>Project 2</span>
+                <i data-lucide="chevron-right" class="sb-icon chev"></i>
+              </a>
+              <!-- v1b: link to projects list page -->
+              <a class="nav-item" data-route="projects" data-variant="v1b">
+                <i data-lucide="box" class="sb-icon"></i>
+                <span>Projects</span>
+              </a>
+
+              <div class="sidebar-divider"></div>
+
+              <!-- API Keys section -->
+              <div class="nav-section-label">API Keys</div>
+              <!-- v1a: inline API list -->
+              <a class="nav-item" data-drill="api-1" data-variant="v1a">
+                <i data-lucide="key-round" class="sb-icon"></i>
+                <span>API 1</span>
+                <i data-lucide="chevron-right" class="sb-icon chev"></i>
+              </a>
+              <a class="nav-item" data-drill="api-2" data-variant="v1a">
+                <i data-lucide="key-round" class="sb-icon"></i>
+                <span>API 2</span>
+                <i data-lucide="chevron-right" class="sb-icon chev"></i>
+              </a>
+              <!-- v1b: link to APIs list page -->
+              <a class="nav-item" data-route="apis" data-variant="v1b">
+                <i data-lucide="key-round" class="sb-icon"></i>
+                <span>APIs</span>
+              </a>
+              <a class="nav-item" data-drill="ratelimit">
+                <i data-lucide="gauge" class="sb-icon"></i>
+                <span>Ratelimit</span>
+                <i data-lucide="chevron-right" class="sb-icon chev"></i>
+              </a>
+              <a class="nav-item" data-drill="authorization">
+                <i data-lucide="shield-check" class="sb-icon"></i>
+                <span>Authorization</span>
+                <i data-lucide="chevron-right" class="sb-icon chev"></i>
+              </a>
+              <a class="nav-item" data-route="logs">
+                <i data-lucide="list" class="sb-icon"></i>
+                <span>Logs</span>
+              </a>
+              <a class="nav-item" data-route="identities">
+                <i data-lucide="fingerprint" class="sb-icon"></i>
+                <span>Identities</span>
+              </a>
+
+              <div class="sidebar-divider"></div>
+
+              <!-- Workspace section -->
+              <div class="nav-section-label">Workspace</div>
+              <a class="nav-item" data-route="audit">
+                <i data-lucide="search" class="sb-icon"></i>
+                <span>Audit Log</span>
+              </a>
+              <a class="nav-item" data-route="billing">
+                <i data-lucide="coins" class="sb-icon"></i>
+                <span>Customer Billing</span>
+              </a>
+              <a class="nav-item" data-drill="settings">
+                <i data-lucide="settings" class="sb-icon"></i>
+                <span>Settings</span>
+                <i data-lucide="chevron-right" class="sb-icon chev"></i>
+              </a>
+            </div>
+          </div>
+
+          <!-- Leaf views (absolute, slide in from right) -->
+          <!-- Project 1 leaf -->
+          <div class="leaf" data-leaf="project-1">
+            <div class="p-2 flex items-center gap-2 border-b" style="border-color: var(--gray-4)">
+              <button class="nav-item leaf-back" style="padding: 0.25rem; flex: 0 0 auto;">
+                <i data-lucide="chevron-left" class="sb-icon"></i>
+              </button>
+              <span class="text-[13px] font-medium flex-1">Project 1</span>
+            </div>
+            <div class="p-2 flex-1 overflow-y-auto">
+              <a class="nav-item active">
+                <i data-lucide="box" class="sb-icon"></i><span>Deployments</span>
+              </a>
+              <a class="nav-item">
+                <i data-lucide="list" class="sb-icon"></i><span>Logs</span>
+              </a>
+              <a class="nav-item">
+                <i data-lucide="arrow-left-right" class="sb-icon"></i><span>Requests</span>
+              </a>
+              <a class="nav-item">
+                <i data-lucide="braces" class="sb-icon"></i><span>Environment Variables</span>
+              </a>
+              <a class="nav-item">
+                <i data-lucide="shield-check" class="sb-icon"></i><span>Sentinel Policies</span>
+              </a>
+              <a class="nav-item">
+                <i data-lucide="settings" class="sb-icon"></i><span>Settings</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Project 2 leaf -->
+          <div class="leaf" data-leaf="project-2">
+            <div class="p-2 flex items-center gap-2 border-b" style="border-color: var(--gray-4)">
+              <button class="nav-item leaf-back" style="padding: 0.25rem; flex: 0 0 auto;">
+                <i data-lucide="chevron-left" class="sb-icon"></i>
+              </button>
+              <span class="text-[13px] font-medium flex-1">Project 2</span>
+            </div>
+            <div class="p-2 flex-1 overflow-y-auto">
+              <a class="nav-item"><i data-lucide="box" class="sb-icon"></i><span>Deployments</span></a>
+              <a class="nav-item"><i data-lucide="list" class="sb-icon"></i><span>Logs</span></a>
+              <a class="nav-item"><i data-lucide="arrow-left-right" class="sb-icon"></i><span>Requests</span></a>
+              <a class="nav-item"><i data-lucide="braces" class="sb-icon"></i><span>Environment Variables</span></a>
+              <a class="nav-item"><i data-lucide="shield-check" class="sb-icon"></i><span>Sentinel Policies</span></a>
+              <a class="nav-item"><i data-lucide="settings" class="sb-icon"></i><span>Settings</span></a>
+            </div>
+          </div>
+
+          <!-- API 1 leaf -->
+          <div class="leaf" data-leaf="api-1">
+            <div class="p-2 flex items-center gap-2 border-b" style="border-color: var(--gray-4)">
+              <button class="nav-item leaf-back" style="padding: 0.25rem; flex: 0 0 auto;">
+                <i data-lucide="chevron-left" class="sb-icon"></i>
+              </button>
+              <span class="text-[13px] font-medium flex-1">API 1</span>
+            </div>
+            <div class="p-2 flex-1 overflow-y-auto">
+              <a class="nav-item active">
+                <i data-lucide="arrow-left-right" class="sb-icon"></i><span>Requests</span>
+              </a>
+              <a class="nav-item">
+                <i data-lucide="key-round" class="sb-icon"></i><span>Keys</span>
+              </a>
+              <a class="nav-item">
+                <i data-lucide="settings" class="sb-icon"></i><span>Settings</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- API 2 leaf -->
+          <div class="leaf" data-leaf="api-2">
+            <div class="p-2 flex items-center gap-2 border-b" style="border-color: var(--gray-4)">
+              <button class="nav-item leaf-back" style="padding: 0.25rem; flex: 0 0 auto;">
+                <i data-lucide="chevron-left" class="sb-icon"></i>
+              </button>
+              <span class="text-[13px] font-medium flex-1">API 2</span>
+            </div>
+            <div class="p-2 flex-1 overflow-y-auto">
+              <a class="nav-item"><i data-lucide="arrow-left-right" class="sb-icon"></i><span>Requests</span></a>
+              <a class="nav-item"><i data-lucide="key-round" class="sb-icon"></i><span>Keys</span></a>
+              <a class="nav-item"><i data-lucide="settings" class="sb-icon"></i><span>Settings</span></a>
+            </div>
+          </div>
+
+          <!-- Ratelimit leaf -->
+          <div class="leaf" data-leaf="ratelimit">
+            <div class="p-2 flex items-center gap-2 border-b" style="border-color: var(--gray-4)">
+              <button class="nav-item leaf-back" style="padding: 0.25rem; flex: 0 0 auto;">
+                <i data-lucide="chevron-left" class="sb-icon"></i>
+              </button>
+              <span class="text-[13px] font-medium flex-1">Ratelimit</span>
+            </div>
+            <div class="p-2 flex-1 overflow-y-auto">
+              <div class="nav-section-label">Namespaces</div>
+              <a class="nav-item active"><i data-lucide="gauge" class="sb-icon"></i><span>default</span></a>
+              <a class="nav-item"><i data-lucide="gauge" class="sb-icon"></i><span>premium</span></a>
+            </div>
+          </div>
+
+          <!-- Authorization leaf -->
+          <div class="leaf" data-leaf="authorization">
+            <div class="p-2 flex items-center gap-2 border-b" style="border-color: var(--gray-4)">
+              <button class="nav-item leaf-back" style="padding: 0.25rem; flex: 0 0 auto;">
+                <i data-lucide="chevron-left" class="sb-icon"></i>
+              </button>
+              <span class="text-[13px] font-medium flex-1">Authorization</span>
+            </div>
+            <div class="p-2 flex-1 overflow-y-auto">
+              <a class="nav-item active"><i data-lucide="users" class="sb-icon"></i><span>Roles</span></a>
+              <a class="nav-item"><i data-lucide="shield-check" class="sb-icon"></i><span>Permissions</span></a>
+            </div>
+          </div>
+
+          <!-- Settings leaf -->
+          <div class="leaf" data-leaf="settings">
+            <div class="p-2 flex items-center gap-2 border-b" style="border-color: var(--gray-4)">
+              <button class="nav-item leaf-back" style="padding: 0.25rem; flex: 0 0 auto;">
+                <i data-lucide="chevron-left" class="sb-icon"></i>
+              </button>
+              <span class="text-[13px] font-medium flex-1">Settings</span>
+            </div>
+            <div class="p-2 flex-1 overflow-y-auto">
+              <a class="nav-item active"><i data-lucide="settings" class="sb-icon"></i><span>General</span></a>
+              <a class="nav-item"><i data-lucide="users" class="sb-icon"></i><span>Team</span></a>
+              <a class="nav-item"><i data-lucide="key-round" class="sb-icon"></i><span>Root Keys</span></a>
+              <a class="nav-item"><i data-lucide="coins" class="sb-icon"></i><span>Billing</span></a>
+            </div>
+          </div>
+        </div>
+
+        <!-- User menu (bottom) -->
+        <div class="p-2 border-t flex items-center gap-2" style="border-color: var(--gray-4)">
+          <button
+            class="flex items-center gap-2 flex-1 rounded-md px-1.5 py-1 hover:bg-[var(--gray-3)]"
+          >
+            <div
+              class="w-6 h-6 rounded-full"
+              style="
+                background: linear-gradient(135deg, #fbbf24 0%, #fb7185 100%);
+              "
+            ></div>
+            <span class="text-[13px] flex-1 text-left truncate">dave@unkey.com</span>
+          </button>
+          <button class="top-action-btn" aria-label="Notifications" style="width: 28px; height: 28px">
+            <i data-lucide="bell"></i>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main content area -->
+      <main class="flex-1 flex flex-col overflow-hidden" style="background: var(--gray-1)">
+        <!-- Top bar: breadcrumbs + actions -->
+        <header
+          id="top-bar"
+          class="h-[65px] border-b px-4 flex items-center gap-3"
+          style="border-color: var(--gray-4)"
+        >
+          <!-- Breadcrumb section -->
+          <nav class="flex items-center gap-2" id="breadcrumbs">
+            <div
+              class="w-6 h-6 rounded-md flex items-center justify-center"
+              style="background: var(--gray-4)"
+              id="crumb-icon"
+            >
+              <i data-lucide="home"></i>
+            </div>
+            <span class="breadcrumb-link active" id="crumb-label">Home</span>
+          </nav>
+
+          <div class="flex-1"></div>
+
+          <!-- Actions slot (filled dynamically for project routes) -->
+          <div id="top-actions" class="flex items-center gap-2"></div>
+        </header>
+
+        <!-- Content -->
+        <section class="flex-1 overflow-auto" id="content-area">
+          <div class="w-full h-full flex items-center justify-center">
+            <p class="text-[13px]" style="color: var(--gray-9)" id="content-placeholder">
+              Home · workspace overview
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Variant switcher -->
+    <div class="variant-switcher" role="group" aria-label="Navbar variant">
+      <span class="vs-label">Variant</span>
+      <button data-set-variant="v1a">v1a · Inline</button>
+      <button data-set-variant="v1b">v1b · Linked</button>
+    </div>
+
+    <script>
+      // Variant state (localStorage-backed, mirrors use-product-selection pattern)
+      const VARIANT_KEY = "navbar-variant";
+      const DEFAULT_VARIANT = "v1b";
+      function getVariant() {
+        const saved = localStorage.getItem(VARIANT_KEY);
+        return saved === "v1a" || saved === "v1b" ? saved : DEFAULT_VARIANT;
+      }
+      function applyVariant(v) {
+        document.body.dataset.variant = v;
+        document.querySelectorAll("[data-set-variant]").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.setVariant === v);
+        });
+      }
+      applyVariant(getVariant());
+      document.querySelectorAll("[data-set-variant]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const v = btn.dataset.setVariant;
+          localStorage.setItem(VARIANT_KEY, v);
+          applyVariant(v);
+          // Reset to home so list pages / drill-ins from the other variant don't linger
+          goRoute("home");
+        });
+      });
+
+      // Render icons
+      lucide.createIcons();
+
+      const mainNav = document.getElementById("main-nav");
+      const leaves = document.querySelectorAll("[data-leaf]");
+      const crumbLabel = document.getElementById("crumb-label");
+      const crumbIcon = document.getElementById("crumb-icon");
+      const topActions = document.getElementById("top-actions");
+
+      // Leaf titles + icons + whether they're project-scoped (shows redeploy action)
+      const leafMeta = {
+        "project-1": { label: "Project 1", icon: "box", isProject: true },
+        "project-2": { label: "Project 2", icon: "box", isProject: true },
+        "api-1": { label: "API 1", icon: "key-round" },
+        "api-2": { label: "API 2", icon: "key-round" },
+        ratelimit: { label: "Ratelimit", icon: "gauge" },
+        authorization: { label: "Authorization", icon: "shield-check" },
+        settings: { label: "Settings", icon: "settings" },
+      };
+
+      const routeMeta = {
+        home: { label: "Home", icon: "home", placeholder: "Home · workspace overview" },
+        projects: {
+          label: "Projects",
+          icon: "box",
+          list: [
+            { id: "project-1", name: "Project 1" },
+            { id: "project-2", name: "Project 2" },
+          ],
+        },
+        apis: {
+          label: "APIs",
+          icon: "key-round",
+          list: [
+            { id: "api-1", name: "API 1" },
+            { id: "api-2", name: "API 2" },
+          ],
+        },
+        logs: { label: "Logs", icon: "list", placeholder: "Logs" },
+        identities: { label: "Identities", icon: "fingerprint", placeholder: "Identities" },
+        audit: { label: "Audit Log", icon: "search", placeholder: "Audit Log" },
+        billing: { label: "Customer Billing", icon: "coins", placeholder: "Customer Billing" },
+      };
+
+      function setCrumbIcon(iconName) {
+        crumbIcon.innerHTML = "";
+        const i = document.createElement("i");
+        i.setAttribute("data-lucide", iconName);
+        crumbIcon.appendChild(i);
+        lucide.createIcons();
+      }
+
+      function setTopActions(html) {
+        topActions.innerHTML = html;
+        lucide.createIcons();
+      }
+
+      function clearActiveMain() {
+        mainNav.querySelectorAll(".nav-item.active").forEach((el) => el.classList.remove("active"));
+      }
+
+      function openLeaf(leafId) {
+        const leaf = document.querySelector(`[data-leaf="${leafId}"]`);
+        if (!leaf) return;
+        // close any others first
+        leaves.forEach((l) => l.classList.remove("open"));
+        leaf.classList.add("open");
+
+        const meta = leafMeta[leafId];
+        crumbLabel.textContent = meta.label;
+        setCrumbIcon(meta.icon);
+        renderPlaceholder(`${meta.label} · (blank content)`);
+
+        if (meta.isProject) {
+          setTopActions(`
+            <button class="top-action-btn" title="Redeploy active deployment">
+              <i data-lucide="rotate-ccw"></i>
+            </button>
+            <button class="top-action-btn" title="Toggle details panel">
+              <i data-lucide="chevrons-left"></i>
+            </button>
+          `);
+        } else {
+          setTopActions("");
+        }
+      }
+
+      function closeLeaves() {
+        leaves.forEach((l) => l.classList.remove("open"));
+      }
+
+      const contentArea = document.getElementById("content-area");
+
+      function renderPlaceholder(text) {
+        contentArea.innerHTML = `
+          <div class="w-full h-full flex items-center justify-center">
+            <p class="text-[13px]" style="color: var(--gray-9)">${text}</p>
+          </div>`;
+      }
+
+      // v1b-only: aggregated workspace overview, mixed Project + API cards.
+      // Cards share the same skeleton (top region · header · stats);
+      // top region differs because deployments aren't volumetric data.
+      const HOME_RESOURCES = [
+        {
+          id: "project-1",
+          kind: "project",
+          name: "checkout-api",
+          domain: "checkout.acme.dev",
+          status: "ready",
+          statusLabel: "Ready",
+          commit: "fix(auth): handle workos session timeout",
+          branch: "main",
+          when: "2h ago",
+          deploys: 47,
+          failed: 2,
+        },
+        {
+          id: "api-1",
+          kind: "api",
+          name: "production-keys",
+          shortId: "api_rWkJ4F2YLUhT",
+          valid: 1284,
+          invalid: 12,
+          keys: 124,
+          chart: [4, 6, 5, 8, 12, 10, 14, 18, 22, 19, 24, 28, 26, 31, 27, 24, 20, 16, 14, 12, 18, 22, 28, 32],
+          errBars: [16, 22],
+        },
+        {
+          id: "project-2",
+          kind: "project",
+          name: "internal-tools",
+          domain: "tools.acme.internal",
+          status: "building",
+          statusLabel: "Building",
+          commit: "chore: bump pnpm to 10.5",
+          branch: "preview/upgrade-pnpm",
+          when: "1m ago",
+          deploys: 12,
+          failed: 0,
+        },
+        {
+          id: "api-2",
+          kind: "api",
+          name: "staging-keys",
+          shortId: "api_8xPq2HsLM3vN",
+          valid: 412,
+          invalid: 0,
+          keys: 18,
+          chart: [2, 3, 2, 4, 6, 5, 7, 9, 8, 11, 14, 12, 10, 13, 15, 18, 16, 14, 11, 9, 8, 10, 12, 15],
+          errBars: [],
+        },
+      ];
+
+      function projectCard(r) {
+        return `
+          <button class="card" data-open-leaf="${r.id}">
+            <div class="card-top">
+              <div class="card-status" data-status="${r.status}">
+                <div class="card-status-line">
+                  <span class="card-status-dot"></span>
+                  <span class="card-status-label">${r.statusLabel}</span>
+                  <span class="card-status-time">· ${r.when}</span>
+                </div>
+                <div class="card-status-commit">${r.commit}</div>
+                <div class="card-status-meta">
+                  <i data-lucide="git-branch"></i>
+                  <span>${r.branch}</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-bot">
+              <div class="card-head">
+                <div class="card-icon"><i data-lucide="box"></i></div>
+                <div class="card-head-text">
+                  <span class="card-name">${r.name}</span>
+                  <span class="card-secondary">${r.domain}</span>
+                </div>
+              </div>
+              <div class="card-stats">
+                <div class="card-stat">
+                  <span class="card-stat-label">DEPLOYS</span>
+                  <span class="card-stat-value">${r.deploys}</span>
+                </div>
+                <div class="card-stat">
+                  <span class="card-stat-label">FAILED</span>
+                  <span class="card-stat-value ${r.failed > 0 ? "err" : ""}">${r.failed}</span>
+                </div>
+                <div class="card-stat-trail">
+                  <i data-lucide="git-branch"></i>
+                  <span>${r.branch}</span>
+                </div>
+              </div>
+            </div>
+          </button>`;
+      }
+
+      function apiCard(r) {
+        const max = Math.max(...r.chart);
+        const bars = r.chart
+          .map((v, i) => {
+            const pct = Math.max(8, Math.round((v / max) * 100));
+            const isErr = r.errBars.includes(i);
+            return `<div class="card-bar ${isErr ? "err" : ""}" style="height:${pct}%"></div>`;
+          })
+          .join("");
+        return `
+          <button class="card" data-open-leaf="${r.id}">
+            <div class="card-top">
+              <div class="card-chart">${bars}</div>
+            </div>
+            <div class="card-bot">
+              <div class="card-head">
+                <div class="card-icon"><i data-lucide="key-round"></i></div>
+                <div class="card-head-text">
+                  <span class="card-name">${r.name}</span>
+                  <span class="card-secondary">${r.shortId}</span>
+                </div>
+              </div>
+              <div class="card-stats">
+                <div class="card-stat">
+                  <span class="card-stat-label">VALID</span>
+                  <span class="card-stat-value">${r.valid.toLocaleString()}</span>
+                </div>
+                <div class="card-stat">
+                  <span class="card-stat-label">INVALID</span>
+                  <span class="card-stat-value ${r.invalid > 0 ? "err" : ""}">${r.invalid.toLocaleString()}</span>
+                </div>
+                <div class="card-stat-trail">
+                  <i data-lucide="key-round"></i>
+                  <span>${r.keys.toLocaleString()} keys</span>
+                </div>
+              </div>
+            </div>
+          </button>`;
+      }
+
+      function renderHomeV1b() {
+        const cards = HOME_RESOURCES.map((r) =>
+          r.kind === "project" ? projectCard(r) : apiCard(r),
+        ).join("");
+
+        contentArea.innerHTML = `
+          <div class="home-wrap">
+            <div class="home-header">
+              <div>
+                <h1>Workspace</h1>
+                <p>Everything in this workspace, deployed and authenticated.</p>
+              </div>
+              <button class="top-action-btn" style="width:auto;padding:0 10px;gap:6px;">
+                <i data-lucide="plus"></i>
+                <span class="text-[13px]">New</span>
+              </button>
+            </div>
+            <div class="home-section-label">Recently active</div>
+            <div class="card-grid">${cards}</div>
+          </div>`;
+        lucide.createIcons();
+        contentArea.querySelectorAll("[data-open-leaf]").forEach((btn) => {
+          btn.addEventListener("click", () => openLeaf(btn.dataset.openLeaf));
+        });
+      }
+
+      function renderListPage(label, routeId, items, iconName, leafKind) {
+        const rows = items
+          .map(
+            (it) => `
+          <button class="list-row" data-open-leaf="${it.id}">
+            <div class="list-row-left">
+              <div class="list-row-icon"><i data-lucide="${iconName}"></i></div>
+              <div>
+                <div class="list-row-title">${it.name}</div>
+                <div class="list-row-sub">/${it.id.replace(/-/g, "/")}</div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="list-row-chev"></i>
+          </button>`,
+          )
+          .join("");
+        contentArea.innerHTML = `
+          <div class="px-8 pt-8 pb-6 max-w-[920px] mx-auto w-full">
+            <div class="flex items-end justify-between mb-6">
+              <div>
+                <h1 class="text-[22px] font-semibold" style="color: var(--gray-12)">${label}</h1>
+                <p class="text-[13px]" style="color: var(--gray-11)">${items.length} ${label.toLowerCase()}</p>
+              </div>
+              <button class="top-action-btn" style="width:auto;padding:0 10px;gap:6px;">
+                <i data-lucide="plus"></i>
+                <span class="text-[13px]">New</span>
+              </button>
+            </div>
+            <div class="list-grid">${rows}</div>
+          </div>`;
+        lucide.createIcons();
+        contentArea.querySelectorAll("[data-open-leaf]").forEach((btn) => {
+          btn.addEventListener("click", () => openLeaf(btn.dataset.openLeaf));
+        });
+      }
+
+      function goRoute(routeId) {
+        closeLeaves();
+        clearActiveMain();
+        const meta = routeMeta[routeId];
+        if (!meta) return;
+        const item = mainNav.querySelector(`[data-route="${routeId}"]`);
+        if (item) item.classList.add("active");
+        crumbLabel.textContent = meta.label;
+        setCrumbIcon(meta.icon);
+        setTopActions("");
+        if (routeId === "home" && getVariant() === "v1b") {
+          renderHomeV1b();
+        } else if (meta.list) {
+          renderListPage(meta.label, routeId, meta.list, meta.icon, routeId);
+        } else {
+          renderPlaceholder(meta.placeholder);
+        }
+      }
+
+      // Wire up drill-ins on main nav
+      mainNav.querySelectorAll("[data-drill]").forEach((el) => {
+        el.addEventListener("click", (e) => {
+          e.preventDefault();
+          openLeaf(el.dataset.drill);
+        });
+      });
+
+      // Wire up simple routes on main nav
+      mainNav.querySelectorAll("[data-route]").forEach((el) => {
+        el.addEventListener("click", (e) => {
+          e.preventDefault();
+          goRoute(el.dataset.route);
+        });
+      });
+
+      // Wire up leaf back buttons
+      document.querySelectorAll(".leaf-back").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          closeLeaves();
+          goRoute("home");
+        });
+      });
+
+      // Initial state
+      goRoute("home");
+    </script>
+  </body>
+</html>

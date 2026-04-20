@@ -53,6 +53,10 @@ const Feedback = dynamic(() =>
   import("@/components/dashboard/feedback-component").then((mod) => mod.Feedback),
 );
 
+const AgentationOverlay = dynamic(() =>
+  import("@/components/dashboard/agentation-component").then((mod) => mod.AgentationOverlay),
+);
+
 export default function RootLayout({
   children,
 }: {
@@ -79,6 +83,11 @@ export default function RootLayout({
               <Suspense fallback={null}>
                 <Feedback />
               </Suspense>
+              {process.env.NODE_ENV === "development" && (
+                <Suspense fallback={null}>
+                  <AgentationOverlay />
+                </Suspense>
+              )}
             </WorkspaceProvider>
           </ThemeProvider>
         </ReactQueryProvider>
