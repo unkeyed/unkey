@@ -12,7 +12,8 @@ This doc is the operator-facing recipe: how to actually start, monitor, and unst
 - The target image exists in `ghcr.io/unkeyed/sentinel` and passed CI.
 - You have a kubeconfig for the prod control-plane cluster.
 - You have the Restate ingress bearer token from the `restate-cloud-credentials` secret (AWS Secrets Manager).
-- A Slack webhook URL (optional but strongly recommended in prod — it's the only progress stream you'll get without tailing logs).
+
+The Slack channel for rollout progress is configured server-side via [`slack.sentinel_rollout_webhook_url`](/architecture/services/control-plane/worker/configuration#heartbeat-and-slack) — there's nothing to pass per-rollout.
 
 Export the ingress URL and token for the rest of this doc:
 
@@ -28,8 +29,7 @@ curl -X POST "$RESTATE_URL/hydra.v1.SentinelRolloutService/singleton/Rollout" \
   -H "Authorization: Bearer $RESTATE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "image": "ghcr.io/unkeyed/sentinel:v1.2.3",
-    "slack_webhook_url": "https://hooks.slack.com/services/..."
+    "image": "ghcr.io/unkeyed/sentinel:v1.2.3"
   }'
 ```
 
@@ -50,11 +50,10 @@ If you'd rather click than curl, the Restate Cloud UI exposes every handler as a
 5. Fill in the JSON body:
    ```json
    {
-     "image": "ghcr.io/unkeyed/sentinel:v1.2.3",
-     "slack_webhook_url": "https://hooks.slack.com/services/..."
+     "image": "ghcr.io/unkeyed/sentinel:v1.2.3"
    }
    ```
-   Add `"wave_percentages": [10, 100]` if you want to override the defaults.
+   Add `"wave_percentages": [10, 100]` to override the default waves.
 6. Hit **Send** (blocks until `completed`/`paused`) or **Send async** (fire-and-forget — watch Slack).
 
 For `Resume`, `Cancel`, and `RollbackAll`, use the same flow: pick the handler on `SentinelRolloutService`, key `singleton`, empty `{}` body.
@@ -119,6 +118,5 @@ Fans `SentinelService.Deploy` back to each sentinel's previous image (captured a
 ## Tips
 
 - **Test on staging first.** The same RPCs exist on the staging control-plane — use the staging ingress URL and always run a full rollout there before prod.
-- **Don't skip the Slack webhook in prod.** If you `/send` the rollout and forget to pass it, your only progress signal is worker logs.
 - **Custom waves for emergencies.** Rolling back a bad image via a fresh rollout of the last-known-good tag is often faster than `RollbackAll` if most sentinels are already on the bad image — but think about what `previousImages` will capture before you do it.
 - **The `singleton` key is intentional.** Don't try to run two rollouts at once by varying the key — clients always address `singleton`.

@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { deleteCookie } from "./cookies";
+import { deleteCookie, getCookie } from "./cookies";
 import { auth } from "./server";
 import { UNKEY_SESSION_COOKIE } from "./types";
 
@@ -23,7 +23,10 @@ export async function requireEmailMatch(params: {
 
 // Sign Out
 export async function signOut(): Promise<void> {
-  //const signOutUrl = await auth.getSignOutUrl();
+  const sessionToken = await getCookie(UNKEY_SESSION_COOKIE);
+  if (sessionToken) {
+    await auth.revokeSession(sessionToken);
+  }
   await deleteCookie(UNKEY_SESSION_COOKIE);
   redirect("/auth/sign-in");
 }

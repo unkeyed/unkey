@@ -18,6 +18,11 @@ type rolloutState struct {
 	SucceededIDs    []string          `json:"succeededIds"`
 	FailedIDs       []string          `json:"failedIds"`
 	TotalSentinels  int               `json:"totalSentinels"`
+
+	// StartedAtMs is the unix-ms timestamp when Rollout was first invoked.
+	StartedAtMs int64 `json:"startedAtMs,omitempty"`
+	// WaveStartedAtMs is the unix-ms timestamp when the current wave started.
+	WaveStartedAtMs int64 `json:"waveStartedAtMs,omitempty"`
 }
 
 const (

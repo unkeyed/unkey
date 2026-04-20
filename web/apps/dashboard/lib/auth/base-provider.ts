@@ -113,6 +113,14 @@ export abstract class BaseAuthProvider {
   abstract getSignOutUrl(): Promise<string | null>;
 
   /**
+   * Revokes a session so it can no longer be refreshed or authenticated,
+   * even if the sealed cookie is replayed.
+   *
+   * @param sessionToken - The sealed session token to revoke
+   */
+  abstract revokeSession(sessionToken: string): Promise<void>;
+
+  /**
    * Completes the organization selection process during authentication.
    *
    * @param params - Parameters containing the selected organization ID and pending auth token

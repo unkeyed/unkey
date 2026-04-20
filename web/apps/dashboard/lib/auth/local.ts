@@ -467,6 +467,10 @@ export class LocalAuthProvider extends BaseAuthProvider {
     return "/auth/sign-in";
   }
 
+  async revokeSession(_sessionToken: string): Promise<void> {
+    // No-op: local provider has no server-side session to revoke.
+  }
+
   // OAuth Methods
   signInViaOAuth(options: SignInViaOAuthOptions): string {
     return options.redirectUrlComplete;

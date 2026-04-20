@@ -325,8 +325,6 @@ type SentinelRolloutServiceRolloutRequest struct {
 	Image string                 `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
 	// Custom wave percentages. Defaults to [1, 5, 25, 50, 100].
 	WavePercentages []int32 `protobuf:"varint,2,rep,packed,name=wave_percentages,json=wavePercentages,proto3" json:"wave_percentages,omitempty"`
-	// Slack webhook URL for rollout notifications.
-	SlackWebhookUrl string `protobuf:"bytes,3,opt,name=slack_webhook_url,json=slackWebhookUrl,proto3" json:"slack_webhook_url,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -373,13 +371,6 @@ func (x *SentinelRolloutServiceRolloutRequest) GetWavePercentages() []int32 {
 		return x.WavePercentages
 	}
 	return nil
-}
-
-func (x *SentinelRolloutServiceRolloutRequest) GetSlackWebhookUrl() string {
-	if x != nil {
-		return x.SlackWebhookUrl
-	}
-	return ""
 }
 
 type SentinelRolloutServiceRolloutResponse struct {
@@ -672,11 +663,10 @@ const file_hydra_v1_sentinel_proto_rawDesc = "" +
 	"\x1dSentinelServiceDeployResponse\x126\n" +
 	"\x06status\x18\x01 \x01(\x0e2\x1e.hydra.v1.SentinelDeployStatusR\x06status\"#\n" +
 	"!SentinelServiceNotifyReadyRequest\"$\n" +
-	"\"SentinelServiceNotifyReadyResponse\"\x93\x01\n" +
+	"\"SentinelServiceNotifyReadyResponse\"g\n" +
 	"$SentinelRolloutServiceRolloutRequest\x12\x14\n" +
 	"\x05image\x18\x01 \x01(\tR\x05image\x12)\n" +
-	"\x10wave_percentages\x18\x02 \x03(\x05R\x0fwavePercentages\x12*\n" +
-	"\x11slack_webhook_url\x18\x03 \x01(\tR\x0fslackWebhookUrl\"]\n" +
+	"\x10wave_percentages\x18\x02 \x03(\x05R\x0fwavePercentages\"]\n" +
 	"%SentinelRolloutServiceRolloutResponse\x124\n" +
 	"\x05state\x18\x01 \x01(\x0e2\x1e.hydra.v1.SentinelRolloutStateR\x05state\"%\n" +
 	"#SentinelRolloutServiceResumeRequest\"\\\n" +
