@@ -70,7 +70,7 @@ func (s *Service) syncDeployments(
 		}
 		for _, row := range rows {
 			afterPk = row.DeploymentTopology.Pk
-			state, err := s.deploymentRowToState(deploymentRow{
+			state, err := deploymentRowToState(deploymentRow{
 				dt:              row.DeploymentTopology,
 				d:               row.Deployment,
 				k8sNamespace:    row.K8sNamespace,
@@ -116,7 +116,7 @@ func (s *Service) syncSentinels(
 		}
 		for _, sentinel := range rows {
 			afterPk = sentinel.Pk
-			state := s.sentinelToState(sentinel, 0)
+			state := sentinelToState(sentinel, 0)
 			if state == nil {
 				continue
 			}

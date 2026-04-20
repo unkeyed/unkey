@@ -153,7 +153,6 @@ go_library(
         "deployment_step_end_active_with_error.sql_generated.go",
         "deployment_step_insert.sql_generated.go",
         "deployment_stop_if_no_instances.sql_generated.go",
-        "deployment_topology_by_id_and_region.sql_generated.go",
         "deployment_topology_delete_by_deployment_id.sql_generated.go",
         "deployment_topology_delete_by_deployment_region.sql_generated.go",
         "deployment_topology_delete_by_environment.sql_generated.go",

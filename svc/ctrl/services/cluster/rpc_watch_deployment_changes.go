@@ -134,7 +134,7 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 		if err != nil {
 			return nil, err
 		}
-		state, err := s.deploymentRowToState(deploymentRow{
+		state, err := deploymentRowToState(deploymentRow{
 			dt:              row.DeploymentTopology,
 			d:               row.Deployment,
 			k8sNamespace:    row.K8sNamespace,
@@ -158,7 +158,7 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 		if err != nil {
 			return nil, err
 		}
-		state := s.sentinelToState(sentinel, change.Pk)
+		state := sentinelToState(sentinel, change.Pk)
 		if state == nil {
 			return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
 		}
@@ -199,7 +199,7 @@ type deploymentRow struct {
 }
 
 // deploymentRowToState converts a deployment row to a proto DeploymentState message.
-func (s *Service) deploymentRowToState(row deploymentRow, version uint64) (*ctrlv1.DeploymentState, error) {
+func deploymentRowToState(row deploymentRow, version uint64) (*ctrlv1.DeploymentState, error) {
 	switch row.dt.DesiredStatus {
 	case db.DeploymentTopologyDesiredStatusStopped:
 		return &ctrlv1.DeploymentState{
@@ -288,7 +288,7 @@ func (s *Service) deploymentRowToState(row deploymentRow, version uint64) (*ctrl
 }
 
 // sentinelToState converts a sentinel DB row to a proto SentinelState message.
-func (s *Service) sentinelToState(sentinel db.Sentinel, version uint64) *ctrlv1.SentinelState {
+func sentinelToState(sentinel db.Sentinel, version uint64) *ctrlv1.SentinelState {
 	switch sentinel.DesiredState {
 	case db.SentinelsDesiredStateArchived, db.SentinelsDesiredStateStandby:
 		return &ctrlv1.SentinelState{
