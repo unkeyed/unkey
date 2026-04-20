@@ -37,11 +37,11 @@ import (
 const (
 	// defaultCacheKeepGB is the maximum cache size in gigabytes for new Depot
 	// projects. Depot evicts least-recently-used cache entries when exceeded.
-	defaultCacheKeepGB = 50
+	defaultCacheKeepGB = 25
 
 	// defaultCacheKeepDays is the maximum age in days for cached build layers.
 	// Layers older than this are evicted regardless of cache size.
-	defaultCacheKeepDays = 14
+	defaultCacheKeepDays = 7
 )
 
 // knownBuildError maps a BuildKit error pattern to a user-friendly message.
