@@ -43,7 +43,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	// Get source deployment
 	sourceDeployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
 		return db.Query.FindDeploymentById(stepCtx, w.db.RO(), req.GetSourceDeploymentId())
-	}, restate.WithName("finding source deployment"))
+	}, restate.WithName("finding source deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, restate.TerminalError(fmt.Errorf("source deployment not found: %s", req.GetSourceDeploymentId()), 404)
@@ -54,7 +54,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	// Get target deployment
 	targetDeployment, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.Deployment, error) {
 		return db.Query.FindDeploymentById(stepCtx, w.db.RO(), req.GetTargetDeploymentId())
-	}, restate.WithName("finding target deployment"))
+	}, restate.WithName("finding target deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, restate.TerminalError(fmt.Errorf("target deployment not found: %s", req.GetTargetDeploymentId()), 404)
@@ -74,7 +74,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 	// Get app from deployment's app_id
 	app, err := restate.Run(ctx, func(stepCtx restate.RunContext) (db.App, error) {
 		return db.Query.FindAppById(stepCtx, w.db.RO(), sourceDeployment.AppID)
-	}, restate.WithName("finding app"))
+	}, restate.WithName("finding app"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, restate.TerminalError(fmt.Errorf("app not found: %s", sourceDeployment.AppID), 404)
@@ -102,7 +102,7 @@ func (w *Workflow) Rollback(ctx restate.ObjectContext, req *hydrav1.RollbackRequ
 				db.FrontlineRoutesStickyEnvironment,
 			},
 		})
-	}, restate.WithName("finding frontlineRoutes for rollback"))
+	}, restate.WithName("finding frontlineRoutes for rollback"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get frontlineRoutes: %w", err)
 	}
