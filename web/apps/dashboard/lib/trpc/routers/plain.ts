@@ -105,8 +105,7 @@ const issueToId: Record<z.infer<typeof issueType>, string> = {
   question: "lt_01HB93K6B8Y28CBBJQV6FQ791S",
   security: "lt_01HCATRJ25F3FJ7V8W2E4CRX5H",
   payment: "lt_01HB93K6C78S0Q61VG8C3FBZZC",
-  // TODO: replace with a dedicated "deploy" label id once one exists in Plain.
-  deploy: "lt_01HB93K6B8Y28CBBJQV6FQ791S",
+  deploy: "lt_01KPR9AGBCBP6KB9WZR921ZFKP",
 };
 
 const severityToNumber: Record<z.infer<typeof severity>, number> = {
