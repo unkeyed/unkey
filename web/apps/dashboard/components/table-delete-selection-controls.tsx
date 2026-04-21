@@ -78,6 +78,7 @@ export const TableDeleteSelectionControls = ({
                   variant="ghost"
                   className="[&_svg]:size-[14px] ml-3"
                   onClick={onClearSelection}
+                  aria-label="Clear selection"
                 >
                   <XMark />
                 </Button>

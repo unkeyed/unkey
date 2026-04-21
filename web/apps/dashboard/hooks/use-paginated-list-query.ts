@@ -120,21 +120,29 @@ export function usePaginatedListQuery<
     }
   }, [sortParams, setSortParams, defaultSortParams]);
 
+  // Drop any URL-derived sort entries whose column is not in the caller's
+  // allowed set, falling back to defaults. Shared by both the table UI state
+  // and the tRPC query so they never disagree about which sort is applied.
+  const validSortParams = useMemo(() => {
+    const valid = effectiveSortParams.filter((s) => s.column in sortFieldToColumnId);
+    return valid.length > 0 ? valid : defaultSortParams;
+  }, [effectiveSortParams, sortFieldToColumnId, defaultSortParams]);
+
   const sorting: SortingState = useMemo(() => {
-    return effectiveSortParams.map((s) => ({
-      id: sortFieldToColumnId[s.column] ?? s.column,
+    return validSortParams.map((s) => ({
+      id: sortFieldToColumnId[s.column],
       desc: s.direction === "desc",
     }));
-  }, [effectiveSortParams, sortFieldToColumnId]);
+  }, [validSortParams, sortFieldToColumnId]);
 
   const onSortingChange = useCallback(
     (updater: SortingState | ((old: SortingState) => SortingState)) => {
       const next = typeof updater === "function" ? updater(sorting) : updater;
-      const mapped = next
+      const mapped: SortUrlValue<TSortField>[] = next
         .filter((s) => columnIdToSortField[s.id] !== undefined)
         .map((s) => ({
           column: columnIdToSortField[s.id],
-          direction: (s.desc ? "desc" : "asc") as "asc" | "desc",
+          direction: s.desc ? "desc" : "asc",
         }));
       setSortParams(mapped.length === 0 ? defaultSortParams : mapped);
       setPage(1);
@@ -194,10 +202,10 @@ export function usePaginatedListQuery<
         ...filterParams,
         page: normalizedPage,
         limit: normalizedPageSize,
-        sortBy: effectiveSortParams[0].column,
-        sortOrder: effectiveSortParams[0].direction,
+        sortBy: validSortParams[0].column,
+        sortOrder: validSortParams[0].direction,
       }) as TFilterParams & PageSortQueryParams<TSortField>,
-    [filterParams, normalizedPage, normalizedPageSize, effectiveSortParams],
+    [filterParams, normalizedPage, normalizedPageSize, validSortParams],
   );
 
   const { data, isLoading, isFetching } = useListQuery(queryParams);

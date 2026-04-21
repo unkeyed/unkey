@@ -30,22 +30,28 @@ export const SelectableNameCell = ({
       <div className="flex gap-4 items-center">
         <div
           className={cn(
-            "size-5 rounded-sm flex items-center justify-center border border-grayA-3 transition-all duration-100",
+            "relative size-5 rounded-sm flex items-center justify-center border border-grayA-3 transition-all duration-100",
             "bg-grayA-3",
             isSelected && "bg-grayA-5",
           )}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
         >
-          {!isSelected && !isHovered && icon}
-          {(isSelected || isHovered) && (
-            <Checkbox
-              checked={isSelected}
-              className="size-4 [&_svg]:size-3"
-              onClick={(e) => e.stopPropagation()}
-              onCheckedChange={onCheckedChange}
-            />
+          {!isSelected && !isHovered && (
+            <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {icon}
+            </span>
           )}
+          <Checkbox
+            checked={isSelected}
+            className={cn(
+              "size-4 [&_svg]:size-3",
+              !isSelected && !isHovered && "opacity-0 focus-visible:opacity-100",
+            )}
+            onClick={(e) => e.stopPropagation()}
+            onCheckedChange={onCheckedChange}
+            aria-label={`Select ${name}`}
+          />
         </div>
         <div className="flex flex-col gap-1 text-xs">
           <div className="font-medium truncate text-accent-12 leading-4 text-[13px] max-w-[120px]">
