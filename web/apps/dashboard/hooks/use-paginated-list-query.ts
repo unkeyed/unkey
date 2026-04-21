@@ -233,12 +233,9 @@ export function usePaginatedListQuery<
 
   const { data, isLoading, isFetching } = useListQuery(queryParams);
 
-  // Hold the latest prefetch in a ref so prefetchPage has stable identity for
-  // the lifetime of the hook. Writing to the ref during render is the standard
-  // "store-latest-callback" pattern (same idea as React's useEffectEvent); the
-  // write is idempotent so Strict Mode's double-invocation is safe. This is
-  // what lets callers pass a fresh arrow each render without the prefetch
-  // effect re-firing on every parent re-render.
+  // Stable identity for the prefetch effect so a fresh caller arrow each
+  // render doesn't re-fire it. Store-latest-callback pattern; idempotent
+  // under Strict Mode.
   const prefetchRef = useRef(prefetch);
   prefetchRef.current = prefetch;
   const prefetchPage = useCallback(
