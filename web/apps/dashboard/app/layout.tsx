@@ -6,6 +6,7 @@ import { GeistSans } from "geist/font/sans";
 import "@unkey/ui/css";
 import "@/styles/tailwind.css";
 import * as Sentry from "@sentry/nextjs";
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import type React from "react";
@@ -95,6 +96,7 @@ export default function RootLayout({
               <Suspense fallback={null}>
                 <Feedback />
               </Suspense>
+              <Analytics />
             </WorkspaceProvider>
           </ThemeProvider>
         </ReactQueryProvider>
