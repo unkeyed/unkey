@@ -27,6 +27,7 @@ const (
 const (
 	AWAITINGAPPROVAL V2DeployGetDeploymentResponseDataStatus = "AWAITING_APPROVAL"
 	BUILDING         V2DeployGetDeploymentResponseDataStatus = "BUILDING"
+	CANCELLED        V2DeployGetDeploymentResponseDataStatus = "CANCELLED"
 	DEPLOYING        V2DeployGetDeploymentResponseDataStatus = "DEPLOYING"
 	FAILED           V2DeployGetDeploymentResponseDataStatus = "FAILED"
 	FINALIZING       V2DeployGetDeploymentResponseDataStatus = "FINALIZING"
@@ -36,6 +37,7 @@ const (
 	SKIPPED          V2DeployGetDeploymentResponseDataStatus = "SKIPPED"
 	STARTING         V2DeployGetDeploymentResponseDataStatus = "STARTING"
 	STOPPED          V2DeployGetDeploymentResponseDataStatus = "STOPPED"
+	SUPERSEDED       V2DeployGetDeploymentResponseDataStatus = "SUPERSEDED"
 	UNSPECIFIED      V2DeployGetDeploymentResponseDataStatus = "UNSPECIFIED"
 )
 

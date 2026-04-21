@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// BuildSlotService limits how many deployments a workspace can have actively
+// building at the same time. It is a Restate virtual object keyed by
+// workspace_id, which serializes AcquireOrWait and Release calls for a given
+// workspace and makes slot management race-free even when multiple
+// (app, environment)-keyed Deploy workflows ask for slots concurrently.
+//
+// Slots are tracked in Restate state:
+//   - active_slots: a set of deployment IDs currently holding a slot
+//   - wait_list: a FIFO of {deployment_id, awakeable_id} entries, each
+//     representing a Deploy handler blocked on its awakeable waiting for a
+//     slot to free up
+//
+// The limit is read from the workspace's quota.max_concurrent_builds.
+//
+// Key: workspace_id
+service BuildSlotService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // AcquireOrWait either grants a build slot to the caller or enqueues them
+  // to be notified when one becomes available.
+  //
+  // The caller creates a Restate awakeable and passes its id. BuildSlotService
+  // resolves the awakeable with `true` either immediately (if a slot was
+  // available or the deployment is production) or later, when a held slot
+  // is released and this deployment is at the head of the wait list.
+  //
+  // Idempotent: calling twice for the same deployment_id is a no-op if the
+  // deployment is already active or already waiting.
+  rpc AcquireOrWait(AcquireOrWaitRequest) returns (AcquireOrWaitResponse) {}
+
+  // Release frees the build slot held by a deployment. If the deployment is
+  // in the wait list instead of the active set, it is removed from the wait
+  // list. After freeing a slot, if the wait list is non-empty, the head
+  // waiter is promoted to active and its awakeable resolved.
+  //
+  // Idempotent: releasing a deployment not tracked by BuildSlotService is a
+  // no-op. Safe to call from both the Deploy handler's success path and
+  // its compensation stack (defer).
+  rpc Release(ReleaseSlotRequest) returns (ReleaseSlotResponse) {}
+}
+
+message AcquireOrWaitRequest {
+  // The deployment that wants to hold the slot.
+  string deployment_id = 1;
+
+  // The Restate awakeable id that BuildSlotService will resolve with `true`
+  // when the slot is granted.
+  string awakeable_id = 2;
+
+  // When true, the slot is granted immediately even if the workspace is at
+  // capacity. The deployment is still added to active_slots so Release can
+  // clean it up and the concurrency count stays accurate.
+  bool is_production = 3;
+}
+
+message AcquireOrWaitResponse {}
+
+message ReleaseSlotRequest {
+  string deployment_id = 1;
+}
+
+message ReleaseSlotResponse {}

@@ -80,7 +80,7 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
       <div className="flex flex-col items-center border border-grayA-5 rounded-[14px] justify-center gap-4 py-[18px] px-4 min-w-[600px]">
         <form onSubmit={handleSubmit(onSubmitForm)} className="flex flex-col gap-4 w-full">
           <FormInput
-            required
+            requirement="required"
             label="Project Name"
             className="[&_input:first-of-type]:h-[36px]"
             description="A descriptive name for your project."
@@ -93,7 +93,7 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
           />
 
           <FormInput
-            required
+            requirement="required"
             label="Slug"
             className="[&_input:first-of-type]:h-[36px]"
             description="URL-friendly identifier for your project (auto-generated from name)."

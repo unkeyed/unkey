@@ -91,7 +91,6 @@ export const RollbackDialog = ({
           title="Current Deployment"
           deployment={currentDeployment}
           isCurrent={true}
-          showSignal={true}
         />
         <DomainsSection domains={domains.data} />
         <DeploymentSection

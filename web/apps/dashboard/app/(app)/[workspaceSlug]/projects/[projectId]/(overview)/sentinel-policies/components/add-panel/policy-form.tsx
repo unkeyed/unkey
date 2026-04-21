@@ -101,7 +101,6 @@ function PolicyFormRoot<T extends FieldValues>({
         el?.focus();
         el?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 0);
-
       onInvalid?.(errors);
     },
     [onInvalid],

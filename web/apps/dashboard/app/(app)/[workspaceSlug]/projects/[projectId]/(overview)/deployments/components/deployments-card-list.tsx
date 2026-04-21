@@ -14,7 +14,7 @@ export function DeploymentsCardList() {
   const currentDeploymentId = project?.currentDeploymentId;
   const workspace = useWorkspaceNavigation();
 
-  if (deployments.isLoading) {
+  if (deployments.isLoading && !deployments.data) {
     return <DeploymentsSkeleton />;
   }
 

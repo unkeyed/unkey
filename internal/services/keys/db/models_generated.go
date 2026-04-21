@@ -212,6 +212,7 @@ type Quotas struct {
 	MaxCpuMillicoresPerInstance uint32        `db:"max_cpu_millicores_per_instance"`
 	MaxMemoryMibPerInstance     uint32        `db:"max_memory_mib_per_instance"`
 	MaxStorageMibPerInstance    uint32        `db:"max_storage_mib_per_instance"`
+	MaxConcurrentBuilds         uint32        `db:"max_concurrent_builds"`
 }
 
 type Ratelimit struct {

@@ -113,7 +113,6 @@ export const useBreadcrumbConfig = ({
       id: "project",
       children: activeProject?.name || projectId,
       href: `${basePath}/${projectId}`,
-      isIdentifier: true,
       shouldRender: true,
       active: false,
       isLast: false,
@@ -156,11 +155,9 @@ export const useBreadcrumbConfig = ({
       id: "deployment-detail",
       children: shortenId(deploymentId || ""),
       href: `${basePath}/${projectId}/deployments/${deploymentId}`,
-      isIdentifier: true,
       shouldRender: Boolean(deploymentId),
       active: Boolean(deploymentId),
       isLast: Boolean(deploymentId),
-      className: "font-mono",
     },
   ];
 

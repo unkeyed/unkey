@@ -28,19 +28,19 @@ message RateLimit {
   // minute".
   int64 window_ms = 2;
 
-  // How to derive the rate limit key — the identity of "who" is being
+  // How to derive the rate limit identifier -- the identity of "who" is being
   // limited. This determines whether limits are per-IP, per-header-value,
-  // per-authenticated-subject, or per-claim. Choosing the right key source
+  // per-authenticated-subject, or per-claim. Choosing the right identifier
   // is critical: IP-based limiting can be defeated by proxies and NAT,
   // header-based limiting relies on client-supplied values, and subject-based
   // limiting requires an upstream authn policy to have produced a [Principal].
-  RateLimitKey key = 3;
+  RateLimitIdentifier identifier = 3;
 }
 
-// RateLimitKey determines how sentinel identifies the entity being rate
-// limited. The choice of key source fundamentally changes the limiting
+// RateLimitIdentifier determines how sentinel identifies the entity being rate
+// limited. The choice of identifier fundamentally changes the limiting
 // behavior, so it should match the threat model and use case.
-message RateLimitKey {
+message RateLimitIdentifier {
   oneof source {
     // Limit by the client's IP address. Effective for anonymous traffic and
     // DDoS protection, but can over-limit legitimate users behind shared
@@ -55,7 +55,7 @@ message RateLimitKey {
     // behind a trusted proxy that sets the header.
     HeaderKey header = 2;
     // Limit by the [Principal] subject produced by an upstream authn policy.
-    // This is the most accurate key source for authenticated APIs because
+    // This is the most accurate identifier for authenticated APIs because
     // it limits each authenticated identity independently, regardless of
     // how many IPs or devices they use. Requires a [KeyAuth] or [JWTAuth]
     // policy earlier in the policy list.
@@ -75,37 +75,37 @@ message RateLimitKey {
   }
 }
 
-// RemoteIpKey derives the rate limit key from the client's IP address.
+// RemoteIpKey derives the rate limit identifier from the client's IP address.
 message RemoteIpKey {}
 
-// HeaderKey derives the rate limit key from a request header value.
+// HeaderKey derives the rate limit identifier from a request header value.
 message HeaderKey {
   // The header name to read, e.g. "X-Tenant-Id". If the header is absent,
   // the request is rate limited under a shared "unknown" bucket.
   string name = 1;
 }
 
-// AuthenticatedSubjectKey derives the rate limit key from the [Principal]
+// AuthenticatedSubjectKey derives the rate limit identifier from the [Principal]
 // subject. If no Principal exists (no authn policy matched or all authn
 // policies allowed anonymous access), the request is rate limited under a
 // shared anonymous bucket.
 message AuthenticatedSubjectKey {}
 
-// PathKey derives the rate limit key from the request URL path.
+// PathKey derives the rate limit identifier from the request URL path.
 message PathKey {}
 
-// PrincipalFieldKey derives the rate limit key from a value reached through
+// PrincipalFieldKey derives the rate limit identifier from a value reached through
 // a dotted path into the [Principal] JSON. Resolves against the serialized
-// Principal object, so any field is addressable — the top-level subject,
+// Principal object, so any field is addressable -- the top-level subject,
 // an identity field, or any source-specific detail.
 //
 // Examples:
 //
-//   "subject"                    — same identity used by AuthenticatedSubjectKey
-//   "identity.externalId"        — identity's external ID
-//   "identity.meta.plan"         — a tenant-level tier
-//   "source.key.meta.org_id"     — per-organization bucketing
-//   "source.jwt.payload.org_id"  — JWT claim-based bucketing
+//   "subject"                    -- same identity used by AuthenticatedSubjectKey
+//   "identity.externalId"        -- identity's external ID
+//   "identity.meta.plan"         -- a tenant-level tier
+//   "source.key.meta.org_id"     -- per-organization bucketing
+//   "source.jwt.payload.org_id"  -- JWT claim-based bucketing
 //
 // If the path does not resolve, the value is not a string, or there is no
 // Principal at all, the request is rate limited under a shared "unknown"

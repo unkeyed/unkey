@@ -28,6 +28,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
@@ -234,6 +235,10 @@ func New(t *testing.T, opts ...Option) *Harness {
 		DB: database,
 	})
 
+	buildSlotSvc := buildslot.New(buildslot.Config{
+		DB: database,
+	})
+
 	// Set up Restate server with all services
 	// Use the proto-generated wrappers (same as run.go) to get correct service names
 	restateSrv := restateServer.NewRestate()
@@ -244,6 +249,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc))
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deploySvc))
 	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deploymentSvc))
+	restateSrv.Bind(hydrav1.NewBuildSlotServiceServer(buildSlotSvc))
 
 	restateHandler, err := restateSrv.Handler()
 	require.NoError(t, err)

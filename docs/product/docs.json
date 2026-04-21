@@ -212,6 +212,7 @@
               "build-and-deploy/deployments",
               "build-and-deploy/github",
               "builds/overview",
+              "builds/dockerfile-prompt",
               "environments/overview",
               "build-and-deploy/regions",
               "build-and-deploy/rollbacks",

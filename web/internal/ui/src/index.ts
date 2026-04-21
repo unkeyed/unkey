@@ -23,6 +23,7 @@ export * from "./components/id";
 export * from "./components/info-tooltip";
 export * from "./components/inline-link";
 export * from "./components/loading";
+export * from "./components/logo";
 export * from "./components/llm-search";
 export * from "./components/llm-search/components/search-icon";
 export * from "./components/dialog/popover";
@@ -38,4 +39,9 @@ export * from "./components/slider";
 export * from "./components/step-wizard";
 export * from "./hooks/use-mobile";
 export * from "./components/data-table";
+
+/* Styles Export */
 export * from "../css";
+
+/* Lib Export */
+export * from "./lib/utils";

@@ -24,3 +24,5 @@ export type { RegionCellProps } from "./region-cell";
 export { TagsCell } from "./tags-cell";
 export type { TagsCellProps } from "./tags-cell";
 export type { OutcomePopoverCellProps } from "./outcome-popover-cell";
+export { MonoTextCell } from "./mono-text-cell";
+export type { MonoTextCellProps } from "./mono-text-cell";

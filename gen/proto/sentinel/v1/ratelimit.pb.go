@@ -44,13 +44,13 @@ type RateLimit struct {
 	// For example, limit=100 with window_ms=60000 means "100 requests per
 	// minute".
 	WindowMs int64 `protobuf:"varint,2,opt,name=window_ms,json=windowMs,proto3" json:"window_ms,omitempty"`
-	// How to derive the rate limit key — the identity of "who" is being
+	// How to derive the rate limit identifier -- the identity of "who" is being
 	// limited. This determines whether limits are per-IP, per-header-value,
-	// per-authenticated-subject, or per-claim. Choosing the right key source
+	// per-authenticated-subject, or per-claim. Choosing the right identifier
 	// is critical: IP-based limiting can be defeated by proxies and NAT,
 	// header-based limiting relies on client-supplied values, and subject-based
 	// limiting requires an upstream authn policy to have produced a [Principal].
-	Key           *RateLimitKey `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
+	Identifier    *RateLimitIdentifier `protobuf:"bytes,3,opt,name=identifier,proto3" json:"identifier,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -99,44 +99,44 @@ func (x *RateLimit) GetWindowMs() int64 {
 	return 0
 }
 
-func (x *RateLimit) GetKey() *RateLimitKey {
+func (x *RateLimit) GetIdentifier() *RateLimitIdentifier {
 	if x != nil {
-		return x.Key
+		return x.Identifier
 	}
 	return nil
 }
 
-// RateLimitKey determines how sentinel identifies the entity being rate
-// limited. The choice of key source fundamentally changes the limiting
+// RateLimitIdentifier determines how sentinel identifies the entity being rate
+// limited. The choice of identifier fundamentally changes the limiting
 // behavior, so it should match the threat model and use case.
-type RateLimitKey struct {
+type RateLimitIdentifier struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Source:
 	//
-	//	*RateLimitKey_RemoteIp
-	//	*RateLimitKey_Header
-	//	*RateLimitKey_AuthenticatedSubject
-	//	*RateLimitKey_Path
-	//	*RateLimitKey_PrincipalField
-	Source        isRateLimitKey_Source `protobuf_oneof:"source"`
+	//	*RateLimitIdentifier_RemoteIp
+	//	*RateLimitIdentifier_Header
+	//	*RateLimitIdentifier_AuthenticatedSubject
+	//	*RateLimitIdentifier_Path
+	//	*RateLimitIdentifier_PrincipalField
+	Source        isRateLimitIdentifier_Source `protobuf_oneof:"source"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RateLimitKey) Reset() {
-	*x = RateLimitKey{}
+func (x *RateLimitIdentifier) Reset() {
+	*x = RateLimitIdentifier{}
 	mi := &file_policies_v1_ratelimit_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RateLimitKey) String() string {
+func (x *RateLimitIdentifier) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RateLimitKey) ProtoMessage() {}
+func (*RateLimitIdentifier) ProtoMessage() {}
 
-func (x *RateLimitKey) ProtoReflect() protoreflect.Message {
+func (x *RateLimitIdentifier) ProtoReflect() protoreflect.Message {
 	mi := &file_policies_v1_ratelimit_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -148,68 +148,68 @@ func (x *RateLimitKey) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RateLimitKey.ProtoReflect.Descriptor instead.
-func (*RateLimitKey) Descriptor() ([]byte, []int) {
+// Deprecated: Use RateLimitIdentifier.ProtoReflect.Descriptor instead.
+func (*RateLimitIdentifier) Descriptor() ([]byte, []int) {
 	return file_policies_v1_ratelimit_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *RateLimitKey) GetSource() isRateLimitKey_Source {
+func (x *RateLimitIdentifier) GetSource() isRateLimitIdentifier_Source {
 	if x != nil {
 		return x.Source
 	}
 	return nil
 }
 
-func (x *RateLimitKey) GetRemoteIp() *RemoteIpKey {
+func (x *RateLimitIdentifier) GetRemoteIp() *RemoteIpKey {
 	if x != nil {
-		if x, ok := x.Source.(*RateLimitKey_RemoteIp); ok {
+		if x, ok := x.Source.(*RateLimitIdentifier_RemoteIp); ok {
 			return x.RemoteIp
 		}
 	}
 	return nil
 }
 
-func (x *RateLimitKey) GetHeader() *HeaderKey {
+func (x *RateLimitIdentifier) GetHeader() *HeaderKey {
 	if x != nil {
-		if x, ok := x.Source.(*RateLimitKey_Header); ok {
+		if x, ok := x.Source.(*RateLimitIdentifier_Header); ok {
 			return x.Header
 		}
 	}
 	return nil
 }
 
-func (x *RateLimitKey) GetAuthenticatedSubject() *AuthenticatedSubjectKey {
+func (x *RateLimitIdentifier) GetAuthenticatedSubject() *AuthenticatedSubjectKey {
 	if x != nil {
-		if x, ok := x.Source.(*RateLimitKey_AuthenticatedSubject); ok {
+		if x, ok := x.Source.(*RateLimitIdentifier_AuthenticatedSubject); ok {
 			return x.AuthenticatedSubject
 		}
 	}
 	return nil
 }
 
-func (x *RateLimitKey) GetPath() *PathKey {
+func (x *RateLimitIdentifier) GetPath() *PathKey {
 	if x != nil {
-		if x, ok := x.Source.(*RateLimitKey_Path); ok {
+		if x, ok := x.Source.(*RateLimitIdentifier_Path); ok {
 			return x.Path
 		}
 	}
 	return nil
 }
 
-func (x *RateLimitKey) GetPrincipalField() *PrincipalFieldKey {
+func (x *RateLimitIdentifier) GetPrincipalField() *PrincipalFieldKey {
 	if x != nil {
-		if x, ok := x.Source.(*RateLimitKey_PrincipalField); ok {
+		if x, ok := x.Source.(*RateLimitIdentifier_PrincipalField); ok {
 			return x.PrincipalField
 		}
 	}
 	return nil
 }
 
-type isRateLimitKey_Source interface {
-	isRateLimitKey_Source()
+type isRateLimitIdentifier_Source interface {
+	isRateLimitIdentifier_Source()
 }
 
-type RateLimitKey_RemoteIp struct {
+type RateLimitIdentifier_RemoteIp struct {
 	// Limit by the client's IP address. Effective for anonymous traffic and
 	// DDoS protection, but can over-limit legitimate users behind shared
 	// NATs or corporate proxies where many clients share a single IP.
@@ -218,7 +218,7 @@ type RateLimitKey_RemoteIp struct {
 	RemoteIp *RemoteIpKey `protobuf:"bytes,1,opt,name=remote_ip,json=remoteIp,proto3,oneof"`
 }
 
-type RateLimitKey_Header struct {
+type RateLimitIdentifier_Header struct {
 	// Limit by the value of a specific request header. Useful for
 	// pre-authenticated traffic where a trusted upstream has already
 	// identified the caller via a header like X-Tenant-Id. Since clients
@@ -227,23 +227,23 @@ type RateLimitKey_Header struct {
 	Header *HeaderKey `protobuf:"bytes,2,opt,name=header,proto3,oneof"`
 }
 
-type RateLimitKey_AuthenticatedSubject struct {
+type RateLimitIdentifier_AuthenticatedSubject struct {
 	// Limit by the [Principal] subject produced by an upstream authn policy.
-	// This is the most accurate key source for authenticated APIs because
+	// This is the most accurate identifier for authenticated APIs because
 	// it limits each authenticated identity independently, regardless of
 	// how many IPs or devices they use. Requires a [KeyAuth] or [JWTAuth]
 	// policy earlier in the policy list.
 	AuthenticatedSubject *AuthenticatedSubjectKey `protobuf:"bytes,3,opt,name=authenticated_subject,json=authenticatedSubject,proto3,oneof"`
 }
 
-type RateLimitKey_Path struct {
+type RateLimitIdentifier_Path struct {
 	// Limit by the request URL path. Creates a separate rate limit bucket
 	// per path, useful for protecting specific expensive endpoints without
 	// needing a separate policy per route.
 	Path *PathKey `protobuf:"bytes,4,opt,name=path,proto3,oneof"`
 }
 
-type RateLimitKey_PrincipalField struct {
+type RateLimitIdentifier_PrincipalField struct {
 	// Limit by a field reached through a dotted path into the [Principal].
 	// Enables per-organization or per-tenant rate limiting when the identity
 	// field is more granular than what you want to throttle. For example,
@@ -254,17 +254,17 @@ type RateLimitKey_PrincipalField struct {
 	PrincipalField *PrincipalFieldKey `protobuf:"bytes,5,opt,name=principal_field,json=principalField,proto3,oneof"`
 }
 
-func (*RateLimitKey_RemoteIp) isRateLimitKey_Source() {}
+func (*RateLimitIdentifier_RemoteIp) isRateLimitIdentifier_Source() {}
 
-func (*RateLimitKey_Header) isRateLimitKey_Source() {}
+func (*RateLimitIdentifier_Header) isRateLimitIdentifier_Source() {}
 
-func (*RateLimitKey_AuthenticatedSubject) isRateLimitKey_Source() {}
+func (*RateLimitIdentifier_AuthenticatedSubject) isRateLimitIdentifier_Source() {}
 
-func (*RateLimitKey_Path) isRateLimitKey_Source() {}
+func (*RateLimitIdentifier_Path) isRateLimitIdentifier_Source() {}
 
-func (*RateLimitKey_PrincipalField) isRateLimitKey_Source() {}
+func (*RateLimitIdentifier_PrincipalField) isRateLimitIdentifier_Source() {}
 
-// RemoteIpKey derives the rate limit key from the client's IP address.
+// RemoteIpKey derives the rate limit identifier from the client's IP address.
 type RemoteIpKey struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -301,7 +301,7 @@ func (*RemoteIpKey) Descriptor() ([]byte, []int) {
 	return file_policies_v1_ratelimit_proto_rawDescGZIP(), []int{2}
 }
 
-// HeaderKey derives the rate limit key from a request header value.
+// HeaderKey derives the rate limit identifier from a request header value.
 type HeaderKey struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The header name to read, e.g. "X-Tenant-Id". If the header is absent,
@@ -348,7 +348,7 @@ func (x *HeaderKey) GetName() string {
 	return ""
 }
 
-// AuthenticatedSubjectKey derives the rate limit key from the [Principal]
+// AuthenticatedSubjectKey derives the rate limit identifier from the [Principal]
 // subject. If no Principal exists (no authn policy matched or all authn
 // policies allowed anonymous access), the request is rate limited under a
 // shared anonymous bucket.
@@ -388,7 +388,7 @@ func (*AuthenticatedSubjectKey) Descriptor() ([]byte, []int) {
 	return file_policies_v1_ratelimit_proto_rawDescGZIP(), []int{4}
 }
 
-// PathKey derives the rate limit key from the request URL path.
+// PathKey derives the rate limit identifier from the request URL path.
 type PathKey struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -425,18 +425,18 @@ func (*PathKey) Descriptor() ([]byte, []int) {
 	return file_policies_v1_ratelimit_proto_rawDescGZIP(), []int{5}
 }
 
-// PrincipalFieldKey derives the rate limit key from a value reached through
+// PrincipalFieldKey derives the rate limit identifier from a value reached through
 // a dotted path into the [Principal] JSON. Resolves against the serialized
-// Principal object, so any field is addressable — the top-level subject,
+// Principal object, so any field is addressable -- the top-level subject,
 // an identity field, or any source-specific detail.
 //
 // Examples:
 //
-//	"subject"                    — same identity used by AuthenticatedSubjectKey
-//	"identity.externalId"        — identity's external ID
-//	"identity.meta.plan"         — a tenant-level tier
-//	"source.key.meta.org_id"     — per-organization bucketing
-//	"source.jwt.payload.org_id"  — JWT claim-based bucketing
+//	"subject"                    -- same identity used by AuthenticatedSubjectKey
+//	"identity.externalId"        -- identity's external ID
+//	"identity.meta.plan"         -- a tenant-level tier
+//	"source.key.meta.org_id"     -- per-organization bucketing
+//	"source.jwt.payload.org_id"  -- JWT claim-based bucketing
 //
 // If the path does not resolve, the value is not a string, or there is no
 // Principal at all, the request is rate limited under a shared "unknown"
@@ -491,12 +491,14 @@ var File_policies_v1_ratelimit_proto protoreflect.FileDescriptor
 
 const file_policies_v1_ratelimit_proto_rawDesc = "" +
 	"\n" +
-	"\x1bpolicies/v1/ratelimit.proto\x12\vsentinel.v1\"k\n" +
+	"\x1bpolicies/v1/ratelimit.proto\x12\vsentinel.v1\"\x80\x01\n" +
 	"\tRateLimit\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x03R\x05limit\x12\x1b\n" +
-	"\twindow_ms\x18\x02 \x01(\x03R\bwindowMs\x12+\n" +
-	"\x03key\x18\x03 \x01(\v2\x19.sentinel.v1.RateLimitKeyR\x03key\"\xd7\x02\n" +
-	"\fRateLimitKey\x127\n" +
+	"\twindow_ms\x18\x02 \x01(\x03R\bwindowMs\x12@\n" +
+	"\n" +
+	"identifier\x18\x03 \x01(\v2 .sentinel.v1.RateLimitIdentifierR\n" +
+	"identifier\"\xde\x02\n" +
+	"\x13RateLimitIdentifier\x127\n" +
 	"\tremote_ip\x18\x01 \x01(\v2\x18.sentinel.v1.RemoteIpKeyH\x00R\bremoteIp\x120\n" +
 	"\x06header\x18\x02 \x01(\v2\x16.sentinel.v1.HeaderKeyH\x00R\x06header\x12[\n" +
 	"\x15authenticated_subject\x18\x03 \x01(\v2$.sentinel.v1.AuthenticatedSubjectKeyH\x00R\x14authenticatedSubject\x12*\n" +
@@ -527,7 +529,7 @@ func file_policies_v1_ratelimit_proto_rawDescGZIP() []byte {
 var file_policies_v1_ratelimit_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_policies_v1_ratelimit_proto_goTypes = []any{
 	(*RateLimit)(nil),               // 0: sentinel.v1.RateLimit
-	(*RateLimitKey)(nil),            // 1: sentinel.v1.RateLimitKey
+	(*RateLimitIdentifier)(nil),     // 1: sentinel.v1.RateLimitIdentifier
 	(*RemoteIpKey)(nil),             // 2: sentinel.v1.RemoteIpKey
 	(*HeaderKey)(nil),               // 3: sentinel.v1.HeaderKey
 	(*AuthenticatedSubjectKey)(nil), // 4: sentinel.v1.AuthenticatedSubjectKey
@@ -535,12 +537,12 @@ var file_policies_v1_ratelimit_proto_goTypes = []any{
 	(*PrincipalFieldKey)(nil),       // 6: sentinel.v1.PrincipalFieldKey
 }
 var file_policies_v1_ratelimit_proto_depIdxs = []int32{
-	1, // 0: sentinel.v1.RateLimit.key:type_name -> sentinel.v1.RateLimitKey
-	2, // 1: sentinel.v1.RateLimitKey.remote_ip:type_name -> sentinel.v1.RemoteIpKey
-	3, // 2: sentinel.v1.RateLimitKey.header:type_name -> sentinel.v1.HeaderKey
-	4, // 3: sentinel.v1.RateLimitKey.authenticated_subject:type_name -> sentinel.v1.AuthenticatedSubjectKey
-	5, // 4: sentinel.v1.RateLimitKey.path:type_name -> sentinel.v1.PathKey
-	6, // 5: sentinel.v1.RateLimitKey.principal_field:type_name -> sentinel.v1.PrincipalFieldKey
+	1, // 0: sentinel.v1.RateLimit.identifier:type_name -> sentinel.v1.RateLimitIdentifier
+	2, // 1: sentinel.v1.RateLimitIdentifier.remote_ip:type_name -> sentinel.v1.RemoteIpKey
+	3, // 2: sentinel.v1.RateLimitIdentifier.header:type_name -> sentinel.v1.HeaderKey
+	4, // 3: sentinel.v1.RateLimitIdentifier.authenticated_subject:type_name -> sentinel.v1.AuthenticatedSubjectKey
+	5, // 4: sentinel.v1.RateLimitIdentifier.path:type_name -> sentinel.v1.PathKey
+	6, // 5: sentinel.v1.RateLimitIdentifier.principal_field:type_name -> sentinel.v1.PrincipalFieldKey
 	6, // [6:6] is the sub-list for method output_type
 	6, // [6:6] is the sub-list for method input_type
 	6, // [6:6] is the sub-list for extension type_name
@@ -554,11 +556,11 @@ func file_policies_v1_ratelimit_proto_init() {
 		return
 	}
 	file_policies_v1_ratelimit_proto_msgTypes[1].OneofWrappers = []any{
-		(*RateLimitKey_RemoteIp)(nil),
-		(*RateLimitKey_Header)(nil),
-		(*RateLimitKey_AuthenticatedSubject)(nil),
-		(*RateLimitKey_Path)(nil),
-		(*RateLimitKey_PrincipalField)(nil),
+		(*RateLimitIdentifier_RemoteIp)(nil),
+		(*RateLimitIdentifier_Header)(nil),
+		(*RateLimitIdentifier_AuthenticatedSubject)(nil),
+		(*RateLimitIdentifier_Path)(nil),
+		(*RateLimitIdentifier_PrincipalField)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

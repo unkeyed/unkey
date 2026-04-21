@@ -25,6 +25,9 @@ function isSettingsRelatedError(error: string): boolean {
 
 export type StepEntry = { error: string | null } | null | undefined;
 
+// Note: user-cancelled deployments are routed to DeploymentCancelled in
+// page.tsx before this banner is rendered, so we don't need special-case
+// handling for the "Cancelled by user" marker here.
 export function FailedDeploymentBanner({
   steps,
   settingsUrl,

@@ -37,6 +37,7 @@ export const frontlineRoutes = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
+    index("project_id_idx").on(table.projectId),
     index("environment_id_idx").on(table.environmentId),
     index("deployment_id_idx").on(table.deploymentId),
     index("fqdn_environment_deployment_idx").on(

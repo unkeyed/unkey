@@ -587,6 +587,8 @@ const (
 	DeploymentsStatusSkipped          DeploymentsStatus = "skipped"
 	DeploymentsStatusAwaitingApproval DeploymentsStatus = "awaiting_approval"
 	DeploymentsStatusStopped          DeploymentsStatus = "stopped"
+	DeploymentsStatusSuperseded       DeploymentsStatus = "superseded"
+	DeploymentsStatusCancelled        DeploymentsStatus = "cancelled"
 )
 
 func (e *DeploymentsStatus) Scan(src interface{}) error {
@@ -1260,6 +1262,7 @@ type Deployment struct {
 	PrNumber                      sql.NullInt64               `db:"pr_number"`
 	ForkRepositoryFullName        sql.NullString              `db:"fork_repository_full_name"`
 	GithubDeploymentID            sql.NullInt64               `db:"github_deployment_id"`
+	InvocationID                  sql.NullString              `db:"invocation_id"`
 	Status                        DeploymentsStatus           `db:"status"`
 	CreatedAt                     int64                       `db:"created_at"`
 	UpdatedAt                     sql.NullInt64               `db:"updated_at"`
@@ -1511,6 +1514,7 @@ type Quotas struct {
 	MaxCpuMillicoresPerInstance uint32        `db:"max_cpu_millicores_per_instance"`
 	MaxMemoryMibPerInstance     uint32        `db:"max_memory_mib_per_instance"`
 	MaxStorageMibPerInstance    uint32        `db:"max_storage_mib_per_instance"`
+	MaxConcurrentBuilds         uint32        `db:"max_concurrent_builds"`
 }
 
 type Ratelimit struct {

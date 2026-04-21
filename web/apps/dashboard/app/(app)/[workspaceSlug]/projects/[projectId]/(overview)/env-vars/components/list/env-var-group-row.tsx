@@ -7,10 +7,12 @@ type GroupRowProps = {
   row: DisplayRow & { kind: "group" };
   isExpanded: boolean;
   selected: boolean | "partial";
+  selectedIds: Set<string>;
   deferredQuery: string;
   editingId: string | null;
   onToggleGroup: () => void;
   onToggleSelection: (shiftKey: boolean) => void;
+  onToggleItemSelection: (itemId: string) => void;
   onEdit: (id: string) => void;
   onCloseEdit: () => void;
   hasSelection: boolean;
@@ -20,10 +22,12 @@ export function GroupRow({
   row,
   isExpanded,
   selected,
+  selectedIds,
   deferredQuery,
   editingId,
   onToggleGroup,
   onToggleSelection,
+  onToggleItemSelection,
   onEdit,
   onCloseEdit,
   hasSelection,
@@ -75,7 +79,9 @@ export function GroupRow({
                 isEditing={editingId === item.id}
                 onEdit={() => onEdit(item.id)}
                 onCloseEdit={onCloseEdit}
-                selectable={false}
+                isSelected={selectedIds.has(item.id)}
+                onToggleSelection={() => onToggleItemSelection(item.id)}
+                hasSelection={hasSelection}
               />
             ))}
           </div>

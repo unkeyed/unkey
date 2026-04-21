@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "principal",
+    srcs = ["principal.go"],
+    importpath = "github.com/unkeyed/unkey/svc/sentinel/engine/principal",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/services/keys",
+        "//pkg/ptr",
+    ],
+)
+
+go_test(
+    name = "principal_test",
+    srcs = ["principal_test.go"],
+    embed = [":principal"],
+    deps = [
+        "//internal/services/keys",
+        "//internal/services/keys/db",
+        "@com_github_stretchr_testify//require",
+    ],
+)

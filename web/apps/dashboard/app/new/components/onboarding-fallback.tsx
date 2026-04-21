@@ -42,7 +42,7 @@ export function OnboardingFallback() {
                           value="Acme Corp"
                           placeholder="Enter workspace name"
                           label="Workspace name"
-                          required
+                          requirement="required"
                           disabled
                         />
                       </div>

@@ -3,7 +3,7 @@ title: "RateLimit"
 description: "Gateway rate limiting (schema only)"
 ---
 
-RateLimit defines gateway-level rate limiting with configurable key sources. Sentinel delegates rate limit state to Unkey's distributed rate limiting service, providing consistent counts across multiple sentinel instances.
+RateLimit defines gateway-level rate limiting with configurable identifiers. Sentinel delegates rate limit state to Unkey's distributed rate limiting service, providing consistent counts across multiple sentinel instances.
 
 <Note>
 RateLimit is defined in the policy schema but is not executed by the sentinel engine yet.
@@ -19,7 +19,7 @@ RateLimit is defined in the policy schema but is not executed by the sentinel en
   Time window in milliseconds. For example, `limit: 100` with `window_ms: 60000` means 100 requests per minute.
 </ResponseField>
 
-<ResponseField name="key" type="RateLimitKey">
+<ResponseField name="identifier" type="RateLimitIdentifier">
   Determines how requests are bucketed for rate limiting.
 </ResponseField>
 
@@ -38,7 +38,7 @@ RateLimit is defined in the policy schema but is not executed by the sentinel en
       "ratelimit": {
         "limit": 1000,
         "window_ms": 60000,
-        "key": { "remote_ip": {} }
+        "identifier": { "remote_ip": {} }
       }
     }
   ]
@@ -57,7 +57,7 @@ RateLimit is defined in the policy schema but is not executed by the sentinel en
       "ratelimit": {
         "limit": 500,
         "window_ms": 60000,
-        "key": { "authenticated_subject": {} }
+        "identifier": { "authenticated_subject": {} }
       }
     }
   ]
@@ -78,7 +78,7 @@ Requires a KeyAuth or JWTAuth policy earlier in the list to set the Principal.
       "ratelimit": {
         "limit": 5000,
         "window_ms": 60000,
-        "key": { "header": { "name": "X-Tenant-Id" } }
+        "identifier": { "header": { "name": "X-Tenant-Id" } }
       }
     }
   ]
@@ -99,14 +99,14 @@ Use only when the header is set by a trusted upstream proxy.
       "ratelimit": {
         "limit": 10000,
         "window_ms": 60000,
-        "key": { "principal_field": { "path": "source.key.meta.org_id" } }
+        "identifier": { "principal_field": { "path": "source.key.meta.org_id" } }
       }
     }
   ]
 }
 ```
 
-Creates a shared bucket for all keys that resolve to the same `org_id` meta value. The path is a dotted route into the Principal JSON — for JWT-authenticated traffic you might use `source.jwt.payload.org_id` instead.
+Creates a shared bucket for all keys that resolve to the same `org_id` meta value. The path is a dotted route into the Principal JSON -- for JWT-authenticated traffic you might use `source.jwt.payload.org_id` instead.
 </Tab>
 <Tab title="Per path">
 ```json
@@ -122,7 +122,7 @@ Creates a shared bucket for all keys that resolve to the same `org_id` meta valu
       "ratelimit": {
         "limit": 100,
         "window_ms": 60000,
-        "key": { "path": {} }
+        "identifier": { "path": {} }
       }
     }
   ]
@@ -133,7 +133,7 @@ Creates a separate bucket per URL path, protecting expensive endpoints without a
 </Tab>
 </Tabs>
 
-## Key sources
+## Identifier sources
 
 | Source               | Description                                                                                     |
 | -------------------- | ----------------------------------------------------------------------------------------------- |

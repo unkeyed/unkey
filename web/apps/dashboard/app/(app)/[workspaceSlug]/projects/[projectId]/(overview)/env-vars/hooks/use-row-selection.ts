@@ -72,11 +72,24 @@ export function useRowSelection(displayRows: DisplayRow[]) {
     setSelectedIds(new Set());
   }, [selectedIds]);
 
+  const toggleItemSelection = useCallback((itemId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  }, []);
+
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
   return {
     selectedIds,
     toggleRowSelection,
+    toggleItemSelection,
     isRowSelected,
     handleBulkDelete,
     clearSelection,

@@ -8,8 +8,9 @@
 // # Architecture
 //
 // The routing service implements [hydrav1.RoutingServiceServer] and runs as a
-// Restate virtual object. Virtual objects provide serialized access per key,
-// preventing race conditions when multiple operations target the same routes.
+// Restate virtual object keyed by env_id. Per-env serialization makes it safe
+// to atomically reassign routes and update the live-deployment marker
+// (apps.current_deployment_id) for that environment without races.
 //
 // # Restate Integration
 //
@@ -23,6 +24,10 @@
 //
 // [Service.AssignFrontlineRoutes] reassigns a set of frontline routes to a new
 // deployment by updating the deployment_id column in the frontline_routes table.
+//
+// [Service.SwapLiveDeployment] atomically reassigns frontline routes and updates
+// apps.current_deployment_id (and is_rolled_back) inside the env-keyed VO so
+// the live-deployment marker is always consistent with the routing state.
 //
 // # Usage
 //

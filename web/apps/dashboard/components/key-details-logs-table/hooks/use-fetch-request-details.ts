@@ -32,6 +32,7 @@ export function useFetchRequestDetails({ requestId }: useFetchRequestDetails) {
       enabled: Boolean(requestId),
       refetchOnWindowFocus: false,
       refetchOnMount: false,
+      staleTime: Number.POSITIVE_INFINITY,
     },
   );
 

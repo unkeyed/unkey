@@ -1,5 +1,5 @@
 import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
-import { Bolt, ChartActivity, CircleCheck, Focus, Heart, Layers2 } from "@unkey/icons";
+import { ChartActivity, CircleCheck, Heart, Layers2, Microchip, Ram } from "@unkey/icons";
 import type { DeploymentNode } from "../../../nodes";
 import { MetricPill } from "../../../nodes/components/metric-pill";
 import { StatusIndicator } from "../../../nodes/status/status-indicator";
@@ -48,7 +48,7 @@ export function SentinelInstances({ instances }: SentinelInstancesProps) {
                     const parts = formatCpuParts(cpu ?? 0);
                     return (
                       <MetricPill
-                        icon={<Bolt iconSize="sm-medium" className="shrink-0" />}
+                        icon={<Microchip iconSize="sm-medium" className="shrink-0" />}
                         value={
                           <>
                             <span className="font-medium">{parts.value}</span> {parts.unit}
@@ -62,7 +62,7 @@ export function SentinelInstances({ instances }: SentinelInstancesProps) {
                     const parts = formatMemoryParts(memory ?? 0);
                     return (
                       <MetricPill
-                        icon={<Focus iconSize="sm-medium" className="shrink-0" />}
+                        icon={<Ram iconSize="sm-medium" className="shrink-0" />}
                         value={
                           <>
                             <span className="font-medium">{parts.value}</span> {parts.unit}

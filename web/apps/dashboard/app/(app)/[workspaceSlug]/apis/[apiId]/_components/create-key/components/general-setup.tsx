@@ -22,7 +22,7 @@ export const GeneralSetup = () => {
         description="Optional name to help identify this particular key."
         error={errors.name?.message}
         variant="default"
-        optional
+        requirement="optional"
         {...register("name")}
       />
       <FormInput
@@ -32,7 +32,7 @@ export const GeneralSetup = () => {
         maxLength={16}
         description="Prefix to distinguish between different APIs (we'll add the underscore)."
         error={errors.prefix?.message}
-        optional
+        requirement="optional"
         {...register("prefix")}
       />
 
@@ -59,7 +59,7 @@ export const GeneralSetup = () => {
         type="number"
         description="Key length in bytes - longer keys are more secure."
         error={errors.bytes?.message}
-        optional
+        requirement="optional"
         min={8}
         max={255}
         maxLength={3}

@@ -3,7 +3,6 @@
 import type { ComboboxOption } from "@/components/ui/combobox";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { ChevronDown, Plus, Trash, XMark } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
@@ -20,6 +19,7 @@ import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
 import type { ReactNode } from "react";
 import { useController, useFormContext, useFormState, useWatch } from "react-hook-form";
 import type { KeyLocationFormValues, KeyLocationType, PolicyFormValues } from "../schema";
+import { Sep, Strong } from "./summary-helpers";
 
 type KeyauthFormValues = Extract<PolicyFormValues, { type: "keyauth" }>;
 
@@ -199,7 +199,7 @@ export function KeyAuthFields() {
                 .with("header", "queryParam", () => (
                   <FormInput
                     placeholder={location.locationType === "header" ? "X-API-Key" : "api_key"}
-                    required
+                    requirement="required"
                     value={location.name ?? ""}
                     onChange={(e) => updateLocation(location.id, { name: e.target.value })}
                     className="flex-1"
@@ -230,7 +230,7 @@ export function KeyAuthFields() {
 
       <FormInput
         label="Permission Query"
-        optional
+        requirement="optional"
         placeholder="e.g. api.read AND api.write"
         value={permissionQuery}
         onChange={(e) => setPermissionQuery(e.target.value)}
@@ -251,7 +251,7 @@ export function KeyAuthFields() {
  * Watches only the fields rendered in the summary so edits to unrelated
  * fields (name, environment) don't cause re-renders here.
  */
-export function KeyauthSummary() {
+export function KeyauthPolicySummary() {
   const { control } = useFormContext<KeyauthFormValues>();
   const keySpaceIds = useWatch({ control, name: "keySpaceIds" });
   const locations = useWatch({ control, name: "locations" });
@@ -318,9 +318,3 @@ function summarizeLocation(loc: KeyauthFormValues["locations"][number]): ReactNo
     ))
     .exhaustive();
 }
-
-const Strong = ({ children, className }: { children: ReactNode; className?: string }) => (
-  <span className={cn("text-gray-12 font-medium", className)}>{children}</span>
-);
-
-const Sep = () => <span className="text-gray-9 mx-1.5">·</span>;

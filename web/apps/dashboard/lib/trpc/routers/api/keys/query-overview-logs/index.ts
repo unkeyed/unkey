@@ -39,22 +39,52 @@ export const queryKeysOverviewLogs = workspaceProcedure
 
     const transformedInputs = transformKeysFilters(input);
 
+    // Name/identity filters live in Postgres, not ClickHouse (the raw table
+    // has no `name` column). Resolve them to a concrete keyId set up front
+    // so the CH query's pagination and total_count reflect the filter.
+    // Without this, CH would paginate/count ignoring name/identity, and the
+    // Postgres post-filter below would silently drop rows after pagination
+    // had already been committed to — producing half-empty pages and wrong
+    // totals.
+    const hasMetadataFilter = (input.names?.length ?? 0) > 0 || (input.identities?.length ?? 0) > 0;
+
+    let keyIdsForClickhouse = input.keyIds ? transformedInputs.keyIds : null;
+    let preResolvedKeys: Awaited<ReturnType<typeof queryApiKeys>>["keys"] | null = null;
+
+    if (hasMetadataFilter) {
+      const result = await queryApiKeys({
+        apiId: input.apiId,
+        workspaceId: ctx.workspace.id,
+        keyIds: input.keyIds ?? null,
+        names: input.names ?? null,
+        identities: input.identities ?? null,
+      });
+      preResolvedKeys = result.keys;
+
+      if (preResolvedKeys.length === 0) {
+        return {
+          keysOverviewLogs: [],
+          hasMore: false,
+          total: 0,
+        };
+      }
+
+      keyIdsForClickhouse = preResolvedKeys.map((k) => ({
+        operator: "is" as const,
+        value: k.id,
+      }));
+    }
+
     const { logsQuery, countQuery } = await clickhouse.api.keys.logs({
       ...transformedInputs,
       workspaceId: ctx.workspace.id,
       keyspaceId: keyspaceId,
-      // Flag to indicate if user explicitly filtered by time frame
-      // If true, use new logic to find keys with ANY usage in the time frame
-      // If false or undefined, use the MV directly for speed
       useTimeFrameFilter: input.useTimeFrameFilter ?? false,
-      // Only include keyIds filters if explicitly provided in the input
-      keyIds: input.keyIds ? transformedInputs.keyIds : null,
-      // Pass tags to ClickHouse for filtering
+      keyIds: keyIdsForClickhouse,
       tags: transformedInputs.tags,
-      // Nullify these as we'll filter in the database
-      // Use nullish coalescing to properly handle empty arrays vs null
-      names: input.names ?? null,
-      identities: input.identities ?? null,
+      // Applied via keyIdsForClickhouse above; CH has no name column.
+      names: null,
+      identities: null,
     });
 
     const [clickhouseResult, countResult] = await Promise.all([logsQuery, countQuery]);
@@ -84,29 +114,34 @@ export const queryKeysOverviewLogs = workspaceProcedure
       };
     }
 
-    const keyIdsFromLogs = logs.map((log) => log.key_id);
-
-    // This ensures we only get keys that exist in both ClickHouse and the database
-    const { keys } = await queryApiKeys({
-      apiId: input.apiId,
-      workspaceId: ctx.workspace.id,
-      // Pass the key IDs from ClickHouse logs as "is" filters
-      keyIds: keyIdsFromLogs.map((id) => ({ operator: "is", value: id })),
-      // Still apply any name or identity filters from the original input
-      names: input.names || null,
-      identities: input.identities || null,
-    });
+    // Hydrate key details. If we pre-resolved keys for the metadata filter,
+    // reuse them — no second Postgres round trip. Otherwise look up the page
+    // of keyIds CH just returned.
+    const keys =
+      preResolvedKeys ??
+      (
+        await queryApiKeys({
+          apiId: input.apiId,
+          workspaceId: ctx.workspace.id,
+          keyIds: logs.map((log) => ({ operator: "is" as const, value: log.key_id })),
+          names: null,
+          identities: null,
+        })
+      ).keys;
 
     const keyDetailsMap = createKeyDetailsMap(keys);
-    const filteredKeyIds = Array.from(keyDetailsMap.keys());
 
-    // Only include logs for keys that exist in the database and passed all filters
-    const keysOverviewLogs = logs
-      .filter((log) => filteredKeyIds.includes(log.key_id))
-      .map((log) => ({
-        ...log,
-        key_details: keyDetailsMap.get(log.key_id) || null,
-      }));
+    // With a metadata filter, CH is already scoped to the pre-resolved keyIds;
+    // filter defensively in case CH returns a stale key_id. Without a
+    // metadata filter, include every log — a key that was soft-deleted after
+    // generating usage still has legitimate activity, and dropping it here
+    // would make the table totals disagree with the chart totals.
+    const keysOverviewLogs = (
+      hasMetadataFilter ? logs.filter((log) => keyDetailsMap.has(log.key_id)) : logs
+    ).map((log) => ({
+      ...log,
+      key_details: keyDetailsMap.get(log.key_id) ?? null,
+    }));
 
     const hasMore = logs.length === input.limit && keysOverviewLogs.length > 0;
     const response: KeysOverviewLogsResponse = {

@@ -146,7 +146,7 @@ export const ExternalIdField = ({
 
   return (
     <FormCombobox
-      optional
+      requirement="optional"
       label="External ID"
       description="ID of the user/workspace in your system for key attribution."
       options={options}

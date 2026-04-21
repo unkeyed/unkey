@@ -4,6 +4,10 @@ type TagProps = {
   className?: string;
 };
 
+type DocsTagProps = TagProps & {
+  href: string;
+};
+
 type RequiredTagProps = TagProps & {
   hasError?: boolean;
 };
@@ -18,6 +22,23 @@ export const OptionalTag = ({ className }: TagProps) => {
     >
       Optional
     </span>
+  );
+};
+
+export const DocsTag = ({ className, href }: DocsTagProps) => {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "inline-flex items-center rounded-sm border border-accent-4 text-accent-11 px-1 py-0.5 text-xs font-sans bg-accent-3 ml-2 no-underline hover:bg-accent-4 transition-colors",
+        className,
+      )}
+      onClick={(e) => e.stopPropagation()}
+    >
+      Docs
+    </a>
   );
 };
 

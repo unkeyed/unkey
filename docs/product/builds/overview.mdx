@@ -89,7 +89,7 @@ Docker's `ARG` and `ENV` instructions are stored in the image layer history. Any
 Each build runs on a dedicated 16-CPU, 32 GB machine isolated to your project. No build shares resources with another project.
 
 <Note>
-  During the beta, builds are limited to one at a time per workspace. If multiple pushes arrive while a build is running, they queue and run sequentially. Concurrent builds are planned for a future release.
+  By default, each workspace runs one build at a time. Additional pushes queue and run as the previous build finishes. This is a soft limit; contact [support@unkey.com](mailto:support@unkey.com) if you need a higher concurrency cap.
 </Note>
 
 ## Build caching

@@ -7,6 +7,7 @@ INNER JOIN github_repo_connections gc ON gc.app_id = a.id
 WHERE gc.installation_id = sqlc.arg(installation_id)
   AND gc.repository_id = sqlc.arg(repository_id)
   AND e.slug = CASE
+    WHEN CAST(sqlc.arg(is_fork_pr) AS SIGNED) = 1 THEN 'preview'
     WHEN sqlc.arg(branch) = COALESCE(NULLIF(a.default_branch, ''), 'main')
     THEN 'production'
     ELSE 'preview'

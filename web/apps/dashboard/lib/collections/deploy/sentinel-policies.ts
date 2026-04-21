@@ -204,6 +204,12 @@ function dispatchCreate(environmentId: string, policy: SentinelPolicy): Promise<
         policy: p,
       }),
     )
+    .with({ type: "ratelimit" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.ratelimit.create.mutate({
+        environmentId,
+        policy: p,
+      }),
+    )
     .with({ type: "firewall" }, (p) =>
       trpcClient.deploy.environmentSettings.sentinel.firewall.create.mutate({
         environmentId,
@@ -221,6 +227,12 @@ function dispatchUpdate(environmentId: string, policy: SentinelPolicy): Promise<
         policy: p,
       }),
     )
+    .with({ type: "ratelimit" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.ratelimit.update.mutate({
+        environmentId,
+        policy: p,
+      }),
+    )
     .with({ type: "firewall" }, (p) =>
       trpcClient.deploy.environmentSettings.sentinel.firewall.update.mutate({
         environmentId,
@@ -234,6 +246,12 @@ function dispatchDelete(environmentId: string, policy: SentinelPolicy): Promise<
   return match(policy)
     .with({ type: "keyauth" }, (p) =>
       trpcClient.deploy.environmentSettings.sentinel.keyauth.delete.mutate({
+        environmentId,
+        policyId: p.id,
+      }),
+    )
+    .with({ type: "ratelimit" }, (p) =>
+      trpcClient.deploy.environmentSettings.sentinel.ratelimit.delete.mutate({
         environmentId,
         policyId: p.id,
       }),

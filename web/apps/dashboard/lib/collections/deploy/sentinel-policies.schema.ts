@@ -119,6 +119,35 @@ export const keyauthPolicySchema = z
   .strict();
 export type KeyauthPolicy = z.infer<typeof keyauthPolicySchema>;
 
+// ── RateLimit policy ───────────────────────────────────────────────────
+
+const rateLimitIdentifierSchema = z.union([
+  z.object({ remoteIp: z.object({}).strict() }).strict(),
+  z.object({ header: z.object({ name: z.string().min(1) }).strict() }).strict(),
+  z.object({ authenticatedSubject: z.object({}).strict() }).strict(),
+  z.object({ path: z.object({}).strict() }).strict(),
+  z
+    .object({
+      principalField: z.object({ path: z.string().min(1) }).strict(),
+    })
+    .strict(),
+]);
+export type RateLimitIdentifier = z.infer<typeof rateLimitIdentifierSchema>;
+
+export const ratelimitPolicySchema = z
+  .object({
+    ...policyBase,
+    type: z.literal("ratelimit"),
+    ratelimit: z
+      .object({
+        limit: z.number().int().min(1),
+        windowMs: z.number().int().min(1),
+        identifier: rateLimitIdentifierSchema,
+      })
+      .strict(),
+  })
+  .strict();
+
 // ── Firewall policy ─────────────────────────────────────────────────────
 
 // Wire values match sentinel.v1.Action enum names. Kept as string literals so
@@ -139,12 +168,15 @@ export const firewallPolicySchema = z
       .strict(),
   })
   .strict();
+
+export type RatelimitPolicy = z.infer<typeof ratelimitPolicySchema>;
 export type FirewallPolicy = z.infer<typeof firewallPolicySchema>;
 
 // ── Sentinel policy (discriminated union — extend with new types here) ──
 
 export const sentinelPolicySchema = z.discriminatedUnion("type", [
   keyauthPolicySchema,
+  ratelimitPolicySchema,
   firewallPolicySchema,
 ]);
 export type SentinelPolicy = z.infer<typeof sentinelPolicySchema>;
@@ -181,6 +213,9 @@ export function fromWirePolicy(raw: unknown): SentinelPolicy {
   const obj: Record<string, unknown> = { ...(raw as Record<string, unknown>) };
   if ("keyauth" in obj) {
     return sentinelPolicySchema.parse({ ...obj, type: "keyauth" });
+  }
+  if ("ratelimit" in obj) {
+    return sentinelPolicySchema.parse({ ...obj, type: "ratelimit" });
   }
   if ("firewall" in obj) {
     return sentinelPolicySchema.parse({ ...obj, type: "firewall" });

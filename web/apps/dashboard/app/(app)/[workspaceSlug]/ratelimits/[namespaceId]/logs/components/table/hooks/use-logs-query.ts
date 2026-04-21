@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFilters } from "../../../hooks/use-filters";
 import type { RatelimitQueryLogsPayload } from "../query-logs.schema";
 
-export type EnrichedRatelimitLog = RatelimitLog & RatelimitLogEnrichment;
+export type EnrichedRatelimitLog = RatelimitLog & RatelimitLogEnrichment & { isEnriched: boolean };
 
 const ENRICHMENT_DEFAULTS: Omit<RatelimitLogEnrichment, "request_id"> = {
   host: "",
@@ -26,11 +26,15 @@ function enrichLogs(
   logs: RatelimitLog[],
   enrichmentMap: Map<string, RatelimitLogEnrichment>,
 ): EnrichedRatelimitLog[] {
-  return logs.map((log) => ({
-    ...ENRICHMENT_DEFAULTS,
-    ...log,
-    ...(enrichmentMap.get(log.request_id) ?? {}),
-  }));
+  return logs.map((log) => {
+    const enrichment = enrichmentMap.get(log.request_id);
+    return {
+      ...ENRICHMENT_DEFAULTS,
+      ...log,
+      ...(enrichment ?? {}),
+      isEnriched: enrichment !== undefined,
+    };
+  });
 }
 
 type UseLogsQueryParams = {
@@ -229,10 +233,12 @@ export function useRatelimitLogsQuery({
               continue;
             }
 
+            const enrichment = enrichmentMapRef.current.get(log.request_id);
             const enriched: EnrichedRatelimitLog = {
               ...ENRICHMENT_DEFAULTS,
               ...log,
-              ...(enrichmentMapRef.current.get(log.request_id) ?? {}),
+              ...(enrichment ?? {}),
+              isEnriched: enrichment !== undefined,
             };
             newMap.set(log.request_id, enriched);
 
@@ -319,8 +325,8 @@ export function useRatelimitLogsQuery({
       let changed = false;
       for (const [id, log] of prevMap) {
         const enrichment = enrichmentMapRef.current.get(id);
-        if (enrichment) {
-          newMap.set(id, { ...log, ...enrichment });
+        if (enrichment && !log.isEnriched) {
+          newMap.set(id, { ...log, ...enrichment, isEnriched: true });
           changed = true;
         } else {
           newMap.set(id, log);

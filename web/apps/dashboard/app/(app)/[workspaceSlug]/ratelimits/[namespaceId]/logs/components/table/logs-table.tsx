@@ -144,6 +144,9 @@ export const RatelimitLogsTable = () => {
         header: "Limit",
         width: "auto",
         render: (log) => {
+          if (!log.isEnriched) {
+            return <EnrichmentSkeleton />;
+          }
           const body = safeParseJson(log.response_body);
           const parsedLimit = body?.limit || body?.data?.limit;
           return <div className="font-mono">{parsedLimit ?? "<EMPTY>"}</div>;
@@ -154,6 +157,9 @@ export const RatelimitLogsTable = () => {
         header: "Duration",
         width: "auto",
         render: (log) => {
+          if (!log.isEnriched) {
+            return <EnrichmentSkeleton />;
+          }
           const parsedDuration = safeParseJson(log.request_body)?.duration;
           return (
             <div className="font-mono">
@@ -167,6 +173,9 @@ export const RatelimitLogsTable = () => {
         header: "Resets At",
         width: "auto",
         render: (log) => {
+          if (!log.isEnriched) {
+            return <EnrichmentSkeleton />;
+          }
           const body = safeParseJson(log.response_body);
           const parsedReset = body?.reset || body?.data?.reset;
 
@@ -189,7 +198,12 @@ export const RatelimitLogsTable = () => {
         key: "region",
         header: "Region",
         width: "10%",
-        render: (log) => <div className="font-mono">{log.region}</div>,
+        render: (log) => {
+          if (!log.isEnriched) {
+            return <EnrichmentSkeleton />;
+          }
+          return <div className="font-mono">{log.region}</div>;
+        },
       },
       {
         key: "actions",
@@ -266,3 +280,5 @@ function msToSeconds(ms: number) {
   const seconds = Math.round(ms / 1000);
   return `${seconds}s`;
 }
+
+const EnrichmentSkeleton = () => <div className="h-4 w-16 bg-accent-3 rounded-sm animate-pulse" />;

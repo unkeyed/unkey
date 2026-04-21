@@ -83,8 +83,6 @@ message SentinelRolloutServiceRolloutRequest {
   string image = 1;
   // Custom wave percentages. Defaults to [1, 5, 25, 50, 100].
   repeated int32 wave_percentages = 2;
-  // Slack webhook URL for rollout notifications.
-  string slack_webhook_url = 3;
 }
 
 message SentinelRolloutServiceRolloutResponse {

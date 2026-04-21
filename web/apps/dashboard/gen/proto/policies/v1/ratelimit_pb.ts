@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file policies/v1/ratelimit.proto.
  */
 export const file_policies_v1_ratelimit: GenFile = /*@__PURE__*/
-  fileDesc("Chtwb2xpY2llcy92MS9yYXRlbGltaXQucHJvdG8SC3NlbnRpbmVsLnYxIlUKCVJhdGVMaW1pdBINCgVsaW1pdBgBIAEoAxIRCgl3aW5kb3dfbXMYAiABKAMSJgoDa2V5GAMgASgLMhkuc2VudGluZWwudjEuUmF0ZUxpbWl0S2V5IpkCCgxSYXRlTGltaXRLZXkSLQoJcmVtb3RlX2lwGAEgASgLMhguc2VudGluZWwudjEuUmVtb3RlSXBLZXlIABIoCgZoZWFkZXIYAiABKAsyFi5zZW50aW5lbC52MS5IZWFkZXJLZXlIABJFChVhdXRoZW50aWNhdGVkX3N1YmplY3QYAyABKAsyJC5zZW50aW5lbC52MS5BdXRoZW50aWNhdGVkU3ViamVjdEtleUgAEiQKBHBhdGgYBCABKAsyFC5zZW50aW5lbC52MS5QYXRoS2V5SAASOQoPcHJpbmNpcGFsX2ZpZWxkGAUgASgLMh4uc2VudGluZWwudjEuUHJpbmNpcGFsRmllbGRLZXlIAEIICgZzb3VyY2UiDQoLUmVtb3RlSXBLZXkiGQoJSGVhZGVyS2V5EgwKBG5hbWUYASABKAkiGQoXQXV0aGVudGljYXRlZFN1YmplY3RLZXkiCQoHUGF0aEtleSIhChFQcmluY2lwYWxGaWVsZEtleRIMCgRwYXRoGAEgASgJQqkBCg9jb20uc2VudGluZWwudjFCDlJhdGVsaW1pdFByb3RvUAFaOWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vc2VudGluZWwvdjE7c2VudGluZWx2MaICA1NYWKoCC1NlbnRpbmVsLlYxygILU2VudGluZWxcVjHiAhdTZW50aW5lbFxWMVxHUEJNZXRhZGF0YeoCDFNlbnRpbmVsOjpWMWIGcHJvdG8z");
+  fileDesc("Chtwb2xpY2llcy92MS9yYXRlbGltaXQucHJvdG8SC3NlbnRpbmVsLnYxImMKCVJhdGVMaW1pdBINCgVsaW1pdBgBIAEoAxIRCgl3aW5kb3dfbXMYAiABKAMSNAoKaWRlbnRpZmllchgDIAEoCzIgLnNlbnRpbmVsLnYxLlJhdGVMaW1pdElkZW50aWZpZXIioAIKE1JhdGVMaW1pdElkZW50aWZpZXISLQoJcmVtb3RlX2lwGAEgASgLMhguc2VudGluZWwudjEuUmVtb3RlSXBLZXlIABIoCgZoZWFkZXIYAiABKAsyFi5zZW50aW5lbC52MS5IZWFkZXJLZXlIABJFChVhdXRoZW50aWNhdGVkX3N1YmplY3QYAyABKAsyJC5zZW50aW5lbC52MS5BdXRoZW50aWNhdGVkU3ViamVjdEtleUgAEiQKBHBhdGgYBCABKAsyFC5zZW50aW5lbC52MS5QYXRoS2V5SAASOQoPcHJpbmNpcGFsX2ZpZWxkGAUgASgLMh4uc2VudGluZWwudjEuUHJpbmNpcGFsRmllbGRLZXlIAEIICgZzb3VyY2UiDQoLUmVtb3RlSXBLZXkiGQoJSGVhZGVyS2V5EgwKBG5hbWUYASABKAkiGQoXQXV0aGVudGljYXRlZFN1YmplY3RLZXkiCQoHUGF0aEtleSIhChFQcmluY2lwYWxGaWVsZEtleRIMCgRwYXRoGAEgASgJQqkBCg9jb20uc2VudGluZWwudjFCDlJhdGVsaW1pdFByb3RvUAFaOWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vc2VudGluZWwvdjE7c2VudGluZWx2MaICA1NYWKoCC1NlbnRpbmVsLlYxygILU2VudGluZWxcVjHiAhdTZW50aW5lbFxWMVxHUEJNZXRhZGF0YeoCDFNlbnRpbmVsOjpWMWIGcHJvdG8z");
 
 /**
  * RateLimit enforces request rate limits at the gateway, protecting upstream
@@ -49,16 +49,16 @@ export type RateLimit = Message<"sentinel.v1.RateLimit"> & {
   windowMs: bigint;
 
   /**
-   * How to derive the rate limit key — the identity of "who" is being
+   * How to derive the rate limit identifier -- the identity of "who" is being
    * limited. This determines whether limits are per-IP, per-header-value,
-   * per-authenticated-subject, or per-claim. Choosing the right key source
+   * per-authenticated-subject, or per-claim. Choosing the right identifier
    * is critical: IP-based limiting can be defeated by proxies and NAT,
    * header-based limiting relies on client-supplied values, and subject-based
    * limiting requires an upstream authn policy to have produced a [Principal].
    *
-   * @generated from field: sentinel.v1.RateLimitKey key = 3;
+   * @generated from field: sentinel.v1.RateLimitIdentifier identifier = 3;
    */
-  key?: RateLimitKey;
+  identifier?: RateLimitIdentifier;
 };
 
 /**
@@ -69,15 +69,15 @@ export const RateLimitSchema: GenMessage<RateLimit> = /*@__PURE__*/
   messageDesc(file_policies_v1_ratelimit, 0);
 
 /**
- * RateLimitKey determines how sentinel identifies the entity being rate
- * limited. The choice of key source fundamentally changes the limiting
+ * RateLimitIdentifier determines how sentinel identifies the entity being rate
+ * limited. The choice of identifier fundamentally changes the limiting
  * behavior, so it should match the threat model and use case.
  *
- * @generated from message sentinel.v1.RateLimitKey
+ * @generated from message sentinel.v1.RateLimitIdentifier
  */
-export type RateLimitKey = Message<"sentinel.v1.RateLimitKey"> & {
+export type RateLimitIdentifier = Message<"sentinel.v1.RateLimitIdentifier"> & {
   /**
-   * @generated from oneof sentinel.v1.RateLimitKey.source
+   * @generated from oneof sentinel.v1.RateLimitIdentifier.source
    */
   source: {
     /**
@@ -106,7 +106,7 @@ export type RateLimitKey = Message<"sentinel.v1.RateLimitKey"> & {
   } | {
     /**
      * Limit by the [Principal] subject produced by an upstream authn policy.
-     * This is the most accurate key source for authenticated APIs because
+     * This is the most accurate identifier for authenticated APIs because
      * it limits each authenticated identity independently, regardless of
      * how many IPs or devices they use. Requires a [KeyAuth] or [JWTAuth]
      * policy earlier in the policy list.
@@ -143,14 +143,14 @@ export type RateLimitKey = Message<"sentinel.v1.RateLimitKey"> & {
 };
 
 /**
- * Describes the message sentinel.v1.RateLimitKey.
- * Use `create(RateLimitKeySchema)` to create a new message.
+ * Describes the message sentinel.v1.RateLimitIdentifier.
+ * Use `create(RateLimitIdentifierSchema)` to create a new message.
  */
-export const RateLimitKeySchema: GenMessage<RateLimitKey> = /*@__PURE__*/
+export const RateLimitIdentifierSchema: GenMessage<RateLimitIdentifier> = /*@__PURE__*/
   messageDesc(file_policies_v1_ratelimit, 1);
 
 /**
- * RemoteIpKey derives the rate limit key from the client's IP address.
+ * RemoteIpKey derives the rate limit identifier from the client's IP address.
  *
  * @generated from message sentinel.v1.RemoteIpKey
  */
@@ -165,7 +165,7 @@ export const RemoteIpKeySchema: GenMessage<RemoteIpKey> = /*@__PURE__*/
   messageDesc(file_policies_v1_ratelimit, 2);
 
 /**
- * HeaderKey derives the rate limit key from a request header value.
+ * HeaderKey derives the rate limit identifier from a request header value.
  *
  * @generated from message sentinel.v1.HeaderKey
  */
@@ -187,7 +187,7 @@ export const HeaderKeySchema: GenMessage<HeaderKey> = /*@__PURE__*/
   messageDesc(file_policies_v1_ratelimit, 3);
 
 /**
- * AuthenticatedSubjectKey derives the rate limit key from the [Principal]
+ * AuthenticatedSubjectKey derives the rate limit identifier from the [Principal]
  * subject. If no Principal exists (no authn policy matched or all authn
  * policies allowed anonymous access), the request is rate limited under a
  * shared anonymous bucket.
@@ -205,7 +205,7 @@ export const AuthenticatedSubjectKeySchema: GenMessage<AuthenticatedSubjectKey> 
   messageDesc(file_policies_v1_ratelimit, 4);
 
 /**
- * PathKey derives the rate limit key from the request URL path.
+ * PathKey derives the rate limit identifier from the request URL path.
  *
  * @generated from message sentinel.v1.PathKey
  */
@@ -220,18 +220,18 @@ export const PathKeySchema: GenMessage<PathKey> = /*@__PURE__*/
   messageDesc(file_policies_v1_ratelimit, 5);
 
 /**
- * PrincipalFieldKey derives the rate limit key from a value reached through
+ * PrincipalFieldKey derives the rate limit identifier from a value reached through
  * a dotted path into the [Principal] JSON. Resolves against the serialized
- * Principal object, so any field is addressable — the top-level subject,
+ * Principal object, so any field is addressable -- the top-level subject,
  * an identity field, or any source-specific detail.
  *
  * Examples:
  *
- *   "subject"                    — same identity used by AuthenticatedSubjectKey
- *   "identity.externalId"        — identity's external ID
- *   "identity.meta.plan"         — a tenant-level tier
- *   "source.key.meta.org_id"     — per-organization bucketing
- *   "source.jwt.payload.org_id"  — JWT claim-based bucketing
+ *   "subject"                    -- same identity used by AuthenticatedSubjectKey
+ *   "identity.externalId"        -- identity's external ID
+ *   "identity.meta.plan"         -- a tenant-level tier
+ *   "source.key.meta.org_id"     -- per-organization bucketing
+ *   "source.jwt.payload.org_id"  -- JWT claim-based bucketing
  *
  * If the path does not resolve, the value is not a string, or there is no
  * Principal at all, the request is rate limited under a shared "unknown"

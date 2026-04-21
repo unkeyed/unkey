@@ -1,6 +1,6 @@
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
-import { Bolt, ChartActivity, Focus } from "@unkey/icons";
+import { ChartActivity, Microchip, Ram } from "@unkey/icons";
 import type { SentinelNode } from "../types";
 import { MetricPill } from "./metric-pill";
 
@@ -42,7 +42,7 @@ export function CardFooter(props: CardFooterProps) {
             const parts = formatCpuParts(cpu);
             return (
               <MetricPill
-                icon={<Bolt iconSize="sm-medium" className="shrink-0" />}
+                icon={<Microchip iconSize="sm-medium" className="shrink-0" />}
                 value={
                   <>
                     <span className="font-medium">{parts.value}</span> {parts.unit}
@@ -59,7 +59,7 @@ export function CardFooter(props: CardFooterProps) {
             const parts = formatMemoryParts(memory);
             return (
               <MetricPill
-                icon={<Focus iconSize="sm-regular" className="shrink-0" />}
+                icon={<Ram iconSize="sm-regular" className="shrink-0" />}
                 value={
                   <>
                     <span className="font-medium">{parts.value}</span> {parts.unit}
