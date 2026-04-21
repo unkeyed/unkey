@@ -14,60 +14,73 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
-import { parseAsBoolean, useQueryState } from "nuqs";
-import { useEffect, useRef, useState } from "react";
+import { parseAsBoolean, parseAsStringLiteral, useQueryStates } from "nuqs";
+import { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
+const ISSUE_TYPES = ["bug", "feature", "security", "payment", "question", "feedback"] as const;
+type IssueType = (typeof ISSUE_TYPES)[number];
+
 export const useFeedback = () => {
-  return useQueryState("feedback", {
-    ...parseAsBoolean,
-    clearOnDefault: true,
+  const [{ feedback: open, feedbackType }, setState] = useQueryStates({
+    feedback: parseAsBoolean.withOptions({ clearOnDefault: true }),
+    feedbackType: parseAsStringLiteral(ISSUE_TYPES).withOptions({ clearOnDefault: true }),
   });
+
+  const openFeedback = useCallback(
+    (next: boolean, type?: IssueType) =>
+      setState(
+        next
+          ? { feedback: true, feedbackType: type ?? null }
+          : { feedback: null, feedbackType: null },
+      ),
+    [setState],
+  );
+
+  return { open, openFeedback, feedbackType };
 };
 
 const feedbackSchema = z.object({
   severity: z.enum(["p0", "p1", "p2", "p3"]),
-  issueType: z.enum(["bug", "feature", "security", "payment", "question"]),
+  issueType: z.enum(ISSUE_TYPES),
   message: z.string().trim().min(20, "Feedback must contain at least 20 characters"),
 });
 
 type FormValues = z.infer<typeof feedbackSchema>;
 
-export const Feedback: React.FC = () => {
-  const [open, setOpen] = useFeedback();
-  const [internalOpen, setInternalOpen] = useState(false);
-  const justOpenedRef = useRef(false);
+const DEFAULT_FORM_VALUES: FormValues = {
+  severity: "p2",
+  issueType: "bug",
+  message: "",
+};
 
-  // Sync internal state with URL query state
-  useEffect(() => {
-    if (open) {
-      setInternalOpen(true);
-      justOpenedRef.current = true;
-      const timer = setTimeout(() => {
-        justOpenedRef.current = false;
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-    setInternalOpen(false);
-  }, [open]);
+export const Feedback: React.FC = () => {
+  const { open, openFeedback, feedbackType } = useFeedback();
+  const [internalOpen, setInternalOpen] = useState(false);
 
   const {
     handleSubmit,
     control,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(feedbackSchema),
-    defaultValues: {
-      severity: "p2",
-      issueType: "bug",
-      message: "",
-    },
+    defaultValues: DEFAULT_FORM_VALUES,
   });
+
+  useEffect(() => {
+    if (open) {
+      reset({ ...DEFAULT_FORM_VALUES, issueType: feedbackType ?? DEFAULT_FORM_VALUES.issueType });
+      setInternalOpen(true);
+      return;
+    }
+    setInternalOpen(false);
+  }, [open, feedbackType, reset]);
 
   const create = trpc.plain.createIssue.useMutation({
     onSuccess: () => {
-      setOpen(false);
+      openFeedback(false);
       toast.success("Your issue has been created, we'll get back to you as soon as possible");
     },
     onError(err) {
@@ -85,7 +98,7 @@ export const Feedback: React.FC = () => {
   };
 
   const handleClose = () => {
-    setOpen(false);
+    openFeedback(false);
   };
 
   return (
@@ -142,6 +155,7 @@ export const Feedback: React.FC = () => {
                     <SelectItem value="security">Security</SelectItem>
                     <SelectItem value="payment">Payments</SelectItem>
                     <SelectItem value="question">General Question</SelectItem>
+                    <SelectItem value="feedback">Feedback</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.issueType && (
