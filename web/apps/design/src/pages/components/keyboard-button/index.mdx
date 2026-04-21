@@ -1,0 +1,137 @@
+---
+layout: ../../../layouts/Layout.astro
+title: KeyboardButton
+description: Render a single keyboard shortcut as a styled `<kbd>` chip — a visual hint, not an interactive control.
+---
+
+import { KeyboardButton } from "@unkey/ui";
+import { Preview } from "../../../components/Preview.tsx";
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+
+KeyboardButton is a presentational `<span>` that renders a keyboard shortcut
+the way the product typographically treats every other `kbd` chip: bordered,
+subtle background, monospaced key, optional modifier prefix. It does not
+listen for keystrokes and it does not trigger anything. It is the label; the
+binding lives somewhere else.
+
+Reach for it when you need to show a shortcut alongside text or next to a
+trigger that already handles the keystroke (a menu item, a help dialog row,
+a command-palette hit). For a button that both displays *and* binds a
+shortcut, use `<Button>` with the built-in `keyboard` prop — it wires the
+listener, pins layout during `loading`, and handles `disabled` correctly.
+The standalone `<KeyboardButton>` is for every other case, where the
+binding lives on a different element or nowhere at all.
+
+## Import
+
+```tsx
+import { KeyboardButton } from "@unkey/ui";
+```
+
+## Basic
+
+Pass a single key as `shortcut`. The value is uppercased for display, so
+`"k"` and `"K"` render identically.
+
+<Preview client:load>
+  <KeyboardButton shortcut="K" />
+</Preview>
+
+## With a modifier
+
+`modifierKey` renders a second `<kbd>` before the shortcut, joined with a
+`+`. The set is intentionally narrow: `⌘`, `⇧`, `CTRL`, `⌥`. Pick the
+symbol that matches what the user will read on their own keyboard.
+
+<Preview client:load>
+  <KeyboardButton modifierKey="⌘" shortcut="K" />
+  <KeyboardButton modifierKey="⇧" shortcut="Enter" />
+  <KeyboardButton modifierKey="CTRL" shortcut="/" />
+  <KeyboardButton modifierKey="⌥" shortcut="Space" />
+</Preview>
+
+## Inline with text
+
+KeyboardButton is an inline-flex span, so it flows next to copy. Use it in
+help text, empty states, and docstrings to teach a shortcut in the same
+sentence the user reads it.
+
+<Preview client:load>
+  <span className="text-sm text-gray-11 inline-flex items-center gap-2">
+    Press <KeyboardButton modifierKey="⌘" shortcut="K" /> to open the command menu.
+  </span>
+</Preview>
+
+## Responsive behavior
+
+KeyboardButton carries `max-md:hidden`, so it disappears on viewports
+narrower than the `md` breakpoint. Keyboard shortcuts are a desktop
+affordance — hiding the chip on touch devices keeps surrounding prose from
+referencing a key the user doesn't have. Plan the surrounding sentence
+accordingly, or wrap the chip in your own responsive container if you need
+different behavior.
+
+## When to use this vs `<Button keyboard={...}>`
+
+Both render the same visual treatment, but they answer different questions.
+
+Use `<Button keyboard={...}>` when the keyboard shortcut *is* an alternate
+way to press this specific button. The Button registers a document-level
+`keydown` listener, evaluates your `trigger` predicate on every keypress,
+and runs `callback` (or the button's own `onClick`) when it matches. It
+also respects `disabled` and `loading` and tears the listener down on
+unmount.
+
+Use `<KeyboardButton>` when you just need the chip. The binding may live
+on a Radix menu item, a command-palette hook, a global listener mounted at
+the app root, or it may not exist at all and you're only documenting the
+shortcut. Rendering a `<Button keyboard={...}>` purely to get the chip
+would register a no-op listener and ship a click target the user does not
+need.
+
+## Accessibility
+
+KeyboardButton is presentational and deliberately unfocusable. It sets
+`tabIndex={-1}` so it skips tab order, `role="presentation"` so assistive
+tech treats it as decorative, and provides an `aria-label` (`Keyboard
+shortcut {modifier} {shortcut}`) plus a hover `title` as a fallback. That
+label helps screen-reader users who happen to focus or pass over the span,
+but it is not the source of truth.
+
+Because the chip is decorative, the *real* binding must be announced
+somewhere else — the button it labels, the menu item it sits inside, or
+the surrounding prose. Do not rely on the chip alone to communicate that a
+shortcut exists. The inner `<kbd>` elements carry `className="not-prose"`
+so prose-scoped MDX stylesheets don't override the monospaced treatment.
+
+## Props
+
+<Props>
+  <Prop name="shortcut" type="string">
+    The key to display. Uppercased at render time, so `"k"` and `"K"`
+    produce the same output. Required.
+  </Prop>
+  <Prop name="modifierKey" type={`"⌘" | "⇧" | "CTRL" | "⌥" | null`}>
+    Optional modifier rendered as a second `<kbd>` with a `+` separator.
+    Pass `null` or omit for shortcuts with no modifier.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with the default chrome via `cn`;
+    later classes win over earlier ones.
+  </Prop>
+  <Prop name="...rest" type="HTMLAttributes<HTMLSpanElement>">
+    All standard span attributes pass through to the underlying `<span>`
+    (`id`, `onClick`, `data-*`, etc.). The component also sets
+    `role="presentation"`, `aria-label`, and `title` — override them at
+    the call site if you need different semantics.
+  </Prop>
+</Props>
+
+## Related
+
+- **Button** — when the shortcut should actually trigger the action. Pass
+  a `keyboard={{ display, trigger, callback }}` prop; the chip is rendered
+  for you.
+- **Tooltip** — to reveal a longer explanation of what the shortcut does
+  when a user hovers the control it labels.

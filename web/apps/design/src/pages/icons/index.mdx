@@ -1,0 +1,25 @@
+---
+layout: ../../layouts/Layout.astro
+title: Icons
+description: A set of hand-drawn icons shared across every Unkey surface. All icons accept an iconSize prop (sm-thin through 2xl-bold) and inherit the current color.
+---
+
+import { IconGallery } from "../../components/IconGallery.tsx";
+
+## Import
+
+Every icon is a named export of the `@unkey/icons` package. Import the ones you
+need individually.
+
+```tsx
+import { ArrowRight, Key, Trash } from "@unkey/icons";
+
+<Key iconSize="xl-regular" />
+```
+
+## Gallery
+
+Click a cell to copy its JSX tag. Icons are rendered at their default size
+(`xl-thin`). Pass an `iconSize` prop to scale them up or down from there.
+
+<IconGallery client:load />

@@ -1,0 +1,121 @@
+---
+layout: ../../../layouts/Layout.astro
+title: VisibleButton
+description: A small icon button that toggles the visibility of a masked value — pair it with a `<Code>` block for secrets, API keys, and signing tokens.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  StandaloneExample,
+  InsideCodeExample,
+  VariantExample,
+} from "./_examples.tsx";
+
+VisibleButton is a controlled toggle. The parent owns the boolean that says
+whether the secret is currently shown, passes it in as `isVisible`, and updates
+it through `setIsVisible`. The button itself only renders the eye icon, swaps
+it for the crossed-eye when visible, and keeps its `title` and `aria-label` in
+sync so assistive tech always announces the current action ("Show API key" /
+"Hide API key").
+
+Reach for it whenever a value in the UI is masked by default and the user
+needs a one-click reveal. It pairs naturally with the `<Code>` component's
+`visibleButton` slot, but it is a standalone button — nothing about it is
+specific to Code, and you can drop it next to any masked input, table cell,
+or read-only field.
+
+## Import
+
+```tsx
+import { VisibleButton } from "@unkey/ui";
+```
+
+## Standalone
+
+The button is fully controlled. Hold the `isVisible` state in the parent,
+pass it in, and swap the rendered value yourself based on the same state.
+`title` is the noun the screen reader announces alongside the action: pass
+the thing being revealed ("API key", "signing secret"), not a verb.
+
+<StandaloneExample client:load />
+
+## Inside a Code block
+
+`<Code>` reserves a slot in the top-right for `visibleButton` and another
+for `copyButton`. Put VisibleButton in the first slot, a `<CopyButton>` in
+the second, and switch the `<Code>` children between masked and revealed
+strings based on the same `isVisible` state.
+
+<InsideCodeExample client:load />
+
+## Variant
+
+The button extends `<Button>`, so every `variant` from Button applies here.
+The default is `outline` to match the bordered chrome of `<Code>`; switch to
+`ghost` when the button lives inside a surface that already provides its own
+border.
+
+<VariantExample client:load />
+
+## Accessibility
+
+VisibleButton passes `title` and a matching `aria-label` through to the
+underlying `<button>`. Both strings are generated from the `title` prop plus
+the current `isVisible` state: "Show `title`" when the value is hidden,
+"Hide `title`" when it is shown. Pass a concrete noun so the announcement is
+useful on its own without surrounding context.
+
+Because the button is icon-only, the `aria-label` is the only name a screen
+reader has to work with. Leaving `title` blank produces "Show " — correct
+but unhelpful. The icon itself (eye / crossed-eye) is decorative; the label
+carries the meaning.
+
+The click handler respects `event.defaultPrevented`, so if you wrap the
+button in something that calls `preventDefault` on the bubbling click, the
+visibility state is left alone. Otherwise every activation flips
+`isVisible` through the `setIsVisible` callback you provide.
+
+## Props
+
+<Props>
+  <Prop name="isVisible" type="boolean" required>
+    Current visibility state. The button shows an eye icon when `false` and
+    a crossed-eye icon when `true`. Owned by the parent.
+  </Prop>
+  <Prop name="setIsVisible" type="(visible: boolean) => void" required>
+    Called with the next visibility state on every click that is not
+    already `preventDefault`ed. Use this to update the same state you
+    passed as `isVisible`.
+  </Prop>
+  <Prop name="title" type="string">
+    Noun used to build the button's `title` and `aria-label`. Rendered as
+    "Show `title`" or "Hide `title`" depending on `isVisible`.
+  </Prop>
+  <Prop
+    name="variant"
+    type={`"primary" | "outline" | "ghost"`}
+    default={`"outline"`}
+  >
+    Forwarded to the underlying `<Button>`. Defaults to `outline` so the
+    button reads as chrome rather than a primary action.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with the default `w-6 h-6` sizing
+    via `cn`; later classes win.
+  </Prop>
+  <Prop name="...rest" type="ButtonProps">
+    Any remaining `<Button>` prop (`disabled`, `onClick`, `aria-*`, etc.)
+    passes through. A custom `onClick` runs first; call `preventDefault`
+    on the event to suppress the built-in visibility toggle.
+  </Prop>
+</Props>
+
+## Related
+
+- **Code** — provides the `visibleButton` slot that this component is
+  designed to fit into.
+- **CopyButton** — the natural companion for the `copyButton` slot when you
+  also want the value to be one click away from the clipboard.
+- **Button** — the primitive VisibleButton builds on; reach for it directly
+  if you need a reveal control with different iconography or sizing.

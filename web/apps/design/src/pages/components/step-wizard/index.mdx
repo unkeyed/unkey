@@ -1,0 +1,211 @@
+---
+layout: ../../../layouts/Layout.astro
+title: StepWizard
+description: Guide the user through a multi-step flow with one screen at a time, shared state, and forward-only or reversible navigation.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import { BasicExample, CompletedStateExample } from "./_examples.tsx";
+
+StepWizard is a compound component for flows that split naturally into ordered
+stages. Reach for it when a single form would be too long to absorb at once,
+when later fields depend on earlier answers, or when each stage has its own
+validation and you want to gate forward progress on it. Onboarding, deployment
+wizards, and key-creation flows are the canonical fit. A plain `<Form>` is
+still the right choice for short inputs the user can see and fill in a single
+glance.
+
+The Root owns step registration and active-step state via a reducer, and
+exposes it through context. Each `<StepWizard.Step>` registers itself on mount
+(preserving JSX insertion order) and renders inside the Root. Navigation
+controls live in your own content — the component does not draw Next/Back
+buttons. Call `useStepWizard()` inside any step to read the current position
+or move forward, back, skip, or jump to a specific step by id.
+
+## Import
+
+```tsx
+import { StepWizard, useStepWizard } from "@unkey/ui";
+```
+
+`StepWizard` is a namespace with two members: `StepWizard.Root` and
+`StepWizard.Step`. Always render steps as direct children of a Root so
+registration hits the right context.
+
+## Basic
+
+A minimum viable flow: three steps, a shared shell that reads position from
+`useStepWizard()`, and Back/Continue buttons driven by `next`, `back`,
+`canGoBack`, and `isLastStep`.
+
+<BasicExample client:load />
+
+## Completed state
+
+The Root takes an `onComplete` callback. Calling `next()` on the last step
+fires it instead of advancing, which is the signal to unmount the wizard or
+swap in a success view. The example below flips an outer `done` flag on
+completion and shows a summary panel in place of the final step's content.
+
+<CompletedStateExample client:load />
+
+## Accessibility
+
+StepWizard renders every registered step into the DOM but hides the inactive
+ones. The active step is opaque and in flow. Inactive steps are collapsed to
+`h-0 w-0`, given `pointer-events: none`, and marked `aria-hidden="true"` so
+assistive tech skips them and `Tab` cannot land inside. Hidden steps keep
+their form state mounted, which means a user who navigates back finds their
+prior input intact.
+
+The component does not move DOM focus when the active step changes, so
+keyboard users who press Continue stay on the Continue button. Two patterns
+work well on top of this. First, give the visible region a heading (for
+example an `<h2>` inside each step) and reference it with
+`aria-labelledby` on an outer `<section>` so screen readers get a fresh
+context. Second, when a step contains a form, focus the first invalid field
+on submit failure and the first focusable control on mount — a short
+`useEffect` with `ref.current?.focus()` is enough. Keyboard navigation inside
+a step is whatever the step's own controls provide: `Tab`/`Shift+Tab` through
+fields, `Enter` to submit, `Escape` to cancel the surrounding dialog if the
+wizard is nested in one. The wizard itself does not bind global shortcuts, so
+it never fights with form semantics.
+
+`preventBack` on a step disables both the reducer's `GO_BACK` transition and
+the derived `canGoBack` flag, which is the right hook for disabling your own
+Back button. Use it for irreversible steps (a deployment that has started, a
+payment that has been submitted) so the user can't step backwards into a
+stale view.
+
+## Props
+
+### StepWizard.Root
+
+The provider. Owns the reducer, derives position metadata, and publishes
+context to every descendant. Renders a `<div className="flex flex-col">`
+wrapper so steps stack vertically by default.
+
+<Props>
+  <Prop name="defaultStepId" type="string">
+    Step id to start on. If omitted, the Root activates the first step to
+    register. Pass a value from a URL search param to deep-link into a later
+    step (for example after an OAuth redirect).
+  </Prop>
+  <Prop name="onComplete" type="() => void">
+    Fires when `next()` is called on the last step. Use it to close the
+    wizard, navigate to a success page, or flip a local `done` flag. The
+    Root does not unmount itself on completion.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes merged onto the outer `<div>` via `cn`.
+    Typical overrides are `gap-y-*` or a max-width.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    One or more `<StepWizard.Step>` elements. Rendering order determines
+    step order — the Root preserves insertion order even when steps mount
+    or unmount conditionally.
+  </Prop>
+</Props>
+
+### StepWizard.Step
+
+A single step. Registers itself with the Root on mount, unregisters on
+unmount, and renders its children inside a transitioning container that is
+visible only when its id matches `activeStepId`.
+
+<Props>
+  <Prop name="id" type="string" required>
+    Stable identifier for this step. Used by `goTo`, `defaultStepId`, and
+    deep links. Must be unique within the Root.
+  </Prop>
+  <Prop name="label" type="string" required>
+    Human-readable label. Available on `StepMeta` for progress indicators or
+    breadcrumbs you render yourself.
+  </Prop>
+  <Prop name="kind" type={`"required" | "optional"`} default={`"required"`}>
+    Marks the step as skippable. When `kind === "optional"`, calling
+    `skip()` from context advances to the next step; otherwise `skip()` is
+    a no-op.
+  </Prop>
+  <Prop name="preventBack" type="boolean" default="false">
+    When `true`, the reducer refuses `GO_BACK` from this step and
+    `canGoBack` is `false`. Use for steps that are irreversible once
+    entered.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The step content. Call `useStepWizard()` inside to read position or
+    drive navigation from within the step.
+  </Prop>
+</Props>
+
+### useStepWizard
+
+Hook that returns the Root's context. Throws when called outside a
+`<StepWizard.Root>`.
+
+<Props>
+  <Prop name="steps" type="readonly StepMeta[]">
+    Ordered metadata for every registered step (`id`, `label`, `kind`,
+    `preventBack`). Use it to render a progress rail or breadcrumb.
+  </Prop>
+  <Prop name="activeStepId" type="string">
+    Id of the currently visible step.
+  </Prop>
+  <Prop name="activeStepIndex" type="number">
+    Zero-based index of the active step within `steps`. `-1` when no step
+    is registered yet.
+  </Prop>
+  <Prop name="totalSteps" type="number">
+    Length of `steps`.
+  </Prop>
+  <Prop name="position" type={`"empty" | "only" | "first" | "middle" | "last"`}>
+    Semantic placement of the active step. `only` when a single step is
+    registered; `empty` when the Root is mounted with no steps.
+  </Prop>
+  <Prop name="next" type="() => void">
+    Advances to the next step, or calls `onComplete` when already on the
+    last step.
+  </Prop>
+  <Prop name="back" type="() => void">
+    Goes to the previous step. A no-op on the first step or when the
+    current step has `preventBack`.
+  </Prop>
+  <Prop name="skip" type="() => void">
+    Same as `next()`, but only fires when the active step has
+    `kind="optional"`. Use for a "Skip" button that is silently inert on
+    required steps.
+  </Prop>
+  <Prop name="goTo" type="(id: string) => void">
+    Jumps to a specific step by id. Silently ignores unknown ids.
+  </Prop>
+  <Prop name="canGoBack" type="boolean">
+    `true` when `back()` would move. Bind this to the `disabled` prop on
+    your Back button.
+  </Prop>
+  <Prop name="canGoForward" type="boolean">
+    `true` when the active step has a later step to advance to (`position`
+    is `first` or `middle`).
+  </Prop>
+  <Prop name="isFirstStep" type="boolean">
+    Shorthand for `position === "first" || position === "only"`.
+  </Prop>
+  <Prop name="isLastStep" type="boolean">
+    Shorthand for `position === "last" || position === "only"`. Useful for
+    swapping the primary button label from "Continue" to "Finish".
+  </Prop>
+  <Prop name="registerStep" type="(meta: StepMeta) => void">
+    Internal. Called by `StepWizard.Step` on mount. You should not call
+    this directly.
+  </Prop>
+  <Prop name="unregisterStep" type="(id: string) => void">
+    Internal. Called by `StepWizard.Step` on unmount.
+  </Prop>
+</Props>
+
+## Related
+
+- **Form** — the right primitive for short, single-page input. Use StepWizard
+  only when the flow genuinely needs stages.
+- **Dialog** — host a short wizard inside a modal when the flow interrupts
+  the page rather than replacing it.

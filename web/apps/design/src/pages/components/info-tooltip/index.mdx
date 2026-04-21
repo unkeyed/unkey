@@ -1,0 +1,100 @@
+---
+layout: ../../../layouts/Layout.astro
+title: InfoTooltip
+description: A self-contained tooltip built around a persistent, always-visible trigger — typically a small info glyph next to a form label or setting name.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  BasicExample,
+  VariantsExample,
+  PositionExample,
+  DisabledExample,
+  DelayExample,
+} from "./_examples.tsx";
+
+InfoTooltip packages the Radix `TooltipProvider` + `Tooltip` + `TooltipTrigger` + `TooltipContent` tree into a single component with its own variant and positioning API. Pair it with a trigger that is *intended* to look like help (a `CircleInfo` glyph next to a field label, a small "?" beside a setting name) so the user can see where to hover without hunting for a hidden affordance.
+
+Reach for InfoTooltip whenever the trigger is the tooltip. Plain `<Tooltip>` assumes the trigger already earns its place in the layout (a Button, an icon button that already does something); InfoTooltip assumes the trigger exists only to surface the tooltip. That framing changes the defaults: it brings its own provider so it works as a leaf in any tree, defaults `side` to `"right"` (form-label ergonomics, not toolbar hovers), and exposes a `disabled` prop for conditionally silencing the hint without unmounting the icon.
+
+## Import
+
+```tsx
+import { InfoTooltip } from "@unkey/ui";
+```
+
+InfoTooltip mounts its own `TooltipProvider` internally, so you can drop it anywhere in the tree without arranging a provider at the app root. The trade-off is that sibling `InfoTooltip`s do not share timing with each other: each has its own `delayDuration` and does not benefit from the provider's `skipDelayDuration` scanning behaviour.
+
+## Basic
+
+Wrap the glyph in `InfoTooltip` with `asChild` so the glyph itself becomes the focusable trigger and keeps its own styles. The `content` prop takes any `ReactNode`, so you can mix short prose with inline code.
+
+<BasicExample client:load />
+
+## Variants
+
+`variant` picks the chrome of the tooltip surface. `primary` is the default (white or black background with a soft border), `inverted` flips to high contrast for use on busy surfaces, and `secondary` / `muted` render larger body text for longer help copy.
+
+<VariantsExample client:load />
+
+## Positioning
+
+`position` groups `side`, `align`, and `sideOffset` into a single object. InfoTooltip defaults `side` to `"right"` because labels and settings rows are usually tall and narrow — tooltips read more naturally to the side than stacked above. Radix still flips the tooltip automatically when there isn't room on the requested side.
+
+<PositionExample client:load />
+
+## Disabled
+
+Set `disabled` to silence the tooltip without unmounting the trigger. The glyph stays in the layout and keeps its focus ring, but hovering and focusing do nothing. Useful when the help text depends on surrounding state (e.g. only relevant while a field is empty) and you'd rather toggle a prop than conditionally render.
+
+<DisabledExample client:load />
+
+## Delay
+
+`delayDuration` controls how long the pointer must rest on the trigger before the tooltip opens. Short delays (0–150ms) feel snappy but can flicker on casual mouse movement; longer delays (400–700ms) are kinder to users brushing past an icon on the way elsewhere. Because each InfoTooltip mounts its own provider, the delay applies only to that instance.
+
+<DelayExample client:load />
+
+## Accessibility
+
+InfoTooltip inherits Radix's tooltip semantics. The content renders with `role="tooltip"`, the trigger is described by the content via `aria-describedby`, and opening happens on keyboard focus as well as pointer hover. `Escape` closes an open tooltip.
+
+Two rules keep info tooltips honest. First, the trigger must itself be reachable — use `asChild` around a focusable element (a `<button>`, or a `<span tabIndex={0}>` with a visible focus style) so keyboard users can reach the hint without a mouse. Second, pair a purely decorative glyph with a `<span className="sr-only">More info</span>` so screen readers announce something meaningful when the trigger receives focus. The tooltip text is announced via `aria-describedby` once focus lands, but the trigger still needs an accessible name of its own.
+
+## Props
+
+<Props>
+  <Prop name="content" type="ReactNode">
+    The body of the tooltip. Required. Keep it short — a phrase or a sentence — since tooltips are not meant to be read at length.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The trigger element. Typically a small info glyph. Combine with `asChild` to let your element remain the real focusable node.
+  </Prop>
+  <Prop name="asChild" type="boolean" default="false">
+    Merge the trigger behaviour into the single child instead of rendering a wrapping `<button>`. Use this when `children` is already focusable (a `<span tabIndex={0}>`, a `<Button>`, an icon button) to avoid nesting buttons.
+  </Prop>
+  <Prop name="variant" type={`"primary" | "inverted" | "secondary" | "muted"`} default={`"primary"`}>
+    Surface style. `primary` is white-on-black / black-on-white with a soft border. `inverted` flips contrast for busy backgrounds. `secondary` and `muted` render larger body text for help copy that needs room.
+  </Prop>
+  <Prop name="position" type={`{ side?: "top" | "right" | "bottom" | "left"; align?: "start" | "center" | "end"; sideOffset?: number }`} default={`{ side: "right", align: "center" }`}>
+    Placement of the tooltip relative to the trigger. `side` picks the anchor edge, `align` sets cross-axis alignment, and `sideOffset` adds a pixel gap. Radix flips automatically when the requested side doesn't fit.
+  </Prop>
+  <Prop name="delayDuration" type="number">
+    Milliseconds to wait after hover before opening. Applies only to this tooltip — InfoTooltip mounts its own provider, so the value does not cascade to siblings.
+  </Prop>
+  <Prop name="disabled" type="boolean" default="false">
+    When `true`, the tooltip never opens. The trigger stays in the layout and keeps its focus styles; only the hint is suppressed.
+  </Prop>
+  <Prop name="className" type="string">
+    Extra Tailwind classes for the floating content surface. Merged with the variant chrome via `cn`.
+  </Prop>
+  <Prop name="triggerClassName" type="string">
+    Extra Tailwind classes applied to the trigger. Use this to style the wrapper when not using `asChild`.
+  </Prop>
+</Props>
+
+## Related
+
+- **Tooltip** — the primitive underneath. Use it when the trigger is an existing control (Button, icon button, link) whose tooltip is supplementary, not its entire reason for existing.
+- **Popover** — for floating content that is interactive (buttons, forms, links) or long enough that the user needs to read at their own pace.

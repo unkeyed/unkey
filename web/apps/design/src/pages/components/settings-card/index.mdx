@@ -1,0 +1,311 @@
+---
+layout: ../../../layouts/Layout.astro
+title: SettingsCard
+description: A row for a settings page — label, supporting copy, and a right-aligned control that edits a single preference.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  AnatomyExample,
+  WithIconExample,
+  GroupExample,
+  ExpandableExample,
+  DangerZoneExample,
+} from "./_examples.tsx";
+
+SettingsCard is a row-shaped container for a single preference. It pairs a
+short label and one or two lines of supporting copy with a control pinned to
+the right edge: an `<Input>` for free-form values, a `<Button>` for actions,
+a switch or select for discrete choices. It is the building block of the
+settings pages in the dashboard.
+
+Reach for plain `<Card>` when you're grouping a cluster of related content
+(a title, a body, maybe a footer row of actions) into a bordered surface.
+Reach for SettingsCard when each row *is* a preference: one label, one
+description, one control, stacked vertically with other rows into a
+settings list. Rows inside a `<SettingCardGroup>` share a single border and
+are divided by hairlines, which is the visual shape product settings pages
+want.
+
+## Import
+
+```tsx
+import {
+  SettingCard,
+  SettingCardGroup,
+  SettingsDangerZone,
+  SettingsZone,
+  SettingsZoneRow,
+  SettingsShell,
+} from "@unkey/ui";
+```
+
+Note that the primary row component is exported as `SettingCard` (singular),
+while the helpers for danger zones and the page shell use the `Settings`
+prefix.
+
+## Anatomy
+
+A single row: title on the left, description underneath it, and the control
+(here, an `<Input>`) filling the right side.
+
+<AnatomyExample client:load />
+
+The control slot is `children`. Its width is capped by `contentWidth`
+(default `w-[420px]`), which keeps rows visually aligned when several
+SettingsCards stack.
+
+## With an icon
+
+Pass an `icon` to place a small tinted square to the left of the title. It
+helps the reader scan a long settings page and pairs well with icons from
+`@unkey/icons`. The container is fixed at 32px square with rounded corners;
+style the icon itself via `iconClassName` or by passing a pre-styled node.
+
+<WithIconExample client:load />
+
+## Grouped
+
+Wrap multiple `<SettingCard>`s in a `<SettingCardGroup>` to render them as a
+single bordered panel with hairline dividers between rows. Inside a group,
+each card drops its own border and border-radius so the group owns the
+chrome.
+
+<GroupExample client:load />
+
+This is the shape most dashboard settings pages take. Keep related
+preferences in the same group ("Workspace", "Billing", "Security") and use
+separate groups (or a heading between them) to break the page into sections.
+
+## Expandable row
+
+Pass an `expandable` node to reveal a secondary region below the row. The
+chevron on the right becomes interactive, clicking the row (or pressing
+`Enter` when focused) toggles the region, and the height animates via a
+`ResizeObserver` so it fits whatever content you render. Useful when the
+control itself is more than one field: a nested form, a list of
+sub-preferences, or a long explanation that shouldn't crowd the row.
+
+<ExpandableExample client:load />
+
+Set `defaultExpanded` to open on mount. Override `chevronState` to
+`"disabled"` (show a dimmed chevron, ignore clicks) or `"hidden"` (no
+chevron at all) when you want the visual shape but not the interaction.
+
+## Danger zone
+
+`<SettingsDangerZone>` wraps `<SettingsZoneRow>`s in a red-bordered panel
+with a heading. Each row renders a title, a description, and a single
+`destructive` button on the right. Use it for actions that are irreversible
+or high-impact: transferring ownership, deleting a workspace, revoking all
+keys.
+
+<DangerZoneExample client:load />
+
+For warning-level actions (strong, but not destructive), use
+`<SettingsZone variant="warning" title="...">` directly. The row renders a
+`primary` button tinted with the warning color instead of the red
+destructive style.
+
+## Composition
+
+The settings-card module ships six exports, each with a narrow job:
+
+- **`<SettingCard>`** — the row itself. Title, description, optional icon,
+  control slot (via `children`), and an optional expandable region.
+- **`<SettingCardGroup>`** — groups rows into a single bordered panel with
+  hairline dividers. Uses context internally so children know to drop their
+  own border.
+- **`<SettingsZone>`** — the base for danger/warning panels. Renders a
+  colored heading and a bordered container in the matching tint.
+- **`<SettingsDangerZone>`** — `<SettingsZone variant="danger" title="Danger
+  Zone">` preconfigured. The common case.
+- **`<SettingsZoneRow>`** — a row inside a zone. Renders its own
+  destructive-or-warning button based on the surrounding zone's variant
+  (via context).
+- **`<SettingsShell>`** — a centered, width-capped `<main>` container for
+  settings pages. Use it as the outermost wrapper so every settings page
+  has the same horizontal rhythm.
+
+## Accessibility
+
+When `expandable` is set and `chevronState` is `"interactive"` (the default
+in that case), the row becomes a clickable surface. It handles `Enter` on
+`onKeyDown` but does not itself carry `role="button"` or `tabIndex`. If you
+rely on keyboard users reaching the row, set `tabIndex={0}` and an
+appropriate role at the call site, or make the control inside the row the
+primary interactive target and let the row's click-to-expand be a visual
+convenience.
+
+The description can be set to truncate with `truncateDescription`. When
+truncated, the full text is available through an `<InfoTooltip>` on hover
+and focus, so the content stays reachable for assistive tech and keyboard
+users.
+
+`<SettingsZone>` renders its title as an `<h2>`. Pick a heading level that
+fits your page hierarchy. If your settings page already has an `<h1>` for
+the page title and an `<h2>` above each group, the zone's own `<h2>` may
+need restyling to read as a sibling rather than a new section.
+
+## Props
+
+### SettingCard
+
+The row. Renders a title, a description, an optional left icon, a control
+slot on the right, and optionally an expandable region below.
+
+<Props>
+  <Prop name="title" type="string | ReactNode" required>
+    The label for the row. Keep it short, a single phrase ("Workspace
+    name", "API rate limit").
+  </Prop>
+  <Prop name="description" type="string | ReactNode" required>
+    Supporting copy beneath the title. One or two sentences that explain
+    what the control does.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The control rendered on the right. Typically an `<Input>`, a
+    `<Button>`, a `<Select>`, or a switch.
+  </Prop>
+  <Prop name="icon" type="ReactNode">
+    A small node rendered in a tinted 32px square to the left of the
+    title. Icons from `@unkey/icons` are the intended fit.
+  </Prop>
+  <Prop name="iconClassName" type="string">
+    Additional classes on the icon's 32px square wrapper. Override the
+    tint or shadow when a row needs emphasis.
+  </Prop>
+  <Prop
+    name="border"
+    type={`"top" | "middle" | "bottom" | "both" | "none" | "default"`}
+    default={`"default"`}
+  >
+    Controls which borders are drawn when the card stands alone (outside a
+    `<SettingCardGroup>`). Inside a group this is ignored; the group owns
+    the border.
+  </Prop>
+  <Prop name="contentWidth" type="string" default={`"w-[420px]"`}>
+    Tailwind width class for the control slot. Override to widen or
+    narrow the right side. Keep it consistent across rows in a group so
+    controls align.
+  </Prop>
+  <Prop name="expandable" type="ReactNode">
+    Content revealed below the row when expanded. Passing this prop
+    enables the expand/collapse interaction and shows an interactive
+    chevron on the right.
+  </Prop>
+  <Prop name="defaultExpanded" type="boolean" default="false">
+    When `true`, the expandable region is open on mount.
+  </Prop>
+  <Prop
+    name="chevronState"
+    type={`"hidden" | "interactive" | "disabled"`}
+  >
+    Override the chevron affordance. Defaults to `"interactive"` when
+    `expandable` is set and `"hidden"` otherwise. Use `"disabled"` to
+    show a dimmed chevron on a non-toggleable row.
+  </Prop>
+  <Prop name="truncateDescription" type="boolean" default="false">
+    When `true`, the description is truncated to one line and the full
+    text is available via an `<InfoTooltip>` on hover and focus.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes on the inner flex row. Merged via `cn`.
+  </Prop>
+</Props>
+
+### SettingCardGroup
+
+Groups multiple `<SettingCard>`s into a single bordered panel divided by
+hairlines. Children drop their own border when rendered inside a group.
+
+<Props>
+  <Prop name="children" type="ReactNode" required>
+    One or more `<SettingCard>` elements.
+  </Prop>
+</Props>
+
+### SettingsZone
+
+A bordered panel with a colored heading. The base for danger and warning
+zones.
+
+<Props>
+  <Prop name="variant" type={`"danger" | "warning"`} required>
+    Sets the heading color and border tint. `danger` is red, `warning`
+    is amber.
+  </Prop>
+  <Prop name="title" type="string" required>
+    Rendered as an `<h2>` above the panel.
+  </Prop>
+  <Prop name="children" type="ReactNode" required>
+    Usually one or more `<SettingsZoneRow>` elements.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes on the outer wrapper.
+  </Prop>
+</Props>
+
+### SettingsDangerZone
+
+`<SettingsZone variant="danger" title="Danger Zone">` preconfigured. Use it
+when the zone holds irreversible actions.
+
+<Props>
+  <Prop name="children" type="ReactNode" required>
+    One or more `<SettingsZoneRow>` elements.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes on the outer wrapper.
+  </Prop>
+</Props>
+
+### SettingsZoneRow
+
+A row inside a `<SettingsZone>` or `<SettingsDangerZone>`. The action button
+picks its variant (destructive or warning-tinted primary) from the
+surrounding zone's variant via context.
+
+<Props>
+  <Prop name="title" type="ReactNode" required>
+    The label for the row.
+  </Prop>
+  <Prop name="description" type="ReactNode" required>
+    Supporting copy beneath the title.
+  </Prop>
+  <Prop
+    name="action"
+    type="{ label: string; onClick: () => void; loading?: boolean; disabled?: boolean; className?: string }"
+    required
+  >
+    The right-aligned action. `label` is the button text, `onClick` is
+    invoked on click, `loading` and `disabled` forward to the button, and
+    `className` merges with the button's own classes.
+  </Prop>
+</Props>
+
+### SettingsShell
+
+A centered, width-capped `<main>` container for settings pages. Use it as
+the outermost wrapper so every settings page has the same horizontal
+rhythm and vertical breathing room.
+
+<Props>
+  <Prop name="children" type="ReactNode" required>
+    The page content — typically a stack of `<SettingCardGroup>`s and
+    zones.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes on the `<main>` element.
+  </Prop>
+</Props>
+
+## Related
+
+- **Card** — the general-purpose bordered surface. Reach for it when the
+  content isn't a single preference row.
+- **Button** — the most common control for actions on a settings row
+  (rotate, regenerate, transfer).
+- **Alert** — when a settings page needs a top-of-page notice (e.g. "This
+  workspace is in read-only mode"), rather than a per-row indicator.

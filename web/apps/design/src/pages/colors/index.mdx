@@ -1,0 +1,219 @@
+---
+layout: ../../layouts/Layout.astro
+title: Colors
+description: Radix-based color scales tuned for the Unkey product. Every scale has twelve steps, from near-white (1) to near-black (12) in light mode, inverted in dark mode. Click a swatch to copy its token name.
+---
+
+import { ColorSwatch } from "../../components/ColorSwatch.tsx";
+import { Preview } from "../../components/Preview.tsx";
+
+## Using colors
+
+Reference a scale step via a Tailwind utility — `bg-gray-2`, `text-accent-12`,
+`border-grayA-4` — or read the underlying CSS variable directly with
+`hsl(var(--accent-11))`.
+
+All scales are defined at the workspace level (`@unkey/ui/tailwind.css`) so
+every app using the design system sees the same palette. Dark-mode values are
+already mapped on `.dark`; you never need to write a dark-mode variant.
+
+## Steps
+
+Every scale follows Radix's twelve-step structure. Each step has a canonical
+role — reach for the same step across scales to keep intent consistent. Full
+reference at [the Radix scale guide](https://www.radix-ui.com/colors/docs/palette-composition/understanding-the-scale).
+
+- **01** App background.
+- **02** Subtle background — striped rows, nested surfaces.
+- **03** Component background, resting state.
+- **04** Component background, hovered.
+- **05** Component background, pressed or selected.
+- **06** Subtle border — sidebars, cards, separators.
+- **07** Border on interactive components.
+- **08** Stronger border, hover, focus ring.
+- **09** Solid background — maximum chroma, headers, overlays.
+- **10** Solid background, hovered.
+- **11** Low-contrast text — body copy, descriptions.
+- **12** High-contrast text — headings, icons.
+
+## Scales
+
+### Gray
+
+The neutral workhorse. Use low steps (1–4) for backgrounds and surfaces, mid
+steps (5–8) for borders and separators, and high steps (9–12) for text and
+icons.
+
+<ColorSwatch client:load scale="gray" />
+
+### Gray (Alpha)
+
+Gray with transparency. Preferred for hover states, subtle overlays, and any
+element that sits on a colored or patterned surface where a solid gray would
+look flat.
+
+<ColorSwatch client:load scale="grayA" alpha />
+
+### Accent
+
+The brand neutral — a tuned Slate scale. Used for primary buttons, active
+states, and anywhere the product needs a quiet but confident emphasis.
+
+<ColorSwatch client:load scale="accent" />
+
+### Success
+
+Teal. Reserved for positive confirmation — a successful save, a healthy
+status, a completed step.
+
+<ColorSwatch client:load scale="success" />
+
+### Warning
+
+Amber. Signals caution without implying failure — an impending expiration, a
+non-fatal edge case, a degraded but functional state.
+
+<ColorSwatch client:load scale="warning" />
+
+### Error
+
+Tomato. For destructive actions and failure states — a deletion confirmation,
+a request that could not complete.
+
+<ColorSwatch client:load scale="error" />
+
+### Info
+
+Blue. Neutral informational emphasis, links in some contexts, and primary
+interactive accents where accent would read as ambiguous.
+
+<ColorSwatch client:load scale="info" />
+
+### Feature
+
+Violet. Signals a distinct product area or a premium capability. Use sparingly
+so it stays meaningful.
+
+<ColorSwatch client:load scale="feature" />
+
+### Black (Alpha)
+
+Pure-black transparent overlays. Useful for modal backdrops and shadows that
+should render the same in both themes.
+
+<ColorSwatch client:load scale="blackA" alpha />
+
+### White (Alpha)
+
+Pure-white transparent overlays. Mirror image of BlackA; common for lifts on
+dark surfaces.
+
+<ColorSwatch client:load scale="whiteA" alpha />
+
+## Text on background
+
+Radix guarantees that steps **11** and **12** of any scale meet strong
+APCA contrast on top of step **2** of the same scale. That pair is the
+workhorse: body copy at 11, headings and icons at 12, both on a tinted
+surface 2.
+
+<Preview client:load>
+  <div className="w-full max-w-[460px] mx-auto space-y-6 font-sans text-[15px] leading-[1.6]">
+    <div className="bg-gray-2 rounded-md px-5 py-4">
+      <p className="text-gray-12 font-medium mb-1">Gray 12 heading</p>
+      <p className="text-gray-11">Gray 11 on Gray 2. The default reading pairing for neutral prose.</p>
+    </div>
+    <div className="bg-accent-2 rounded-md px-5 py-4">
+      <p className="text-accent-12 font-medium mb-1">Accent 12 heading</p>
+      <p className="text-accent-11">Accent 11 on Accent 2. The same contrast contract, in the brand tone.</p>
+    </div>
+    <div className="bg-success-2 rounded-md px-5 py-4">
+      <p className="text-success-12 font-medium mb-1">Success 12 heading</p>
+      <p className="text-success-11">Every semantic scale ships with the same step-2/11/12 guarantee.</p>
+    </div>
+  </div>
+</Preview>
+
+## Text steps at a glance
+
+A quick sweep of what each high step looks like on the app background
+(`bg-gray-1`). Use 12 for headings and icons, 11 for body copy, 10 for
+tertiary metadata, 9 for hints and uppercase labels.
+
+<Preview client:load>
+  <div className="w-full max-w-[520px] mx-auto space-y-4 font-sans text-[15px] leading-[1.7]">
+    <p className="text-gray-12"><span className="inline-block w-[120px] font-mono text-[11px] text-gray-9">gray-12</span> Primary readable content.</p>
+    <p className="text-gray-11"><span className="inline-block w-[120px] font-mono text-[11px] text-gray-9">gray-11</span> Supporting prose, descriptions, captions.</p>
+    <p className="text-gray-10"><span className="inline-block w-[120px] font-mono text-[11px] text-gray-9">gray-10</span> Placeholder-ish, disabled labels, tertiary metadata.</p>
+    <p className="text-gray-9"><span className="inline-block w-[120px] font-mono text-[11px] text-gray-9">gray-9</span> Hints, decorative marks, uppercase section labels.</p>
+    <p className="text-accent-12"><span className="inline-block w-[120px] font-mono text-[11px] text-gray-9">accent-12</span> Brand emphasis.</p>
+    <p className="text-success-11"><span className="inline-block w-[120px] font-mono text-[11px] text-gray-9">success-11</span> Confirmation language.</p>
+    <p className="text-warning-11"><span className="inline-block w-[120px] font-mono text-[11px] text-gray-9">warning-11</span> Cautionary language.</p>
+    <p className="text-error-11"><span className="inline-block w-[120px] font-mono text-[11px] text-gray-9">error-11</span> Failure and destructive copy.</p>
+    <p className="text-info-11"><span className="inline-block w-[120px] font-mono text-[11px] text-gray-9">info-11</span> Informational emphasis.</p>
+    <p className="text-feature-11"><span className="inline-block w-[120px] font-mono text-[11px] text-gray-9">feature-11</span> Distinct product area or premium.</p>
+  </div>
+</Preview>
+
+## Solid backgrounds
+
+Step **9** is the only step with maximum chroma — designed for solid
+button backgrounds, chips, and headers. White text sits on most hues; the
+amber/yellow family is light enough that **warning-9** wants dark text
+(`gray-12` works) for readability. Step **10** is the hover mate.
+
+<Preview client:load>
+  <div className="flex flex-wrap gap-3 justify-center">
+    <span className="bg-accent-9 text-white px-4 py-2 rounded-md text-[13px] font-medium">Accent</span>
+    <span className="bg-success-9 text-white px-4 py-2 rounded-md text-[13px] font-medium">Success</span>
+    <span className="bg-warning-9 text-gray-12 px-4 py-2 rounded-md text-[13px] font-medium">Warning</span>
+    <span className="bg-error-9 text-white px-4 py-2 rounded-md text-[13px] font-medium">Error</span>
+    <span className="bg-info-9 text-white px-4 py-2 rounded-md text-[13px] font-medium">Info</span>
+    <span className="bg-feature-9 text-white px-4 py-2 rounded-md text-[13px] font-medium">Feature</span>
+  </div>
+</Preview>
+
+## Tinted callouts
+
+Step **3** backgrounds paired with step **11** text are the canonical
+semantic callout: readable, quiet, and obviously tinted. Reach for this
+pattern when you want Alert-like color without Alert-level weight.
+
+<Preview client:load>
+  <div className="w-full max-w-[520px] mx-auto space-y-3 font-sans text-[14px] leading-[1.55]">
+    <div className="rounded-md bg-success-3 text-success-11 px-5 py-3">
+      <span className="font-mono text-[11px] opacity-60 mr-2">bg-success-3</span>
+      Action confirmed — your changes have been saved.
+    </div>
+    <div className="rounded-md bg-warning-3 text-warning-11 px-5 py-3">
+      <span className="font-mono text-[11px] opacity-60 mr-2">bg-warning-3</span>
+      Your API key expires in 7 days. Rotate it now.
+    </div>
+    <div className="rounded-md bg-error-3 text-error-11 px-5 py-3">
+      <span className="font-mono text-[11px] opacity-60 mr-2">bg-error-3</span>
+      Request failed — please try again in a few minutes.
+    </div>
+    <div className="rounded-md bg-info-3 text-info-11 px-5 py-3">
+      <span className="font-mono text-[11px] opacity-60 mr-2">bg-info-3</span>
+      Read-only mode is on for this workspace.
+    </div>
+    <div className="rounded-md bg-feature-3 text-feature-11 px-5 py-3">
+      <span className="font-mono text-[11px] opacity-60 mr-2">bg-feature-3</span>
+      Unlocked by your Pro plan.
+    </div>
+  </div>
+</Preview>
+
+## Component states
+
+Steps **3 → 4 → 5** are the state progression for component surfaces:
+resting, hovered, pressed. Borders at **6 → 7 → 8** match the same
+progression for separators and interactive outlines.
+
+<Preview client:load>
+  <div className="flex flex-wrap gap-3 justify-center text-[13px] font-medium text-gray-12">
+    <span className="bg-accent-3 px-4 py-2 rounded-md">Rest</span>
+    <span className="bg-accent-4 px-4 py-2 rounded-md">Hover</span>
+    <span className="bg-accent-5 px-4 py-2 rounded-md">Pressed</span>
+  </div>
+</Preview>

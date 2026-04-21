@@ -1,0 +1,256 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Toaster
+description: Announce ephemeral, non-blocking feedback after an action — saved, copied, deleted, failed — from anywhere in the tree.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  DefaultExample,
+  SuccessExample,
+  ErrorExample,
+  DescriptionExample,
+  ActionExample,
+} from "./_examples.tsx";
+
+Toaster is a thin wrapper around [Sonner](https://sonner.emilkowal.ski/) wired
+up with the product's theme tokens. It ships as two pieces that work together:
+`<Toaster />` is a component you mount **once** near the root of the app, and
+`toast(...)` (plus `toast.success`, `toast.error`, `toast.info`,
+`toast.warning`, `toast.loading`, `toast.promise`) is a function you import
+from `@unkey/ui` and call from anywhere — event handlers, data hooks,
+server-action responses — to make a toast appear in that single mounted region.
+
+Reach for a toast when feedback is ephemeral and non-blocking: "saved",
+"copied", "deleted" (with an undo), "could not reach the server". Use an
+`<Alert>` instead when the message is inline and persistent (a deprecated-API
+banner, a read-only-mode notice). Use a `<Dialog>` when the user must
+acknowledge or confirm before continuing. Toasts auto-dismiss, overlap other
+content, and can be missed, so they should never be the only record of a
+critical event.
+
+## Mounting
+
+Mount `<Toaster />` exactly once, as high in the tree as makes sense (the
+root layout or a top-level provider). Every `toast(...)` call on the page
+targets this single instance, and mounting it twice causes toasts to appear in
+both regions.
+
+```tsx
+import { Toaster } from "@unkey/ui";
+
+export function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        {children}
+        <Toaster position="bottom-right" richColors />
+      </body>
+    </html>
+  );
+}
+```
+
+The design system site does **not** mount a global `<Toaster />`, so each
+example on this page mounts its own local `<Toaster />` inside
+`_examples.tsx` alongside the trigger button. That is only a documentation
+workaround — in a real app, mount it once.
+
+## Import
+
+```tsx
+import { Toaster, toast } from "@unkey/ui";
+```
+
+`Toaster` is the component you render. `toast` is the imperative function
+(with `.success`, `.error`, `.info`, `.warning`, `.loading`, `.promise`,
+`.dismiss`, `.message`, `.custom` attached) you call to show a message.
+
+## Default toast
+
+Call `toast(message)` for a neutral notification. No icon, no colored border
+— use this for informational confirmations that don't need semantic weight.
+
+<DefaultExample client:load />
+
+## Success
+
+`toast.success(message)` adds a success icon and (when `richColors` is on)
+green theming. Use it for confirmations of positive user actions: a key
+rotated, an invitation sent, a configuration saved.
+
+<SuccessExample client:load />
+
+## Error
+
+`toast.error(message, options)` flags a failure. Pair with a `description`
+that tells the user what to do next. Error toasts auto-dismiss just like
+any other; if the user needs to read and act on the failure, consider an
+`<Alert>` in the affected surface instead.
+
+<ErrorExample client:load />
+
+## With description
+
+Pass a `description` in the options object for a second line of body copy.
+Keep the title short (the "what"); put supporting detail in the description
+(the "who", "where", or "when").
+
+<DescriptionExample client:load />
+
+## With action
+
+Pass an `action` with a `label` and an `onClick` to put an inline button
+inside the toast. The classic use is an undo affordance after a destructive
+operation: the destructive work runs optimistically, and the toast gives the
+user a short window to reverse it before dismissal.
+
+<ActionExample client:load />
+
+## Accessibility
+
+Sonner renders toasts into an `aria-live` region (polite by default), so
+screen readers announce new toasts without interrupting the current
+announcement. The region also carries a configurable label
+(`containerAriaLabel`, default `"Notifications"`) so assistive tech can
+name it when a user jumps to landmarks.
+
+Two rules keep toast usage honest. First, because toasts auto-dismiss and
+can be missed entirely (a user on another tab, a screen reader user who
+stepped away), never let a toast be the only record of a failure that
+blocks further work — duplicate the state in the affected UI. Second, the
+hotkey (default `Alt+T`) focuses the toast region so keyboard users can
+reach any action button inside; pressing `Escape` from there dismisses the
+focused toast.
+
+## Props
+
+### `<Toaster>`
+
+<Props>
+  <Prop
+    name="position"
+    type={`"top-left" | "top-right" | "bottom-left" | "bottom-right" | "top-center" | "bottom-center"`}
+    default={`"bottom-right"`}
+  >
+    Which corner of the viewport the stack anchors to. Bottom-right is the
+    dashboard default; top-center is common for marketing or onboarding
+    flows where the user's eye is already near the top.
+  </Prop>
+  <Prop name="richColors" type="boolean" default="false">
+    When `true`, success, error, warning, and info toasts render on
+    semantically tinted backgrounds. Off by default so toasts stay visually
+    quiet; turn on per-app if you want the extra signal.
+  </Prop>
+  <Prop name="expand" type="boolean" default="false">
+    When `true`, stacked toasts are all fully visible instead of collapsing
+    behind the topmost one. Useful when multiple notifications fire in
+    rapid succession and the user should see all of them.
+  </Prop>
+  <Prop name="duration" type="number" default="4000">
+    Default milliseconds before a toast auto-dismisses. Override per toast
+    by passing `duration` in the `toast(...)` options. Use `Infinity` to
+    require an explicit dismiss (pair with `closeButton`).
+  </Prop>
+  <Prop name="visibleToasts" type="number" default="3">
+    How many toasts are visible at once; additional toasts queue and
+    surface as older ones dismiss.
+  </Prop>
+  <Prop name="closeButton" type="boolean" default="false">
+    When `true`, every toast renders a close `(x)` affordance. Recommended
+    when `duration` is very long or `Infinity`.
+  </Prop>
+  <Prop name="theme" type={`"light" | "dark" | "system"`} default={`"system"`}>
+    Follows `next-themes` automatically; override only when you need to
+    pin a specific theme for a subtree.
+  </Prop>
+  <Prop name="hotkey" type="string[]" default={`["altKey", "KeyT"]`}>
+    Key combination that focuses the toast region so keyboard users can
+    reach action buttons. Provide as an array of `KeyboardEvent` property
+    names.
+  </Prop>
+  <Prop name="offset" type="string | number | Offset">
+    Pixel offset from the chosen `position`. Pass a single value to apply
+    to both axes, or an object like `{ top, right, bottom, left }` to
+    target individual edges.
+  </Prop>
+  <Prop name="toastOptions" type="ToastOptions">
+    Default options merged into every toast. Our wrapper already wires the
+    product's `bg-background`, `text-content`, and `border-border` tokens
+    here; override sparingly.
+  </Prop>
+  <Prop name="containerAriaLabel" type="string" default={`"Notifications"`}>
+    Accessible name for the live region.
+  </Prop>
+</Props>
+
+### `toast(...)`
+
+The imperative entry point. Every variant returns a toast `id` you can
+pass to `toast.dismiss(id)` to dismiss early.
+
+```tsx
+toast(message, options?)
+toast.success(message, options?)
+toast.error(message, options?)
+toast.info(message, options?)
+toast.warning(message, options?)
+toast.loading(message, options?)
+toast.message(message, options?)
+toast.promise(promise, { loading, success, error })
+toast.custom((id) => <MyToast id={id} />, options?)
+toast.dismiss(id?)
+```
+
+<Props>
+  <Prop name="message" type="ReactNode">
+    The title of the toast. Keep it short — one line, active voice
+    ("Saved", "Key rotated", "Invite sent"). Detail goes in
+    `description`.
+  </Prop>
+  <Prop name="options.description" type="ReactNode">
+    A second line of body copy rendered beneath the title in muted color.
+  </Prop>
+  <Prop
+    name="options.action"
+    type="{ label: ReactNode; onClick: (event) => void }"
+  >
+    An inline button inside the toast. Classic use is undo after a
+    destructive action; the `onClick` receives the mouse event and can
+    call `toast.dismiss(id)` if you want to close immediately on click.
+  </Prop>
+  <Prop
+    name="options.cancel"
+    type="{ label: ReactNode; onClick: (event) => void }"
+  >
+    A secondary inline button styled as a cancel affordance.
+  </Prop>
+  <Prop name="options.duration" type="number">
+    Per-toast override of the Toaster's default duration, in
+    milliseconds. `Infinity` keeps the toast until dismissed.
+  </Prop>
+  <Prop name="options.id" type="string | number">
+    Stable id for this toast. Calling `toast(..., { id })` again with the
+    same id updates the existing toast in place instead of stacking — use
+    this to reflect progress (`loading` then `success` on the same id).
+  </Prop>
+  <Prop name="options.dismissible" type="boolean" default="true">
+    When `false`, the toast ignores swipe and close-button dismissal, and
+    stays until its `duration` elapses (or forever, if `Infinity`).
+  </Prop>
+  <Prop name="options.onDismiss" type="(toast) => void">
+    Fires when the user dismisses the toast manually (swipe or close
+    button).
+  </Prop>
+  <Prop name="options.onAutoClose" type="(toast) => void">
+    Fires when the toast closes on its own after `duration` elapses.
+  </Prop>
+</Props>
+
+## Related
+
+- **Alert** — inline, persistent region for context that must stay
+  visible while the condition holds.
+- **Dialog** — blocking confirmation when the user must acknowledge
+  before continuing.

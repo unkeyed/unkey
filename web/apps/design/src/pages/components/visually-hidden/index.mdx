@@ -1,0 +1,145 @@
+---
+layout: ../../../layouts/Layout.astro
+title: VisuallyHidden
+description: Hide content from sighted users while keeping it announced by screen readers.
+---
+
+import { VisuallyHidden, Button } from "@unkey/ui";
+import { Trash, Gear } from "@unkey/icons";
+import { Preview } from "../../../components/Preview.tsx";
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+
+VisuallyHidden is a thin wrapper around Radix's `VisuallyHiddenPrimitive.Root`.
+It renders a `<span>` whose styles take it out of the visual layout (zero
+dimensions, clipped, absolutely positioned) while leaving the text in the
+accessibility tree. Screen readers read it; sighted users never see it.
+
+Reach for it when the visual design and the accessible experience disagree:
+an icon-only button that still needs a spoken label, a dialog that has an
+obvious visual heading but no `<h2>`, a live region that provides extra
+context for an action. It is *not* the same as `display: none` or
+`visibility: hidden`, both of which remove the element from the accessibility
+tree entirely, and it is the opposite of `aria-hidden`, which hides from
+assistive tech but leaves the element on screen.
+
+## Import
+
+```tsx
+import { VisuallyHidden } from "@unkey/ui";
+```
+
+## Icon-only button
+
+An icon alone has no accessible name. Wrap a short verb in `VisuallyHidden`
+so screen readers announce "Delete workspace, button" while sighted users
+just see the trash glyph.
+
+<Preview client:load>
+  <Button variant="outline" color="danger">
+    <Trash />
+    <VisuallyHidden>Delete workspace</VisuallyHidden>
+  </Button>
+</Preview>
+
+`aria-label="Delete workspace"` achieves the same announcement and is often
+the better choice for a single word. Prefer `VisuallyHidden` when the label
+is more than a couple of words, contains punctuation, or needs to be
+translated alongside the rest of the page copy — DOM text goes through the
+same i18n pipeline as every other string, `aria-label` values often do not.
+
+## Dialog title
+
+Radix's Dialog requires a `DialogTitle` for screen readers, but a
+confirmation prompt often doesn't need a visible heading — the body copy
+already carries the question. Hide the title visually and keep the ARIA
+contract intact.
+
+<Preview client:load>
+  <div className="w-full max-w-sm rounded-lg border border-grayA-4 bg-gray-1 p-5">
+    <VisuallyHidden>
+      <h2>Delete API key</h2>
+    </VisuallyHidden>
+    <p className="text-sm text-gray-12">
+      Are you sure you want to delete this API key? Active clients will start
+      returning 401 immediately.
+    </p>
+    <div className="mt-4 flex items-center justify-end gap-2">
+      <Button variant="outline">Cancel</Button>
+      <Button variant="primary" color="danger">
+        Delete
+      </Button>
+    </div>
+  </div>
+</Preview>
+
+## Extra context for an action
+
+Icon-only controls sometimes need a longer sentence for screen-reader users
+than would fit next to the glyph. Render the short label inline and the
+longer one inside `VisuallyHidden`.
+
+<Preview client:load>
+  <Button variant="outline">
+    <Gear />
+    Settings
+    <VisuallyHidden>for the current workspace</VisuallyHidden>
+  </Button>
+</Preview>
+
+## Accessibility
+
+Four mechanisms get confused. Pick deliberately:
+
+- **`VisuallyHidden`** — hidden visually, announced by screen readers, part
+  of the DOM. Use when the accessible name or description is richer than the
+  visual design can show.
+- **`display: none` / `visibility: hidden`** — hidden everywhere, including
+  the accessibility tree. Use when the content is genuinely not present for
+  anyone (e.g. collapsed panels).
+- **`aria-hidden="true"`** — visible on screen, hidden from assistive tech.
+  Use for decorative glyphs that sit next to a text label, so the label
+  isn't announced twice.
+- **`aria-label` / `aria-labelledby`** — no DOM text, but an accessible name
+  is attached to the element. Use for short, stable labels on interactive
+  controls.
+
+A good default for icon-only buttons: if the label is one or two words and
+never changes, reach for `aria-label`. If it's a sentence, a translated
+string, or needs to stay in sync with surrounding copy, use
+`VisuallyHidden`.
+
+Do not put interactive elements (links, buttons, inputs) inside
+`VisuallyHidden`. They remain in the tab order and keyboard users will land
+on a control they cannot see.
+
+## Props
+
+`VisuallyHidden` accepts every prop that a native `<span>` accepts. It
+forwards its ref to the underlying element.
+
+<Props>
+  <Prop name="children" type="ReactNode">
+    The content to hide visually. Keep it to non-interactive elements:
+    text, headings, paragraphs.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Rarely needed — the primitive already sets
+    every style required to hide the element without removing it from the
+    accessibility tree.
+  </Prop>
+  <Prop name="...rest" type="HTMLAttributes<HTMLSpanElement>">
+    Any other span attribute (`id`, `lang`, `role`, data attributes). Useful
+    when another element references this one with `aria-labelledby` or
+    `aria-describedby`.
+  </Prop>
+</Props>
+
+## Related
+
+- **Button** — the most common host for a hidden label; consider `aria-label`
+  first for one- or two-word names.
+- **Separator** — uses `decorative` to opt out of the accessibility tree;
+  the mirror image of this component.
+- **Alert** — for messages that should both appear on screen and be
+  announced.

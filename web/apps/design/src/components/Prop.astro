@@ -1,0 +1,50 @@
+---
+interface Props {
+  name: string;
+  type?: string;
+  required?: boolean;
+  default?: string;
+}
+
+const { name, type, required = false, default: defaultValue } = Astro.props;
+---
+
+<div
+  class="not-prose py-8 border-t border-grayA-3 last:border-b last:border-grayA-3"
+>
+  <div class="flex items-baseline gap-x-4 gap-y-1 flex-wrap mb-3">
+    <code
+      class="font-mono text-[14px] font-medium text-gray-12 bg-transparent border-0 p-0"
+    >
+      {name}
+    </code>
+    {
+      type && (
+        <code class="font-mono text-[12px] text-gray-10 bg-transparent border-0 p-0">
+          {type}
+        </code>
+      )
+    }
+    <span
+      class:list={[
+        "text-[9.5px] font-medium uppercase tracking-[0.2em]",
+        required ? "text-error-11" : "text-gray-9",
+      ]}
+    >
+      {required ? "Required" : "Optional"}
+    </span>
+    {
+      defaultValue && (
+        <span class="ml-auto text-[11px] text-gray-9 uppercase tracking-[0.16em]">
+          Default{" "}
+          <code class="font-mono text-gray-11 bg-transparent border-0 p-0 normal-case tracking-normal">
+            {defaultValue}
+          </code>
+        </span>
+      )
+    }
+  </div>
+  <div class="text-[14px] text-gray-11 leading-[1.75] max-w-[520px]">
+    <slot />
+  </div>
+</div>

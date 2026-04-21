@@ -1,0 +1,209 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Tabs
+description: Switch between sibling panels of content that share the same surface, without navigating away.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  BasicExample,
+  ControlledExample,
+  OrientationExample,
+} from "./_examples.tsx";
+
+Tabs is a thin wrapper around Radix's tabs primitive. It lets the user pick
+one of several mutually exclusive views that belong to the same surface, a
+settings pane split into sections, an API resource shown as "Overview",
+"Keys", and "Logs", or a code sample offered in several languages. Only
+one panel is rendered at a time, and the choice is preserved as internal
+state (or lifted to the parent when controlled).
+
+Reach for Tabs when the options are peers of the same thing and the user
+may want to flip between them. If the panels represent distinct pages,
+use navigation instead, tabs do not update the URL by default and do not
+create browser history. If the panels are genuinely independent and the
+user might want to see them side by side, use a grid of cards.
+
+## Import
+
+```tsx
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@unkey/ui";
+```
+
+`<Tabs>` owns the selected value and distributes it through React context.
+`<TabsList>` groups the triggers for keyboard navigation, each
+`<TabsTrigger value="...">` activates the panel whose
+`<TabsContent value="...">` matches.
+
+## Basic
+
+Set a `defaultValue` on `<Tabs>` and pair each trigger with a content
+panel using the same `value`. The component manages the active tab
+internally.
+
+<BasicExample client:load />
+
+## Controlled
+
+Pass `value` and `onValueChange` to lift the active tab into the parent.
+Use this when the selection needs to be read or set from elsewhere, for
+example syncing to a URL query parameter, restoring a tab from
+localStorage, or driving the tabs from a form.
+
+<ControlledExample client:load />
+
+## Orientation
+
+`orientation="vertical"` switches Radix's arrow-key handling from
+left/right to up/down, which suits settings panes and long option lists.
+The default `TabsList` renders as a horizontal flex row, so override its
+layout classes (`flex-col`, `h-auto`, `items-stretch`) when rendering a
+vertical column.
+
+<OrientationExample client:load />
+
+## Accessibility
+
+Radix handles the ARIA wiring. `<TabsList>` is a `role="tablist"`, each
+`<TabsTrigger>` is a `role="tab"` with `aria-selected` and `aria-controls`
+pointing at its panel, and each `<TabsContent>` is a `role="tabpanel"`
+with `aria-labelledby` pointing back at its trigger. The active tab is
+the only focusable trigger, so `Tab` moves focus to the tablist and then
+out again, not across every trigger.
+
+Inside the tablist, arrow keys cycle through triggers (left/right for
+horizontal, up/down for vertical), `Home` jumps to the first, `End` to
+the last. By default, focusing a trigger also activates it (automatic
+activation); set `activationMode="manual"` on `<Tabs>` if activating a
+panel is expensive and you want the user to press `Enter` or `Space`
+explicitly. Disable a trigger with `disabled` and Radix removes it from
+the keyboard cycle.
+
+## Props
+
+### Tabs
+
+The root state container. Owns the active value and distributes it to
+triggers and panels via React context, so every Tabs tree must be
+rendered as a single component (do not split triggers and content across
+Astro boundaries).
+
+<Props>
+  <Prop name="defaultValue" type="string">
+    Value of the tab selected on first render. Use for uncontrolled
+    usage.
+  </Prop>
+  <Prop name="value" type="string">
+    Controlled active value. Pair with `onValueChange` when the parent
+    needs to read or set the current tab.
+  </Prop>
+  <Prop name="onValueChange" type="(value: string) => void">
+    Fires whenever the active tab changes, whether by click, keyboard,
+    or programmatic control.
+  </Prop>
+  <Prop name="orientation" type={`"horizontal" | "vertical"`} default={`"horizontal"`}>
+    Direction of arrow-key navigation inside the tablist. Does not
+    restyle the list, override `TabsList` classes to render vertically.
+  </Prop>
+  <Prop name="dir" type={`"ltr" | "rtl"`}>
+    Reading direction. Flips the left/right arrow-key bindings when set
+    to `rtl`. Inherits from the nearest Radix direction provider when
+    omitted.
+  </Prop>
+  <Prop name="activationMode" type={`"automatic" | "manual"`} default={`"automatic"`}>
+    When `automatic`, focusing a trigger activates it. When `manual`,
+    the user must press `Enter` or `Space` to activate. Use `manual` for
+    expensive panels.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    Typically one `<TabsList>` followed by one `<TabsContent>` per
+    trigger.
+  </Prop>
+</Props>
+
+### TabsList
+
+The container for the triggers. Renders as a horizontal pill with a
+muted background and a light inset. Owns the keyboard navigation for
+the triggers inside it.
+
+<Props>
+  <Prop name="loop" type="boolean" default="true">
+    When `true`, arrow-key navigation wraps from the last trigger back
+    to the first.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with the default chrome
+    (`h-9`, `rounded-lg`, `bg-gray-2`, `p-1`) via `cn`. Override layout
+    classes (`flex-col`, `h-auto`, `items-stretch`) for a vertical list.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    A flat list of `<TabsTrigger>` elements.
+  </Prop>
+</Props>
+
+### TabsTrigger
+
+A single tab button. When active, its background is raised to the
+surface color and its label darkens. Inactive triggers hover-highlight
+on pointer.
+
+<Props>
+  <Prop name="value" type="string" required>
+    Identifier that matches a `<TabsContent value="...">`. Must be
+    unique inside the `<Tabs>` tree.
+  </Prop>
+  <Prop name="disabled" type="boolean" default="false">
+    Grey out the trigger and remove it from the keyboard cycle.
+  </Prop>
+  <Prop name="asChild" type="boolean" default="false">
+    Merge the trigger's behavior into its single child instead of
+    rendering a `<button>`. Use when pairing with a custom element.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with the default chrome via
+    `cn`, the active state is styled through
+    `data-[state=active]:*` selectors.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The label content, usually short text, optionally paired with a
+    leading icon.
+  </Prop>
+</Props>
+
+### TabsContent
+
+The panel associated with a trigger. Only the active panel is mounted
+in the DOM by default, switching tabs unmounts the previous panel and
+remounts the new one.
+
+<Props>
+  <Prop name="value" type="string" required>
+    Identifier that matches a `<TabsTrigger value="...">`.
+  </Prop>
+  <Prop name="forceMount" type="boolean" default="false">
+    When `true`, the panel stays mounted even while inactive. Useful
+    when the panel owns expensive state that should survive tab
+    changes, or when animating between panels.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with the default `mt-2` spacing
+    via `cn`, override with `mt-0` when laying the content out beside a
+    vertical `TabsList`.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The panel content. Can be any React subtree.
+  </Prop>
+</Props>
+
+## Related
+
+- **Card** — for grouping content that does not need a view-switcher.
+- **Separator** — to divide sections inside a single tab panel without
+  introducing more tabs.

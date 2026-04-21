@@ -1,0 +1,25 @@
+{
+  "name": "@unkey/design",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "5.0.3",
+    "@astrojs/react": "5.0.3",
+    "@tailwindcss/vite": "4.2.1",
+    "@types/react": "19.2.4",
+    "@types/react-dom": "19.2.3",
+    "@unkey/icons": "workspace:^",
+    "@unkey/ui": "workspace:^",
+    "astro": "6.1.7",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "tailwindcss": "4.2.1"
+  }
+}

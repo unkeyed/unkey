@@ -1,0 +1,201 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Button
+description: Trigger an action — submit a form, open a dialog, commit a change. The workhorse of the interface.
+---
+
+import { Button } from "@unkey/ui";
+import { Preview } from "../../../components/Preview.tsx";
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import { KeyboardExample } from "./_keyboard.tsx";
+
+Button renders a `<button>` element (or a delegated child, via `asChild`)
+with the product's visual language baked in: variant, color, size, loading,
+and an optional bound keyboard shortcut. All native button semantics are
+preserved — form submission, `type`, `disabled`, focus handling.
+
+Reach for a Button when the user's action can be expressed in two or three
+words. For navigation within the app, use a link styled like a button
+(`asChild` over an `<a>`) so middle-click and right-click behave as expected.
+
+## Import
+
+```tsx
+import { Button } from "@unkey/ui";
+```
+
+## Variants
+
+`variant` chooses the visual weight. A single screen should generally hold
+one `primary` button (the action the user most likely came for), several
+`outline` buttons (secondary actions), and `ghost` for tertiary affordances
+that should fade into the surrounding UI.
+
+<Preview client:load>
+  <Button variant="primary">Primary</Button>
+  <Button variant="outline">Outline</Button>
+  <Button variant="ghost">Ghost</Button>
+</Preview>
+
+## Colors
+
+`color` layers semantic intent on top of the variant. Use `danger` for
+destructive actions (delete, revoke, force-disconnect), `success` for
+positive confirmations that need emphasis, `warning` for cautionary ones,
+and `info` for neutral informational actions.
+
+<Preview client:load>
+  <Button color="default">Default</Button>
+  <Button color="success">Success</Button>
+  <Button color="warning">Warning</Button>
+  <Button color="danger">Danger</Button>
+  <Button color="info">Info</Button>
+</Preview>
+
+The `variant` × `color` matrix is intentional: a `primary danger` is a
+solid red destructive action, `outline danger` is a bordered-only
+destructive action for lower-weight contexts (table row actions, settings
+pages), and `ghost danger` is the lightest treatment, appropriate when the
+destructive button sits inline with plain text.
+
+## Sizes
+
+Five sizes are available. Use `sm` (the default) for most in-flow actions,
+`md`/`lg` when the button anchors a form, and `xlg`/`2xlg` for
+marketing-style hero CTAs.
+
+<Preview client:load>
+  <Button size="sm">Small</Button>
+  <Button size="md">Medium</Button>
+  <Button size="lg">Large</Button>
+  <Button size="xlg">X-Large</Button>
+</Preview>
+
+## States
+
+A button can be `disabled` (non-interactive, dimmed) or `loading`
+(non-interactive, spinner overlay). The two states have different semantics:
+
+- **`disabled`** means "you cannot do this right now" — usually because a
+  precondition has not been met. The native `disabled` attribute is set, so
+  the browser skips it in tab order.
+- **`loading`** means "we're doing this right now, don't click again". The
+  label stays visible, the button's width is pinned so layout doesn't
+  shift, and clicks are ignored. The `aria-busy="true"` attribute is set so
+  assistive tech announces progress.
+
+<Preview client:load>
+  <Button>Enabled</Button>
+  <Button disabled>Disabled</Button>
+  <Button client:load loading>Loading</Button>
+</Preview>
+
+## Keyboard shortcut
+
+Pass a `keyboard` prop to bind a global shortcut. The `display` string is
+rendered inside the button as a `<kbd>`, so users learn the binding by
+seeing it. `trigger` is evaluated on every `keydown` and should return
+`true` when the callback should fire — this lets you match complex
+combinations like `⌘K` without the library prescribing a key-parsing DSL.
+
+<KeyboardExample client:load />
+
+Because the handler is registered at the document level, avoid putting more
+than one Button with the same trigger on the same page — the last one
+mounted wins.
+
+## Rendering as another element
+
+Set `asChild` to render the Button as its direct child (via Radix's `Slot`)
+instead of a `<button>`. Useful for links that should look like primary
+CTAs, while preserving `href`, middle-click, and right-click menu semantics.
+
+```tsx
+<Button asChild variant="primary">
+  <a href="/dashboard">Open dashboard</a>
+</Button>
+```
+
+When `asChild` is true, the Button contributes only the className and
+click-handler wiring. The wrapping DOM node is whatever you pass in.
+
+## Accessibility
+
+Button renders a native `<button>`, so all standard keyboard and assistive
+tech behavior works: `Enter` and `Space` activate it, it participates in
+tab order, and it exposes a `button` role automatically.
+
+- When `loading` is `true`, the button sets `aria-busy="true"` and the
+  spinner includes an `sr-only` text announcement (`loadingLabel`,
+  default: "Loading, please wait"). Override `loadingLabel` when the
+  action is specific enough that "loading" is vague — e.g. `"Saving
+  changes"`.
+- When `disabled` is `true`, the native `disabled` attribute is applied
+  (which suppresses focus and clicks). For buttons that are temporarily
+  unusable but should still receive focus so screen readers can explain
+  why (e.g. with a tooltip), mark them `aria-disabled` via className rather
+  than using `disabled`.
+- Icon-only buttons must still carry an accessible name. Pass
+  `aria-label="..."` so screen readers can announce the action.
+
+## Props
+
+<Props>
+  <Prop name="variant" type={`"primary" | "outline" | "ghost"`} default={`"primary"`}>
+    Visual weight of the button. `primary` is solid and high-emphasis,
+    `outline` uses a border, and `ghost` has no chrome until hover.
+  </Prop>
+  <Prop
+    name="color"
+    type={`"default" | "success" | "warning" | "danger" | "info"`}
+    default={`"default"`}
+  >
+    Semantic intent. Combines with `variant` via compound-variant rules to
+    produce colored variants (e.g. `primary` + `danger` is a solid red
+    destructive action, `ghost` + `danger` is an inline, low-weight one).
+  </Prop>
+  <Prop name="size" type={`"sm" | "md" | "lg" | "xlg" | "2xlg"`} default={`"sm"`}>
+    Height of the button. `sm` is 28px, `md` 32px, `lg` 36px, `xlg` 40px,
+    `2xlg` 48px.
+  </Prop>
+  <Prop name="loading" type="boolean" default="false">
+    When `true`, shows a spinner, sets `aria-busy`, pins the button's width
+    to prevent reflow, and ignores clicks. Pair with `loadingLabel`.
+  </Prop>
+  <Prop name="loadingLabel" type="string" default={`"Loading, please wait"`}>
+    Screen-reader text announced while `loading` is `true`. Override to
+    describe the specific action ("Saving changes", "Deleting key").
+  </Prop>
+  <Prop name="disabled" type="boolean" default="false">
+    Native `disabled` attribute — suppresses focus, clicks, and any bound
+    keyboard shortcut. For "disabled with a reason" states, prefer
+    `aria-disabled` so the button can still receive focus.
+  </Prop>
+  <Prop
+    name="keyboard"
+    type="{ display: string; trigger: (e: KeyboardEvent) => boolean; callback: (e: KeyboardEvent) => void }"
+  >
+    Binds a global keyboard shortcut. `display` is rendered as a `<kbd>`
+    inside the button, `trigger` evaluates each keydown, `callback` runs
+    when it returns true. The handler is registered at the document level.
+  </Prop>
+  <Prop name="asChild" type="boolean" default="false">
+    Render the button as its single child instead of a `<button>`, via
+    Radix's `Slot`. Useful for wrapping an `<a>` while keeping button
+    styling and preserving browser-native link semantics.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with variant classes via `cn`;
+    later classes win.
+  </Prop>
+  <Prop name="...rest" type="ButtonHTMLAttributes<HTMLButtonElement>">
+    All standard button attributes (`onClick`, `type`, `form`,
+    `aria-label`, etc.) pass through to the underlying `<button>`.
+  </Prop>
+</Props>
+
+## Related
+
+- **Badge** — for passive, non-interactive labels.
+- **Alert** — when the context needs its own block of space, not an action.

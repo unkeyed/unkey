@@ -1,0 +1,101 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Id
+description: A monospace chip for displaying a resource identifier with click-to-copy and optional head-truncation.
+---
+
+import { Id } from "@unkey/ui";
+import { Preview } from "../../../components/Preview.tsx";
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+
+Id renders a prefixed resource identifier like `user_123abc` or
+`key_9fKx...` as a bordered, monospace chip. Clicking the chip copies the
+full value to the clipboard and swaps the trailing icon to a checkmark for
+two seconds. A tooltip on the icon reveals the full value on hover, which is
+how the reader inspects the untruncated string without having to paste it
+somewhere first.
+
+Reach for `<Id>` whenever you surface a Unkey-shaped identifier that the
+user is likely to copy: rows in a resource table, header chips in detail
+pages, diagnostic panels. Prefer it over `<Badge font="mono">acme_123</Badge>`
+when the value is genuinely meant to be copied. Prefer `<Badge>` when the
+string is a label the reader only needs to scan (an environment, a role, a
+version tag), and prefer `<Code>` when you need to show multi-line output or
+a snippet with its own copy and visibility chrome.
+
+## Import
+
+```tsx
+import { Id } from "@unkey/ui";
+```
+
+## Default
+
+Pass the full identifier as `value`. The chip renders the whole string in
+mono and copies it on click.
+
+<Preview client:load>
+  <Id value="acme_1234567890abcdef" />
+</Preview>
+
+## Truncated
+
+Set `truncate` to the number of leading characters to keep. The chip renders
+that prefix followed by a `••••` ellipsis, but the full value is still what
+gets copied and what appears in the hover tooltip. Use this for long keys or
+request IDs that would otherwise dominate a table row.
+
+<Preview client:load>
+  <Id value="key_3ZaM7QfKx9Vd2pL8nR4sT6uW0yB1cE5hJgKmNpQrStUvXz" truncate={8} />
+</Preview>
+
+## In a row
+
+Id is `inline-flex` with a fixed height, so it lines up naturally next to
+other chips and inline text.
+
+<Preview client:load>
+  <Id value="user_01HABCDEFGHJKMNPQRSTVWXYZ" truncate={10} />
+  <Id value="ws_acme_prod" />
+</Preview>
+
+## Accessibility
+
+The chip renders as a `<button type="button">` with an `aria-label` of
+`Copy ID: <value>`, so screen readers announce both the action and the full
+identifier regardless of truncation. Keyboard users can focus the chip and
+activate it with Enter or Space; the focus ring is a 2px gray ring.
+
+Copying uses `navigator.clipboard.writeText`, which requires a secure context
+(HTTPS or `localhost`). On failure the error is logged to the console and
+the icon stays in its unchecked state, so users see that the copy didn't
+land. The component does not render a toast on copy, so the design app does
+not surface one either; consumers that want one should wrap `<Id>` or use
+`<CopyButton>` inside a page that mounts a `<Toaster>`.
+
+## Props
+
+<Props>
+  <Prop name="value" type="string" required>
+    The identifier to display and copy. The full value is always what the
+    click handler writes to the clipboard, even when `truncate` is set.
+  </Prop>
+  <Prop name="truncate" type="number">
+    If set, the chip shows the first `n` characters of `value` followed by a
+    `••••` ellipsis. Omit to render the whole string.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes merged onto the button via `cn`. Later
+    classes win over the base styles.
+  </Prop>
+</Props>
+
+## Related
+
+- **Badge** — for short, non-copyable labels. Use `<Badge font="mono">` when
+  the value is an identifier the user only needs to read.
+- **Code** — for multi-line snippets or values that need a separate copy or
+  reveal button slot.
+- **CopyButton** — the standalone copy affordance, when you need to attach
+  copy behaviour to something that isn't a chip.

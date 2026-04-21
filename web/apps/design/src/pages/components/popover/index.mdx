@@ -1,0 +1,191 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Popover
+description: Anchor a small floating panel of interactive content to a trigger, opened by click or keyboard.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  BasicExample,
+  PositioningExample,
+  ControlledExample,
+} from "./_examples.tsx";
+
+Popover is a thin wrapper around Radix's popover primitive. It renders a
+floating panel anchored to a trigger, opens on click or keyboard
+activation, and stays open until the user dismisses it via `Escape`, a
+click outside, or a controlled close. Use it for short, self-contained
+interactions that belong close to their trigger: renaming a resource,
+picking a colour, confirming a quick action, toggling a cluster of
+filters.
+
+Popover and Tooltip look similar but play different roles. A Tooltip is
+hover-only, non-interactive, and disappears the moment the pointer leaves
+the trigger. It's for supplementary labels, never load-bearing content.
+A Popover is keyboard-reachable, traps focus inside its panel, and is the
+right home for inputs, links, and buttons. If a user needs to read at
+their own pace or interact with what's inside, reach for Popover.
+
+## Import
+
+```tsx
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@unkey/ui";
+```
+
+## Basic
+
+Wrap a trigger in `<PopoverTrigger asChild>` so the Button remains the
+real focusable element, then pair it with a `<PopoverContent>`. Anything
+inside the content is interactive and participates in the focus ring.
+
+<BasicExample client:load />
+
+## Positioning
+
+`side` picks which edge of the trigger the panel anchors to (`top`,
+`right`, `bottom`, `left`), `align` controls cross-axis alignment
+(`start`, `center`, `end`), and `sideOffset` sets the pixel gap between
+trigger and content. Radix flips the panel automatically when there
+isn't room on the requested side, so `side` is a preference, not a
+guarantee.
+
+<PositioningExample client:load />
+
+## Controlled
+
+Pass `open` and `onOpenChange` when the parent needs to drive visibility.
+Useful when a popover has to open in response to a distant event (a
+keyboard shortcut, the result of a mutation) or when two unrelated
+triggers share the same panel.
+
+<ControlledExample client:load />
+
+## Accessibility
+
+Radix handles the fiddly parts. The trigger carries
+`aria-expanded`, `aria-controls`, and `aria-haspopup="dialog"`, so screen
+readers announce it as a collapsed panel. When the popover opens, focus
+moves into the content and is trapped there until the user closes it.
+`Escape` closes the panel and returns focus to the trigger, an outside
+click closes without stealing focus, and `Tab` cycles through focusable
+elements inside the panel.
+
+Because a Popover is a real dialog, never use it for passive information.
+If the content is just a label with no interactive element, a Tooltip is
+the right primitive and plays better with screen readers. Conversely,
+don't use a Popover for a blocking decision (delete, logout) where the
+user must not miss the choice. That's what a Dialog is for.
+
+## Props
+
+### Popover
+
+The root state container. Controls a single popover's open/close state.
+
+<Props>
+  <Prop name="defaultOpen" type="boolean">
+    Whether the popover is open on first render. Use for uncontrolled
+    popovers that should start open (rare — popovers are almost always
+    dormant until the trigger is activated).
+  </Prop>
+  <Prop name="open" type="boolean">
+    Controlled open state. Pair with `onOpenChange` when the parent needs
+    to drive visibility.
+  </Prop>
+  <Prop name="onOpenChange" type="(open: boolean) => void">
+    Fires whenever the open state changes, whether by click, keyboard,
+    outside click, escape, or programmatic control.
+  </Prop>
+  <Prop name="modal" type="boolean" default="false">
+    When `true`, the popover traps focus and renders an inert overlay
+    over the rest of the page. Use for short confirmations where the
+    surrounding UI should not be interactive while the panel is open.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    A `<PopoverTrigger>` and a `<PopoverContent>`.
+  </Prop>
+</Props>
+
+### PopoverTrigger
+
+The element that, when clicked or activated with `Space` / `Enter`,
+toggles the popover. Almost always rendered with `asChild` so an existing
+control (Button, IconButton, link) keeps its own semantics and focus ring.
+
+<Props>
+  <Prop name="asChild" type="boolean" default="false">
+    Merge the trigger's behavior into its single child instead of
+    rendering a wrapping `<button>`. Use this to keep a Button as the
+    focusable element.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The trigger content. With `asChild`, must be a single element that
+    accepts a ref and standard pointer/focus handlers.
+  </Prop>
+</Props>
+
+### PopoverContent
+
+The floating panel. Rendered into a portal so it escapes `overflow:
+hidden` ancestors, with default chrome (`bg-gray-2`, border, rounded
+corners, drop shadow, `w-72`, open/close animation).
+
+<Props>
+  <Prop name="side" type={`"top" | "right" | "bottom" | "left"`} default={`"bottom"`}>
+    Preferred side of the trigger to anchor to. Radix flips automatically
+    when the requested side doesn't fit in the viewport.
+  </Prop>
+  <Prop name="align" type={`"start" | "center" | "end"`} default={`"center"`}>
+    Alignment on the cross axis. With `side="bottom"`, `start` means
+    left-aligned with the trigger, `end` means right-aligned.
+  </Prop>
+  <Prop name="sideOffset" type="number" default="4">
+    Pixel gap between the trigger and the panel on the chosen side.
+  </Prop>
+  <Prop name="alignOffset" type="number" default="0">
+    Pixel shift along the cross axis, relative to the chosen `align`.
+  </Prop>
+  <Prop name="avoidCollisions" type="boolean" default="true">
+    When `true`, Radix flips or shifts the panel to stay inside the
+    viewport. Set to `false` only if you've already constrained layout.
+  </Prop>
+  <Prop name="onOpenAutoFocus" type="(event: Event) => void">
+    Fires when focus moves into the panel on open. Call
+    `event.preventDefault()` to keep focus on the trigger instead of
+    auto-focusing the first element inside.
+  </Prop>
+  <Prop name="onCloseAutoFocus" type="(event: Event) => void">
+    Fires when focus is about to return to the trigger on close. Call
+    `event.preventDefault()` to redirect focus elsewhere.
+  </Prop>
+  <Prop name="onEscapeKeyDown" type="(event: KeyboardEvent) => void">
+    Fires when the user presses `Escape` while the panel is open.
+    Prevent to keep the popover open.
+  </Prop>
+  <Prop name="onPointerDownOutside" type="(event: PointerDownOutsideEvent) => void">
+    Fires when the user clicks outside the panel. Prevent to keep the
+    popover open (for example, while a nested picker is active).
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes. Merged with the default chrome via `cn`.
+    Common overrides are width (`w-96`) and padding.
+  </Prop>
+  <Prop name="children" type="ReactNode">
+    The panel content. Anything interactive — inputs, links, buttons —
+    belongs here.
+  </Prop>
+</Props>
+
+## Related
+
+- **Tooltip** — for a short, non-interactive label that appears on hover
+  or focus, never on click.
+- **Dialog** — when the interaction is blocking or destructive and must
+  interrupt the user's flow.
+- **ConfirmPopover** — a pre-built confirm-and-cancel popover for quick
+  inline confirmations.

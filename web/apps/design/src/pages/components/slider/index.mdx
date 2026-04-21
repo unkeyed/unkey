@@ -1,0 +1,169 @@
+---
+layout: ../../../layouts/Layout.astro
+title: Slider
+description: Pick a numeric value, or a range of two, by dragging a thumb along a horizontal track.
+---
+
+import Props from "../../../components/Props.astro";
+import Prop from "../../../components/Prop.astro";
+import {
+  BasicExample,
+  RangeExample,
+  StepExample,
+  DisabledExample,
+} from "./_examples.tsx";
+
+Slider is a thin wrapper around Radix's slider primitive. It renders a
+horizontal track with one or more draggable thumbs, and the filled portion
+between track start and the active thumb is tinted with `bg-accent-12`.
+Reach for it when the user is choosing a value along a continuous scale
+where "roughly here" is more useful than a precise typed number: volume,
+opacity, a date range, a price band.
+
+The thumb count is inferred from the length of the `value` (or
+`defaultValue`) array, so a single-thumb slider and a two-thumb range
+slider are the same component. Sliders are less precise than number
+inputs, so when the exact value matters (rate limits, quota counts),
+render the current value nearby or pair the slider with an input.
+
+## Import
+
+```tsx
+import { Slider } from "@unkey/ui";
+```
+
+Slider is controlled through an array, even for a single thumb. Track the
+value with `useState([initial])` and pass `onValueChange` to receive
+updates as the user drags.
+
+## Basic
+
+A single-thumb slider with `min` and `max`. The array of one number is the
+conventional shape; extending the array adds thumbs.
+
+<BasicExample client:load />
+
+## Range
+
+Pass a two-element array for a range selector. Radix keeps the thumbs in
+order and respects `minStepsBetweenThumbs` to prevent them from crossing
+or overlapping. Each thumb is independently focusable and draggable.
+
+<RangeExample client:load />
+
+## Step
+
+`step` sets the increment between valid values. A coarse step (5, 10) is
+good for discrete choices where any in-between value would feel arbitrary.
+A fine step (0.01, 0.05) is appropriate for continuous scales like
+opacity or probability. The arrow keys move by one `step` per press, and
+`PageUp`/`PageDown` move by a larger jump.
+
+<StepExample client:load />
+
+## Disabled
+
+`disabled` freezes the slider: the thumb dims, pointer events are ignored,
+and keyboard interaction is suppressed. The current value stays visible so
+the reader can still see the setting they cannot change.
+
+<DisabledExample client:load />
+
+## Accessibility
+
+Radix handles the ARIA wiring. Each thumb renders as
+`role="slider"` and exposes `aria-valuenow`, `aria-valuemin`, and
+`aria-valuemax` so assistive tech can read the current position. Supply
+`aria-label` (or `aria-labelledby`) on the root so screen readers announce
+what the slider controls. For a two-thumb range, Radix assigns
+`aria-valuemin` and `aria-valuemax` per thumb so each stays within its
+neighbour's bound.
+
+Keyboard support is built in. `ArrowLeft` and `ArrowDown` decrease by one
+`step`, `ArrowRight` and `ArrowUp` increase by one `step`. `PageDown` and
+`PageUp` move by a larger increment (10% of the range by default). `Home`
+jumps to `min`, `End` jumps to `max`. `Tab` moves focus between thumbs
+when there is more than one.
+
+Two practical rules. Always render the current value near the slider, not
+only inside the thumb: users who can't see the thumb (low vision,
+non-pointer input) still need to know where they are. And don't use a
+slider for values where being off by one matters without also giving the
+user a way to type the exact number.
+
+## Props
+
+<Props>
+  <Prop name="value" type="number[]">
+    Controlled value. The array length determines the thumb count (one
+    element for a simple slider, two for a range). Pair with
+    `onValueChange`.
+  </Prop>
+  <Prop name="defaultValue" type="number[]" default="[0]">
+    Uncontrolled initial value. As with `value`, the array length sets
+    the thumb count.
+  </Prop>
+  <Prop name="onValueChange" type="(value: number[]) => void">
+    Fires on every drag or keyboard step. Use this to keep a piece of
+    state (or a linked input) in sync with the slider position.
+  </Prop>
+  <Prop name="onValueCommit" type="(value: number[]) => void">
+    Fires once when the user releases the thumb (pointer-up or
+    keyboard blur). Useful when the side-effect is expensive (a network
+    request, an expensive recalculation) and should not run on every
+    intermediate value.
+  </Prop>
+  <Prop name="min" type="number" default="0">
+    Lowest allowed value.
+  </Prop>
+  <Prop name="max" type="number" default="100">
+    Highest allowed value.
+  </Prop>
+  <Prop name="step" type="number" default="1">
+    Increment between valid values. Arrow keys move by one `step`, and
+    `PageUp`/`PageDown` move by a larger jump.
+  </Prop>
+  <Prop name="minStepsBetweenThumbs" type="number" default="0">
+    Minimum number of `step` units between adjacent thumbs in a range
+    slider. Set to `1` (or higher) to prevent the two thumbs from landing
+    on the same value.
+  </Prop>
+  <Prop name="disabled" type="boolean" default="false">
+    Freezes the slider. Pointer and keyboard interaction are suppressed
+    and the thumb dims.
+  </Prop>
+  <Prop name="orientation" type={`"horizontal" | "vertical"`} default={`"horizontal"`}>
+    Pass-through to Radix. The default styling assumes `horizontal`; a
+    vertical slider will need additional classes.
+  </Prop>
+  <Prop name="dir" type={`"ltr" | "rtl"`}>
+    Reading direction. Affects which end of the track represents `min`.
+    Inherits from the document by default.
+  </Prop>
+  <Prop name="name" type="string">
+    Form field name. When present, Radix renders a hidden input so the
+    slider's value is submitted with the surrounding form.
+  </Prop>
+  <Prop name="className" type="string">
+    Additional Tailwind classes on the root. Merged with the default
+    track-and-thumb layout via `cn`.
+  </Prop>
+  <Prop name="rangeClassName" type="string">
+    Additional classes on the filled range inside the track. Use this to
+    recolor the fill (for example, a success or danger tint) without
+    reaching into the track itself.
+  </Prop>
+  <Prop name="rangeStyle" type="React.CSSProperties">
+    Inline style applied to the filled range. Useful when the fill color
+    is computed at runtime (a hue that follows the value, a gradient
+    that depends on data).
+  </Prop>
+</Props>
+
+## Related
+
+- **Input** — when the exact numeric value matters and the user should
+  type it. Pair an input with a slider to get both quick adjustment and
+  precision.
+- **Switch** — for a two-state choice. A slider with only two valid
+  values is almost always better rendered as a switch.
