@@ -43,6 +43,22 @@ export function generateMetadata(): Metadata {
         "max-snippet": -1,
       },
     },
+    icons: {
+      icon: [
+        { url: "/favicon/favicon.ico" },
+        {
+          url: "/favicon/favicon-light.svg",
+          media: "(prefers-color-scheme: light)",
+          type: "image/svg+xml",
+        },
+        {
+          url: "/favicon/favicon-dark.svg",
+          media: "(prefers-color-scheme: dark)",
+          type: "image/svg+xml",
+        },
+      ],
+      shortcut: "/favicon/favicon.ico",
+    },
     other: {
       ...Sentry.getTraceData(),
     },
