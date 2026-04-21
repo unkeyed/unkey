@@ -139,7 +139,7 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
         <button
           type="button"
           onClick={() => setTurnstileChallenge(null)}
-          className="text-sm text-gray-400 hover:text-white underline"
+          className="text-sm text-gray-11 hover:text-white underline"
         >
           Try different information
         </button>
@@ -152,7 +152,7 @@ export const EmailSignUp: React.FC<Props> = ({ setVerification }) => {
       <div className="grid gap-10">
         {validationError && (
           <div
-            className="p-3 text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-lg"
+            className="p-3 text-sm text-error-8 bg-error-3/20 border border-error-7 rounded-lg"
             role="alert"
             aria-live="polite"
           >

@@ -73,7 +73,7 @@ export function LogsTimeseriesBarChart({
           position={{ y: 50 }}
           wrapperStyle={{ zIndex: 1000 }}
           cursor={{
-            fill: "hsl(var(--accent-3))",
+            fill: "var(--accent-3)",
             strokeWidth: 1,
             strokeDasharray: "5 5",
             strokeOpacity: 0.7,

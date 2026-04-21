@@ -248,7 +248,7 @@ export function LogsTimeseriesBarChart({
             isAnimationActive
             wrapperStyle={{ zIndex: 1000 }}
             cursor={{
-              fill: "hsl(var(--accent-3))",
+              fill: "var(--accent-3)",
               strokeWidth: 1,
               strokeDasharray: "5 5",
               strokeOpacity: 0.7,
@@ -303,7 +303,7 @@ export function LogsTimeseriesBarChart({
             <ReferenceArea
               x1={Math.min(selection.start, selection.end)}
               x2={Math.max(selection.start, selection.end)}
-              fill="hsl(var(--chart-selection))"
+              fill="var(--chart-selection)"
               radius={[4, 4, 0, 0]}
             />
           )}

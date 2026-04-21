@@ -60,13 +60,13 @@ export const OverviewChartLoader = ({
             <YAxis domain={[0, 1]} hide />
             <Bar
               dataKey={labels.primaryKey}
-              fill="hsl(var(--accent-3))"
+              fill="var(--accent-3)"
               stackId="a"
               isAnimationActive={false} // Disable default animation for smoother wave effect
             />
             <Bar
               dataKey={labels.secondaryKey}
-              fill="hsl(var(--accent-3))"
+              fill="var(--accent-3)"
               stackId="a"
               isAnimationActive={false} // Disable default animation for smoother wave effect
             />

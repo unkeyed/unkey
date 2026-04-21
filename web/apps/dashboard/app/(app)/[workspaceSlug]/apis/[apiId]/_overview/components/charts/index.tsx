@@ -66,7 +66,7 @@ export const KeysOverviewLogsCharts = ({
   const keysChartConfig = {
     keys: {
       label: "Active Keys",
-      color: "hsl(var(--success-11))",
+      color: "var(--success-11)",
     },
   };
 
@@ -77,7 +77,7 @@ export const KeysOverviewLogsCharts = ({
       {
         key: "keys",
         label: "AVG",
-        color: "hsl(var(--success-11))",
+        color: "var(--success-11)",
       },
     ],
     showRightSide: false,

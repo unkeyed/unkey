@@ -23,7 +23,7 @@ export const LogsChartLoading = () => {
       >
         <BarChart margin={{ top: 0, right: -20, bottom: 0, left: -20 }} barGap={0} data={mockData}>
           <YAxis domain={[0, 1.2]} hide />
-          <Bar dataKey="success" fill="hsl(var(--accent-3))" isAnimationActive={false} />
+          <Bar dataKey="success" fill="var(--accent-3)" isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>
