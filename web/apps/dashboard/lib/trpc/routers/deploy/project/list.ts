@@ -57,7 +57,14 @@ export const listProjects = workspaceProcedure
         ${deployments.gitCommitAuthorHandle},
         ${deployments.gitCommitAuthorAvatarUrl},
         ${deployments.gitCommitTimestamp},
-        ${frontlineRoutes.fullyQualifiedDomainName},
+        (
+          SELECT fr.fully_qualified_domain_name
+          FROM ${frontlineRoutes} fr
+          INNER JOIN ${projects} p ON p.id = fr.project_id AND p.workspace_id = ${ctx.workspace.id}
+          WHERE fr.project_id = ${projects.id}
+          ORDER BY (fr.sticky = 'live') DESC, fr.updated_at DESC
+          LIMIT 1
+        ) as domain,
         (
           SELECT id
           FROM ${deployments} d
@@ -77,8 +84,6 @@ export const listProjects = workspaceProcedure
           LIMIT 1
         )
         AND ${deployments.workspaceId} = ${ctx.workspace.id}
-      LEFT JOIN ${frontlineRoutes}
-        ON ${projects.id} = ${frontlineRoutes.projectId}
       WHERE ${projects.workspaceId} = ${ctx.workspace.id}
       ORDER BY ${projects.updatedAt} DESC
     `);
