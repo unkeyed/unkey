@@ -327,6 +327,49 @@ OFFSET {offset: Int}
         .omit({ outcome_counts: true }),
     });
 
+    // Dedicated count query. Only invoked when the paginated result is empty,
+    // to distinguish "truly no matches" from "OFFSET past the last page" —
+    // in the latter case the window function emits nothing and we need this
+    // to report the true total so the frontend can clamp to a valid page.
+    const countOnlyQuery = ch.query({
+      query: `
+SELECT count() as total_count
+FROM (
+    SELECT
+        key_id,
+        sumIf(event_count, outcome = 'VALID') as valid_count,
+        sumIf(event_count, outcome != 'VALID') as error_count
+    FROM (
+        SELECT key_id, outcome, count as event_count
+        FROM default.key_verifications_per_hour_v3
+        WHERE workspace_id = {workspaceId: String}
+            AND key_space_id = {keyspaceId: String}
+            AND time BETWEEN toDateTime(fromUnixTimestamp64Milli({startTime: UInt64}))
+                         AND toDateTime(fromUnixTimestamp64Milli({endTime: UInt64}))
+            AND time < toStartOfHour(now())
+            AND (${keyIdConditions})
+            AND (${outcomeCondition})
+            AND (${tagConditions})
+        UNION ALL
+        SELECT key_id, outcome, 1 as event_count
+        FROM default.key_verifications_raw_v2
+        WHERE workspace_id = {workspaceId: String}
+            AND key_space_id = {keyspaceId: String}
+            AND time >= toUnixTimestamp(toStartOfHour(now())) * 1000
+            AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+            AND (${keyIdConditions})
+            AND (${outcomeCondition})
+            AND (${tagConditions})
+    )
+    GROUP BY key_id
+    HAVING valid_count > 0 OR error_count > 0
+)`,
+      params: extendedParamsSchema,
+      schema: z.object({
+        total_count: z.int(),
+      }),
+    });
+
     const sharedResult = query(parameters);
 
     const logsQuery = (async () => {
@@ -356,16 +399,21 @@ OFFSET {offset: Int}
       };
     })();
 
-    // Total count rides on every row (window function); extract it from the
-    // first row, or 0 if no keys matched. Keeps the same {logsQuery, countQuery}
-    // interface the tRPC router expects.
+    // Common case (paged result has rows): total_count ships on every row
+    // via `count() OVER ()` — no extra CH round-trip.
+    //
+    // Edge case (paged result is empty): `count() OVER ()` is per-row, so
+    // zero rows means no total either. Could be "truly empty" OR "OFFSET past
+    // the last page" — fall through to countOnlyQuery to get the real total.
     const countQuery = (async () => {
       const result = await sharedResult;
       if (result.err) {
         return { err: result.err, val: undefined };
       }
-      const total = result.val?.[0]?.total_count ?? 0;
-      return { err: undefined, val: [{ total_count: total }] };
+      if (result.val && result.val.length > 0) {
+        return { err: undefined, val: [{ total_count: result.val[0].total_count }] };
+      }
+      return countOnlyQuery(parameters);
     })();
 
     return {
