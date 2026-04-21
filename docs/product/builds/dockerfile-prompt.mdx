@@ -7,7 +7,7 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-If you're not comfortable writing a Dockerfile from scratch, hand the prompt below to a coding agent. It tells the agent to first inspect your repository and then produce a Dockerfile plus a `.dockerignore` that respect Unkey Deploy's runtime constraints (reading `PORT`, handling `SIGTERM`, a read-only root filesystem, build secrets via mount).
+If you're not comfortable writing a Dockerfile from scratch, hand the prompt below to a coding agent. It tells the agent to first inspect your repository and then produce a Dockerfile plus a `.dockerignore` that respect Unkey Deploy's runtime constraints (reading `PORT`, handling `SIGTERM`, build secrets via mount).
 
 ## How to use it
 
@@ -66,12 +66,10 @@ them.
 2. Handle `SIGTERM` for graceful shutdown. Use the exec form for `CMD`
    (for example `CMD ["node", "dist/index.js"]`) so the app process is PID 1
    and receives signals directly instead of a shell swallowing them.
-3. The root filesystem is read-only at runtime. The only writable paths are:
-   - `/tmp`: small, memory-backed scratch space.
+3. Scratch and ephemeral storage:
+   - `/tmp`: small, memory-backed scratch space, always available.
    - `/data`: available only if ephemeral storage is configured. The mount
      path is exposed in the `UNKEY_EPHEMERAL_DISK_PATH` env var.
-   If the app or a library writes cache, lock, or socket files, point it at
-   `/tmp`. Do not write to `/app` or anywhere else.
 4. Build-time secrets come from a mounted file, never `ARG` or `ENV`. If the
    build needs secrets (private package tokens, codegen against a real DB
    URL), consume them like this:
@@ -95,8 +93,7 @@ them.
   of the source. Reordering kills the cache.
 - Prefer slim or distroless base images when the runtime is compatible.
 - Run as a non-root user (`USER node`, `USER nobody`, or a dedicated user
-  you create). The read-only FS already blocks most damage; non-root is
-  cheap extra defense.
+  you create). Non-root is cheap extra defense.
 - One foreground process. No supervisord, no `&`, no wrapper shell scripts
   that background the app.
 
@@ -166,7 +163,7 @@ Produce:
 
 After the agent finishes, skim the result for these specifics:
 
-The `CMD` instruction uses the exec form (JSON array, not a bare string), so your app receives `SIGTERM` directly when Unkey drains an instance. Any `RUN` step that needs a secret uses the `--mount=type=secret,id=env,target=/run/secrets/.env` pattern rather than `ARG` or `ENV`. Nothing in the `Dockerfile` or `.dockerignore` references a writable path other than `/tmp` or `/data`. The base image is pinned to a specific version and your final stage is slim enough that it doesn't carry the whole build toolchain.
+The `CMD` instruction uses the exec form (JSON array, not a bare string), so your app receives `SIGTERM` directly when Unkey drains an instance. Any `RUN` step that needs a secret uses the `--mount=type=secret,id=env,target=/run/secrets/.env` pattern rather than `ARG` or `ENV`. The base image is pinned to a specific version and your final stage is slim enough that it doesn't carry the whole build toolchain.
 
 If any of those are wrong, ask the agent to fix them directly. The prompt is short enough to tweak and re-run if your project has an unusual shape.
 
