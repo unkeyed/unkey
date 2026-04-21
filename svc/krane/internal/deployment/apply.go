@@ -127,12 +127,14 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		}},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", max(req.GetCpuMillicores()/resourceRequestFraction, 1))),
-				corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", max(req.GetMemoryMib()/resourceRequestFraction, 1))),
+				corev1.ResourceCPU:              resource.MustParse(fmt.Sprintf("%dm", max(req.GetCpuMillicores()/resourceRequestFraction, 1))),
+				corev1.ResourceMemory:           resource.MustParse(fmt.Sprintf("%dMi", max(req.GetMemoryMib()/resourceRequestFraction, 1))),
+				corev1.ResourceEphemeralStorage: resource.MustParse(fmt.Sprintf("%dMi", max(defaultContainerEphemeralStorageMib/resourceRequestFraction, 1))),
 			},
 			Limits: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse(fmt.Sprintf("%dm", req.GetCpuMillicores())),
-				corev1.ResourceMemory: resource.MustParse(fmt.Sprintf("%dMi", req.GetMemoryMib())),
+				corev1.ResourceCPU:              resource.MustParse(fmt.Sprintf("%dm", req.GetCpuMillicores())),
+				corev1.ResourceMemory:           resource.MustParse(fmt.Sprintf("%dMi", req.GetMemoryMib())),
+				corev1.ResourceEphemeralStorage: resource.MustParse(fmt.Sprintf("%dMi", defaultContainerEphemeralStorageMib)),
 			},
 		},
 	}

@@ -66,6 +66,7 @@
     "@unkey/ui": "workspace:^",
     "@unkey/validation": "workspace:^",
     "@unkey/vercel": "workspace:^",
+    "@vercel/analytics": "2.0.1",
     "@workos-inc/node": "7.47.0",
     "boring-avatars": "^2.0.4",
     "class-variance-authority": "0.7.0",

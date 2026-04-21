@@ -2,7 +2,7 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Clone, Cloud, Gear, Heart, Layers3, Trash } from "@unkey/icons";
+import { Clone, Cloud, Gear, Heart, Layers3 } from "@unkey/icons";
 
 import { toast } from "@unkey/ui";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -74,15 +74,6 @@ const getProjectActionItems = (
       id: "project-settings",
       label: "Project settings",
       icon: <Gear iconSize="md-medium" />,
-      onClick: () => {
-        router.push(`/${workspaceSlug}/projects/${projectId}/settings`);
-      },
-      divider: true,
-    },
-    {
-      id: "delete-project",
-      label: "Delete project",
-      icon: <Trash iconSize="md-medium" />,
       onClick: () => {
         router.push(`/${workspaceSlug}/projects/${projectId}/settings`);
       },
