@@ -127,10 +127,13 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     return params;
   }, [filters, limit, timestamp, apiId, sorts, hasTimeFrameFilter, normalizedPage]);
 
-  // Reset to page 1 when filters or query time change
+  // Reset to page 1 when filters, sort, or query time change — the current
+  // OFFSET is only meaningful relative to the current ordering, so changing
+  // any of these invalidates it.
   const filtersKey = useMemo(
-    () => `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|t:${timestamp}`,
-    [filters, timestamp],
+    () =>
+      `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|t:${timestamp}|s:${sorts.map((s) => `${s.column}:${s.direction}`).join(",")}`,
+    [filters, timestamp, sorts],
   );
 
   const prevFiltersKeyRef = useRef<string | null>(null);
@@ -182,9 +185,12 @@ export function useKeysOverviewLogsQuery({ apiId, limit = 50 }: UseLogsQueryPara
     if (!data) {
       return [];
     }
+    // Dedupe by key_id — each row in the overview represents a key, and
+    // request_id can be "" when a key's latest activity falls in a completed
+    // hour (the hourly aggregate table doesn't preserve request_id).
     const map = new Map<string, KeysOverviewLog>();
     data.keysOverviewLogs.forEach((log) => {
-      map.set(log.request_id, log);
+      map.set(log.key_id, log);
     });
     return Array.from(map.values());
   }, [data]);

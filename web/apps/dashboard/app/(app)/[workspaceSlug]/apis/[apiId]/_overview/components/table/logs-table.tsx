@@ -48,7 +48,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
   );
 
   const rowSelection = useMemo<RowSelectionState>(
-    () => (selectedLog ? { [selectedLog.request_id]: true } : {}),
+    () => (selectedLog ? { [selectedLog.key_id]: true } : {}),
     [selectedLog],
   );
 
@@ -89,7 +89,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
         data={historicalLogs}
         isLoading={isLoading}
         columns={columns}
-        getRowId={(log) => log.request_id}
+        getRowId={(log) => log.key_id}
         onRowClick={setSelectedLog}
         selectedItem={selectedLog}
         rowClassName={getRowClassNameMemoized}

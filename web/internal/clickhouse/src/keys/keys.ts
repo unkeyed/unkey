@@ -58,6 +58,7 @@ export const keysOverviewLogsParams = z.object({
     )
     .nullable(),
   cursorTime: z.int().nullable(),
+  page: z.int().min(1).optional(),
   sorts: z
     .array(
       z.object({
@@ -195,304 +196,181 @@ export function getKeysOverviewLogs(ch: Querier) {
           .join(" OR ") || "TRUE"
       : "TRUE";
 
+    // Map user-facing sort columns to the aggregated column names exposed by
+    // the top_keys CTE. Unknown columns are dropped to prevent SQL injection.
     const allowedColumns = new Map([
       ["time", "time"],
       ["valid", "valid_count"],
       ["invalid", "error_count"],
     ]);
 
-    const orderBy =
-      hasSortingRules && args.sorts
-        ? args.sorts.reduce((acc: string[], sort) => {
-            const column = allowedColumns.get(sort.column);
-            // Only add to ORDER BY if it's an allowed column to prevent injection
-            if (column) {
-              const direction =
-                sort.direction.toUpperCase() === "ASC" || sort.direction.toUpperCase() === "DESC"
-                  ? sort.direction.toUpperCase()
-                  : "DESC";
-              acc.push(`${column} ${direction}`);
-            }
-            return acc;
-          }, [])
-        : [];
+    const userOrderBy = hasSortingRules
+      ? (args.sorts ?? []).flatMap((sort) => {
+          const column = allowedColumns.get(sort.column);
+          if (!column) {
+            return [];
+          }
+          const direction = sort.direction.toUpperCase() === "ASC" ? "ASC" : "DESC";
+          return [`${column} ${direction}`];
+        })
+      : [];
 
-    // Check if we have sorts for valid or invalid
-    const hasValidSort = args.sorts?.some((s) => s.column === "valid");
-    const hasInvalidSort = args.sorts?.some((s) => s.column === "invalid");
-    const hasCustomSort = hasValidSort || hasInvalidSort;
+    // Time is always the final tiebreaker so results are deterministic across
+    // pages, even when the primary sort column has ties.
+    const hasExplicitTimeSort = userOrderBy.some((clause) => clause.startsWith("time "));
+    const orderByClause = hasExplicitTimeSort
+      ? userOrderBy.join(", ")
+      : [...userOrderBy, "time DESC"].join(", ");
 
-    // Get explicit time sort if it exists
-    const timeSort = args.sorts?.find((s) => s.column === "time");
-
-    // Determine time direction:
-    // If we have custom sort (valid/invalid), always use ASC for better pagination
-    // Otherwise use explicit time direction or default to DESC
-    const timeDirection = hasCustomSort
-      ? "ASC"
-      : timeSort?.direction.toUpperCase() === "ASC"
-        ? "ASC"
-        : "DESC";
-
-    // Remove any existing time sort from the orderBy array
-    const orderByWithoutTime = orderBy.filter((clause) => !clause.startsWith("time"));
-
-    // Construct final ORDER BY clause with only time at the end
-    const orderByClause =
-      [...orderByWithoutTime, `time ${timeDirection}`].join(", ") || "time DESC"; // Fallback if empty
-
-    // Create cursor condition based on time direction
-    let havingCursorCondition: string;
-
-    if (args.cursorTime) {
-      // For subsequent pages, use cursor based on time direction
-      if (timeDirection === "ASC") {
-        havingCursorCondition = "\n          AND (last_time > {cursorTime: Nullable(UInt64)})";
-      } else {
-        havingCursorCondition = "\n          AND (last_time < {cursorTime: Nullable(UInt64)})";
-      }
-    } else {
-      havingCursorCondition = "";
-    }
-
-    // Detect if this is a rolling/relative time window (last X hours/days)
-    // vs an explicit historical range
-    const now = Date.now();
-    // If user explicitly filtered by time, use historical path to find ALL keys with activity in window
-    // Otherwise use MV fast path for recent "last used" data
-    const isRollingWindow = !args.useTimeFrameFilter && args.endTime >= now - 5 * 60 * 1000;
+    // Page-based pagination: translate page → OFFSET. page is 1-indexed.
+    const page = args.page ?? 1;
+    const offset = (page - 1) * args.limit;
+    parameters.offset = offset;
+    paramSchemaExtension.offset = z.int();
 
     const extendedParamsSchema = keysOverviewLogsParams.extend(paramSchemaExtension);
 
-    // Build top_keys CTE based on query type
-    const topKeysCTE = isRollingWindow
-      ? `top_keys AS (
-      SELECT
-          key_id,
-          workspace_id,
-          key_space_id,
-          max(time) as last_time,
-          anyLast(request_id) as last_request_id,
-          anyLast(tags) as last_tags
-      FROM default.key_last_used_v1
-      WHERE workspace_id = {workspaceId: String}
-          AND key_space_id = {keyspaceId: String}
-          AND (${keyIdConditions})
-          AND time >= {startTime: UInt64}
-          AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-      GROUP BY key_id, workspace_id, key_space_id
-      HAVING last_time > 0${havingCursorCondition}
-      ORDER BY last_time ${timeDirection}
-      LIMIT {limit: Int}
-    )`
-      : `top_keys AS (
-      SELECT
-          key_id,
-          workspace_id,
-          key_space_id,
-          max(time) as last_time,
-          anyLast(request_id) as last_request_id,
-          anyLast(tags) as last_tags
-      FROM (
-          -- Get activity from hourly aggregates (complete hours)
-          SELECT
-              key_id,
-              workspace_id,
-              key_space_id,
-              toInt64(toUnixTimestamp(time) * 1000) as time,
-              '' as request_id,
-              tags
-          FROM default.key_verifications_per_hour_v3
-          WHERE workspace_id = {workspaceId: String}
-              AND key_space_id = {keyspaceId: String}
-              AND time BETWEEN toDateTime(fromUnixTimestamp64Milli({startTime: UInt64}))
-                           AND toDateTime(fromUnixTimestamp64Milli({endTime: UInt64}))
-              AND (${keyIdConditions})
-          
-          UNION ALL
-          
-          -- Get activity from raw table (current incomplete hour)
-          SELECT
-              key_id,
-              workspace_id,
-              key_space_id,
-              time,
-              request_id,
-              tags
-          FROM default.key_verifications_raw_v2
-          WHERE workspace_id = {workspaceId: String}
-              AND key_space_id = {keyspaceId: String}
-              AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-              AND (${keyIdConditions})
-      )
-      GROUP BY key_id, workspace_id, key_space_id
-      HAVING last_time > 0
-          ${havingCursorCondition}
-      ORDER BY last_time ${timeDirection}
-      LIMIT {limit: Int}
-    )`;
-
+    // Single-pass query (3 staged CTEs, one scan of hourly + raw):
+    //   1. per_key_outcome — read hourly + raw once, aggregate per
+    //      (key_id, outcome). argMax uses event_time to deterministically
+    //      pick the latest request_id / tags for each (key, outcome) pair.
+    //   2. key_aggregates — roll up per key. valid_count / error_count drive
+    //      sorting, and groupArray builds the per-outcome tuple for the UI's
+    //      InvalidCount breakdown without needing a second scan.
+    //   3. Outer SELECT — add `count() OVER ()` for pagination, order, and
+    //      limit. Kept in its own stage (separate from GROUP BY) because CH
+    //      has had quirks combining `count() OVER ()` with aggregation + LIMIT
+    //      in the same SELECT, occasionally dropping rows with tied sort keys.
     const query = ch.query({
       query: `
-WITH
-    ${topKeysCTE},
-    -- Second CTE: Get counts from hourly table (complete hours only)
-    hourly_counts AS (
-      SELECT
-          h.key_id,
-          h.outcome,
-          toUInt64(sum(h.count)) as count
-      FROM default.key_verifications_per_hour_v3 h
-      INNER JOIN top_keys t ON h.key_id = t.key_id
-      WHERE h.workspace_id = {workspaceId: String}
-          AND h.key_space_id = {keyspaceId: String}
-          AND h.time BETWEEN toDateTime(fromUnixTimestamp64Milli({startTime: UInt64})) 
-                         AND toDateTime(fromUnixTimestamp64Milli({endTime: UInt64}))
-          AND h.time < toStartOfHour(now())  -- Only complete hours
-          AND (${outcomeCondition})
-          AND (${tagConditions})
-      GROUP BY h.key_id, h.outcome
-    ),
-    -- Third CTE: Get counts from raw table for current incomplete hour
-    recent_counts AS (
-      SELECT
-          v.key_id,
-          v.outcome,
-          toUInt64(count(*)) as count
-      FROM default.key_verifications_raw_v2 v
-      INNER JOIN top_keys t ON v.key_id = t.key_id
-      WHERE v.workspace_id = {workspaceId: String}
-          AND v.key_space_id = {keyspaceId: String}
-          AND v.time >= toUnixTimestamp(toStartOfHour(now())) * 1000
-          AND v.time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-          AND (${outcomeCondition})
-          AND (${tagConditions})
-      GROUP BY v.key_id, v.outcome
-    ),
-    -- Fourth CTE: Combine hourly and recent counts
-    combined_counts AS (
-      SELECT key_id, outcome, count FROM hourly_counts
-      UNION ALL
-      SELECT key_id, outcome, count FROM recent_counts
-    ),
-    -- Fifth CTE: Aggregate combined counts
-    aggregated_counts AS (
-      SELECT
-          key_id,
-          sumIf(count, outcome = 'VALID') as valid_count,
-          sumIf(count, outcome != 'VALID') as error_count
-      FROM combined_counts
-      GROUP BY key_id
-    ),
-    -- Sixth CTE: Build outcome distribution
-    outcome_counts AS (
-      SELECT
-          key_id,
-          outcome,
-          toUInt32(sum(count)) as count
-      FROM combined_counts
-      GROUP BY key_id, outcome
-    )
-    -- Main query: Join metadata from MV with aggregated counts
+WITH per_key_outcome AS (
     SELECT
-      t.key_id as key_id,
-      t.last_time as time,
-      t.last_request_id as request_id,
-      t.last_tags as tags,
-      COALESCE(a.valid_count, 0) as valid_count,
-      COALESCE(a.error_count, 0) as error_count,
-      arrayFilter(x -> tupleElement(x, 1) IS NOT NULL, 
-        groupArray(tuple(o.outcome, o.count))
-      ) as outcome_counts_array
-    FROM top_keys t
-    LEFT JOIN aggregated_counts a ON t.key_id = a.key_id
-    LEFT JOIN outcome_counts o ON t.key_id = o.key_id
-    GROUP BY
-      t.key_id,
-      t.last_time,
-      t.last_request_id,
-      t.last_tags,
-      a.valid_count,
-      a.error_count
-    HAVING COALESCE(a.valid_count, 0) > 0 OR COALESCE(a.error_count, 0) > 0
-    ORDER BY ${orderByClause}
-    LIMIT {limit: Int}
+        key_id,
+        outcome,
+        sum(event_count) as outcome_count,
+        max(event_time) as last_time,
+        argMax(event_request_id, event_time) as last_request_id,
+        argMax(event_tags, event_time) as last_tags
+    FROM (
+        SELECT
+            key_id,
+            outcome,
+            toInt64(toUnixTimestamp(time) * 1000) as event_time,
+            '' as event_request_id,
+            tags as event_tags,
+            count as event_count
+        FROM default.key_verifications_per_hour_v3
+        WHERE workspace_id = {workspaceId: String}
+            AND key_space_id = {keyspaceId: String}
+            AND time BETWEEN toDateTime(fromUnixTimestamp64Milli({startTime: UInt64}))
+                         AND toDateTime(fromUnixTimestamp64Milli({endTime: UInt64}))
+            AND time < toStartOfHour(now())
+            AND (${keyIdConditions})
+            AND (${outcomeCondition})
+            AND (${tagConditions})
+
+        UNION ALL
+
+        SELECT
+            key_id,
+            outcome,
+            time as event_time,
+            request_id as event_request_id,
+            tags as event_tags,
+            1 as event_count
+        FROM default.key_verifications_raw_v2
+        WHERE workspace_id = {workspaceId: String}
+            AND key_space_id = {keyspaceId: String}
+            AND time >= toUnixTimestamp(toStartOfHour(now())) * 1000
+            AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+            AND (${keyIdConditions})
+            AND (${outcomeCondition})
+            AND (${tagConditions})
+    )
+    GROUP BY key_id, outcome
+),
+key_aggregates AS (
+    SELECT
+        key_id,
+        max(last_time) as time,
+        argMax(last_request_id, last_time) as request_id,
+        argMax(last_tags, last_time) as tags,
+        sumIf(outcome_count, outcome = 'VALID') as valid_count,
+        sumIf(outcome_count, outcome != 'VALID') as error_count,
+        arrayFilter(x -> tupleElement(x, 2) > 0,
+            groupArray(tuple(outcome, toUInt32(outcome_count)))
+        ) as outcome_counts_array
+    FROM per_key_outcome
+    GROUP BY key_id
+    HAVING valid_count > 0 OR error_count > 0
+)
+SELECT
+    key_id,
+    time,
+    request_id,
+    tags,
+    valid_count,
+    error_count,
+    outcome_counts_array,
+    count() OVER () as total_count
+FROM key_aggregates
+ORDER BY ${orderByClause}, key_id ASC
+LIMIT {limit: Int}
+OFFSET {offset: Int}
 `,
       params: extendedParamsSchema,
       schema: rawKeysOverviewLogs
         .extend({
           outcome_counts_array: z.array(z.tuple([z.string(), z.number()])),
+          total_count: z.int(),
         })
         .omit({ outcome_counts: true }),
     });
 
-    // Build count query to get total matching key_ids without LIMIT
-    const countCTE = isRollingWindow
-      ? `SELECT count(DISTINCT key_id) as total_count
-      FROM default.key_last_used_v1
-      WHERE workspace_id = {workspaceId: String}
-          AND key_space_id = {keyspaceId: String}
-          AND (${keyIdConditions})
-          AND time >= {startTime: UInt64}
-          AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-          AND (${tagConditions})`
-      : `SELECT count(DISTINCT key_id) as total_count
-      FROM (
-          SELECT key_id
-          FROM default.key_verifications_per_hour_v3
-          WHERE workspace_id = {workspaceId: String}
-              AND key_space_id = {keyspaceId: String}
-              AND time BETWEEN toDateTime(fromUnixTimestamp64Milli({startTime: UInt64}))
-                           AND toDateTime(fromUnixTimestamp64Milli({endTime: UInt64}))
-              AND (${keyIdConditions})
-              AND (${tagConditions})
-          UNION ALL
-          SELECT key_id
-          FROM default.key_verifications_raw_v2
-          WHERE workspace_id = {workspaceId: String}
-              AND key_space_id = {keyspaceId: String}
-              AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-              AND (${keyIdConditions})
-              AND (${tagConditions})
-      )`;
+    const sharedResult = query(parameters);
 
-    const countQuery = ch.query({
-      query: countCTE,
-      params: extendedParamsSchema,
-      schema: z.object({
-        total_count: z.int(),
-      }),
-    });
-
-    const transformResults = async () => {
-      const clickhouseResults = await query(parameters);
+    const logsQuery = (async () => {
+      const result = await sharedResult;
+      if (result.err) {
+        return result;
+      }
       return {
-        ...clickhouseResults,
-        val: (clickhouseResults.val || []).map((result) => {
-          // Convert outcome_counts_array from array of tuples to object
+        err: result.err,
+        val: (result.val ?? []).map((row) => {
           const outcomeCountsObj: Record<string, number> = {};
-          if (Array.isArray(result.outcome_counts_array)) {
-            result.outcome_counts_array.forEach(([outcome, count]) => {
+          if (Array.isArray(row.outcome_counts_array)) {
+            for (const [outcome, count] of row.outcome_counts_array) {
               outcomeCountsObj[outcome] = count;
-            });
+            }
           }
-
           return {
-            key_id: result.key_id,
-            time: result.time,
-            request_id: result.request_id,
-            tags: result.tags,
-            valid_count: result.valid_count,
-            error_count: result.error_count,
+            key_id: row.key_id,
+            time: row.time,
+            request_id: row.request_id,
+            tags: row.tags,
+            valid_count: row.valid_count,
+            error_count: row.error_count,
             outcome_counts: outcomeCountsObj,
           };
         }),
       };
-    };
+    })();
+
+    // Total count rides on every row (window function); extract it from the
+    // first row, or 0 if no keys matched. Keeps the same {logsQuery, countQuery}
+    // interface the tRPC router expects.
+    const countQuery = (async () => {
+      const result = await sharedResult;
+      if (result.err) {
+        return { err: result.err, val: undefined };
+      }
+      const total = result.val?.[0]?.total_count ?? 0;
+      return { err: undefined, val: [{ total_count: total }] };
+    })();
 
     return {
-      logsQuery: transformResults(),
-      countQuery: countQuery(parameters),
+      logsQuery,
+      countQuery,
     };
   };
 }
