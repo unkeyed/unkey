@@ -42,6 +42,8 @@ type PermissionsFilterParams = Pick<
 type PermissionsResponse = { permissions: Permission[]; total: number };
 
 export function usePermissionsListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
+  const utils = trpc.useUtils();
+
   const result = usePaginatedListQuery<
     PermissionsResponse,
     PermissionsFilterValue,
@@ -59,11 +61,8 @@ export function usePermissionsListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     filterFieldConfig: permissionsFilterFieldConfig,
     useListQuery: (params) =>
       trpc.authorization.permissions.query.useQuery(params, PAGINATED_LIST_QUERY_OPTIONS),
-    usePrefetchNextPage: () => {
-      const utils = trpc.useUtils();
-      return (params) =>
-        utils.authorization.permissions.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS);
-    },
+    prefetch: (params) =>
+      utils.authorization.permissions.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
   });
 
   return {

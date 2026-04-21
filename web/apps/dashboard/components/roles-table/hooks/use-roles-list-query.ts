@@ -39,6 +39,8 @@ type RolesFilterParams = Pick<
 type RolesResponse = { roles: RoleBasic[]; total: number };
 
 export function useRolesListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
+  const utils = trpc.useUtils();
+
   const result = usePaginatedListQuery<
     RolesResponse,
     RolesFilterValue,
@@ -56,11 +58,8 @@ export function useRolesListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     filterFieldConfig: rolesFilterFieldConfig,
     useListQuery: (params) =>
       trpc.authorization.roles.query.useQuery(params, PAGINATED_LIST_QUERY_OPTIONS),
-    usePrefetchNextPage: () => {
-      const utils = trpc.useUtils();
-      return (params) =>
-        utils.authorization.roles.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS);
-    },
+    prefetch: (params) =>
+      utils.authorization.roles.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
   });
 
   return {

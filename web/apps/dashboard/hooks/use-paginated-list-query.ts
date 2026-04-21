@@ -67,7 +67,10 @@ export type PaginatedListConfig<
     isLoading: boolean;
     isFetching: boolean;
   };
-  usePrefetchNextPage: () => (params: TFilterParams & PageSortQueryParams<TSortField>) => void;
+  // Fresh identity each render is fine — the hook stabilizes via a ref so the
+  // prefetch effect does not re-fire on every caller re-render. Callers do not
+  // need to wrap this in useCallback.
+  prefetch: (params: TFilterParams & PageSortQueryParams<TSortField>) => void;
 };
 
 // Shared backbone for server-paginated list views (roles, permissions, ...).
@@ -93,7 +96,7 @@ export function usePaginatedListQuery<
     filterFieldNames,
     filterFieldConfig,
     useListQuery,
-    usePrefetchNextPage,
+    prefetch,
   } = config;
 
   const defaultSortParams = useMemo<SortUrlValue<TSortField>[]>(
@@ -229,7 +232,19 @@ export function usePaginatedListQuery<
   );
 
   const { data, isLoading, isFetching } = useListQuery(queryParams);
-  const prefetchPage = usePrefetchNextPage();
+
+  // Hold the latest prefetch in a ref so prefetchPage has stable identity for
+  // the lifetime of the hook. Writing to the ref during render is the standard
+  // "store-latest-callback" pattern (same idea as React's useEffectEvent); the
+  // write is idempotent so Strict Mode's double-invocation is safe. This is
+  // what lets callers pass a fresh arrow each render without the prefetch
+  // effect re-firing on every parent re-render.
+  const prefetchRef = useRef(prefetch);
+  prefetchRef.current = prefetch;
+  const prefetchPage = useCallback(
+    (params: TFilterParams & PageSortQueryParams<TSortField>) => prefetchRef.current(params),
+    [],
+  );
 
   const isInitialLoading = isLoading && !data;
   const totalCount = data?.total ?? 0;
