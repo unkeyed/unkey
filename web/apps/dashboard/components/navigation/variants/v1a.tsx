@@ -88,7 +88,7 @@ function UnifiedTree() {
     active: segments.at(1) === "home",
   };
 
-  const drillTag = <ChevronRight className="size-3 text-gray-9" iconSize="sm-thin" />;
+  const drillTag = <ChevronRight className="size-2.5 text-gray-9" iconSize="sm-thin" />;
 
   const projectItems: NavItem[] = projects.map((p) => ({
     icon: Cube,

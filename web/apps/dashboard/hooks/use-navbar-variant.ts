@@ -2,14 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-export type NavbarVariant = "current" | "v1a" | "v1b";
+export type NavbarVariant = "current" | "v1a" | "v1b" | "v2" | "v3";
 
 export const STORAGE_KEY = "navbar-variant";
 export const DEFAULT_VARIANT: NavbarVariant = "current";
 export const STORAGE_EVENT = "navbar-variant-changed";
 
 function isVariant(value: string | null): value is NavbarVariant {
-  return value === "current" || value === "v1a" || value === "v1b";
+  return (
+    value === "current" || value === "v1a" || value === "v1b" || value === "v2" || value === "v3"
+  );
 }
 
 /**

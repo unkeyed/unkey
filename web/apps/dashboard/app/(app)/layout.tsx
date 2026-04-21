@@ -3,9 +3,11 @@
 import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
 import { VariantSwitcher } from "@/components/navigation/variant-switcher";
 import { NavbarVariant } from "@/components/navigation/variants";
+import { V3_HEADER_HEIGHT } from "@/components/navigation/variants/shared/top-header";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 import { LoadingState } from "@/components/loading-state";
+import { useNavbarVariant } from "@/hooks/use-navbar-variant";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { Empty } from "@unkey/ui";
 import Link from "next/link";
@@ -20,6 +22,8 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const { user, workspace, quotas, isLoading, error } = useWorkspace();
+  const { variant } = useNavbarVariant();
+  const isV3 = variant === "v3";
   useEffect(() => {
     // Don't navigate while loading
     if (isLoading) {
@@ -68,11 +72,18 @@ export default function Layout({ children }: LayoutProps) {
     <div className="h-dvh relative flex flex-col overflow-hidden bg-white dark:bg-base-12 lg:flex-row">
       <SidebarProvider>
         <div className="flex flex-1 overflow-hidden">
-          {/* Desktop Sidebar (variant-dispatched: current | v1a | v1b) */}
+          {/* Desktop chrome (variant-dispatched). v3 renders a fixed header
+              above instead of an inline sidebar; the sidebar slot collapses. */}
           <NavbarVariant workspace={workspaceWithQuotas} className="bg-gray-1 border-grayA-4" />
 
           {/* Main content area */}
-          <div className="flex-1 overflow-auto" style={{ scrollbarGutter: "stable" }}>
+          <div
+            className="flex-1 overflow-auto"
+            style={{
+              scrollbarGutter: "stable",
+              paddingTop: isV3 ? V3_HEADER_HEIGHT : undefined,
+            }}
+          >
             <div
               className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
               id="layout-wrapper"

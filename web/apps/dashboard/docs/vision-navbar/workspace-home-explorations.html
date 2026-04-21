@@ -1,0 +1,1551 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Workspace home — layout explorations</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      :root {
+        /* Unkey / Radix gray (light) */
+        --gray-1: hsl(0, 0%, 99%);
+        --gray-2: hsl(0, 0%, 98%);
+        --gray-3: hsl(0, 0%, 94%);
+        --gray-4: hsl(0, 0%, 91%);
+        --gray-5: hsl(0, 0%, 88%);
+        --gray-6: hsl(0, 0%, 85%);
+        --gray-7: hsl(0, 0%, 81%);
+        --gray-8: hsl(0, 0%, 73%);
+        --gray-9: hsl(0, 0%, 55%);
+        --gray-10: hsl(0, 0%, 51%);
+        --gray-11: hsl(0, 0%, 39%);
+        --gray-12: hsl(0, 0%, 13%);
+        --grayA-3: hsla(240, 100%, 10%, 0.06);
+        --grayA-4: hsla(240, 100%, 9%, 0.09);
+        --grayA-6: hsla(240, 100%, 9%, 0.15);
+        --grayA-11: hsla(219, 100%, 4%, 0.62);
+
+        /* Semantic (light) */
+        --accent-3: hsl(240, 11%, 95%);
+        --accent-4: hsl(240, 10%, 92%);
+        --accent-9: hsl(231, 6%, 57%);
+        --accent-11: hsl(220, 6%, 40%);
+        --accent-12: hsl(210, 13%, 13%);
+
+        --success-9: hsl(173, 80%, 36%);
+        --success-11: hsl(172, 100%, 26%);
+        --warning-9: hsl(42, 100%, 62%);
+        --warning-11: hsl(35, 100%, 34%);
+        --error-9: hsl(10, 78%, 54%);
+        --error-11: hsl(10, 82%, 45%);
+        --orange-9: hsl(23, 93%, 53%);
+        --feature-9: hsl(252, 56%, 57%);
+        --feature-11: hsl(252, 43%, 52%);
+        --info-9: hsl(206, 100%, 50%);
+
+        --bg-page: #f4f4f3;
+        --bg-surface: #ffffff;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font-family:
+          ui-sans-serif, -apple-system, BlinkMacSystemFont, "Inter", "Geist",
+          "Segoe UI", sans-serif;
+        background: var(--bg-page);
+        color: var(--gray-12);
+        font-size: 13px;
+        line-height: 1.4;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .page-wrap {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 48px 24px 96px;
+      }
+      .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin: 0 0 6px;
+      }
+      .page-sub {
+        color: var(--gray-11);
+        font-size: 13px;
+        margin: 0 0 40px;
+        max-width: 640px;
+      }
+      .variant-label {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin: 56px 0 14px;
+      }
+      .variant-label h2 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0;
+      }
+      .variant-label .tag {
+        font-size: 11px;
+        color: var(--gray-11);
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: var(--grayA-3);
+        font-family: ui-monospace, "SF Mono", monospace;
+      }
+      .variant-label .note {
+        color: var(--gray-11);
+        font-size: 12px;
+      }
+
+      /* "Window" chrome — just a rounded frame so each variant reads as one artifact */
+      .window {
+        background: var(--bg-surface);
+        border-radius: 12px;
+        border: 1px solid var(--grayA-4);
+        overflow: hidden;
+        box-shadow:
+          0 1px 2px rgba(0, 0, 0, 0.04),
+          0 12px 32px -8px rgba(0, 0, 0, 0.08);
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        min-height: 720px;
+      }
+
+      /* Sidebar (v2 static) */
+      .sidebar {
+        background: var(--gray-2);
+        border-right: 1px solid var(--grayA-4);
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+      }
+      .sb-header {
+        height: 52px;
+        border-bottom: 1px solid var(--grayA-4);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 12px;
+      }
+      .sb-logo {
+        width: 22px; height: 22px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, #1a1a1a, #3a3a3a);
+        display: grid; place-items: center;
+        color: #fff; font-size: 11px; font-weight: 600;
+      }
+      .sb-ws {
+        font-size: 13px; font-weight: 500;
+        color: var(--accent-12);
+      }
+      .sb-ws small { color: var(--gray-11); font-weight: 400; display: block; font-size: 11px; margin-top: 1px;}
+      .sb-section { padding: 10px 0; border-bottom: 1px solid var(--grayA-4); }
+      .sb-section:last-of-type { border-bottom: 0; }
+      .sb-section-label {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--gray-11);
+        padding: 0 16px 4px;
+        letter-spacing: 0;
+      }
+      .sb-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 6px 12px;
+        margin: 0 8px;
+        border-radius: 6px;
+        color: var(--accent-12);
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .sb-item svg { width: 15px; height: 15px; color: var(--accent-11); }
+      .sb-item:hover { background: var(--grayA-3); }
+      .sb-item.active {
+        background: var(--gray-3);
+        font-weight: 500;
+      }
+      .sb-item.active svg { color: var(--accent-12); }
+      .sb-footer {
+        margin-top: auto;
+        padding: 10px 12px;
+        border-top: 1px solid var(--grayA-4);
+        display: flex; align-items: center; gap: 10px;
+        font-size: 12px; color: var(--gray-11);
+      }
+      .sb-avatar {
+        width: 24px; height: 24px; border-radius: 50%;
+        background: var(--feature-9);
+        color: white; display: grid; place-items: center;
+        font-size: 10px; font-weight: 600;
+      }
+
+      /* Main content */
+      .main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .main-header {
+        height: 52px;
+        border-bottom: 1px solid var(--grayA-4);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+      }
+      .crumbs {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 13px; color: var(--accent-12);
+      }
+      .crumbs svg { width: 14px; height: 14px; color: var(--accent-11); }
+      .main-header .right {
+        display: flex; gap: 8px; align-items: center;
+      }
+      .btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--grayA-4);
+        font-size: 12px;
+        background: white;
+        color: var(--accent-12);
+        cursor: pointer;
+      }
+      .btn svg { width: 12px; height: 12px; }
+      .btn.primary {
+        background: var(--accent-12);
+        color: white;
+        border-color: var(--accent-12);
+      }
+      .btn:hover { background: var(--gray-3); }
+      .btn.primary:hover { background: #000; }
+
+      .main-body { padding: 24px; flex: 1; }
+
+      /* ============ shared cards ============ */
+      .section-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin: 0 0 12px;
+      }
+      .section-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--accent-12);
+        margin: 0;
+      }
+      .section-meta {
+        font-size: 11px;
+        color: var(--gray-11);
+      }
+
+      .project-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--grayA-4);
+        border-radius: 14px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        transition: border-color 0.15s;
+        cursor: pointer;
+      }
+      .project-card:hover { border-color: var(--grayA-6); }
+      .project-card .top {
+        display: flex; gap: 12px; align-items: center;
+      }
+      .project-icon {
+        width: 36px; height: 36px;
+        background: var(--gray-3);
+        border-radius: 9px;
+        display: grid; place-items: center;
+        flex-shrink: 0;
+      }
+      .project-icon svg { width: 18px; height: 18px; color: var(--accent-12); }
+      .project-meta { min-width: 0; flex: 1; }
+      .project-name {
+        font-size: 13px; font-weight: 500;
+        color: var(--accent-12);
+        margin: 0 0 4px;
+        overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+      }
+      .project-domain {
+        font-size: 12px; color: var(--gray-11);
+        overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+      }
+      .project-commit {
+        font-size: 13px;
+        color: var(--accent-12);
+        margin: 0;
+      }
+      .project-foot {
+        display: flex; align-items: center; justify-content: space-between;
+        font-size: 11px; color: var(--gray-11);
+        gap: 8px;
+      }
+      .project-foot .branch {
+        display: inline-flex; align-items: center; gap: 4px;
+      }
+      .project-foot svg { width: 11px; height: 11px; color: var(--gray-11); }
+      .project-status-dot {
+        width: 7px; height: 7px; border-radius: 50%;
+        background: var(--success-9);
+      }
+      .project-status-dot.warn { background: var(--warning-9); }
+      .project-status-dot.err  { background: var(--error-9); }
+
+      /* Feature card (aggregate) */
+      .feature-card {
+        border: 1px solid var(--grayA-4);
+        border-radius: 12px;
+        background: var(--bg-surface);
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        cursor: pointer;
+        transition: border-color 0.15s;
+        min-width: 0;
+      }
+      .feature-card:hover { border-color: var(--grayA-6); }
+      .feature-card .fc-head {
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      .feature-card .fc-title {
+        font-size: 13px; font-weight: 500;
+        color: var(--accent-12);
+        display: flex; align-items: center; gap: 8px;
+      }
+      .feature-card .fc-icon {
+        width: 22px; height: 22px;
+        border-radius: 6px;
+        background: var(--grayA-3);
+        display: grid; place-items: center;
+      }
+      .feature-card .fc-icon svg { width: 13px; height: 13px; color: var(--accent-12); }
+      .feature-card .fc-metric {
+        font-size: 20px; font-weight: 500;
+        color: var(--accent-12);
+        line-height: 1;
+        font-feature-settings: "tnum";
+      }
+      .feature-card .fc-sub {
+        font-size: 11px;
+        color: var(--gray-11);
+      }
+      .feature-card .fc-chart {
+        width: 100%; height: 28px;
+        display: block;
+      }
+      .feature-card.empty {
+        background: var(--gray-2);
+        border-style: dashed;
+      }
+      .feature-card.empty .fc-cta {
+        font-size: 12px;
+        color: var(--feature-11);
+        display: inline-flex; align-items: center; gap: 4px;
+      }
+      .feature-card.empty .fc-cta svg { width: 11px; height: 11px; }
+
+      /* Toolbar */
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 0 0 14px;
+        gap: 10px;
+      }
+      .toolbar .search {
+        flex: 1; max-width: 320px;
+        display: flex; align-items: center; gap: 6px;
+        padding: 6px 10px;
+        background: var(--gray-2);
+        border: 1px solid var(--grayA-4);
+        border-radius: 7px;
+      }
+      .toolbar .search svg { width: 13px; height: 13px; color: var(--gray-11); }
+      .toolbar .search input {
+        border: 0; background: transparent; outline: none;
+        flex: 1; font-size: 12px; color: var(--accent-12);
+      }
+
+      /* ==================================================== */
+      /* VARIANT 1 — Bento: project cards + right-rail features */
+      /* ==================================================== */
+      .v1-grid {
+        display: grid;
+        grid-template-columns: 1fr 280px;
+        gap: 20px;
+      }
+      .v1-projects {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .v1-features {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .v1-features .feature-card { padding: 12px; gap: 8px; }
+      .v1-features .fc-metric { font-size: 17px; }
+
+      /* ==================================================== */
+      /* VARIANT 2 — Dense project table + bottom feature rail */
+      /* ==================================================== */
+      .v2-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--bg-surface);
+        border: 1px solid var(--grayA-4);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .v2-table th {
+        text-align: left;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--gray-11);
+        padding: 8px 14px;
+        background: var(--gray-2);
+        border-bottom: 1px solid var(--grayA-4);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .v2-table td {
+        padding: 10px 14px;
+        font-size: 13px;
+        border-bottom: 1px solid var(--grayA-3);
+        color: var(--accent-12);
+      }
+      .v2-table tr:last-child td { border-bottom: 0; }
+      .v2-table tr:hover td { background: var(--gray-2); cursor: pointer; }
+      .v2-table .cell-name { display: flex; align-items: center; gap: 10px; font-weight: 500; }
+      .v2-table .cell-name .dot {
+        width: 7px; height: 7px; border-radius: 50%; background: var(--success-9);
+        flex-shrink: 0;
+      }
+      .v2-table .branch-pill {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 2px 6px;
+        font-size: 11px;
+        font-family: ui-monospace, "SF Mono", monospace;
+        background: var(--grayA-3);
+        color: var(--accent-12);
+        border-radius: 4px;
+      }
+      .v2-table .ts { color: var(--gray-11); font-size: 12px; }
+      .v2-table .muted { color: var(--gray-11); }
+
+      .v2-features {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        margin-top: 28px;
+      }
+      .v2-features .feature-card {
+        padding: 12px;
+        gap: 6px;
+      }
+      .v2-features .fc-metric { font-size: 16px; }
+
+      /* ==================================================== */
+      /* VARIANT 3 — Activity stream + thin top feature pills   */
+      /* ==================================================== */
+      .v3-pills {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+      }
+      .v3-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border: 1px solid var(--grayA-4);
+        border-radius: 999px;
+        background: var(--bg-surface);
+        font-size: 12px;
+        color: var(--accent-12);
+        cursor: pointer;
+      }
+      .v3-pill:hover { border-color: var(--grayA-6); }
+      .v3-pill .v3-icon {
+        width: 16px; height: 16px;
+        display: grid; place-items: center;
+        color: var(--accent-11);
+      }
+      .v3-pill .v3-icon svg { width: 13px; height: 13px; }
+      .v3-pill strong {
+        font-weight: 500;
+        font-feature-settings: "tnum";
+      }
+      .v3-pill .muted { color: var(--gray-11); }
+
+      .v3-stream { display: flex; flex-direction: column; gap: 0; }
+      .v3-day {
+        display: flex; align-items: center; gap: 10px;
+        margin: 16px 0 8px;
+      }
+      .v3-day .line { height: 1px; background: var(--grayA-3); flex: 1; }
+      .v3-day span {
+        font-size: 11px; color: var(--gray-11);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .v3-item {
+        display: grid;
+        grid-template-columns: 28px 1fr auto;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 4px;
+        border-bottom: 1px solid var(--grayA-3);
+      }
+      .v3-item:last-child { border-bottom: 0; }
+      .v3-item .v3-project-icon {
+        width: 28px; height: 28px; border-radius: 7px;
+        background: var(--gray-3);
+        display: grid; place-items: center;
+      }
+      .v3-item .v3-project-icon svg { width: 14px; height: 14px; color: var(--accent-12); }
+      .v3-item .line1 {
+        font-size: 13px; color: var(--accent-12);
+      }
+      .v3-item .line1 strong { font-weight: 500; }
+      .v3-item .line2 {
+        font-size: 12px; color: var(--gray-11); margin-top: 2px;
+      }
+      .v3-item .badge {
+        font-size: 11px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: var(--success-3, hsla(168, 100%, 39%, 0.13));
+        color: var(--success-11);
+      }
+      .v3-item .badge.warn {
+        background: hsla(46, 100%, 50%, 0.2);
+        color: var(--warning-11);
+      }
+      .v3-item .badge.err {
+        background: hsla(11, 100%, 48%, 0.1);
+        color: var(--error-11);
+      }
+
+      /* ==================================================== */
+      /* VARIANT 4 — Maximal: usage + alerts + mixed layout     */
+      /* ==================================================== */
+      .v4-top {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .v4-kpi {
+        background: var(--bg-surface);
+        border: 1px solid var(--grayA-4);
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+      .v4-kpi .k-label {
+        font-size: 11px; color: var(--gray-11);
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+      .v4-kpi .k-val {
+        font-size: 24px; font-weight: 500;
+        color: var(--accent-12);
+        margin-top: 4px;
+        font-feature-settings: "tnum";
+        line-height: 1.1;
+      }
+      .v4-kpi .k-trend {
+        font-size: 11px;
+        display: inline-flex; align-items: center; gap: 3px;
+        margin-left: 8px;
+        color: var(--success-11);
+      }
+      .v4-kpi .k-trend.down { color: var(--error-11); }
+      .v4-kpi .k-trend svg { width: 10px; height: 10px; }
+      .v4-kpi .k-chart {
+        width: 100%; height: 30px; display: block; margin-top: 8px;
+      }
+
+      .v4-alerts {
+        background: var(--bg-surface);
+        border: 1px solid var(--grayA-4);
+        border-radius: 12px;
+        padding: 12px 14px;
+        display: flex; flex-direction: column; gap: 8px;
+      }
+      .v4-alerts .a-head {
+        display: flex; justify-content: space-between; align-items: center;
+      }
+      .v4-alerts .a-head span {
+        font-size: 12px; font-weight: 500; color: var(--accent-12);
+      }
+      .v4-alerts .a-row {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 12px; color: var(--accent-12);
+      }
+      .v4-alerts .a-row svg { width: 12px; height: 12px; flex-shrink: 0; }
+      .v4-alerts .a-row.warn svg { color: var(--warning-11); }
+      .v4-alerts .a-row.err svg { color: var(--error-11); }
+      .v4-alerts .a-row.ok svg { color: var(--success-11); }
+
+      .v4-main {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+      }
+      .v4-projects {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .v4-hero {
+        background: var(--bg-surface);
+        border: 1px solid var(--grayA-4);
+        border-radius: 14px;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 1fr 180px;
+        gap: 18px;
+      }
+      .v4-hero .hero-chart {
+        background: var(--gray-2);
+        border-radius: 9px;
+        padding: 8px;
+      }
+      .v4-hero .hero-chart svg { width: 100%; height: 100%; display: block; }
+      .v4-small-row {
+        display: grid; grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .v4-features {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .v4-features .feature-card { padding: 12px; }
+
+      /* Footnote legend */
+      .legend {
+        color: var(--gray-11);
+        font-size: 12px;
+        margin-top: 10px;
+      }
+      .legend strong { color: var(--accent-12); font-weight: 500; }
+    </style>
+  </head>
+
+  <body>
+    <div class="page-wrap">
+      <h1 class="page-title">Workspace home — layout explorations</h1>
+      <p class="page-sub">
+        Four radically different arrangements of the workspace root page. All
+        share: <strong>projects dominant</strong>, features as supplementary
+        aggregate cards (Keyspaces, Ratelimit, Authorization, Identities,
+        Logs). Each variant disagrees on how features are arranged and how
+        projects are shown. Inspired by the Apr&nbsp;21 call with Andreas —
+        Vercel is a reference but these diverge from it.
+      </p>
+
+      <!-- =================================================================
+           VARIANT 1 — "Bento overview"
+           Project cards in 2-col grid, features in right rail.
+           Familiar, airy. Closest to Vercel without copying it.
+           ================================================================= -->
+      <div class="variant-label">
+        <h2>V1 — Bento overview</h2>
+        <span class="tag">projects&nbsp;+&nbsp;right-rail features</span>
+        <span class="note">Airy. Good for 3–15 projects.</span>
+      </div>
+
+      <div class="window">
+        <div class="app">
+          <!-- sidebar -->
+          <aside class="sidebar">
+            <div class="sb-header">
+              <div class="sb-logo">U</div>
+              <div class="sb-ws">
+                Acme
+                <small>Pro</small>
+              </div>
+            </div>
+            <div class="sb-section">
+              <div class="sb-section-label">Deploy</div>
+              <div class="sb-item active"><i data-lucide="box"></i>Projects</div>
+            </div>
+            <div class="sb-section">
+              <div class="sb-section-label">Features</div>
+              <div class="sb-item"><i data-lucide="network"></i>Keyspaces</div>
+              <div class="sb-item"><i data-lucide="gauge"></i>Ratelimit</div>
+              <div class="sb-item"><i data-lucide="shield-check"></i>Authorization</div>
+              <div class="sb-item"><i data-lucide="fingerprint"></i>Identities</div>
+              <div class="sb-item"><i data-lucide="layers"></i>Logs</div>
+            </div>
+            <div class="sb-section">
+              <div class="sb-section-label">Workspace</div>
+              <div class="sb-item"><i data-lucide="search"></i>Audit Log</div>
+              <div class="sb-item"><i data-lucide="settings"></i>Settings</div>
+            </div>
+            <div class="sb-footer">
+              <div class="sb-avatar">DH</div>
+              <div>Dave Hawkins<br /><span style="color: var(--gray-11);">dave@acme.co</span></div>
+            </div>
+          </aside>
+
+          <!-- main -->
+          <main class="main">
+            <div class="main-header">
+              <div class="crumbs">
+                <i data-lucide="home"></i>
+                <span>Acme</span>
+              </div>
+              <div class="right">
+                <button class="btn"><i data-lucide="plus"></i>Invite</button>
+                <button class="btn primary"><i data-lucide="plus"></i>New project</button>
+              </div>
+            </div>
+
+            <div class="main-body">
+              <div class="v1-grid">
+                <!-- projects column -->
+                <section>
+                  <div class="toolbar">
+                    <div class="section-head" style="margin-bottom:0; flex:1;">
+                      <h3 class="section-title">Projects</h3>
+                      <span class="section-meta">5 projects</span>
+                    </div>
+                  </div>
+                  <div class="v1-projects">
+                    <!-- project 1 -->
+                    <div class="project-card">
+                      <div class="top">
+                        <div class="project-icon"><i data-lucide="box"></i></div>
+                        <div class="project-meta">
+                          <div class="project-name">acme-api</div>
+                          <div class="project-domain">api.acme.com</div>
+                        </div>
+                      </div>
+                      <p class="project-commit">fix: handle stale sessions from upstream</p>
+                      <div class="project-foot">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span class="project-status-dot"></span>
+                          <span>3m ago</span>
+                          <span class="branch"><i data-lucide="git-branch"></i>main</span>
+                        </div>
+                        <span>Dave</span>
+                      </div>
+                    </div>
+
+                    <!-- project 2 -->
+                    <div class="project-card">
+                      <div class="top">
+                        <div class="project-icon"><i data-lucide="box"></i></div>
+                        <div class="project-meta">
+                          <div class="project-name">marketing-site</div>
+                          <div class="project-domain">www.acme.co</div>
+                        </div>
+                      </div>
+                      <p class="project-commit">update hero copy for launch</p>
+                      <div class="project-foot">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span class="project-status-dot"></span>
+                          <span>2h ago</span>
+                          <span class="branch"><i data-lucide="git-branch"></i>main</span>
+                        </div>
+                        <span>Andreas</span>
+                      </div>
+                    </div>
+
+                    <!-- project 3 -->
+                    <div class="project-card">
+                      <div class="top">
+                        <div class="project-icon"><i data-lucide="box"></i></div>
+                        <div class="project-meta">
+                          <div class="project-name">internal-tools</div>
+                          <div class="project-domain">tools.acme.co</div>
+                        </div>
+                      </div>
+                      <p class="project-commit">add bulk key revoke</p>
+                      <div class="project-foot">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span class="project-status-dot warn"></span>
+                          <span>1d ago</span>
+                          <span class="branch"><i data-lucide="git-branch"></i>feature/bulk-rev</span>
+                        </div>
+                        <span>James</span>
+                      </div>
+                    </div>
+
+                    <!-- project 4 -->
+                    <div class="project-card">
+                      <div class="top">
+                        <div class="project-icon"><i data-lucide="box"></i></div>
+                        <div class="project-meta">
+                          <div class="project-name">billing-worker</div>
+                          <div class="project-domain">internal</div>
+                        </div>
+                      </div>
+                      <p class="project-commit">retry stripe webhooks on 5xx</p>
+                      <div class="project-foot">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span class="project-status-dot"></span>
+                          <span>4d ago</span>
+                          <span class="branch"><i data-lucide="git-branch"></i>main</span>
+                        </div>
+                        <span>Oz</span>
+                      </div>
+                    </div>
+
+                    <!-- project 5 -->
+                    <div class="project-card">
+                      <div class="top">
+                        <div class="project-icon"><i data-lucide="box"></i></div>
+                        <div class="project-meta">
+                          <div class="project-name">data-ingest</div>
+                          <div class="project-domain">ingest.acme.co</div>
+                        </div>
+                      </div>
+                      <p class="project-commit">parallelize s3 sync</p>
+                      <div class="project-foot">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span class="project-status-dot"></span>
+                          <span>1w ago</span>
+                          <span class="branch"><i data-lucide="git-branch"></i>main</span>
+                        </div>
+                        <span>Dave</span>
+                      </div>
+                    </div>
+
+                    <!-- Add new placeholder card -->
+                    <div class="project-card" style="border-style:dashed; background:var(--gray-2);">
+                      <div class="top">
+                        <div class="project-icon" style="background:var(--grayA-3);"><i data-lucide="plus"></i></div>
+                        <div class="project-meta">
+                          <div class="project-name" style="color: var(--gray-11);">New project</div>
+                          <div class="project-domain">Connect a GitHub repo</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- features column -->
+                <aside class="v1-features">
+                  <div class="section-head" style="margin-bottom:0;">
+                    <h3 class="section-title">Features</h3>
+                  </div>
+                  <div class="feature-card">
+                    <div class="fc-head">
+                      <div class="fc-title">
+                        <span class="fc-icon"><i data-lucide="network"></i></span>
+                        Keyspaces
+                      </div>
+                    </div>
+                    <div>
+                      <div class="fc-metric">4.2M</div>
+                      <div class="fc-sub">verifications / 7d · 12 keyspaces</div>
+                    </div>
+                    <svg class="fc-chart" viewBox="0 0 200 28" preserveAspectRatio="none">
+                      <polyline points="0,22 20,18 40,20 60,12 80,15 100,8 120,10 140,6 160,10 180,4 200,7" fill="none" stroke="hsl(252, 56%, 57%)" stroke-width="1.5"/>
+                    </svg>
+                  </div>
+
+                  <div class="feature-card">
+                    <div class="fc-head">
+                      <div class="fc-title">
+                        <span class="fc-icon"><i data-lucide="gauge"></i></span>
+                        Ratelimit
+                      </div>
+                    </div>
+                    <div>
+                      <div class="fc-metric">312K</div>
+                      <div class="fc-sub">requests / 7d · 8 namespaces</div>
+                    </div>
+                    <svg class="fc-chart" viewBox="0 0 200 28" preserveAspectRatio="none">
+                      <polyline points="0,16 20,12 40,20 60,15 80,22 100,10 120,14 140,18 160,12 180,16 200,10" fill="none" stroke="hsl(252, 56%, 57%)" stroke-width="1.5"/>
+                    </svg>
+                  </div>
+
+                  <div class="feature-card">
+                    <div class="fc-head">
+                      <div class="fc-title">
+                        <span class="fc-icon"><i data-lucide="shield-check"></i></span>
+                        Authorization
+                      </div>
+                    </div>
+                    <div>
+                      <div class="fc-metric">24</div>
+                      <div class="fc-sub">roles · 118 permissions</div>
+                    </div>
+                  </div>
+
+                  <div class="feature-card">
+                    <div class="fc-head">
+                      <div class="fc-title">
+                        <span class="fc-icon"><i data-lucide="fingerprint"></i></span>
+                        Identities
+                      </div>
+                    </div>
+                    <div>
+                      <div class="fc-metric">1,482</div>
+                      <div class="fc-sub">identities</div>
+                    </div>
+                  </div>
+
+                  <div class="feature-card empty">
+                    <div class="fc-head">
+                      <div class="fc-title">
+                        <span class="fc-icon"><i data-lucide="layers"></i></span>
+                        Logs
+                      </div>
+                    </div>
+                    <div class="fc-sub" style="margin:0">Stream API activity with advanced filters.</div>
+                    <a class="fc-cta" href="#">Enable logs <i data-lucide="arrow-right"></i></a>
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      <p class="legend">
+        <strong>Feel:</strong> familiar, airy. Feature rail reads as "also
+        available" without stealing focus. Degrades to one column on narrow
+        screens.
+      </p>
+
+      <!-- =================================================================
+           VARIANT 2 — "Command center"
+           Dense table of projects (power-user). Features as small tiles
+           below, promoting click-through to each feature.
+           ================================================================= -->
+      <div class="variant-label">
+        <h2>V2 — Command center</h2>
+        <span class="tag">dense table + bottom feature rail</span>
+        <span class="note">Power user. Scales to 50+ projects.</span>
+      </div>
+
+      <div class="window">
+        <div class="app">
+          <aside class="sidebar">
+            <div class="sb-header">
+              <div class="sb-logo">U</div>
+              <div class="sb-ws">Acme <small>Pro</small></div>
+            </div>
+            <div class="sb-section">
+              <div class="sb-section-label">Deploy</div>
+              <div class="sb-item active"><i data-lucide="box"></i>Projects</div>
+            </div>
+            <div class="sb-section">
+              <div class="sb-section-label">Features</div>
+              <div class="sb-item"><i data-lucide="network"></i>Keyspaces</div>
+              <div class="sb-item"><i data-lucide="gauge"></i>Ratelimit</div>
+              <div class="sb-item"><i data-lucide="shield-check"></i>Authorization</div>
+              <div class="sb-item"><i data-lucide="fingerprint"></i>Identities</div>
+              <div class="sb-item"><i data-lucide="layers"></i>Logs</div>
+            </div>
+            <div class="sb-section">
+              <div class="sb-section-label">Workspace</div>
+              <div class="sb-item"><i data-lucide="search"></i>Audit Log</div>
+              <div class="sb-item"><i data-lucide="settings"></i>Settings</div>
+            </div>
+            <div class="sb-footer">
+              <div class="sb-avatar">DH</div>
+              <div>Dave Hawkins<br /><span style="color: var(--gray-11);">dave@acme.co</span></div>
+            </div>
+          </aside>
+
+          <main class="main">
+            <div class="main-header">
+              <div class="crumbs">
+                <i data-lucide="home"></i>
+                <span>Acme</span>
+              </div>
+              <div class="right">
+                <button class="btn"><i data-lucide="plus"></i>Invite</button>
+                <button class="btn primary"><i data-lucide="plus"></i>New project</button>
+              </div>
+            </div>
+
+            <div class="main-body">
+              <div class="toolbar">
+                <div class="search">
+                  <i data-lucide="search"></i>
+                  <input placeholder="Search projects…" />
+                </div>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn"><i data-lucide="filter"></i>Filter</button>
+                  <button class="btn"><i data-lucide="arrow-down-up"></i>Last updated</button>
+                </div>
+              </div>
+
+              <table class="v2-table">
+                <thead>
+                  <tr>
+                    <th>Project</th>
+                    <th>Domain</th>
+                    <th>Last commit</th>
+                    <th>Branch</th>
+                    <th>Author</th>
+                    <th>Deployed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="cell-name"><span class="dot"></span>acme-api</td>
+                    <td class="muted">api.acme.com</td>
+                    <td>fix: handle stale sessions from upstream</td>
+                    <td><span class="branch-pill"><i data-lucide="git-branch"></i>main</span></td>
+                    <td>Dave</td>
+                    <td class="ts">3m ago</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-name"><span class="dot"></span>marketing-site</td>
+                    <td class="muted">www.acme.co</td>
+                    <td>update hero copy for launch</td>
+                    <td><span class="branch-pill"><i data-lucide="git-branch"></i>main</span></td>
+                    <td>Andreas</td>
+                    <td class="ts">2h ago</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-name"><span class="dot" style="background:var(--warning-9);"></span>internal-tools</td>
+                    <td class="muted">tools.acme.co</td>
+                    <td>add bulk key revoke</td>
+                    <td><span class="branch-pill"><i data-lucide="git-branch"></i>feature/bulk-rev</span></td>
+                    <td>James</td>
+                    <td class="ts">1d ago</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-name"><span class="dot"></span>billing-worker</td>
+                    <td class="muted">internal</td>
+                    <td>retry stripe webhooks on 5xx</td>
+                    <td><span class="branch-pill"><i data-lucide="git-branch"></i>main</span></td>
+                    <td>Oz</td>
+                    <td class="ts">4d ago</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-name"><span class="dot"></span>data-ingest</td>
+                    <td class="muted">ingest.acme.co</td>
+                    <td>parallelize s3 sync</td>
+                    <td><span class="branch-pill"><i data-lucide="git-branch"></i>main</span></td>
+                    <td>Dave</td>
+                    <td class="ts">1w ago</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-name"><span class="dot" style="background:var(--error-9);"></span>checkout-api</td>
+                    <td class="muted">pay.acme.co</td>
+                    <td>revert: roll back idempotency change</td>
+                    <td><span class="branch-pill"><i data-lucide="git-branch"></i>main</span></td>
+                    <td>Andreas</td>
+                    <td class="ts">2w ago</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="section-head" style="margin:28px 0 10px;">
+                <h3 class="section-title">Features</h3>
+                <span class="section-meta">Aggregated across this workspace</span>
+              </div>
+
+              <div class="v2-features">
+                <div class="feature-card">
+                  <div class="fc-title">
+                    <span class="fc-icon"><i data-lucide="network"></i></span>
+                    Keyspaces
+                  </div>
+                  <div class="fc-metric">12</div>
+                  <div class="fc-sub">4.2M keys · 7d verifications</div>
+                </div>
+                <div class="feature-card">
+                  <div class="fc-title">
+                    <span class="fc-icon"><i data-lucide="gauge"></i></span>
+                    Ratelimit
+                  </div>
+                  <div class="fc-metric">8</div>
+                  <div class="fc-sub">312K requests · 7d</div>
+                </div>
+                <div class="feature-card">
+                  <div class="fc-title">
+                    <span class="fc-icon"><i data-lucide="shield-check"></i></span>
+                    Authorization
+                  </div>
+                  <div class="fc-metric">24</div>
+                  <div class="fc-sub">roles · 118 permissions</div>
+                </div>
+                <div class="feature-card">
+                  <div class="fc-title">
+                    <span class="fc-icon"><i data-lucide="fingerprint"></i></span>
+                    Identities
+                  </div>
+                  <div class="fc-metric">1,482</div>
+                  <div class="fc-sub">identities</div>
+                </div>
+                <div class="feature-card empty">
+                  <div class="fc-title">
+                    <span class="fc-icon"><i data-lucide="layers"></i></span>
+                    Logs
+                  </div>
+                  <div class="fc-sub" style="margin:0">Filter and stream API activity.</div>
+                  <a class="fc-cta" href="#">Enable <i data-lucide="arrow-right"></i></a>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      <p class="legend">
+        <strong>Feel:</strong> power-user, admin-console. Works for a team
+        that knows its projects by name. Features sit below the fold as a
+        horizontal rail — present, not pushy.
+      </p>
+
+      <!-- =================================================================
+           VARIANT 3 — "Activity stream"
+           Features as thin top pills. Projects as a chronological stream
+           grouped by day. Feels like Linear / Basecamp, not Vercel.
+           ================================================================= -->
+      <div class="variant-label">
+        <h2>V3 — Activity stream</h2>
+        <span class="tag">feature pills + chronological feed</span>
+        <span class="note">Deliberately un-Vercel. Pulse-oriented.</span>
+      </div>
+
+      <div class="window">
+        <div class="app">
+          <aside class="sidebar">
+            <div class="sb-header">
+              <div class="sb-logo">U</div>
+              <div class="sb-ws">Acme <small>Pro</small></div>
+            </div>
+            <div class="sb-section">
+              <div class="sb-section-label">Deploy</div>
+              <div class="sb-item active"><i data-lucide="box"></i>Projects</div>
+            </div>
+            <div class="sb-section">
+              <div class="sb-section-label">Features</div>
+              <div class="sb-item"><i data-lucide="network"></i>Keyspaces</div>
+              <div class="sb-item"><i data-lucide="gauge"></i>Ratelimit</div>
+              <div class="sb-item"><i data-lucide="shield-check"></i>Authorization</div>
+              <div class="sb-item"><i data-lucide="fingerprint"></i>Identities</div>
+              <div class="sb-item"><i data-lucide="layers"></i>Logs</div>
+            </div>
+            <div class="sb-section">
+              <div class="sb-section-label">Workspace</div>
+              <div class="sb-item"><i data-lucide="search"></i>Audit Log</div>
+              <div class="sb-item"><i data-lucide="settings"></i>Settings</div>
+            </div>
+            <div class="sb-footer">
+              <div class="sb-avatar">DH</div>
+              <div>Dave Hawkins<br /><span style="color: var(--gray-11);">dave@acme.co</span></div>
+            </div>
+          </aside>
+
+          <main class="main">
+            <div class="main-header">
+              <div class="crumbs">
+                <i data-lucide="home"></i>
+                <span>Acme</span>
+              </div>
+              <div class="right">
+                <button class="btn"><i data-lucide="plus"></i>Invite</button>
+                <button class="btn primary"><i data-lucide="plus"></i>New project</button>
+              </div>
+            </div>
+
+            <div class="main-body" style="max-width:900px;">
+              <!-- pill strip -->
+              <div class="v3-pills">
+                <span class="v3-pill">
+                  <span class="v3-icon"><i data-lucide="network"></i></span>
+                  Keyspaces <strong>12</strong> <span class="muted">· 4.2M keys</span>
+                </span>
+                <span class="v3-pill">
+                  <span class="v3-icon"><i data-lucide="gauge"></i></span>
+                  Ratelimit <strong>8</strong> <span class="muted">· 312K req</span>
+                </span>
+                <span class="v3-pill">
+                  <span class="v3-icon"><i data-lucide="shield-check"></i></span>
+                  Authorization <strong>24</strong> <span class="muted">roles</span>
+                </span>
+                <span class="v3-pill">
+                  <span class="v3-icon"><i data-lucide="fingerprint"></i></span>
+                  Identities <strong>1,482</strong>
+                </span>
+                <span class="v3-pill" style="border-style:dashed; color:var(--gray-11);">
+                  <span class="v3-icon"><i data-lucide="layers"></i></span>
+                  Enable logs <i data-lucide="arrow-right" style="width:11px;height:11px;"></i>
+                </span>
+              </div>
+
+              <div class="section-head">
+                <h3 class="section-title">Recent activity</h3>
+                <span class="section-meta">Across 5 projects</span>
+              </div>
+
+              <div class="v3-stream">
+                <div class="v3-day"><span>Today</span><div class="line"></div></div>
+
+                <div class="v3-item">
+                  <div class="v3-project-icon"><i data-lucide="box"></i></div>
+                  <div>
+                    <div class="line1"><strong>acme-api</strong> deployed to production</div>
+                    <div class="line2">fix: handle stale sessions · main · Dave</div>
+                  </div>
+                  <span class="badge">Ready</span>
+                </div>
+
+                <div class="v3-item">
+                  <div class="v3-project-icon"><i data-lucide="box"></i></div>
+                  <div>
+                    <div class="line1"><strong>marketing-site</strong> deployed to production</div>
+                    <div class="line2">update hero copy for launch · main · Andreas</div>
+                  </div>
+                  <span class="badge">Ready</span>
+                </div>
+
+                <div class="v3-day"><span>Yesterday</span><div class="line"></div></div>
+
+                <div class="v3-item">
+                  <div class="v3-project-icon"><i data-lucide="box"></i></div>
+                  <div>
+                    <div class="line1"><strong>internal-tools</strong> preview built</div>
+                    <div class="line2">add bulk key revoke · feature/bulk-rev · James</div>
+                  </div>
+                  <span class="badge warn">Preview</span>
+                </div>
+
+                <div class="v3-day"><span>Earlier this week</span><div class="line"></div></div>
+
+                <div class="v3-item">
+                  <div class="v3-project-icon"><i data-lucide="box"></i></div>
+                  <div>
+                    <div class="line1"><strong>billing-worker</strong> deployed to production</div>
+                    <div class="line2">retry stripe webhooks on 5xx · main · Oz</div>
+                  </div>
+                  <span class="badge">Ready</span>
+                </div>
+
+                <div class="v3-item">
+                  <div class="v3-project-icon"><i data-lucide="box"></i></div>
+                  <div>
+                    <div class="line1"><strong>data-ingest</strong> deployed to production</div>
+                    <div class="line2">parallelize s3 sync · main · Dave</div>
+                  </div>
+                  <span class="badge">Ready</span>
+                </div>
+
+                <div class="v3-item">
+                  <div class="v3-project-icon"><i data-lucide="box"></i></div>
+                  <div>
+                    <div class="line1"><strong>checkout-api</strong> deployment failed</div>
+                    <div class="line2">revert: roll back idempotency change · main · Andreas</div>
+                  </div>
+                  <span class="badge err">Failed</span>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      <p class="legend">
+        <strong>Feel:</strong> Linear-inbox-ish. Features are tiny pills at
+        top — never compete with project activity. Tells you what's happening
+        across the workspace without a grid of cards. Weakest when nothing's
+        shipped recently.
+      </p>
+
+      <!-- =================================================================
+           VARIANT 4 — "Maximal dashboard"
+           Usage row + alerts + hero project + feature bento.
+           Does the extra stuff help, or clutter?
+           ================================================================= -->
+      <div class="variant-label">
+        <h2>V4 — Maximal dashboard</h2>
+        <span class="tag">usage + alerts + mixed layout</span>
+        <span class="note">Kitchen-sink. Tests Andreas's question: does a home page add value?</span>
+      </div>
+
+      <div class="window">
+        <div class="app">
+          <aside class="sidebar">
+            <div class="sb-header">
+              <div class="sb-logo">U</div>
+              <div class="sb-ws">Acme <small>Pro</small></div>
+            </div>
+            <div class="sb-section">
+              <div class="sb-section-label">Deploy</div>
+              <div class="sb-item active"><i data-lucide="box"></i>Projects</div>
+            </div>
+            <div class="sb-section">
+              <div class="sb-section-label">Features</div>
+              <div class="sb-item"><i data-lucide="network"></i>Keyspaces</div>
+              <div class="sb-item"><i data-lucide="gauge"></i>Ratelimit</div>
+              <div class="sb-item"><i data-lucide="shield-check"></i>Authorization</div>
+              <div class="sb-item"><i data-lucide="fingerprint"></i>Identities</div>
+              <div class="sb-item"><i data-lucide="layers"></i>Logs</div>
+            </div>
+            <div class="sb-section">
+              <div class="sb-section-label">Workspace</div>
+              <div class="sb-item"><i data-lucide="search"></i>Audit Log</div>
+              <div class="sb-item"><i data-lucide="settings"></i>Settings</div>
+            </div>
+            <div class="sb-footer">
+              <div class="sb-avatar">DH</div>
+              <div>Dave Hawkins<br /><span style="color: var(--gray-11);">dave@acme.co</span></div>
+            </div>
+          </aside>
+
+          <main class="main">
+            <div class="main-header">
+              <div class="crumbs">
+                <i data-lucide="home"></i>
+                <span>Acme</span>
+              </div>
+              <div class="right">
+                <button class="btn"><i data-lucide="plus"></i>Invite</button>
+                <button class="btn primary"><i data-lucide="plus"></i>New project</button>
+              </div>
+            </div>
+
+            <div class="main-body">
+              <!-- Top row: usage + alerts -->
+              <div class="v4-top">
+                <div class="v4-kpi">
+                  <div class="k-label">API verifications (7d)</div>
+                  <div class="k-val">
+                    4,218,406
+                    <span class="k-trend"><i data-lucide="trending-up"></i>+12%</span>
+                  </div>
+                  <svg class="k-chart" viewBox="0 0 200 30" preserveAspectRatio="none">
+                    <polyline points="0,24 20,20 40,22 60,14 80,16 100,10 120,12 140,6 160,10 180,5 200,7" fill="none" stroke="hsl(173, 80%, 36%)" stroke-width="1.5"/>
+                  </svg>
+                </div>
+                <div class="v4-kpi">
+                  <div class="k-label">Ratelimit requests (7d)</div>
+                  <div class="k-val">
+                    312,044
+                    <span class="k-trend down"><i data-lucide="trending-down"></i>-3%</span>
+                  </div>
+                  <svg class="k-chart" viewBox="0 0 200 30" preserveAspectRatio="none">
+                    <polyline points="0,18 20,14 40,22 60,17 80,24 100,12 120,16 140,20 160,14 180,18 200,12" fill="none" stroke="hsl(252, 56%, 57%)" stroke-width="1.5"/>
+                  </svg>
+                </div>
+                <div class="v4-alerts">
+                  <div class="a-head">
+                    <span>Alerts</span>
+                    <span class="section-meta">3 active</span>
+                  </div>
+                  <div class="a-row err"><i data-lucide="alert-triangle"></i>checkout-api deploy failed</div>
+                  <div class="a-row warn"><i data-lucide="zap"></i>acme-api keyspace near quota (86%)</div>
+                  <div class="a-row ok"><i data-lucide="check"></i>Billing: auto-renewed on Apr 18</div>
+                </div>
+              </div>
+
+              <div class="v4-main">
+                <section>
+                  <div class="section-head">
+                    <h3 class="section-title">Projects</h3>
+                    <span class="section-meta">5 projects</span>
+                  </div>
+
+                  <!-- Hero project -->
+                  <div class="v4-hero" style="margin-bottom:12px;">
+                    <div style="display:flex; flex-direction:column; gap:12px; min-width:0;">
+                      <div class="top" style="display:flex; gap:12px; align-items:center;">
+                        <div class="project-icon"><i data-lucide="box"></i></div>
+                        <div class="project-meta">
+                          <div class="project-name" style="font-size:15px;">acme-api</div>
+                          <div class="project-domain">api.acme.com</div>
+                        </div>
+                        <span class="branch" style="font-size:11px; color:var(--gray-11); display:inline-flex; align-items:center; gap:4px;">
+                          <i data-lucide="git-branch" style="width:11px;height:11px;"></i>main
+                        </span>
+                      </div>
+                      <p class="project-commit">fix: handle stale sessions from upstream</p>
+                      <div class="project-foot">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span class="project-status-dot"></span>
+                          <span>Deployed 3m ago by Dave</span>
+                        </div>
+                        <button class="btn"><i data-lucide="external-link"></i>Open</button>
+                      </div>
+                    </div>
+                    <div class="hero-chart">
+                      <svg viewBox="0 0 180 110" preserveAspectRatio="none">
+                        <!-- Simple bar chart mock -->
+                        <g fill="hsl(252, 56%, 57%)">
+                          <rect x="4" y="70" width="8" height="38"/>
+                          <rect x="16" y="60" width="8" height="48"/>
+                          <rect x="28" y="74" width="8" height="34"/>
+                          <rect x="40" y="50" width="8" height="58"/>
+                          <rect x="52" y="45" width="8" height="63"/>
+                          <rect x="64" y="40" width="8" height="68"/>
+                          <rect x="76" y="55" width="8" height="53"/>
+                          <rect x="88" y="30" width="8" height="78"/>
+                          <rect x="100" y="25" width="8" height="83"/>
+                          <rect x="112" y="40" width="8" height="68"/>
+                          <rect x="124" y="20" width="8" height="88"/>
+                          <rect x="136" y="35" width="8" height="73"/>
+                          <rect x="148" y="15" width="8" height="93"/>
+                          <rect x="160" y="28" width="8" height="80"/>
+                        </g>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- smaller project tiles -->
+                  <div class="v4-small-row">
+                    <div class="project-card">
+                      <div class="top">
+                        <div class="project-icon"><i data-lucide="box"></i></div>
+                        <div class="project-meta">
+                          <div class="project-name">marketing-site</div>
+                          <div class="project-domain">www.acme.co</div>
+                        </div>
+                      </div>
+                      <div class="project-foot">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span class="project-status-dot"></span>
+                          <span>2h ago</span>
+                        </div>
+                        <span>Andreas</span>
+                      </div>
+                    </div>
+                    <div class="project-card">
+                      <div class="top">
+                        <div class="project-icon"><i data-lucide="box"></i></div>
+                        <div class="project-meta">
+                          <div class="project-name">internal-tools</div>
+                          <div class="project-domain">tools.acme.co</div>
+                        </div>
+                      </div>
+                      <div class="project-foot">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span class="project-status-dot warn"></span>
+                          <span>1d ago</span>
+                        </div>
+                        <span>James</span>
+                      </div>
+                    </div>
+                    <div class="project-card">
+                      <div class="top">
+                        <div class="project-icon"><i data-lucide="box"></i></div>
+                        <div class="project-meta">
+                          <div class="project-name">billing-worker</div>
+                          <div class="project-domain">internal</div>
+                        </div>
+                      </div>
+                      <div class="project-foot">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span class="project-status-dot"></span>
+                          <span>4d ago</span>
+                        </div>
+                        <span>Oz</span>
+                      </div>
+                    </div>
+                    <div class="project-card">
+                      <div class="top">
+                        <div class="project-icon"><i data-lucide="box"></i></div>
+                        <div class="project-meta">
+                          <div class="project-name">data-ingest</div>
+                          <div class="project-domain">ingest.acme.co</div>
+                        </div>
+                      </div>
+                      <div class="project-foot">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                          <span class="project-status-dot"></span>
+                          <span>1w ago</span>
+                        </div>
+                        <span>Dave</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <aside>
+                  <div class="section-head">
+                    <h3 class="section-title">Features</h3>
+                  </div>
+                  <div class="v4-features">
+                    <div class="feature-card">
+                      <div class="fc-title">
+                        <span class="fc-icon"><i data-lucide="network"></i></span>
+                        Keyspaces
+                      </div>
+                      <div class="fc-metric">12</div>
+                      <div class="fc-sub">4.2M keys</div>
+                      <svg class="fc-chart" viewBox="0 0 200 28" preserveAspectRatio="none">
+                        <polyline points="0,22 20,18 40,20 60,12 80,15 100,8 120,10 140,6 160,10 180,4 200,7" fill="none" stroke="hsl(252, 56%, 57%)" stroke-width="1.5"/>
+                      </svg>
+                    </div>
+                    <div class="feature-card">
+                      <div class="fc-title">
+                        <span class="fc-icon"><i data-lucide="gauge"></i></span>
+                        Ratelimit
+                      </div>
+                      <div class="fc-metric">8</div>
+                      <div class="fc-sub">312K requests · 7d</div>
+                      <svg class="fc-chart" viewBox="0 0 200 28" preserveAspectRatio="none">
+                        <polyline points="0,16 20,12 40,20 60,15 80,22 100,10 120,14 140,18 160,12 180,16 200,10" fill="none" stroke="hsl(252, 56%, 57%)" stroke-width="1.5"/>
+                      </svg>
+                    </div>
+                    <div class="feature-card">
+                      <div class="fc-title">
+                        <span class="fc-icon"><i data-lucide="shield-check"></i></span>
+                        Authorization
+                      </div>
+                      <div class="fc-metric">24</div>
+                      <div class="fc-sub">roles · 118 permissions</div>
+                    </div>
+                    <div class="feature-card">
+                      <div class="fc-title">
+                        <span class="fc-icon"><i data-lucide="fingerprint"></i></span>
+                        Identities
+                      </div>
+                      <div class="fc-metric">1,482</div>
+                      <div class="fc-sub">identities</div>
+                    </div>
+                    <div class="feature-card empty">
+                      <div class="fc-title">
+                        <span class="fc-icon"><i data-lucide="layers"></i></span>
+                        Logs
+                      </div>
+                      <div class="fc-sub" style="margin:0">Stream API activity.</div>
+                      <a class="fc-cta" href="#">Enable <i data-lucide="arrow-right"></i></a>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      <p class="legend">
+        <strong>Feel:</strong> dashboard-like. Pulls alerts + top-level usage
+        up front. Hero project gets weight. Andreas's worry: does this
+        actually help, or just repeat what's elsewhere? Good candidate to
+        prove / disprove that argument.
+      </p>
+    </div>
+
+    <script>
+      if (window.lucide) window.lucide.createIcons();
+    </script>
+  </body>
+</html>
