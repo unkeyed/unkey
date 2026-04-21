@@ -62,7 +62,7 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 
 	route, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FrontlineRoute, error) {
 		return db.Query.FindFrontlineRouteByDeploymentIDAndSticky(runCtx, s.db.RO(), db.FindFrontlineRouteByDeploymentIDAndStickyParams{
-			DeploymentID: deploymentID,
+			DeploymentID: sql.NullString{Valid: true, String: deploymentID},
 			Sticky:       db.FrontlineRoutesStickyDeployment,
 		})
 	}, restate.WithName("find deployment-sticky route"))

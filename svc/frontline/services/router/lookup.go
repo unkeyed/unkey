@@ -36,19 +36,16 @@ func (s *service) findRoute(ctx context.Context, hostname string) (db.FindFrontl
 	return route, nil
 }
 
-func (s *service) lookupByHostname(ctx context.Context, hostname string) (db.FindFrontlineRouteByFQDNRow, []db.FindHealthyRoutableSentinelsByEnvironmentIDRow, error) {
-	route, err := s.findRoute(ctx, hostname)
-	if err != nil {
-		return db.FindFrontlineRouteByFQDNRow{}, nil, err
-	}
-
+// lookupSentinels finds healthy sentinels for a deployment route's environment.
+// Only called for deployment routes — portal routes skip sentinel entirely.
+func (s *service) lookupSentinels(ctx context.Context, route db.FindFrontlineRouteByFQDNRow) ([]db.FindHealthyRoutableSentinelsByEnvironmentIDRow, error) {
 	sentinels, _, err := s.sentinelsByEnvironmentCache.SWR(ctx, route.EnvironmentID, func(ctx context.Context) ([]db.FindHealthyRoutableSentinelsByEnvironmentIDRow, error) {
 		return s.db.FindHealthyRoutableSentinelsByEnvironmentID(ctx, route.EnvironmentID)
 	}, internalCaches.DefaultFindFirstOp)
 
 	if err != nil && !mysql.IsNotFound(err) {
 		routingErrorsTotal.WithLabelValues("sentinel_load_failed").Inc()
-		return db.FindFrontlineRouteByFQDNRow{}, nil, fault.Wrap(err,
+		return nil, fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.ConfigLoadFailed.URN()),
 			fault.Internal("error loading sentinels"),
 			fault.Public("Failed to load sentinel configuration"),
@@ -59,7 +56,7 @@ func (s *service) lookupByHostname(ctx context.Context, hostname string) (db.Fin
 		sentinels = []db.FindHealthyRoutableSentinelsByEnvironmentIDRow{}
 	}
 
-	return route, sentinels, nil
+	return sentinels, nil
 }
 
 func (s *service) getInstances(ctx context.Context, deploymentID string) ([]db.FindInstancesByDeploymentIDRow, error) {

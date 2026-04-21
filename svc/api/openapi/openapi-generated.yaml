@@ -1813,6 +1813,76 @@ components:
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
             additionalProperties: false
+        V2PortalCreateSessionRequestBody:
+            type: object
+            required:
+                - externalId
+                - permissions
+            properties:
+                externalId:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        The end user's identifier in the customer's system.
+                        Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
+                    example: user_123
+                permissions:
+                    type: array
+                    items:
+                        type: string
+                    minItems: 1
+                    description: |
+                        List of permissions defining what the end user can do in the Portal and which tabs are visible.
+                        Any `keys:*` permission shows the Keys tab, any `analytics:*` shows Analytics, `docs:read` shows Docs.
+                    example: ["keys:read", "keys:create", "analytics:read"]
+                metadata:
+                    type: object
+                    additionalProperties: true
+                    description: |
+                        Optional information about the end user (name, email, custom fields).
+                    example: {"name": "Jane Doe", "email": "jane@example.com"}
+                preview:
+                    type: boolean
+                    default: false
+                    description: |
+                        When true, creates a preview session for testing the portal experience.
+            additionalProperties: false
+        V2PortalCreateSessionResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2PortalCreateSessionResponseData"
+            additionalProperties: false
+        V2PortalExchangeSessionRequestBody:
+            type: object
+            required:
+                - sessionId
+            properties:
+                sessionId:
+                    type: string
+                    minLength: 1
+                    description: |
+                        The session token ID received from `portal.createSession`.
+                        Must be valid, unexpired, and not previously exchanged.
+                    example: pst_abc123def456
+            additionalProperties: false
+        V2PortalExchangeSessionResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                data:
+                    $ref: "#/components/schemas/V2PortalExchangeSessionResponseData"
+            additionalProperties: false
         V2RatelimitDeleteOverrideRequestBody:
             description: |-
                 Deletes an existing rate limit override. This permanently removes a custom rate limit rule, reverting affected identifiers back to the default rate limits for the namespace.
@@ -3429,6 +3499,50 @@ components:
             description: Array of roles with their assigned permissions.
             items:
                 "$ref": "#/components/schemas/Role"
+        V2PortalCreateSessionResponseData:
+            type: object
+            required:
+                - sessionId
+                - url
+                - expiresAt
+            properties:
+                sessionId:
+                    type: string
+                    description: |
+                        The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
+                    example: pst_abc123def456
+                url:
+                    type: string
+                    format: uri
+                    description: |
+                        The full portal URL with the session parameter. Redirect the end user to this URL.
+                    example: "https://portal.unkey.com/?session=pst_abc123def456"
+                expiresAt:
+                    type: integer
+                    format: int64
+                    description: |
+                        Unix timestamp in milliseconds when the session token expires (15 minutes from creation).
+                    example: 1711300000000
+            additionalProperties: false
+        V2PortalExchangeSessionResponseData:
+            type: object
+            required:
+                - token
+                - expiresAt
+            properties:
+                token:
+                    type: string
+                    description: |
+                        The browser session token. Use this in the Authorization header or as an httpOnly cookie
+                        for subsequent API calls.
+                    example: ps_xyz789abc123
+                expiresAt:
+                    type: integer
+                    format: int64
+                    description: |
+                        Unix timestamp in milliseconds when the browser session expires (24 hours from creation).
+                    example: 1711386400000
+            additionalProperties: false
         V2RatelimitDeleteOverrideResponseData:
             type: object
             additionalProperties: false
@@ -6506,6 +6620,123 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: ListRoles
+    /v2/portal.createSession:
+        post:
+            description: |
+                Create a short-lived session token for an end user to access the Customer Portal.
+
+                The returned session ID is valid for 15 minutes and can be exchanged exactly once
+                for a 24-hour browser session via `portal.exchangeSession`. Redirect the end user
+                to the returned URL to start the portal experience.
+
+                **Required Permissions**
+
+                Your root key must be associated with a workspace that has an enabled portal configuration.
+            operationId: portal.createSession
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalCreateSessionRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalCreateSessionResponseBody'
+                    description: |
+                        Session token created successfully. Redirect the end user to the returned URL.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - rootKey: []
+            summary: Create portal session
+            tags:
+                - portal
+            x-speakeasy-name-override: createSession
+    /v2/portal.exchangeSession:
+        post:
+            description: |
+                Exchange a short-lived session token for a long-lived browser session.
+
+                This endpoint is unauthenticated. The session token itself serves as proof of authorization.
+                Each token can only be exchanged once; subsequent attempts return 401.
+
+                The returned browser session token is valid for 24 hours and should be stored as an
+                httpOnly cookie or used in the Authorization header for subsequent API calls.
+            operationId: portal.exchangeSession
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalExchangeSessionRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalExchangeSessionResponseBody'
+                    description: |
+                        Session exchanged successfully. Use the returned token for subsequent API calls.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized — session is invalid, expired, or already exchanged
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security: []
+            summary: Exchange session token
+            tags:
+                - portal
+            x-speakeasy-name-override: exchangeSession
     /v2/ratelimit.deleteOverride:
         post:
             description: |
@@ -7221,6 +7452,8 @@ tags:
       name: liveness
     - description: Permission and role management operations
       name: permissions
+    - description: Customer Portal session management
+      name: portal
     - description: Rate limiting operations
       name: ratelimit
 x-speakeasy-retries:

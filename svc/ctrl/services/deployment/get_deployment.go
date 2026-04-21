@@ -2,6 +2,7 @@ package deployment
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"connectrpc.com/connect"
@@ -80,7 +81,7 @@ func (s *Service) GetDeployment(
 	}
 
 	// Fetch routes (fqdns) for this deployment
-	routes, err := db.Query.FindFrontlineRoutesByDeploymentID(ctx, s.db.RO(), req.Msg.GetDeploymentId())
+	routes, err := db.Query.FindFrontlineRoutesByDeploymentID(ctx, s.db.RO(), sql.NullString{Valid: true, String: req.Msg.GetDeploymentId()})
 	if err != nil {
 		logger.Warn("failed to fetch frontline routes for deployment", "error", err, "deployment_id", deployment.ID)
 		// Continue without fqdns rather than failing the entire request

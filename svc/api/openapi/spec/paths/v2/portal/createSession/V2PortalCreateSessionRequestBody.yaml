@@ -1,0 +1,34 @@
+type: object
+required:
+  - externalId
+  - permissions
+properties:
+  externalId:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      The end user's identifier in the customer's system.
+      Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
+    example: user_123
+  permissions:
+    type: array
+    items:
+      type: string
+    minItems: 1
+    description: |
+      List of permissions defining what the end user can do in the Portal and which tabs are visible.
+      Any `keys:*` permission shows the Keys tab, any `analytics:*` shows Analytics, `docs:read` shows Docs.
+    example: ["keys:read", "keys:create", "analytics:read"]
+  metadata:
+    type: object
+    additionalProperties: true
+    description: |
+      Optional information about the end user (name, email, custom fields).
+    example: { "name": "Jane Doe", "email": "jane@example.com" }
+  preview:
+    type: boolean
+    default: false
+    description: |
+      When true, creates a preview session for testing the portal experience.
+additionalProperties: false

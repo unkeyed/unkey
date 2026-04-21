@@ -42,6 +42,8 @@ data:
     sample_rate = 1.0
     slow_threshold = "1s"
 
+    portal_base_url = "http://localhost:3100"
+
 ---
 apiVersion: apps/v1
 kind: Deployment

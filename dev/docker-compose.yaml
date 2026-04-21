@@ -219,6 +219,7 @@ services:
       - ./config/ctrl-api.toml:/etc/unkey/ctrl-api.toml:ro
     environment:
       UNKEY_GITHUB_APP_WEBHOOK_SECRET: "${UNKEY_GITHUB_APP_WEBHOOK_SECRET:-}"
+      UNKEY_GITHUB_APP_ID: "${UNKEY_GITHUB_APP_ID:-0}"
 
   ctrl-worker:
     networks:
@@ -308,6 +309,31 @@ services:
       CTRL_API_KEY: "your-local-dev-key"
       # Bootstrap workspace/API IDs
       # Reading from env file, no override necessary
+  portal:
+    networks:
+      - default
+    build:
+      context: ..
+      dockerfile: ./web/apps/portal/Dockerfile
+    container_name: unkey-portal
+    ports:
+      - "3100:3000"
+    depends_on:
+      planetscale:
+        condition: service_started
+        required: true
+      apiv2_lb:
+        condition: service_started
+        required: true
+    env_file:
+      - ../web/apps/portal/.env
+    environment:
+      DATABASE_HOST: "planetscale:3900"
+      DATABASE_USERNAME: "unkey"
+      DATABASE_PASSWORD: "password"
+      UNKEY_API_URL: "http://apiv2_lb:7070"
+      NODE_ENV: "production"
+
 volumes:
   mysql:
   clickhouse:

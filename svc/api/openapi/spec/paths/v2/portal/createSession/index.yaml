@@ -1,0 +1,62 @@
+post:
+  tags:
+    - portal
+  summary: Create portal session
+  description: |
+    Create a short-lived session token for an end user to access the Customer Portal.
+
+    The returned session ID is valid for 15 minutes and can be exchanged exactly once
+    for a 24-hour browser session via `portal.exchangeSession`. Redirect the end user
+    to the returned URL to start the portal experience.
+
+    **Required Permissions**
+
+    Your root key must be associated with a workspace that has an enabled portal configuration.
+  operationId: portal.createSession
+  x-speakeasy-name-override: createSession
+  security:
+    - rootKey: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalCreateSessionRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalCreateSessionResponseBody.yaml"
+      description: |
+        Session token created successfully. Redirect the end user to the returned URL.
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            $ref: "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

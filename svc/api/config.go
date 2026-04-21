@@ -96,6 +96,11 @@ type Config struct {
 	// Control configures the deployment management service. See [config.ControlConfig].
 	Control config.ControlConfig `toml:"control"`
 
+	// PortalBaseURL is the base URL for the customer portal (e.g. "https://portal.unkey.com").
+	// Used to construct session redirect URLs in portal.createSession responses.
+	// When a customer has a verified custom domain, that domain is used instead.
+	PortalBaseURL string `toml:"portal_base_url" config:"default=https://portal.unkey.com"`
+
 	// Pprof configures Go profiling endpoints. See [config.PprofConfig].
 	// When nil (section omitted), pprof endpoints are not registered.
 	Pprof *config.PprofConfig `toml:"pprof"`

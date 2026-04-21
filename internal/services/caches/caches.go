@@ -45,6 +45,12 @@ type Caches struct {
 	// Keys are string (workspace ID) and values are keysdb.Quotas.
 	WorkspaceQuota cache.Cache[string, keysdb.Quotas]
 
+	// PortalSession caches portal session lookups by session token.
+	// Keys are string (session token ID) and values are db.PortalSession.
+	// Short fresh window because sessions can expire; stale window allows
+	// serving slightly-stale data while revalidating in the background.
+	PortalSession cache.Cache[string, db.PortalSession]
+
 	// dispatcher handles routing of invalidation events to all caches in this process.
 	// This is not exported as it's an internal implementation detail.
 	dispatcher *clustering.InvalidationDispatcher
@@ -278,6 +284,20 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	portalSession, err := createCache(
+		cache.Config[string, db.PortalSession]{
+			Fresh:    10 * time.Second,
+			Stale:    5 * time.Minute,
+			MaxSize:  100_000,
+			Resource: "portal_session",
+			Clock:    config.Clock,
+		},
+		stringKeyOpts,
+	)
+	if err != nil {
+		return Caches{}, err
+	}
+
 	initialized = true
 	return Caches{
 		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
@@ -287,6 +307,7 @@ func New(config Config) (Caches, error) {
 		KeyAuthToApiRow:       middleware.WithTracing(keyAuthToApiRow),
 		ApiToKeyAuthRow:       middleware.WithTracing(apiToKeyAuthRow),
 		WorkspaceQuota:        middleware.WithTracing(workspaceQuota),
+		PortalSession:         middleware.WithTracing(portalSession),
 		dispatcher:            dispatcher,
 	}, nil
 }
