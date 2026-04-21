@@ -34,8 +34,6 @@ export { BadgeCell } from "./components/cells";
 export type { BadgeCellProps } from "./components/cells";
 export { CopyCell } from "./components/cells";
 export type { CopyCellProps } from "./components/cells";
-export { AssignedItemsCell } from "./components/cells";
-export type { AssignedItemsCellProps } from "./components/cells";
 export { AssignedCountCell } from "./components/cells";
 export type { AssignedCountCellProps } from "./components/cells";
 export { HiddenValueCell } from "./components/cells";
@@ -65,7 +63,10 @@ export {
   LastUpdatedColumnSkeleton,
   PermissionsColumnSkeleton,
   RootKeyColumnSkeleton,
+  DashedBadgeSkeleton,
+  NameColumnSkeleton,
 } from "./components/skeletons";
+export type { DashedBadgeSkeletonProps, NameColumnSkeletonProps } from "./components/skeletons";
 
 // Header components
 export { SortableHeader } from "./components/headers";
