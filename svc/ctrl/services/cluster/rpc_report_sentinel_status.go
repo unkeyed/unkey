@@ -78,17 +78,52 @@ func (s *Service) ReportSentinelStatus(ctx context.Context, req *connect.Request
 			// above is idempotent, so the retry is safe.
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
-		if sentinel.DeployStatus == db.SentinelsDeployStatusProgressing &&
+		// Convergence: deploy_status=progressing AND the observed state matches
+		// the desired state on every dimension (image, replicas, health).
+		// Previously this only checked image, which caused two real bugs:
+		//   - Replica scale-ups flipped to ready prematurely on the first
+		//     report (pre-scale), because RunningImage already matched.
+		//   - Orphaned awakeables (e.g. Deploy worker killed between "mark
+		//     progressing" and "create awakeable") left sentinels stuck at
+		//     progressing until the 10-minute Deploy timeout.
+		//
+		// Fix: this handler is now the authoritative state-machine driver.
+		// On convergence it flips deploy_status=ready directly AND fires
+		// NotifyReady. The awakeable is now an optimization: if the Deploy
+		// handler is alive, it resolves quickly; if it's dead, Deploy on
+		// the next invocation reads deploy_status=ready and short-circuits
+		// through its noConfigChange+Ready early-return.
+		converged := sentinel.DeployStatus == db.SentinelsDeployStatusProgressing &&
 			health == db.SentinelsHealthHealthy &&
 			sentinel.RunningImage != "" &&
-			sentinel.RunningImage == sentinel.DesiredImage {
-			if s.notifiedReady.AddIfAbsent(sentinel.ID) {
-				_, err := hydrav1.NewSentinelServiceIngressClient(s.restate, sentinel.ID).
-					NotifyReady().
-					Send(ctx, &hydrav1.SentinelServiceNotifyReadyRequest{})
-				if err != nil {
-					logger.Error("failed to notify sentinel ready", "sentinel_id", sentinel.ID, "error", err)
-				}
+			sentinel.RunningImage == sentinel.DesiredImage &&
+			req.Msg.GetAvailableReplicas() >= sentinel.DesiredReplicas
+
+		if converged {
+			if err := db.Query.UpdateSentinelDeployStatus(ctx, s.db.RW(), db.UpdateSentinelDeployStatusParams{
+				ID:           sentinel.ID,
+				DeployStatus: db.SentinelsDeployStatusReady,
+				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			}); err != nil {
+				// Log and continue — krane will retry the whole report,
+				// at which point we'll retry the flip. Don't fail the RPC
+				// because the observed-state write above already succeeded.
+				logger.Error("failed to flip sentinel to ready on convergence",
+					"sentinel_id", sentinel.ID,
+					"error", err,
+				)
+			}
+
+			// Belt-and-suspenders: fire NotifyReady so a Deploy handler
+			// currently parked on the awakeable resolves without waiting
+			// for its next poll. ResolveAwakeable is idempotent on
+			// already-resolved awakeables and a no-op when no awakeable
+			// is stored.
+			_, err := hydrav1.NewSentinelServiceIngressClient(s.restate, sentinel.ID).
+				NotifyReady().
+				Send(ctx, &hydrav1.SentinelServiceNotifyReadyRequest{})
+			if err != nil {
+				logger.Error("failed to notify sentinel ready", "sentinel_id", sentinel.ID, "error", err)
 			}
 		}
 	}

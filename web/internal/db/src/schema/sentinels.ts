@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { environments } from "./environments";
 import { regions } from "./regions";
+import { sentinelSubscriptions } from "./sentinel_subscriptions";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -29,6 +30,7 @@ export const sentinels = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 255 }).notNull(),
     projectId: varchar("project_id", { length: 255 }).notNull(),
     environmentId: varchar("environment_id", { length: 255 }).notNull(),
+    subscriptionId: varchar("subscription_id", { length: 64 }).notNull(),
     k8sName: varchar("k8s_name", { length: 64 }).notNull().unique(),
     k8sAddress: varchar("k8s_address", { length: 255 }).notNull().unique(),
 
@@ -47,8 +49,6 @@ export const sentinels = mysqlTable(
     deployStatus: mysqlEnum("deploy_status", ["idle", "progressing", "ready", "failed"])
       .notNull()
       .default("idle"),
-    cpuMillicores: int("cpu_millicores").notNull(),
-    memoryMib: int("memory_mib").notNull(),
 
     ...lifecycleDates,
   },
@@ -74,5 +74,9 @@ export const sentinelsRelations = relations(sentinels, ({ one }) => ({
   region: one(regions, {
     fields: [sentinels.regionId],
     references: [regions.id],
+  }),
+  subscription: one(sentinelSubscriptions, {
+    fields: [sentinels.subscriptionId],
+    references: [sentinelSubscriptions.id],
   }),
 }));

@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertSentinel is the base query for bulk insert
-const bulkInsertSentinel = `INSERT INTO sentinels ( id, workspace_id, environment_id, project_id, k8s_address, k8s_name, region_id, image, desired_replicas, cpu_millicores, memory_mib, created_at ) VALUES %s`
+const bulkInsertSentinel = `INSERT INTO sentinels ( id, workspace_id, environment_id, project_id, subscription_id, k8s_address, k8s_name, region_id, image, desired_replicas, created_at ) VALUES %s`
 
 // InsertSentinels performs bulk insert in a single query
 func (q *BulkQueries) InsertSentinels(ctx context.Context, db DBTX, args []InsertSentinelParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertSentinels(ctx context.Context, db DBTX, args []Inser
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertSentinel, strings.Join(valueClauses, ", "))
@@ -33,13 +33,12 @@ func (q *BulkQueries) InsertSentinels(ctx context.Context, db DBTX, args []Inser
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.EnvironmentID)
 		allArgs = append(allArgs, arg.ProjectID)
+		allArgs = append(allArgs, arg.SubscriptionID)
 		allArgs = append(allArgs, arg.K8sAddress)
 		allArgs = append(allArgs, arg.K8sName)
 		allArgs = append(allArgs, arg.RegionID)
 		allArgs = append(allArgs, arg.Image)
 		allArgs = append(allArgs, arg.DesiredReplicas)
-		allArgs = append(allArgs, arg.CpuMillicores)
-		allArgs = append(allArgs, arg.MemoryMib)
 		allArgs = append(allArgs, arg.CreatedAt)
 	}
 

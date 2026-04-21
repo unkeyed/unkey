@@ -85,11 +85,13 @@ func TestSentinelToState_Running(t *testing.T) {
 		DesiredState:    db.SentinelsDesiredStateRunning,
 		Image:           "registry.io/sentinel:v1",
 		DesiredReplicas: 3,
-		CpuMillicores:   100,
-		MemoryMib:       128,
+	}
+	sub := db.SentinelSubscription{
+		CpuMillicores: 100,
+		MemoryMib:     128,
 	}
 
-	state := s.sentinelToState(sentinel, 10)
+	state := s.sentinelToState(sentinel, sub, 10)
 	require.NotNil(t, state)
 	require.Equal(t, uint64(10), state.GetVersion())
 
@@ -97,6 +99,8 @@ func TestSentinelToState_Running(t *testing.T) {
 	require.NotNil(t, apply, "running state should produce an ApplySentinel")
 	require.Equal(t, "snt_123", apply.GetSentinelId())
 	require.Equal(t, int32(3), apply.GetReplicas())
+	require.Equal(t, int64(100), apply.GetCpuMillicores())
+	require.Equal(t, int64(128), apply.GetMemoryMib())
 }
 
 func TestSentinelToState_Archived(t *testing.T) {
@@ -106,7 +110,7 @@ func TestSentinelToState_Archived(t *testing.T) {
 		DesiredState: db.SentinelsDesiredStateArchived,
 	}
 
-	state := s.sentinelToState(sentinel, 5)
+	state := s.sentinelToState(sentinel, db.SentinelSubscription{}, 5)
 	require.NotNil(t, state)
 
 	del := state.GetDelete()
@@ -121,7 +125,7 @@ func TestSentinelToState_Standby(t *testing.T) {
 		DesiredState: db.SentinelsDesiredStateStandby,
 	}
 
-	state := s.sentinelToState(sentinel, 5)
+	state := s.sentinelToState(sentinel, db.SentinelSubscription{}, 5)
 	require.NotNil(t, state)
 
 	del := state.GetDelete()

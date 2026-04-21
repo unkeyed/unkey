@@ -13,9 +13,10 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 service SentinelService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
-  // Deploy updates a sentinel's configuration (image, cpu, memory, replicas)
-  // and waits for krane to report the sentinel as healthy. If the sentinel
-  // does not become healthy within the timeout, the deploy is marked as failed.
+  // Deploy updates a sentinel's image or desired replica count and waits for
+  // krane to report the sentinel as healthy. Tier (CPU/memory) changes are
+  // not done here — they flow through a subscription swap at the DB layer,
+  // which then produces a deployment_changes outbox entry independently.
   rpc Deploy(SentinelServiceDeployRequest) returns (SentinelServiceDeployResponse) {}
 
   // NotifyReady is called by the control plane when krane reports a sentinel
@@ -36,8 +37,6 @@ enum SentinelDeployStatus {
 message SentinelServiceDeployRequest {
   // Fields to update. Only non-zero/non-empty fields are applied.
   string image = 1;
-  int32 cpu_millicores = 2;
-  int32 memory_mib = 3;
   int32 desired_replicas = 4;
 }
 

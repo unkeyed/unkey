@@ -139,8 +139,6 @@ type SentinelServiceDeployRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Fields to update. Only non-zero/non-empty fields are applied.
 	Image           string `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
-	CpuMillicores   int32  `protobuf:"varint,2,opt,name=cpu_millicores,json=cpuMillicores,proto3" json:"cpu_millicores,omitempty"`
-	MemoryMib       int32  `protobuf:"varint,3,opt,name=memory_mib,json=memoryMib,proto3" json:"memory_mib,omitempty"`
 	DesiredReplicas int32  `protobuf:"varint,4,opt,name=desired_replicas,json=desiredReplicas,proto3" json:"desired_replicas,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -181,20 +179,6 @@ func (x *SentinelServiceDeployRequest) GetImage() string {
 		return x.Image
 	}
 	return ""
-}
-
-func (x *SentinelServiceDeployRequest) GetCpuMillicores() int32 {
-	if x != nil {
-		return x.CpuMillicores
-	}
-	return 0
-}
-
-func (x *SentinelServiceDeployRequest) GetMemoryMib() int32 {
-	if x != nil {
-		return x.MemoryMib
-	}
-	return 0
 }
 
 func (x *SentinelServiceDeployRequest) GetDesiredReplicas() int32 {
@@ -653,12 +637,9 @@ var File_hydra_v1_sentinel_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_sentinel_proto_rawDesc = "" +
 	"\n" +
-	"\x17hydra/v1/sentinel.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xa5\x01\n" +
+	"\x17hydra/v1/sentinel.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"_\n" +
 	"\x1cSentinelServiceDeployRequest\x12\x14\n" +
-	"\x05image\x18\x01 \x01(\tR\x05image\x12%\n" +
-	"\x0ecpu_millicores\x18\x02 \x01(\x05R\rcpuMillicores\x12\x1d\n" +
-	"\n" +
-	"memory_mib\x18\x03 \x01(\x05R\tmemoryMib\x12)\n" +
+	"\x05image\x18\x01 \x01(\tR\x05image\x12)\n" +
 	"\x10desired_replicas\x18\x04 \x01(\x05R\x0fdesiredReplicas\"W\n" +
 	"\x1dSentinelServiceDeployResponse\x126\n" +
 	"\x06status\x18\x01 \x01(\x0e2\x1e.hydra.v1.SentinelDeployStatusR\x06status\"#\n" +

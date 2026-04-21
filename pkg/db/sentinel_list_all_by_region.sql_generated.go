@@ -10,9 +10,11 @@ import (
 )
 
 const listAllSentinelsByRegion = `-- name: ListAllSentinelsByRegion :many
-SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM ` + "`" + `sentinels` + "`" + `
-WHERE region_id = ? AND pk > ?
-ORDER BY pk ASC
+SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.subscription_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.created_at, s.updated_at, sub.pk, sub.id, sub.sentinel_id, sub.workspace_id, sub.region_id, sub.tier_id, sub.tier_version, sub.cpu_millicores, sub.memory_mib, sub.replicas, sub.price_per_second, sub.created_at, sub.terminated_at, sub.open_sentinel_id
+FROM sentinels s
+INNER JOIN sentinel_subscriptions sub ON sub.id = s.subscription_id
+WHERE s.region_id = ? AND s.pk > ?
+ORDER BY s.pk ASC
 LIMIT ?
 `
 
@@ -22,42 +24,62 @@ type ListAllSentinelsByRegionParams struct {
 	Limit    int32  `db:"limit"`
 }
 
+type ListAllSentinelsByRegionRow struct {
+	Sentinel             Sentinel             `db:"sentinel"`
+	SentinelSubscription SentinelSubscription `db:"sentinel_subscription"`
+}
+
 // ListAllSentinelsByRegion returns sentinels for a region, paginated by pk.
 // Used during full sync (version=0) to bootstrap krane agents with current state.
 //
-//	SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM `sentinels`
-//	WHERE region_id = ? AND pk > ?
-//	ORDER BY pk ASC
+//	SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.subscription_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.created_at, s.updated_at, sub.pk, sub.id, sub.sentinel_id, sub.workspace_id, sub.region_id, sub.tier_id, sub.tier_version, sub.cpu_millicores, sub.memory_mib, sub.replicas, sub.price_per_second, sub.created_at, sub.terminated_at, sub.open_sentinel_id
+//	FROM sentinels s
+//	INNER JOIN sentinel_subscriptions sub ON sub.id = s.subscription_id
+//	WHERE s.region_id = ? AND s.pk > ?
+//	ORDER BY s.pk ASC
 //	LIMIT ?
-func (q *Queries) ListAllSentinelsByRegion(ctx context.Context, db DBTX, arg ListAllSentinelsByRegionParams) ([]Sentinel, error) {
+func (q *Queries) ListAllSentinelsByRegion(ctx context.Context, db DBTX, arg ListAllSentinelsByRegionParams) ([]ListAllSentinelsByRegionRow, error) {
 	rows, err := db.QueryContext(ctx, listAllSentinelsByRegion, arg.RegionID, arg.AfterPk, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Sentinel
+	var items []ListAllSentinelsByRegionRow
 	for rows.Next() {
-		var i Sentinel
+		var i ListAllSentinelsByRegionRow
 		if err := rows.Scan(
-			&i.Pk,
-			&i.ID,
-			&i.WorkspaceID,
-			&i.ProjectID,
-			&i.EnvironmentID,
-			&i.K8sName,
-			&i.K8sAddress,
-			&i.RegionID,
-			&i.Image,
-			&i.RunningImage,
-			&i.DesiredState,
-			&i.Health,
-			&i.DesiredReplicas,
-			&i.AvailableReplicas,
-			&i.DeployStatus,
-			&i.CpuMillicores,
-			&i.MemoryMib,
-			&i.CreatedAt,
-			&i.UpdatedAt,
+			&i.Sentinel.Pk,
+			&i.Sentinel.ID,
+			&i.Sentinel.WorkspaceID,
+			&i.Sentinel.ProjectID,
+			&i.Sentinel.EnvironmentID,
+			&i.Sentinel.SubscriptionID,
+			&i.Sentinel.K8sName,
+			&i.Sentinel.K8sAddress,
+			&i.Sentinel.RegionID,
+			&i.Sentinel.Image,
+			&i.Sentinel.RunningImage,
+			&i.Sentinel.DesiredState,
+			&i.Sentinel.Health,
+			&i.Sentinel.DesiredReplicas,
+			&i.Sentinel.AvailableReplicas,
+			&i.Sentinel.DeployStatus,
+			&i.Sentinel.CreatedAt,
+			&i.Sentinel.UpdatedAt,
+			&i.SentinelSubscription.Pk,
+			&i.SentinelSubscription.ID,
+			&i.SentinelSubscription.SentinelID,
+			&i.SentinelSubscription.WorkspaceID,
+			&i.SentinelSubscription.RegionID,
+			&i.SentinelSubscription.TierID,
+			&i.SentinelSubscription.TierVersion,
+			&i.SentinelSubscription.CpuMillicores,
+			&i.SentinelSubscription.MemoryMib,
+			&i.SentinelSubscription.Replicas,
+			&i.SentinelSubscription.PricePerSecond,
+			&i.SentinelSubscription.CreatedAt,
+			&i.SentinelSubscription.TerminatedAt,
+			&i.SentinelSubscription.OpenSentinelID,
 		); err != nil {
 			return nil, err
 		}

@@ -1,0 +1,8 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "sentinelpolicy",
+    srcs = ["replicas.go"],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/internal/sentinelpolicy",
+    visibility = ["//svc/ctrl:__subpackages__"],
+)

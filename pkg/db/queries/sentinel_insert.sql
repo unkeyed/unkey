@@ -4,25 +4,23 @@ INSERT INTO sentinels (
     workspace_id,
     environment_id,
     project_id,
+    subscription_id,
     k8s_address,
     k8s_name,
     region_id,
     image,
     desired_replicas,
-    cpu_millicores,
-    memory_mib,
     created_at
 ) VALUES (
     sqlc.arg(id),
     sqlc.arg(workspace_id),
     sqlc.arg(environment_id),
     sqlc.arg(project_id),
+    sqlc.arg(subscription_id),
     sqlc.arg(k8s_address),
     sqlc.arg(k8s_name),
     sqlc.arg(region_id),
     sqlc.arg(image),
     sqlc.arg(desired_replicas),
-    sqlc.arg(cpu_millicores),
-    sqlc.arg(memory_mib),
     sqlc.arg(created_at)
 );

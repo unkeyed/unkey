@@ -37,6 +37,7 @@ export const getDeploymentTree = workspaceProcedure
             ),
           columns: {
             id: true,
+            k8sName: true,
             cpuMillicores: true,
             memoryMib: true,
             status: true,
@@ -60,10 +61,11 @@ export const getDeploymentTree = workspaceProcedure
             regionId: true,
             health: true,
             availableReplicas: true,
-            cpuMillicores: true,
-            memoryMib: true,
           },
-          with: { region: true },
+          with: {
+            region: true,
+            subscription: { columns: { cpuMillicores: true, memoryMib: true } },
+          },
         }),
       ]);
 
@@ -71,40 +73,41 @@ export const getDeploymentTree = workspaceProcedure
       const instancesByRegion = Object.groupBy(instances, ({ region }) => region?.name ?? "");
 
       // Build tree structure: each sentinel node has instances as children
-      const children = sentinels.map(
-        ({ id, region, availableReplicas, cpuMillicores, memoryMib, health }) => {
-          const sentinelInstances = instancesByRegion[region.name] ?? [];
+      const children = sentinels.map(({ id, region, subscription, availableReplicas, health }) => {
+        const sentinelInstances = instancesByRegion[region.name] ?? [];
+        const cpuMillicores = subscription?.cpuMillicores ?? 0;
+        const memoryMib = subscription?.memoryMib ?? 0;
 
-          return {
+        return {
+          id,
+          label: region.name,
+          direction: "vertical" as const,
+          metadata: {
+            type: "sentinel" as const,
+            flagCode: mapRegionToFlag(region.name),
+            instances: sentinelInstances.length,
+            replicas: availableReplicas,
+            cpu: cpuMillicores,
+            memory: memoryMib,
+            latency: "—",
+            health: calculateSentinelHealth(sentinelInstances, health),
+          },
+          children: sentinelInstances.map(({ id, k8sName, status, cpuMillicores, memoryMib }) => ({
             id,
-            label: region.name,
-            direction: "vertical" as const,
+            label: id,
             metadata: {
-              type: "sentinel" as const,
-              flagCode: mapRegionToFlag(region.name),
-              instances: sentinelInstances.length,
+              type: "instance" as const,
+              description: "Instance replica",
               replicas: availableReplicas,
               cpu: cpuMillicores,
               memory: memoryMib,
               latency: "—",
-              health: calculateSentinelHealth(sentinelInstances, health),
+              health: mapInstanceStatusToHealth(status),
+              k8sName,
             },
-            children: sentinelInstances.map(({ id, status, cpuMillicores, memoryMib }) => ({
-              id,
-              label: id,
-              metadata: {
-                type: "instance" as const,
-                description: "Instance replica",
-                replicas: availableReplicas,
-                cpu: cpuMillicores,
-                memory: memoryMib,
-                latency: "—",
-                health: mapInstanceStatusToHealth(status),
-              },
-            })),
-          };
-        },
-      );
+          })),
+        };
+      });
 
       const tree: DeploymentNode = {
         id: "internet",

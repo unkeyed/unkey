@@ -11,6 +11,7 @@ go_library(
         "environment.connect.go",
         "openapi.connect.go",
         "project.connect.go",
+        "sentinel.connect.go",
         "service.connect.go",
     ],
     importpath = "github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect",

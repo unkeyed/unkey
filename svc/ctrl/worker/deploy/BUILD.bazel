@@ -34,6 +34,7 @@ go_library(
         "//pkg/ptr",
         "//pkg/restate/compensation",
         "//pkg/uid",
+        "//svc/ctrl/internal/sentinelpolicy",
         "//svc/ctrl/worker/github",
         "//svc/krane/pkg/labels",
         "@build_buf_gen_go_depot_api_connectrpc_go//depot/core/v1/corev1connect",

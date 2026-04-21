@@ -53,6 +53,8 @@ type BulkQuerier interface {
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, db DBTX, args []InsertRolePermissionParams) error
 	InsertSentinels(ctx context.Context, db DBTX, args []InsertSentinelParams) error
+	InsertSentinelSubscriptions(ctx context.Context, db DBTX, args []InsertSentinelSubscriptionParams) error
+	InsertSentinelTiers(ctx context.Context, db DBTX, args []InsertSentinelTierParams) error
 	InsertWorkspaces(ctx context.Context, db DBTX, args []InsertWorkspaceParams) error
 	UpsertWorkspace(ctx context.Context, db DBTX, args []UpsertWorkspaceParams) error
 }

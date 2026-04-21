@@ -1,0 +1,33 @@
+syntax = "proto3";
+package ctrl.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
+
+service SentinelService {
+  // Change the tier of a running sentinel. Writes a new immutable
+  // sentinel_subscriptions row denormalizing the tier, repoints
+  // sentinels.subscription_id, marks deploy_status=progressing, and
+  // enqueues the Restate Deploy workflow which will resolve once krane
+  // reports the rollout converged.
+  rpc ChangeTier(ChangeTierRequest) returns (ChangeTierResponse) {}
+
+  // Change the desired replica count of a running sentinel. Enqueues
+  // the Restate Deploy workflow which updates sentinels.desired_replicas
+  // + writes the deployment_changes outbox + awaits convergence.
+  rpc ChangeReplicas(ChangeReplicasRequest) returns (ChangeReplicasResponse) {}
+}
+
+message ChangeTierRequest {
+  string sentinel_id = 1;
+  string tier_id = 2;
+  string tier_version = 3;
+}
+
+message ChangeTierResponse {}
+
+message ChangeReplicasRequest {
+  string sentinel_id = 1;
+  int32 desired_replicas = 2;
+}
+
+message ChangeReplicasResponse {}

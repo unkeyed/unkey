@@ -10,17 +10,26 @@ import (
 )
 
 const findSentinelsByEnvironmentID = `-- name: FindSentinelsByEnvironmentID :many
-SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
+SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.subscription_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.created_at, s.updated_at, sub.pk, sub.id, sub.sentinel_id, sub.workspace_id, sub.region_id, sub.tier_id, sub.tier_version, sub.cpu_millicores, sub.memory_mib, sub.replicas, sub.price_per_second, sub.created_at, sub.terminated_at, sub.open_sentinel_id, r.pk, r.id, r.name, r.platform, r.can_schedule
+FROM sentinels s
+INNER JOIN sentinel_subscriptions sub ON sub.id = s.subscription_id
+LEFT JOIN regions r ON s.region_id = r.id
+WHERE s.environment_id = ?
 `
 
 type FindSentinelsByEnvironmentIDRow struct {
-	Sentinel Sentinel `db:"sentinel"`
-	Region   Region   `db:"region"`
+	Sentinel             Sentinel             `db:"sentinel"`
+	SentinelSubscription SentinelSubscription `db:"sentinel_subscription"`
+	Region               Region               `db:"region"`
 }
 
 // FindSentinelsByEnvironmentID
 //
-//	SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
+//	SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.subscription_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.created_at, s.updated_at, sub.pk, sub.id, sub.sentinel_id, sub.workspace_id, sub.region_id, sub.tier_id, sub.tier_version, sub.cpu_millicores, sub.memory_mib, sub.replicas, sub.price_per_second, sub.created_at, sub.terminated_at, sub.open_sentinel_id, r.pk, r.id, r.name, r.platform, r.can_schedule
+//	FROM sentinels s
+//	INNER JOIN sentinel_subscriptions sub ON sub.id = s.subscription_id
+//	LEFT JOIN regions r ON s.region_id = r.id
+//	WHERE s.environment_id = ?
 func (q *Queries) FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error) {
 	rows, err := db.QueryContext(ctx, findSentinelsByEnvironmentID, environmentID)
 	if err != nil {
@@ -36,6 +45,7 @@ func (q *Queries) FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, env
 			&i.Sentinel.WorkspaceID,
 			&i.Sentinel.ProjectID,
 			&i.Sentinel.EnvironmentID,
+			&i.Sentinel.SubscriptionID,
 			&i.Sentinel.K8sName,
 			&i.Sentinel.K8sAddress,
 			&i.Sentinel.RegionID,
@@ -46,10 +56,22 @@ func (q *Queries) FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, env
 			&i.Sentinel.DesiredReplicas,
 			&i.Sentinel.AvailableReplicas,
 			&i.Sentinel.DeployStatus,
-			&i.Sentinel.CpuMillicores,
-			&i.Sentinel.MemoryMib,
 			&i.Sentinel.CreatedAt,
 			&i.Sentinel.UpdatedAt,
+			&i.SentinelSubscription.Pk,
+			&i.SentinelSubscription.ID,
+			&i.SentinelSubscription.SentinelID,
+			&i.SentinelSubscription.WorkspaceID,
+			&i.SentinelSubscription.RegionID,
+			&i.SentinelSubscription.TierID,
+			&i.SentinelSubscription.TierVersion,
+			&i.SentinelSubscription.CpuMillicores,
+			&i.SentinelSubscription.MemoryMib,
+			&i.SentinelSubscription.Replicas,
+			&i.SentinelSubscription.PricePerSecond,
+			&i.SentinelSubscription.CreatedAt,
+			&i.SentinelSubscription.TerminatedAt,
+			&i.SentinelSubscription.OpenSentinelID,
 			&i.Region.Pk,
 			&i.Region.ID,
 			&i.Region.Name,

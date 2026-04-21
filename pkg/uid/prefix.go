@@ -4,25 +4,27 @@ package uid
 type Prefix string
 
 const (
-	KeyPrefix                 Prefix = "key"
-	APIPrefix                 Prefix = "api"
-	RequestPrefix             Prefix = "req"
-	WorkspacePrefix           Prefix = "ws"
-	KeySpacePrefix            Prefix = "ks" // keyspace
-	RolePrefix                Prefix = "role"
-	TestPrefix                Prefix = "test" // for tests only
-	RatelimitNamespacePrefix  Prefix = "rlns"
-	RatelimitOverridePrefix   Prefix = "rlor"
-	PermissionPrefix          Prefix = "perm"
-	IdentityPrefix            Prefix = "id"
-	RatelimitPrefix           Prefix = "rl"
-	AuditLogPrefix            Prefix = "log"
-	InstancePrefix            Prefix = "ins"
-	SentinelPrefix            Prefix = "s"
-	CiliumNetworkPolicyPrefix Prefix = "net"
-	ClusterPrefix             Prefix = "cls"
-	RegionPrefix              Prefix = "rgn"
-	OrgPrefix                 Prefix = "org"
+	KeyPrefix                  Prefix = "key"
+	APIPrefix                  Prefix = "api"
+	RequestPrefix              Prefix = "req"
+	WorkspacePrefix            Prefix = "ws"
+	KeySpacePrefix             Prefix = "ks" // keyspace
+	RolePrefix                 Prefix = "role"
+	TestPrefix                 Prefix = "test" // for tests only
+	RatelimitNamespacePrefix   Prefix = "rlns"
+	RatelimitOverridePrefix    Prefix = "rlor"
+	PermissionPrefix           Prefix = "perm"
+	IdentityPrefix             Prefix = "id"
+	RatelimitPrefix            Prefix = "rl"
+	AuditLogPrefix             Prefix = "log"
+	InstancePrefix             Prefix = "ins"
+	SentinelPrefix             Prefix = "s"
+	SentinelSubscriptionPrefix Prefix = "sub"
+	SentinelTierPrefix         Prefix = "stier"
+	CiliumNetworkPolicyPrefix  Prefix = "net"
+	ClusterPrefix              Prefix = "cls"
+	RegionPrefix               Prefix = "rgn"
+	OrgPrefix                  Prefix = "org"
 
 	// Control plane prefixes
 	OpenApiSpecPrefix    Prefix = "oas"

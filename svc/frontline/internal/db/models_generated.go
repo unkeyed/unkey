@@ -1585,6 +1585,7 @@ type Sentinel struct {
 	WorkspaceID       string                `db:"workspace_id"`
 	ProjectID         string                `db:"project_id"`
 	EnvironmentID     string                `db:"environment_id"`
+	SubscriptionID    string                `db:"subscription_id"`
 	K8sName           string                `db:"k8s_name"`
 	K8sAddress        string                `db:"k8s_address"`
 	RegionID          string                `db:"region_id"`
@@ -1595,10 +1596,37 @@ type Sentinel struct {
 	DesiredReplicas   int32                 `db:"desired_replicas"`
 	AvailableReplicas int32                 `db:"available_replicas"`
 	DeployStatus      SentinelsDeployStatus `db:"deploy_status"`
-	CpuMillicores     int32                 `db:"cpu_millicores"`
-	MemoryMib         int32                 `db:"memory_mib"`
 	CreatedAt         int64                 `db:"created_at"`
 	UpdatedAt         sql.NullInt64         `db:"updated_at"`
+}
+
+type SentinelSubscription struct {
+	Pk             uint64         `db:"pk"`
+	ID             string         `db:"id"`
+	SentinelID     string         `db:"sentinel_id"`
+	WorkspaceID    string         `db:"workspace_id"`
+	RegionID       string         `db:"region_id"`
+	TierID         string         `db:"tier_id"`
+	TierVersion    string         `db:"tier_version"`
+	CpuMillicores  int32          `db:"cpu_millicores"`
+	MemoryMib      int32          `db:"memory_mib"`
+	Replicas       int32          `db:"replicas"`
+	PricePerSecond string         `db:"price_per_second"`
+	CreatedAt      int64          `db:"created_at"`
+	TerminatedAt   sql.NullInt64  `db:"terminated_at"`
+	OpenSentinelID sql.NullString `db:"open_sentinel_id"`
+}
+
+type SentinelTier struct {
+	Pk             uint64        `db:"pk"`
+	ID             string        `db:"id"`
+	TierID         string        `db:"tier_id"`
+	Version        string        `db:"version"`
+	CpuMillicores  int32         `db:"cpu_millicores"`
+	MemoryMib      int32         `db:"memory_mib"`
+	PricePerSecond string        `db:"price_per_second"`
+	EffectiveFrom  int64         `db:"effective_from"`
+	EffectiveUntil sql.NullInt64 `db:"effective_until"`
 }
 
 type VercelBinding struct {
