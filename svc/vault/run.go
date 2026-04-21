@@ -11,12 +11,12 @@ import (
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/runner"
-	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	storagemiddleware "github.com/unkeyed/unkey/svc/vault/internal/storage/middleware"
 	"github.com/unkeyed/unkey/svc/vault/internal/vault"
@@ -39,7 +39,6 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:        "vault",
-			Version:            version.Version,
 			InstanceID:         cfg.InstanceID,
 			CloudRegion:        cfg.Region,
 			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
@@ -60,6 +59,7 @@ func Run(ctx context.Context, cfg Config) error {
 	//nolint:exhaustruct
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	lazy.SetRegistry(reg)
+	buildinfo.RegisterBuildInfoMetrics("vault")
 
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 		prom, promErr := prometheus.NewWithRegistry(reg)
