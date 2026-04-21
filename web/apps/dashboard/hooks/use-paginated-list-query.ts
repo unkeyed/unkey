@@ -168,7 +168,17 @@ export function usePaginatedListQuery<
   );
 
   // Reset to page 1 only when filter content actually changes, not on mount.
+  // The useEffect below syncs URL state for subsequent renders, but the render
+  // that observes the filter change still sees the old normalizedPage — without
+  // queryPage below, that render would fire one stale request for the previous
+  // page against the new filters before setPage(1) commits. The null guard
+  // keeps first-mount URL-persisted pages intact; we only override on a real
+  // filter transition.
   const prevFiltersKeyRef = useRef<string | null>(null);
+  const queryPage =
+    prevFiltersKeyRef.current !== null && filtersKey !== prevFiltersKeyRef.current
+      ? 1
+      : normalizedPage;
   useEffect(() => {
     if (prevFiltersKeyRef.current === null) {
       prevFiltersKeyRef.current = filtersKey;
@@ -210,12 +220,12 @@ export function usePaginatedListQuery<
     () =>
       ({
         ...filterParams,
-        page: normalizedPage,
+        page: queryPage,
         limit: normalizedPageSize,
         sortBy: validSortParams[0].column,
         sortOrder: validSortParams[0].direction,
       }) as TFilterParams & PageSortQueryParams<TSortField>,
-    [filterParams, normalizedPage, normalizedPageSize, validSortParams],
+    [filterParams, queryPage, normalizedPageSize, validSortParams],
   );
 
   const { data, isLoading, isFetching } = useListQuery(queryParams);
@@ -230,21 +240,21 @@ export function usePaginatedListQuery<
     if (data == null) {
       return;
     }
-    if (normalizedPage > totalPages) {
+    if (queryPage > totalPages) {
       setPage(totalPages);
     }
-  }, [data, normalizedPage, totalPages, setPage]);
+  }, [data, queryPage, totalPages, setPage]);
 
   // Prefetch the next few pages so navigation feels instant.
   useEffect(() => {
     for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = normalizedPage + i;
+      const nextPage = queryPage + i;
       if (nextPage > totalPages) {
         break;
       }
       prefetchPage({ ...queryParams, page: nextPage });
     }
-  }, [normalizedPage, totalPages, prefetchPage, queryParams]);
+  }, [queryPage, totalPages, prefetchPage, queryParams]);
 
   const onPageChange = useCallback(
     (newPage: number) => {
@@ -258,11 +268,9 @@ export function usePaginatedListQuery<
 
   return {
     data,
-    isLoading,
     isInitialLoading,
-    isPending: isFetching,
     isFetching,
-    page: normalizedPage,
+    page: queryPage,
     pageSize: normalizedPageSize,
     totalPages,
     totalCount,
