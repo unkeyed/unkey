@@ -69,9 +69,7 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
 
       onNavigate?.();
 
-      router.push(
-        `/${workspace.slug}/apis/${apiId}/keys/${keyAuthId}/${log.key_id}`,
-      );
+      router.push(`/${workspace.slug}/apis/${apiId}/keys/${keyAuthId}/${log.key_id}`);
     },
     [apiId, log.key_id, keyAuthId, canNavigate, onNavigate, router, workspace.slug],
   );

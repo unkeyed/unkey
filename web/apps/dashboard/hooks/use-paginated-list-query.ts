@@ -120,12 +120,17 @@ export function usePaginatedListQuery<
     }
   }, [sortParams, setSortParams, defaultSortParams]);
 
-  // Drop any URL-derived sort entries whose column is not in the caller's
-  // allowed set, falling back to defaults. Shared by both the table UI state
-  // and the tRPC query so they never disagree about which sort is applied.
-  const validSortParams = useMemo(() => {
-    const valid = effectiveSortParams.filter((s) => s.column in sortFieldToColumnId);
-    return valid.length > 0 ? valid : defaultSortParams;
+  // Keep only the first URL-derived sort entry whose column is an own key of
+  // the caller's allowed set, falling back to defaults otherwise. The server
+  // honors a single sortBy/sortOrder, so collapsing to one entry keeps the
+  // table UI state and the tRPC query in sync. hasOwnProperty.call avoids
+  // treating inherited Object.prototype methods (toString, hasOwnProperty…)
+  // as valid columns when a crafted URL references them.
+  const validSortParams = useMemo<SortUrlValue<TSortField>[]>(() => {
+    const firstValid = effectiveSortParams.find((s) =>
+      Object.prototype.hasOwnProperty.call(sortFieldToColumnId, s.column),
+    );
+    return firstValid ? [firstValid] : defaultSortParams;
   }, [effectiveSortParams, sortFieldToColumnId, defaultSortParams]);
 
   const sorting: SortingState = useMemo(() => {
@@ -138,13 +143,18 @@ export function usePaginatedListQuery<
   const onSortingChange = useCallback(
     (updater: SortingState | ((old: SortingState) => SortingState)) => {
       const next = typeof updater === "function" ? updater(sorting) : updater;
-      const mapped: SortUrlValue<TSortField>[] = next
-        .filter((s) => columnIdToSortField[s.id] !== undefined)
-        .map((s) => ({
-          column: columnIdToSortField[s.id],
-          direction: s.desc ? "desc" : "asc",
-        }));
-      setSortParams(mapped.length === 0 ? defaultSortParams : mapped);
+      const firstValid = next.find((s) =>
+        Object.prototype.hasOwnProperty.call(columnIdToSortField, s.id),
+      );
+      const mapped: SortUrlValue<TSortField>[] = firstValid
+        ? [
+            {
+              column: columnIdToSortField[firstValid.id],
+              direction: firstValid.desc ? "desc" : "asc",
+            },
+          ]
+        : defaultSortParams;
+      setSortParams(mapped);
       setPage(1);
     },
     [sorting, setSortParams, setPage, columnIdToSortField, defaultSortParams],
