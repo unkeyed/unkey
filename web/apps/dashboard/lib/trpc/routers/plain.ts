@@ -5,7 +5,7 @@ import { PlainClient, uiComponent } from "@team-plain/typescript-sdk";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-const issueType = z.enum(["bug", "feature", "security", "question", "payment", "deploy"]);
+const issueType = z.enum(["bug", "feature", "security", "question", "payment", "feedback"]);
 const severity = z.enum(["p0", "p1", "p2", "p3"]);
 
 export const createPlainIssue = workspaceProcedure
@@ -105,7 +105,7 @@ const issueToId: Record<z.infer<typeof issueType>, string> = {
   question: "lt_01HB93K6B8Y28CBBJQV6FQ791S",
   security: "lt_01HCATRJ25F3FJ7V8W2E4CRX5H",
   payment: "lt_01HB93K6C78S0Q61VG8C3FBZZC",
-  deploy: "lt_01KPR9AGBCBP6KB9WZR921ZFKP",
+  feedback: "lt_01KPR9AGBCBP6KB9WZR921ZFKP",
 };
 
 const severityToNumber: Record<z.infer<typeof severity>, number> = {

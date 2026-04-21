@@ -19,7 +19,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
-const ISSUE_TYPES = ["bug", "feature", "security", "payment", "question", "deploy"] as const;
+const ISSUE_TYPES = ["bug", "feature", "security", "payment", "question", "feedback"] as const;
 type IssueType = (typeof ISSUE_TYPES)[number];
 
 export const useFeedback = () => {
@@ -155,7 +155,7 @@ export const Feedback: React.FC = () => {
                     <SelectItem value="security">Security</SelectItem>
                     <SelectItem value="payment">Payments</SelectItem>
                     <SelectItem value="question">General Question</SelectItem>
-                    <SelectItem value="deploy">Deploy Feedback</SelectItem>
+                    <SelectItem value="feedback">Feedback</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.issueType && (
