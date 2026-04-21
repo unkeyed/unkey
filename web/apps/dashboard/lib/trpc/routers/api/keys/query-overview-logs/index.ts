@@ -86,7 +86,10 @@ export const queryKeysOverviewLogs = workspaceProcedure
 
     const keyIdsFromLogs = logs.map((log) => log.key_id);
 
-    // This ensures we only get keys that exist in both ClickHouse and the database
+    // Fetch key details for the keys returned by ClickHouse.
+    // Some keys may have been deleted — their details won't be in MySQL,
+    // but we still want to show their usage data so the table totals
+    // match the chart totals.
     const { keys } = await queryApiKeys({
       apiId: input.apiId,
       workspaceId: ctx.workspace.id,
@@ -98,15 +101,20 @@ export const queryKeysOverviewLogs = workspaceProcedure
     });
 
     const keyDetailsMap = createKeyDetailsMap(keys);
-    const filteredKeyIds = Array.from(keyDetailsMap.keys());
 
-    // Only include logs for keys that exist in the database and passed all filters
-    const keysOverviewLogs = logs
-      .filter((log) => filteredKeyIds.includes(log.key_id))
-      .map((log) => ({
-        ...log,
-        key_details: keyDetailsMap.get(log.key_id) || null,
-      }));
+    // Check if the user applied name or identity filters that require MySQL matching
+    const hasNameOrIdentityFilters =
+      (input.names && input.names.length > 0) || (input.identities && input.identities.length > 0);
+
+    // When name/identity filters are active, only include keys that matched in MySQL.
+    // Otherwise, include all keys from ClickHouse (even deleted ones) so the table
+    // totals stay consistent with the chart.
+    const keysOverviewLogs = (
+      hasNameOrIdentityFilters ? logs.filter((log) => keyDetailsMap.has(log.key_id)) : logs
+    ).map((log) => ({
+      ...log,
+      key_details: keyDetailsMap.get(log.key_id) || null,
+    }));
 
     const hasMore = logs.length === input.limit && keysOverviewLogs.length > 0;
     const response: KeysOverviewLogsResponse = {
