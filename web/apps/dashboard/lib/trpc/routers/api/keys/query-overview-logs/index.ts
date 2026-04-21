@@ -131,15 +131,17 @@ export const queryKeysOverviewLogs = workspaceProcedure
 
     const keyDetailsMap = createKeyDetailsMap(keys);
 
-    // CH already scoped to these keyIds (or to active keys in the workspace),
-    // but a key might have been soft-deleted between the CH aggregate and
-    // now. Drop any log whose key isn't in the Postgres result.
-    const keysOverviewLogs = logs
-      .filter((log) => keyDetailsMap.has(log.key_id))
-      .map((log) => ({
-        ...log,
-        key_details: keyDetailsMap.get(log.key_id) ?? null,
-      }));
+    // With a metadata filter, CH is already scoped to the pre-resolved keyIds;
+    // filter defensively in case CH returns a stale key_id. Without a
+    // metadata filter, include every log — a key that was soft-deleted after
+    // generating usage still has legitimate activity, and dropping it here
+    // would make the table totals disagree with the chart totals.
+    const keysOverviewLogs = (
+      hasMetadataFilter ? logs.filter((log) => keyDetailsMap.has(log.key_id)) : logs
+    ).map((log) => ({
+      ...log,
+      key_details: keyDetailsMap.get(log.key_id) ?? null,
+    }));
 
     const hasMore = logs.length === input.limit && keysOverviewLogs.length > 0;
     const response: KeysOverviewLogsResponse = {
