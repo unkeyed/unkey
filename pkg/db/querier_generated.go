@@ -79,6 +79,16 @@ type Querier interface {
 	//
 	//  DELETE FROM cilium_network_policies WHERE environment_id = ?
 	DeleteCiliumNetworkPoliciesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	// DeleteClickhouseOutboxBatch removes a set of pks after their CH insert
+	// is confirmed. Called inside the same transaction that selected them, so
+	// the row locks held by FOR UPDATE SKIP LOCKED are released as part of
+	// commit. A crash between the CH insert and this DELETE leaves the rows
+	// in place; the next batch picks them up and CH's
+	// non_replicated_deduplication_window collapses the identical re-insert
+	// into a noop.
+	//
+	//  DELETE FROM clickhouse_outbox WHERE pk IN (/*SLICE:pks*/?)
+	DeleteClickhouseOutboxBatch(ctx context.Context, db DBTX, pks []uint64) error
 	//DeleteCustomDomainByID
 	//
 	//  DELETE FROM custom_domains WHERE id = ?
@@ -377,7 +387,7 @@ type Querier interface {
 	FindAppWithSettings(ctx context.Context, db DBTX, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error)
 	//FindAuditLogTargetByID
 	//
-	//  SELECT audit_log_target.pk, audit_log_target.workspace_id, audit_log_target.bucket_id, audit_log_target.bucket, audit_log_target.audit_log_id, audit_log_target.display_name, audit_log_target.type, audit_log_target.id, audit_log_target.name, audit_log_target.meta, audit_log_target.created_at, audit_log_target.updated_at, audit_log.pk, audit_log.id, audit_log.workspace_id, audit_log.bucket, audit_log.bucket_id, audit_log.event, audit_log.time, audit_log.display, audit_log.remote_ip, audit_log.user_agent, audit_log.actor_type, audit_log.actor_id, audit_log.actor_name, audit_log.actor_meta, audit_log.created_at, audit_log.updated_at, audit_log.exported
+	//  SELECT audit_log_target.pk, audit_log_target.workspace_id, audit_log_target.bucket_id, audit_log_target.bucket, audit_log_target.audit_log_id, audit_log_target.display_name, audit_log_target.type, audit_log_target.id, audit_log_target.name, audit_log_target.meta, audit_log_target.created_at, audit_log_target.updated_at, audit_log.pk, audit_log.id, audit_log.workspace_id, audit_log.bucket, audit_log.bucket_id, audit_log.event, audit_log.time, audit_log.display, audit_log.remote_ip, audit_log.user_agent, audit_log.actor_type, audit_log.actor_id, audit_log.actor_name, audit_log.actor_meta, audit_log.created_at, audit_log.updated_at
 	//  FROM audit_log_target
 	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
 	//  WHERE audit_log_target.id = ?
@@ -394,6 +404,18 @@ type Querier interface {
 	//  WHERE audit_log_id IN (/*SLICE:audit_log_ids*/?)
 	//  ORDER BY audit_log_id, pk
 	FindAuditLogTargetsForLogs(ctx context.Context, db DBTX, auditLogIds []string) ([]FindAuditLogTargetsForLogsRow, error)
+	// FindAuditLogsByPkRange returns one paginated batch of historical audit_log
+	// rows ordered by pk. Used by the one-shot backfill that ships pre-outbox
+	// audit log history to ClickHouse. Callers track the highest pk seen and
+	// pass it back as after_pk on the next call.
+	//
+	//  SELECT pk, id, workspace_id, bucket, event, time, display,
+	//         remote_ip, user_agent, actor_type, actor_id, actor_name, actor_meta
+	//  FROM audit_log
+	//  WHERE pk > ?
+	//  ORDER BY pk
+	//  LIMIT ?
+	FindAuditLogsByPkRange(ctx context.Context, db DBTX, arg FindAuditLogsByPkRangeParams) ([]FindAuditLogsByPkRangeRow, error)
 	//FindCertificateByHostname
 	//
 	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
@@ -424,6 +446,26 @@ type Querier interface {
 	//  WHERE region_id = ? AND id = ?
 	//  LIMIT 1
 	FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, db DBTX, arg FindCiliumNetworkPolicyByIDAndRegionParams) (CiliumNetworkPolicy, error)
+	// FindClickhouseOutboxBatch returns the next batch of outbox rows for a
+	// known set of payload versions. Must be called inside a transaction.
+	// FOR UPDATE SKIP LOCKED locks the batch so a second cron tick (if Restate
+	// VO serialization ever fails) silently skips them rather than re-
+	// processing the same set. The lock is released when the caller commits
+	// or rolls back. Ordered by pk so retries see a deterministic row set,
+	// which lets CH's block-level deduplication collapse re-inserts after a
+	// partial failure.
+	//
+	// The version filter means a drainer never reads a payload it can't
+	// decode. Unknown versions stay in the table until a drainer with the
+	// matching handler ships.
+	//
+	//  SELECT pk, version, workspace_id, event_id, payload, created_at
+	//  FROM clickhouse_outbox
+	//  WHERE version IN (/*SLICE:versions*/?)
+	//  ORDER BY pk
+	//  LIMIT ?
+	//  FOR UPDATE SKIP LOCKED
+	FindClickhouseOutboxBatch(ctx context.Context, db DBTX, arg FindClickhouseOutboxBatchParams) ([]ClickhouseOutbox, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -1273,25 +1315,6 @@ type Querier interface {
 	//
 	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error)
-	// FindUnexportedAuditLogs returns the next batch of audit log envelopes that
-	// have not yet been written to the ClickHouse audit_logs_raw_v1 table.
-	// Must be called inside a transaction. FOR UPDATE SKIP LOCKED locks the
-	// batch's rows so a second cron run (if Restate VO serialization ever fails)
-	// silently skips them rather than re-processing the same set. The lock is
-	// released when the caller commits or rolls back. Ordered by pk so retries
-	// see a deterministic row set, which lets CH's block-level deduplication
-	// collapse re-inserts after a partial failure. The exported_pk_idx composite
-	// index makes this scan cheap even when the bulk of the table is
-	// exported = true.
-	//
-	//  SELECT pk, id, workspace_id, bucket, event, time, display,
-	//         remote_ip, user_agent, actor_type, actor_id, actor_name, actor_meta
-	//  FROM audit_log
-	//  WHERE exported = false
-	//  ORDER BY pk
-	//  LIMIT ?
-	//  FOR UPDATE SKIP LOCKED
-	FindUnexportedAuditLogs(ctx context.Context, db DBTX, limit int32) ([]FindUnexportedAuditLogsRow, error)
 	//FindVerifiedCustomDomainByDomainExcludingWorkspace
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
@@ -1552,6 +1575,29 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertCiliumNetworkPolicy(ctx context.Context, db DBTX, arg InsertCiliumNetworkPolicyParams) error
+	// InsertClickhouseOutbox enqueues one event for ClickHouse export. Called
+	// from the same MySQL transaction as the underlying mutation, so durability
+	// is exactly the durability of the mutation: if the mutation commits, the
+	// outbox row commits.
+	//
+	// version namespaces the payload schema (e.g. "audit_log.v1"). The drainer
+	// filters by versions it knows, so writing a new version without a matching
+	// drainer leaves rows queued safely.
+	//
+	//  INSERT INTO `clickhouse_outbox` (
+	//      version,
+	//      workspace_id,
+	//      event_id,
+	//      payload,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      CAST(? AS JSON),
+	//      ?
+	//  )
+	InsertClickhouseOutbox(ctx context.Context, db DBTX, arg InsertClickhouseOutboxParams) error
 	//InsertClickhouseWorkspaceSettings
 	//
 	//  INSERT INTO `clickhouse_workspace_settings` (
@@ -2709,17 +2755,6 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
-	// MarkAuditLogsExported flips the outbox flag for rows whose ClickHouse
-	// insert has been confirmed. The redundant `AND exported = false` guard is
-	// belt-and-braces idempotency: if two cron invocations ever raced (Restate
-	// VO serialization should prevent this, but defense in depth) the second
-	// update is a noop instead of double-marking.
-	//
-	//  UPDATE audit_log
-	//  SET exported = true
-	//  WHERE pk IN (/*SLICE:pks*/?)
-	//    AND exported = false
-	MarkAuditLogsExported(ctx context.Context, db DBTX, pks []uint64) error
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes

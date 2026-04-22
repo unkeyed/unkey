@@ -11,6 +11,7 @@ go_library(
     deps = [
         "//gen/proto/hydra/v1:hydra",
         "//pkg/assert",
+        "//pkg/auditlog",
         "//pkg/cache",
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",
@@ -28,7 +29,7 @@ go_test(
     srcs = ["run_export_handler_test.go"],
     embed = [":auditlogexport"],
     deps = [
-        "//pkg/db",
+        "//pkg/auditlog",
         "@com_github_stretchr_testify//require",
     ],
 )
