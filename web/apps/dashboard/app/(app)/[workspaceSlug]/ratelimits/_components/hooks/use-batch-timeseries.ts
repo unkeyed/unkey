@@ -63,6 +63,11 @@ export const useBatchRatelimitTimeseries = (namespaceIds: string[]) => {
     }
 
     const result: Record<string, NamespaceTimeseries> = {};
+    // Seed every requested namespace with an empty array so the chart can
+    // distinguish "query completed but no data" from "still loading".
+    for (const nsId of namespaceIds) {
+      result[nsId] = [];
+    }
     for (const [nsId, points] of Object.entries(data.timeseriesByNamespace)) {
       result[nsId] = points.map((ts) => ({
         displayX: formatTimestampForChart(ts.x, data.granularity),
@@ -73,7 +78,7 @@ export const useBatchRatelimitTimeseries = (namespaceIds: string[]) => {
       }));
     }
     return result;
-  }, [data]);
+  }, [data, namespaceIds]);
 
   return { timeseriesByNamespace, isLoading, isError, granularity: data?.granularity };
 };
