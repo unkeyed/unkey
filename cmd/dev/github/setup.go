@@ -140,7 +140,7 @@ func setupGitHubApp(_ context.Context, cmd *cli.Command) error {
 			errCh <- fmt.Errorf("GitHub did not return a code")
 			return
 		}
-		fmt.Fprintf(w, "<html><body><p>App created! You can close this tab.</p></body></html>")
+		_, _ = fmt.Fprintf(w, "<html><body><p>App created! You can close this tab.</p></body></html>")
 		codeCh <- code
 	})
 
@@ -189,7 +189,10 @@ func setupGitHubApp(_ context.Context, cmd *cli.Command) error {
 	fmt.Println("Next steps:")
 	fmt.Println("  1. make dev")
 	fmt.Println("  2. go run . dev seed local")
-	fmt.Println("  3. go run . dev github trigger-webhook --project <slug> --repository <owner/repo>")
+	fmt.Println("  3. go run . dev github tunnel   # each session — starts ngrok and patches the webhook URL")
+	fmt.Println()
+	fmt.Println("To replay a specific commit manually:")
+	fmt.Println("  go run . dev github trigger-webhook --project <slug> --repository <owner/repo>")
 
 	return nil
 }

@@ -5,7 +5,7 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/version"
+	"github.com/unkeyed/unkey/pkg/buildinfo"
 )
 
 func (s *Service) Liveness(
@@ -14,7 +14,7 @@ func (s *Service) Liveness(
 ) (*connect.Response[ctrlv1.LivenessResponse], error) {
 	res := connect.NewResponse(&ctrlv1.LivenessResponse{
 		Status:     "ok",
-		Version:    version.Version,
+		Version:    buildinfo.Version,
 		InstanceId: s.instanceID,
 	})
 

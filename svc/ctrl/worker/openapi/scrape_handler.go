@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -78,7 +79,12 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 	// is not trusted inside the cluster, so reach the pod directly via plain HTTP.
 	// Production: use HTTPS with the public FQDN.
 	isLocal := strings.HasSuffix(fqdn, ".unkey.local")
-	var specURL string
+	parsedSpecPath, err := validateSpecPath(specPath)
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Public("Failed to fetch OpenAPI spec."))
+	}
+
+	var baseURL *url.URL
 	if isLocal {
 		instances, instErr := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Instance, error) {
 			return db.Query.FindInstancesByDeploymentId(runCtx, s.db.RO(), deploymentID)
@@ -99,10 +105,12 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 			return &hydrav1.ScrapeSpecResponse{}, nil
 		}
 
-		specURL = fmt.Sprintf("http://%s%s", instanceAddr, specPath)
+		baseURL = &url.URL{Scheme: "http", Host: instanceAddr}
 	} else {
-		specURL = fmt.Sprintf("https://%s%s", fqdn, specPath)
+		baseURL = &url.URL{Scheme: "https", Host: fqdn}
 	}
+
+	specURL := baseURL.ResolveReference(parsedSpecPath).String()
 
 	logger.Info("scraping openapi spec", "deployment_id", deploymentID, "fqdn", fqdn, "path", specPath, "url", specURL)
 
@@ -164,4 +172,28 @@ func (s *Service) ScrapeSpec(ctx restate.Context, req *hydrav1.ScrapeSpecRequest
 
 	logger.Info("openapi spec scraped and persisted", "deployment_id", deploymentID)
 	return &hydrav1.ScrapeSpecResponse{}, nil
+}
+
+// validateSpecPath checks that path is a clean, absolute path suitable for resolving
+// against a trusted base URL. It rejects values containing a scheme, host, or userinfo
+// to prevent authority-confusion SSRF where a payload like "@attacker/path" would cause
+// the constructed URL to target an attacker-controlled host instead of the trusted one.
+func validateSpecPath(path string) (*url.URL, error) {
+	parsed, err := url.Parse(path)
+	if err != nil {
+		return nil, fmt.Errorf("malformed openapi spec path: %w", err)
+	}
+	if parsed.IsAbs() {
+		return nil, fmt.Errorf("openapi spec path must not contain a scheme: %q", path)
+	}
+	if parsed.Host != "" {
+		return nil, fmt.Errorf("openapi spec path must not contain a host: %q", path)
+	}
+	if parsed.User != nil {
+		return nil, fmt.Errorf("openapi spec path must not contain userinfo: %q", path)
+	}
+	if !strings.HasPrefix(parsed.Path, "/") {
+		return nil, fmt.Errorf("openapi spec path must be absolute (start with /): %q", path)
+	}
+	return parsed, nil
 }

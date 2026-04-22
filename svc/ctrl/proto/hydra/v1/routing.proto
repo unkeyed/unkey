@@ -6,11 +6,21 @@ import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 
+// RoutingService manages the routing layer for an environment. The VO is
+// keyed by env_id so all routing-related state changes (route assignments
+// and live-deployment swaps) for an environment are serialized.
 service RoutingService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
-  // AssignFrontlineRoutes creates or reassigns frontline routes to a deployment
+  // AssignFrontlineRoutes creates or reassigns frontline routes to a deployment.
   rpc AssignFrontlineRoutes(AssignFrontlineRoutesRequest) returns (AssignFrontlineRoutesResponse) {}
+
+  // SwapLiveDeployment atomically reassigns the given frontline routes AND
+  // updates apps.current_deployment_id to point at the target deployment,
+  // returning the previously-live deployment ID. Setting set_rollback_flag
+  // toggles apps.is_rolled_back. The caller is responsible for any follow-up
+  // work like scheduling the previous deployment for standby.
+  rpc SwapLiveDeployment(SwapLiveDeploymentRequest) returns (SwapLiveDeploymentResponse) {}
 }
 
 message AssignFrontlineRoutesRequest {
@@ -20,3 +30,18 @@ message AssignFrontlineRoutesRequest {
 }
 
 message AssignFrontlineRoutesResponse {}
+
+message SwapLiveDeploymentRequest {
+  string deployment_id = 1;
+  repeated string frontline_route_ids = 2;
+  // If true, sets apps.is_rolled_back = true (rollback semantics).
+  // If false, clears apps.is_rolled_back to false (deploy / promote semantics).
+  bool set_rollback_flag = 3;
+}
+
+message SwapLiveDeploymentResponse {
+  // The deployment_id that was previously live for this app, or empty if
+  // there was no previous live deployment. Useful for the caller to schedule
+  // the previous deployment for standby.
+  string previous_deployment_id = 1;
+}

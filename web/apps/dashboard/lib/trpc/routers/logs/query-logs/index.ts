@@ -20,7 +20,18 @@ export const queryLogs = workspaceProcedure
       workspaceId: ctx.workspace.id,
     });
 
-    const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);
+    // Skip the expensive total count query when looking up a single log by requestId.
+    // The count is unnecessary for detail fetches and avoids an extra ClickHouse round-trip
+    // per hover/click in the key-details and identity-details log tables.
+    const isSingleRequestIdLookup =
+      (transformedInputs.requestIds?.length ?? 0) === 1 && input.limit === 1;
+
+    const [countResult, logsResult] = await Promise.all([
+      isSingleRequestIdLookup
+        ? Promise.resolve({ val: [{ total_count: 0 }], err: null })
+        : totalQuery,
+      logsQuery,
+    ]);
 
     if (countResult.err || logsResult.err) {
       throw new TRPCError({
@@ -35,7 +46,7 @@ export const queryLogs = workspaceProcedure
     const response: LogsResponseSchema = {
       logs,
       hasMore: logs.length === input.limit,
-      total: countResult.val[0].total_count,
+      total: isSingleRequestIdLookup ? logs.length : countResult.val[0].total_count,
       nextCursor: logs.length > 0 ? logs[logs.length - 1].time : undefined,
     };
 

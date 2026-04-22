@@ -5,8 +5,8 @@ Local development tools for setting up and testing GitHub App-triggered deployme
 ## Commands
 
 - `go run . dev github setup`: create a GitHub App via manifest flow and write all credentials automatically
+- `go run . dev github tunnel`: start an ngrok tunnel and update the GitHub App webhook URL automatically
 - `go run . dev github trigger-webhook`: simulate a GitHub push webhook to trigger a deployment
-- `go run . dev github tunnel`: start an ngrok tunnel and update the GitHub App webhook URL. Usually not needed; Tilt runs this for you.
 
 ---
 

@@ -12,8 +12,8 @@ import (
 	"github.com/unkeyed/unkey/cmd/healthcheck"
 	"github.com/unkeyed/unkey/cmd/run"
 	"github.com/unkeyed/unkey/cmd/version"
+	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cli"
-	versioncmd "github.com/unkeyed/unkey/pkg/version"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 		Name:        "unkey",
 		Usage:       "Run unkey",
 		Description: `Unkey CLI – deploy, run and administer Unkey services.`,
-		Version:     versioncmd.Version,
+		Version:     buildinfo.Version,
 		Commands: []*cli.Command{
 			api.Cmd(),
 			auth.Cmd,

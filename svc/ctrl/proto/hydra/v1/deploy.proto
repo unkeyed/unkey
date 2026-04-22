@@ -7,8 +7,18 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 
 // DeployService orchestrates the lifecycle of application deployments as
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
-// any step after a crash. Workflows are keyed by app_id to allow concurrent
-// deployments across different apps within the same project.
+// any step after a crash.
+//
+// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
+// that lifecycle operations within a single environment are serialized
+// (preventing e.g. a rollback from racing with an in-flight deploy) while
+// different environments of the same app — e.g. production vs preview — can
+// deploy in parallel. This means a production push never waits behind a
+// preview build. Workspace-wide concurrency is separately enforced by
+// BuildSlotService.
+//
+// ScaleDownIdlePreviewDeployments is a global cron job and uses a fixed
+// sentinel key since it does not relate to any single environment.
 //
 // Deploy handles the full pipeline from building Docker images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -42,7 +52,32 @@ service DeployService {
   // deployment to standby that has received zero requests in the last 6 hours.
   // Intended to be called by a cron job.
   rpc ScaleDownIdlePreviewDeployments(ScaleDownIdlePreviewDeploymentsRequest) returns (ScaleDownIdlePreviewDeploymentsResponse) {}
+
+  // NotifyInstancesReady is called by the control plane (from
+  // ReportDeploymentStatus) when enough instances have become healthy across
+  // the required regions. It resolves the awakeable stored by a suspended
+  // Deploy workflow, unblocking it so the deployment can proceed to the
+  // network/finalize phases.
+  //
+  // SHARED so it can run concurrently with a suspended Deploy on the same VO
+  // key. The DeployService VO is keyed by {app_id}:{environment_id} which is
+  // shared across every deployment in that environment — the handler
+  // verifies the request's deployment_id matches the one currently awaiting,
+  // so a late status report from a previous deployment never resolves the
+  // awakeable of a newer one.
+  rpc NotifyInstancesReady(NotifyInstancesReadyRequest) returns (NotifyInstancesReadyResponse) {
+    option (dev.restate.sdk.go.handler_type) = SHARED;
+  }
 }
+
+message NotifyInstancesReadyRequest {
+  // The deployment that has reached the healthy-region threshold. The
+  // handler only resolves the awakeable if this matches the deployment that
+  // is currently waiting on it.
+  string deployment_id = 1;
+}
+
+message NotifyInstancesReadyResponse {}
 
 message ScaleDownIdlePreviewDeploymentsRequest {}
 message ScaleDownIdlePreviewDeploymentsResponse {}

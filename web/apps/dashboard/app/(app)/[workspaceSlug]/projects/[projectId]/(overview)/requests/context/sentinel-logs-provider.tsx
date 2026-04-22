@@ -1,7 +1,6 @@
 "use client";
 import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
 import { type PropsWithChildren, createContext, useContext, useState } from "react";
-import { useProjectLayout } from "../../layout-provider";
 
 type SentinelLogsContextType = {
   selectedLog: SentinelLogsResponse | null;
@@ -13,7 +12,6 @@ type SentinelLogsContextType = {
 const SentinelLogsContext = createContext<SentinelLogsContextType | null>(null);
 
 export const SentinelLogsProvider = ({ children }: PropsWithChildren) => {
-  const { setIsDetailsOpen } = useProjectLayout();
   const [selectedLog, setSelectedLog] = useState<SentinelLogsResponse | null>(null);
   const [isLive, setIsLive] = useState(false);
 
@@ -25,12 +23,7 @@ export const SentinelLogsProvider = ({ children }: PropsWithChildren) => {
     <SentinelLogsContext.Provider
       value={{
         selectedLog,
-        setSelectedLog: (log) => {
-          if (log) {
-            setIsDetailsOpen(false);
-          }
-          setSelectedLog(log);
-        },
+        setSelectedLog,
         isLive,
         toggleLive,
       }}

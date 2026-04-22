@@ -18,6 +18,7 @@ INNER JOIN github_repo_connections gc ON gc.app_id = a.id
 WHERE gc.installation_id = ?
   AND gc.repository_id = ?
   AND e.slug = CASE
+    WHEN CAST(? AS SIGNED) = 1 THEN 'preview'
     WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
     THEN 'production'
     ELSE 'preview'
@@ -27,6 +28,7 @@ WHERE gc.installation_id = ?
 type ListEnvVarsForRepoConnectionsParams struct {
 	InstallationID int64  `db:"installation_id"`
 	RepositoryID   int64  `db:"repository_id"`
+	IsForkPr       int64  `db:"is_fork_pr"`
 	Branch         string `db:"branch"`
 }
 
@@ -46,12 +48,18 @@ type ListEnvVarsForRepoConnectionsRow struct {
 //	WHERE gc.installation_id = ?
 //	  AND gc.repository_id = ?
 //	  AND e.slug = CASE
+//	    WHEN CAST(? AS SIGNED) = 1 THEN 'preview'
 //	    WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
 //	    THEN 'production'
 //	    ELSE 'preview'
 //	  END
 func (q *Queries) ListEnvVarsForRepoConnections(ctx context.Context, db DBTX, arg ListEnvVarsForRepoConnectionsParams) ([]ListEnvVarsForRepoConnectionsRow, error) {
-	rows, err := db.QueryContext(ctx, listEnvVarsForRepoConnections, arg.InstallationID, arg.RepositoryID, arg.Branch)
+	rows, err := db.QueryContext(ctx, listEnvVarsForRepoConnections,
+		arg.InstallationID,
+		arg.RepositoryID,
+		arg.IsForkPr,
+		arg.Branch,
+	)
 	if err != nil {
 		return nil, err
 	}

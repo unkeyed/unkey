@@ -20,6 +20,7 @@ go_library(
 go_test(
     name = "domainconnect_test",
     srcs = [
+        "client_test.go",
         "discover_test.go",
         "signing_test.go",
     ],
