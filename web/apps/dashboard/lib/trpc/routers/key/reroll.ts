@@ -128,8 +128,12 @@ async function rerollKeyCore({
 
   // Preserve the source key's prefix exactly. Falling back to the current
   // keyAuth default would silently add a prefix when the default has been
-  // changed after the key was created.
-  const prefix = source.start.includes("_") ? source.start.split("_")[0] : "";
+  // changed after the key was created. Prefixes may contain underscores
+  // (e.g. "pk_test"), so we split on the *last* underscore — the base58
+  // alphabet has no `_`, so every underscore in `start` came from a prefix
+  // separator.
+  const lastUnderscore = source.start.lastIndexOf("_");
+  const prefix = lastUnderscore === -1 ? "" : source.start.slice(0, lastUnderscore);
   const byteLength = source.keyAuth.defaultBytes ?? 16;
 
   const { key: plaintext, hash, start } = await newKey({ prefix, byteLength });
@@ -139,11 +143,22 @@ async function rerollKeyCore({
   const shouldEncrypt = Boolean(source.encrypted);
 
   try {
+    // Encrypt outside the transaction. vault.encrypt is a network RPC; doing
+    // it inside the transaction would hold row locks for its duration. The
+    // call is stateless — if the transaction later fails, the ciphertext is
+    // simply discarded, nothing to clean up vault-side.
+    const encryptedRecord = shouldEncrypt
+      ? await vault.encrypt({ keyring: source.workspaceId, data: plaintext })
+      : undefined;
+
     await db.transaction(async (tx) => {
-      // Re-check the source's state inside the transaction. The outer read was
-      // a snapshot; a concurrent delete or expiration update between that read
-      // and here would otherwise let us resurrect an expired key for the grace
-      // period, or revive a soft-deleted one.
+      // Re-check the source's state inside the transaction. The outer read
+      // was a snapshot; without this a concurrent delete or expiration-update
+      // that lands before the transaction starts could let us revive a
+      // soft-deleted key or resurrect one that just expired. Uses a fresh
+      // timestamp — the outer `now` was captured before the transaction,
+      // so a key whose expiry falls in that gap wouldn't be caught.
+      const nowInTx = Date.now();
       const current = await tx.query.keys.findFirst({
         where: (table, { and, eq }) =>
           and(eq(table.workspaceId, source.workspaceId), eq(table.id, source.id)),
@@ -155,7 +170,7 @@ async function rerollKeyCore({
           message: "The specified key was not found.",
         });
       }
-      if (current.expires && current.expires.getTime() <= now) {
+      if (current.expires && current.expires.getTime() <= nowInTx) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
           message: "This key has already expired and cannot be rotated.",
@@ -183,16 +198,12 @@ async function rerollKeyCore({
         environment: source.environment,
       });
 
-      if (shouldEncrypt) {
-        const { encrypted, keyId: encryptionKeyId } = await vault.encrypt({
-          keyring: source.workspaceId,
-          data: plaintext,
-        });
+      if (encryptedRecord) {
         await tx.insert(schema.encryptedKeys).values({
           workspaceId: source.workspaceId,
           keyId: newKeyId,
-          encrypted,
-          encryptionKeyId,
+          encrypted: encryptedRecord.encrypted,
+          encryptionKeyId: encryptedRecord.keyId,
           createdAt: now,
         });
       }

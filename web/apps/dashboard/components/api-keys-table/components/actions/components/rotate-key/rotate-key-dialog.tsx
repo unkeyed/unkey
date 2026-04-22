@@ -134,6 +134,7 @@ export const RotateKeyDialog = ({
         onClose={handleSuccessDialogClose}
         keyData={rotatedKeyData}
         variant="rotated"
+        resourceLabel={resourceLabel}
         detailsHref={detailsHref?.(rotatedKeyData)}
       />
     );

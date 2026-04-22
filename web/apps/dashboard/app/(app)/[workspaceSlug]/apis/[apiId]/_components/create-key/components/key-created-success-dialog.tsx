@@ -16,6 +16,8 @@ import { type FC, useEffect, useRef, useState } from "react";
 import { UNNAMED_KEY } from "../create-key.constants";
 import { KeySecretSection } from "./key-secret-section";
 
+type ResourceLabel = "key" | "root key";
+
 interface KeyCreatedSuccessDialogProps {
   isOpen: boolean;
   onClose: (() => void) | (() => Promise<void>);
@@ -25,28 +27,34 @@ interface KeyCreatedSuccessDialogProps {
   onCreateAnother?: (() => void) | (() => Promise<void>);
   variant?: "created" | "rotated";
   detailsHref?: string;
+  // Used by the "rotated" variant to say "key" vs "root key" in the copy.
+  // Ignored for "created", which is only entered from the api-key create flow.
+  resourceLabel?: ResourceLabel;
 }
 
-const COPY = {
-  created: {
-    title: "Key Created",
+const getCopy = (variant: "created" | "rotated", resourceLabel: ResourceLabel) => {
+  if (variant === "created") {
+    return {
+      title: "Key Created",
+      body: (
+        <>
+          You've successfully generated a new API key.
+          <br /> Use this key to authenticate requests from your application.
+        </>
+      ),
+    };
+  }
+  const titleNoun = resourceLabel === "root key" ? "Root Key" : "Key";
+  return {
+    title: `${titleNoun} Rotated`,
     body: (
       <>
-        You've successfully generated a new API key.
-        <br /> Use this key to authenticate requests from your application.
+        You've successfully rotated your {resourceLabel}.
+        <br /> The previous {resourceLabel} will be revoked after the chosen grace period.
       </>
     ),
-  },
-  rotated: {
-    title: "Key Rotated",
-    body: (
-      <>
-        You've successfully rotated your API key.
-        <br /> The previous key will be revoked after the chosen grace period.
-      </>
-    ),
-  },
-} as const;
+  };
+};
 
 export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
   isOpen,
@@ -57,8 +65,9 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
   onCreateAnother,
   variant = "created",
   detailsHref,
+  resourceLabel = "key",
 }) => {
-  const copy = COPY[variant];
+  const copy = getCopy(variant, resourceLabel);
   const workspace = useWorkspaceNavigation();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<

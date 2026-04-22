@@ -191,7 +191,7 @@ const NavbarContent = ({
               <KeySettingsDialog
                 keyData={specificKey}
                 apiId={currentApi.id}
-                keyspaceId={currentApi.keyAuthId}
+                keyspaceId={keyspaceId ?? currentApi.keyAuthId}
               />
               <CopyableIDButton value={keyId as string} />
             </>
