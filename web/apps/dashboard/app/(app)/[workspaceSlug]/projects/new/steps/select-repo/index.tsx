@@ -137,11 +137,11 @@ export const SelectRepo = ({
         </div>
       )}
 
-      <div className="flex gap-2 w-full min-w-[600px]">
+      <div className="flex gap-2 min-w-[750px] min-w-[750px]">
         {isLoadingRepos ? (
           <SelectRepoSkeleton />
         ) : reposError ? (
-          <div className="mt-3 flex flex-col items-center justify-center min-w-[640px] h-[462px] gap-3 border border-dashed rounded-[14px] border-grayA-5">
+          <div className="mt-3 flex flex-col items-center justify-center min-w-[750px] h-[462px] gap-3 border border-dashed rounded-[14px] border-grayA-5">
             <p className="text-[15px] text-accent-12 font-semibold">Failed to load repositories</p>
             <p className="text-[13px] text-accent-11 text-center whitespace-pre-line w-[350px]">
               {reposError.message}
@@ -156,14 +156,14 @@ export const SelectRepo = ({
             </Button>
           </div>
         ) : ownerOptions.length ? (
-          <div className="flex gap-2 w-full pt-1">
+          <div className="flex gap-2 min-w-[750px] pt-1">
             <Combobox
               wrapperClassName="w-[200px] shrink-0"
               className="w-[200px] shrink-0 text-left h-9 border-grayA-4 bg-transparent [&_svg]:text-gray-12"
               options={ownerOptions}
               value={selectedOwner}
               onSelect={handleSelectOwner}
-              placeholder={<span className="text-left w-full">Select an account...</span>}
+              placeholder={<span className="text-left min-w-[750px]">Select an account...</span>}
               searchPlaceholder="Filter accounts..."
               leftIcon={<Github />}
             />
@@ -184,7 +184,7 @@ export const SelectRepo = ({
         (filteredRepos.length > 0 ? (
           <div
             ref={parentRef}
-            className="mt-3 border rounded-[14px] border-grayA-5 min-w-[640px] max-h-[462px] overflow-y-auto"
+            className="mt-3 border rounded-[14px] border-grayA-5 min-w-[750px] max-h-[462px] overflow-y-auto"
           >
             <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
               {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -218,7 +218,7 @@ export const SelectRepo = ({
             </div>
           </div>
         ) : (
-          <div className="mt-3 flex flex-col items-center justify-center min-w-[640px] h-[462px] gap-3 border border-dashed rounded-[14px] border-grayA-5">
+          <div className="mt-3 flex flex-col items-center justify-center min-w-[750px] h-[462px] gap-3 border border-dashed rounded-[14px] border-grayA-5">
             <p className="text-[15px] text-accent-12 font-semibold">No repositories found</p>
           </div>
         ))}
@@ -236,7 +236,7 @@ export const SelectRepo = ({
               <OnboardingStepHintHighlight>GitHub</OnboardingStepHintHighlight>.
             </OnboardingStepHint>
           </a>
-          <div className="mt-8 w-full items-center justify-center flex">
+          <div className="mt-8 min-w-[750px] items-center justify-center flex">
             <OnboardingLinks />
           </div>
         </>

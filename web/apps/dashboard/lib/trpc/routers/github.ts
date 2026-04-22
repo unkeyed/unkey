@@ -2,6 +2,7 @@ import { and, db, eq, schema } from "@/lib/db";
 import { githubAppEnv } from "@/lib/env";
 import {
   type BranchActivity,
+  MAX_BRANCHES,
   checkFileExists,
   getInstallationRepositories,
   getMostActiveBranches,
@@ -9,7 +10,6 @@ import {
   getRepositoryBranches,
   getRepositoryById,
   getRepositoryTree,
-  MAX_BRANCHES,
   searchBranchesByPrefix,
 } from "@/lib/github";
 import { TRPCError } from "@trpc/server";
@@ -78,11 +78,11 @@ const fetchGithubContext = async (workspaceId: string, projectId: string) => {
     defaultBranch: app?.defaultBranch ?? "main",
     repoConnection: app?.githubRepoConnection
       ? {
-        pk: app.githubRepoConnection.pk,
-        repositoryId: app.githubRepoConnection.repositoryId,
-        repositoryFullName: app.githubRepoConnection.repositoryFullName,
-        installationId: app.githubRepoConnection.installationId,
-      }
+          pk: app.githubRepoConnection.pk,
+          repositoryId: app.githubRepoConnection.repositoryId,
+          repositoryFullName: app.githubRepoConnection.repositoryFullName,
+          installationId: app.githubRepoConnection.installationId,
+        }
       : null,
     installations: project.workspace?.githubAppInstallations ?? [],
   };

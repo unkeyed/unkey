@@ -73,7 +73,7 @@ const CommandEmpty = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Empty>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Empty>
 >((props, ref) => (
-  <CommandPrimitive.Empty ref={ref} className="text-sm text-center text-grayA-9" {...props} />
+  <CommandPrimitive.Empty ref={ref} className="text-[13px] text-center text-grayA-9" {...props} />
 ));
 
 CommandEmpty.displayName = CommandPrimitive.Empty.displayName;
@@ -114,8 +114,8 @@ const CommandItem = React.forwardRef<
     <CommandPrimitive.Item
       ref={ref}
       className={cn(
-        "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-hidden mt-3 first-of-type:mt-0",
-        "text-grayA-11 aria-selected:bg-grayA-3 aria-selected:text-grayA-12",
+        "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-[13px] outline-hidden mt-3 first-of-type:mt-0",
+        "text-gray-12 aria-selected:bg-grayA-3 aria-selected:text-grayA-12",
         disabled ? "pointer-events-none opacity-50" : "cursor-pointer",
         className,
       )}
