@@ -93,10 +93,11 @@ async function rerollKeyCore({
         permissions: true,
       },
     })
-    .catch((_err) => {
+    .catch((err) => {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "We were unable to rotate this key. Please try again or contact support@unkey.com",
+        cause: err,
       });
     });
 
@@ -233,7 +234,7 @@ async function rerollKeyCore({
         workspaceId: ctx.workspace.id,
         actor: { type: "user", id: ctx.user.id },
         event: "key.reroll",
-        description: `Rerolled key (${source.id}) to (${newKeyId})`,
+        description: `Rerolled key (${source.id}) to (${newKeyId}); old key expires at ${oldKeyExpiresAt.toISOString()}`,
         resources,
         context: {
           location: ctx.audit.location,
@@ -248,6 +249,7 @@ async function rerollKeyCore({
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "We were unable to rotate this key. Please try again or contact support@unkey.com",
+      cause: err,
     });
   }
 

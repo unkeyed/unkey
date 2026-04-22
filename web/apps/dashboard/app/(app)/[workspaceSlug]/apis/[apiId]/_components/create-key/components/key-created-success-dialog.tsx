@@ -20,10 +20,10 @@ interface KeyCreatedSuccessDialogProps {
   isOpen: boolean;
   onClose: (() => void) | (() => Promise<void>);
   keyData: { key: string; id: string; name?: string } | null;
-  apiId: string;
+  apiId?: string;
   keyspaceId?: string | null;
   onCreateAnother?: (() => void) | (() => Promise<void>);
-  variant?: "created" | "rerolled";
+  variant?: "created" | "rotated";
   detailsHref?: string;
 }
 
@@ -37,7 +37,7 @@ const COPY = {
       </>
     ),
   },
-  rerolled: {
+  rotated: {
     title: "Key Rotated",
     body: (
       <>
@@ -117,7 +117,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
         case "go-to-details": {
           const href =
             detailsHref ??
-            (keyspaceId
+            (apiId && keyspaceId
               ? `/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`
               : null);
           if (!href) {
@@ -226,7 +226,6 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
             </div>
             <KeySecretSection
               keyValue={keyData.key}
-              apiId={apiId}
               className="mt-6 w-full"
               secretKeyClassName="bg-white dark:bg-black overflow-x-auto"
               codeClassName="p-0"

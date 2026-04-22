@@ -1,17 +1,8 @@
 import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 
-type RotatedKey = {
-  keyId: string;
-  key: string;
-  name?: string;
-};
-
-export const useRotateKey = (onSuccess: (data: RotatedKey) => void) => {
+export const useRotateKey = () => {
   return trpc.key.reroll.useMutation({
-    onSuccess(data) {
-      onSuccess(data);
-    },
     onError(err) {
       if (err.data?.code === "NOT_FOUND") {
         toast.error("Key Not Found", {

@@ -5,7 +5,6 @@ import { CircleInfo } from "@unkey/icons";
 
 type KeySecretSectionProps = {
   keyValue: string;
-  apiId: string;
   className?: string;
   secretKeyClassName?: string;
   codeClassName?: string;

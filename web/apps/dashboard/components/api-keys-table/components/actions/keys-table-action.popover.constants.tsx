@@ -42,6 +42,7 @@ export const getKeysTableActionItems = (
 ): MenuItem[] => {
   const { apiId, keyspaceId } = context;
   const hasExternalId = Boolean(key.identity?.external_id);
+  const isExpired = () => key.expires !== null && key.expires <= Date.now();
   return [
     {
       id: "copy",
@@ -211,6 +212,8 @@ export const getKeysTableActionItems = (
             id: "rotate-key",
             label: "Rotate key...",
             icon: <ArrowDottedRotateAnticlockwise iconSize="md-medium" />,
+            disabled: isExpired,
+            tooltip: () => (isExpired() ? "Expired keys cannot be rotated" : undefined),
             ActionComponent: (props) => (
               <RotateKey {...props} keyDetails={key} apiId={apiId} keyspaceId={keyspaceId} />
             ),
