@@ -25,6 +25,9 @@ INSERT INTO `deployments` (
     healthcheck,
     pr_number,
     fork_repository_full_name,
+    `trigger`,
+    triggered_by,
+    trigger_reason,
     created_at,
     updated_at
 )
@@ -54,6 +57,9 @@ VALUES (
     sqlc.arg(healthcheck),
     sqlc.arg(pr_number),
     sqlc.arg(fork_repository_full_name),
+    sqlc.arg(deployment_trigger),
+    sqlc.arg(triggered_by),
+    sqlc.arg(trigger_reason),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)
 );

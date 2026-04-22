@@ -1,4 +1,4 @@
-import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
+import { DeployService, DeploymentTrigger } from "@/gen/proto/ctrl/v1/deployment_pb";
 import { insertAuditLogs } from "@/lib/audit";
 import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
@@ -51,6 +51,8 @@ export const redeploy = workspaceProcedure
           appId: deployment.appId,
           environmentSlug: deployment.environment?.slug ?? "",
           dockerImage: deployment.image ?? "",
+          trigger: DeploymentTrigger.DASHBOARD,
+          triggeredBy: ctx.user.id,
           ...(deployment.gitCommitSha
             ? {
                 gitCommit: {

@@ -11,6 +11,7 @@ go_library(
     deps = [
         "//cmd/deploy/internal/errors",
         "//cmd/deploy/internal/ui",
+        "//pkg/buildinfo",
         "//pkg/cli",
         "//pkg/git",
         "//pkg/logger",

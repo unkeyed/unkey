@@ -3,13 +3,32 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	unkey "github.com/unkeyed/sdks/api/go/v2"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/git"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
+
+// clientHeader is the X-Unkey-Client value the server reads to attribute
+// deployments to the CLI (vs the REST API). Keep the "unkey-cli/" prefix
+// stable — v2_deploy_create_deployment/handler.go matches on it.
+var clientHeader = "unkey-cli/" + buildinfo.Version
+
+// headerInjector wraps an HTTP client to add X-Unkey-Client on every
+// outgoing request. Used so the control plane can tag deployment rows with
+// trigger=cli without the caller having to pass an explicit field.
+type headerInjector struct {
+	inner http.Client
+}
+
+func (h *headerInjector) Do(req *http.Request) (*http.Response, error) {
+	req.Header.Set("X-Unkey-Client", clientHeader)
+	return h.inner.Do(req)
+}
 
 // DeploymentStatusEvent represents a status change event
 type DeploymentStatusEvent struct {
@@ -36,6 +55,7 @@ type ControlPlaneClient struct {
 func NewControlPlaneClient(opts DeployOptions) *ControlPlaneClient {
 	sdkOpts := []unkey.SDKOption{
 		unkey.WithSecurity(opts.RootKey),
+		unkey.WithClient(&headerInjector{inner: http.Client{}}),
 	}
 
 	// If not specified, SDK will use its default prod URL.

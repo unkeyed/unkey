@@ -320,6 +320,9 @@ func insertDeploymentRecord(
 			Healthcheck:                   runtimeSettings.Healthcheck,
 			PrNumber:                      sql.NullInt64{Int64: req.GetPrNumber(), Valid: req.GetPrNumber() != 0},
 			ForkRepositoryFullName:        sql.NullString{String: req.GetForkRepositoryFullName(), Valid: req.GetForkRepositoryFullName() != ""},
+			DeploymentTrigger:             db.DeploymentsTriggerGithub,
+			TriggeredBy:                   sql.NullString{String: req.GetSenderLogin(), Valid: req.GetSenderLogin() != ""},
+			TriggerReason:                 sql.NullString{Valid: false},
 		}); txErr != nil {
 			return txErr
 		}

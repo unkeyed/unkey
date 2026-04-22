@@ -10,6 +10,7 @@ go_library(
         "deployment_generated.go",
         "environment_generated.go",
         "openapi_generated.go",
+        "ops_generated.go",
         "project_generated.go",
         "service_generated.go",
     ],

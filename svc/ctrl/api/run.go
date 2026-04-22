@@ -32,6 +32,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/services/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/services/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/services/openapi"
+	"github.com/unkeyed/unkey/svc/ctrl/services/ops"
 	"github.com/unkeyed/unkey/svc/ctrl/services/project"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"golang.org/x/net/http2"
@@ -181,12 +182,17 @@ func Run(ctx context.Context, cfg Config) error {
 	r.RegisterHealth(mux)
 
 	mux.Handle(ctrlv1connect.NewCtrlServiceHandler(ctrl.New(cfg.InstanceID, database)))
-	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deployment.New(deployment.Config{
+	deploymentSvc := deployment.New(deployment.Config{
 		Database:     database,
 		Restate:      restateClient,
 		RestateAdmin: restateAdminClient,
 		GitHub:       ghClient,
 		Bearer:       cfg.AuthToken,
+	})
+	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
+	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{
+		DeploymentService: deploymentSvc,
+		Bearer:            cfg.AuthToken,
 	})))
 
 	mux.Handle(ctrlv1connect.NewOpenApiServiceHandler(openapi.New(openapi.Config{

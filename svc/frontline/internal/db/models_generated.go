@@ -624,6 +624,52 @@ func (ns NullDeploymentsStatus) Value() (driver.Value, error) {
 	return string(ns.DeploymentsStatus), nil
 }
 
+type DeploymentsTrigger string
+
+const (
+	DeploymentsTriggerUnknown   DeploymentsTrigger = "unknown"
+	DeploymentsTriggerGithub    DeploymentsTrigger = "github"
+	DeploymentsTriggerApi       DeploymentsTrigger = "api"
+	DeploymentsTriggerCli       DeploymentsTrigger = "cli"
+	DeploymentsTriggerDashboard DeploymentsTrigger = "dashboard"
+	DeploymentsTriggerUnkey     DeploymentsTrigger = "unkey"
+)
+
+func (e *DeploymentsTrigger) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeploymentsTrigger(s)
+	case string:
+		*e = DeploymentsTrigger(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeploymentsTrigger: %T", src)
+	}
+	return nil
+}
+
+type NullDeploymentsTrigger struct {
+	DeploymentsTrigger DeploymentsTrigger
+	Valid              bool // Valid is true if DeploymentsTrigger is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeploymentsTrigger) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeploymentsTrigger, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeploymentsTrigger.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeploymentsTrigger) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeploymentsTrigger), nil
+}
+
 type DeploymentsUpstreamProtocol string
 
 const (
@@ -1262,6 +1308,9 @@ type Deployment struct {
 	GithubDeploymentID            sql.NullInt64               `db:"github_deployment_id"`
 	InvocationID                  sql.NullString              `db:"invocation_id"`
 	Status                        DeploymentsStatus           `db:"status"`
+	Trigger                       DeploymentsTrigger          `db:"trigger"`
+	TriggeredBy                   sql.NullString              `db:"triggered_by"`
+	TriggerReason                 sql.NullString              `db:"trigger_reason"`
 	CreatedAt                     int64                       `db:"created_at"`
 	UpdatedAt                     sql.NullInt64               `db:"updated_at"`
 }

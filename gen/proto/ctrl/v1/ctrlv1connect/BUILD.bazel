@@ -10,6 +10,7 @@ go_library(
         "deployment.connect.go",
         "environment.connect.go",
         "openapi.connect.go",
+        "ops.connect.go",
         "project.connect.go",
         "service.connect.go",
     ],

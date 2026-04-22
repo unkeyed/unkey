@@ -160,6 +160,7 @@ export * from "./icons/trash";
 export * from "./icons/triangle-warning";
 export * from "./icons/triangle-warning-2";
 export * from "./icons/ufo";
+export * from "./icons/unkey";
 export * from "./icons/unlink";
 export * from "./icons/user-search";
 export * from "./icons/user";

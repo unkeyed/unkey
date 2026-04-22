@@ -37,6 +37,9 @@ export const getById = workspaceProcedure
         gitCommitAuthorAvatarUrl: deployment.gitCommitAuthorAvatarUrl,
         projectId: deployment.projectId,
         environment: deployment.environment?.slug ?? "",
+        trigger: deployment.trigger,
+        triggeredBy: deployment.triggeredBy,
+        triggerReason: deployment.triggerReason,
         createdAt: deployment.createdAt,
         updatedAt: deployment.updatedAt,
       };

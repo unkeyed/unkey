@@ -63,63 +63,105 @@ func (s *Service) CreateDeployment(
 			fmt.Errorf("project_id is required"))
 	}
 
-	// Lookup project and infer workspace from it
-	project, err := db.Query.FindProjectById(ctx, s.db.RO(), req.Msg.GetProjectId())
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("project not found: %s", req.Msg.GetProjectId()))
-		}
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	workspaceID := project.WorkspaceID
-
 	appID := req.Msg.GetAppId()
 	if appID == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("app_id is required"))
 	}
 
-	// Verify the environment exists
+	ctxLoad, err := s.loadDeploymentContext(ctx, req.Msg.GetProjectId(), appID, req.Msg.GetEnvironmentSlug())
+	if err != nil {
+		return nil, err
+	}
+
+	keyspaceID := req.Msg.GetKeyspaceId()
+	var keyAuthID *string
+	if keyspaceID != "" {
+		keyAuthID = &keyspaceID
+	}
+
+	deploymentID, err := s.createAndDeploy(ctx, createParams{
+		context:       ctxLoad,
+		dockerImage:   req.Msg.GetDockerImage(),
+		gitCommit:     req.Msg.GetGitCommit(),
+		keyAuthID:     keyAuthID,
+		command:       req.Msg.GetCommand(),
+		trigger:       triggerFromProto(req.Msg.GetTrigger()),
+		triggeredBy:   req.Msg.GetTriggeredBy(),
+		triggerReason: req.Msg.GetTriggerReason(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&ctrlv1.CreateDeploymentResponse{
+		DeploymentId: deploymentID,
+		Status:       ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING,
+	}), nil
+}
+
+// deploymentContext bundles the resolved project/app/env context needed to
+// create a deployment. Loaded once at the RPC boundary and passed to the
+// shared createAndDeploy helper.
+type deploymentContext struct {
+	project            db.Project
+	workspaceID        string
+	env                db.FindEnvironmentByAppIdAndSlugRow
+	app                db.App
+	appBuildSettings   db.AppBuildSetting
+	appRuntimeSettings db.AppRuntimeSetting
+	secretsBlob        []byte
+}
+
+// loadDeploymentContext resolves project, app, environment, settings, and
+// app-scoped env vars into a single bundle. Used by both CreateDeployment
+// (external) and RebuildDeployment (internal recovery) so neither RPC
+// has to reimplement the lookup chain.
+func (s *Service) loadDeploymentContext(
+	ctx context.Context,
+	projectID, appID, envSlug string,
+) (deploymentContext, error) {
+	project, err := db.Query.FindProjectById(ctx, s.db.RO(), projectID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return deploymentContext{}, connect.NewError(connect.CodeNotFound,
+				fmt.Errorf("project not found: %s", projectID))
+		}
+		return deploymentContext{}, connect.NewError(connect.CodeInternal, err)
+	}
+
 	env, err := db.Query.FindEnvironmentByAppIdAndSlug(ctx, s.db.RO(), db.FindEnvironmentByAppIdAndSlugParams{
 		AppID: appID,
-		Slug:  req.Msg.GetEnvironmentSlug(),
+		Slug:  envSlug,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("environment '%s' not found for app '%s'",
-					req.Msg.GetEnvironmentSlug(), appID))
+			return deploymentContext{}, connect.NewError(connect.CodeNotFound,
+				fmt.Errorf("environment '%s' not found for app '%s'", envSlug, appID))
 		}
-		return nil, connect.NewError(connect.CodeInternal,
+		return deploymentContext{}, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup environment: %w", err))
 	}
 
-	// Lookup app with build and runtime settings
 	appWithSettings, err := db.Query.FindAppWithSettings(ctx, s.db.RO(), db.FindAppWithSettingsParams{
 		ID:            appID,
 		EnvironmentID: env.Environment.ID,
 	})
 	if err != nil && db.IsNotFound(err) {
-		return nil, connect.NewError(connect.CodeNotFound,
+		return deploymentContext{}, connect.NewError(connect.CodeNotFound,
 			fmt.Errorf("app '%s' not found or missing settings", appID))
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
+		return deploymentContext{}, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup app: %w", err))
 	}
 
-	app := appWithSettings.App
-	appBuildSettings := appWithSettings.AppBuildSetting
-	appRuntimeSettings := appWithSettings.AppRuntimeSetting
-
-	// Fetch app-scoped environment variables
 	appEnvVars, err := db.Query.FindAppEnvVarsByAppAndEnv(ctx, s.db.RO(), db.FindAppEnvVarsByAppAndEnvParams{
-		AppID:         app.ID,
+		AppID:         appWithSettings.App.ID,
 		EnvironmentID: env.Environment.ID,
 	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal,
+		return deploymentContext{}, connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to fetch app environment variables: %w", err))
 	}
 
@@ -130,7 +172,7 @@ func (s *Service) CreateDeployment(
 		}
 		for _, ev := range appEnvVars {
 			if !validation.IsValidEnvVarKey(ev.Key) {
-				return nil, connect.NewError(connect.CodeInvalidArgument,
+				return deploymentContext{}, connect.NewError(connect.CodeInvalidArgument,
 					fmt.Errorf("environment variable key %q is invalid: %s", ev.Key, validation.ErrMsgInvalidEnvVarKey))
 			}
 			secretsConfig.Secrets[ev.Key] = ev.Value
@@ -138,94 +180,121 @@ func (s *Service) CreateDeployment(
 
 		secretsBlob, err = protojson.Marshal(secretsConfig)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal,
+			return deploymentContext{}, connect.NewError(connect.CodeInternal,
 				fmt.Errorf("failed to marshal secrets config: %w", err))
 		}
 	}
 
+	return deploymentContext{
+		project:            project,
+		workspaceID:        project.WorkspaceID,
+		env:                env,
+		app:                appWithSettings.App,
+		appBuildSettings:   appWithSettings.AppBuildSetting,
+		appRuntimeSettings: appWithSettings.AppRuntimeSetting,
+		secretsBlob:        secretsBlob,
+	}, nil
+}
+
+// createParams carries everything createAndDeploy needs from a caller.
+type createParams struct {
+	context deploymentContext
+
+	// Source overrides. dockerImage wins if set; otherwise we auto-detect
+	// from git repo connection (using gitCommit.commit_sha if provided) or
+	// fall back to the live deployment's image.
+	dockerImage string
+	gitCommit   *ctrlv1.GitCommitInfo
+	keyAuthID   *string
+	command     []string
+
+	// Attribution persisted on the deployment row.
+	trigger       db.DeploymentsTrigger
+	triggeredBy   string
+	triggerReason string
+}
+
+// createAndDeploy is the shared path used by both CreateDeployment and
+// RebuildDeployment. It resolves the source (docker image / git / fallback),
+// inserts the deployment row, kicks off the Restate workflow, persists the
+// invocation id, and cancels superseded siblings.
+func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, error) {
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()
+
+	c := p.context
 
 	var gitCommitSha, gitBranch, gitCommitMessage, gitCommitAuthorHandle, gitCommitAuthorAvatarURL string
 	var gitCommitTimestamp int64
 	var deployReq *hydrav1.DeployRequest
 
-	// Resolve request-level overrides once so all branches can use them.
-	keyspaceID := req.Msg.GetKeyspaceId()
-	var keyAuthID *string
-	if keyspaceID != "" {
-		keyAuthID = &keyspaceID
-	}
-	command := req.Msg.GetCommand()
-
-	if dockerImage := req.Msg.GetDockerImage(); dockerImage != "" {
+	if p.dockerImage != "" {
 		// Explicit docker image (CLI, REST API)
-		gitBranch = branchFromGitCommit(req.Msg.GetGitCommit(), appWithSettings.App.DefaultBranch)
+		gitBranch = branchFromGitCommit(p.gitCommit, c.app.DefaultBranch)
 
-		if gitCommit := req.Msg.GetGitCommit(); gitCommit != nil {
-			gitCommitSha = gitCommit.GetCommitSha()
-			gitCommitMessage = trimLength(gitCommit.GetCommitMessage(), maxCommitMessageLength)
-			gitCommitAuthorHandle = trimLength(strings.TrimSpace(gitCommit.GetAuthorHandle()), maxCommitAuthorHandleLength)
-			gitCommitAuthorAvatarURL = trimLength(strings.TrimSpace(gitCommit.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
-			gitCommitTimestamp = gitCommit.GetTimestamp()
+		if p.gitCommit != nil {
+			gitCommitSha = p.gitCommit.GetCommitSha()
+			gitCommitMessage = trimLength(p.gitCommit.GetCommitMessage(), maxCommitMessageLength)
+			gitCommitAuthorHandle = trimLength(strings.TrimSpace(p.gitCommit.GetAuthorHandle()), maxCommitAuthorHandleLength)
+			gitCommitAuthorAvatarURL = trimLength(strings.TrimSpace(p.gitCommit.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
+			gitCommitTimestamp = p.gitCommit.GetTimestamp()
 		}
 
 		logger.Info("deployment will use prebuilt image",
 			"deployment_id", deploymentID,
-			"app_id", app.ID,
-			"image", dockerImage)
+			"app_id", c.app.ID,
+			"image", p.dockerImage)
 
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
-			KeyAuthId:    keyAuthID,
-			Command:      command,
+			KeyAuthId:    p.keyAuthID,
+			Command:      p.command,
 			Source: &hydrav1.DeployRequest_DockerImage{
 				DockerImage: &hydrav1.DockerImage{
-					Image: dockerImage,
+					Image: p.dockerImage,
 				},
 			},
 		}
 	} else {
-		// Source omitted (dashboard redeploy w/o commit SHA): auto-detect from app config
-		repoConn, repoErr := db.Query.FindGithubRepoConnectionByAppId(ctx, s.db.RO(), app.ID)
+		// Source omitted: auto-detect from app config.
+		repoConn, repoErr := db.Query.FindGithubRepoConnectionByAppId(ctx, s.db.RO(), c.app.ID)
 		hasRepoConnection := repoErr == nil
 		if repoErr != nil && !db.IsNotFound(repoErr) {
-			return nil, connect.NewError(connect.CodeInternal,
+			return "", connect.NewError(connect.CodeInternal,
 				fmt.Errorf("failed to lookup github repo connection: %w", repoErr))
 		}
 
 		if hasRepoConnection {
-			// Has github_repo_connections row: build from git source.
-			gitBranch = branchFromGitCommit(req.Msg.GetGitCommit(), appWithSettings.App.DefaultBranch)
+			gitBranch = branchFromGitCommit(p.gitCommit, c.app.DefaultBranch)
 
-			if gitCommit := req.Msg.GetGitCommit(); gitCommit != nil {
-				gitCommitSha = gitCommit.GetCommitSha()
-				gitCommitMessage = trimLength(gitCommit.GetCommitMessage(), maxCommitMessageLength)
-				gitCommitAuthorHandle = trimLength(strings.TrimSpace(gitCommit.GetAuthorHandle()), maxCommitAuthorHandleLength)
-				gitCommitAuthorAvatarURL = trimLength(strings.TrimSpace(gitCommit.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
-				gitCommitTimestamp = gitCommit.GetTimestamp()
+			if p.gitCommit != nil {
+				gitCommitSha = p.gitCommit.GetCommitSha()
+				gitCommitMessage = trimLength(p.gitCommit.GetCommitMessage(), maxCommitMessageLength)
+				gitCommitAuthorHandle = trimLength(strings.TrimSpace(p.gitCommit.GetAuthorHandle()), maxCommitAuthorHandleLength)
+				gitCommitAuthorAvatarURL = trimLength(strings.TrimSpace(p.gitCommit.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
+				gitCommitTimestamp = p.gitCommit.GetTimestamp()
 			}
 
 			deployReq = &hydrav1.DeployRequest{
 				DeploymentId: deploymentID,
-				KeyAuthId:    keyAuthID,
-				Command:      command,
+				KeyAuthId:    p.keyAuthID,
+				Command:      p.command,
 				Source: &hydrav1.DeployRequest_Git{
 					Git: &hydrav1.GitSource{
 						InstallationId: repoConn.InstallationID,
 						Repository:     repoConn.RepositoryFullName,
 						CommitSha:      gitCommitSha,
-						ContextPath:    appBuildSettings.DockerContext,
-						DockerfilePath: appBuildSettings.Dockerfile,
+						ContextPath:    c.appBuildSettings.DockerContext,
+						DockerfilePath: c.appBuildSettings.Dockerfile,
 						Branch:         gitBranch,
 					},
 				},
 			}
 		} else {
 			// No repo connection: redeploy the current deployment's Docker image
-			dockerInfo, dockerErr := buildDockerSource(ctx, s.db, app, deploymentID)
+			dockerInfo, dockerErr := buildDockerSource(ctx, s.db, c.app, deploymentID)
 			if dockerErr != nil {
-				return nil, dockerErr
+				return "", dockerErr
 			}
 			gitCommitSha = dockerInfo.commitSHA
 			gitBranch = dockerInfo.branch
@@ -236,8 +305,8 @@ func (s *Service) CreateDeployment(
 
 			deployReq = &hydrav1.DeployRequest{
 				DeploymentId: deploymentID,
-				KeyAuthId:    keyAuthID,
-				Command:      command,
+				KeyAuthId:    p.keyAuthID,
+				Command:      p.command,
 				Source: &hydrav1.DeployRequest_DockerImage{
 					DockerImage: &hydrav1.DockerImage{
 						Image: dockerInfo.dockerImage,
@@ -247,17 +316,21 @@ func (s *Service) CreateDeployment(
 		}
 	}
 
-	// Insert deployment into database, snapshotting settings from app
-	err = db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
+	trigger := p.trigger
+	if trigger == "" {
+		trigger = db.DeploymentsTriggerUnknown
+	}
+
+	err := db.Query.InsertDeployment(ctx, s.db.RW(), db.InsertDeploymentParams{
 		ID:                            deploymentID,
 		K8sName:                       uid.DNS1035(12),
-		WorkspaceID:                   workspaceID,
-		ProjectID:                     project.ID,
-		AppID:                         app.ID,
-		EnvironmentID:                 env.Environment.ID,
-		SentinelConfig:                appRuntimeSettings.SentinelConfig,
-		EncryptedEnvironmentVariables: secretsBlob,
-		Command:                       appRuntimeSettings.Command,
+		WorkspaceID:                   c.workspaceID,
+		ProjectID:                     c.project.ID,
+		AppID:                         c.app.ID,
+		EnvironmentID:                 c.env.Environment.ID,
+		SentinelConfig:                c.appRuntimeSettings.SentinelConfig,
+		EncryptedEnvironmentVariables: c.secretsBlob,
+		Command:                       c.appRuntimeSettings.Command,
 		Status:                        db.DeploymentsStatusPending,
 		CreatedAt:                     now,
 		UpdatedAt:                     sql.NullInt64{Valid: false, Int64: 0},
@@ -267,27 +340,31 @@ func (s *Service) CreateDeployment(
 		GitCommitAuthorHandle:         sql.NullString{String: gitCommitAuthorHandle, Valid: gitCommitAuthorHandle != ""},
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: gitCommitAuthorAvatarURL, Valid: gitCommitAuthorAvatarURL != ""},
 		GitCommitTimestamp:            sql.NullInt64{Int64: gitCommitTimestamp, Valid: gitCommitTimestamp != 0},
-		CpuMillicores:                 appRuntimeSettings.CpuMillicores,
-		MemoryMib:                     appRuntimeSettings.MemoryMib,
-		StorageMib:                    appRuntimeSettings.StorageMib,
-		Port:                          appRuntimeSettings.Port,
-		ShutdownSignal:                db.DeploymentsShutdownSignal(appRuntimeSettings.ShutdownSignal),
-		UpstreamProtocol:              db.DeploymentsUpstreamProtocol(appRuntimeSettings.UpstreamProtocol),
-		Healthcheck:                   appRuntimeSettings.Healthcheck,
+		CpuMillicores:                 c.appRuntimeSettings.CpuMillicores,
+		MemoryMib:                     c.appRuntimeSettings.MemoryMib,
+		StorageMib:                    c.appRuntimeSettings.StorageMib,
+		Port:                          c.appRuntimeSettings.Port,
+		ShutdownSignal:                db.DeploymentsShutdownSignal(c.appRuntimeSettings.ShutdownSignal),
+		UpstreamProtocol:              db.DeploymentsUpstreamProtocol(c.appRuntimeSettings.UpstreamProtocol),
+		Healthcheck:                   c.appRuntimeSettings.Healthcheck,
 		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
 		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
+		DeploymentTrigger:             trigger,
+		TriggeredBy:                   sql.NullString{String: p.triggeredBy, Valid: p.triggeredBy != ""},
+		TriggerReason:                 sql.NullString{String: p.triggerReason, Valid: p.triggerReason != ""},
 	})
 	if err != nil {
 		logger.Error("failed to insert deployment", "error", err.Error())
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return "", connect.NewError(connect.CodeInternal, err)
 	}
 
 	logger.Info("starting deployment workflow",
 		"deployment_id", deploymentID,
-		"workspace_id", workspaceID,
-		"project_id", project.ID,
-		"app_id", app.ID,
-		"environment", env.Environment.ID,
+		"workspace_id", c.workspaceID,
+		"project_id", c.project.ID,
+		"app_id", c.app.ID,
+		"environment", c.env.Environment.ID,
+		"trigger", string(trigger),
 	)
 
 	// Send deployment request asynchronously, keyed by deployment_id —
@@ -307,10 +384,9 @@ func (s *Service) CreateDeployment(
 			logger.Error("failed to mark deployment as failed", "deployment_id", deploymentID, "error", updateErr)
 		}
 
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unable to start workflow: %w", err))
+		return "", connect.NewError(connect.CodeInternal, fmt.Errorf("unable to start workflow: %w", err))
 	}
 
-	// Persist the invocation ID so the deployment can be cancelled later.
 	invocationID := invocation.Id()
 	if updateErr := db.Query.UpdateDeploymentInvocationID(ctx, s.db.RW(), db.UpdateDeploymentInvocationIDParams{
 		ID:           deploymentID,
@@ -322,8 +398,6 @@ func (s *Service) CreateDeployment(
 			"invocation_id", invocationID,
 			"error", updateErr,
 		)
-		// Non-fatal: the deployment is already running. Cancellation may
-		// fail for this one deployment, but the workflow itself is fine.
 	}
 
 	logger.Info("deployment workflow started",
@@ -333,8 +407,8 @@ func (s *Service) CreateDeployment(
 
 	if cancelErr := s.dedup.CancelOlderSiblings(ctx, dedup.Newer{
 		ID:            deploymentID,
-		AppID:         app.ID,
-		EnvironmentID: env.Environment.ID,
+		AppID:         c.app.ID,
+		EnvironmentID: c.env.Environment.ID,
 		GitBranch:     gitBranch,
 		CreatedAt:     now,
 	}); cancelErr != nil {
@@ -344,10 +418,28 @@ func (s *Service) CreateDeployment(
 		)
 	}
 
-	return connect.NewResponse(&ctrlv1.CreateDeploymentResponse{
-		DeploymentId: deploymentID,
-		Status:       ctrlv1.DeploymentStatus_DEPLOYMENT_STATUS_PENDING,
-	}), nil
+	return deploymentID, nil
+}
+
+// triggerFromProto maps the proto enum to the db enum, defaulting to
+// "unknown" for the unspecified case.
+func triggerFromProto(t ctrlv1.DeploymentTrigger) db.DeploymentsTrigger {
+	switch t {
+	case ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_GITHUB:
+		return db.DeploymentsTriggerGithub
+	case ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API:
+		return db.DeploymentsTriggerApi
+	case ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI:
+		return db.DeploymentsTriggerCli
+	case ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_DASHBOARD:
+		return db.DeploymentsTriggerDashboard
+	case ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY:
+		return db.DeploymentsTriggerUnkey
+	case ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNSPECIFIED:
+		return db.DeploymentsTriggerUnknown
+	default:
+		return db.DeploymentsTriggerUnknown
+	}
 }
 
 // branchFromGitCommit extracts the branch from GitCommitInfo, falling back
