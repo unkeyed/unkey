@@ -1,7 +1,7 @@
+import { UpsertRoleDialog } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { toast } from "@unkey/ui";
 import { useEffect } from "react";
-import { UpsertRoleDialog } from "../../../../upsert-role";
 import { useFetchConnectedKeysAndPermsData } from "./hooks/use-fetch-connected-keys-and-perms";
 
 export const EditRole = ({
