@@ -463,6 +463,12 @@ type Querier interface {
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, db DBTX, k8sName string) (Deployment, error)
+	//FindDeploymentDedupInfoByIds
+	//
+	//  SELECT id, status, app_id, environment_id, git_branch, created_at
+	//  FROM deployments
+	//  WHERE id IN (/*SLICE:ids*/?)
+	FindDeploymentDedupInfoByIds(ctx context.Context, db DBTX, ids []string) ([]FindDeploymentDedupInfoByIdsRow, error)
 	// Returns all regions where a deployment is configured.
 	// Used for fan-out: when a deployment changes, emit state_change to each region.
 	//
@@ -471,6 +477,12 @@ type Querier interface {
 	//  INNER JOIN `regions` r ON dt.region_id = r.id
 	//  WHERE dt.deployment_id = ?
 	FindDeploymentRegions(ctx context.Context, db DBTX, deploymentID string) ([]Region, error)
+	//FindDeploymentStatusesByIds
+	//
+	//  SELECT id, status
+	//  FROM deployments
+	//  WHERE id IN (/*SLICE:ids*/?)
+	FindDeploymentStatusesByIds(ctx context.Context, db DBTX, ids []string) ([]FindDeploymentStatusesByIdsRow, error)
 	// FindDeploymentTopologyByDeploymentAndRegion returns a single deployment topology with all
 	// joined data needed for the Watch stream. Used by the unified WatchDeploymentChanges RPC.
 	//

@@ -51,6 +51,24 @@ type BuildSlotServiceClient interface {
 	// no-op. Safe to call from both the Deploy handler's success path and
 	// its compensation stack (defer).
 	Release(opts ...sdk_go.ClientOption) sdk_go.Client[*ReleaseSlotRequest, *ReleaseSlotResponse]
+	// Reconcile scans every deployment currently in active_slots and the wait
+	// lists, and releases any whose DB status is terminal. This is the
+	// self-healing primitive: it's invoked automatically from AcquireOrWait
+	// when the workspace is at capacity, and can be invoked manually via the
+	// admin endpoint.
+	Reconcile(opts ...sdk_go.ClientOption) sdk_go.Client[*ReconcileRequest, *ReconcileResponse]
+	// ForceRelease releases a specific deployment's slot regardless of the
+	// deployment's DB status. Operator escape hatch for when a slot is leaked
+	// in a way that Reconcile's status check would not catch (e.g. a
+	// deployment whose status is still active in DB but whose workflow is
+	// dead in Restate).
+	ForceRelease(opts ...sdk_go.ClientOption) sdk_go.Client[*ForceReleaseRequest, *ForceReleaseResponse]
+	// ClearState wipes all VO state for the workspace: active_slots, both
+	// wait lists. Last-resort operator recovery when the state has drifted
+	// so badly that per-deployment release is impractical. Does NOT cancel
+	// any in-flight deployments — it only frees the BuildSlotService's
+	// accounting so new AcquireOrWait calls can proceed.
+	ClearState(opts ...sdk_go.ClientOption) sdk_go.Client[*ClearStateRequest, *ClearStateResponse]
 }
 
 type buildSlotServiceClient struct {
@@ -83,6 +101,30 @@ func (c *buildSlotServiceClient) Release(opts ...sdk_go.ClientOption) sdk_go.Cli
 	return sdk_go.WithRequestType[*ReleaseSlotRequest](sdk_go.Object[*ReleaseSlotResponse](c.ctx, "hydra.v1.BuildSlotService", c.key, "Release", cOpts...))
 }
 
+func (c *buildSlotServiceClient) Reconcile(opts ...sdk_go.ClientOption) sdk_go.Client[*ReconcileRequest, *ReconcileResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*ReconcileRequest](sdk_go.Object[*ReconcileResponse](c.ctx, "hydra.v1.BuildSlotService", c.key, "Reconcile", cOpts...))
+}
+
+func (c *buildSlotServiceClient) ForceRelease(opts ...sdk_go.ClientOption) sdk_go.Client[*ForceReleaseRequest, *ForceReleaseResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*ForceReleaseRequest](sdk_go.Object[*ForceReleaseResponse](c.ctx, "hydra.v1.BuildSlotService", c.key, "ForceRelease", cOpts...))
+}
+
+func (c *buildSlotServiceClient) ClearState(opts ...sdk_go.ClientOption) sdk_go.Client[*ClearStateRequest, *ClearStateResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*ClearStateRequest](sdk_go.Object[*ClearStateResponse](c.ctx, "hydra.v1.BuildSlotService", c.key, "ClearState", cOpts...))
+}
+
 // BuildSlotServiceIngressClient is the ingress client API for hydra.v1.BuildSlotService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -107,6 +149,24 @@ type BuildSlotServiceIngressClient interface {
 	// no-op. Safe to call from both the Deploy handler's success path and
 	// its compensation stack (defer).
 	Release() ingress.Requester[*ReleaseSlotRequest, *ReleaseSlotResponse]
+	// Reconcile scans every deployment currently in active_slots and the wait
+	// lists, and releases any whose DB status is terminal. This is the
+	// self-healing primitive: it's invoked automatically from AcquireOrWait
+	// when the workspace is at capacity, and can be invoked manually via the
+	// admin endpoint.
+	Reconcile() ingress.Requester[*ReconcileRequest, *ReconcileResponse]
+	// ForceRelease releases a specific deployment's slot regardless of the
+	// deployment's DB status. Operator escape hatch for when a slot is leaked
+	// in a way that Reconcile's status check would not catch (e.g. a
+	// deployment whose status is still active in DB but whose workflow is
+	// dead in Restate).
+	ForceRelease() ingress.Requester[*ForceReleaseRequest, *ForceReleaseResponse]
+	// ClearState wipes all VO state for the workspace: active_slots, both
+	// wait lists. Last-resort operator recovery when the state has drifted
+	// so badly that per-deployment release is impractical. Does NOT cancel
+	// any in-flight deployments — it only frees the BuildSlotService's
+	// accounting so new AcquireOrWait calls can proceed.
+	ClearState() ingress.Requester[*ClearStateRequest, *ClearStateResponse]
 }
 
 type buildSlotServiceIngressClient struct {
@@ -131,6 +191,21 @@ func (c *buildSlotServiceIngressClient) AcquireOrWait() ingress.Requester[*Acqui
 func (c *buildSlotServiceIngressClient) Release() ingress.Requester[*ReleaseSlotRequest, *ReleaseSlotResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*ReleaseSlotRequest, *ReleaseSlotResponse](c.client, c.serviceName, "Release", &c.key, &codec)
+}
+
+func (c *buildSlotServiceIngressClient) Reconcile() ingress.Requester[*ReconcileRequest, *ReconcileResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*ReconcileRequest, *ReconcileResponse](c.client, c.serviceName, "Reconcile", &c.key, &codec)
+}
+
+func (c *buildSlotServiceIngressClient) ForceRelease() ingress.Requester[*ForceReleaseRequest, *ForceReleaseResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*ForceReleaseRequest, *ForceReleaseResponse](c.client, c.serviceName, "ForceRelease", &c.key, &codec)
+}
+
+func (c *buildSlotServiceIngressClient) ClearState() ingress.Requester[*ClearStateRequest, *ClearStateResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*ClearStateRequest, *ClearStateResponse](c.client, c.serviceName, "ClearState", &c.key, &codec)
 }
 
 // BuildSlotServiceServer is the server API for hydra.v1.BuildSlotService service.
@@ -173,6 +248,24 @@ type BuildSlotServiceServer interface {
 	// no-op. Safe to call from both the Deploy handler's success path and
 	// its compensation stack (defer).
 	Release(ctx sdk_go.ObjectContext, req *ReleaseSlotRequest) (*ReleaseSlotResponse, error)
+	// Reconcile scans every deployment currently in active_slots and the wait
+	// lists, and releases any whose DB status is terminal. This is the
+	// self-healing primitive: it's invoked automatically from AcquireOrWait
+	// when the workspace is at capacity, and can be invoked manually via the
+	// admin endpoint.
+	Reconcile(ctx sdk_go.ObjectContext, req *ReconcileRequest) (*ReconcileResponse, error)
+	// ForceRelease releases a specific deployment's slot regardless of the
+	// deployment's DB status. Operator escape hatch for when a slot is leaked
+	// in a way that Reconcile's status check would not catch (e.g. a
+	// deployment whose status is still active in DB but whose workflow is
+	// dead in Restate).
+	ForceRelease(ctx sdk_go.ObjectContext, req *ForceReleaseRequest) (*ForceReleaseResponse, error)
+	// ClearState wipes all VO state for the workspace: active_slots, both
+	// wait lists. Last-resort operator recovery when the state has drifted
+	// so badly that per-deployment release is impractical. Does NOT cancel
+	// any in-flight deployments — it only frees the BuildSlotService's
+	// accounting so new AcquireOrWait calls can proceed.
+	ClearState(ctx sdk_go.ObjectContext, req *ClearStateRequest) (*ClearStateResponse, error)
 }
 
 // UnimplementedBuildSlotServiceServer should be embedded to have
@@ -187,6 +280,15 @@ func (UnimplementedBuildSlotServiceServer) AcquireOrWait(ctx sdk_go.ObjectContex
 }
 func (UnimplementedBuildSlotServiceServer) Release(ctx sdk_go.ObjectContext, req *ReleaseSlotRequest) (*ReleaseSlotResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Release not implemented"), 501)
+}
+func (UnimplementedBuildSlotServiceServer) Reconcile(ctx sdk_go.ObjectContext, req *ReconcileRequest) (*ReconcileResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method Reconcile not implemented"), 501)
+}
+func (UnimplementedBuildSlotServiceServer) ForceRelease(ctx sdk_go.ObjectContext, req *ForceReleaseRequest) (*ForceReleaseResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method ForceRelease not implemented"), 501)
+}
+func (UnimplementedBuildSlotServiceServer) ClearState(ctx sdk_go.ObjectContext, req *ClearStateRequest) (*ClearStateResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method ClearState not implemented"), 501)
 }
 func (UnimplementedBuildSlotServiceServer) testEmbeddedByValue() {}
 
@@ -209,5 +311,8 @@ func NewBuildSlotServiceServer(srv BuildSlotServiceServer, opts ...sdk_go.Servic
 	router := sdk_go.NewObject("hydra.v1.BuildSlotService", sOpts...)
 	router = router.Handler("AcquireOrWait", sdk_go.NewObjectHandler(srv.AcquireOrWait))
 	router = router.Handler("Release", sdk_go.NewObjectHandler(srv.Release))
+	router = router.Handler("Reconcile", sdk_go.NewObjectHandler(srv.Reconcile))
+	router = router.Handler("ForceRelease", sdk_go.NewObjectHandler(srv.ForceRelease))
+	router = router.Handler("ClearState", sdk_go.NewObjectHandler(srv.ClearState))
 	return router
 }
