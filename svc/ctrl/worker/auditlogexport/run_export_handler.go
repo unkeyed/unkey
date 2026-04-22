@@ -106,54 +106,62 @@ func (s *Service) RunExport(
 	}, nil
 }
 
-// exportBatch ships one batch of unexported audit logs to ClickHouse and marks
-// them exported in MySQL. Returns 0 when the outbox is empty.
+// exportBatch reads one batch of unexported audit logs, writes them to
+// ClickHouse, and marks them exported. The whole batch runs inside a single
+// MySQL transaction so the SELECT FOR UPDATE SKIP LOCKED and the UPDATE land
+// atomically. Returns 0 when the outbox is empty.
+//
+// Failure modes:
+//   - CH insert fails: tx rolls back, row locks released, rows stay
+//     unexported, next cron tick retries.
+//   - MySQL commit fails after a successful CH insert: rows stay unexported,
+//     next cron re-reads the same set in the same order, re-inserts an
+//     identical block, CH's non_replicated_deduplication_window collapses it
+//     to a noop, then commits.
 func (s *Service) exportBatch(ctx context.Context) (batchResult, error) {
-	rw := s.db.RW()
+	return db.TxWithResult(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) (batchResult, error) {
+		events, err := db.Query.FindUnexportedAuditLogs(txCtx, tx, batchLimit)
+		if err != nil {
+			return batchResult{EventsExported: 0}, fmt.Errorf("find unexported: %w", err)
+		}
+		if len(events) == 0 {
+			return batchResult{EventsExported: 0}, nil
+		}
 
-	events, err := db.Query.FindUnexportedAuditLogs(ctx, rw, batchLimit)
-	if err != nil {
-		return batchResult{EventsExported: 0}, fmt.Errorf("find unexported: %w", err)
-	}
-	if len(events) == 0 {
-		return batchResult{EventsExported: 0}, nil
-	}
+		eventIDs := make([]string, len(events))
+		pks := make([]uint64, len(events))
+		for i, e := range events {
+			eventIDs[i] = e.ID
+			pks[i] = e.Pk
+		}
 
-	eventIDs := make([]string, len(events))
-	pks := make([]uint64, len(events))
-	for i, e := range events {
-		eventIDs[i] = e.ID
-		pks[i] = e.Pk
-	}
+		targets, err := db.Query.FindAuditLogTargetsForLogs(txCtx, tx, eventIDs)
+		if err != nil {
+			return batchResult{EventsExported: 0}, fmt.Errorf("find targets: %w", err)
+		}
 
-	targets, err := db.Query.FindAuditLogTargetsForLogs(ctx, rw, eventIDs)
-	if err != nil {
-		return batchResult{EventsExported: 0}, fmt.Errorf("find targets: %w", err)
-	}
+		targetsByLog := make(map[string][]db.FindAuditLogTargetsForLogsRow, len(events))
+		for _, t := range targets {
+			targetsByLog[t.AuditLogID] = append(targetsByLog[t.AuditLogID], t)
+		}
 
-	targetsByLog := make(map[string][]db.FindAuditLogTargetsForLogsRow, len(events))
-	for _, t := range targets {
-		targetsByLog[t.AuditLogID] = append(targetsByLog[t.AuditLogID], t)
-	}
+		retentionByWorkspace, err := s.loadRetentionMillis(txCtx, events)
+		if err != nil {
+			return batchResult{EventsExported: 0}, fmt.Errorf("load retention: %w", err)
+		}
 
-	retentionByWorkspace, err := s.loadRetentionMillis(ctx, events)
-	if err != nil {
-		return batchResult{EventsExported: 0}, fmt.Errorf("load retention: %w", err)
-	}
+		rows := buildCHRows(events, targetsByLog, retentionByWorkspace)
 
-	rows := buildCHRows(events, targetsByLog, retentionByWorkspace)
+		if err := s.clickhouse.InsertAuditLogs(txCtx, rows); err != nil {
+			return batchResult{EventsExported: 0}, fmt.Errorf("insert clickhouse: %w", err)
+		}
 
-	if err := s.clickhouse.InsertAuditLogs(ctx, rows); err != nil {
-		return batchResult{EventsExported: 0}, fmt.Errorf("insert clickhouse: %w", err)
-	}
+		if err := db.Query.MarkAuditLogsExported(txCtx, tx, pks); err != nil {
+			return batchResult{EventsExported: 0}, fmt.Errorf("mark exported: %w", err)
+		}
 
-	if err := db.Query.MarkAuditLogsExported(ctx, rw, pks); err != nil {
-		return batchResult{EventsExported: 0}, fmt.Errorf("mark exported: %w", err)
-	}
-
-	return batchResult{
-		EventsExported: int32(len(events)),
-	}, nil
+		return batchResult{EventsExported: int32(len(events))}, nil
+	})
 }
 
 // buildCHRows fans out one CH row per (event × target). Events with no
