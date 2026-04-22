@@ -903,6 +903,30 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
+  async revokeSession(sessionToken: string): Promise<void> {
+    if (!sessionToken) {
+      return;
+    }
+
+    try {
+      const session = this.provider.userManagement.loadSealedSession({
+        sessionData: sessionToken,
+        cookiePassword: this.cookiePassword,
+      });
+
+      const authResult = await session.authenticate();
+      if (!authResult.authenticated) {
+        return;
+      }
+
+      await this.provider.userManagement.revokeSession({
+        sessionId: authResult.sessionId,
+      });
+    } catch (_error) {
+      // Swallow revoke failures so logout can always complete client-side.
+    }
+  }
+
   // OAuth Methods
   signInViaOAuth(options: SignInViaOAuthOptions): string {
     const { provider, redirectUrlComplete } = options;

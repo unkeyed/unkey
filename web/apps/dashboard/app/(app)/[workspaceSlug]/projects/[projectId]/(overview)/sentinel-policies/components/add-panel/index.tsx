@@ -5,8 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { match } from "@unkey/match";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { FirewallFields, FirewallSummary } from "./forms/firewall-fields";
-import { KeyAuthFields, KeyauthSummary } from "./forms/keyauth-fields";
+import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
+import { KeyAuthFields, KeyauthPolicySummary } from "./forms/keyauth-fields";
+import { RateLimitFields, RatelimitPolicySummary } from "./forms/ratelimit-fields";
+import { DocsLink } from "./forms/summary-helpers";
 import {
   MatchConditionEditorBody,
   MatchConditionsClearAll,
@@ -62,7 +64,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       : getDefaultValues("keyauth"),
   });
   const { control } = form;
-  const policyType = useWatch({ control, name: "type" }) as PolicyType;
+  const policyType = useWatch({ control, name: "type" });
 
   const onSubmit = (values: PolicyFormValues) => {
     const id = props.mode === "edit" ? props.initialPolicy.id : undefined;
@@ -89,15 +91,9 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       description={
         <div className="flex gap-2 items-center">
           {isEdit ? "Update this sentinel policy." : "Configure and add a new sentinel policy."}
-          <a
-            href="https://www.unkey.com/docs/platform/sentinel/policies/overview"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span className="font-medium text-gray-12 underline underline-offset-2 decoration-grayA-6 group-hover:decoration-gray-12 transition-colors decoration-dotted">
-              See docs for more
-            </span>
-          </a>
+          <DocsLink href="https://www.unkey.com/docs/platform/sentinel/policies/overview">
+            See docs for more
+          </DocsLink>
         </div>
       }
       isOpen={isOpen}
@@ -164,13 +160,15 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
           id="config"
           label="Policy Configuration"
           summary={match(policyType)
-            .with("keyauth", () => <KeyauthSummary />)
-            .with("firewall", () => <FirewallSummary />)
+            .with("keyauth", () => <KeyauthPolicySummary />)
+            .with("ratelimit", () => <RatelimitPolicySummary />)
+            .with("firewall", () => <FirewallPolicySummary />)
             .exhaustive()}
           catchAll
         >
           {match(policyType)
             .with("keyauth", () => <KeyAuthFields />)
+            .with("ratelimit", () => <RateLimitFields />)
             .with("firewall", () => <FirewallFields />)
             .exhaustive()}
         </PolicyForm.Section>

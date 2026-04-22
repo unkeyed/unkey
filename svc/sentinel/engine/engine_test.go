@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/svc/sentinel/engine/principal"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -83,12 +84,12 @@ func TestPrincipal_Marshal_WireFormat(t *testing.T) {
 
 	t.Run("minimal principal omits optional fields", func(t *testing.T) {
 		t.Parallel()
-		p := &Principal{
-			Version: PrincipalVersion,
+		p := &principal.Principal{
+			Version: principal.PrincipalVersion,
 			Subject: "key_abc",
-			Type:    PrincipalTypeAPIKey,
-			Source: Source{
-				Key: &KeySource{
+			Type:    principal.PrincipalTypeAPIKey,
+			Source: principal.Source{
+				Key: &principal.KeySource{
 					KeyID:       "key_abc",
 					KeySpaceID:  "ks_456",
 					Name:        nil,
@@ -117,16 +118,16 @@ func TestPrincipal_Marshal_WireFormat(t *testing.T) {
 
 	t.Run("populated principal includes identity and optional key fields", func(t *testing.T) {
 		t.Parallel()
-		p := &Principal{
-			Version: PrincipalVersion,
+		p := &principal.Principal{
+			Version: principal.PrincipalVersion,
 			Subject: "user_42",
-			Type:    PrincipalTypeAPIKey,
-			Identity: &Identity{
+			Type:    principal.PrincipalTypeAPIKey,
+			Identity: &principal.Identity{
 				ExternalID: "user_42",
 				Meta:       map[string]any{"plan": "pro"},
 			},
-			Source: Source{
-				Key: &KeySource{
+			Source: principal.Source{
+				Key: &principal.KeySource{
 					KeyID:       "key_abc",
 					KeySpaceID:  "ks_456",
 					Name:        ptr.P("prod"),

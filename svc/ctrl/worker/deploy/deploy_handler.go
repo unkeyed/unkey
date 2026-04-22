@@ -41,6 +41,29 @@ const (
 	// the workflow continues waiting for other regions and only fails if fewer than
 	// [waitForDeployments]'s required minimum become healthy within this window.
 	regionReadyTimeout = 15 * time.Minute
+
+	// noInstallationID is the zero value for a GitHub App installation ID.
+	// Proto3 omits zero-value int64 fields, so a missing installation ID arrives
+	// as 0. When this is the case the repo has no GitHub App connection and we
+	// fall back to unauthenticated API access (public repos only).
+	noInstallationID = int64(0)
+
+	// runMaxAttempts bounds per-Run retries. When a Run exceeds this count it
+	// returns a TerminalError into Go, which unwinds the handler and fires the
+	// compensation stack. Unbounded Runs chew through the service-level
+	// invocation retry policy, which Restate tears down without re-entering the
+	// handler — the deferred compensation.Execute never runs in that path.
+	//
+	// 5 attempts with Restate's default exponential backoff covers transient
+	// blips (DB reconnect, GitHub 5xx, network hiccup) while failing fast on
+	// persistent misconfiguration.
+	runMaxAttempts uint = 5
+
+	// buildImageRetryCeiling is an additional wall-clock cap on the outer
+	// build Run. A single build attempt can legitimately take many minutes,
+	// so attempts-based bounding alone is too coarse here — we also want a
+	// hard total-time ceiling. Whichever bound fires first wins.
+	buildImageRetryCeiling = 30 * time.Minute
 )
 
 // Deploy executes a full deployment workflow for a new application version.
@@ -97,7 +120,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
 		return db.Query.FindDeploymentById(runCtx, w.db.RW(), req.GetDeploymentId())
-	}, restate.WithName("finding deployment"), restate.WithMaxRetryDuration(time.Minute))
+	}, restate.WithName("finding deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
@@ -124,7 +147,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	// we don't need to plumb it through — this extra read is cheap compared to a build.
 	gateEnvironment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
 		return db.Query.FindEnvironmentById(runCtx, w.db.RO(), deployment.EnvironmentID)
-	}, restate.WithName("find environment for concurrency gate"))
+	}, restate.WithName("find environment for concurrency gate"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read environment for build gate."))
 	}
@@ -154,7 +177,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			EndedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			Error:        sql.NullString{Valid: false, String: ""},
 		})
-	})
+	}, restate.WithName("end queued step"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Deployment could not be started."))
 	}
@@ -196,28 +219,28 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				return nil
 			})
 			return ws, err
-		}, restate.WithName("find workspace"))
+		}, restate.WithName("find workspace"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Workspace settings could not be initialized."))
 		}
 
 		project, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Project, error) {
 			return db.Query.FindProjectById(runCtx, w.db.RW(), deployment.ProjectID)
-		}, restate.WithName("finding project"))
+		}, restate.WithName("finding project"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 		}
 
 		app, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
 			return db.Query.FindAppById(runCtx, w.db.RW(), deployment.AppID)
-		}, restate.WithName("finding app"))
+		}, restate.WithName("finding app"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 		}
 
 		environment, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
 			return db.Query.FindEnvironmentById(runCtx, w.db.RW(), deployment.EnvironmentID)
-		}, restate.WithName("finding environment"))
+		}, restate.WithName("finding environment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 		}
@@ -311,7 +334,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				Status:    db.DeploymentsStatusReady,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
-		}, restate.WithName("updating deployment status to ready"))
+		}, restate.WithName("updating deployment status to ready"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Deployment completed but final status could not be saved."))
 		}
@@ -380,7 +403,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		// a GitTarget that specifies only a branch)
 		if commitSHA == "" && source.Git.GetBranch() != "" {
 			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
-				if w.allowUnauthenticatedDeployments {
+				if w.allowUnauthenticatedDeployments && source.Git.GetInstallationId() == noInstallationID {
 					return w.github.GetBranchHeadCommitPublic(
 						source.Git.GetRepository(),
 						source.Git.GetBranch(),
@@ -391,7 +414,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 					source.Git.GetRepository(),
 					source.Git.GetBranch(),
 				)
-			}, restate.WithName("resolve branch head"))
+			}, restate.WithName("resolve branch head"), restate.WithMaxRetryAttempts(runMaxAttempts))
 			if resolveErr != nil {
 				return fault.Wrap(
 					restate.TerminalError(fmt.Errorf("failed to resolve HEAD of branch %q: %w", source.Git.GetBranch(), resolveErr)),
@@ -411,7 +434,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 					GitCommitTimestamp:       sql.NullInt64{Int64: info.Timestamp.UnixMilli(), Valid: !info.Timestamp.IsZero()},
 					UpdatedAt:                sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				})
-			}, restate.WithName("update deployment git metadata"))
+			}, restate.WithName("update deployment git metadata"), restate.WithMaxRetryAttempts(runMaxAttempts))
 			if resolveErr != nil {
 				return fault.Wrap(
 					fmt.Errorf("failed to update deployment git metadata: %w", resolveErr),
@@ -429,14 +452,15 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 
 		// When a SHA is known (either provided directly or just resolved from branch)
 		// but the deployment record is still missing git metadata, fetch it from GitHub.
-		if commitSHA != "" && !deployment.GitCommitMessage.Valid && !w.allowUnauthenticatedDeployments {
+		hasGitHubAuth := !w.allowUnauthenticatedDeployments || source.Git.GetInstallationId() != noInstallationID
+		if commitSHA != "" && !deployment.GitCommitMessage.Valid && hasGitHubAuth {
 			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
 				return w.github.GetCommitBySHA(
 					source.Git.GetInstallationId(),
 					source.Git.GetRepository(),
 					commitSHA,
 				)
-			}, restate.WithName("resolve commit metadata by sha"))
+			}, restate.WithName("resolve commit metadata by sha"), restate.WithMaxRetryAttempts(runMaxAttempts))
 			if resolveErr != nil {
 				return fault.Wrap(
 					fmt.Errorf("failed to resolve metadata for commit %q: %w", commitSHA, resolveErr),
@@ -455,7 +479,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 					GitCommitTimestamp:       sql.NullInt64{Int64: info.Timestamp.UnixMilli(), Valid: !info.Timestamp.IsZero()},
 					UpdatedAt:                sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				})
-			}, restate.WithName("update deployment git metadata for sha"))
+			}, restate.WithName("update deployment git metadata for sha"), restate.WithMaxRetryAttempts(runMaxAttempts))
 			if resolveErr != nil {
 				return fault.Wrap(
 					fmt.Errorf("failed to update deployment git metadata: %w", resolveErr),
@@ -499,7 +523,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 				BuildID:   sql.NullString{Valid: true, String: build.DepotBuildID},
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
-		})
+		}, restate.WithName("update deployment build id"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return fault.Wrap(
 				fmt.Errorf("failed to update deployment build ID: %w", err),
@@ -520,7 +544,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 			Image:     sql.NullString{Valid: true, String: dockerImage},
 			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
-	}, restate.WithName("update deployment image"))
+	}, restate.WithName("update deployment image"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return fault.Wrap(err, fault.Public("Unable to save deployment image."))
 	}
@@ -552,7 +576,7 @@ func (w *Workflow) createTopologies(
 			AppID:         deployment.AppID,
 			EnvironmentID: deployment.EnvironmentID,
 		})
-	}, restate.WithName("find regional settings"))
+	}, restate.WithName("find regional settings"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(
 			fmt.Errorf("failed to find regional settings for environment %s: %w", deployment.EnvironmentID, err),
@@ -586,14 +610,14 @@ func (w *Workflow) createTopologies(
 	// --- Quota check ---
 	quota, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Quotas, error) {
 		return db.Query.FindQuotaByWorkspaceID(runCtx, w.db.RW(), deployment.WorkspaceID)
-	}, restate.WithName("find workspace quota"))
+	}, restate.WithName("find workspace quota"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 
 	allocatedResources, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.SumAllocatedResourcesByWorkspaceIDRow, error) {
 		return db.Query.SumAllocatedResourcesByWorkspaceID(runCtx, w.db.RW(), workspace.ID)
-	}, restate.WithName("sum allocated resources by workspace"))
+	}, restate.WithName("sum allocated resources by workspace"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
@@ -683,7 +707,7 @@ func (w *Workflow) createTopologies(
 			}
 			return nil
 		})
-	}, restate.WithName("insert deployment topologies"))
+	}, restate.WithName("insert deployment topologies"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(
 			fmt.Errorf("failed to insert deployment topologies: %w", err),
@@ -754,7 +778,7 @@ func (w *Workflow) ensureSentinelRows(
 ) ([]string, error) {
 	existingSentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.FindSentinelsByEnvironmentIDRow, error) {
 		return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
-	}, restate.WithName("find existing sentinels"))
+	}, restate.WithName("find existing sentinels"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(
 			fmt.Errorf("failed to find existing sentinels: %w", err),
@@ -811,7 +835,7 @@ func (w *Workflow) ensureSentinelRows(
 				})
 			})
 			return id, err
-		}, restate.WithName("ensure sentinel exists in db"))
+		}, restate.WithName("ensure sentinel exists in db"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Public("Traffic proxy could not be created for a region."))
 		}
@@ -939,7 +963,7 @@ func (w *Workflow) configureRouting(
 				}
 				return found.ID, nil
 			})
-		}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)))
+		}, restate.WithName(fmt.Sprintf("inserting frontline route %s", domain.domain)), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if getFrontlineRouteErr != nil {
 			return fault.Wrap(getFrontlineRouteErr, fault.Public("Route records could not be created."))
 		}
@@ -951,7 +975,7 @@ func (w *Workflow) configureRouting(
 	// refresh app, cause it might have changed since we read it at the beginning of the workflow (e.g. another deployment promoted to live and updated current_deployment_id)
 	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
 		return db.Query.FindAppById(runCtx, w.db.RO(), app.ID)
-	})
+	}, restate.WithName("refresh app before promotion"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
@@ -989,7 +1013,7 @@ func (w *Workflow) configureRouting(
 			}
 			return routeIDs, nil
 		})
-	}, restate.WithName("finding sticky routes"))
+	}, restate.WithName("finding sticky routes"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return fault.Wrap(
 			fmt.Errorf("failed to find sticky routes: %w", err),
@@ -1110,11 +1134,17 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, compensation *c
 	})
 
 	// Initial check: if instances are already healthy, resolve immediately.
+	// Best-effort: on retry exhaustion, log and continue so NotifyInstancesReady
+	// can still complete the wait via the awakeable.
 	alreadyHealthy, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
 		return w.checkInstancesHealthy(runCtx, deploymentID, regionMinReplicas, requiredRegions)
-	}, restate.WithName("initial healthy-regions check"))
+	}, restate.WithName("initial healthy-regions check"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
-		return fault.Wrap(err, fault.Public("Failed to check deployment health."))
+		logger.Warn("initial healthy-regions check failed, proceeding to await NotifyInstancesReady",
+			"deployment_id", deploymentID,
+			"error", err,
+		)
+		alreadyHealthy = false
 	}
 	if alreadyHealthy {
 		restate.ResolveAwakeable[restate.Void](ctx, awk.Id(), restate.Void{})
@@ -1225,7 +1255,7 @@ func (w *Workflow) initGitHubStatus(
 			return db.GithubRepoConnection{}, findErr //nolint:exhaustruct
 		}
 		return found, nil
-	}, restate.WithName("find github repo connection"))
+	}, restate.WithName("find github repo connection"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		logger.Warn("failed to look up github repo connection, skipping deployment status reporting",
 			"app_id", deployment.AppID,

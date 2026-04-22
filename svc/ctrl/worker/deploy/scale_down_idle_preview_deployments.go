@@ -32,7 +32,7 @@ func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, re
 				PaginationCursor: cursor,
 				Limit:            100,
 			})
-		}, restate.WithName("list preview environments"))
+		}, restate.WithName("list preview environments"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return nil, err
 		}
@@ -51,7 +51,7 @@ func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, re
 					CreatedBefore: cutoff,
 					UpdatedBefore: sql.NullInt64{Valid: true, Int64: cutoff},
 				})
-			}, restate.WithName(fmt.Sprintf("get deployments for %s", environment.ID)))
+			}, restate.WithName(fmt.Sprintf("get deployments for %s", environment.ID)), restate.WithMaxRetryAttempts(runMaxAttempts))
 			if err != nil {
 				return nil, err
 			}
@@ -65,7 +65,7 @@ func (w *Workflow) ScaleDownIdlePreviewDeployments(ctx restate.ObjectContext, re
 						DeploymentID:  deployment.ID,
 						Duration:      idleTime,
 					})
-				}, restate.WithName(fmt.Sprintf("fetch request count for %s", deployment.ID)))
+				}, restate.WithName(fmt.Sprintf("fetch request count for %s", deployment.ID)), restate.WithMaxRetryAttempts(runMaxAttempts))
 				if err != nil {
 					return nil, err
 				}

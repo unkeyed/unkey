@@ -8,7 +8,14 @@ import type { Environment } from "@/lib/collections/deploy/environments";
 import type { Project } from "@/lib/collections/deploy/projects";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useParams } from "next/navigation";
-import { type PropsWithChildren, createContext, useContext, useEffect, useMemo } from "react";
+import {
+  type PropsWithChildren,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 
 type ProjectDataContextType = {
   projectId: string;
@@ -77,11 +84,18 @@ export const ProjectDataProvider = ({
         .orderBy(({ domain }) => domain.createdAt, "desc"),
     [projectId],
   );
-  // refetch domains when current deployment changes
+  // refetch domains only when current deployment actually changes (not on initial mount/hydration)
+  const prevDeploymentIdRef = useRef(project?.currentDeploymentId);
+  const mountedRef = useRef(false);
   useEffect(() => {
-    if (project?.currentDeploymentId) {
+    mountedRef.current = true;
+  }, []);
+  useEffect(() => {
+    const currentId = project?.currentDeploymentId;
+    if (mountedRef.current && currentId && prevDeploymentIdRef.current !== currentId) {
       collection.domains.utils.refetch();
     }
+    prevDeploymentIdRef.current = currentId;
   }, [project?.currentDeploymentId]);
 
   const environmentsQuery = useLiveQuery(

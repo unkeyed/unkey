@@ -99,12 +99,14 @@ func TestGitHubWebhook_Push_IgnoresDeletedBranch(t *testing.T) {
 	}
 }
 
-func TestGitHubWebhook_Push_IgnoresRestoredBranch(t *testing.T) {
+func TestGitHubWebhook_Push_ProcessesCreatedBranch(t *testing.T) {
 	pushRequests := make(chan *hydrav1.HandlePushRequest, 1)
 	harness := newWebhookHarness(t, webhookHarnessConfig{
 		Services: []restate.ServiceDefinition{hydrav1.NewGitHubWebhookServiceServer(&mockGitHubWebhookService{requests: pushRequests})},
 	})
 
+	// GitHub sets `created: true` on the first push of a new branch, which is
+	// the main way preview deployments get triggered.
 	payload := newTestPushPayload(testRepoFullName, false)
 	payload.Created = true
 
@@ -115,8 +117,8 @@ func TestGitHubWebhook_Push_IgnoresRestoredBranch(t *testing.T) {
 
 	select {
 	case <-pushRequests:
-		t.Fatal("unexpected HandlePush invocation for restored branch")
-	case <-time.After(1 * time.Second):
+	case <-time.After(10 * time.Second):
+		t.Fatal("expected HandlePush invocation for newly created branch")
 	}
 }
 

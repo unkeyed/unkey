@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
+	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -30,12 +31,20 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/runner"
-	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/sentinel/engine"
 	"github.com/unkeyed/unkey/svc/sentinel/routes"
 	"github.com/unkeyed/unkey/svc/sentinel/services/router"
 )
+
+type middlewareEngineCfg struct {
+	Runner           *runner.Runner
+	RedisURL         string
+	Region           string
+	Database         db.Database
+	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
+	Clock            clock.Clock
+}
 
 // maxRequestBodySize This will be moved to cfg in a later PR.
 const maxRequestBodySize = 1024 * 1024 // 1MB limit for logging request bodies
@@ -46,7 +55,6 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("bad config: %w", err)
 	}
 	if cfg.Observability.Logging != nil {
-
 		logger.SetSampler(logger.TailSampler{
 			SlowThreshold: cfg.Observability.Logging.SlowThreshold,
 			SampleRate:    cfg.Observability.Logging.SampleRate,
@@ -60,7 +68,6 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:        "sentinel",
-			Version:            version.Version,
 			InstanceID:         cfg.SentinelID,
 			CloudRegion:        cfg.Region,
 			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
@@ -78,7 +85,7 @@ func Run(ctx context.Context, cfg Config) error {
 		slog.String("environmentID", cfg.EnvironmentID),
 		slog.String("platform", cfg.Platform),
 		slog.String("region", cfg.Region),
-		slog.String("version", version.Version),
+		slog.String("version", buildinfo.Version),
 	))
 
 	r := runner.New()
@@ -91,6 +98,7 @@ func Run(ctx context.Context, cfg Config) error {
 	//nolint:exhaustruct
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	lazy.SetRegistry(reg)
+	buildinfo.RegisterBuildInfoMetrics("sentinel")
 
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 		prom, promErr := prometheus.NewWithRegistry(reg)
@@ -210,9 +218,14 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(routerSvc.Close)
 
-	// Initialize middleware engine for KeyAuth and other sentinel policies.
-	// Uses Redis if configured, in-memory counters otherwise.
-	middlewareEngine, err := initMiddlewareEngine(r, cfg, database, keyVerifications, clk)
+	middlewareEngine, err := initMiddlewareEngine(middlewareEngineCfg{
+		Runner:           r,
+		RedisURL:         cfg.Redis.URL,
+		Region:           cfg.Region,
+		Database:         database,
+		KeyVerifications: keyVerifications,
+		Clock:            clk,
+	})
 	if err != nil {
 		return fmt.Errorf("unable to create middleware engine: %w", err)
 	}
@@ -273,43 +286,42 @@ func Run(ctx context.Context, cfg Config) error {
 }
 
 // initMiddlewareEngine creates the middleware engine for policy evaluation.
-// Redis is not a critical dependency: if a Redis URL is configured, it is used
+// Redis is not a critical dependency: if a Redis URL is configured it is used
 // for distributed rate limiting and usage tracking; otherwise an in-memory
 // counter is used as fallback. Even with Redis configured, a connection failure
-// at startup does not prevent the engine from being created — the Redis client
+// at startup does not prevent the engine from being created, the Redis client
 // reconnects lazily, and both the rate limiter and usage limiter degrade
 // gracefully (local windows / DB fallback) when Redis is temporarily unavailable.
-func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, keyVerifications *batch.BatchProcessor[schema.KeyVerification], clk clock.Clock) (engine.Evaluator, error) {
+func initMiddlewareEngine(cfg middlewareEngineCfg) (engine.Evaluator, error) {
 	var ctr counter.Counter
-	if cfg.Redis.URL != "" {
-		redisCtr, redisErr := counter.NewRedis(counter.RedisConfig{
-			RedisURL: cfg.Redis.URL,
+	if cfg.RedisURL != "" {
+		redisCtr, err := counter.NewRedis(counter.RedisConfig{
+			RedisURL: cfg.RedisURL,
 		})
-		if redisErr != nil {
-			return nil, fmt.Errorf("failed to create redis counter: %w", redisErr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create redis counter: %w", err)
 		}
-		r.Defer(redisCtr.Close)
+		cfg.Runner.Defer(redisCtr.Close)
 		ctr = redisCtr
-		logger.Info("middleware engine using redis counter")
 	} else {
-		ctr = counter.NewMemory()
-		r.Defer(ctr.Close)
-		logger.Info("redis URL not configured, middleware engine using in-memory counter")
+		memoryCtr := counter.NewMemory()
+		cfg.Runner.Defer(memoryCtr.Close)
+		ctr = memoryCtr
 	}
 
-	rateLimiter, err := ratelimit.New(ratelimit.Config{
-		Clock:   clk,
+	rlSvc, err := ratelimit.New(ratelimit.Config{
+		Clock:   cfg.Clock,
 		Counter: ctr,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create rate limiter: %w", err)
+		return nil, fmt.Errorf("failed to create ratelimit service: %w", err)
 	}
-	r.Defer(rateLimiter.Close)
+	cfg.Runner.Defer(rlSvc.Close)
 
 	usageLimiter, err := usagelimiter.NewCounter(usagelimiter.CounterConfig{
 		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
 			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
-				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
+				return db.Query.FindKeyCredits(ctx, cfg.Database.RO(), keyID)
 			})
 			if err != nil {
 				return 0, false, err
@@ -317,7 +329,7 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 			return limit.Int32, limit.Valid, nil
 		},
 		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int32) error {
-			return db.Query.UpdateKeyCreditsDecrement(ctx, database.RW(), db.UpdateKeyCreditsDecrementParams{
+			return db.Query.UpdateKeyCreditsDecrement(ctx, cfg.Database.RW(), db.UpdateKeyCreditsDecrementParams{
 				ID:      keyID,
 				Credits: sql.NullInt32{Int32: cost, Valid: true},
 			})
@@ -329,24 +341,24 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 	if err != nil {
 		return nil, fmt.Errorf("failed to create usage limiter: %w", err)
 	}
-	r.Defer(usageLimiter.Close)
+	cfg.Runner.Defer(usageLimiter.Close)
 
-	keyCache, err := cache.New[string, keysdb.CachedKeyData](cache.Config[string, keysdb.CachedKeyData]{
+	keyCache, err := cache.New(cache.Config[string, keysdb.CachedKeyData]{
 		Fresh:    10 * time.Second,
 		Stale:    10 * time.Minute,
 		MaxSize:  100_000,
 		Resource: "sentinel_key_cache",
-		Clock:    clk,
+		Clock:    cfg.Clock,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key cache: %w", err)
 	}
 
 	keyService, err := keys.New(keys.Config{
-		DB:               db.ToMySQL(database),
-		RateLimiter:      rateLimiter,
+		DB:               db.ToMySQL(cfg.Database),
+		RateLimiter:      rlSvc,
 		RBAC:             rbac.New(),
-		KeyVerifications: keyVerifications,
+		KeyVerifications: cfg.KeyVerifications,
 		Region:           cfg.Region,
 		UsageLimiter:     usageLimiter,
 		KeyCache:         keyCache,
@@ -357,8 +369,13 @@ func initMiddlewareEngine(r *runner.Runner, cfg Config, database db.Database, ke
 	}
 
 	logger.Info("middleware engine initialized")
-	return engine.New(engine.Config{
-		KeyService: keyService,
-		Clock:      clk,
-	}), nil
+	eng, err := engine.New(engine.Config{
+		KeyService:  keyService,
+		RateLimiter: rlSvc,
+		Clock:       cfg.Clock,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize middleware engine: %w", err)
+	}
+	return eng, nil
 }

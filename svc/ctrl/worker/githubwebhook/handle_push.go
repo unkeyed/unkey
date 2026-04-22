@@ -62,6 +62,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			InstallationID: req.GetInstallationId(),
 			RepositoryID:   req.GetRepositoryId(),
 			Branch:         branch,
+			IsForkPr:       boolToInt64(req.GetIsForkPr()),
 		})
 	}, restate.WithName("list env vars"))
 	if err != nil {
@@ -70,15 +71,19 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 
 	envVarsByApp := groupEnvVarsByApp(allEnvVars)
 
-	// Fork PRs come through the pull_request webhook which doesn't include
-	// per-commit file lists. Fetch changed files from the commit API so
-	// watch path matching works correctly instead of seeing an empty list.
+	// Webhook payloads don't always include per-commit file lists:
+	//   - Fork PRs come through the pull_request webhook which has no commits.
+	//   - Created-branch pushes pointing at an already-reachable commit arrive
+	//     with an empty commits array.
+	// When files aren't available, fetch from the GitHub API so watch-path
+	// matching doesn't skip deploys for lack of a diff.
 	changedFiles := req.GetChangedFiles()
-	if req.GetIsForkPr() && req.GetAfter() != "" && !s.allowUnauthenticatedDeployments {
-		logger.Info("fetching commit files for fork PR",
+	if len(changedFiles) == 0 && req.GetAfter() != "" && !s.allowUnauthenticatedDeployments {
+		logger.Info("fetching commit files from GitHub",
 			"commit_sha", req.GetAfter(),
 			"repo", req.GetRepositoryFullName(),
 			"installation_id", req.GetInstallationId(),
+			"is_fork_pr", req.GetIsForkPr(),
 		)
 		files, filesErr := restate.Run(ctx, func(_ restate.RunContext) ([]string, error) {
 			return s.github.ListCommitFiles(
@@ -93,7 +98,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 				"error", filesErr,
 			)
 		} else {
-			logger.Info("fetched commit files for fork PR",
+			logger.Info("fetched commit files",
 				"commit_sha", req.GetAfter(),
 				"changed_files", files,
 			)
@@ -130,7 +135,11 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			continue
 		}
 
-		needsApproval := !s.allowUnauthenticatedDeployments && s.requiresApproval(ctx, req, repo)
+		// Approval decision is independent of allowUnauthenticatedDeployments:
+		// the flag only controls whether we reach out to GitHub (e.g. to post
+		// the "awaiting authorization" commit status — see blockDeploymentForApproval).
+		// Fork PRs run external code and must always be gated, even in dev.
+		needsApproval := s.requiresApproval(ctx, req, repo)
 
 		status := db.DeploymentsStatusPending
 		if needsApproval {

@@ -23,5 +23,5 @@ type IsQueryParamMatch_Match = isQueryParamMatch_Match
 // IsPolicy_Config is the exported form of the protobuf oneof interface isPolicy_Config.
 type IsPolicy_Config = isPolicy_Config
 
-// IsRateLimitKey_Source is the exported form of the protobuf oneof interface isRateLimitKey_Source.
-type IsRateLimitKey_Source = isRateLimitKey_Source
+// IsRateLimitIdentifier_Source is the exported form of the protobuf oneof interface isRateLimitIdentifier_Source.
+type IsRateLimitIdentifier_Source = isRateLimitIdentifier_Source

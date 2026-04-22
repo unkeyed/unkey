@@ -34,13 +34,14 @@ func (s *RolloutService) Cancel(
 	logger.Info("sentinel rollout cancelled", "image", state.Image,
 		"succeeded", len(state.SucceededIDs), "failed", len(state.FailedIDs))
 
+	elapsed := durationMs(nowMs(ctx) - state.StartedAtMs)
 	notifySlack(
 		ctx,
 		state.SlackWebhookURL,
 		"Rollout cancelled",
-		fmt.Sprintf("Rollout of `%s` cancelled. %d sentinels on new image, %d failed.",
-			state.Image,
-			len(state.SucceededIDs),
+		fmt.Sprintf("Rollout of `%s` cancelled after %s. %d/%d sentinels on the new image, %d failed.",
+			state.Image, elapsed,
+			len(state.SucceededIDs), state.TotalSentinels,
 			len(state.FailedIDs),
 		),
 	)

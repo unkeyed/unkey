@@ -37,11 +37,11 @@ import (
 const (
 	// defaultCacheKeepGB is the maximum cache size in gigabytes for new Depot
 	// projects. Depot evicts least-recently-used cache entries when exceeded.
-	defaultCacheKeepGB = 50
+	defaultCacheKeepGB = 25
 
 	// defaultCacheKeepDays is the maximum age in days for cached build layers.
 	// Layers older than this are evicted regardless of cache size.
-	defaultCacheKeepDays = 14
+	defaultCacheKeepDays = 7
 )
 
 // knownBuildError maps a BuildKit error pattern to a user-friendly message.
@@ -126,7 +126,7 @@ func (w *Workflow) buildDockerImageFromGit(
 
 	depotProjectID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
 		return w.getOrCreateDepotProject(runCtx, params.ProjectID)
-	}, restate.WithName("get or create depot project"))
+	}, restate.WithName("get or create depot project"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get/create depot project: %w", err)
 	}
@@ -138,7 +138,7 @@ func (w *Workflow) buildDockerImageFromGit(
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
 		// Get GitHub installation token for BuildKit to fetch the repo
 		var ghToken githubclient.InstallationToken
-		if w.allowUnauthenticatedDeployments {
+		if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
 			// Unauthenticated mode - skip GitHub auth for public repos (local dev only)
 			logger.Info("Unauthenticated mode: skipping GitHub authentication for public repo",
 				"repository", params.Repository)
@@ -151,12 +151,12 @@ func (w *Workflow) buildDockerImageFromGit(
 		}
 
 		// Decrypt env vars in-memory so they can be injected as a BuildKit secret.
+		// Treat all decryption failures as terminal: bearer-token / keyring
+		// config errors never self-heal, and genuine vault outages are better
+		// surfaced to the user fast than burned inside a retry loop.
 		envVars, err := w.decryptEnvVars(runCtx, params.EncryptedEnvironmentVariables, params.EnvironmentID)
 		if err != nil {
-			if errors.Is(err, errInvalidSecretsConfig) {
-				return nil, restate.TerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
-			}
-			return nil, fmt.Errorf("failed to decrypt env vars for build: %w", err)
+			return nil, restate.TerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
 		}
 
 		depotBuild, err := build.NewBuild(runCtx, &cliv1.CreateBuildRequest{
@@ -244,7 +244,7 @@ func (w *Workflow) buildDockerImageFromGit(
 
 		// Choose solver options based on authentication mode
 		var solverOptions client.SolveOpt
-		if w.allowUnauthenticatedDeployments {
+		if w.allowUnauthenticatedDeployments && params.InstallationID == noInstallationID {
 			solverOptions, err = w.buildSolverOptions(platform, gitContextURL, dockerfilePath, imageName, envVars)
 		} else {
 			solverOptions, err = w.buildGitSolverOptions(platform, gitContextURL, dockerfilePath, imageName, ghToken.Token, envVars)
@@ -269,7 +269,13 @@ func (w *Workflow) buildDockerImageFromGit(
 			DepotBuildID:   depotBuild.ID,
 			DepotProjectID: depotProjectID,
 		}, nil
-	}, restate.WithName("build docker image from git"))
+	}, restate.WithName("build docker image from git"),
+		// Bound retries both by count (for transient Depot/BuildKit blips) and
+		// by wall-clock (a single build attempt is long-running, so 5 attempts
+		// × worst-case backoff could otherwise exceed any reasonable ceiling).
+		// Whichever bound fires first wins.
+		restate.WithMaxRetryAttempts(runMaxAttempts),
+		restate.WithMaxRetryDuration(buildImageRetryCeiling))
 }
 
 // buildEnvFileSecret serializes env vars into a .env-formatted byte slice
