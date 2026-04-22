@@ -114,13 +114,25 @@ async function rerollKeyCore({
     });
   }
 
-  const prefixFromStart = source.start.includes("_") ? source.start.split("_")[0] : "";
-  const prefix = prefixFromStart || source.keyAuth.defaultPrefix || "";
+  const now = Date.now();
+
+  // Refuse to rotate an already-expired key. Setting a fresh `expires` in the
+  // future would resurrect it for the grace period, which is never intended.
+  if (source.expires && source.expires.getTime() <= now) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "This key has already expired and cannot be rotated.",
+    });
+  }
+
+  // Preserve the source key's prefix exactly. Falling back to the current
+  // keyAuth default would silently add a prefix when the default has been
+  // changed after the key was created.
+  const prefix = source.start.includes("_") ? source.start.split("_")[0] : "";
   const byteLength = source.keyAuth.defaultBytes ?? 16;
 
   const { key: plaintext, hash, start } = await newKey({ prefix, byteLength });
   const newKeyId = newId("key");
-  const now = Date.now();
   const oldKeyExpiresAt =
     expiration === 0 ? new Date(now) : roundUpToNextMinute(new Date(now + expiration));
   const shouldEncrypt = Boolean(source.encrypted);
