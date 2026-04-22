@@ -217,15 +217,13 @@ func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch s
 	// verified GitHub account. If two users share the same unconfigured email
 	// (e.g. sean@seans-MacBook-Pro.local), it resolves to the wrong user.
 	// Use raw git metadata instead to bypass this.
-	info := CommitInfoFromRaw(
+	return CommitInfoFromRaw(
 		commit.SHA,
 		commit.Commit.Message,
 		commit.Commit.Author.Name,
 		fmt.Sprintf("https://github.com/%s.png", url.PathEscape(commit.Commit.Author.Name)),
 		commit.Commit.Author.Date,
-	)
-
-	return info, nil
+	), nil
 }
 
 // GetBranchHeadCommitPublic retrieves the HEAD commit of a branch using the
@@ -241,8 +239,8 @@ func (c *Client) GetBranchHeadCommitPublic(repo string, branch string) (CommitIn
 	return CommitInfoFromRaw(
 		commit.SHA,
 		commit.Commit.Message,
-		commit.Author.Login,
-		commit.Author.AvatarURL,
+		commit.Commit.Author.Name,
+		fmt.Sprintf("https://github.com/%s.png", url.PathEscape(commit.Commit.Author.Name)),
 		commit.Commit.Author.Date,
 	), nil
 }
@@ -264,8 +262,8 @@ func (c *Client) GetCommitBySHA(installationID int64, repo string, sha string) (
 	return CommitInfoFromRaw(
 		commit.SHA,
 		commit.Commit.Message,
-		commit.Author.Login,
-		commit.Author.AvatarURL,
+		commit.Commit.Author.Name,
+		fmt.Sprintf("https://github.com/%s.png", url.PathEscape(commit.Commit.Author.Name)),
 		commit.Commit.Author.Date,
 	), nil
 }
