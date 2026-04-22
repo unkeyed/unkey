@@ -34,6 +34,7 @@ type ghCommitDetail struct {
 
 type ghCommitAuthor struct {
 	Date string `json:"date"`
+	Name string `json:"name"`
 }
 
 type ghUser struct {
@@ -203,16 +204,28 @@ func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch s
 
 	commit, err := request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
 	if err != nil {
+		logger.Error("failed to fetch branch head commit",
+			"installation_id", installationID,
+			"repo", repo,
+			"branch", branch,
+			"url", apiURL,
+			"err", err,
+		)
 		return CommitInfo{}, err
 	}
-
-	return CommitInfoFromRaw(
+	// GitHub resolves commit.Author.Login by matching the git author email to a
+	// verified GitHub account. If two users share the same unconfigured email
+	// (e.g. sean@seans-MacBook-Pro.local), it resolves to the wrong user.
+	// Use raw git metadata instead to bypass this.
+	info := CommitInfoFromRaw(
 		commit.SHA,
 		commit.Commit.Message,
-		commit.Author.Login,
-		commit.Author.AvatarURL,
+		commit.Commit.Author.Name,
+		fmt.Sprintf("https://github.com/%s.png", commit.Commit.Author.Name),
 		commit.Commit.Author.Date,
-	), nil
+	)
+
+	return info, nil
 }
 
 // GetBranchHeadCommitPublic retrieves the HEAD commit of a branch using the
