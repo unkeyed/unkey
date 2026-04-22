@@ -1,6 +1,6 @@
 import { newId } from "@unkey/id";
 import { relations } from "drizzle-orm";
-import { bigint, index, json, mysqlTable, unique, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, index, json, mysqlTable, unique, varchar } from "drizzle-orm/mysql-core";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -36,6 +36,12 @@ export const auditLog = mysqlTable(
     actorMeta: json("actor_meta"),
 
     ...lifecycleDates,
+
+    // Outbox flag: flipped to true once the row has been shipped to the
+    // ClickHouse audit_logs_raw_v1 table by the AuditLogExportService worker.
+    // The dashboard still reads from MySQL until the cutover is complete;
+    // after that, MySQL becomes a transient buffer we can prune.
+    exported: boolean("exported").notNull().default(false),
   },
   (table) => [
     // Every dashboard SELECT filters by (workspace_id, bucket, time) and orders
@@ -43,6 +49,7 @@ export const auditLog = mysqlTable(
     // single-column indexes on workspace_id / bucket / bucket_id / event /
     // actor_id / time saw zero traffic and were costing INSERT throughput.
     index("workspace_id_bucket_time_idx").on(table.workspaceId, table.bucket, table.time),
+    index("exported_pk_idx").on(table.exported, table.pk),
   ],
 );
 
