@@ -37,12 +37,12 @@ export function StatsTimeseriesBarChart<T extends BaseTimeseriesData>({
   if (isError) {
     return <ChartError variant="simple" message="Could not retrieve data" />;
   }
-  if (isLoading) {
+  if (isLoading || !data) {
     return <ChartLoading variant="simple" animate={false} dataPoints={100} />;
   }
 
   // Check if there's any data to display
-  const totalCount = (data ?? []).reduce((acc, item) => acc + (item.total ?? 0), 0);
+  const totalCount = data.reduce((acc, item) => acc + (item.total ?? 0), 0);
   if (totalCount === 0) {
     return <ChartEmpty variant="simple" message="No data for timeframe" />;
   }
