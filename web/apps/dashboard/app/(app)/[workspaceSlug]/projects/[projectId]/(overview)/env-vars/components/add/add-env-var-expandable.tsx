@@ -238,6 +238,7 @@ export const AddEnvVarExpandable = ({
                   index={index}
                   isOnly={fields.length === 1}
                   register={register}
+                  control={control}
                   onRemove={remove}
                   errors={errors.envVars}
                 />

@@ -8,6 +8,7 @@ export const envVarKeySchema = z
 
 export const envVarValueSchema = z
   .string()
+  .trim()
   .min(1, "Variable value is required")
   .refine(
     (val) => !val.includes("\\n") && !val.includes("\\r"),

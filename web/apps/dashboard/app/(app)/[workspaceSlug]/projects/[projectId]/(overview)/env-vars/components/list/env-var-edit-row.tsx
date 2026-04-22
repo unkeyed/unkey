@@ -17,7 +17,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { useCallback, useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useProjectData } from "../../../data-provider";
 
@@ -67,6 +67,9 @@ export function EnvVarEditRow({
       description: note ?? "",
     },
   });
+
+  const watchedValue = useWatch({ control, name: "value" });
+  const hasSpaces = watchedValue?.trim().includes(" ");
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: decryptMutation is not stable
   useEffect(
@@ -147,6 +150,8 @@ export function EnvVarEditRow({
           }
           rows={3}
           disabled={decryptMutation.isLoading}
+          variant={!errors.value && hasSpaces ? "warning" : undefined}
+          description={!errors.value && hasSpaces ? "Value contains spaces" : undefined}
           {...register("value")}
         />
         <FormInput
