@@ -207,7 +207,12 @@ func (s *GitHubWebhook) handlePullRequest(ctx context.Context, w http.ResponseWr
 		sendOpts = append(sendOpts, restate.WithIdempotencyKey(deliveryID))
 	}
 
-	authorHandle := pr.User.Login
+	authorHandle := payload.Sender.Login
+	authorAvatar := payload.Sender.AvatarURL
+	if authorAvatar == "" {
+		authorAvatar = fmt.Sprintf("https://github.com/%s.png", authorHandle)
+	}
+
 	_, err := client.HandlePush().Send(ctx, &hydrav1.HandlePushRequest{
 		InstallationId:         payload.Installation.ID,
 		RepositoryId:           baseRepo.ID,
@@ -216,7 +221,7 @@ func (s *GitHubWebhook) handlePullRequest(ctx context.Context, w http.ResponseWr
 		After:                  pr.Head.SHA,
 		CommitMessage:          pr.Title,
 		CommitAuthorHandle:     authorHandle,
-		CommitAuthorAvatarUrl:  fmt.Sprintf("https://github.com/%s.png", authorHandle),
+		CommitAuthorAvatarUrl:  authorAvatar,
 		CommitTimestamp:        time.Now().UnixMilli(),
 		DeliveryId:             deliveryID,
 		SenderLogin:            payload.Sender.Login,
