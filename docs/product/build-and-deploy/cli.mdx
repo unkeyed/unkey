@@ -1,0 +1,199 @@
+---
+title: Deploy with the CLI
+description: "Deploy a pre-built Docker image to Unkey with `unkey deploy`. Use from CI/CD pipelines, custom build systems, or your local machine."
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+The `unkey deploy` command ships a **pre-built Docker image** to Unkey infrastructure. Unlike the [GitHub integration](/build-and-deploy/github), the CLI does not build your image — you build it yourself (locally or in CI), push it to a registry Unkey can pull from, and `unkey deploy` creates the deployment and streams status until it is ready.
+
+Use the CLI when you want to own the build step: custom CI pipelines, monorepo build systems, pre-release images from a tag, or deploying without connecting a GitHub repository.
+
+## Prerequisites
+
+- The [Unkey CLI](/cli/overview) installed and authenticated (`unkey auth login`).
+- A [project](/platform/projects/overview) created in your workspace.
+- A Docker image pushed to a registry Unkey can pull from (for example, a public `ghcr.io`, `docker.io`, or `quay.io` image).
+
+<Note>
+  If your registry is private, the image must be accessible from Unkey's build infrastructure. Public registries and images work without extra configuration.
+</Note>
+
+## Quick start
+
+```bash
+unkey deploy ghcr.io/your-org/your-app:v1.0.0 --project=my-project
+```
+
+That single command:
+
+1. Creates a deployment for `my-project/default` using the image you supplied.
+2. Monitors the deployment status in your terminal with a live spinner.
+3. Prints the deployment ID and assigned domains once the deployment is **Ready**.
+
+Example output:
+
+```
+Unkey Deploy Progress
+──────────────────────────────────────────────────
+Source Information:
+    Branch: main
+    Commit: a1b2c3d
+    Image: ghcr.io/your-org/your-app:v1.0.0
+
+✓ Deployment created: dep_3f9a2b4c...
+✓ Deployment completed successfully
+
+Deployment Complete
+  Deployment ID: dep_3f9a2b4c...
+  Status: Ready
+  Environment: Preview
+
+Domains
+  https://my-project-default-git-a1b2c3d-acme.unkey.app
+```
+
+## Usage
+
+```bash
+unkey deploy <docker-image> [flags]
+```
+
+The first positional argument is the fully qualified image reference — `registry/repository:tag` or `registry/repository@sha256:…`. The image must already exist in the registry before you run the command.
+
+### Flags
+
+| Flag             | Description                                                           | Default     |
+| ---------------- | --------------------------------------------------------------------- | ----------- |
+| `--project`      | Project slug. **Required.**                                           | —           |
+| `--app`          | App slug within the project.                                          | `default`   |
+| `--env`          | Environment slug to deploy to.                                        | `preview`   |
+| `--branch`       | Git branch to record on the deployment.                               | `main`      |
+| `--commit`       | Git commit SHA to record on the deployment.                           | auto-detect |
+| `--keyspace-id`  | Keyspace ID for API key authentication (Sentinel).                    | —           |
+| `--root-key`     | Root key for authentication. **Required.**                            | —           |
+| `--api-base-url` | API base URL override (local testing only).                           | —           |
+
+All flags have matching environment variables so the command works cleanly in CI:
+
+```bash
+export UNKEY_ROOT_KEY=unkey_xxx
+export UNKEY_PROJECT=my-project
+export UNKEY_APP=api
+export UNKEY_KEYSPACE_ID=ks_xxx
+
+unkey deploy ghcr.io/your-org/your-app:v1.0.0 --env=production
+```
+
+### Git auto-detection
+
+If you run `unkey deploy` inside a Git working tree, the CLI auto-fills `--branch` and `--commit` from the current repository. Set the flags explicitly if you want to override what it detects (for example, when deploying from a CI runner with a detached HEAD).
+
+Dirty working trees are recorded with a `(dirty)` marker in the source info but still deploy.
+
+## Deploy from GitHub Actions
+
+A typical CI flow builds the image, pushes it to a registry, then calls `unkey deploy`:
+
+```yaml
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+      - name: Install Unkey CLI
+        run: npm install -g unkey
+
+      - name: Deploy to Unkey
+        env:
+          UNKEY_ROOT_KEY: ${{ secrets.UNKEY_ROOT_KEY }}
+        run: |
+          unkey deploy ghcr.io/${{ github.repository }}:${{ github.sha }} \
+            --project=my-project \
+            --app=api \
+            --env=production \
+            --commit=${{ github.sha }} \
+            --branch=${{ github.ref_name }}
+```
+
+Store your root key as a repository secret (`UNKEY_ROOT_KEY`) with permission to deploy to the target project.
+
+## What happens after you run the command
+
+The deployment follows the same [lifecycle](/build-and-deploy/deployments) as a GitHub-triggered deployment, with one difference: the **Building image** step is skipped because Unkey uses the image you supplied as-is.
+
+1. Deployment record created with status **Pending**.
+2. Image pulled from the registry.
+3. Containers scheduled across your configured [regions](/build-and-deploy/regions).
+4. Health checks run (if configured in [app settings](/platform/apps/settings)).
+5. Domains assigned and routes updated.
+6. Status moves to **Ready**.
+
+The CLI exits with a non-zero status if the deployment fails, so CI jobs fail loudly when something goes wrong.
+
+## Troubleshoot
+
+| Symptom                                          | Likely cause                                                                                          |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `docker image is required`                       | You called `unkey deploy` without a positional image argument.                                        |
+| `--project is required`                          | Pass `--project` or set `UNKEY_PROJECT`.                                                              |
+| `--root-key is required`                         | Pass `--root-key` or set `UNKEY_ROOT_KEY`.                                                            |
+| Deployment fails during image pull               | The registry is private or the image tag does not exist. Verify the image is pullable publicly.       |
+| Deployment reaches **Ready** but returns 5xx     | Check runtime logs in the dashboard — usually a crash on startup or a missing environment variable.   |
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="CLI vs GitHub integration"
+    icon="code-compare"
+    href="/build-and-deploy/cli-vs-github"
+  >
+    When to pick the CLI over the GitHub integration
+  </Card>
+  <Card
+    title="Deployment lifecycle"
+    icon="arrows-spin"
+    href="/build-and-deploy/deployments"
+  >
+    How deployments progress from create to serving traffic
+  </Card>
+  <Card
+    title="App settings"
+    icon="gear"
+    href="/platform/apps/settings"
+  >
+    Configure regions, health checks, and variables
+  </Card>
+  <Card
+    title="CLI overview"
+    icon="terminal"
+    href="/cli/overview"
+  >
+    Install the CLI and authenticate
+  </Card>
+</CardGroup>

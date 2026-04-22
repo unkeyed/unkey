@@ -1,0 +1,127 @@
+---
+title: CLI vs GitHub integration
+description: "Choose between deploying with `unkey deploy` and the GitHub integration. Understand the trade-offs in build control, automation, and CI/CD flexibility."
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+Unkey gives you two first-class ways to ship code: connect a [GitHub repository](/build-and-deploy/github) and let Unkey build and deploy on every push, or build the image yourself and push it with [`unkey deploy`](/build-and-deploy/cli). Both produce the same deployment artifact — an immutable version running in an [environment](/environments/overview) with a commit-scoped domain. The difference is who owns the build.
+
+This page helps you pick the right path.
+
+## TL;DR
+
+<CardGroup cols={2}>
+  <Card title="Use GitHub integration" icon="github">
+    You want zero-config, push-to-deploy. You're happy letting Unkey handle image builds on every commit. This is the right default for 95% of apps.
+  </Card>
+  <Card title="Use the CLI" icon="terminal">
+    You already have a CI/CD pipeline, you need control over the build (monorepo, custom build matrix, pre-release artifacts), or you don't want to connect a GitHub repository.
+  </Card>
+</CardGroup>
+
+## Side-by-side
+
+| Capability                       | GitHub integration                                              | CLI (`unkey deploy`)                                        |
+| -------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Who builds the image**         | Unkey, using your `Dockerfile` on every push                    | You (locally, in CI, or wherever) — Unkey pulls a tag       |
+| **Trigger**                      | `git push` (webhook)                                            | You run a command                                           |
+| **Repository required**          | Yes, connected to the Unkey GitHub App                          | No                                                          |
+| **Preview per branch**           | Automatic on every non-default branch                           | You call `--env=preview` (or any environment) explicitly    |
+| **Build logs**                   | Streamed to the dashboard in real time                          | Wherever you run the build (your CI logs, your terminal)    |
+| **Build concurrency quota**      | Counts against workspace [`max_concurrent_builds`](/build-and-deploy/deployments#build-concurrency) | Does not count — the build happens outside Unkey            |
+| **Watch paths** (skip irrelevant changes) | Supported — configure in app settings                   | Not applicable — you decide when to call the CLI            |
+| **Fork protection**              | Built-in: PRs from forks require approval                       | Not applicable                                              |
+| **Superseded cancellation**      | Queued builds auto-cancel when a newer commit lands             | Not applicable — you control cadence                        |
+| **Works without GitHub**         | No                                                              | Yes (any Git provider, or no Git at all)                    |
+| **Reproducible local deploys**   | Indirect (push, then wait)                                      | Direct (run the same command you'd run in CI)               |
+| **Ideal for**                    | Product apps, preview URLs per PR, fast iteration               | CI-driven release pipelines, monorepos, custom build graphs |
+
+## When to pick the GitHub integration
+
+Connect a repository when you want push-to-deploy with no additional infrastructure:
+
+- **Product-style apps** where every PR should get its own preview URL automatically.
+- **Small teams** that don't want to run or maintain a separate CI pipeline for builds.
+- **Fast iteration** during early development — you push, Unkey deploys, done.
+- You need [fork protection](/build-and-deploy/github#fork-protection) for open-source repositories.
+- You want [watch paths](/build-and-deploy/github#watch-paths) to skip builds for doc-only changes.
+
+Setup is three clicks in the dashboard: install the GitHub App, select a repository, click **Deploy**. See [GitHub integration](/build-and-deploy/github) for the full walkthrough.
+
+## When to pick the CLI
+
+Reach for `unkey deploy` when you need control over the build step, or when connecting a repository isn't an option:
+
+### You already have a CI/CD pipeline
+
+If you're building images in GitHub Actions, GitLab CI, CircleCI, Buildkite, or anything else, you've likely invested in:
+
+- **Custom build steps** — code generation, compilation, asset bundling, SBOM generation, vulnerability scans.
+- **Build caching** — layer caches, dependency caches, test fixtures.
+- **Test gates** — unit, integration, and end-to-end tests that must pass before shipping.
+- **Artifact signing** — Cosign, Sigstore, or organization-internal signing.
+
+Rebuilding the same image on Unkey's side is wasted time and compute. The CLI lets your existing pipeline produce the image once and then deploy it:
+
+```bash
+# In your CI, after the image is built and pushed:
+unkey deploy $REGISTRY/$IMAGE:$SHA --project=api --env=production
+```
+
+### You live in a monorepo
+
+Monorepos usually mean:
+
+- **Multiple deployable services** in one repository, each with its own Dockerfile.
+- **Selective builds** driven by tools like Nx, Turborepo, Bazel, or Moon.
+- **Shared base images** built once and reused across services.
+
+The GitHub integration deploys one app per connected repository configuration. The CLI lets you drive multiple `unkey deploy` calls from a single CI job — one per changed service — using whatever selection logic your monorepo tool produces.
+
+### You want deploys decoupled from Git pushes
+
+Some teams don't want every `main` push to ship to production:
+
+- **Release trains** where pushes go to a staging environment and a separate job promotes to production.
+- **Manual release gates** that require approval outside GitHub.
+- **Scheduled deploys** triggered by cron, not by commits.
+
+With the CLI, pushes to `main` don't automatically deploy. Deploys happen when something (a workflow, a human, a scheduler) explicitly runs `unkey deploy`.
+
+### You don't use GitHub
+
+The CLI only needs a Docker image in a registry. That works with GitLab, Bitbucket, self-hosted Git, or no Git at all.
+
+### You want reproducible local deploys
+
+Running `unkey deploy` from your laptop ships the exact same artifact you'd ship in CI. Useful for debugging a deployment issue end-to-end without burning CI minutes.
+
+## Can I use both?
+
+Yes. You can connect a repository for automatic previews on every push, and still call `unkey deploy` for production releases from a CI pipeline. They deploy to the same project — just target different environments, for example `--env=production` from CI and let the GitHub integration handle preview branches.
+
+<Note>
+  If both a GitHub push and a CLI call target the same environment on the same branch, the most recent deployment wins — there's no conflict, just normal deployment supersession.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Deploy with the CLI"
+    icon="terminal"
+    href="/build-and-deploy/cli"
+  >
+    Step-by-step guide for `unkey deploy`, including a GitHub Actions example
+  </Card>
+  <Card
+    title="GitHub integration"
+    icon="github"
+    href="/build-and-deploy/github"
+  >
+    Set up push-to-deploy from a connected repository
+  </Card>
+</CardGroup>
