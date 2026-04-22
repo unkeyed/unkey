@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "actors.go",
         "doc.go",
+        "event.go",
         "events.go",
         "log.go",
         "target.go",

@@ -1,6 +1,6 @@
 import { newId } from "@unkey/id";
 import { relations } from "drizzle-orm";
-import { bigint, boolean, index, json, mysqlTable, unique, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlTable, unique, varchar } from "drizzle-orm/mysql-core";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -36,12 +36,6 @@ export const auditLog = mysqlTable(
     actorMeta: json("actor_meta"),
 
     ...lifecycleDates,
-
-    // Outbox flag: flipped to true once the row has been shipped to the
-    // ClickHouse audit_logs_raw_v1 table by the AuditLogExportService worker.
-    // The dashboard still reads from MySQL until the cutover is complete;
-    // after that, MySQL becomes a transient buffer we can prune.
-    exported: boolean("exported").notNull().default(false),
   },
   (table) => [
     // Every dashboard SELECT filters by (workspace_id, bucket, time) and orders
@@ -49,7 +43,6 @@ export const auditLog = mysqlTable(
     // single-column indexes on workspace_id / bucket / bucket_id / event /
     // actor_id / time saw zero traffic and were costing INSERT throughput.
     index("workspace_id_bucket_time_idx").on(table.workspaceId, table.bucket, table.time),
-    index("exported_pk_idx").on(table.exported, table.pk),
   ],
 );
 
@@ -114,3 +107,39 @@ export const auditLogTargetRelations = relations(auditLogTarget, ({ one }) => ({
 
 export type SelectAuditLog = typeof auditLog.$inferSelect;
 export type SelectAuditLogTarget = typeof auditLogTarget.$inferSelect;
+
+// clickhouse_outbox is the transactional outbox for ClickHouse export.
+// Writers insert one row per logical event in the same MySQL transaction
+// as the underlying mutation; the AuditLogExportService worker drains
+// rows by pk order, ships them to ClickHouse, and DELETEs them on
+// success. Steady state is "minutes of backlog" — if it grows, the
+// drainer is wedged.
+//
+// The table is intentionally generic. Today only audit logs write to it
+// (version = "audit_log.v1") but it's named clickhouse_outbox (not
+// audit_log_outbox) so other producers can share it later without
+// another migration.
+//
+// version is a namespaced schema tag like "audit_log.v1". The drainer
+// filters `WHERE version IN (known)` so an old drainer never chokes on
+// a newer payload shape; unknown-version rows pile up until a drainer
+// with the matching handler ships. Use the version prefix to name the
+// producer (`audit_log.*`, `customer.audit_log.*`, `key_lifecycle.*`)
+// so producers/consumers don't collide.
+//
+// payload is the JSON-encoded event envelope (actor, targets, meta).
+// workspace_id and event_id are duplicated out of the payload so the
+// drainer can route + dedupe without decoding, and so on-call can grep
+// the table during incidents.
+export const clickhouseOutbox = mysqlTable("clickhouse_outbox", {
+  pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+  version: varchar("version", { length: 64 }).notNull(),
+  workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+  eventId: varchar("event_id", { length: 256 }).notNull(),
+  payload: json("payload").notNull(),
+  createdAt: bigint("created_at", { mode: "number" })
+    .notNull()
+    .$defaultFn(() => Date.now()),
+});
+
+export type SelectClickhouseOutbox = typeof clickhouseOutbox.$inferSelect;
