@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
@@ -126,6 +127,29 @@ func (s *Service) CancelDeployment(
 			"error", err,
 		)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to cancel: %w", err))
+	}
+
+	// Belt-and-suspenders: the Restate cancel above will (on the happy path)
+	// trigger the Deploy workflow's compensation stack, which releases the
+	// build slot. But if that compensation doesn't run — Restate
+	// hard-terminates the invocation without replay, or the Send from the
+	// compensation is dropped — the slot leaks and subsequent deployments
+	// pile up on the wait list forever. Fire Release directly here as an
+	// independent signal. Release is idempotent, so when compensation does
+	// run, the second call is a no-op.
+	if s.restate != nil {
+		if _, err := hydrav1.NewBuildSlotServiceIngressClient(s.restate, deployment.WorkspaceID).
+			Release().
+			Request(ctx, &hydrav1.ReleaseSlotRequest{DeploymentId: deploymentID}); err != nil {
+			// Not fatal to the cancel operation — the workflow compensation
+			// will likely handle it, and the AcquireOrWait self-heal is the
+			// final safety net.
+			logger.Warn("belt-and-suspenders Release after cancel failed",
+				"deployment_id", deploymentID,
+				"workspace_id", deployment.WorkspaceID,
+				"error", err,
+			)
+		}
 	}
 
 	return connect.NewResponse(&ctrlv1.CancelDeploymentResponse{}), nil

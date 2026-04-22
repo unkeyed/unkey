@@ -1,9 +1,11 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "buildslot",
     srcs = [
         "acquire_handler.go",
+        "admin_handlers.go",
+        "reconcile.go",
         "release_handler.go",
         "service.go",
     ],
@@ -14,5 +16,15 @@ go_library(
         "//pkg/db",
         "//pkg/logger",
         "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)
+
+go_test(
+    name = "buildslot_test",
+    srcs = ["reconcile_test.go"],
+    embed = [":buildslot"],
+    deps = [
+        "//pkg/db",
+        "@com_github_stretchr_testify//require",
     ],
 )
