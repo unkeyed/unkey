@@ -1,30 +1,20 @@
 import { auditLogsQueryPayload } from "@/components/audit-logs-table/schema/audit-logs.schema";
 import { auth } from "@/lib/auth/server";
 import type { User } from "@/lib/auth/types";
-import {
-  type Quotas,
-  type Workspace,
-  and,
-  between,
-  count,
-  db,
-  eq,
-  gte,
-  inArray,
-  schema,
-} from "@/lib/db";
+import { clickhouse } from "@/lib/clickhouse";
+import type { Quotas, Workspace } from "@/lib/db";
 import { freeTierQuotas } from "@/lib/quotas";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { type AuditLogWithTargets, type AuditQueryLogsParams, auditLog } from "./schema";
+import { type AuditQueryLogsParams, auditLog } from "./schema";
 import { transformFilters } from "./utils";
 
 const LIMIT = 50;
 const MAX_LIMIT = 200;
 
-// In-memory cache for audit log count queries to avoid re-counting on every page navigation
 const countCache = new Map<string, { count: number; timestamp: number }>();
-const COUNT_CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+const COUNT_CACHE_TTL = 1000 * 60 * 5;
 
 function getCountCacheKey(workspaceId: string, params: Omit<AuditQueryLogsParams, "workspaceId">) {
   return JSON.stringify({
@@ -56,6 +46,21 @@ const AuditLogsResponse = z.object({
 
 type AuditLogsResponse = z.infer<typeof AuditLogsResponse>;
 
+function nullIfEmpty(s: string): string | null {
+  return s.length === 0 ? null : s;
+}
+
+function parseJSON(s: string): unknown {
+  if (s.length === 0) {
+    return null;
+  }
+  try {
+    return JSON.parse(s);
+  } catch {
+    return s;
+  }
+}
+
 export const fetchAuditLog = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(auditLogsQueryPayload)
@@ -66,54 +71,38 @@ export const fetchAuditLog = workspaceProcedure
     const page = Math.max(1, params.page ?? 1);
     const offset = (page - 1) * pageSize;
 
-    const whereConditions = buildWhereConditions(params, ctx.workspace);
+    const queryArgs = buildQueryArgs(params, ctx.workspace, pageSize, offset);
     const cacheKey = getCountCacheKey(ctx.workspace.id, params);
     const cachedCount = getCachedCount(cacheKey);
 
-    const [totalCount, logs] = await (cachedCount !== null
-      ? Promise.all([
-          cachedCount,
-          db.query.auditLog.findMany({
-            where: and(...whereConditions),
-            with: { targets: true },
-            // Tiebreak on pk so the workspace_id_bucket_time_idx composite covers
-            // the sort — InnoDB stores pk as the implicit trailing column in
-            // every secondary index, so ORDER BY (time, pk) avoids a filesort.
-            // id is unique and monotonic-with-insert like pk, so pagination
-            // stability is preserved.
-            orderBy: (table, { desc }) => [desc(table.time), desc(table.pk)],
-            limit: pageSize,
-            offset,
-          }),
-        ])
-      : Promise.all([
-          db
-            .select({ count: count() })
-            .from(schema.auditLog)
-            .where(and(...whereConditions))
-            .then((result) => {
-              const total = result[0]?.count ?? 0;
-              countCache.set(cacheKey, { count: total, timestamp: Date.now() });
-              return total;
-            }),
-          db.query.auditLog.findMany({
-            where: and(...whereConditions),
-            with: { targets: true },
-            // Tiebreak on pk so the workspace_id_bucket_time_idx composite covers
-            // the sort — InnoDB stores pk as the implicit trailing column in
-            // every secondary index, so ORDER BY (time, pk) avoids a filesort.
-            // id is unique and monotonic-with-insert like pk, so pagination
-            // stability is preserved.
-            orderBy: (table, { desc }) => [desc(table.time), desc(table.pk)],
-            limit: pageSize,
-            offset,
-          }),
-        ]));
+    const { logsQuery, totalQuery } = clickhouse.auditLogs.logs(queryArgs);
 
-    const uniqueUsers = await fetchUsersFromLogs(logs);
+    const [countResult, logsResult] = await Promise.all([
+      cachedCount !== null
+        ? Promise.resolve({ val: [{ total_count: cachedCount }], err: null })
+        : totalQuery,
+      logsQuery,
+    ]);
+
+    if (countResult.err || logsResult.err) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Something went wrong when fetching audit logs from clickhouse.",
+      });
+    }
+
+    const totalCount = countResult.val[0]?.total_count ?? 0;
+    if (cachedCount === null) {
+      countCache.set(cacheKey, { count: totalCount, timestamp: Date.now() });
+    }
+
+    const logs = logsResult.val;
+    const uniqueUsers = await fetchUsersByActorIds(
+      logs.filter((l) => l.actor_type === "user").map((l) => l.actor_id),
+    );
 
     const items: AuditLogsResponse["auditLogs"] = logs.map((l) => {
-      const user = uniqueUsers[l.actorId];
+      const user = uniqueUsers[l.actor_id];
       return {
         user: user
           ? {
@@ -124,23 +113,23 @@ export const fetchAuditLog = workspaceProcedure
             }
           : undefined,
         auditLog: {
-          id: l.id,
+          id: l.event_id,
           time: l.time,
           actor: {
-            id: l.actorId,
-            name: l.actorName,
-            type: l.actorType,
+            id: l.actor_id,
+            name: nullIfEmpty(l.actor_name),
+            type: l.actor_type,
           },
-          location: l.remoteIp,
-          description: l.display,
-          userAgent: l.userAgent,
+          location: nullIfEmpty(l.remote_ip),
+          description: l.description,
+          userAgent: nullIfEmpty(l.user_agent),
           event: l.event,
-          workspaceId: l.workspaceId,
-          targets: l.targets.map((t) => ({
-            id: t.id,
-            type: t.type,
-            name: t.name,
-            meta: t.meta,
+          workspaceId: ctx.workspace.id,
+          targets: l.targets.map(([type, id, name, meta]) => ({
+            id,
+            type,
+            name: nullIfEmpty(name),
+            meta: parseJSON(meta),
           })),
         },
       };
@@ -152,58 +141,59 @@ export const fetchAuditLog = workspaceProcedure
     };
   });
 
-function buildWhereConditions(
+// Platform audit events (key.create, api.delete, etc.) are owned by the
+// Unkey platform, not by the customer: they record Unkey's actions on a
+// customer's resources. In ClickHouse those rows carry an empty
+// workspace_id (meaning "platform-owned") and a bucket_id of
+// `unkey_audit_<customer_ws_id>`. Once customer-emitted audit logs ship
+// alongside, their rows will carry the customer's workspace_id as the
+// owner and a customer-chosen bucket_id. Same query shape, different
+// filter values.
+//
+// This contract is mirrored by the Go worker that writes these rows, see
+// svc/ctrl/worker/auditlogexport/run_export_handler.go
+// (unkeyPlatformWorkspaceID and unkeyPlatformBucketID). The two MUST stay
+// in sync; changing one without the other silently breaks the dashboard.
+const UNKEY_PLATFORM_WORKSPACE_ID = "";
+const platformBucketFor = (customerWorkspaceId: string) => `unkey_audit_${customerWorkspaceId}`;
+
+function buildQueryArgs(
   params: Omit<AuditQueryLogsParams, "workspaceId">,
   workspace: Workspace & { quotas: Quotas | null },
+  limit: number,
+  offset: number,
 ) {
   const events = (params.events ?? []).map((e) => e.value);
   const userValues = (params.users ?? []).map((u) => u.value);
   const rootKeyValues = (params.rootKeys ?? []).map((r) => r.value);
-  const users = [...userValues, ...rootKeyValues];
+  const actorIds = [...userValues, ...rootKeyValues];
 
   const retentionDays =
     workspace.quotas?.auditLogsRetentionDays || freeTierQuotas.auditLogsRetentionDays;
   const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
-  const hasTimeFilter = params.startTime !== undefined || params.endTime !== undefined;
+  const startTime = Math.max(
+    params.startTime ?? retentionCutoffUnixMilli,
+    retentionCutoffUnixMilli,
+  );
+  const endTime = params.endTime ?? Date.now();
 
-  const conditions = [
-    eq(schema.auditLog.workspaceId, workspace.id),
-    eq(schema.auditLog.bucket, params.bucket),
-  ];
-
-  if (events.length > 0) {
-    conditions.push(inArray(schema.auditLog.event, events));
-  }
-
-  if (hasTimeFilter) {
-    conditions.push(
-      between(
-        schema.auditLog.time,
-        Math.max(params.startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
-        params.endTime ?? Date.now(),
-      ),
-    );
-  } else {
-    conditions.push(gte(schema.auditLog.time, retentionCutoffUnixMilli));
-  }
-
-  if (users.length > 0) {
-    conditions.push(inArray(schema.auditLog.actorId, users));
-  }
-
-  return conditions;
+  return {
+    workspaceId: UNKEY_PLATFORM_WORKSPACE_ID,
+    bucketId: platformBucketFor(workspace.id),
+    limit,
+    offset,
+    startTime,
+    endTime,
+    events,
+    actorIds,
+  };
 }
 
-export const fetchUsersFromLogs = async (
-  logs: AuditLogWithTargets[],
-): Promise<Record<string, User>> => {
+async function fetchUsersByActorIds(actorIds: string[]): Promise<Record<string, User>> {
   try {
-    const userIds = [...new Set(logs.filter((l) => l.actorType === "user").map((l) => l.actorId))];
-
-    const users = await Promise.all(
-      userIds.map((userId) => auth.getUser(userId).catch(() => null)),
-    );
+    const unique = [...new Set(actorIds)];
+    const users = await Promise.all(unique.map((userId) => auth.getUser(userId).catch(() => null)));
 
     return users.reduce(
       (acc, user) => {
@@ -218,4 +208,4 @@ export const fetchUsersFromLogs = async (
     console.error("Error fetching users:", error);
     return {};
   }
-};
+}

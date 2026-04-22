@@ -377,11 +377,23 @@ type Querier interface {
 	FindAppWithSettings(ctx context.Context, db DBTX, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error)
 	//FindAuditLogTargetByID
 	//
-	//  SELECT audit_log_target.pk, audit_log_target.workspace_id, audit_log_target.bucket_id, audit_log_target.bucket, audit_log_target.audit_log_id, audit_log_target.display_name, audit_log_target.type, audit_log_target.id, audit_log_target.name, audit_log_target.meta, audit_log_target.created_at, audit_log_target.updated_at, audit_log.pk, audit_log.id, audit_log.workspace_id, audit_log.bucket, audit_log.bucket_id, audit_log.event, audit_log.time, audit_log.display, audit_log.remote_ip, audit_log.user_agent, audit_log.actor_type, audit_log.actor_id, audit_log.actor_name, audit_log.actor_meta, audit_log.created_at, audit_log.updated_at
+	//  SELECT audit_log_target.pk, audit_log_target.workspace_id, audit_log_target.bucket_id, audit_log_target.bucket, audit_log_target.audit_log_id, audit_log_target.display_name, audit_log_target.type, audit_log_target.id, audit_log_target.name, audit_log_target.meta, audit_log_target.created_at, audit_log_target.updated_at, audit_log.pk, audit_log.id, audit_log.workspace_id, audit_log.bucket, audit_log.bucket_id, audit_log.event, audit_log.time, audit_log.display, audit_log.remote_ip, audit_log.user_agent, audit_log.actor_type, audit_log.actor_id, audit_log.actor_name, audit_log.actor_meta, audit_log.created_at, audit_log.updated_at, audit_log.exported
 	//  FROM audit_log_target
 	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
 	//  WHERE audit_log_target.id = ?
 	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
+	// FindAuditLogTargetsForLogs fetches every target row attached to the given
+	// audit log IDs. Called by the export worker after FindUnexportedAuditLogs to
+	// fan out (event, target) pairs into per-target ClickHouse rows. Ordered by
+	// audit_log_id then pk so the worker's grouping pass sees a deterministic
+	// per-event target sequence (also keeps insert blocks byte-stable for retry
+	// dedup).
+	//
+	//  SELECT audit_log_id, type, id, name, meta
+	//  FROM audit_log_target
+	//  WHERE audit_log_id IN (/*SLICE:audit_log_ids*/?)
+	//  ORDER BY audit_log_id, pk
+	FindAuditLogTargetsForLogs(ctx context.Context, db DBTX, auditLogIds []string) ([]FindAuditLogTargetsForLogsRow, error)
 	//FindCertificateByHostname
 	//
 	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
@@ -1261,6 +1273,20 @@ type Querier interface {
 	//
 	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error)
+	// FindUnexportedAuditLogs returns the next batch of audit log envelopes that
+	// have not yet been shipped to the ClickHouse audit_logs_raw_v1 table.
+	// Ordered by pk so retries see a deterministic row set, which lets CH's
+	// block-level deduplication collapse re-inserts after a partial failure.
+	// The exported_pk_idx composite index makes this scan cheap even when the
+	// bulk of the table is exported = true.
+	//
+	//  SELECT pk, id, workspace_id, bucket, event, time, display,
+	//         remote_ip, user_agent, actor_type, actor_id, actor_name, actor_meta
+	//  FROM audit_log
+	//  WHERE exported = false
+	//  ORDER BY pk
+	//  LIMIT ?
+	FindUnexportedAuditLogs(ctx context.Context, db DBTX, limit int32) ([]FindUnexportedAuditLogsRow, error)
 	//FindVerifiedCustomDomainByDomainExcludingWorkspace
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
@@ -2678,6 +2704,17 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
+	// MarkAuditLogsExported flips the outbox flag for rows whose ClickHouse
+	// insert has been confirmed. The redundant `AND exported = false` guard is
+	// belt-and-braces idempotency: if two cron invocations ever raced (Restate
+	// VO serialization should prevent this, but defense in depth) the second
+	// update is a noop instead of double-marking.
+	//
+	//  UPDATE audit_log
+	//  SET exported = true
+	//  WHERE pk IN (/*SLICE:pks*/?)
+	//    AND exported = false
+	MarkAuditLogsExported(ctx context.Context, db DBTX, pks []uint64) error
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes

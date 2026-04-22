@@ -36,6 +36,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
@@ -488,6 +489,23 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, keyLastUsedRetryPolicy))
 	logger.Info("KeyLastUsedSyncService enabled")
+
+	// Audit log export: drains the MySQL audit_log outbox into ClickHouse.
+	// Registered as a virtual object so Restate serializes overlapping triggers.
+	var auditLogExportHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.Heartbeat.AuditLogExportURL != "" {
+		auditLogExportHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.AuditLogExportURL)
+	}
+	auditLogExportSvc, err := auditlogexport.New(auditlogexport.Config{
+		DB:         database,
+		Clickhouse: ch,
+		Heartbeat:  auditLogExportHeartbeat,
+	})
+	if err != nil {
+		return fmt.Errorf("create audit log export service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewAuditLogExportServiceServer(auditLogExportSvc))
+	logger.Info("AuditLogExportService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()
