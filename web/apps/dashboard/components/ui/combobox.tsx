@@ -219,9 +219,14 @@ export function Combobox({
             onValueChange={setSearch}
             onInput={onChange}
             onKeyDown={(e) => {
-              // Prevent propagation to Dialog but allow command list navigation
-              e.stopPropagation();
-              // When creatable and Enter is pressed with no matching option, submit the typed value
+              if (
+                e.key !== "ArrowDown" &&
+                e.key !== "ArrowUp" &&
+                e.key !== "Enter" &&
+                e.key !== "Escape"
+              ) {
+                e.stopPropagation();
+              }
               if (creatable && e.key === "Enter" && search.trim()) {
                 const hasMatch = effectiveOptions.some(
                   (o) => (o.searchValue || o.value).toLowerCase() === search.trim().toLowerCase(),
