@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -210,7 +211,7 @@ func (s *GitHubWebhook) handlePullRequest(ctx context.Context, w http.ResponseWr
 	authorHandle := payload.Sender.Login
 	authorAvatar := payload.Sender.AvatarURL
 	if authorAvatar == "" {
-		authorAvatar = fmt.Sprintf("https://github.com/%s.png", authorHandle)
+		authorAvatar = fmt.Sprintf("https://github.com/%s.png", url.PathEscape(authorHandle))
 	}
 
 	_, err := client.HandlePush().Send(ctx, &hydrav1.HandlePushRequest{
@@ -285,7 +286,7 @@ func extractGitCommitInfo(payload *pushPayload) githubclient.CommitInfo {
 	authorAvatar := payload.Sender.AvatarURL
 
 	if authorAvatar == "" {
-		authorAvatar = fmt.Sprintf("https://github.com/%s.png", authorHandle)
+		authorAvatar = fmt.Sprintf("https://github.com/%s.png", url.PathEscape(authorHandle))
 	}
 
 	return githubclient.CommitInfoFromRaw(

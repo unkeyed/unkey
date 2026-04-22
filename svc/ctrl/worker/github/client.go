@@ -221,7 +221,7 @@ func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch s
 		commit.SHA,
 		commit.Commit.Message,
 		commit.Commit.Author.Name,
-		fmt.Sprintf("https://github.com/%s.png", commit.Commit.Author.Name),
+		fmt.Sprintf("https://github.com/%s.png", url.PathEscape(commit.Commit.Author.Name)),
 		commit.Commit.Author.Date,
 	)
 
