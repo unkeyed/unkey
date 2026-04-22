@@ -119,7 +119,7 @@ export const RotateRootKey = ({ rootKeyDetails, isOpen, onClose }: RotateRootKey
         <form id="rotate-root-key-form">
           <DialogContainer
             isOpen={isOpen}
-            subTitle="Generate a fresh secret while preserving this root key's permissions"
+            subTitle="Generate a fresh root key while preserving this root key's permissions"
             onOpenChange={handleDialogOpenChange}
             title="Rotate root key"
             footer={
@@ -167,7 +167,7 @@ export const RotateRootKey = ({ rootKeyDetails, isOpen, onClose }: RotateRootKey
                   size="lg"
                   onCheckedChange={field.onChange}
                   requirement="required"
-                  label="I understand this will generate a new secret and revoke the current one."
+                  label="I understand this will generate a new key and revoke the current one."
                   error={errors.confirmRotation?.message}
                 />
               )}

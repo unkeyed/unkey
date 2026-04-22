@@ -121,7 +121,7 @@ export const RotateKey = ({ keyDetails, apiId, keyspaceId, isOpen, onClose }: Ro
         <form id="rotate-key-form">
           <DialogContainer
             isOpen={isOpen}
-            subTitle="Generate a fresh secret while preserving this key's configuration"
+            subTitle="Generate a fresh key while preserving this key's configuration"
             onOpenChange={handleDialogOpenChange}
             title="Rotate key"
             footer={
@@ -145,9 +145,6 @@ export const RotateKey = ({ keyDetails, apiId, keyspaceId, isOpen, onClose }: Ro
             }
           >
             <KeyInfo keyDetails={keyDetails} />
-            <div className="py-1 my-2">
-              <div className="h-px bg-grayA-3 w-full" />
-            </div>
             <Controller
               name="gracePeriod"
               control={control}
@@ -172,7 +169,7 @@ export const RotateKey = ({ keyDetails, apiId, keyspaceId, isOpen, onClose }: Ro
                   size="lg"
                   onCheckedChange={field.onChange}
                   requirement="required"
-                  label="I understand this will generate a new secret and revoke the current one."
+                  label="I understand this will generate a new key and revoke the current one."
                   error={errors.confirmRotation?.message}
                 />
               )}

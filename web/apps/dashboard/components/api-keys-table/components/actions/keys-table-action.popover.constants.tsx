@@ -41,13 +41,8 @@ export const getKeysTableActionItems = (
   context: KeyContext = {},
 ): MenuItem[] => {
   const { apiId, keyspaceId } = context;
+  const hasExternalId = Boolean(key.identity?.external_id);
   return [
-    {
-      id: "override",
-      label: "Edit key name...",
-      icon: <PenWriting3 iconSize="md-medium" />,
-      ActionComponent: (props) => <EditKeyName {...props} keyDetails={key} />,
-    },
     {
       id: "copy",
       label: "Copy key ID",
@@ -63,15 +58,9 @@ export const getKeysTableActionItems = (
             toast.error("Failed to copy to clipboard");
           });
       },
-      divider: true,
+      divider: !hasExternalId,
     },
-    {
-      id: "edit-external-id",
-      label: "Edit External ID...",
-      icon: <ArrowOppositeDirectionY iconSize="md-medium" />,
-      ActionComponent: (props) => <EditExternalId {...props} keyDetails={key} />,
-    },
-    ...(key.identity?.external_id
+    ...(hasExternalId
       ? [
           {
             id: "copy-external-id",
@@ -88,15 +77,20 @@ export const getKeysTableActionItems = (
                 });
             },
             divider: true,
-          },
+          } satisfies MenuItem,
         ]
       : []),
     {
-      id: key.enabled ? "disable-key" : "enable-key",
-      label: key.enabled ? "Disable Key..." : "Enable Key...",
-      icon: key.enabled ? <Ban iconSize="md-medium" /> : <Check iconSize="md-medium" />,
-      ActionComponent: (props) => <UpdateKeyStatus {...props} keyDetails={key} />,
-      divider: true,
+      id: "override",
+      label: "Edit key name...",
+      icon: <PenWriting3 iconSize="md-medium" />,
+      ActionComponent: (props) => <EditKeyName {...props} keyDetails={key} />,
+    },
+    {
+      id: "edit-external-id",
+      label: "Edit External ID...",
+      icon: <ArrowOppositeDirectionY iconSize="md-medium" />,
+      ActionComponent: (props) => <EditExternalId {...props} keyDetails={key} />,
     },
     {
       id: "edit-credits",
@@ -121,7 +115,6 @@ export const getKeysTableActionItems = (
       label: "Edit metadata...",
       icon: <Code iconSize="md-medium" />,
       ActionComponent: (props) => <EditMetadata {...props} keyDetails={key} />,
-      divider: true,
     },
     {
       id: "edit-rbac",
@@ -206,6 +199,12 @@ export const getKeysTableActionItems = (
       },
       divider: true,
     },
+    {
+      id: key.enabled ? "disable-key" : "enable-key",
+      label: key.enabled ? "Disable Key..." : "Enable Key...",
+      icon: key.enabled ? <Ban iconSize="md-medium" /> : <Check iconSize="md-medium" />,
+      ActionComponent: (props) => <UpdateKeyStatus {...props} keyDetails={key} />,
+    },
     ...(apiId
       ? [
           {
@@ -215,7 +214,6 @@ export const getKeysTableActionItems = (
             ActionComponent: (props) => (
               <RotateKey {...props} keyDetails={key} apiId={apiId} keyspaceId={keyspaceId} />
             ),
-            divider: true,
           } satisfies MenuItem,
         ]
       : []),
