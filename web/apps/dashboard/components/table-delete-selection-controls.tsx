@@ -1,37 +1,39 @@
+"use client";
 import { AnimatedCounter } from "@/components/api-keys-table/components/selection-controls";
 import { Trash, XMark } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRef, useState } from "react";
-import { useDeleteRole } from "../actions/components/hooks/use-delete-role";
 
-type SelectionControlsProps = {
-  selectedRoles: Set<string>;
-  setSelectedRoles: (keys: Set<string>) => void;
+type TableDeleteSelectionControlsProps = {
+  selectedCount: number;
+  onClearSelection: () => void;
+  onConfirmDelete: () => void;
+  isDeleting: boolean;
+  // Singular noun in lower case ("role", "permission"). Used in labels and confirm copy.
+  singular: string;
+  // Plural noun in lower case ("roles", "permissions"). Used in the delete button label.
+  plural: string;
 };
 
-export const SelectionControls = ({ selectedRoles, setSelectedRoles }: SelectionControlsProps) => {
+// Shared selection bar for tables that support bulk-delete only. Renders the
+// selection count, a Delete button with confirm popover, and a clear-selection
+// X. Callers own the delete mutation and selection state.
+export const TableDeleteSelectionControls = ({
+  selectedCount,
+  onClearSelection,
+  onConfirmDelete,
+  isDeleting,
+  singular,
+  plural,
+}: TableDeleteSelectionControlsProps) => {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
-
-  const deleteRole = useDeleteRole(() => {
-    setSelectedRoles(new Set());
-  });
-
-  const handleDeleteButtonClick = () => {
-    setIsDeleteConfirmOpen(true);
-  };
-
-  const performRoleDeletion = () => {
-    deleteRole.mutate({
-      roleIds: Array.from(selectedRoles),
-    });
-  };
 
   return (
     <>
       <AnimatePresence>
-        {selectedRoles.size > 0 && (
+        {selectedCount > 0 && (
           <motion.div
             key="selection-controls"
             className="border-b border-grayA-3 w-full overflow-hidden"
@@ -55,7 +57,7 @@ export const SelectionControls = ({ selectedRoles, setSelectedRoles }: Selection
           >
             <div className="flex justify-between items-center w-full p-[18px]">
               <div className="items-center flex gap-2">
-                <AnimatedCounter value={selectedRoles.size} />
+                <AnimatedCounter value={selectedCount} />
                 <div className="text-accent-9 text-[13px] leading-6">selected</div>
               </div>
               <div className="flex items-center gap-2">
@@ -63,19 +65,20 @@ export const SelectionControls = ({ selectedRoles, setSelectedRoles }: Selection
                   variant="outline"
                   size="sm"
                   className="text-gray-12 font-medium text-[13px]"
-                  disabled={deleteRole.isLoading}
-                  loading={deleteRole.isLoading}
-                  onClick={handleDeleteButtonClick}
+                  disabled={isDeleting}
+                  loading={isDeleting}
+                  onClick={() => setIsDeleteConfirmOpen(true)}
                   ref={deleteButtonRef}
                 >
                   <Trash iconSize="sm-regular" />
-                  Delete roles
+                  Delete {plural}
                 </Button>
                 <Button
                   size="icon"
                   variant="ghost"
                   className="[&_svg]:size-[14px] ml-3"
-                  onClick={() => setSelectedRoles(new Set())}
+                  onClick={onClearSelection}
+                  aria-label="Clear selection"
                 >
                   <XMark />
                 </Button>
@@ -88,13 +91,13 @@ export const SelectionControls = ({ selectedRoles, setSelectedRoles }: Selection
       <ConfirmPopover
         isOpen={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
-        onConfirm={performRoleDeletion}
+        onConfirm={onConfirmDelete}
         triggerRef={deleteButtonRef}
-        title="Confirm role deletion"
+        title={`Confirm ${singular} deletion`}
         description={`This action is irreversible. All data associated with ${
-          selectedRoles.size > 1 ? "these roles" : "this role"
+          selectedCount > 1 ? `these ${plural}` : `this ${singular}`
         } will be permanently deleted.`}
-        confirmButtonText={`Delete role${selectedRoles.size > 1 ? "s" : ""}`}
+        confirmButtonText={`Delete ${singular}${selectedCount > 1 ? "s" : ""}`}
         cancelButtonText="Cancel"
         variant="danger"
       />

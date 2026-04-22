@@ -1,5 +1,7 @@
 "use client";
 
+import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/components/assign-key/hooks/use-fetch-keys";
+import { MAX_PERMS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/components/assign-permission/hooks/use-fetch-permissions";
 import {
   type MenuItem,
   TableActionPopoverDefaultTrigger,
@@ -9,8 +11,6 @@ import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { Clone, PenWriting3, Trash } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
-import { MAX_KEYS_FETCH_LIMIT } from "../../../upsert-role/components/assign-key/hooks/use-fetch-keys";
-import { MAX_PERMS_FETCH_LIMIT } from "../../../upsert-role/components/assign-permission/hooks/use-fetch-permissions";
 import { DeleteRole } from "./components/delete-role";
 import { EditRole } from "./components/edit-role";
 
