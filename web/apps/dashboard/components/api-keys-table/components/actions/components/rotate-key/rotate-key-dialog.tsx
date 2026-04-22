@@ -5,11 +5,15 @@ import { Button, ConfirmPopover, DialogContainer, FormCheckbox, FormSelect } fro
 import { type ReactNode, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
-import { DEFAULT_GRACE_PERIOD, GRACE_PERIOD_OPTIONS } from "./rotate-key.constants";
+import {
+  DEFAULT_GRACE_PERIOD,
+  GRACE_PERIOD_OPTIONS,
+  type GracePeriodMs,
+} from "./rotate-key.constants";
 
 type RotatedKeyData = { id: string; key: string; name?: string };
 
-type RotateInput = { keyId: string; expiration: number };
+type RotateInput = { keyId: string; expiration: GracePeriodMs };
 
 type RotateMutation = {
   mutateAsync: (input: RotateInput) => Promise<{ keyId: string; key: string; name?: string }>;
@@ -106,7 +110,11 @@ export const RotateKeyDialog = ({
       setIsLoading(true);
       const result = await mutation.mutateAsync({
         keyId,
-        expiration: Number(gracePeriod),
+        // GRACE_PERIOD_OPTIONS and GracePeriodMs are derived from the same
+        // GRACE_PERIODS table, so any value the FormSelect can produce is
+        // a valid GracePeriodMs at runtime. The cast bridges the form's
+        // string typing without losing that guarantee.
+        expiration: Number(gracePeriod) as GracePeriodMs,
       });
       setRotatedKeyData({ id: result.keyId, key: result.key, name: result.name });
     } catch {

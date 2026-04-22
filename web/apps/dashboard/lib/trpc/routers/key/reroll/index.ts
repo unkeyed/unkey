@@ -1,3 +1,7 @@
+import {
+  GRACE_PERIOD_VALUES_MS,
+  type GracePeriodMs,
+} from "@/components/api-keys-table/components/actions/components/rotate-key/rotate-key.constants";
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -6,17 +10,25 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { z } from "zod";
-import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
-import { roundUpToNextMinute } from "./reroll/round-up-to-next-minute";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../../trpc";
+import { capGracePeriodAtSourceExpiry } from "./cap-grace-period-at-source-expiry";
+import { roundUpToNextMinute } from "./round-up-to-next-minute";
 
 const vault = new Vault({
   baseUrl: env().VAULT_URL,
   token: env().VAULT_TOKEN,
 });
 
+const allowedExpirations = new Set<number>(GRACE_PERIOD_VALUES_MS);
+
 const rerollInputSchema = z.object({
   keyId: z.string().min(3).max(255),
-  expiration: z.number().int().min(0).max(4_102_444_800_000),
+  expiration: z
+    .number()
+    .int()
+    .refine((v): v is GracePeriodMs => allowedExpirations.has(v), {
+      error: "expiration must be one of the supported grace periods",
+    }),
 });
 
 export const rerollKey = workspaceProcedure
@@ -117,8 +129,11 @@ async function rerollKeyCore({
 
   const now = Date.now();
 
-  // Refuse to rotate an already-expired key. Setting a fresh `expires` in the
-  // future would resurrect it for the grace period, which is never intended.
+  // Refuse to rotate an already-expired key. The new key inherits the
+  // source's expiry, so rotating an expired key would mint a replacement
+  // that is born already expired — almost certainly not what the caller
+  // intended. This outer check is a fast-fail; the in-transaction re-read
+  // below is authoritative against concurrent expiry updates.
   if (source.expires && source.expires.getTime() <= now) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
@@ -138,7 +153,7 @@ async function rerollKeyCore({
 
   const { key: plaintext, hash, start } = await newKey({ prefix, byteLength });
   const newKeyId = newId("key");
-  const oldKeyExpiresAt =
+  const gracePeriodEnd =
     expiration === 0 ? new Date(now) : roundUpToNextMinute(new Date(now + expiration));
   const shouldEncrypt = Boolean(source.encrypted);
 
@@ -177,6 +192,15 @@ async function rerollKeyCore({
         });
       }
 
+      // The new key inherits the source's expiry so rotation preserves the
+      // original lifetime constraint instead of silently producing a
+      // permanent key. The old key's grace period is capped against that
+      // same expiry. Both the cap and the new-key insert use
+      // `current.expires` (re-read inside this tx) rather than the outer
+      // `source.expires` snapshot, so any concurrent expiry update that
+      // landed before this transaction is respected.
+      const oldKeyExpiresAt = capGracePeriodAtSourceExpiry(current.expires, gracePeriodEnd);
+
       await tx.insert(schema.keys).values({
         id: newKeyId,
         keyAuthId: source.keyAuthId,
@@ -188,7 +212,7 @@ async function rerollKeyCore({
         ownerId: source.ownerId,
         identityId: source.identityId,
         meta: source.meta,
-        expires: null,
+        expires: current.expires,
         createdAtM: now,
         refillDay: source.refillDay,
         refillAmount: source.refillAmount,
