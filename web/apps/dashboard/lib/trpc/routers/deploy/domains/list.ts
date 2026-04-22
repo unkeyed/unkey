@@ -30,7 +30,10 @@ export const listDomains = workspaceProcedure
         and(eq(projects.id, frontlineRoutes.projectId), eq(projects.workspaceId, ctx.workspace.id)),
       )
       .where(
-        and(eq(frontlineRoutes.projectId, input.projectId), eq(projects.workspaceId, ctx.workspace.id)),
+        and(
+          eq(frontlineRoutes.projectId, input.projectId),
+          eq(projects.workspaceId, ctx.workspace.id),
+        ),
       )
       .orderBy(desc(frontlineRoutes.updatedAt))
       .limit(500)
