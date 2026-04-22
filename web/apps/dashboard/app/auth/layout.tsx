@@ -19,7 +19,7 @@ export default async function AuthenticatedLayout({
   }
 
   return (
-    <div className="bg-black">
+    <div className="min-h-screen overflow-x-hidden bg-black">
       <nav className="container flex items-center justify-between h-16">
         <Link href="/">
           <Logo className="min-w-sm text-white" />
