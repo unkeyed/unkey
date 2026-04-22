@@ -9,11 +9,13 @@ import { Gear } from "@unkey/icons";
 
 interface KeySettingsDialogProps {
   keyData: KeyDetails;
+  apiId?: string;
+  keyspaceId?: string | null;
 }
 
-export const KeySettingsDialog = ({ keyData }: KeySettingsDialogProps) => {
+export const KeySettingsDialog = ({ keyData, apiId, keyspaceId }: KeySettingsDialogProps) => {
   const trpcUtils = trpc.useUtils();
-  const items = getKeysTableActionItems(keyData, trpcUtils);
+  const items = getKeysTableActionItems(keyData, trpcUtils, { apiId, keyspaceId });
 
   return (
     <TableActionPopover items={items}>

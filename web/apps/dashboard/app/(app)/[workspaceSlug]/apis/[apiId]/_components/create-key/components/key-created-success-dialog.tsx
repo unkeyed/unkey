@@ -23,7 +23,30 @@ interface KeyCreatedSuccessDialogProps {
   apiId: string;
   keyspaceId?: string | null;
   onCreateAnother?: (() => void) | (() => Promise<void>);
+  variant?: "created" | "rerolled";
+  detailsHref?: string;
 }
+
+const COPY = {
+  created: {
+    title: "Key Created",
+    body: (
+      <>
+        You've successfully generated a new API key.
+        <br /> Use this key to authenticate requests from your application.
+      </>
+    ),
+  },
+  rerolled: {
+    title: "Key Rotated",
+    body: (
+      <>
+        You've successfully rotated your API key.
+        <br /> The previous key will be revoked after the chosen grace period.
+      </>
+    ),
+  },
+} as const;
 
 export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
   isOpen,
@@ -32,7 +55,10 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
   apiId,
   keyspaceId,
   onCreateAnother,
+  variant = "created",
+  detailsHref,
 }) => {
+  const copy = COPY[variant];
   const workspace = useWorkspaceNavigation();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<
@@ -88,8 +114,13 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
           }
           break;
 
-        case "go-to-details":
-          if (!keyspaceId) {
+        case "go-to-details": {
+          const href =
+            detailsHref ??
+            (keyspaceId
+              ? `/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`
+              : null);
+          if (!href) {
             toast.error("Failed to Navigate", {
               description: "Keyspace ID is required to view key details.",
               action: {
@@ -99,8 +130,9 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
             });
             return;
           }
-          router.push(`/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`);
+          router.push(href);
           break;
+        }
 
         default:
           // Dialog already closed, nothing more to do
@@ -152,11 +184,10 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
             </div>
             <div className="mt-2 flex flex-col gap-2 items-center">
               <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
-                Key Created
+                {copy.title}
               </div>
               <div className="text-gray-10 text-[13px] leading-[24px] text-center" ref={dividerRef}>
-                You've successfully generated a new API key.
-                <br /> Use this key to authenticate requests from your application.
+                {copy.body}
               </div>
             </div>
             <div className="p-1 w-full my-4">
@@ -200,18 +231,20 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
               secretKeyClassName="bg-white dark:bg-black overflow-x-auto"
               codeClassName="p-0"
             />
-            <div className="mt-6">
-              <div className="flex gap-3 mt-4 items-center justify-center w-full">
-                <Button
-                  variant="outline"
-                  className="font-medium text-[13px] text-gray-12"
-                  onClick={() => handleCloseAttempt("create-another")}
-                >
-                  <Plus iconSize="sm-regular" />
-                  Create another key
-                </Button>
+            {onCreateAnother ? (
+              <div className="mt-6">
+                <div className="flex gap-3 mt-4 items-center justify-center w-full">
+                  <Button
+                    variant="outline"
+                    className="font-medium text-[13px] text-gray-12"
+                    onClick={() => handleCloseAttempt("create-another")}
+                  >
+                    <Plus iconSize="sm-regular" />
+                    Create another key
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
           <ConfirmPopover
             isOpen={isConfirmOpen}

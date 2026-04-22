@@ -3,6 +3,7 @@ import { type MenuItem, TableActionPopover } from "@/components/logs/table-actio
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import {
+  ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,
   Ban,
   CalendarClock,
@@ -27,11 +28,19 @@ import { EditRatelimits } from "./components/edit-ratelimits";
 import { KeyRbacDialog } from "./components/edit-rbac";
 import { MAX_PERMS_FETCH_LIMIT } from "./components/edit-rbac/components/assign-permission/hooks/use-fetch-keys-permissions";
 import { MAX_ROLES_FETCH_LIMIT } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
+import { RotateKey } from "./components/rotate-key/rotate-key";
+
+type KeyContext = {
+  apiId?: string;
+  keyspaceId?: string | null;
+};
 
 export const getKeysTableActionItems = (
   key: KeyDetails,
   trpcUtils: ReturnType<typeof trpc.useUtils>,
+  context: KeyContext = {},
 ): MenuItem[] => {
+  const { apiId, keyspaceId } = context;
   return [
     {
       id: "override",
@@ -197,6 +206,19 @@ export const getKeysTableActionItems = (
       },
       divider: true,
     },
+    ...(apiId
+      ? [
+          {
+            id: "rotate-key",
+            label: "Rotate key...",
+            icon: <ArrowDottedRotateAnticlockwise iconSize="md-medium" />,
+            ActionComponent: (props) => (
+              <RotateKey {...props} keyDetails={key} apiId={apiId} keyspaceId={keyspaceId} />
+            ),
+            divider: true,
+          } satisfies MenuItem,
+        ]
+      : []),
     {
       id: "delete-key",
       label: "Delete key",
@@ -208,10 +230,12 @@ export const getKeysTableActionItems = (
 
 type KeysTableActionsProps = {
   keyData: KeyDetails;
+  apiId?: string;
+  keyspaceId?: string | null;
 };
 
-export const KeysTableActions = ({ keyData }: KeysTableActionsProps) => {
+export const KeysTableActions = ({ keyData, apiId, keyspaceId }: KeysTableActionsProps) => {
   const trpcUtils = trpc.useUtils();
-  const items = getKeysTableActionItems(keyData, trpcUtils);
+  const items = getKeysTableActionItems(keyData, trpcUtils, { apiId, keyspaceId });
   return <TableActionPopover items={items} />;
 };

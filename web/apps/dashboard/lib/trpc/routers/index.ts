@@ -130,6 +130,7 @@ import { queryKeysPermissions } from "./key/rbac/permissions/query";
 import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
 import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
 import { updateKeyRbac } from "./key/rbac/update-rbac";
+import { rerollKey, rerollRootKey } from "./key/reroll";
 import { updateKeysEnabled } from "./key/updateEnabled";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
@@ -205,6 +206,7 @@ export const router = t.router({
   key: t.router({
     create: createKey,
     delete: deleteKeys,
+    reroll: rerollKey,
     fetchPermissions: fetchKeyPermissions,
     logs: t.router({
       query: queryKeyDetailsLogs,
@@ -235,6 +237,7 @@ export const router = t.router({
   }),
   rootKey: t.router({
     create: createRootKey,
+    reroll: rerollRootKey,
     update: t.router({
       name: updateRootKeyName,
       // NOTE: permissions replaces the full permission set for a root key.
