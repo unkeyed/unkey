@@ -1274,11 +1274,15 @@ type Querier interface {
 	//  SELECT s.pk, s.id, s.workspace_id, s.project_id, s.environment_id, s.k8s_name, s.k8s_address, s.region_id, s.image, s.running_image, s.desired_state, s.health, s.desired_replicas, s.available_replicas, s.deploy_status, s.cpu_millicores, s.memory_mib, s.created_at, s.updated_at, r.pk, r.id, r.name, r.platform, r.can_schedule FROM sentinels s LEFT JOIN regions r ON s.region_id = r.id WHERE s.environment_id = ?
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error)
 	// FindUnexportedAuditLogs returns the next batch of audit log envelopes that
-	// have not yet been shipped to the ClickHouse audit_logs_raw_v1 table.
-	// Ordered by pk so retries see a deterministic row set, which lets CH's
-	// block-level deduplication collapse re-inserts after a partial failure.
-	// The exported_pk_idx composite index makes this scan cheap even when the
-	// bulk of the table is exported = true.
+	// have not yet been written to the ClickHouse audit_logs_raw_v1 table.
+	// Must be called inside a transaction. FOR UPDATE SKIP LOCKED locks the
+	// batch's rows so a second cron run (if Restate VO serialization ever fails)
+	// silently skips them rather than re-processing the same set. The lock is
+	// released when the caller commits or rolls back. Ordered by pk so retries
+	// see a deterministic row set, which lets CH's block-level deduplication
+	// collapse re-inserts after a partial failure. The exported_pk_idx composite
+	// index makes this scan cheap even when the bulk of the table is
+	// exported = true.
 	//
 	//  SELECT pk, id, workspace_id, bucket, event, time, display,
 	//         remote_ip, user_agent, actor_type, actor_id, actor_name, actor_meta
@@ -1286,6 +1290,7 @@ type Querier interface {
 	//  WHERE exported = false
 	//  ORDER BY pk
 	//  LIMIT ?
+	//  FOR UPDATE SKIP LOCKED
 	FindUnexportedAuditLogs(ctx context.Context, db DBTX, limit int32) ([]FindUnexportedAuditLogsRow, error)
 	//FindVerifiedCustomDomainByDomainExcludingWorkspace
 	//
