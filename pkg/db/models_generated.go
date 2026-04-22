@@ -1142,6 +1142,7 @@ type AuditLog struct {
 	ActorMeta   []byte         `db:"actor_meta"`
 	CreatedAt   int64          `db:"created_at"`
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`
+	Exported    bool           `db:"exported"`
 }
 
 type AuditLogTarget struct {

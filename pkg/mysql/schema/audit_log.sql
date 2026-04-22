@@ -15,9 +15,12 @@ CREATE TABLE `audit_log` (
 	`actor_meta` json,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
+	`exported` boolean NOT NULL DEFAULT false,
 	CONSTRAINT `audit_log_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `audit_log_id_unique` UNIQUE(`id`)
 );
 
 CREATE INDEX `workspace_id_bucket_time_idx` ON `audit_log` (`workspace_id`,`bucket`,`time`);
+
+CREATE INDEX `exported_pk_idx` ON `audit_log` (`exported`,`pk`);
 
