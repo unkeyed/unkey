@@ -140,6 +140,28 @@ async function rerollKeyCore({
 
   try {
     await db.transaction(async (tx) => {
+      // Re-check the source's state inside the transaction. The outer read was
+      // a snapshot; a concurrent delete or expiration update between that read
+      // and here would otherwise let us resurrect an expired key for the grace
+      // period, or revive a soft-deleted one.
+      const current = await tx.query.keys.findFirst({
+        where: (table, { and, eq }) =>
+          and(eq(table.workspaceId, source.workspaceId), eq(table.id, source.id)),
+        columns: { expires: true, deletedAtM: true },
+      });
+      if (!current || current.deletedAtM !== null) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "The specified key was not found.",
+        });
+      }
+      if (current.expires && current.expires.getTime() <= now) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "This key has already expired and cannot be rotated.",
+        });
+      }
+
       await tx.insert(schema.keys).values({
         id: newKeyId,
         keyAuthId: source.keyAuthId,
@@ -216,7 +238,13 @@ async function rerollKeyCore({
       await tx
         .update(schema.keys)
         .set({ expires: oldKeyExpiresAt })
-        .where(and(eq(schema.keys.id, source.id), isNull(schema.keys.deletedAtM)));
+        .where(
+          and(
+            eq(schema.keys.id, source.id),
+            eq(schema.keys.workspaceId, source.workspaceId),
+            isNull(schema.keys.deletedAtM),
+          ),
+        );
 
       const resources: UnkeyAuditLog["resources"] = [
         { type: "key", id: newKeyId, name: source.name ?? undefined },
