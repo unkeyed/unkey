@@ -14,11 +14,11 @@ export function DeploymentsCardList() {
   const currentDeploymentId = project?.currentDeploymentId;
   const workspace = useWorkspaceNavigation();
 
-  if (deployments.isLoading && !deployments.data) {
+  if (deployments.isLoading) {
     return <DeploymentsSkeleton />;
   }
 
-  if (!deployments.data || deployments.data.length === 0) {
+  if (deployments.data.length === 0) {
     return (
       <div className="border border-grayA-4 rounded-[14px] overflow-hidden">
         <div className="w-full flex justify-center items-center py-16 px-4">
