@@ -1,7 +1,7 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import { envVarKeySchema } from "@/lib/schemas/env-var";
+import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown } from "@unkey/icons";
@@ -23,7 +23,7 @@ import { useProjectData } from "../../../data-provider";
 
 const editEnvVarSchema = z.object({
   key: envVarKeySchema,
-  value: z.string(),
+  value: envVarValueSchema.or(z.literal("")),
   environmentId: z.string().min(1, "Environment is required"),
   description: z.string().optional(),
 });

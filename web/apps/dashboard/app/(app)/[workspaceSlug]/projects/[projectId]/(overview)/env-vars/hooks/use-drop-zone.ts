@@ -3,9 +3,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { UseFormGetValues, UseFormReset, UseFormTrigger } from "react-hook-form";
 import type { EnvVarsFormValues } from "../components/add/schema";
 
-export const parseEnvText = (text: string): Array<{ key: string; value: string }> => {
+type ParseEnvResult = {
+  entries: Array<{ key: string; value: string }>;
+  droppedLines: number;
+};
+
+export const parseEnvText = (text: string): ParseEnvResult => {
   const lines = text.trim().split("\n");
-  return lines
+  let droppedLines = 0;
+  const entries = lines
     .map((line) => {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#")) {
@@ -14,6 +20,7 @@ export const parseEnvText = (text: string): Array<{ key: string; value: string }
 
       const eqIndex = trimmed.indexOf("=");
       if (eqIndex === -1) {
+        droppedLines++;
         return null;
       }
 
@@ -30,6 +37,8 @@ export const parseEnvText = (text: string): Array<{ key: string; value: string }
       return { key, value };
     })
     .filter((v): v is NonNullable<typeof v> => v !== null);
+
+  return { entries, droppedLines };
 };
 
 const isEnvFile = (file: File) =>
@@ -85,9 +94,15 @@ export function useDropZone(
 
   const importText = useCallback(
     (text: string) => {
-      const parsed = parseEnvText(text);
-      if (parsed.length > 0) {
-        importParsed(parsed);
+      const { entries, droppedLines } = parseEnvText(text);
+      if (droppedLines > 0) {
+        toast.error(
+          "Import failed: multiline values are not supported. Please ensure each variable is on a single line.",
+        );
+        return;
+      }
+      if (entries.length > 0) {
+        importParsed(entries);
       } else {
         toast.error("No valid environment variables found");
       }
