@@ -183,10 +183,10 @@ export const RotateKey = ({ keyDetails, apiId, keyspaceId, isOpen, onClose }: Ro
         onConfirm={performKeyRotation}
         triggerRef={rotateButtonRef}
         title="Confirm key rotation"
-        description="A new secret will be generated now. The current key will be revoked after the grace period you selected."
+        description="A new key will be generated now. The current key will be revoked after the grace period you selected."
         confirmButtonText="Rotate key"
         cancelButtonText="Cancel"
-        variant="warning"
+        variant="danger"
       />
     </>
   );

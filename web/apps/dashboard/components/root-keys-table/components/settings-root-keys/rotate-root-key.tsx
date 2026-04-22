@@ -181,10 +181,10 @@ export const RotateRootKey = ({ rootKeyDetails, isOpen, onClose }: RotateRootKey
         onConfirm={performRootKeyRotation}
         triggerRef={rotateButtonRef}
         title="Confirm root key rotation"
-        description="A new secret will be generated now. The current root key will be revoked after the grace period you selected."
+        description="A new root key will be generated now. The current root key will be revoked after the grace period you selected."
         confirmButtonText="Rotate root key"
         cancelButtonText="Cancel"
-        variant="warning"
+        variant="danger"
       />
     </>
   );
