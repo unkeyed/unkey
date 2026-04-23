@@ -1,8 +1,11 @@
 "use client";
 
+import { useNavbarVariant } from "@/hooks/use-navbar-variant";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { generateFakeDeployments } from "@/lib/fake-deployments";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
+import { usePathname } from "next/navigation";
 import { useProjectData } from "../../data-provider";
 import { useDeployments } from "../hooks/use-deployments";
 import { DeploymentRow } from "./deployment-row";
@@ -10,15 +13,51 @@ import { DeploymentsSkeleton } from "./deployments-skeleton";
 
 export function DeploymentsCardList() {
   const { deployments } = useDeployments();
-  const { project } = useProjectData();
+  const { project, projectId } = useProjectData();
   const currentDeploymentId = project?.currentDeploymentId;
   const workspace = useWorkspaceNavigation();
+  const { variant } = useNavbarVariant();
+  const pathname = usePathname() ?? "";
+
+  // When inside an app route (`/apps/[slug]/...`) in v2b, deployment
+  // rows should drill into the per-app detail route rather than the
+  // project-level legacy one.
+  const appMatch = pathname.match(/\/projects\/[^/]+\/apps\/([^/]+)/);
+  const appSlug = appMatch?.[1];
+  const hrefFor = (deploymentId: string) => {
+    const base = `/${workspace.slug}/projects/${project?.id}`;
+    return appSlug
+      ? `${base}/apps/${appSlug}/deployments/${deploymentId}`
+      : `${base}/deployments/${deploymentId}`;
+  };
 
   if (deployments.isLoading && !deployments.data) {
     return <DeploymentsSkeleton />;
   }
 
-  if (!deployments.data || deployments.data.length === 0) {
+  const realItems = deployments.data ?? [];
+
+  // Prototype-only: v2b falls back to deterministic fakes so Dave can
+  // see the populated layout for projects without real deploys.
+  if (realItems.length === 0 && variant === "v2b") {
+    const fakes = generateFakeDeployments(projectId);
+    return (
+      <div className="border border-grayA-4 rounded-[14px] overflow-hidden divide-y divide-grayA-4">
+        {fakes.map((deployment) => (
+          <DeploymentRow
+            key={deployment.id}
+            deployment={deployment}
+            environment={undefined}
+            isCurrent={false}
+            isRolledBack={false}
+            href={hrefFor(deployment.id)}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (realItems.length === 0) {
     return (
       <div className="border border-grayA-4 rounded-[14px] overflow-hidden">
         <div className="w-full flex justify-center items-center py-16 px-4">
@@ -49,7 +88,7 @@ export function DeploymentsCardList() {
 
   return (
     <div className="border border-grayA-4 rounded-[14px] overflow-hidden divide-y divide-grayA-4">
-      {deployments.data.map((item) => {
+      {realItems.map((item) => {
         const { deployment, environment } = item;
         if (!deployment) {
           return null;
@@ -62,7 +101,7 @@ export function DeploymentsCardList() {
             environment={environment}
             isCurrent={isCurrent}
             isRolledBack={isCurrent && (project?.isRolledBack ?? false)}
-            href={`/${workspace.slug}/projects/${project?.id}/deployments/${deployment.id}`}
+            href={hrefFor(deployment.id)}
           />
         );
       })}

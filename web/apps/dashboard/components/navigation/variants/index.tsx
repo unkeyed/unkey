@@ -7,6 +7,7 @@ import { CurrentVariant } from "./current";
 import { V1aVariant } from "./v1a";
 import { V1bVariant } from "./v1b";
 import { V2Variant } from "./v2";
+import { V2bVariant } from "./v2b";
 import { V3Variant } from "./v3";
 
 export type VariantSidebarProps = React.ComponentProps<typeof Sidebar> & {
@@ -28,6 +29,8 @@ export function NavbarVariant(props: VariantSidebarProps) {
       return <V1bVariant {...props} />;
     case "v2":
       return <V2Variant {...props} />;
+    case "v2b":
+      return <V2bVariant {...props} />;
     case "v3":
       return <V3Variant />;
     case "current":

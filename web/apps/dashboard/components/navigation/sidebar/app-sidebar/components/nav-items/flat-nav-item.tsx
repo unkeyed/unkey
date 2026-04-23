@@ -29,8 +29,19 @@ export const FlatNavItem = ({ item, onLoadMore, className }: NavProps) => {
     }
   };
 
+  // When the sidebar is collapsed to icon-only mode, (a) center the
+  // square 32px button inside the 64px rail, and (b) fall back to the
+  // item's label as the tooltip so the user can still identify it.
+  const tooltip = item.tooltip ?? (typeof item.label === "string" ? item.label : undefined);
+
   return (
-    <SidebarMenuItem className={cn("list-none", className)}>
+    <SidebarMenuItem
+      className={cn(
+        "list-none",
+        "group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center",
+        className,
+      )}
+    >
       <NavLink
         href={item.href}
         external={item.external}
@@ -38,7 +49,7 @@ export const FlatNavItem = ({ item, onLoadMore, className }: NavProps) => {
         isLoadMoreButton={isLoadMoreButton}
       >
         <SidebarMenuButton
-          tooltip={item.tooltip}
+          tooltip={tooltip}
           isActive={item.active}
           className={getButtonStyles(item.active, showLoader)}
         >

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-export type NavbarVariant = "current" | "v1a" | "v1b" | "v2" | "v3";
+export type NavbarVariant = "current" | "v1a" | "v1b" | "v2" | "v2b" | "v3";
 
 export const STORAGE_KEY = "navbar-variant";
 export const DEFAULT_VARIANT: NavbarVariant = "current";
@@ -10,7 +10,12 @@ export const STORAGE_EVENT = "navbar-variant-changed";
 
 function isVariant(value: string | null): value is NavbarVariant {
   return (
-    value === "current" || value === "v1a" || value === "v1b" || value === "v2" || value === "v3"
+    value === "current" ||
+    value === "v1a" ||
+    value === "v1b" ||
+    value === "v2" ||
+    value === "v2b" ||
+    value === "v3"
   );
 }
 

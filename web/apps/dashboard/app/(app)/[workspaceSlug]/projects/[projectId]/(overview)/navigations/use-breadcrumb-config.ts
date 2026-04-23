@@ -2,8 +2,11 @@
 
 import type { QuickNavItem } from "@/components/navbar-popover";
 import type { Navbar } from "@/components/navigation/navbar";
+import { useProjectItems } from "@/hooks/use-project-items";
+import { type ProjectItem, type ProjectItemType, sortByTypeGroup } from "@/lib/project-items";
 import { shortenId } from "@/lib/shorten-id";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
+import { useMemo } from "react";
 import type { ComponentPropsWithoutRef } from "react";
 
 export type BreadcrumbItem = ComponentPropsWithoutRef<typeof Navbar.Breadcrumbs.Link> & {
@@ -19,15 +22,19 @@ export type BreadcrumbItem = ComponentPropsWithoutRef<typeof Navbar.Breadcrumbs.
   };
 };
 
-type SubPage = {
-  id: string;
-  label: string;
-  href: string;
-  segment: string | undefined;
-  disabled?: boolean;
-  disabledTooltip?: string;
-};
-
+/**
+ * Project-as-container model (Andreas, 2026-04-21): the breadcrumb's
+ * third segment is either **Overview** (project root) or the name of an
+ * item inside the project (app / database / queue / vault). Items come
+ * from `useProjectItems` — localStorage-backed while the backend catches
+ * up.
+ *
+ * Legacy app-level routes (`deployments`, `logs`, `env-vars`,
+ * `sentinel-policies`, `settings`, `requests`, `openapi-diff`) still
+ * resolve as URLs so pre-existing bookmarks don't 404; the breadcrumb
+ * surfaces them with a generic fallback label rather than pretending
+ * they're a first-class sibling of the new items.
+ */
 export const useBreadcrumbConfig = ({
   projectId,
   basePath,
@@ -41,64 +48,70 @@ export const useBreadcrumbConfig = ({
 }): BreadcrumbItem[] => {
   const segments = useSelectedLayoutSegments() ?? [];
   const params = useParams();
-  // Find base indices using the segment-based pattern
   const projectsIndex = segments.findIndex((s) => s === "projects");
-  const currentSegment = segments.at(projectsIndex + 2); // After [projectId]
+  const typeSegment = segments.at(projectsIndex + 2);
+  const slugSegment = segments.at(projectsIndex + 3);
+  const appSectionSegment = segments.at(projectsIndex + 4);
   const deploymentId = params?.deploymentId as string | undefined;
 
-  // Sub-pages configuration - matches the existing structure
-  const subPages: SubPage[] = [
+  const { items } = useProjectItems(projectId);
+  const sortedItems = useMemo(() => sortByTypeGroup(items), [items]);
+
+  const typeForSegment = (seg: string | undefined): ProjectItemType | undefined => {
+    switch (seg) {
+      case "apps":
+        return "app";
+      case "databases":
+        return "database";
+      case "queues":
+        return "queue";
+      case "vault":
+        return "vault";
+      default:
+        return undefined;
+    }
+  };
+
+  const currentItemType = typeForSegment(typeSegment);
+  const currentItem =
+    currentItemType !== undefined && slugSegment
+      ? items.find((i) => i.type === currentItemType && i.slug === slugSegment)
+      : undefined;
+
+  const overviewHref = `${basePath}/${projectId}`;
+  const subpageQuickNav: QuickNavItem[] = [
     {
-      id: "deployments",
-      label: "Deployments",
-      href: `${basePath}/${projectId}/deployments`,
-      segment: "deployments",
+      id: "overview",
+      label: "Overview",
+      href: overviewHref,
     },
-    {
-      id: "requests",
-      label: "Requests",
-      href: `${basePath}/${projectId}/requests`,
-      segment: "requests",
-    },
-    {
-      id: "logs",
-      label: "Logs",
-      href: `${basePath}/${projectId}/logs`,
-      segment: "logs",
-    },
-    {
-      id: "env-vars",
-      label: "Environment Variables",
-      href: `${basePath}/${projectId}/env-vars`,
-      segment: "env-vars",
-    },
-    {
-      id: "sentinel-policies",
-      label: "Sentinel Policies",
-      href: `${basePath}/${projectId}/sentinel-policies`,
-      segment: "sentinel-policies",
-    },
-    {
-      id: "settings",
-      label: "Settings",
-      href: `${basePath}/${projectId}/settings`,
-      segment: "settings",
-    },
-    {
-      id: "openapi-diff",
-      label: "OpenAPI Diff",
-      href: `${basePath}/${projectId}/openapi-diff`,
-      segment: "openapi-diff",
-    },
+    ...sortedItems.map((item) => ({
+      id: `${item.type}-${item.slug}`,
+      label: item.name,
+      href: itemHref(basePath, projectId, item),
+    })),
   ];
 
-  // Determine active subpage based on segment
-  const activeSubPage = subPages.find((p) => p.segment === currentSegment) || subPages[0];
-  const isOnDeploymentDetail = Boolean(deploymentId);
+  const activeLabel = currentItem
+    ? currentItem.name
+    : typeSegment && !currentItemType
+      ? legacyLabel(typeSegment)
+      : "Overview";
 
-  // Build breadcrumbs declaratively
+  const activeHref = currentItem
+    ? itemHref(basePath, projectId, currentItem)
+    : typeSegment && !currentItemType
+      ? `${basePath}/${projectId}/${typeSegment}`
+      : overviewHref;
+
+  const isOnDeploymentDetail = Boolean(deploymentId);
+  const activeQuickNavId = currentItem
+    ? `${currentItem.type}-${currentItem.slug}`
+    : typeSegment
+      ? undefined
+      : "overview";
+
   const breadcrumbs: BreadcrumbItem[] = [
-    // 1. Projects root
     {
       id: "projects",
       children: "Projects",
@@ -107,8 +120,6 @@ export const useBreadcrumbConfig = ({
       active: false,
       isLast: false,
     },
-
-    // 2. Current project with QuickNav
     {
       id: "project",
       children: activeProject?.name || projectId,
@@ -127,30 +138,31 @@ export const useBreadcrumbConfig = ({
         shortcutKey: "N",
       },
     },
-
-    // 3. Sub-page with QuickNav (Overview, Deployments, etc.)
     {
       id: "subpage",
-      children: isOnDeploymentDetail ? "Deployments" : activeSubPage.label,
-      href: isOnDeploymentDetail ? `${basePath}/${projectId}/deployments` : activeSubPage.href,
+      children: isOnDeploymentDetail ? "Deployments" : activeLabel,
+      href: isOnDeploymentDetail ? `${basePath}/${projectId}/deployments` : activeHref,
       shouldRender: true,
-      active: !isOnDeploymentDetail, // Active if not on detail page
-      isLast: !isOnDeploymentDetail, // Last if not on detail page
+      active: !isOnDeploymentDetail && !appSectionSegment,
+      isLast: !isOnDeploymentDetail && !appSectionSegment,
       noop: true,
       quickNavConfig: {
-        items: subPages.map((page) => ({
-          id: page.id,
-          label: page.label,
-          href: page.href,
-          disabled: page.disabled,
-          disabledTooltip: page.disabledTooltip,
-        })),
-        activeItemId: isOnDeploymentDetail ? "deployments" : undefined,
+        items: subpageQuickNav,
+        activeItemId: isOnDeploymentDetail ? undefined : activeQuickNavId,
         shortcutKey: "M",
       },
     },
-
-    // 4. Deployment ID
+    {
+      id: "app-section",
+      children: appSectionSegment ? legacyLabel(appSectionSegment) : "",
+      href:
+        currentItem && appSectionSegment
+          ? `${itemHref(basePath, projectId, currentItem)}/${appSectionSegment}`
+          : "",
+      shouldRender: Boolean(appSectionSegment && currentItemType === "app"),
+      active: Boolean(appSectionSegment),
+      isLast: Boolean(appSectionSegment) && !isOnDeploymentDetail,
+    },
     {
       id: "deployment-detail",
       children: shortenId(deploymentId || ""),
@@ -163,3 +175,38 @@ export const useBreadcrumbConfig = ({
 
   return breadcrumbs.filter((b) => b.shouldRender);
 };
+
+function itemHref(basePath: string, projectId: string, item: ProjectItem): string {
+  const base = `${basePath}/${projectId}`;
+  switch (item.type) {
+    case "app":
+      return `${base}/apps/${item.slug}`;
+    case "database":
+      return `${base}/databases/${item.slug}`;
+    case "queue":
+      return `${base}/queues/${item.slug}`;
+    case "vault":
+      return `${base}/vault/${item.slug}`;
+  }
+}
+
+function legacyLabel(segment: string): string {
+  switch (segment) {
+    case "deployments":
+      return "Deployments";
+    case "requests":
+      return "Requests";
+    case "logs":
+      return "Logs";
+    case "env-vars":
+      return "Environment Variables";
+    case "sentinel-policies":
+      return "Sentinel Policies";
+    case "settings":
+      return "Settings";
+    case "openapi-diff":
+      return "OpenAPI Diff";
+    default:
+      return segment.replace(/[-_]/g, " ");
+  }
+}

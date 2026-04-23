@@ -7,57 +7,49 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarHeader,
   SidebarMenu,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useNavigationContext } from "@/hooks/use-navigation-context";
-import { useProjectItems } from "@/hooks/use-project-items";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
 import type { Quotas, Workspace } from "@/lib/db";
 import { KEYSPACE_LABEL } from "@/lib/keyspace-label";
-import { type ProjectItem, type ProjectItemType, sortByTypeGroup } from "@/lib/project-items";
 import { cn } from "@/lib/utils";
-import { useLiveQuery } from "@tanstack/react-db";
 import {
   ArrowOppositeDirectionY,
   BracketsSquareDots,
-  ChevronLeft,
   ChevronRight,
   Coins,
   Cube,
-  Database,
-  Envelope,
   Fingerprint,
   Gauge,
   Gear,
   Grid,
   InputSearch,
   Layers3,
-  Lock,
   Nodes,
   ShieldKey,
+  SidebarLeftHide,
+  SidebarLeftShow,
 } from "@unkey/icons";
-import Link from "next/link";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { usePathname, useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 import { LeafSidebarView } from "./shared/leaf-sidebar-view";
-import { UserButtonFooter } from "./shared/user-button-footer";
-import { WorkspaceSwitcherTop } from "./shared/workspace-switcher-top";
+import { V2BTopHeader, V2B_HEADER_HEIGHT } from "./shared/v2b-header";
 
 type Props = React.ComponentProps<typeof Sidebar> & {
   workspace: Workspace & { quotas: Quotas | null };
 };
 
 /**
- * v2 — static sidebar with Deploy-primacy framing.
+ * v2b — full-width breadcrumb top header + contextual left sidebar.
  *
- * Reflects Andreas's reframe: Deploy is the product; keys, ratelimits,
- * authorization, identities, logs are features. Strict no-dynamic-content
- * rule (no inline project/API lists). Home is dropped — workspace root
- * routes straight to /projects (handled in `page.tsx`).
+ * Mirror of v2's leaf logic (ProjectLeaf / AppLeaf / SettingsLeaf /
+ * AuthorizationLeaf / UnifiedTree) minus the in-sidebar back links and
+ * the sidebar-level workspace switcher (both moved to the top header).
  */
-export function V2Variant(props: Props) {
+export function V2bVariant(props: Props) {
   const context = useNavigationContext();
   const rawSegments = useSelectedLayoutSegments();
   const segments = useMemo(() => rawSegments ?? [], [rawSegments]);
@@ -67,8 +59,6 @@ export function V2Variant(props: Props) {
 
   const content = (() => {
     if (context.type === "resource" && context.resourceType === "project") {
-      // Route groups like `(overview)` make `useSelectedLayoutSegments`
-      // output vary across Next.js versions; pathname lookup is robust.
       const appMatch = pathname.match(/\/projects\/[^/]+\/apps\/([^/]+)/);
       if (appMatch?.[1]) {
         return <AppLeaf projectId={context.resourceId} appSlug={appMatch[1]} />;
@@ -88,15 +78,61 @@ export function V2Variant(props: Props) {
   })();
 
   return (
-    <Sidebar {...props}>
-      <SidebarHeader className="gap-0 p-0">
-        <WorkspaceSwitcherTop />
-      </SidebarHeader>
-      <SidebarContent>{content}</SidebarContent>
-      <SidebarFooter className="mx-0 gap-0 border-t-0 p-0">
-        <UserButtonFooter />
-      </SidebarFooter>
-    </Sidebar>
+    <>
+      <V2BTopHeader />
+      <Sidebar
+        {...props}
+        collapsible="icon"
+        className={cn(
+          "[&_[data-sidebar=sidebar]]:bg-background",
+          props.className,
+        )}
+        style={
+          {
+            top: V2B_HEADER_HEIGHT,
+            height: `calc(100svh - ${V2B_HEADER_HEIGHT}px)`,
+            // Contextual rail; the icon-collapsed rail is intentionally
+            // tight so it reads as a skinny icon strip rather than a
+            // half-hidden sidebar.
+            "--sidebar-width": "13rem",
+            "--sidebar-width-icon": "3rem",
+          } as React.CSSProperties
+        }
+      >
+        <SidebarContent>{content}</SidebarContent>
+        <SidebarFooter className="mx-0 gap-0 border-t-0 p-2">
+          <CollapseButton />
+        </SidebarFooter>
+      </Sidebar>
+    </>
+  );
+}
+
+function CollapseButton() {
+  const { state, toggleSidebar } = useSidebar();
+  const collapsed = state === "collapsed";
+  const Icon = collapsed ? SidebarLeftShow : SidebarLeftHide;
+  const label = collapsed ? "Expand sidebar" : "Collapse sidebar";
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          aria-label={label}
+          className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-gray-3 hover:text-gray-12"
+        >
+          <Icon iconSize="md-regular" className="shrink-0" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        side="right"
+        align="center"
+        className="dark:bg-white bg-black text-gray-1 px-2 py-1 border border-accent-6 shadow-md font-medium text-xs"
+      >
+        {label}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -149,10 +185,6 @@ function UnifiedTree() {
     },
   ];
 
-  // Inline workspace items so they share the same SidebarMenu shell as
-  // Features and Deploy. Mirrors `WorkspaceSection`'s contents but skips
-  // its extra SidebarGroup wrapper, which was causing the items to appear
-  // visually nested compared to Features above.
   const workspaceItems: NavItem[] = [
     {
       icon: InputSearch,
@@ -178,7 +210,7 @@ function UnifiedTree() {
 
   return (
     <>
-      <Section>
+      <Section className="py-1.5">
         <SidebarMenu className="gap-1">
           <NavItems item={deployItem} />
         </SidebarMenu>
@@ -192,7 +224,7 @@ function UnifiedTree() {
         </SidebarMenu>
       </Section>
 
-      <Section label="Workspace" last>
+      <Section last>
         <SidebarMenu className="gap-1">
           {workspaceItems.map((item) => (
             <NavItems key={item.href} item={item} />
@@ -203,11 +235,6 @@ function UnifiedTree() {
   );
 }
 
-/**
- * Leaf view for `/[ws]/authorization/*` routes. Authorization isn't a
- * "resource" in `useNavigationContext`'s model (it's workspace-level),
- * so we mirror the SettingsLeaf pattern here.
- */
 function AuthorizationLeaf() {
   const workspace = useWorkspaceNavigation();
   const rawSegments = useSelectedLayoutSegments();
@@ -230,14 +257,7 @@ function AuthorizationLeaf() {
   ];
 
   return (
-    <div className="flex flex-col gap-2 px-2 pt-1">
-      <Link
-        href={base}
-        className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] font-medium text-gray-11 hover:bg-gray-3 hover:text-gray-12"
-      >
-        <ChevronLeft className="h-3 w-3" />
-        <span>Workspace</span>
-      </Link>
+    <div className="flex flex-col gap-2 px-2 py-2 group-data-[collapsible=icon]:px-0">
       <SidebarMenu className="gap-1">
         {items.map((item) => (
           <NavItems key={item.href} item={item} />
@@ -247,11 +267,6 @@ function AuthorizationLeaf() {
   );
 }
 
-/**
- * Leaf view for `/[ws]/settings/*` routes. Settings isn't a "resource" in
- * `useNavigationContext`'s model, so we special-case it here: back button
- * to the workspace root + the settings sub-nav as flat list items.
- */
 function SettingsLeaf() {
   const workspace = useWorkspaceNavigation();
   const rawSegments = useSelectedLayoutSegments();
@@ -286,14 +301,7 @@ function SettingsLeaf() {
   ];
 
   return (
-    <div className="flex flex-col gap-2 px-2 pt-1">
-      <Link
-        href={base}
-        className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] font-medium text-gray-11 hover:bg-gray-3 hover:text-gray-12"
-      >
-        <ChevronLeft className="h-3 w-3" />
-        <span>Workspace</span>
-      </Link>
+    <div className="flex flex-col gap-2 px-2 py-2 group-data-[collapsible=icon]:px-0">
       <SidebarMenu className="gap-1">
         {items.map((item) => (
           <NavItems key={item.href} item={item} />
@@ -316,28 +324,16 @@ function Section({
 }) {
   return (
     <SidebarGroup
-      className={cn(last ? "px-0 py-2" : "border-b border-grayA-4 px-0 py-2", className)}
+      className={cn(last ? "px-0 py-0" : "border-b border-grayA-4 px-0 py-0", className)}
     >
-      {label ? <div className="mb-1 px-4 text-[12px] font-medium text-gray-11">{label}</div> : null}
+      {label ? (
+        <div className="mb-0.5 px-4 pt-2 text-[12px] font-medium text-gray-11">{label}</div>
+      ) : null}
       <div className="px-2">{children}</div>
     </SidebarGroup>
   );
 }
 
-/**
- * Leaf view for `/[ws]/projects/[projectId]/*` routes.
- *
- * Project-as-container model (Andreas, 2026-04-21): the sidebar is a
- * flat list of the items inside the project — apps + supplementary
- * services (databases / queues / vault) — all siblings. This is a
- * prototype backed by localStorage via `useProjectItems`; pages that
- * items link to are intentionally placeholders.
- *
- * Visual pattern mirrors `SettingsLeaf` / `AuthorizationLeaf` above —
- * flat `SidebarMenu` of `NavItems` with no `items[]` sub-nav and no
- * `isResourceLevel`, to avoid the `border-l` connector rail that
- * `ContextNavigation` → `SidebarMenuSub` introduces.
- */
 function ProjectLeaf({ projectId }: { projectId: string }) {
   const workspace = useWorkspaceNavigation();
   const pathname = usePathname() ?? "";
@@ -345,31 +341,11 @@ function ProjectLeaf({ projectId }: { projectId: string }) {
   const projectPath = `${base}/projects/${projectId}`;
   const settingsHref = `${projectPath}/settings`;
 
-  const { items } = useProjectItems(projectId);
-  const sorted = useMemo(() => sortByTypeGroup(items), [items]);
-
   const atOverview = pathname === projectPath || pathname === `${projectPath}/`;
   const atSettings = pathname === settingsHref || pathname.startsWith(`${settingsHref}/`);
 
-  const itemNavItems: NavItem[] = sorted.map((item) => {
-    const href = projectItemHref(projectPath, item);
-    return {
-      icon: projectItemIcon(item.type),
-      href,
-      label: item.name,
-      active: pathname === href || pathname.startsWith(`${href}/`),
-    };
-  });
-
   return (
-    <div className="flex flex-col gap-2 px-2 pt-1">
-      <Link
-        href={`${base}/projects`}
-        className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] font-medium text-gray-11 hover:bg-gray-3 hover:text-gray-12"
-      >
-        <ChevronLeft className="h-3 w-3" />
-        <span>Projects</span>
-      </Link>
+    <div className="flex flex-col gap-2 px-2 py-2 group-data-[collapsible=icon]:px-0">
       <SidebarMenu className="gap-1">
         <NavItems
           item={{
@@ -388,68 +364,15 @@ function ProjectLeaf({ projectId }: { projectId: string }) {
           }}
         />
       </SidebarMenu>
-      {itemNavItems.length > 0 ? (
-        <>
-          <div className="-mx-2 my-1 border-t border-grayA-4" />
-          <SidebarMenu className="gap-1">
-            {itemNavItems.map((item) => (
-              <NavItems key={item.href} item={item} />
-            ))}
-          </SidebarMenu>
-        </>
-      ) : null}
     </div>
   );
 }
 
-function projectItemIcon(type: ProjectItemType) {
-  switch (type) {
-    case "app":
-      return Cube;
-    case "database":
-      return Database;
-    case "queue":
-      return Envelope;
-    case "vault":
-      return Lock;
-  }
-}
-
-function projectItemHref(projectPath: string, item: ProjectItem): string {
-  switch (item.type) {
-    case "app":
-      return `${projectPath}/apps/${item.slug}`;
-    case "database":
-      return `${projectPath}/databases/${item.slug}`;
-    case "queue":
-      return `${projectPath}/queues/${item.slug}`;
-    case "vault":
-      return `${projectPath}/vault/${item.slug}`;
-  }
-}
-
-/**
- * Leaf view for `/[ws]/projects/[projectId]/apps/[appSlug]/*` routes.
- *
- * Mirrors the old project-leaf sub-nav (Deployments / Logs / Env Vars /
- * Sentinel Policies / Settings) — Andreas noted those are all
- * app-level, not project-level. Back link returns to the project
- * overview.
- */
 function AppLeaf({ projectId, appSlug }: { projectId: string; appSlug: string }) {
   const workspace = useWorkspaceNavigation();
   const pathname = usePathname() ?? "";
   const base = `/${workspace.slug}`;
-  const projectPath = `${base}/projects/${projectId}`;
-  const appPath = `${projectPath}/apps/${appSlug}`;
-
-  const projectQuery = useLiveQuery((q) =>
-    q.from({ project: collection.projects }).select(({ project }) => ({
-      id: project.id,
-      name: project.name,
-    })),
-  );
-  const project = (projectQuery.data ?? []).find((p) => p.id === projectId);
+  const appPath = `${base}/projects/${projectId}/apps/${appSlug}`;
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const isOverview = pathname === appPath || pathname === `${appPath}/`;
@@ -495,14 +418,7 @@ function AppLeaf({ projectId, appSlug }: { projectId: string; appSlug: string })
   ];
 
   return (
-    <div className="flex flex-col gap-2 px-2 pt-1">
-      <Link
-        href={projectPath}
-        className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] font-medium text-gray-11 hover:bg-gray-3 hover:text-gray-12"
-      >
-        <ChevronLeft className="h-3 w-3" />
-        <span className="truncate">{project?.name ?? "Project"}</span>
-      </Link>
+    <div className="flex flex-col gap-2 px-2 py-2 group-data-[collapsible=icon]:px-0">
       <SidebarMenu className="gap-1">
         {navItems.map((item) => (
           <NavItems key={item.href} item={item} />

@@ -1,49 +1,35 @@
 "use client";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
+import { useNavbarVariant } from "@/hooks/use-navbar-variant";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
-import {
-  ArrowDottedRotateAnticlockwise,
-  ChevronExpandY,
-  Cube,
-  DoubleChevronLeft,
-} from "@unkey/icons";
-import { Button, InfoTooltip } from "@unkey/ui";
-import dynamic from "next/dynamic";
-import { useRef, useState } from "react";
+import { ChevronExpandY, Cube } from "@unkey/icons";
+import { useRef } from "react";
 import { useProjectData } from "../data-provider";
 import { useBreadcrumbConfig } from "./use-breadcrumb-config";
-
-const CreateDeploymentButton = dynamic(
-  () => import("./create-deployment-button").then((m) => m.CreateDeploymentButton),
-  { ssr: false },
-);
-
-const RedeployDialog = dynamic(
-  () =>
-    import("../deployments/components/table/components/actions/redeploy-dialog").then(
-      (m) => m.RedeployDialog,
-    ),
-  { ssr: false },
-);
 
 const BORDER_OFFSET = 1;
 type ProjectNavigationProps = {
   onMount: (distanceToTop: number) => void;
-  onClick: () => void;
-  isDetailsOpen: boolean;
+  // Retained for caller compatibility (project layout still passes these).
+  // The Create Deployment / Redeploy / details-drawer toggle buttons used
+  // to live here — they're app-level and will move to the app leaf once
+  // applications are a first-class UI concept (see Andreas, 2026-04-21).
+  onClick?: () => void;
+  isDetailsOpen?: boolean;
   currentDeploymentId?: string | null;
 };
 
-export const ProjectNavigation = ({
-  onMount,
-  isDetailsOpen,
-  currentDeploymentId,
-  onClick,
-}: ProjectNavigationProps) => {
+export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
   const workspace = useWorkspaceNavigation();
+  const { variant } = useNavbarVariant();
+  // v2b carries the breadcrumb trail in its global top header, so the
+  // in-page project nav becomes redundant there.
+  if (variant === "v2b") {
+    return null;
+  }
   const projects = useLiveQuery((q) =>
     q.from({ project: collection.projects }).select(({ project }) => ({
       id: project.id,
@@ -51,7 +37,7 @@ export const ProjectNavigation = ({
     })),
   );
 
-  const { projectId, project, getDeploymentById } = useProjectData();
+  const { projectId, project } = useProjectData();
   const activeProject = project
     ? { id: project.id, name: project.name, repositoryFullName: project.repositoryFullName }
     : undefined;
@@ -64,20 +50,6 @@ export const ProjectNavigation = ({
     activeProject,
   });
 
-  const [isRedeployOpen, setIsRedeployOpen] = useState(false);
-  const selectedDeployment = currentDeploymentId
-    ? getDeploymentById(currentDeploymentId)
-    : undefined;
-
-  // Close the redeploy dialog when the active deployment changes (e.g. navigation)
-  const prevDeploymentIdRef = useRef(currentDeploymentId);
-  if (prevDeploymentIdRef.current !== currentDeploymentId) {
-    prevDeploymentIdRef.current = currentDeploymentId;
-    if (isRedeployOpen) {
-      setIsRedeployOpen(false);
-    }
-  }
-
   const anchorRef = useRef<HTMLDivElement | null>(null);
 
   const handleRef = (node: HTMLDivElement | null) => {
@@ -86,66 +58,6 @@ export const ProjectNavigation = ({
       const distanceToTop = node.getBoundingClientRect().bottom + BORDER_OFFSET;
       onMount(distanceToTop);
     }
-  };
-
-  const getTooltipContent = () => {
-    if (!currentDeploymentId) {
-      return "No deployments available. Deploy your project to view details.";
-    }
-    return isDetailsOpen ? "Hide deployment details" : "Show deployment details";
-  };
-
-  const renderActions = () => {
-    return (
-      <div className="flex gap-4 items-center">
-        <div className="gap-2.5 items-center flex">
-          {activeProject?.repositoryFullName && (
-            <InfoTooltip
-              asChild
-              content="Create a deployment from a commit or branch"
-              position={{ side: "bottom", align: "end" }}
-            >
-              <CreateDeploymentButton />
-            </InfoTooltip>
-          )}
-          <InfoTooltip
-            asChild
-            content="Redeploy the current active deployment"
-            position={{ side: "bottom", align: "end" }}
-          >
-            <Button
-              className="size-7"
-              variant="outline"
-              disabled={!selectedDeployment}
-              onClick={() => setIsRedeployOpen(true)}
-            >
-              <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
-            </Button>
-          </InfoTooltip>
-          {selectedDeployment && (
-            <RedeployDialog
-              isOpen={isRedeployOpen}
-              onClose={() => setIsRedeployOpen(false)}
-              selectedDeployment={selectedDeployment}
-            />
-          )}
-          <InfoTooltip
-            asChild
-            content={getTooltipContent()}
-            position={{ side: "bottom", align: "end" }}
-          >
-            <Button
-              variant="outline"
-              className="size-7"
-              disabled={!currentDeploymentId}
-              onClick={onClick}
-            >
-              <DoubleChevronLeft iconSize="sm-regular" />
-            </Button>
-          </InfoTooltip>
-        </div>
-      </div>
-    );
   };
 
   if (projects.isLoading) {
@@ -238,7 +150,6 @@ export const ProjectNavigation = ({
           </Navbar.Breadcrumbs.Link>
         ))}
       </Navbar.Breadcrumbs>
-      <Navbar.Actions>{renderActions()}</Navbar.Actions>
     </Navbar>
   );
 };

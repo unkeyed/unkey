@@ -4,6 +4,7 @@ import { SidebarMobile } from "@/components/navigation/sidebar/sidebar-mobile";
 import { VariantSwitcher } from "@/components/navigation/variant-switcher";
 import { NavbarVariant } from "@/components/navigation/variants";
 import { V3_HEADER_HEIGHT } from "@/components/navigation/variants/shared/top-header";
+import { V2B_HEADER_HEIGHT } from "@/components/navigation/variants/shared/v2b-header";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 import { LoadingState } from "@/components/loading-state";
@@ -24,6 +25,8 @@ export default function Layout({ children }: LayoutProps) {
   const { user, workspace, quotas, isLoading, error } = useWorkspace();
   const { variant } = useNavbarVariant();
   const isV3 = variant === "v3";
+  const isV2b = variant === "v2b";
+  const topHeaderOffset = isV3 ? V3_HEADER_HEIGHT : isV2b ? V2B_HEADER_HEIGHT : undefined;
   useEffect(() => {
     // Don't navigate while loading
     if (isLoading) {
@@ -81,7 +84,7 @@ export default function Layout({ children }: LayoutProps) {
             className="flex-1 overflow-auto"
             style={{
               scrollbarGutter: "stable",
-              paddingTop: isV3 ? V3_HEADER_HEIGHT : undefined,
+              paddingTop: topHeaderOffset,
             }}
           >
             <div

@@ -8,6 +8,7 @@ const VARIANTS: ReadonlyArray<{ id: NavbarVariant; label: string }> = [
   { id: "v1a", label: "v1a · inline" },
   { id: "v1b", label: "v1b · linked" },
   { id: "v2", label: "v2 · static" },
+  { id: "v2b", label: "v2b · crumb" },
   { id: "v3", label: "v3 · header" },
 ];
 

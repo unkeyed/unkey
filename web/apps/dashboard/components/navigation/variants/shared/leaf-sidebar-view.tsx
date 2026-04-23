@@ -26,7 +26,7 @@ export function LeafSidebarView({ context }: Props) {
   const plural = RESOURCE_TYPE_PLURAL[context.resourceType];
 
   return (
-    <div className="flex flex-col gap-2 px-2 pt-1">
+    <div className="flex flex-col gap-2 px-0 pt-1">
       <Link
         href={listHref}
         className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] font-medium text-gray-11 hover:bg-gray-3 hover:text-gray-12"
