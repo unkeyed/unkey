@@ -15,10 +15,17 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { t, workspaceProcedure } from "../trpc";
 
-const state = z.object({
+const projectState = z.object({
   projectId: z.string().min(1),
   returnTo: z.enum(["settings"]).optional(),
 });
+
+const cloneState = z.object({
+  returnTo: z.literal("clone"),
+  params: z.string().min(1),
+});
+
+const state = z.union([projectState, cloneState]);
 
 const fetchGithubContext = async (workspaceId: string, projectId: string) => {
   const project = await db.query.projects
@@ -169,6 +176,38 @@ export const githubRouter = t.router({
         });
       }
 
+      const saveInstallation = async () => {
+        await db
+          .insert(schema.githubAppInstallations)
+          .values({
+            workspaceId: ctx.workspace.id,
+            installationId: input.installationId,
+            createdAt: Date.now(),
+            updatedAt: null,
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              updatedAt: Date.now(),
+            },
+          })
+          .catch((err) => {
+            console.error(err);
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to save GitHub installation",
+            });
+          });
+      };
+
+      if ("params" in parsedState) {
+        await saveInstallation();
+        return {
+          kind: "clone" as const,
+          workspaceSlug: ctx.workspace.slug,
+          params: parsedState.params,
+        };
+      }
+
       const projectId = parsedState.projectId;
       const projectInstallation = await fetchProjectInstallation(
         ctx.workspace.id,
@@ -189,28 +228,10 @@ export const githubRouter = t.router({
         });
       }
 
-      await db
-        .insert(schema.githubAppInstallations)
-        .values({
-          workspaceId: ctx.workspace.id,
-          installationId: input.installationId,
-          createdAt: Date.now(),
-          updatedAt: null,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            updatedAt: Date.now(),
-          },
-        })
-        .catch((err) => {
-          console.error(err);
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Failed to save GitHub installation",
-          });
-        });
+      await saveInstallation();
 
       return {
+        kind: "project" as const,
         workspaceSlug: ctx.workspace.slug,
         projectId,
         returnTo: parsedState.returnTo ?? null,

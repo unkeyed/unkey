@@ -4,6 +4,7 @@ import {
   type CreateProjectRequestSchema,
   createProjectRequestSchema,
 } from "@/lib/collections/deploy/projects";
+import { slugify } from "@/lib/slugify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
 import { Button, FormInput, useStepWizard } from "@unkey/ui";
@@ -65,14 +66,7 @@ export const CreateProjectStep = ({ onProjectCreated }: CreateProjectStepProps) 
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const name = e.target.value;
-    const slug = name
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "");
-    setValue("slug", slug);
+    setValue("slug", slugify(e.target.value));
   };
 
   return (

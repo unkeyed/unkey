@@ -21,6 +21,10 @@ export default function Page() {
 
   const mutation = trpc.github.registerInstallation.useMutation({
     onSuccess: (data) => {
+      if (data.kind === "clone") {
+        router.replace(`/new/clone?${data.params}`);
+        return;
+      }
       if (data.returnTo === "settings") {
         router.replace(`/${data.workspaceSlug}/projects/${data.projectId}/settings`);
       } else {
