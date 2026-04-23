@@ -26,6 +26,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { RepoDisplay } from "../../../_components/list/repo-display";
 import { useProjectData } from "../data-provider";
+import { parseForkRef } from "./parse-fork-ref";
 
 const DynamicDialogContainer = dynamic(
   () =>
@@ -54,22 +55,6 @@ const formSchema = z.object({
       },
     ),
 });
-
-function parseForkRef(value: string): { forkOwner: string; branch: string } | null {
-  if (value.startsWith("http://") || value.startsWith("https://")) {
-    return null;
-  }
-  const colonIdx = value.indexOf(":");
-  if (colonIdx === -1) {
-    return null;
-  }
-  const owner = value.slice(0, colonIdx);
-  const branch = value.slice(colonIdx + 1);
-  if (!owner || !branch || owner.includes("/")) {
-    return null;
-  }
-  return { forkOwner: owner, branch };
-}
 
 type Props = {
   defaultOpen?: boolean;
@@ -279,7 +264,7 @@ export const CreateDeploymentButton = ({
                 {...register("name")}
                 placeholder={
                   repositoryFullName
-                    ? `https://github.com/${repositoryFullName}/tree/main`
+                    ? `https://github.com/${repositoryFullName}/tree/${defaultBranch}`
                     : "Enter a commit SHA, branch, or PR URL"
                 }
               />

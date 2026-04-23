@@ -18,9 +18,9 @@ func TestParseForkRef(t *testing.T) {
 	}{
 		{
 			name:       "fork ref with slash in branch",
-			branch:     "ogzhan-olguncu:sean-brydonfeat/v2-design-sean",
-			wantOwner:  "ogzhan-olguncu",
-			wantBranch: "sean-brydonfeat/v2-design-sean",
+			branch:     "alice-dev:feat/redesign-navbar",
+			wantOwner:  "alice-dev",
+			wantBranch: "feat/redesign-navbar",
 			wantOK:     true,
 		},
 		{

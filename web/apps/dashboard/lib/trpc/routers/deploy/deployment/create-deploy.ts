@@ -9,6 +9,9 @@ import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { environments, githubRepoConnections } from "@unkey/db/src/schema";
 import { z } from "zod";
+import { parseGitRef } from "./parse-git-ref";
+
+export { parseGitRef };
 
 export const createDeploy = workspaceProcedure
   .use(withRatelimit(ratelimit.update))
@@ -69,11 +72,19 @@ export const createDeploy = workspaceProcedure
             message: "No GitHub repository connected to this app",
           });
         }
-        const pr = await getPullRequest(
-          repoConn.installationId,
-          repoConn.repositoryFullName,
-          parsed.value,
-        );
+        let pr: Awaited<ReturnType<typeof getPullRequest>>;
+        try {
+          pr = await getPullRequest(
+            repoConn.installationId,
+            repoConn.repositoryFullName,
+            parsed.value,
+          );
+        } catch {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Pull request #${parsed.value} could not be found or is not accessible`,
+          });
+        }
         const isFork =
           pr.head.repo?.fork === true && pr.head.repo.full_name !== pr.base.repo.full_name;
         const forkOwner = isFork ? pr.head.repo?.full_name.split("/")[0] : undefined;
@@ -127,28 +138,3 @@ export const createDeploy = workspaceProcedure
       });
     }
   });
-
-type GitRefResult = { kind: "pr"; value: number } | { kind: "ref"; value: string };
-
-export function parseGitRef(raw: string): GitRefResult {
-  const trimmed = raw.trim();
-
-  const prMatch = trimmed.match(/^https?:\/\/github\.com\/[^/]+\/[^/]+\/pull\/(\d+)\/?$/);
-  if (prMatch) {
-    return { kind: "pr", value: Number.parseInt(prMatch[1], 10) };
-  }
-
-  const treeMatch = trimmed.match(/^https?:\/\/github\.com\/[^/]+\/[^/]+\/tree\/(.+)$/);
-  if (treeMatch) {
-    return { kind: "ref", value: treeMatch[1] };
-  }
-
-  const commitMatch = trimmed.match(
-    /^https?:\/\/github\.com\/[^/]+\/[^/]+\/commit\/([0-9a-f]{40})$/i,
-  );
-  if (commitMatch) {
-    return { kind: "ref", value: commitMatch[1] };
-  }
-
-  return { kind: "ref", value: trimmed };
-}
