@@ -166,7 +166,7 @@ const SentinelLogHeader = ({
 };
 
 const isDeploymentStatus = (status: string): status is DeploymentStatus =>
-  (DEPLOYMENT_STATUSES as readonly string[]).includes(status);
+  DEPLOYMENT_STATUSES.some((candidate) => candidate === status);
 
 const getHeaderValue = (headers: string[], name: string): string | null => {
   const lower = name.toLowerCase();
