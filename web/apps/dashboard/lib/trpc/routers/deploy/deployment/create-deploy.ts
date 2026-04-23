@@ -4,9 +4,10 @@ import { createCtrlClient } from "@/lib/ctrl-client";
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 
 import { and, db, eq } from "@/lib/db";
+import { getPullRequest } from "@/lib/github";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { environments } from "@unkey/db/src/schema";
+import { environments, githubRepoConnections } from "@unkey/db/src/schema";
 import { z } from "zod";
 
 export const createDeploy = workspaceProcedure
@@ -52,9 +53,32 @@ export const createDeploy = workspaceProcedure
         });
       }
 
-      const ref = input.gitRef ? parseGitRef(input.gitRef) : undefined;
-      // Only full 40-char SHAs are treated as commits; abbreviated SHAs are not supported
+      const parsed = input.gitRef ? parseGitRef(input.gitRef) : undefined;
       const isCommitSha = (r: string): boolean => /^[0-9a-f]{40}$/i.test(r);
+
+      let ref: string | undefined = parsed?.kind === "ref" ? parsed.value : undefined;
+
+      if (parsed?.kind === "pr") {
+        const repoConn = await db.query.githubRepoConnections.findFirst({
+          where: eq(githubRepoConnections.appId, environment.appId),
+          columns: { installationId: true, repositoryFullName: true },
+        });
+        if (!repoConn) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "No GitHub repository connected to this app",
+          });
+        }
+        const pr = await getPullRequest(
+          repoConn.installationId,
+          repoConn.repositoryFullName,
+          parsed.value,
+        );
+        const isFork =
+          pr.head.repo?.fork === true && pr.head.repo.full_name !== pr.base.repo.full_name;
+        const forkOwner = isFork ? pr.head.repo?.full_name.split("/")[0] : undefined;
+        ref = forkOwner ? `${forkOwner}:${pr.head.ref}` : pr.head.ref;
+      }
 
       const result = await ctrl
         .createDeployment({
@@ -104,22 +128,27 @@ export const createDeploy = workspaceProcedure
     }
   });
 
-export function parseGitRef(raw: string): string {
+type GitRefResult = { kind: "pr"; value: number } | { kind: "ref"; value: string };
+
+export function parseGitRef(raw: string): GitRefResult {
   const trimmed = raw.trim();
 
-  // https://github.com/owner/repo/tree/branch-name (supports slashes in branch)
-  const treeMatch = trimmed.match(/^https?:\/\/github\.com\/[^/]+\/[^/]+\/tree\/(.+)$/);
-  if (treeMatch) {
-    return treeMatch[1];
+  const prMatch = trimmed.match(/^https?:\/\/github\.com\/[^/]+\/[^/]+\/pull\/(\d+)\/?$/);
+  if (prMatch) {
+    return { kind: "pr", value: Number.parseInt(prMatch[1], 10) };
   }
 
-  // https://github.com/owner/repo/commit/<40-char SHA>
+  const treeMatch = trimmed.match(/^https?:\/\/github\.com\/[^/]+\/[^/]+\/tree\/(.+)$/);
+  if (treeMatch) {
+    return { kind: "ref", value: treeMatch[1] };
+  }
+
   const commitMatch = trimmed.match(
     /^https?:\/\/github\.com\/[^/]+\/[^/]+\/commit\/([0-9a-f]{40})$/i,
   );
   if (commitMatch) {
-    return commitMatch[1];
+    return { kind: "ref", value: commitMatch[1] };
   }
 
-  return trimmed;
+  return { kind: "ref", value: trimmed };
 }

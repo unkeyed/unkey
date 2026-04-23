@@ -46,11 +46,30 @@ const formSchema = z.object({
         if (!val.startsWith("http")) {
           return true;
         }
-        return /^https?:\/\/github\.com\/[^/]+\/[^/]+\/(tree|commit)\//.test(val);
+        return /^https?:\/\/github\.com\/[^/]+\/[^/]+\/(tree|commit|pull)\//.test(val);
       },
-      { message: "Enter a branch name, commit SHA, or GitHub URL (tree/commit)" },
+      {
+        message:
+          "Enter a branch name (e.g. main), commit SHA, fork reference (owner:branch), or a GitHub URL to a branch, commit, or pull request",
+      },
     ),
 });
+
+function parseForkRef(value: string): { forkOwner: string; branch: string } | null {
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return null;
+  }
+  const colonIdx = value.indexOf(":");
+  if (colonIdx === -1) {
+    return null;
+  }
+  const owner = value.slice(0, colonIdx);
+  const branch = value.slice(colonIdx + 1);
+  if (!owner || !branch || owner.includes("/")) {
+    return null;
+  }
+  return { forkOwner: owner, branch };
+}
 
 type Props = {
   defaultOpen?: boolean;
@@ -104,6 +123,7 @@ export const CreateDeploymentButton = ({
     handleSubmit,
     setValue,
     reset,
+    watch,
     control,
     formState: { errors, isValid, isSubmitting },
   } = useForm<z.infer<typeof formSchema>>({
@@ -113,6 +133,10 @@ export const CreateDeploymentButton = ({
       environment: defaultEnvironmentSlug,
     },
   });
+
+  const nameValue = watch("name") ?? "";
+  const detectedFork = parseForkRef(nameValue);
+  const forkRepoName = detectedFork && repo ? `${detectedFork.forkOwner}/${repo}` : null;
 
   useEffect(() => {
     if (defaultEnvironmentSlug) {
@@ -242,22 +266,33 @@ export const CreateDeploymentButton = ({
                 error={errors.environment?.message}
               />
             </fieldset>
-            <FormInput
-              label="Commit or Branch Reference"
-              className="min-h-9"
-              description={
-                repositoryFullName
-                  ? `Paste a valid commit reference to create a new deployment in addition to those auto-generated from ${repositoryFullName}.`
-                  : "Paste a valid commit or branch reference to create a new deployment."
-              }
-              error={errors.name?.message}
-              {...register("name")}
-              placeholder={
-                repositoryFullName
-                  ? `https://github.com/${repositoryFullName}`
-                  : "Enter a commit SHA or branch name"
-              }
-            />
+            <div className="flex flex-col gap-2">
+              <FormInput
+                label="Commit or Branch Reference"
+                className="min-h-9"
+                description={
+                  repositoryFullName
+                    ? "Paste a commit, branch, PR URL, or fork reference (e.g. fork-owner:branch) to deploy."
+                    : "Paste a valid commit, branch reference, or PR URL to create a new deployment."
+                }
+                error={errors.name?.message}
+                {...register("name")}
+                placeholder={
+                  repositoryFullName
+                    ? `https://github.com/${repositoryFullName}/tree/main`
+                    : "Enter a commit SHA, branch, or PR URL"
+                }
+              />
+              {forkRepoName && (
+                <div className="flex items-center gap-1.5 bg-amber-3 border border-amber-6 rounded-md px-2.5 py-1.5 w-fit">
+                  <CodeBranch iconSize="sm-regular" className="shrink-0 text-amber-11" />
+                  <span className="text-xs text-amber-11">
+                    Deploying from fork:{" "}
+                    <span className="font-medium text-amber-12">{forkRepoName}</span>
+                  </span>
+                </div>
+              )}
+            </div>
           </form>
 
           {repositoryFullName && (

@@ -2891,6 +2891,12 @@ type Querier interface {
 	//  SET desired_state = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentDesiredState(ctx context.Context, db DBTX, arg UpdateDeploymentDesiredStateParams) error
+	//UpdateDeploymentForkRepository
+	//
+	//  UPDATE deployments
+	//  SET fork_repository_full_name = ?, updated_at = ?
+	//  WHERE id = ?
+	UpdateDeploymentForkRepository(ctx context.Context, db DBTX, arg UpdateDeploymentForkRepositoryParams) error
 	//UpdateDeploymentGitMetadata
 	//
 	//  UPDATE deployments

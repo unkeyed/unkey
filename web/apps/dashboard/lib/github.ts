@@ -336,3 +336,37 @@ export async function getRepositoryById(
 
   return gitHubRepositorySchema.parse(await response.json());
 }
+
+const pullRequestSchema = z.object({
+  head: z.object({
+    ref: z.string(),
+    sha: z.string(),
+    label: z.string(),
+    repo: z
+      .object({
+        full_name: z.string(),
+        fork: z.boolean(),
+      })
+      .nullable(),
+  }),
+  base: z.object({
+    repo: z.object({
+      full_name: z.string(),
+    }),
+  }),
+});
+
+export type GitHubPullRequest = z.infer<typeof pullRequestSchema>;
+
+export async function getPullRequest(
+  installationId: number,
+  repoFullName: string,
+  prNumber: number,
+): Promise<GitHubPullRequest> {
+  const { token } = await getInstallationAccessToken(installationId);
+  const data = await fetchGitHubApi(
+    `https://api.github.com/repos/${repoFullName}/pulls/${prNumber}`,
+    token,
+  );
+  return pullRequestSchema.parse(data);
+}
