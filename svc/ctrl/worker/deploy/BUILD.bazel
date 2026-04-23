@@ -60,11 +60,7 @@ go_library(
 
 go_test(
     name = "deploy_test",
-    srcs = [
-        "parse_fork_ref_test.go",
-        "scale_down_idle_preview_deployments_test.go",
-    ],
-    embed = [":deploy"],
+    srcs = ["scale_down_idle_preview_deployments_test.go"],
     deps = [
         "//gen/proto/hydra/v1:hydra",
         "//pkg/db",

@@ -4,14 +4,26 @@ import { createCtrlClient } from "@/lib/ctrl-client";
 import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
 
 import { and, db, eq } from "@/lib/db";
-import { getPullRequest } from "@/lib/github";
+import { getPullRequest, listPullRequestsForCommit } from "@/lib/github";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { environments, githubRepoConnections } from "@unkey/db/src/schema";
+import { match } from "@unkey/match";
 import { z } from "zod";
-import { parseGitRef } from "./parse-git-ref";
+import {
+  type DeployRef,
+  detectForkRepo,
+  parseDeployRef,
+  resolveSourceRepo,
+} from "./resolve-deploy-ref";
 
-export { parseGitRef };
+type RepoConn = { installationId: number; repositoryFullName: string };
+
+type GitCommit = {
+  commitSha?: string;
+  branch?: string;
+  forkRepository: string;
+};
 
 export const createDeploy = workspaceProcedure
   .use(withRatelimit(ratelimit.update))
@@ -39,7 +51,6 @@ export const createDeploy = workspaceProcedure
         });
       }
 
-      // Look up the environment to find the app
       const environment = await db.query.environments.findFirst({
         where: and(
           eq(environments.projectId, input.projectId),
@@ -56,12 +67,10 @@ export const createDeploy = workspaceProcedure
         });
       }
 
-      const parsed = input.gitRef ? parseGitRef(input.gitRef) : undefined;
-      const isCommitSha = (r: string): boolean => /^[0-9a-f]{40}$/i.test(r);
+      let gitCommit: GitCommit | undefined;
+      if (input.gitRef) {
+        const parsed = parseDeployRef(input.gitRef);
 
-      let ref: string | undefined = parsed?.kind === "ref" ? parsed.value : undefined;
-
-      if (parsed?.kind === "pr") {
         const repoConn = await db.query.githubRepoConnections.findFirst({
           where: eq(githubRepoConnections.appId, environment.appId),
           columns: { installationId: true, repositoryFullName: true },
@@ -72,23 +81,8 @@ export const createDeploy = workspaceProcedure
             message: "No GitHub repository connected to this app",
           });
         }
-        let pr: Awaited<ReturnType<typeof getPullRequest>>;
-        try {
-          pr = await getPullRequest(
-            repoConn.installationId,
-            repoConn.repositoryFullName,
-            parsed.value,
-          );
-        } catch {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: `Pull request #${parsed.value} could not be found or is not accessible`,
-          });
-        }
-        const isFork =
-          pr.head.repo?.fork === true && pr.head.repo.full_name !== pr.base.repo.full_name;
-        const forkOwner = isFork ? pr.head.repo?.full_name.split("/")[0] : undefined;
-        ref = forkOwner ? `${forkOwner}:${pr.head.ref}` : pr.head.ref;
+
+        gitCommit = await resolveDeployRef(parsed, repoConn);
       }
 
       const result = await ctrl
@@ -96,11 +90,7 @@ export const createDeploy = workspaceProcedure
           projectId: input.projectId,
           appId: environment.appId,
           environmentSlug: input.environmentSlug,
-          ...(ref
-            ? {
-                gitCommit: isCommitSha(ref) ? { commitSha: ref } : { branch: ref },
-              }
-            : {}),
+          ...(gitCommit ? { gitCommit } : {}),
         })
         .catch((err) => {
           console.error(err);
@@ -138,3 +128,88 @@ export const createDeploy = workspaceProcedure
       });
     }
   });
+
+function validateSourceRepo(sourceRepo: string, repoConn: RepoConn): string {
+  const fork = resolveSourceRepo(sourceRepo, repoConn.repositoryFullName);
+  if (!fork && sourceRepo.includes("/") && sourceRepo !== repoConn.repositoryFullName) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Repository "${sourceRepo}" is not a fork of "${repoConn.repositoryFullName}"`,
+    });
+  }
+  return fork ?? "";
+}
+
+async function resolveFork(
+  parsed: Extract<DeployRef, { kind: "sha" } | { kind: "branch" }>,
+  repoConn: RepoConn,
+): Promise<string> {
+  if (parsed.sourceRepo) {
+    return validateSourceRepo(parsed.sourceRepo, repoConn);
+  }
+
+  return match(parsed)
+    .with({ kind: "sha" }, async (ref) => {
+      try {
+        const prs = await listPullRequestsForCommit(
+          repoConn.installationId,
+          repoConn.repositoryFullName,
+          ref.sha,
+        );
+        for (const pr of prs) {
+          const fork = detectForkRepo(pr);
+          if (fork) {
+            return fork;
+          }
+        }
+      } catch {
+        // Commit may not be associated with any PR
+      }
+      return "";
+    })
+    .with({ kind: "branch" }, () => "")
+    .exhaustive();
+}
+
+async function resolveDeployRef(parsed: DeployRef, repoConn: RepoConn): Promise<GitCommit> {
+  return match(parsed)
+    .with({ kind: "pr" }, async (ref) => {
+      const repoName = repoConn.repositoryFullName.split("/")[1];
+      const sourceRepoName = ref.sourceRepo.split("/")[1];
+      if (sourceRepoName !== repoName) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Pull request URL points to "${ref.sourceRepo}", not the connected repository or a fork of it`,
+        });
+      }
+
+      let pr: Awaited<ReturnType<typeof getPullRequest>>;
+      try {
+        pr = await getPullRequest(
+          repoConn.installationId,
+          repoConn.repositoryFullName,
+          ref.prNumber,
+        );
+      } catch (err) {
+        console.error("Failed to fetch pull request", { prNumber: ref.prNumber, err });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to fetch pull request #${ref.prNumber}`,
+          cause: err,
+        });
+      }
+      return {
+        branch: pr.head.ref,
+        forkRepository: detectForkRepo(pr) ?? "",
+      };
+    })
+    .with({ kind: "sha" }, async (ref) => {
+      const forkRepository = await resolveFork(ref, repoConn);
+      return { commitSha: ref.sha, forkRepository };
+    })
+    .with({ kind: "branch" }, async (ref) => {
+      const forkRepository = await resolveFork(ref, repoConn);
+      return { branch: ref.branch, forkRepository };
+    })
+    .exhaustive();
+}

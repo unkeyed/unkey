@@ -401,20 +401,17 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 
 		resolveRepo := source.Git.GetRepository()
 		resolveBranch := source.Git.GetBranch()
-		forkRepo := ""
+		forkRepo := source.Git.GetForkRepository()
 
-		if forkOwner, forkBranch, ok := parseForkRef(resolveBranch); ok {
-			_, repoName, _ := strings.Cut(resolveRepo, "/")
-			forkRepo = forkOwner + "/" + repoName
+		if forkRepo != "" {
 			resolveRepo = forkRepo
-			resolveBranch = forkBranch
 		}
 
 		// Resolve branch->SHA when commit_sha is empty (e.g. CreateDeployment with
 		// a GitTarget that specifies only a branch)
 		if commitSHA == "" && resolveBranch != "" {
 			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
-				if w.allowUnauthenticatedDeployments && source.Git.GetInstallationId() == noInstallationID {
+				if forkRepo != "" || (w.allowUnauthenticatedDeployments && source.Git.GetInstallationId() == noInstallationID) {
 					return w.github.GetBranchHeadCommitPublic(
 						resolveRepo,
 						resolveBranch,
@@ -485,7 +482,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
 				return w.github.GetCommitBySHA(
 					source.Git.GetInstallationId(),
-					resolveRepo,
+					source.Git.GetRepository(),
 					commitSHA,
 				)
 			}, restate.WithName("resolve commit metadata by sha"), restate.WithMaxRetryAttempts(runMaxAttempts))
@@ -1354,17 +1351,6 @@ func formatDomainPrefix(projectSlug, appSlug string) string {
 		return projectSlug + "-" + appSlug
 	}
 	return projectSlug
-}
-
-// parseForkRef detects GitHub's "fork-owner:branch" notation and splits it
-// into the fork owner and actual branch name. Returns ok=false for regular
-// branch names that don't use this format.
-func parseForkRef(branch string) (forkOwner, actualBranch string, ok bool) {
-	owner, rest, found := strings.Cut(branch, ":")
-	if !found || owner == "" || rest == "" || strings.Contains(owner, "/") {
-		return "", "", false
-	}
-	return owner, rest, true
 }
 
 // decryptEnvVars decrypts the encrypted environment variables blob via Vault

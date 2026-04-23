@@ -36,25 +36,37 @@ const DynamicDialogContainer = dynamic(
   { ssr: false },
 );
 
-const formSchema = z.object({
-  environment: z.string().min(1, "Environment is required"),
-  name: z
-    .string()
-    .trim()
-    .min(1, "A commit or branch reference is required")
-    .refine(
-      (val) => {
-        if (!val.startsWith("http")) {
+function createFormSchema(repoName?: string) {
+  return z.object({
+    environment: z.string().min(1, "Environment is required"),
+    name: z
+      .string()
+      .trim()
+      .min(1, "A commit or branch reference is required")
+      .refine(
+        (val) => {
+          if (!val.startsWith("http")) {
+            return true;
+          }
+          const urlMatch = val.match(
+            /^https?:\/\/github\.com\/[^/]+\/([^/]+)\/(tree|commit|pull)\//,
+          );
+          if (!urlMatch) {
+            return false;
+          }
+          if (repoName && urlMatch[1] !== repoName) {
+            return false;
+          }
           return true;
-        }
-        return /^https?:\/\/github\.com\/[^/]+\/[^/]+\/(tree|commit|pull)\//.test(val);
-      },
-      {
-        message:
-          "Enter a branch name (e.g. main), commit SHA, fork reference (owner:branch), or a GitHub URL to a branch, commit, or pull request",
-      },
-    ),
-});
+        },
+        {
+          message: repoName
+            ? `URL must point to a repository named "${repoName}" (the connected repo or a fork of it)`
+            : "Enter a branch name (e.g. main), commit SHA, fork reference (owner:branch), or a GitHub URL to a branch, commit, or pull request",
+        },
+      ),
+  });
+}
 
 type Props = {
   defaultOpen?: boolean;
@@ -103,6 +115,8 @@ export const CreateDeploymentButton = ({
   const defaultEnvironmentSlug =
     environments.find((e) => e.slug === "production")?.slug ?? environments[0]?.slug ?? "";
 
+  const formSchema = createFormSchema(repo);
+
   const {
     register,
     handleSubmit,
@@ -111,7 +125,7 @@ export const CreateDeploymentButton = ({
     watch,
     control,
     formState: { errors, isValid, isSubmitting },
-  } = useForm<z.infer<typeof formSchema>>({
+  } = useForm<z.infer<ReturnType<typeof createFormSchema>>>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
     defaultValues: {
