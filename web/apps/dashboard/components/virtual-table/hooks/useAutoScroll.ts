@@ -2,44 +2,67 @@ import { useEffect, useRef } from "react";
 
 type UseAutoScrollParams = {
   enabled: boolean;
-  parentRef: React.RefObject<HTMLDivElement>;
-  data: unknown[];
+  scrollRef: React.RefObject<HTMLDivElement>;
+  anchorRef: React.RefObject<HTMLDivElement>;
+  dataLength: number;
   isLoading: boolean;
   expandedCount: number;
 };
 
-const SCROLL_THRESHOLD_PX = 10;
+const NEAR_BOTTOM_MARGIN_PX = 50;
 
 export function useAutoScroll({
   enabled,
-  parentRef,
-  data,
+  scrollRef,
+  anchorRef,
+  dataLength,
   isLoading,
   expandedCount,
 }: UseAutoScrollParams): void {
-  const userScrolledUp = useRef(false);
+  const isNearBottom = useRef(true);
+  const prevLength = useRef(dataLength);
+  const rafId = useRef(0);
 
   useEffect(() => {
     if (!enabled) {
       return;
     }
-    const el = parentRef.current;
-    if (!el) {
+    const container = scrollRef.current;
+    const anchor = anchorRef.current;
+    if (!container || !anchor) {
       return;
     }
-    const onScroll = () => {
-      userScrolledUp.current =
-        el.scrollHeight - el.scrollTop - el.clientHeight > SCROLL_THRESHOLD_PX;
-    };
-    el.addEventListener("scroll", onScroll);
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [enabled, parentRef]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: data is intentionally listed to trigger scroll on new data
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isNearBottom.current = entry.isIntersecting;
+      },
+      {
+        root: container,
+        rootMargin: `0px 0px ${NEAR_BOTTOM_MARGIN_PX}px 0px`,
+        threshold: 0,
+      },
+    );
+
+    observer.observe(anchor);
+    return () => observer.disconnect();
+  }, [enabled, scrollRef, anchorRef]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: dataLength drives scroll on new data
   useEffect(() => {
-    if (!enabled || userScrolledUp.current || isLoading || expandedCount > 0) {
+    if (dataLength === prevLength.current) {
       return;
     }
-    parentRef.current?.scrollTo({ top: parentRef.current.scrollHeight, behavior: "smooth" });
-  }, [enabled, data, isLoading, expandedCount, parentRef]);
+    prevLength.current = dataLength;
+
+    if (!enabled || !isNearBottom.current || isLoading || expandedCount > 0) {
+      return;
+    }
+
+    cancelAnimationFrame(rafId.current);
+    rafId.current = requestAnimationFrame(() => {
+      anchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    });
+    return () => cancelAnimationFrame(rafId.current);
+  }, [enabled, dataLength, isLoading, expandedCount, anchorRef]);
 }
