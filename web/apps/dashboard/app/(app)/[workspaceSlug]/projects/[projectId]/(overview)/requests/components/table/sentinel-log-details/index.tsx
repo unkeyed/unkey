@@ -55,8 +55,8 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
 
   return (
     <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose} animated>
-      <LogDetails.Header onClose={handleClose}>
-        <SentinelLogHeader log={log} onClose={handleClose} />
+      <LogDetails.Header>
+        <SentinelLogHeader log={log} />
       </LogDetails.Header>
 
       <LogDetails.Section delay={150}>
@@ -115,11 +115,10 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
 // Custom header for sentinel logs
 const SentinelLogHeader = ({
   log,
-  onClose,
 }: {
   log: SentinelLogsResponse;
-  onClose: () => void;
 }) => {
+  const { onClose } = LogDetails.useContext();
   return (
     <div className="border-b flex justify-between items-center border-gray-4 h-[45px] px-4 py-2">
       <div className="flex gap-2 items-center min-w-0">
@@ -143,7 +142,7 @@ const SentinelLogHeader = ({
         <button
           type="button"
           onClick={onClose}
-          className="text-grayA-9 hover:text-grayA-11 transition-colors"
+          className="text-grayA-9 hover:text-grayA-11 transition-colors cursor-pointer"
           aria-label="Close"
         >
           <svg
