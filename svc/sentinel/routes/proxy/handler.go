@@ -249,7 +249,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		},
 	}
 
-	proxy.ServeHTTP(wrapper, req)
+	serveWithAbortRecovery(proxy, wrapper, req)
 
 	// Mark the true end of the instance interaction (includes full stream duration).
 	if tracking != nil {
@@ -274,4 +274,22 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	}
 
 	return wrapper.Error()
+}
+
+// serveWithAbortRecovery calls h.ServeHTTP and swallows http.ErrAbortHandler panics.
+// httputil.ReverseProxy panics with that sentinel when the response body copy fails
+// after headers have been flushed (typically the client disconnected mid-stream).
+// There is no recovery path at that point — the panic is the library's signal that
+// the handler is aborting. Swallowing it keeps the global panic middleware strict
+// for real bugs; other panic values are re-raised unchanged.
+func serveWithAbortRecovery(h http.Handler, w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			if rec != http.ErrAbortHandler {
+				panic(rec)
+			}
+			proxyAbortedTotal.Inc()
+		}
+	}()
+	h.ServeHTTP(w, r)
 }
