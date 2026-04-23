@@ -182,6 +182,7 @@ func generateAppJWT(appID int64, privateKeyPEM string) (string, error) {
 	}
 
 	now := time.Now()
+	// nolint:exhaustruct
 	claims := jwt.RegisteredClaims{
 		IssuedAt:  now.Add(-60 * time.Second).Unix(),
 		ExpiresAt: now.Add(10 * time.Minute).Unix(),
