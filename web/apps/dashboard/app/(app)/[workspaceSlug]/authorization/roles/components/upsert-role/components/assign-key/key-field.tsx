@@ -1,9 +1,9 @@
+import { useRoleLimits } from "@/components/roles-table/hooks/use-role-limits";
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { RoleKey } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { Key2 } from "@unkey/icons";
 import { useMemo, useState } from "react";
-import { useRoleLimits } from "../../../table/hooks/use-role-limits";
 import { RoleWarningCallout } from "../warning-callout";
 import { createKeyOptions } from "./create-key-options";
 import { useFetchKeys } from "./hooks/use-fetch-keys";
