@@ -56,18 +56,22 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
   const hasErrors = severity !== "none";
   const [isNavigating, setIsNavigating] = useState(false);
 
+  const keyAuthId = log.key_details?.key_auth_id;
+  const canNavigate = Boolean(keyAuthId);
+
   const handleLinkClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
+      if (!canNavigate) {
+        return;
+      }
       setIsNavigating(true);
 
       onNavigate?.();
 
-      router.push(
-        `/${workspace.slug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`,
-      );
+      router.push(`/${workspace.slug}/apis/${apiId}/keys/${keyAuthId}/${log.key_id}`);
     },
-    [apiId, log.key_id, log.key_details?.key_auth_id, onNavigate, router, workspace.slug],
+    [apiId, log.key_id, keyAuthId, canNavigate, onNavigate, router, workspace.slug],
   );
 
   return (
@@ -87,16 +91,25 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
           </div>
         )}
       </InfoTooltip>
-      <Link
-        title={`View details for ${log.key_id}`}
-        className="font-mono group-hover:underline decoration-dotted"
-        href={`/${workspace.slug}/apis/${apiId}/keys/${log.key_details?.key_auth_id}/${log.key_id}`}
-        onClick={handleLinkClick}
-      >
-        <div className="font-mono font-medium truncate flex items-center">
+      {canNavigate ? (
+        <Link
+          title={`View details for ${log.key_id}`}
+          className="font-mono group-hover:underline decoration-dotted"
+          href={`/${workspace.slug}/apis/${apiId}/keys/${keyAuthId}/${log.key_id}`}
+          onClick={handleLinkClick}
+        >
+          <div className="font-mono font-medium truncate flex items-center">
+            {shortenId(log.key_id)}
+          </div>
+        </Link>
+      ) : (
+        <div
+          title={`${log.key_id} (deleted)`}
+          className="font-mono font-medium truncate flex items-center text-grayA-9"
+        >
           {shortenId(log.key_id)}
         </div>
-      </Link>
+      )}
     </div>
   );
 };

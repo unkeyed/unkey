@@ -102,7 +102,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Slug:         slug,
 				CreatedAtM:   now,
 				Tier:         sql.NullString{String: "Free", Valid: true},
-				BetaFeatures: json.RawMessage(`{"deployments":true}`),
+				BetaFeatures: json.RawMessage(`{}`),
 			},
 			{
 				ID:           rootWorkspaceID,
@@ -128,7 +128,17 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create project: %w", err)
+			if !db.IsDuplicateKeyError(err) {
+				return fmt.Errorf("failed to create project: %w", err)
+			}
+			existing, err := db.Query.FindProjectByWorkspaceSlug(ctx, tx, db.FindProjectByWorkspaceSlugParams{
+				WorkspaceID: workspaceID,
+				Slug:        projectSlug,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to find existing project: %w", err)
+			}
+			projectID = existing.ID
 		}
 
 		err = db.BulkQuery.InsertApps(ctx, tx, []db.InsertAppParams{
@@ -145,7 +155,17 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			},
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create apps: %w", err)
+			if !db.IsDuplicateKeyError(err) {
+				return fmt.Errorf("failed to create apps: %w", err)
+			}
+			existing, err := db.Query.FindAppByProjectAndSlug(ctx, tx, db.FindAppByProjectAndSlugParams{
+				ProjectID: projectID,
+				Slug:      "default",
+			})
+			if err != nil {
+				return fmt.Errorf("failed to find existing app: %w", err)
+			}
+			appID = existing.App.ID
 		}
 
 		err = db.BulkQuery.InsertEnvironments(ctx, tx, []db.InsertEnvironmentParams{
@@ -170,7 +190,25 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			},
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create environments: %w", err)
+			if !db.IsDuplicateKeyError(err) {
+				return fmt.Errorf("failed to create environments: %w", err)
+			}
+			previewEnv, err := db.Query.FindEnvironmentByAppIdAndSlug(ctx, tx, db.FindEnvironmentByAppIdAndSlugParams{
+				AppID: appID,
+				Slug:  "preview",
+			})
+			if err != nil {
+				return fmt.Errorf("failed to find existing preview environment: %w", err)
+			}
+			previewEnvID = previewEnv.Environment.ID
+			productionEnv, err := db.Query.FindEnvironmentByAppIdAndSlug(ctx, tx, db.FindEnvironmentByAppIdAndSlugParams{
+				AppID: appID,
+				Slug:  "production",
+			})
+			if err != nil {
+				return fmt.Errorf("failed to find existing production environment: %w", err)
+			}
+			productionEnvID = productionEnv.Environment.ID
 		}
 
 		// Create default runtime settings for each environment

@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
+	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -40,6 +41,10 @@ func (c *Controller) runActualStateResyncLoop(ctx context.Context) {
 				return
 			}
 			if reported {
+				// Resync found drift the watch didn't deliver. This is the
+				// "pod watch missed an event" smoking-gun signal — a
+				// healthy cluster should see this counter stay flat.
+				metrics.ResyncCorrectionsTotal.WithLabelValues("deployment").Inc()
 				logger.Info("actual state resync: reported changed deployment status", "replicaSet", rs.Name)
 			}
 		})

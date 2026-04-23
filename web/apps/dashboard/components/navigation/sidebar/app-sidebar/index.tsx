@@ -120,7 +120,7 @@ export function AppSidebar({
             isCollapsed ? "justify-center" : "items-center justify-between gap-4",
           )}
         >
-          <ProductSwitcher workspace={props.workspace} currentProduct={currentProduct} />
+          <ProductSwitcher currentProduct={currentProduct} />
           {!isCollapsed && !isMobile && (
             <button type="button" onClick={toggleSidebar} aria-label="Collapse sidebar">
               <SidebarLeftHide className="text-gray-8" iconSize="xl-medium" />
@@ -138,15 +138,7 @@ export function AppSidebar({
         )}
       </div>
     ),
-    [
-      isCollapsed,
-      isMobile,
-      toggleSidebar,
-      context,
-      props.workspace,
-      currentProduct,
-      fetchedResourceName,
-    ],
+    [isCollapsed, isMobile, toggleSidebar, context, currentProduct, fetchedResourceName],
   );
 
   return (

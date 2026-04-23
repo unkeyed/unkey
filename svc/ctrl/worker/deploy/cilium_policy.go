@@ -47,7 +47,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 
 	existingPolicies, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.CiliumNetworkPolicy, error) {
 		return db.Query.FindCiliumNetworkPoliciesByDeploymentID(runCtx, w.db.RO(), deployment.ID)
-	}, restate.WithName("find existing cilium policies"))
+	}, restate.WithName("find existing cilium policies"), restate.WithMaxRetryAttempts(runMaxAttempts))
 
 	if err != nil {
 		return fmt.Errorf("failed to query existing cilium policies: %w", err)
@@ -147,7 +147,7 @@ func (w *Workflow) ensureCiliumNetworkPolicy(
 					})
 				})
 
-			}, restate.WithName(fmt.Sprintf("upsert network policy %s", spec.k8sName)))
+			}, restate.WithName(fmt.Sprintf("upsert network policy %s", spec.k8sName)), restate.WithMaxRetryAttempts(runMaxAttempts))
 			if err != nil {
 				return err
 			}

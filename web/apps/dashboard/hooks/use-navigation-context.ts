@@ -3,7 +3,6 @@
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { STORAGE_EVENT, STORAGE_KEY, getCurrentProduct } from "./use-product-selection";
-import { useWorkspaceNavigation } from "./use-workspace-navigation";
 
 export type NavigationContext =
   | { type: "product"; product: "api-management" | "deploy" }
@@ -41,7 +40,6 @@ function getParamSingle(
  * Hook to detect the current navigation context based on route params and segments.
  * Extracts resource name from URL segments when available.
  * Uses product selection state to maintain context on workspace-level routes.
- * Respects workspace feature flags - won't detect Deploy product if feature is disabled.
  *
  * Returns either:
  * - Product-level context: User is viewing a product (API Management or Deploy)
@@ -50,7 +48,6 @@ function getParamSingle(
 export function useNavigationContext(): NavigationContext {
   const segments = useSelectedLayoutSegments();
   const params = useParams();
-  const workspace = useWorkspaceNavigation();
 
   // Track localStorage changes via custom event
   const [storageVersion, setStorageVersion] = useState(0);
@@ -79,7 +76,7 @@ export function useNavigationContext(): NavigationContext {
       productSegment.startsWith("domain") ||
       productSegment.startsWith("environment-variable");
 
-    if (isDeploySegment && workspace.betaFeatures?.deployments === true) {
+    if (isDeploySegment) {
       return "deploy";
     }
 
@@ -96,7 +93,7 @@ export function useNavigationContext(): NavigationContext {
     }
 
     return null;
-  }, [segments, workspace.betaFeatures?.deployments]);
+  }, [segments]);
 
   // Update localStorage ONLY when we detect a product from the URL
   // This ensures we don't change the product context when it's ambiguous

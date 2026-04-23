@@ -40,6 +40,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 )
@@ -82,9 +84,20 @@ func (m *mockStream) ResponseTrailer() http.Header {
 // newService creates a cluster service for testing.
 func newService(t *testing.T, database db.Database) *cluster.Service {
 	t.Helper()
+	clk := clock.New()
+	topologyCache, err := cache.New(cache.Config[string, []db.FindDeploymentTopologyMinReplicasRow]{
+		Fresh:    5 * time.Minute,
+		Stale:    30 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "deployment_topology_min_replicas",
+		Clock:    clk,
+	})
+	require.NoError(t, err)
 	svc, err := cluster.New(cluster.Config{
-		Database: database,
-		Bearer:   "test-bearer",
+		Database:      database,
+		Bearer:        "test-bearer",
+		Clock:         clk,
+		TopologyCache: topologyCache,
 	})
 	require.NoError(t, err)
 	return svc

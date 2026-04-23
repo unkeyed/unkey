@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "podstatus",
+    srcs = ["podstatus.go"],
+    importpath = "github.com/unkeyed/unkey/svc/krane/internal/podstatus",
+    visibility = ["//svc/krane:__subpackages__"],
+    deps = [
+        "//pkg/cache",
+        "//svc/krane/pkg/metrics",
+        "@io_k8s_api//core/v1:core",
+        "@io_k8s_apimachinery//pkg/watch",
+    ],
+)

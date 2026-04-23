@@ -19,9 +19,10 @@ import (
 // receive traffic yet. The address format is "{ip-with-dashes}.{namespace}.pod.cluster.local:{port}"
 // which enables in-cluster DNS resolution without a headless Service.
 //
-// Pod phase is mapped to instance status: Running pods with all containers ready
-// become STATUS_RUNNING, Pending pods become STATUS_PENDING, and Failed pods or
-// Running pods with unready containers become STATUS_FAILED.
+// Pod phase is mapped to instance status: Running pods with ContainersReady=True
+// become STATUS_RUNNING, Pending pods and Running pods whose ContainersReady
+// condition is missing or False become STATUS_PENDING, and Failed pods become
+// STATUS_FAILED.
 func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *appsv1.ReplicaSet) (*ctrlv1.ReportDeploymentStatusRequest, error) {
 	selector, err := metav1.LabelSelectorAsSelector(replicaset.Spec.Selector)
 	if err != nil {
@@ -71,17 +72,21 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *apps
 		case corev1.PodPending:
 			instance.Status = ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_PENDING
 		case corev1.PodRunning:
-			allReady := true
+			// Require an explicit ContainersReady=True; a missing condition
+			// means kubelet has not published readiness yet, which is PENDING
+			// not RUNNING. A False condition is startup-in-progress, not a
+			// permanent failure.
+			ready := false
 			for _, cond := range pod.Status.Conditions {
-				if cond.Type == corev1.ContainersReady && cond.Status != corev1.ConditionTrue {
-					allReady = false
+				if cond.Type == corev1.ContainersReady && cond.Status == corev1.ConditionTrue {
+					ready = true
 					break
 				}
 			}
-			if allReady {
+			if ready {
 				instance.Status = ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_RUNNING
 			} else {
-				instance.Status = ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_FAILED
+				instance.Status = ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_PENDING
 			}
 		case corev1.PodFailed:
 			instance.Status = ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_FAILED

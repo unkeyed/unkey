@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
+	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -29,7 +30,17 @@ func (c *Controller) runActualStateResyncLoop(ctx context.Context) {
 	repeat.Every(30*time.Second, func() {
 		logger.Info("running sentinel actual state resync")
 		c.forEachSentinelDeployment(ctx, func(ctx context.Context, deployment *appsv1.Deployment) {
-			c.reportSentinelState(ctx, deployment)
+			reported, err := c.reportSentinelState(ctx, deployment)
+			if err != nil {
+				logger.Error("actual state resync: unable to report sentinel status", "error", err.Error(), "name", deployment.Name)
+				return
+			}
+			if reported {
+				// Resync caught drift the real-time watch didn't deliver.
+				// A healthy cluster should see this counter stay flat.
+				metrics.ResyncCorrectionsTotal.WithLabelValues("sentinel").Inc()
+				logger.Info("actual state resync: reported changed sentinel status", "name", deployment.Name)
+			}
 		})
 	})
 }

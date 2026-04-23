@@ -80,6 +80,7 @@ export const createApiRequestColumns = ({
   {
     id: API_REQUEST_COLUMN_IDS.VALID.id,
     accessorKey: API_REQUEST_COLUMN_IDS.VALID.accessorKey,
+    sortDescFirst: true,
     header: ({ header }) => (
       <SortableHeader key={API_REQUEST_COLUMN_IDS.VALID.id} header={header}>
         {API_REQUEST_COLUMN_IDS.VALID.header}
@@ -112,6 +113,7 @@ export const createApiRequestColumns = ({
   {
     id: API_REQUEST_COLUMN_IDS.INVALID.id,
     accessorKey: API_REQUEST_COLUMN_IDS.INVALID.accessorKey,
+    sortDescFirst: true,
     header: ({ header }) => (
       <SortableHeader key={API_REQUEST_COLUMN_IDS.INVALID.id} header={header}>
         {API_REQUEST_COLUMN_IDS.INVALID.header}

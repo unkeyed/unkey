@@ -1057,6 +1057,13 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
+	//FindProjectBySlug
+	//
+	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
+	//  FROM projects
+	//  WHERE slug = ?
+	//  LIMIT 1
+	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
 	//FindProjectByWorkspaceSlug
 	//
 	//  SELECT
@@ -1192,17 +1199,16 @@ type Querier interface {
 	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
 	//  WHERE id = ? LIMIT 1
 	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
-	// FindSentinelDeployContextByK8sName returns the sentinel's deploy status
-	// along with its desired and observed running image. Used by
-	// ReportSentinelStatus to determine whether to trigger NotifyReady — the
-	// awakeable should only be resolved when the desired image is actually
-	// running.
+	// Returns the sentinel fields ReportSentinelStatus needs to decide whether
+	// a rollout has converged: deploy_status (gates), image comparison, and
+	// desired replica count.
 	//
 	//  SELECT
 	//      id,
 	//      deploy_status,
 	//      image AS desired_image,
-	//      running_image
+	//      running_image,
+	//      desired_replicas
 	//  FROM sentinels
 	//  WHERE k8s_name = ? LIMIT 1
 	FindSentinelDeployContextByK8sName(ctx context.Context, db DBTX, k8sName string) (FindSentinelDeployContextByK8sNameRow, error)
@@ -1223,6 +1229,19 @@ type Querier interface {
 	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
+	// FlipSentinelDeployStatusIfProgressing flips deploy_status from progressing
+	// to the target status, guarding against concurrent writers (e.g. the Deploy
+	// worker marking failed on timeout) by only updating rows whose current
+	// status is still 'progressing'. Returns the number of rows affected; the
+	// caller should treat 0 as "someone else already moved this sentinel out of
+	// progressing" and skip follow-up side effects (NotifyReady, etc.).
+	//
+	//  UPDATE sentinels SET
+	//    deploy_status = ?,
+	//    updated_at = ?
+	//  WHERE id = ?
+	//    AND deploy_status = 'progressing'
+	FlipSentinelDeployStatusIfProgressing(ctx context.Context, db DBTX, arg FlipSentinelDeployStatusIfProgressingParams) (int64, error)
 	// GetDeploymentChangesMaxVersion returns the current maximum version (pk) for a region.
 	// Used during full sync to establish the starting version for incremental polling.
 	//
@@ -2171,6 +2190,7 @@ type Querier interface {
 	//  WHERE gc.installation_id = ?
 	//    AND gc.repository_id = ?
 	//    AND e.slug = CASE
+	//      WHEN CAST(? AS SIGNED) = 1 THEN 'preview'
 	//      WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
 	//      THEN 'production'
 	//      ELSE 'preview'

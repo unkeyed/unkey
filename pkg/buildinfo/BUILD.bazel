@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "buildinfo",
+    srcs = [
+        "buildinfo.go",
+        "metrics.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/buildinfo",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/prometheus/lazy",
+        "@com_github_prometheus_client_golang//prometheus",
+    ],
+)

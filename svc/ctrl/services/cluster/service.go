@@ -46,13 +46,22 @@ type Service struct {
 	db      db.Database
 	restate *ingress.Client
 	bearer  string
-	// notifiedReady dedups Restate NotifyReady / NotifyInstancesReady calls
-	// so we don't fire on every krane status report once the threshold is
-	// met. Keys are "deployment:<id>" or "sentinel:<id>".
+	// notifiedReady dedups Restate NotifyInstancesReady calls so we don't
+	// fire on every krane status report once the threshold is met. Keys
+	// are "deployment:<id>". The sentinel path uses the
+	// deploy_status=progressing gate + DB flip as its idempotency
+	// mechanism instead (see maybeNotifySentinelReady).
 	notifiedReady *expiringSet[string]
 	// regionCache memoizes (platform, name) → [db.Region] lookups via SWR so
 	// region-scoped RPCs don't hit the DB on every request.
 	regionCache cache.Cache[regionCacheKey, db.Region]
+	// topologyCache caches FindDeploymentTopologyMinReplicas lookups
+	// keyed by deployment_id. Topology is written once at deploy time,
+	// then read on every instance status report, so caching removes an
+	// RO hit from the notify path. Empty results are not cached (see
+	// findTopologyMinReplicas) because a missed race against the
+	// topology write must be retried, not sealed in.
+	topologyCache cache.Cache[string, []db.FindDeploymentTopologyMinReplicasRow]
 }
 
 // Config holds the configuration for creating a new cluster [Service].
@@ -69,6 +78,10 @@ type Config struct {
 	// Clock backs the region cache's freshness accounting. When nil, a
 	// real-time clock is used.
 	Clock clock.Clock
+
+	// TopologyCache backs FindDeploymentTopologyMinReplicas lookups on
+	// the notify-ready path. Required.
+	TopologyCache cache.Cache[string, []db.FindDeploymentTopologyMinReplicasRow]
 }
 
 // New creates a new cluster [Service] with the given configuration. The returned service
@@ -97,6 +110,7 @@ func New(cfg Config) (*Service, error) {
 		bearer:                             cfg.Bearer,
 		notifiedReady:                      newExpiringSet[string](notifiedReadyTTL),
 		regionCache:                        regionCache,
+		topologyCache:                      cfg.TopologyCache,
 	}
 	repeat.Every(notifiedReadyTTL, func() {
 		if dropped := s.notifiedReady.Sweep(); dropped > 0 {
