@@ -1,13 +1,8 @@
 @import "tailwindcss";
 
-@source '../../../internal/ui/src/**/*.tsx';
-@source '../../../internal/icons/src/**/*.tsx';
-
-@custom-variant dark (&:is(.dark *));
-
 @theme {
-  --font-sans: "Geist", system-ui, sans-serif;
-  --font-mono: "Geist Mono", monospace;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   --color-background: hsl(var(--background));
   --color-background-subtle: hsl(var(--background-subtle));
@@ -26,7 +21,7 @@
   --color-muted-foreground: hsl(var(--gray-11));
   --color-destructive: hsl(var(--error-9));
 
-  /* Radix gray scale */
+  /* Radix gray (Sand 12-step) */
   --color-gray-1: hsl(var(--gray-1));
   --color-gray-2: hsl(var(--gray-2));
   --color-gray-3: hsl(var(--gray-3));
@@ -40,14 +35,33 @@
   --color-gray-11: hsl(var(--gray-11));
   --color-gray-12: hsl(var(--gray-12));
 
-  /* Error scale */
+  /* GrayA — translucent overlays */
+  --color-grayA-2: hsla(var(--grayA-2));
+  --color-grayA-3: hsla(var(--grayA-3));
+  --color-grayA-4: hsla(var(--grayA-4));
+  --color-grayA-5: hsla(var(--grayA-5));
+  --color-grayA-6: hsla(var(--grayA-6));
+
+  /* Success (Teal) */
+  --color-success-9: hsl(var(--success-9));
+  --color-success-11: hsl(var(--success-11));
+  --color-successA-3: hsla(var(--successA-3));
+  --color-successA-4: hsla(var(--successA-4));
+  --color-successA-11: hsla(var(--successA-11));
+
+  /* Warning (Amber) */
+  --color-warning-9: hsl(var(--warning-9));
+  --color-warning-11: hsl(var(--warning-11));
+  --color-warningA-3: hsla(var(--warningA-3));
+  --color-warningA-11: hsla(var(--warningA-11));
+
+  /* Error (Tomato) */
+  --color-error-3: hsl(var(--error-3));
   --color-error-9: hsl(var(--error-9));
   --color-error-11: hsl(var(--error-11));
-
-  /* Warning scale */
-  --color-warning-3: hsl(var(--warning-3));
-  --color-warning-6: hsl(var(--warning-6));
-  --color-warning-11: hsl(var(--warning-11));
+  --color-errorA-3: hsla(var(--errorA-3));
+  --color-errorA-4: hsla(var(--errorA-4));
+  --color-errorA-11: hsla(var(--errorA-11));
 }
 
 @layer base {
@@ -56,13 +70,12 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--color-gray-6, currentcolor);
   }
 }
 
 @layer base {
   :root {
-    color-scheme: light;
     --background: 0 0% 100%;
     --background-subtle: 60 9% 94%;
     --primary: 24 10% 10%;
@@ -73,20 +86,48 @@
     --content-subtle: 240 3.8% 46.1%;
     --border: 24, 6%, 83%;
     --ring: 24, 6%, 83%;
-  }
 
-  .dark {
-    color-scheme: dark;
-    --background: 0 0% 0%;
-    --background-subtle: 24 10% 10%;
-    --primary: 20 6% 94%;
-    --primary-foreground: 20 6% 10%;
-    --secondary: 24 10% 10%;
-    --secondary-foreground: 24 10% 100%;
-    --content: 240 10% 90%;
-    --content-subtle: 240 3.8% 46.1%;
-    --border: 12, 6%, 15%;
-    --ring: 12, 6%, 15%;
+    /* Radix gray (Sand) */
+    --gray-1: 0, 0%, 99%;
+    --gray-2: 0, 0%, 98%;
+    --gray-3: 0, 0%, 94%;
+    --gray-4: 0, 0%, 91%;
+    --gray-5: 0, 0%, 88%;
+    --gray-6: 0, 0%, 85%;
+    --gray-7: 0, 0%, 81%;
+    --gray-8: 0, 0%, 73%;
+    --gray-9: 0, 0%, 55%;
+    --gray-10: 0, 0%, 51%;
+    --gray-11: 0, 0%, 39%;
+    --gray-12: 0, 0%, 13%;
+
+    /* GrayA */
+    --grayA-2: 240, 100%, 17%, 0.02;
+    --grayA-3: 240, 100%, 10%, 0.06;
+    --grayA-4: 240, 100%, 9%, 0.09;
+    --grayA-5: 229, 100%, 10%, 0.12;
+    --grayA-6: 240, 100%, 9%, 0.15;
+
+    /* Success (Teal) */
+    --success-9: 173, 80%, 36%;
+    --success-11: 172, 100%, 26%;
+    --successA-3: 168, 100%, 39%, 0.13;
+    --successA-4: 168, 100%, 38%, 0.2;
+    --successA-11: 173, 100%, 25%, 1;
+
+    /* Warning (Amber) */
+    --warning-9: 42, 100%, 62%;
+    --warning-11: 35, 100%, 34%;
+    --warningA-3: 47, 100%, 50%, 0.24;
+    --warningA-11: 43, 100%, 30%, 1;
+
+    /* Error (Tomato) */
+    --error-3: 10, 92%, 95%;
+    --error-9: 10, 78%, 54%;
+    --error-11: 10, 82%, 45%;
+    --errorA-3: 11, 100%, 48%, 0.09;
+    --errorA-4: 12, 100%, 50%, 0.17;
+    --errorA-11: 11, 100%, 40%, 0.91;
   }
 }
 
