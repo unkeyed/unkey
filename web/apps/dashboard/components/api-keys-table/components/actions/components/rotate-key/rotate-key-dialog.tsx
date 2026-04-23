@@ -173,7 +173,7 @@ export const RotateKeyDialog = ({
   const subTitle =
     resourceLabel === "root key"
       ? "Generate a fresh root key while preserving this root key's permissions"
-      : "Generate a fresh key while preserving this key's configuration";
+      : "Generate a fresh key while preserving this key's permissions and limits";
   const gracePeriodDescription = `How long the current ${resourceLabel} stays valid after rotation.`;
 
   return (

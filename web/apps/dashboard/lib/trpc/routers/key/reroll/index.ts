@@ -199,6 +199,25 @@ async function rerollKeyCore({
         });
       }
 
+      // Re-check the keyAuth's `storeEncryptedKeys` flag inside the tx.
+      // The outer guard used the joined snapshot from before the tx; if
+      // an admin flipped encryption off in the gap, committing a new
+      // encryptedKeys row here would bypass that policy. The source key
+      // itself is already encrypted — rotation has no safe fallback, so
+      // refuse and let the caller resolve the policy change.
+      if (source.encrypted) {
+        const currentKeyAuth = await tx.query.keyAuth.findFirst({
+          where: (table, { eq }) => eq(table.id, source.keyAuthId),
+          columns: { storeEncryptedKeys: true },
+        });
+        if (!currentKeyAuth || !currentKeyAuth.storeEncryptedKeys) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "This API does not support key encryption.",
+          });
+        }
+      }
+
       // The new key inherits the source's expiry so rotation preserves the
       // original lifetime constraint instead of silently producing a
       // permanent key. The old key's grace period is capped against that
