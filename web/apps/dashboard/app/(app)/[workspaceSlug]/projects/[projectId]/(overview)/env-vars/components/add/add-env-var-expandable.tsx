@@ -60,7 +60,7 @@ export const AddEnvVarExpandable = ({
     `env-vars-add-${projectId}`,
     {
       resolver: zodResolver(envVarsSchema),
-      mode: "onSubmit",
+      mode: "onChange",
       defaultValues: {
         envVars: [createEmptyEntry()],
         environmentId: "__all__",

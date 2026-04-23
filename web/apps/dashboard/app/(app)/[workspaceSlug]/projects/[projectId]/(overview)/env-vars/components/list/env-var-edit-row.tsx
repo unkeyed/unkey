@@ -8,7 +8,6 @@ import { ChevronDown } from "@unkey/icons";
 import {
   Button,
   FormInput,
-  FormTextarea,
   Select,
   SelectContent,
   SelectItem,
@@ -59,6 +58,7 @@ export function EnvVarEditRow({
     control,
     formState: { isSubmitting, errors },
   } = useForm<EditEnvVarFormValues>({
+    mode: "onChange",
     resolver: zodResolver(editEnvVarSchema),
     defaultValues: {
       key: variableKey,
@@ -138,9 +138,9 @@ export function EnvVarEditRow({
           title={isWriteonly ? "You cannot rename sensitive environment variables" : ""}
           {...register("key")}
         />
-        <FormTextarea
+        <FormInput
           label={isWriteonly ? "New Value" : "Value"}
-          className="[&_textarea]:font-mono"
+          className="[&_input]:font-mono"
           placeholder={
             isWriteonly
               ? "Enter new value to replace"
@@ -148,8 +148,8 @@ export function EnvVarEditRow({
                 ? "Decrypting..."
                 : "value"
           }
-          rows={3}
           disabled={decryptMutation.isLoading}
+          error={errors.value?.message}
           variant={!errors.value && hasSpaces ? "warning" : undefined}
           description={!errors.value && hasSpaces ? "Value contains spaces" : undefined}
           {...register("value")}
