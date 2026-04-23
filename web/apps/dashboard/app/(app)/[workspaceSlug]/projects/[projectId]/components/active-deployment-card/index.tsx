@@ -15,15 +15,19 @@ import { RegionFlag } from "../../components/region-flag";
 import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-empty";
 import { MetadataCell } from "./components/metadata-cell";
 import { ActiveDeploymentCardSkeleton } from "./components/skeleton";
+import { DottedLink } from "../dotted-link";
 
 function GitHubLink({ href, children }: { href: string | undefined; children: React.ReactNode }) {
   if (!href) {
     return children;
   }
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="hover:opacity-80">
+    <DottedLink
+      href={href}
+      external
+    >
       {children}
-    </a>
+    </DottedLink>
   );
 }
 
