@@ -34,8 +34,8 @@ export { BadgeCell } from "./components/cells";
 export type { BadgeCellProps } from "./components/cells";
 export { CopyCell } from "./components/cells";
 export type { CopyCellProps } from "./components/cells";
-export { AssignedItemsCell } from "./components/cells";
-export type { AssignedItemsCellProps } from "./components/cells";
+export { AssignedCountCell } from "./components/cells";
+export type { AssignedCountCellProps } from "./components/cells";
 export { HiddenValueCell } from "./components/cells";
 export type { HiddenValueCellProps } from "./components/cells";
 export { InvalidCountCell } from "./components/cells";
@@ -50,6 +50,8 @@ export { RegionCell } from "./components/cells";
 export type { RegionCellProps } from "./components/cells";
 export { TagsCell } from "./components/cells";
 export type { TagsCellProps } from "./components/cells";
+export { SelectableNameCell } from "./components/cells";
+export type { SelectableNameCellProps } from "./components/cells";
 export { MonoTextCell } from "./components/cells";
 export type { MonoTextCellProps } from "./components/cells";
 
@@ -61,7 +63,10 @@ export {
   LastUpdatedColumnSkeleton,
   PermissionsColumnSkeleton,
   RootKeyColumnSkeleton,
+  DashedBadgeSkeleton,
+  NameColumnSkeleton,
 } from "./components/skeletons";
+export type { DashedBadgeSkeletonProps, NameColumnSkeletonProps } from "./components/skeletons";
 
 // Header components
 export { SortableHeader } from "./components/headers";
@@ -85,3 +90,4 @@ export { RealtimeSeparator } from "./components/utils/realtime-separator";
 // Utils
 export { calculateColumnWidth } from "./utils/column-width";
 export { getPageNumbers } from "./utils/get-page-numbers";
+export { getSelectableRowClassName } from "./utils/get-selectable-row-class";
