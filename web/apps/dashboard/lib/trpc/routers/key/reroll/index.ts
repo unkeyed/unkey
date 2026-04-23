@@ -216,7 +216,11 @@ async function rerollKeyCore({
         createdAtM: now,
         refillDay: source.refillDay,
         refillAmount: source.refillAmount,
-        lastRefillAt: source.refillAmount != null ? new Date(now) : null,
+        // Inherit the source's last-refill timestamp rather than stamping
+        // `now`. The new key carries over `source.remaining`, so those
+        // credits were genuinely last topped up at `source.lastRefillAt`;
+        // resetting the timestamp would misreport the balance's age.
+        lastRefillAt: source.refillAmount != null ? source.lastRefillAt : null,
         enabled: source.enabled,
         remaining: source.remaining,
         environment: source.environment,

@@ -9,6 +9,8 @@ import {
   DEFAULT_GRACE_PERIOD,
   GRACE_PERIOD_OPTIONS,
   type GracePeriodMs,
+  gracePeriodMsFromValue,
+  isGracePeriodValue,
 } from "./rotate-key.constants";
 
 type RotatedKeyData = { id: string; key: string; name?: string };
@@ -67,13 +69,20 @@ export const RotateKeyDialog = ({
   const rotateButtonRef = useRef<HTMLButtonElement>(null);
 
   const schema = z.object({
-    gracePeriod: z.string(),
+    gracePeriod: z.string().refine(isGracePeriodValue, {
+      error: "Please select a valid grace period.",
+    }),
     confirmRotation: z.boolean().refine((val) => val === true, {
       error: `Please confirm that you want to rotate this ${resourceLabel}`,
     }),
   });
 
-  const methods = useForm<z.infer<typeof schema>>({
+  // Split input/output types: the schema's `.refine()` calls narrow the
+  // form's parsed output (`z.output`) to a literal union, but the raw
+  // form values (`z.input`) are still `string`/`boolean`. React Hook Form
+  // requires both to be declared so the resolver, defaults, and parsed
+  // result line up.
+  const methods = useForm<z.input<typeof schema>, unknown, z.output<typeof schema>>({
     resolver: zodResolver(schema),
     mode: "onChange",
     shouldFocusError: true,
@@ -106,15 +115,18 @@ export const RotateKeyDialog = ({
   };
 
   const performRotation = async () => {
+    if (!isGracePeriodValue(gracePeriod)) {
+      // Defense-in-depth: the FormSelect is bound to GRACE_PERIOD_OPTIONS
+      // and the schema rejects anything else, so this branch is
+      // unreachable through the UI. Bail rather than coerce an unknown
+      // value into a request the server would reject anyway.
+      return;
+    }
     try {
       setIsLoading(true);
       const result = await mutation.mutateAsync({
         keyId,
-        // GRACE_PERIOD_OPTIONS and GracePeriodMs are derived from the same
-        // GRACE_PERIODS table, so any value the FormSelect can produce is
-        // a valid GracePeriodMs at runtime. The cast bridges the form's
-        // string typing without losing that guarantee.
-        expiration: Number(gracePeriod) as GracePeriodMs,
+        expiration: gracePeriodMsFromValue(gracePeriod),
       });
       setRotatedKeyData({ id: result.keyId, key: result.key, name: result.name });
     } catch {
