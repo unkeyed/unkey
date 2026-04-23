@@ -50,7 +50,7 @@ const LogDetailsContext = createContext<LogDetailsContextValue>({
   animated: false,
   isOpen: true,
   log: {} as SupportedLogTypes,
-  onClose: () => {},
+  onClose: () => { },
 });
 
 const useLogDetailsContext = () => useContext(LogDetailsContext);
@@ -135,7 +135,7 @@ export const LogDetails = ({
   children,
 }: LogDetailsProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
 
@@ -181,9 +181,9 @@ export const LogDetails = ({
   const baseClasses = "bg-gray-1 font-mono drop-shadow-2xl z-20";
   const animationClasses = animated
     ? cn(
-        "transition-all duration-300 ease-out",
-        isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
-      )
+      "transition-all duration-300 ease-out",
+      isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
+    )
     : "";
   const staticClasses = animated ? "" : "absolute right-0 overflow-y-auto";
 
@@ -296,9 +296,9 @@ const Spacer = ({ delay = 0 }: { delay?: number }) => {
       className={
         animated
           ? cn(
-              "mt-3 transition-all duration-300 ease-out",
-              isOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0",
-            )
+            "mt-3 transition-all duration-300 ease-out",
+            isOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0",
+          )
           : "mt-3"
       }
       style={animated ? { transitionDelay: isOpen ? `${delay}ms` : "0ms" } : undefined}
