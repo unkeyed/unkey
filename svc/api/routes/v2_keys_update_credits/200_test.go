@@ -44,7 +44,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 	})
 
 	keyName := "test-key"
-	initialCredits := int32(rand.IntN(50))
+	initialCredits := int64(rand.IntN(50))
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
@@ -101,7 +101,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, key)
 		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.EqualValues(t, key.RemainingRequests.Int32, setTo)
+		require.EqualValues(t, key.RemainingRequests.Int64, setTo)
 	})
 
 	increaseBy := int64(rand.IntN(50) + 1)
@@ -110,7 +110,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		currentKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.True(t, currentKey.RemainingRequests.Valid)
-		currentCredits := int64(currentKey.RemainingRequests.Int32)
+		currentCredits := int64(currentKey.RemainingRequests.Int64)
 
 		req := handler.Request{
 			KeyId:     keyID,
@@ -130,7 +130,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, key)
 		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.EqualValues(t, key.RemainingRequests.Int32, currentCredits+increaseBy)
+		require.EqualValues(t, key.RemainingRequests.Int64, currentCredits+increaseBy)
 	})
 
 	decreaseBy := int64(rand.IntN(50) + 1)
@@ -139,7 +139,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		currentKey, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
 		require.NoError(t, err)
 		require.True(t, currentKey.RemainingRequests.Valid)
-		currentCredits := int64(currentKey.RemainingRequests.Int32)
+		currentCredits := int64(currentKey.RemainingRequests.Int64)
 
 		// If we are decreasing credits into the negative, it will be automatically set to 0
 		shouldBeRemaining := int64(0)
@@ -165,12 +165,12 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, key)
 		require.Equal(t, key.RemainingRequests.Valid, true)
-		require.EqualValues(t, key.RemainingRequests.Int32, shouldBeRemaining)
+		require.EqualValues(t, key.RemainingRequests.Int64, shouldBeRemaining)
 	})
 
 	t.Run("counter cache invalidation after credit update", func(t *testing.T) {
 		// Create a new key with initial credits for this test
-		initialCredits := int32(100)
+		initialCredits := int64(100)
 		cacheTestKey := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
@@ -185,7 +185,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		require.True(t, authBefore.Key.RemainingRequests.Valid)
-		require.Equal(t, initialCredits-1, authBefore.Key.RemainingRequests.Int32)
+		require.Equal(t, initialCredits-1, authBefore.Key.RemainingRequests.Int64)
 
 		// Update the key's credits
 		newCredits := int64(50)
@@ -212,7 +212,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 		require.NoError(t, err)
 
 		require.True(t, authAfter.Key.RemainingRequests.Valid)
-		require.Equal(t, int32(newCredits)-1, authAfter.Key.RemainingRequests.Int32)
+		require.Equal(t, int64(newCredits)-1, authAfter.Key.RemainingRequests.Int64)
 
 	})
 }

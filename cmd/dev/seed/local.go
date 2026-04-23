@@ -370,9 +370,9 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			Expires:            sql.NullTime{},
 			CreatedAtM:         now,
 			Enabled:            true,
-			RemainingRequests:  sql.NullInt32{},
+			RemainingRequests:  sql.NullInt64{},
 			RefillDay:          sql.NullInt16{},
-			RefillAmount:       sql.NullInt32{},
+			RefillAmount:       sql.NullInt64{},
 			PendingMigrationID: sql.NullString{},
 		})
 		if err != nil && !db.IsDuplicateKeyError(err) {

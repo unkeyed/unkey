@@ -27,8 +27,8 @@ type RatelimitInfo struct {
 	Name       string            `json:"name"`
 	KeyID      dbtype.NullString `json:"key_id"`
 	IdentityID dbtype.NullString `json:"identity_id"`
-	Limit      int32             `json:"limit"`
-	Duration   int64             `json:"duration"`
+	Limit      uint64            `json:"limit"`
+	Duration   uint64            `json:"duration"`
 	AutoApply  bool              `json:"auto_apply"`
 }
 

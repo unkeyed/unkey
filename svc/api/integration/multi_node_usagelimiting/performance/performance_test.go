@@ -11,17 +11,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/integration"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
-	"github.com/unkeyed/unkey/pkg/ptr"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
 // TestUsageLimitPerformance tests the performance of usage limiting
 func TestUsageLimitPerformance(t *testing.T) {
-
 
 	testCases := []struct {
 		name      string
@@ -60,8 +58,8 @@ func runPerformanceTest(t *testing.T, nodeCount int, totalCredits, cost int64) {
 
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeySpaceID:   api.KeyAuthID.String,
-		Remaining:   ptr.P(int32(totalCredits)),
+		KeySpaceID:  api.KeyAuthID.String,
+		Remaining:   ptr.P(int64(totalCredits)),
 	})
 
 	keyStart := keyResponse.Key
@@ -74,7 +72,7 @@ func runPerformanceTest(t *testing.T, nodeCount int, totalCredits, cost int64) {
 	req := handler.Request{
 		Key: keyStart,
 		Credits: &openapi.KeysVerifyKeyCredits{
-			Cost: int32(cost),
+			Cost: cost,
 		},
 	}
 
@@ -109,7 +107,6 @@ func runPerformanceTest(t *testing.T, nodeCount int, totalCredits, cost int64) {
 // TestUsageLimitThroughput measures maximum throughput under sustained load
 func TestUsageLimitThroughput(t *testing.T) {
 
-
 	h := integration.New(t, integration.Config{
 		NumNodes: 3,
 	})
@@ -127,8 +124,8 @@ func TestUsageLimitThroughput(t *testing.T) {
 	totalCredits := int64(100000) // Large number to not run out
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeySpaceID:   api.KeyAuthID.String,
-		Remaining:   ptr.P(int32(totalCredits)),
+		KeySpaceID:  api.KeyAuthID.String,
+		Remaining:   ptr.P(int64(totalCredits)),
 	})
 
 	keyStart := keyResponse.Key

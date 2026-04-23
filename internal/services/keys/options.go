@@ -14,7 +14,7 @@ type VerifyOption func(*verifyConfig) error
 // verifyConfig holds the internal configuration for verification options.
 type verifyConfig struct {
 	ipWhitelist bool
-	credits     *int32
+	credits     *int64
 	tags        []string
 	permissions *rbac.PermissionQuery
 	ratelimits  []openapi.KeysVerifyKeyRatelimit
@@ -22,7 +22,7 @@ type verifyConfig struct {
 
 // WithCredits validates that the key has sufficient usage credits and deducts the specified cost.
 // The cost must be non-negative. If the key doesn't have enough credits, verification fails.
-func WithCredits(cost int32) VerifyOption {
+func WithCredits(cost int64) VerifyOption {
 	return func(config *verifyConfig) error {
 		if cost < 0 {
 			return errors.New("cost cannot be negative")
