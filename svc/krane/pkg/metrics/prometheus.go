@@ -215,6 +215,29 @@ var (
 		},
 		[]string{"component"},
 	)
+
+	// PodImagePullFailures reports, per (deployment, reason), how many pods
+	// are currently blocked on an image pull. Reasons covered:
+	// ImagePullBackOff, ErrImagePull, InvalidImageName, ImageInspectError.
+	//
+	// Derived each tick from a single ListPods — series whose count drops
+	// to zero are deleted so the metric is self-healing across pod churn.
+	//
+	// Labels:
+	//   - "deployment_id":  unkey.com/deployment.id
+	//   - "project_id":     unkey.com/project.id
+	//   - "environment_id": unkey.com/environment.id
+	//   - "workspace_id":   unkey.com/workspace.id
+	//   - "reason":         container waiting reason
+	PodImagePullFailures = lazy.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "pod_image_pull_failures",
+			Help:      "Pods currently blocked on an image pull, by deployment and reason.",
+		},
+		[]string{"deployment_id", "project_id", "environment_id", "workspace_id", "reason"},
+	)
 )
 
 // RecordReconcile records a reconciliation operation result. Intended for use

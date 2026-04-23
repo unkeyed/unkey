@@ -71,6 +71,10 @@ func (g *GaugeVec) With(labels prometheus.Labels) prometheus.Gauge {
 	return g.m.get().With(labels)
 }
 
+func (g *GaugeVec) DeleteLabelValues(lvs ...string) bool {
+	return g.m.get().DeleteLabelValues(lvs...)
+}
+
 // HistogramVec is a lazy-registering prometheus.HistogramVec.
 type HistogramVec struct {
 	m metric[*prometheus.HistogramVec]

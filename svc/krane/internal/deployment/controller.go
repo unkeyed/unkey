@@ -133,11 +133,13 @@ func New(cfg Config) *Controller {
 
 // Start launches the background control loops.
 //
-// Three independent loops run concurrently:
+// Four independent loops run concurrently:
 //   - [Controller.runActualStateResyncLoop]: periodic safety net for instance
 //     state reporting (complements the real-time pod watch).
 //   - [Controller.runDesiredStateResyncLoop]: periodic reconciliation of desired
 //     state from the control plane (complements the streaming channel).
+//   - [Controller.runImagePullMetricsLoop]: publishes image-pull-failure gauges
+//     derived from a periodic ListPods sweep.
 //   - [Controller.runPodWatchLoop]: real-time Kubernetes watch for pod events.
 //
 // The actual-state and desired-state loops are decoupled so that slow control
@@ -147,6 +149,7 @@ func New(cfg Config) *Controller {
 // All loops continue until the context is cancelled or [Controller.Stop] is called.
 func (c *Controller) Start(ctx context.Context) error {
 	go c.runActualStateResyncLoop(ctx)
+	go c.runImagePullMetricsLoop(ctx)
 	go c.runDesiredStateResyncLoop(ctx)
 
 	if err := c.runPodWatchLoop(ctx); err != nil {
