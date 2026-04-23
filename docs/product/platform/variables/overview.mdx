@@ -108,6 +108,8 @@ Git-related variables are populated when your deployment is connected to a GitHu
 
 Deployments are immutable. Variable changes don't affect running deployments. To apply updated variables, trigger a new deployment. A redeploy banner appears at the top of the page after you make changes as a reminder.
 
+If your Dockerfile consumes variables at build time through the [secret mount pattern](/builds/overview#build-time-environment-variables), the next build automatically re-runs any `RUN` step that reads them — Unkey invalidates the build cache for those steps whenever your variables change, so the new values actually take effect instead of being served from a stale cached layer.
+
 ## Next steps
 
 <CardGroup cols={2}>
