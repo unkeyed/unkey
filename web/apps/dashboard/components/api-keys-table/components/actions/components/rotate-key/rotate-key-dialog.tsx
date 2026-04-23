@@ -2,7 +2,7 @@ import { KeyCreatedSuccessDialog } from "@/app/(app)/[workspaceSlug]/apis/[apiId
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, ConfirmPopover, DialogContainer, FormCheckbox, FormSelect } from "@unkey/ui";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import {
@@ -68,14 +68,21 @@ export const RotateKeyDialog = ({
   const [rotatedKeyData, setRotatedKeyData] = useState<RotatedKeyData | null>(null);
   const rotateButtonRef = useRef<HTMLButtonElement>(null);
 
-  const schema = z.object({
-    gracePeriod: z.string().refine(isGracePeriodValue, {
-      error: "Please select a valid grace period.",
-    }),
-    confirmRotation: z.boolean().refine((val) => val === true, {
-      error: `Please confirm that you want to rotate this ${resourceLabel}`,
-    }),
-  });
+  // Memoize on `resourceLabel` — only the confirmation message interpolates
+  // that prop. Rebuilding the zod schema on every render would hand the
+  // resolver a fresh identity for no benefit.
+  const schema = useMemo(
+    () =>
+      z.object({
+        gracePeriod: z.string().refine(isGracePeriodValue, {
+          error: "Please select a valid grace period.",
+        }),
+        confirmRotation: z.boolean().refine((val) => val === true, {
+          error: `Please confirm that you want to rotate this ${resourceLabel}`,
+        }),
+      }),
+    [resourceLabel],
+  );
 
   // Split input/output types: the schema's `.refine()` calls narrow the
   // form's parsed output (`z.output`) to a literal union, but the raw
@@ -221,6 +228,8 @@ export const RotateKeyDialog = ({
                   id={`${formId}-confirm`}
                   color="danger"
                   size="lg"
+                  ref={field.ref}
+                  checked={field.value}
                   onCheckedChange={field.onChange}
                   requirement="required"
                   label={`I understand this will generate a new ${resourceLabel} and revoke the current one.`}

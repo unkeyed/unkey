@@ -149,6 +149,13 @@ async function rerollKeyCore({
   // separator.
   const lastUnderscore = source.start.lastIndexOf("_");
   const prefix = lastUnderscore === -1 ? "" : source.start.slice(0, lastUnderscore);
+
+  // Byte length falls back to the workspace's current default because the
+  // original per-key length was never persisted (no column on `keys`). If
+  // an admin changed `keyAuth.defaultBytes` after the source key was
+  // created, the rotated key will use the new length. Preserving the
+  // exact original length would require a schema migration to record it
+  // at creation time.
   const byteLength = source.keyAuth.defaultBytes ?? 16;
 
   const { key: plaintext, hash, start } = await newKey({ prefix, byteLength });
@@ -274,7 +281,14 @@ async function rerollKeyCore({
         );
       }
 
-      await tx
+      // Guard against a concurrent soft-delete landing between the in-tx
+      // re-check and this update. The WHERE clause includes `deletedAtM IS
+      // NULL`, so if the source row was deleted in the gap the update
+      // matches zero rows and the old key's expiry never gets capped.
+      // Abort the transaction in that case so we don't commit a new key
+      // tied to a now-deleted source and an audit entry that claims an
+      // expiry we didn't actually set.
+      const updateResult = await tx
         .update(schema.keys)
         .set({ expires: oldKeyExpiresAt })
         .where(
@@ -284,6 +298,12 @@ async function rerollKeyCore({
             isNull(schema.keys.deletedAtM),
           ),
         );
+      if (updateResult[0].affectedRows === 0) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "This key was deleted while rotating. The rotation has been cancelled.",
+        });
+      }
 
       const resources: UnkeyAuditLog["resources"] = [
         { type: "key", id: newKeyId, name: source.name ?? undefined },
