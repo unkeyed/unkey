@@ -11,8 +11,4 @@ export const Sep = () => <span className="text-gray-9 mx-1.5">·</span>;
 export const DocsLink = ({
   href,
   children = "Read more",
-}: { href: string; children?: ReactNode }) => (
-  <DottedLink href={href}>
-    {children}
-  </DottedLink>
-);
+}: { href: string; children?: ReactNode }) => <DottedLink href={href}>{children}</DottedLink>;

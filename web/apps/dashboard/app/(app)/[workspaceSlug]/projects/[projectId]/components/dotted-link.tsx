@@ -14,26 +14,21 @@ type DottedLinkProps = {
   children: React.ReactNode;
 };
 
-export function DottedLink({ href, copyValue, external, className = DEFAULT_LINK_CLASS, children }: DottedLinkProps) {
-
+export function DottedLink({
+  href,
+  copyValue,
+  external,
+  className = DEFAULT_LINK_CLASS,
+  children,
+}: DottedLinkProps) {
   return (
     <div className="flex items-center gap-2">
       {external ? (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={className}
-        >
+        <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
           {children}
         </a>
       ) : (
-        <Link
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={className}
-        >
+        <Link href={href} target="_blank" rel="noopener noreferrer" className={className}>
           {children}
         </Link>
       )}

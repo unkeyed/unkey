@@ -12,20 +12,17 @@ import { Card } from "../../(overview)/components/card";
 import { useProjectData } from "../../(overview)/data-provider";
 import { Avatar } from "../../components/git-avatar";
 import { RegionFlag } from "../../components/region-flag";
+import { DottedLink } from "../dotted-link";
 import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-empty";
 import { MetadataCell } from "./components/metadata-cell";
 import { ActiveDeploymentCardSkeleton } from "./components/skeleton";
-import { DottedLink } from "../dotted-link";
 
 function GitHubLink({ href, children }: { href: string | undefined; children: React.ReactNode }) {
   if (!href) {
     return children;
   }
   return (
-    <DottedLink
-      href={href}
-      external
-    >
+    <DottedLink href={href} external>
       {children}
     </DottedLink>
   );

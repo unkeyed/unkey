@@ -180,7 +180,7 @@ export const LogDetails = ({
         }),
       }}
     >
-      <div className={animated ? "h-full overflow-y-auto p-4" : ""}>
+      <div className={animated ? "h-full overflow-y-auto" : ""}>
         <LogDetailsContext.Provider value={{ animated, isOpen, log }}>
           {children}
         </LogDetailsContext.Provider>

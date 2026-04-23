@@ -1,8 +1,8 @@
 "use client";
 import { safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
-import { DottedLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/dotted-link";
 import { DeploymentIdLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/deployment-id-link";
 import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/deployment-status-badge";
+import { DottedLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/dotted-link";
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import { EMPTY_TEXT, LogDetails } from "@/components/logs/details/log-details";
 import { LogSection } from "@/components/logs/details/log-details/components/log-section";
@@ -62,7 +62,12 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
       <LogDetails.Section delay={150}>
         <LogSection
           title="Deployment Information"
-          details={formatDeploymentInfo(log, deployment, environment, deployment?.forkRepositoryFullName || project?.repositoryFullName)}
+          details={formatDeploymentInfo(
+            log,
+            deployment,
+            environment,
+            deployment?.forkRepositoryFullName || project?.repositoryFullName,
+          )}
         />
       </LogDetails.Section>
 
@@ -244,15 +249,15 @@ const formatDeploymentInfo = (
   log: SentinelLogsResponse,
   deployment:
     | {
-      id: string;
-      environmentId: string;
-      gitBranch?: string | null;
-      gitCommitSha?: string | null;
-      gitCommitMessage?: string | null;
-      gitCommitAuthorHandle?: string | null;
-      gitCommitAuthorAvatarUrl?: string | null;
-      status?: string | null;
-    }
+        id: string;
+        environmentId: string;
+        gitBranch?: string | null;
+        gitCommitSha?: string | null;
+        gitCommitMessage?: string | null;
+        gitCommitAuthorHandle?: string | null;
+        gitCommitAuthorAvatarUrl?: string | null;
+        status?: string | null;
+      }
     | undefined,
   environment: { slug: string } | undefined,
   sourceRepo: string | null | undefined,
@@ -296,7 +301,17 @@ const formatDeploymentInfo = (
           <span className="text-gray-11">Branch:</span>
           <div className="flex items-center gap-1.5">
             <CodeBranch iconSize="sm-regular" className="text-grayA-10 shrink-0" />
-            <span className="font-mono truncate max-w-[200px]">{deployment.gitBranch}</span>
+            {sourceRepo ? (
+              <DottedLink
+                href={`https://github.com/${sourceRepo}/tree/${deployment.gitBranch}`}
+                copyValue={deployment.gitBranch}
+                external
+              >
+                <span className="font-mono truncate max-w-[200px]">{deployment.gitBranch}</span>
+              </DottedLink>
+            ) : (
+              <span className="font-mono truncate max-w-[200px]">{deployment.gitBranch}</span>
+            )}
           </div>
         </div>
       )}
