@@ -168,10 +168,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	latency := time.Since(t0).Milliseconds()
 	if s.ShouldLogRequestToClickHouse() {
+		nowMillis := time.Now().UnixMilli()
 		h.RatelimitEvents.Buffer(schema.Ratelimit{
 			RequestID:   s.RequestID(),
 			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Time:        time.Now().UnixMilli(),
+			Time:        nowMillis,
 			NamespaceID: ns.ID,
 			Identifier:  req.Identifier,
 			Passed:      result.Success,
@@ -181,6 +182,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Remaining:   uint64(result.Remaining),
 			ResetAt:     result.Reset.UnixMilli(),
 			Tokens:      uint64(cost),
+			ExpiresAt:   nowMillis + s.LogsRetentionMillis(ctx),
 		})
 	}
 

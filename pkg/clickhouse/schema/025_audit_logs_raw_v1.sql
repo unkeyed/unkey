@@ -66,9 +66,12 @@ CREATE TABLE IF NOT EXISTS default.audit_logs_raw_v1
     `targets_meta_text` String MATERIALIZED
         arrayStringConcat(arrayMap(x -> toJSONString(x), `targets.meta`), ' '),
 
-    -- Per-row TTL stamp, set at insert from the workspace's retention
-    -- quota. Stored as unix-milli. Lets retention changes ripple in
-    -- without ALTER TABLE.
+    -- Per-row retention stamp, set at insert from the workspace's
+    -- retention quota. Stored as unix-milli. Read by the archive cron
+    -- (svc/ctrl/worker/auditlogarchive) which exports expired rows to S3
+    -- as Parquet, then deletes them via ALTER TABLE DELETE. NOT a CH
+    -- TTL clause: the cron is the sole authority on retention so we get
+    -- guaranteed compliance-grade archive before deletion.
     `expires_at`    Int64 CODEC(Delta, ZSTD(1)),
 
     INDEX idx_event             event             TYPE set(100)                GRANULARITY 1,
@@ -80,6 +83,5 @@ CREATE TABLE IF NOT EXISTS default.audit_logs_raw_v1
 ENGINE = ReplacingMergeTree()
 PARTITION BY toYYYYMM(fromUnixTimestamp64Milli(inserted_at))
 ORDER BY (workspace_id, bucket, time, event_id)
-TTL toDateTime(fromUnixTimestamp64Milli(expires_at)) DELETE
 SETTINGS index_granularity = 8192,
          non_replicated_deduplication_window = 10000;
