@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "github_webhook",
+    srcs = ["github_webhook.go"],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/probes/common/github_webhook",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//svc/preflight/core",
+        "//svc/preflight/probes",
+    ],
+)
+
+go_test(
+    name = "github_webhook_test",
+    srcs = ["github_webhook_test.go"],
+    deps = [
+        ":github_webhook",
+        "//gen/proto/hydra/v1:hydra",
+        "//svc/preflight/harness",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)

@@ -40,6 +40,12 @@ type Querier interface {
 	// (cityHash64(key_id) % totalPartitions == partition) after the given cursor,
 	// ordered by (time, key_id). Used by the KeyLastUsedSync partition workers.
 	GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLastUsedBatchRequest) ([]KeyLastUsed, error)
+
+	// CountSentinelRequestsByPath returns the number of sentinel
+	// request-log rows with the given path. Used by the preflight
+	// request_logs probe to assert sentinel -> ClickHouse ingest
+	// is healthy.
+	CountSentinelRequestsByPath(ctx context.Context, path string) (uint64, error)
 }
 
 type ClickHouse interface {

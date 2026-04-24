@@ -1,0 +1,44 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "harness",
+    srcs = [
+        "clickhouse_seed.go",
+        "harness.go",
+        "mocks.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/harness",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//gen/rpc/vault",
+        "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
+        "//pkg/config",
+        "//pkg/db",
+        "//pkg/dockertest",
+        "//pkg/logger",
+        "//pkg/uid",
+        "//svc/ctrl/api",
+        "//svc/ctrl/integration/seed",
+        "//svc/preflight/core",
+        "//svc/vault/testutil",
+        "@com_github_clickhouse_clickhouse_go_v2//:clickhouse-go",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+        "@com_github_restatedev_sdk_go//ingress",
+        "@com_github_restatedev_sdk_go//server",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_x_net//http2",
+        "@org_golang_x_net//http2/h2c",
+    ],
+)
+
+go_test(
+    name = "harness_test",
+    srcs = ["dev_test.go"],
+    deps = [
+        ":harness",
+        "//svc/preflight",
+        "//svc/preflight/runner",
+    ],
+)

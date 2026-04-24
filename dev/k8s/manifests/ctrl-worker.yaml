@@ -132,7 +132,7 @@ spec:
                   key: UNKEY_ALLOW_UNAUTHENTICATED_DEPLOYMENTS
                   optional: true
             - name: FORCE_DEPLOYMENT_APPROVAL
-              value: "true"
+              value: "false"
           volumeMounts:
             - name: docker-socket
               mountPath: /var/run/docker.sock

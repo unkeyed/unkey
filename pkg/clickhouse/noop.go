@@ -38,6 +38,11 @@ func (n *noop) GetKeyLastUsedBatchPartitioned(ctx context.Context, req GetKeyLas
 	return nil, nil
 }
 
+// CountSentinelRequestsByPath implements the Querier interface but always returns 0.
+func (n *noop) CountSentinelRequestsByPath(ctx context.Context, path string) (uint64, error) {
+	return 0, nil
+}
+
 func (n *noop) Conn() ch.Conn {
 	return nil
 }

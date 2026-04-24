@@ -316,7 +316,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Network ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.ObjectContext) error {
-		return w.configureRouting(stepCtx, workspace, project, app, environment, deployment)
+		return w.configureRouting(stepCtx, workspace, project, app, environment, deployment, req)
 	})
 	if err != nil {
 		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
@@ -914,6 +914,7 @@ func (w *Workflow) configureRouting(
 	app db.App,
 	environment db.Environment,
 	deployment db.Deployment,
+	req *hydrav1.DeployRequest,
 ) error {
 	// Extract the fork owner from "owner/repo" for domain naming.
 	forkOwner := ""
@@ -932,8 +933,7 @@ func (w *Workflow) configureRouting(
 		deployment.GitBranch.String,
 		forkOwner,
 		w.defaultDomain,
-		// TODO: source type is hardcoded to CLI_UPLOAD regardless of actual source type
-		ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD,
+		sourceTypeOf(req),
 		deployment.ID,
 	)
 

@@ -16,6 +16,7 @@ go_library(
         "key_last_used.go",
         "noop.go",
         "select.go",
+        "sentinel_requests_count_by_path.go",
         "user.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/clickhouse",

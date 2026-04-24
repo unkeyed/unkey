@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "request_logs",
+    srcs = ["request_logs.go"],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/probes/common/request_logs",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//svc/preflight/core",
+        "//svc/preflight/internal/wait",
+        "//svc/preflight/probes",
+    ],
+)
+
+go_test(
+    name = "request_logs_test",
+    srcs = ["request_logs_test.go"],
+    deps = [
+        ":request_logs",
+        "//svc/preflight/harness",
+    ],
+)
