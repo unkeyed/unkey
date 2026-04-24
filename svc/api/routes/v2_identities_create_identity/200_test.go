@@ -85,7 +85,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 			IdentityID:  sql.NullString{String: identityID, Valid: true},
 			Name:        "Requests",
 			Limit:       15,
-			Duration:    (time.Minute * 15).Milliseconds(),
+			Duration:    uint64((time.Minute * 15).Milliseconds()),
 			CreatedAt:   time.Now().UnixMilli(),
 		})
 		require.NoError(t, err)
@@ -94,8 +94,8 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, rateLimits, 1)
 		require.Equal(t, rateLimits[0].Name, "Requests")
-		require.Equal(t, rateLimits[0].Limit, int32(15))
-		require.Equal(t, rateLimits[0].Duration, (time.Minute * 15).Milliseconds())
+		require.Equal(t, rateLimits[0].Limit, uint64(15))
+		require.Equal(t, rateLimits[0].Duration, uint64((time.Minute * 15).Milliseconds()))
 	})
 
 	// Test creating a identity with no other information
@@ -191,7 +191,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 			}
 
 			require.True(t, idx >= 0 && idx < len(rateLimits), "Rate limit with name %s not found in the database", ratelimit.Name)
-			require.Equal(t, rateLimits[idx].Duration, ratelimit.Duration)
+			require.Equal(t, int64(rateLimits[idx].Duration), ratelimit.Duration)
 			require.Equal(t, int64(rateLimits[idx].Limit), ratelimit.Limit)
 			require.Equal(t, rateLimits[idx].Name, ratelimit.Name)
 		}
@@ -250,7 +250,7 @@ func TestCreateIdentitySuccessfully(t *testing.T) {
 			found := false
 			for _, limit := range rateLimits {
 				if limit.Name == ratelimit.Name {
-					require.Equal(t, limit.Duration, ratelimit.Duration)
+					require.Equal(t, int64(limit.Duration), ratelimit.Duration)
 					require.Equal(t, int64(limit.Limit), ratelimit.Limit)
 					found = true
 					break

@@ -4,9 +4,9 @@ required:
 properties:
   cost:
     type: integer
-    format: int32
+    format: int64
     minimum: 0
-    maximum: 1000000000
+    maximum: 1000000000000
     description: |
       Sets how many credits to deduct for this verification request.
       Use 0 for read-only operations or free tier access, higher values for premium features.

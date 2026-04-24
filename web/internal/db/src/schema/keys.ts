@@ -4,7 +4,6 @@ import {
   boolean,
   datetime,
   index,
-  int,
   mysqlEnum,
   mysqlTable,
   text,
@@ -61,7 +60,7 @@ export const keys = mysqlTable(
      * - null = we refill on every day
      */
     refillDay: tinyint("refill_day"),
-    refillAmount: int("refill_amount"),
+    refillAmount: bigint("refill_amount", { mode: "number", unsigned: true }),
     lastRefillAt: datetime("last_refill_at", { fsp: 3 }),
     /**
      * sets if key is enabled or disabled
@@ -72,7 +71,7 @@ export const keys = mysqlTable(
      * You can limit the amount of times a key can be verified before it becomes invalid
      */
 
-    remaining: int("remaining_requests"),
+    remaining: bigint("remaining_requests", { mode: "number", unsigned: true }),
     /**
      * A custom environment flag for our users to divide keys.
      * For example stripe has `live` and `test` keys.

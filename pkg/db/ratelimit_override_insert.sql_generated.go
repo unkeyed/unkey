@@ -40,8 +40,8 @@ type InsertRatelimitOverrideParams struct {
 	WorkspaceID string        `db:"workspace_id"`
 	NamespaceID string        `db:"namespace_id"`
 	Identifier  string        `db:"identifier"`
-	Limit       int32         `db:"limit"`
-	Duration    int32         `db:"duration"`
+	Limit       uint64        `db:"limit"`
+	Duration    uint64        `db:"duration"`
 	CreatedAt   int64         `db:"created_at"`
 	UpdatedAt   sql.NullInt64 `db:"updated_at"`
 }
