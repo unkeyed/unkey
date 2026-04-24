@@ -181,6 +181,22 @@
           }
         }
       }
+    },
+    {
+      "include": ["./apps/portal/**"],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "useSortedClasses": {
+              "level": "warn",
+              "fix": "safe",
+              "options": {
+                "functions": ["cn", "cva", "clsx"]
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }

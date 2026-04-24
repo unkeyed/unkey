@@ -1,0 +1,13 @@
+.git
+bazel-*
+**/node_modules
+**/.turbo
+**/.next
+**/dist
+web/apps/dashboard
+web/apps/engineering
+web/apps/planetfall
+web/apps/play
+web/apps/workflows
+web/apps/agent-gpt
+web/apps/api

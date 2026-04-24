@@ -14,7 +14,7 @@ export const Route = createRootRoute({
     links: [
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
       },
     ],
   }),
@@ -36,7 +36,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
         <HeadContent />
       </head>
       <body
-        className="min-h-screen antialiased text-content"
+        className="min-h-screen text-content antialiased"
         style={{ backgroundColor: "var(--portal-secondary, #f8fafc)" }}
       >
         {children}
