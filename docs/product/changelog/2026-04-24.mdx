@@ -1,0 +1,59 @@
+---
+title: "April 24, 2026"
+description: "Deploy enters public beta, redesigned roles and permissions tables, Dockerfile AI prompt, and faster deployment health reporting."
+noindex: true
+---
+
+## New features
+
+### Deploy is now in public beta
+
+[Unkey Deploy](/quickstart/deploy) is available to all workspaces. Switch to Deploy from the product switcher in the dashboard to start shipping containerized apps — no invite code or feature flag required. Deploy is free to use during the beta.
+
+### Generate a Dockerfile with AI
+
+A new [Dockerfile AI prompt](/builds/dockerfile-prompt) gives you a copy-pasteable prompt for generating a Deploy-ready Dockerfile. The prompt bakes in the runtime constraints Deploy expects — listening on `PORT`, handling `SIGTERM`, a read-only root filesystem, and using BuildKit secret mounts for build-time variables — and handles monorepo layouts out of the box.
+
+### Feedback button on Deploy
+
+Deploy now has a **Feedback** button next to your avatar on the projects list and project detail pages. Use it to send feedback directly to the team while Deploy is in public beta.
+
+### Refreshed brand on auth pages
+
+Sign-in, sign-up, and other authentication pages have been updated with the new Unkey brand mark. A new theme-aware SVG favicon automatically switches between light and dark variants based on your browser theme.
+
+## Updates
+
+### Redesigned permissions and roles tables
+
+The permissions and [roles](/platform/apis/features/authorization/roles-and-permissions) tables in the dashboard have been rebuilt on the shared `DataTable` system used elsewhere in the product. Both tables now support page-based pagination and server-side sorting on name, last updated, assigned keys, and assigned permissions. Assigned counts render inline instead of loading lazily per row, so the tables feel instant even at scale.
+
+### Faster, more reliable deployment health reporting
+
+The time between a container becoming ready and the deploy workflow unblocking has been cut by up to 40 seconds. Deployments also no longer report transient startup states as failures, and rollout notifications on Slack include richer context so you can see what just shipped at a glance.
+
+### Corrected sorting and pagination on API overview
+
+The API overview page now sorts and paginates consistently. Counts are stable across pages, and sort order is deterministic even when multiple keys share the same value.
+
+### Build cache retention lowered
+
+The default build cache retention window has been tuned down. Builds still benefit from caching, but stale layers are reclaimed sooner so you're less likely to hit unexpected disk pressure on busy projects.
+
+### Query performance improvements
+
+Several dashboard routes have been rewritten to eliminate N+1 queries, including project overview, audit logs, and API keys listings. Pages load faster and with fewer database round trips.
+
+## Bug fixes
+
+- Builds now bust their cache when project variables change, so updated environment values no longer get baked into stale images.
+- Charts on the overview pages now show correct skeleton and empty states while loading, instead of briefly flashing "no data".
+- The keys table now includes deleted keys in historical analytics rows, and deleted keys are no longer navigable.
+- Preview deployments on the first branch of a project now resolve correctly when no project ID is available yet.
+- The broken **Delete project** entry in the project overflow menu has been removed. Project deletion still works from the project settings page.
+- The sign-in page no longer overflows on mobile and renders the logo at the correct size.
+- Ephemeral disk size limits are now actually enforced on instance pods.
+- Rollout metadata in deployment details now reflects the user who triggered the rollout instead of a previous sender.
+- The copy button in log detail sections is hidden when the content is empty.
+- Healthcheck runtime settings now save correctly.
+- Deployment list column widths are now consistent across rows.
