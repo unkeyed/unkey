@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "quotaretention",
+    srcs = ["retention.go"],
+    importpath = "github.com/unkeyed/unkey/internal/services/quotaretention",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/services/caches",
+        "//internal/services/keys/db",
+        "//pkg/cache",
+        "//pkg/db",
+        "//pkg/logger",
+    ],
+)

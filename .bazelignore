@@ -6,3 +6,8 @@ svc/ctrl/proto
 svc/krane/proto
 svc/sentinel/proto
 svc/vault/proto
+
+# Claude / git worktrees are full repo copies. Without this entry gazelle
+# walks into them, sees duplicate importpaths, and produces confused
+# BUILD.bazel diffs across the whole tree.
+.claude/worktrees

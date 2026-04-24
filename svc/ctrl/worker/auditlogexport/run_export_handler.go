@@ -47,16 +47,17 @@ type batchResult struct {
 // Each batch is its own restate.Run so a crash mid-drain only replays the
 // last incomplete batch. Within a batch:
 //
-//  1. SELECT outbox rows ORDER BY pk LIMIT batchLimit FOR UPDATE SKIP LOCKED
+//  1. SELECT outbox rows WHERE deleted_at IS NULL ORDER BY pk LIMIT batchLimit FOR UPDATE SKIP LOCKED
 //  2. Decode the JSON payload into auditlog.Event
 //  3. Map to schema.AuditLogV1 (one CH row per event, Nested targets)
 //  4. Insert into ClickHouse
-//  5. DELETE the rows from outbox
+//  5. UPDATE deleted_at on the outbox rows (soft delete)
 //
-// CH insert before DELETE means a crash after (4) but before (5) leaves the
-// outbox rows in place; the next run re-inserts the same set in the same
-// order, and CH's block deduplication window collapses the duplicate write
-// into a noop.
+// CH insert before mark means a crash after (4) but before (5) leaves the
+// outbox rows with deleted_at IS NULL; the next run re-inserts the same
+// set in the same order, and CH's block deduplication window collapses the
+// duplicate write into a noop. Marked rows stay in the table for ops to
+// re-queue (clear deleted_at) and as an audit trail of what was exported.
 func (s *Service) RunExport(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunExportRequest,
@@ -97,18 +98,18 @@ func (s *Service) RunExport(
 }
 
 // exportBatch reads one batch of outbox rows, writes them to ClickHouse,
-// then deletes them. The whole batch runs inside a single MySQL transaction
-// so SELECT FOR UPDATE SKIP LOCKED and the DELETE land atomically. Returns
-// 0 when the outbox is empty.
+// then marks them deleted. The whole batch runs inside a single MySQL
+// transaction so SELECT FOR UPDATE SKIP LOCKED and the UPDATE land
+// atomically. Returns 0 when the outbox is empty.
 //
 // Failure modes:
 //   - JSON decode fails on a row: batch fails, the bad row blocks all
 //     progress until investigated. Considered acceptable: malformed
 //     payloads are a writer bug, not transient.
-//   - CH insert fails: tx rolls back, row locks released, rows stay in
-//     outbox, next cron tick retries.
-//   - MySQL commit fails after a successful CH insert: rows stay in
-//     outbox, next cron re-reads the same set in the same order, re-
+//   - CH insert fails: tx rolls back, row locks released, rows stay
+//     unmarked, next cron tick retries.
+//   - MySQL commit fails after a successful CH insert: rows stay
+//     unmarked, next cron re-reads the same set in the same order, re-
 //     inserts an identical block, CH's non_replicated_deduplication_window
 //     collapses it to a noop, then commits.
 func (s *Service) exportBatch(ctx context.Context) (batchResult, error) {
@@ -147,8 +148,11 @@ func (s *Service) exportBatch(ctx context.Context) (batchResult, error) {
 			return batchResult{EventsExported: 0}, fmt.Errorf("insert clickhouse: %w", err)
 		}
 
-		if err := db.Query.DeleteClickhouseOutboxBatch(txCtx, tx, pks); err != nil {
-			return batchResult{EventsExported: 0}, fmt.Errorf("delete outbox batch: %w", err)
+		if err := db.Query.MarkClickhouseOutboxBatchDeleted(txCtx, tx, db.MarkClickhouseOutboxBatchDeletedParams{
+			DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+			Pks:       pks,
+		}); err != nil {
+			return batchResult{EventsExported: 0}, fmt.Errorf("mark outbox batch deleted: %w", err)
 		}
 
 		return batchResult{EventsExported: int32(len(events))}, nil

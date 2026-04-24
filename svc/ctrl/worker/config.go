@@ -182,6 +182,20 @@ type HeartbeatConfig struct {
 	// When set, a heartbeat is sent after successful drains of the MySQL outbox
 	// into ClickHouse. Optional - if empty, no heartbeat is sent.
 	AuditLogExportURL string `toml:"audit_log_export_url"`
+
+	// AuditLogBackfillURL is the Checkly heartbeat URL for audit log backfill
+	// runs. When set, a heartbeat is sent after each backfill pass through the
+	// legacy audit_log table. Optional - if empty, no heartbeat is sent. Once
+	// the backfill finishes (cursor caught up to legacy tail) the heartbeat
+	// keeps firing on noop runs, which is the right signal: silence means the
+	// VO is wedged.
+	AuditLogBackfillURL string `toml:"audit_log_backfill_url"`
+
+	// AuditLogArchiveURL is the Checkly heartbeat URL for audit log archive
+	// runs. When set, a heartbeat is sent after each archive pass (S3 export
+	// + ALTER DELETE). Heartbeat fires on noop passes too: silence means the
+	// VO is wedged or the kill switch is on.
+	AuditLogArchiveURL string `toml:"audit_log_archive_url"`
 }
 
 // SlackConfig holds Slack webhook URLs for notifications.
@@ -273,9 +287,42 @@ type Config struct {
 	// Slack configures Slack webhook URLs for notifications.
 	Slack SlackConfig `toml:"slack"`
 
+	// AuditLogArchive configures the cron that exports expired audit log
+	// rows to S3 as Parquet and then deletes them from ClickHouse. Required
+	// in any deploy where audit log retention has to actually trigger
+	// physical deletion (i.e. all of them); kill switch lives here too.
+	AuditLogArchive AuditLogArchiveConfig `toml:"audit_log_archive"`
+
 	// Clock provides time operations for testing and scheduling.
 	// Use clock.New() for production deployments.
 	Clock clock.Clock `toml:"-"`
+}
+
+// AuditLogArchiveConfig points the AuditLogArchive cron at an S3 bucket
+// (or compatible store) and lets ops kill the workload via Disabled.
+type AuditLogArchiveConfig struct {
+	// Disabled toggles the kill switch. When true, RunArchive returns a
+	// noop response and never touches CH or S3. Use during incidents
+	// where physical deletion has to pause.
+	Disabled bool `toml:"disabled"`
+
+	// Endpoint is the full S3 base URL. Examples:
+	//   - "https://my-bucket.s3.us-east-1.amazonaws.com" (vhost-style)
+	//   - "https://s3.eu-central-1.amazonaws.com/my-bucket" (path-style)
+	//   - "https://minio.local:9000/my-bucket" (compat store)
+	// Must NOT end with a slash. Validated at boot.
+	Endpoint string `toml:"endpoint"`
+
+	// Prefix is the key prefix under the bucket (no leading or trailing
+	// slash). Empty means write at the bucket root. Files land at
+	// "{prefix}/cutoff={cutoff_iso}/run_{cutoff_millis}.parquet".
+	Prefix string `toml:"prefix"`
+
+	// AccessKey + SecretKey authenticate the ClickHouse worker against
+	// S3. Embedded in the CH `s3()` table function call because CH Cloud
+	// nodes don't share the customer's instance IAM identity.
+	AccessKey string `toml:"access_key"`
+	SecretKey string `toml:"secret_key"`
 }
 
 // parseBuildPlatform validates and parses a build platform string.

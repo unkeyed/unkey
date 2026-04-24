@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	"github.com/unkeyed/unkey/internal/services/quotaretention"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
@@ -230,6 +231,20 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create middleware engine: %w", err)
 	}
 
+	// Workspace quota cache for retention stamping. Sentinel doesn't run
+	// the rate-limit-from-quota path so we wire a small dedicated cache
+	// instead of hijacking the keys service's QuotaCache slot.
+	quotaCache, err := cache.New(cache.Config[string, keysdb.Quotas]{
+		Fresh:    1 * time.Minute,
+		Stale:    10 * time.Minute,
+		MaxSize:  10_000,
+		Resource: "sentinel_workspace_quota",
+		Clock:    clk,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create quota cache: %w", err)
+	}
+
 	svcs := &routes.Services{
 		RouterService:      routerSvc,
 		Clock:              clk,
@@ -256,6 +271,8 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create server: %w", err)
 	}
+	// Sentinel-owned quota cache + resolver for per-row expires_at stamping.
+	srv.SetLogsRetentionResolver(quotaretention.New(quotaCache, database))
 	r.RegisterHealth(srv.Mux(), "/_unkey/internal/health")
 	r.AddReadinessCheck("database", func(ctx context.Context) error {
 		return database.RW().PingContext(ctx)

@@ -2,6 +2,7 @@ package zen
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -50,6 +51,48 @@ type Session struct {
 	// This is set by the error handling middleware before it converts the error
 	// to an HTTP response, allowing the metrics middleware to log the full error.
 	internalError string
+
+	// srv is a back-pointer to the server that owns this session's pool.
+	// Used by LogsRetentionMillis to read the latest resolver from
+	// server config (which may be set via SetLogsRetentionResolver after
+	// pool construction).
+	srv *Server
+}
+
+// LogsRetentionResolver returns the operational logs retention window
+// in milliseconds for one workspace. Set on zen.Config so the resolver
+// is wired once at server construction; surfaced on every Session via
+// LogsRetentionMillis so writers don't need a per-handler reference.
+type LogsRetentionResolver = func(ctx context.Context, workspaceID string) int64
+
+// fallbackLogsRetentionMillis is applied when the resolver is unset (test
+// setups) or the session has no authenticated workspace yet. Matches the
+// table-side default for the analytics raw tables (30d) so writes never
+// produce a stamp that immediately expires.
+const fallbackLogsRetentionMillis int64 = 30 * 24 * 60 * 60 * 1000
+
+// LogsRetentionMillis returns the operational logs retention window for
+// the session's workspace, in milliseconds. Hot-path callers should use
+// the result directly to compute `time + retention` for expires_at on a
+// ClickHouse analytics row.
+//
+// Reads the latest resolver from the owning server (so deferred
+// SetLogsRetentionResolver wiring works). Falls back to
+// fallbackLogsRetentionMillis when no resolver is set or the workspace
+// ID has not been populated by an auth middleware yet. The resolver
+// itself folds quota errors and missing rows into the same fallback so
+// callers never have to distinguish them.
+func (s *Session) LogsRetentionMillis(ctx context.Context) int64 {
+	if s.WorkspaceID == "" || s.srv == nil {
+		return fallbackLogsRetentionMillis
+	}
+	s.srv.mu.Lock()
+	resolver := s.srv.config.LogsRetentionResolver
+	s.srv.mu.Unlock()
+	if resolver == nil {
+		return fallbackLogsRetentionMillis
+	}
+	return resolver(ctx, s.WorkspaceID)
 }
 
 func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {

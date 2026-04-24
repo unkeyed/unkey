@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 )
 
@@ -14,6 +15,7 @@ const findClickhouseOutboxBatch = `-- name: FindClickhouseOutboxBatch :many
 SELECT pk, version, workspace_id, event_id, payload, created_at
 FROM clickhouse_outbox
 WHERE version IN (/*SLICE:versions*/?)
+  AND deleted_at IS NULL
 ORDER BY pk
 LIMIT ?
 FOR UPDATE SKIP LOCKED
@@ -24,11 +26,20 @@ type FindClickhouseOutboxBatchParams struct {
 	Limit    int32    `db:"limit"`
 }
 
-// FindClickhouseOutboxBatch returns the next batch of outbox rows for a
-// known set of payload versions. Must be called inside a transaction.
-// FOR UPDATE SKIP LOCKED locks the batch so a second cron tick (if Restate
-// VO serialization ever fails) silently skips them rather than re-
-// processing the same set. The lock is released when the caller commits
+type FindClickhouseOutboxBatchRow struct {
+	Pk          uint64          `db:"pk"`
+	Version     string          `db:"version"`
+	WorkspaceID string          `db:"workspace_id"`
+	EventID     string          `db:"event_id"`
+	Payload     json.RawMessage `db:"payload"`
+	CreatedAt   int64           `db:"created_at"`
+}
+
+// FindClickhouseOutboxBatch returns the next batch of unprocessed outbox
+// rows for a known set of payload versions. Must be called inside a
+// transaction. FOR UPDATE SKIP LOCKED locks the batch so a second cron tick
+// (if Restate VO serialization ever fails) silently skips them rather than
+// re-processing the same set. The lock is released when the caller commits
 // or rolls back. Ordered by pk so retries see a deterministic row set,
 // which lets CH's block-level deduplication collapse re-inserts after a
 // partial failure.
@@ -37,13 +48,18 @@ type FindClickhouseOutboxBatchParams struct {
 // decode. Unknown versions stay in the table until a drainer with the
 // matching handler ships.
 //
+// deleted_at IS NULL skips rows the drainer already shipped. Marked rows
+// stay in the table for re-processing (clear deleted_at to re-queue) and
+// as an ops audit trail; there's no sweep job today.
+//
 //	SELECT pk, version, workspace_id, event_id, payload, created_at
 //	FROM clickhouse_outbox
 //	WHERE version IN (/*SLICE:versions*/?)
+//	  AND deleted_at IS NULL
 //	ORDER BY pk
 //	LIMIT ?
 //	FOR UPDATE SKIP LOCKED
-func (q *Queries) FindClickhouseOutboxBatch(ctx context.Context, db DBTX, arg FindClickhouseOutboxBatchParams) ([]ClickhouseOutbox, error) {
+func (q *Queries) FindClickhouseOutboxBatch(ctx context.Context, db DBTX, arg FindClickhouseOutboxBatchParams) ([]FindClickhouseOutboxBatchRow, error) {
 	query := findClickhouseOutboxBatch
 	var queryParams []interface{}
 	if len(arg.Versions) > 0 {
@@ -60,9 +76,9 @@ func (q *Queries) FindClickhouseOutboxBatch(ctx context.Context, db DBTX, arg Fi
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ClickhouseOutbox
+	var items []FindClickhouseOutboxBatchRow
 	for rows.Next() {
-		var i ClickhouseOutbox
+		var i FindClickhouseOutboxBatchRow
 		if err := rows.Scan(
 			&i.Pk,
 			&i.Version,

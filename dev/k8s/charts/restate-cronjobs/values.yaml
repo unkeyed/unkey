@@ -20,3 +20,20 @@ jobs:
     schedule: "* * * * *"
     urlPath: "hydra.v1.AuditLogExportService/default/RunExport/send"
     idempotencyKey: "audit-log-export-$(date -u +%Y-%m-%dT%H:%M)"
+
+  # Backfill chips through legacy audit_log rows pre-dual-write into CH.
+  # Loops to exhaustion within each invocation; daily is plenty. Once the
+  # cursor catches up to the legacy tail, runs become noops and the
+  # heartbeat keeps firing.
+  audit-log-backfill:
+    schedule: "0 2 * * *"
+    urlPath: "hydra.v1.AuditLogBackfillService/default/RunBackfill/send"
+    idempotencyKey: "audit-log-backfill-$(date -u +%Y-%m-%d)"
+
+  # Archive exports expired audit log rows to S3 Parquet then ALTER TABLE
+  # DELETE. Daily so we don't stack heavyweight CH mutations. Runs after
+  # the backfill window so they don't both push CH at the same time.
+  audit-log-archive:
+    schedule: "0 3 * * *"
+    urlPath: "hydra.v1.AuditLogArchiveService/default/RunArchive/send"
+    idempotencyKey: "audit-log-archive-$(date -u +%Y-%m-%d)"

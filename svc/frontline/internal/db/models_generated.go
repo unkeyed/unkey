@@ -1191,6 +1191,7 @@ type ClickhouseOutbox struct {
 	EventID     string          `db:"event_id"`
 	Payload     json.RawMessage `db:"payload"`
 	CreatedAt   int64           `db:"created_at"`
+	DeletedAt   sql.NullInt64   `db:"deleted_at"`
 }
 
 type ClickhouseWorkspaceSetting struct {

@@ -15,6 +15,8 @@ import (
 
 // WithSentinelLogging logs completed sentinel requests to ClickHouse.
 // Timing/response data populated by handler via context during proxy execution.
+// Per-row expires_at stamping is driven by the session's LogsRetentionMillis
+// (wired on zen.Server via SetLogsRetentionResolver in the sentinel runner).
 func WithSentinelLogging(buf *batch.BatchProcessor[schema.SentinelRequest], clk clock.Clock, sentinelID, region, platform string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
@@ -27,6 +29,12 @@ func WithSentinelLogging(buf *batch.BatchProcessor[schema.SentinelRequest], clk 
 			err := next(ctx, s)
 
 			if s.ShouldLogRequestToClickHouse() && tracking.Deployment != nil && tracking.Instance != nil {
+				// Sentinel has no upstream auth middleware to set
+				// s.WorkspaceID, so we populate it from the proxy's
+				// deployment tracking here. Downstream uses
+				// s.LogsRetentionMillis to read the workspace's retention
+				// from the sentinel-local quota cache.
+				s.WorkspaceID = tracking.Deployment.WorkspaceID
 				endTime := clk.Now()
 				totalLatency := endTime.Sub(tracking.StartTime).Milliseconds()
 
@@ -38,9 +46,10 @@ func WithSentinelLogging(buf *batch.BatchProcessor[schema.SentinelRequest], clk 
 
 				req := s.Request()
 
+				startMillis := tracking.StartTime.UnixMilli()
 				buf.Buffer(schema.SentinelRequest{
 					RequestID:       tracking.RequestID,
-					Time:            tracking.StartTime.UnixMilli(),
+					Time:            startMillis,
 					WorkspaceID:     tracking.Deployment.WorkspaceID,
 					EnvironmentID:   tracking.Deployment.EnvironmentID,
 					ProjectID:       tracking.Deployment.ProjectID,
@@ -65,6 +74,7 @@ func WithSentinelLogging(buf *batch.BatchProcessor[schema.SentinelRequest], clk 
 					TotalLatency:    totalLatency,
 					InstanceLatency: instanceLatency,
 					SentinelLatency: sentinelLatency,
+					ExpiresAt:       startMillis + s.LogsRetentionMillis(ctx),
 				})
 			}
 

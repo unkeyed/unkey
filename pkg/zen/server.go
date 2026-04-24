@@ -65,6 +65,15 @@ type Config struct {
 	// If 0, defaults to 20 seconds.
 	// For proxy services, this should be longer than any downstream timeout.
 	WriteTimeout time.Duration
+
+	// LogsRetentionResolver returns the operational logs retention window
+	// in milliseconds for a workspace. Set once at server construction and
+	// surfaced on every Session via *Session.LogsRetentionMillis() so every
+	// ClickHouse-row writer can stamp expires_at without each handler
+	// having to plumb the resolver itself. Nil falls back to a static 30d
+	// window inside Session.LogsRetentionMillis (matches the historical
+	// TTL of the analytics tables in test setups).
+	LogsRetentionResolver LogsRetentionResolver
 }
 
 // New creates a new server with the provided configuration.
@@ -144,23 +153,43 @@ func New(config Config) (*Server, error) {
 		srv:         srv,
 		flags:       flags,
 		config:      config,
-		sessions: sync.Pool{
-			New: func() any {
-				return &Session{
-					logRequestToClickHouse: true,
-					WorkspaceID:            "",
-					requestID:              "",
-					internalError:          "",
-					w:                      nil,
-					r:                      nil,
-					requestBody:            []byte{},
-					responseStatus:         0,
-					responseBody:           []byte{},
-				}
-			},
-		},
+		//nolint:exhaustruct
+		sessions: sync.Pool{},
+	}
+	s.sessions.New = func() any {
+		// Sessions are pooled and live for the duration of one request.
+		// They carry a back-reference to the server so they can read
+		// server-level state (LogsRetentionResolver, etc.) that may be
+		// set after server construction (e.g. caches that depend on a
+		// downstream component). Reading via back-pointer means setters
+		// like SetLogsRetentionResolver take effect immediately for
+		// subsequent and concurrently-checked-out sessions.
+		return &Session{
+			srv:                    s,
+			logRequestToClickHouse: true,
+			WorkspaceID:            "",
+			requestID:              "",
+			internalError:          "",
+			w:                      nil,
+			r:                      nil,
+			requestBody:            []byte{},
+			responseStatus:         0,
+			responseBody:           []byte{},
+		}
 	}
 	return s, nil
+}
+
+// SetLogsRetentionResolver swaps in the workspace logs retention resolver
+// after server construction. Lets callers initialize the server early
+// (for health-endpoint mounting and shutdown wiring) and wire the
+// resolver later, once dependencies like the workspace quota cache are
+// available. Safe to call concurrently with in-flight requests; each
+// LogsRetentionMillis call reads the current value via the back-pointer.
+func (s *Server) SetLogsRetentionResolver(resolver LogsRetentionResolver) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.config.LogsRetentionResolver = resolver
 }
 
 // Get a fresh or reused session from the pool.
