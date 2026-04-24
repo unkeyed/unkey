@@ -47,6 +47,12 @@ type Querier interface {
 	// only after ClickHouse confirms the insert so the caller can safely
 	// mark the source MySQL rows as exported.
 	InsertAuditLogs(ctx context.Context, rows []schema.AuditLogV1) error
+
+	// CountSentinelRequestsByPath returns the number of sentinel
+	// request-log rows with the given path. Used by the preflight
+	// request_logs probe to assert sentinel -> ClickHouse ingest
+	// is healthy.
+	CountSentinelRequestsByPath(ctx context.Context, path string) (uint64, error)
 }
 
 type ClickHouse interface {

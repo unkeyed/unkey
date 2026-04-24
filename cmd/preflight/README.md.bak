@@ -1,0 +1,89 @@
+# preflight
+
+End-to-end probe for the unkey deploy pipeline.
+
+Runs against a target control plane and exercises every stage a real
+customer push travels through: GitHub webhook, Depot build, Krane
+provisioning on EKS, Vault env decrypt, Cilium policy, frontline routing,
+sentinel, and the ClickHouse log pipeline.
+
+## Architecture at a glance
+
+```
+  ┌────────────┐      ┌──────────┐      ┌──────────┐
+  │  cmd/main  │ ───▶ │  Runner  │ ───▶ │  Probe   │
+  └────────────┘      └──────────┘      └──────────┘
+        │                  │                  │
+        │                  │  (span, timer,   │
+        │                  │   metrics, log,  │
+        │                  │   artifacts)     │
+        │                  │                  │
+        │                  ▼                  ▼
+        │            Prometheus          *core.Env
+        │            OTEL tracer         (shared clients)
+        │            pkg/logger
+        │            S3 artifacts
+        │
+        └────────── flow.go picks which probes
+                    from the registry make up a suite
+```
+
+The key invariant: **probes do not import prometheus, OTEL, the logger, or
+S3**. They return a typed `core.Result` and the Runner does the rest. If
+that invariant holds, adding a probe is ~30 lines of assertion code.
+
+## Running locally
+
+The dev target is test-only. Instead of a binary flag, the full flow
+runs as `go test`:
+
+```
+go test -run TestDev ./cmd/preflight/harness/...
+```
+
+This spins up MySQL, ClickHouse, Restate, and Vault containers (via
+`pkg/dockertest`), runs the ctrl API in-process, seeds a preflight
+workspace, and invokes the suite. Requires the shared test containers
+from `dev/docker-compose.test.yml` to already be running. `make test`
+handles that end-to-end.
+
+Against staging (real control plane, requires a workspace-scoped
+token):
+
+```
+PREFLIGHT_TARGET=staging \
+PREFLIGHT_REGION=eu-central-1 \
+PREFLIGHT_CTRL_URL=https://ctrl.staging.unkey.app \
+PREFLIGHT_CTRL_TOKEN=... \
+PREFLIGHT_GITHUB_WEBHOOK_SECRET=... \
+  go run ./ preflight
+```
+
+Why the split: the harness wraps `pkg/dockertest`, which takes a
+`*testing.T`. Shimming it into a binary path would add a kludgy fake
+testing.T; keeping it test-only is cleaner and the developer loop
+(`go test`) already gives you caching, `-run` filtering, and proper
+exit codes.
+
+## Running in Kubernetes
+
+See `infra/eks-cluster/helm-chart/preflight/` for the Helm chart and
+`docs/preflight/architecture.md` for how CronJobs are laid out per
+region.
+
+## Related docs
+
+Developer docs (this repo):
+
+- [`docs/preflight/adding-a-probe.md`](../../docs/preflight/adding-a-probe.md) — write a new probe in under a day.
+- [`docs/preflight/architecture.md`](../../docs/preflight/architecture.md) — where this sits in the deploy pipeline.
+
+Oncall / operational docs live in the infra repo, next to the
+PrometheusRule yaml that links to them:
+
+- `infra/docs/runbooks/preflight/<probe_name>.md` — one runbook per
+  probe (enforced by infra CI against `cmd/preflight/probes/MANIFEST.txt`).
+- `infra/docs/runbooks/preflight/oncall.md` — what to do when preflight
+  pages.
+- `infra/docs/runbooks/preflight/slo.md` — success-rate SLO and error
+  budget.

@@ -50,3 +50,6 @@ bazel-unkey
 bazel-*
 
 .claude/worktrees/
+
+# preflight failure-bundle dump dir
+preflight-artifacts/

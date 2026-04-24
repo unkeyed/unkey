@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "git_push",
+    srcs = ["git_push.go"],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/probes/realinfra/git_push",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/httpx",
+        "//svc/preflight/core",
+        "//svc/preflight/internal/dbdiag",
+        "//svc/preflight/internal/githubpush",
+        "//svc/preflight/internal/k8sdiag",
+        "//svc/preflight/internal/wait",
+        "//svc/preflight/probes",
+    ],
+)

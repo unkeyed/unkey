@@ -18,6 +18,7 @@ go_library(
         "//cmd/deploy",
         "//cmd/dev",
         "//cmd/healthcheck",
+        "//cmd/preflight",
         "//cmd/run",
         "//cmd/version",
         "//pkg/buildinfo",

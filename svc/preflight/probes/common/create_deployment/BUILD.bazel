@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "create_deployment",
+    srcs = ["create_deployment.go"],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/probes/common/create_deployment",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/ctrl/v1:ctrl",
+        "//svc/preflight/core",
+        "//svc/preflight/internal/ctrlclient",
+        "//svc/preflight/probes",
+        "@com_connectrpc_connect//:connect",
+    ],
+)
+
+go_test(
+    name = "create_deployment_test",
+    srcs = ["create_deployment_test.go"],
+    deps = [
+        ":create_deployment",
+        "//svc/preflight/harness",
+    ],
+)

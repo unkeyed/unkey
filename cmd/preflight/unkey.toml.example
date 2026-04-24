@@ -1,0 +1,50 @@
+# Preflight configuration. Mount at /etc/unkey/unkey.toml in the
+# CronJob pod; the binary reads its path from --config or UNKEY_CONFIG
+# (defaults to ./unkey.toml).
+#
+# Secrets MUST NOT be written into this file directly. pkg/config
+# runs os.ExpandEnv before parsing, so use ${VAR} references and
+# populate the env vars via an ExternalSecret at runtime. The env
+# var names below are what the Helm chart injects.
+
+target = "staging"             # or "prod"
+region = "us-east-1"           # AWS region this runner probes from
+suite  = "solo"
+
+[ctrl]
+# Where ctrl lives. In-cluster service for canary; public URL for
+# production runs outside the cluster.
+base_url   = "http://ctrl-api.unkey-system.svc.cluster.local"
+auth_token = "${PREFLIGHT_CTRL_TOKEN}"
+
+[github]
+# Dedicated preflight GitHub App. NEVER the production App.
+webhook_secret   = "${PREFLIGHT_GITHUB_WEBHOOK_SECRET}"
+app_id           = 0                        # numeric App ID; fill per environment
+installation_id  = 0                        # installation on unkeyed/preflight-test-app
+private_key_pem  = "${PREFLIGHT_GITHUB_PRIVATE_KEY}"
+test_repo        = "unkeyed/preflight-test-app"
+
+[preflight_tenant]
+# IDs from the preflight workspace created by setup.md step 1.
+project_id       = ""
+app_id           = ""
+environment_slug = "production"
+
+# Slugs + apex assemble the per-commit hostname the git_push probe
+# polls. Match what ctrl writes into frontline_routes for the
+# preflight workspace.
+project_slug   = "preflight"
+app_slug       = "testapp"
+workspace_slug = "unkey-preflight"
+apex           = "canary.unkey.app"
+
+[clickhouse]
+# Workspace-scoped read-only credential.
+url = "${PREFLIGHT_CLICKHOUSE_URL}"
+
+[mysql]
+# Diagnostics-only read credential. GRANTs in setup.md step 4b must
+# restrict this user to the deploy-pipeline tables. Leave empty
+# until the credential is provisioned; probes still run without DB.
+dsn = "${PREFLIGHT_MYSQL_DSN}"

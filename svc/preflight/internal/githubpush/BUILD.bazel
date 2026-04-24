@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "githubpush",
+    srcs = ["githubpush.go"],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/internal/githubpush",
+    visibility = ["//svc/preflight:__subpackages__"],
+    deps = ["//pkg/jwt"],
+)
+
+go_test(
+    name = "githubpush_test",
+    srcs = ["githubpush_test.go"],
+    embed = [":githubpush"],
+)

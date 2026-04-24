@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "preflight",
+    srcs = [
+        "registered.go",
+        "run.go",
+        "run_suite.go",
+        "suite.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/preflight",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/clickhouse",
+        "//pkg/db",
+        "//pkg/logger",
+        "//pkg/uid",
+        "//svc/preflight/core",
+        "//svc/preflight/probes",
+        "//svc/preflight/probes/common/clickhouse_connectivity",
+        "//svc/preflight/probes/common/create_deployment",
+        "//svc/preflight/probes/common/github_webhook",
+        "//svc/preflight/probes/common/noop",
+        "//svc/preflight/probes/common/request_logs",
+        "//svc/preflight/probes/realinfra/git_push",
+        "//svc/preflight/runner",
+        "//svc/preflight/runner/diskupload",
+    ],
+)

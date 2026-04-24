@@ -7,8 +7,26 @@ import (
 	"strings"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 )
+
+// sourceTypeOf maps a hydrav1 deploy request's source oneof to the
+// ctrlv1 SourceType enum used by buildDomains. Git pushes produce
+// deterministic per-commit URLs (no random suffix); CLI / direct
+// Docker uploads keep the suffix because the same SHA can be
+// redeployed repeatedly from a workstation and domains need to stay
+// unique across those retries.
+func sourceTypeOf(req *hydrav1.DeployRequest) ctrlv1.SourceType {
+	switch req.GetSource().(type) {
+	case *hydrav1.DeployRequest_Git:
+		return ctrlv1.SourceType_SOURCE_TYPE_GIT
+	case *hydrav1.DeployRequest_DockerImage:
+		return ctrlv1.SourceType_SOURCE_TYPE_CLI_UPLOAD
+	default:
+		return ctrlv1.SourceType_SOURCE_TYPE_UNSPECIFIED
+	}
+}
 
 // newDomain represents a domain to be created for a deployment, including its
 // stickiness behavior for routing updates.

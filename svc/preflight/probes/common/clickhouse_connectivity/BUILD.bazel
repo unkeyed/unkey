@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "clickhouse_connectivity",
+    srcs = ["clickhouse_connectivity.go"],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/probes/common/clickhouse_connectivity",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//svc/preflight/core",
+        "//svc/preflight/probes",
+    ],
+)
+
+go_test(
+    name = "clickhouse_connectivity_test",
+    srcs = ["clickhouse_connectivity_test.go"],
+    deps = [
+        ":clickhouse_connectivity",
+        "//svc/preflight/core",
+        "//svc/preflight/harness",
+    ],
+)

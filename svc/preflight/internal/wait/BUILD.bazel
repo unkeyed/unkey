@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "wait",
+    srcs = ["wait.go"],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/internal/wait",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "wait_test",
+    srcs = ["wait_test.go"],
+    embed = [":wait"],
+)

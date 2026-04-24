@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "noop",
+    srcs = ["noop.go"],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/probes/common/noop",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//svc/preflight/core",
+        "//svc/preflight/probes",
+    ],
+)
