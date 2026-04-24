@@ -121,9 +121,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ExpiresSpecified:           0,
 			Expires:                    sql.NullTime{Valid: false, Time: time.Time{}},
 			RemainingRequestsSpecified: 0,
-			RemainingRequests:          sql.NullInt32{Valid: false, Int32: 0},
+			RemainingRequests:          sql.NullInt64{Valid: false, Int64: 0},
 			RefillAmountSpecified:      0,
-			RefillAmount:               sql.NullInt32{Valid: false, Int32: 0},
+			RefillAmount:               sql.NullInt64{Valid: false, Int64: 0},
 			RefillDaySpecified:         0,
 			RefillDay:                  sql.NullInt16{Valid: false, Int16: 0},
 		}
@@ -216,9 +216,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				update.RemainingRequestsSpecified = 1
 				update.RefillAmountSpecified = 1
 				update.RefillDaySpecified = 1
-				update.RefillAmount = sql.NullInt32{Valid: false, Int32: 0}
+				update.RefillAmount = sql.NullInt64{Valid: false, Int64: 0}
 				update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
-				update.RemainingRequests = sql.NullInt32{Valid: false, Int32: 0}
+				update.RemainingRequests = sql.NullInt64{Valid: false, Int64: 0}
 			} else {
 				credits := req.Credits.MustGet()
 				if credits.Remaining.IsSpecified() {
@@ -227,13 +227,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						// This also clears refilling
 						update.RefillAmountSpecified = 1
 						update.RefillDaySpecified = 1
-						update.RemainingRequests = sql.NullInt32{Valid: false, Int32: 0}
-						update.RefillAmount = sql.NullInt32{Valid: false, Int32: 0}
+						update.RemainingRequests = sql.NullInt64{Valid: false, Int64: 0}
+						update.RefillAmount = sql.NullInt64{Valid: false, Int64: 0}
 						update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
 					} else {
-						update.RemainingRequests = sql.NullInt32{
+						update.RemainingRequests = sql.NullInt64{
 							Valid: true,
-							Int32: int32(credits.Remaining.MustGet()), // nolint:gosec
+							Int64: credits.Remaining.MustGet(),
 						}
 					}
 				}
@@ -242,14 +242,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					if credits.Refill.IsNull() {
 						update.RefillAmountSpecified = 1
 						update.RefillDaySpecified = 1
-						update.RefillAmount = sql.NullInt32{Valid: false, Int32: 0}
+						update.RefillAmount = sql.NullInt64{Valid: false, Int64: 0}
 						update.RefillDay = sql.NullInt16{Valid: false, Int16: 0}
 					} else {
 						refill := credits.Refill.MustGet()
 						update.RefillAmountSpecified = 1
-						update.RefillAmount = sql.NullInt32{
+						update.RefillAmount = sql.NullInt64{
 							Valid: true,
-							Int32: int32(refill.Amount), // nolint:gosec
+							Int64: refill.Amount,
 						}
 
 						update.RefillDaySpecified = 1
@@ -351,8 +351,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					KeyID:       sql.NullString{String: key.ID, Valid: true},
 					Name:        newRL.Name,
-					Limit:       int32(newRL.Limit), // nolint:gosec
-					Duration:    newRL.Duration,
+					Limit:       uint64(newRL.Limit),
+					Duration:    uint64(newRL.Duration),
 					CreatedAt:   now,
 					UpdatedAt:   sql.NullInt64{Int64: now, Valid: true},
 					AutoApply:   newRL.AutoApply,

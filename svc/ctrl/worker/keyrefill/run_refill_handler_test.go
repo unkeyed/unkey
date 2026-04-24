@@ -29,8 +29,8 @@ func TestRunRefill_Integration(t *testing.T) {
 		})
 
 		// Create key with refill settings (refill_day=NULL means daily)
-		refillAmount := int32(1000)
-		remaining := int32(100)
+		refillAmount := int64(1000)
+		remaining := int64(100)
 		keyResp := h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
 			WorkspaceID:  ws.ID,
 			KeySpaceID:   api.KeyAuthID.String,
@@ -51,7 +51,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		// Verify the key was refilled
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
-		require.Equal(t, refillAmount, key.RemainingRequests.Int32)
+		require.Equal(t, refillAmount, key.RemainingRequests.Int64)
 	})
 
 	t.Run("refills keys with matching day of month", func(t *testing.T) {
@@ -62,8 +62,8 @@ func TestRunRefill_Integration(t *testing.T) {
 		})
 
 		// Create key with refill_day matching today
-		refillAmount := int32(500)
-		remaining := int32(50)
+		refillAmount := int64(500)
+		remaining := int64(50)
 		keyResp := h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
 			WorkspaceID:  ws.ID,
 			KeySpaceID:   api.KeyAuthID.String,
@@ -82,7 +82,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		// Verify the key was refilled
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
-		require.Equal(t, refillAmount, key.RemainingRequests.Int32)
+		require.Equal(t, refillAmount, key.RemainingRequests.Int64)
 	})
 
 	t.Run("skips keys with non-matching day of month", func(t *testing.T) {
@@ -97,8 +97,8 @@ func TestRunRefill_Integration(t *testing.T) {
 		if differentDay == todayDay {
 			differentDay = int16((int(todayDay) % 27) + 2)
 		}
-		refillAmount := int32(1000)
-		remaining := int32(100)
+		refillAmount := int64(1000)
+		remaining := int64(100)
 		keyResp := h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
 			WorkspaceID:  ws.ID,
 			KeySpaceID:   api.KeyAuthID.String,
@@ -115,7 +115,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		// Verify the key was NOT refilled (remaining unchanged)
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
-		require.Equal(t, remaining, key.RemainingRequests.Int32)
+		require.Equal(t, remaining, key.RemainingRequests.Int64)
 	})
 
 	t.Run("skips keys that are already full", func(t *testing.T) {
@@ -126,8 +126,8 @@ func TestRunRefill_Integration(t *testing.T) {
 		})
 
 		// Create key where remaining >= refill_amount (already full)
-		refillAmount := int32(1000)
-		remaining := int32(1000) // Already at max
+		refillAmount := int64(1000)
+		remaining := int64(1000) // Already at max
 		keyResp := h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
 			WorkspaceID:  ws.ID,
 			KeySpaceID:   api.KeyAuthID.String,
@@ -144,7 +144,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		// Verify the key was NOT refilled (since it's already at max)
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
-		require.Equal(t, remaining, key.RemainingRequests.Int32)
+		require.Equal(t, remaining, key.RemainingRequests.Int64)
 	})
 
 	t.Run("creates audit logs for refilled keys", func(t *testing.T) {
@@ -155,8 +155,8 @@ func TestRunRefill_Integration(t *testing.T) {
 		})
 
 		// Create key that needs refill
-		refillAmount := int32(1000)
-		remaining := int32(0)
+		refillAmount := int64(1000)
+		remaining := int64(0)
 		h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
 			WorkspaceID:  ws.ID,
 			KeySpaceID:   api.KeyAuthID.String,
@@ -181,8 +181,8 @@ func TestRunRefill_Integration(t *testing.T) {
 		})
 
 		// Create keys that need refill
-		refillAmount := int32(1000)
-		remaining := int32(100)
+		refillAmount := int64(1000)
+		remaining := int64(100)
 		h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
 			WorkspaceID:  ws.ID,
 			KeySpaceID:   api.KeyAuthID.String,
@@ -223,8 +223,8 @@ func TestRunRefill_Integration(t *testing.T) {
 
 		// Create key with refill_day=31 (only exists in some months)
 		refillDay := int16(31)
-		refillAmount := int32(750)
-		remaining := int32(50)
+		refillAmount := int64(750)
+		remaining := int64(50)
 		keyResp := h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
 			WorkspaceID:  ws.ID,
 			KeySpaceID:   api.KeyAuthID.String,
@@ -244,7 +244,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		// Verify the key was refilled
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
-		require.Equal(t, refillAmount, key.RemainingRequests.Int32)
+		require.Equal(t, refillAmount, key.RemainingRequests.Int64)
 	})
 
 	t.Run("skips deleted keys", func(t *testing.T) {
@@ -255,8 +255,8 @@ func TestRunRefill_Integration(t *testing.T) {
 		})
 
 		// Create a deleted key
-		refillAmount := int32(1000)
-		remaining := int32(100)
+		refillAmount := int64(1000)
+		remaining := int64(100)
 		keyResp := h.Seed.CreateKey(h.Ctx, seed.CreateKeyRequest{
 			WorkspaceID:  ws.ID,
 			KeySpaceID:   api.KeyAuthID.String,
@@ -274,7 +274,7 @@ func TestRunRefill_Integration(t *testing.T) {
 		key, err := db.Query.FindKeyByID(h.Ctx, h.DB.RO(), keyResp.KeyID)
 		require.NoError(t, err)
 		// Deleted keys should keep their original remaining value
-		require.Equal(t, remaining, key.RemainingRequests.Int32)
+		require.Equal(t, remaining, key.RemainingRequests.Int64)
 	})
 }
 

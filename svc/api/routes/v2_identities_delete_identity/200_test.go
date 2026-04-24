@@ -89,7 +89,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 					Name:        fmt.Sprintf("ratelimit_%s", uid.New("test", 3)),
 					WorkspaceID: h.Resources().UserWorkspace.ID,
 					Limit:       100,
-					Duration:    time.Minute.Milliseconds(),
+					Duration:    uint64(time.Minute.Milliseconds()),
 				}
 			},
 		)
@@ -168,13 +168,13 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 					Name:        "ratelimit_1",
 					WorkspaceID: h.Resources().UserWorkspace.ID,
 					Limit:       100,
-					Duration:    time.Minute.Milliseconds(),
+					Duration:    uint64(time.Minute.Milliseconds()),
 				},
 				{
 					Name:        "ratelimit_2",
 					WorkspaceID: h.Resources().UserWorkspace.ID,
 					Limit:       200,
-					Duration:    time.Hour.Milliseconds(),
+					Duration:    uint64(time.Hour.Milliseconds()),
 				},
 			},
 		})
@@ -263,7 +263,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 					Name:        "per_month",
 					WorkspaceID: h.Resources().UserWorkspace.ID,
 					Limit:       300000, // 300k requests
-					Duration:    (time.Hour * 24 * 30).Milliseconds(),
+					Duration:    uint64((time.Hour * 24 * 30).Milliseconds()),
 				},
 			},
 		})
@@ -283,7 +283,7 @@ func TestDeleteIdentitySuccess(t *testing.T) {
 					Name:        "per_month",
 					WorkspaceID: h.Resources().UserWorkspace.ID,
 					Limit:       20000, // 20k requests
-					Duration:    (time.Hour * 24 * 30).Milliseconds(),
+					Duration:    uint64((time.Hour * 24 * 30).Milliseconds()),
 				},
 			},
 		})

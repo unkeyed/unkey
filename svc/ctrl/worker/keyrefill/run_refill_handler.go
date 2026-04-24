@@ -230,9 +230,9 @@ func buildAuditLogs(keys []db.ListKeysForRefillRow, now int64) ([]db.InsertAudit
 
 		// Create key target
 		keyMeta := map[string]any{
-			"refill_amount":      key.RefillAmount.Int32,
-			"previous_remaining": key.RemainingRequests.Int32,
-			"new_remaining":      key.RefillAmount.Int32,
+			"refill_amount":      key.RefillAmount.Int64,
+			"previous_remaining": key.RemainingRequests.Int64,
+			"new_remaining":      key.RefillAmount.Int64,
 		}
 		keyMetaJSON, _ := json.Marshal(keyMeta)
 

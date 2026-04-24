@@ -114,7 +114,7 @@ func TestAuthorizationErrors(t *testing.T) {
 			IdentityID:        sql.NullString{Valid: false},
 			Meta:              sql.NullString{Valid: false},
 			Expires:           sql.NullTime{Valid: false},
-			RemainingRequests: sql.NullInt32{Valid: false},
+			RemainingRequests: sql.NullInt64{Valid: false},
 		})
 		require.NoError(t, err)
 

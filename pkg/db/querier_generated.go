@@ -745,7 +745,7 @@ type Querier interface {
 	//FindKeyCredits
 	//
 	//  SELECT remaining_requests FROM `keys` k WHERE k.id = ?
-	FindKeyCredits(ctx context.Context, db DBTX, id string) (sql.NullInt32, error)
+	FindKeyCredits(ctx context.Context, db DBTX, id string) (sql.NullInt64, error)
 	//FindKeyEncryptionByKeyID
 	//
 	//  SELECT pk, workspace_id, key_id, created_at, updated_at, encrypted, encryption_key_id FROM encrypted_keys WHERE key_id = ?
