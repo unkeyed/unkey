@@ -93,6 +93,14 @@ export const keys = mysqlTable(
       table.deletedAtM,
       table.id,
     ),
+    // Dashboard's keys-overview pagination sorts by last_used_at DESC under
+    // (key_auth_id, deletedAtM IS NULL) — without this, the list falls back
+    // to filesort and the p99 blows up to ~8s on busy keyspaces.
+    keyAuthDeletedLastUsedIndex: index("key_auth_id_deleted_at_last_used_at_idx").on(
+      table.keyAuthId,
+      table.deletedAtM,
+      table.lastUsedAt,
+    ),
     forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
     pendingMigrationIdIndex: index("pending_migration_id_idx").on(table.pendingMigrationId),
     workspaceIdIndex: index("idx_keys_on_workspace_id").on(table.workspaceId),

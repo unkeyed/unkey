@@ -48,8 +48,8 @@ func TestGitHubWebhook_Push_TriggersHandlePush(t *testing.T) {
 		require.Equal(t, "main", req.GetBranch())
 		require.Equal(t, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", req.GetAfter())
 		require.Equal(t, "Merge pull request #1 from pr-creator/feat", req.GetCommitMessage())
-		require.Equal(t, "pr-creator", req.GetCommitAuthorHandle())
-		require.Equal(t, "https://github.com/pr-creator.png", req.GetCommitAuthorAvatarUrl())
+		require.Equal(t, "merger", req.GetCommitAuthorHandle())
+		require.Equal(t, "https://avatar", req.GetCommitAuthorAvatarUrl())
 		require.NotZero(t, req.GetCommitTimestamp())
 	case <-time.After(10 * time.Second):
 		t.Fatal("expected HandlePush invocation")
