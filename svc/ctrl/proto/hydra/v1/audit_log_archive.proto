@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// AuditLogArchiveService exports audit log rows past their retention to a
+// caller-owned S3 bucket as Parquet, then deletes them from ClickHouse.
+// This is the sole authority on audit log retention deletion in CH (the
+// table has no TTL clause).
+//
+// Singleton VO keyed "default"; we don't shard. The work is all server-
+// side ClickHouse SQL; the worker just orchestrates and journals.
+//
+// Compliance: the S3 bucket is the durable record of every audit log row
+// the system has ever stored. Operators can run audits, restore into a
+// separate CH instance, or hand customers a Parquet dump on request.
+service AuditLogArchiveService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // RunArchive does one archival pass:
+  //   1. Compute cutoff = now - safety buffer.
+  //   2. INSERT INTO FUNCTION s3(...) SELECT * FROM audit_logs_raw_v1
+  //      WHERE expires_at < cutoff. Each pass writes one Parquet file
+  //      keyed by cutoff timestamp.
+  //   3. ALTER TABLE audit_logs_raw_v1 DELETE WHERE expires_at < cutoff
+  //      with mutations_sync = 2 so we know it landed before the
+  //      heartbeat fires.
+  //
+  // If the kill switch (env AUDIT_LOG_ARCHIVE_DISABLED=true) is set, the
+  // handler returns immediately with rows_archived = 0. Used to pause
+  // archival in incidents.
+  rpc RunArchive(RunArchiveRequest) returns (RunArchiveResponse) {}
+}
+
+message RunArchiveRequest {}
+
+message RunArchiveResponse {
+  // Number of CH rows shipped to S3 and then deleted in this invocation.
+  // Zero when there's nothing past retention OR when the kill switch is
+  // set.
+  int64 rows_archived = 1;
+  // cutoff_millis is the unix-milli boundary used for this pass.
+  // Everything with expires_at < cutoff_millis was processed.
+  int64 cutoff_millis = 2;
+}

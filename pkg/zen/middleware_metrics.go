@@ -38,7 +38,7 @@ func formatHeader(key, value string) string {
 // Example:
 //
 //	server.RegisterRoute(
-//	    []zen.Middleware{zen.WithMetrics(eventBuffer)},
+//	    []zen.Middleware{zen.WithMetrics(eventBuffer, info)},
 //	    route,
 //	)
 func WithMetrics(apiRequestBuffer ApiRequestBuffer, info InstanceInfo) Middleware {
@@ -69,10 +69,12 @@ func WithMetrics(apiRequestBuffer ApiRequestBuffer, info InstanceInfo) Middlewar
 					responseHeaders = append(responseHeaders, formatHeader(k, strings.Join(vv, ",")))
 				}
 
+				startMillis := start.UnixMilli()
+				expiresAt := startMillis + s.LogsRetentionMillis(ctx)
 				apiRequestBuffer.Buffer(schema.ApiRequest{
 					WorkspaceID:     s.WorkspaceID,
 					RequestID:       s.RequestID(),
-					Time:            start.UnixMilli(),
+					Time:            startMillis,
 					Host:            s.r.Host,
 					Method:          s.r.Method,
 					Path:            s.r.URL.Path,
@@ -88,6 +90,10 @@ func WithMetrics(apiRequestBuffer ApiRequestBuffer, info InstanceInfo) Middlewar
 					UserAgent:       s.r.Header.Get("User-Agent"),
 					IpAddress:       s.Location(),
 					Region:          info.Region,
+					// Zero leaves the row to the table's CH-side DEFAULT
+					// (30d). Non-zero comes from logsRetentionMillis above
+					// and reflects the workspace's current quota.
+					ExpiresAt: expiresAt,
 				})
 			}
 

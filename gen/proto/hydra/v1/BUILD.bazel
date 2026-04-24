@@ -5,6 +5,10 @@ go_library(
     srcs = [
         "app.pb.go",
         "app_restate.pb.go",
+        "audit_log_archive.pb.go",
+        "audit_log_archive_restate.pb.go",
+        "audit_log_backfill.pb.go",
+        "audit_log_backfill_restate.pb.go",
         "audit_log_export.pb.go",
         "audit_log_export_restate.pb.go",
         "build_slot.pb.go",

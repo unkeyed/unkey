@@ -34,11 +34,15 @@ CREATE TABLE sentinel_requests_raw_v1 (
   instance_latency Int64,
   -- Milliseconds - sentinel overhead
   sentinel_latency Int64,
+  -- Per-row TTL stamp (unix milli). DEFAULT preserves the table's
+  -- historical 30 day retention; once writers populate this from the
+  -- workspace's logs_retention_days quota, retention becomes per-plan.
+  expires_at Int64 DEFAULT time + 2592000000 CODEC(Delta, LZ4),
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_deployment_id (deployment_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_instance_id (instance_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_sentinel_id (sentinel_id) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = MergeTree()
-ORDER BY (`workspace_id`, `project_id`, `environment_id`, `time`, `deployment_id`) 
-TTL toDateTime(fromUnixTimestamp64Milli(time)) + toIntervalDay(30) 
+ORDER BY (`workspace_id`, `project_id`, `environment_id`, `time`, `deployment_id`)
+TTL toDateTime(fromUnixTimestamp64Milli(expires_at)) DELETE
 SETTINGS index_granularity = 8192, non_replicated_deduplication_window = 10000;

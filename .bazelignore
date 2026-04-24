@@ -7,5 +7,5 @@ svc/frontline/proto
 svc/krane/proto
 svc/vault/proto
 
-# Claude Code agent worktrees — copies of the repo, not part of this build
+# Claude Code agent worktrees are copies of the repo, not part of this build
 .claude

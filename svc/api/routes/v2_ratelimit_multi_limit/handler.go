@@ -202,12 +202,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Log to ClickHouse if enabled
 	if s.ShouldLogRequestToClickHouse() {
+		startMillis := start.UnixMilli()
+		// One lookup per request for the whole multiLimit batch — the
+		// retention is per-workspace, not per-namespace.
+		expiresAt := startMillis + s.LogsRetentionMillis(ctx)
 		for i, result := range results {
 			meta := checkMetadata[i]
 			h.RatelimitEvents.Buffer(schema.Ratelimit{
 				RequestID:   s.RequestID(),
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Time:        start.UnixMilli(),
+				Time:        startMillis,
 				NamespaceID: meta.namespaceID,
 				Identifier:  meta.identifier,
 				Passed:      result.Success,
@@ -217,6 +221,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Remaining:   uint64(result.Remaining),
 				ResetAt:     result.Reset.UnixMilli(),
 				Tokens:      uint64(meta.cost),
+				ExpiresAt:   expiresAt,
 			})
 		}
 	}
