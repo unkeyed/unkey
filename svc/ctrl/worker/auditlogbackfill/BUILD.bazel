@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "auditlogbackfill",
+    srcs = [
+        "run_backfill_handler.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/auditlogbackfill",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",  # keep
+        "//pkg/assert",
+        "//pkg/auditlog",
+        "//pkg/cache",
+        "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/healthcheck",
+        "//pkg/logger",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)

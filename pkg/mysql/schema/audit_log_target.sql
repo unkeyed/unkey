@@ -15,7 +15,5 @@ CREATE TABLE `audit_log_target` (
 	CONSTRAINT `unique_id_per_log` UNIQUE(`audit_log_id`,`id`)
 );
 
-CREATE INDEX `bucket` ON `audit_log_target` (`bucket`);
-
 CREATE INDEX `id_idx` ON `audit_log_target` (`id`);
 

@@ -11,6 +11,7 @@ go_library(
     deps = [
         "//internal/services/keys",
         "//internal/services/keys/db",
+        "//internal/services/quotaretention",
         "//internal/services/ratelimit",
         "//internal/services/usagelimiter",
         "//pkg/batch",

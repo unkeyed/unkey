@@ -1142,7 +1142,6 @@ type AuditLog struct {
 	ActorMeta   []byte         `db:"actor_meta"`
 	CreatedAt   int64          `db:"created_at"`
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`
-	Exported    bool           `db:"exported"`
 }
 
 type AuditLogTarget struct {
@@ -1185,6 +1184,16 @@ type CiliumNetworkPolicy struct {
 	Policy        json.RawMessage `db:"policy"`
 	CreatedAt     int64           `db:"created_at"`
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
+}
+
+type ClickhouseOutbox struct {
+	Pk          uint64          `db:"pk"`
+	Version     string          `db:"version"`
+	WorkspaceID string          `db:"workspace_id"`
+	EventID     string          `db:"event_id"`
+	Payload     json.RawMessage `db:"payload"`
+	CreatedAt   int64           `db:"created_at"`
+	DeletedAt   sql.NullInt64   `db:"deleted_at"`
 }
 
 type ClickhouseWorkspaceSetting struct {

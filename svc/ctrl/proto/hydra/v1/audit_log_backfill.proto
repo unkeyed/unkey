@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// AuditLogBackfillService chips through the legacy `audit_log` /
+// `audit_log_target` MySQL tables and ships every row into the new
+// `audit_logs_raw_v1` ClickHouse table. Runs alongside the dual-write
+// drainer until the cursor reaches the end of the legacy table, then idles.
+//
+// Keyed as a virtual object so Restate serializes invocations: overlapping
+// cron triggers (the backfill is slow enough that a tick can straddle the
+// next one) queue instead of racing on the cursor. The VO key is always
+// "default"; we don't shard this workload because the legacy table's
+// primary key on `pk` makes a single forward scan cheaper than per-
+// workspace fan-out (which would need a different index).
+//
+// The cursor lives in VO state under stateKeyLastPK. Resumes after crash
+// from wherever the last batch committed.
+service AuditLogBackfillService {
+  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // RunBackfill scans `audit_log` rows by ascending pk past the persisted
+  // cursor, joins targets in batched lookups (no N+1), maps to the v1
+  // ClickHouse envelope, and writes them to ClickHouse. Loops within the
+  // invocation until the page returns less than batchLimit rows, then
+  // updates the cursor and returns. CH ReplacingMergeTree dedups on
+  // (workspace_id, bucket, time, event_id) so re-running a range after
+  // a crash is safe.
+  rpc RunBackfill(RunBackfillRequest) returns (RunBackfillResponse) {}
+}
+
+message RunBackfillRequest {}
+
+message RunBackfillResponse {
+  // Number of legacy audit log rows shipped to ClickHouse in this
+  // invocation. Targets are not counted separately; they fold into their
+  // parent's CH row as Nested arrays.
+  int32 rows_backfilled = 1;
+  // last_pk is the cursor value persisted at the end of the run. Use it
+  // to monitor progress: if it stops advancing, the backfill is wedged.
+  uint64 last_pk = 2;
+  // finished is true when the backfill page returned 0 rows, meaning the
+  // cursor caught up with the tail of the legacy table. Once true, future
+  // invocations are noops until new pre-dual-write rows somehow appear
+  // (which they shouldn't).
+  bool finished = 3;
+}

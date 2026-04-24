@@ -33,6 +33,11 @@ CREATE TABLE key_verifications_raw_v2
   -- Latency in milliseconds for this verification
   latency Float64,
 
+  -- Per-row TTL stamp (unix milli). DEFAULT preserves the table's
+  -- historical 90 day retention; once writers populate this from the
+  -- workspace's logs_retention_days quota, retention becomes per-plan.
+  expires_at Int64 DEFAULT time + 7776000000 CODEC(Delta, LZ4),
+
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_identity_id (identity_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_external_id (external_id) TYPE bloom_filter GRANULARITY 1,
@@ -41,7 +46,7 @@ CREATE TABLE key_verifications_raw_v2
 )
 ENGINE = MergeTree()
 ORDER BY (workspace_id, time, key_space_id, outcome)
-TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 90 DAY DELETE
+TTL toDateTime(fromUnixTimestamp64Milli(expires_at)) DELETE
 SETTINGS non_replicated_deduplication_window = 10000
 ;
 

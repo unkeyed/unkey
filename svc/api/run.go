@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/internal/services/quotaretention"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	promclient "github.com/prometheus/client_golang/prometheus"
@@ -323,6 +324,12 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
 	}
+
+	// Wire retention resolver onto the session pool. Every writer that
+	// emits a ClickHouse analytics row calls s.LogsRetentionMillis so it
+	// stamps expires_at from the workspace's current quota — no per-
+	// handler plumbing needed.
+	srv.SetLogsRetentionResolver(quotaretention.New(caches.WorkspaceQuota, database))
 
 	keySvc, err := keys.New(keys.Config{
 		DB:               db.ToMySQL(database),

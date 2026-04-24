@@ -18,11 +18,15 @@ CREATE TABLE ratelimits_raw_v2 (
   remaining UInt64,
   -- when the limit will reset at (absolute unix milliseconds time)
   reset_at Int64 CODEC (Delta, LZ4),
+  -- Per-row TTL stamp (unix milli). DEFAULT preserves the table's
+  -- historical 30 day retention; once writers populate this from the
+  -- workspace's logs_retention_days quota, retention becomes per-plan.
+  expires_at Int64 DEFAULT time + 2592000000 CODEC (Delta, LZ4),
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_identifier (identifier) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = MergeTree ()
 ORDER BY
   (workspace_id, time, namespace_id)
-TTL toDateTime (fromUnixTimestamp64Milli (time)) + INTERVAL 1 MONTH DELETE
+TTL toDateTime (fromUnixTimestamp64Milli (expires_at)) DELETE
 SETTINGS non_replicated_deduplication_window = 10000;
 

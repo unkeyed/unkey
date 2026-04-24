@@ -1,6 +1,6 @@
 package schema
 
-import "time"
+import "encoding/json"
 
 // KeyVerification represents the v2 key verification raw table structure.
 // This matches the key_verifications_raw_v2 table schema with additional
@@ -18,6 +18,13 @@ type KeyVerification struct {
 	Tags         []string `ch:"tags" json:"tags"`
 	SpentCredits int64    `ch:"spent_credits" json:"spent_credits"`
 	Latency      float64  `ch:"latency" json:"latency"`
+	// ExpiresAt is the unix-milli TTL stamp for this row. Writers compute
+	// it as `Time + workspace.LogsRetentionDays * 86400000` via
+	// internal/services/quotaretention. If left zero, the writer falls
+	// back to the table's CH-side DEFAULT (the table's historical static
+	// retention window — 90d for verifications) so a missing stamp does
+	// not delete the row immediately.
+	ExpiresAt int64 `ch:"expires_at" json:"expires_at"`
 }
 
 // Ratelimit represents the v2 ratelimit raw table structure.
@@ -35,6 +42,10 @@ type Ratelimit struct {
 	Limit       uint64  `ch:"limit" json:"limit"`
 	Remaining   uint64  `ch:"remaining" json:"remaining"`
 	ResetAt     int64   `ch:"reset_at" json:"reset_at"`
+	// ExpiresAt is the unix-milli TTL stamp for this row. See
+	// KeyVerification.ExpiresAt for semantics; default fallback for this
+	// table is the historical 30d window.
+	ExpiresAt int64 `ch:"expires_at" json:"expires_at"`
 }
 
 // ApiRequest represents the v2 API request raw table structure.
@@ -59,6 +70,10 @@ type ApiRequest struct {
 	UserAgent       string              `ch:"user_agent" json:"user_agent"`
 	IpAddress       string              `ch:"ip_address" json:"ip_address"`
 	Region          string              `ch:"region" json:"region"`
+	// ExpiresAt is the unix-milli TTL stamp for this row. See
+	// KeyVerification.ExpiresAt for semantics; default fallback for this
+	// table is the historical 30d window.
+	ExpiresAt int64 `ch:"expires_at" json:"expires_at"`
 }
 
 // KeyVerificationAggregated represents aggregated key verification data
@@ -155,36 +170,50 @@ type SentinelRequest struct {
 	TotalLatency    int64               `ch:"total_latency" json:"total_latency"`
 	InstanceLatency int64               `ch:"instance_latency" json:"instance_latency"`
 	SentinelLatency int64               `ch:"sentinel_latency" json:"sentinel_latency"`
+	// ExpiresAt is the unix-milli TTL stamp. See KeyVerification.ExpiresAt
+	// for semantics; default fallback for this table is the historical 30d
+	// window.
+	ExpiresAt int64 `ch:"expires_at" json:"expires_at"`
 }
 
-// AuditLogV1 represents a single (event × target) row of the audit_logs_raw_v1
-// table. All rows of a logical event share the same EventID; aggregate with
-// GROUP BY event_id to reconstruct the envelope.
+// AuditLogV1 represents one logical audit event in audit_logs_raw_v1.
+// Targets are stored as parallel Nested arrays (TargetTypes[i] pairs with
+// TargetIDs[i] / TargetNames[i] / TargetMetas[i]). All four slices MUST be
+// the same length.
+//
+// Source distinguishes platform-emitted events ("platform", default) from
+// customer-emitted events ("customer", once that surface ships).
+//
+// Time fields are unix-milli (Int64), matching the rest of Unkey's CH
+// tables. Meta fields are json.RawMessage so the writer can pass already-
+// encoded JSON bytes through without re-marshaling, and so the JSON column
+// type in CH stores them natively (not as escaped strings).
 type AuditLogV1 struct {
 	EventID     string `ch:"event_id" json:"event_id"`
 	Time        int64  `ch:"time" json:"time"`
+	InsertedAt  int64  `ch:"inserted_at" json:"inserted_at"`
 	WorkspaceID string `ch:"workspace_id" json:"workspace_id"`
-	BucketID    string `ch:"bucket_id" json:"bucket_id"`
+	Bucket      string `ch:"bucket" json:"bucket"`
+	Source      string `ch:"source" json:"source"`
 
 	Event       string `ch:"event" json:"event"`
 	Description string `ch:"description" json:"description"`
 
-	ActorType string `ch:"actor_type" json:"actor_type"`
-	ActorID   string `ch:"actor_id" json:"actor_id"`
-	ActorName string `ch:"actor_name" json:"actor_name"`
-	ActorMeta string `ch:"actor_meta" json:"actor_meta"`
+	ActorType string          `ch:"actor_type" json:"actor_type"`
+	ActorID   string          `ch:"actor_id" json:"actor_id"`
+	ActorName string          `ch:"actor_name" json:"actor_name"`
+	ActorMeta json.RawMessage `ch:"actor_meta" json:"actor_meta"`
 
-	RemoteIP  string `ch:"remote_ip" json:"remote_ip"`
-	UserAgent string `ch:"user_agent" json:"user_agent"`
-	Meta      string `ch:"meta" json:"meta"`
+	RemoteIP  string          `ch:"remote_ip" json:"remote_ip"`
+	UserAgent string          `ch:"user_agent" json:"user_agent"`
+	Meta      json.RawMessage `ch:"meta" json:"meta"`
 
-	TargetType string `ch:"target_type" json:"target_type"`
-	TargetID   string `ch:"target_id" json:"target_id"`
-	TargetName string `ch:"target_name" json:"target_name"`
-	TargetMeta string `ch:"target_meta" json:"target_meta"`
+	TargetTypes []string          `ch:"targets.type" json:"targets.type"`
+	TargetIDs   []string          `ch:"targets.id" json:"targets.id"`
+	TargetNames []string          `ch:"targets.name" json:"targets.name"`
+	TargetMetas []json.RawMessage `ch:"targets.meta" json:"targets.meta"`
 
-	// ExpiresAt drives the per-row TTL. Set at insert time so bucket-level
-	// retention policies can be applied without altering the table. The CH
-	// column's DEFAULT is ignored when the struct field is populated.
-	ExpiresAt time.Time `ch:"expires_at" json:"expires_at"`
+	// ExpiresAt drives the per-row TTL. Set at insert time so workspace
+	// retention quotas apply without ALTER TABLE. Stored as unix-milli.
+	ExpiresAt int64 `ch:"expires_at" json:"expires_at"`
 }
