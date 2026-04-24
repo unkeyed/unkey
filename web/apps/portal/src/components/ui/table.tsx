@@ -4,7 +4,7 @@ import { cn } from "~/lib/utils";
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
     <div className="relative w-full overflow-auto">
-      <table className={cn("w-full caption-bottom text-sm text-gray-12", className)} {...props} />
+      <table className={cn("w-full caption-bottom text-gray-12 text-sm", className)} {...props} />
     </div>
   );
 }
@@ -13,7 +13,7 @@ export function TableHeader({
   className,
   ...props
 }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn("[&_tr]:border-b [&_tr]:border-primary/5", className)} {...props} />;
+  return <thead className={cn("[&_tr]:border-primary/5 [&_tr]:border-b", className)} {...props} />;
 }
 
 export function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
@@ -27,7 +27,7 @@ export function TableFooter({
   return (
     <tfoot
       className={cn(
-        "border-t border-gray-6 bg-grayA-2 font-medium [&>tr]:last:border-b-0",
+        "border-gray-6 border-t bg-gray-2 font-medium [&>tr]:last:border-b-0",
         className,
       )}
       {...props}
@@ -39,7 +39,7 @@ export function TableRow({ className, ...props }: React.HTMLAttributes<HTMLTable
   return (
     <tr
       className={cn(
-        "border-b border-primary/10 transition-colors hover:bg-grayA-2 data-[state=selected]:bg-grayA-3",
+        "border-primary/10 border-b transition-colors hover:bg-gray-2 data-[state=selected]:bg-gray-3",
         className,
       )}
       {...props}
@@ -51,7 +51,7 @@ export function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTa
   return (
     <th
       className={cn(
-        "h-8 px-3 text-left align-middle text-xs font-medium tracking-wide text-gray-12",
+        "h-8 px-3 text-left align-middle font-medium text-gray-12 text-xs tracking-wide",
         className,
       )}
       {...props}
@@ -67,5 +67,5 @@ export function TableCaption({
   className,
   ...props
 }: React.HTMLAttributes<HTMLTableCaptionElement>) {
-  return <caption className={cn("mt-4 text-sm text-gray-11", className)} {...props} />;
+  return <caption className={cn("mt-4 text-gray-11 text-sm", className)} {...props} />;
 }

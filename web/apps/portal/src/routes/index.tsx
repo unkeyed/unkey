@@ -42,8 +42,8 @@ function PortalEntry() {
   if (state.status === "error") {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center max-w-md px-4">
-          <h1 className="text-2xl font-semibold text-gray-12">
+        <div className="max-w-md px-4 text-center">
+          <h1 className="font-semibold text-2xl text-gray-12">
             {sessionId ? "Session expired or invalid" : "Invalid access"}
           </h1>
           <p className="mt-2 text-gray-11">{state.message}</p>

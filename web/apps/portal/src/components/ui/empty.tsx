@@ -22,7 +22,7 @@ const emptyMediaVariants = cva("flex items-center justify-center rounded-md text
   variants: {
     variant: {
       default: "",
-      icon: "h-12 w-12 border border-gray-6 bg-grayA-2 [&_svg]:size-5",
+      icon: "h-12 w-12 border border-gray-6 bg-gray-2 [&_svg]:size-5",
     },
   },
   defaultVariants: { variant: "default" },
@@ -37,14 +37,14 @@ export function EmptyMedia({
 }
 
 export function EmptyTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-base font-medium text-gray-12", className)} {...props} />;
+  return <h3 className={cn("font-medium text-base text-gray-12", className)} {...props} />;
 }
 
 export function EmptyDescription({
   className,
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("max-w-sm text-sm text-gray-11", className)} {...props} />;
+  return <p className={cn("max-w-sm text-gray-11 text-sm", className)} {...props} />;
 }
 
 export function EmptyContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

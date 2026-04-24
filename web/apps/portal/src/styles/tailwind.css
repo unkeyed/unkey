@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @theme {
   --font-sans: "Inter", system-ui, sans-serif;
@@ -35,12 +36,19 @@
   --color-gray-11: hsl(var(--gray-11));
   --color-gray-12: hsl(var(--gray-12));
 
-  /* GrayA — translucent overlays */
+  /* GrayA — translucent overlays (for hovers on branded / colored surfaces) */
+  --color-grayA-1: hsla(var(--grayA-1));
   --color-grayA-2: hsla(var(--grayA-2));
   --color-grayA-3: hsla(var(--grayA-3));
   --color-grayA-4: hsla(var(--grayA-4));
   --color-grayA-5: hsla(var(--grayA-5));
   --color-grayA-6: hsla(var(--grayA-6));
+  --color-grayA-7: hsla(var(--grayA-7));
+  --color-grayA-8: hsla(var(--grayA-8));
+  --color-grayA-9: hsla(var(--grayA-9));
+  --color-grayA-10: hsla(var(--grayA-10));
+  --color-grayA-11: hsla(var(--grayA-11));
+  --color-grayA-12: hsla(var(--grayA-12));
 
   /* Success (Teal) */
   --color-success-9: hsl(var(--success-9));
@@ -101,12 +109,19 @@
     --gray-11: 0, 0%, 39%;
     --gray-12: 0, 0%, 13%;
 
-    /* GrayA */
+    /* GrayA — full Radix Sand alpha scale (matches dashboard's values) */
+    --grayA-1: 240, 100%, 17%, 0.01;
     --grayA-2: 240, 100%, 17%, 0.02;
     --grayA-3: 240, 100%, 10%, 0.06;
     --grayA-4: 240, 100%, 9%, 0.09;
     --grayA-5: 229, 100%, 10%, 0.12;
     --grayA-6: 240, 100%, 9%, 0.15;
+    --grayA-7: 232, 100%, 9%, 0.20;
+    --grayA-8: 230, 100%, 9%, 0.27;
+    --grayA-9: 230, 100%, 6%, 0.45;
+    --grayA-10: 224, 100%, 5%, 0.50;
+    --grayA-11: 219, 100%, 4%, 0.62;
+    --grayA-12: 207, 100%, 2%, 0.89;
 
     /* Success (Teal) */
     --success-9: 173, 80%, 36%;

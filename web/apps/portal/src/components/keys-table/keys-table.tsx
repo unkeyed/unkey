@@ -1,15 +1,22 @@
-import { Check, Copy, KeyRound, MoreHorizontal, Pencil, RefreshCw, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { UsageSparkline } from "~/components/keys-table/usage-sparkline";
-import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
+  type ColumnFiltersState,
+  type Header,
+  type OnChangeFn,
+  type SortingState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import { ArrowDown, ArrowUp, ArrowUpDown, KeyRound, Plus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { CreateKeySheet } from "~/components/keys-table/create-key-sheet";
+import { createKeysColumns, globalSearchFn } from "~/components/keys-table/keys-columns";
+import { KeysPagination } from "~/components/keys-table/keys-pagination";
+import { KeysToolbar, type StatusFilter } from "~/components/keys-table/keys-toolbar";
+import { Button } from "~/components/ui/button";
 import {
   Empty,
   EmptyContent,
@@ -18,6 +25,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "~/components/ui/empty";
+import { Sheet, SheetTrigger } from "~/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -28,63 +36,185 @@ import {
 } from "~/components/ui/table";
 import type { Key } from "~/routes/dave-initial-design/-seed";
 
+const PAGE_SIZE = 25;
+
 type Props = {
+  appName: string;
+
   keys: Key[];
-  onCreate?: () => void;
+  totalCount?: number;
+  manualPagination?: boolean;
+
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+  statusValue: StatusFilter;
+  onStatusChange: (value: StatusFilter) => void;
+  sorting: SortingState;
+  onSortingChange: OnChangeFn<SortingState>;
+  pageIndex: number;
+  onPageChange: (index: number) => void;
+
   onDelete?: (id: string) => void;
   onEditExpiration?: (id: string) => void;
   onRotate?: (id: string) => void;
 };
 
-export function KeysTable({ keys, onCreate, onDelete, onEditExpiration, onRotate }: Props) {
+export function KeysTable({
+  appName,
+  keys,
+  totalCount,
+  manualPagination,
+  searchValue,
+  onSearchChange,
+  statusValue,
+  onStatusChange,
+  sorting,
+  onSortingChange,
+  pageIndex,
+  onPageChange,
+  onDelete,
+  onEditExpiration,
+  onRotate,
+}: Props) {
+  const columns = useMemo(
+    () => createKeysColumns({ onDelete, onEditExpiration, onRotate }),
+    [onDelete, onEditExpiration, onRotate],
+  );
+
+  const columnFilters = useMemo<ColumnFiltersState>(
+    () => (statusValue === "all" ? [] : [{ id: "status", value: statusValue }]),
+    [statusValue],
+  );
+
+  const table = useReactTable<Key>({
+    data: keys,
+    columns,
+    state: {
+      sorting,
+      columnFilters,
+      globalFilter: searchValue,
+      pagination: { pageIndex, pageSize: PAGE_SIZE },
+    },
+    onSortingChange,
+    onGlobalFilterChange: (updater) => {
+      const next = typeof updater === "function" ? updater(searchValue) : updater;
+      onSearchChange(typeof next === "string" ? next : "");
+    },
+    onColumnFiltersChange: (updater) => {
+      const next = typeof updater === "function" ? updater(columnFilters) : updater;
+      const found = next.find((f) => f.id === "status")?.value;
+      onStatusChange((found as StatusFilter | undefined) ?? "all");
+    },
+    onPaginationChange: (updater) => {
+      const current = { pageIndex, pageSize: PAGE_SIZE };
+      const next = typeof updater === "function" ? updater(current) : updater;
+      onPageChange(next.pageIndex);
+    },
+    globalFilterFn: globalSearchFn,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination,
+    rowCount: manualPagination ? totalCount : undefined,
+  });
+
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const visibleRows = table.getRowModel().rows;
+  const showNoKeys = keys.length === 0;
+  const showNoMatches = !showNoKeys && visibleRows.length === 0;
+
+  const handleClearFilters = () => {
+    onSearchChange("");
+    onStatusChange("all");
+    onPageChange(0);
+  };
+
   return (
-    <section className="flex flex-col gap-4">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-12">API Keys</h1>
-          <p className="text-sm text-gray-11">{keys.length} keys</p>
+    <section className="flex flex-col gap-6">
+      <header className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-semibold text-gray-12 text-xl">{appName} API</h1>
+          <p className="text-gray-11 text-sm">
+            Manage the API keys you use to authenticate with {appName}.
+          </p>
         </div>
-        <Button onClick={onCreate}>+ Create key</Button>
+        <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+          <SheetTrigger asChild>
+            <Button>
+              <Plus />
+              Create key
+            </Button>
+          </SheetTrigger>
+          <CreateKeySheet appName={appName} />
+        </Sheet>
       </header>
 
-      <div className="overflow-hidden rounded-lg border border-primary/10 bg-background shadow-xs">
-        {keys.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <KeyRound />
-              </EmptyMedia>
-              <EmptyTitle>No API keys yet</EmptyTitle>
-              <EmptyDescription>
-                Create your first key to start making authenticated requests.
-              </EmptyDescription>
-            </EmptyHeader>
-            <EmptyContent>
-              <Button onClick={onCreate}>+ Create key</Button>
-            </EmptyContent>
-          </Empty>
+      <div className="overflow-hidden rounded-lg border border-primary/10 bg-background">
+        {!showNoKeys && (
+          <div className="flex items-center justify-between gap-2 border-primary/10 border-b p-3">
+            <KeysToolbar
+              searchValue={searchValue}
+              onSearchChange={(v) => {
+                onSearchChange(v);
+                onPageChange(0);
+              }}
+              statusValue={statusValue}
+              onStatusChange={(v) => {
+                onStatusChange(v);
+                onPageChange(0);
+              }}
+            />
+            <KeysPagination table={table} />
+          </div>
+        )}
+        {showNoKeys ? (
+          <KeysEmptyState
+            title="No API keys yet"
+            description="Create your first key to start making authenticated requests."
+            action={
+              <Button onClick={() => setCreateOpen(true)}>
+                <Plus />
+                Create key
+              </Button>
+            }
+          />
+        ) : showNoMatches ? (
+          <KeysEmptyState
+            title="No keys match your filters"
+            description="Try a different search term or status filter."
+            action={
+              <Button variant="ghost" onClick={handleClearFilters}>
+                Clear filters
+              </Button>
+            }
+          />
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="bg-grayA-2 hover:bg-grayA-2">
-                <TableHead>Key</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead>Usage</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Expires</TableHead>
-                <TableHead className="w-10 sr-only">Actions</TableHead>
-              </TableRow>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id} className="bg-gray-2 hover:bg-gray-2">
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      className={header.column.columnDef.meta?.className}
+                    >
+                      {header.isPlaceholder ? null : <SortableHeader header={header} />}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
             </TableHeader>
             <TableBody>
-              {keys.map((k) => (
-                <KeyRow
-                  key={k.id}
-                  k={k}
-                  onDelete={onDelete}
-                  onEditExpiration={onEditExpiration}
-                  onRotate={onRotate}
-                />
+              {visibleRows.map((row) => (
+                <TableRow key={row.id} className="h-14">
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
               ))}
             </TableBody>
           </Table>
@@ -94,138 +224,48 @@ export function KeysTable({ keys, onCreate, onDelete, onEditExpiration, onRotate
   );
 }
 
-function KeyRow({
-  k,
-  onDelete,
-  onEditExpiration,
-  onRotate,
+function KeysEmptyState({
+  title,
+  description,
+  action,
 }: {
-  k: Key;
-  onDelete?: (id: string) => void;
-  onEditExpiration?: (id: string) => void;
-  onRotate?: (id: string) => void;
+  title: string;
+  description: string;
+  action: React.ReactNode;
 }) {
-  const status = getStatus(k);
   return (
-    <TableRow className="h-14">
-      <TableCell>
-        <KeyIdCell id={k.id} name={k.name} />
-      </TableCell>
-      <TableCell>
-        <CopyableStart value={k.start} />
-      </TableCell>
-      <TableCell>
-        <UsageSparkline
-          buckets={k.usage}
-          errors={k.errors}
-          ariaLabel={`${k.name ?? "Unnamed key"} usage, last 30 hours`}
-        />
-      </TableCell>
-      <TableCell>
-        <StatusBadge status={status} />
-      </TableCell>
-      <TableCell className="text-gray-11">{formatDate(k.createdAt)}</TableCell>
-      <TableCell className="text-gray-11">
-        {k.expires ? formatDate(k.expires) : <span className="text-gray-9">Never</span>}
-      </TableCell>
-      <TableCell className="text-right">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Open key actions">
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => onEditExpiration?.(k.id)}>
-              <Pencil />
-              Edit expiration
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onRotate?.(k.id)}>
-              <RefreshCw />
-              Rotate
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onSelect={() => onDelete?.(k.id)}>
-              <Trash2 />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell>
-    </TableRow>
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <KeyRound />
+        </EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        <EmptyDescription>{description}</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>{action}</EmptyContent>
+    </Empty>
   );
 }
 
-function KeyIdCell({ id, name }: { id: string; name: string | null }) {
-  return (
-    <div className="flex flex-col gap-0.5 text-xs">
-      {name ? (
-        <>
-          <span className="max-w-40 truncate font-medium text-gray-12" title={name}>
-            {name}
-          </span>
-          <span className="font-mono text-gray-11">{id}</span>
-        </>
-      ) : (
-        <span className="font-mono font-medium text-gray-12">{id}</span>
-      )}
-    </div>
-  );
-}
+function SortableHeader({ header }: { header: Header<Key, unknown> }) {
+  const content = flexRender(header.column.columnDef.header, header.getContext());
+  if (!header.column.getCanSort()) return content;
 
-function CopyableStart({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-  const display = value.padEnd(16, "•");
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
+  const sortDir = header.column.getIsSorted();
   return (
     <button
       type="button"
-      onClick={handleCopy}
-      title="Click to copy"
-      className="group inline-flex items-center gap-2 rounded px-1.5 py-0.5 font-mono text-xs text-gray-11 transition-colors hover:bg-grayA-2 hover:text-gray-12"
+      onClick={header.column.getToggleSortingHandler()}
+      className="group inline-flex items-center gap-1 hover:text-gray-12"
     >
-      <span>{display}</span>
-      {copied ? (
-        <Check className="size-3 text-successA-11" />
+      {content}
+      {sortDir === "asc" ? (
+        <ArrowUp className="size-3 text-gray-12" />
+      ) : sortDir === "desc" ? (
+        <ArrowDown className="size-3 text-gray-12" />
       ) : (
-        <Copy className="size-3 opacity-0 transition-opacity group-hover:opacity-100" />
+        <ArrowUpDown className="size-3 text-gray-9 opacity-0 transition-opacity group-hover:opacity-100" />
       )}
     </button>
   );
-}
-
-type Status = "enabled" | "expired" | "disabled";
-
-function getStatus(k: Key): Status {
-  if (!k.enabled) {
-    return "disabled";
-  }
-  if (k.expires && k.expires < Date.now()) {
-    return "expired";
-  }
-  return "enabled";
-}
-
-function StatusBadge({ status }: { status: Status }) {
-  if (status === "enabled") {
-    return <Badge variant="success">Enabled</Badge>;
-  }
-  if (status === "expired") {
-    return <Badge variant="error">Expired</Badge>;
-  }
-  return <Badge variant="secondary">Disabled</Badge>;
-}
-
-function formatDate(ms: number) {
-  return new Date(ms).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 }

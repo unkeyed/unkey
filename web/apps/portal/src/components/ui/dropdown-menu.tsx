@@ -21,7 +21,7 @@ export function DropdownMenuContent({
         sideOffset={sideOffset}
         className={cn(
           "z-50 min-w-40 overflow-hidden rounded-lg border border-primary/15 bg-background p-1 shadow-md",
-          "data-[state=open]:animate-in data-[state=closed]:animate-out",
+          "data-[state=closed]:animate-out data-[state=open]:animate-in",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           "data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2",
@@ -43,7 +43,7 @@ const dropdownMenuItemVariants = cva(
   {
     variants: {
       variant: {
-        default: "text-gray-12 focus:bg-grayA-3",
+        default: "text-gray-12 focus:bg-gray-3",
         destructive: "text-error-11 focus:bg-error-3",
       },
     },
@@ -71,7 +71,7 @@ export function DropdownMenuLabel({
 }: React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label>) {
   return (
     <DropdownMenuPrimitive.Label
-      className={cn("px-2 py-1.5 text-xs font-medium text-gray-11", className)}
+      className={cn("px-2 py-1.5 font-medium text-gray-11 text-xs", className)}
       {...props}
     />
   );

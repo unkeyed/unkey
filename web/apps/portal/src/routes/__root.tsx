@@ -36,7 +36,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
         <HeadContent />
       </head>
       <body
-        className="min-h-screen antialiased text-content"
+        className="min-h-screen text-content antialiased"
         style={{ backgroundColor: "var(--portal-secondary, #f8fafc)" }}
       >
         {children}

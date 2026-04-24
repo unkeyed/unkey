@@ -3,7 +3,7 @@ import { UnkeyLogo } from "~/components/ui/unkey-logo";
 export function PortalFooter() {
   return (
     <footer className="w-full bg-gray-3/50">
-      <div className="flex items-center justify-between px-8 py-5 text-xs text-gray-11">
+      <div className="flex items-center justify-between px-8 py-5 text-gray-11 text-xs">
         <span className="inline-flex items-center gap-1.5">
           Powered by
           <a

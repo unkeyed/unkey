@@ -1,4 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
+import { UsagePopover } from "~/components/keys-table/usage-popover";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
+import { useHover } from "~/lib/use-hover";
 import { cn } from "~/lib/utils";
 
 type Props = {
@@ -23,12 +26,13 @@ type Bar = {
  * (bottom, gray). Heights in pixels, scaled to the tallest bucket with a 1.3×
  * buffer so the peak sits at ~77% of the container.
  *
- * Pure presentational — takes already-shaped arrays, no data fetching or
- * caching. Dashboard's production version (`web/apps/dashboard/components/
- * api-keys-table/components/bar-chart/`) does fetch + cache + tooltip; we skip
- * all of that for the portal prototype.
+ * Hovering opens a Radix Popover (controlled via a useHover ref) with aggregate
+ * counts for the window.
  */
 export function UsageSparkline({ buckets, errors, maxBars = 30, ariaLabel }: Props) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const isHovered = useHover(triggerRef);
+
   const bars = useMemo((): Bar[] => {
     const recent = buckets.slice(-maxBars);
     const recentErrors = errors?.slice(-maxBars) ?? [];
@@ -50,24 +54,36 @@ export function UsageSparkline({ buckets, errors, maxBars = 30, ariaLabel }: Pro
   }, [buckets, errors, maxBars]);
 
   return (
-    <div
-      role="img"
-      aria-label={ariaLabel ?? `Usage for the last ${maxBars} hours`}
-      className={cn(
-        "grid h-[28px] w-[158px] items-end overflow-hidden rounded-t border border-transparent bg-grayA-2 px-1 py-0",
-        "transition-colors hover:rounded-md hover:border-grayA-2",
-      )}
-      style={{
-        gridTemplateColumns: `repeat(${maxBars}, 3px)`,
-        gap: "2px",
-      }}
-    >
-      {bars.map((bar) => (
-        <div key={bar.key} className="flex flex-col">
-          <div className="w-[3px] bg-error-9" style={{ height: `${bar.top}px` }} />
-          <div className="w-[3px] bg-grayA-5" style={{ height: `${bar.bottom}px` }} />
-        </div>
-      ))}
-    </div>
+    <Popover open={isHovered}>
+      <PopoverTrigger asChild>
+        <button
+          ref={triggerRef}
+          type="button"
+          aria-label={ariaLabel ?? `Usage for the last ${maxBars} hours`}
+          className={cn(
+            "grid h-[28px] w-[158px] cursor-pointer items-end overflow-hidden rounded-sm bg-gray-2 px-1 py-0",
+            "transition-colors hover:bg-gray-3",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-12 focus-visible:ring-offset-1",
+          )}
+          style={{
+            gridTemplateColumns: `repeat(${maxBars}, 3px)`,
+            gap: "2px",
+          }}
+        >
+          {bars.map((bar) => (
+            <div key={bar.key} className="flex flex-col">
+              <div className="w-[3px] bg-error-9" style={{ height: `${bar.top}px` }} />
+              <div className="w-[3px] bg-gray-7" style={{ height: `${bar.bottom}px` }} />
+            </div>
+          ))}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
+        <UsagePopover buckets={buckets} errors={errors} />
+      </PopoverContent>
+    </Popover>
   );
 }
