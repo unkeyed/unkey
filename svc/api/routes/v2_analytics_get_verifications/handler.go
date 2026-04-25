@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -14,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	chquery "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
+	"github.com/unkeyed/unkey/pkg/clickhouse/urql"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -88,6 +90,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// URQL pre-pass: try to compile the query as URQL first. If the query
+	// references a URQL logical table, URQL owns it (compile errors surface
+	// to the user). Otherwise URQL returns ErrNotURQL and the legacy raw-SQL
+	// path runs unchanged.
+	queryToParse := req.Query
+	var columnFormats map[string]string
+	if compiled, formats, urqlErr := urql.Compile(ctx, req.Query, urql.DefaultSchema); urqlErr == nil {
+		queryToParse = compiled
+		columnFormats = formats
+	} else if !errors.Is(urqlErr, urql.ErrNotURQL) {
+		return urqlErr
+	}
+
 	parser := chquery.NewParser(chquery.Config{
 		WorkspaceID:       auth.AuthorizedWorkspaceID,
 		Limit:             int(settings.ClickhouseWorkspaceSetting.MaxQueryResultRows),
@@ -97,7 +112,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		MaxQueryRangeDays: settings.Quotas.LogsRetentionDays,
 	})
 
-	parsedQuery, err := parser.Parse(ctx, req.Query)
+	parsedQuery, err := parser.Parse(ctx, queryToParse)
 	if err != nil {
 		return err
 	}
@@ -136,12 +151,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return clickhouse.WrapClickHouseError(err)
 	}
 
-	return s.JSON(http.StatusOK, Response{
+	resp := Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: verifications,
-	})
+		Data:          verifications,
+		ColumnFormats: nil,
+	}
+	if len(columnFormats) > 0 {
+		resp.ColumnFormats = &columnFormats
+	}
+	return s.JSON(http.StatusOK, resp)
 }
 
 // buildSecurityFilters creates ClickHouse security filters based on user permissions.

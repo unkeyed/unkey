@@ -42,6 +42,19 @@ components:
                     $ref: "#/components/schemas/Meta"
                 data:
                     $ref: "#/components/schemas/V2AnalyticsGetVerificationsResponseData"
+                columnFormats:
+                    type: object
+                    description: |
+                        Optional column-format hints emitted by URQL `prettyFormat()` calls.
+                        Only present when the query was compiled as URQL and used `prettyFormat()`.
+                        Keys are output column aliases; values are format hints like `duration`,
+                        `bytes`, `quantity`, `percent`. Consumers that don't recognize this field
+                        can ignore it safely.
+                    additionalProperties:
+                        type: string
+                    example:
+                        avg_latency: duration
+                        total: quantity
         BadRequestErrorResponse:
             type: object
             required:

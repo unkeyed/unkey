@@ -36,6 +36,47 @@ func TestParser_WorkspaceFilterWithExistingWhere(t *testing.T) {
 	require.Equal(t, "SELECT * FROM default.keys_v2 WHERE workspace_id = 'ws_456' AND active = 1", output)
 }
 
+// TestParser_WorkspaceFilterSkipsCTENameReference confirms that the outer
+// SELECT in a CTE query does not get a workspace_id filter injected on top
+// of the CTE-name reference (which would fail at execution because the CTE
+// projection doesn't expose workspace_id). The CTE body still gets the
+// filter on its real-table reference.
+func TestParser_WorkspaceFilterSkipsCTENameReference(t *testing.T) {
+	p := chquery.NewParser(chquery.Config{
+		WorkspaceID: "ws_789",
+		AllowedTables: []string{
+			"default.keys_v2",
+		},
+	})
+
+	output, err := p.Parse(context.Background(), "WITH recent AS (SELECT id FROM default.keys_v2) SELECT count() FROM recent")
+	require.NoError(t, err)
+
+	// Filter is injected on the CTE body (real table) but NOT on the outer
+	// SELECT (CTE-name reference).
+	require.Contains(t, output, "WHERE workspace_id = 'ws_789'")
+	require.NotContains(t, output, "FROM recent WHERE workspace_id")
+}
+
+// TestParser_WorkspaceFilterMixedJoinCTEAndRealTable confirms that when
+// FROM mixes a CTE reference with a real table, the filter is still
+// injected (because there's at least one real table that needs it).
+func TestParser_WorkspaceFilterMixedJoinCTEAndRealTable(t *testing.T) {
+	p := chquery.NewParser(chquery.Config{
+		WorkspaceID: "ws_mix",
+		AllowedTables: []string{
+			"default.keys_v2",
+		},
+	})
+
+	output, err := p.Parse(context.Background(), "WITH recent AS (SELECT id FROM default.keys_v2) SELECT * FROM default.keys_v2 JOIN recent ON 1=1")
+	require.NoError(t, err)
+
+	// Outer SELECT has both keys_v2 (real) and recent (CTE), so the filter
+	// is injected once on the outer SELECT.
+	require.Contains(t, output, "FROM default.keys_v2 JOIN recent ON 1 = 1 WHERE workspace_id = 'ws_mix'")
+}
+
 func TestSecurityFilterInjection(t *testing.T) {
 	t.Run("no filter when SecurityFilters is empty", func(t *testing.T) {
 		parser := chquery.NewParser(chquery.Config{

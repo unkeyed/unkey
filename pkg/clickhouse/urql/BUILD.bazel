@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "urql",
+    srcs = [
+        "columns.go",
+        "compile.go",
+        "functions.go",
+        "schema.go",
+        "tables.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/clickhouse/urql",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/codes",
+        "//pkg/fault",
+        "@com_github_aftership_clickhouse_sql_parser//parser",
+    ],
+)
+
+go_test(
+    name = "urql_test",
+    srcs = ["compile_test.go"],
+    embed = [":urql"],
+    deps = [
+        "//pkg/clickhouse/query-parser",
+        "@com_github_stretchr_testify//require",
+    ],
+)

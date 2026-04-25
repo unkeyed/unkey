@@ -548,6 +548,13 @@ type V2AnalyticsGetVerificationsRequestBody struct {
 
 // V2AnalyticsGetVerificationsResponseBody defines model for V2AnalyticsGetVerificationsResponseBody.
 type V2AnalyticsGetVerificationsResponseBody struct {
+	// ColumnFormats Optional column-format hints emitted by URQL `prettyFormat()` calls.
+	// Only present when the query was compiled as URQL and used `prettyFormat()`.
+	// Keys are output column aliases; values are format hints like `duration`,
+	// `bytes`, `quantity`, `percent`. Consumers that don't recognize this field
+	// can ignore it safely.
+	ColumnFormats *map[string]string `json:"columnFormats,omitempty"`
+
 	// Data Array of verification rows returned by the query. Fields vary based on the SQL SELECT clause.
 	Data V2AnalyticsGetVerificationsResponseData `json:"data"`
 

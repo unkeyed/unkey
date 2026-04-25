@@ -66,41 +66,58 @@ func (p *Parser) injectSecurityFilters() {
 
 }
 
-// selectReferencesTable checks if a SELECT statement directly references a table in its FROM clause
-// Returns true if the FROM clause contains a table, false if it contains only a subquery
+// selectReferencesTable checks if a SELECT statement directly references a
+// real table in its FROM clause. Returns true only when at least one
+// concrete (non-CTE, non-subquery) table reference is present, so the
+// workspace_id and security filters get injected exactly where they're
+// useful: on SELECTs that read from physical analytics tables.
+//
+// CTE-name references are treated like subqueries here: the CTE body
+// already had filters injected on its own table reference, so injecting
+// again on the outer SELECT (which reads from the CTE name) would
+// reference columns the CTE doesn't expose and produce ClickHouse
+// "Unknown identifier" errors.
 func (p *Parser) selectReferencesTable(stmt *clickhouse.SelectQuery) bool {
 	if stmt.From == nil {
 		return false
 	}
 
-	// Check if the FROM clause directly contains a subquery
-	// If it does, we should NOT inject filters here
+	// If the FROM clause directly contains a subquery, the inner SELECT
+	// gets its own injection pass; don't double-inject on the outer.
 	hasSubquery := false
 	clickhouse.Walk(stmt.From, func(node clickhouse.Expr) bool {
 		if _, ok := node.(*clickhouse.SelectQuery); ok {
 			hasSubquery = true
-			return false // Stop walking
+			return false
 		}
 		return true
 	})
-
-	// If there's a subquery in the FROM, don't inject filters
 	if hasSubquery {
 		return false
 	}
 
-	// Otherwise, check if there's a table reference
-	hasTable := false
+	// Inject only when at least one TableIdentifier in FROM is a real
+	// (non-CTE) table. Database-qualified names are always real tables;
+	// bare names that match the CTE registry are CTE references and are
+	// skipped.
+	hasRealTable := false
 	clickhouse.Walk(stmt.From, func(node clickhouse.Expr) bool {
-		if _, ok := node.(*clickhouse.TableExpr); ok {
-			hasTable = true
-			return false // Stop walking
+		ti, ok := node.(*clickhouse.TableIdentifier)
+		if !ok {
+			return true
 		}
-
+		if ti.Database != nil {
+			hasRealTable = true
+			return false
+		}
+		if !p.isCTE(ti.Table.Name) {
+			hasRealTable = true
+			return false
+		}
 		return true
 	})
 
-	return hasTable
+	return hasRealTable
 }
 
 // injectSecurityFilterOnSelect injects a security filter on a single SELECT statement

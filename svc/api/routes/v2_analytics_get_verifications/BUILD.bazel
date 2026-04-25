@@ -13,6 +13,7 @@ go_library(
         "//pkg/cache",
         "//pkg/clickhouse",
         "//pkg/clickhouse/query-parser",
+        "//pkg/clickhouse/urql",
         "//pkg/codes",
         "//pkg/db",
         "//pkg/fault",
@@ -27,6 +28,7 @@ go_test(
     name = "v2_analytics_get_verifications_test",
     srcs = [
         "200_test.go",
+        "200_urql_test.go",
         "400_test.go",
         "401_test.go",
         "403_test.go",
