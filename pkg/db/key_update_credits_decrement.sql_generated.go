@@ -20,7 +20,7 @@ WHERE id = ?
 `
 
 type UpdateKeyCreditsDecrementParams struct {
-	Credits sql.NullInt32 `db:"credits"`
+	Credits sql.NullInt64 `db:"credits"`
 	ID      string        `db:"id"`
 }
 

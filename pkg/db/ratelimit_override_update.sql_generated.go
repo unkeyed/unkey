@@ -20,8 +20,8 @@ WHERE id = ?
 `
 
 type UpdateRatelimitOverrideParams struct {
-	Windowlimit int32         `db:"windowlimit"`
-	Duration    int32         `db:"duration"`
+	Windowlimit uint64        `db:"windowlimit"`
+	Duration    uint64        `db:"duration"`
 	Now         sql.NullInt64 `db:"now"`
 	ID          string        `db:"id"`
 }

@@ -1,13 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  bigint,
-  boolean,
-  int,
-  json,
-  mysqlTable,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { bigint, boolean, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -69,9 +61,9 @@ export const ratelimits = mysqlTable(
      * Either keyId or identityId may be defined, not both
      */
     identityId: varchar("identity_id", { length: 256 }),
-    limit: int("limit").notNull(),
+    limit: bigint("limit", { mode: "number", unsigned: true }).notNull(),
     // milliseconds
-    duration: bigint("duration", { mode: "number" }).notNull(),
+    duration: bigint("duration", { mode: "number", unsigned: true }).notNull(),
 
     // if enabled we will use this limit when verifying a key, whether they
     // specified the name in the request or not

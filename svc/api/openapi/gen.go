@@ -250,7 +250,7 @@ type KeysVerifyKeyCredits struct {
 	// Use 0 for read-only operations or free tier access, higher values for premium features.
 	// Credits are deducted after all security checks pass.
 	// Essential for implementing usage-based pricing with different operation costs.
-	Cost int32 `json:"cost"`
+	Cost int64 `json:"cost"`
 }
 
 // KeysVerifyKeyRatelimit defines model for KeysVerifyKeyRatelimit.
@@ -1653,7 +1653,7 @@ type V2KeysVerifyKeyResponseData struct {
 	// the key has unlimited usage. This value decreases with
 	// each verification (based on the 'cost' parameter) unless explicit credit
 	// refills are configured.
-	Credits *int32 `json:"credits,omitempty"`
+	Credits *int64 `json:"credits,omitempty"`
 
 	// Enabled Indicates if the key is currently enabled. Disabled keys will
 	// always fail verification with `code=DISABLED`. This is useful for implementing

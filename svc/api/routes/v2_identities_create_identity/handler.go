@@ -149,8 +149,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					IdentityID:  sql.NullString{String: identityID, Valid: true},
 					Name:        ratelimit.Name,
-					Limit:       int32(ratelimit.Limit), // nolint:gosec
-					Duration:    ratelimit.Duration,
+					Limit:       uint64(ratelimit.Limit),
+					Duration:    uint64(ratelimit.Duration),
 					CreatedAt:   time.Now().UnixMilli(),
 					AutoApply:   ratelimit.AutoApply,
 				}
