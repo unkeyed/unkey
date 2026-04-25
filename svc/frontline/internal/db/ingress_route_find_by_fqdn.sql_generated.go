@@ -12,29 +12,32 @@ import (
 const findFrontlineRouteByFQDN = `-- name: FindFrontlineRouteByFQDN :one
 SELECT
   environment_id,
-  deployment_id
+  deployment_id,
+  edge_redirect_config
 FROM frontline_routes
 WHERE fully_qualified_domain_name = ?
 `
 
 type FindFrontlineRouteByFQDNRow struct {
-	EnvironmentID string `db:"environment_id"`
-	DeploymentID  string `db:"deployment_id"`
+	EnvironmentID      string `db:"environment_id"`
+	DeploymentID       string `db:"deployment_id"`
+	EdgeRedirectConfig []byte `db:"edge_redirect_config"`
 }
 
 // FindFrontlineRouteByFQDN resolves a hostname to the environment and
-// deployment IDs frontline needs to route a request.
-// The projection intentionally stays narrow because this lookup is on the
-// request path and callers do not need the rest of the route row.
+// deployment IDs frontline needs to route a request, plus the edge-redirect
+// config blob attached to the route. The blob is parsed once at cache fill
+// time, never on the hot path.
 //
 //	SELECT
 //	  environment_id,
-//	  deployment_id
+//	  deployment_id,
+//	  edge_redirect_config
 //	FROM frontline_routes
 //	WHERE fully_qualified_domain_name = ?
 func (q *Queries) FindFrontlineRouteByFQDN(ctx context.Context, fullyQualifiedDomainName string) (FindFrontlineRouteByFQDNRow, error) {
 	row := q.db.QueryRowContext(ctx, findFrontlineRouteByFQDN, fullyQualifiedDomainName)
 	var i FindFrontlineRouteByFQDNRow
-	err := row.Scan(&i.EnvironmentID, &i.DeploymentID)
+	err := row.Scan(&i.EnvironmentID, &i.DeploymentID, &i.EdgeRedirectConfig)
 	return i, err
 }

@@ -953,6 +953,7 @@ func (w *Workflow) configureRouting(
 							EnvironmentID:            deployment.EnvironmentID,
 							FullyQualifiedDomainName: domain.domain,
 							Sticky:                   domain.sticky,
+							EdgeRedirectConfig:       []byte("{}"),
 							CreatedAt:                time.Now().UnixMilli(),
 							UpdatedAt:                sql.NullInt64{Valid: false, Int64: 0},
 						})

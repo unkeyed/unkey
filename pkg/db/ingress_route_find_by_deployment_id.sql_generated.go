@@ -10,12 +10,12 @@ import (
 )
 
 const findFrontlineRoutesByDeploymentID = `-- name: FindFrontlineRoutesByDeploymentID :many
-SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
+SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, edge_redirect_config, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
 `
 
 // FindFrontlineRoutesByDeploymentID
 //
-//	SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
+//	SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, edge_redirect_config, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
 func (q *Queries) FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]FrontlineRoute, error) {
 	rows, err := db.QueryContext(ctx, findFrontlineRoutesByDeploymentID, deploymentID)
 	if err != nil {
@@ -34,6 +34,7 @@ func (q *Queries) FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX
 			&i.EnvironmentID,
 			&i.FullyQualifiedDomainName,
 			&i.Sticky,
+			&i.EdgeRedirectConfig,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {

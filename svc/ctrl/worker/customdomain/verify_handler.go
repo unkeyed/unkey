@@ -366,6 +366,7 @@ func (s *Service) onVerificationSuccess(
 			EnvironmentID:            dom.EnvironmentID,
 			FullyQualifiedDomainName: dom.Domain,
 			Sticky:                   db.FrontlineRoutesStickyLive,
+			EdgeRedirectConfig:       []byte("{}"),
 			CreatedAt:                now,
 			UpdatedAt:                sql.NullInt64{Valid: true, Int64: now},
 		})

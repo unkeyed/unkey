@@ -3,6 +3,7 @@ import { bigint, index, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql
 import { deployments } from "./deployments";
 import { projects } from "./projects";
 import { lifecycleDates } from "./util/lifecycle_dates";
+import { longblob } from "./util/longblob";
 
 export const frontlineRoutes = mysqlTable(
   "frontline_routes",
@@ -33,6 +34,12 @@ export const frontlineRoutes = mysqlTable(
     sticky: mysqlEnum("sticky", ["none", "branch", "environment", "live", "deployment"])
       .notNull()
       .default("none"),
+
+    // Edge-redirect rules attached to this route. Stored as protojson of
+    // frontline.edgeredirect.v1.Config. Empty/"{}" means no rules: the
+    // request falls through to the proxy. Frontline parses this once at
+    // cache fill time, never on the hot path.
+    edgeRedirectConfig: longblob("edge_redirect_config").notNull(),
 
     ...lifecycleDates,
   },

@@ -157,6 +157,7 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		EnvironmentID:            env.ID,
 		FullyQualifiedDomainName: "cleanup-test.example.com",
 		Sticky:                   db.FrontlineRoutesStickyNone,
+		EdgeRedirectConfig:       []byte("{}"),
 		CreatedAt:                now,
 		UpdatedAt:                sql.NullInt64{Valid: false},
 	})

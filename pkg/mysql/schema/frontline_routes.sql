@@ -7,6 +7,7 @@ CREATE TABLE `frontline_routes` (
 	`environment_id` varchar(255) NOT NULL,
 	`fully_qualified_domain_name` varchar(256) NOT NULL,
 	`sticky` enum('none','branch','environment','live','deployment') NOT NULL DEFAULT 'none',
+	`edge_redirect_config` longblob NOT NULL,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `frontline_routes_pk` PRIMARY KEY(`pk`),

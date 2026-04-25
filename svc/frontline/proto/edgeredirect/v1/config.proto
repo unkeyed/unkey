@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package frontline.edgeredirect.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/frontline/edgeredirect/v1;edgeredirectv1";
+
+// Config holds the ordered redirect rules attached to a single frontline
+// route (one row in frontline_routes). Rules are evaluated in declaration
+// order and the first match wins.
+message Config {
+  repeated Rule rules = 1;
+}
+
+// Rule pairs a redirect kind with its parameters and an enabled toggle so an
+// operator can flip a misbehaving rule off without dropping it from config,
+// matching the operational shape of sentinel.v1.Policy.
+message Rule {
+  // Stable identifier for log correlation and metrics labels. Should be
+  // unique within a Config. Typically a slug like "strip-www" or a UUID.
+  string id = 1;
+
+  // When false, the engine skips this rule entirely.
+  bool enabled = 2;
+
+  // HTTP status to send for the redirect. 0 means default 308 Permanent
+  // Redirect, which preserves the request method (clients don't silently
+  // downgrade POST to GET like 301/302). 301 is appropriate for marketing
+  // host rewrites where SEO/cacheability matter.
+  int32 status = 3;
+
+  // Exactly one must be set.
+  oneof kind {
+    RequireHTTPS require_https = 10;
+    StripWWW     strip_www     = 11;
+    AddWWW       add_www       = 12;
+    HostRewrite  host_rewrite  = 13;
+  }
+}
+
+// RequireHTTPS matches any plain-HTTP request and redirects to the https://
+// equivalent of the same host and path. The frontline HTTP listener bakes
+// one of these into its catchall as the default for all plain-HTTP traffic.
+message RequireHTTPS {}
+
+// StripWWW matches any host beginning with the (case-insensitive) "www."
+// label and redirects to the same URL with that label removed.
+message StripWWW {}
+
+// AddWWW matches any host that does NOT begin with the "www." label and
+// redirects to the same URL with "www." prepended to the host.
+message AddWWW {}
+
+// HostRewrite matches an exact request host and redirects to a fixed target
+// host. Path and query are preserved.
+message HostRewrite {
+  // Exact host to match (case-insensitive). No suffix or wildcard matching.
+  string from = 1;
+
+  // Replacement host.
+  string to = 2;
+}
