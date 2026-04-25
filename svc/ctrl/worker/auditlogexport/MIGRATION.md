@@ -18,8 +18,11 @@ table's TTL clause. See "Audit log archive" below.
 
 ### MySQL
 
-- **`clickhouse_outbox`** table (added by the prior commit; this PR
-  augments it):
+- **`clickhouse_outbox`** table — fed by **two** producers, both
+  dual-writing in the same MySQL transaction as the underlying mutation:
+  - Go API service via `internal/services/auditlogs/insert.go`
+  - Dashboard via `web/apps/dashboard/lib/audit.ts` `insertAuditLogs`
+- Outbox columns and indexes:
   - `deleted_at bigint unsigned NULL` — marker stamp instead of hard
     delete. Lets ops re-queue events by clearing `deleted_at` and keeps
     an audit trail of what was exported. **No sweep job today**; revisit
@@ -40,10 +43,14 @@ table's TTL clause. See "Audit log archive" below.
   - **`correlation_id String CODEC(ZSTD(1))`** + bloom filter index
     (`idx_correlation_id`) groups events emitted by one logical user
     action so the dashboard can drill from any one event to the rest.
-    Auto-minted by the audit log Insert service when a caller batches
-    >1 events; explicitly set via `auditlog.WithCorrelation(ctx, ...)`
-    for handlers that fan out across multiple Insert calls (8 API
-    handlers wired today). Empty on single-event flows.
+    Auto-minted by both writers when a caller batches >1 events;
+    explicitly set via `auditlog.WithCorrelation(ctx, ...)` (Go) or
+    `correlationId: newId("correlation")` (TS) for handlers that fan
+    out across multiple Insert calls. **Wired sites**: 8 Go API
+    handlers (v2 keys/identities create/update/setRoles/etc.) and 5
+    dashboard TRPC procedures (`api.delete`, `ratelimit.deleteNamespace`,
+    `authorization.upsertRole`, `rbac.createRole`, `vercel.setupProject`
+    + `vercel.upsertNewRootKey`). Empty on single-event flows.
 - **Analytics tables** (`key_verifications_raw_v2`, `ratelimits_raw_v2`,
   `api_requests_raw_v2`, `sentinel_requests_raw_v1`):
   - Added `expires_at Int64 DEFAULT time + N` (per-table N preserves the
@@ -123,11 +130,11 @@ Reverting this deploy:
 
 ## Followup PR 1: dashboard read cutover
 
-**Wait at least 30 days after this PR ships before doing the cutover.**
-That's the longest free-tier audit log retention. Once 30 days have
-elapsed, ClickHouse holds every event a user could possibly query
-through the dashboard's filters; anything older is past retention and
-the UI hides it anyway.
+Cutover can happen as soon as the **backfill VO catches up** to the
+legacy tail (no calendar wait needed — the backfill brings every
+historical row into CH). Watch the `AuditLogBackfillService` cursor in
+Restate state; when it stops advancing AND the heartbeat keeps firing
+(meaning ticks are running noop), backfill is done.
 
 Then switch `web/apps/dashboard/lib/trpc/routers/audit/fetch.ts` from
 MySQL to ClickHouse:
@@ -140,6 +147,11 @@ MySQL to ClickHouse:
 - The 5-minute count cache stays. The list query becomes a straight
   `ORDER BY time DESC LIMIT 50` with no `GROUP BY` (Nested targets
   removed the need to aggregate).
+- **Surface `correlation_id`** in the timeline: events sharing one
+  correlation_id should collapse into a single expandable row ("Created
+  key X with 3 permissions and 2 roles" → expand to see all 6 events).
+  The column + bloom filter index are already in place; this is pure
+  UI work.
 
 Verify with:
 
@@ -186,34 +198,66 @@ Once the dashboard has been on CH for a week with no rollback signal:
 
 ## Followup PR 3: extend dynamic retention to runtime_logs
 
-The TS log shipper in `web/internal/clickhouse/src/runtime-logs.ts`
-writes `runtime_logs_raw_v1`, which already has `expires_at DateTime64(3)`
-with a static 90-day default. Plumb the workspace's `logs_retention_days`
-through to that writer so it stamps a per-workspace value (same shape
-as the four Go tables in this PR).
+`runtime_logs_raw_v1` already has `expires_at DateTime64(3)` with a
+static 90-day default, but the actual writer is **Vector** (the
+deployment-pod log shipper), not anything in this repo. Vector has no
+workspace quota access — it just forwards stdout/stderr lines from
+pods. Doing per-workspace retention here requires a separate plumbing
+path (Vector enrichment from a workspace→retention sidecar, or a
+post-ingest CH materialization that overwrites `expires_at`). Out of
+scope until that infrastructure exists.
 
-## Followup PR 4: extend correlation_id to dashboard TRPC procedures
+## Post-deploy smoke test
 
-The Go API multi-Insert handlers all set context-scoped correlation now
-(see "correlation_id" under Components shipped). The dashboard's TRPC
-procedures that emit multiple audit events still leave correlation_id
-empty. Mirror the API pattern in TS:
+After the deploy lands and the first cron tick fires, verify the
+pipeline end-to-end:
 
-- `web/apps/dashboard/lib/trpc/routers/rbac/createRole.ts` — wraps
-  role creation + N permission binds
-- `web/apps/dashboard/lib/trpc/routers/vercel.ts` (`setupProject`) —
-  emits `key.create` plus N `vercelBinding.create` per environment
-- Any other TRPC procedure that emits ≥2 audit events
+1. **Outbox is filling.** Hit any mutating endpoint (create a key from
+   the dashboard or API). Within seconds:
+   ```sql
+   SELECT pk, version, workspace_id, event_id, deleted_at, created_at
+   FROM clickhouse_outbox
+   ORDER BY pk DESC LIMIT 5;
+   ```
+   Expect a fresh row with `version = 'audit_log.v1'` and `deleted_at`
+   either NULL (drainer hasn't run yet) or recently stamped.
 
-Pattern: mint `correlationId` once at the top of the procedure, pass to
-every `insertAuditLogs` call as the `correlationId` field on each log.
-The Go writer treats this exactly the same as Go callers using
-`auditlog.WithCorrelation` — explicit per-event ID always wins, batched
-insert auto-mints when not set, single-event single-Insert leaves it
-empty.
+2. **Drainer is draining.** After the next minute tick:
+   ```sql
+   SELECT MIN(created_at), COUNT(*)
+   FROM clickhouse_outbox
+   WHERE deleted_at IS NULL;
+   ```
+   Backlog should be near zero. If it's growing, the drainer is wedged.
 
-Every other call site continues to work unchanged; correlation_id stays
-empty for single-event flows.
+3. **CH has the row.** From ClickHouse:
+   ```sql
+   SELECT event_id, workspace_id, event, expires_at, correlation_id
+   FROM default.audit_logs_raw_v1
+   WHERE workspace_id = '<ws>'
+   ORDER BY time DESC LIMIT 5;
+   ```
+   Expect `expires_at` non-zero (per-workspace retention applied) and
+   `correlation_id` populated for any multi-event flow you triggered
+   (e.g. `keys.createKey` with permissions or roles).
+
+4. **Per-workspace retention is per-plan.** Pick a workspace with a
+   non-default `logs_retention_days`:
+   ```sql
+   SELECT DISTINCT workspace_id, fromUnixTimestamp64Milli(expires_at) - fromUnixTimestamp64Milli(time) AS retention
+   FROM default.key_verifications_raw_v2
+   WHERE workspace_id = '<ws>'
+   ORDER BY time DESC LIMIT 1;
+   ```
+   `retention` should match `quotas.logs_retention_days * INTERVAL 1 DAY`.
+
+5. **Backfill cursor is advancing.** Inspect the
+   `AuditLogBackfillService` VO state via the Restate UI; `last_pk`
+   should grow until it caches up to `MAX(pk)` from `audit_log`.
+
+6. **Archive cron didn't break anything.** The first archive run is a
+   noop (nothing past `expires_at - 5min` yet). Verify the heartbeat
+   fires and `system.mutations` has no stuck mutations.
 
 ## Operational checklist
 
