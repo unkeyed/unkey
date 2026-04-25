@@ -5,6 +5,7 @@ import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, Link4 } from "@unkey/icons";
 import {
+  Checkbox,
   FormInput,
   Select,
   SelectContent,
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
 import { useEnvironmentSettings } from "../../../environment-provider";
 import { SettingField, WideContent } from "../../shared/form-blocks";
@@ -62,24 +63,32 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
     defaultValues: {
       environmentId: defaultEnvironmentId,
       domain: "",
+      alsoAddWww: true,
     },
   });
 
-  const onSubmit = (values: CustomDomainFormValues) => {
-    const trimmedDomain = values.domain.trim();
-    if (customDomains.some((d) => d.domain === trimmedDomain)) {
-      setError("domain", { message: "Domain already registered" });
-      return;
-    }
-    const appId = environments.find((e) => e.id === values.environmentId)?.appId ?? "";
+  // Watch the domain so we can default the "also add www" checkbox sensibly:
+  // checked for apex-looking inputs (no leading "www.", at least two labels),
+  // hidden otherwise. The checkbox stays in the form state regardless so the
+  // submit handler can read it without a separate ref.
+  const domainValue = useWatch({ control, name: "domain" });
+  const wwwSuggestionEligible =
+    typeof domainValue === "string" &&
+    domainValue.trim().length > 0 &&
+    !/^www\./i.test(domainValue.trim()) &&
+    domainValue.trim().split(".").length >= 2;
 
+  // Clones the same insert payload twice; the collection layer enforces
+  // server-side uniqueness so the second insert fails cleanly if the user
+  // already owns www.<domain>.
+  const insertDomain = (domain: string, environmentId: string, appId: string) => {
     collection.customDomains.insert({
       id: crypto.randomUUID(),
-      domain: trimmedDomain,
+      domain,
       workspaceId: "",
       projectId,
       appId,
-      environmentId: values.environmentId,
+      environmentId,
       verificationStatus: "pending",
       verificationToken: "",
       ownershipVerified: false,
@@ -93,7 +102,31 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       createdAt: Date.now(),
       updatedAt: null,
     });
-    reset({ environmentId: values.environmentId, domain: "" });
+  };
+
+  const onSubmit = (values: CustomDomainFormValues) => {
+    const trimmedDomain = values.domain.trim();
+    if (customDomains.some((d) => d.domain === trimmedDomain)) {
+      setError("domain", { message: "Domain already registered" });
+      return;
+    }
+    const appId = environments.find((e) => e.id === values.environmentId)?.appId ?? "";
+
+    insertDomain(trimmedDomain, values.environmentId, appId);
+
+    // Companion www domain. The dashboard does not pre-populate the
+    // StripWWW redirect on the new route — that lives on a frontline_route
+    // which only exists after verification. The user flips the toggle on
+    // the www row's redirect panel once it's verified.
+    if (
+      values.alsoAddWww &&
+      wwwSuggestionEligible &&
+      !customDomains.some((d) => d.domain === `www.${trimmedDomain}`)
+    ) {
+      insertDomain(`www.${trimmedDomain}`, values.environmentId, appId);
+    }
+
+    reset({ environmentId: values.environmentId, domain: "", alsoAddWww: true });
   };
 
   const saveState = resolveSaveState([
@@ -157,6 +190,25 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
             {...register("domain")}
           />
         </div>
+        {wwwSuggestionEligible && (
+          <div className="flex items-center gap-2 pl-[152px]">
+            <Controller
+              control={control}
+              name="alsoAddWww"
+              render={({ field }) => (
+                <Checkbox
+                  id="alsoAddWww"
+                  checked={field.value}
+                  onCheckedChange={(checked) => field.onChange(checked === true)}
+                />
+              )}
+            />
+            <label htmlFor="alsoAddWww" className="text-[13px] text-gray-11 cursor-pointer">
+              Also add <span className="font-mono text-gray-12">www.{domainValue.trim()}</span>{" "}
+              <span className="text-gray-9">(recommended)</span>
+            </label>
+          </div>
+        )}
       </SettingField>
       <WideContent>
         {customDomains.length > 0 && (

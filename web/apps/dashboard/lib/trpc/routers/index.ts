@@ -54,6 +54,8 @@ import { redeploy } from "./deploy/deployment/redeploy";
 import { rollback } from "./deploy/deployment/rollback";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
+import { getEdgeRedirects } from "./deploy/edge-redirects/get";
+import { updateEdgeRedirects } from "./deploy/edge-redirects/update";
 import { createEnvVars } from "./deploy/env-vars/create";
 import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
@@ -487,6 +489,10 @@ export const router = t.router({
       list: listCustomDomains,
       delete: deleteCustomDomain,
       retry: retryVerification,
+    }),
+    edgeRedirects: t.router({
+      get: getEdgeRedirects,
+      update: updateEdgeRedirects,
     }),
     deployment: t.router({
       list: listDeployments,

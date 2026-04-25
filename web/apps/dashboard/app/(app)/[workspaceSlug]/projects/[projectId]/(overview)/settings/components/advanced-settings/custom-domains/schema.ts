@@ -6,6 +6,7 @@ export const customDomainSchema = z.object({
     .string()
     .min(1, "Domain is required")
     .regex(/^(?!:\/\/)([a-zA-Z0-9-_]+\.)+[a-zA-Z]{2,}$/, "Invalid domain format"),
+  alsoAddWww: z.boolean(),
 });
 
 export type CustomDomainFormValues = z.infer<typeof customDomainSchema>;
