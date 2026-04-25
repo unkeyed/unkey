@@ -50,6 +50,11 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	// Mint a correlation ID so the identity.update audit event plus any
+	// per-ratelimit add/update/delete events that result share one ID
+	// for dashboard drill-down.
+	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
+
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
 	if err != nil {
