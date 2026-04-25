@@ -125,16 +125,11 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 
 func (k *KeyVerifier) log() {
 	latency := time.Since(k.startTime).Milliseconds()
-	nowMillis := time.Now().UnixMilli()
-	// emit() runs deferred after the handler so the request context is
-	// gone. Background is fine — the resolver hits an in-process cache
-	// and a cold MySQL fallback that is best-effort and not user-facing.
-	expiresAt := nowMillis + k.session.LogsRetentionMillis(context.Background())
 
 	k.keyVerifications.Buffer(schema.KeyVerification{
 		RequestID:    k.session.RequestID(),
 		WorkspaceID:  k.Key.WorkspaceID,
-		Time:         nowMillis,
+		Time:         time.Now().UnixMilli(),
 		Outcome:      string(k.Status),
 		KeySpaceID:   k.Key.KeyAuthID,
 		KeyID:        k.Key.ID,
@@ -144,7 +139,6 @@ func (k *KeyVerifier) log() {
 		ExternalID:   k.Key.ExternalID.String,
 		SpentCredits: k.spentCredits,
 		Latency:      float64(latency),
-		ExpiresAt:    expiresAt,
 	})
 
 	keyType := "key"

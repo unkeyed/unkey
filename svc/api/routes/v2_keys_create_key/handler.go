@@ -450,15 +450,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				})
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Event:       auditlog.AuthConnectPermissionKeyEvent,
-					ActorType:   auditlog.RootKeyActor,
-					ActorID:     auth.Key.ID,
-					ActorName:   "root key",
-					ActorMeta:   map[string]any{},
-					Display:     fmt.Sprintf("Added permission %s to key %s", reqPerm.Slug, keyID),
-					RemoteIP:    s.Location(),
-					UserAgent:   s.UserAgent(),
+					WorkspaceID:   auth.AuthorizedWorkspaceID,
+					Event:         auditlog.AuthConnectPermissionKeyEvent,
+					ActorType:     auditlog.RootKeyActor,
+					ActorID:       auth.Key.ID,
+					ActorName:     "root key",
+					ActorMeta:     map[string]any{},
+					Display:       fmt.Sprintf("Added permission %s to key %s", reqPerm.Slug, keyID),
+					RemoteIP:      s.Location(),
+					UserAgent:     s.UserAgent(),
+					CorrelationID: "",
 					Resources: []auditlog.AuditLogResource{
 						{
 							Type:        auditlog.KeyResourceType,
@@ -537,15 +538,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				})
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Event:       auditlog.AuthConnectRoleKeyEvent,
-					ActorType:   auditlog.RootKeyActor,
-					ActorID:     auth.Key.ID,
-					ActorName:   "root key",
-					ActorMeta:   map[string]any{},
-					Display:     fmt.Sprintf("Connected role %s to key %s", reqRole.Name, keyID),
-					RemoteIP:    s.Location(),
-					UserAgent:   s.UserAgent(),
+					WorkspaceID:   auth.AuthorizedWorkspaceID,
+					Event:         auditlog.AuthConnectRoleKeyEvent,
+					ActorType:     auditlog.RootKeyActor,
+					ActorID:       auth.Key.ID,
+					ActorName:     "root key",
+					ActorMeta:     map[string]any{},
+					Display:       fmt.Sprintf("Connected role %s to key %s", reqRole.Name, keyID),
+					RemoteIP:      s.Location(),
+					UserAgent:     s.UserAgent(),
+					CorrelationID: "",
 					Resources: []auditlog.AuditLogResource{
 						{
 							Type:        auditlog.KeyResourceType,
@@ -578,15 +580,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		auditLogs = append(auditLogs, auditlog.AuditLog{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.KeyCreateEvent,
-			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.Key.ID,
-			ActorName:   "root key",
-			ActorMeta:   map[string]any{},
-			Display:     fmt.Sprintf("Created key %s", keyID),
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
+			WorkspaceID:   auth.AuthorizedWorkspaceID,
+			Event:         auditlog.KeyCreateEvent,
+			ActorType:     auditlog.RootKeyActor,
+			ActorID:       auth.Key.ID,
+			ActorName:     "root key",
+			ActorMeta:     map[string]any{},
+			Display:       fmt.Sprintf("Created key %s", keyID),
+			RemoteIP:      s.Location(),
+			UserAgent:     s.UserAgent(),
+			CorrelationID: "",
 			Resources: []auditlog.AuditLogResource{
 				{
 					Type:        auditlog.KeyResourceType,

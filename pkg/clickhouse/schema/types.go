@@ -2,7 +2,6 @@ package schema
 
 import (
 	"encoding/json"
-	"time"
 )
 
 // KeyVerification represents the v2 key verification raw table structure.
@@ -21,13 +20,6 @@ type KeyVerification struct {
 	Tags         []string `ch:"tags" json:"tags"`
 	SpentCredits int64    `ch:"spent_credits" json:"spent_credits"`
 	Latency      float64  `ch:"latency" json:"latency"`
-	// ExpiresAt is the unix-milli TTL stamp for this row. Writers compute
-	// it as `Time + workspace.LogsRetentionDays * 86400000` via
-	// internal/services/quotaretention. If left zero, the writer falls
-	// back to the table's CH-side DEFAULT (the table's historical static
-	// retention window — 90d for verifications) so a missing stamp does
-	// not delete the row immediately.
-	ExpiresAt int64 `ch:"expires_at" json:"expires_at"`
 }
 
 // Ratelimit represents the v2 ratelimit raw table structure.
@@ -49,10 +41,6 @@ type Ratelimit struct {
 	// limit on this decision. Recorded for both passed and rejected
 	// requests so dashboards can break spend down by outcome.
 	Tokens uint64 `ch:"tokens" json:"tokens"`
-	// ExpiresAt is the unix-milli TTL stamp for this row. See
-	// KeyVerification.ExpiresAt for semantics; default fallback for this
-	// table is the historical 30d window.
-	ExpiresAt int64 `ch:"expires_at" json:"expires_at"`
 }
 
 // ApiRequest represents the v2 API request raw table structure.
@@ -77,10 +65,6 @@ type ApiRequest struct {
 	UserAgent       string              `ch:"user_agent" json:"user_agent"`
 	IpAddress       string              `ch:"ip_address" json:"ip_address"`
 	Region          string              `ch:"region" json:"region"`
-	// ExpiresAt is the unix-milli TTL stamp for this row. See
-	// KeyVerification.ExpiresAt for semantics; default fallback for this
-	// table is the historical 30d window.
-	ExpiresAt int64 `ch:"expires_at" json:"expires_at"`
 }
 
 // KeyVerificationAggregated represents aggregated key verification data
@@ -324,10 +308,6 @@ type SentinelRequest struct {
 	TotalLatency    int64               `ch:"total_latency" json:"total_latency"`
 	InstanceLatency int64               `ch:"instance_latency" json:"instance_latency"`
 	SentinelLatency int64               `ch:"sentinel_latency" json:"sentinel_latency"`
-	// ExpiresAt is the unix-milli TTL stamp. See KeyVerification.ExpiresAt
-	// for semantics; default fallback for this table is the historical 30d
-	// window.
-	ExpiresAt int64 `ch:"expires_at" json:"expires_at"`
 }
 
 // AuditLogV1 represents one logical audit event in audit_logs_raw_v1.
@@ -366,10 +346,6 @@ type AuditLogV1 struct {
 	TargetIDs   []string          `ch:"targets.id" json:"targets.id"`
 	TargetNames []string          `ch:"targets.name" json:"targets.name"`
 	TargetMetas []json.RawMessage `ch:"targets.meta" json:"targets.meta"`
-
-	// ExpiresAt drives the per-row TTL. Set at insert time so workspace
-	// retention quotas apply without ALTER TABLE. Stored as unix-milli.
-	ExpiresAt int64 `ch:"expires_at" json:"expires_at"`
 
 	// CorrelationID groups rows that came out of one logical user action.
 	// Empty for single-event flows; auto-minted by the audit log Insert

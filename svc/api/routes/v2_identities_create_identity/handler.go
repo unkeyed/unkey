@@ -124,15 +124,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		auditLogs := []auditlog.AuditLog{
 			{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.IdentityCreateEvent,
-				Display:     fmt.Sprintf("Created identity %s.", identityID),
-				ActorID:     auth.Key.ID,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				ActorType:   auditlog.RootKeyActor,
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
+				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				Event:         auditlog.IdentityCreateEvent,
+				Display:       fmt.Sprintf("Created identity %s.", identityID),
+				ActorID:       auth.Key.ID,
+				ActorName:     "root key",
+				ActorMeta:     map[string]any{},
+				ActorType:     auditlog.RootKeyActor,
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:          identityID,
@@ -161,15 +162,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Event:       auditlog.RatelimitCreateEvent,
-					Display:     fmt.Sprintf("Created ratelimit %s.", ratelimitID),
-					ActorID:     auth.Key.ID,
-					ActorType:   auditlog.RootKeyActor,
-					ActorName:   "root key",
-					ActorMeta:   map[string]any{},
-					RemoteIP:    s.Location(),
-					UserAgent:   s.UserAgent(),
+					WorkspaceID:   auth.AuthorizedWorkspaceID,
+					Event:         auditlog.RatelimitCreateEvent,
+					Display:       fmt.Sprintf("Created ratelimit %s.", ratelimitID),
+					ActorID:       auth.Key.ID,
+					ActorType:     auditlog.RootKeyActor,
+					ActorName:     "root key",
+					ActorMeta:     map[string]any{},
+					RemoteIP:      s.Location(),
+					UserAgent:     s.UserAgent(),
+					CorrelationID: "",
 					Resources: []auditlog.AuditLogResource{
 						{
 							Type:        auditlog.IdentityResourceType,

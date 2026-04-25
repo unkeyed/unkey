@@ -12,10 +12,8 @@ go_library(
         "//gen/proto/hydra/v1:hydra",  # keep
         "//pkg/assert",
         "//pkg/auditlog",
-        "//pkg/cache",
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",
-        "//pkg/clock",
         "//pkg/db",
         "//pkg/healthcheck",
         "//pkg/logger",

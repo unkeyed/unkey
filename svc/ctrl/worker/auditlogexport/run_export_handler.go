@@ -4,14 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -29,14 +27,6 @@ const batchLimit int32 = 1000
 // shape: deploy a drainer with the new version added to this list FIRST,
 // then deploy a writer that emits it.
 var knownVersions = []string{auditlog.OutboxVersionV1}
-
-// freeTierRetentionMillis is the retention applied when a workspace has no
-// quota row or its `audit_logs_retention_days` is zero. Mirrors the
-// freeTierQuotas.auditLogsRetentionDays constant in
-// web/apps/dashboard/lib/quotas.ts so the dashboard's retention cutoff and
-// the CH TTL stamp agree. Stored as milliseconds so it drops directly into
-// the millisecond-based event Time arithmetic when we compute expires_at.
-const freeTierRetentionMillis int64 = 30 * 24 * 60 * 60 * 1000
 
 // batchResult is the journaled outcome of a single outbox -> CH batch.
 type batchResult struct {
@@ -134,12 +124,7 @@ func (s *Service) exportBatch(ctx context.Context) (batchResult, error) {
 			pks[i] = row.Pk
 		}
 
-		retentionByWorkspace, err := s.loadRetentionMillis(txCtx, events)
-		if err != nil {
-			return batchResult{EventsExported: 0}, fmt.Errorf("load retention: %w", err)
-		}
-
-		chRows, err := buildCHRows(events, retentionByWorkspace)
+		chRows, err := buildCHRows(events)
 		if err != nil {
 			return batchResult{EventsExported: 0}, fmt.Errorf("build clickhouse rows: %w", err)
 		}
@@ -163,15 +148,15 @@ func (s *Service) exportBatch(ctx context.Context) (batchResult, error) {
 // fanned into parallel arrays so a single event lands as a single CH row
 // with Nested target columns; this avoids the GROUP BY reconstruction the
 // previous (one-row-per-target) layout required on read.
-func buildCHRows(
-	events []auditlog.Event,
-	retentionByWorkspace map[string]int64,
-) ([]schema.AuditLogV1, error) {
+//
+// expires_at is NOT set here — the CH table has it as a MATERIALIZED
+// column derived from `time + dictGet('workspace_quota_dict', ...)` so
+// retention is computed inside CH at INSERT, no per-workspace lookup
+// needed in this writer.
+func buildCHRows(events []auditlog.Event) ([]schema.AuditLogV1, error) {
 	nowMillis := time.Now().UnixMilli()
 	out := make([]schema.AuditLogV1, len(events))
 	for i, e := range events {
-		retentionMs := retentionByWorkspace[e.WorkspaceID]
-
 		actorMeta, err := marshalMeta(e.Actor.Meta)
 		if err != nil {
 			return nil, fmt.Errorf("encode actor_meta event_id=%s: %w", e.EventID, err)
@@ -221,7 +206,6 @@ func buildCHRows(
 			TargetIDs:     targetIDs,
 			TargetNames:   targetNames,
 			TargetMetas:   targetMetas,
-			ExpiresAt:     e.Time + retentionMs,
 			CorrelationID: e.CorrelationID,
 		}
 	}
@@ -236,56 +220,4 @@ func marshalMeta(m map[string]any) (json.RawMessage, error) {
 		return json.RawMessage("{}"), nil
 	}
 	return json.Marshal(m)
-}
-
-// loadRetentionMillis returns a map from workspace ID to the retention
-// window (in milliseconds) that should apply to the batch's events. Results
-// are cached via s.retentionCh (10m fresh, 1h stale), so a steady-state
-// export drains with zero extra MySQL reads once quotas are warm.
-func (s *Service) loadRetentionMillis(
-	ctx context.Context,
-	events []auditlog.Event,
-) (map[string]int64, error) {
-	workspaces := make(map[string]struct{}, len(events))
-	for _, e := range events {
-		workspaces[e.WorkspaceID] = struct{}{}
-	}
-
-	out := make(map[string]int64, len(workspaces))
-	for ws := range workspaces {
-		ms, _, err := s.retentionCh.SWR(ctx, ws,
-			func(ctx context.Context) (int64, error) {
-				return s.fetchRetentionMillis(ctx, ws)
-			},
-			func(err error) cache.Op {
-				if err == nil {
-					return cache.WriteValue
-				}
-				return cache.Noop
-			},
-		)
-		if err != nil {
-			return nil, fmt.Errorf("lookup quota %q: %w", ws, err)
-		}
-		out[ws] = ms
-	}
-	return out, nil
-}
-
-// fetchRetentionMillis reads audit_logs_retention_days for one workspace
-// from MySQL and converts to milliseconds. Missing quota rows or zero values
-// collapse to freeTierRetentionMillis so the caller never has to distinguish
-// "no quota" from "free tier."
-func (s *Service) fetchRetentionMillis(ctx context.Context, workspaceID string) (int64, error) {
-	quota, err := db.Query.FindQuotaByWorkspaceID(ctx, s.db.RO(), workspaceID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return freeTierRetentionMillis, nil
-	}
-	if err != nil {
-		return 0, err
-	}
-	if quota.AuditLogsRetentionDays <= 0 {
-		return freeTierRetentionMillis, nil
-	}
-	return int64(quota.AuditLogsRetentionDays) * 24 * 60 * 60 * 1000, nil
 }

@@ -72,6 +72,10 @@ export const vercelRouter = t.router({
         accessToken: integration.accessToken,
         teamId: integration.vercelTeamId ?? undefined,
       });
+      // Mint a shared correlation so every audit event from this setup
+      // (key.create + N vercelBinding.create per environment) links to
+      // one user action in the audit log drill-down.
+      const correlationId = newId("correlation");
       for (const [environment, apiId] of Object.entries(input.apiIds)) {
         if (!apiId) {
           continue;
@@ -116,6 +120,7 @@ export const vercelRouter = t.router({
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
+            correlationId,
           });
         });
 
@@ -166,6 +171,7 @@ export const vercelRouter = t.router({
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
+            correlationId,
           });
         });
 
@@ -218,6 +224,7 @@ export const vercelRouter = t.router({
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
+            correlationId,
           });
         });
       }
@@ -401,6 +408,9 @@ export const vercelRouter = t.router({
         prefix: "unkey",
         byteLength: 16,
       });
+      // Mint a shared correlation so the key.create + the
+      // vercelBinding.create (or .update) below link to one user action.
+      const correlationId = newId("correlation");
       await db.transaction(async (tx) => {
         await tx.insert(schema.keys).values({
           id: keyId,
@@ -431,6 +441,7 @@ export const vercelRouter = t.router({
             location: ctx.audit.location,
             userAgent: ctx.audit.userAgent,
           },
+          correlationId,
         });
       });
 
@@ -486,6 +497,7 @@ export const vercelRouter = t.router({
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
+            correlationId,
           });
         });
       } else {
@@ -532,6 +544,7 @@ export const vercelRouter = t.router({
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
+            correlationId,
           });
         });
       }

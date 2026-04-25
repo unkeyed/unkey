@@ -10,18 +10,40 @@ import (
 	"database/sql"
 )
 
+const findAuditLogMaxPK = `-- name: FindAuditLogMaxPK :one
+SELECT CAST(COALESCE(MAX(pk), 0) AS UNSIGNED) AS max_pk
+FROM audit_log
+`
+
+// FindAuditLogMaxPK returns MAX(pk) of the legacy audit_log table, used
+// by the backfill VO to snapshot the cutoff on first invocation. Returns
+// 0 when the table is empty (COALESCE + CAST keep the call from erroring
+// on NULL aggregation and force sqlc to infer the result as uint64
+// instead of interface{}).
+//
+//	SELECT CAST(COALESCE(MAX(pk), 0) AS UNSIGNED) AS max_pk
+//	FROM audit_log
+func (q *Queries) FindAuditLogMaxPK(ctx context.Context, db DBTX) (int64, error) {
+	row := db.QueryRowContext(ctx, findAuditLogMaxPK)
+	var max_pk int64
+	err := row.Scan(&max_pk)
+	return max_pk, err
+}
+
 const findAuditLogsForBackfill = `-- name: FindAuditLogsForBackfill :many
 SELECT pk, id, workspace_id, bucket, event, time, display,
        remote_ip, user_agent, actor_type, actor_id, actor_name, actor_meta
 FROM audit_log
 WHERE pk > ?
+  AND pk <= ?
 ORDER BY pk
 LIMIT ?
 `
 
 type FindAuditLogsForBackfillParams struct {
-	AfterPk uint64 `db:"after_pk"`
-	Limit   int32  `db:"limit"`
+	AfterPk  uint64 `db:"after_pk"`
+	CutoffPk uint64 `db:"cutoff_pk"`
+	Limit    int32  `db:"limit"`
 }
 
 type FindAuditLogsForBackfillRow struct {
@@ -47,6 +69,11 @@ type FindAuditLogsForBackfillRow struct {
 // non_replicated_deduplication_window collapses the duplicate insert
 // block.
 //
+// The pk <= cutoff bound makes the VO terminate. Rows written after the
+// backfill snapshotted the legacy tail are already shipped via the live
+// drainer, so the backfill skips them. Without this bound the cursor
+// would chase a moving target forever.
+//
 // The primary key on `pk` makes this a forward range scan; no extra index
 // needed. We pull every column the auditlog.Event envelope needs in one
 // read so the VO does not have to re-query per row.
@@ -55,10 +82,11 @@ type FindAuditLogsForBackfillRow struct {
 //	       remote_ip, user_agent, actor_type, actor_id, actor_name, actor_meta
 //	FROM audit_log
 //	WHERE pk > ?
+//	  AND pk <= ?
 //	ORDER BY pk
 //	LIMIT ?
 func (q *Queries) FindAuditLogsForBackfill(ctx context.Context, db DBTX, arg FindAuditLogsForBackfillParams) ([]FindAuditLogsForBackfillRow, error) {
-	rows, err := db.QueryContext(ctx, findAuditLogsForBackfill, arg.AfterPk, arg.Limit)
+	rows, err := db.QueryContext(ctx, findAuditLogsForBackfill, arg.AfterPk, arg.CutoffPk, arg.Limit)
 	if err != nil {
 		return nil, err
 	}

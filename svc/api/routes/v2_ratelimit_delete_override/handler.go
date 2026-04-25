@@ -117,15 +117,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.RatelimitDeleteOverrideEvent,
-				Display:     fmt.Sprintf("Deleted override %s.", override.ID),
-				ActorID:     auth.Key.ID,
-				ActorType:   auditlog.RootKeyActor,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
+				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				Event:         auditlog.RatelimitDeleteOverrideEvent,
+				Display:       fmt.Sprintf("Deleted override %s.", override.ID),
+				ActorID:       auth.Key.ID,
+				ActorType:     auditlog.RootKeyActor,
+				ActorName:     "root key",
+				ActorMeta:     map[string]any{},
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:          override.ID,

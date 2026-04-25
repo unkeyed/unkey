@@ -9,9 +9,9 @@ import (
 )
 
 func TestBuildCHRows(t *testing.T) {
-	// Single retention so the math is checkable by eye: 30 days in ms.
-	const retentionMs = int64(30 * 24 * 60 * 60 * 1000)
-	retention := map[string]int64{"ws_a": retentionMs}
+	// expires_at is computed CH-side as a MATERIALIZED column reading
+	// from workspace_quota_dict; the writer no longer stamps it, so
+	// these tests don't assert on it.
 
 	t.Run("event with multiple targets folds into a single CH row with parallel arrays", func(t *testing.T) {
 		t.Helper()
@@ -39,7 +39,7 @@ func TestBuildCHRows(t *testing.T) {
 			},
 		}
 
-		rows, err := buildCHRows(events, retention)
+		rows, err := buildCHRows(events)
 		require.NoError(t, err)
 		require.Len(t, rows, 1, "one event = one CH row regardless of target count")
 
@@ -77,7 +77,7 @@ func TestBuildCHRows(t *testing.T) {
 				Actor:       auditlog.EventActor{Type: "system", ID: "sys"},
 			},
 		}
-		rows, err := buildCHRows(events, retention)
+		rows, err := buildCHRows(events)
 		require.NoError(t, err)
 		require.Len(t, rows, 1)
 		require.Empty(t, rows[0].TargetTypes)
@@ -86,47 +86,14 @@ func TestBuildCHRows(t *testing.T) {
 		require.Empty(t, rows[0].TargetMetas)
 	})
 
-	t.Run("expires_at is event_time + retention (unix-milli)", func(t *testing.T) {
-		t.Helper()
-		events := []auditlog.Event{
-			{
-				EventID:     "log_3",
-				Time:        1_700_000_000_000,
-				WorkspaceID: "ws_a",
-				Bucket:      "b",
-				Event:       "x",
-				Description: "d",
-				Actor:       auditlog.EventActor{Type: "u", ID: "u1"},
-			},
-		}
-		rows, err := buildCHRows(events, retention)
-		require.NoError(t, err)
-		require.Equal(t, int64(1_700_000_000_000)+retentionMs, rows[0].ExpiresAt)
-	})
-
 	t.Run("blank source defaults to platform", func(t *testing.T) {
 		t.Helper()
 		events := []auditlog.Event{
 			{EventID: "log_4", Time: 4_000, WorkspaceID: "ws_a", Bucket: "b", Event: "x", Description: "d", Actor: auditlog.EventActor{Type: "u", ID: "u1"}},
 		}
-		rows, err := buildCHRows(events, retention)
+		rows, err := buildCHRows(events)
 		require.NoError(t, err)
 		require.Equal(t, auditlog.EventSourcePlatform, rows[0].Source)
-	})
-
-	t.Run("missing workspace retention falls back to zero (caller responsibility)", func(t *testing.T) {
-		t.Helper()
-		// If a workspace has no entry in the retention map, expires_at lands at
-		// event time itself. This is intentional: the worker fails the batch
-		// before this if it can't load retention, so an unmapped workspace
-		// here means a programmer error and we'd rather emit visibly-bad
-		// expires_at than silently apply a default.
-		events := []auditlog.Event{
-			{EventID: "log_5", Time: 5_000, WorkspaceID: "ws_unknown", Bucket: "b", Event: "x", Description: "d", Actor: auditlog.EventActor{Type: "u", ID: "u1"}},
-		}
-		rows, err := buildCHRows(events, retention)
-		require.NoError(t, err)
-		require.Equal(t, int64(5_000), rows[0].ExpiresAt)
 	})
 
 	t.Run("inserted_at is the build time (unix-milli), not the event time", func(t *testing.T) {
@@ -135,7 +102,7 @@ func TestBuildCHRows(t *testing.T) {
 			{EventID: "log_6", Time: 1_000, WorkspaceID: "ws_a", Bucket: "b", Event: "x", Description: "d", Actor: auditlog.EventActor{Type: "u", ID: "u1"}},
 		}
 		before := time.Now().UnixMilli()
-		rows, err := buildCHRows(events, retention)
+		rows, err := buildCHRows(events)
 		after := time.Now().UnixMilli()
 		require.NoError(t, err)
 		require.GreaterOrEqual(t, rows[0].InsertedAt, before)
@@ -147,7 +114,7 @@ func TestBuildCHRows(t *testing.T) {
 		events := []auditlog.Event{
 			{EventID: "log_7", Time: 1_000, WorkspaceID: "ws_a", Bucket: "b", Event: "x", Description: "d", Actor: auditlog.EventActor{Type: "u", ID: "u1"}},
 		}
-		rows, err := buildCHRows(events, retention)
+		rows, err := buildCHRows(events)
 		require.NoError(t, err)
 		require.JSONEq(t, `{}`, string(rows[0].ActorMeta))
 		require.JSONEq(t, `{}`, string(rows[0].Meta))

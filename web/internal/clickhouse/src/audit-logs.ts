@@ -41,7 +41,7 @@ export function getAuditLogs(ch: Querier) {
   return (args: AuditLogsRequest) => {
     const filterConditions = `
       workspace_id = {workspaceId: String}
-      AND bucket_id = {bucketId: String}
+      AND bucket = {bucketId: String}
       AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
       AND (
         CASE
@@ -57,31 +57,31 @@ export function getAuditLogs(ch: Querier) {
       )
     `;
 
-    // Filter in a subquery so the outer aggregates can alias back to the
-    // original column names without triggering ClickHouse's
-    // ILLEGAL_AGGREGATION guard (which rejects `any(col) AS col` when `col`
-    // also appears in WHERE).
+    // Targets are Nested(type, id, name, meta) — already grouped per
+    // event_id in the table layout — so no GROUP BY / ARRAY JOIN
+    // gymnastics needed. Map the four parallel arrays to row tuples
+    // for the schema's [type, id, name, meta] shape.
     const logsQuery = ch.query({
       query: `
         SELECT
           event_id,
-          any(time) AS time,
-          any(event) AS event,
-          any(description) AS description,
-          any(actor_type) AS actor_type,
-          any(actor_id) AS actor_id,
-          any(actor_name) AS actor_name,
-          any(actor_meta) AS actor_meta,
-          any(remote_ip) AS remote_ip,
-          any(user_agent) AS user_agent,
-          any(meta) AS meta,
-          groupUniqArray((target_type, target_id, target_name, target_meta)) AS targets
-        FROM (
-          SELECT *
-          FROM ${TABLE}
-          WHERE ${filterConditions}
-        )
-        GROUP BY event_id
+          time,
+          event,
+          description,
+          actor_type,
+          actor_id,
+          actor_name,
+          toJSONString(actor_meta) AS actor_meta,
+          remote_ip,
+          user_agent,
+          toJSONString(meta) AS meta,
+          arrayMap(
+            (targetType, targetId, targetName, targetMeta) ->
+              (targetType, targetId, targetName, toJSONString(targetMeta)),
+            \`targets.type\`, \`targets.id\`, \`targets.name\`, \`targets.meta\`
+          ) AS targets
+        FROM ${TABLE}
+        WHERE ${filterConditions}
         ORDER BY time DESC, event_id DESC
         LIMIT {limit: Int} OFFSET {offset: Int}`,
       params: auditLogsRequestSchema,

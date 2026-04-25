@@ -36,7 +36,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/auditlogarchive"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/auditlogbackfill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
@@ -532,31 +531,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewAuditLogBackfillServiceServer(auditLogBackfillSvc))
 	logger.Info("AuditLogBackfillService enabled")
-
-	// Audit log archive: exports expired audit log rows to S3 Parquet, then
-	// physically deletes them. This is the sole authority on audit log
-	// retention deletion in CH (the table has no TTL clause). Singleton VO
-	// keyed "default", cron-triggered.
-	var auditLogArchiveHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
-	if cfg.Heartbeat.AuditLogArchiveURL != "" {
-		auditLogArchiveHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.AuditLogArchiveURL)
-	}
-	auditLogArchiveSvc, err := auditlogarchive.New(auditlogarchive.Config{
-		Clickhouse: ch,
-		Heartbeat:  auditLogArchiveHeartbeat,
-		S3: auditlogarchive.S3Config{
-			Endpoint:  cfg.AuditLogArchive.Endpoint,
-			Prefix:    cfg.AuditLogArchive.Prefix,
-			AccessKey: cfg.AuditLogArchive.AccessKey,
-			SecretKey: cfg.AuditLogArchive.SecretKey,
-		},
-		Disabled: cfg.AuditLogArchive.Disabled,
-	})
-	if err != nil {
-		return fmt.Errorf("create audit log archive service: %w", err)
-	}
-	restateSrv.Bind(hydrav1.NewAuditLogArchiveServiceServer(auditLogArchiveSvc))
-	logger.Info("AuditLogArchiveService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()

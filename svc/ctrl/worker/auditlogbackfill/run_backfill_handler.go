@@ -4,14 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -20,19 +18,31 @@ import (
 // batchLimit caps the number of legacy audit_log rows read per page. Each
 // row maps to one CH row (targets are folded as Nested arrays inside the
 // same row), so this also bounds the CH insert size and the targets IN-list
-// length.
-const batchLimit int32 = 1000
+// length. 5000 sits in CH's INSERT sweet spot and keeps the targets IN-list
+// well under Vitess's query-size limits.
+const batchLimit int32 = 5000
 
-// stateKeyLastPK is the Restate VO state key for the cursor. Storing only
-// `last_pk` is enough because the page query is `WHERE pk > last_pk ORDER
-// BY pk LIMIT ?`, which is monotonic on the primary key.
+// maxPagesPerInvocation caps the number of paged iterations a single
+// RunBackfill call can chip through. With batchLimit=5000 this means each
+// invocation does at most 500k rows (~1-2 min wall-clock). Bounding per-
+// invocation work keeps the Restate journal small (one entry per page) so
+// crash recovery stays fast, and lets the cron drive throughput by
+// scheduling more frequently rather than letting one invocation sprawl
+// across hours.
+const maxPagesPerInvocation = 100
+
+// stateKeyLastPK is the Restate VO state key for the cursor. Combined
+// with cutoff_pk (below) the page query is `WHERE pk > last_pk AND pk <=
+// cutoff_pk ORDER BY pk LIMIT ?`, monotonic on the primary key.
 const stateKeyLastPK = "last_pk"
 
-// freeTierRetentionMillis mirrors the constant in auditlogexport so a
-// backfilled row gets the same expires_at stamp the live drainer would
-// have assigned. See svc/ctrl/worker/auditlogexport for the source-of-
-// truth comment.
-const freeTierRetentionMillis int64 = 30 * 24 * 60 * 60 * 1000
+// stateKeyCutoffPK is the Restate VO state key for the upper bound on
+// what counts as "legacy" rows. Snapshotted on first invocation as
+// MAX(pk) of audit_log; rows written after that get shipped via the
+// live drainer instead. Without this bound the cursor would chase a
+// moving target forever (writers still dual-write to audit_log during
+// the dual-write phase).
+const stateKeyCutoffPK = "cutoff_pk"
 
 // pageResult is the journaled outcome of one paged backfill iteration.
 type pageResult struct {
@@ -42,19 +52,18 @@ type pageResult struct {
 }
 
 // RunBackfill loops paged scans of the legacy audit_log table past the
-// persisted cursor, ships each page to ClickHouse, and advances the
-// cursor in VO state. Each page is its own restate.Run so a crash mid-
-// backfill only replays the last incomplete page; CH's
-// non_replicated_deduplication_window collapses the duplicate insert
-// block.
+// persisted cursor and up to a snapshotted cutoff, ships each page to
+// ClickHouse, and advances the cursor in VO state. Each page is its own
+// restate.Run so a crash mid-backfill only replays the last incomplete
+// page; CH's non_replicated_deduplication_window collapses the duplicate
+// insert block.
 //
 // Termination:
 //
-//   - Page returns 0 rows: cursor caught up with the legacy tail.
-//     Response.finished = true. Future ticks are noops.
-//   - Page returns < batchLimit rows: still loops one more time so we
-//     don't bail early on a half-empty page mid-table; the next page will
-//     be empty and trigger the finished branch.
+//   - Cutoff (MAX(pk) at first invocation) bounds the scan above. Rows
+//     written after the snapshot are shipped by the live drainer instead.
+//   - Page returns 0 rows OR cursor reaches cutoff: caught up.
+//     Response.finished = true. Future ticks are noops (returns immediately).
 func (s *Service) RunBackfill(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunBackfillRequest,
@@ -67,12 +76,47 @@ func (s *Service) RunBackfill(
 		return nil, fmt.Errorf("get cursor state: %w", err)
 	}
 
+	// Pointer disambiguates "not set yet" (nil) from "snapshotted as 0
+	// because audit_log was empty at first run" (non-nil zero). The
+	// latter is a real, reachable state in dev environments and on
+	// fresh databases — without the pointer we'd re-snapshot forever.
+	cutoffPtr, err := restate.Get[*uint64](ctx, stateKeyCutoffPK)
+	if err != nil {
+		return nil, fmt.Errorf("get cutoff state: %w", err)
+	}
+	var cutoff uint64
+	if cutoffPtr == nil {
+		// First invocation: snapshot MAX(pk) so all subsequent runs target
+		// the same finite range. Wrapped in restate.Run so the journaled
+		// value is replayed deterministically on crash.
+		cutoff, err = restate.Run(ctx, func(rc restate.RunContext) (uint64, error) {
+			max, err := db.Query.FindAuditLogMaxPK(rc, s.db.RO())
+			if err != nil {
+				return 0, fmt.Errorf("snapshot max(pk): %w", err)
+			}
+			return uint64(max), nil
+		}, restate.WithName("snapshot cutoff"))
+		if err != nil {
+			return nil, err
+		}
+		restate.Set(ctx, stateKeyCutoffPK, &cutoff)
+		logger.Info("audit log backfill cutoff snapshotted", "cutoff_pk", cutoff)
+	} else {
+		cutoff = *cutoffPtr
+	}
+
 	var totalBackfilled int32
 	var done bool
-	for pageNum := 0; ; pageNum++ {
+	if cursor >= cutoff {
+		// Already caught up. No-op tick; still send the heartbeat below
+		// so silence means "wedged" not "finished."
+		done = true
+	}
+	for pageNum := 0; !done && pageNum < maxPagesPerInvocation; pageNum++ {
 		current := cursor
+		currentCutoff := cutoff
 		page, err := restate.Run(ctx, func(rc restate.RunContext) (pageResult, error) {
-			return s.backfillPage(rc, current)
+			return s.backfillPage(rc, current, currentCutoff)
 		}, restate.WithName(fmt.Sprintf("page-%d", pageNum)))
 		if err != nil {
 			return nil, fmt.Errorf("page %d: %w", pageNum, err)
@@ -93,6 +137,7 @@ func (s *Service) RunBackfill(
 	logger.Info("audit log backfill pass complete",
 		"rows_backfilled", totalBackfilled,
 		"last_pk", cursor,
+		"cutoff_pk", cutoff,
 		"finished", done,
 		"elapsed", time.Since(start),
 	)
@@ -110,25 +155,27 @@ func (s *Service) RunBackfill(
 	}, nil
 }
 
-// backfillPage reads one page of legacy audit_log rows past the cursor,
-// joins their targets in one batched query, transforms to v1 CH envelopes,
-// and inserts. Returns Done=true when the parent page is empty.
+// backfillPage reads one page of legacy audit_log rows past the cursor
+// and up to (inclusive) the cutoff, joins their targets in one batched
+// query, transforms to v1 CH envelopes, and inserts. Returns Done=true
+// when the page is empty (cursor reached cutoff).
 //
 // Failure modes:
 //   - JSON decode of actor_meta or target meta fails: page fails, cursor
 //     stays put, manual intervention required (likely a bad legacy row).
 //   - CH insert fails: cursor stays put, next tick replays the same page,
 //     CH dedup absorbs duplicates if the prior call landed.
-func (s *Service) backfillPage(ctx context.Context, afterPK uint64) (pageResult, error) {
+func (s *Service) backfillPage(ctx context.Context, afterPK, cutoffPK uint64) (pageResult, error) {
 	parents, err := db.Query.FindAuditLogsForBackfill(ctx, s.db.RO(), db.FindAuditLogsForBackfillParams{
-		AfterPk: afterPK,
-		Limit:   batchLimit,
+		AfterPk:  afterPK,
+		CutoffPk: cutoffPK,
+		Limit:    batchLimit,
 	})
 	if err != nil {
 		return pageResult{}, fmt.Errorf("find audit logs: %w", err)
 	}
 	if len(parents) == 0 {
-		return pageResult{Done: true}, nil
+		return pageResult{Done: true, RowsBackfilled: 0, NewLastPK: afterPK}, nil
 	}
 
 	parentIDs := make([]string, len(parents))
@@ -141,12 +188,7 @@ func (s *Service) backfillPage(ctx context.Context, afterPK uint64) (pageResult,
 		return pageResult{}, fmt.Errorf("load targets: %w", err)
 	}
 
-	retentionByWorkspace, err := s.loadRetentionMillis(ctx, parents)
-	if err != nil {
-		return pageResult{}, fmt.Errorf("load retention: %w", err)
-	}
-
-	chRows, err := buildCHRows(parents, targetsByLog, retentionByWorkspace)
+	chRows, err := buildCHRows(parents, targetsByLog)
 	if err != nil {
 		return pageResult{}, fmt.Errorf("build clickhouse rows: %w", err)
 	}
@@ -184,16 +226,17 @@ func (s *Service) loadTargets(
 // buildCHRows maps a page of legacy parents + their targets into v1 CH
 // envelopes. Mirrors auditlogexport.buildCHRows so backfilled rows are
 // indistinguishable from drained ones.
+//
+// expires_at is NOT set here — the CH table has it as a MATERIALIZED
+// column derived from `time + dictGet('workspace_quota_dict', ...)`,
+// so retention is computed inside CH at INSERT.
 func buildCHRows(
 	parents []db.FindAuditLogsForBackfillRow,
 	targetsByLog map[string][]db.FindAuditLogTargetsForBackfillRow,
-	retentionByWorkspace map[string]int64,
 ) ([]schema.AuditLogV1, error) {
 	nowMillis := time.Now().UnixMilli()
 	out := make([]schema.AuditLogV1, len(parents))
 	for i, p := range parents {
-		retentionMs := retentionByWorkspace[p.WorkspaceID]
-
 		actorMeta, err := normalizeMeta(p.ActorMeta)
 		if err != nil {
 			return nil, fmt.Errorf("encode actor_meta pk=%d: %w", p.Pk, err)
@@ -216,26 +259,26 @@ func buildCHRows(
 		}
 
 		out[i] = schema.AuditLogV1{
-			EventID:     p.ID,
-			Time:        p.Time,
-			InsertedAt:  nowMillis,
-			WorkspaceID: p.WorkspaceID,
-			Bucket:      p.Bucket,
-			Source:      auditlog.EventSourcePlatform,
-			Event:       p.Event,
-			Description: p.Display,
-			ActorType:   p.ActorType,
-			ActorID:     p.ActorID,
-			ActorName:   nullStringOrEmpty(p.ActorName),
-			ActorMeta:   actorMeta,
-			RemoteIP:    nullStringOrEmpty(p.RemoteIp),
-			UserAgent:   nullStringOrEmpty(p.UserAgent),
-			Meta:        json.RawMessage("{}"),
-			TargetTypes: targetTypes,
-			TargetIDs:   targetIDs,
-			TargetNames: targetNames,
-			TargetMetas: targetMetas,
-			ExpiresAt:   p.Time + retentionMs,
+			EventID:       p.ID,
+			Time:          p.Time,
+			InsertedAt:    nowMillis,
+			WorkspaceID:   p.WorkspaceID,
+			Bucket:        p.Bucket,
+			Source:        auditlog.EventSourcePlatform,
+			Event:         p.Event,
+			Description:   p.Display,
+			ActorType:     p.ActorType,
+			ActorID:       p.ActorID,
+			ActorName:     nullStringOrEmpty(p.ActorName),
+			ActorMeta:     actorMeta,
+			RemoteIP:      nullStringOrEmpty(p.RemoteIp),
+			UserAgent:     nullStringOrEmpty(p.UserAgent),
+			Meta:          json.RawMessage("{}"),
+			TargetTypes:   targetTypes,
+			TargetIDs:     targetIDs,
+			TargetNames:   targetNames,
+			TargetMetas:   targetMetas,
+			CorrelationID: "",
 		}
 	}
 	return out, nil
@@ -265,50 +308,4 @@ func nullStringOrEmpty(s sql.NullString) string {
 		return s.String
 	}
 	return ""
-}
-
-// loadRetentionMillis resolves the audit log retention quota for every
-// workspace on the page. Mirrors auditlogexport.loadRetentionMillis.
-func (s *Service) loadRetentionMillis(
-	ctx context.Context,
-	parents []db.FindAuditLogsForBackfillRow,
-) (map[string]int64, error) {
-	workspaces := make(map[string]struct{}, len(parents))
-	for _, p := range parents {
-		workspaces[p.WorkspaceID] = struct{}{}
-	}
-
-	out := make(map[string]int64, len(workspaces))
-	for ws := range workspaces {
-		ms, _, err := s.retentionCh.SWR(ctx, ws,
-			func(ctx context.Context) (int64, error) {
-				return s.fetchRetentionMillis(ctx, ws)
-			},
-			func(err error) cache.Op {
-				if err == nil {
-					return cache.WriteValue
-				}
-				return cache.Noop
-			},
-		)
-		if err != nil {
-			return nil, fmt.Errorf("lookup quota %q: %w", ws, err)
-		}
-		out[ws] = ms
-	}
-	return out, nil
-}
-
-func (s *Service) fetchRetentionMillis(ctx context.Context, workspaceID string) (int64, error) {
-	quota, err := db.Query.FindQuotaByWorkspaceID(ctx, s.db.RO(), workspaceID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return freeTierRetentionMillis, nil
-	}
-	if err != nil {
-		return 0, err
-	}
-	if quota.AuditLogsRetentionDays <= 0 {
-		return freeTierRetentionMillis, nil
-	}
-	return int64(quota.AuditLogsRetentionDays) * 24 * 60 * 60 * 1000, nil
 }

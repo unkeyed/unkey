@@ -182,7 +182,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Remaining:   uint64(result.Remaining),
 			ResetAt:     result.Reset.UnixMilli(),
 			Tokens:      uint64(cost),
-			ExpiresAt:   nowMillis + s.LogsRetentionMillis(ctx),
 		})
 	}
 
@@ -278,15 +277,16 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, auth *key
 
 			auditErr := h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 				{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
-					Event:       auditlog.RatelimitNamespaceCreateEvent,
-					Display:     "Created ratelimit namespace " + name,
-					ActorID:     auth.Key.ID,
-					ActorName:   auth.Key.Name.String,
-					ActorMeta:   map[string]any{},
-					ActorType:   auditlog.RootKeyActor,
-					RemoteIP:    s.Location(),
-					UserAgent:   s.UserAgent(),
+					WorkspaceID:   auth.AuthorizedWorkspaceID,
+					Event:         auditlog.RatelimitNamespaceCreateEvent,
+					Display:       "Created ratelimit namespace " + name,
+					ActorID:       auth.Key.ID,
+					ActorName:     auth.Key.Name.String,
+					ActorMeta:     map[string]any{},
+					ActorType:     auditlog.RootKeyActor,
+					RemoteIP:      s.Location(),
+					UserAgent:     s.UserAgent(),
+					CorrelationID: "",
 					Resources: []auditlog.AuditLogResource{
 						{
 							ID:          id,
