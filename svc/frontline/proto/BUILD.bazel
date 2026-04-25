@@ -1,3 +1,8 @@
+# gazelle:proto disable
+# Generated Go for these protos lives at //gen/proto/frontline/...; gazelle
+# would otherwise create proto_library/go_proto_library rules here that
+# would collide with the gen/ targets and require @rules_proto.
+
 load("@rules_go//go:def.bzl", "go_library")
 
 go_library(

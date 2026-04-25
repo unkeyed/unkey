@@ -14,8 +14,8 @@ The config schema maps to [`svc/frontline/config.go`](https://github.com/unkeyed
 Minimal config example:
 
 ```toml
-challenge_port = 7070
-http_port = 7443
+http_port = 7070
+https_port = 7443
 region = "${UNKEY_REGION}.aws"
 instance_id = "${POD_NAME}"
 apex_domain = "${UNKEY_APEX_DOMAIN}"
@@ -42,12 +42,12 @@ secret_key = "${UNKEY_GOSSIP_SECRET_KEY}"
   Instance identifier for logs and tracing.
 </ResponseField>
 
-<ResponseField name="challenge_port" type="int" default="7070">
-  Port for ACME HTTP-01 challenges.
+<ResponseField name="http_port" type="int" default="7070">
+  Plain-HTTP listener port. Serves ACME HTTP-01 challenges and 308-redirects everything else to https:// via the edge-redirect engine.
 </ResponseField>
 
-<ResponseField name="http_port" type="int" default="7443">
-  HTTPS listener port.
+<ResponseField name="https_port" type="int" default="7443">
+  HTTPS listener port. Terminates TLS, evaluates per-route edge-redirect rules, and forwards customer traffic to the sentinel.
 </ResponseField>
 
 <ResponseField name="region" type="string" required>
@@ -187,8 +187,8 @@ The Helm chart provides these variables for the default config template:
 ## Example configuration
 
 ```toml
-challenge_port = 7070
-http_port = 7443
+http_port = 7070
+https_port = 7443
 region = "${UNKEY_REGION}.aws"
 instance_id = "${POD_NAME}"
 apex_domain = "${UNKEY_APEX_DOMAIN}"
