@@ -37,6 +37,13 @@ table's TTL clause. See "Audit log archive" below.
   instead of fragmenting old partitions). **No `TTL DELETE` clause**: the
   `AuditLogArchive` cron is sole authority on retention and physical
   deletion.
+  - **`correlation_id String CODEC(ZSTD(1))`** + bloom filter index
+    (`idx_correlation_id`) groups events emitted by one logical user
+    action so the dashboard can drill from any one event to the rest.
+    Auto-minted by the audit log Insert service when a caller batches
+    >1 events; explicitly set via `auditlog.WithCorrelation(ctx, ...)`
+    for handlers that fan out across multiple Insert calls (8 API
+    handlers wired today). Empty on single-event flows.
 - **Analytics tables** (`key_verifications_raw_v2`, `ratelimits_raw_v2`,
   `api_requests_raw_v2`, `sentinel_requests_raw_v1`):
   - Added `expires_at Int64 DEFAULT time + N` (per-table N preserves the
@@ -185,106 +192,25 @@ with a static 90-day default. Plumb the workspace's `logs_retention_days`
 through to that writer so it stamps a per-workspace value (same shape
 as the four Go tables in this PR).
 
-## Followup PR 4: correlation_id + idempotency_key on audit logs
+## Followup PR 4: extend correlation_id to dashboard TRPC procedures
 
-Today every audit event is independent. A single user action that fans
-out into 3-6 events (e.g. `v2/keys.createKey` → `key.create` + N
-permission binds + N role binds) shows up as N unrelated rows in the
-dashboard. The drill-down "show me everything that happened when this
-key was created" is a timestamp-window guess.
+The Go API multi-Insert handlers all set context-scoped correlation now
+(see "correlation_id" under Components shipped). The dashboard's TRPC
+procedures that emit multiple audit events still leave correlation_id
+empty. Mirror the API pattern in TS:
 
-Add two opt-in columns:
-
-- **`correlation_id String CODEC(ZSTD(1))`** — empty when caller didn't
-  set one, opaque ID otherwise. Groups events emitted by one logical
-  user action.
-- **`idempotency_key String CODEC(ZSTD(1))`** — set by writers that
-  want safe retries on the MySQL outbox insert side (the CH side is
-  already deduped by `event_id` via ReplacingMergeTree). Empty when
-  the writer doesn't care.
-
-Both default to empty (NULL-equivalent in CH String columns). Existing
-single-event call sites need zero changes.
-
-### Schema delta
-
-```sql
-ALTER TABLE default.audit_logs_raw_v1
-  ADD COLUMN IF NOT EXISTS correlation_id String CODEC(ZSTD(1)),
-  ADD COLUMN IF NOT EXISTS idempotency_key String CODEC(ZSTD(1));
-
--- Skip-index so dashboard "all events for correlation X" stays cheap.
-ALTER TABLE default.audit_logs_raw_v1
-  ADD INDEX IF NOT EXISTS idx_correlation_id correlation_id
-    TYPE bloom_filter(0.01) GRANULARITY 4;
-```
-
-MySQL outbox: `idempotency_key varchar(256) NULL` on `clickhouse_outbox`,
-plus a unique index `(version, idempotency_key)` so retries collide on
-INSERT instead of producing duplicates.
-
-### Envelope delta
-
-```go
-// pkg/auditlog/event.go
-type Event struct {
-  // ... existing
-  CorrelationID  string `json:"correlation_id,omitempty"`
-  IdempotencyKey string `json:"idempotency_key,omitempty"`
-}
-```
-
-### Two correlation patterns the writer supports
-
-**A. Auto-mint on batched Insert.** Most callers already pass `[]AuditLog`
-to `auditSvc.Insert`. If `len(batch) > 1` and no `CorrelationID` is set,
-the service mints one and stamps every event in the batch. Free
-correlation for any caller that batches.
-
-**B. Context-scoped for multi-Insert flows.** Some flows (e.g.
-`v2_keys_create_key`) call `Insert` from the main handler AND from
-nested helpers (`withPermissions`, `withRoles`). Add helpers:
-
-```go
-// pkg/auditlog/correlation.go
-func WithCorrelation(ctx context.Context, id string) context.Context
-func CorrelationFrom(ctx context.Context) string
-```
-
-Multi-Insert handlers do:
-```go
-ctx = auditlog.WithCorrelation(ctx, newId(uid.CorrelationPrefix))
-// nested call sites read from ctx if AuditLog.CorrelationID is empty
-```
-
-Same pattern works in the dashboard via TRPC context for multi-event
-procedures (`rbac.createRole`, `vercel.setupProject`).
-
-### Why no causation_id
-
-`causation_id` only matters for chains across requests/processes (event
-A causes event B 30 seconds later in a different process). Today every
-multi-event audit flow fires synchronously inside one HTTP request /
-TRPC call. `correlation_id` covers all of them. Add `causation_id` if
-and when we ship async fan-out (e.g. webhook deliveries that themselves
-emit audit events).
-
-### Touched call sites
-
-API multi-Insert flows that should set context-scoped correlation:
-- `svc/api/routes/v2_keys_create_key/handler.go`
-- `svc/api/routes/v2_keys_update_key/handler.go`
-- `svc/api/routes/v2_keys_set_roles/handler.go`
-- `svc/api/routes/v2_keys_set_permissions/handler.go`
-- `svc/api/routes/v2_keys_add_permissions/handler.go`
-- `svc/api/routes/v2_identities_update_identity/handler.go`
-- `svc/api/routes/v2_identities_create_identity/handler.go`
-- `svc/api/routes/v2_identities_delete_identity/handler.go`
-
-Dashboard:
-- `web/apps/dashboard/lib/trpc/routers/rbac/createRole.ts`
-- `web/apps/dashboard/lib/trpc/routers/vercel.ts` (`setupProject`)
+- `web/apps/dashboard/lib/trpc/routers/rbac/createRole.ts` — wraps
+  role creation + N permission binds
+- `web/apps/dashboard/lib/trpc/routers/vercel.ts` (`setupProject`) —
+  emits `key.create` plus N `vercelBinding.create` per environment
 - Any other TRPC procedure that emits ≥2 audit events
+
+Pattern: mint `correlationId` once at the top of the procedure, pass to
+every `insertAuditLogs` call as the `correlationId` field on each log.
+The Go writer treats this exactly the same as Go callers using
+`auditlog.WithCorrelation` — explicit per-event ID always wins, batched
+insert auto-mints when not set, single-event single-Insert leaves it
+empty.
 
 Every other call site continues to work unchanged; correlation_id stays
 empty for single-event flows.

@@ -74,11 +74,23 @@ CREATE TABLE IF NOT EXISTS default.audit_logs_raw_v1
     -- guaranteed compliance-grade archive before deletion.
     `expires_at`    Int64 CODEC(Delta, ZSTD(1)),
 
+    -- Opaque ID grouping audit events that came out of the same logical
+    -- user action. Auto-minted by the audit log Insert service when the
+    -- caller batches >1 events; can also be set explicitly via
+    -- auditlog.WithCorrelation(ctx, ...) for flows that span multiple
+    -- Insert calls (e.g. v2/keys.createKey -> withPermissions ->
+    -- withRoles). Empty for single-event flows that don't need it.
+    `correlation_id` String CODEC(ZSTD(1)),
+
     INDEX idx_event             event             TYPE set(100)                GRANULARITY 1,
     INDEX idx_actor_id          actor_id          TYPE bloom_filter(0.01)      GRANULARITY 4,
     INDEX idx_target_id         `targets.id`      TYPE bloom_filter(0.01)      GRANULARITY 4,
     INDEX idx_meta_text         meta_text         TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 4,
-    INDEX idx_targets_meta_text targets_meta_text TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 4
+    INDEX idx_targets_meta_text targets_meta_text TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 4,
+    -- Bloom for "all events in this user action" drill-down. Sparse
+    -- because correlation_id is empty on most rows; bloom handles that
+    -- gracefully (whole-granule no-match for the empty bucket).
+    INDEX idx_correlation_id    correlation_id    TYPE bloom_filter(0.01)      GRANULARITY 4
 )
 ENGINE = ReplacingMergeTree()
 PARTITION BY toYYYYMM(fromUnixTimestamp64Milli(inserted_at))
