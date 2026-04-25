@@ -11,7 +11,6 @@ go_library(
     deps = [
         "//pkg/prometheus/lazy",
         "//pkg/zen",
-        "//svc/frontline/services/proxy",
         "@com_github_prometheus_client_golang//prometheus",
     ],
 )

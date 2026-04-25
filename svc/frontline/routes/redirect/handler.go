@@ -2,10 +2,10 @@ package handler
 
 import (
 	"context"
+	"net"
 	"net/http"
 
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/frontline/services/proxy"
 )
 
 // Handler 308-redirects plain-HTTP requests to their https:// equivalent.
@@ -23,13 +23,20 @@ func (h *Handler) Path() string {
 
 // 308 Permanent Redirect preserves the request method so non-GET requests
 // aren't silently downgraded to GET by clients following the redirect.
-// The inbound port is stripped so the target uses the default 443.
+// Any inbound port on the Host header is dropped so the target resolves
+// to the default 443 instead of echoing back e.g. ":80".
 func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	req := sess.Request()
 
+	host, _, err := net.SplitHostPort(req.Host)
+	if err != nil {
+		// No port present in Host header — use it verbatim.
+		host = req.Host
+	}
+
 	target := *req.URL
 	target.Scheme = "https"
-	target.Host = proxy.ExtractHostname(req.Host)
+	target.Host = host
 	sess.ResponseWriter().Header().Set("Location", target.String())
 
 	redirectsTotal.Inc()
