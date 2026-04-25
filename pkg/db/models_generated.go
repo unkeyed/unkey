@@ -1335,6 +1335,7 @@ type FrontlineRoute struct {
 	EnvironmentID            string                `db:"environment_id"`
 	FullyQualifiedDomainName string                `db:"fully_qualified_domain_name"`
 	Sticky                   FrontlineRoutesSticky `db:"sticky"`
+	EdgeRedirectConfig       []byte                `db:"edge_redirect_config"`
 	CreatedAt                int64                 `db:"created_at"`
 	UpdatedAt                sql.NullInt64         `db:"updated_at"`
 }
