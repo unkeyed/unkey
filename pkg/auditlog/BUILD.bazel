@@ -4,6 +4,7 @@ go_library(
     name = "auditlog",
     srcs = [
         "actors.go",
+        "correlation.go",
         "doc.go",
         "event.go",
         "events.go",
@@ -12,4 +13,5 @@ go_library(
     ],
     importpath = "github.com/unkeyed/unkey/pkg/auditlog",
     visibility = ["//visibility:public"],
+    deps = ["//pkg/uid"],
 )

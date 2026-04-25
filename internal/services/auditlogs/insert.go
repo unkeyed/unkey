@@ -64,6 +64,18 @@ func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.Au
 	auditLogTargets := make([]db.InsertAuditLogTargetParams, 0)
 	outboxRows := make([]db.InsertClickhouseOutboxParams, 0, len(logs))
 
+	// Resolve a shared correlation ID for the batch. Precedence:
+	//   1. ctx-scoped value via auditlog.WithCorrelation (multi-Insert flows)
+	//   2. Auto-mint when len(logs) > 1 (batched single-Insert flows)
+	//   3. Empty (single-event flows that don't need grouping)
+	//
+	// Per-event CorrelationID set on the struct still wins over this; the
+	// shared default only fills in when the caller didn't set one.
+	sharedCorrelationID := auditlog.CorrelationFrom(ctx)
+	if sharedCorrelationID == "" && len(logs) > 1 {
+		sharedCorrelationID = auditlog.NewCorrelationID()
+	}
+
 	for _, l := range logs {
 		auditLogID := uid.New(uid.AuditLogPrefix)
 		now := time.Now().UnixMilli()
@@ -118,6 +130,11 @@ func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.Au
 			})
 		}
 
+		correlationID := l.CorrelationID
+		if correlationID == "" {
+			correlationID = sharedCorrelationID
+		}
+
 		envelope := auditlog.Event{
 			EventID:     auditLogID,
 			Time:        now,
@@ -132,10 +149,11 @@ func (s *service) insertLogs(ctx context.Context, tx db.DBTX, logs []auditlog.Au
 				Name: l.ActorName,
 				Meta: l.ActorMeta,
 			},
-			RemoteIP:  l.RemoteIP,
-			UserAgent: l.UserAgent,
-			Meta:      nil,
-			Targets:   targets,
+			RemoteIP:      l.RemoteIP,
+			UserAgent:     l.UserAgent,
+			Meta:          nil,
+			Targets:       targets,
+			CorrelationID: correlationID,
 		}
 		payload, err := json.Marshal(envelope)
 		if err != nil {
