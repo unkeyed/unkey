@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//pkg/clock",
         "//pkg/zen",
+        "//svc/frontline/services/edgeredirect",
         "//svc/frontline/services/proxy",
         "//svc/frontline/services/router",
     ],

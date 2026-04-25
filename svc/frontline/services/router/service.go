@@ -3,10 +3,12 @@ package router
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
+	"github.com/unkeyed/unkey/svc/frontline/services/edgeredirect"
 )
 
 type service struct {
@@ -53,6 +55,19 @@ func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, er
 
 	if err != nil {
 		return RouteDecision{}, err
+	}
+
+	// Parse the edge-redirect rules attached to the route. A bad blob is
+	// non-fatal: we log and serve the request without redirects so a
+	// malformed config can't take a customer offline. The parse itself is
+	// microseconds and only matters once per request.
+	if rules, parseErr := edgeredirect.ParseConfig(route.EdgeRedirectConfig); parseErr != nil {
+		slog.Warn("edge-redirect config parse failed; serving with no redirects",
+			"hostname", hostname,
+			"error", parseErr,
+		)
+	} else {
+		decision.Redirects = rules
 	}
 
 	if decision.Destination == DestinationLocalSentinel {

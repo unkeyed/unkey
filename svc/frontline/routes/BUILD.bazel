@@ -9,6 +9,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/frontline/routes",
     visibility = ["//visibility:public"],
     deps = [
+        "//gen/proto/frontline/edgeredirect/v1:edgeredirect",
         "//gen/rpc/ctrl",
         "//pkg/clock",
         "//pkg/zen",
@@ -16,6 +17,8 @@ go_library(
         "//svc/frontline/middleware",
         "//svc/frontline/routes/acme",
         "//svc/frontline/routes/proxy",
+        "//svc/frontline/routes/redirect",
+        "//svc/frontline/services/edgeredirect",
         "//svc/frontline/services/proxy",
         "//svc/frontline/services/router",
     ],

@@ -1,0 +1,39 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "edgeredirect",
+    srcs = [
+        "doc.go",
+        "engine.go",
+        "metrics.go",
+        "parse.go",
+        "rule_host.go",
+        "rule_https.go",
+        "rule_www.go",
+        "url.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/services/edgeredirect",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/frontline/edgeredirect/v1:edgeredirect",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/prometheus/lazy",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)
+
+go_test(
+    name = "edgeredirect_test",
+    srcs = [
+        "engine_test.go",
+        "parse_test.go",
+        "rule_test.go",
+    ],
+    embed = [":edgeredirect"],
+    deps = [
+        "//gen/proto/frontline/edgeredirect/v1:edgeredirect",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)

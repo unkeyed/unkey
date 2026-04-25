@@ -92,6 +92,7 @@ func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db
 			DeploymentID: route.DeploymentID,
 			Destination:  DestinationLocalSentinel,
 			Address:      localAddress,
+			Redirects:    nil,
 		}, nil
 	}
 
@@ -109,6 +110,7 @@ func (s *service) selectSentinel(route db.FindFrontlineRouteByFQDNRow, rows []db
 		DeploymentID: route.DeploymentID,
 		Destination:  DestinationRemoteRegion,
 		Address:      nearestRegion,
+		Redirects:    nil,
 	}, nil
 }
 
