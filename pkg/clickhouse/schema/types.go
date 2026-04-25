@@ -216,4 +216,11 @@ type AuditLogV1 struct {
 	// ExpiresAt drives the per-row TTL. Set at insert time so workspace
 	// retention quotas apply without ALTER TABLE. Stored as unix-milli.
 	ExpiresAt int64 `ch:"expires_at" json:"expires_at"`
+
+	// CorrelationID groups rows that came out of one logical user action.
+	// Empty for single-event flows; auto-minted by the audit log Insert
+	// service when the caller batches >1 events; settable via
+	// auditlog.WithCorrelation(ctx, ...) for flows that fan out across
+	// multiple Insert calls.
+	CorrelationID string `ch:"correlation_id" json:"correlation_id"`
 }

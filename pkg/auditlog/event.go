@@ -25,6 +25,12 @@ type Event struct {
 	UserAgent   string         `json:"user_agent,omitempty"`
 	Meta        map[string]any `json:"meta,omitempty"`
 	Targets     []EventTarget  `json:"targets,omitempty"`
+	// CorrelationID groups events emitted by one logical user action. The
+	// audit log Insert service auto-mints one for any batched call with
+	// >1 events; opt-in via WithCorrelation(ctx, ...) for flows that
+	// emit events from multiple Insert calls. Empty for single-event
+	// flows that don't need grouping.
+	CorrelationID string `json:"correlation_id,omitempty"`
 }
 
 // EventActor is the actor sub-shape of Event. Kept separate so the JSON shape

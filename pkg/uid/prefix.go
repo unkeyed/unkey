@@ -17,6 +17,7 @@ const (
 	IdentityPrefix            Prefix = "id"
 	RatelimitPrefix           Prefix = "rl"
 	AuditLogPrefix            Prefix = "log"
+	CorrelationPrefix         Prefix = "cor"
 	InstancePrefix            Prefix = "ins"
 	SentinelPrefix            Prefix = "s"
 	CiliumNetworkPolicyPrefix Prefix = "net"
