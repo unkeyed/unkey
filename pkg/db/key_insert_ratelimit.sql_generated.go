@@ -41,8 +41,8 @@ type InsertKeyRatelimitParams struct {
 	WorkspaceID string         `db:"workspace_id"`
 	KeyID       sql.NullString `db:"key_id"`
 	Name        string         `db:"name"`
-	Limit       int32          `db:"limit"`
-	Duration    int64          `db:"duration"`
+	Limit       uint64         `db:"limit"`
+	Duration    uint64         `db:"duration"`
 	AutoApply   bool           `db:"auto_apply"`
 	CreatedAt   int64          `db:"created_at"`
 	UpdatedAt   sql.NullInt64  `db:"updated_at"`

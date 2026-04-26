@@ -309,7 +309,7 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) op
 	if keyData.Key.RemainingRequests.Valid {
 		response.Credits = &openapi.KeyCreditsData{
 			Refill:    nil,
-			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int32)),
+			Remaining: nullable.NewNullableWithValue(keyData.Key.RemainingRequests.Int64),
 		}
 
 		if keyData.Key.RefillAmount.Valid {
@@ -321,7 +321,7 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) op
 			}
 
 			response.Credits.Refill = &openapi.KeyCreditsRefill{
-				Amount:    int64(keyData.Key.RefillAmount.Int32),
+				Amount:    keyData.Key.RefillAmount.Int64,
 				Interval:  interval,
 				RefillDay: refillDay,
 			}
@@ -378,7 +378,7 @@ func (h *Handler) buildKeyResponseData(keyData *db.KeyData, plaintext string) op
 		for _, rl := range keyData.Ratelimits {
 			ratelimitResp := openapi.RatelimitResponse{
 				Id:        rl.ID,
-				Duration:  rl.Duration,
+				Duration:  int64(rl.Duration),
 				Limit:     int64(rl.Limit),
 				Name:      rl.Name,
 				AutoApply: rl.AutoApply,

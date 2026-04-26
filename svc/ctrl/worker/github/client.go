@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"crypto/hmac"
+	"crypto/md5"
 	"crypto/sha256"
 	"crypto/subtle"
 	"fmt"
@@ -28,12 +29,19 @@ type ghCommitResponse struct {
 }
 
 type ghCommitDetail struct {
-	Message string         `json:"message"`
-	Author  ghCommitAuthor `json:"author"`
+	Message      string               `json:"message"`
+	Author       ghCommitAuthor       `json:"author"`
+	Verification ghCommitVerification `json:"verification"`
+}
+
+type ghCommitVerification struct {
+	Verified bool `json:"verified"`
 }
 
 type ghCommitAuthor struct {
-	Date string `json:"date"`
+	Date  string `json:"date"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
 
 type ghUser struct {
@@ -77,6 +85,7 @@ type collaboratorKey struct {
 // token retrieval for repository-level operations. It is safe for concurrent use.
 type Client struct {
 	config            ClientConfig
+	baseURL           string
 	httpClient        *http.Client
 	signer            jwt.Signer[jwt.RegisteredClaims]
 	tokenCache        cache.Cache[int64, InstallationToken]
@@ -115,6 +124,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 
 	return &Client{
 		config:            config,
+		baseURL:           "https://api.github.com",
 		httpClient:        &http.Client{Timeout: 30 * time.Second},
 		signer:            signer,
 		tokenCache:        tokenCache,
@@ -199,39 +209,36 @@ func (c *Client) GetBranchHeadCommit(installationID int64, repo string, branch s
 		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to get installation token for branch head lookup"))
 	}
 
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
+	apiURL := fmt.Sprintf("%s/repos/%s/commits/%s", c.baseURL, repo, url.PathEscape(branch))
 
 	commit, err := request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
 	if err != nil {
+		logger.Error("failed to fetch branch head commit",
+			"installation_id", installationID,
+			"repo", repo,
+			"branch", branch,
+			"url", apiURL,
+			"err", err,
+		)
 		return CommitInfo{}, err
 	}
 
-	return CommitInfoFromRaw(
-		commit.SHA,
-		commit.Commit.Message,
-		commit.Author.Login,
-		commit.Author.AvatarURL,
-		commit.Commit.Author.Date,
-	), nil
+	handle, avatarURL := resolveCommitAuthor(commit)
+	return CommitInfoFromRaw(commit.SHA, commit.Commit.Message, handle, avatarURL, commit.Commit.Author.Date), nil
 }
 
 // GetBranchHeadCommitPublic retrieves the HEAD commit of a branch using the
 // public GitHub API without authentication. Only works for public repositories.
 func (c *Client) GetBranchHeadCommitPublic(repo string, branch string) (CommitInfo, error) {
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(branch))
+	apiURL := fmt.Sprintf("%s/repos/%s/commits/%s", c.baseURL, repo, url.PathEscape(branch))
 
 	commit, err := request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, githubHeaders(""), nil, http.StatusOK)
 	if err != nil {
 		return CommitInfo{}, err
 	}
 
-	return CommitInfoFromRaw(
-		commit.SHA,
-		commit.Commit.Message,
-		commit.Author.Login,
-		commit.Author.AvatarURL,
-		commit.Commit.Author.Date,
-	), nil
+	handle, avatarURL := resolveCommitAuthor(commit)
+	return CommitInfoFromRaw(commit.SHA, commit.Commit.Message, handle, avatarURL, commit.Commit.Author.Date), nil
 }
 
 // GetCommitBySHA retrieves commit metadata for a specific SHA.
@@ -241,20 +248,29 @@ func (c *Client) GetCommitBySHA(installationID int64, repo string, sha string) (
 		return CommitInfo{}, fault.Wrap(err, fault.Internal("failed to get installation token for commit lookup"))
 	}
 
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(sha))
+	apiURL := fmt.Sprintf("%s/repos/%s/commits/%s", c.baseURL, repo, url.PathEscape(sha))
 
 	commit, err := request[ghCommitResponse](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
 	if err != nil {
 		return CommitInfo{}, err
 	}
 
-	return CommitInfoFromRaw(
-		commit.SHA,
-		commit.Commit.Message,
-		commit.Author.Login,
-		commit.Author.AvatarURL,
-		commit.Commit.Author.Date,
-	), nil
+	handle, avatarURL := resolveCommitAuthor(commit)
+	return CommitInfoFromRaw(commit.SHA, commit.Commit.Message, handle, avatarURL, commit.Commit.Author.Date), nil
+}
+
+// resolveCommitAuthor picks the best author handle and avatar from a GitHub
+// commit response. When the commit is verified, GitHub's resolved user is
+// trustworthy. Otherwise we fall back to raw git metadata because GitHub's
+// email-based resolution can map to the wrong account.
+func resolveCommitAuthor(commit ghCommitResponse) (handle string, avatarURL string) {
+	if commit.Commit.Verification.Verified && commit.Author.Login != "" {
+		return commit.Author.Login, commit.Author.AvatarURL
+	}
+	name := commit.Commit.Author.Name
+	email := strings.ToLower(strings.TrimSpace(commit.Commit.Author.Email))
+	hash := fmt.Sprintf("%x", md5.Sum([]byte(email)))
+	return name, fmt.Sprintf("https://www.gravatar.com/avatar/%s?d=identicon", hash)
 }
 
 // CommitInfoFromRaw constructs a CommitInfo, truncating the message to the
@@ -313,7 +329,7 @@ func (c *Client) CreateDeployment(installationID int64, repo string, ref string,
 		return 0, err
 	}
 
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/deployments", repo)
+	apiURL := fmt.Sprintf("%s/repos/%s/deployments", c.baseURL, repo)
 
 	result, err := request[ghDeploymentResponse](c.httpClient, http.MethodPost, apiURL, headers, map[string]interface{}{
 		"ref":                    ref,
@@ -338,7 +354,7 @@ func (c *Client) CreateDeploymentStatus(installationID int64, repo string, deplo
 		return err
 	}
 
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/deployments/%d/statuses", repo, deploymentID)
+	apiURL := fmt.Sprintf("%s/repos/%s/deployments/%d/statuses", c.baseURL, repo, deploymentID)
 
 	payload := map[string]interface{}{
 		"state":         state,
@@ -364,7 +380,7 @@ func (c *Client) CreateCommitStatus(installationID int64, repo string, sha strin
 		return err
 	}
 
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/statuses/%s", repo, url.PathEscape(sha))
+	apiURL := fmt.Sprintf("%s/repos/%s/statuses/%s", c.baseURL, repo, url.PathEscape(sha))
 
 	return doRequest(c.httpClient, http.MethodPost, apiURL, headers, map[string]string{
 		"state":       state,
@@ -392,7 +408,7 @@ func (c *Client) ListCommitFiles(installationID int64, repo string, sha string) 
 		return nil, err
 	}
 
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/commits/%s", repo, url.PathEscape(sha))
+	apiURL := fmt.Sprintf("%s/repos/%s/commits/%s", c.baseURL, repo, url.PathEscape(sha))
 
 	commit, err := request[ghCommitWithFiles](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
 	if err != nil {
@@ -425,8 +441,8 @@ func (c *Client) FindPullRequestForBranch(installationID int64, repo string, bra
 		return 0, err
 	}
 
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/pulls?state=open&head=%s:%s&per_page=1",
-		repo, strings.Split(repo, "/")[0], url.PathEscape(branch))
+	apiURL := fmt.Sprintf("%s/repos/%s/pulls?state=open&head=%s:%s&per_page=1",
+		c.baseURL, repo, strings.Split(repo, "/")[0], url.PathEscape(branch))
 
 	prs, err := request[[]ghPullRequest](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
 	if err != nil {
@@ -446,7 +462,7 @@ func (c *Client) CreateIssueComment(installationID int64, repo string, prNumber 
 		return 0, err
 	}
 
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/issues/%d/comments", repo, prNumber)
+	apiURL := fmt.Sprintf("%s/repos/%s/issues/%d/comments", c.baseURL, repo, prNumber)
 
 	comment, err := request[ghIssueComment](c.httpClient, http.MethodPost, apiURL, headers, map[string]string{
 		"body": body,
@@ -464,7 +480,7 @@ func (c *Client) UpdateIssueComment(installationID int64, repo string, commentID
 		return err
 	}
 
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/issues/comments/%d", repo, commentID)
+	apiURL := fmt.Sprintf("%s/repos/%s/issues/comments/%d", c.baseURL, repo, commentID)
 
 	return doRequest(c.httpClient, http.MethodPatch, apiURL, headers, map[string]string{
 		"body": body,
@@ -480,7 +496,7 @@ func (c *Client) FindBotComment(installationID int64, repo string, prNumber int,
 	}
 
 	// Paginate through comments looking for our marker (most recent first)
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/issues/%d/comments?per_page=100&direction=desc", repo, prNumber)
+	apiURL := fmt.Sprintf("%s/repos/%s/issues/%d/comments?per_page=100&direction=desc", c.baseURL, repo, prNumber)
 
 	comments, err := request[[]ghIssueComment](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
 	if err != nil {
@@ -509,7 +525,7 @@ func (c *Client) IsCollaborator(installationID int64, repo string, username stri
 				return false, err
 			}
 
-			apiURL := fmt.Sprintf("https://api.github.com/repos/%s/collaborators/%s", repo, url.PathEscape(username))
+			apiURL := fmt.Sprintf("%s/repos/%s/collaborators/%s", c.baseURL, repo, url.PathEscape(username))
 
 			return statusCheck(c.httpClient, http.MethodGet, apiURL, headers, http.StatusNoContent)
 		},
