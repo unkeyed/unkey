@@ -71,16 +71,6 @@ Rebuilding the same image on Unkey's side is wasted time and compute. The CLI le
 unkey deploy $REGISTRY/$IMAGE:$SHA --project=api --env=production
 ```
 
-### You live in a monorepo
-
-Monorepos usually mean:
-
-- **Multiple deployable services** in one repository, each with its own Dockerfile.
-- **Selective builds** driven by tools like Nx, Turborepo, Bazel, or Moon.
-- **Shared base images** built once and reused across services.
-
-The GitHub integration deploys one app per connected repository configuration. The CLI lets you drive multiple `unkey deploy` calls from a single CI job — one per changed service — using whatever selection logic your monorepo tool produces.
-
 ### You want deploys decoupled from Git pushes
 
 Some teams don't want every `main` push to ship to production:
