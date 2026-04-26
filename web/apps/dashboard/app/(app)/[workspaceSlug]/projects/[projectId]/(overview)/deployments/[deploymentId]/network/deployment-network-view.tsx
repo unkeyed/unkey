@@ -1,15 +1,15 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDeployment } from "../layout-provider";
 import {
+  COLLAPSE_THRESHOLD,
   type DeploymentNode,
   InfiniteCanvas,
-  InstanceNode,
   InternalDevTreeGenerator,
   LiveIndicator,
   NodeDetailsPanel,
-  OriginNode,
+  type OriginNode as OriginNodeType,
   ProjectDetails,
   SKELETON_TREE,
   SentinelNode,
@@ -21,6 +21,8 @@ import {
   isSentinelNode,
   isSkeletonNode,
 } from "./unkey-flow";
+import { InstanceNode } from "./unkey-flow/components/nodes/instance-node";
+import { OriginNode } from "./unkey-flow/components/nodes/origin-node";
 
 interface DeploymentNetworkViewProps {
   showProjectDetails?: boolean;
@@ -34,6 +36,8 @@ export function DeploymentNetworkView({
   const { deployment } = useDeployment();
   const [generatedTree, setGeneratedTree] = useState<DeploymentNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<DeploymentNode | null>(null);
+  const [collapsedSentinelIds, setCollapsedSentinelIds] = useState<Set<string>>(new Set());
+  const hasAutoCollapsed = useRef(false);
 
   const { data: defaultTree, isLoading } = trpc.deploy.network.get.useQuery(
     {
@@ -44,6 +48,82 @@ export function DeploymentNetworkView({
 
   const currentTree = generatedTree ?? defaultTree ?? SKELETON_TREE;
   const isShowingSkeleton = isLoading && !generatedTree;
+
+  const toggleSentinel = useCallback((id: string) => {
+    setCollapsedSentinelIds((prev) => {
+      const next = new Set(prev);
+      next[next.has(id) ? "delete" : "add"](id);
+      return next;
+    });
+  }, []);
+
+  // Triggers auto collapse for sentinels with more than 3 children
+  useEffect(() => {
+    if (hasAutoCollapsed.current || !defaultTree) {
+      return;
+    }
+    hasAutoCollapsed.current = true;
+
+    const toCollapse = computeAutoCollapsedSentinels(defaultTree);
+    if (toCollapse.size > 0) {
+      setCollapsedSentinelIds(toCollapse);
+    }
+  }, [defaultTree]);
+
+  const visibleTree = currentTree as OriginNodeType;
+
+  const renderDeploymentNode = useCallback(
+    (node: DeploymentNode, parent?: DeploymentNode): React.ReactNode => {
+      if (isSkeletonNode(node)) {
+        return <SkeletonNode />;
+      }
+
+      if (isOriginNode(node)) {
+        return <OriginNode node={node} />;
+      }
+
+      if (isSentinelNode(node)) {
+        return (
+          <SentinelNode
+            node={node}
+            deploymentId={deployment.id}
+            isCollapsed={collapsedSentinelIds.has(node.id)}
+            onToggleCollapse={isShowingSkeleton ? undefined : () => toggleSentinel(node.id)}
+          />
+        );
+      }
+
+      if (isInstanceNode(node)) {
+        if (!parent || !isSentinelNode(parent)) {
+          throw new Error("Instance node requires parent sentinel");
+        }
+        if (collapsedSentinelIds.has(parent.id)) {
+          return (
+            <div className="invisible">
+              <InstanceNode
+                node={node}
+                flagCode={parent.metadata.flagCode}
+                deploymentId={deployment.id}
+                stacked
+              />
+            </div>
+          );
+        }
+        return (
+          <InstanceNode
+            node={node}
+            flagCode={parent.metadata.flagCode}
+            deploymentId={deployment.id}
+          />
+        );
+      }
+
+      // This will yell at you if you don't handle a node type
+      const _exhaustive: never = node;
+      return _exhaustive;
+    },
+    [deployment.id, collapsedSentinelIds, toggleSentinel, isShowingSkeleton],
+  );
 
   return (
     <InfiniteCanvas
@@ -67,46 +147,28 @@ export function DeploymentNetworkView({
       }
     >
       <TreeLayout
-        data={currentTree}
+        data={visibleTree}
         nodeSpacing={{ x: 75, y: 100 }}
         onNodeClick={isShowingSkeleton ? undefined : (node) => setSelectedNode(node)}
-        renderNode={(node, parent) => renderDeploymentNode(node, parent, deployment.id)}
-        renderConnection={(path, parent, child) => (
-          <TreeConnectionLine key={`${parent.id}-${child.id}`} path={path} />
-        )}
+        renderNode={renderDeploymentNode}
+        renderConnection={(path, parent, child) => {
+          if (isSentinelNode(parent) && collapsedSentinelIds.has(parent.id)) {
+            return null;
+          }
+          return <TreeConnectionLine key={`${parent.id}-${child.id}`} path={path} />;
+        }}
       />
     </InfiniteCanvas>
   );
 }
 
-// renderDeployment function does not narrow types without type guards.
-function renderDeploymentNode(
-  node: DeploymentNode,
-  parent?: DeploymentNode,
-  deploymentId?: string,
-): React.ReactNode {
-  if (isSkeletonNode(node)) {
-    return <SkeletonNode />;
-  }
+function computeAutoCollapsedSentinels(tree: OriginNodeType): Set<string> {
+  const ids = (tree.children ?? [])
+    // This is purely needed for proper type inference
+    .filter(isSentinelNode)
+    // If instance nodes exceeds threshold then we mark that sentinel as collapsed
+    .filter((s) => (s.children ?? []).filter(isInstanceNode).length > COLLAPSE_THRESHOLD)
+    .map((s) => s.id);
 
-  if (isOriginNode(node)) {
-    return <OriginNode node={node} />;
-  }
-
-  if (isSentinelNode(node)) {
-    return <SentinelNode node={node} deploymentId={deploymentId} />;
-  }
-
-  if (isInstanceNode(node)) {
-    if (!parent || !isSentinelNode(parent)) {
-      throw new Error("Instance node requires parent sentinel");
-    }
-    return (
-      <InstanceNode node={node} flagCode={parent.metadata.flagCode} deploymentId={deploymentId} />
-    );
-  }
-
-  // This will yell at you if you don't handle a node type
-  const _exhaustive: never = node;
-  return _exhaustive;
+  return new Set(ids);
 }
