@@ -1,0 +1,27 @@
+name: Format Check
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  format-check:
+    name: Format check
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - name: Setup Node
+        uses: ./.depot/actions/setup-node
+      - name: Setup Go
+        uses: ./.depot/actions/setup-go
+      - name: Install dprint
+        run: curl -fsSL https://dprint.dev/install.sh | sh -s 0.51.1 && echo "$HOME/.dprint/bin" >> $GITHUB_PATH
+      - name: Format
+        run: make fmt
+      - name: Check for drift
+        run: |
+          if ! git diff --exit-code; then
+            echo
+            echo "Formatting drift detected. Run 'make fmt' locally and push again."
+            exit 1
+          fi

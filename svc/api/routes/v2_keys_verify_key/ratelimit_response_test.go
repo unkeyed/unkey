@@ -43,7 +43,7 @@ func TestRatelimitResponse(t *testing.T) {
 					Name:        "test-limit",
 					WorkspaceID: workspace.ID,
 					AutoApply:   true,
-					Duration:    time.Minute.Milliseconds(),
+					Duration:    uint64(time.Minute.Milliseconds()),
 					Limit:       5,
 				},
 			},
@@ -83,7 +83,7 @@ func TestRatelimitResponse(t *testing.T) {
 					Name:        "strict-limit",
 					WorkspaceID: workspace.ID,
 					AutoApply:   true,
-					Duration:    time.Minute.Milliseconds(),
+					Duration:    uint64(time.Minute.Milliseconds()),
 					Limit:       1,
 				},
 			},
@@ -155,14 +155,14 @@ func TestRatelimitResponse(t *testing.T) {
 					Name:        "fast-limit",
 					WorkspaceID: workspace.ID,
 					AutoApply:   true,
-					Duration:    time.Minute.Milliseconds(),
+					Duration:    uint64(time.Minute.Milliseconds()),
 					Limit:       3,
 				},
 				{
 					Name:        "slow-limit",
 					WorkspaceID: workspace.ID,
 					AutoApply:   true,
-					Duration:    time.Hour.Milliseconds(),
+					Duration:    uint64(time.Hour.Milliseconds()),
 					Limit:       10,
 				},
 			},
@@ -259,15 +259,15 @@ func TestRatelimitResponse(t *testing.T) {
 					Name:        "api_requests",
 					WorkspaceID: workspace.ID,
 					AutoApply:   true,
-					Duration:    time.Minute.Milliseconds(),
+					Duration:    uint64(time.Minute.Milliseconds()),
 					Limit:       5,
 				},
 				{
 					Name:        "data_access",
 					WorkspaceID: workspace.ID,
 					AutoApply:   true,
-					Duration:    time.Minute.Milliseconds(), // Same duration as api_requests
-					Limit:       5,                          // Same limit as api_requests
+					Duration:    uint64(time.Minute.Milliseconds()), // Same duration as api_requests
+					Limit:       5,                                  // Same limit as api_requests
 				},
 			},
 		})

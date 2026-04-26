@@ -1,17 +1,14 @@
 "use client";
+import { DeployFeedbackButton } from "@/components/dashboard/deploy-feedback-button";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
-import {
-  ArrowDottedRotateAnticlockwise,
-  ChevronExpandY,
-  Cube,
-  DoubleChevronLeft,
-} from "@unkey/icons";
+import { ArrowDottedRotateAnticlockwise, ChevronExpandY, Cube } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import dynamic from "next/dynamic";
+import { useParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { useProjectData } from "../data-provider";
 import { useBreadcrumbConfig } from "./use-breadcrumb-config";
@@ -32,17 +29,9 @@ const RedeployDialog = dynamic(
 const BORDER_OFFSET = 1;
 type ProjectNavigationProps = {
   onMount: (distanceToTop: number) => void;
-  onClick: () => void;
-  isDetailsOpen: boolean;
-  currentDeploymentId?: string | null;
 };
 
-export const ProjectNavigation = ({
-  onMount,
-  isDetailsOpen,
-  currentDeploymentId,
-  onClick,
-}: ProjectNavigationProps) => {
+export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
   const workspace = useWorkspaceNavigation();
   const projects = useLiveQuery((q) =>
     q.from({ project: collection.projects }).select(({ project }) => ({
@@ -64,15 +53,18 @@ export const ProjectNavigation = ({
     activeProject,
   });
 
-  const [isRedeployOpen, setIsRedeployOpen] = useState(false);
-  const selectedDeployment = currentDeploymentId
-    ? getDeploymentById(currentDeploymentId)
-    : undefined;
+  const params = useParams();
+  const routeDeploymentId = typeof params?.deploymentId === "string" ? params.deploymentId : null;
+  const currentDeploymentId = project?.currentDeploymentId;
 
-  // Close the redeploy dialog when the active deployment changes (e.g. navigation)
-  const prevDeploymentIdRef = useRef(currentDeploymentId);
-  if (prevDeploymentIdRef.current !== currentDeploymentId) {
-    prevDeploymentIdRef.current = currentDeploymentId;
+  const [isRedeployOpen, setIsRedeployOpen] = useState(false);
+  const targetDeploymentId = routeDeploymentId ?? currentDeploymentId ?? null;
+  const selectedDeployment = targetDeploymentId ? getDeploymentById(targetDeploymentId) : undefined;
+
+  // Close the redeploy dialog when the target deployment changes (e.g. navigation)
+  const prevDeploymentIdRef = useRef(targetDeploymentId);
+  if (prevDeploymentIdRef.current !== targetDeploymentId) {
+    prevDeploymentIdRef.current = targetDeploymentId;
     if (isRedeployOpen) {
       setIsRedeployOpen(false);
     }
@@ -88,12 +80,9 @@ export const ProjectNavigation = ({
     }
   };
 
-  const getTooltipContent = () => {
-    if (!currentDeploymentId) {
-      return "No deployments available. Deploy your project to view details.";
-    }
-    return isDetailsOpen ? "Hide deployment details" : "Show deployment details";
-  };
+  const redeployTooltip = routeDeploymentId
+    ? "Redeploy this deployment"
+    : "Redeploy the current active deployment";
 
   const renderActions = () => {
     return (
@@ -110,7 +99,7 @@ export const ProjectNavigation = ({
           )}
           <InfoTooltip
             asChild
-            content="Redeploy the current active deployment"
+            content={redeployTooltip}
             position={{ side: "bottom", align: "end" }}
           >
             <Button
@@ -129,20 +118,7 @@ export const ProjectNavigation = ({
               selectedDeployment={selectedDeployment}
             />
           )}
-          <InfoTooltip
-            asChild
-            content={getTooltipContent()}
-            position={{ side: "bottom", align: "end" }}
-          >
-            <Button
-              variant="outline"
-              className="size-7"
-              disabled={!currentDeploymentId}
-              onClick={onClick}
-            >
-              <DoubleChevronLeft iconSize="sm-regular" />
-            </Button>
-          </InfoTooltip>
+          <DeployFeedbackButton />
         </div>
       </div>
     );

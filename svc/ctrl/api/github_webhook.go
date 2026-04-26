@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -57,7 +58,6 @@ func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxWebhookBodySize))
-
 	if err != nil {
 		logger.Warn("GitHub webhook rejected: failed to read body", "error", err)
 		http.Error(w, "failed to read body", http.StatusBadRequest)
@@ -89,7 +89,6 @@ func (s *GitHubWebhook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logger.Info("Unhandled event type", "event", event)
 		w.WriteHeader(http.StatusOK)
 	}
-
 }
 
 // handlePush parses the push payload, extracts commit metadata, and sends
@@ -103,14 +102,13 @@ func (s *GitHubWebhook) handlePush(ctx context.Context, w http.ResponseWriter, b
 		return
 	}
 
-	// Branch deletions and restorations don't need deployments.
-	// Deleted branches have no code to build; restored branches are
-	// just re-created refs pointing at an existing commit.
-	if payload.Deleted || payload.Created {
-		logger.Info("Ignoring branch delete/restore push",
+	// Deleted branches have no code to build — `after` is all zeros and there
+	// is nothing to deploy. `created: true` is NOT skipped: GitHub sets it on
+	// every first push of a new branch (e.g. `git push -u origin feature`),
+	// which is the main way preview deployments get triggered.
+	if payload.Deleted {
+		logger.Info("Ignoring branch delete push",
 			"ref", payload.Ref,
-			"deleted", payload.Deleted,
-			"created", payload.Created,
 		)
 		w.WriteHeader(http.StatusOK)
 		return
@@ -210,7 +208,12 @@ func (s *GitHubWebhook) handlePullRequest(ctx context.Context, w http.ResponseWr
 		sendOpts = append(sendOpts, restate.WithIdempotencyKey(deliveryID))
 	}
 
-	authorHandle := pr.User.Login
+	authorHandle := payload.Sender.Login
+	authorAvatar := payload.Sender.AvatarURL
+	if authorAvatar == "" {
+		authorAvatar = fmt.Sprintf("https://github.com/%s.png", url.PathEscape(authorHandle))
+	}
+
 	_, err := client.HandlePush().Send(ctx, &hydrav1.HandlePushRequest{
 		InstallationId:         payload.Installation.ID,
 		RepositoryId:           baseRepo.ID,
@@ -219,7 +222,7 @@ func (s *GitHubWebhook) handlePullRequest(ctx context.Context, w http.ResponseWr
 		After:                  pr.Head.SHA,
 		CommitMessage:          pr.Title,
 		CommitAuthorHandle:     authorHandle,
-		CommitAuthorAvatarUrl:  fmt.Sprintf("https://github.com/%s.png", authorHandle),
+		CommitAuthorAvatarUrl:  authorAvatar,
 		CommitTimestamp:        time.Now().UnixMilli(),
 		DeliveryId:             deliveryID,
 		SenderLogin:            payload.Sender.Login,
@@ -279,26 +282,18 @@ func extractGitCommitInfo(payload *pushPayload) githubclient.CommitInfo {
 		return githubclient.CommitInfoFromRaw("", "", "", "", "")
 	}
 
-	// Use the first commit's author as the originator (PR creator).
-	// For a merged PR, head_commit is the merge commit whose author is the
-	// merger; commits[0] is the original PR work commit whose author is the
-	// PR creator. For a direct push, commits[0] == head_commit so this is
-	// equivalent.
-	authorCommit := headCommit
-	if len(payload.Commits) > 0 {
-		authorCommit = &payload.Commits[0]
-	}
+	authorHandle := payload.Sender.Login
+	authorAvatar := payload.Sender.AvatarURL
 
-	authorHandle := authorCommit.Author.Username
-	if authorHandle == "" {
-		authorHandle = authorCommit.Author.Name
+	if authorAvatar == "" {
+		authorAvatar = fmt.Sprintf("https://github.com/%s.png", url.PathEscape(authorHandle))
 	}
 
 	return githubclient.CommitInfoFromRaw(
 		headCommit.ID,
 		headCommit.Message,
 		authorHandle,
-		fmt.Sprintf("https://github.com/%s.png", authorHandle),
+		authorAvatar,
 		headCommit.Timestamp,
 	)
 }

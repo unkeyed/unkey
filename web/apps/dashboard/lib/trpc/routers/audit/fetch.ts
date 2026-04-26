@@ -76,7 +76,12 @@ export const fetchAuditLog = workspaceProcedure
           db.query.auditLog.findMany({
             where: and(...whereConditions),
             with: { targets: true },
-            orderBy: (table, { desc }) => [desc(table.time), desc(table.id)],
+            // Tiebreak on pk so the workspace_id_bucket_time_idx composite covers
+            // the sort — InnoDB stores pk as the implicit trailing column in
+            // every secondary index, so ORDER BY (time, pk) avoids a filesort.
+            // id is unique and monotonic-with-insert like pk, so pagination
+            // stability is preserved.
+            orderBy: (table, { desc }) => [desc(table.time), desc(table.pk)],
             limit: pageSize,
             offset,
           }),
@@ -94,7 +99,12 @@ export const fetchAuditLog = workspaceProcedure
           db.query.auditLog.findMany({
             where: and(...whereConditions),
             with: { targets: true },
-            orderBy: (table, { desc }) => [desc(table.time), desc(table.id)],
+            // Tiebreak on pk so the workspace_id_bucket_time_idx composite covers
+            // the sort — InnoDB stores pk as the implicit trailing column in
+            // every secondary index, so ORDER BY (time, pk) avoids a filesort.
+            // id is unique and monotonic-with-insert like pk, so pagination
+            // stability is preserved.
+            orderBy: (table, { desc }) => [desc(table.time), desc(table.pk)],
             limit: pageSize,
             offset,
           }),

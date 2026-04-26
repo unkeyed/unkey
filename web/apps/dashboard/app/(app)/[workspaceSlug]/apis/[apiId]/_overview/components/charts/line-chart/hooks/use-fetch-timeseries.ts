@@ -128,7 +128,7 @@ export const useFetchActiveKeysTimeseries = (apiId: string | null) => {
 
   const timeseries = useMemo(() => {
     if (!data?.timeseries) {
-      return [];
+      return undefined;
     }
 
     return data.timeseries.map((ts) => {
@@ -141,7 +141,7 @@ export const useFetchActiveKeysTimeseries = (apiId: string | null) => {
   }, [data]);
 
   return {
-    timeseries: timeseries || [],
+    timeseries,
     isLoading,
     isError,
     granularity: data?.granularity,

@@ -26,6 +26,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
+	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -40,7 +41,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
-	"github.com/unkeyed/unkey/pkg/version"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/routes"
@@ -63,7 +63,7 @@ func Run(ctx context.Context, cfg Config) error {
 		slog.String("id", cfg.InstanceID),
 		slog.String("platform", cfg.Platform),
 		slog.String("region", cfg.Region),
-		slog.String("version", version.Version),
+		slog.String("version", buildinfo.Version),
 	))
 
 	if cfg.Test.Enabled {
@@ -80,13 +80,13 @@ func Run(ctx context.Context, cfg Config) error {
 	//nolint:exhaustruct
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	lazy.SetRegistry(reg)
+	buildinfo.RegisterBuildInfoMetrics("api")
 
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
 	var shutdownGrafana func(context.Context) error
 	if cfg.Observability.Tracing != nil {
 		shutdownGrafana, err = otel.InitGrafana(ctx, otel.Config{
 			Application:        "api",
-			Version:            version.Version,
 			InstanceID:         cfg.InstanceID,
 			CloudRegion:        cfg.Region,
 			TraceSampleRate:    cfg.Observability.Tracing.SampleRate,
@@ -229,19 +229,19 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(rlSvc.Close)
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
-		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
-			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
+		FindKeyCredits: func(ctx context.Context, keyID string) (int64, bool, error) {
+			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt64, error) {
 				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
 			})
 			if err != nil {
 				return 0, false, err
 			}
-			return limit.Int32, limit.Valid, nil
+			return limit.Int64, limit.Valid, nil
 		},
-		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int32) error {
+		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int64) error {
 			return db.Query.UpdateKeyCreditsDecrement(ctx, database.RW(), db.UpdateKeyCreditsDecrementParams{
 				ID:      keyID,
-				Credits: sql.NullInt32{Int32: cost, Valid: true},
+				Credits: sql.NullInt64{Int64: cost, Valid: true},
 			})
 		},
 		Counter: ctr,
