@@ -99,14 +99,6 @@ The CLI only needs a Docker image in a registry. That works with GitLab, Bitbuck
 
 Running `unkey deploy` from your laptop ships the exact same artifact you'd ship in CI. Useful for debugging a deployment issue end-to-end without burning CI minutes.
 
-## Can I use both?
-
-Yes. You can connect a repository for automatic previews on every push, and still call `unkey deploy` for production releases from a CI pipeline. They deploy to the same project — just target different environments, for example `--env=production` from CI and let the GitHub integration handle preview branches.
-
-<Note>
-  If both a GitHub push and a CLI call target the same environment on the same branch, the most recent deployment wins — there's no conflict, just normal deployment supersession.
-</Note>
-
 ## Next steps
 
 <CardGroup cols={2}>
