@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "seed-mcp_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/x/seed-mcp",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//pkg/base58",
+        "//pkg/hash",
+        "//pkg/uid",
+        "@com_github_go_sql_driver_mysql//:mysql",
+        "@com_github_modelcontextprotocol_go_sdk//mcp",
+    ],
+)
+
+go_binary(
+    name = "seed-mcp",
+    embed = [":seed-mcp_lib"],
+    visibility = ["//visibility:public"],
+)

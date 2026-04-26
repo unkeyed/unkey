@@ -144,6 +144,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Create GitHub client for deploy workflow (optional)
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
+	allowUnauthenticatedDeployments := false
 	if cfg.GitHub != nil {
 		client, ghErr := githubclient.NewClient(githubclient.ClientConfig{
 			AppID:         cfg.GitHub.AppID,
@@ -154,6 +155,7 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("failed to create GitHub client: %w", ghErr)
 		}
 		ghClient = client
+		allowUnauthenticatedDeployments = cfg.GitHub.AllowUnauthenticatedDeployments
 		logger.Info("GitHub client initialized")
 	} else {
 		logger.Info("GitHub client disabled (credentials not configured)")
@@ -226,7 +228,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clickhouse:                      ch,
 		BuildSteps:                      buildSteps,
 		BuildStepLogs:                   buildStepLogs,
-		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		AllowUnauthenticatedDeployments: allowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 	}),
 		// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
@@ -286,7 +288,7 @@ func Run(ctx context.Context, cfg Config) error {
 		GitHub:                          ghClient,
 		RestateAdmin:                    restateAdminClient,
 		DashboardURL:                    cfg.DashboardURL,
-		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		AllowUnauthenticatedDeployments: allowUnauthenticatedDeployments,
 	})))
 
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{

@@ -75,8 +75,11 @@ build-web: ## Build web services
 	pnpm --dir=web build
 
 .PHONY: build
-build:  ## Build all artifacts
+build:  ## Build all artifacts (binaries land in ./bin)
 	bazel build //...
+	@mkdir -p bin
+	@cp -f "$$(bazel cquery --ui_event_filters=-info --noshow_progress //:unkey --output=files)" bin/unkey && chmod +w bin/unkey
+	@cp -f "$$(bazel cquery --ui_event_filters=-info --noshow_progress //x/seed-mcp:seed-mcp --output=files)" bin/seed-mcp && chmod +w bin/seed-mcp
 
 .PHONY: bazel
 bazel: ## Sync BUILD.bazel
@@ -128,9 +131,12 @@ nuke: ## Delete minikube cluster entirely
 oci-load: build ## Build and load OCI images into Docker
 	bazel run //:oci_load_unkey
 
-.PHONY: local-dashboard
-local-dashboard: install oci-load ## Run local development setup for dashboard
-	pnpm --dir=web/apps/dashboard local
+.PHONY: dashboard
+dashboard: build oci-load ## Run local development setup for dashboard
+	@test -f web/apps/dashboard/.env || cp web/apps/dashboard/dev/.env.template web/apps/dashboard/.env
+	@docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait
+	@bazel run --ui_event_filters=-info --noshow_progress //:unkey -- dev seed local
+	@pnpm --dir=web/apps/dashboard dev
 
 .PHONY: build-local-image
 build-local-image: ## Build and push image to local registry (usage: make build-local-image DOCKERFILE=./path/to/Dockerfile NAME=myapp TAG=latest)

@@ -113,7 +113,7 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 			URL:    restateCfg.IngressURL,
 			APIKey: "",
 		},
-		GitHub: GitHubConfig{
+		GitHub: &GitHubConfig{
 			WebhookSecret: secret,
 		},
 	}

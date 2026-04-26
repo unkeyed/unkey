@@ -28,7 +28,8 @@ certs/
 dev/data/*
 dev/config/depot.json
 metald.db
-bin/
+bin/*
+!bin/.gitkeep
 
 
 go.work
@@ -41,7 +42,4 @@ dist/
 
 .talos
 
-bazel-bin
-bazel-out
-bazel-testlogs
-bazel-unkey
+bazel-*
