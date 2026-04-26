@@ -74,8 +74,11 @@ build-web: ## Build web services
 	pnpm --dir=web build
 
 .PHONY: build
-build:  ## Build all artifacts
+build:  ## Build all artifacts (binaries land in ./bin)
 	bazel build //...
+	@mkdir -p bin
+	@cp -f "$$(bazel cquery --ui_event_filters=-info --noshow_progress //:unkey --output=files)" bin/unkey && chmod +w bin/unkey
+	@cp -f "$$(bazel cquery --ui_event_filters=-info --noshow_progress //x/seed-mcp:seed-mcp --output=files)" bin/seed-mcp && chmod +w bin/seed-mcp
 
 .PHONY: bazel
 bazel: ## Sync BUILD.bazel

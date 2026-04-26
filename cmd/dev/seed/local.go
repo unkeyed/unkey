@@ -20,13 +20,11 @@ import (
 
 var localCmd = &cli.Command{
 	Name:  "local",
-	Usage: "Seed database with workspace, project, environment, API, and root key for local development",
+	Usage: "Seed database with workspace, API, and root key for local development",
 	Flags: []cli.Flag{
 		cli.String("database-primary", "MySQL database DSN", cli.Default("unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true"), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
-		cli.String("slug", "Slug used to generate all IDs and names (e.g., 'flo' creates ws_flo, proj_flo, etc.)", cli.Default("local")),
+		cli.String("slug", "Slug used to generate all IDs and names (e.g., 'flo' creates ws_flo, etc.)", cli.Default("local")),
 		cli.String("org-id", "Organization ID for auth matching (defaults to org_localdefault for local auth)", cli.Default("org_localdefault")),
-		cli.String("ctrl-url", "Control plane API URL", cli.Default("http://localhost:7091"), cli.EnvVar("UNKEY_CTRL_URL")),
-		cli.String("api-key", "API key for control plane authentication", cli.Default("your-local-dev-key"), cli.EnvVar("UNKEY_API_KEY")),
 		cli.String("output", "Path to write generated environment variables", cli.Default("dev/.env.seed")),
 	},
 	Action: seedLocal,
@@ -63,10 +61,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	workspaceID := fmt.Sprintf("ws_%s", slug)
 	workspaceName := fmt.Sprintf("Org %s", titleCase)
 
-	projectID := uid.New(uid.ProjectPrefix)
-	projectSlug := fmt.Sprintf("%s-api", slug)
-	projectName := fmt.Sprintf("%s API", titleCase)
-	appID := uid.New(uid.AppPrefix)
 	rootWorkspaceID := "ws_unkey"
 	rootKeySpaceID := fmt.Sprintf("ks_%s_root_keys", slug)
 	rootApiID := "api_unkey"
@@ -81,17 +75,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to generate root key: %w", err)
 	}
-
-	// Create project via control plane API
-	logger.Info("creating project via control plane API",
-		"workspace", workspaceID,
-		"name", projectName,
-		"slug", projectSlug,
-	)
-
-	previewEnvID := uid.New(uid.EnvironmentPrefix)
-	productionEnvID := uid.New(uid.EnvironmentPrefix)
-	regionID := uid.New(uid.RegionPrefix)
 
 	err = db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
@@ -116,175 +99,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create workspaces: %w", err)
-		}
-
-		err = db.Query.InsertProject(ctx, tx, db.InsertProjectParams{
-			ID:               projectID,
-			WorkspaceID:      workspaceID,
-			Name:             projectName,
-			Slug:             projectSlug,
-			DeleteProtection: sql.NullBool{Valid: false, Bool: false},
-			CreatedAt:        time.Now().UnixMilli(),
-			UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create project: %w", err)
-		}
-
-		err = db.BulkQuery.InsertApps(ctx, tx, []db.InsertAppParams{
-			{
-				ID:               appID,
-				WorkspaceID:      workspaceID,
-				ProjectID:        projectID,
-				Name:             projectName,
-				Slug:             "default",
-				DefaultBranch:    "main",
-				DeleteProtection: sql.NullBool{Valid: false, Bool: false},
-				CreatedAt:        now,
-				UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create apps: %w", err)
-		}
-
-		err = db.BulkQuery.InsertEnvironments(ctx, tx, []db.InsertEnvironmentParams{
-			{
-				ID:          previewEnvID,
-				WorkspaceID: workspaceID,
-				ProjectID:   projectID,
-				AppID:       appID,
-				Slug:        "preview",
-				Description: "",
-				CreatedAt:   time.Now().UnixMilli(),
-				UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
-			}, {
-				ID:          productionEnvID,
-				WorkspaceID: workspaceID,
-				ProjectID:   projectID,
-				AppID:       appID,
-				Slug:        "production",
-				Description: "",
-				CreatedAt:   time.Now().UnixMilli(),
-				UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create environments: %w", err)
-		}
-
-		// Create default runtime settings for each environment
-		err = db.BulkQuery.UpsertAppRuntimeSettings(ctx, tx, []db.UpsertAppRuntimeSettingsParams{
-			{
-				WorkspaceID:      workspaceID,
-				AppID:            appID,
-				EnvironmentID:    previewEnvID,
-				Port:             8080,
-				CpuMillicores:    250,
-				MemoryMib:        256,
-				StorageMib:       0,
-				Command:          dbtype.StringSlice{},
-				Healthcheck:      dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-				SentinelConfig:   []byte{},
-				ShutdownSignal:   db.AppRuntimeSettingsShutdownSignalSIGTERM,
-				UpstreamProtocol: db.AppRuntimeSettingsUpstreamProtocolHttp1,
-				CreatedAt:        now,
-				UpdatedAt:        sql.NullInt64{Valid: true, Int64: now},
-				OpenapiSpecPath:  sql.NullString{Valid: true, String: "/openapi.yaml"},
-			},
-			{
-				WorkspaceID:      workspaceID,
-				AppID:            appID,
-				EnvironmentID:    productionEnvID,
-				Port:             8080,
-				CpuMillicores:    250,
-				MemoryMib:        256,
-				StorageMib:       0,
-				Command:          dbtype.StringSlice{},
-				Healthcheck:      dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-				SentinelConfig:   []byte{},
-				ShutdownSignal:   db.AppRuntimeSettingsShutdownSignalSIGTERM,
-				UpstreamProtocol: db.AppRuntimeSettingsUpstreamProtocolHttp1,
-				CreatedAt:        now,
-				UpdatedAt:        sql.NullInt64{Valid: true, Int64: now},
-				OpenapiSpecPath:  sql.NullString{Valid: true, String: "/openapi.yaml"},
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create runtime settings: %w", err)
-		}
-
-		// Create default build settings for each environment
-		err = db.BulkQuery.UpsertAppBuildSettings(ctx, tx, []db.UpsertAppBuildSettingsParams{
-			{
-				WorkspaceID:   workspaceID,
-				AppID:         appID,
-				EnvironmentID: previewEnvID,
-				Dockerfile:    "Dockerfile",
-				DockerContext: ".",
-				WatchPaths:    nil,
-				CreatedAt:     now,
-				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
-			},
-			{
-				WorkspaceID:   workspaceID,
-				AppID:         appID,
-				EnvironmentID: productionEnvID,
-				Dockerfile:    "Dockerfile",
-				DockerContext: ".",
-				WatchPaths:    nil,
-				CreatedAt:     now,
-				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create build settings: %w", err)
-		}
-
-		// Create local region (no-op if Krane's heartbeat already inserted it)
-		err = db.Query.UpsertRegion(ctx, tx, db.UpsertRegionParams{
-			ID:       regionID,
-			Name:     "local",
-			Platform: "dev",
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create region: %w", err)
-		}
-
-		// The upsert is a no-op on duplicate (name, platform), so the existing row keeps
-		// its original ID. We must read back the actual ID to use in regional settings.
-		existingRegion, err := db.Query.FindRegionByPlatformAndName(ctx, tx, db.FindRegionByPlatformAndNameParams{
-			Platform: "dev",
-			Name:     "local",
-		})
-		if err != nil {
-			return fmt.Errorf("failed to find region after upsert: %w", err)
-		}
-		regionID = existingRegion.ID
-
-		// Create regional settings so deployments work without manually saving each environment
-		err = db.BulkQuery.UpsertAppRegionalSettings(ctx, tx, []db.UpsertAppRegionalSettingsParams{
-			{
-				WorkspaceID:   workspaceID,
-				AppID:         appID,
-				EnvironmentID: previewEnvID,
-				RegionID:      regionID,
-				Replicas:      1,
-				CreatedAt:     now,
-				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
-			},
-			{
-				WorkspaceID:   workspaceID,
-				AppID:         appID,
-				EnvironmentID: productionEnvID,
-				RegionID:      regionID,
-				Replicas:      1,
-				CreatedAt:     now,
-				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create regional settings: %w", err)
 		}
 
 		err = db.BulkQuery.UpsertQuota(ctx, tx, []db.UpsertQuotaParams{
@@ -457,28 +271,22 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
-	logger.Info("project created successfully", "id", projectID)
-
-	// Write environment file with generated values
 	if outputFile := cmd.String("output"); outputFile != "" {
 		envContent := fmt.Sprintf(`# Generated by: unkey dev seed local --slug=%s
 # Source this file or copy values to your .env
 
 UNKEY_WORKSPACE_ID=%s
-UNKEY_PROJECT_ID=%s
 UNKEY_API_ID=%s
 UNKEY_KEYSPACE_ID=%s
 UNKEY_ROOT_KEY=%s
 `,
 			slug,
 			workspaceID,
-			projectID,
 			userApiID,
 			userKeySpaceID,
 			keyResult.Key,
 		)
 
-		// Ensure directory exists
 		if dir := filepath.Dir(outputFile); dir != "" && dir != "." {
 			if err := os.MkdirAll(dir, 0o755); err != nil {
 				return fmt.Errorf("failed to create output directory: %w", err)
@@ -493,9 +301,6 @@ UNKEY_ROOT_KEY=%s
 
 	logger.Info("seed completed",
 		"workspace", workspaceID,
-		"project", projectID,
-		"preview_environment", previewEnvID,
-		"production_environment", productionEnvID,
 		"api", userApiID,
 		"keySpace", userKeySpaceID,
 		"rootKey", keyResult.Key,
