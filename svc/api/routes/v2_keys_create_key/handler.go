@@ -11,11 +11,13 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
@@ -36,6 +38,7 @@ type Handler struct {
 	Keys      keys.KeyService
 	Auditlogs auditlogs.AuditLogService
 	Vault     vault.VaultServiceClient
+	Caches    caches.Caches
 }
 
 // Method returns the HTTP method this route responds to
@@ -80,18 +83,84 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
-	if err != nil {
+	// 4. Lookups, run concurrently before opening a transaction.
+	// Cross-region MySQL latency makes serial round-trips expensive, so we
+	// fan out reads here and only enter the tx with the data we need.
+	var (
+		api           db.FindLiveApiByIDRow
+		apiHit        cache.CacheHit
+		identity      db.Identity
+		existingPerms []db.Permission
+		existingRoles []db.FindRolesByNamesRow
+	)
+
+	g := db.NewParallelGroup(ctx)
+
+	db.Go(g, &apiHit, func(ctx context.Context) (cache.CacheHit, error) {
+		row, hit, swrErr := h.Caches.LiveApiByID.SWR(ctx,
+			cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: req.ApiId},
+			func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
+				return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
+			},
+			caches.DefaultFindFirstOp,
+		)
+		if swrErr != nil {
+			return hit, swrErr
+		}
+		api = row
+		return hit, nil
+	})
+
+	if req.ExternalId != nil {
+		db.Go(g, &identity, func(ctx context.Context) (db.Identity, error) {
+			row, findErr := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				ExternalID:  *req.ExternalId,
+				Deleted:     false,
+			})
+			if db.IsNotFound(findErr) {
+				return db.Identity{}, nil
+			}
+			return row, findErr
+		})
+	}
+
+	if req.Permissions != nil {
+		db.Go(g, &existingPerms, func(ctx context.Context) ([]db.Permission, error) {
+			return db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Slugs:       *req.Permissions,
+			})
+		})
+	}
+
+	if req.Roles != nil {
+		db.Go(g, &existingRoles, func(ctx context.Context) ([]db.FindRolesByNamesRow, error) {
+			return db.Query.FindRolesByNames(ctx, h.DB.RO(), db.FindRolesByNamesParams{
+				WorkspaceID: auth.AuthorizedWorkspaceID,
+				Names:       *req.Roles,
+			})
+		})
+	}
+
+	if err := g.Wait(); err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("api not found",
 				fault.Code(codes.Data.Api.NotFound.URN()),
 				fault.Internal("api not found"), fault.Public("The specified API was not found."),
 			)
 		}
-
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve API."),
+			fault.Internal("database error"), fault.Public("Failed to load required data."),
+		)
+	}
+
+	if apiHit == cache.Null {
+		return fault.New("api not found",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("api not found"),
+			fault.Public("The specified API was not found."),
 		)
 	}
 
@@ -102,19 +171,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("api not set up for keys",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("api not set up for keys, keyspace not found"), fault.Public("The requested API is not set up to handle keys."),
-			)
-		}
-
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+	if !api.KeyAuthID.Valid {
+		return fault.New("api not set up for keys",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("api not set up for keys, key_auth_id missing"), fault.Public("The requested API is not set up to handle keys."),
 		)
+	}
+
+	// Validate every requested role exists before we open the tx, mirroring the
+	// previous in-tx behavior (returns the first missing role).
+	existingRoleMap := make(map[string]db.FindRolesByNamesRow, len(existingRoles))
+	for _, r := range existingRoles {
+		existingRoleMap[r.Name] = r
+	}
+	if req.Roles != nil {
+		for _, requestedName := range *req.Roles {
+			if _, ok := existingRoleMap[requestedName]; !ok {
+				return fault.New("role not found",
+					fault.Code(codes.Data.Role.NotFound.URN()),
+					fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role '%s' was not found.", requestedName)),
+				)
+			}
+		}
 	}
 
 	// 5. Generate key using key service
@@ -153,7 +231,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		if !keySpace.StoreEncryptedKeys {
+		if !api.KeyAuth.StoreEncryptedKeys {
 			return fault.New("api not set up for key encryption",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 				fault.Internal("api not set up for key encryption"), fault.Public("This API does not support key encryption."),
@@ -199,42 +277,47 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			insertKeyParams.Name = sql.NullString{String: *req.Name, Valid: true}
 		}
 
-		// Handle identity creation/lookup from externalId
+		// Identity handling: if the pre-tx find located the identity we just
+		// reuse its id, no extra round-trips. Otherwise insert a new one and
+		// re-read inside the tx to recover from the rare race where another
+		// request created the identity between our find and this insert (the
+		// existing UpsertIdentity does ON DUPLICATE KEY UPDATE so the insert
+		// succeeds either way).
 		if req.ExternalId != nil {
-			externalID := *req.ExternalId
+			if identity.ID != "" {
+				insertKeyParams.IdentityID = sql.NullString{Valid: true, String: identity.ID}
+			} else {
+				newIdentityID := uid.New(uid.IdentityPrefix)
+				err = db.Query.UpsertIdentity(ctx, tx, db.UpsertIdentityParams{
+					ID:          newIdentityID,
+					ExternalID:  *req.ExternalId,
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					Environment: "default",
+					CreatedAt:   now,
+					Meta:        []byte("{}"),
+				})
+				if err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("failed to upsert identity"),
+						fault.Public("Failed to create identity."),
+					)
+				}
 
-			// Upsert identity - inserts if not exists, no-op if exists
-			err = db.Query.UpsertIdentity(ctx, tx, db.UpsertIdentityParams{
-				ID:          uid.New(uid.IdentityPrefix),
-				ExternalID:  externalID,
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Environment: "default",
-				CreatedAt:   now,
-				Meta:        []byte("{}"),
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("failed to upsert identity"),
-					fault.Public("Failed to create identity."),
-				)
+				row, findErr := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
+					WorkspaceID: auth.AuthorizedWorkspaceID,
+					ExternalID:  *req.ExternalId,
+					Deleted:     false,
+				})
+				if findErr != nil {
+					return fault.Wrap(findErr,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("failed to find identity after upsert"),
+						fault.Public("Failed to find identity."),
+					)
+				}
+				insertKeyParams.IdentityID = sql.NullString{Valid: true, String: row.ID}
 			}
-
-			// Fetch the identity ID (either just created or already existed)
-			identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				ExternalID:  externalID,
-				Deleted:     false,
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("failed to find identity after upsert"),
-					fault.Public("Failed to find identity."),
-				)
-			}
-
-			insertKeyParams.IdentityID = sql.NullString{Valid: true, String: identity.ID}
 		}
 
 		if req.Meta != nil {
@@ -353,21 +436,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		var auditLogs []auditlog.AuditLog
 		if req.Permissions != nil {
-			var existingPermissions []db.Permission
-			existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Slugs:       *req.Permissions,
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"),
-					fault.Public("Failed to retrieve permissions."),
-				)
-			}
-
-			existingPermMap := make(map[string]db.Permission)
-			for _, p := range existingPermissions {
+			existingPermMap := make(map[string]db.Permission, len(existingPerms))
+			for _, p := range existingPerms {
 				existingPermMap[p.Slug] = p
 			}
 
@@ -466,44 +536,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if req.Roles != nil {
-			var existingRoles []db.FindRolesByNamesRow
-			existingRoles, err = db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Names:       *req.Roles,
-			})
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"),
-					fault.Public("Failed to retrieve roles."),
-				)
-			}
-
-			// Find which roles need to be created
-			existingRoleMap := make(map[string]db.FindRolesByNamesRow)
-			for _, r := range existingRoles {
-				existingRoleMap[r.Name] = r
-			}
-
-			// Create missing roles in bulk and build final list
-			requestedRoles := []db.FindRolesByNamesRow{}
-
-			for _, requestedName := range *req.Roles {
-				existingRole, exists := existingRoleMap[requestedName]
-				if exists {
-					requestedRoles = append(requestedRoles, existingRole)
-					continue
-				}
-
-				return fault.New("role not found",
-					fault.Code(codes.Data.Role.NotFound.URN()),
-					fault.Internal("role not found"), fault.Public(fmt.Sprintf("Role '%s' was not found.", requestedName)),
-				)
-			}
-
-			// Insert all requested roles
 			rolesToInsert := []db.InsertKeyRoleParams{}
-			for _, reqRole := range requestedRoles {
+			for _, requestedName := range *req.Roles {
+				reqRole := existingRoleMap[requestedName]
 				rolesToInsert = append(rolesToInsert, db.InsertKeyRoleParams{
 					KeyID:       keyID,
 					RoleID:      reqRole.ID,
