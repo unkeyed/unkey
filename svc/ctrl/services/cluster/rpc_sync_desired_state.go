@@ -6,7 +6,6 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
@@ -25,23 +24,10 @@ func (s *Service) SyncDesiredState(
 		return err
 	}
 
-	regionName := req.Header().Get("X-Krane-Region")
-	platform := req.Header().Get("X-Krane-Platform")
-	if err := assert.All(
-		assert.NotEmpty(regionName, "region is required"),
-		assert.NotEmpty(platform, "platform is required"),
-	); err != nil {
-		return connect.NewError(connect.CodeInvalidArgument, err)
-	}
-
-	region, err := db.Query.FindRegionByNameAndPlatform(ctx, s.db.RO(), db.FindRegionByNameAndPlatformParams{
-		Name:     regionName,
-		Platform: platform,
-	})
+	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
 	if err != nil {
-		logger.Error("failed to find region for SyncDesiredState", "error", err, "region_name", regionName, "platform", platform)
 		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
-		return connect.NewError(connect.CodeInternal, err)
+		return err
 	}
 
 	fullSyncStart := time.Now()
@@ -84,7 +70,7 @@ func (s *Service) syncDeployments(
 		}
 		for _, row := range rows {
 			afterPk = row.DeploymentTopology.Pk
-			state, err := s.deploymentRowToState(deploymentRow{
+			state, err := deploymentRowToState(deploymentRow{
 				dt:              row.DeploymentTopology,
 				d:               row.Deployment,
 				k8sNamespace:    row.K8sNamespace,
@@ -130,7 +116,7 @@ func (s *Service) syncSentinels(
 		}
 		for _, sentinel := range rows {
 			afterPk = sentinel.Pk
-			state := s.sentinelToState(sentinel, 0)
+			state := sentinelToState(sentinel, 0)
 			if state == nil {
 				continue
 			}

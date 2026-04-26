@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "doc.go",
         "expiring_set.go",
+        "region_key.go",
         "region_lookup.go",
         "rpc_get_desired_cilium_network_policy_state.go",
         "rpc_get_desired_deployment_state.go",
@@ -24,6 +25,7 @@ go_library(
         "//gen/proto/hydra/v1:hydra",
         "//pkg/assert",
         "//pkg/cache",
+        "//pkg/clock",
         "//pkg/db",
         "//pkg/logger",
         "//pkg/ptr",
@@ -39,12 +41,15 @@ go_library(
 go_test(
     name = "cluster_test",
     srcs = [
+        "region_key_test.go",
         "sentinel_converged_test.go",
         "state_converters_test.go",
     ],
     embed = [":cluster"],
     deps = [
+        "//gen/proto/ctrl/v1:ctrl",
         "//pkg/db",
+        "@com_connectrpc_connect//:connect",
         "@com_github_stretchr_testify//require",
     ],
 )

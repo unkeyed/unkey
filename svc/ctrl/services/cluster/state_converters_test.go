@@ -9,7 +9,6 @@ import (
 )
 
 func TestDeploymentRowToState_Running(t *testing.T) {
-	s := &Service{}
 	row := deploymentRow{
 		dt: db.DeploymentTopology{
 			DesiredStatus:          db.DeploymentTopologyDesiredStatusRunning,
@@ -34,7 +33,7 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 		regionName:      "us-east-1",
 	}
 
-	state, err := s.deploymentRowToState(row, 42)
+	state, err := deploymentRowToState(row, 42)
 	require.NoError(t, err)
 	require.NotNil(t, state)
 
@@ -51,7 +50,6 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 }
 
 func TestDeploymentRowToState_Stopped(t *testing.T) {
-	s := &Service{}
 	row := deploymentRow{
 		dt: db.DeploymentTopology{
 			DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
@@ -62,7 +60,7 @@ func TestDeploymentRowToState_Stopped(t *testing.T) {
 		k8sNamespace: sql.NullString{Valid: true, String: "ws-namespace"},
 	}
 
-	state, err := s.deploymentRowToState(row, 7)
+	state, err := deploymentRowToState(row, 7)
 	require.NoError(t, err)
 	require.NotNil(t, state)
 
@@ -75,7 +73,6 @@ func TestDeploymentRowToState_Stopped(t *testing.T) {
 }
 
 func TestSentinelToState_Running(t *testing.T) {
-	s := &Service{}
 	sentinel := db.Sentinel{
 		ID:              "snt_123",
 		K8sName:         "sentinel-abc",
@@ -89,7 +86,7 @@ func TestSentinelToState_Running(t *testing.T) {
 		MemoryMib:       128,
 	}
 
-	state := s.sentinelToState(sentinel, 10)
+	state := sentinelToState(sentinel, 10)
 	require.NotNil(t, state)
 	require.Equal(t, uint64(10), state.GetVersion())
 
@@ -100,13 +97,12 @@ func TestSentinelToState_Running(t *testing.T) {
 }
 
 func TestSentinelToState_Archived(t *testing.T) {
-	s := &Service{}
 	sentinel := db.Sentinel{
 		K8sName:      "sentinel-abc",
 		DesiredState: db.SentinelsDesiredStateArchived,
 	}
 
-	state := s.sentinelToState(sentinel, 5)
+	state := sentinelToState(sentinel, 5)
 	require.NotNil(t, state)
 
 	del := state.GetDelete()
@@ -115,13 +111,12 @@ func TestSentinelToState_Archived(t *testing.T) {
 }
 
 func TestSentinelToState_Standby(t *testing.T) {
-	s := &Service{}
 	sentinel := db.Sentinel{
 		K8sName:      "sentinel-abc",
 		DesiredState: db.SentinelsDesiredStateStandby,
 	}
 
-	state := s.sentinelToState(sentinel, 5)
+	state := sentinelToState(sentinel, 5)
 	require.NotNil(t, state)
 
 	del := state.GetDelete()

@@ -10,7 +10,6 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -34,22 +33,9 @@ func (s *Service) WatchDeploymentChanges(
 		return err
 	}
 
-	regionName := req.Header().Get("X-Krane-Region")
-	platform := req.Header().Get("X-Krane-Platform")
-	if err := assert.All(
-		assert.NotEmpty(regionName, "region is required"),
-		assert.NotEmpty(platform, "platform is required"),
-	); err != nil {
-		return connect.NewError(connect.CodeInvalidArgument, err)
-	}
-
-	region, err := db.Query.FindRegionByNameAndPlatform(ctx, s.db.RO(), db.FindRegionByNameAndPlatformParams{
-		Name:     regionName,
-		Platform: platform,
-	})
+	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
 	if err != nil {
-		logger.Error("failed to find region for WatchDeploymentChanges", "error", err, "region_name", regionName, "platform", platform)
-		return connect.NewError(connect.CodeInternal, err)
+		return err
 	}
 
 	versionCursor := req.Msg.GetVersionLastSeen()
@@ -148,7 +134,7 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 		if err != nil {
 			return nil, err
 		}
-		state, err := s.deploymentRowToState(deploymentRow{
+		state, err := deploymentRowToState(deploymentRow{
 			dt:              row.DeploymentTopology,
 			d:               row.Deployment,
 			k8sNamespace:    row.K8sNamespace,
@@ -172,7 +158,7 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 		if err != nil {
 			return nil, err
 		}
-		state := s.sentinelToState(sentinel, change.Pk)
+		state := sentinelToState(sentinel, change.Pk)
 		if state == nil {
 			return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
 		}
@@ -213,7 +199,7 @@ type deploymentRow struct {
 }
 
 // deploymentRowToState converts a deployment row to a proto DeploymentState message.
-func (s *Service) deploymentRowToState(row deploymentRow, version uint64) (*ctrlv1.DeploymentState, error) {
+func deploymentRowToState(row deploymentRow, version uint64) (*ctrlv1.DeploymentState, error) {
 	switch row.dt.DesiredStatus {
 	case db.DeploymentTopologyDesiredStatusStopped:
 		return &ctrlv1.DeploymentState{
@@ -302,7 +288,7 @@ func (s *Service) deploymentRowToState(row deploymentRow, version uint64) (*ctrl
 }
 
 // sentinelToState converts a sentinel DB row to a proto SentinelState message.
-func (s *Service) sentinelToState(sentinel db.Sentinel, version uint64) *ctrlv1.SentinelState {
+func sentinelToState(sentinel db.Sentinel, version uint64) *ctrlv1.SentinelState {
 	switch sentinel.DesiredState {
 	case db.SentinelsDesiredStateArchived, db.SentinelsDesiredStateStandby:
 		return &ctrlv1.SentinelState{

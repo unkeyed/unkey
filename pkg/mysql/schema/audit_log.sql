@@ -19,15 +19,5 @@ CREATE TABLE `audit_log` (
 	CONSTRAINT `audit_log_id_unique` UNIQUE(`id`)
 );
 
-CREATE INDEX `workspace_id_idx` ON `audit_log` (`workspace_id`);
-
-CREATE INDEX `bucket_id_idx` ON `audit_log` (`bucket_id`);
-
-CREATE INDEX `bucket_idx` ON `audit_log` (`bucket`);
-
-CREATE INDEX `event_idx` ON `audit_log` (`event`);
-
-CREATE INDEX `actor_id_idx` ON `audit_log` (`actor_id`);
-
-CREATE INDEX `time_idx` ON `audit_log` (`time`);
+CREATE INDEX `workspace_id_bucket_time_idx` ON `audit_log` (`workspace_id`,`bucket`,`time`);
 

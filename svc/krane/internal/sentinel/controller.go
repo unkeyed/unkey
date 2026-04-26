@@ -122,6 +122,10 @@ func (c *Controller) Stop() error {
 	return nil
 }
 
+func (c *Controller) regionKey() *ctrlv1.RegionKey {
+	return &ctrlv1.RegionKey{Platform: c.platform, Name: c.region}
+}
+
 // reportSentinelStatus pushes sentinel status to the control plane through
 // the circuit breaker. The circuit breaker prevents cascading failures during
 // control plane outages by failing fast after repeated errors.
@@ -129,6 +133,7 @@ func (c *Controller) Stop() error {
 // On success, the fingerprint for this report is cached so that
 // [Controller.reportIfChanged] can skip redundant reports during resync.
 func (c *Controller) reportSentinelStatus(ctx context.Context, status *ctrlv1.ReportSentinelStatusRequest) error {
+	status.Region = c.regionKey()
 	start := time.Now()
 	_, err := c.cb.Do(ctx, func(innerCtx context.Context) (any, error) {
 		return c.cluster.ReportSentinelStatus(innerCtx, status)

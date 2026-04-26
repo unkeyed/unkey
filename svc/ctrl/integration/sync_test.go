@@ -83,6 +83,7 @@ func (m *mockStream) ResponseTrailer() http.Header {
 
 // newService creates a cluster service for testing.
 func newService(t *testing.T, database db.Database) *cluster.Service {
+	t.Helper()
 	clk := clock.New()
 	topologyCache, err := cache.New(cache.Config[string, []db.FindDeploymentTopologyMinReplicasRow]{
 		Fresh:    5 * time.Minute,
@@ -92,11 +93,14 @@ func newService(t *testing.T, database db.Database) *cluster.Service {
 		Clock:    clk,
 	})
 	require.NoError(t, err)
-	return cluster.New(cluster.Config{
+	svc, err := cluster.New(cluster.Config{
 		Database:      database,
 		Bearer:        "test-bearer",
+		Clock:         clk,
 		TopologyCache: topologyCache,
 	})
+	require.NoError(t, err)
+	return svc
 }
 
 // findDeploymentApply finds the first deployment apply message in the stream.
