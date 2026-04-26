@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/cmd/deploy"
 	dev "github.com/unkeyed/unkey/cmd/dev"
 	"github.com/unkeyed/unkey/cmd/healthcheck"
+	"github.com/unkeyed/unkey/cmd/preflight"
 	"github.com/unkeyed/unkey/cmd/run"
 	"github.com/unkeyed/unkey/cmd/version"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
@@ -33,6 +34,7 @@ func main() {
 			deploy.Cmd,
 			healthcheck.Cmd,
 			dev.Cmd,
+			preflight.Cmd,
 		},
 	}
 

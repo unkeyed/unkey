@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "runner",
+    srcs = [
+        "artifact.go",
+        "diagnose.go",
+        "metrics.go",
+        "runner.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/runner",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/logger",
+        "//pkg/otel/tracing",
+        "//svc/preflight/core",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/promauto",
+    ],
+)
+
+go_test(
+    name = "runner_test",
+    srcs = ["runner_test.go"],
+    embed = [":runner"],
+    deps = [
+        "//svc/preflight/core",
+        "@com_github_prometheus_client_golang//prometheus/testutil",
+    ],
+)

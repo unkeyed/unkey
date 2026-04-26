@@ -1,0 +1,70 @@
+# Preflight config for the local minikube cluster (dev/cluster.yaml).
+# The minikube stack runs real Cilium + gVisor + ctrl + Restate +
+# Krane + frontline, so this config runs the FULL suite including
+# git_push as long as you have the dev GitHub App + ngrok tunnel
+# wired (see bootstrap below).
+#
+# Bootstrap:
+#
+#   # One-time:
+#   unkey dev github setup --app-name my-preflight-dev    # writes dev/.env.github + pem
+#   unkey dev seed local --slug=preflight                  # seeds workspace + root key
+#   # Install the GitHub App on unkeyed/preflight-test-app (or your
+#   # fork). Note the installation ID from the GitHub URL.
+#
+#   # Every dev session:
+#   unkey dev github tunnel                                # ngrok -> localhost:7091
+#   export $(grep -v '^#' dev/.env.seed | xargs)
+#   export $(grep -v '^#' dev/.env.github | xargs)
+#   export PREFLIGHT_GITHUB_PRIVATE_KEY="$(cat dev/.github-private-key.pem)"
+#   export PREFLIGHT_GITHUB_INSTALLATION_ID=<id-from-github-url>
+#   UNKEY_CONFIG=dev/preflight.toml.local unkey preflight
+#
+# If you skip the GitHub App + installation-ID steps, git_push fails
+# at validatePrereqs with a clear error; every other probe still
+# runs. To skip git_push without it erroring, switch suite to
+# "solo-dev" below.
+
+target = "staging"
+region = "local-minikube"
+suite  = "solo"                  # or "solo-dev" to skip git_push
+
+[ctrl]
+base_url   = "http://localhost:7091"
+auth_token = "${PREFLIGHT_CTRL_TOKEN}"   # from dev/.env.seed after seed local
+
+[github]
+# Dev App credentials written by `unkey dev github setup`.
+app_id           = ${UNKEY_GITHUB_APP_ID}
+webhook_secret   = "${UNKEY_GITHUB_APP_WEBHOOK_SECRET}"
+
+# The installation-ID and private-key need a manual export after
+# setup. See bootstrap above.
+installation_id  = ${PREFLIGHT_GITHUB_INSTALLATION_ID}
+# Triple-quoted: the PEM has real newlines after env-substitution.
+# Basic-quoted strings would reject those at TOML parse time.
+private_key_pem  = """${PREFLIGHT_GITHUB_PRIVATE_KEY}"""
+
+# Override to your own fork if you don't have write on the canonical
+# repo. The dev GitHub App must be installed here.
+test_repo        = "unkeyed/preflight-test-app"
+
+[preflight_tenant]
+# From the seed local run.
+project_id       = "${PREFLIGHT_PROJECT_ID}"
+app_id           = "${PREFLIGHT_APP_ID}"
+environment_slug = "production"
+project_slug     = "preflight"
+app_slug         = "default"
+workspace_slug   = "unkey-preflight"
+apex             = "local.unkey.app"
+
+[clickhouse]
+# Local ClickHouse from dev/docker-compose.yaml.
+url = "clickhouse://default:password@localhost:9000/default"
+
+[mysql]
+# Direct MySQL from dev/docker-compose.yaml. Diagnostics-only.
+# Scope restrictions that apply in staging (read-only GRANTs) do NOT
+# apply here because local dev already has full access.
+dsn = "unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true"

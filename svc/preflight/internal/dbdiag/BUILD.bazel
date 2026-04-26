@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "dbdiag",
+    srcs = ["dbdiag.go"],
+    importpath = "github.com/unkeyed/unkey/svc/preflight/internal/dbdiag",
+    visibility = ["//svc/preflight:__subpackages__"],
+    deps = [
+        "//pkg/db",
+        "//svc/preflight/core",
+    ],
+)

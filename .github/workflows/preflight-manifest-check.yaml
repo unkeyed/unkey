@@ -1,0 +1,31 @@
+name: preflight-manifest-check
+
+# Verifies that svc/preflight/probes/MANIFEST.txt matches the set of
+# probes registered in the binary. The infra repo consumes that manifest
+# to enforce that every probe has a runbook, so keeping it in sync is
+# critical.
+#
+# To update the manifest after adding or removing a probe:
+#   go run ./cmd/preflight/probemanifest --write
+
+on:
+  pull_request:
+    paths:
+      - "cmd/preflight/**"
+      - "svc/preflight/**"
+      - ".github/workflows/preflight-manifest-check.yaml"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Verify probe manifest is up to date
+        run: go run ./cmd/preflight/probemanifest
