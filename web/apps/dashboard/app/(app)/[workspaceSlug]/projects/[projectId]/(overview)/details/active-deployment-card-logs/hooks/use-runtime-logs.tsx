@@ -2,6 +2,7 @@ import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeploymentLogsContext } from "../providers/deployment-logs-provider";
 
 const RUNTIME_LOGS_REFETCH_INTERVAL = 5000;
 const RUNTIME_LOGS_LIMIT = 50;
@@ -42,6 +43,7 @@ export function useRuntimeLogs({
   const [storedLogs, setStoredLogs] = useState<Map<string, RuntimeLog>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null) as React.MutableRefObject<HTMLDivElement>;
   const { queryTime: timestamp } = useQueryTime();
+  const { isLive } = useDeploymentLogsContext();
 
   const { data, isLoading } = trpc.deploy.runtimeLogs.query.useQuery(
     {
@@ -57,7 +59,8 @@ export function useRuntimeLogs({
       instanceId: null,
     },
     {
-      refetchInterval: RUNTIME_LOGS_REFETCH_INTERVAL,
+      // Only poll when the user has opted in via the Live toggle.
+      refetchInterval: isLive ? RUNTIME_LOGS_REFETCH_INTERVAL : false,
       refetchOnWindowFocus: false,
     },
   );

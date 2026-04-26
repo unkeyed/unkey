@@ -2,7 +2,7 @@
 
 import { formatNumber } from "@/lib/fmt";
 import { CircleXMark, Layers3, Magnifier, TriangleWarning2 } from "@unkey/icons";
-import { CopyButton, InfoTooltip, Input } from "@unkey/ui";
+import { Button, CopyButton, InfoTooltip, Input } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { format } from "date-fns";
 import { useRuntimeLogs } from "../hooks/use-runtime-logs";
@@ -27,7 +27,7 @@ type Props = {
 };
 
 export function RuntimeLogsContent({ projectId, deploymentId }: Props) {
-  const { isExpanded } = useDeploymentLogsContext();
+  const { isExpanded, isLive, toggleLive } = useDeploymentLogsContext();
   const {
     logFilter,
     searchTerm,
@@ -81,6 +81,27 @@ export function RuntimeLogsContent({ projectId, deploymentId }: Props) {
           value={searchTerm}
           onChange={handleSearchChange}
         />
+
+        <Button
+          variant="primary"
+          className={cn(
+            "text-xs h-[26px] border-none ml-2 gap-1.5",
+            isLive
+              ? "bg-success-3 hover:bg-success-4 text-success-11"
+              : "bg-grayA-3 hover:bg-grayA-4 text-grayA-9",
+          )}
+          onClick={toggleLive}
+          aria-pressed={isLive}
+          title={isLive ? "Stop live updates" : "Stream logs every 5s"}
+        >
+          <span
+            className={cn(
+              "size-2 rounded-full",
+              isLive ? "bg-success-9 animate-pulse" : "bg-grayA-7",
+            )}
+          />
+          <span>{isLive ? "Live" : "Paused"}</span>
+        </Button>
 
         <CopyButton
           value={JSON.stringify(filteredLogs)}

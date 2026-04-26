@@ -59,7 +59,6 @@ export type RuntimeLogsRequestSchema = z.infer<typeof runtimeLogsRequestSchema>;
 export const runtimeLogsResponseSchema = z.object({
   logs: z.array(dashboardRuntimeLog),
   hasMore: z.boolean(),
-  total: z.number(),
   nextCursor: z.int().optional(),
 });
 

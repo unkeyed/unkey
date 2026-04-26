@@ -56,11 +56,8 @@ export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQuery
     return data?.pages.flatMap((page) => page.logs) ?? [];
   }, [data]);
 
-  const total = data?.pages[0]?.total ?? 0;
-
   return {
     logs,
-    total,
     isLoading,
     error,
     hasMore: hasNextPage,
