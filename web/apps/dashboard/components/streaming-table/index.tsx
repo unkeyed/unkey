@@ -55,6 +55,7 @@ export function StreamingTable<T>({
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: data.length is the intentional trigger; body doesn't read it, biome doesn't model that.
   useEffect(() => {
     if (userScrolledUp.current || isLoading) {
       return;

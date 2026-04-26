@@ -25,7 +25,7 @@ export const runtimeLogsRequestSchema = z.object({
       ),
     })
     .nullable(),
-  limit: z.int(),
+  limit: z.int().min(1).max(1_000),
   startTime: z.int(),
   endTime: z.int(),
   since: z.string(),
@@ -68,7 +68,6 @@ export type RuntimeLogsRequestSchema = z.infer<typeof runtimeLogsRequestSchema>;
 export const runtimeLogsResponseSchema = z.object({
   logs: z.array(dashboardRuntimeLog),
   hasMore: z.boolean(),
-  total: z.number(),
   nextCursor: z.int().optional(),
 });
 
