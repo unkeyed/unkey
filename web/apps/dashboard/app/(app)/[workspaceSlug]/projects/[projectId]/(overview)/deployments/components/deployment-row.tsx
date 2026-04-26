@@ -7,6 +7,7 @@ import { TimestampInfo } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
+import { DeploymentTriggerBadge } from "../../../components/deployment-trigger-badge";
 import { Avatar } from "../../../components/git-avatar";
 import { EnvStatusBadge } from "./table/components/env-status-badge";
 import { ActionColumnSkeleton } from "./table/components/skeletons";
@@ -61,8 +62,13 @@ export function DeploymentRow({
           <span className="text-xs text-gray-9 capitalize">{environment?.slug}</span>
         </div>
 
-        <div className="md:w-[20%] md:shrink-0">
+        <div className="md:w-[20%] md:shrink-0 flex items-center gap-2">
           <DeploymentStatusBadge status={deployment.status} />
+          <DeploymentTriggerBadge
+            trigger={deployment.trigger}
+            triggeredBy={deployment.triggeredBy}
+            triggerReason={deployment.triggerReason}
+          />
         </div>
       </div>
 

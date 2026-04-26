@@ -115,6 +115,24 @@ export const deployments = mysqlTable(
     ])
       .notNull()
       .default("pending"),
+
+    // What surface triggered this deployment.
+    // "unknown" is used for historical rows inserted before this column existed.
+    trigger: mysqlEnum("trigger", ["unknown", "github", "api", "cli", "dashboard", "unkey"])
+      .notNull()
+      .default("unknown"),
+
+    // Polymorphic actor id, interpreted based on `trigger`:
+    //   dashboard -> user_id
+    //   api / cli -> root_key_id
+    //   github    -> github commit author handle
+    //   unkey     -> internal user_id
+    //   unknown   -> null
+    triggeredBy: varchar("triggered_by", { length: 256 }),
+
+    // Free-form reason, populated mostly for trigger=unkey
+    // (e.g. "rebuild after image loss").
+    triggerReason: varchar("trigger_reason", { length: 512 }),
     ...lifecycleDates,
   },
   (table) => [

@@ -457,11 +457,11 @@ type Querier interface {
 	FindCustomDomainWithCertByDomain(ctx context.Context, db DBTX, domain string) (FindCustomDomainWithCertByDomainRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentByK8sName
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, db DBTX, k8sName string) (Deployment, error)
 	// Returns all regions where a deployment is configured.
 	// Used for fan-out: when a deployment changes, emit state_change to each region.
@@ -476,7 +476,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.created_at, d.updated_at,
+	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
 	//      r.name AS region_name,
@@ -1586,10 +1586,16 @@ type Querier interface {
 	//      healthcheck,
 	//      pr_number,
 	//      fork_repository_full_name,
+	//      `trigger`,
+	//      triggered_by,
+	//      trigger_reason,
 	//      created_at,
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2123,7 +2129,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.created_at, d.updated_at,
+	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
 	//      r.name AS region_name,
@@ -2175,7 +2181,7 @@ type Querier interface {
 	ListDeploymentChangesByRegionAll(ctx context.Context, db DBTX, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, created_at, updated_at FROM `deployments`
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments`
 	//  WHERE environment_id = ?
 	//    AND status = ?
 	//    AND created_at < ?
@@ -2186,7 +2192,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.created_at, d.updated_at,
+	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
 	//      w.k8s_namespace
 	//  FROM `deployment_topology` dt
 	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id

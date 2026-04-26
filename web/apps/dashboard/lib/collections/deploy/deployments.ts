@@ -37,6 +37,9 @@ const schema = z.object({
   cpuMillicores: z.number().int(),
   memoryMib: z.number().int(),
   storageMib: z.number().int(),
+  trigger: z.enum(["unknown", "github", "api", "cli", "dashboard", "unkey"]),
+  triggeredBy: z.string().nullable(),
+  triggerReason: z.string().nullable(),
   createdAt: z.number(),
 });
 

@@ -26,6 +26,9 @@ export const listDeployments = workspaceProcedure
           cpuMillicores: deployments.cpuMillicores,
           memoryMib: deployments.memoryMib,
           storageMib: deployments.storageMib,
+          trigger: deployments.trigger,
+          triggeredBy: deployments.triggeredBy,
+          triggerReason: deployments.triggerReason,
           createdAt: deployments.createdAt,
         })
         .from(deployments)

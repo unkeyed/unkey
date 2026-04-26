@@ -711,6 +711,9 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
 		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
+		DeploymentTrigger:             db.DeploymentsTriggerUnknown,
+		TriggeredBy:                   sql.NullString{Valid: false},
+		TriggerReason:                 sql.NullString{Valid: false},
 		CreatedAt:                     createdAt,
 		UpdatedAt:                     sql.NullInt64{Valid: false},
 	})

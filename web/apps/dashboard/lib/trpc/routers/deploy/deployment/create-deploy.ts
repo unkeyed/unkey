@@ -1,7 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { createCtrlClient } from "@/lib/ctrl-client";
 
-import { DeployService } from "@/gen/proto/ctrl/v1/deployment_pb";
+import { DeployService, DeploymentTrigger } from "@/gen/proto/ctrl/v1/deployment_pb";
 
 import { and, db, eq } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
@@ -61,6 +61,8 @@ export const createDeploy = workspaceProcedure
           projectId: input.projectId,
           appId: environment.appId,
           environmentSlug: input.environmentSlug,
+          trigger: DeploymentTrigger.DASHBOARD,
+          triggeredBy: ctx.user.id,
           ...(ref
             ? {
                 gitCommit: isCommitSha(ref) ? { commitSha: ref } : { branch: ref },

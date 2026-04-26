@@ -28,6 +28,17 @@ enum SourceType {
   SOURCE_TYPE_CLI_UPLOAD = 2;
 }
 
+// DeploymentTrigger identifies which surface initiated a deployment.
+// Persisted on the deployment row for UI display and filtering.
+enum DeploymentTrigger {
+  DEPLOYMENT_TRIGGER_UNSPECIFIED = 0;
+  DEPLOYMENT_TRIGGER_GITHUB = 1;
+  DEPLOYMENT_TRIGGER_API = 2;
+  DEPLOYMENT_TRIGGER_CLI = 3;
+  DEPLOYMENT_TRIGGER_DASHBOARD = 4;
+  DEPLOYMENT_TRIGGER_UNKEY = 5;
+}
+
 message CreateDeploymentRequest {
   string project_id = 1;
   string environment_slug = 2;
@@ -48,6 +59,22 @@ message CreateDeploymentRequest {
 
   // App ID to deploy. Required.
   string app_id = 7;
+
+  // Which surface triggered this deployment.
+  DeploymentTrigger trigger = 8;
+
+  // Polymorphic actor id, interpretation depends on `trigger`:
+  //   dashboard -> user_id
+  //   api / cli -> root_key_id
+  //   github    -> github commit author handle
+  //   unkey     -> internal user_id
+  // Trusted by ctrl because the bearer token is the auth boundary — only
+  // trusted backends can reach this RPC.
+  string triggered_by = 10;
+
+  // Free-form reason. Stored alongside the deployment for audit purposes.
+  // Populated mostly by internal tooling (e.g. "rebuild after image loss").
+  string trigger_reason = 9;
 }
 
 message GitCommitInfo {
