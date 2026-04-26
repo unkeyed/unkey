@@ -7,6 +7,7 @@ INSERT INTO frontline_routes (
     environment_id,
     fully_qualified_domain_name,
     sticky,
+    edge_redirect_config,
     created_at,
     updated_at
 )
@@ -18,6 +19,7 @@ VALUES (
     sqlc.arg(environment_id),
     sqlc.arg(fully_qualified_domain_name),
     sqlc.arg(sticky),
+    sqlc.arg(edge_redirect_config),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)
 );

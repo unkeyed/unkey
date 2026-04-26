@@ -19,10 +19,12 @@ INSERT INTO frontline_routes (
     environment_id,
     fully_qualified_domain_name,
     sticky,
+    edge_redirect_config,
     created_at,
     updated_at
 )
 VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -43,6 +45,7 @@ type InsertFrontlineRouteParams struct {
 	EnvironmentID            string                `db:"environment_id"`
 	FullyQualifiedDomainName string                `db:"fully_qualified_domain_name"`
 	Sticky                   FrontlineRoutesSticky `db:"sticky"`
+	EdgeRedirectConfig       []byte                `db:"edge_redirect_config"`
 	CreatedAt                int64                 `db:"created_at"`
 	UpdatedAt                sql.NullInt64         `db:"updated_at"`
 }
@@ -57,10 +60,12 @@ type InsertFrontlineRouteParams struct {
 //	    environment_id,
 //	    fully_qualified_domain_name,
 //	    sticky,
+//	    edge_redirect_config,
 //	    created_at,
 //	    updated_at
 //	)
 //	VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -80,6 +85,7 @@ func (q *Queries) InsertFrontlineRoute(ctx context.Context, db DBTX, arg InsertF
 		arg.EnvironmentID,
 		arg.FullyQualifiedDomainName,
 		arg.Sticky,
+		arg.EdgeRedirectConfig,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
