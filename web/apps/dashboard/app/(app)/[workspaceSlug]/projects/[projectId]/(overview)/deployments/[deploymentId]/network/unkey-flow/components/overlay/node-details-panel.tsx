@@ -1,7 +1,8 @@
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
-import { ChartActivity, Dots, Layers3 } from "@unkey/icons";
-import { Button, InfoTooltip } from "@unkey/ui";
+import { Layers3 } from "@unkey/icons";
+import { InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { useDeployment } from "../../../../layout-provider";
 import {
   type DeploymentNode,
   type InstanceNode,
@@ -13,10 +14,7 @@ import {
   isSkeletonNode,
 } from "../nodes/types";
 import { NodeDetailsPanelHeader } from "./node-details-panel/components/header";
-import { Metrics } from "./node-details-panel/components/metrics";
-import { SettingsSection } from "./node-details-panel/components/settings-row";
-import { metrics } from "./node-details-panel/constants";
-import { SentinelInstances } from "./node-details-panel/region-node/sentinel-instances";
+import { ResourceMetrics } from "./node-details-panel/components/resource-metrics";
 
 const SentinelNodeDetails = ({
   node,
@@ -37,12 +35,12 @@ const SentinelNodeDetails = ({
           variant: "panel",
           icon: (
             <InfoTooltip
-              content={`AWS region ${node.label} (${regionInfo.location})`}
+              content={`${regionInfo.name} (${regionInfo.location})`}
               variant="primary"
               className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
               position={{ align: "center", side: "top", sideOffset: 5 }}
             >
-              <RegionFlag flagCode={flagCode} size="lg" shape="rounded" />
+              <RegionFlag flagCode={flagCode} size="md" shape="rounded" />
             </InfoTooltip>
           ),
           title: node.label,
@@ -50,56 +48,20 @@ const SentinelNodeDetails = ({
           health,
         }}
       />
-      <Metrics metrics={metrics} />
-      <SentinelInstances instances={node.children ?? []} />
-      <SettingsSection
-        title="Scaling Configuration"
-        settings={[
-          {
-            label: "Scaling",
-            value: (
-              <div className="text-grayA-10">
-                <div>
-                  <span className="text-gray-12 font-medium">3</span> to{" "}
-                  <span className="text-gray-12 font-medium">6</span> instances
-                </div>
-                <div className="mt-0.5">
-                  at <span className="text-gray-12 font-medium">70%</span> CPU threshold
-                </div>
-              </div>
-            ),
-            icon: (
-              <ChartActivity className="size-[14px] text-gray-12 shrink-0" iconSize="md-regular" />
-            ),
-          },
-        ]}
-      />
-      <SettingsSection
-        title="Sentinel settings"
-        settings={[
-          { label: "Provider", value: "AWS" },
-          { label: "Region code", value: node.label },
-          {
-            label: "Image",
-            value: (
-              <>
-                unkey:<span className="text-grayA-10 font-normal">latest</span>
-              </>
-            ),
-          },
-        ]}
-      />
+      <ResourceMetrics resourceType="sentinel" resourceId={node.id} />
     </>
   );
 };
 
 type InstanceNodeDetailsProps = {
   node: InstanceNode;
+  deploymentId: string;
   onClose: () => void;
 };
 
-const InstanceNodeDetails = ({ node, onClose }: InstanceNodeDetailsProps) => {
+const InstanceNodeDetails = ({ node, deploymentId, onClose }: InstanceNodeDetailsProps) => {
   const { health } = node.metadata;
+  const { deployment } = useDeployment();
 
   return (
     <>
@@ -118,17 +80,11 @@ const InstanceNodeDetails = ({ node, onClose }: InstanceNodeDetailsProps) => {
           health,
         }}
       />
-      <Metrics metrics={metrics} />
-      <SettingsSection
-        title="Instance settings"
-        settings={[
-          { label: "Protocol", value: "HTTP/2" },
-          { label: "Port", value: 8080 },
-          { label: "Health check", value: "/healthz" },
-          { label: "Request timeout", value: "30s" },
-          { label: "Max connections", value: 1000 },
-          { label: "TLS", value: "Enabled" },
-        ]}
+      <ResourceMetrics
+        resourceType="deployment"
+        resourceId={deploymentId}
+        storageMib={deployment.storageMib}
+        instanceName={node.metadata.k8sName}
       />
     </>
   );
@@ -136,10 +92,11 @@ const InstanceNodeDetails = ({ node, onClose }: InstanceNodeDetailsProps) => {
 
 type Props = {
   node: DeploymentNode | null;
+  deploymentId: string;
   onClose: () => void;
 };
 
-export function NodeDetailsPanel({ node, onClose }: Props) {
+export function NodeDetailsPanel({ node, deploymentId, onClose }: Props) {
   if (!node) {
     return null;
   }
@@ -152,7 +109,7 @@ export function NodeDetailsPanel({ node, onClose }: Props) {
       return <SentinelNodeDetails node={node} onClose={onClose} />;
     }
     if (isInstanceNode(node)) {
-      return <InstanceNodeDetails node={node} onClose={onClose} />;
+      return <InstanceNodeDetails node={node} deploymentId={deploymentId} onClose={onClose} />;
     }
     const _exhaustive: never = node;
     return _exhaustive;
@@ -166,53 +123,20 @@ export function NodeDetailsPanel({ node, onClose }: Props) {
   const isOpen = Boolean(node?.id);
 
   return (
-    <div className="fixed top-40 right-4 bottom-14 flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-40 right-0 bottom-14 z-20 flex flex-col gap-2 pointer-events-none">
       <div
         className={cn(
-          "rounded-xl bg-white dark:bg-black border border-grayA-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] pointer-events-auto min-w-[360px] max-h-[calc(100vh-300px)] flex flex-col pb-6",
+          // Fixed width so the panel doesn't resize when chart content
+          // (Y-axis tick labels, loading skeleton, empty state) changes
+          // between windows. `min-w-[360px]` let child content push the
+          // panel wider on re-render, which the user perceives as a
+          // flicker every time the window selector changes.
+          "rounded-l-xl bg-white dark:bg-black border-l border-t border-b border-grayA-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] pointer-events-auto w-[400px] max-h-[calc(100vh-300px)] flex flex-col pb-6",
           "transition-all duration-300 ease-out",
           isOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none",
         )}
       >
-        <div className="flex flex-col items-center overflow-y-auto max-h-full pb-4">{content}</div>
-      </div>
-      <div
-        className={cn(
-          "rounded-xl bg-white dark:bg-black border border-grayA-4 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] pointer-events-auto min-w-[360px] h-12 flex px-[11px] gap-2 items-center",
-          "transition-all duration-300 ease-out",
-          isOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none",
-        )}
-      >
-        <Button
-          variant="outline"
-          className="bg-gray-1 rounded-lg shadow-xs text-[13px] font-medium"
-        >
-          Logs
-        </Button>
-        <Button
-          variant="outline"
-          className="bg-gray-1 rounded-lg shadow-xs text-[13px] font-medium"
-        >
-          Restart
-        </Button>
-        <Button
-          variant="outline"
-          className="bg-gray-1 rounded-lg shadow-xs text-[13px] font-medium"
-        >
-          Drain
-        </Button>
-        <Button
-          variant="outline"
-          className="bg-gray-1 rounded-lg shadow-xs text-[13px] font-medium"
-        >
-          Shell
-        </Button>
-        <Button
-          variant="outline"
-          className="bg-gray-1 rounded-lg shadow-xs text-[13px] font-medium ml-auto size-[26px]"
-        >
-          <Dots className="text-gray-9" iconSize="sm-regular" />
-        </Button>
+        <div className="flex flex-col items-stretch overflow-y-auto max-h-full pb-4">{content}</div>
       </div>
     </div>
   );

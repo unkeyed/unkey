@@ -1,0 +1,68 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "collector",
+    srcs = [
+        "cgroup.go",
+        "cgroup_stub.go",
+        "collect.go",
+        "cri_linux.go",
+        "cri_stub.go",
+        "doc.go",
+        "preflight_linux.go",
+        "preflight_stub.go",
+        "service.go",
+        "volumefs_linux.go",
+        "volumefs_stub.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/heimdall/internal/collector",
+    visibility = ["//svc/heimdall:__subpackages__"],
+    deps = [
+        "//pkg/batch",
+        "//pkg/buildinfo",
+        "//pkg/clickhouse/schema",
+        "//pkg/clock",
+        "//pkg/logger",
+        "//pkg/repeat",
+        "//svc/heimdall/internal/checkpoint",
+        "//svc/heimdall/internal/metrics",
+        "//svc/heimdall/internal/network",
+        "@io_k8s_api//core/v1:core",
+        "@io_k8s_apimachinery//pkg/labels",
+        "@io_k8s_apimachinery//pkg/types",
+        "@io_k8s_client_go//listers/core/v1:core",
+    ] + select({
+        "@rules_go//go/platform:android": [
+            "@com_github_containerd_containerd_api//events",
+            "@com_github_containerd_containerd_v2//client",
+            "@com_github_containerd_containerd_v2//pkg/namespaces",
+            "@com_github_containerd_typeurl_v2//:typeurl",
+        ],
+        "@rules_go//go/platform:linux": [
+            "@com_github_containerd_containerd_api//events",
+            "@com_github_containerd_containerd_v2//client",
+            "@com_github_containerd_containerd_v2//pkg/namespaces",
+            "@com_github_containerd_typeurl_v2//:typeurl",
+        ],
+        "//conditions:default": [],
+    }),
+)
+
+go_test(
+    name = "collector_test",
+    srcs = ["cgroup_linux_test.go"],
+    embed = [":collector"],
+    deps = select({
+        "@rules_go//go/platform:android": [
+            "@com_github_stretchr_testify//require",
+            "@io_k8s_api//core/v1:core",
+            "@io_k8s_apimachinery//pkg/types",
+        ],
+        "@rules_go//go/platform:linux": [
+            "@com_github_stretchr_testify//require",
+            "@io_k8s_api//core/v1:core",
+            "@io_k8s_apimachinery//pkg/types",
+        ],
+        "//conditions:default": [],
+    }),
+)

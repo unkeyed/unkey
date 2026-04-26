@@ -1,0 +1,31 @@
+name: eBPF Drift Check
+# Catches the silent case where a developer edits network.bpf.c but forgets
+# to run `make generate-bpf`. Without this check the committed bpf_bpfel.{go,o}
+# would go out of sync with the C source, and heimdall would silently run
+# stale eBPF against new userspace bindings (billing data bug).
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Regenerate and diff
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - name: Install clang
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq clang llvm
+      - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Regenerate eBPF bindings
+        run: make generate-bpf
+      - name: Assert no drift
+        run: |
+          if ! git diff --exit-code --stat -- svc/heimdall/internal/network; then
+            echo "::error::eBPF artifacts are out of sync with network.bpf.c."
+            echo "Run 'make generate-bpf' locally and commit the result."
+            exit 1
+          fi

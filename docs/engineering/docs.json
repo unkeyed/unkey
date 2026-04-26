@@ -213,7 +213,11 @@
           {
             "group": "Metering",
             "pages": [
-              "infra/metering/gauge"
+              "infra/metering/heimdall",
+              "infra/metering/metrics-architecture",
+              "infra/metering/why-counters-not-deltas",
+              "infra/metering/ebpf-primer",
+              "infra/metering/data-quality-checks"
             ]
           },
           {
