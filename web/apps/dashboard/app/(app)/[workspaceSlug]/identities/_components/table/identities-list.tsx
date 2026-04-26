@@ -76,7 +76,6 @@ export const IdentitiesList = () => {
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       staleTime: Number.POSITIVE_INFINITY,
-      refetchOnMount: false,
       refetchOnWindowFocus: false,
     },
   );

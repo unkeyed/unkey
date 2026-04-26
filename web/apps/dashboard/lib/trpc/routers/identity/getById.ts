@@ -23,6 +23,7 @@ const RatelimitSchema = z.object({
   name: z.string(),
   limit: z.number(),
   duration: z.number(),
+  autoApply: z.boolean(),
 });
 
 const WorkspaceSchema = z.object({
@@ -34,7 +35,11 @@ const WorkspaceSchema = z.object({
 const IdentityDetailSchema = z.object({
   id: z.string(),
   externalId: z.string(),
+  workspaceId: z.string(),
+  environment: z.string(),
   meta: z.record(z.string(), z.unknown()).nullable(),
+  createdAt: z.number(),
+  updatedAt: z.number().nullable(),
   workspace: WorkspaceSchema,
   keys: z.array(KeySchema),
   ratelimits: z.array(RatelimitSchema),
@@ -84,7 +89,11 @@ export const getIdentityById = workspaceProcedure
       return {
         id: identity.id,
         externalId: identity.externalId,
+        workspaceId: identity.workspaceId,
+        environment: identity.environment,
         meta: identity.meta,
+        createdAt: identity.createdAt,
+        updatedAt: identity.updatedAt ?? null,
         workspace: {
           id: identity.workspace.id,
           orgId: identity.workspace.orgId,
@@ -105,6 +114,7 @@ export const getIdentityById = workspaceProcedure
           name: ratelimit.name,
           limit: ratelimit.limit,
           duration: ratelimit.duration,
+          autoApply: ratelimit.autoApply,
         })),
       };
     } catch (error) {
