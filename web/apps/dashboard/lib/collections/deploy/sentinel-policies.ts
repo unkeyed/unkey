@@ -104,16 +104,18 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
     id: "sentinelPolicies",
 
     onInsert: async ({ transaction }) => {
-      const mutations = transaction.mutations.map(async (m) => {
-        const row = m.modified;
-        // Re-validate before sending — collection.insert() accepts the row type,
-        // but we want a hard guarantee the wire payload matches the canonical schema.
-        const policy = sentinelPolicySchema.parse(stripEnv(row));
-        return dispatchCreate(row.environmentId, policy);
-      });
-      const all = Promise.all(mutations);
-      const plural = mutations.length > 1;
-      toast.promise(all, {
+      const plural = transaction.mutations.length > 1;
+      // Serialize mutations to avoid concurrent read-modify-write races
+      // on the same environment's policies blob.
+      const work = async () => {
+        for (const m of transaction.mutations) {
+          const row = m.modified;
+          const policy = sentinelPolicySchema.parse(stripEnv(row));
+          await dispatchCreate(row.environmentId, policy);
+        }
+      };
+      const promise = work();
+      toast.promise(promise, {
         loading: plural ? "Adding sentinel policies..." : "Adding sentinel policy...",
         success: plural ? "Sentinel policies added" : "Sentinel policy added",
         error: (err) => ({
@@ -121,7 +123,7 @@ export const sentinelPolicies = createCollection<SentinelPolicyRow, string>(
           description: err instanceof Error ? err.message : "Unknown error",
         }),
       });
-      await trackSave(all);
+      await trackSave(promise);
     },
 
     onUpdate: async ({ transaction }) => {

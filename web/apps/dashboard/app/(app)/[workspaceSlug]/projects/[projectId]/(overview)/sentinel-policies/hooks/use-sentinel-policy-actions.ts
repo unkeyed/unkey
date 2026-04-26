@@ -9,8 +9,13 @@ import {
 } from "@/lib/collections/deploy/sentinel-policies";
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { useCallback } from "react";
+import {
+  type PolicyFormValues,
+  resolveTargetEnvs,
+  toSentinelPolicy,
+} from "../components/add-panel/schema";
 
-type Args = { envAId: string; envBId: string };
+type Args = { envAId: string; envBId: string; envASlug: string; envBSlug: string };
 type Env = "envA" | "envB";
 
 export type SentinelPolicyActions = {
@@ -18,6 +23,7 @@ export type SentinelPolicyActions = {
   addToEnv: (id: string, env: Env) => void;
   reorder: (envs: Env[], orderedIds: string[]) => void;
   save: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
+  saveFromForm: (values: PolicyFormValues | PolicyFormValues[]) => void;
   delete: (id: string) => void;
 };
 
@@ -25,7 +31,12 @@ export type SentinelPolicyActions = {
  * Per-row mutation handlers under the LWW model. All callbacks write directly
  * to the sentinelPolicies collection (or call `reorderSentinelPolicies`).
  */
-export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPolicyActions {
+export function useSentinelPolicyActions({
+  envAId,
+  envBId,
+  envASlug,
+  envBSlug,
+}: Args): SentinelPolicyActions {
   const envIdFor = useCallback((env: Env) => (env === "envA" ? envAId : envBId), [envAId, envBId]);
 
   const toggleEnv = useCallback(
@@ -135,5 +146,37 @@ export function useSentinelPolicyActions({ envAId, envBId }: Args): SentinelPoli
     [envAId, envBId],
   );
 
-  return { toggleEnv, addToEnv, reorder, save, delete: remove };
+  const saveFromForm = useCallback(
+    (values: PolicyFormValues | PolicyFormValues[]) => {
+      const items = Array.isArray(values) ? values : [values];
+      const insertRows: SentinelPolicyRow[] = [];
+      // `nextSentinelPolicyOrder` reads the collection, which hasn't been
+      // updated yet within this loop, so every call returns the same slot.
+      // Track a per-env offset so batched inserts land in distinct positions.
+      const orderOffsets = new Map<string, number>();
+
+      for (const v of items) {
+        const policy = toSentinelPolicy(v);
+        const { envA, envB } = resolveTargetEnvs(v.environmentId, envASlug, envBSlug);
+        const envIds = [envA ? envAId : "", envB ? envBId : ""].filter(Boolean);
+        for (const envId of envIds) {
+          const offset = orderOffsets.get(envId) ?? 0;
+          insertRows.push({
+            ...policy,
+            enabled: true,
+            environmentId: envId,
+            _order: nextSentinelPolicyOrder(envId) + offset,
+          });
+          orderOffsets.set(envId, offset + 1);
+        }
+      }
+
+      if (insertRows.length > 0) {
+        collection.sentinelPolicies.insert(insertRows);
+      }
+    },
+    [envAId, envBId, envASlug, envBSlug],
+  );
+
+  return { toggleEnv, addToEnv, reorder, save, saveFromForm, delete: remove };
 }

@@ -2,8 +2,10 @@
 
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DoubleChevronLeft } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Button, FormInput, FormSelect } from "@unkey/ui";
+import { Button, FormInput, FormSelect, InfoTooltip } from "@unkey/ui";
+import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
 import { KeyAuthFields, KeyauthPolicySummary } from "./forms/keyauth-fields";
@@ -22,6 +24,7 @@ import {
   fromSentinelPolicy,
   getDefaultValues,
   policyFormSchema,
+  resolveTargetEnvs,
   toSentinelPolicy,
 } from "./schema";
 
@@ -35,7 +38,14 @@ type CommonProps = {
 
 type AddProps = CommonProps & {
   mode: "add";
+  initialValues?: PolicyFormValues;
+  openedFromAi?: boolean;
   onSave: (prodPolicy: SentinelPolicy | null, previewPolicy: SentinelPolicy | null) => void;
+  // Back-to-draft: fold edits into the preview row and reopen the AI panel.
+  onDismiss?: (values: PolicyFormValues) => void;
+  // Quit: fold edits into the preview row but leave the AI panel closed.
+  // Draft is preserved in state either way.
+  onQuit?: (values: PolicyFormValues) => void;
 };
 
 type EditProps = CommonProps & {
@@ -48,7 +58,7 @@ type EditProps = CommonProps & {
 export type SentinelPolicyPanelProps = AddProps | EditProps;
 
 export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
-  const { envASlug, envBSlug, isOpen, topOffset, onClose } = props;
+  const { envASlug, envBSlug, isOpen, topOffset } = props;
   const isEdit = props.mode === "edit";
 
   const envOptions = [
@@ -59,27 +69,62 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
 
   const form = useForm<PolicyFormValues>({
     resolver: zodResolver(policyFormSchema),
-    defaultValues: isEdit
+    mode: "onChange",
+    defaultValues: getDefaultValues("keyauth"),
+    // `values` re-syncs the form when the prop changes (RHF ≥7.43), so opening
+    // the panel with a new AI-prefilled policy updates the fields without a
+    // remount. `defaultValues` is only used on first mount for the blank case.
+    values: isEdit
       ? fromSentinelPolicy(props.initialPolicy, props.initialEnvironmentId)
-      : getDefaultValues("keyauth"),
+      : props.mode === "add" && props.initialValues
+        ? props.initialValues
+        : undefined,
   });
   const { control } = form;
   const policyType = useWatch({ control, name: "type" });
 
+  // AI-prefilled values may be invalid (e.g. keyauth without a keyspace);
+  // trigger validation whenever a new prefill comes in so errors surface
+  // before the user submits.
+  const initialValues = props.mode === "add" ? props.initialValues : undefined;
+  useEffect(() => {
+    if (initialValues) {
+      form.trigger();
+    }
+  }, [initialValues, form]);
+
+  const openedFromAi = props.mode === "add" && props.openedFromAi === true;
+
+  // Left chevron: return to the AI draft list. Folds edits back and reopens
+  // the AI panel via onDismiss.
+  const handleBack = () => {
+    if (props.mode === "add" && props.onDismiss) {
+      props.onDismiss(form.getValues());
+    }
+    props.onClose();
+  };
+
+  // Right chevron / ESC / overlay: close the add panel without returning to
+  // the draft list. Edits are still folded into the preview so the draft is
+  // preserved if the user reopens the AI panel later.
+  const handleClose = () => {
+    if (props.mode === "add" && props.onQuit) {
+      props.onQuit(form.getValues());
+    }
+    props.onClose();
+  };
+
   const onSubmit = (values: PolicyFormValues) => {
     const id = props.mode === "edit" ? props.initialPolicy.id : undefined;
     const policy = toSentinelPolicy(values, id);
-    const prodPolicy =
-      values.environmentId === "__all__" || values.environmentId === envASlug
-        ? { ...policy, enabled: true }
-        : null;
-    const previewPolicy =
-      values.environmentId === "__all__" || values.environmentId === envBSlug
-        ? { ...policy, enabled: true }
-        : null;
+    const { envA, envB } = resolveTargetEnvs(values.environmentId, envASlug, envBSlug);
+    const prodPolicy = envA ? { ...policy, enabled: true } : null;
+    const previewPolicy = envB ? { ...policy, enabled: true } : null;
 
     props.onSave(prodPolicy, previewPolicy);
-    onClose();
+    // Bypass handleClose so onDismiss doesn't fire, save already removed
+    // any AI preview row, and we don't want to re-insert one.
+    props.onClose();
     if (props.mode === "add") {
       form.reset(getDefaultValues("keyauth"));
     }
@@ -98,9 +143,26 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       }
       isOpen={isOpen}
       topOffset={topOffset}
-      onClose={onClose}
+      onClose={handleClose}
       form={form}
       onSubmit={onSubmit}
+      leadingAction={
+        openedFromAi ? (
+          <InfoTooltip content="Back to draft" asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="md"
+              shape="square"
+              aria-label="Back to draft"
+              onClick={handleBack}
+              className="shrink-0"
+            >
+              <DoubleChevronLeft iconSize="sm-regular" className="text-gray-10" />
+            </Button>
+          </InfoTooltip>
+        ) : undefined
+      }
     >
       <PolicyForm.Fields>
         <Controller

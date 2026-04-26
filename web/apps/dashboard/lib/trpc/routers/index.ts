@@ -78,6 +78,7 @@ import { updateUpstreamProtocol } from "./deploy/environment-settings/runtime/up
 import { create as createFirewallPolicy } from "./deploy/environment-settings/sentinel/firewall/create";
 import { remove as deleteFirewallPolicy } from "./deploy/environment-settings/sentinel/firewall/delete";
 import { update as updateFirewallPolicy } from "./deploy/environment-settings/sentinel/firewall/update";
+import { generatePolicies } from "./deploy/environment-settings/sentinel/generate-policies";
 import { generateRegex } from "./deploy/environment-settings/sentinel/generate-regex";
 import { create as createKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/create";
 import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
@@ -450,6 +451,7 @@ export const router = t.router({
           delete: deleteRatelimitPolicy,
         }),
         generateRegex,
+        generatePolicies,
       }),
       runtime: t.router({
         updateCpu,
