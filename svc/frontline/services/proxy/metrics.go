@@ -74,6 +74,20 @@ var (
 		[]string{"destination", "source"},
 	)
 
+	// proxyAbortedTotal counts client-disconnect aborts during streaming responses.
+	// httputil.ReverseProxy panics with http.ErrAbortHandler when the response body
+	// copy fails after headers have been flushed (typically the client went away).
+	// We swallow that sentinel locally; this counter preserves visibility.
+	proxyAbortedTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "frontline",
+			Name:      "aborted_total",
+			Help:      "Client-disconnect aborts during streaming by destination.",
+		},
+		[]string{"destination"},
+	)
+
 	// proxyBackendResponseTotal tracks HTTP status codes returned by backends.
 	//
 	// Labels:
