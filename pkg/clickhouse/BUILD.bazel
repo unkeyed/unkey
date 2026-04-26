@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "clickhouse",
     srcs = [
+        "audit_logs.go",
         "billable_ratelimits.go",
         "billable_usage.go",
         "billable_verifications.go",
@@ -23,6 +24,7 @@ go_library(
     deps = [
         "//pkg/batch",
         "//pkg/circuitbreaker",
+        "//pkg/clickhouse/schema",
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/logger",

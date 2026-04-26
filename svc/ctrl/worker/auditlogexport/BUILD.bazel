@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "auditlogexport",
+    srcs = [
+        "run_export_handler.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/ctrl/worker/auditlogexport",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/hydra/v1:hydra",
+        "//pkg/assert",
+        "//pkg/cache",
+        "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/healthcheck",
+        "//pkg/logger",
+        "@com_github_restatedev_sdk_go//:sdk-go",
+    ],
+)
+
+go_test(
+    name = "auditlogexport_test",
+    size = "small",
+    srcs = ["run_export_handler_test.go"],
+    embed = [":auditlogexport"],
+    deps = [
+        "//pkg/db",
+        "@com_github_stretchr_testify//require",
+    ],
+)

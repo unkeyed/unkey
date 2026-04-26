@@ -1,5 +1,7 @@
 package schema
 
+import "time"
+
 // KeyVerification represents the v2 key verification raw table structure.
 // This matches the key_verifications_raw_v2 table schema with additional
 // fields like spent_credits and latency compared to v1.
@@ -153,4 +155,36 @@ type SentinelRequest struct {
 	TotalLatency    int64               `ch:"total_latency" json:"total_latency"`
 	InstanceLatency int64               `ch:"instance_latency" json:"instance_latency"`
 	SentinelLatency int64               `ch:"sentinel_latency" json:"sentinel_latency"`
+}
+
+// AuditLogV1 represents a single (event × target) row of the audit_logs_raw_v1
+// table. All rows of a logical event share the same EventID; aggregate with
+// GROUP BY event_id to reconstruct the envelope.
+type AuditLogV1 struct {
+	EventID     string `ch:"event_id" json:"event_id"`
+	Time        int64  `ch:"time" json:"time"`
+	WorkspaceID string `ch:"workspace_id" json:"workspace_id"`
+	BucketID    string `ch:"bucket_id" json:"bucket_id"`
+
+	Event       string `ch:"event" json:"event"`
+	Description string `ch:"description" json:"description"`
+
+	ActorType string `ch:"actor_type" json:"actor_type"`
+	ActorID   string `ch:"actor_id" json:"actor_id"`
+	ActorName string `ch:"actor_name" json:"actor_name"`
+	ActorMeta string `ch:"actor_meta" json:"actor_meta"`
+
+	RemoteIP  string `ch:"remote_ip" json:"remote_ip"`
+	UserAgent string `ch:"user_agent" json:"user_agent"`
+	Meta      string `ch:"meta" json:"meta"`
+
+	TargetType string `ch:"target_type" json:"target_type"`
+	TargetID   string `ch:"target_id" json:"target_id"`
+	TargetName string `ch:"target_name" json:"target_name"`
+	TargetMeta string `ch:"target_meta" json:"target_meta"`
+
+	// ExpiresAt drives the per-row TTL. Set at insert time so bucket-level
+	// retention policies can be applied without altering the table. The CH
+	// column's DEFAULT is ignored when the struct field is populated.
+	ExpiresAt time.Time `ch:"expires_at" json:"expires_at"`
 }

@@ -177,6 +177,11 @@ type HeartbeatConfig struct {
 	// When set, a heartbeat is sent after successful sync runs.
 	// Optional - if empty, no heartbeat is sent.
 	KeyLastUsedSyncURL string `toml:"key_last_used_sync_url"`
+
+	// AuditLogExportURL is the Checkly heartbeat URL for audit log export runs.
+	// When set, a heartbeat is sent after successful drains of the MySQL outbox
+	// into ClickHouse. Optional - if empty, no heartbeat is sent.
+	AuditLogExportURL string `toml:"audit_log_export_url"`
 }
 
 // SlackConfig holds Slack webhook URLs for notifications.

@@ -15,3 +15,8 @@ jobs:
     schedule: "0 15 * * *"
     urlPath: "hydra.v1.QuotaCheckService/$(date -u +%Y-%m)/RunCheck/send"
     idempotencyKey: "quota-check-$(date -u +%Y-%m-%d)"
+
+  audit-log-export:
+    schedule: "* * * * *"
+    urlPath: "hydra.v1.AuditLogExportService/default/RunExport/send"
+    idempotencyKey: "audit-log-export-$(date -u +%Y-%m-%dT%H:%M)"
