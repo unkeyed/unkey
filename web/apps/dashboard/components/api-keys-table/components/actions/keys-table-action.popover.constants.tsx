@@ -3,6 +3,7 @@ import { type MenuItem, TableActionPopover } from "@/components/logs/table-actio
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import {
+  ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,
   Ban,
   CalendarClock,
@@ -27,18 +28,22 @@ import { EditRatelimits } from "./components/edit-ratelimits";
 import { KeyRbacDialog } from "./components/edit-rbac";
 import { MAX_PERMS_FETCH_LIMIT } from "./components/edit-rbac/components/assign-permission/hooks/use-fetch-keys-permissions";
 import { MAX_ROLES_FETCH_LIMIT } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
+import { RotateKey } from "./components/rotate-key/rotate-key";
+
+type KeyContext = {
+  apiId?: string;
+  keyspaceId?: string | null;
+};
 
 export const getKeysTableActionItems = (
   key: KeyDetails,
   trpcUtils: ReturnType<typeof trpc.useUtils>,
+  context: KeyContext = {},
 ): MenuItem[] => {
+  const { apiId, keyspaceId } = context;
+  const hasExternalId = Boolean(key.identity?.external_id);
+  const isExpired = () => key.expires !== null && key.expires <= Date.now();
   return [
-    {
-      id: "override",
-      label: "Edit key name...",
-      icon: <PenWriting3 iconSize="md-medium" />,
-      ActionComponent: (props) => <EditKeyName {...props} keyDetails={key} />,
-    },
     {
       id: "copy",
       label: "Copy key ID",
@@ -54,15 +59,9 @@ export const getKeysTableActionItems = (
             toast.error("Failed to copy to clipboard");
           });
       },
-      divider: true,
+      divider: !hasExternalId,
     },
-    {
-      id: "edit-external-id",
-      label: "Edit External ID...",
-      icon: <ArrowOppositeDirectionY iconSize="md-medium" />,
-      ActionComponent: (props) => <EditExternalId {...props} keyDetails={key} />,
-    },
-    ...(key.identity?.external_id
+    ...(hasExternalId
       ? [
           {
             id: "copy-external-id",
@@ -79,15 +78,20 @@ export const getKeysTableActionItems = (
                 });
             },
             divider: true,
-          },
+          } satisfies MenuItem,
         ]
       : []),
     {
-      id: key.enabled ? "disable-key" : "enable-key",
-      label: key.enabled ? "Disable Key..." : "Enable Key...",
-      icon: key.enabled ? <Ban iconSize="md-medium" /> : <Check iconSize="md-medium" />,
-      ActionComponent: (props) => <UpdateKeyStatus {...props} keyDetails={key} />,
-      divider: true,
+      id: "override",
+      label: "Edit key name...",
+      icon: <PenWriting3 iconSize="md-medium" />,
+      ActionComponent: (props) => <EditKeyName {...props} keyDetails={key} />,
+    },
+    {
+      id: "edit-external-id",
+      label: "Edit External ID...",
+      icon: <ArrowOppositeDirectionY iconSize="md-medium" />,
+      ActionComponent: (props) => <EditExternalId {...props} keyDetails={key} />,
     },
     {
       id: "edit-credits",
@@ -112,7 +116,6 @@ export const getKeysTableActionItems = (
       label: "Edit metadata...",
       icon: <Code iconSize="md-medium" />,
       ActionComponent: (props) => <EditMetadata {...props} keyDetails={key} />,
-      divider: true,
     },
     {
       id: "edit-rbac",
@@ -198,6 +201,26 @@ export const getKeysTableActionItems = (
       divider: true,
     },
     {
+      id: key.enabled ? "disable-key" : "enable-key",
+      label: key.enabled ? "Disable Key..." : "Enable Key...",
+      icon: key.enabled ? <Ban iconSize="md-medium" /> : <Check iconSize="md-medium" />,
+      ActionComponent: (props) => <UpdateKeyStatus {...props} keyDetails={key} />,
+    },
+    ...(apiId
+      ? [
+          {
+            id: "rotate-key",
+            label: "Rotate key...",
+            icon: <ArrowDottedRotateAnticlockwise iconSize="md-medium" />,
+            disabled: isExpired,
+            tooltip: () => (isExpired() ? "Expired keys cannot be rotated" : undefined),
+            ActionComponent: (props) => (
+              <RotateKey {...props} keyDetails={key} apiId={apiId} keyspaceId={keyspaceId} />
+            ),
+          } satisfies MenuItem,
+        ]
+      : []),
+    {
       id: "delete-key",
       label: "Delete key",
       icon: <Trash iconSize="md-medium" />,
@@ -208,10 +231,12 @@ export const getKeysTableActionItems = (
 
 type KeysTableActionsProps = {
   keyData: KeyDetails;
+  apiId?: string;
+  keyspaceId?: string | null;
 };
 
-export const KeysTableActions = ({ keyData }: KeysTableActionsProps) => {
+export const KeysTableActions = ({ keyData, apiId, keyspaceId }: KeysTableActionsProps) => {
   const trpcUtils = trpc.useUtils();
-  const items = getKeysTableActionItems(keyData, trpcUtils);
+  const items = getKeysTableActionItems(keyData, trpcUtils, { apiId, keyspaceId });
   return <TableActionPopover items={items} />;
 };

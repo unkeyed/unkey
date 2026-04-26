@@ -16,14 +16,45 @@ import { type FC, useEffect, useRef, useState } from "react";
 import { UNNAMED_KEY } from "../create-key.constants";
 import { KeySecretSection } from "./key-secret-section";
 
+type ResourceLabel = "key" | "root key";
+
 interface KeyCreatedSuccessDialogProps {
   isOpen: boolean;
   onClose: (() => void) | (() => Promise<void>);
   keyData: { key: string; id: string; name?: string } | null;
-  apiId: string;
+  apiId?: string;
   keyspaceId?: string | null;
   onCreateAnother?: (() => void) | (() => Promise<void>);
+  variant?: "created" | "rotated";
+  detailsHref?: string;
+  // Used by the "rotated" variant to say "key" vs "root key" in the copy.
+  // Ignored for "created", which is only entered from the api-key create flow.
+  resourceLabel?: ResourceLabel;
 }
+
+const getCopy = (variant: "created" | "rotated", resourceLabel: ResourceLabel) => {
+  if (variant === "created") {
+    return {
+      title: "Key Created",
+      body: (
+        <>
+          You've successfully generated a new API key.
+          <br /> Use this key to authenticate requests from your application.
+        </>
+      ),
+    };
+  }
+  const titleNoun = resourceLabel === "root key" ? "Root Key" : "Key";
+  return {
+    title: `${titleNoun} Rotated`,
+    body: (
+      <>
+        You've successfully rotated your {resourceLabel}.
+        <br /> The previous {resourceLabel} will be revoked after the chosen grace period.
+      </>
+    ),
+  };
+};
 
 export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
   isOpen,
@@ -32,7 +63,11 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
   apiId,
   keyspaceId,
   onCreateAnother,
+  variant = "created",
+  detailsHref,
+  resourceLabel = "key",
 }) => {
+  const copy = getCopy(variant, resourceLabel);
   const workspace = useWorkspaceNavigation();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<
@@ -88,8 +123,13 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
           }
           break;
 
-        case "go-to-details":
-          if (!keyspaceId) {
+        case "go-to-details": {
+          const href =
+            detailsHref ??
+            (apiId && keyspaceId
+              ? `/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`
+              : null);
+          if (!href) {
             toast.error("Failed to Navigate", {
               description: "Keyspace ID is required to view key details.",
               action: {
@@ -99,8 +139,9 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
             });
             return;
           }
-          router.push(`/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`);
+          router.push(href);
           break;
+        }
 
         default:
           // Dialog already closed, nothing more to do
@@ -152,11 +193,10 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
             </div>
             <div className="mt-2 flex flex-col gap-2 items-center">
               <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
-                Key Created
+                {copy.title}
               </div>
               <div className="text-gray-10 text-[13px] leading-[24px] text-center" ref={dividerRef}>
-                You've successfully generated a new API key.
-                <br /> Use this key to authenticate requests from your application.
+                {copy.body}
               </div>
             </div>
             <div className="p-1 w-full my-4">
@@ -195,23 +235,24 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
             </div>
             <KeySecretSection
               keyValue={keyData.key}
-              apiId={apiId}
               className="mt-6 w-full"
               secretKeyClassName="bg-white dark:bg-black overflow-x-auto"
               codeClassName="p-0"
             />
-            <div className="mt-6">
-              <div className="flex gap-3 mt-4 items-center justify-center w-full">
-                <Button
-                  variant="outline"
-                  className="font-medium text-[13px] text-gray-12"
-                  onClick={() => handleCloseAttempt("create-another")}
-                >
-                  <Plus iconSize="sm-regular" />
-                  Create another key
-                </Button>
+            {onCreateAnother ? (
+              <div className="mt-6">
+                <div className="flex gap-3 mt-4 items-center justify-center w-full">
+                  <Button
+                    variant="outline"
+                    className="font-medium text-[13px] text-gray-12"
+                    onClick={() => handleCloseAttempt("create-another")}
+                  >
+                    <Plus iconSize="sm-regular" />
+                    Create another key
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
           <ConfirmPopover
             isOpen={isConfirmOpen}

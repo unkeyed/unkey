@@ -188,7 +188,11 @@ const NavbarContent = ({
         <Navbar.Actions>
           {shouldFetchKey && specificKey ? (
             <>
-              <KeySettingsDialog keyData={specificKey} />
+              <KeySettingsDialog
+                keyData={specificKey}
+                apiId={currentApi.id}
+                keyspaceId={keyspaceId ?? currentApi.keyAuthId}
+              />
               <CopyableIDButton value={keyId as string} />
             </>
           ) : shouldFetchKey && isKeyLoading ? (

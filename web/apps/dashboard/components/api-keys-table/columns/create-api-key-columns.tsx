@@ -291,7 +291,7 @@ export const createApiKeyColumns = ({
     },
     cell: ({ row }) => {
       const key = row.original;
-      return <KeysTableActionPopover keyData={key} />;
+      return <KeysTableActionPopover keyData={key} apiId={apiId} keyspaceId={keyspaceId} />;
     },
   },
 ];
