@@ -144,6 +144,42 @@ STRIPE_SECRET_KEY=<your Stripe secret key>
 make unkey dev seed local
 ```
 
+This creates a fixed scaffold (workspace, root API, root key) suitable for booting the dashboard.
+
+## Seed with Claude Code
+
+For ad-hoc scenarios beyond `seed local` (e.g. "create a project with a deployment in every status", "make me an identity with rate limits"), the repo ships an MCP server at `bin/seed-mcp` and a `/seed` skill that teaches Claude Code how to use it without violating Unkey's must-create-together rules.
+
+### Setup
+
+Build the binary (this also produces the main `unkey` binary):
+
+```bash
+make build
+```
+
+Register the MCP with Claude Code:
+
+```bash
+claude mcp add unkey-seed -- $(pwd)/bin/seed-mcp
+```
+
+The `/seed` skill is checked in at `.claude/skills/seed/SKILL.md` and loads automatically when Claude Code starts in this repo.
+
+### Use
+
+Start Claude Code in the repo root and ask for what you need, e.g.:
+
+- _"Create a workspace with a working API key for testing."_
+- _"Set up a deployable app called payments in ws_local, ready to deploy to the local region."_
+- _"Seed an identity 'cust_acme' with a rate limit of 100 req/min."_
+
+The `/seed` skill auto-fires on seeding tasks; you can also invoke it explicitly with `/seed`. It encodes the rules the schema can't enforce — for example: an `apps` row needs both `production` and `preview` envs plus runtime/build/regional settings, and a `deployments` row in `ready` status needs paired `deployment_topology`, `instances`, `cilium_network_policies`, and `frontline_routes`. The live schema files at `pkg/mysql/schema/` are the source of truth for column definitions; the skill covers what they can't.
+
+### Tools and safety
+
+The MCP exposes `list_tables`, `sample_rows`, `query` (read-only), `insert`, `bulk_insert`, and `generate_key`. There is no `truncate` or any other destructive operation. The DSN is hardcoded to the local docker MySQL (`unkey:password@tcp(127.0.0.1:3306)/unkey`); the binary will not connect anywhere else. If you need to point it elsewhere, edit `x/seed-mcp/main.go` and rebuild.
+
 ## Test locally
 
 Run Go tests with Bazel:
