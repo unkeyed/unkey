@@ -204,6 +204,239 @@ func (*ReleaseSlotResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_build_slot_proto_rawDescGZIP(), []int{3}
 }
 
+type ReconcileRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReconcileRequest) Reset() {
+	*x = ReconcileRequest{}
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReconcileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReconcileRequest) ProtoMessage() {}
+
+func (x *ReconcileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReconcileRequest.ProtoReflect.Descriptor instead.
+func (*ReconcileRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_build_slot_proto_rawDescGZIP(), []int{4}
+}
+
+type ReconcileResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Deployment IDs that were released because their DB status was terminal.
+	ReleasedDeploymentIds []string `protobuf:"bytes,1,rep,name=released_deployment_ids,json=releasedDeploymentIds,proto3" json:"released_deployment_ids,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *ReconcileResponse) Reset() {
+	*x = ReconcileResponse{}
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReconcileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReconcileResponse) ProtoMessage() {}
+
+func (x *ReconcileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReconcileResponse.ProtoReflect.Descriptor instead.
+func (*ReconcileResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_build_slot_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ReconcileResponse) GetReleasedDeploymentIds() []string {
+	if x != nil {
+		return x.ReleasedDeploymentIds
+	}
+	return nil
+}
+
+type ForceReleaseRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ForceReleaseRequest) Reset() {
+	*x = ForceReleaseRequest{}
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ForceReleaseRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ForceReleaseRequest) ProtoMessage() {}
+
+func (x *ForceReleaseRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ForceReleaseRequest.ProtoReflect.Descriptor instead.
+func (*ForceReleaseRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_build_slot_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ForceReleaseRequest) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
+	}
+	return ""
+}
+
+type ForceReleaseResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ForceReleaseResponse) Reset() {
+	*x = ForceReleaseResponse{}
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ForceReleaseResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ForceReleaseResponse) ProtoMessage() {}
+
+func (x *ForceReleaseResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ForceReleaseResponse.ProtoReflect.Descriptor instead.
+func (*ForceReleaseResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_build_slot_proto_rawDescGZIP(), []int{7}
+}
+
+type ClearStateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ClearStateRequest) Reset() {
+	*x = ClearStateRequest{}
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClearStateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClearStateRequest) ProtoMessage() {}
+
+func (x *ClearStateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClearStateRequest.ProtoReflect.Descriptor instead.
+func (*ClearStateRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_build_slot_proto_rawDescGZIP(), []int{8}
+}
+
+type ClearStateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ClearStateResponse) Reset() {
+	*x = ClearStateResponse{}
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClearStateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClearStateResponse) ProtoMessage() {}
+
+func (x *ClearStateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_build_slot_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClearStateResponse.ProtoReflect.Descriptor instead.
+func (*ClearStateResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_build_slot_proto_rawDescGZIP(), []int{9}
+}
+
 var File_hydra_v1_build_slot_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_build_slot_proto_rawDesc = "" +
@@ -216,10 +449,22 @@ const file_hydra_v1_build_slot_proto_rawDesc = "" +
 	"\x15AcquireOrWaitResponse\"9\n" +
 	"\x12ReleaseSlotRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x15\n" +
-	"\x13ReleaseSlotResponse2\xb6\x01\n" +
+	"\x13ReleaseSlotResponse\"\x12\n" +
+	"\x10ReconcileRequest\"K\n" +
+	"\x11ReconcileResponse\x126\n" +
+	"\x17released_deployment_ids\x18\x01 \x03(\tR\x15releasedDeploymentIds\":\n" +
+	"\x13ForceReleaseRequest\x12#\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x16\n" +
+	"\x14ForceReleaseResponse\"\x13\n" +
+	"\x11ClearStateRequest\"\x14\n" +
+	"\x12ClearStateResponse2\x9a\x03\n" +
 	"\x10BuildSlotService\x12R\n" +
 	"\rAcquireOrWait\x12\x1e.hydra.v1.AcquireOrWaitRequest\x1a\x1f.hydra.v1.AcquireOrWaitResponse\"\x00\x12H\n" +
-	"\aRelease\x12\x1c.hydra.v1.ReleaseSlotRequest\x1a\x1d.hydra.v1.ReleaseSlotResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x94\x01\n" +
+	"\aRelease\x12\x1c.hydra.v1.ReleaseSlotRequest\x1a\x1d.hydra.v1.ReleaseSlotResponse\"\x00\x12F\n" +
+	"\tReconcile\x12\x1a.hydra.v1.ReconcileRequest\x1a\x1b.hydra.v1.ReconcileResponse\"\x00\x12O\n" +
+	"\fForceRelease\x12\x1d.hydra.v1.ForceReleaseRequest\x1a\x1e.hydra.v1.ForceReleaseResponse\"\x00\x12I\n" +
+	"\n" +
+	"ClearState\x12\x1b.hydra.v1.ClearStateRequest\x1a\x1c.hydra.v1.ClearStateResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x94\x01\n" +
 	"\fcom.hydra.v1B\x0eBuildSlotProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -234,20 +479,32 @@ func file_hydra_v1_build_slot_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_build_slot_proto_rawDescData
 }
 
-var file_hydra_v1_build_slot_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_hydra_v1_build_slot_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_hydra_v1_build_slot_proto_goTypes = []any{
 	(*AcquireOrWaitRequest)(nil),  // 0: hydra.v1.AcquireOrWaitRequest
 	(*AcquireOrWaitResponse)(nil), // 1: hydra.v1.AcquireOrWaitResponse
 	(*ReleaseSlotRequest)(nil),    // 2: hydra.v1.ReleaseSlotRequest
 	(*ReleaseSlotResponse)(nil),   // 3: hydra.v1.ReleaseSlotResponse
+	(*ReconcileRequest)(nil),      // 4: hydra.v1.ReconcileRequest
+	(*ReconcileResponse)(nil),     // 5: hydra.v1.ReconcileResponse
+	(*ForceReleaseRequest)(nil),   // 6: hydra.v1.ForceReleaseRequest
+	(*ForceReleaseResponse)(nil),  // 7: hydra.v1.ForceReleaseResponse
+	(*ClearStateRequest)(nil),     // 8: hydra.v1.ClearStateRequest
+	(*ClearStateResponse)(nil),    // 9: hydra.v1.ClearStateResponse
 }
 var file_hydra_v1_build_slot_proto_depIdxs = []int32{
 	0, // 0: hydra.v1.BuildSlotService.AcquireOrWait:input_type -> hydra.v1.AcquireOrWaitRequest
 	2, // 1: hydra.v1.BuildSlotService.Release:input_type -> hydra.v1.ReleaseSlotRequest
-	1, // 2: hydra.v1.BuildSlotService.AcquireOrWait:output_type -> hydra.v1.AcquireOrWaitResponse
-	3, // 3: hydra.v1.BuildSlotService.Release:output_type -> hydra.v1.ReleaseSlotResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	4, // 2: hydra.v1.BuildSlotService.Reconcile:input_type -> hydra.v1.ReconcileRequest
+	6, // 3: hydra.v1.BuildSlotService.ForceRelease:input_type -> hydra.v1.ForceReleaseRequest
+	8, // 4: hydra.v1.BuildSlotService.ClearState:input_type -> hydra.v1.ClearStateRequest
+	1, // 5: hydra.v1.BuildSlotService.AcquireOrWait:output_type -> hydra.v1.AcquireOrWaitResponse
+	3, // 6: hydra.v1.BuildSlotService.Release:output_type -> hydra.v1.ReleaseSlotResponse
+	5, // 7: hydra.v1.BuildSlotService.Reconcile:output_type -> hydra.v1.ReconcileResponse
+	7, // 8: hydra.v1.BuildSlotService.ForceRelease:output_type -> hydra.v1.ForceReleaseResponse
+	9, // 9: hydra.v1.BuildSlotService.ClearState:output_type -> hydra.v1.ClearStateResponse
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -264,7 +521,7 @@ func file_hydra_v1_build_slot_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_build_slot_proto_rawDesc), len(file_hydra_v1_build_slot_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

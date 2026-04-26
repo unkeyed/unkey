@@ -45,6 +45,27 @@ service BuildSlotService {
   // no-op. Safe to call from both the Deploy handler's success path and
   // its compensation stack (defer).
   rpc Release(ReleaseSlotRequest) returns (ReleaseSlotResponse) {}
+
+  // Reconcile scans every deployment currently in active_slots and the wait
+  // lists, and releases any whose DB status is terminal. This is the
+  // self-healing primitive: it's invoked automatically from AcquireOrWait
+  // when the workspace is at capacity, and can be invoked manually via the
+  // admin endpoint.
+  rpc Reconcile(ReconcileRequest) returns (ReconcileResponse) {}
+
+  // ForceRelease releases a specific deployment's slot regardless of the
+  // deployment's DB status. Operator escape hatch for when a slot is leaked
+  // in a way that Reconcile's status check would not catch (e.g. a
+  // deployment whose status is still active in DB but whose workflow is
+  // dead in Restate).
+  rpc ForceRelease(ForceReleaseRequest) returns (ForceReleaseResponse) {}
+
+  // ClearState wipes all VO state for the workspace: active_slots, both
+  // wait lists. Last-resort operator recovery when the state has drifted
+  // so badly that per-deployment release is impractical. Does NOT cancel
+  // any in-flight deployments — it only frees the BuildSlotService's
+  // accounting so new AcquireOrWait calls can proceed.
+  rpc ClearState(ClearStateRequest) returns (ClearStateResponse) {}
 }
 
 message AcquireOrWaitRequest {
@@ -68,3 +89,20 @@ message ReleaseSlotRequest {
 }
 
 message ReleaseSlotResponse {}
+
+message ReconcileRequest {}
+
+message ReconcileResponse {
+  // Deployment IDs that were released because their DB status was terminal.
+  repeated string released_deployment_ids = 1;
+}
+
+message ForceReleaseRequest {
+  string deployment_id = 1;
+}
+
+message ForceReleaseResponse {}
+
+message ClearStateRequest {}
+
+message ClearStateResponse {}

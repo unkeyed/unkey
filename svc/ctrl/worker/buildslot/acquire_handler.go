@@ -41,27 +41,16 @@ func (s *Service) AcquireOrWait(
 	deploymentID := req.GetDeploymentId()
 	awakeableID := req.GetAwakeableId()
 
-	active, err := loadActiveSlots(ctx)
+	state, err := loadReconcileState(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("load active slots: %w", err)
+		return nil, err
 	}
 
-	prodWait, err := loadWaitList(ctx, stateKeyProdWaitList)
-	if err != nil {
-		return nil, fmt.Errorf("load prod wait list: %w", err)
-	}
-
-	previewWait, err := loadWaitList(ctx, stateKeyPreviewWaitList)
-	if err != nil {
-		return nil, fmt.Errorf("load preview wait list: %w", err)
-	}
-
-	if active[deploymentID] {
+	if state.active[deploymentID] {
 		restate.ResolveAwakeable(ctx, awakeableID, true)
 		return &hydrav1.AcquireOrWaitResponse{}, nil
 	}
-
-	if waitListContains(prodWait, deploymentID) || waitListContains(previewWait, deploymentID) {
+	if waitListContains(state.prodWait, deploymentID) || waitListContains(state.previewWait, deploymentID) {
 		return &hydrav1.AcquireOrWaitResponse{}, nil
 	}
 
@@ -72,55 +61,56 @@ func (s *Service) AcquireOrWait(
 		return nil, fmt.Errorf("fetch quota: %w", err)
 	}
 
-	if uint32(len(active)) < quota.MaxConcurrentBuilds {
-		return s.grantSlot(ctx, active, workspaceID, deploymentID, awakeableID, quota.MaxConcurrentBuilds, req.GetIsProduction())
+	// At capacity — self-heal before parking. A previous deployment may have
+	// leaked a slot (Restate internal termination, dropped Send, etc.)
+	// leaving active_slots full of dead deployments with nothing to sweep
+	// them. One batched DB read finds and releases them.
+	if uint32(len(state.active)) >= quota.MaxConcurrentBuilds {
+		var released []string
+		state, released, err = s.sweepAndPromote(ctx, state, quota.MaxConcurrentBuilds)
+		if err != nil {
+			return nil, fmt.Errorf("reconcile before park: %w", err)
+		}
+		if len(released) > 0 {
+			logger.Info("reconcile freed leaked slots at capacity",
+				"workspace_id", workspaceID,
+				"released", released,
+			)
+		}
 	}
 
-	// At capacity: park the caller. Production goes to its own list so
-	// Release can drain it ahead of preview waiters.
-	entry := waitEntry{
-		DeploymentID: deploymentID,
-		AwakeableID:  awakeableID,
+	if uint32(len(state.active)) < quota.MaxConcurrentBuilds {
+		state.active[deploymentID] = true
+		restate.ResolveAwakeable(ctx, awakeableID, true)
+		saveReconcileState(ctx, state)
+		logger.Info("build slot granted",
+			"workspace_id", workspaceID,
+			"deployment_id", deploymentID,
+			"is_production", req.GetIsProduction(),
+			"active", len(state.active),
+			"limit", quota.MaxConcurrentBuilds,
+		)
+		return &hydrav1.AcquireOrWaitResponse{}, nil
 	}
+
+	// Still at capacity: park the caller. Production goes to its own list
+	// so Release can drain it ahead of preview waiters.
+	entry := waitEntry{DeploymentID: deploymentID, AwakeableID: awakeableID}
 	if req.GetIsProduction() {
-		prodWait = append(prodWait, entry)
-		saveWaitList(ctx, stateKeyProdWaitList, prodWait)
+		state.prodWait = append(state.prodWait, entry)
 	} else {
-		previewWait = append(previewWait, entry)
-		saveWaitList(ctx, stateKeyPreviewWaitList, previewWait)
+		state.previewWait = append(state.previewWait, entry)
 	}
+	saveReconcileState(ctx, state)
 
 	logger.Info("build slot full, deployment queued",
 		"workspace_id", workspaceID,
 		"deployment_id", deploymentID,
 		"is_production", req.GetIsProduction(),
-		"active", len(active),
-		"prod_wait", len(prodWait),
-		"preview_wait", len(previewWait),
+		"active", len(state.active),
+		"prod_wait", len(state.prodWait),
+		"preview_wait", len(state.previewWait),
 		"limit", quota.MaxConcurrentBuilds,
-	)
-
-	return &hydrav1.AcquireOrWaitResponse{}, nil
-}
-
-func (s *Service) grantSlot(
-	ctx restate.ObjectContext,
-	active map[string]bool,
-	workspaceID, deploymentID, awakeableID string,
-	limit uint32,
-	isProduction bool,
-) (*hydrav1.AcquireOrWaitResponse, error) {
-	active[deploymentID] = true
-	saveActiveSlots(ctx, active)
-
-	restate.ResolveAwakeable(ctx, awakeableID, true)
-
-	logger.Info("build slot granted",
-		"workspace_id", workspaceID,
-		"deployment_id", deploymentID,
-		"is_production", isProduction,
-		"active", len(active),
-		"limit", limit,
 	)
 
 	return &hydrav1.AcquireOrWaitResponse{}, nil
