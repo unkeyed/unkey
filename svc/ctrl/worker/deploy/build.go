@@ -28,7 +28,9 @@ import (
 	restate "github.com/restatedev/sdk-go"
 
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
@@ -145,7 +147,10 @@ func (w *Workflow) buildDockerImageFromGit(
 		} else {
 			token, err := w.github.GetInstallationToken(params.InstallationID)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get GitHub installation token: %w", err)
+				return nil, fault.Wrap(
+					fmt.Errorf("failed to get GitHub installation token: %w", err),
+					fault.Code(codes.Workflow.Provider.GitHubInstallationToken.URN()),
+				)
 			}
 			ghToken = token
 		}
@@ -164,7 +169,10 @@ func (w *Workflow) buildDockerImageFromGit(
 			ProjectId: depotProjectID,
 		}, w.registryConfig.Password)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create build: %w", err)
+			return nil, fault.Wrap(
+				fmt.Errorf("failed to create build: %w", err),
+				fault.Code(codes.Workflow.Provider.DepotBuildFailed.URN()),
+			)
 		}
 		defer func() { depotBuild.Finish(err) }()
 
@@ -180,7 +188,10 @@ func (w *Workflow) buildDockerImageFromGit(
 
 		buildkit, err := machine.Acquire(runCtx, depotBuild.ID, depotBuild.Token, architecture)
 		if err != nil {
-			return nil, fmt.Errorf("failed to acquire machine: %w", err)
+			return nil, fault.Wrap(
+				fmt.Errorf("failed to acquire machine: %w", err),
+				fault.Code(codes.Workflow.Provider.DepotMachineUnavailable.URN()),
+			)
 		}
 		defer func() {
 			if releaseErr := buildkit.Release(); releaseErr != nil {
@@ -194,7 +205,10 @@ func (w *Workflow) buildDockerImageFromGit(
 
 		buildClient, err := buildkit.Connect(runCtx)
 		if err != nil {
-			return nil, fmt.Errorf("unable to create build client: %w", err)
+			return nil, fault.Wrap(
+				fmt.Errorf("unable to create build client: %w", err),
+				fault.Code(codes.Workflow.Provider.DepotBuildFailed.URN()),
+			)
 		}
 		defer func() {
 			if closeErr := buildClient.Close(); closeErr != nil {
@@ -259,7 +273,18 @@ func (w *Workflow) buildDockerImageFromGit(
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return nil, fmt.Errorf("build interrupted: %w", err)
 			}
-			return nil, restate.TerminalError(fmt.Errorf("build failed: %w", err))
+			// Classify by inspecting the error string against the known
+			// user-build-error patterns. A match means the user's Dockerfile
+			// or build context is broken (App). Everything else is treated
+			// as a Depot/provider failure until proven otherwise.
+			code := codes.Workflow.Provider.DepotBuildFailed.URN()
+			if isKnownUserBuildError(err) {
+				code = codes.Workflow.App.BuildBroken.URN()
+			}
+			return nil, fault.Wrap(
+				restate.TerminalError(fmt.Errorf("build failed: %w", err)),
+				fault.Code(code),
+			)
 		}
 
 		logger.Info("Build completed successfully")
@@ -577,4 +602,20 @@ func extractUserBuildError(err error) string {
 		}
 	}
 	return "Build failed. Please check the build logs for details."
+}
+
+// isKnownUserBuildError reports whether err matches one of the known
+// user-caused build failure patterns. Used to classify build solve errors as
+// "app" (user code is broken) versus "provider" (Depot itself failed).
+func isKnownUserBuildError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	for _, known := range knownBuildErrors {
+		if strings.Contains(msg, known.substr) {
+			return true
+		}
+	}
+	return false
 }

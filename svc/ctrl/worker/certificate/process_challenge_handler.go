@@ -11,11 +11,16 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 )
+
+const workflowAcmeChallenge = "acme_process_challenge"
 
 // EncryptedCertificate holds a certificate with its private key encrypted for storage.
 // The private key is encrypted using the vault service with the workspace ID as the
@@ -60,6 +65,25 @@ func (s *Service) ProcessChallenge(
 	ctx restate.ObjectContext,
 	req *hydrav1.ProcessChallengeRequest,
 ) (resp *hydrav1.ProcessChallengeResponse, err error) {
+	// Track outcome separately from the returned err: this handler returns
+	// (status="failed", err=nil) for logical failures so Restate doesn't
+	// retry. Stamp metricErr in those branches so the deferred RunTimer
+	// records the right category. Defers run LIFO: the second defer below
+	// runs FIRST, populating metricErr from err/resp before RunTimer reads
+	// it.
+	var metricErr error
+	defer observability.RunTimer(workflowAcmeChallenge, &metricErr)()
+	defer func() {
+		if metricErr != nil {
+			return // already stamped explicitly
+		}
+		if err != nil {
+			metricErr = err
+		} else if resp != nil && resp.GetStatus() == "failed" {
+			metricErr = fmt.Errorf("acme challenge failed")
+		}
+	}()
+
 	logger.Info("starting certificate challenge",
 		"workspace_id", req.GetWorkspaceId(),
 		"domain", req.GetDomain(),
@@ -125,6 +149,13 @@ func (s *Service) ProcessChallenge(
 					"domain", req.GetDomain(),
 					"retries", rateLimitRetry,
 				)
+				// Stamp metricErr with the rate-limit category so the
+				// deferred RunTimer records "provider" instead of the
+				// generic "infra" fallback for unwrapped errors.
+				metricErr = fault.Wrap(
+					fmt.Errorf("acme rate limit retries exhausted for %s", req.GetDomain()),
+					fault.Code(codes.Workflow.Provider.AcmeRateLimited.URN()),
+				)
 				return &hydrav1.ProcessChallengeResponse{
 					CertificateId: "",
 					Status:        "failed",
@@ -155,7 +186,14 @@ func (s *Service) ProcessChallenge(
 			continue // Retry after sleep
 		}
 
-		// Not a rate limit error - fail
+		// Not a rate limit error - fail. Stamp metricErr with the wrapped
+		// obtain error so categorization picks up any code we attached
+		// inside obtainCertificate (terminal, non-retryable provider/auth
+		// failures land here).
+		metricErr = fault.Wrap(
+			obtainErr,
+			fault.Code(codes.Workflow.Provider.AcmeUnauthorized.URN()),
+		)
 		return &hydrav1.ProcessChallengeResponse{
 			CertificateId: "",
 			Status:        "failed",

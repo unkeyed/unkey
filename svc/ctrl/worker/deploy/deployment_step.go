@@ -9,7 +9,10 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
 )
+
+const workflowDeploy = "deploy"
 
 func (w *Workflow) DeploymentStep(
 	ctx restate.ObjectContext,
@@ -64,7 +67,18 @@ func (w *Workflow) DeploymentStep(
 		return err
 	}
 
+	stepStart := time.Now()
 	stepErr := fn(ctx)
+	stepDuration := time.Since(stepStart)
+
+	// Emit Prometheus metrics for the phase. Per-attempt accuracy isn't
+	// possible here because fn(ctx) is the user-provided body that may
+	// itself wrap restate.Run sites; this records the wall-clock time of
+	// the phase as observed by this handler invocation. Step metrics
+	// emitted by inner observability.Step calls remain authoritative for
+	// per-attempt timing.
+	outcome, category := observability.Classify(stepErr)
+	observability.RecordPhase(workflowDeploy, string(step), stepDuration, outcome, category)
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return db.Query.EndDeploymentStep(runCtx, w.db.RW(), db.EndDeploymentStepParams{

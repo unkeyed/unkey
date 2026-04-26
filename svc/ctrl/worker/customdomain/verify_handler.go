@@ -14,8 +14,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/dns"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
+
+const workflowVerifyDomain = "customdomain_verify"
 
 // maxVerificationDuration limits how long we retry DNS verification before
 // marking a domain as failed.
@@ -51,7 +54,9 @@ var errNotVerified = errors.New("domain not verified yet")
 func (s *Service) VerifyDomain(
 	ctx restate.ObjectContext,
 	_ *hydrav1.VerifyDomainRequest,
-) (*hydrav1.VerifyDomainResponse, error) {
+) (resp *hydrav1.VerifyDomainResponse, retErr error) {
+	defer observability.RunTimer(workflowVerifyDomain, &retErr)()
+
 	domainID := restate.Key(ctx)
 
 	// Fetch domain - NOT journaled so we get fresh state on each retry

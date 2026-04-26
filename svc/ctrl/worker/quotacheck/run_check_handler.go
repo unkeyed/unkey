@@ -11,6 +11,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/observability"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -40,12 +41,16 @@ type exceededWorkspace struct {
 // This balances between minimizing round trips and keeping queries efficient.
 const batchSize = 100
 
+const workflowQuotaCheck = "quota_check"
+
 // RunCheck queries all workspace usage and sends Slack notifications for newly exceeded quotas.
 // This handler is intended to be called on a schedule via GitHub Actions.
 func (s *Service) RunCheck(
 	ctx restate.ObjectContext,
 	req *hydrav1.RunCheckRequest,
-) (*hydrav1.RunCheckResponse, error) {
+) (resp *hydrav1.RunCheckResponse, retErr error) {
+	defer observability.RunTimer(workflowQuotaCheck, &retErr)()
+
 	billingPeriod := restate.Key(ctx)
 	logger.Info("running quota check", "billing_period", billingPeriod)
 
