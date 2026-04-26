@@ -60,6 +60,12 @@ service ClusterService {
   // Called when K8s watch events indicate ReplicaSet changes.
   rpc ReportDeploymentStatus(ReportDeploymentStatusRequest) returns (ReportDeploymentStatusResponse);
 
+  // ReportInstanceEvents reports container lifecycle events (starts, exits,
+  // CrashLoopBackOff transitions) from the agent. Krane batches one or more
+  // events per RPC; the control plane writes them to ClickHouse and
+  // denormalizes the latest exit info onto the matching instances row so the
+  // dashboard can render exit reasons without a CH round-trip.
+  rpc ReportInstanceEvents(ReportInstanceEventsRequest) returns (ReportInstanceEventsResponse);
   // Heartbeat is called periodically by krane agents to register their cluster
   // and region with the control plane. This populates the regions and
   // clusters tables, making regions dynamically discoverable.
@@ -125,6 +131,106 @@ message ReportDeploymentStatusRequest {
 }
 
 message ReportDeploymentStatusResponse {}
+
+// InstanceEvent describes a single container lifecycle transition observed
+// by krane's pod watch. The (pod_uid, container_name, restart_count, state)
+// tuple is the dedupe key on both the krane LRU and the ClickHouse insert.
+//
+// The `state` oneof mirrors corev1.ContainerState — krane reads exactly
+// this shape from kubelet, so the mapping is direct and future kubelet
+// reasons (PullBackOff, ImagePullBackOff, …) slot in under Waiting without
+// any wire format change.
+message InstanceEvent {
+  // K8s identity of the container life this event is about.
+  string pod_uid = 1;
+  string pod_name = 2;
+  string node_name = 3;
+  string container_name = 4;
+  string container_id = 5;
+  int32 restart_count = 6;
+
+  // Tenant identifiers extracted from pod labels by krane. Field order
+  // matches the canonical hierarchy: workspace > project > app >
+  // environment > deployment.
+  string workspace_id = 7;
+  string project_id = 8;
+  string app_id = 9;
+  string environment_id = 10;
+  string deployment_id = 11;
+
+  // When this event happened (unix milliseconds). For Running it's the
+  // container's StartedAt; for Terminated it's FinishedAt; for Waiting
+  // it's when kubelet last published the waiting state.
+  int64 time = 12;
+
+  // Stable hash krane computes so the dashboard can group identical
+  // incidents without an aggregate table. Inputs differ by state:
+  //   Running    — (image_id, "running")
+  //   Terminated — (image_id, exit_code, reason, message[:200])
+  //   Waiting    — (image_id, 0, reason, message[:200])
+  string event_fingerprint = 13;
+
+  // Mirrors corev1.ContainerState. Exactly one case is set per event.
+  oneof state {
+    Running running = 14;
+    Terminated terminated = 15;
+    Waiting waiting = 16;
+  }
+
+  // Selected k8s metadata for the event row. Stored verbatim into the
+  // ClickHouse `attributes` Map column. Known keys (krane populates):
+  //   image, image_id, cpu_limit_millicores, memory_limit_mib,
+  //   cpu_request_millicores, memory_request_mib, build_id.
+  // Numbers are stringified so the wire shape matches the column type.
+  map<string, string> attributes = 17;
+}
+
+// Running means the container is healthy and serving. The event itself
+// timestamps when this life began (InstanceEvent.time = StartedAt). No
+// per-state metadata beyond identity is needed today; this empty message
+// is reserved for future signals (process restart count within a single
+// life, etc.) without an InstanceEvent shape change.
+message Running {}
+
+// Terminated captures kubelet's ContainerStateTerminated. The container
+// exited; the metadata explains why.
+message Terminated {
+  // Process exit code reported by the kernel.
+  int32 exit_code = 1;
+  // Signal that delivered the termination, or 0 if the process exited
+  // without a signal. SIGTERM (15) usually means k8s/user requested
+  // shutdown; SIGKILL (9) typically pairs with OOMKilled or grace period
+  // expiry.
+  int32 signal = 2;
+  // Kubelet-supplied label: "OOMKilled", "Error", "Completed",
+  // "ContainerCannotRun", "DeadlineExceeded", …
+  string reason = 3;
+  // Free-form kubelet message; truncated past 200 bytes when fed into
+  // event_fingerprint so retries of the same failure collapse.
+  string message = 4;
+}
+
+// Waiting captures kubelet's ContainerStateWaiting. Krane currently only
+// emits when reason == "CrashLoopBackOff", but the type is shaped to
+// accept any waiting reason kubelet publishes.
+message Waiting {
+  // Kubelet-supplied label: "CrashLoopBackOff", "ImagePullBackOff",
+  // "ContainerCreating", "ErrImagePull", …
+  string reason = 1;
+  string message = 2;
+}
+
+// ReportInstanceEventsRequest carries one or more events from a single krane
+// pod-watch tick. Batching keeps the RPC count low when a pod has multiple
+// containers (init/main/sidecar) terminating at once.
+message ReportInstanceEventsRequest {
+  repeated InstanceEvent events = 1;
+  // region scopes the report to one cluster's krane agent. Same convention as
+  // every other ClusterService RPC (ReportDeploymentStatus, ReportSentinelStatus).
+  RegionKey region = 2;
+}
+
+message ReportInstanceEventsResponse {}
 
 // DeploymentState represents a lifecycle event for an application deployment.
 //

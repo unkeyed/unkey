@@ -21,9 +21,11 @@ type MockClusterClient struct {
 	WatchDeploymentChangesFunc    func(context.Context, *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error)
 	GetDesiredDeploymentStateFunc func(context.Context, *ctrlv1.GetDesiredDeploymentStateRequest) (*ctrlv1.DeploymentState, error)
 	ReportDeploymentStatusFunc    func(context.Context, *ctrlv1.ReportDeploymentStatusRequest) (*ctrlv1.ReportDeploymentStatusResponse, error)
+	ReportInstanceEventsFunc      func(context.Context, *ctrlv1.ReportInstanceEventsRequest) (*ctrlv1.ReportInstanceEventsResponse, error)
 	HeartbeatFunc                 func(context.Context, *ctrlv1.HeartbeatRequest) (*ctrlv1.HeartbeatResponse, error)
 	SyncDesiredStateFunc          func(context.Context, *ctrlv1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error)
 	ReportDeploymentStatusCalls   []*ctrlv1.ReportDeploymentStatusRequest
+	ReportInstanceEventsCalls     []*ctrlv1.ReportInstanceEventsRequest
 }
 
 func (m *MockClusterClient) WatchDeploymentChanges(ctx context.Context, req *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error) {
@@ -46,6 +48,14 @@ func (m *MockClusterClient) ReportDeploymentStatus(ctx context.Context, req *ctr
 		return m.ReportDeploymentStatusFunc(ctx, req)
 	}
 	return &ctrlv1.ReportDeploymentStatusResponse{}, nil
+}
+
+func (m *MockClusterClient) ReportInstanceEvents(ctx context.Context, req *ctrlv1.ReportInstanceEventsRequest) (*ctrlv1.ReportInstanceEventsResponse, error) {
+	m.ReportInstanceEventsCalls = append(m.ReportInstanceEventsCalls, req)
+	if m.ReportInstanceEventsFunc != nil {
+		return m.ReportInstanceEventsFunc(ctx, req)
+	}
+	return &ctrlv1.ReportInstanceEventsResponse{}, nil
 }
 
 func (m *MockClusterClient) Heartbeat(ctx context.Context, req *ctrlv1.HeartbeatRequest) (*ctrlv1.HeartbeatResponse, error) {

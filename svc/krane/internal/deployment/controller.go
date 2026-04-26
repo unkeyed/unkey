@@ -47,6 +47,13 @@ type Controller struct {
 	// via the cache's TTL, preventing unbounded growth from deleted RSs.
 	fingerprints cache.Cache[string, string]
 
+	// eventDedup deduplicates instance lifecycle events by
+	// (pod_uid, container_name, restart_count, event_kind). The same life
+	// appears on every pod-watch tick until kubelet gc's it; this cache
+	// keeps us from re-emitting the same event over and over. May be nil
+	// in tests or environments without ctrl-side ClickHouse wiring.
+	eventDedup cache.Cache[string, struct{}]
+
 	// reportLocks serializes reportIfChanged per k8s_name so the fingerprint
 	// Get and post-RPC Set can't race with another concurrent event for the
 	// same ReplicaSet and both report the same state.
@@ -93,6 +100,12 @@ type Config struct {
 	// Fingerprints is a cache for deduplicating deployment status reports.
 	Fingerprints cache.Cache[string, string]
 
+	// EventDedup is a cache for deduplicating per-container lifecycle
+	// events (terminations, crashloop_backoff). Optional: when nil, the
+	// instance event capture path is disabled and only the coarse
+	// deployment-status report fires.
+	EventDedup cache.Cache[string, struct{}]
+
 	// ObservedTransitions is a cache keyed by pod UID that records which
 	// ContainersReady transitions have already been sampled, so the lag
 	// histogram isn't skewed by repeat events for the same transition.
@@ -125,6 +138,7 @@ func New(cfg Config) *Controller {
 		region:           cfg.Region,
 		platform:         cfg.Platform,
 		fingerprints:     cfg.Fingerprints,
+		eventDedup:       cfg.EventDedup,
 		reportLocks:      keymutex.KeyMutex{},
 		lagRecorder:      podstatus.NewLagRecorder("deployment", cfg.ObservedTransitions),
 		storageClassName: cfg.StorageClassName,
