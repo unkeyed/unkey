@@ -80,7 +80,7 @@ const getSelectedClassName = (log: RuntimeLog, isSelected: boolean): string => {
 export function RuntimeLogsTable() {
   const { filters } = useRuntimeLogsFilters();
   const { selectedLog, setSelectedLog } = useRuntimeLogs();
-  const { logs, total, isLoading, hasMore, loadMore, isLoadingMore } = useRuntimeLogsQuery({
+  const { logs, isLoading, hasMore, loadMore, isLoadingMore } = useRuntimeLogsQuery({
     filters,
   });
 
@@ -213,9 +213,7 @@ export function RuntimeLogsTable() {
           <div className="flex gap-2">
             <span>Showing</span>
             <span className="text-accent-12">{new Intl.NumberFormat().format(logs.length)}</span>
-            <span>of</span>
-            <span className="text-accent-12">{new Intl.NumberFormat().format(total)}</span>
-            <span>logs</span>
+            <span>logs{hasMore ? "" : " (all)"}</span>
           </div>
         ),
       }}
