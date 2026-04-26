@@ -22,13 +22,15 @@ type Config struct {
 	// Set at runtime; not read from the config file.
 	Image string `toml:"-"`
 
-	// ChallengePort is the TCP port the HTTP challenge server binds to.
-	// Used for ACME HTTP-01 challenges (Let's Encrypt).
-	ChallengePort int `toml:"challenge_port" config:"default=7070,min=1,max=65535"`
+	// HttpPort is the TCP port the plain-HTTP listener binds to. It serves
+	// ACME HTTP-01 challenges (Let's Encrypt) and 308-redirects everything
+	// else to the https:// equivalent via the edge-redirect engine.
+	HttpPort int `toml:"http_port" config:"default=7070,min=1,max=65535"`
 
-	// HttpPort is the TCP port the HTTP frontline server binds to.
-	// Serves general traffic over HTTPS by default.
-	HttpPort int `toml:"http_port" config:"default=7443,min=1,max=65535"`
+	// HttpsPort is the TCP port the HTTPS frontline server binds to. It
+	// terminates TLS and forwards customer traffic to the sentinel after
+	// evaluating any per-route edge-redirect rules.
+	HttpsPort int `toml:"https_port" config:"default=7443,min=1,max=65535"`
 
 	// Platform identifies the cloud provider
 	// ie: aws, gcp, local

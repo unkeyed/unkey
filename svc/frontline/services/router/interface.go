@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 
+	edgeredirectv1 "github.com/unkeyed/unkey/gen/proto/frontline/edgeredirect/v1"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 )
@@ -19,6 +20,10 @@ type RouteDecision struct {
 	Destination  Destination
 	// Address is the K8s sentinel address (local) or "region.platform" string (remote).
 	Address string
+	// Redirects are the per-FQDN edge-redirect rules parsed from
+	// frontline_routes.edge_redirect_config. Empty for routes with no
+	// rules (the common case for auto-generated preview URLs).
+	Redirects []*edgeredirectv1.Rule
 }
 
 type Service interface {

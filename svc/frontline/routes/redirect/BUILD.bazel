@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "redirect",
+    srcs = [
+        "handler.go",
+        "metrics.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/routes/redirect",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/frontline/edgeredirect/v1:edgeredirect",
+        "//pkg/prometheus/lazy",
+        "//pkg/zen",
+        "//svc/frontline/services/edgeredirect",
+        "@com_github_prometheus_client_golang//prometheus",
+    ],
+)
