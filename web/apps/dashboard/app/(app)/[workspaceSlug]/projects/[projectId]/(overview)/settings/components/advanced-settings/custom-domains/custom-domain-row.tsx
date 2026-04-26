@@ -12,6 +12,7 @@ import { useRef, useState } from "react";
 import { useProjectData } from "../../../../data-provider";
 import { RemoveButton } from "../../shared/remove-button";
 import { DnsRecordTable } from "./dns-record-table";
+import { RedirectPicker } from "./redirect-picker";
 
 type CustomDomainRowProps = {
   domain: CustomDomain;
@@ -113,6 +114,8 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
         </div>
 
         <div className="flex items-center gap-2">
+          {domain.verificationStatus === "verified" && <RedirectPicker domain={domain.domain} />}
+
           <Badge variant={status.color} className="gap-1">
             {status.icon}
             {status.label}
