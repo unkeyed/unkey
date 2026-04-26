@@ -70,7 +70,6 @@ The first positional argument is the fully qualified image reference — `regist
 | `--project`      | Project slug. **Required.**                                           | —           |
 | `--app`          | App slug within the project.                                          | `default`   |
 | `--env`          | Environment slug to deploy to.                                        | `preview`   |
-| `--keyspace-id`  | Keyspace ID for API key authentication (Sentinel).                    | —           |
 | `--root-key`     | Root key for authentication. **Required.**                            | —           |
 | `--api-base-url` | API base URL override (local testing only).                           | —           |
 
@@ -80,7 +79,6 @@ All flags have matching environment variables so the command works cleanly in CI
 export UNKEY_ROOT_KEY=unkey_xxx
 export UNKEY_PROJECT=my-project
 export UNKEY_APP=api
-export UNKEY_KEYSPACE_ID=ks_xxx
 
 unkey deploy ghcr.io/your-org/your-app:v1.0.0 --env=production
 ```
