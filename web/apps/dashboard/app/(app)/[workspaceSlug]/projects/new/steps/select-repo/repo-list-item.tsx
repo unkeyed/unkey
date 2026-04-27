@@ -58,20 +58,24 @@ export const RepoListItem = ({
     <div className="flex px-4 py-5 items-center">
       <LanguageIcon language={repo.language} />
       <div className="flex flex-col gap-1 w-52">
-        <div className="font-medium text-[13px] text-gray-12 leading-4 truncate max-w-52">
+        <div className="font-medium text-[13px] text-gray-12 leading-4 truncate max-w-40">
           {repoName}
         </div>
-        <div className="text-[13px] text-gray-10 leading-3 truncate max-w-52">
+        <div className="flex items-center gap-0 text-[13px] text-gray-10 leading-3 max-w-52">
           {hasMultipleAccounts ? (
             <>
-              {owner} · <TimestampInfo value={repo.pushedAt ?? 0} displayType="relative" />
+              <span className="truncate shrink min-w-0">{owner}</span>
+              <span className="shrink-0">
+                &nbsp;·&nbsp;
+                <TimestampInfo value={repo.pushedAt ?? 0} displayType="relative" />
+              </span>
             </>
           ) : (
             <TimestampInfo value={repo.pushedAt ?? 0} displayType="relative" />
           )}
         </div>
       </div>
-      <div className="flex gap-2 items-center ml-auto shrink-0">
+      <div className="flex gap-2 items-center ml-auto shrink-0 w-40 justify-end">
         {isLoading ? (
           <div className="h-4 w-28 bg-grayA-3 rounded animate-pulse" />
         ) : details.hasDockerfile ? (
