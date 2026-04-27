@@ -54,7 +54,7 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
   }
 
   return (
-    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose} >
+    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
       <LogDetails.Header>
         <SentinelLogHeader log={log} />
       </LogDetails.Header>
@@ -248,15 +248,15 @@ const formatDeploymentInfo = (
   log: SentinelLogsResponse,
   deployment:
     | {
-      id: string;
-      environmentId: string;
-      gitBranch?: string | null;
-      gitCommitSha?: string | null;
-      gitCommitMessage?: string | null;
-      gitCommitAuthorHandle?: string | null;
-      gitCommitAuthorAvatarUrl?: string | null;
-      status?: string | null;
-    }
+        id: string;
+        environmentId: string;
+        gitBranch?: string | null;
+        gitCommitSha?: string | null;
+        gitCommitMessage?: string | null;
+        gitCommitAuthorHandle?: string | null;
+        gitCommitAuthorAvatarUrl?: string | null;
+        status?: string | null;
+      }
     | undefined,
   environment: { slug: string } | undefined,
   sourceRepo: string | null | undefined,
