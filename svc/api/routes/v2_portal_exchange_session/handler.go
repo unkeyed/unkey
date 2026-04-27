@@ -148,6 +148,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	s.ResponseWriter().Header().Set("Cache-Control", "no-store")
+	s.ResponseWriter().Header().Set("Pragma", "no-cache")
+
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
 		Data: ExchangeSessionResponseData{

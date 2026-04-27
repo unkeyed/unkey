@@ -319,8 +319,8 @@ services:
     ports:
       - "3100:3000"
     depends_on:
-      planetscale:
-        condition: service_started
+      mysql:
+        condition: service_healthy
         required: true
       apiv2_lb:
         condition: service_started
@@ -328,7 +328,7 @@ services:
     env_file:
       - ../web/apps/portal/.env
     environment:
-      DATABASE_HOST: "planetscale:3900"
+      DATABASE_HOST: "mysql:3306"
       DATABASE_USERNAME: "unkey"
       DATABASE_PASSWORD: "password"
       UNKEY_API_URL: "http://apiv2_lb:7070"

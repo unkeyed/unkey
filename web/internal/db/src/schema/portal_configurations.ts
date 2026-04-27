@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import { bigint, boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { portalBranding } from "./portal_branding";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -26,5 +27,9 @@ export const portalConfigurationsRelations = relations(portalConfigurations, ({ 
   workspace: one(workspaces, {
     fields: [portalConfigurations.workspaceId],
     references: [workspaces.id],
+  }),
+  branding: one(portalBranding, {
+    fields: [portalConfigurations.id],
+    references: [portalBranding.portalConfigId],
   }),
 }));

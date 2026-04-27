@@ -56,7 +56,7 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--color-border, currentcolor);
   }
 }
 
@@ -71,8 +71,8 @@
     --secondary-foreground: 0 0% 0%;
     --content: 240 10% 3.9%;
     --content-subtle: 240 3.8% 46.1%;
-    --border: 24, 6%, 83%;
-    --ring: 24, 6%, 83%;
+    --border: 24 6% 83%;
+    --ring: 24 6% 83%;
   }
 
   .dark {
@@ -85,8 +85,8 @@
     --secondary-foreground: 24 10% 100%;
     --content: 240 10% 90%;
     --content-subtle: 240 3.8% 46.1%;
-    --border: 12, 6%, 15%;
-    --ring: 12, 6%, 15%;
+    --border: 12 6% 15%;
+    --ring: 12 6% 15%;
   }
 }
 

@@ -55,8 +55,7 @@ Save the root key printed at the end (e.g. `unkey_xxx`).
 
 ### Option A: Tilt / K8s (full stack)
 
-Runs the portal as a K8s deployment, same as production. Frontline handles
-TLS and routing for `*.unkey.local`.
+Runs the portal as a K8s deployment with a port-forward.
 
 #### Setup (one-time)
 
@@ -123,7 +122,7 @@ curl -s -X POST http://localhost:7070/v2/portal.createSession \
 ```
 
 Take the `sessionId` from the response and open:
-```
+```text
 http://localhost:3100/?session=pst_xxx
 ```
 
@@ -131,8 +130,7 @@ http://localhost:3100/?session=pst_xxx
 
 ## Dogfooding on Unkey Deploy
 
-Deploy the portal as a real app on Unkey Deploy to test the full production
-stack (Frontline → Sentinel → portal container).
+Deploy the portal as an app on Unkey Deploy.
 
 ### 1. Create the project
 
@@ -167,8 +165,8 @@ go run . dev seed local \
 ### 4. Deploy
 
 Push to the connected branch. The Deploy workflow builds the Docker image,
-creates a deployment, and Frontline routes traffic to it. The deployment
-gets a URL like `<app-slug>-<env>.unkey.com`.
+creates a deployment, and routes traffic to it. The deployment gets a URL
+like `<app-slug>-<env>.unkey.com`.
 
 ### 5. Test the session flow
 
@@ -179,14 +177,13 @@ curl -s -X POST https://api.unkey.dev/v2/portal.createSession \
   -d '{"externalId": "user_123", "permissions": ["keys:read", "keys:create", "analytics:read", "docs:read"]}'
 ```
 
-The response URL will point to `portal.unkey.com` (or the custom domain if
-configured). Open it in the browser — the full Frontline → portal flow runs
-end-to-end.
+The response URL will point to the portal's deployment URL (or custom
+domain if configured). Open it in the browser.
 
 ### Notes
 
-- The `portal_base_url` on the API server must match the deployment URL for
-  session redirect URLs to work correctly.
+- The `portal_base_url` on the API server must match the portal's
+  deployment URL for session redirect URLs to work correctly.
 - For preview environments, you may need to manually adjust the session URL
   domain if `portal_base_url` points to production.
 - Custom domains work the same as any Deploy app — add the domain in the

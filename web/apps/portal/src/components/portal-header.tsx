@@ -1,22 +1,24 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { deriveVisibleTabs } from "~/lib/permissions";
 
+type PortalHeaderProps = {
+  permissions: string[];
+  logoUrl?: string;
+};
+
 /**
  * Branded portal header with permission-derived navigation tabs.
- * Tabs are derived from session permissions stored in the cookie.
- * For the PoC, all tabs are shown since permissions aren't decoded client-side yet.
  */
-export function PortalHeader() {
+export function PortalHeader({ permissions, logoUrl }: PortalHeaderProps) {
   const location = useLocation();
-
-  // For PoC, show all tabs. When the session token is decoded server-side,
-  // permissions will be passed down via route context.
-  const allPermissions = ["keys:read", "keys:write", "analytics:read", "docs:read"];
-  const tabs = deriveVisibleTabs(allPermissions);
+  const tabs = deriveVisibleTabs(permissions);
 
   return (
     <header className="border-b border-gray-6 bg-background">
       <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-4">
+        {logoUrl && (
+          <img src={logoUrl} alt="" className="h-8 w-auto" aria-hidden="true" />
+        )}
         <nav className="flex items-center gap-1" aria-label="Portal navigation">
           {tabs.map((tab) => {
             const isActive = location.pathname.startsWith(tab.href);

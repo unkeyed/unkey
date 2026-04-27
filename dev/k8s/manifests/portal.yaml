@@ -26,6 +26,12 @@ spec:
           env:
             - name: UNKEY_API_URL
               value: "http://api:7070"
+            - name: DATABASE_HOST
+              value: "mysql:3306"
+            - name: DATABASE_USERNAME
+              value: "unkey"
+            - name: DATABASE_PASSWORD
+              value: "password"
             - name: NODE_ENV
               value: "production"
             - name: PORT

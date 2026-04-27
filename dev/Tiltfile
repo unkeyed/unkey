@@ -380,7 +380,7 @@ k8s_resource(
 
 
 
-# Portal - deployed as K8s service, routed via Frontline on *.unkey.local
+# Portal - standalone K8s service for local development.
 # Build the portal Docker image and load into minikube
 local_resource(
     'build-portal-image',
@@ -394,7 +394,7 @@ k8s_yaml('k8s/manifests/portal.yaml')
 k8s_resource(
     'portal',
     port_forwards='3100:3000',
-    resource_deps=['planetscale', 'api', 'build-portal-image'],
+    resource_deps=['api', 'build-portal-image'],
     labels=['unkey'],
     auto_init=False,
     trigger_mode=TRIGGER_MODE_MANUAL,

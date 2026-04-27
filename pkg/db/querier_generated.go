@@ -140,11 +140,11 @@ type Querier interface {
 	//DeleteFrontlineRoutesByEnvironmentId
 	//
 	//  DELETE FROM frontline_routes WHERE environment_id = ?
-	DeleteFrontlineRoutesByEnvironmentId(ctx context.Context, db DBTX, environmentID sql.NullString) error
+	DeleteFrontlineRoutesByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
 	//DeleteFrontlineRoutesByProjectId
 	//
 	//  DELETE FROM frontline_routes WHERE project_id = ?
-	DeleteFrontlineRoutesByProjectId(ctx context.Context, db DBTX, projectID sql.NullString) error
+	DeleteFrontlineRoutesByProjectId(ctx context.Context, db DBTX, projectID string) error
 	//DeleteGithubRepoConnectionsByAppId
 	//
 	//  DELETE FROM github_repo_connections WHERE app_id = ?
@@ -553,7 +553,7 @@ type Querier interface {
 	//FindFrontlineRoutesByDeploymentID
 	//
 	//  SELECT pk, id, project_id, app_id, deployment_id, environment_id, fully_qualified_domain_name, sticky, created_at, updated_at FROM frontline_routes WHERE deployment_id = ?
-	FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID sql.NullString) ([]FrontlineRoute, error)
+	FindFrontlineRoutesByDeploymentID(ctx context.Context, db DBTX, deploymentID string) ([]FrontlineRoute, error)
 	//FindFrontlineRoutesForRollback
 	//
 	//  SELECT

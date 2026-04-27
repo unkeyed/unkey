@@ -1,5 +1,7 @@
+import { eq } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
+import { db, schema } from "./db";
 import { env } from "./env";
 
 const SESSION_COOKIE_NAME = "portal_session";
@@ -16,7 +18,6 @@ export const exchangeSession = createServerFn({ method: "POST" })
   .handler(async ({ data: sessionId }): Promise<ExchangeResult> => {
     const apiUrl = env().UNKEY_API_URL;
 
-    // TODO: Replace with @unkey/api SDK call once portal endpoints are added to the public OpenAPI spec
     const response = await fetch(`${apiUrl}/v2/portal.exchangeSession`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -52,6 +53,30 @@ export const getSessionToken = createServerFn({ method: "GET" }).handler(
     return getCookie(SESSION_COOKIE_NAME) ?? null;
   },
 );
+
+/**
+ * Load the full session row from the database, including permissions and
+ * portal_config_id. Returns null if the session is missing or expired.
+ */
+export const getSession = createServerFn({ method: "GET" }).handler(async () => {
+  const token = getCookie(SESSION_COOKIE_NAME);
+  if (!token) return null;
+
+  const nowMs = Date.now();
+  const session = await db.query.portalSessions.findFirst({
+    where: (t, { eq, gt, and }) => and(eq(t.id, token), gt(t.expiresAt, nowMs)),
+    columns: {
+      id: true,
+      portalConfigId: true,
+      externalId: true,
+      permissions: true,
+      preview: true,
+      expiresAt: true,
+    },
+  });
+
+  return session ?? null;
+});
 
 /**
  * Clear the portal session cookie.

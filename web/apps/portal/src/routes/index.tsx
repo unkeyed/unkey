@@ -28,15 +28,22 @@ function PortalEntry() {
       return;
     }
 
-    exchangeSession({ data: sessionId }).then((result) => {
-      if (!result.success) {
-        setState({ status: "error", message: result.error });
-        return;
-      }
-      // Session exchanged — redirect to first available tab.
-      // For now default to /keys since we don't have permissions from the exchange response.
-      navigate({ to: "/keys" });
-    });
+    exchangeSession({ data: sessionId })
+      .then((result) => {
+        if (!result.success) {
+          setState({ status: "error", message: result.error });
+          return;
+        }
+        // Session exchanged — redirect to keys tab. The layout's beforeLoad
+        // reads the session from the DB and resolves permissions + config.
+        navigate({ to: "/keys" });
+      })
+      .catch(() => {
+        setState({
+          status: "error",
+          message: "Something went wrong. Please try again.",
+        });
+      });
   }, [sessionId, navigate]);
 
   if (state.status === "error") {

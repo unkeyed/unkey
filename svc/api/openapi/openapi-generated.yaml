@@ -6706,6 +6706,17 @@ paths:
                                 $ref: '#/components/schemas/V2PortalExchangeSessionResponseBody'
                     description: |
                         Session exchanged successfully. Use the returned token for subsequent API calls.
+                    headers:
+                        Cache-Control:
+                            schema:
+                                type: string
+                                example: no-store
+                            description: Prevents caching of the session token response.
+                        Pragma:
+                            schema:
+                                type: string
+                                example: no-cache
+                            description: HTTP/1.0 backward-compatible cache prevention.
                 "400":
                     content:
                         application/json:
