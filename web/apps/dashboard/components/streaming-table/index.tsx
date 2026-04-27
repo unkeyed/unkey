@@ -4,9 +4,7 @@ import { cn } from "@/lib/utils";
 import { Fragment, type ReactNode, useEffect, useRef } from "react";
 import type { Column } from "../virtual-table/types";
 
-const SKELETON_ROWS = 16;
 const ROW_HEIGHT_PX = 26;
-const AUTO_SCROLL_INTERVAL_MS = 1000;
 const NEAR_BOTTOM_THRESHOLD_PX = 50;
 
 type StreamingTableProps<T> = {
@@ -36,6 +34,7 @@ export function StreamingTable<T>({
 }: StreamingTableProps<T>) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const userScrolledUp = useRef(false);
+  const isProgrammaticScroll = useRef(false);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -44,6 +43,10 @@ export function StreamingTable<T>({
     }
 
     const onScroll = () => {
+      if (isProgrammaticScroll.current) {
+        isProgrammaticScroll.current = false;
+        return;
+      }
       const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
       userScrolledUp.current = distanceFromBottom > NEAR_BOTTOM_THRESHOLD_PX;
     };
@@ -53,24 +56,20 @@ export function StreamingTable<T>({
   }, []);
 
   useEffect(() => {
-    if (isLoading) {
+    if (userScrolledUp.current || isLoading) {
       return;
     }
+    const el = scrollRef.current;
+    if (el) {
+      isProgrammaticScroll.current = true;
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [data.length, isLoading]);
 
-    const timer = setInterval(() => {
-      if (userScrolledUp.current) {
-        return;
-      }
-      const el = scrollRef.current;
-      if (el) {
-        el.scrollTop = el.scrollHeight;
-      }
-    }, AUTO_SCROLL_INTERVAL_MS);
+  const showSkeleton = isLoading && data.length === 0;
+  const skeletonRows = Math.ceil(fixedHeight / ROW_HEIGHT_PX);
 
-    return () => clearInterval(timer);
-  }, [isLoading]);
-
-  if (!isLoading && data.length === 0 && emptyState) {
+  if (!showSkeleton && data.length === 0 && emptyState) {
     return (
       <div
         className="w-full flex justify-center items-center"
@@ -96,8 +95,8 @@ export function StreamingTable<T>({
           })}
         </colgroup>
         <tbody>
-          {isLoading
-            ? Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+          {showSkeleton
+            ? Array.from({ length: skeletonRows }).map((_, i) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton rows never reorder
                 <tr key={i} style={{ height: `${ROW_HEIGHT_PX}px` }}>
                   {columns.map((col, idx) => (
@@ -123,6 +122,7 @@ export function StreamingTable<T>({
                       onRowClick
                         ? (e) => {
                             if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
                               onRowClick(item);
                             }
                           }
