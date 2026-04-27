@@ -16,9 +16,7 @@ export function PortalHeader({ permissions, logoUrl }: PortalHeaderProps) {
   return (
     <header className="border-b border-gray-6 bg-background">
       <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-4">
-        {logoUrl && (
-          <img src={logoUrl} alt="" className="h-8 w-auto" aria-hidden="true" />
-        )}
+        {logoUrl && <img src={logoUrl} alt="" className="h-8 w-auto" aria-hidden="true" />}
         <nav className="flex items-center gap-1" aria-label="Portal navigation">
           {tabs.map((tab) => {
             const isActive = location.pathname.startsWith(tab.href);

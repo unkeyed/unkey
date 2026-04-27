@@ -1,24 +1,15 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { PortalHeader } from "~/components/portal-header";
 import { PreviewBanner } from "~/components/preview-banner";
-import { loadPortalConfig } from "~/lib/portal-config";
-import { getSession } from "~/lib/session";
+import { getSessionWithConfig } from "~/lib/session";
 
 export const Route = createFileRoute("/_portal")({
   beforeLoad: async () => {
-    const session = await getSession();
-    if (!session) {
+    const result = await getSessionWithConfig();
+    if (!result) {
       throw redirect({ to: "/" });
     }
-
-    let config = null;
-    try {
-      config = await loadPortalConfig(session.portalConfigId);
-    } catch (err) {
-      console.error("Failed to load portal config", { portalConfigId: session.portalConfigId, err });
-    }
-
-    return { session, portalConfig: config };
+    return { session: result.session, portalConfig: result.config };
   },
   component: PortalLayout,
 });
