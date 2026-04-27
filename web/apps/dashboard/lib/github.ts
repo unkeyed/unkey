@@ -200,7 +200,7 @@ const repositoryEventSchema = z.object({
 
 const repositoryEventsSchema = z.array(repositoryEventSchema);
 
-export const MAX_BRANCHES = 10;
+export const MAX_BRANCHES = 20;
 
 export type BranchActivity = {
   name: string;
@@ -299,6 +299,29 @@ export async function getRepositoryBranches(
       token,
     ),
   );
+}
+
+const matchingRefsSchema = z.array(
+  z.object({
+    ref: z.string(),
+  }),
+);
+
+export async function searchBranchesByPrefix(
+  installationId: number,
+  owner: string,
+  repo: string,
+  prefix: string,
+  limit = 30,
+): Promise<Array<{ name: string }>> {
+  const { token } = await getInstallationAccessToken(installationId);
+  const data = matchingRefsSchema.parse(
+    await fetchGitHubApi(
+      `https://api.github.com/repos/${owner}/${repo}/git/matching-refs/heads/${prefix.split("/").map(encodeURIComponent).join("/")}`,
+      token,
+    ),
+  );
+  return data.slice(0, limit).map((ref) => ({ name: ref.ref.replace("refs/heads/", "") }));
 }
 
 export async function getRepository(

@@ -1,16 +1,10 @@
+import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
-import { Check, ChevronDown, CodeBranch } from "@unkey/icons";
-import {
-  Button,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  TimestampInfo,
-} from "@unkey/ui";
-import { useState } from "react";
+import { Check, CodeBranch, Magnifier } from "@unkey/icons";
+import { Button, TimestampInfo } from "@unkey/ui";
+import { useMemo, useState } from "react";
 import { LanguageIcon } from "./language-icon";
+import { useSearchBranches } from "./use-search-branches";
 
 export type RepoItem = {
   id: number;
@@ -36,6 +30,7 @@ export const RepoListItem = ({
 }) => {
   const [owner, repoName] = repo.fullName.split("/");
   const [selectedBranch, setSelectedBranch] = useState(repo.defaultBranch);
+  const [searchValue, setSearchValue] = useState("");
 
   const { data: details } = trpc.github.getRepositoryDetails.useQuery(
     {
@@ -49,6 +44,42 @@ export const RepoListItem = ({
       refetchOnWindowFocus: false,
     },
   );
+
+  const { searchResults, isSearching } = useSearchBranches({
+    projectId,
+    installationId: repo.installationId,
+    owner,
+    repo: repoName,
+    query: searchValue,
+  });
+
+  const branchOptions = useMemo(() => {
+    const preloaded = details?.branches ?? [];
+    const seen = new Set<string>();
+    const merged: Array<{ name: string }> = [];
+
+    for (const b of searchResults) {
+      if (!seen.has(b.name)) {
+        seen.add(b.name);
+        merged.push(b);
+      }
+    }
+    for (const b of preloaded) {
+      if (!seen.has(b.name)) {
+        seen.add(b.name);
+        merged.push(b);
+      }
+    }
+
+    for (const name of [selectedBranch, repo.defaultBranch]) {
+      if (name && !seen.has(name)) {
+        seen.add(name);
+        merged.unshift({ name });
+      }
+    }
+
+    return merged.map((b) => ({ label: b.name, value: b.name }));
+  }, [details?.branches, searchResults, selectedBranch, repo.defaultBranch]);
 
   const isLoading = details === undefined;
 
@@ -76,33 +107,38 @@ export const RepoListItem = ({
         )}
       </div>
       <div className="flex gap-2 items-center">
-        <div className="ml-6 w-35">
+        <div className="ml-6 w-[200px]">
           {isLoading ? (
             <div className="h-8 w-full bg-grayA-3 rounded-lg animate-pulse" />
           ) : (
-            <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-              <SelectTrigger
-                className="min-h-7! h-7! rounded-lg border-grayA-4 text-[13px] bg-transparent w-full font-medium shadow-md"
-                wrapperClassName="w-full"
-                leftIcon={<CodeBranch className="text-gray-12 size-3" iconSize="sm-regular" />}
-                rightIcon={<ChevronDown className="text-gray-9 size-3 right-2 absolute" />}
-              >
-                <div className="truncate">
-                  <SelectValue />
-                </div>
-              </SelectTrigger>
-              <SelectContent className="max-h-50 w-62.5">
-                {(details.branches ?? []).map((branch) => (
-                  <SelectItem
-                    key={branch.name}
-                    value={branch.name}
-                    className="cursor-pointer text-[13px]"
-                  >
-                    {branch.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              options={branchOptions}
+              value={selectedBranch}
+              onSelect={(value) => {
+                setSelectedBranch(value);
+                setSearchValue("");
+              }}
+              onChange={(e) => setSearchValue(e.currentTarget.value)}
+              placeholder={
+                <span className="flex items-center gap-1.5 text-gray-9 text-[13px]">
+                  <CodeBranch className="size-3 shrink-0" iconSize="sm-regular" />
+                  <span className="truncate">{repo.defaultBranch}</span>
+                </span>
+              }
+              searchPlaceholder="Search branches..."
+              emptyMessage={isSearching ? "Searching..." : "No branches found."}
+              creatable
+              leftIcon={
+                isSearching ? (
+                  <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+                ) : (
+                  <Magnifier className="text-gray-9 size-3" iconSize="sm-regular" />
+                )
+              }
+              className="min-h-7! h-7! rounded-lg border-grayA-4 text-[13px] bg-transparent font-medium shadow-md"
+              wrapperClassName="w-full"
+              popoverClassName="w-[400px]"
+            />
           )}
         </div>
         <Button

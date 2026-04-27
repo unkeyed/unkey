@@ -119,7 +119,11 @@ export const SelectRepo = ({
   };
 
   return (
-    <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+    <div
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+      className="[--repo-list-w:750px]"
+    >
       {!isBannerDismissed && (
         <div className="absolute top-2 left-2 right-2 z-50 rounded-[10px] p-3 gap-2.5 flex items-center shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.10)] bg-linear-to-r from-successA-4 via-successA-1 to-success-1">
           <Check iconSize="sm-regular" className="text-successA-12" />
@@ -137,11 +141,11 @@ export const SelectRepo = ({
         </div>
       )}
 
-      <div className="flex gap-2 w-full min-w-[600px]">
+      <div className="flex gap-2 min-w-[var(--repo-list-w)]">
         {isLoadingRepos ? (
           <SelectRepoSkeleton />
         ) : reposError ? (
-          <div className="mt-3 flex flex-col items-center justify-center min-w-[640px] h-[462px] gap-3 border border-dashed rounded-[14px] border-grayA-5">
+          <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-[14px] border-grayA-5">
             <p className="text-[15px] text-accent-12 font-semibold">Failed to load repositories</p>
             <p className="text-[13px] text-accent-11 text-center whitespace-pre-line w-[350px]">
               {reposError.message}
@@ -156,7 +160,7 @@ export const SelectRepo = ({
             </Button>
           </div>
         ) : ownerOptions.length ? (
-          <div className="flex gap-2 w-full pt-1">
+          <div className="flex gap-2 min-w-[var(--repo-list-w)] pt-1">
             <Combobox
               wrapperClassName="w-[200px] shrink-0"
               className="w-[200px] shrink-0 text-left h-9 border-grayA-4 bg-transparent [&_svg]:text-gray-12"
@@ -184,7 +188,7 @@ export const SelectRepo = ({
         (filteredRepos.length > 0 ? (
           <div
             ref={parentRef}
-            className="mt-3 border rounded-[14px] border-grayA-5 min-w-[640px] max-h-[462px] overflow-y-auto"
+            className="mt-3 border rounded-[14px] border-grayA-5 min-w-[var(--repo-list-w)] max-h-[462px] overflow-y-auto"
           >
             <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
               {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -218,7 +222,7 @@ export const SelectRepo = ({
             </div>
           </div>
         ) : (
-          <div className="mt-3 flex flex-col items-center justify-center min-w-[640px] h-[462px] gap-3 border border-dashed rounded-[14px] border-grayA-5">
+          <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-[14px] border-grayA-5">
             <p className="text-[15px] text-accent-12 font-semibold">No repositories found</p>
           </div>
         ))}
@@ -236,7 +240,7 @@ export const SelectRepo = ({
               <OnboardingStepHintHighlight>GitHub</OnboardingStepHintHighlight>.
             </OnboardingStepHint>
           </a>
-          <div className="mt-8 w-full items-center justify-center flex">
+          <div className="mt-8 min-w-[var(--repo-list-w)] items-center justify-center flex">
             <OnboardingLinks />
           </div>
         </>
