@@ -37,16 +37,14 @@ export const queryRuntimeLogs = workspaceProcedure
       });
     }
 
-    const environment = input.environmentId
-      ? project.environments.find((e) => e.id === input.environmentId)
-      : project.environments[0];
-
-    if (!environment) {
+    if (project.environments.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "No environment found for this project",
       });
     }
+
+    const defaultEnvironment = project.environments[0];
 
     // Resolve instanceIds to k8sPodNames for ClickHouse filtering,
     // and build the reverse map to avoid a redundant DB query later.
@@ -75,14 +73,24 @@ export const queryRuntimeLogs = workspaceProcedure
     }
 
     const transformedInputs = transformFilters(input);
+
+    // environmentId is an array filter (empty = all envs via ClickHouse ELSE TRUE).
+    // appId stays a single value because all environments in a project share the same app,
+    // but we still resolve it from the first matched environment for correctness.
+    const environmentIds = transformedInputs.environmentId;
+    const appId =
+      environmentIds.length > 0
+        ? (project.environments.find((e) => environmentIds.includes(e.id))?.appId ??
+          defaultEnvironment.appId)
+        : defaultEnvironment.appId;
+
     const { logsQuery, totalQuery } = await clickhouse.runtimeLogs.logs({
       ...transformedInputs,
       k8sPodNames,
       workspaceId: ctx.workspace.id,
       projectId: project.id,
       deploymentId: input.deploymentId ?? null,
-      environmentId: environment.id,
-      appId: environment.appId,
+      appId,
     });
 
     const [countResult, logsResult] = await Promise.all([totalQuery, logsQuery]);

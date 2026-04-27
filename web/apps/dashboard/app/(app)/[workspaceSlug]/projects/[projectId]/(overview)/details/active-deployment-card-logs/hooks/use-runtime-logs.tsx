@@ -47,6 +47,7 @@ export function useRuntimeLogs({
     {
       projectId,
       deploymentId,
+      environmentId: null,
       limit: RUNTIME_LOGS_LIMIT,
       startTime: timestamp,
       endTime: timestamp,
