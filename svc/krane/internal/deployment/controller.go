@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
@@ -12,6 +13,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/krane/internal/keymutex"
+	"github.com/unkeyed/unkey/svc/krane/internal/podstatus"
+	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -41,6 +46,15 @@ type Controller struct {
 	// so we can skip redundant reports during resync. Entries auto-expire
 	// via the cache's TTL, preventing unbounded growth from deleted RSs.
 	fingerprints cache.Cache[string, string]
+
+	// reportLocks serializes reportIfChanged per k8s_name so the fingerprint
+	// Get and post-RPC Set can't race with another concurrent event for the
+	// same ReplicaSet and both report the same state.
+	reportLocks keymutex.KeyMutex
+
+	// lagRecorder records pod watch delivery lag, deduplicated per
+	// (pod UID, transition time).
+	lagRecorder *podstatus.LagRecorder
 
 	// storageClassName is the Kubernetes StorageClass for ephemeral volumes.
 	storageClassName string
@@ -79,6 +93,11 @@ type Config struct {
 	// Fingerprints is a cache for deduplicating deployment status reports.
 	Fingerprints cache.Cache[string, string]
 
+	// ObservedTransitions is a cache keyed by pod UID that records which
+	// ContainersReady transitions have already been sampled, so the lag
+	// histogram isn't skewed by repeat events for the same transition.
+	ObservedTransitions cache.Cache[string, time.Time]
+
 	// StorageClassName is the Kubernetes StorageClass for ephemeral volumes.
 	StorageClassName string
 }
@@ -106,6 +125,8 @@ func New(cfg Config) *Controller {
 		region:           cfg.Region,
 		platform:         cfg.Platform,
 		fingerprints:     cfg.Fingerprints,
+		reportLocks:      keymutex.KeyMutex{},
+		lagRecorder:      podstatus.NewLagRecorder("deployment", cfg.ObservedTransitions),
 		storageClassName: cfg.StorageClassName,
 	}
 }
@@ -149,9 +170,30 @@ func (c *Controller) Stop() error {
 // On success, the fingerprint for this report is cached so that
 // [Controller.reportIfChanged] can skip redundant reports during resync.
 func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) error {
+	start := time.Now()
 	_, err := c.cb.Do(ctx, func(innerCtx context.Context) (any, error) {
 		return c.cluster.ReportDeploymentStatus(innerCtx, status)
 	})
+	elapsed := time.Since(start)
+	result := "success"
+	if err != nil {
+		result = "error"
+	}
+	metrics.ReportStatusDurationSeconds.WithLabelValues("deployment", result).Observe(elapsed.Seconds())
+	rsName := ""
+	instanceCount := 0
+	if update := status.GetUpdate(); update != nil {
+		rsName = update.GetK8SName()
+		instanceCount = len(update.GetInstances())
+	} else if del := status.GetDelete(); del != nil {
+		rsName = del.GetK8SName()
+	}
+	logger.Info("report deployment status rpc",
+		"replicaSet", rsName,
+		"instances", instanceCount,
+		"duration_ms", elapsed.Milliseconds(),
+		"result", result,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to report deployment status: %w", err)
 	}
@@ -165,6 +207,10 @@ func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.
 
 // reportIfChanged reports deployment status only when the instance list differs
 // from the last successful report. Returns true if a report was sent.
+//
+// Serialized per k8s_name: pod events for the same ReplicaSet are processed
+// concurrently, so the fingerprint Get/RPC/Set window would otherwise race
+// and let two events both pass the dedupe check.
 func (c *Controller) reportIfChanged(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) (bool, error) {
 	update := status.GetUpdate()
 	if update == nil {
@@ -172,8 +218,12 @@ func (c *Controller) reportIfChanged(ctx context.Context, status *ctrlv1.ReportD
 		return true, c.reportDeploymentStatus(ctx, status)
 	}
 
+	unlock := c.reportLocks.Lock(update.GetK8SName())
+	defer unlock()
+
 	fp := instanceFingerprint(update.GetInstances())
 	if prev, hit := c.fingerprints.Get(ctx, update.GetK8SName()); hit == cache.Hit && prev == fp {
+		metrics.ReportDedupedTotal.WithLabelValues("deployment").Inc()
 		return false, nil
 	}
 

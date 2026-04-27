@@ -3152,9 +3152,9 @@ components:
             properties:
                 cost:
                     type: integer
-                    format: int32
+                    format: int64
                     minimum: 0
-                    maximum: 1000000000
+                    maximum: 1000000000000
                     description: |
                         Sets how many credits to deduct for this verification request.
                         Use 0 for read-only operations or free tier access, higher values for premium features.
@@ -3259,7 +3259,7 @@ components:
                     x-go-type-skip-optional-pointer-with-omitzero: true
                 credits:
                     type: integer
-                    format: int32
+                    format: int64
                     description: |
                         The number of requests/credits remaining for this key. If omitted,
                         the key has unlimited usage. This value decreases with

@@ -382,9 +382,9 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 		IdentityID:         sql.NullString{String: "", Valid: false},
 		Meta:               sql.NullString{String: "", Valid: false},
 		Expires:            sql.NullTime{Time: time.Time{}, Valid: false},
-		RemainingRequests:  sql.NullInt32{Int32: 0, Valid: false},
+		RemainingRequests:  sql.NullInt64{Int64: 0, Valid: false},
 		RefillDay:          sql.NullInt16{Int16: 0, Valid: false},
-		RefillAmount:       sql.NullInt32{Int32: 0, Valid: false},
+		RefillAmount:       sql.NullInt64{Int64: 0, Valid: false},
 		PendingMigrationID: sql.NullString{Valid: false, String: ""},
 	}
 
@@ -435,7 +435,7 @@ type CreateKeyRequest struct {
 	Disabled       bool
 	WorkspaceID    string
 	KeySpaceID     string
-	Remaining      *int32
+	Remaining      *int64
 	IdentityID     *string
 	Meta           *string
 	Expires        *time.Time
@@ -445,7 +445,7 @@ type CreateKeyRequest struct {
 
 	Recoverable bool
 
-	RefillAmount *int32
+	RefillAmount *int64
 	RefillDay    *int16
 
 	Permissions []CreatePermissionRequest
@@ -479,8 +479,8 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		Meta:               sql.NullString{String: ptr.SafeDeref(req.Meta, ""), Valid: req.Meta != nil},
 		IdentityID:         sql.NullString{String: ptr.SafeDeref(req.IdentityID, ""), Valid: req.IdentityID != nil},
 		Expires:            sql.NullTime{Time: ptr.SafeDeref(req.Expires, time.Time{}), Valid: req.Expires != nil},
-		RemainingRequests:  sql.NullInt32{Int32: ptr.SafeDeref(req.Remaining, 0), Valid: req.Remaining != nil},
-		RefillAmount:       sql.NullInt32{Int32: ptr.SafeDeref(req.RefillAmount, 0), Valid: req.RefillAmount != nil},
+		RemainingRequests:  sql.NullInt64{Int64: ptr.SafeDeref(req.Remaining, 0), Valid: req.Remaining != nil},
+		RefillAmount:       sql.NullInt64{Int64: ptr.SafeDeref(req.RefillAmount, 0), Valid: req.RefillAmount != nil},
 		RefillDay:          sql.NullInt16{Int16: ptr.SafeDeref(req.RefillDay, 0), Valid: req.RefillDay != nil},
 		PendingMigrationID: sql.NullString{Valid: false, String: ""},
 	})
@@ -556,8 +556,8 @@ type CreateRatelimitRequest struct {
 	Name        string
 	WorkspaceID string
 	AutoApply   bool
-	Duration    int64
-	Limit       int32
+	Duration    uint64
+	Limit       uint64
 	IdentityID  *string
 	KeyID       *string
 }
