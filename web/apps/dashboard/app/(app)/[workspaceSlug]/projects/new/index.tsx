@@ -93,12 +93,12 @@ export const Onboarding = () => {
                   We'll automatically detect Dockerfiles.
                 </>
               }
-              onSkip={handleSkipGithubSetup}
             />
             <SelectRepo
               projectId={projectId}
               onBeforeNavigate={bypass}
               hasGithubInstallation={context?.hasGithubInstallation ?? false}
+              onSkip={handleSkipGithubSetup}
             />
           </OnboardingStepContainer>
         ) : null}

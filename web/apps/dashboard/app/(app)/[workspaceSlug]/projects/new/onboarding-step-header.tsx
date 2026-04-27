@@ -56,7 +56,6 @@ type OnboardingStepHeaderProps = {
   subtitle?: ReactNode;
   showIconRow?: boolean;
   allowBack?: boolean;
-  onSkip?: () => void;
 };
 
 export const OnboardingStepHeader = ({
@@ -64,7 +63,6 @@ export const OnboardingStepHeader = ({
   subtitle,
   showIconRow,
   allowBack,
-  onSkip,
 }: OnboardingStepHeaderProps) => {
   const { back } = useStepWizard();
 
@@ -80,16 +78,6 @@ export const OnboardingStepHeader = ({
         >
           <ChevronLeft className="size-3! group-hover:text-gray-11" iconSize="sm-regular" />
           Back
-        </Button>
-      )}
-      {onSkip && (
-        <Button
-          variant="ghost"
-          type="button"
-          onClick={onSkip}
-          className="absolute top-3 right-3 z-50 flex items-center gap-1 hover:text-gray-11 group text-[13px] transition-colors text-gray-10"
-        >
-          Skip for now
         </Button>
       )}
       <div className="flex flex-col items-center justify-center gap-2">

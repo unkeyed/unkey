@@ -13,10 +13,12 @@ export const SelectRepo = ({
   projectId,
   onBeforeNavigate,
   hasGithubInstallation,
+  onSkip,
 }: {
   projectId: string;
   onBeforeNavigate?: () => void;
   hasGithubInstallation: boolean;
+  onSkip?: () => void;
 }) => {
   const { next } = useStepWizard();
   const trpcUtils = trpc.useUtils();
@@ -229,23 +231,25 @@ export const SelectRepo = ({
         ))}
 
       {hasGithubInstallation && (
-        <>
-          <a
-            href={installUrl}
-            rel="noopener noreferrer"
-            onClick={onBeforeNavigate}
-            className="group"
-          >
-            <OnboardingStepHint>
-              Can't find your repo? Add more from{" "}
-              <OnboardingStepHintHighlight>GitHub</OnboardingStepHintHighlight>.
-            </OnboardingStepHint>
-          </a>
-          <div className="mt-8 min-w-[var(--repo-list-w)] items-center justify-center flex">
-            <OnboardingLinks />
-          </div>
-        </>
+        <a href={installUrl} rel="noopener noreferrer" onClick={onBeforeNavigate} className="group">
+          <OnboardingStepHint>
+            Can't find your repo? Add more from{" "}
+            <OnboardingStepHintHighlight>GitHub</OnboardingStepHintHighlight>.
+          </OnboardingStepHint>
+        </a>
       )}
+      <div className="mt-8 min-w-[var(--repo-list-w)] items-center justify-center flex gap-3">
+        <OnboardingLinks />
+        {onSkip && (
+          <Button
+            variant="outline"
+            onClick={onSkip}
+            className="text-gray-12 text-[13px] font-medium border border-grayA-4 rounded-full px-3 py-1.5 transition-all shadow-sm hover:shadow-md"
+          >
+            Skip for now
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
