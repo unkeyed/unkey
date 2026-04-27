@@ -94,10 +94,10 @@ export const customDomains = createCollection<CustomDomain, string>(
           if (data?.code === "CONFLICT") {
             return {
               message: "Domain already in use",
-              description: "This domain is already registered in another project.",
+              description: "This domain is already registered.",
               ...(message && {
                 action: {
-                  label: "Go to project",
+                  label: "View",
                   onClick: () => window.open(message, "_blank"),
                 },
               }),
