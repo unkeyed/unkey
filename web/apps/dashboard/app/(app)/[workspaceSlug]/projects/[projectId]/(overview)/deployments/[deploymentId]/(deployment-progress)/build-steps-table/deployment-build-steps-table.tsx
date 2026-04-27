@@ -20,7 +20,11 @@ type Props = {
   fixedHeight?: number;
 };
 
-export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps, isLoading, fixedHeight = 500 }) => {
+export const DeploymentBuildStepsTable: React.FC<Props> = ({
+  steps,
+  isLoading,
+  fixedHeight = 500,
+}) => {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const toggleExpand = (step: BuildStepRow) => {

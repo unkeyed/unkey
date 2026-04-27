@@ -98,7 +98,8 @@ export function StreamingTable<T>({
         <tbody>
           {isLoading
             ? Array.from({ length: SKELETON_ROWS }).map((_, i) => (
-                <tr key={`skeleton-${i}`} style={{ height: `${ROW_HEIGHT_PX}px` }}>
+                // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton rows never reorder
+                <tr key={i} style={{ height: `${ROW_HEIGHT_PX}px` }}>
                   {columns.map((col, idx) => (
                     <td
                       key={col.key}
@@ -118,6 +119,17 @@ export function StreamingTable<T>({
                 <Fragment key={keyExtractor(item)}>
                   <tr
                     onClick={onRowClick ? () => onRowClick(item) : undefined}
+                    onKeyDown={
+                      onRowClick
+                        ? (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              onRowClick(item);
+                            }
+                          }
+                        : undefined
+                    }
+                    tabIndex={onRowClick ? 0 : undefined}
+                    role={onRowClick ? "button" : undefined}
                     className={cn(
                       onRowClick && "cursor-pointer",
                       "transition-colors",
