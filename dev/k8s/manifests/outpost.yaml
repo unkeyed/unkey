@@ -1,0 +1,91 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: outpost-config
+  namespace: unkey
+data:
+  unkey.toml: |
+    instance_id = "outpost-dev-01"
+    proxy_port = 3128
+    http_port = 8090
+    region = "local"
+    platform = "dev"
+
+    [ca]
+    cert_file = "/certs/ca.crt"
+    key_file = "/certs/ca.key"
+
+    [clickhouse]
+    url = "clickhouse://default:password@clickhouse.unkey.svc.cluster.local:9000?secure=false&skip_verify=true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outpost
+  namespace: unkey
+  labels:
+    app: outpost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: outpost
+  template:
+    metadata:
+      labels:
+        app: outpost
+    spec:
+      containers:
+        - name: outpost
+          image: unkey/go:latest
+          args: ["run", "outpost", "--config", "/etc/unkey/unkey.toml"]
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3128
+              name: proxy
+            - containerPort: 8090
+              name: health
+          volumeMounts:
+            - name: config
+              mountPath: /etc/unkey
+              readOnly: true
+            - name: ca-certs
+              mountPath: /certs
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /_unkey/internal/health/ready
+              port: 8090
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /_unkey/internal/health/live
+              port: 8090
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: outpost-config
+        - name: ca-certs
+          secret:
+            secretName: outpost-ca
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: outpost
+  namespace: unkey
+spec:
+  selector:
+    app: outpost
+  ports:
+    - name: proxy
+      port: 3128
+      targetPort: 3128
+    - name: health
+      port: 8090
+      targetPort: 8090
+  type: ClusterIP

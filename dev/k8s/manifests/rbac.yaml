@@ -72,6 +72,11 @@ rules:
     resources: ["secrets"]
     verbs: ["get", "list", "create", "update", "patch", "delete"]
 
+  # ConfigMap management for egress CA distribution
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "create", "update", "patch"]
+
   # CiliumNetworkPolicy management for network isolation
   - apiGroups: ["cilium.io"]
     resources: ["ciliumnetworkpolicies"]

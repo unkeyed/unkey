@@ -169,6 +169,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 			}
 			outReq.Header.Set("X-Forwarded-Host", req.Host)
 			outReq.Header.Set("X-Forwarded-Proto", "http")
+			outReq.Header.Set("X-Unkey-Request-Id", requestID)
 		},
 		Transport: transport,
 		ModifyResponse: func(resp *http.Response) error {

@@ -29,6 +29,10 @@ func (c *Controller) ensureNamespaceExists(ctx context.Context, namespace string
 		return fmt.Errorf("failed to lock down default service account: %w", err)
 	}
 
+	if err := c.ensureEgressCAConfigMap(ctx, namespace); err != nil {
+		return fmt.Errorf("failed to ensure egress CA configmap: %w", err)
+	}
+
 	return nil
 }
 
@@ -45,4 +49,26 @@ func (c *Controller) lockdownDefaultServiceAccount(ctx context.Context, namespac
 		AutomountServiceAccountToken: ptr.P(false),
 	}
 	return serverSideApplyResource(ctx, c.clientSet.CoreV1().RESTClient(), "serviceaccounts", namespace, "default", sa)
+}
+
+// ensureEgressCAConfigMap copies the egress CA public cert from the unkey namespace
+// into the target namespace so customer pods can trust the outpost MITM proxy.
+func (c *Controller) ensureEgressCAConfigMap(ctx context.Context, namespace string) error {
+	source, err := c.clientSet.CoreV1().ConfigMaps("unkey").Get(ctx, "egress-ca", metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to read egress-ca configmap from unkey namespace: %w", err)
+	}
+
+	cm := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "egress-ca",
+			Namespace: namespace,
+		},
+		Data: source.Data,
+	}
+	return serverSideApplyResource(ctx, c.clientSet.CoreV1().RESTClient(), "configmaps", namespace, "egress-ca", cm)
 }

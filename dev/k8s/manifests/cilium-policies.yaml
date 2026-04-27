@@ -96,6 +96,15 @@ spec:
         - ports:
             - port: "8070"
               protocol: TCP
+    # Outpost egress proxy
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: unkey
+            app: outpost
+      toPorts:
+        - ports:
+            - port: "3128"
+              protocol: TCP
     # External internet access
     - toEntities:
         - world

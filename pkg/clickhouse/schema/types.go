@@ -123,6 +123,24 @@ type BuildStepLogV1 struct {
 	Message      string `ch:"message" json:"message"`
 }
 
+type OutpostRequest struct {
+	RequestID         string `ch:"request_id" json:"request_id"`
+	Time              int64  `ch:"time" json:"time"`
+	OutpostID         string `ch:"outpost_id" json:"outpost_id"`
+	SentinelRequestID string `ch:"sentinel_request_id" json:"sentinel_request_id"`
+	WorkspaceID       string `ch:"workspace_id" json:"workspace_id"`
+	DeploymentID      string `ch:"deployment_id" json:"deployment_id"`
+	Region            string `ch:"region" json:"region"`
+	DestinationHost   string `ch:"destination_host" json:"destination_host"`
+	Method            string `ch:"method" json:"method"`
+	Path              string `ch:"path" json:"path"`
+	ResponseStatus    int32  `ch:"response_status" json:"response_status"`
+	LatencyMs         int64  `ch:"latency_ms" json:"latency_ms"`
+	RequestBytes      int64  `ch:"request_bytes" json:"request_bytes"`
+	ResponseBytes     int64  `ch:"response_bytes" json:"response_bytes"`
+	Error             string `ch:"error" json:"error"`
+}
+
 // SentinelRequest represents the v1 sentinel request raw table structure.
 // This tracks requests routed through sentinel proxy to deployment instances
 // with deployment routing, performance breakdown, and error categorization.

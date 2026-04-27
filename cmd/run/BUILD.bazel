@@ -10,6 +10,7 @@ go_library(
         "//cmd/run/ctrl",
         "//cmd/run/frontline",
         "//cmd/run/krane",
+        "//cmd/run/outpost",
         "//cmd/run/sentinel",
         "//cmd/run/vault",
         "//pkg/cli",

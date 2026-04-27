@@ -120,6 +120,11 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 			{Name: "KUBERNETES_PORT_443_TCP_PROTO", Value: ""},
 			{Name: "KUBERNETES_PORT_443_TCP_PORT", Value: ""},
 			{Name: "KUBERNETES_PORT_443_TCP_ADDR", Value: ""},
+			{Name: "HTTPS_PROXY", Value: fmt.Sprintf("http://%s:%s@outpost.unkey.svc.cluster.local:3128", req.GetWorkspaceId(), req.GetDeploymentId())},
+			{Name: "NO_PROXY", Value: "localhost,127.0.0.1,.svc.cluster.local,10.0.0.0/8"},
+			{Name: "SSL_CERT_FILE", Value: "/etc/ssl/egress-ca/ca.crt"},
+			{Name: "NODE_EXTRA_CA_CERTS", Value: "/etc/ssl/egress-ca/ca.crt"},
+			{Name: "REQUESTS_CA_BUNDLE", Value: "/etc/ssl/egress-ca/ca.crt"},
 		},
 		Ports: []corev1.ContainerPort{{
 			ContainerPort: req.GetPort(),
@@ -139,7 +144,22 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		},
 	}
 
-	var volumes []corev1.Volume
+	container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
+		Name:      "egress-ca",
+		MountPath: "/etc/ssl/egress-ca",
+		ReadOnly:  true,
+	})
+
+	volumes := []corev1.Volume{
+		{
+			Name: "egress-ca",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: "egress-ca"},
+				},
+			},
+		},
+	}
 
 	// Add ephemeral volume when storage is configured.
 	// Uses a Kubernetes generic ephemeral volume backed by the configured StorageClass.

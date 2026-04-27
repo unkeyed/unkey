@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "outpost",
+    srcs = [
+        "config.go",
+        "run.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/outpost",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/batch",
+        "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
+        "//pkg/logger",
+        "//pkg/runner",
+        "//pkg/zen",
+        "//svc/outpost/proxy",
+    ],
+)

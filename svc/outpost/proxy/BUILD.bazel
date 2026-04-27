@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "proxy",
+    srcs = [
+        "certcache.go",
+        "handler.go",
+        "identity.go",
+        "transport.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/outpost/proxy",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/assert",
+        "//pkg/batch",
+        "//pkg/clickhouse/schema",
+        "//pkg/logger",
+        "//pkg/uid",
+    ],
+)

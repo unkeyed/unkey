@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/cmd/run/ctrl"
 	"github.com/unkeyed/unkey/cmd/run/frontline"
 	"github.com/unkeyed/unkey/cmd/run/krane"
+	"github.com/unkeyed/unkey/cmd/run/outpost"
 	"github.com/unkeyed/unkey/cmd/run/sentinel"
 	"github.com/unkeyed/unkey/cmd/run/vault"
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -44,6 +45,7 @@ unkey run api --port 8080 --env production      # Run API server with custom con
 		ctrl.Cmd,
 		krane.Cmd,
 		frontline.Cmd,
+		outpost.Cmd,
 		sentinel.Cmd,
 		vault.Cmd,
 	},
