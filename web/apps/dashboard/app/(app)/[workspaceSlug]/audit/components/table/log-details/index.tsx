@@ -35,9 +35,7 @@ export const AuditLogDetails = ({ distanceToTop, selectedLog, setSelectedLog }: 
       <LogDetails.Header onClose={handleClose}>
         <LogHeader log={selectedLog} onClose={handleClose} />
       </LogDetails.Header>
-      <LogDetails.CustomSections>
-        {sections}
-      </LogDetails.CustomSections>
+      <LogDetails.CustomSections>{sections}</LogDetails.CustomSections>
       <LogDetails.Spacer />
     </LogDetails>
   );

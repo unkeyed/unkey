@@ -6,7 +6,6 @@ import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { toast } from "@unkey/ui";
 import { useFetchRequestDetails } from "../hooks/use-fetch-request-details";
 
-
 type Props = {
   distanceToTop: number;
   selectedLog: KeyDetailsLog | null;

@@ -120,9 +120,7 @@ export const LogDetails = ({ distanceToTop, log, onClose, children }: LogDetails
         width: `${DEFAULT_DRAGGABLE_WIDTH}px`,
       }}
     >
-      <LogDetailsContext.Provider value={{ log, onClose }}>
-        {children}
-      </LogDetailsContext.Provider>
+      <LogDetailsContext.Provider value={{ log, onClose }}>{children}</LogDetailsContext.Provider>
     </ResizablePanel>
   );
 };

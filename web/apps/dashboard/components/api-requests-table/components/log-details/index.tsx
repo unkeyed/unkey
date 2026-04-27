@@ -10,8 +10,6 @@ import { OutcomeDistributionSection } from "./components/log-outcome-distributio
 import { LogSection } from "./components/log-section";
 import { PermissionsSection, RolesSection } from "./components/roles-permissions";
 
-
-
 type Props = {
   distanceToTop: number;
   log: KeysOverviewLog | null;
@@ -106,9 +104,7 @@ export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog, api
       <LogDetails.Header onClose={handleClose}>
         <LogHeader log={log} onClose={handleClose} />
       </LogDetails.Header>
-      <LogDetails.CustomSections>
-        {sections}
-      </LogDetails.CustomSections>
+      <LogDetails.CustomSections>{sections}</LogDetails.CustomSections>
       <LogDetails.Spacer />
       <LogDetails.Meta />
     </LogDetails>
