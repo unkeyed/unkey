@@ -187,9 +187,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Expires:            sql.NullTime{Valid: false, Time: time.Time{}},
 				CreatedAtM:         now,
 				Enabled:            ptr.SafeDeref(key.Enabled, true),
-				RemainingRequests:  sql.NullInt32{Valid: false, Int32: 0},
+				RemainingRequests:  sql.NullInt64{Valid: false, Int64: 0},
 				RefillDay:          sql.NullInt16{Valid: false, Int16: 0},
-				RefillAmount:       sql.NullInt32{Valid: false, Int32: 0},
+				RefillAmount:       sql.NullInt64{Valid: false, Int64: 0},
 			} // nolint:exhaustruct
 
 			if key.Meta != nil {
@@ -210,15 +210,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 			if key.Credits != nil {
 				if key.Credits.Remaining.IsSpecified() {
-					newKey.RemainingRequests = sql.NullInt32{
-						Int32: int32(key.Credits.Remaining.MustGet()), // nolint:gosec
+					newKey.RemainingRequests = sql.NullInt64{
+						Int64: key.Credits.Remaining.MustGet(),
 						Valid: true,
 					}
 				}
 
 				if key.Credits.Refill != nil {
-					newKey.RefillAmount = sql.NullInt32{
-						Int32: int32(key.Credits.Refill.Amount), // nolint:gosec
+					newKey.RefillAmount = sql.NullInt64{
+						Int64: key.Credits.Refill.Amount,
 						Valid: true,
 					}
 
@@ -409,8 +409,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						WorkspaceID: auth.AuthorizedWorkspaceID,
 						KeyID:       sql.NullString{String: keyParams.ID, Valid: true},
 						Name:        ratelimit.Name,
-						Limit:       int32(ratelimit.Limit), // nolint:gosec
-						Duration:    ratelimit.Duration,
+						Limit:       uint64(ratelimit.Limit),
+						Duration:    uint64(ratelimit.Duration),
 						CreatedAt:   now,
 						AutoApply:   ratelimit.AutoApply,
 						UpdatedAt:   sql.NullInt64{Valid: false, Int64: 0},

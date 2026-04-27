@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "github",
@@ -19,4 +19,11 @@ go_library(
         "//pkg/jwt",
         "//pkg/logger",
     ],
+)
+
+go_test(
+    name = "github_test",
+    srcs = ["client_test.go"],
+    embed = [":github"],
+    deps = ["@com_github_stretchr_testify//require"],
 )

@@ -272,8 +272,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					err = db.Query.UpdateRatelimit(ctx, tx, db.UpdateRatelimitParams{
 						ID:        existingRL.ID,
 						Name:      newRL.Name,
-						Limit:     int32(newRL.Limit), // nolint:gosec
-						Duration:  newRL.Duration,
+						Limit:     uint64(newRL.Limit),
+						Duration:  uint64(newRL.Duration),
 						AutoApply: newRL.AutoApply,
 					})
 					if err != nil {
@@ -320,8 +320,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						WorkspaceID: auth.AuthorizedWorkspaceID,
 						IdentityID:  sql.NullString{String: identityRow.ID, Valid: true},
 						Name:        newRL.Name,
-						Limit:       int32(newRL.Limit), // nolint:gosec
-						Duration:    newRL.Duration,
+						Limit:       uint64(newRL.Limit),
+						Duration:    uint64(newRL.Duration),
 						CreatedAt:   time.Now().UnixMilli(),
 						AutoApply:   newRL.AutoApply,
 					})
@@ -384,7 +384,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Id:        rl.ID,
 					Name:      rl.Name,
 					Limit:     int64(rl.Limit),
-					Duration:  rl.Duration,
+					Duration:  int64(rl.Duration),
 					AutoApply: rl.AutoApply,
 				})
 			}

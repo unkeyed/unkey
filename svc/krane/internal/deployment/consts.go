@@ -19,6 +19,14 @@ const (
 	// Requests determine scheduling; limits cap actual usage.
 	resourceRequestFraction = 4 // requests = limits / 4
 
+	// defaultContainerEphemeralStorageMib caps writes to a container's rootfs
+	// (overlayfs writable layer, container logs, unmounted emptyDirs). Without
+	// this, a single pod could fill the node's 50Gi EBS root volume and trigger
+	// disk-pressure eviction of neighbors. Users who need more scratch space
+	// should configure an EphemeralStorage volume, which mounts at /data and is
+	// accounted separately from the rootfs.
+	defaultContainerEphemeralStorageMib = 128
+
 	// defaultCPUTargetUtilization is the average CPU utilization percentage (0-100)
 	// used when no autoscaling policy is attached. When average pod CPU exceeds
 	// this percentage of their requested CPU, the HPA adds replicas.

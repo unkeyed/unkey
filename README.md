@@ -12,7 +12,7 @@
 
 We welcome contributions! To ensure your work doesn't conflict with ongoing work, please:
 
-1. Read our [contributing guide](https://engineering.unkey.com/docs/contributing)
+1. Read our [contributing guide](https://engineering.unkey.com/contributing/how-to-contribute#contributing)
 2. **Discuss your ideas with us in public channels (GitHub/Discord) BEFORE starting development** (No private DMs)
 3. Get approval from a core team member
 

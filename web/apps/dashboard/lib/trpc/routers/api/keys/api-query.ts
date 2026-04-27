@@ -1,10 +1,14 @@
 import type { KeysOverviewFilterUrlValue } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/filters.schema";
-import { type InferSelectModel, type SQL, db } from "@/lib/db";
+import { type InferSelectModel, type SQL, and, db, desc, eq, inArray, isNull, sql } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
-import { identities } from "@unkey/db/src/schema";
-
-import type { keys } from "@unkey/db/src/schema/keys";
-import type { permissions, roles } from "@unkey/db/src/schema/rbac";
+import {
+  identities,
+  keys,
+  keysPermissions,
+  keysRoles,
+  permissions,
+  roles,
+} from "@unkey/db/src/schema";
 
 type BaseKey = InferSelectModel<typeof keys>;
 type BaseRole = InferSelectModel<typeof roles>;
@@ -60,7 +64,6 @@ type KeyDetails = {
   }[];
 };
 
-// Input interface for the query abstraction
 export interface QueryApiKeysInput {
   apiId: string;
   workspaceId: string;
@@ -69,19 +72,38 @@ export interface QueryApiKeysInput {
   identities?: KeysOverviewFilterUrlValue[] | null;
 }
 
-// Response interface with the query results
 export interface QueryApiKeysResult {
   keyspaceId: string;
   keys: DatabaseKey[];
   keyIds: KeysOverviewFilterUrlValue[] | null;
+  // True when more matching keys exist beyond MAX_KEYS_PER_QUERY. Callers can
+  // surface this to the user (e.g. "refine your filter") instead of silently
+  // displaying a truncated result.
+  hasMore: boolean;
 }
 
+// Drizzle parameterizes LIKE patterns (no SQL injection risk), but MySQL still
+// interprets % and _ as wildcards at query time. A user searching for a key
+// named "100%_test" would otherwise match "100xyz_test" etc. Escape the three
+// LIKE metacharacters and use ESCAPE '\\' so they match literally.
+function escapeLikePattern(value: string): string {
+  return value.replace(/[%_\\]/g, "\\$&");
+}
+
+// Cap the rows we ever scan from a single keyspace. The dashboard only renders
+// a single page of keys, and ClickHouse always narrows us to a small window
+// via keyIds first, so this only ever matters when someone filters by name or
+// identity without a keyIds cursor.
+const MAX_KEYS_PER_QUERY = 1000;
+
 /**
- * Abstracts the common database query pattern for API keys
- * With proper identity relation joining
+ * Fetches keys under an API's keyspace that match the given filters, along with
+ * each key's roles, permissions, and identity.
  *
- * @param input Query parameters including apiId, workspaceId, and optional filters
- * @returns The API's keyspace ID, matching keys, and processed keyIds filter
+ * Built as a flat keys query plus bulk lookups for relations so that MySQL uses
+ * `keys.keys_id_unique` / `keys.key_auth_id_deleted_at_idx` directly instead of
+ * the nested lateral + JSON aggregation that Drizzle's relational query API
+ * generates (which was reading millions of rows per call).
  */
 export async function queryApiKeys({
   apiId,
@@ -90,189 +112,120 @@ export async function queryApiKeys({
   names: namesFromInput,
   identities: identitiesFromInput,
 }: QueryApiKeysInput): Promise<QueryApiKeysResult> {
-  const combinedResults = await db.query.apis
-    .findFirst({
-      where: (api, { and, eq, isNull }) =>
-        and(eq(api.id, apiId), eq(api.workspaceId, workspaceId), isNull(api.deletedAtM)),
-      with: {
-        keyAuth: {
-          with: {
-            keys: {
-              with: {
-                permissions: {
-                  with: {
-                    permission: {
-                      columns: {
-                        name: true,
-                        description: true,
-                        createdAtM: true,
-                        updatedAtM: true,
-                      },
-                    },
-                  },
-                },
-                roles: {
-                  with: {
-                    role: {
-                      columns: {
-                        name: true,
-                        description: true,
-                        createdAtM: true,
-                        updatedAtM: true,
-                      },
-                    },
-                  },
-                },
-                identity: {
-                  columns: {
-                    externalId: true,
-                  },
-                },
-              },
-              where: (key, { and, isNull, inArray, sql }) => {
-                const conditions = [isNull(key.deletedAtM)];
+  const api = await getApi(apiId, workspaceId);
+  if (!api || !api.keyAuth?.id) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "API not found or does not have key authentication enabled",
+    });
+  }
+  const keyspaceId = api.keyAuth.id;
 
-                if (namesFromInput && namesFromInput.length > 0) {
-                  const nameIsValues = namesFromInput
-                    .filter((filter) => filter.operator === "is")
-                    .map((filter) => filter.value);
+  const conditions: SQL<unknown>[] = [eq(keys.keyAuthId, keyspaceId), isNull(keys.deletedAtM)];
 
-                  const nameContainsValues = namesFromInput
-                    .filter((filter) => filter.operator === "contains")
-                    .map((filter) => filter.value);
+  if (namesFromInput && namesFromInput.length > 0) {
+    const nameIsValues = namesFromInput
+      .filter((f) => f.operator === "is")
+      .map((f) => f.value as string);
+    if (nameIsValues.length > 0) {
+      conditions.push(inArray(keys.name, nameIsValues));
+    }
+    for (const f of namesFromInput) {
+      const value = f.value;
+      if (typeof value !== "string") {
+        continue;
+      }
+      const escaped = escapeLikePattern(value);
+      if (f.operator === "contains") {
+        conditions.push(sql`${keys.name} LIKE ${`%${escaped}%`} ESCAPE '\\'`);
+      } else if (f.operator === "startsWith") {
+        conditions.push(sql`${keys.name} LIKE ${`${escaped}%`} ESCAPE '\\'`);
+      } else if (f.operator === "endsWith") {
+        conditions.push(sql`${keys.name} LIKE ${`%${escaped}`} ESCAPE '\\'`);
+      }
+    }
+  }
 
-                  const nameStartsWithValues = namesFromInput
-                    .filter((filter) => filter.operator === "startsWith")
-                    .map((filter) => filter.value);
+  if (keyIdsFromInput && keyIdsFromInput.length > 0) {
+    const idIsValues = keyIdsFromInput
+      .filter((f) => f.operator === "is")
+      .map((f) => f.value as string);
+    if (idIsValues.length > 0) {
+      conditions.push(inArray(keys.id, idIsValues));
+    }
+    for (const f of keyIdsFromInput) {
+      const value = f.value;
+      if (typeof value !== "string") {
+        continue;
+      }
+      if (f.operator === "contains") {
+        conditions.push(sql`${keys.id} LIKE ${`%${escapeLikePattern(value)}%`} ESCAPE '\\'`);
+      }
+    }
+  }
 
-                  const nameEndsWithValues = namesFromInput
-                    .filter((filter) => filter.operator === "endsWith")
-                    .map((filter) => filter.value);
+  if (identitiesFromInput && identitiesFromInput.length > 0) {
+    const identityOrs: SQL<unknown>[] = [];
+    for (const filter of identitiesFromInput) {
+      const value = filter.value;
+      if (typeof value !== "string") {
+        continue;
+      }
 
-                  if (nameIsValues.length > 0) {
-                    conditions.push(inArray(key.name, nameIsValues as string[]));
-                  }
+      let externalMatch: SQL<unknown>;
+      let ownerMatch: SQL<unknown>;
+      const escaped = escapeLikePattern(value);
+      switch (filter.operator) {
+        case "contains":
+          externalMatch = sql`${identities.externalId} LIKE ${`%${escaped}%`} ESCAPE '\\'`;
+          ownerMatch = sql`${keys.ownerId} LIKE ${`%${escaped}%`} ESCAPE '\\'`;
+          break;
+        case "startsWith":
+          externalMatch = sql`${identities.externalId} LIKE ${`${escaped}%`} ESCAPE '\\'`;
+          ownerMatch = sql`${keys.ownerId} LIKE ${`${escaped}%`} ESCAPE '\\'`;
+          break;
+        case "endsWith":
+          externalMatch = sql`${identities.externalId} LIKE ${`%${escaped}`} ESCAPE '\\'`;
+          ownerMatch = sql`${keys.ownerId} LIKE ${`%${escaped}`} ESCAPE '\\'`;
+          break;
+        default:
+          externalMatch = sql`${identities.externalId} = ${value}`;
+          ownerMatch = sql`${keys.ownerId} = ${value}`;
+      }
 
-                  if (nameContainsValues.length > 0) {
-                    nameContainsValues.forEach((value) => {
-                      conditions.push(sql`${key.name} LIKE ${`%${value}%`}`);
-                    });
-                  }
+      identityOrs.push(
+        sql`EXISTS (SELECT 1 FROM ${identities} WHERE ${identities.id} = ${keys.identityId} AND ${externalMatch})`,
+      );
+      identityOrs.push(ownerMatch);
+    }
 
-                  if (nameStartsWithValues.length > 0) {
-                    nameStartsWithValues.forEach((value) => {
-                      conditions.push(sql`${key.name} LIKE ${`${value}%`}`);
-                    });
-                  }
+    if (identityOrs.length > 0) {
+      conditions.push(sql`(${sql.join(identityOrs, sql` OR `)})`);
+    }
+  }
 
-                  if (nameEndsWithValues.length > 0) {
-                    nameEndsWithValues.forEach((value) => {
-                      conditions.push(sql`${key.name} LIKE ${`%${value}`}`);
-                    });
-                  }
-                }
-
-                if (keyIdsFromInput && keyIdsFromInput.length > 0) {
-                  const keyIdValues = keyIdsFromInput
-                    .filter((filter) => filter.operator === "is")
-                    .map((filter) => filter.value);
-
-                  const keyIdContainsValues = keyIdsFromInput
-                    .filter((filter) => filter.operator === "contains")
-                    .map((filter) => filter.value);
-
-                  if (keyIdValues.length > 0) {
-                    conditions.push(inArray(key.id, keyIdValues as string[]));
-                  }
-
-                  if (keyIdContainsValues.length > 0) {
-                    keyIdContainsValues.forEach((value) =>
-                      conditions.push(sql`${key.id} LIKE ${`%${value}%`}`),
-                    );
-                  }
-                }
-
-                const allIdentityConditions = [];
-                if (identitiesFromInput && identitiesFromInput.length > 0) {
-                  for (const filter of identitiesFromInput) {
-                    const value = filter.value;
-                    if (typeof value !== "string") {
-                      continue;
-                    }
-
-                    const operator = filter.operator;
-
-                    let condition: SQL<unknown>;
-
-                    switch (operator) {
-                      case "is":
-                        condition = sql`identities.external_id = ${value}`;
-                        break;
-                      case "contains":
-                        condition = sql`identities.external_id LIKE ${`%${value}%`}`;
-                        break;
-                      case "startsWith":
-                        condition = sql`identities.external_id LIKE ${`${value}%`}`;
-                        break;
-                      case "endsWith":
-                        condition = sql`identities.external_id LIKE ${`%${value}`}`;
-                        break;
-                      default:
-                        condition = sql`identities.external_id = ${value}`;
-                    }
-
-                    allIdentityConditions.push(sql`
-        EXISTS (
-          SELECT 1 FROM ${identities}
-          WHERE ${identities.id} = ${key.identityId}
-          AND ${condition}
-        )`);
-                    let ownerCondition: SQL<unknown>;
-
-                    switch (operator) {
-                      case "is":
-                        ownerCondition = sql`${key.ownerId} = ${value}`;
-                        break;
-                      case "contains":
-                        ownerCondition = sql`${key.ownerId} LIKE ${`%${value}%`}`;
-                        break;
-                      case "startsWith":
-                        ownerCondition = sql`${key.ownerId} LIKE ${`${value}%`}`;
-                        break;
-                      case "endsWith":
-                        ownerCondition = sql`${key.ownerId} LIKE ${`%${value}`}`;
-                        break;
-                      default:
-                        ownerCondition = sql`${key.ownerId} = ${value}`;
-                    }
-
-                    allIdentityConditions.push(ownerCondition);
-                  }
-                }
-
-                if (allIdentityConditions.length > 0) {
-                  conditions.push(sql`(${sql.join(allIdentityConditions, sql` OR `)})`);
-                }
-
-                return and(...conditions);
-              },
-              columns: {
-                id: true,
-                keyAuthId: true,
-                name: true,
-                ownerId: true,
-                identityId: true,
-                meta: true,
-                enabled: true,
-                remaining: true,
-                environment: true,
-                workspaceId: true,
-              },
-            },
-          },
-        },
-      },
+  // Fetch one extra row to detect truncation without a separate count query.
+  // Deterministic ORDER BY so the cutoff is repeatable and the new
+  // (key_auth_id, deleted_at_m, last_used_at) composite serves the sort. `pk`
+  // is the tiebreaker — unique, monotonic, and InnoDB stores it as the implicit
+  // trailing column of every secondary index so MySQL can avoid a filesort.
+  const rawRows = await db
+    .select({
+      id: keys.id,
+      keyAuthId: keys.keyAuthId,
+      name: keys.name,
+      ownerId: keys.ownerId,
+      identityId: keys.identityId,
+      meta: keys.meta,
+      enabled: keys.enabled,
+      remaining: keys.remaining,
+      environment: keys.environment,
+      workspaceId: keys.workspaceId,
     })
+    .from(keys)
+    .where(and(...conditions))
+    .orderBy(desc(keys.lastUsedAt), desc(keys.pk))
+    .limit(MAX_KEYS_PER_QUERY + 1)
     .catch((err) => {
       console.error("Database query error:", err);
       throw new TRPCError({
@@ -282,22 +235,134 @@ export async function queryApiKeys({
       });
     });
 
-  if (!combinedResults || !combinedResults?.keyAuth?.id) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "API not found or does not have key authentication enabled",
-    });
+  const hasMore = rawRows.length > MAX_KEYS_PER_QUERY;
+  const keyRows = hasMore ? rawRows.slice(0, MAX_KEYS_PER_QUERY) : rawRows;
+
+  if (hasMore) {
+    // Log rather than throw so the dashboard still renders a page — but operators
+    // can spot when a workspace regularly hits the cap and needs a refined filter.
+    console.warn(
+      `queryApiKeys: truncated at ${MAX_KEYS_PER_QUERY} keys for apiId=${apiId} workspaceId=${workspaceId}`,
+    );
   }
 
-  const keysResult = combinedResults.keyAuth.keys;
-  const keyIds = keysResult.map((key) => key.id);
+  if (keyRows.length === 0) {
+    return {
+      keyspaceId,
+      keys: [],
+      keyIds: keyIdsFromInput,
+      hasMore: false,
+    };
+  }
 
-  // Build keyIdsFilter for clickhouse query
+  const matchedKeyIds = keyRows.map((k) => k.id);
+  const identityIdList = Array.from(
+    new Set(
+      keyRows
+        .map((k) => k.identityId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    ),
+  );
+
+  const [roleRows, permissionRows, identityRows] = await Promise.all([
+    db
+      .select({
+        keyId: keysRoles.keyId,
+        name: roles.name,
+        description: roles.description,
+        createdAtM: roles.createdAtM,
+        updatedAtM: roles.updatedAtM,
+      })
+      .from(keysRoles)
+      .innerJoin(roles, eq(keysRoles.roleId, roles.id))
+      .where(inArray(keysRoles.keyId, matchedKeyIds)),
+    db
+      .select({
+        keyId: keysPermissions.keyId,
+        name: permissions.name,
+        description: permissions.description,
+        createdAtM: permissions.createdAtM,
+        updatedAtM: permissions.updatedAtM,
+      })
+      .from(keysPermissions)
+      .innerJoin(permissions, eq(keysPermissions.permissionId, permissions.id))
+      .where(inArray(keysPermissions.keyId, matchedKeyIds)),
+    identityIdList.length > 0
+      ? db
+          .select({ id: identities.id, externalId: identities.externalId })
+          .from(identities)
+          .where(inArray(identities.id, identityIdList))
+      : Promise.resolve([] as { id: string; externalId: string }[]),
+  ]).catch((err) => {
+    console.error("Database query error (key relation lookups):", err);
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message:
+        "Failed to retrieve API information. If this issue persists, please contact support@unkey.com with the time this occurred.",
+    });
+  });
+
+  const rolesByKey = new Map<string, DatabaseKey["roles"]>();
+  for (const r of roleRows) {
+    const entry = rolesByKey.get(r.keyId);
+    const rel = {
+      role: {
+        name: r.name,
+        description: r.description,
+        createdAtM: r.createdAtM,
+        updatedAtM: r.updatedAtM,
+      },
+    };
+    if (entry) {
+      entry.push(rel);
+    } else {
+      rolesByKey.set(r.keyId, [rel]);
+    }
+  }
+
+  const permissionsByKey = new Map<string, DatabaseKey["permissions"]>();
+  for (const p of permissionRows) {
+    const entry = permissionsByKey.get(p.keyId);
+    const rel = {
+      permission: {
+        name: p.name,
+        description: p.description,
+        createdAtM: p.createdAtM,
+        updatedAtM: p.updatedAtM,
+      },
+    };
+    if (entry) {
+      entry.push(rel);
+    } else {
+      permissionsByKey.set(p.keyId, [rel]);
+    }
+  }
+
+  const identityById = new Map(identityRows.map((i) => [i.id, i.externalId]));
+
+  const keysResult: DatabaseKey[] = keyRows.map((k) => ({
+    id: k.id,
+    keyAuthId: k.keyAuthId,
+    name: k.name,
+    ownerId: k.ownerId,
+    identityId: k.identityId,
+    meta: k.meta,
+    enabled: k.enabled,
+    remaining: k.remaining,
+    environment: k.environment,
+    workspaceId: k.workspaceId,
+    roles: rolesByKey.get(k.id) ?? [],
+    permissions: permissionsByKey.get(k.id) ?? [],
+    identity:
+      k.identityId && identityById.has(k.identityId)
+        ? { externalId: identityById.get(k.identityId) as string }
+        : null,
+  }));
+
   let keyIdsFilter = keyIdsFromInput;
   if (!keyIdsFilter || keyIdsFilter.length === 0) {
-    if (keyIds.length > 0) {
-      // Build a filter using OR conditions with "is" operators
-      keyIdsFilter = keyIds.map((keyId) => ({
+    if (matchedKeyIds.length > 0) {
+      keyIdsFilter = matchedKeyIds.map((keyId) => ({
         operator: "is" as const,
         value: keyId,
       }));
@@ -305,9 +370,10 @@ export async function queryApiKeys({
   }
 
   return {
-    keyspaceId: combinedResults.keyAuth.id,
+    keyspaceId,
     keys: keysResult,
     keyIds: keyIdsFilter,
+    hasMore,
   };
 }
 

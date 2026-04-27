@@ -48,7 +48,7 @@ export interface TimeseriesAreaChartProps {
 }
 
 export const OverviewAreaChart = ({
-  data = [],
+  data,
   config,
   onSelectionChange,
   isLoading,
@@ -74,7 +74,7 @@ export const OverviewAreaChart = ({
   // Precompute timestamp-to-index map for O(1) lookups during hover/tooltip
   const timestampToIndexMap = useMemo(() => {
     const map = new Map<number, number>();
-    data.forEach((item, index) => {
+    data?.forEach((item, index) => {
       if (item?.originalTimestamp) {
         const normalizedTimestamp = parseTimestamp(item.originalTimestamp);
         if (Number.isFinite(normalizedTimestamp)) {
@@ -225,7 +225,7 @@ export const OverviewAreaChart = ({
   if (isError) {
     return <ChartError variant="full" labels={labelsWithDefaults} />;
   }
-  if (isLoading) {
+  if (isLoading || !data) {
     return <ChartLoading variant="full" labels={labelsWithDefaults} />;
   }
 
@@ -244,7 +244,7 @@ export const OverviewAreaChart = ({
   // Check if all metrics have no data (all averages are 0)
   const hasNoData = labelsWithDefaults.metrics.every((metric) => ranges[metric.key].avg === 0);
 
-  // Show empty state when there's no data
+  // Show empty state only after data has loaded and is genuinely empty
   if (hasNoData) {
     return <ChartEmpty variant="full" labels={labelsWithDefaults} />;
   }

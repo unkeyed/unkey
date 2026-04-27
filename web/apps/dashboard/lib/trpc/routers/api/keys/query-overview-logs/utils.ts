@@ -59,6 +59,7 @@ export function transformKeysFilters(
     tags,
     outcomes,
     cursorTime: null,
+    page: params.page,
     sorts,
   };
 }

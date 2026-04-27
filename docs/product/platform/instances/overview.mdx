@@ -49,7 +49,7 @@ Configure limits in **Settings > Runtime settings**:
 - Memory: 256 MiB to 4 GiB (default 256 MiB, billed on allocation)
 - Storage: None to 10 GiB ephemeral disk (default none, mounted at `/data`)
 
-Instances run with a read-only root filesystem. A writable `/tmp` directory backed by memory is always available for scratch files. For larger temporary storage needs, configure [ephemeral storage](/platform/apps/settings#ephemeral-storage) to attach a dedicated disk volume per instance.
+A `/tmp` directory backed by memory is always available for scratch files. For larger temporary storage needs, configure [ephemeral storage](/platform/apps/settings#ephemeral-storage) to attach a dedicated disk volume per instance.
 
 All instances in a deployment share the same resource configuration. Changing these values takes effect on the next deployment.
 

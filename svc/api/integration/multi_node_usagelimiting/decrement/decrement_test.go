@@ -11,18 +11,16 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/svc/api/integration"
-	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/integration"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 )
 
 // TestDecrementAccuracy tests the decrement logic through the verify key endpoint
 func TestDecrementAccuracy(t *testing.T) {
-
 
 	testCases := []struct {
 		name         string
@@ -76,8 +74,8 @@ func TestDecrementAccuracy(t *testing.T) {
 
 			keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
-				KeySpaceID:   api.KeyAuthID.String,
-				Remaining:   ptr.P(int32(tc.totalCredits)),
+				KeySpaceID:  api.KeyAuthID.String,
+				Remaining:   ptr.P(int64(tc.totalCredits)),
 			})
 
 			// Set up request
@@ -86,7 +84,7 @@ func TestDecrementAccuracy(t *testing.T) {
 			}
 			if tc.cost > 1 {
 				req.Credits = &openapi.KeysVerifyKeyCredits{
-					Cost: int32(tc.cost),
+					Cost: tc.cost,
 				}
 			}
 
@@ -192,7 +190,7 @@ func TestDecrementAccuracy(t *testing.T) {
 				}
 
 				if finalKey.RemainingRequests.Valid {
-					dbRemaining = int64(finalKey.RemainingRequests.Int32)
+					dbRemaining = int64(finalKey.RemainingRequests.Int64)
 					return dbRemaining == expectedRemaining
 				}
 
@@ -211,7 +209,6 @@ func TestDecrementAccuracy(t *testing.T) {
 // TestDecrementEdgeCases tests edge cases for the decrement logic
 func TestDecrementEdgeCases(t *testing.T) {
 
-
 	t.Run("ZeroCreditHandling", func(t *testing.T) {
 		ctx := context.Background()
 		h := integration.New(t, integration.Config{NumNodes: 1})
@@ -225,8 +222,8 @@ func TestDecrementEdgeCases(t *testing.T) {
 
 		keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeySpaceID:   api.KeyAuthID.String,
-			Remaining:   ptr.P(int32(0)),
+			KeySpaceID:  api.KeyAuthID.String,
+			Remaining:   ptr.P(int64(0)),
 		})
 
 		req := handler.Request{Key: keyResponse.Key}
@@ -261,8 +258,8 @@ func TestDecrementEdgeCases(t *testing.T) {
 
 		keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeySpaceID:   api.KeyAuthID.String,
-			Remaining:   ptr.P(int32(10)),
+			KeySpaceID:  api.KeyAuthID.String,
+			Remaining:   ptr.P(int64(10)),
 		})
 
 		req := handler.Request{Key: keyResponse.Key}
@@ -311,8 +308,8 @@ func TestDecrementEdgeCases(t *testing.T) {
 
 		keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeySpaceID:   api.KeyAuthID.String,
-			Remaining:   ptr.P(int32(25)),
+			KeySpaceID:  api.KeyAuthID.String,
+			Remaining:   ptr.P(int64(25)),
 		})
 
 		headers := http.Header{
@@ -337,7 +334,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 				req := handler.Request{
 					Key: keyResponse.Key,
 					Credits: &openapi.KeysVerifyKeyCredits{
-						Cost: int32(cost),
+						Cost: cost,
 					},
 				}
 

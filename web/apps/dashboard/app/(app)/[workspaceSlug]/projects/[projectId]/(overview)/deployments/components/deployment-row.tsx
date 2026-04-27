@@ -46,7 +46,7 @@ export function DeploymentRow({
       />
       {/* Identity + Status */}
       <div className="flex items-center justify-between md:contents">
-        <div className="md:w-[25%] md:shrink-0 flex flex-col gap-1 min-w-0">
+        <div className="md:w-[20%] md:shrink-0 flex flex-col gap-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-mono text-[13px] text-accent-12 truncate font-semibold">
               {shortenId(deployment.id)}
@@ -61,7 +61,7 @@ export function DeploymentRow({
           <span className="text-xs text-gray-9 capitalize">{environment?.slug}</span>
         </div>
 
-        <div className="md:w-[15%] md:shrink-0">
+        <div className="md:w-[20%] md:shrink-0">
           <DeploymentStatusBadge status={deployment.status} />
         </div>
       </div>

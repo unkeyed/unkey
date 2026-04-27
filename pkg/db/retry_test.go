@@ -261,9 +261,9 @@ func TestWithRetryContext_Integration(t *testing.T) {
 				Expires:           sql.NullTime{},
 				CreatedAtM:        time.Now().UnixMilli(),
 				Enabled:           true,
-				RemainingRequests: sql.NullInt32{},
+				RemainingRequests: sql.NullInt64{},
 				RefillDay:         sql.NullInt16{},
-				RefillAmount:      sql.NullInt32{},
+				RefillAmount:      sql.NullInt64{},
 			})
 
 			return keyID, err
@@ -291,9 +291,9 @@ func TestWithRetryContext_Integration(t *testing.T) {
 			Expires:           sql.NullTime{},
 			CreatedAtM:        time.Now().UnixMilli(),
 			Enabled:           true,
-			RemainingRequests: sql.NullInt32{},
+			RemainingRequests: sql.NullInt64{},
 			RefillDay:         sql.NullInt16{},
-			RefillAmount:      sql.NullInt32{},
+			RefillAmount:      sql.NullInt64{},
 		}
 		err := Query.InsertKey(ctx, dbInstance.RW(), keyParams)
 		require.NoError(t, err)
@@ -360,9 +360,9 @@ func TestWithRetryContext_Integration(t *testing.T) {
 				Expires:           sql.NullTime{},
 				CreatedAtM:        time.Now().UnixMilli(),
 				Enabled:           true,
-				RemainingRequests: sql.NullInt32{},
+				RemainingRequests: sql.NullInt64{},
 				RefillDay:         sql.NullInt16{},
-				RefillAmount:      sql.NullInt32{},
+				RefillAmount:      sql.NullInt64{},
 			})
 			if err == nil {
 				insertedKeyID = keyID

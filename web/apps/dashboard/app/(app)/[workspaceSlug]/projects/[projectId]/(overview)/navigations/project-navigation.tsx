@@ -1,4 +1,5 @@
 "use client";
+import { DeployFeedbackButton } from "@/components/dashboard/deploy-feedback-button";
 import { QuickNavPopover } from "@/components/navbar-popover";
 import { Navbar } from "@/components/navigation/navbar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -117,6 +118,7 @@ export const ProjectNavigation = ({ onMount }: ProjectNavigationProps) => {
               selectedDeployment={selectedDeployment}
             />
           )}
+          <DeployFeedbackButton />
         </div>
       </div>
     );

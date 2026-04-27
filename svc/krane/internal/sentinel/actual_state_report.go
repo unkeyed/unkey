@@ -87,7 +87,9 @@ func (c *Controller) drainSentinelWatch(ctx context.Context, w watch.Interface, 
 			}
 
 			sem.Go(ctx, func(ctx context.Context) {
-				c.reportSentinelState(ctx, sentinel)
+				if _, err := c.reportSentinelState(ctx, sentinel); err != nil {
+					logger.Error("sentinel watch: unable to report status", "error", err.Error(), "name", sentinel.Name)
+				}
 			})
 		case watch.Deleted:
 			sentinel, ok := event.Object.(*appsv1.Deployment)
@@ -98,7 +100,7 @@ func (c *Controller) drainSentinelWatch(ctx context.Context, w watch.Interface, 
 
 			sem.Go(ctx, func(ctx context.Context) {
 				logger.Info("sentinel deleted", "name", sentinel.Name)
-				err := c.reportSentinelStatus(ctx, &ctrlv1.ReportSentinelStatusRequest{
+				_, err := c.reportIfChanged(ctx, &ctrlv1.ReportSentinelStatusRequest{
 					K8SName:           sentinel.Name,
 					AvailableReplicas: 0,
 					Health:            ctrlv1.Health_HEALTH_UNHEALTHY,
@@ -112,12 +114,12 @@ func (c *Controller) drainSentinelWatch(ctx context.Context, w watch.Interface, 
 }
 
 // reportSentinelState computes and reports the health of a sentinel Deployment.
-func (c *Controller) reportSentinelState(ctx context.Context, sentinel *appsv1.Deployment) {
-	logger.Info("sentinel added/modified", "name", sentinel.Name)
-
+// Returns (true, nil) when a report was sent, (false, nil) when dedup skipped
+// it, or (false, err) on RPC failure.
+func (c *Controller) reportSentinelState(ctx context.Context, sentinel *appsv1.Deployment) (bool, error) {
 	health := determineHealth(sentinel)
 	sentinelID := sentinel.Labels[labels.LabelKeySentinelID]
-	err := c.reportSentinelStatus(ctx, &ctrlv1.ReportSentinelStatusRequest{
+	reported, err := c.reportIfChanged(ctx, &ctrlv1.ReportSentinelStatusRequest{
 		K8SName:           sentinel.Name,
 		AvailableReplicas: sentinel.Status.AvailableReplicas,
 		Health:            health,
@@ -125,6 +127,10 @@ func (c *Controller) reportSentinelState(ctx context.Context, sentinel *appsv1.D
 		RunningImage:      convergedImage(sentinel),
 	})
 	if err != nil {
-		logger.Error("error reporting sentinel status", "error", err.Error())
+		return false, err
 	}
+	if reported {
+		logger.Info("sentinel added/modified: reported", "name", sentinel.Name)
+	}
+	return reported, nil
 }

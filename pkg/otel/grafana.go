@@ -8,9 +8,9 @@ import (
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
+	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/version"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/bridges/prometheus"
 	"go.opentelemetry.io/contrib/processors/minsev"
@@ -41,10 +41,6 @@ type Config struct {
 	// Application is the name of your application, used to identify the source of telemetry data.
 	// This appears in Grafana dashboards and alerts.
 	Application string
-
-	// Version is the current version of your application, allowing you to correlate
-	// behavior changes with specific releases.
-	Version string
 
 	// TraceSampleRate controls what percentage of traces are sampled.
 	// Values range from 0.0 to 1.0, where:
@@ -80,7 +76,6 @@ type Config struct {
 //	shutdown, err := otel.InitGrafana(ctx, otel.Config{
 //	    GrafanaEndpoint: "https://otlp-sentinel-prod-us-east-0.grafana.net/otlp",
 //	    Application:     "unkey-api",
-//	    Version:         version.Version,
 //	})
 //
 //	if err != nil {
@@ -95,7 +90,7 @@ func InitGrafana(ctx context.Context, config Config) (func(ctx context.Context) 
 		resource.WithAttributes(
 			semconv.ServiceNamespace("unkey"),
 			semconv.ServiceName(config.Application),
-			semconv.ServiceVersion(config.Version),
+			semconv.ServiceVersion(buildinfo.Version),
 			semconv.ServiceInstanceID(config.InstanceID),
 			semconv.CloudRegion(config.CloudRegion),
 		),
@@ -127,7 +122,7 @@ func InitGrafana(ctx context.Context, config Config) (func(ctx context.Context) 
 	logger.AddHandler(otelslog.NewHandler(
 		config.Application,
 		otelslog.WithLoggerProvider(logProvider),
-		otelslog.WithVersion(version.Version),
+		otelslog.WithVersion(buildinfo.Version),
 		otelslog.WithSource(true),
 	))
 

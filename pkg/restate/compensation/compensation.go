@@ -32,6 +32,14 @@ import (
 	restate "github.com/restatedev/sdk-go"
 )
 
+// compensationMaxAttempts bounds how many times each compensation step may
+// retry. On exhaustion the Run returns a TerminalError that Execute joins
+// into its aggregate error, so the caller's handler still returns and
+// surfaces the failure. Without a bound, a stuck compensation would block
+// the deferred Execute call indefinitely and prevent the original error
+// from propagating.
+const compensationMaxAttempts uint = 5
+
 // Compensation stores rollback actions for Restate workflows.
 //
 // Actions are registered in forward order with [Compensation.Add] and executed
@@ -58,7 +66,9 @@ func (c *Compensation) Add(name string, run func(ctx restate.RunContext) error) 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.operations = append(c.operations, func(ctx restate.ObjectContext) error {
-		return restate.RunVoid(ctx, run, restate.WithName(fmt.Sprintf("[compensation]: %s", name)))
+		return restate.RunVoid(ctx, run,
+			restate.WithName(fmt.Sprintf("[compensation]: %s", name)),
+			restate.WithMaxRetryAttempts(compensationMaxAttempts))
 	})
 }
 
