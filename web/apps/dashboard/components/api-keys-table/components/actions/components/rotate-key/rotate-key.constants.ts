@@ -6,7 +6,6 @@ import type { FormSelectOption } from "@unkey/ui";
 // updates both the form options and the API contract.
 const GRACE_PERIODS = [
   { ms: 0, label: "Revoke immediately" },
-  { ms: 60_000, label: "1 minute" },
   { ms: 900_000, label: "15 minutes" },
   { ms: 3_600_000, label: "1 hour" },
   { ms: 21_600_000, label: "6 hours" },

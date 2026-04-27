@@ -3,7 +3,7 @@ import {
   type GracePeriodMs,
 } from "@/components/api-keys-table/components/actions/components/rotate-key/rotate-key.constants";
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
-import { and, db, eq, isNull, schema } from "@/lib/db";
+import { and, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { Vault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
@@ -12,7 +12,6 @@ import { newKey } from "@unkey/keys";
 import { z } from "zod";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../../trpc";
 import { capGracePeriodAtSourceExpiry } from "./cap-grace-period-at-source-expiry";
-import { roundUpToNextMinute } from "./round-up-to-next-minute";
 
 const vault = new Vault({
   baseUrl: env().VAULT_URL,
@@ -160,32 +159,33 @@ async function rerollKeyCore({
 
   const { key: plaintext, hash, start } = await newKey({ prefix, byteLength });
   const newKeyId = newId("key");
-  const gracePeriodEnd =
-    expiration === 0 ? new Date(now) : roundUpToNextMinute(new Date(now + expiration));
-  const shouldEncrypt = Boolean(source.encrypted);
+  const gracePeriodEnd = new Date(now + expiration);
 
   try {
     // Encrypt outside the transaction. vault.encrypt is a network RPC; doing
     // it inside the transaction would hold row locks for its duration. The
     // call is stateless — if the transaction later fails, the ciphertext is
     // simply discarded, nothing to clean up vault-side.
-    const encryptedRecord = shouldEncrypt
+    const encryptedRecord = source.encrypted
       ? await vault.encrypt({ keyring: source.workspaceId, data: plaintext })
       : undefined;
 
     await db.transaction(async (tx) => {
-      // Re-check the source's state inside the transaction. The outer read
-      // was a snapshot; without this a concurrent delete or expiration-update
-      // that lands before the transaction starts could let us revive a
-      // soft-deleted key or resurrect one that just expired. Uses a fresh
-      // timestamp — the outer `now` was captured before the transaction,
-      // so a key whose expiry falls in that gap wouldn't be caught.
+      // Lock the source row for the rest of the transaction. This serves
+      // two purposes: it serializes concurrent rerolls of the same key
+      // (without it, two tx's can each pass the re-checks below and commit
+      // two replacement keys with last-writer-wins on the source's expiry),
+      // and it makes the values read here stable for the remainder of the
+      // tx so the UPDATE at the bottom doesn't need a separate soft-delete
+      // guard. Uses a fresh timestamp — the outer `now` was captured
+      // before the transaction, so a key whose expiry falls in that gap
+      // wouldn't be caught.
       const nowInTx = Date.now();
-      const current = await tx.query.keys.findFirst({
-        where: (table, { and, eq }) =>
-          and(eq(table.workspaceId, source.workspaceId), eq(table.id, source.id)),
-        columns: { expires: true, deletedAtM: true },
-      });
+      const [current] = await tx
+        .select({ expires: schema.keys.expires, deletedAtM: schema.keys.deletedAtM })
+        .from(schema.keys)
+        .where(and(eq(schema.keys.workspaceId, source.workspaceId), eq(schema.keys.id, source.id)))
+        .for("update");
       if (!current || current.deletedAtM !== null) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -300,33 +300,30 @@ async function rerollKeyCore({
         );
       }
 
-      // Guard against a concurrent soft-delete landing between the in-tx
-      // re-check and this update. The WHERE clause includes `deletedAtM IS
-      // NULL`, so if the source row was deleted in the gap the update
-      // matches zero rows and the old key's expiry never gets capped.
-      // Abort the transaction in that case so we don't commit a new key
-      // tied to a now-deleted source and an audit entry that claims an
-      // expiry we didn't actually set.
-      const updateResult = await tx
-        .update(schema.keys)
-        .set({ expires: oldKeyExpiresAt })
-        .where(
-          and(
-            eq(schema.keys.id, source.id),
-            eq(schema.keys.workspaceId, source.workspaceId),
-            isNull(schema.keys.deletedAtM),
-          ),
-        );
-      if (updateResult[0].affectedRows === 0) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "This key was deleted while rotating. The rotation has been cancelled.",
-        });
+      // Skip the UPDATE when the cap is a no-op (gracePeriodEnd >= source's
+      // existing expiry, so capGracePeriodAtSourceExpiry returns the source's
+      // current value unchanged). mysql2 reports affectedRows as rows
+      // *changed*, not matched, so a no-op write would falsely look like a
+      // missing row. The FOR UPDATE lock above keeps the source row stable
+      // for the rest of this tx, so we don't need the WHERE-with-deletedAtM
+      // pattern here for soft-delete detection.
+      if (current.expires?.getTime() !== oldKeyExpiresAt.getTime()) {
+        await tx
+          .update(schema.keys)
+          .set({ expires: oldKeyExpiresAt })
+          .where(
+            and(eq(schema.keys.id, source.id), eq(schema.keys.workspaceId, source.workspaceId)),
+          );
       }
 
       const resources: UnkeyAuditLog["resources"] = [
         { type: "key", id: newKeyId, name: source.name ?? undefined },
-        { type: "key", id: source.id, name: source.name ?? undefined },
+        {
+          type: "key",
+          id: source.id,
+          name: source.name ?? undefined,
+          meta: { expiresAt: oldKeyExpiresAt.getTime() },
+        },
       ];
       if (source.keyAuth.api) {
         resources.push({
