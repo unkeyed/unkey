@@ -142,23 +142,36 @@ func waitForNgrokURL() (string, error) {
 
 // readAppID parses UNKEY_GITHUB_APP_ID from the env file.
 func readAppID(envFile string) (int64, error) {
+	val, err := readEnvFileValue(envFile, "UNKEY_GITHUB_APP_ID")
+	if err != nil {
+		return 0, fmt.Errorf("%w\n\nRun `go run . dev github setup` first", err)
+	}
+	id, err := strconv.ParseInt(val, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid UNKEY_GITHUB_APP_ID in %s: %w", envFile, err)
+	}
+	return id, nil
+}
+
+// readEnvFileValue parses KEY=VALUE from a simple .env-style file.
+func readEnvFileValue(envFile, key string) (string, error) {
 	data, err := os.ReadFile(filepath.Clean(envFile))
 	if err != nil {
-		return 0, fmt.Errorf("failed to read %s: %w\n\nRun `go run . dev github setup` first", envFile, err)
+		return "", fmt.Errorf("failed to read %s: %w", envFile, err)
 	}
-
+	prefix := key + "="
 	for line := range strings.SplitSeq(string(data), "\n") {
 		line = strings.TrimSpace(line)
-		if val, ok := strings.CutPrefix(line, "UNKEY_GITHUB_APP_ID="); ok {
-			id, err := strconv.ParseInt(strings.TrimSpace(val), 10, 64)
-			if err != nil {
-				return 0, fmt.Errorf("invalid UNKEY_GITHUB_APP_ID in %s: %w", envFile, err)
-			}
-			return id, nil
+		if strings.HasPrefix(line, "#") || line == "" {
+			continue
+		}
+		if val, ok := strings.CutPrefix(line, prefix); ok {
+			val = strings.TrimSpace(val)
+			val = strings.Trim(val, `"'`)
+			return val, nil
 		}
 	}
-
-	return 0, fmt.Errorf("UNKEY_GITHUB_APP_ID not found in %s\n\nRun `go run . dev github setup` first", envFile)
+	return "", fmt.Errorf("%s not found in %s", key, envFile)
 }
 
 // generateAppJWT creates a short-lived GitHub App JWT for API authentication.
@@ -169,14 +182,11 @@ func generateAppJWT(appID int64, privateKeyPEM string) (string, error) {
 	}
 
 	now := time.Now()
+	// nolint:exhaustruct
 	claims := jwt.RegisteredClaims{
 		IssuedAt:  now.Add(-60 * time.Second).Unix(),
 		ExpiresAt: now.Add(10 * time.Minute).Unix(),
 		Issuer:    strconv.FormatInt(appID, 10),
-		Subject:   "",
-		Audience:  nil,
-		NotBefore: 0,
-		ID:        "",
 	}
 
 	return signer.Sign(claims)

@@ -1,9 +1,15 @@
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
+import { Key2, Page2, Tag } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { LastUpdatedCell, RowActionSkeleton, SortableHeader } from "@unkey/ui";
+import {
+  AssignedCountCell,
+  LastUpdatedCell,
+  RowActionSkeleton,
+  SelectableNameCell,
+  SortableHeader,
+} from "@unkey/ui";
 import dynamic from "next/dynamic";
-import { AssignedItemsCell } from "../components/assigned-items-cell";
-import { PermissionNameCell } from "../components/permission-name-cell";
+import { SlugCell } from "../components/slug-cell";
 
 const PermissionsTableActions = dynamic(
   () =>
@@ -65,12 +71,15 @@ export const createPermissionsColumns = ({
     cell: ({ row }) => {
       const permission = row.original;
       return (
-        <PermissionNameCell
-          permission={permission}
-          isChecked={selectedPermissions.has(permission.permissionId)}
+        <SelectableNameCell
+          name={permission.name}
+          description={permission.description}
+          icon={<Page2 iconSize="sm-regular" className="text-gray-12 cursor-pointer" />}
+          isSelected={selectedPermissions.has(permission.permissionId)}
           isHovered={hoveredPermissionName === permission.name}
-          onToggleSelection={onToggleSelection}
-          onHover={onHoverPermission}
+          onMouseEnter={() => onHoverPermission(permission.name)}
+          onMouseLeave={() => onHoverPermission(null)}
+          onCheckedChange={() => onToggleSelection(permission.permissionId)}
         />
       );
     },
@@ -91,8 +100,7 @@ export const createPermissionsColumns = ({
     cell: ({ row }) => {
       const permission = row.original;
       return (
-        <AssignedItemsCell
-          kind="slug"
+        <SlugCell
           value={permission.slug}
           isSelected={permission.permissionId === selectedPermissionId}
         />
@@ -106,6 +114,7 @@ export const createPermissionsColumns = ({
       <SortableHeader header={header}>{PERMISSION_COLUMN_IDS.USED_IN_ROLES.header}</SortableHeader>
     ),
     enableSorting: true,
+    sortDescFirst: true,
     meta: {
       width: {
         min: 200,
@@ -115,9 +124,10 @@ export const createPermissionsColumns = ({
     cell: ({ row }) => {
       const permission = row.original;
       return (
-        <AssignedItemsCell
-          kind="roles"
-          totalCount={permission.totalConnectedRoles}
+        <AssignedCountCell
+          count={permission.totalConnectedRoles}
+          icon={<Tag iconSize="md-medium" className="opacity-50" />}
+          singularLabel="Role"
           isSelected={permission.permissionId === selectedPermissionId}
         />
       );
@@ -132,6 +142,7 @@ export const createPermissionsColumns = ({
       </SortableHeader>
     ),
     enableSorting: true,
+    sortDescFirst: true,
     meta: {
       width: {
         min: 200,
@@ -141,9 +152,10 @@ export const createPermissionsColumns = ({
     cell: ({ row }) => {
       const permission = row.original;
       return (
-        <AssignedItemsCell
-          kind="keys"
-          totalCount={permission.totalConnectedKeys}
+        <AssignedCountCell
+          count={permission.totalConnectedKeys}
+          icon={<Key2 iconSize="md-medium" className="opacity-50" />}
+          singularLabel="Key"
           isSelected={permission.permissionId === selectedPermissionId}
         />
       );

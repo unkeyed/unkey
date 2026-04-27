@@ -116,7 +116,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	credits := sql.NullInt32{Int32: 0, Valid: false}
+	credits := sql.NullInt64{Int64: 0, Valid: false}
 
 	// The only errors that can be returned here are isNull or notSpecified
 	// which firstly is wanted and secondly doesn't matter
@@ -124,7 +124,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Value has been set as not null
 	if !req.Value.IsNull() && req.Value.IsSpecified() {
-		credits = sql.NullInt32{Int32: int32(reqVal), Valid: true} // nolint:gosec
+		credits = sql.NullInt64{Int64: reqVal, Valid: true}
 	}
 
 	key, err = db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindLiveKeyByIDRow, error) {
@@ -163,7 +163,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if req.Value.IsNull() {
 			err = db.Query.UpdateKeyCreditsRefill(ctx, tx, db.UpdateKeyCreditsRefillParams{
 				ID:           key.ID,
-				RefillAmount: sql.NullInt32{Int32: 0, Valid: false},
+				RefillAmount: sql.NullInt64{Int64: 0, Valid: false},
 				RefillDay:    sql.NullInt16{Int16: 0, Valid: false},
 			})
 			if err != nil {
@@ -195,7 +195,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		remaining := "unlimited"
 		if keyAfterUpdate.RemainingRequests.Valid {
-			remaining = fmt.Sprintf("%d", keyAfterUpdate.RemainingRequests.Int32)
+			remaining = fmt.Sprintf("%d", keyAfterUpdate.RemainingRequests.Int64)
 		}
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
@@ -244,7 +244,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.RemainingRequests.Valid {
-		responseData.Remaining = nullable.NewNullableWithValue(int64(key.RemainingRequests.Int32))
+		responseData.Remaining = nullable.NewNullableWithValue(int64(key.RemainingRequests.Int64))
 	}
 
 	if key.RefillAmount.Valid {
@@ -257,7 +257,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		responseData.Refill = &openapi.KeyCreditsRefill{
-			Amount:    int64(key.RefillAmount.Int32),
+			Amount:    int64(key.RefillAmount.Int64),
 			Interval:  interval,
 			RefillDay: day,
 		}
