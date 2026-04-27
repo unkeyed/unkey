@@ -1,0 +1,323 @@
+@import "./shared/tokens.css";
+
+/*
+All colors are taken from Radix
+https://www.radix-ui.com/colors/docs/palette-composition/scales
+
+This is the single source of truth for all color tokens.
+All colors use oklch() for better perceptual uniformity and wider gamut support.
+Raw variables are defined in :root/.dark blocks for use in inline styles (e.g. charts).
+The @theme block registers Tailwind utility classes for each color.
+Semantic variables (--background, --content, etc.) define the light/dark theme.
+
+In Tailwind v4, this file should be @import'd from your main Tailwind CSS file.
+*/
+
+/* ============================================================
+   Tailwind @theme registration — generates utility classes
+   (e.g. bg-gray-1, text-error-9, border-accent-6, etc.)
+   ============================================================ */
+@theme inline {
+  --color-*: initial;
+
+  /* Semantic tokens */
+  --color-background: var(--background);
+  --color-background-subtle: var(--background-subtle);
+
+  --color-content: var(--content);
+  --color-content-subtle: var(--content-subtle);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-black: black;
+  --color-white: white;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* Radix Color Scales — full mappings for all design tokens */
+
+  /* Gray */
+  --color-gray-1: var(--gray-1);
+  --color-gray-2: var(--gray-2);
+  --color-gray-3: var(--gray-3);
+  --color-gray-4: var(--gray-4);
+  --color-gray-5: var(--gray-5);
+  --color-gray-6: var(--gray-6);
+  --color-gray-7: var(--gray-7);
+  --color-gray-8: var(--gray-8);
+  --color-gray-9: var(--gray-9);
+  --color-gray-10: var(--gray-10);
+  --color-gray-11: var(--gray-11);
+  --color-gray-12: var(--gray-12);
+
+  /* GrayA */
+  --color-grayA-1: var(--grayA-1);
+  --color-grayA-2: var(--grayA-2);
+  --color-grayA-3: var(--grayA-3);
+  --color-grayA-4: var(--grayA-4);
+  --color-grayA-5: var(--grayA-5);
+  --color-grayA-6: var(--grayA-6);
+  --color-grayA-7: var(--grayA-7);
+  --color-grayA-8: var(--grayA-8);
+  --color-grayA-9: var(--grayA-9);
+  --color-grayA-10: var(--grayA-10);
+  --color-grayA-11: var(--grayA-11);
+  --color-grayA-12: var(--grayA-12);
+
+  /* Accent (Slate) */
+  --color-accent-1: var(--accent-1);
+  --color-accent-2: var(--accent-2);
+  --color-accent-3: var(--accent-3);
+  --color-accent-4: var(--accent-4);
+  --color-accent-5: var(--accent-5);
+  --color-accent-6: var(--accent-6);
+  --color-accent-7: var(--accent-7);
+  --color-accent-8: var(--accent-8);
+  --color-accent-9: var(--accent-9);
+  --color-accent-10: var(--accent-10);
+  --color-accent-11: var(--accent-11);
+  --color-accent-12: var(--accent-12);
+
+  /* Success (Teal) */
+  --color-success-1: var(--success-1);
+  --color-success-2: var(--success-2);
+  --color-success-3: var(--success-3);
+  --color-success-4: var(--success-4);
+  --color-success-5: var(--success-5);
+  --color-success-6: var(--success-6);
+  --color-success-7: var(--success-7);
+  --color-success-8: var(--success-8);
+  --color-success-9: var(--success-9);
+  --color-success-10: var(--success-10);
+  --color-success-11: var(--success-11);
+  --color-success-12: var(--success-12);
+
+  /* SuccessA */
+  --color-successA-1: var(--successA-1);
+  --color-successA-2: var(--successA-2);
+  --color-successA-3: var(--successA-3);
+  --color-successA-4: var(--successA-4);
+  --color-successA-5: var(--successA-5);
+  --color-successA-6: var(--successA-6);
+  --color-successA-7: var(--successA-7);
+  --color-successA-8: var(--successA-8);
+  --color-successA-9: var(--successA-9);
+  --color-successA-10: var(--successA-10);
+  --color-successA-11: var(--successA-11);
+  --color-successA-12: var(--successA-12);
+
+  /* Warning (Amber) */
+  --color-warning-1: var(--warning-1);
+  --color-warning-2: var(--warning-2);
+  --color-warning-3: var(--warning-3);
+  --color-warning-4: var(--warning-4);
+  --color-warning-5: var(--warning-5);
+  --color-warning-6: var(--warning-6);
+  --color-warning-7: var(--warning-7);
+  --color-warning-8: var(--warning-8);
+  --color-warning-9: var(--warning-9);
+  --color-warning-10: var(--warning-10);
+  --color-warning-11: var(--warning-11);
+  --color-warning-12: var(--warning-12);
+
+  /* WarningA */
+  --color-warningA-1: var(--warningA-1);
+  --color-warningA-2: var(--warningA-2);
+  --color-warningA-3: var(--warningA-3);
+  --color-warningA-4: var(--warningA-4);
+  --color-warningA-5: var(--warningA-5);
+  --color-warningA-6: var(--warningA-6);
+  --color-warningA-7: var(--warningA-7);
+  --color-warningA-8: var(--warningA-8);
+  --color-warningA-9: var(--warningA-9);
+  --color-warningA-10: var(--warningA-10);
+  --color-warningA-11: var(--warningA-11);
+  --color-warningA-12: var(--warningA-12);
+
+  /* Error (Tomato) */
+  --color-error-1: var(--error-1);
+  --color-error-2: var(--error-2);
+  --color-error-3: var(--error-3);
+  --color-error-4: var(--error-4);
+  --color-error-5: var(--error-5);
+  --color-error-6: var(--error-6);
+  --color-error-7: var(--error-7);
+  --color-error-8: var(--error-8);
+  --color-error-9: var(--error-9);
+  --color-error-10: var(--error-10);
+  --color-error-11: var(--error-11);
+  --color-error-12: var(--error-12);
+
+  /* ErrorA */
+  --color-errorA-1: var(--errorA-1);
+  --color-errorA-2: var(--errorA-2);
+  --color-errorA-3: var(--errorA-3);
+  --color-errorA-4: var(--errorA-4);
+  --color-errorA-5: var(--errorA-5);
+  --color-errorA-6: var(--errorA-6);
+  --color-errorA-7: var(--errorA-7);
+  --color-errorA-8: var(--errorA-8);
+  --color-errorA-9: var(--errorA-9);
+  --color-errorA-10: var(--errorA-10);
+  --color-errorA-11: var(--errorA-11);
+  --color-errorA-12: var(--errorA-12);
+
+  /* Info (Blue) */
+  --color-info-1: var(--info-1);
+  --color-info-2: var(--info-2);
+  --color-info-3: var(--info-3);
+  --color-info-4: var(--info-4);
+  --color-info-5: var(--info-5);
+  --color-info-6: var(--info-6);
+  --color-info-7: var(--info-7);
+  --color-info-8: var(--info-8);
+  --color-info-9: var(--info-9);
+  --color-info-10: var(--info-10);
+  --color-info-11: var(--info-11);
+  --color-info-12: var(--info-12);
+
+  /* InfoA */
+  --color-infoA-1: var(--infoA-1);
+  --color-infoA-2: var(--infoA-2);
+  --color-infoA-3: var(--infoA-3);
+  --color-infoA-4: var(--infoA-4);
+  --color-infoA-5: var(--infoA-5);
+  --color-infoA-6: var(--infoA-6);
+  --color-infoA-7: var(--infoA-7);
+  --color-infoA-8: var(--infoA-8);
+  --color-infoA-9: var(--infoA-9);
+  --color-infoA-10: var(--infoA-10);
+  --color-infoA-11: var(--infoA-11);
+  --color-infoA-12: var(--infoA-12);
+
+  /* Brand (Violet) */
+  --color-brand-1: var(--brand-1);
+  --color-brand-2: var(--brand-2);
+  --color-brand-3: var(--brand-3);
+  --color-brand-4: var(--brand-4);
+  --color-brand-5: var(--brand-5);
+  --color-brand-6: var(--brand-6);
+  --color-brand-7: var(--brand-7);
+  --color-brand-8: var(--brand-8);
+  --color-brand-9: var(--brand-9);
+  --color-brand-10: var(--brand-10);
+  --color-brand-11: var(--brand-11);
+  --color-brand-12: var(--brand-12);
+
+  /* BrandA */
+  --color-brandA-1: var(--brandA-1);
+  --color-brandA-2: var(--brandA-2);
+  --color-brandA-3: var(--brandA-3);
+  --color-brandA-4: var(--brandA-4);
+  --color-brandA-5: var(--brandA-5);
+  --color-brandA-6: var(--brandA-6);
+  --color-brandA-7: var(--brandA-7);
+  --color-brandA-8: var(--brandA-8);
+  --color-brandA-9: var(--brandA-9);
+  --color-brandA-10: var(--brandA-10);
+  --color-brandA-11: var(--brandA-11);
+  --color-brandA-12: var(--brandA-12);
+
+  /* Orange */
+  --color-orange-1: var(--orange-1);
+  --color-orange-2: var(--orange-2);
+  --color-orange-3: var(--orange-3);
+  --color-orange-4: var(--orange-4);
+  --color-orange-5: var(--orange-5);
+  --color-orange-6: var(--orange-6);
+  --color-orange-7: var(--orange-7);
+  --color-orange-8: var(--orange-8);
+  --color-orange-9: var(--orange-9);
+  --color-orange-10: var(--orange-10);
+  --color-orange-11: var(--orange-11);
+  --color-orange-12: var(--orange-12);
+
+  /* OrangeA */
+  --color-orangeA-1: var(--orangeA-1);
+  --color-orangeA-2: var(--orangeA-2);
+  --color-orangeA-3: var(--orangeA-3);
+  --color-orangeA-4: var(--orangeA-4);
+  --color-orangeA-5: var(--orangeA-5);
+  --color-orangeA-6: var(--orangeA-6);
+  --color-orangeA-7: var(--orangeA-7);
+  --color-orangeA-8: var(--orangeA-8);
+  --color-orangeA-9: var(--orangeA-9);
+  --color-orangeA-10: var(--orangeA-10);
+  --color-orangeA-11: var(--orangeA-11);
+  --color-orangeA-12: var(--orangeA-12);
+
+  /* Red */
+  --color-red-1: var(--red-1);
+  --color-red-2: var(--red-2);
+  --color-red-3: var(--red-3);
+  --color-red-4: var(--red-4);
+  --color-red-5: var(--red-5);
+  --color-red-6: var(--red-6);
+  --color-red-7: var(--red-7);
+  --color-red-8: var(--red-8);
+  --color-red-9: var(--red-9);
+  --color-red-10: var(--red-10);
+  --color-red-11: var(--red-11);
+  --color-red-12: var(--red-12);
+
+  /* RedA */
+  --color-redA-1: var(--redA-1);
+  --color-redA-2: var(--redA-2);
+  --color-redA-3: var(--redA-3);
+  --color-redA-4: var(--redA-4);
+  --color-redA-5: var(--redA-5);
+  --color-redA-6: var(--redA-6);
+  --color-redA-7: var(--redA-7);
+  --color-redA-8: var(--redA-8);
+  --color-redA-9: var(--redA-9);
+  --color-redA-10: var(--redA-10);
+  --color-redA-11: var(--redA-11);
+  --color-redA-12: var(--redA-12);
+
+  /* BlackA & WhiteA */
+  --color-blackA-1: var(--blackA-1);
+  --color-blackA-2: var(--blackA-2);
+  --color-blackA-3: var(--blackA-3);
+  --color-blackA-4: var(--blackA-4);
+  --color-blackA-5: var(--blackA-5);
+  --color-blackA-6: var(--blackA-6);
+  --color-blackA-7: var(--blackA-7);
+  --color-blackA-8: var(--blackA-8);
+  --color-blackA-9: var(--blackA-9);
+  --color-blackA-10: var(--blackA-10);
+  --color-blackA-11: var(--blackA-11);
+  --color-blackA-12: var(--blackA-12);
+
+  --color-whiteA-1: var(--whiteA-1);
+  --color-whiteA-2: var(--whiteA-2);
+  --color-whiteA-3: var(--whiteA-3);
+  --color-whiteA-4: var(--whiteA-4);
+  --color-whiteA-5: var(--whiteA-5);
+  --color-whiteA-6: var(--whiteA-6);
+  --color-whiteA-7: var(--whiteA-7);
+  --color-whiteA-8: var(--whiteA-8);
+  --color-whiteA-9: var(--whiteA-9);
+  --color-whiteA-10: var(--whiteA-10);
+  --color-whiteA-11: var(--whiteA-11);
+  --color-whiteA-12: var(--whiteA-12);
+
+  /* Bronze */
+  --color-bronze-1: var(--bronze-1);
+  --color-bronze-2: var(--bronze-2);
+  --color-bronze-3: var(--bronze-3);
+  --color-bronze-4: var(--bronze-4);
+  --color-bronze-5: var(--bronze-5);
+  --color-bronze-6: var(--bronze-6);
+  --color-bronze-7: var(--bronze-7);
+  --color-bronze-8: var(--bronze-8);
+  --color-bronze-9: var(--bronze-9);
+  --color-bronze-10: var(--bronze-10);
+  --color-bronze-11: var(--bronze-11);
+  --color-bronze-12: var(--bronze-12);
+}

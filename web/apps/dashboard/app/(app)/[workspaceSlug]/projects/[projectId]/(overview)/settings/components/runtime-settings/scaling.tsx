@@ -89,7 +89,7 @@ export const Scaling = () => {
             }}
             className="flex-1 max-w-[var(--setting-w)]"
             rangeStyle={{
-              background: "linear-gradient(to right, var(--featureA-4), var(--featureA-12))",
+              background: "linear-gradient(to right, var(--brandA-4), var(--brandA-12))",
               backgroundRepeat: "no-repeat",
             }}
           />

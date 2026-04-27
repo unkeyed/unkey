@@ -29,7 +29,7 @@ export const OnboardingLinks = () => (
       >
         <div className="size-[18px] overflow-hidden flex items-center justify-center">
           <Discord
-            className="text-feature-11 shrink-0"
+            className="text-brand-11 shrink-0"
             style={{ width: 18, height: 18 }}
             iconSize="sm-regular"
           />

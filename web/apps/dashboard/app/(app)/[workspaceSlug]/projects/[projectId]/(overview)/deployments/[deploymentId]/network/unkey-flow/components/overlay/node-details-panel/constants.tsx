@@ -76,7 +76,7 @@ export const metrics: Array<{
     config: {
       cpu_usage: {
         label: "CPU usage",
-        color: "var(--feature-8)",
+        color: "var(--brand-8)",
       },
     },
     dataConfig: {
@@ -132,7 +132,7 @@ export const metrics: Array<{
     config: {
       storage_usage: {
         label: "Storage usage",
-        color: "var(--cyan-8)",
+        color: "var(--info-8)",
       },
     },
     dataConfig: {
@@ -174,7 +174,7 @@ export const metrics: Array<{
           </SelectItem>
           <SelectItem value="p90">
             <div className="flex items-center gap-3 tabular-nums">
-              <div className="bg-feature-11 rounded-full size-1.5 ring-[3px] ring-featureA-4 ring-offset-0" />
+              <div className="bg-brand-11 rounded-full size-1.5 ring-[3px] ring-brandA-4 ring-offset-0" />
               <span className="text-gray-12 font-medium text-[13px]">p90</span>
               <span className="text-grayA-10 text-[13px]">7.2ms</span>
             </div>

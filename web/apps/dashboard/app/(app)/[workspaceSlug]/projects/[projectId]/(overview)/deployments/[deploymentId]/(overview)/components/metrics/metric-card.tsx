@@ -23,7 +23,7 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   },
   rps: {
     label: "RPS",
-    color: "var(--feature-8)",
+    color: "var(--brand-8)",
     unit: "req/s",
   },
 };

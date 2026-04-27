@@ -9,9 +9,9 @@ const tagBadgeVariants = cva(
       variant: {
         enabled: "text-successA-11 bg-successA-3",
         disabled: "text-warningA-11 bg-warningA-3",
-        current: "text-feature-11 bg-feature-4",
+        current: "text-brand-11 bg-brand-4",
         rolledBack: "text-warningA-11 bg-warningA-4",
-        custom: "text-featureA-11 bg-featureA-3",
+        custom: "text-brandA-11 bg-brandA-3",
       },
     },
     defaultVariants: {

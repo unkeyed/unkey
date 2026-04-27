@@ -385,7 +385,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                           }
                         }}
                         className={cn(
-                          "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
+                          "cursor-pointer transition-colors hover:bg-accent-3/50 focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
                           config.rowBorders && "border-b border-gray-4",
                           rowClassName?.(typedItem),
                           selectedClassName?.(typedItem, isSelected),
@@ -456,7 +456,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         }
                       }}
                       className={cn(
-                        "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
+                        "cursor-pointer transition-colors hover:bg-accent-3/50 focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
                         config.rowBorders && "border-b border-gray-4",
                         rowClassName?.(typedItem),
                         selectedClassName?.(typedItem, isSelected),

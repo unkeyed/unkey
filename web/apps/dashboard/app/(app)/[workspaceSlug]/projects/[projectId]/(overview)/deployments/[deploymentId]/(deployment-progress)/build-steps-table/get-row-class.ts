@@ -20,7 +20,7 @@ export function getBuildStepRowClass(step: BuildStepRow): string {
   }
 
   if (step.cached) {
-    return cn(...baseClasses, "text-blue-11 bg-blue-2", "hover:bg-blue-3", "focus:ring-blue-7");
+    return cn(...baseClasses, "text-info-11 bg-info-2", "hover:bg-info-3", "focus:ring-info-7");
   }
 
   return cn(

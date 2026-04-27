@@ -10,7 +10,7 @@ const statusBadgeVariants = cva(
       variant: {
         enabled: "text-success-11 bg-success-3",
         disabled: "text-warning-11 bg-warning-3",
-        locked: "text-feature-11 bg-feature-3",
+        locked: "text-brand-11 bg-brand-3",
       },
     },
     defaultVariants: {

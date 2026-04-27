@@ -64,7 +64,7 @@ export default function Layout({ children }: LayoutProps) {
   const isImpersonator = user?.impersonator;
 
   return (
-    <div className="h-dvh relative flex flex-col overflow-hidden bg-white dark:bg-base-12 lg:flex-row">
+    <div className="h-dvh relative flex flex-col overflow-hidden bg-background lg:flex-row">
       <SidebarProvider>
         <div className="flex flex-1 overflow-hidden">
           {/* Desktop Sidebar */}
@@ -73,7 +73,7 @@ export default function Layout({ children }: LayoutProps) {
           {/* Main content area */}
           <div className="flex-1 overflow-auto" style={{ scrollbarGutter: "stable" }}>
             <div
-              className="isolate bg-base-12 w-full min-h-full overflow-x-auto flex flex-col items-center"
+              className="isolate bg-background w-full min-h-full overflow-x-auto flex flex-col items-center"
               id="layout-wrapper"
             >
               {/* Mobile sidebar at the top of content */}
