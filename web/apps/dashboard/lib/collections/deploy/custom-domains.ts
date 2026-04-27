@@ -80,20 +80,38 @@ export const customDomains = createCollection<CustomDomain, string>(
 
       const mutation = trpcClient.deploy.customDomain.add.mutate(addInput);
 
-      toast.promise(mutation, {
-        loading: "Adding domain...",
-        success: (data) => ({
-          message: "Domain added",
-          description: `Add a DNS record pointing to ${data.targetCname}`,
-        }),
-        error: (err) => ({
-          message: "Failed to add domain",
-          description: err.message,
-        }),
-      });
+      const toastId = toast.loading("Adding domain...");
 
-      await mutation;
-      await customDomains.utils.refetch();
+      try {
+        const data = await mutation;
+        toast.success("Domain added", {
+          id: toastId,
+          description: `Add a DNS record pointing to ${data.targetCname}`,
+          duration: 10_000,
+        });
+        await customDomains.utils.refetch();
+      } catch (err: unknown) {
+        const data = (err as { data?: { code?: string } }).data;
+        const message = err instanceof Error ? err.message : "";
+
+        if (data?.code === "CONFLICT") {
+          toast.error("Domain already in use", {
+            id: toastId,
+            description: "This domain is already registered in another project.",
+            ...(message && {
+              action: {
+                label: "Go to project",
+                onClick: () => window.open(message, "_blank"),
+              },
+            }),
+          });
+        } else {
+          toast.error("Failed to add domain", {
+            id: toastId,
+            description: message,
+          });
+        }
+      }
     },
     onDelete: async ({ transaction }) => {
       const original = transaction.mutations[0].original;
