@@ -22,7 +22,7 @@ export const DeploymentContainerLogsTable = ({ logs, isLoading }: Props) => {
     <StreamingTable
       data={logs}
       columns={containerLogColumns}
-      keyExtractor={(log) => log.time}
+      keyExtractor={(log) => `${log.time}-${log.instance_id}-${log.region}-${log.severity}`}
       rowClassName={getContainerLogRowClass}
       renderSkeletonCell={(col) => {
         switch (col.key) {

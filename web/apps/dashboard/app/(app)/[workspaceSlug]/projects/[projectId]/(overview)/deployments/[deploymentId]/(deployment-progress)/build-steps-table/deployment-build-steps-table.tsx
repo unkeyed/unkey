@@ -16,10 +16,11 @@ import {
 
 type Props = {
   steps: BuildStepRow[];
+  isLoading: boolean;
   fixedHeight?: number;
 };
 
-export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps, fixedHeight = 500 }) => {
+export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps, isLoading, fixedHeight = 500 }) => {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const toggleExpand = (step: BuildStepRow) => {
@@ -64,7 +65,7 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps, fixedHeight 
             return null;
         }
       }}
-      isLoading={steps.length === 0}
+      isLoading={isLoading}
       fixedHeight={fixedHeight}
       emptyState={
         <Empty className="w-[400px] flex items-start">
