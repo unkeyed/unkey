@@ -80,38 +80,38 @@ export const customDomains = createCollection<CustomDomain, string>(
 
       const mutation = trpcClient.deploy.customDomain.add.mutate(addInput);
 
-      const toastId = toast.loading("Adding domain...");
-
-      try {
-        const data = await mutation;
-        toast.success("Domain added", {
-          id: toastId,
+      toast.promise(mutation, {
+        loading: "Adding domain...",
+        success: (data) => ({
+          message: "Domain added",
           description: `Add a DNS record pointing to ${data.targetCname}`,
           duration: 10_000,
-        });
-        await customDomains.utils.refetch();
-      } catch (err: unknown) {
-        const data = (err as { data?: { code?: string } }).data;
-        const message = err instanceof Error ? err.message : "";
+        }),
+        error: (err) => {
+          const data = (err as { data?: { code?: string } }).data;
+          const message = err instanceof Error ? err.message : "";
 
-        if (data?.code === "CONFLICT") {
-          toast.error("Domain already in use", {
-            id: toastId,
-            description: "This domain is already registered in another project.",
-            ...(message && {
-              action: {
-                label: "Go to project",
-                onClick: () => window.open(message, "_blank"),
-              },
-            }),
-          });
-        } else {
-          toast.error("Failed to add domain", {
-            id: toastId,
+          if (data?.code === "CONFLICT") {
+            return {
+              message: "Domain already in use",
+              description: "This domain is already registered in another project.",
+              ...(message && {
+                action: {
+                  label: "Go to project",
+                  onClick: () => window.open(message, "_blank"),
+                },
+              }),
+            };
+          }
+          return {
+            message: "Failed to add domain",
             description: message,
-          });
-        }
-      }
+          };
+        },
+      });
+
+      await mutation;
+      await customDomains.utils.refetch();
     },
     onDelete: async ({ transaction }) => {
       const original = transaction.mutations[0].original;
