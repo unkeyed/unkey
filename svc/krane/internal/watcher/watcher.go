@@ -58,6 +58,10 @@ func New(cfg Config) *Watcher {
 	}
 }
 
+func (s *Watcher) regionKey() *ctrlv1.RegionKey {
+	return &ctrlv1.RegionKey{Platform: s.platform, Name: s.region}
+}
+
 // Watch runs two independent loops:
 //   - A real-time incremental stream for fast delivery of new changes.
 //   - A periodic full sync to reconcile any drift.
@@ -87,7 +91,7 @@ func (s *Watcher) runStream(ctx context.Context) {
 		}
 
 		stream, err := s.cluster.WatchDeploymentChanges(ctx, &ctrlv1.WatchDeploymentChangesRequest{
-			Region:          s.region,
+			Region:          s.regionKey(),
 			VersionLastSeen: versionLastSeen,
 		})
 		if err != nil {
@@ -151,7 +155,9 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 	metrics.WatcherFullSyncsTotal.Inc()
 	start := time.Now()
 
-	stream, err := s.cluster.SyncDesiredState(ctx, &ctrlv1.SyncDesiredStateRequest{})
+	stream, err := s.cluster.SyncDesiredState(ctx, &ctrlv1.SyncDesiredStateRequest{
+		Region: s.regionKey(),
+	})
 	if err != nil {
 		logger.Error("full sync: error opening connection", "error", err)
 		return

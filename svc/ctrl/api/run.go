@@ -119,6 +119,7 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	clk := clock.New()
+
 	topologyCache, err := cache.New(cache.Config[string, []db.FindDeploymentTopologyMinReplicasRow]{
 		Fresh:    5 * time.Minute,
 		Stale:    30 * time.Minute,
@@ -130,12 +131,16 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create topology cache: %w", err)
 	}
 
-	c := cluster.New(cluster.Config{
+	c, err := cluster.New(cluster.Config{
 		Database:      database,
 		Restate:       restateClient,
 		Bearer:        cfg.AuthToken,
+		Clock:         clk,
 		TopologyCache: topologyCache,
 	})
+	if err != nil {
+		return fmt.Errorf("failed to create cluster service: %w", err)
+	}
 
 	// Initialize caches for ACME service (needed for certificate verification endpoint)
 	domainCache, err := cache.New(cache.Config[string, db.CustomDomain]{

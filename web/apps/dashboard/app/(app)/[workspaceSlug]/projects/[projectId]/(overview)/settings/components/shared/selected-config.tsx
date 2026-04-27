@@ -11,11 +11,11 @@ export const SelectedConfig = ({ label, className = "" }: SelectedConfigProps) =
     <Badge
       variant="secondary"
       className={cn(
-        "px-3 py-2 text-gray-11 text-[13px] border-grayA-4 bg-transparent hover:bg-grayA-3 cursor-default hover:text-gray-12 rounded-md focus:hover:bg-transparent h-7 max-w-full overflow-hidden",
+        "px-3 py-2 text-gray-11 text-[13px] border-grayA-4 bg-transparent hover:bg-grayA-3 cursor-default hover:text-gray-12 rounded-md focus:hover:bg-transparent h-7 max-w-full min-w-0 overflow-hidden",
         className,
       )}
     >
-      {label}
+      <span className="truncate">{label}</span>
     </Badge>
   );
 };

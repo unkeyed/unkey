@@ -104,7 +104,7 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				Remaining:   ptr.P(int32(5)),
+				Remaining:   ptr.P(int64(5)),
 			})
 
 			req := handler.Request{
@@ -123,7 +123,7 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				Remaining:   ptr.P(int32(0)),
+				Remaining:   ptr.P(int64(0)),
 			})
 
 			req := handler.Request{
@@ -142,7 +142,7 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				Remaining:   ptr.P(int32(5)),
+				Remaining:   ptr.P(int64(5)),
 			})
 
 			req := handler.Request{
@@ -164,7 +164,7 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				Remaining:   ptr.P(int32(5)),
+				Remaining:   ptr.P(int64(5)),
 			})
 
 			req := handler.Request{
@@ -186,7 +186,7 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				Remaining:   ptr.P(int32(0)),
+				Remaining:   ptr.P(int64(0)),
 			})
 
 			req := handler.Request{
@@ -505,7 +505,7 @@ func TestSuccess(t *testing.T) {
 					Name:        "auto-apply",
 					WorkspaceID: workspace.ID,
 					AutoApply:   true,
-					Duration:    time.Minute.Milliseconds(),
+					Duration:    uint64(time.Minute.Milliseconds()),
 					Limit:       1,
 				},
 			},
@@ -537,7 +537,7 @@ func TestSuccess(t *testing.T) {
 					Name:        "requests",
 					WorkspaceID: workspace.ID,
 					AutoApply:   false,
-					Duration:    time.Minute.Milliseconds(),
+					Duration:    uint64(time.Minute.Milliseconds()),
 					Limit:       1,
 				},
 			},
@@ -596,7 +596,7 @@ func TestSuccess(t *testing.T) {
 					Name:        "tokens",
 					WorkspaceID: workspace.ID,
 					AutoApply:   false,
-					Duration:    (time.Minute * 30).Milliseconds(),
+					Duration:    uint64((time.Minute * 30).Milliseconds()),
 					Limit:       4,
 					// Will be set later
 					IdentityID: nil,

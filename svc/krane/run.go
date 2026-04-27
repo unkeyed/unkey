@@ -90,8 +90,6 @@ func Run(ctx context.Context, cfg Config) error {
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
 		URL:         cfg.Control.URL,
 		BearerToken: cfg.Control.Token,
-		Region:      cfg.Region,
-		Platform:    cfg.Platform,
 	})
 
 	inClusterConfig, err := rest.InClusterConfig()
@@ -144,6 +142,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DynamicClient: dynamicClient,
 		Cluster:       cluster,
 		Region:        cfg.Region,
+		Platform:      cfg.Platform,
 	})
 	if err := ciliumCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start cilium controller: %w", err)
@@ -254,8 +253,10 @@ func Run(ctx context.Context, cfg Config) error {
 	// Start heartbeat loop to register this cluster with the control plane
 	stopHeartbeat := repeat.Every(30*time.Second, func() {
 		if _, err := cluster.Heartbeat(ctx, &ctrlv1.HeartbeatRequest{
-			Region:   cfg.Region,
-			Platform: cfg.Platform,
+			Region: &ctrlv1.RegionKey{
+				Platform: cfg.Platform,
+				Name:     cfg.Region,
+			},
 		}); err != nil {
 			logger.Warn("heartbeat failed", "error", err)
 		}
