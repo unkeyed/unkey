@@ -211,6 +211,7 @@ export const SelectRepo = ({
                       onSelect={handleSelectRepository}
                       disabled={mutatingRepoId !== null}
                       loading={mutatingRepoId === repo.id}
+                      hasMultipleAccounts={ownerOptions.length > 1}
                     />
                   </div>
                 );
