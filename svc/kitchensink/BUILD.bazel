@@ -6,6 +6,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/svc/kitchensink",
     visibility = ["//visibility:private"],
     deps = [
+        "//svc/kitchensink/buildinfo",
         "//svc/kitchensink/echo",
         "//svc/kitchensink/env",
         "//svc/kitchensink/headers",
@@ -22,4 +23,7 @@ go_binary(
     name = "kitchensink",
     embed = [":kitchensink_lib"],
     visibility = ["//visibility:public"],
+    x_defs = {
+        "github.com/unkeyed/unkey/svc/kitchensink/buildinfo.Version": "bazel",
+    },
 )

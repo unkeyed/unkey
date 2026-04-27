@@ -1,8 +1,9 @@
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { cn } from "@/lib/utils";
+import { Page2 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
-  AssignedItemsCell,
+  AssignedCountCell,
   HiddenValueCell,
   LastUpdatedCell,
   RootKeyNameCell,
@@ -96,9 +97,11 @@ export const createRootKeyColumns = ({
     cell: ({ row }) => {
       const rootKey = row.original;
       return (
-        <AssignedItemsCell
+        <AssignedCountCell
+          count={rootKey.permissionSummary.total}
+          icon={<Page2 iconSize="md-medium" className="opacity-50" />}
+          singularLabel="Permission"
           isSelected={rootKey.id === selectedRootKeyId}
-          permissionSummary={rootKey.permissionSummary}
         />
       );
     },

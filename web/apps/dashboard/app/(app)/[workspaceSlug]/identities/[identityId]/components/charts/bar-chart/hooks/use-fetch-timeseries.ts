@@ -88,7 +88,7 @@ export const useFetchIdentityTimeseries = (identityId: string) => {
 
   const timeseries = useMemo(() => {
     if (!data?.timeseries) {
-      return [];
+      return undefined;
     }
 
     // Convert schema granularity to TimeseriesGranularity format
@@ -132,7 +132,7 @@ export const useFetchIdentityTimeseries = (identityId: string) => {
   }, [data]);
 
   return {
-    timeseries: timeseries || [],
+    timeseries,
     isLoading,
     isError,
     granularity: data?.granularity,

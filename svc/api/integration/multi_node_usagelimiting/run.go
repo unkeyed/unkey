@@ -46,8 +46,7 @@ func RunUsageLimitTest(
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		//nolint: gosec
-		Remaining: ptr.P(int32(totalCredits)),
+		Remaining:   ptr.P(totalCredits),
 	})
 
 	keyStart := keyResponse.Key
@@ -76,8 +75,7 @@ func RunUsageLimitTest(
 		Tags:        nil,
 		Key:         keyStart,
 		Credits: &openapi.KeysVerifyKeyCredits{
-			//nolint: gosec
-			Cost: int32(costPerRequest),
+			Cost: costPerRequest,
 		},
 		MigrationId: nil,
 	}

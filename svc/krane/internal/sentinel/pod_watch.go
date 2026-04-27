@@ -3,12 +3,17 @@ package sentinel
 import (
 	"context"
 	"math/rand/v2"
+	"strings"
 	"time"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/conc"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/krane/internal/podstatus"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
+	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 )
@@ -23,6 +28,13 @@ import (
 //
 // On any pod event, we find the owning Deployment, re-read its status, and
 // report health via determineHealth.
+//
+// The initial watch must succeed for the controller to start. After that the
+// goroutine automatically reconnects with jittered backoff (1-5s) when the
+// watch disconnects or times out. A fresh Watch() call with no ResourceVersion
+// causes the API server to replay ADDED events for every existing matching
+// pod, so startup and reconnect states are covered by the watch itself;
+// anything the watch somehow drops is caught by the 30s actual-state resync.
 func (c *Controller) runPodWatchLoop(ctx context.Context) error {
 	w, err := c.watchSentinelPods(ctx)
 	if err != nil {
@@ -37,6 +49,7 @@ func (c *Controller) runPodWatchLoop(ctx context.Context) error {
 				return
 			}
 
+			metrics.PodWatchReconnectsTotal.WithLabelValues("sentinel", "channel_closed").Inc()
 			backoff := time.Second + time.Millisecond*time.Duration(rand.Float64()*4000)
 			logger.Warn("sentinel pod watch: disconnected, reconnecting", "backoff", backoff)
 			time.Sleep(backoff)
@@ -44,6 +57,7 @@ func (c *Controller) runPodWatchLoop(ctx context.Context) error {
 			var watchErr error
 			w, watchErr = c.watchSentinelPods(ctx)
 			if watchErr != nil {
+				metrics.PodWatchReconnectsTotal.WithLabelValues("sentinel", "error").Inc()
 				logger.Error("sentinel pod watch: unable to re-establish watch", "error", watchErr.Error())
 				continue
 			}
@@ -65,7 +79,11 @@ func (c *Controller) watchSentinelPods(ctx context.Context) (watch.Interface, er
 
 // drainSentinelPodWatch processes events from a sentinel pod watch.
 // On any pod change, it finds the owning Deployment and reports its health.
+// Events are handled concurrently with bounded parallelism so that a slow
+// control plane RPC for one sentinel does not delay reporting for others.
 func (c *Controller) drainSentinelPodWatch(ctx context.Context, w watch.Interface) {
+	sem := conc.NewSem(conc.DefaultConcurrency)
+
 	for event := range w.ResultChan() {
 		switch event.Type {
 		case watch.Error:
@@ -78,59 +96,86 @@ func (c *Controller) drainSentinelPodWatch(ctx context.Context, w watch.Interfac
 				continue
 			}
 
-			// Find the owning Deployment by traversing Pod → ReplicaSet → Deployment.
-			deploymentName := owningDeployment(pod)
-			if deploymentName == "" {
-				continue
-			}
-
-			deployment, err := c.clientSet.AppsV1().Deployments(NamespaceSentinel).
-				Get(ctx, deploymentName, metav1.GetOptions{})
-			if err != nil {
-				logger.Error("sentinel pod watch: unable to get deployment",
-					"deployment", deploymentName, "pod", pod.Name, "error", err.Error())
-				continue
-			}
-
-			health := determineHealth(deployment)
-			sentinelID := deployment.Labels[labels.LabelKeySentinelID]
-			if err := c.reportSentinelStatus(ctx, &ctrlv1.ReportSentinelStatusRequest{
-				K8SName:           deployment.Name,
-				AvailableReplicas: deployment.Status.AvailableReplicas,
-				Health:            health,
-				SentinelId:        sentinelID,
-				RunningImage:      convergedImage(deployment),
-			}); err != nil {
-				logger.Error("sentinel pod watch: unable to report status",
-					"deployment", deploymentName, "error", err.Error())
-			}
+			sem.Go(ctx, func(ctx context.Context) {
+				c.handlePodEvent(ctx, pod, event.Type)
+			})
 		}
+	}
+
+	sem.Wait()
+}
+
+// handlePodEvent processes a single pod watch event: finds the owning
+// Deployment, reads its status, and reports health if changed.
+func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventType watch.EventType) {
+	eventTypeLabel := strings.ToLower(string(eventType))
+	c.lagRecorder.Observe(ctx, pod, eventType)
+	logger.Info("sentinel pod watch: event received",
+		"pod", pod.Name,
+		"namespace", pod.Namespace,
+		"type", eventType,
+		"phase", pod.Status.Phase,
+		"ip", pod.Status.PodIP,
+		"containers_ready", podstatus.ReadyStatus(pod),
+		"ready_lag_seconds", podstatus.ReadyLagSeconds(pod),
+	)
+
+	deploymentName := owningDeployment(pod)
+	if deploymentName == "" {
+		metrics.PodWatchEventsTotal.WithLabelValues("sentinel", eventTypeLabel, "skipped_no_deployment").Inc()
+		return
+	}
+
+	deployment, err := c.clientSet.AppsV1().Deployments(NamespaceSentinel).
+		Get(ctx, deploymentName, metav1.GetOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			// Deployment gone — resync loop handles orphan cleanup.
+			metrics.PodWatchEventsTotal.WithLabelValues("sentinel", eventTypeLabel, "skipped_deployment_gone").Inc()
+			logger.Info("sentinel pod watch: deployment not found, skipping",
+				"deployment", deploymentName, "pod", pod.Name)
+			return
+		}
+		metrics.PodWatchEventsTotal.WithLabelValues("sentinel", eventTypeLabel, "error").Inc()
+		logger.Error("sentinel pod watch: deployment get failed",
+			"deployment", deploymentName, "pod", pod.Name, "error", err.Error())
+		return
+	}
+
+	health := determineHealth(deployment)
+	sentinelID := deployment.Labels[labels.LabelKeySentinelID]
+	status := &ctrlv1.ReportSentinelStatusRequest{
+		K8SName:           deployment.Name,
+		AvailableReplicas: deployment.Status.AvailableReplicas,
+		Health:            health,
+		SentinelId:        sentinelID,
+		RunningImage:      convergedImage(deployment),
+	}
+
+	reported, err := c.reportIfChanged(ctx, status)
+	if err != nil {
+		metrics.PodWatchEventsTotal.WithLabelValues("sentinel", eventTypeLabel, "error").Inc()
+		logger.Error("sentinel pod watch: unable to report status",
+			"deployment", deploymentName, "error", err.Error())
+		return
+	}
+	if reported {
+		metrics.PodWatchEventsTotal.WithLabelValues("sentinel", eventTypeLabel, "reported").Inc()
+		logger.Info("sentinel pod watch: reported changed status",
+			"deployment", deploymentName, "pod", pod.Name, "health", health, "available_replicas", deployment.Status.AvailableReplicas)
+	} else {
+		metrics.PodWatchEventsTotal.WithLabelValues("sentinel", eventTypeLabel, "deduped").Inc()
 	}
 }
 
 // owningDeployment traverses a pod's owner references to find the name of the
 // Deployment that ultimately owns it (Pod → ReplicaSet → Deployment).
-// Returns empty string if the ownership chain can't be determined from labels.
+// Returns empty string if the ownership chain can't be determined.
 func owningDeployment(pod *corev1.Pod) string {
-	// Sentinel pods have a deterministic label set by the Deployment template.
-	// The Deployment name matches the k8s_name which is on the pod labels
-	// via the pod template. We can get it from the ReplicaSet owner ref
-	// and trim the hash suffix, but it's simpler to use the fact that
-	// sentinel Deployments set pod-template-hash on the ReplicaSet name.
-	//
-	// Walk: Pod → ownerRef(ReplicaSet) → ReplicaSet name has format "{deployment}-{hash}"
-	// But we don't have the RS object here. Instead, use the app label
-	// or just strip the pod hash.
-	//
-	// Actually the simplest: sentinel pods inherit Deployment labels including
-	// the sentinel ID. But we need the Deployment *name* to do a Get().
-	// The Deployment name is the k8s_name which isn't in pod labels.
-	//
-	// So we walk the owner chain: Pod → ReplicaSet name → strip hash → Deployment name.
 	for _, ref := range pod.OwnerReferences {
 		if ref.Kind == "ReplicaSet" && ref.Controller != nil && *ref.Controller {
 			// ReplicaSet name format: "{deployment-name}-{pod-template-hash}"
-			// The hash is the last segment after the final hyphen.
+			// Strip the hash suffix to recover the Deployment name.
 			rsName := ref.Name
 			for i := len(rsName) - 1; i >= 0; i-- {
 				if rsName[i] == '-' {

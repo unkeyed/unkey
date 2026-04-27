@@ -13,7 +13,7 @@ export const RepoListItemSkeleton = () => (
       <div className="h-4 w-28 bg-grayA-3 rounded animate-pulse" />
     </div>
     <div className="flex gap-2 items-center">
-      <div className="ml-6 w-[140px]">
+      <div className="ml-6 w-[200px]">
         <div className="h-7 w-full bg-grayA-3 rounded-lg animate-pulse" />
       </div>
       <div className="h-7 w-[62px] bg-grayA-3 rounded-lg animate-pulse" />
@@ -27,7 +27,7 @@ export const SelectRepoSkeleton = () => (
       <div className="w-[200px] h-9 bg-grayA-3 rounded-lg animate-pulse shrink-0" />
       <div className="flex-1 h-9 bg-grayA-3 rounded-lg animate-pulse" />
     </div>
-    <ul className="mt-3 flex flex-col border rounded-[14px] border-grayA-5 divide-y divide-grayA-5 min-w-[640px] max-h-[462px] overflow-y-auto">
+    <ul className="mt-3 flex flex-col border rounded-[14px] border-grayA-5 divide-y divide-grayA-5 min-w-[var(--repo-list-w)] max-h-[462px] overflow-y-auto">
       {Array.from({ length: 3 }).map((_, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
         <li key={i}>

@@ -126,10 +126,10 @@ type ListLiveKeysByKeySpaceIDRow struct {
 	UpdatedAtM         sql.NullInt64  `db:"updated_at_m"`
 	DeletedAtM         sql.NullInt64  `db:"deleted_at_m"`
 	RefillDay          sql.NullInt16  `db:"refill_day"`
-	RefillAmount       sql.NullInt32  `db:"refill_amount"`
+	RefillAmount       sql.NullInt64  `db:"refill_amount"`
 	LastRefillAt       sql.NullTime   `db:"last_refill_at"`
 	Enabled            bool           `db:"enabled"`
-	RemainingRequests  sql.NullInt32  `db:"remaining_requests"`
+	RemainingRequests  sql.NullInt64  `db:"remaining_requests"`
 	Environment        sql.NullString `db:"environment"`
 	LastUsedAt         uint64         `db:"last_used_at"`
 	PendingMigrationID sql.NullString `db:"pending_migration_id"`

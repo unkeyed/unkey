@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, int, mysqlTable, unique, varchar } from "drizzle-orm/mysql-core";
+import { bigint, mysqlTable, unique, varchar } from "drizzle-orm/mysql-core";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -40,11 +40,11 @@ export const ratelimitOverrides = mysqlTable(
     namespaceId: varchar("namespace_id", { length: 256 }).notNull(),
     identifier: varchar("identifier", { length: 512 }).notNull(),
 
-    limit: int("limit").notNull(),
+    limit: bigint("limit", { mode: "number", unsigned: true }).notNull(),
     /**
      * window duration in milliseconds
      */
-    duration: int("duration").notNull(),
+    duration: bigint("duration", { mode: "number", unsigned: true }).notNull(),
     ...lifecycleDatesMigration,
   },
   (table) => {

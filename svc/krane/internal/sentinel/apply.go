@@ -209,7 +209,6 @@ func (c *Controller) ensureSentinelExists(ctx context.Context, sentinel *ctrlv1.
 					MaxSurge:       ptr.P(intstr.FromInt(1)),
 				},
 			},
-			MinReadySeconds:         5,
 			ProgressDeadlineSeconds: ptr.P(int32(300)),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{

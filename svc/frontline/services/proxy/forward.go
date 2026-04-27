@@ -168,8 +168,8 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 		},
 	}
 
-	// Proxy the request with the middleware context (carries timeout deadline)
-	proxy.ServeHTTP(wrapper, sess.Request().WithContext(ctx))
+	// Proxy the request with the middleware context (carries timeout deadline).
+	serveWithAbortRecovery(proxy, wrapper, sess.Request().WithContext(ctx), cfg.destination)
 
 	// Feed captured response body back into the session for zen middleware logging.
 	if responseBuf.Len() > 0 {
@@ -358,6 +358,24 @@ func extractSentinelError(resp *http.Response, statusCode int) (codes.URN, strin
 	}
 
 	return fallbackURN, fallbackMessage
+}
+
+// serveWithAbortRecovery calls h.ServeHTTP and swallows http.ErrAbortHandler panics.
+// httputil.ReverseProxy panics with that sentinel when the response body copy fails
+// after headers have been flushed (typically the client disconnected mid-stream).
+// There is no recovery path at that point — the panic is the library's signal that
+// the handler is aborting. Swallowing it keeps the global panic middleware strict
+// for real bugs; other panic values are re-raised unchanged.
+func serveWithAbortRecovery(h http.Handler, w http.ResponseWriter, r *http.Request, destination string) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			if rec != http.ErrAbortHandler {
+				panic(rec)
+			}
+			proxyAbortedTotal.WithLabelValues(destination).Inc()
+		}
+	}()
+	h.ServeHTTP(w, r)
 }
 
 func statusClass(code int) string {

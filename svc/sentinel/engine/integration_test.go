@@ -68,19 +68,19 @@ func newTestHarness(t *testing.T) *testHarness {
 	t.Cleanup(func() { _ = rateLimiter.Close() })
 
 	usageLimiter, err := usagelimiter.NewCounter(usagelimiter.CounterConfig{
-		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
-			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
+		FindKeyCredits: func(ctx context.Context, keyID string) (int64, bool, error) {
+			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt64, error) {
 				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
 			})
 			if err != nil {
 				return 0, false, err
 			}
-			return limit.Int32, limit.Valid, nil
+			return limit.Int64, limit.Valid, nil
 		},
-		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int32) error {
+		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int64) error {
 			return db.Query.UpdateKeyCreditsDecrement(ctx, database.RW(), db.UpdateKeyCreditsDecrementParams{
 				ID:      keyID,
-				Credits: sql.NullInt32{Int32: cost, Valid: true},
+				Credits: sql.NullInt64{Int64: cost, Valid: true},
 			})
 		},
 		Counter:       redisCounter,
@@ -192,9 +192,9 @@ func (h *testHarness) seed(ctx context.Context) seedResult {
 		Expires:            sql.NullTime{Valid: false},
 		CreatedAtM:         now,
 		Enabled:            true,
-		RemainingRequests:  sql.NullInt32{Valid: false},
+		RemainingRequests:  sql.NullInt64{Valid: false},
 		RefillDay:          sql.NullInt16{Valid: false},
-		RefillAmount:       sql.NullInt32{Valid: false},
+		RefillAmount:       sql.NullInt64{Valid: false},
 		PendingMigrationID: sql.NullString{Valid: false},
 	})
 	require.NoError(h.t, err)
@@ -227,9 +227,9 @@ func (h *testHarness) seedDisabledKey(ctx context.Context, wsID, ksID string) se
 		Expires:            sql.NullTime{Valid: false},
 		CreatedAtM:         time.Now().UnixMilli(),
 		Enabled:            false,
-		RemainingRequests:  sql.NullInt32{Valid: false},
+		RemainingRequests:  sql.NullInt64{Valid: false},
 		RefillDay:          sql.NullInt16{Valid: false},
-		RefillAmount:       sql.NullInt32{Valid: false},
+		RefillAmount:       sql.NullInt64{Valid: false},
 		PendingMigrationID: sql.NullString{Valid: false},
 	})
 	require.NoError(h.t, err)
@@ -275,9 +275,9 @@ func (h *testHarness) seedKeyWithIdentity(ctx context.Context, wsID, ksID string
 		Expires:            sql.NullTime{Valid: false},
 		CreatedAtM:         now,
 		Enabled:            true,
-		RemainingRequests:  sql.NullInt32{Valid: false},
+		RemainingRequests:  sql.NullInt64{Valid: false},
 		RefillDay:          sql.NullInt16{Valid: false},
-		RefillAmount:       sql.NullInt32{Valid: false},
+		RefillAmount:       sql.NullInt64{Valid: false},
 		PendingMigrationID: sql.NullString{Valid: false},
 	})
 	require.NoError(h.t, err)

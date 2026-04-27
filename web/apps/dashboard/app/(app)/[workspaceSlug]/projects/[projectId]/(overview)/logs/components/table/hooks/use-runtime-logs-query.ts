@@ -23,7 +23,9 @@ export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQuery
     const startTimeFilter = filters.find((f) => f.field === "startTime");
     const endTimeFilter = filters.find((f) => f.field === "endTime");
     const sinceFilter = filters.find((f) => f.field === "since");
-    const environmentIdFilter = filters.find((f) => f.field === "environmentId");
+    const environmentIdFilters = filters
+      .filter((f) => f.field === "environmentId")
+      .map((f) => ({ operator: "is" as const, value: String(f.value) }));
     const deploymentIdFilter = filters.find((f) => f.field === "deploymentId");
     const regionFilters = filters
       .filter((f) => f.field === "region")
@@ -43,7 +45,7 @@ export function useRuntimeLogsQuery({ limit = 50, filters }: UseRuntimeLogsQuery
       region: regionFilters.length > 0 ? { filters: regionFilters } : null,
       message: messageFilter ? String(messageFilter.value) : null,
       instanceId: instanceIdFilters.length > 0 ? { filters: instanceIdFilters } : null,
-      environmentId: environmentIdFilter ? String(environmentIdFilter.value) : null,
+      environmentId: environmentIdFilters.length > 0 ? { filters: environmentIdFilters } : null,
     };
   }, [filters, limit, params]);
 

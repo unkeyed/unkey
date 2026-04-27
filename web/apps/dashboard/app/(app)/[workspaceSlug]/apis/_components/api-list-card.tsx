@@ -15,7 +15,7 @@ type Props = {
 };
 
 export const ApiListCard = ({ api }: Props) => {
-  const { timeseries, isError } = useFetchVerificationTimeseries(api.keyspaceId);
+  const { timeseries, isLoading, isError } = useFetchVerificationTimeseries(api.keyspaceId);
   const keyCount = api.keyCount;
   const workspace = useWorkspaceNavigation();
 
@@ -31,7 +31,7 @@ export const ApiListCard = ({ api }: Props) => {
         chart={
           <StatsTimeseriesBarChart
             data={timeseries}
-            isLoading={false}
+            isLoading={isLoading}
             isError={isError}
             config={{
               success: {

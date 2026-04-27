@@ -15,7 +15,7 @@ UPDATE ` + "`" + `keys` + "`" + ` SET refill_amount = ?, refill_day = ? WHERE id
 `
 
 type UpdateKeyCreditsRefillParams struct {
-	RefillAmount sql.NullInt32 `db:"refill_amount"`
+	RefillAmount sql.NullInt64 `db:"refill_amount"`
 	RefillDay    sql.NullInt16 `db:"refill_day"`
 	ID           string        `db:"id"`
 }

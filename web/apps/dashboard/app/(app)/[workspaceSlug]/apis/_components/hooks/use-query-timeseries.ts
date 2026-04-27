@@ -61,8 +61,8 @@ export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
     },
   });
 
-  const timeseries = (data?.timeseries ?? []).map((ts) => ({
-    displayX: formatTimestampForChart(ts.x, data?.granularity ?? "per12Hours"),
+  const timeseries = data?.timeseries?.map((ts) => ({
+    displayX: formatTimestampForChart(ts.x, data.granularity ?? "per12Hours"),
     originalTimestamp: ts.x,
     valid: ts.y.valid,
     total: ts.y.total,

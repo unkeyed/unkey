@@ -31,8 +31,8 @@ func TestGetOverrideSuccessfully(t *testing.T) {
 
 	// Create an override
 	identifier := "test_identifier"
-	limit := int32(10)
-	duration := int32(1000)
+	limit := uint64(10)
+	duration := uint64(1000)
 	overrideID := uid.New(uid.RatelimitOverridePrefix)
 
 	err = db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{

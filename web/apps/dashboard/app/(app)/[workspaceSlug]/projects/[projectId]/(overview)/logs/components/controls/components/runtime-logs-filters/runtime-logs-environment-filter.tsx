@@ -19,7 +19,7 @@ export const RuntimeLogsEnvironmentFilter = () => {
     <FilterCheckbox
       options={options}
       filterField="environmentId"
-      checkPath="slug"
+      checkPath="environmentId"
       selectionMode="multiple"
       renderOptionContent={(checkbox) => (
         <div className="text-accent-12 text-xs capitalize">{checkbox.slug}</div>

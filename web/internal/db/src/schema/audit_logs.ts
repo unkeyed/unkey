@@ -38,12 +38,11 @@ export const auditLog = mysqlTable(
     ...lifecycleDates,
   },
   (table) => [
-    index("workspace_id_idx").on(table.workspaceId),
-    index("bucket_id_idx").on(table.bucketId),
-    index("bucket_idx").on(table.bucket),
-    index("event_idx").on(table.event),
-    index("actor_id_idx").on(table.actorId),
-    index("time_idx").on(table.time),
+    // Every dashboard SELECT filters by (workspace_id, bucket, time) and orders
+    // by time DESC. This one composite serves every code path; the old
+    // single-column indexes on workspace_id / bucket / bucket_id / event /
+    // actor_id / time saw zero traffic and were costing INSERT throughput.
+    index("workspace_id_bucket_time_idx").on(table.workspaceId, table.bucket, table.time),
   ],
 );
 
@@ -87,7 +86,6 @@ export const auditLogTarget = mysqlTable(
   },
   (table) => [
     unique("unique_id_per_log").on(table.auditLogId, table.id),
-    index("bucket").on(table.bucket),
     index("id_idx").on(table.id),
   ],
 );
