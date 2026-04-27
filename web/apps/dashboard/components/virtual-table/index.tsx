@@ -13,7 +13,6 @@ import {
 import { EmptyState } from "./components/empty-state";
 import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
-import { useAutoScroll } from "./hooks/useAutoScroll";
 import { useTableData } from "./hooks/useTableData";
 import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
@@ -74,7 +73,6 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       renderExpanded,
       isExpandable,
       expandedRowHeight = 400,
-      autoScrollToBottom = false,
     } = props;
 
     // Merge configs, allowing specific overrides
@@ -82,7 +80,6 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const isGridLayout = config.layoutMode === "grid";
     const parentRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     const containerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
-    const anchorRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     // Default to false (desktop) to prevent hydration mismatches
     const isMobile = useIsMobile({ defaultValue: false });
 
@@ -160,15 +157,6 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
       config.className,
       config.containerPadding || "px-2",
     );
-
-    useAutoScroll({
-      enabled: autoScrollToBottom,
-      scrollRef: parentRef,
-      anchorRef,
-      dataLength: tableData.getTotalLength(),
-      isLoading,
-      expandedCount: expandedIds.size,
-    });
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: refs are stable and shouldn't be in deps
     useImperativeHandle(
@@ -494,7 +482,6 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               />
             </tbody>
           </table>
-          {autoScrollToBottom && <div ref={anchorRef} />}
           {loadMoreFooterProps && (
             <LoadMoreFooter
               {...loadMoreFooterProps}

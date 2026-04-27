@@ -1,6 +1,6 @@
 "use client";
 
-import { VirtualTable } from "@/components/virtual-table/index";
+import { StreamingTable } from "@/components/streaming-table";
 import { cn } from "@/lib/utils";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -20,59 +20,52 @@ type Props = {
 
 export const DeploymentContainerLogsTable = ({ logs, isLoading }: Props) => {
   return (
-    <VirtualTable
+    <StreamingTable
       data={logs}
-      isLoading={isLoading}
       columns={containerLogColumns}
-      renderSkeletonRow={({ columns, rowHeight }) =>
-        columns.map((column, idx) => (
+      keyExtractor={(log) => log.time}
+      rowClassName={(log) => getContainerLogRowClass(log)}
+      renderSkeletonRow={(columns) =>
+        columns.map((col, idx) => (
           <td
-            key={column.key}
+            key={col.key}
             className={cn(
               "text-xs align-middle whitespace-nowrap",
               idx === 0 ? "pl-4.5" : "",
-              column.cellClassName,
+              col.cellClassName,
             )}
-            style={{ height: `${rowHeight}px` }}
+            style={{ height: "26px" }}
           >
-            {column.key === "log" && <TimeColumnSkeleton />}
-            {column.key === "severity" && <SeverityColumnSkeleton />}
-            {column.key === "region" && <RegionColumnSkeleton />}
-            {column.key === "message" && <MessageColumnSkeleton />}
+            {col.key === "log" && <TimeColumnSkeleton />}
+            {col.key === "severity" && <SeverityColumnSkeleton />}
+            {col.key === "region" && <RegionColumnSkeleton />}
+            {col.key === "message" && <MessageColumnSkeleton />}
           </td>
         ))
       }
-      keyExtractor={(log) => log.time}
-      rowClassName={(log) => getContainerLogRowClass(log)}
+      isLoading={isLoading}
       fixedHeight={500}
-      autoScrollToBottom
-      config={{
-        containerPadding: "px-0 py-0",
-        className: "bg-transparent",
-      }}
       emptyState={
-        <div className="w-full flex justify-center items-center h-full">
-          <Empty className="w-100 flex items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>Container Logs</Empty.Title>
-            <Empty.Description className="text-left">
-              No runtime logs found for this deployment. Container logs will appear here once the
-              deployment starts running.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <a
-                href="https://www.unkey.com/docs/introduction"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button size="md">
-                  <BookBookmark />
-                  Documentation
-                </Button>
-              </a>
-            </Empty.Actions>
-          </Empty>
-        </div>
+        <Empty className="w-100 flex items-start">
+          <Empty.Icon className="w-auto" />
+          <Empty.Title>Container Logs</Empty.Title>
+          <Empty.Description className="text-left">
+            No runtime logs found for this deployment. Container logs will appear here once the
+            deployment starts running.
+          </Empty.Description>
+          <Empty.Actions className="mt-4 justify-start">
+            <a
+              href="https://www.unkey.com/docs/introduction"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button size="md">
+                <BookBookmark />
+                Documentation
+              </Button>
+            </a>
+          </Empty.Actions>
+        </Empty>
       }
     />
   );
