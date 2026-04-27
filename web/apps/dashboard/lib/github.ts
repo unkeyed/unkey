@@ -40,6 +40,16 @@ const repositoryBranchesSchema = z.array(
   }),
 );
 
+export class GitHubApiError extends Error {
+  constructor(
+    public readonly status: number,
+    body: string,
+  ) {
+    super(`GitHub API error ${status}: ${body}`);
+    this.name = "GitHubApiError";
+  }
+}
+
 const GITHUB_API_HEADERS = {
   Accept: "application/vnd.github+json",
   "X-GitHub-Api-Version": "2022-11-28",
@@ -55,7 +65,7 @@ async function fetchGitHubApi(url: string, token: string): Promise<unknown> {
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`GitHub API error ${response.status}: ${body}`);
+    throw new GitHubApiError(response.status, body);
   }
 
   return response.json();
@@ -335,4 +345,51 @@ export async function getRepositoryById(
   }
 
   return gitHubRepositorySchema.parse(await response.json());
+}
+
+const pullRequestSchema = z.object({
+  head: z.object({
+    ref: z.string(),
+    sha: z.string(),
+    label: z.string(),
+    repo: z
+      .object({
+        full_name: z.string(),
+        fork: z.boolean(),
+      })
+      .nullable(),
+  }),
+  base: z.object({
+    repo: z.object({
+      full_name: z.string(),
+    }),
+  }),
+});
+
+export type GitHubPullRequest = z.infer<typeof pullRequestSchema>;
+
+export async function getPullRequest(
+  installationId: number,
+  repoFullName: string,
+  prNumber: number,
+): Promise<GitHubPullRequest> {
+  const { token } = await getInstallationAccessToken(installationId);
+  const data = await fetchGitHubApi(
+    `https://api.github.com/repos/${repoFullName}/pulls/${prNumber}`,
+    token,
+  );
+  return pullRequestSchema.parse(data);
+}
+
+export async function listPullRequestsForCommit(
+  installationId: number,
+  repoFullName: string,
+  commitSha: string,
+): Promise<GitHubPullRequest[]> {
+  const { token } = await getInstallationAccessToken(installationId);
+  const data = await fetchGitHubApi(
+    `https://api.github.com/repos/${repoFullName}/commits/${commitSha}/pulls`,
+    token,
+  );
+  return z.array(pullRequestSchema).parse(data);
 }

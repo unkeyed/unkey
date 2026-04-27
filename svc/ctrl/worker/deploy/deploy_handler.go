@@ -399,25 +399,33 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 	case *hydrav1.DeployRequest_Git:
 		commitSHA := source.Git.GetCommitSha()
 
-		// Resolve branch→SHA when commit_sha is empty (e.g. CreateDeployment with
+		resolveRepo := source.Git.GetRepository()
+		resolveBranch := source.Git.GetBranch()
+		forkRepo := source.Git.GetForkRepository()
+
+		if forkRepo != "" {
+			resolveRepo = forkRepo
+		}
+
+		// Resolve branch->SHA when commit_sha is empty (e.g. CreateDeployment with
 		// a GitTarget that specifies only a branch)
-		if commitSHA == "" && source.Git.GetBranch() != "" {
+		if commitSHA == "" && resolveBranch != "" {
 			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
-				if w.allowUnauthenticatedDeployments && source.Git.GetInstallationId() == noInstallationID {
+				if forkRepo != "" || (w.allowUnauthenticatedDeployments && source.Git.GetInstallationId() == noInstallationID) {
 					return w.github.GetBranchHeadCommitPublic(
-						source.Git.GetRepository(),
-						source.Git.GetBranch(),
+						resolveRepo,
+						resolveBranch,
 					)
 				}
 				return w.github.GetBranchHeadCommit(
 					source.Git.GetInstallationId(),
-					source.Git.GetRepository(),
-					source.Git.GetBranch(),
+					resolveRepo,
+					resolveBranch,
 				)
 			}, restate.WithName("resolve branch head"), restate.WithMaxRetryAttempts(runMaxAttempts))
 			if resolveErr != nil {
 				return fault.Wrap(
-					restate.TerminalError(fmt.Errorf("failed to resolve HEAD of branch %q: %w", source.Git.GetBranch(), resolveErr)),
+					restate.TerminalError(fmt.Errorf("failed to resolve HEAD of branch %q: %w", resolveBranch, resolveErr)),
 					fault.Public("The configured Git branch could not be resolved. Please check your branch settings."),
 				)
 			}
@@ -427,7 +435,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 				return db.Query.UpdateDeploymentGitMetadata(runCtx, w.db.RW(), db.UpdateDeploymentGitMetadataParams{
 					ID:                       deployment.ID,
 					GitCommitSha:             sql.NullString{String: info.SHA, Valid: true},
-					GitBranch:                sql.NullString{String: source.Git.GetBranch(), Valid: true},
+					GitBranch:                sql.NullString{String: resolveBranch, Valid: true},
 					GitCommitMessage:         sql.NullString{String: info.Message, Valid: info.Message != ""},
 					GitCommitAuthorHandle:    sql.NullString{String: info.AuthorHandle, Valid: info.AuthorHandle != ""},
 					GitCommitAuthorAvatarUrl: sql.NullString{String: info.AuthorAvatarURL, Valid: info.AuthorAvatarURL != ""},
@@ -443,11 +451,28 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 			}
 
 			deployment.GitCommitSha = sql.NullString{String: info.SHA, Valid: true}
-			deployment.GitBranch = sql.NullString{String: source.Git.GetBranch(), Valid: true}
+			deployment.GitBranch = sql.NullString{String: resolveBranch, Valid: true}
 			deployment.GitCommitMessage = sql.NullString{String: info.Message, Valid: info.Message != ""}
 			deployment.GitCommitAuthorHandle = sql.NullString{String: info.AuthorHandle, Valid: info.AuthorHandle != ""}
 			deployment.GitCommitAuthorAvatarUrl = sql.NullString{String: info.AuthorAvatarURL, Valid: info.AuthorAvatarURL != ""}
 			deployment.GitCommitTimestamp = sql.NullInt64{Int64: info.Timestamp.UnixMilli(), Valid: !info.Timestamp.IsZero()}
+		}
+
+		if forkRepo != "" && !deployment.ForkRepositoryFullName.Valid {
+			deployment.ForkRepositoryFullName = sql.NullString{String: forkRepo, Valid: true}
+			forkRepoErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				return db.Query.UpdateDeploymentForkRepository(runCtx, w.db.RW(), db.UpdateDeploymentForkRepositoryParams{
+					ID:                     deployment.ID,
+					ForkRepositoryFullName: sql.NullString{String: forkRepo, Valid: true},
+					UpdatedAt:              sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				})
+			}, restate.WithName("update deployment fork repository"), restate.WithMaxRetryAttempts(runMaxAttempts))
+			if forkRepoErr != nil {
+				return fault.Wrap(
+					fmt.Errorf("failed to update deployment fork repository: %w", forkRepoErr),
+					fault.Public("Fork repository metadata could not be saved."),
+				)
+			}
 		}
 
 		// When a SHA is known (either provided directly or just resolved from branch)
@@ -491,6 +516,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		build, err := w.buildDockerImageFromGit(ctx, gitBuildParams{
 			InstallationID:                source.Git.GetInstallationId(),
 			Repository:                    source.Git.GetRepository(),
+			ForkRepository:                forkRepo,
 			CommitSHA:                     commitSHA,
 			ContextPath:                   source.Git.GetContextPath(),
 			DockerfilePath:                source.Git.GetDockerfilePath(),

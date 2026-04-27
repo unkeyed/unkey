@@ -57,6 +57,8 @@ message GitCommitInfo {
   string author_avatar_url = 4;
   int64 timestamp = 5; // Unix epoch milliseconds
   string branch = 6; // branch metadata for docker_image deployments
+  // Full fork repository identifier (e.g., "contributor/repo").
+  string fork_repository = 7;
 }
 
 message CreateDeploymentResponse {

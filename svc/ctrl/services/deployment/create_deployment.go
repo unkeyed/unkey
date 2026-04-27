@@ -146,7 +146,7 @@ func (s *Service) CreateDeployment(
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()
 
-	var gitCommitSha, gitBranch, gitCommitMessage, gitCommitAuthorHandle, gitCommitAuthorAvatarURL string
+	var gitCommitSha, gitBranch, gitCommitMessage, gitCommitAuthorHandle, gitCommitAuthorAvatarURL, gitForkRepository string
 	var gitCommitTimestamp int64
 	var deployReq *hydrav1.DeployRequest
 
@@ -204,6 +204,7 @@ func (s *Service) CreateDeployment(
 				gitCommitAuthorHandle = trimLength(strings.TrimSpace(gitCommit.GetAuthorHandle()), maxCommitAuthorHandleLength)
 				gitCommitAuthorAvatarURL = trimLength(strings.TrimSpace(gitCommit.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
 				gitCommitTimestamp = gitCommit.GetTimestamp()
+				gitForkRepository = gitCommit.GetForkRepository()
 			}
 
 			deployReq = &hydrav1.DeployRequest{
@@ -218,6 +219,7 @@ func (s *Service) CreateDeployment(
 						ContextPath:    appBuildSettings.DockerContext,
 						DockerfilePath: appBuildSettings.Dockerfile,
 						Branch:         gitBranch,
+						ForkRepository: gitForkRepository,
 					},
 				},
 			}
@@ -275,7 +277,7 @@ func (s *Service) CreateDeployment(
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocol(appRuntimeSettings.UpstreamProtocol),
 		Healthcheck:                   appRuntimeSettings.Healthcheck,
 		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
-		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
+		ForkRepositoryFullName:        sql.NullString{String: gitForkRepository, Valid: gitForkRepository != ""},
 	})
 	if err != nil {
 		logger.Error("failed to insert deployment", "error", err.Error())

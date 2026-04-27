@@ -261,8 +261,10 @@ type GitCommitInfo struct {
 	AuthorAvatarUrl string                 `protobuf:"bytes,4,opt,name=author_avatar_url,json=authorAvatarUrl,proto3" json:"author_avatar_url,omitempty"`
 	Timestamp       int64                  `protobuf:"varint,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"` // Unix epoch milliseconds
 	Branch          string                 `protobuf:"bytes,6,opt,name=branch,proto3" json:"branch,omitempty"`        // branch metadata for docker_image deployments
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Full fork repository identifier (e.g., "contributor/repo").
+	ForkRepository string `protobuf:"bytes,7,opt,name=fork_repository,json=forkRepository,proto3" json:"fork_repository,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GitCommitInfo) Reset() {
@@ -333,6 +335,13 @@ func (x *GitCommitInfo) GetTimestamp() int64 {
 func (x *GitCommitInfo) GetBranch() string {
 	if x != nil {
 		return x.Branch
+	}
+	return ""
+}
+
+func (x *GitCommitInfo) GetForkRepository() string {
+	if x != nil {
+		return x.ForkRepository
 	}
 	return ""
 }
@@ -1306,7 +1315,7 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\acommand\x18\x06 \x03(\tR\acommand\x12\x15\n" +
 	"\x06app_id\x18\a \x01(\tR\x05appIdB\r\n" +
 	"\v_git_commitB\x0e\n" +
-	"\f_keyspace_id\"\xdc\x01\n" +
+	"\f_keyspace_id\"\x85\x02\n" +
 	"\rGitCommitInfo\x12\x1d\n" +
 	"\n" +
 	"commit_sha\x18\x01 \x01(\tR\tcommitSha\x12%\n" +
@@ -1314,7 +1323,8 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\rauthor_handle\x18\x03 \x01(\tR\fauthorHandle\x12*\n" +
 	"\x11author_avatar_url\x18\x04 \x01(\tR\x0fauthorAvatarUrl\x12\x1c\n" +
 	"\ttimestamp\x18\x05 \x01(\x03R\ttimestamp\x12\x16\n" +
-	"\x06branch\x18\x06 \x01(\tR\x06branch\"r\n" +
+	"\x06branch\x18\x06 \x01(\tR\x06branch\x12'\n" +
+	"\x0ffork_repository\x18\a \x01(\tR\x0eforkRepository\"r\n" +
 	"\x18CreateDeploymentResponse\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x121\n" +
 	"\x06status\x18\x02 \x01(\x0e2\x19.ctrl.v1.DeploymentStatusR\x06status\";\n" +

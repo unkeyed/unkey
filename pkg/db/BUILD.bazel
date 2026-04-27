@@ -168,6 +168,7 @@ go_library(
         "deployment_topology_update_desired_status.sql_generated.go",
         "deployment_update_build_id.sql_generated.go",
         "deployment_update_desired_state.sql_generated.go",
+        "deployment_update_fork_repository.sql_generated.go",
         "deployment_update_git_metadata.sql_generated.go",
         "deployment_update_github_deployment_id.sql_generated.go",
         "deployment_update_image.sql_generated.go",
