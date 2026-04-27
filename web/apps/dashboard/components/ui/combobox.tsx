@@ -190,7 +190,7 @@ export function Combobox({
       </div>
       <PopoverContent
         className={cn(
-          "p-0 w-full min-w-(--radix-popover-trigger-width) max-w-87.5 rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-200 overflow-visible",
+          "p-0 w-full min-w-(--radix-popover-trigger-width) rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-200 overflow-visible",
           popoverClassName,
         )}
         onOpenAutoFocus={(e) => {
