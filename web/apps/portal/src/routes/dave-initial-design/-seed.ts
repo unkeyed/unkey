@@ -66,6 +66,8 @@ const usagePatterns = {
 
 const patternKeys = Object.keys(usagePatterns) as (keyof typeof usagePatterns)[];
 
+const EXTERNAL_IDS = ["user_aKk2mDp9", "user_7xYp3kLq", "svc_prod_abc", "svc_staging_def"] as const;
+
 export const seedKeys: Key[] = [
   {
     id: "key_3ZsMzZ1K4eFp",
@@ -382,30 +384,17 @@ export const seedBranding: Branding = {
 };
 
 /**
- * Deterministic 25-row generator for the "worst case" preview state.
- * Same inputs always return the same rows so Prev/Next feels stable.
- * Filter/search is handled downstream by TanStack Table — this only controls
- * the pool of rows currently in memory.
+ * Deterministic full-pool generator for the "worst case" preview state.
+ * TanStack Table handles filter, search, sort, and pagination from this pool.
  */
-export function synthesizeKeys({
-  page,
-  count = 25,
-}: {
-  page: number;
-  count?: number;
-}): Key[] {
-  const base = page * count;
+export function synthesizeKeys({ count = 1500 }: { count?: number } = {}): Key[] {
   const rows: Key[] = [];
-  for (let i = 0; i < count; i++) {
-    const idx = base + i;
+  for (let idx = 0; idx < count; idx++) {
     const pattern = patternKeys[idx % patternKeys.length];
     const statusRoll = idx % 7;
     const enabled = statusRoll !== 5;
     const expired = statusRoll === 6;
-    const externalRoll = idx % 4;
-    const externalId = ["user_aKk2mDp9", "user_7xYp3kLq", "svc_prod_abc", "svc_staging_def"][
-      externalRoll
-    ] as string;
+    const externalId = EXTERNAL_IDS[idx % EXTERNAL_IDS.length];
     rows.push({
       id: `key_${idx.toString(36).padStart(12, "0")}`,
       name: idx % 13 === 0 ? null : `Key #${idx.toLocaleString()}`,

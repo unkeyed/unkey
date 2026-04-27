@@ -22,7 +22,7 @@ export function PopoverContent({
         className={cn(
           "z-50 min-w-56 rounded-md border border-gray-6 bg-background p-3 text-gray-12 shadow-md outline-hidden",
           "ease-[cubic-bezier(0.4,0,0.2,1)]",
-          "data-[state=open]:duration-200 data-[state=open]:animate-in",
+          "data-[state=open]:animate-in data-[state=open]:duration-200",
           "data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           className,
         )}

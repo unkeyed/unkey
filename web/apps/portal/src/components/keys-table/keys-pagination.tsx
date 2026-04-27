@@ -16,15 +16,14 @@ export function KeysPagination<T>({ table }: Props<T>) {
   const totalLabel = pageCount > MANY_THRESHOLD ? "Many" : pageCount.toLocaleString();
 
   return (
-    <div className="flex items-center gap-1 text-gray-11 text-xs">
+    <div className="flex items-center gap-1 text-gray-11 text-sm">
       <span className="px-1">
-        Page <span className="font-medium text-gray-12">{(pageIndex + 1).toLocaleString()}</span>{" "}
-        of <span className="font-medium text-gray-12">{totalLabel}</span>
+        Page <span className="font-medium text-gray-12">{(pageIndex + 1).toLocaleString()}</span> of{" "}
+        <span className="font-medium text-gray-12">{totalLabel}</span>
       </span>
       <Button
         size="icon"
         variant="ghost"
-        className="size-6"
         onClick={() => table.previousPage()}
         disabled={!table.getCanPreviousPage()}
         aria-label="Previous page"
@@ -34,7 +33,6 @@ export function KeysPagination<T>({ table }: Props<T>) {
       <Button
         size="icon"
         variant="ghost"
-        className="size-6"
         onClick={() => table.nextPage()}
         disabled={!table.getCanNextPage()}
         aria-label="Next page"

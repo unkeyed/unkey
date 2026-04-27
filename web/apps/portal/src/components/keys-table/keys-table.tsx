@@ -38,12 +38,14 @@ import type { Key } from "~/routes/dave-initial-design/-seed";
 
 const PAGE_SIZE = 25;
 
+function parseStatusFilter(value: unknown): StatusFilter {
+  return value === "enabled" || value === "disabled" || value === "expired" ? value : "all";
+}
+
 type Props = {
   appName: string;
 
   keys: Key[];
-  totalCount?: number;
-  manualPagination?: boolean;
 
   searchValue: string;
   onSearchChange: (value: string) => void;
@@ -62,8 +64,6 @@ type Props = {
 export function KeysTable({
   appName,
   keys,
-  totalCount,
-  manualPagination,
   searchValue,
   onSearchChange,
   statusValue,
@@ -103,7 +103,7 @@ export function KeysTable({
     onColumnFiltersChange: (updater) => {
       const next = typeof updater === "function" ? updater(columnFilters) : updater;
       const found = next.find((f) => f.id === "status")?.value;
-      onStatusChange((found as StatusFilter | undefined) ?? "all");
+      onStatusChange(parseStatusFilter(found));
     },
     onPaginationChange: (updater) => {
       const current = { pageIndex, pageSize: PAGE_SIZE };
@@ -115,8 +115,6 @@ export function KeysTable({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    manualPagination,
-    rowCount: manualPagination ? totalCount : undefined,
   });
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -132,8 +130,8 @@ export function KeysTable({
   };
 
   return (
-    <section className="flex flex-col gap-6">
-      <header className="flex items-start justify-between gap-4">
+    <section className="flex flex-col gap-3">
+      <header className="flex items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="font-semibold text-gray-12 text-xl">{appName} API</h1>
           <p className="text-gray-11 text-sm">
@@ -151,24 +149,25 @@ export function KeysTable({
         </Sheet>
       </header>
 
+      {!showNoKeys && (
+        <div className="mt-6 flex items-center justify-between gap-2">
+          <KeysToolbar
+            searchValue={searchValue}
+            onSearchChange={(v) => {
+              onSearchChange(v);
+              onPageChange(0);
+            }}
+            statusValue={statusValue}
+            onStatusChange={(v) => {
+              onStatusChange(v);
+              onPageChange(0);
+            }}
+          />
+          <KeysPagination table={table} />
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-lg border border-primary/10 bg-background">
-        {!showNoKeys && (
-          <div className="flex items-center justify-between gap-2 border-primary/10 border-b p-3">
-            <KeysToolbar
-              searchValue={searchValue}
-              onSearchChange={(v) => {
-                onSearchChange(v);
-                onPageChange(0);
-              }}
-              statusValue={statusValue}
-              onStatusChange={(v) => {
-                onStatusChange(v);
-                onPageChange(0);
-              }}
-            />
-            <KeysPagination table={table} />
-          </div>
-        )}
         {showNoKeys ? (
           <KeysEmptyState
             title="No API keys yet"
@@ -196,10 +195,7 @@ export function KeysTable({
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="bg-gray-2 hover:bg-gray-2">
                   {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      className={header.column.columnDef.meta?.className}
-                    >
+                    <TableHead key={header.id} className={header.column.columnDef.meta?.className}>
                       {header.isPlaceholder ? null : <SortableHeader header={header} />}
                     </TableHead>
                   ))}

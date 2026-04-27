@@ -101,9 +101,7 @@ function ExpirationPicker() {
                 <span className="font-medium text-gray-12 text-sm">{p.label}</span>
                 <span className="text-gray-11 text-xs">{p.description}</span>
               </div>
-              {selected === p.id && (
-                <Check className="mt-0.5 size-4 shrink-0 text-gray-12" />
-              )}
+              {selected === p.id && <Check className="mt-0.5 size-4 shrink-0 text-gray-12" />}
             </button>
           ))}
         </div>

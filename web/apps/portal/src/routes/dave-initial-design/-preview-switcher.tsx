@@ -11,6 +11,8 @@ import {
 
 export type DemoState = "empty" | "p50" | "p99" | "max";
 
+const STATE_ORDER: readonly DemoState[] = ["empty", "p50", "p99", "max"];
+
 const STATES: Record<DemoState, { label: string; description: string }> = {
   empty: { label: "Empty", description: "0 keys" },
   p50: { label: "p50", description: "3 keys · median" },
@@ -37,8 +39,9 @@ export function PreviewSwitcher({ value, onSelect }: Props) {
         <DropdownMenuContent align="end" side="top" className="min-w-48">
           <DropdownMenuLabel>Preview state</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {(Object.entries(STATES) as [DemoState, (typeof STATES)[DemoState]][]).map(
-            ([state, { label, description }]) => (
+          {STATE_ORDER.map((state) => {
+            const { label, description } = STATES[state];
+            return (
               <DropdownMenuItem
                 key={state}
                 onSelect={(e) => {
@@ -53,8 +56,8 @@ export function PreviewSwitcher({ value, onSelect }: Props) {
                 </div>
                 {value === state && <Check className="size-3.5 text-gray-11" />}
               </DropdownMenuItem>
-            ),
-          )}
+            );
+          })}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

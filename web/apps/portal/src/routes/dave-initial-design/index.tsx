@@ -81,14 +81,14 @@ export const Route = createFileRoute("/dave-initial-design/")({
 function parseSort(s: SortValue): SortingState {
   if (s === "none") return [];
   const [id, dir] = s.split(".");
-  return [{ id: id as string, desc: dir === "desc" }];
+  return [{ id, desc: dir === "desc" }];
 }
 
 function stringifySort(state: SortingState, fallback: SortValue): SortValue {
   const head = state[0];
   if (!head) return "none";
-  const v = `${head.id}.${head.desc ? "desc" : "asc"}` as SortValue;
-  return (SORT_VALUES as readonly string[]).includes(v) ? v : fallback;
+  const candidate = `${head.id}.${head.desc ? "desc" : "asc"}`;
+  return SORT_VALUES.find((v) => v === candidate) ?? fallback;
 }
 
 function Preview() {
@@ -98,10 +98,7 @@ function Preview() {
 
   const resolved = useMemo(() => resolve(search), [search]);
   const sorting = useMemo(() => parseSort(resolved.sort), [resolved.sort]);
-  const source = useMemo(
-    () => resolveKeys(resolved.demo, resolved.page),
-    [resolved.demo, resolved.page],
-  );
+  const source = useMemo(() => resolveKeys(resolved.demo), [resolved.demo]);
   const keys = useMemo(
     () => source.keys.filter((k) => !deletedIds.has(k.id)),
     [source.keys, deletedIds],
@@ -127,8 +124,6 @@ function Preview() {
           <KeysTable
             appName={seedBranding.appName}
             keys={keys}
-            totalCount={source.totalCount}
-            manualPagination={source.manualPagination}
             searchValue={resolved.q}
             onSearchChange={(q) => update({ q })}
             statusValue={resolved.status}
@@ -155,10 +150,7 @@ function Preview() {
   );
 }
 
-function resolveKeys(
-  demo: DemoState,
-  page: number,
-): { keys: Key[]; totalCount?: number; manualPagination?: boolean } {
+function resolveKeys(demo: DemoState): { keys: Key[] } {
   switch (demo) {
     case "empty":
       return { keys: [] };
@@ -167,10 +159,6 @@ function resolveKeys(
     case "p99":
       return { keys: seedKeys.slice(0, 7) };
     case "max":
-      return {
-        keys: synthesizeKeys({ page }),
-        totalCount: 37_566,
-        manualPagination: true,
-      };
+      return { keys: synthesizeKeys() };
   }
 }

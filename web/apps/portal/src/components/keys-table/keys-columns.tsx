@@ -185,9 +185,9 @@ function CopyableStart({ value }: { value: string }) {
     >
       <span>{display}</span>
       {copied ? (
-        <Check className="size-3 text-successA-11" />
+        <Check className="size-3.5 text-successA-11" />
       ) : (
-        <Copy className="size-3 opacity-0 transition-opacity group-hover:opacity-100" />
+        <Copy className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
       )}
     </button>
   );

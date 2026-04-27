@@ -19,7 +19,7 @@ export function SheetOverlay({
     <DialogPrimitive.Overlay
       className={cn(
         "fixed inset-0 z-50 bg-gray-12/10",
-        "data-[state=open]:duration-200 data-[state=open]:animate-in data-[state=open]:fade-in-0",
+        "data-[state=open]:fade-in-0 data-[state=open]:animate-in data-[state=open]:duration-200",
         className,
       )}
       {...props}
@@ -37,7 +37,7 @@ export function SheetContent({ className, children, ...props }: SheetContentProp
         className={cn(
           "fixed inset-y-0 right-0 z-50 m-3 flex h-[calc(100dvh-1.5rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-primary/20 bg-background shadow-2xl",
           "ease-[cubic-bezier(0.4,0,0.2,1)]",
-          "data-[state=open]:duration-200 data-[state=open]:animate-in",
+          "data-[state=open]:animate-in data-[state=open]:duration-200",
           "data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-right-5",
           "focus:outline-none",
           className,

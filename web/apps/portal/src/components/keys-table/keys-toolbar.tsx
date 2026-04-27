@@ -4,12 +4,15 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 
 export type StatusFilter = "all" | "enabled" | "disabled" | "expired";
+
+const STATUS_FILTERS: readonly StatusFilter[] = ["all", "enabled", "disabled", "expired"];
 
 const STATUS_LABELS: Record<StatusFilter, string> = {
   all: "All",
@@ -32,12 +35,7 @@ type Props = {
   onStatusChange: (value: StatusFilter) => void;
 };
 
-export function KeysToolbar({
-  searchValue,
-  onSearchChange,
-  statusValue,
-  onStatusChange,
-}: Props) {
+export function KeysToolbar({ searchValue, onSearchChange, statusValue, onStatusChange }: Props) {
   return (
     <div className="flex flex-1 items-center gap-2">
       <div className="relative max-w-sm flex-1">
@@ -56,12 +54,13 @@ export function KeysToolbar({
         <DropdownMenuTrigger asChild>
           <Button variant="outline">
             <StatusDot value={statusValue} />
-            Status: {STATUS_LABELS[statusValue]}
+            {STATUS_LABELS[statusValue]}
             <ChevronDown />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-44">
-          {(Object.keys(STATUS_LABELS) as StatusFilter[]).map((value) => (
+          <DropdownMenuLabel>Key status</DropdownMenuLabel>
+          {STATUS_FILTERS.map((value) => (
             <DropdownMenuItem
               key={value}
               onSelect={(e) => {
