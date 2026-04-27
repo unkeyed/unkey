@@ -54,12 +54,12 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
   }
 
   return (
-    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose} animated>
+    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose} >
       <LogDetails.Header>
         <SentinelLogHeader log={log} />
       </LogDetails.Header>
 
-      <LogDetails.Section delay={150}>
+      <LogDetails.Section>
         <LogSection
           title="Deployment Information"
           details={formatDeploymentInfo(
@@ -71,43 +71,43 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
         />
       </LogDetails.Section>
 
-      <LogDetails.Section delay={200}>
+      <LogDetails.Section>
         <LogSection
           title="Request Header"
           details={log.request_headers.length ? log.request_headers : EMPTY_TEXT}
         />
       </LogDetails.Section>
 
-      <LogDetails.Section delay={250}>
+      <LogDetails.Section>
         <LogSection
           title="Request Body"
           details={formatBody(log.request_body, log.request_headers)}
         />
       </LogDetails.Section>
 
-      <LogDetails.Section delay={300}>
+      <LogDetails.Section>
         <LogSection
           title="Response Header"
           details={log.response_headers.length ? log.response_headers : EMPTY_TEXT}
         />
       </LogDetails.Section>
 
-      <LogDetails.Section delay={350}>
+      <LogDetails.Section>
         <LogSection
           title="Response Body"
           details={formatBody(log.response_body, log.response_headers)}
         />
       </LogDetails.Section>
 
-      <LogDetails.Section delay={400}>
+      <LogDetails.Section>
         <LogSection title="Latency Breakdown" details={formatLatencyMetrics(log)} />
       </LogDetails.Section>
 
-      <LogDetails.Section delay={450}>
+      <LogDetails.Section>
         <LogSection title="Meta" details={formatMetaInfo(log)} />
       </LogDetails.Section>
 
-      <LogDetails.Spacer delay={500} />
+      <LogDetails.Spacer />
     </LogDetails>
   );
 };
@@ -248,15 +248,15 @@ const formatDeploymentInfo = (
   log: SentinelLogsResponse,
   deployment:
     | {
-        id: string;
-        environmentId: string;
-        gitBranch?: string | null;
-        gitCommitSha?: string | null;
-        gitCommitMessage?: string | null;
-        gitCommitAuthorHandle?: string | null;
-        gitCommitAuthorAvatarUrl?: string | null;
-        status?: string | null;
-      }
+      id: string;
+      environmentId: string;
+      gitBranch?: string | null;
+      gitCommitSha?: string | null;
+      gitCommitMessage?: string | null;
+      gitCommitAuthorHandle?: string | null;
+      gitCommitAuthorAvatarUrl?: string | null;
+      status?: string | null;
+    }
     | undefined,
   environment: { slug: string } | undefined,
   sourceRepo: string | null | undefined,

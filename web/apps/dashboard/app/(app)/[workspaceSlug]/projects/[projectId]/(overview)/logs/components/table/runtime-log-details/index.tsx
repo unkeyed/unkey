@@ -26,7 +26,7 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
   };
 
   return (
-    <SharedLogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose} animated>
+    <SharedLogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
       <SharedLogDetails.Section>
         <RuntimeLogHeader log={log} onClose={handleClose} />
       </SharedLogDetails.Section>

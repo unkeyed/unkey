@@ -6,8 +6,6 @@ import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
 import { LogSection } from "./components/log-section";
 
-const ANIMATION_DELAY = 350;
-
 type Props = {
   distanceToTop: number;
   selectedLog: AuditLog | null;
@@ -37,10 +35,10 @@ export const AuditLogDetails = ({ distanceToTop, selectedLog, setSelectedLog }: 
       <LogDetails.Header onClose={handleClose}>
         <LogHeader log={selectedLog} onClose={handleClose} />
       </LogDetails.Header>
-      <LogDetails.CustomSections startDelay={150} staggerDelay={50}>
+      <LogDetails.CustomSections>
         {sections}
       </LogDetails.CustomSections>
-      <LogDetails.Spacer delay={ANIMATION_DELAY} />
+      <LogDetails.Spacer />
     </LogDetails>
   );
 };
