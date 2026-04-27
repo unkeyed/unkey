@@ -5,6 +5,7 @@ import { Fragment, type ReactNode, useEffect, useRef } from "react";
 import type { Column } from "../virtual-table/types";
 
 const SKELETON_ROWS = 16;
+const ROW_HEIGHT_PX = 26;
 const AUTO_SCROLL_INTERVAL_MS = 1000;
 const NEAR_BOTTOM_THRESHOLD_PX = 50;
 
@@ -15,7 +16,7 @@ type StreamingTableProps<T> = {
   rowClassName?: (item: T) => string;
   onRowClick?: (item: T) => void;
   renderExpanded?: (item: T) => ReactNode;
-  renderSkeletonRow: (columns: Column<T>[]) => ReactNode;
+  renderSkeletonCell: (col: Column<T>) => ReactNode;
   isLoading?: boolean;
   fixedHeight?: number;
   emptyState?: ReactNode;
@@ -28,7 +29,7 @@ export function StreamingTable<T>({
   rowClassName,
   onRowClick,
   renderExpanded,
-  renderSkeletonRow,
+  renderSkeletonCell,
   isLoading = false,
   fixedHeight = 500,
   emptyState,
@@ -85,7 +86,7 @@ export function StreamingTable<T>({
       <table className="w-full border-separate border-spacing-0 table-auto!">
         <colgroup>
           {columns.map((col) => {
-            let w: string = "auto";
+            let w = "auto";
             if (typeof col.width === "number") {
               w = `${col.width}px`;
             } else if (typeof col.width === "string") {
@@ -97,8 +98,20 @@ export function StreamingTable<T>({
         <tbody>
           {isLoading
             ? Array.from({ length: SKELETON_ROWS }).map((_, i) => (
-                <tr key={`skeleton-${i}`} style={{ height: "26px" }}>
-                  {renderSkeletonRow(columns)}
+                <tr key={`skeleton-${i}`} style={{ height: `${ROW_HEIGHT_PX}px` }}>
+                  {columns.map((col, idx) => (
+                    <td
+                      key={col.key}
+                      className={cn(
+                        "text-xs align-middle whitespace-nowrap",
+                        idx === 0 ? "pl-4.5" : "",
+                        col.cellClassName,
+                      )}
+                      style={{ height: `${ROW_HEIGHT_PX}px` }}
+                    >
+                      {renderSkeletonCell(col)}
+                    </td>
+                  ))}
                 </tr>
               ))
             : data.map((item) => (
@@ -110,7 +123,7 @@ export function StreamingTable<T>({
                       "transition-colors",
                       rowClassName?.(item),
                     )}
-                    style={{ height: "26px" }}
+                    style={{ height: `${ROW_HEIGHT_PX}px` }}
                   >
                     {columns.map((col, idx) => (
                       <td

@@ -1,7 +1,6 @@
 "use client";
 
 import { StreamingTable } from "@/components/streaming-table";
-import { cn } from "@/lib/utils";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useState } from "react";
@@ -46,29 +45,25 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({ steps, fixedHeight 
       data={enrichedSteps}
       columns={buildStepsColumns}
       keyExtractor={(step) => step.step_id}
-      rowClassName={(step) => getBuildStepRowClass(step)}
+      rowClassName={getBuildStepRowClass}
       onRowClick={toggleExpand}
       renderExpanded={(step) =>
         expandedIds.has(step.step_id) ? <BuildStepLogsExpanded step={step} /> : null
       }
-      renderSkeletonRow={(columns) =>
-        columns.map((col, idx) => (
-          <td
-            key={col.key}
-            className={cn(
-              "text-xs align-middle whitespace-nowrap",
-              idx === 0 ? "pl-4.5" : "",
-              col.cellClassName,
-            )}
-            style={{ height: "26px" }}
-          >
-            {col.key === "started_at" && <StartedAtColumnSkeleton />}
-            {col.key === "status" && <StatusColumnSkeleton />}
-            {col.key === "name" && <NameColumnSkeleton />}
-            {col.key === "duration" && <DurationColumnSkeleton />}
-          </td>
-        ))
-      }
+      renderSkeletonCell={(col) => {
+        switch (col.key) {
+          case "started_at":
+            return <StartedAtColumnSkeleton />;
+          case "status":
+            return <StatusColumnSkeleton />;
+          case "name":
+            return <NameColumnSkeleton />;
+          case "duration":
+            return <DurationColumnSkeleton />;
+          default:
+            return null;
+        }
+      }}
       isLoading={steps.length === 0}
       fixedHeight={fixedHeight}
       emptyState={

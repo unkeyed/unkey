@@ -1,7 +1,6 @@
 "use client";
 
 import { StreamingTable } from "@/components/streaming-table";
-import { cn } from "@/lib/utils";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { type ContainerLogRow, containerLogColumns } from "./columns";
@@ -24,25 +23,21 @@ export const DeploymentContainerLogsTable = ({ logs, isLoading }: Props) => {
       data={logs}
       columns={containerLogColumns}
       keyExtractor={(log) => log.time}
-      rowClassName={(log) => getContainerLogRowClass(log)}
-      renderSkeletonRow={(columns) =>
-        columns.map((col, idx) => (
-          <td
-            key={col.key}
-            className={cn(
-              "text-xs align-middle whitespace-nowrap",
-              idx === 0 ? "pl-4.5" : "",
-              col.cellClassName,
-            )}
-            style={{ height: "26px" }}
-          >
-            {col.key === "log" && <TimeColumnSkeleton />}
-            {col.key === "severity" && <SeverityColumnSkeleton />}
-            {col.key === "region" && <RegionColumnSkeleton />}
-            {col.key === "message" && <MessageColumnSkeleton />}
-          </td>
-        ))
-      }
+      rowClassName={getContainerLogRowClass}
+      renderSkeletonCell={(col) => {
+        switch (col.key) {
+          case "log":
+            return <TimeColumnSkeleton />;
+          case "severity":
+            return <SeverityColumnSkeleton />;
+          case "region":
+            return <RegionColumnSkeleton />;
+          case "message":
+            return <MessageColumnSkeleton />;
+          default:
+            return null;
+        }
+      }}
       isLoading={isLoading}
       fixedHeight={500}
       emptyState={
