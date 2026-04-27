@@ -8,7 +8,15 @@ import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import type { SentinelLogsResponse } from "@unkey/clickhouse/src/sentinel";
-import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  type ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
 import { LogMetaSection } from "./components/log-meta";
@@ -35,12 +43,14 @@ type LogDetailsContextValue = {
   animated: boolean;
   isOpen: boolean;
   log: SupportedLogTypes;
+  onClose: () => void;
 };
 
 const LogDetailsContext = createContext<LogDetailsContextValue>({
   animated: false,
   isOpen: true,
   log: {} as SupportedLogTypes,
+  onClose: () => { },
 });
 
 const useLogDetailsContext = () => useContext(LogDetailsContext);
@@ -125,15 +135,24 @@ export const LogDetails = ({
   children,
 }: LogDetailsProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: isOpen is intentionally excluded to prevent re-opening during close animation
   useEffect(() => {
     if (!animated) {
       return;
     }
 
     if (log) {
+      const wasMidClose = closeTimerRef.current !== undefined;
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = undefined;
+      if (isOpen || wasMidClose) {
+        setIsOpen(true);
+        return;
+      }
       const timer = setTimeout(() => setIsOpen(true), 50);
       return () => clearTimeout(timer);
     }
@@ -153,7 +172,7 @@ export const LogDetails = ({
   const handleClose = () => {
     if (animated) {
       setIsOpen(false);
-      setTimeout(onClose, 300);
+      closeTimerRef.current = setTimeout(onClose, 300);
     } else {
       onClose();
     }
@@ -162,9 +181,9 @@ export const LogDetails = ({
   const baseClasses = "bg-gray-1 font-mono drop-shadow-2xl z-20";
   const animationClasses = animated
     ? cn(
-        "transition-all duration-300 ease-out",
-        isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
-      )
+      "transition-all duration-300 ease-out",
+      isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
+    )
     : "";
   const staticClasses = animated ? "" : "absolute right-0 overflow-y-auto";
 
@@ -180,8 +199,8 @@ export const LogDetails = ({
         }),
       }}
     >
-      <div className={animated ? "h-full overflow-y-auto p-4" : ""}>
-        <LogDetailsContext.Provider value={{ animated, isOpen, log }}>
+      <div className={animated ? "h-full overflow-y-auto" : ""}>
+        <LogDetailsContext.Provider value={{ animated, isOpen, log, onClose: handleClose }}>
           {children}
         </LogDetailsContext.Provider>
       </div>
@@ -277,9 +296,9 @@ const Spacer = ({ delay = 0 }: { delay?: number }) => {
       className={
         animated
           ? cn(
-              "mt-3 transition-all duration-300 ease-out",
-              isOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0",
-            )
+            "mt-3 transition-all duration-300 ease-out",
+            isOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0",
+          )
           : "mt-3"
       }
       style={animated ? { transitionDelay: isOpen ? `${delay}ms` : "0ms" } : undefined}

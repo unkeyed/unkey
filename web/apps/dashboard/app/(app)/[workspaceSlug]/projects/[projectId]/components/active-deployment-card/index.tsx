@@ -12,6 +12,7 @@ import { Card } from "../../(overview)/components/card";
 import { useProjectData } from "../../(overview)/data-provider";
 import { Avatar } from "../../components/git-avatar";
 import { RegionFlag } from "../../components/region-flag";
+import { DottedLink } from "../dotted-link";
 import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-empty";
 import { MetadataCell } from "./components/metadata-cell";
 import { ActiveDeploymentCardSkeleton } from "./components/skeleton";
@@ -21,9 +22,9 @@ function GitHubLink({ href, children }: { href: string | undefined; children: Re
     return children;
   }
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="hover:opacity-80">
+    <DottedLink href={href} external>
       {children}
-    </a>
+    </DottedLink>
   );
 }
 
