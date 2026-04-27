@@ -15,8 +15,8 @@ import (
 // for cases where an agent needs to fetch state for a specific policy rather than streaming all changes.
 //
 // Returns CodeUnauthenticated if bearer token is invalid, CodeInvalidArgument if
-// region or platform is missing, CodeNotFound if no policy exists with the given ID
-// in the specified region, or CodeInternal for database errors.
+// region is missing, CodeNotFound if no policy exists with the given ID in the
+// specified region, or CodeInternal for database errors.
 func (s *Service) GetDesiredCiliumNetworkPolicyState(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.GetDesiredCiliumNetworkPolicyStateRequest],
@@ -25,24 +25,9 @@ func (s *Service) GetDesiredCiliumNetworkPolicyState(
 		return nil, err
 	}
 
-	regionName := req.Header().Get("X-Krane-Region")
-	platform := req.Header().Get("X-Krane-Platform")
-	if err := assert.All(
-		assert.NotEmpty(regionName, "region is required"),
-		assert.NotEmpty(platform, "platform is required"),
-	); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-
-	region, err := db.Query.FindRegionByPlatformAndName(ctx, s.db.RO(), db.FindRegionByPlatformAndNameParams{
-		Platform: platform,
-		Name:     regionName,
-	})
+	region, err := s.resolveRegion(ctx, req.Msg.GetRegion())
 	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, err)
-		}
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, err
 	}
 
 	policyID := req.Msg.GetCiliumNetworkPolicyId()

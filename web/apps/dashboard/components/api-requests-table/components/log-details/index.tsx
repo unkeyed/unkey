@@ -10,7 +10,7 @@ import { OutcomeDistributionSection } from "./components/log-outcome-distributio
 import { LogSection } from "./components/log-section";
 import { PermissionsSection, RolesSection } from "./components/roles-permissions";
 
-const ANIMATION_DELAY = 350;
+
 
 type Props = {
   distanceToTop: number;
@@ -106,10 +106,10 @@ export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog, api
       <LogDetails.Header onClose={handleClose}>
         <LogHeader log={log} onClose={handleClose} />
       </LogDetails.Header>
-      <LogDetails.CustomSections startDelay={150} staggerDelay={50}>
+      <LogDetails.CustomSections>
         {sections}
       </LogDetails.CustomSections>
-      <LogDetails.Spacer delay={ANIMATION_DELAY} />
+      <LogDetails.Spacer />
       <LogDetails.Meta />
     </LogDetails>
   );
