@@ -163,6 +163,10 @@ func (c *Controller) Stop() error {
 	return nil
 }
 
+func (c *Controller) regionKey() *ctrlv1.RegionKey {
+	return &ctrlv1.RegionKey{Platform: c.platform, Name: c.region}
+}
+
 // reportDeploymentStatus reports actual deployment state to the control plane
 // through the circuit breaker. The circuit breaker prevents cascading failures
 // during control plane outages by failing fast after repeated errors.
@@ -170,6 +174,7 @@ func (c *Controller) Stop() error {
 // On success, the fingerprint for this report is cached so that
 // [Controller.reportIfChanged] can skip redundant reports during resync.
 func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) error {
+	status.Region = c.regionKey()
 	start := time.Now()
 	_, err := c.cb.Do(ctx, func(innerCtx context.Context) (any, error) {
 		return c.cluster.ReportDeploymentStatus(innerCtx, status)
