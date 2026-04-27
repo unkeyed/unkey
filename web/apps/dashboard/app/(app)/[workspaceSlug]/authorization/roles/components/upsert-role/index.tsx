@@ -1,6 +1,7 @@
 "use client";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { Navbar } from "@/components/navigation/navbar";
+import { useRoleLimits } from "@/components/roles-table/hooks/use-role-limits";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import type {
   RoleKey,
@@ -11,7 +12,6 @@ import { PenWriting3, Plus } from "@unkey/icons";
 import { Button, DialogContainer, FormInput, FormTextarea } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
-import { useRoleLimits } from "../table/hooks/use-role-limits";
 import { KeyField } from "./components/assign-key/key-field";
 import { PermissionField } from "./components/assign-permission/permissions-field";
 import { useUpsertRole } from "./hooks/use-upsert-role";

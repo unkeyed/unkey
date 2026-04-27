@@ -20,7 +20,7 @@ import (
 
 // withCredits validates that the key has sufficient usage credits and deducts the specified cost.
 // It updates the key's remaining request count and marks the key as invalid if the limit is exceeded.
-func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
+func (k *KeyVerifier) withCredits(ctx context.Context, cost int64) error {
 	ctx, span := tracing.Start(ctx, "verify.withCredits")
 	defer span.End()
 
@@ -42,12 +42,12 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int32) error {
 	}
 
 	// Always update remaining requests with the accurate count from the usageLimiter
-	k.Key.RemainingRequests = sql.NullInt32{Int32: usage.Remaining, Valid: true}
+	k.Key.RemainingRequests = sql.NullInt64{Int64: usage.Remaining, Valid: true}
 	if !usage.Valid {
 		k.setInvalid(StatusUsageExceeded, "Key usage limit exceeded.")
 	} else {
 		// Only track spent credits if they were actually spent (usage was valid)
-		k.spentCredits = int64(cost)
+		k.spentCredits = cost
 	}
 
 	return nil

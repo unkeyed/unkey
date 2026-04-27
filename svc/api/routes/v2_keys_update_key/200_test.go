@@ -191,8 +191,8 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "newName", key.Name.String)
 	require.True(t, key.IdentityID.Valid, "Should have identity ID set")
-	require.Equal(t, int32(100), key.RemainingRequests.Int32)
-	require.Equal(t, int32(50), key.RefillAmount.Int32)
+	require.Equal(t, int64(100), key.RemainingRequests.Int64)
+	require.Equal(t, int64(50), key.RefillAmount.Int64)
 
 	// Verify identity was created with correct external ID
 	identity, err := db.Query.FindIdentityByID(ctx, h.DB.RO(), db.FindIdentityByIDParams{
@@ -228,7 +228,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	})
 
 	keyName := "test-key"
-	initialCredits := int32(100)
+	initialCredits := int64(100)
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
@@ -250,7 +250,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	require.NoError(t, err)
 
 	require.True(t, authBefore.Key.RemainingRequests.Valid)
-	require.Equal(t, initialCredits-1, authBefore.Key.RemainingRequests.Int32)
+	require.Equal(t, initialCredits-1, authBefore.Key.RemainingRequests.Int64)
 
 	// Update the key's credits
 	newCredits := int64(50)
@@ -274,7 +274,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	require.NoError(t, err)
 
 	require.True(t, authAfter.Key.RemainingRequests.Valid)
-	require.Equal(t, int32(newCredits)-1, authAfter.Key.RemainingRequests.Int32)
+	require.Equal(t, int64(newCredits)-1, authAfter.Key.RemainingRequests.Int64)
 }
 
 // TestUpdateKeyConcurrentWithSameExternalId tests that concurrent updates

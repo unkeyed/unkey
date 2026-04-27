@@ -191,8 +191,8 @@ func TestLimitSuccessfully(t *testing.T) {
 		// Create an override
 		identifier := "user_789"
 		overrideID := uid.New(uid.RatelimitOverridePrefix)
-		limit := int32(200)
-		duration := int32(120000) // 2 minutes
+		limit := uint64(200)
+		duration := uint64(120000) // 2 minutes
 
 		err := db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
 			ID:          overrideID,
@@ -239,8 +239,8 @@ func TestLimitSuccessfully(t *testing.T) {
 
 		override := strings.Replace(identifier, "prefix", "p*", 1)
 		overrideID := uid.New(uid.RatelimitOverridePrefix)
-		limit := int32(200)
-		duration := int32(120000) // 2 minutes
+		limit := uint64(200)
+		duration := uint64(120000) // 2 minutes
 
 		err := db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{
 			ID:          overrideID,
@@ -393,8 +393,8 @@ func TestLimitSuccessfully(t *testing.T) {
 		}
 		// Create an override with tight limits
 		identifier := "override_user"
-		overrideLimit := int32(3)        // Only allow 3 requests
-		overrideDuration := int32(60000) // 1 minute window
+		overrideLimit := uint64(3)        // Only allow 3 requests
+		overrideDuration := uint64(60000) // 1 minute window
 
 		overrideID := uid.New(uid.RatelimitOverridePrefix)
 		err := db.Query.InsertRatelimitOverride(ctx, h.DB.RW(), db.InsertRatelimitOverrideParams{

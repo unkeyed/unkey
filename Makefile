@@ -14,6 +14,7 @@ install-brew-tools: ## Install Homebrew tools if they don't exist
 	@command -v minikube >/dev/null 2>&1 || { echo "Installing minikube..."; brew install minikube; }
 	@command -v bazel >/dev/null 2>&1 || { echo "Installing bazel..."; brew install bazelisk; }
 	@command -v dprint >/dev/null 2>&1 || { echo "Installing dprint..."; brew install dprint; }
+	@command -v ngrok >/dev/null 2>&1 || { echo "Installing ngrok..."; brew install ngrok; }
 
 .PHONY: install
 install: install-go ## Install all dependencies

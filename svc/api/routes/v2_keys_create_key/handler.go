@@ -184,9 +184,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ForWorkspaceID:     sql.NullString{String: "", Valid: false},
 			CreatedAtM:         now,
 			Enabled:            true,
-			RemainingRequests:  sql.NullInt32{Int32: 0, Valid: false},
+			RemainingRequests:  sql.NullInt64{Int64: 0, Valid: false},
 			RefillDay:          sql.NullInt16{Int16: 0, Valid: false},
-			RefillAmount:       sql.NullInt32{Int32: 0, Valid: false},
+			RefillAmount:       sql.NullInt64{Int64: 0, Valid: false},
 			Name:               sql.NullString{String: "", Valid: false},
 			IdentityID:         sql.NullString{String: "", Valid: false},
 			Meta:               sql.NullString{String: "", Valid: false},
@@ -266,15 +266,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if req.Credits.Remaining.IsSpecified() && !req.Credits.Remaining.IsNull() {
-				insertKeyParams.RemainingRequests = sql.NullInt32{
-					Int32: int32(req.Credits.Remaining.MustGet()), // nolint:gosec
+				insertKeyParams.RemainingRequests = sql.NullInt64{
+					Int64: req.Credits.Remaining.MustGet(),
 					Valid: true,
 				}
 			}
 
 			if req.Credits.Refill != nil {
-				insertKeyParams.RefillAmount = sql.NullInt32{
-					Int32: int32(req.Credits.Refill.Amount), // nolint:gosec
+				insertKeyParams.RefillAmount = sql.NullInt64{
+					Int64: req.Credits.Refill.Amount,
 					Valid: true,
 				}
 
@@ -334,8 +334,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					WorkspaceID: auth.AuthorizedWorkspaceID,
 					KeyID:       sql.NullString{String: keyID, Valid: true},
 					Name:        ratelimit.Name,
-					Limit:       int32(ratelimit.Limit), // nolint:gosec
-					Duration:    ratelimit.Duration,
+					Limit:       uint64(ratelimit.Limit),
+					Duration:    uint64(ratelimit.Duration),
 					CreatedAt:   now,
 					UpdatedAt:   sql.NullInt64{Int64: 0, Valid: false},
 					AutoApply:   ratelimit.AutoApply,
