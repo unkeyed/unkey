@@ -82,6 +82,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
     const isGridLayout = config.layoutMode === "grid";
     const parentRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     const containerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
+    const anchorRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     // Default to false (desktop) to prevent hydration mismatches
     const isMobile = useIsMobile({ defaultValue: false });
 
@@ -162,8 +163,9 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
 
     useAutoScroll({
       enabled: autoScrollToBottom,
-      parentRef,
-      data: historicData,
+      scrollRef: parentRef,
+      anchorRef,
+      dataLength: tableData.getTotalLength(),
       isLoading,
       expandedCount: expandedIds.size,
     });
@@ -492,6 +494,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               />
             </tbody>
           </table>
+          {autoScrollToBottom && <div ref={anchorRef} />}
           {loadMoreFooterProps && (
             <LoadMoreFooter
               {...loadMoreFooterProps}
