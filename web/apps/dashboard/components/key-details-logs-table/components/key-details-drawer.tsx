@@ -6,7 +6,7 @@ import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { toast } from "@unkey/ui";
 import { useFetchRequestDetails } from "../hooks/use-fetch-request-details";
 
-const ANIMATION_DELAY = 350;
+
 type Props = {
   distanceToTop: number;
   selectedLog: KeyDetailsLog | null;
@@ -60,7 +60,7 @@ export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Pr
     <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
       <LogDetails.Header onClose={handleClose} />
       <LogDetails.Sections />
-      <LogDetails.Spacer delay={ANIMATION_DELAY} />
+      <LogDetails.Spacer />
       <LogDetails.Footer />
     </LogDetails>
   );

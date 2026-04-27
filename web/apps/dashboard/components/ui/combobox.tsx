@@ -86,7 +86,8 @@ type ComboboxProps = {
   creatable?: boolean;
   /** Hide the chevron icon in the trigger */
   hideChevron?: boolean;
-  /** Additional accessibility attributes */
+  /** Class name applied to the popover content container */
+  popoverClassName?: string;
   "aria-describedby"?: string;
   "aria-invalid"?: boolean;
   "aria-required"?: boolean;
@@ -109,6 +110,7 @@ export function Combobox({
   id,
   creatable = false,
   hideChevron = false,
+  popoverClassName,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
   "aria-required": ariaRequired,
@@ -174,11 +176,11 @@ export function Combobox({
             {...otherProps}
           >
             {selectedOption ? (
-              <div className="py-0 w-full text-left">
+              <div className="py-0 w-full text-left truncate">
                 {selectedOption.selectedLabel || selectedOption.label}
               </div>
             ) : value && creatable ? (
-              <div className="py-0 w-full text-left">{value}</div>
+              <div className="py-0 w-full text-left truncate">{value}</div>
             ) : (
               <div className="text-left w-full">{placeholder}</div>
             )}
@@ -187,7 +189,10 @@ export function Combobox({
         </PopoverTrigger>
       </div>
       <PopoverContent
-        className="p-0 w-full min-w-(--radix-popover-trigger-width) rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-200 overflow-visible"
+        className={cn(
+          "p-0 w-full min-w-(--radix-popover-trigger-width) rounded-lg border border-grayA-4 bg-white dark:bg-black shadow-md z-200 overflow-visible",
+          popoverClassName,
+        )}
         onOpenAutoFocus={(e) => {
           // Let the CommandInput receive focus so users can type immediately
           e.preventDefault();
@@ -214,9 +219,14 @@ export function Combobox({
             onValueChange={setSearch}
             onInput={onChange}
             onKeyDown={(e) => {
-              // Prevent propagation to Dialog but allow command list navigation
-              e.stopPropagation();
-              // When creatable and Enter is pressed with no matching option, submit the typed value
+              if (
+                e.key !== "ArrowDown" &&
+                e.key !== "ArrowUp" &&
+                e.key !== "Enter" &&
+                e.key !== "Escape"
+              ) {
+                e.stopPropagation();
+              }
               if (creatable && e.key === "Enter" && search.trim()) {
                 const hasMatch = effectiveOptions.some(
                   (o) => (o.searchValue || o.value).toLowerCase() === search.trim().toLowerCase(),
@@ -247,9 +257,9 @@ export function Combobox({
                       setOpen(false);
                     }
                   }}
-                  className="flex items-center py-1 mt-0 text-gray-9 text-xs"
+                  className="flex items-center py-1 mt-0 text-gray-9 text-xs overflow-hidden"
                 >
-                  Use "{search.trim()}"
+                  <span className="truncate">Use "{search.trim()}"</span>
                 </CommandItem>
               )}
               {effectiveOptions.map((option) => (
@@ -268,13 +278,16 @@ export function Combobox({
                     }
                   }}
                   className={cn(
-                    "flex items-center py-1 mt-0",
+                    "flex items-center py-1 mt-0 overflow-hidden",
                     option.disabled && "opacity-50 cursor-not-allowed",
                   )}
                 >
-                  {option.label}
+                  <span className="truncate">{option.label}</span>
                   <Check
-                    className={cn("ml-auto", value === option.value ? "opacity-100" : "opacity-0")}
+                    className={cn(
+                      "ml-auto shrink-0",
+                      value === option.value ? "opacity-100" : "opacity-0",
+                    )}
                     iconSize="sm-regular"
                   />
                 </CommandItem>

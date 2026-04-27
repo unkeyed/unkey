@@ -3,8 +3,6 @@
 import { LogDetails } from "@/components/logs/details/log-details";
 import { useRatelimitLogsContext } from "../../../context/logs";
 
-const ANIMATION_DELAY = 350;
-
 type Props = {
   distanceToTop: number;
 };
@@ -24,7 +22,7 @@ export const RatelimitLogDetails = ({ distanceToTop }: Props) => {
     <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
       <LogDetails.Header onClose={handleClose} />
       <LogDetails.Sections />
-      <LogDetails.Spacer delay={ANIMATION_DELAY} />
+      <LogDetails.Spacer />
       <LogDetails.Footer />
       <LogDetails.Meta />
     </LogDetails>

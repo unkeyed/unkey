@@ -167,9 +167,9 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	})
 	require.NoError(h.t, err)
 
-	region, err := db.Query.FindRegionByNameAndPlatform(ctx, h.DB.RO(), db.FindRegionByNameAndPlatformParams{
-		Name:     req.Region,
+	region, err := db.Query.FindRegionByPlatformAndName(ctx, h.DB.RO(), db.FindRegionByPlatformAndNameParams{
 		Platform: "test",
+		Name:     req.Region,
 	})
 	require.NoError(h.t, err)
 
