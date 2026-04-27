@@ -1,14 +1,13 @@
 "use client";
 
 import { collection } from "@/lib/collections";
-import { envVarKeySchema } from "@/lib/schemas/env-var";
+import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown } from "@unkey/icons";
 import {
   Button,
   FormInput,
-  FormTextarea,
   Select,
   SelectContent,
   SelectItem,
@@ -17,13 +16,13 @@ import {
   toast,
 } from "@unkey/ui";
 import { useCallback, useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useProjectData } from "../../../data-provider";
 
 const editEnvVarSchema = z.object({
   key: envVarKeySchema,
-  value: z.string(),
+  value: envVarValueSchema.or(z.literal("")),
   environmentId: z.string().min(1, "Environment is required"),
   description: z.string().optional(),
 });
@@ -59,6 +58,7 @@ export function EnvVarEditRow({
     control,
     formState: { isSubmitting, errors },
   } = useForm<EditEnvVarFormValues>({
+    mode: "onChange",
     resolver: zodResolver(editEnvVarSchema),
     defaultValues: {
       key: variableKey,
@@ -67,6 +67,9 @@ export function EnvVarEditRow({
       description: note ?? "",
     },
   });
+
+  const watchedValue = useWatch({ control, name: "value" });
+  const hasSpaces = watchedValue?.trim().includes(" ");
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: decryptMutation is not stable
   useEffect(
@@ -135,9 +138,9 @@ export function EnvVarEditRow({
           title={isWriteonly ? "You cannot rename sensitive environment variables" : ""}
           {...register("key")}
         />
-        <FormTextarea
+        <FormInput
           label={isWriteonly ? "New Value" : "Value"}
-          className="[&_textarea]:font-mono"
+          className="[&_input]:font-mono"
           placeholder={
             isWriteonly
               ? "Enter new value to replace"
@@ -145,8 +148,10 @@ export function EnvVarEditRow({
                 ? "Decrypting..."
                 : "value"
           }
-          rows={3}
           disabled={decryptMutation.isLoading}
+          error={errors.value?.message}
+          variant={!errors.value && hasSpaces ? "warning" : undefined}
+          description={!errors.value && hasSpaces ? "Value contains spaces" : undefined}
           {...register("value")}
         />
         <FormInput

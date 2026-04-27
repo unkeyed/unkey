@@ -1,18 +1,29 @@
 import { Plus, Trash } from "@unkey/icons";
 import { Button, FormInput } from "@unkey/ui";
-import type { FieldErrors, UseFormRegister } from "react-hook-form";
+import type { Control, FieldErrors, UseFormRegister } from "react-hook-form";
+import { useWatch } from "react-hook-form";
 import type { EnvVarsFormValues } from "./schema";
 
 type EnvVarRowProps = {
   index: number;
   isOnly: boolean;
   register: UseFormRegister<EnvVarsFormValues>;
+  control: Control<EnvVarsFormValues>;
   onRemove: (index: number) => void;
   errors?: FieldErrors<EnvVarsFormValues>["envVars"];
 };
 
-export const EnvVarRow = ({ index, isOnly, register, onRemove, errors }: EnvVarRowProps) => {
+export const EnvVarRow = ({
+  index,
+  isOnly,
+  register,
+  control,
+  onRemove,
+  errors,
+}: EnvVarRowProps) => {
   const fieldErrors = errors?.[index];
+  const value = useWatch({ control, name: `envVars.${index}.value` });
+  const hasSpaces = value?.trim().includes(" ");
 
   return (
     <div className="flex flex-col gap-3">
@@ -30,6 +41,8 @@ export const EnvVarRow = ({ index, isOnly, register, onRemove, errors }: EnvVarR
           className="flex-1 [&_input]:font-mono"
           placeholder="value"
           error={fieldErrors?.value?.message}
+          variant={!fieldErrors?.value && hasSpaces ? "warning" : undefined}
+          description={!fieldErrors?.value && hasSpaces ? "Value contains spaces" : undefined}
           {...register(`envVars.${index}.value`)}
         />
         {!isOnly && (
