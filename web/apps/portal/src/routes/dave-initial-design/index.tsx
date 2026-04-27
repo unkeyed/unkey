@@ -112,8 +112,7 @@ function Preview() {
   };
 
   const rootStyle: CSSVarStyle = {
-    "--portal-bg": seedBranding.backgroundColor,
-    "--portal-btn": seedBranding.buttonColor,
+    "--portal-primary": seedBranding.primaryColor,
   };
 
   return (

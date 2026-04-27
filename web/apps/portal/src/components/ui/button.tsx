@@ -9,7 +9,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-[var(--portal-btn,var(--color-gray-12))] text-white transition-opacity hover:opacity-90",
+          "bg-[var(--portal-primary,var(--color-gray-12))] text-white transition-opacity hover:opacity-90",
         outline: "border border-primary/15 bg-background shadow-xs hover:bg-gray-2",
         ghost: "text-gray-12 hover:bg-gray-3",
         destructive: "bg-error-9 text-white hover:bg-error-11",

@@ -12,8 +12,7 @@ export type Key = {
 
 export type Branding = {
   logoUrl: string | null;
-  backgroundColor: string;
-  buttonColor: string;
+  primaryColor: string;
   appName: string;
 };
 
@@ -378,8 +377,7 @@ export const seedKeys: Key[] = [
 
 export const seedBranding: Branding = {
   logoUrl: null,
-  backgroundColor: "#000000",
-  buttonColor: "#000000",
+  primaryColor: "#000000",
   appName: "Acme Inc",
 };
 
