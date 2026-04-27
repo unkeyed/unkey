@@ -788,9 +788,9 @@ func (s *Seeder) CreateRegion(ctx context.Context, req CreateRegionRequest) db.R
 	})
 	require.NoError(s.t, err)
 
-	region, err := db.Query.FindRegionByNameAndPlatform(ctx, s.DB.RO(), db.FindRegionByNameAndPlatformParams{
-		Name:     req.Name,
+	region, err := db.Query.FindRegionByPlatformAndName(ctx, s.DB.RO(), db.FindRegionByPlatformAndNameParams{
 		Platform: req.Platform,
+		Name:     req.Name,
 	})
 	require.NoError(s.t, err)
 
