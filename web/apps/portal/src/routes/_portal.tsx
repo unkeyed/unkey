@@ -1,4 +1,5 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { PortalHeader } from "~/components/portal-header";
 import { getSessionToken } from "~/lib/session";
 
 export const Route = createFileRoute("/_portal")({
@@ -9,5 +10,14 @@ export const Route = createFileRoute("/_portal")({
     }
     return { sessionToken: token };
   },
-  component: Outlet,
+  component: PortalLayout,
 });
+
+function PortalLayout() {
+  return (
+    <>
+      <PortalHeader />
+      <Outlet />
+    </>
+  );
+}
