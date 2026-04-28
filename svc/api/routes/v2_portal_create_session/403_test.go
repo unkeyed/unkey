@@ -49,6 +49,7 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	}
 
 	req := handler.Request{
+		PortalID:    portalConfigID,
 		ExternalID:  "user_123",
 		Permissions: []string{"keys:read"},
 	}

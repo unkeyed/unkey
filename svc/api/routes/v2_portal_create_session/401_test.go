@@ -21,6 +21,7 @@ func TestCreateSessionUnauthorized(t *testing.T) {
 	h.Register(route)
 
 	req := handler.Request{
+		PortalID:    "ptl_doesnotmatter",
 		ExternalID:  "user_123",
 		Permissions: []string{"keys:read"},
 	}

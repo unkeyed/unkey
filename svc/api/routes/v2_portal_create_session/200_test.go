@@ -49,6 +49,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 
 	t.Run("basic session creation", func(t *testing.T) {
 		req := handler.Request{
+			PortalID:    portalConfigID,
 			ExternalID:  "user_123",
 			Permissions: []string{"keys:read"},
 		}
@@ -72,6 +73,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 		before := time.Now()
 
 		req := handler.Request{
+			PortalID:    portalConfigID,
 			ExternalID:  "user_456",
 			Permissions: []string{"keys:read", "analytics:read"},
 		}
@@ -90,6 +92,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 
 	t.Run("with metadata and preview", func(t *testing.T) {
 		req := handler.Request{
+			PortalID:    portalConfigID,
 			ExternalID:  "user_789",
 			Permissions: []string{"keys:read"},
 			Metadata:    map[string]any{"name": "Test User", "email": "test@example.com"},
@@ -111,6 +114,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 
 	t.Run("multiple sessions for same externalId", func(t *testing.T) {
 		req := handler.Request{
+			PortalID:    portalConfigID,
 			ExternalID:  "user_multi",
 			Permissions: []string{"keys:read"},
 		}

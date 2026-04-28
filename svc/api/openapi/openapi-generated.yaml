@@ -1816,9 +1816,17 @@ components:
         V2PortalCreateSessionRequestBody:
             type: object
             required:
+                - portalId
                 - externalId
                 - permissions
             properties:
+                portalId:
+                    type: string
+                    minLength: 1
+                    description: |
+                        The ID of the portal configuration to create the session against.
+                        Identifies which app's portal the end user will access.
+                    example: ptl_abc123def456
                 externalId:
                     type: string
                     minLength: 1
@@ -6663,6 +6671,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found
                 "429":
                     content:
                         application/problem+json:
@@ -6708,15 +6722,17 @@ paths:
                         Session exchanged successfully. Use the returned token for subsequent API calls.
                     headers:
                         Cache-Control:
-                            schema:
-                                type: string
-                                example: no-store
                             description: Prevents caching of the session token response.
-                        Pragma:
                             schema:
+                                example: no-store
                                 type: string
-                                example: no-cache
+                            example: no-store
+                        Pragma:
                             description: HTTP/1.0 backward-compatible cache prevention.
+                            schema:
+                                example: no-cache
+                                type: string
+                            example: no-cache
                 "400":
                     content:
                         application/json:

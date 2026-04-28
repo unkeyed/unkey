@@ -1985,6 +1985,10 @@ type V2PortalCreateSessionRequestBody struct {
 	// Any `keys:*` permission shows the Keys tab, any `analytics:*` shows Analytics, `docs:read` shows Docs.
 	Permissions []string `json:"permissions"`
 
+	// PortalId The ID of the portal configuration to create the session against.
+	// Identifies which app's portal the end user will access.
+	PortalId string `json:"portalId"`
+
 	// Preview When true, creates a preview session for testing the portal experience.
 	Preview *bool `json:"preview,omitempty"`
 }

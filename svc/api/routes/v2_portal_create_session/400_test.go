@@ -27,7 +27,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 	}
 	h.Register(route)
 
-	// Seed a portal config + frontline route so we isolate validation errors.
+	// Seed a portal config so we isolate validation errors.
 	workspaceID := h.Resources().UserWorkspace.ID
 	portalConfigID := uid.New(uid.PortalConfigPrefix)
 	now := time.Now().UnixMilli()
@@ -41,15 +41,6 @@ func TestCreateSessionBadRequest(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = db.Query.InsertPortalFrontlineRoute(ctx, h.DB.RW(), db.InsertPortalFrontlineRouteParams{
-		ID:                       uid.New(uid.FrontlineRoutePrefix),
-		PortalConfigID:           sql.NullString{Valid: true, String: portalConfigID},
-		PathPrefix:               sql.NullString{Valid: true, String: "/portal"},
-		FullyQualifiedDomainName: fmt.Sprintf("test-400-%s.unkey.com", uid.New(uid.TestPrefix)),
-		CreatedAt:                now,
-	})
-	require.NoError(t, err)
-
 	rootKey := h.CreateRootKey(workspaceID)
 
 	headers := http.Header{
@@ -59,6 +50,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("missing externalId", func(t *testing.T) {
 		req := handler.Request{
+			PortalID:    portalConfigID,
 			Permissions: []string{"keys:read"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -68,6 +60,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("empty externalId", func(t *testing.T) {
 		req := handler.Request{
+			PortalID:    portalConfigID,
 			ExternalID:  "",
 			Permissions: []string{"keys:read"},
 		}
@@ -78,6 +71,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("missing permissions", func(t *testing.T) {
 		req := handler.Request{
+			PortalID:   portalConfigID,
 			ExternalID: "user_123",
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -87,8 +81,30 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("empty permissions array", func(t *testing.T) {
 		req := handler.Request{
+			PortalID:    portalConfigID,
 			ExternalID:  "user_123",
 			Permissions: []string{},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("missing portalId", func(t *testing.T) {
+		req := handler.Request{
+			ExternalID:  "user_123",
+			Permissions: []string{"keys:read"},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("empty portalId", func(t *testing.T) {
+		req := handler.Request{
+			PortalID:    "",
+			ExternalID:  "user_123",
+			Permissions: []string{"keys:read"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
