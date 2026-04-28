@@ -172,12 +172,24 @@ export const firewallPolicySchema = z
 export type RatelimitPolicy = z.infer<typeof ratelimitPolicySchema>;
 export type FirewallPolicy = z.infer<typeof firewallPolicySchema>;
 
+// ── OpenAPI Validation policy ──────────────────────────────────────────
+
+export const openapiPolicySchema = z
+  .object({
+    ...policyBase,
+    type: z.literal("openapi"),
+    openapi: z.object({ specYaml: z.string().optional() }).strict(),
+  })
+  .strict();
+export type OpenapiPolicy = z.infer<typeof openapiPolicySchema>;
+
 // ── Sentinel policy (discriminated union — extend with new types here) ──
 
 export const sentinelPolicySchema = z.discriminatedUnion("type", [
   keyauthPolicySchema,
   ratelimitPolicySchema,
   firewallPolicySchema,
+  openapiPolicySchema,
 ]);
 export type SentinelPolicy = z.infer<typeof sentinelPolicySchema>;
 export type SentinelPolicyType = SentinelPolicy["type"];
@@ -219,6 +231,9 @@ export function fromWirePolicy(raw: unknown): SentinelPolicy {
   }
   if ("firewall" in obj) {
     return sentinelPolicySchema.parse({ ...obj, type: "firewall" });
+  }
+  if ("openapi" in obj) {
+    return sentinelPolicySchema.parse({ ...obj, type: "openapi" });
   }
   throw new Error("unknown sentinel policy variant");
 }
