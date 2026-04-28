@@ -81,6 +81,11 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		commitSHA = deployment.GitCommitSha.String
 	}
 
+	branch := ""
+	if deployment.GitBranch.Valid {
+		branch = deployment.GitBranch.String
+	}
+
 	var prNumber int64
 	if deployment.PrNumber.Valid {
 		prNumber = deployment.PrNumber.Int64
@@ -88,6 +93,8 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 
 	deployReq := &hydrav1.DeployRequest{
 		DeploymentId: deploymentID,
+		KeyAuthId:    nil,
+		Command:      deployment.Command,
 		Source: &hydrav1.DeployRequest_Git{
 			Git: &hydrav1.GitSource{
 				InstallationId: repoConn.InstallationID,
@@ -95,6 +102,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 				CommitSha:      commitSHA,
 				ContextPath:    buildSetting.DockerContext,
 				DockerfilePath: buildSetting.Dockerfile,
+				Branch:         branch,
 				PrNumber:       prNumber,
 			},
 		},
