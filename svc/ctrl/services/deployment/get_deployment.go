@@ -44,6 +44,7 @@ func (s *Service) GetDeployment(
 		WorkspaceId:              deployment.WorkspaceID,
 		ProjectId:                deployment.ProjectID,
 		EnvironmentId:            deployment.EnvironmentID,
+		AppId:                    deployment.AppID,
 		Status:                   convertDbStatusToProto(deployment.Status),
 		CreatedAt:                deployment.CreatedAt,
 		GitCommitSha:             "",
