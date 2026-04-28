@@ -47,15 +47,15 @@ func (e *Executor) Execute(
 		return nil
 	}
 
-	detail := result.Detail
+	publicMsg := result.Detail
 	if len(result.Errors) > 0 {
-		detail = result.Errors[0].Message
+		publicMsg = result.Detail + ": " + result.Errors[0].Message
 	}
 
 	return fault.New("request validation failed",
 		fault.Code(codes.Sentinel.OpenApi.InvalidRequest.URN()),
-		fault.Internal(detail),
-		fault.Public(result.Detail),
+		fault.Internal(publicMsg),
+		fault.Public(publicMsg),
 	)
 }
 
