@@ -1,0 +1,34 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "jwt",
+    srcs = [
+        "resolver.go",
+        "verifier.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/auth/jwt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/auth",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/logger",
+        "//pkg/zen",
+        "@com_github_golang_jwt_jwt_v5//:jwt",
+    ],
+)
+
+go_test(
+    name = "jwt_test",
+    srcs = [
+        "resolver_test.go",
+        "verifier_test.go",
+    ],
+    embed = [":jwt"],
+    deps = [
+        "//pkg/auth",
+        "//pkg/zen",
+        "@com_github_golang_jwt_jwt_v5//:jwt",
+        "@com_github_stretchr_testify//require",
+    ],
+)

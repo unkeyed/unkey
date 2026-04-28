@@ -69,6 +69,11 @@ type Config struct {
 	// Example: "redis://redis:6379"
 	RedisURL string `toml:"redis_url" config:"required,nonempty"`
 
+	// JWTSecret is the HMAC-SHA256 secret used to verify JWTs minted by trusted
+	// internal callers (today: the dashboard /proxy route). Empty disables JWT
+	// auth — every bearer is then treated as a root key.
+	JWTSecret string `toml:"jwt_secret"`
+
 	Observability config.Observability `toml:"observability"`
 
 	// MaxRequestBodySize caps incoming request bodies at this many bytes.

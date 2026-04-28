@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -33,7 +33,7 @@ type (
 
 type Handler struct {
 	DB           db.Database
-	Keys         keys.KeyService
+	Auth         auth.Authenticator
 	Auditlogs    auditlogs.AuditLogService
 	KeyCache     cache.Cache[string, keysdb.CachedKeyData]
 	UsageLimiter usagelimiter.Service
@@ -51,7 +51,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Auth.Authenticate(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
@@ -80,7 +80,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if key.WorkspaceID != auth.WorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -88,7 +88,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = rbac.Check(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -99,7 +99,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   key.Api.ID,
 			Action:       rbac.UpdateKey,
 		}),
-	)))
+	), auth.Permissions)
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				err = db.Query.UpsertIdentity(ctx, tx, db.UpsertIdentityParams{
 					ID:          uid.New(uid.IdentityPrefix),
 					ExternalID:  externalID,
-					WorkspaceID: auth.AuthorizedWorkspaceID,
+					WorkspaceID: auth.WorkspaceID,
 					Environment: "default",
 					CreatedAt:   time.Now().UnixMilli(),
 					Meta:        []byte("{}"),
@@ -163,7 +163,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 				// Fetch the identity ID (either just created or already existed)
 				identity, err := db.Query.FindIdentityByExternalID(ctx, tx, db.FindIdentityByExternalIDParams{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
+					WorkspaceID: auth.WorkspaceID,
 					ExternalID:  externalID,
 					Deleted:     false,
 				})
@@ -348,7 +348,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 				ratelimitsToInsert = append(ratelimitsToInsert, db.InsertKeyRatelimitParams{
 					ID:          rlID,
-					WorkspaceID: auth.AuthorizedWorkspaceID,
+					WorkspaceID: auth.WorkspaceID,
 					KeyID:       sql.NullString{String: key.ID, Valid: true},
 					Name:        newRL.Name,
 					Limit:       uint64(newRL.Limit),
@@ -374,7 +374,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if req.Permissions != nil {
 			var existingPermissions []db.Permission
 			existingPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: auth.WorkspaceID,
 				Slugs:       *req.Permissions,
 			})
 			if err != nil {
@@ -403,7 +403,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				newPermID := uid.New(uid.PermissionPrefix)
 				permissionsToCreate = append(permissionsToCreate, db.InsertPermissionParams{
 					PermissionID: newPermID,
-					WorkspaceID:  auth.AuthorizedWorkspaceID,
+					WorkspaceID:  auth.WorkspaceID,
 					Name:         requestedSlug,
 					Slug:         requestedSlug,
 					Description:  dbtype.NullString{String: fmt.Sprintf("Auto-created permission: %s", requestedSlug), Valid: true},
@@ -420,10 +420,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if len(permissionsToCreate) > 0 {
 				for _, toCreate := range permissionsToCreate {
 					auditLogs = append(auditLogs, auditlog.AuditLog{
-						WorkspaceID: auth.AuthorizedWorkspaceID,
+						WorkspaceID: auth.WorkspaceID,
 						Event:       auditlog.PermissionCreateEvent,
 						ActorType:   auditlog.RootKeyActor,
-						ActorID:     auth.Key.ID,
+						ActorID:     auth.ID,
 						ActorName:   "root key",
 						ActorMeta:   map[string]any{},
 						Display:     fmt.Sprintf("Created %s (%s)", toCreate.Slug, toCreate.PermissionID),
@@ -468,7 +468,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				permissionsToInsert = append(permissionsToInsert, db.InsertKeyPermissionParams{
 					KeyID:        key.ID,
 					PermissionID: reqPerm.ID,
-					WorkspaceID:  auth.AuthorizedWorkspaceID,
+					WorkspaceID:  auth.WorkspaceID,
 					CreatedAt:    now,
 					UpdatedAt:    sql.NullInt64{Int64: now, Valid: true},
 				})
@@ -489,7 +489,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if req.Roles != nil {
 			var existingRoles []db.FindRolesByNamesRow
 			existingRoles, err = db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: auth.WorkspaceID,
 				Names:       *req.Roles,
 			})
 			if err != nil {
@@ -535,7 +535,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				rolesToInsert = append(rolesToInsert, db.InsertKeyRoleParams{
 					KeyID:       key.ID,
 					RoleID:      reqRole.ID,
-					WorkspaceID: auth.AuthorizedWorkspaceID,
+					WorkspaceID: auth.WorkspaceID,
 					CreatedAtM:  time.Now().UnixMilli(),
 				})
 			}
@@ -553,10 +553,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		auditLogs = append(auditLogs, auditlog.AuditLog{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
+			WorkspaceID: auth.WorkspaceID,
 			Event:       auditlog.KeyUpdateEvent,
 			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.Key.ID,
+			ActorID:     auth.ID,
 			ActorName:   "root key",
 			ActorMeta:   map[string]any{},
 			Display:     fmt.Sprintf("Updated key %s", key.ID),

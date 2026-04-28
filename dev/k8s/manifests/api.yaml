@@ -12,6 +12,7 @@ data:
     region = "local"
     http_port = 7070
     redis_url = "redis://redis:6379"
+    jwt_secret = "local-dev-jwt-secret-do-not-use-in-prod"
     test_mode = false
     max_request_body_size = 10485760
 

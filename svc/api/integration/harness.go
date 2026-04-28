@@ -140,6 +140,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			Platform:   "test",
 			Image:      "test",
 			RedisURL:   "", // Ignored: Test.Counter overrides the backend.
+			JWTSecret:  "",
 			Region:     "test",
 			InstanceID: fmt.Sprintf("test-node-%d", i),
 			Clock:      clock.New(),

@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -19,7 +19,7 @@ type Response = openapi.V2PermissionsGetPermissionResponseBody
 // Handler implements zen.Route interface for the v2 permissions get permission endpoint
 type Handler struct {
 	DB   db.Database
-	Keys keys.KeyService
+	Auth auth.Authenticator
 }
 
 // Method returns the HTTP method this route responds to
@@ -36,7 +36,7 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// 1. Authentication
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Auth.Authenticate(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
@@ -47,19 +47,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = rbac.Check(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",
 			Action:       rbac.ReadPermission,
 		}),
-	)))
+	), auth.Permissions)
 	if err != nil {
 		return err
 	}
 
 	permission, err := db.Query.FindPermissionByIdOrSlug(ctx, h.DB.RO(), db.FindPermissionByIdOrSlugParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: auth.WorkspaceID,
 		Search:      req.Permission,
 	})
 	if err != nil {

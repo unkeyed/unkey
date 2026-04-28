@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -21,7 +21,7 @@ type Response = openapi.V2PermissionsDeletePermissionResponseBody
 // Handler implements zen.Route interface for the v2 permissions delete permission endpoint
 type Handler struct {
 	DB        db.Database
-	Keys      keys.KeyService
+	Auth      auth.Authenticator
 	Auditlogs auditlogs.AuditLogService
 }
 
@@ -38,7 +38,7 @@ func (h *Handler) Path() string {
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// 1. Authentication
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Auth.Authenticate(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
@@ -49,19 +49,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = rbac.Check(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",
 			Action:       rbac.DeletePermission,
 		}),
-	)))
+	), auth.Permissions)
 	if err != nil {
 		return err
 	}
 
 	permission, err := db.Query.FindPermissionByIdOrSlug(ctx, h.DB.RO(), db.FindPermissionByIdOrSlugParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: auth.WorkspaceID,
 		Search:      req.Permission,
 	})
 	if err != nil {
@@ -106,10 +106,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: auth.WorkspaceID,
 				Event:       auditlog.PermissionDeleteEvent,
 				ActorType:   auditlog.RootKeyActor,
-				ActorID:     auth.Key.ID,
+				ActorID:     auth.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
 				Display:     "Deleted " + permission.ID,

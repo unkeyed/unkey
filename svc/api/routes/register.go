@@ -119,7 +119,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		defaultMiddlewares,
 		&v2RatelimitLimit.Handler{
 			DB:              svc.Database,
-			Keys:            svc.Keys,
+			Auth:            svc.Auth,
 			RatelimitEvents: svc.RatelimitEvents,
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
@@ -133,7 +133,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		defaultMiddlewares,
 		&v2RatelimitMultiLimit.Handler{
 			DB:              svc.Database,
-			Keys:            svc.Keys,
+			Auth:            svc.Auth,
 			RatelimitEvents: svc.RatelimitEvents,
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
@@ -147,7 +147,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		defaultMiddlewares,
 		&v2RatelimitSetOverride.Handler{
 			DB:             svc.Database,
-			Keys:           svc.Keys,
+			Auth:           svc.Auth,
 			Auditlogs:      svc.Auditlogs,
 			NamespaceCache: svc.Caches.RatelimitNamespace,
 		},
@@ -158,7 +158,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		defaultMiddlewares,
 		&v2RatelimitGetOverride.Handler{
 			DB:             svc.Database,
-			Keys:           svc.Keys,
+			Auth:           svc.Auth,
 			NamespaceCache: svc.Caches.RatelimitNamespace,
 		},
 	)
@@ -168,7 +168,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		defaultMiddlewares,
 		&v2RatelimitDeleteOverride.Handler{
 			DB:             svc.Database,
-			Keys:           svc.Keys,
+			Auth:           svc.Auth,
 			Auditlogs:      svc.Auditlogs,
 			NamespaceCache: svc.Caches.RatelimitNamespace,
 		},
@@ -180,7 +180,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2RatelimitListOverrides.Handler{
 
 			DB:   svc.Database,
-			Keys: svc.Keys,
+			Auth: svc.Auth,
 		},
 	)
 
@@ -193,7 +193,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2IdentitiesCreateIdentity.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
@@ -204,7 +204,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2IdentitiesDeleteIdentity.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
@@ -215,7 +215,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2IdentitiesGetIdentity.Handler{
 
 			DB:   svc.Database,
-			Keys: svc.Keys,
+			Auth: svc.Auth,
 		},
 	)
 
@@ -225,7 +225,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2IdentitiesListIdentities.Handler{
 
 			DB:   svc.Database,
-			Keys: svc.Keys,
+			Auth: svc.Auth,
 		},
 	)
 
@@ -235,7 +235,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2IdentitiesUpdateIdentity.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
@@ -249,7 +249,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2ApisCreateApi.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
@@ -259,7 +259,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2ApisGetApi.Handler{
 
 			DB:     svc.Database,
-			Keys:   svc.Keys,
+			Auth:   svc.Auth,
 			Caches: svc.Caches,
 		},
 	)
@@ -270,7 +270,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2ApisListKeys.Handler{
 
 			DB:       svc.Database,
-			Keys:     svc.Keys,
+			Auth:     svc.Auth,
 			Vault:    svc.Vault,
 			ApiCache: svc.Caches.LiveApiByID,
 		},
@@ -282,7 +282,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2ApisDeleteApi.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 			Caches:    svc.Caches,
 		},
@@ -297,7 +297,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2DeployCreateDeployment.Handler{
 
 			DB:         svc.Database,
-			Keys:       svc.Keys,
+			Auth:       svc.Auth,
 			CtrlClient: svc.CtrlDeploymentClient,
 		},
 	)
@@ -308,7 +308,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2DeployGetDeployment.Handler{
 
 			DB:   svc.Database,
-			Keys: svc.Keys,
+			Auth: svc.Auth,
 		},
 	)
 
@@ -321,7 +321,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2PermissionsCreatePermission.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
@@ -332,7 +332,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2PermissionsGetPermission.Handler{
 
 			DB:   svc.Database,
-			Keys: svc.Keys,
+			Auth: svc.Auth,
 		},
 	)
 
@@ -342,7 +342,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2PermissionsGetRole.Handler{
 
 			DB:   svc.Database,
-			Keys: svc.Keys,
+			Auth: svc.Auth,
 		},
 	)
 
@@ -352,7 +352,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2PermissionsListPermissions.Handler{
 
 			DB:   svc.Database,
-			Keys: svc.Keys,
+			Auth: svc.Auth,
 		},
 	)
 
@@ -362,7 +362,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2PermissionsDeletePermission.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
@@ -373,7 +373,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2PermissionsCreateRole.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
@@ -384,7 +384,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2PermissionsListRoles.Handler{
 
 			DB:   svc.Database,
-			Keys: svc.Keys,
+			Auth: svc.Auth,
 		},
 	)
 
@@ -394,7 +394,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2PermissionsDeleteRole.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
@@ -408,6 +408,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2KeysVerifyKey.Handler{
 			DB:        svc.Database,
 			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
@@ -420,7 +421,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			ApiCache:  svc.Caches.LiveApiByID,
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 		},
 	)
 
@@ -428,9 +429,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysCreateKey.Handler{
-
 			DB:        svc.Database,
 			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 			Vault:     svc.Vault,
 		},
@@ -440,9 +441,9 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2KeysRerollKey.Handler{
-
 			DB:        svc.Database,
 			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 			Vault:     svc.Vault,
 		},
@@ -455,7 +456,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			KeyCache: svc.Caches.VerificationKeyByHash,
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 		},
 	)
@@ -466,7 +467,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2KeysUpdateKey.Handler{
 
 			DB:           svc.Database,
-			Keys:         svc.Keys,
+			Auth:         svc.Auth,
 			Auditlogs:    svc.Auditlogs,
 			KeyCache:     svc.Caches.VerificationKeyByHash,
 			UsageLimiter: svc.UsageLimiter,
@@ -479,7 +480,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2KeysGetKey.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 			Vault:     svc.Vault,
 		},
@@ -491,7 +492,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2KeysWhoami.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 			Vault:     svc.Vault,
 		},
@@ -503,7 +504,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2KeysUpdateCredits.Handler{
 
 			DB:           svc.Database,
-			Keys:         svc.Keys,
+			Auth:         svc.Auth,
 			Auditlogs:    svc.Auditlogs,
 			KeyCache:     svc.Caches.VerificationKeyByHash,
 			UsageLimiter: svc.UsageLimiter,
@@ -516,7 +517,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2KeysSetRoles.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
@@ -528,7 +529,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2KeysSetPermissions.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
@@ -540,7 +541,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2KeysAddPermissions.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
@@ -552,7 +553,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2KeysAddRoles.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
@@ -564,7 +565,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2KeysRemovePermissions.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
@@ -576,7 +577,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2KeysRemoveRoles.Handler{
 
 			DB:        svc.Database,
-			Keys:      svc.Keys,
+			Auth:      svc.Auth,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
@@ -590,7 +591,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		defaultMiddlewares,
 		&v2AnalyticsGetVerifications.Handler{
 			DB:                         svc.Database,
-			Keys:                       svc.Keys,
+			Auth:                       svc.Auth,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 			Caches:                     svc.Caches,
 		},

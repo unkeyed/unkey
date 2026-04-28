@@ -13,6 +13,14 @@ export const env = () =>
       UNKEY_WORKSPACE_ID: z.string(),
       UNKEY_API_ID: z.string(),
 
+      UNKEY_API_URL: z.url().default("https://api.unkey.com"),
+
+      // Shared HMAC secret used to sign JWTs in the dashboard proxy. Must match
+      // jwt_secret on the API side. Required (not optional) so missing-secret
+      // misconfigurations fail at boot rather than on the first proxied request.
+      // Min 32 bytes per the HS256 recommendation (256-bit security).
+      UNKEY_JWT_SECRET: z.string().min(32),
+
       UPSTASH_REDIS_REST_URL: z.string().optional(),
       UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
 

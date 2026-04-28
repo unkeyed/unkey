@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -21,7 +21,7 @@ type (
 
 type Handler struct {
 	DB   db.Database
-	Keys keys.KeyService
+	Auth auth.Authenticator
 }
 
 func (h *Handler) Path() string {
@@ -33,7 +33,7 @@ func (h *Handler) Method() string {
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Auth.Authenticate(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
@@ -57,7 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Verify deployment belongs to the authenticated workspace
-	if deployment.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if deployment.WorkspaceID != auth.WorkspaceID {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Project.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"),
@@ -68,7 +68,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Extract projectID from deployment
 	projectID := deployment.ProjectID
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = rbac.Check(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Project,
 			ResourceID:   "*",
@@ -79,7 +79,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   projectID,
 			Action:       rbac.ReadDeployment,
 		}),
-	)))
+	), auth.Permissions)
 	if err != nil {
 		return err
 	}

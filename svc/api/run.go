@@ -25,6 +25,8 @@ import (
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auth"
+	"github.com/unkeyed/unkey/pkg/auth/jwt"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
@@ -338,6 +340,18 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
 
+	// Build the Authenticator. Order matters: root-key resolver matches
+	// "unkey_"-prefixed bearers, JWT resolver matches everything else when
+	// a secret is configured.
+	// TODO: workspace rate limiting currently lives inside GetRootKey, so
+	// JWT-authenticated requests skip it. Move it to a wrapper Authenticator
+	// (or zen middleware) once we decide where workspace rate limiting belongs.
+	resolvers := []auth.Resolver{keys.NewRootKeyResolver(keySvc)}
+	if cfg.JWTSecret != "" {
+		resolvers = append(resolvers, jwt.NewResolver([]byte(cfg.JWTSecret)))
+	}
+	authImpl := auth.New(resolvers...)
+
 	r.Defer(keySvc.Close)
 	r.Defer(ctr.Close)
 
@@ -382,6 +396,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ApiRequests:          apiRequests,
 		RatelimitEvents:      ratelimits,
 		Keys:                 keySvc,
+		Auth:                 authImpl,
 		Validator:            validator,
 		Ratelimit:            rlSvc,
 		Auditlogs:            auditlogSvc,

@@ -93,14 +93,14 @@ func TestParseMetaBytes(t *testing.T) {
 func TestKeyPrincipalFromVerifier_EmptySlices(t *testing.T) {
 	t.Parallel()
 
-	verifier := &keys.KeyVerifier{
+	verifier := keys.NewVerifier(keys.VerifierArgs{
 		Key: keysdb.FindKeyForVerificationRow{
 			ID:        "key_abc",
 			KeyAuthID: "ks_456",
 		},
 		Roles:       []string{},
 		Permissions: []string{},
-	}
+	})
 
 	p, err := KeyPrincipalFromVerifier(verifier)
 	require.NoError(t, err)

@@ -9,7 +9,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/caches"
-	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -29,7 +29,7 @@ type (
 // Handler implements zen.Route interface for the v2 APIs list keys endpoint
 type Handler struct {
 	DB       db.Database
-	Keys     keys.KeyService
+	Auth     auth.Authenticator
 	Vault    vault.VaultServiceClient
 	ApiCache cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
 }
@@ -46,7 +46,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Auth.Authenticate(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
@@ -56,7 +56,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = rbac.Check(rbac.Or(
 		rbac.And(
 			rbac.Or(
 				rbac.T(rbac.Tuple{
@@ -83,13 +83,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}),
 			),
 		),
-	)))
+	), auth.Permissions)
 	if err != nil {
 		return err
 	}
 
 	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: auth.WorkspaceID,
 		Key:         req.ApiId,
 	}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
 		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
@@ -119,7 +119,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Check if API belongs to the authorized workspace
-	if api.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if api.WorkspaceID != auth.WorkspaceID {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
@@ -134,7 +134,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+		err = rbac.Check(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,
 				ResourceID:   "*",
@@ -145,7 +145,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   api.ID,
 				Action:       rbac.DecryptKey,
 			}),
-		)))
+		), auth.Permissions)
 		if err != nil {
 			return err
 		}
@@ -165,7 +165,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var identityID sql.NullString
 	if req.ExternalId != nil && *req.ExternalId != "" {
 		identity, identityErr := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
+			WorkspaceID: auth.WorkspaceID,
 			ExternalID:  *req.ExternalId,
 			Deleted:     false,
 		})
@@ -232,7 +232,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	plaintextMap := h.decryptKeys(ctx, req, keyResults, auth.AuthorizedWorkspaceID)
+	plaintextMap := h.decryptKeys(ctx, req, keyResults, auth.WorkspaceID)
 
 	// Transform to response format
 	responseData := make([]openapi.KeyResponseData, len(keyResults))

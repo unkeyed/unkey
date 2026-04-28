@@ -9,9 +9,9 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -28,7 +28,7 @@ type (
 
 type Handler struct {
 	DB             db.Database
-	Keys           keys.KeyService
+	Auth           auth.Authenticator
 	Auditlogs      auditlogs.AuditLogService
 	NamespaceCache cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 }
@@ -42,7 +42,7 @@ func (h *Handler) Path() string {
 }
 
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Auth.Authenticate(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	ns, found, err := h.getNamespace(ctx, auth.AuthorizedWorkspaceID, req.Namespace)
+	ns, found, err := h.getNamespace(ctx, auth.WorkspaceID, req.Namespace)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -77,7 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = rbac.Check(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
 			ResourceID:   ns.ID,
@@ -88,7 +88,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   "*",
 			Action:       rbac.DeleteOverride,
 		}),
-	)))
+	), auth.Permissions)
 	if err != nil {
 		return err
 	}
@@ -117,10 +117,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: auth.WorkspaceID,
 				Event:       auditlog.RatelimitDeleteOverrideEvent,
 				Display:     fmt.Sprintf("Deleted override %s.", override.ID),
-				ActorID:     auth.Key.ID,
+				ActorID:     auth.ID,
 				ActorType:   auditlog.RootKeyActor,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
@@ -155,8 +155,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	h.NamespaceCache.Remove(ctx,
-		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: ns.ID},
-		cache.ScopedKey{WorkspaceID: auth.AuthorizedWorkspaceID, Key: ns.Name},
+		cache.ScopedKey{WorkspaceID: auth.WorkspaceID, Key: ns.ID},
+		cache.ScopedKey{WorkspaceID: auth.WorkspaceID, Key: ns.Name},
 	)
 
 	return s.JSON(http.StatusOK, Response{

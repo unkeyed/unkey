@@ -23,7 +23,6 @@ func TestLimitSuccessfully(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Keys:            h.Keys,
 		RatelimitEvents: h.RatelimitEvents,
 		Ratelimit:       h.Ratelimit,
 		DB:              h.DB,

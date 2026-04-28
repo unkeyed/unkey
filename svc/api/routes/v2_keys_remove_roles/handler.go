@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -27,7 +27,7 @@ type (
 // Handler implements zen.Route interface for the v2 keys remove roles endpoint
 type Handler struct {
 	DB        db.Database
-	Keys      keys.KeyService
+	Auth      auth.Authenticator
 	Auditlogs auditlogs.AuditLogService
 	KeyCache  cache.Cache[string, keysdb.CachedKeyData]
 }
@@ -45,7 +45,7 @@ func (h *Handler) Path() string {
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// 1. Authentication
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Auth.Authenticate(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
@@ -70,14 +70,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if key.WorkspaceID != auth.WorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"), fault.Public("The specified key was not found."),
 		)
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = rbac.Check(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -88,7 +88,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   key.Api.ID,
 			Action:       rbac.UpdateKey,
 		}),
-	)))
+	), auth.Permissions)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	foundRoles, err := db.Query.FindManyRolesByNamesWithPerms(ctx, h.DB.RO(), db.FindManyRolesByNamesWithPermsParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: auth.WorkspaceID,
 		Names:       req.Roles,
 	})
 	if err != nil {
@@ -152,10 +152,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			for _, role := range rolesToRemove {
 				roleIds = append(roleIds, role.ID)
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
+					WorkspaceID: auth.WorkspaceID,
 					Event:       auditlog.AuthDisconnectRoleKeyEvent,
 					ActorType:   auditlog.RootKeyActor,
-					ActorID:     auth.Key.ID,
+					ActorID:     auth.ID,
 					ActorName:   "root key",
 					ActorMeta:   map[string]any{},
 					Display:     fmt.Sprintf("Removed role %s from key %s", role.Name, req.KeyId),

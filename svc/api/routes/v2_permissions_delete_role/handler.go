@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -22,7 +22,7 @@ type Response = openapi.V2PermissionsDeleteRoleResponseBody
 // Handler implements zen.Route interface for the v2 permissions delete role endpoint
 type Handler struct {
 	DB        db.Database
-	Keys      keys.KeyService
+	Auth      auth.Authenticator
 	Auditlogs auditlogs.AuditLogService
 }
 
@@ -41,7 +41,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.deleteRole")
 
 	// 1. Authentication
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Auth.Authenticate(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
@@ -52,19 +52,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = rbac.Check(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",
 			Action:       rbac.DeleteRole,
 		}),
-	)))
+	), auth.Permissions)
 	if err != nil {
 		return err
 	}
 
 	role, err := db.Query.FindRoleByIdOrNameWithPerms(ctx, h.DB.RO(), db.FindRoleByIdOrNameWithPermsParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: auth.WorkspaceID,
 		Search:      req.Role,
 	})
 	if err != nil {
@@ -107,10 +107,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: auth.WorkspaceID,
 				Event:       auditlog.RoleDeleteEvent,
 				ActorType:   auditlog.RootKeyActor,
-				ActorID:     auth.Key.ID,
+				ActorID:     auth.ID,
 				ActorName:   "root key",
 				ActorMeta:   map[string]any{},
 				Display:     "Deleted " + role.ID,

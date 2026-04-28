@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -29,7 +29,7 @@ type (
 // Handler implements zen.Route interface for the v2 identities update identity endpoint
 type Handler struct {
 	DB        db.Database
-	Keys      keys.KeyService
+	Auth      auth.Authenticator
 	Auditlogs auditlogs.AuditLogService
 }
 
@@ -50,7 +50,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Auth.Authenticate(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
@@ -62,13 +62,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(rbac.Or(
+	err = rbac.Check(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Identity,
 			ResourceID:   "*",
 			Action:       rbac.UpdateIdentity,
 		}),
-	)))
+	), auth.Permissions)
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	identityRow, err := db.Query.FindIdentity(ctx, h.DB.RO(), db.FindIdentityParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: auth.WorkspaceID,
 		Identity:    req.Identity,
 		Deleted:     false,
 	})
@@ -153,10 +153,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		auditLogs := []auditlog.AuditLog{
 			{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
+				WorkspaceID: auth.WorkspaceID,
 				Event:       auditlog.IdentityUpdateEvent,
 				Display:     fmt.Sprintf("Updated identity %s", identityRow.ID),
-				ActorID:     auth.Key.ID,
+				ActorID:     auth.ID,
 				ActorName:   "root key",
 				ActorType:   auditlog.RootKeyActor,
 				ActorMeta:   map[string]any{},
@@ -219,10 +219,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 				// Add audit log for deletion
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
+					WorkspaceID: auth.WorkspaceID,
 					Event:       auditlog.RatelimitDeleteEvent,
 					Display:     fmt.Sprintf("Deleted ratelimit %s", existingRL.ID),
-					ActorID:     auth.Key.ID,
+					ActorID:     auth.ID,
 					ActorName:   "root key",
 					ActorType:   auditlog.RootKeyActor,
 					ActorMeta:   map[string]any{},
@@ -286,10 +286,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 
 					auditLogs = append(auditLogs, auditlog.AuditLog{
-						WorkspaceID: auth.AuthorizedWorkspaceID,
+						WorkspaceID: auth.WorkspaceID,
 						Event:       auditlog.RatelimitUpdateEvent,
 						Display:     fmt.Sprintf("Updated ratelimit %s", existingRL.ID),
-						ActorID:     auth.Key.ID,
+						ActorID:     auth.ID,
 						ActorName:   "root key",
 						ActorType:   auditlog.RootKeyActor,
 						ActorMeta:   map[string]any{},
@@ -317,7 +317,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					ratelimitID = uid.New(uid.RatelimitPrefix)
 					rateLimitsToInsert = append(rateLimitsToInsert, db.InsertIdentityRatelimitParams{
 						ID:          ratelimitID,
-						WorkspaceID: auth.AuthorizedWorkspaceID,
+						WorkspaceID: auth.WorkspaceID,
 						IdentityID:  sql.NullString{String: identityRow.ID, Valid: true},
 						Name:        newRL.Name,
 						Limit:       uint64(newRL.Limit),
@@ -328,10 +328,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 					// Add audit log for creation
 					auditLogs = append(auditLogs, auditlog.AuditLog{
-						WorkspaceID: auth.AuthorizedWorkspaceID,
+						WorkspaceID: auth.WorkspaceID,
 						Event:       auditlog.RatelimitCreateEvent,
 						Display:     fmt.Sprintf("Created ratelimit %s", ratelimitID),
-						ActorID:     auth.Key.ID,
+						ActorID:     auth.ID,
 						ActorName:   "root key",
 						ActorType:   auditlog.RootKeyActor,
 						ActorMeta:   map[string]any{},

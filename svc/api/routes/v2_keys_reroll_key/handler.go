@@ -11,6 +11,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 
 	"github.com/unkeyed/unkey/gen/rpc/vault"
@@ -31,6 +32,7 @@ type (
 type Handler struct {
 	DB        db.Database
 	Keys      keys.KeyService
+	Auth      auth.Authenticator
 	Auditlogs auditlogs.AuditLogService
 	Vault     vault.VaultServiceClient
 }
@@ -47,7 +49,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Auth.Authenticate(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
@@ -76,7 +78,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Validate key belongs to authorized workspace
-	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if key.WorkspaceID != auth.WorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -117,7 +119,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(checks))
+	err = rbac.Check(checks, auth.Permissions)
 	if err != nil {
 		return err
 	}
@@ -205,7 +207,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if encryption != nil {
 			err = db.Query.InsertKeyEncryption(ctx, tx, db.InsertKeyEncryptionParams{
-				WorkspaceID:     auth.AuthorizedWorkspaceID,
+				WorkspaceID:     auth.WorkspaceID,
 				KeyID:           keyID,
 				CreatedAt:       now,
 				Encrypted:       encryption.GetEncrypted(),
@@ -322,10 +324,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		var auditLogs []auditlog.AuditLog
 		auditLogs = append(auditLogs, auditlog.AuditLog{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
+			WorkspaceID: auth.WorkspaceID,
 			Event:       auditlog.KeyRerollEvent,
 			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.Key.ID,
+			ActorID:     auth.ID,
 			ActorName:   "root key",
 			ActorMeta:   map[string]any{},
 			Display:     fmt.Sprintf("Rerolled key (%s) to (%s)", req.KeyId, keyID),

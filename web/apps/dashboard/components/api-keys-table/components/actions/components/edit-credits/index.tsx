@@ -9,6 +9,7 @@ import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useEffect } from "react";
 import { FormProvider } from "react-hook-form";
@@ -22,6 +23,7 @@ type EditCreditsProps = { keyDetails: KeyDetails } & ActionComponentProps;
 
 export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) => {
   const trpcUtil = trpc.useUtils();
+  const queryClient = useQueryClient();
   const methods = usePersistedForm<CreditsFormValues>(
     `${EDIT_CREDITS_FORM_STORAGE_KEY}_${keyDetails.id}`,
     {
@@ -54,6 +56,7 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
     reset(getKeyLimitDefaults(keyDetails));
     clearPersistedData();
     trpcUtil.key.fetchPermissions.invalidate();
+    queryClient.invalidateQueries({ queryKey: ["key", keyDetails.id] });
     onClose();
   });
 

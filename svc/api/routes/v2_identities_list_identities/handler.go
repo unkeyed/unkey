@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -22,7 +22,7 @@ type (
 // Handler implements zen.Route interface for the v2 identities list identities endpoint
 type Handler struct {
 	DB   db.Database
-	Keys keys.KeyService
+	Auth auth.Authenticator
 }
 
 // Method returns the HTTP method this route responds to
@@ -37,7 +37,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Auth.Authenticate(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
@@ -54,7 +54,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Query one extra record to check if there are more results
 	identities, err := db.Query.ListIdentities(ctx, h.DB.RO(), db.ListIdentitiesParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: auth.WorkspaceID,
 		Deleted:     false,
 		IDCursor:    cursor,
 		Limit:       int32(limit + 1), // nolint:gosec
@@ -90,7 +90,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}),
 		)
 
-		err = auth.VerifyRootKey(ctx, keys.WithPermissions(permissionCheck))
+		err = rbac.Check(permissionCheck, auth.Permissions)
 		if err != nil {
 			return err
 		}

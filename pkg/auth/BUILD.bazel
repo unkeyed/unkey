@@ -1,0 +1,28 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "auth",
+    srcs = [
+        "authenticator.go",
+        "principal.go",
+        "resolver.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/auth",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/logger",
+        "//pkg/zen",
+    ],
+)
+
+go_test(
+    name = "auth_test",
+    srcs = ["authenticate_test.go"],
+    embed = [":auth"],
+    deps = [
+        "//pkg/zen",
+        "@com_github_stretchr_testify//require",
+    ],
+)

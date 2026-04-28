@@ -6,7 +6,8 @@ import {
   ControlsRight,
 } from "@/components/logs/controls-container";
 import { formatNumber } from "@/lib/fmt";
-import { trpc } from "@/lib/trpc/client";
+import { getUnkeyClient } from "@/lib/unkey-client";
+import { useQuery } from "@tanstack/react-query";
 import { Coins } from "@unkey/icons";
 import { Separator } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
@@ -17,22 +18,19 @@ import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";
 
 export function KeysDetailsLogsControls({
-  keyspaceId,
   keyId,
   apiId,
 }: {
   keyId: string;
-  keyspaceId: string;
   apiId: string;
 }) {
-  const { data, error, isLoading } = trpc.key.fetchPermissions.useQuery({
-    keyId,
-    keyspaceId,
+  const { data, error, isLoading } = useQuery({
+    queryKey: ["key", keyId],
+    queryFn: () => getUnkeyClient().keys.getKey({ keyId }),
   });
+  const remainingCredit = data?.data.credits?.remaining ?? null;
 
-  // Safe access to remaining credit with fallback
-  const hasRemainingCredit =
-    data?.remainingCredit !== null && data?.remainingCredit !== undefined && !isLoading && !error;
+  const hasRemainingCredit = remainingCredit !== null && !isLoading && !error;
 
   return (
     <ControlsContainer>
@@ -66,7 +64,7 @@ export function KeysDetailsLogsControls({
                 >
                   Remaining Credits:
                 </motion.div>
-                {(data?.remainingCredit ?? 0) > 0 ? (
+                {(remainingCredit ?? 0) > 0 ? (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.97 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -83,7 +81,7 @@ export function KeysDetailsLogsControls({
                     <StatusBadge
                       className="text-xs"
                       variant="enabled"
-                      text={formatNumber(data?.remainingCredit ?? 0)}
+                      text={formatNumber(remainingCredit ?? 0)}
                       icon={<Coins iconSize="sm-thin" />}
                     />
                   </motion.div>

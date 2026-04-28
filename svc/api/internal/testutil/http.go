@@ -18,6 +18,8 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/pkg/auth"
+	"github.com/unkeyed/unkey/pkg/auth/jwt"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
@@ -60,6 +62,7 @@ type Harness struct {
 	DB                         db.Database
 	Caches                     caches.Caches
 	Keys                       keys.KeyService
+	Auth                       auth.Authenticator
 	UsageLimiter               usagelimiter.Service
 	Auditlogs                  auditlogs.AuditLogService
 	ClickHouse                 clickhouse.ClickHouse
@@ -212,11 +215,17 @@ func NewHarness(t *testing.T) *Harness {
 	})
 	require.NoError(t, err)
 
+	authImpl := auth.New(
+		keys.NewRootKeyResolver(keyService),
+		jwt.NewResolver([]byte("test-jwt-secret-min-32-bytes-for-hs256-please")),
+	)
+
 	h := Harness{
 		t:                          t,
 		srv:                        srv,
 		validator:                  validator,
 		Keys:                       keyService,
+		Auth:                       authImpl,
 		UsageLimiter:               ulSvc,
 		Ratelimit:                  ratelimitService,
 		Vault:                      v,

@@ -32,7 +32,7 @@ export const KeyDetailsLogsClient = ({
   return (
     <KeyDetailsLogsProvider>
       <div className="flex flex-col">
-        <KeysDetailsLogsControls keyspaceId={keyspaceId} keyId={keyId} apiId={apiId} />
+        <KeysDetailsLogsControls keyId={keyId} apiId={apiId} />
         <KeysDetailsLogsControlCloud />
         <div className="flex flex-col">
           <KeyDetailsLogsChart

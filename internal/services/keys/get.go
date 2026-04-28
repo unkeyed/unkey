@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -61,22 +62,26 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 		)
 	}
 
-	key.AuthorizedWorkspaceID = key.Key.ForWorkspaceID.String
-	sess.WorkspaceID = key.AuthorizedWorkspaceID
+	key.authorizedWorkspaceID = key.Key.ForWorkspaceID.String
+	sess.WorkspaceID = key.AuthorizedWorkspaceID()
 
 	if err := s.checkWorkspaceRateLimit(ctx, sess); err != nil {
 		return nil, log, err
 	}
 
 	logger.Set(ctx, slog.Group("auth",
-		slog.String("workspace_id", key.AuthorizedWorkspaceID),
+		slog.String("workspace_id", key.AuthorizedWorkspaceID()),
 		slog.String("root_key_id", key.Key.ID),
 	))
 
 	return key, log, nil
 }
 
-var emptyLog = func() {}
+// emptyLog is the no-op telemetry callback returned alongside a KeyVerifier
+// when there is nothing to flush (key not found, workspace disabled). It
+// aliases auth.EmptyEmit so handler-side defer emit() calls work uniformly
+// regardless of whether the bearer was a root key, JWT, or anything else.
+var emptyLog = auth.EmptyEmit
 
 // Get retrieves a key from the database and performs basic validation checks.
 // It returns a KeyVerifier that can be used for further validation with specific options.
@@ -204,7 +209,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			keyVerifications:      s.keyVerifications,
 			rateLimiter:           s.rateLimiter,
 			usageLimiter:          s.usageLimiter,
-			AuthorizedWorkspaceID: key.WorkspaceID,
+			authorizedWorkspaceID: key.WorkspaceID,
 			isRootKey:             key.ForWorkspaceID.Valid,
 			Key:                   key.FindKeyForVerificationRow,
 			startTime:             startTime,
@@ -220,7 +225,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		keyVerifications:      s.keyVerifications,
 		rateLimiter:           s.rateLimiter,
 		usageLimiter:          s.usageLimiter,
-		AuthorizedWorkspaceID: key.WorkspaceID,
+		authorizedWorkspaceID: key.WorkspaceID,
 		rBAC:                  s.rbac,
 		session:               sess,
 		region:                s.region,
@@ -234,7 +239,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		ratelimitConfigs:  key.RatelimitConfigs,
 		parsedIPWhitelist: key.ParsedIPWhitelist, // Use pre-parsed IPs from cache
 		Roles:             key.Roles,
-		Permissions:       key.Permissions,
+		permissions:       key.Permissions,
 		RatelimitResults:  nil,
 	}
 

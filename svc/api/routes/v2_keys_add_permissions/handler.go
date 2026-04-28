@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
-	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -27,7 +27,7 @@ type Response = openapi.V2KeysAddPermissionsResponseBody
 
 type Handler struct {
 	DB        db.Database
-	Keys      keys.KeyService
+	Auth      auth.Authenticator
 	Auditlogs auditlogs.AuditLogService
 	KeyCache  cache.Cache[string, keysdb.CachedKeyData]
 }
@@ -44,7 +44,7 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	auth, emit, err := h.Keys.GetRootKey(ctx, s)
+	auth, emit, err := h.Auth.Authenticate(ctx, s)
 	defer emit()
 	if err != nil {
 		return err
@@ -72,7 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if key.WorkspaceID != auth.AuthorizedWorkspaceID {
+	if key.WorkspaceID != auth.WorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -80,7 +80,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = auth.VerifyRootKey(ctx, keys.WithPermissions(
+	err = rbac.Check(
 		rbac.And(
 			rbac.Or(
 				rbac.T(rbac.Tuple{
@@ -101,8 +101,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Action:       rbac.AddPermissionToKey,
 				}),
 			),
-		),
-	))
+		), auth.Permissions)
 	if err != nil {
 		return err
 	}
@@ -116,7 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	foundPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
-		WorkspaceID: auth.AuthorizedWorkspaceID,
+		WorkspaceID: auth.WorkspaceID,
 		Slugs:       req.Permissions,
 	})
 	if err != nil {
@@ -154,13 +153,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	for perm := range missingPermissions {
-		err = auth.VerifyRootKey(ctx, keys.WithPermissions(
+		err = rbac.Check(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Rbac,
 				ResourceID:   "*",
 				Action:       rbac.CreatePermission,
-			}),
-		))
+			}), auth.Permissions)
 		if err != nil {
 			return err
 		}
@@ -170,7 +168,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		permissionsToInsert = append(permissionsToInsert, db.InsertPermissionParams{
 			PermissionID: permissionID,
 			Name:         perm,
-			WorkspaceID:  auth.AuthorizedWorkspaceID,
+			WorkspaceID:  auth.WorkspaceID,
 			Slug:         perm,
 			Description:  dbtype.NullString{String: "", Valid: false},
 			CreatedAtM:   now,
@@ -180,7 +178,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Pk:          0, // only here to make the linter happy
 			ID:          permissionID,
 			Name:        perm,
-			WorkspaceID: auth.AuthorizedWorkspaceID,
+			WorkspaceID: auth.WorkspaceID,
 			Slug:        perm,
 			Description: dbtype.NullString{String: "", Valid: false},
 			CreatedAtM:  now,
@@ -203,10 +201,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if len(permissionsToInsert) > 0 {
 			for _, toCreate := range permissionsToInsert {
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
+					WorkspaceID: auth.WorkspaceID,
 					Event:       auditlog.PermissionCreateEvent,
 					ActorType:   auditlog.RootKeyActor,
-					ActorID:     auth.Key.ID,
+					ActorID:     auth.ID,
 					ActorName:   "root key",
 					ActorMeta:   map[string]any{},
 					Display:     fmt.Sprintf("Created %s (%s)", toCreate.Slug, toCreate.PermissionID),
@@ -245,16 +243,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				toAdd[idx] = db.InsertKeyPermissionParams{
 					KeyID:        req.KeyId,
 					PermissionID: permission.ID,
-					WorkspaceID:  auth.AuthorizedWorkspaceID,
+					WorkspaceID:  auth.WorkspaceID,
 					CreatedAt:    now,
 					UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
 				}
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID: auth.AuthorizedWorkspaceID,
+					WorkspaceID: auth.WorkspaceID,
 					Event:       auditlog.AuthConnectPermissionKeyEvent,
 					ActorType:   auditlog.RootKeyActor,
-					ActorID:     auth.Key.ID,
+					ActorID:     auth.ID,
 					ActorName:   "root key",
 					ActorMeta:   map[string]any{},
 					Display:     fmt.Sprintf("Added permission %s to key %s", permission.Name, req.KeyId),

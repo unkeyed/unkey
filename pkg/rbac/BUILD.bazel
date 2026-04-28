@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "rbac",
     srcs = [
+        "check.go",
         "doc.go",
         "lexer.go",
         "parser.go",
@@ -22,11 +23,16 @@ go_test(
     name = "rbac_test",
     size = "small",
     srcs = [
+        "check_test.go",
         "integration_test.go",
         "lexer_test.go",
         "parse_test.go",
         "rbac_test.go",
     ],
     embed = [":rbac"],
-    deps = ["@com_github_stretchr_testify//require"],
+    deps = [
+        "//pkg/codes",
+        "//pkg/fault",
+        "@com_github_stretchr_testify//require",
+    ],
 )

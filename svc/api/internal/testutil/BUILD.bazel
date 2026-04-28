@@ -20,6 +20,8 @@ go_library(
         "//internal/services/keys",
         "//internal/services/ratelimit",
         "//internal/services/usagelimiter",
+        "//pkg/auth",
+        "//pkg/auth/jwt",
         "//pkg/batch",
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",

@@ -1,6 +1,7 @@
 http_port = 7070
 region = "local"
 redis_url = "redis://redis:6379"
+jwt_secret = "local-dev-jwt-secret-do-not-use-in-prod"
 
 [database]
 primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
