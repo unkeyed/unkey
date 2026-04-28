@@ -18,6 +18,7 @@ import (
 
 // Request is the expected JSON body for POST /v2/portal.createSession.
 type Request struct {
+	PortalID    string         `json:"portalId"`
 	ExternalID  string         `json:"externalId"`
 	Permissions []string       `json:"permissions"`
 	Metadata    map[string]any `json:"metadata,omitempty"`
@@ -61,19 +62,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	workspaceID := auth.AuthorizedWorkspaceID
 
-	portalConfig, err := db.Query.FindPortalConfigByWorkspaceID(ctx, h.DB.RO(), workspaceID)
+	portalConfig, err := db.Query.FindPortalConfigByID(ctx, h.DB.RO(), req.PortalID)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("portal not found",
+			return fault.New("portal config not found",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("no portal config for workspace"),
-				fault.Public("No portal is configured for this workspace."),
+				fault.Internal("no portal config found for the given portalId"),
+				fault.Public("Portal configuration not found."),
 			)
 		}
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error looking up portal config"),
 			fault.Public("Failed to look up portal configuration."),
+		)
+	}
+
+	if portalConfig.WorkspaceID != workspaceID {
+		return fault.New("portal config not found",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("portal config belongs to different workspace"),
+			fault.Public("Portal configuration not found."),
 		)
 	}
 
