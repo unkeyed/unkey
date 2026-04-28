@@ -66,7 +66,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("portal config not found",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+				fault.Code(codes.Data.PortalConfig.NotFound.URN()),
 				fault.Internal("no portal config found for the given portalId"),
 				fault.Public("Portal configuration not found."),
 			)
@@ -80,7 +80,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if portalConfig.WorkspaceID != workspaceID {
 		return fault.New("portal config not found",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Code(codes.Data.PortalConfig.NotFound.URN()),
 			fault.Internal("portal config belongs to different workspace"),
 			fault.Public("Portal configuration not found."),
 		)
