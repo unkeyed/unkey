@@ -50,7 +50,7 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         variant="ghost"
         className={cn(
           "h-full bg-background rounded-b-none w-full cursor-pointer focus:bg-accent-3 focus:ring-0",
-          selectedTab === 1 ? "bg-accent-3" : "",
+          selected === 1 ? "bg-accent-3" : "",
         )}
         type="button"
         aria-label="Log queries"
