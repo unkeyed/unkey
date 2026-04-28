@@ -1,8 +1,16 @@
 type: object
 required:
+  - portalId
   - externalId
   - permissions
 properties:
+  portalId:
+    type: string
+    minLength: 1
+    description: |
+      The ID of the portal configuration to create the session against.
+      Identifies which app's portal the end user will access.
+    example: ptl_abc123def456
   externalId:
     type: string
     minLength: 1
