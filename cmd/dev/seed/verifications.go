@@ -286,9 +286,9 @@ func (s *Seeder) createKeysBatched(ctx context.Context, workspaceID, keyAuthID, 
 			ForWorkspaceID:     sql.NullString{},
 			Meta:               sql.NullString{},
 			Expires:            sql.NullTime{},
-			RemainingRequests:  sql.NullInt32{},
+			RemainingRequests:  sql.NullInt64{},
 			RefillDay:          sql.NullInt16{},
-			RefillAmount:       sql.NullInt32{},
+			RefillAmount:       sql.NullInt64{},
 			PendingMigrationID: sql.NullString{Valid: false, String: ""},
 		}
 

@@ -65,7 +65,7 @@ require (
 	github.com/pb33f/libopenapi-validator v0.13.4
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.17.2
-	github.com/restatedev/sdk-go v0.23.0
+	github.com/restatedev/sdk-go v0.24.0
 	github.com/shirou/gopsutil/v4 v4.25.6
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
 	github.com/stretchr/testify v1.11.1

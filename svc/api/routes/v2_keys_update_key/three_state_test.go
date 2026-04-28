@@ -337,8 +337,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
 				Name:         ptr.P("credits-null-test"),
-				Remaining:    ptr.P(int32(100)),
-				RefillAmount: ptr.P(int32(50)),
+				Remaining:    ptr.P(int64(100)),
+				RefillAmount: ptr.P(int64(50)),
 				RefillDay:    ptr.P(int16(15)),
 			})
 
@@ -346,9 +346,9 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
 			require.NoError(t, err)
 			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 100, key.RemainingRequests.Int32)
+			require.EqualValues(t, 100, key.RemainingRequests.Int64)
 			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 50, key.RefillAmount.Int32)
+			require.EqualValues(t, 50, key.RefillAmount.Int64)
 			require.True(t, key.RefillDay.Valid)
 			require.EqualValues(t, 15, key.RefillDay.Int16)
 
@@ -376,8 +376,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
 				Name:         ptr.P("remaining-null-test"),
-				Remaining:    ptr.P(int32(200)),
-				RefillAmount: ptr.P(int32(75)),
+				Remaining:    ptr.P(int64(200)),
+				RefillAmount: ptr.P(int64(75)),
 				RefillDay:    ptr.P(int16(10)),
 			})
 
@@ -385,9 +385,9 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
 			require.NoError(t, err)
 			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 200, key.RemainingRequests.Int32)
+			require.EqualValues(t, 200, key.RemainingRequests.Int64)
 			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 75, key.RefillAmount.Int32)
+			require.EqualValues(t, 75, key.RefillAmount.Int64)
 			require.True(t, key.RefillDay.Valid)
 			require.EqualValues(t, 10, key.RefillDay.Int16)
 
@@ -417,8 +417,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
 				Name:         ptr.P("refill-null-test"),
-				Remaining:    ptr.P(int32(300)),
-				RefillAmount: ptr.P(int32(100)),
+				Remaining:    ptr.P(int64(300)),
+				RefillAmount: ptr.P(int64(100)),
 				RefillDay:    ptr.P(int16(25)),
 			})
 
@@ -426,9 +426,9 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
 			require.NoError(t, err)
 			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 300, key.RemainingRequests.Int32)
+			require.EqualValues(t, 300, key.RemainingRequests.Int64)
 			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 100, key.RefillAmount.Int32)
+			require.EqualValues(t, 100, key.RefillAmount.Int64)
 			require.True(t, key.RefillDay.Valid)
 			require.EqualValues(t, 25, key.RefillDay.Int16)
 
@@ -447,7 +447,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			key, err = db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
 			require.NoError(t, err)
 			require.True(t, key.RemainingRequests.Valid, "remaining should be preserved")
-			require.EqualValues(t, 300, key.RemainingRequests.Int32, "remaining value should be unchanged")
+			require.EqualValues(t, 300, key.RemainingRequests.Int64, "remaining value should be unchanged")
 			require.False(t, key.RefillAmount.Valid, "refill amount should be cleared")
 			require.False(t, key.RefillDay.Valid, "refill day should be cleared")
 		})
@@ -459,8 +459,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
 				Name:         ptr.P("update-refill-only"),
-				Remaining:    ptr.P(int32(500)),
-				RefillAmount: ptr.P(int32(50)),
+				Remaining:    ptr.P(int64(500)),
+				RefillAmount: ptr.P(int64(50)),
 				RefillDay:    ptr.P(int16(5)),
 			})
 
@@ -483,9 +483,9 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
 			require.NoError(t, err)
 			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 500, key.RemainingRequests.Int32, "remaining should be unchanged")
+			require.EqualValues(t, 500, key.RemainingRequests.Int64, "remaining should be unchanged")
 			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 150, key.RefillAmount.Int32, "refill amount should be updated")
+			require.EqualValues(t, 150, key.RefillAmount.Int64, "refill amount should be updated")
 			require.True(t, key.RefillDay.Valid)
 			require.EqualValues(t, 20, key.RefillDay.Int16, "refill day should be updated")
 		})
@@ -497,8 +497,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
 				Name:         ptr.P("update-remaining-only"),
-				Remaining:    ptr.P(int32(100)),
-				RefillAmount: ptr.P(int32(200)),
+				Remaining:    ptr.P(int64(100)),
+				RefillAmount: ptr.P(int64(200)),
 				RefillDay:    ptr.P(int16(12)),
 			})
 
@@ -517,9 +517,9 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
 			require.NoError(t, err)
 			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 999, key.RemainingRequests.Int32, "remaining should be updated")
+			require.EqualValues(t, 999, key.RemainingRequests.Int64, "remaining should be updated")
 			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 200, key.RefillAmount.Int32, "refill amount should be unchanged")
+			require.EqualValues(t, 200, key.RefillAmount.Int64, "refill amount should be unchanged")
 			require.True(t, key.RefillDay.Valid)
 			require.EqualValues(t, 12, key.RefillDay.Int16, "refill day should be unchanged")
 		})
@@ -531,8 +531,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
 				Name:         ptr.P("undefined-credits-test"),
-				Remaining:    ptr.P(int32(777)),
-				RefillAmount: ptr.P(int32(111)),
+				Remaining:    ptr.P(int64(777)),
+				RefillAmount: ptr.P(int64(111)),
 				RefillDay:    ptr.P(int16(28)),
 			})
 
@@ -551,9 +551,9 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			require.NoError(t, err)
 			require.False(t, key.Enabled, "enabled should be updated")
 			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 777, key.RemainingRequests.Int32, "remaining should be unchanged")
+			require.EqualValues(t, 777, key.RemainingRequests.Int64, "remaining should be unchanged")
 			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 111, key.RefillAmount.Int32, "refill amount should be unchanged")
+			require.EqualValues(t, 111, key.RefillAmount.Int64, "refill amount should be unchanged")
 			require.True(t, key.RefillDay.Valid)
 			require.EqualValues(t, 28, key.RefillDay.Int16, "refill day should be unchanged")
 		})
@@ -565,7 +565,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 				WorkspaceID: h.Resources().UserWorkspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
 				Name:        ptr.P("daily-refill-test"),
-				Remaining:   ptr.P(int32(50)),
+				Remaining:   ptr.P(int64(50)),
 			})
 
 			// Set daily refill
@@ -587,9 +587,9 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
 			require.NoError(t, err)
 			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 50, key.RemainingRequests.Int32)
+			require.EqualValues(t, 50, key.RemainingRequests.Int64)
 			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 25, key.RefillAmount.Int32)
+			require.EqualValues(t, 25, key.RefillAmount.Int64)
 			require.False(t, key.RefillDay.Valid, "refill day should be null for daily interval")
 		})
 
@@ -630,7 +630,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
 			require.NoError(t, err)
 			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 1000, key.RemainingRequests.Int32, "remaining should still be 1000")
+			require.EqualValues(t, 1000, key.RemainingRequests.Int64, "remaining should still be 1000")
 			require.False(t, key.RefillAmount.Valid, "refill should be cleared")
 
 			// Step 3: Add back refill without changing remaining
@@ -649,9 +649,9 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			key, err = db.Query.FindKeyByID(ctx, h.DB.RO(), keyResponse.KeyID)
 			require.NoError(t, err)
 			require.True(t, key.RemainingRequests.Valid)
-			require.EqualValues(t, 1000, key.RemainingRequests.Int32, "remaining should still be 1000")
+			require.EqualValues(t, 1000, key.RemainingRequests.Int64, "remaining should still be 1000")
 			require.True(t, key.RefillAmount.Valid)
-			require.EqualValues(t, 250, key.RefillAmount.Int32, "refill should be 250")
+			require.EqualValues(t, 250, key.RefillAmount.Int64, "refill should be 250")
 
 			// Step 4: Clear everything
 			req = handler.Request{

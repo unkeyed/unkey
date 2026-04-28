@@ -41,6 +41,7 @@ export default async function proxy(req: NextRequest, _evt: NextFetchEvent) {
     "/success",
     "/_next/*",
     "/integrations/github/callback",
+    "/integrations/domain-connect/callback",
   ];
 
   // Check if the current path is in the public paths list
