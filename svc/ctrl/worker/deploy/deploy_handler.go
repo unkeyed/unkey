@@ -18,7 +18,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
 	"github.com/unkeyed/unkey/pkg/uid"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -398,94 +397,11 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		dockerImage = source.DockerImage.GetImage()
 	case *hydrav1.DeployRequest_Git:
 		commitSHA := source.Git.GetCommitSha()
-
-		// Resolve branch→SHA when commit_sha is empty (e.g. CreateDeployment with
-		// a GitTarget that specifies only a branch)
-		if commitSHA == "" && source.Git.GetBranch() != "" {
-			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
-				if w.allowUnauthenticatedDeployments && source.Git.GetInstallationId() == noInstallationID {
-					return w.github.GetBranchHeadCommitPublic(
-						source.Git.GetRepository(),
-						source.Git.GetBranch(),
-					)
-				}
-				return w.github.GetBranchHeadCommit(
-					source.Git.GetInstallationId(),
-					source.Git.GetRepository(),
-					source.Git.GetBranch(),
-				)
-			}, restate.WithName("resolve branch head"), restate.WithMaxRetryAttempts(runMaxAttempts))
-			if resolveErr != nil {
-				return fault.Wrap(
-					restate.TerminalError(fmt.Errorf("failed to resolve HEAD of branch %q: %w", source.Git.GetBranch(), resolveErr)),
-					fault.Public("The configured Git branch could not be resolved. Please check your branch settings."),
-				)
-			}
-			commitSHA = info.SHA
-
-			resolveErr = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				return db.Query.UpdateDeploymentGitMetadata(runCtx, w.db.RW(), db.UpdateDeploymentGitMetadataParams{
-					ID:                       deployment.ID,
-					GitCommitSha:             sql.NullString{String: info.SHA, Valid: true},
-					GitBranch:                sql.NullString{String: source.Git.GetBranch(), Valid: true},
-					GitCommitMessage:         sql.NullString{String: info.Message, Valid: info.Message != ""},
-					GitCommitAuthorHandle:    sql.NullString{String: info.AuthorHandle, Valid: info.AuthorHandle != ""},
-					GitCommitAuthorAvatarUrl: sql.NullString{String: info.AuthorAvatarURL, Valid: info.AuthorAvatarURL != ""},
-					GitCommitTimestamp:       sql.NullInt64{Int64: info.Timestamp.UnixMilli(), Valid: !info.Timestamp.IsZero()},
-					UpdatedAt:                sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				})
-			}, restate.WithName("update deployment git metadata"), restate.WithMaxRetryAttempts(runMaxAttempts))
-			if resolveErr != nil {
-				return fault.Wrap(
-					fmt.Errorf("failed to update deployment git metadata: %w", resolveErr),
-					fault.Public("The commit was resolved but metadata could not be saved."),
-				)
-			}
-
-			deployment.GitCommitSha = sql.NullString{String: info.SHA, Valid: true}
-			deployment.GitBranch = sql.NullString{String: source.Git.GetBranch(), Valid: true}
-			deployment.GitCommitMessage = sql.NullString{String: info.Message, Valid: info.Message != ""}
-			deployment.GitCommitAuthorHandle = sql.NullString{String: info.AuthorHandle, Valid: info.AuthorHandle != ""}
-			deployment.GitCommitAuthorAvatarUrl = sql.NullString{String: info.AuthorAvatarURL, Valid: info.AuthorAvatarURL != ""}
-			deployment.GitCommitTimestamp = sql.NullInt64{Int64: info.Timestamp.UnixMilli(), Valid: !info.Timestamp.IsZero()}
-		}
-
-		// When a SHA is known (either provided directly or just resolved from branch)
-		// but the deployment record is still missing git metadata, fetch it from GitHub.
-		hasGitHubAuth := !w.allowUnauthenticatedDeployments || source.Git.GetInstallationId() != noInstallationID
-		if commitSHA != "" && !deployment.GitCommitMessage.Valid && hasGitHubAuth {
-			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
-				return w.github.GetCommitBySHA(
-					source.Git.GetInstallationId(),
-					source.Git.GetRepository(),
-					commitSHA,
-				)
-			}, restate.WithName("resolve commit metadata by sha"), restate.WithMaxRetryAttempts(runMaxAttempts))
-			if resolveErr != nil {
-				return fault.Wrap(
-					fmt.Errorf("failed to resolve metadata for commit %q: %w", commitSHA, resolveErr),
-					fault.Public("Could not retrieve commit information from GitHub."),
-				)
-			}
-
-			resolveErr = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				return db.Query.UpdateDeploymentGitMetadata(runCtx, w.db.RW(), db.UpdateDeploymentGitMetadataParams{
-					ID:                       deployment.ID,
-					GitCommitSha:             sql.NullString{String: info.SHA, Valid: true},
-					GitBranch:                deployment.GitBranch,
-					GitCommitMessage:         sql.NullString{String: info.Message, Valid: info.Message != ""},
-					GitCommitAuthorHandle:    sql.NullString{String: info.AuthorHandle, Valid: info.AuthorHandle != ""},
-					GitCommitAuthorAvatarUrl: sql.NullString{String: info.AuthorAvatarURL, Valid: info.AuthorAvatarURL != ""},
-					GitCommitTimestamp:       sql.NullInt64{Int64: info.Timestamp.UnixMilli(), Valid: !info.Timestamp.IsZero()},
-					UpdatedAt:                sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				})
-			}, restate.WithName("update deployment git metadata for sha"), restate.WithMaxRetryAttempts(runMaxAttempts))
-			if resolveErr != nil {
-				return fault.Wrap(
-					fmt.Errorf("failed to update deployment git metadata: %w", resolveErr),
-					fault.Public("The commit was resolved but metadata could not be saved."),
-				)
-			}
+		if commitSHA == "" {
+			return fault.Wrap(
+				restate.TerminalError(fmt.Errorf("git source missing commit SHA for deployment %q", deployment.ID)),
+				fault.Public("Deployment has no resolved commit; cannot build."),
+			)
 		}
 
 		build, err := w.buildDockerImageFromGit(ctx, gitBuildParams{

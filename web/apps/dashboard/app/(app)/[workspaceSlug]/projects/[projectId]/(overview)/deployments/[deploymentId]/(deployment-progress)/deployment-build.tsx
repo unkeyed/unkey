@@ -40,7 +40,11 @@ export function DeploymentBuild() {
           status="completed"
           expandable={
             <div className="bg-grayA-2">
-              <DeploymentBuildStepsTable steps={buildSteps.data?.steps ?? []} fixedHeight={750} />
+              <DeploymentBuildStepsTable
+                steps={buildSteps.data?.steps ?? []}
+                isLoading={buildSteps.isLoading}
+                fixedHeight={750}
+              />
             </div>
           }
           defaultExpanded
