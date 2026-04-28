@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "openapi",
+    srcs = ["executor.go"],
+    importpath = "github.com/unkeyed/unkey/svc/sentinel/engine/openapi",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/sentinel/v1:sentinel",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/openapi/validation",
+        "//pkg/zen",
+    ],
+)
+
+go_test(
+    name = "openapi_test",
+    srcs = ["executor_test.go"],
+    embed = [":openapi"],
+    deps = [
+        "//gen/proto/sentinel/v1:sentinel",
+        "//pkg/codes",
+        "//pkg/fault",
+        "@com_github_stretchr_testify//require",
+    ],
+)
