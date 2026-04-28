@@ -110,6 +110,7 @@ export const queryRuntimeLogs = workspaceProcedure
 
     const logs = chLogs.map((log) => ({
       time: log.time,
+      log_id: log.log_id,
       severity: log.severity,
       message: log.message,
       deployment_id: log.deployment_id,

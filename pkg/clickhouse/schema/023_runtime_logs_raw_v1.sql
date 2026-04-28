@@ -9,6 +9,11 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     -- When log was inserted into ClickHouse (milliseconds, for debugging ingestion lag)
     `inserted_at` Int64 DEFAULT toUnixTimestamp64Milli(now64(3)),
 
+    -- Stable per-row id minted by Vector at ingest time ("log_<16 hex chars>").
+    -- Used as a React key on the dashboard and a stable join key for future
+    -- exporters. Empty for rows ingested before this column existed.
+    `log_id` String CODEC(ZSTD(1)),
+
     -- Log content
     `severity` LowCardinality(String),
     `message` String CODEC(ZSTD(1)),

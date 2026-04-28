@@ -23,6 +23,7 @@ export type RuntimeLogsRequest = z.infer<typeof runtimeLogsRequestSchema>;
 
 export const runtimeLog = z.object({
   time: z.int(),
+  log_id: z.string(),
   severity: z.string(),
   message: z.string(),
   deployment_id: z.string(),
@@ -95,7 +96,7 @@ export function getRuntimeLogs(ch: Querier) {
     const logsQuery = ch.query({
       query: `
         SELECT
-          time, severity, message, deployment_id,
+          time, log_id, severity, message, deployment_id,
           region, k8s_pod_name, attributes
         FROM ${TABLE}
         WHERE ${filterConditions}
