@@ -27,20 +27,28 @@ Keys are created through the API, SDK, or dashboard. Each key requires an `apiId
 
 On creation, you can configure:
 
-| Option        | Description                                                           |
-| ------------- | --------------------------------------------------------------------- |
-| `prefix`      | Override the API's default prefix for this key                        |
-| `name`        | Human-readable label                                                  |
-| `meta`        | Arbitrary JSON metadata returned on every verification                |
-| `expires`     | Unix timestamp (ms) when the key expires                              |
-| `remaining`   | Number of verifications before the key is exhausted                   |
-| `refill`      | Automatic credit refill schedule (interval and amount)                |
-| `ratelimit`   | One or more rate limit configurations                                 |
-| `roles`       | Roles to attach for RBAC                                              |
-| `permissions` | Permissions to attach directly                                        |
-| `externalId`  | Link the key to an identity in your system                            |
-| `enabled`     | Set to `false` to create a disabled key                               |
-| `environment` | Tag the key with an environment label (for example, `live` or `test`) |
+| Option        | Description                                                                                                          |
+| ------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `prefix`      | Override the API's default prefix for this key. Falls back to the keyspace `default_prefix` when omitted.            |
+| `byteLength`  | Number of random bytes used to generate the key. Falls back to the keyspace `default_bytes`, then to `16` when both are unset. |
+| `name`        | Human-readable label                                                                                                 |
+| `meta`        | Arbitrary JSON metadata returned on every verification                                                               |
+| `expires`     | Unix timestamp (ms) when the key expires                                                                             |
+| `remaining`   | Number of verifications before the key is exhausted                                                                  |
+| `refill`      | Automatic credit refill schedule (interval and amount)                                                               |
+| `ratelimit`   | One or more rate limit configurations                                                                                |
+| `roles`       | Roles to attach for RBAC                                                                                             |
+| `permissions` | Permissions to attach directly                                                                                       |
+| `externalId`  | Link the key to an identity in your system                                                                           |
+| `enabled`     | Set to `false` to create a disabled key                                                                              |
+| `environment` | Tag the key with an environment label (for example, `live` or `test`)                                                |
+
+<Tip>
+  Set `default_prefix` and `default_bytes` once on the API in the dashboard (or
+  via the keyspace) and you can call `keys.createKey` with just an `apiId` —
+  every key inherits the configured prefix and length unless you override it
+  per request.
+</Tip>
 
 The response includes the full key value. This is the only time the plaintext key is available. Store it securely or deliver it to your user immediately.
 

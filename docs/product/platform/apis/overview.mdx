@@ -34,10 +34,12 @@ Each API exposes configuration through its settings page.
 | Setting              | Description                                                                                                                              |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | Name                 | Human-readable label shown in the dashboard                                                                                              |
-| Default prefix       | Prefix prepended to every key created in this API (for example, `sk_live`)                                                               |
-| Default bytes        | Number of random bytes used to generate new keys (default: 16)                                                                           |
+| Default prefix       | Prefix prepended to every key created in this API (for example, `sk_live`). Used when a `keys.createKey` request omits `prefix`.         |
+| Default bytes        | Number of random bytes used to generate new keys (default: 16). Used when a `keys.createKey` request omits `byteLength`.                 |
 | Store encrypted keys | When enabled, Unkey stores an encrypted copy of each key so it can be recovered later. See [Recovering keys](/security/recovering-keys). |
 | IP whitelist         | Restrict key verification to specific IP addresses. See [IP whitelist](/platform/apis/features/whitelist).                               |
+
+Per-request values always win over keyspace defaults. Setting `default_prefix` and `default_bytes` lets you keep `keys.createKey` calls minimal — pass just `apiId` and Unkey applies the keyspace settings — without giving up the ability to override either field on a single key.
 
 ## Keyspace
 
