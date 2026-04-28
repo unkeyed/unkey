@@ -1,7 +1,7 @@
 import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowRight, Check, Github, Magnifier, XMark } from "@unkey/icons";
+import { Check, Clock, Github, Magnifier, XMark } from "@unkey/icons";
 import { Button, Input, toast, useStepWizard } from "@unkey/ui";
 import { useMemo, useRef, useState } from "react";
 import { OnboardingLinks } from "../../onboarding-links";
@@ -233,7 +233,7 @@ export const SelectRepo = ({
       {onSkip && (
         <div className="mt-3 border border-grayA-5 rounded-[14px] flex justify-start items-center gap-4 py-[18px] px-4 min-w-[var(--repo-list-w)]">
           <div className="size-8 rounded-[10px] grid place-items-center ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none">
-            <ArrowRight className="size-[18px] text-gray-12" iconSize="md-medium" />
+            <Clock className="size-[18px] text-gray-12" iconSize="md-medium" />
           </div>
           <div className="flex flex-col gap-3">
             <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
