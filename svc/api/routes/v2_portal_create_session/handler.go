@@ -99,10 +99,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	portalBaseURL := h.PortalBaseURL
 	if portalConfig.AppID.Valid {
 		customDomain, cdErr := db.Query.FindVerifiedCustomDomainByAppID(ctx, h.DB.RO(), portalConfig.AppID.String)
+		if cdErr != nil && !db.IsNotFound(cdErr) {
+			return fault.Wrap(cdErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error looking up custom domain for portal app"),
+				fault.Public("Failed to look up portal configuration."),
+			)
+		}
 		if cdErr == nil {
 			portalBaseURL = fmt.Sprintf("https://%s", customDomain.Domain)
 		}
-		// If no custom domain found, fall through to default base URL.
 	}
 
 	now := time.Now()
