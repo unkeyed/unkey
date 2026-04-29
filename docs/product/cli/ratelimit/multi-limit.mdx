@@ -38,7 +38,7 @@ JSON array of rate limit check objects. Each object defines an independent rate 
   </ResponseField>
 
   <ResponseField name="limit" type="integer" required>
-  Sets the maximum operations allowed within the duration window before requests are rejected. When this limit is reached, subsequent requests fail until the window resets. Range: 1-1,000,000.
+  Sets the maximum operations allowed within the duration window before requests are rejected. When this limit is reached, subsequent requests fail until the window resets. Minimum: 1.
   </ResponseField>
 
   <ResponseField name="duration" type="integer" required>
@@ -46,7 +46,7 @@ JSON array of rate limit check objects. Each object defines an independent rate 
   </ResponseField>
 
   <ResponseField name="cost" type="integer" default={1}>
-  Sets how much of the rate limit quota this request consumes, enabling weighted rate limiting. Use higher values for resource-intensive operations and 0 for tracking without limiting. Range: 0-1,000.
+  Sets how much of the rate limit quota this request consumes, enabling weighted rate limiting. Use higher values for resource-intensive operations and 0 for tracking without limiting. Minimum: 0.
   </ResponseField>
 </Expandable>
 </ParamField>

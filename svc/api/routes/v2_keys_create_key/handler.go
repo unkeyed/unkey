@@ -117,11 +117,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// 5. Generate key using key service
+	// Per-request values win; otherwise fall back to the keyspace
+	// defaults (`default_prefix` / `default_bytes` configured in the
+	// dashboard, persisted on key_auth). Without these fallbacks the
+	// columns round-trip through the DB for nothing.
+	var prefix string
+	switch {
+	case req.Prefix != nil:
+		prefix = *req.Prefix
+	case keySpace.DefaultPrefix.Valid:
+		prefix = keySpace.DefaultPrefix.String
+	}
+
+	byteLength := ptr.SafeDeref(req.ByteLength)
+	if byteLength == 0 && keySpace.DefaultBytes.Valid {
+		byteLength = int(keySpace.DefaultBytes.Int32)
+	}
+	if byteLength == 0 {
+		byteLength = 16
+	}
+
 	keyID := uid.New(uid.KeyPrefix)
 	keyResult, err := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
-		Prefix:     ptr.SafeDeref(req.Prefix),
-		ByteLength: ptr.SafeDeref(req.ByteLength, 16),
+		Prefix:     prefix,
+		ByteLength: byteLength,
 	})
 	if err != nil {
 		return err

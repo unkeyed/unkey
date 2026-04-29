@@ -1,6 +1,6 @@
 import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setup";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
-import { useEditRatelimits } from "@/hooks/use-edit-ratelimits";
+import { useEditKeyRatelimits } from "@/hooks/use-edit-ratelimits";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import type { RatelimitFormValues } from "@/lib/schemas/ratelimit";
 import { ratelimitSchema } from "@/lib/schemas/ratelimit";
@@ -48,7 +48,7 @@ export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsPr
     }
   }, [isOpen, loadSavedValues]);
 
-  const key = useEditRatelimits("key", () => {
+  const key = useEditKeyRatelimits(() => {
     reset(getKeyRatelimitsDefaults(keyDetails));
     clearPersistedData();
     onClose();

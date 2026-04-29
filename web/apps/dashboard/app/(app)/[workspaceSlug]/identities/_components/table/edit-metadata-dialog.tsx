@@ -7,7 +7,7 @@ import { trpc } from "@/lib/trpc/client";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, toast } from "@unkey/ui";
-import { type FC, useCallback, useEffect, useState } from "react";
+import { type FC, useCallback, useEffect, useId, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import type { z } from "zod";
 import { IdentityInfo } from "../dialogs/identity-info";
@@ -25,6 +25,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
   open,
   onOpenChange,
 }) => {
+  const formId = useId();
   const utils = trpc.useUtils();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -82,7 +83,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
 
   return (
     <FormProvider {...methods}>
-      <form id="edit-identity-metadata-form" onSubmit={onSubmit}>
+      <form id={formId} onSubmit={onSubmit}>
         <DialogContainer
           isOpen={open}
           onOpenChange={onOpenChange}
@@ -92,7 +93,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({
             <div className="w-full flex flex-col gap-2 items-center justify-center">
               <Button
                 type="submit"
-                form="edit-identity-metadata-form"
+                form={formId}
                 variant="primary"
                 size="xlg"
                 className="w-full rounded-lg"
