@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
+import { z } from "zod";
 import { env } from "./env";
 import type { PortalConfig } from "./portal-config";
 
@@ -15,11 +16,18 @@ export type SessionData = {
   expiresAt: number;
 };
 
-type ExchangeResult = { success: true; token: string } | { success: false; error: string };
+type ExchangeResult = { success: true } | { success: false; error: string };
+
+const exchangeResponseSchema = z.object({
+  data: z.object({
+    token: z.string().min(1),
+    expiresAt: z.number(),
+  }),
+});
 
 /**
  * Exchange a short-lived session ID for a long-lived browser session token.
- * Sets an httpOnly cookie on success.
+ * Sets an httpOnly cookie on success. The token is never returned to the caller.
  */
 export const exchangeSession = createServerFn({ method: "POST" })
   .inputValidator((d: string) => d)
@@ -39,10 +47,15 @@ export const exchangeSession = createServerFn({ method: "POST" })
       };
     }
 
-    const body = await response.json();
-    const data: { token: string; expiresAt: number } = body.data;
+    const parsed = exchangeResponseSchema.safeParse(await response.json());
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: "Received an unexpected response. Please try again.",
+      };
+    }
 
-    setCookie(SESSION_COOKIE_NAME, data.token, {
+    setCookie(SESSION_COOKIE_NAME, parsed.data.data.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
@@ -50,7 +63,7 @@ export const exchangeSession = createServerFn({ method: "POST" })
       maxAge: SESSION_COOKIE_MAX_AGE_SECONDS,
     });
 
-    return { success: true, token: data.token };
+    return { success: true };
   });
 
 /**
