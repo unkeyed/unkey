@@ -82,12 +82,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if !found {
-		err = rbac.Check(
+		err = auth.Authorize(ctx,
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Ratelimit,
 				ResourceID:   "*",
 				Action:       rbac.CreateNamespace,
-			}), auth.Permissions)
+			}))
 		if err != nil {
 			return err
 		}
@@ -105,7 +105,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = rbac.Check(rbac.Or(
+	err = auth.Authorize(ctx, rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
 			ResourceID:   ns.ID,
@@ -116,7 +116,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   "*",
 			Action:       rbac.Limit,
 		}),
-	), auth.Permissions)
+	))
 	if err != nil {
 		return err
 	}

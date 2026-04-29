@@ -53,11 +53,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = rbac.Check(rbac.T(rbac.Tuple{
+	err = auth.Authorize(ctx, rbac.T(rbac.Tuple{
 		ResourceType: rbac.Rbac,
 		ResourceID:   "*",
 		Action:       rbac.CreatePermission,
-	}), auth.Permissions)
+	}))
 	if err != nil {
 		return err
 	}

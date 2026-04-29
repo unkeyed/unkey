@@ -80,7 +80,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = rbac.Check(
+	err = auth.Authorize(ctx,
 		rbac.And(
 			rbac.Or(
 				rbac.T(rbac.Tuple{
@@ -101,7 +101,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Action:       rbac.AddPermissionToKey,
 				}),
 			),
-		), auth.Permissions)
+		))
 	if err != nil {
 		return err
 	}
@@ -153,12 +153,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	for perm := range missingPermissions {
-		err = rbac.Check(
+		err = auth.Authorize(ctx,
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Rbac,
 				ResourceID:   "*",
 				Action:       rbac.CreatePermission,
-			}), auth.Permissions)
+			}))
 		if err != nil {
 			return err
 		}

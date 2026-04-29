@@ -14,7 +14,9 @@ const UPSTREAM_TIMEOUT_MS = 10_000;
 export async function POST(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   if (req.headers.get("authorization")) {
     return NextResponse.json(
-      { error: "Authorization header must not be set; the proxy mints its own token." },
+      {
+        error: "Authorization header must not be set; the proxy mints its own token.",
+      },
       { status: 400 },
     );
   }
@@ -24,6 +26,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
   }
 
+  // This is kind of bugging me. Ideally this proxy route would be stateless,
+  // but for that to work we'd need the workspace id to be available in the
+  // workos user.
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
   });
@@ -44,7 +49,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
   const upstream = await fetch(`${env().UNKEY_API_URL}${targetPath}`, {
     method: "POST",
     headers: {
-      "content-type": req.headers.get("content-type") ?? "application/json",
+      ...req.headers,
       authorization: `Bearer ${token}`,
     },
     body: await req.text(),
@@ -53,6 +58,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
 
   return new NextResponse(upstream.body, {
     status: upstream.status,
-    headers: { "content-type": upstream.headers.get("content-type") ?? "application/json" },
+    headers: upstream.headers,
   });
 }

@@ -56,7 +56,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	err = rbac.Check(rbac.Or(
+	err = auth.Authorize(ctx, rbac.Or(
 		rbac.And(
 			rbac.Or(
 				rbac.T(rbac.Tuple{
@@ -83,7 +83,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}),
 			),
 		),
-	), auth.Permissions)
+	))
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = rbac.Check(rbac.Or(
+		err = auth.Authorize(ctx, rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,
 				ResourceID:   "*",
@@ -145,7 +145,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   api.ID,
 				Action:       rbac.DecryptKey,
 			}),
-		), auth.Permissions)
+		))
 		if err != nil {
 			return err
 		}

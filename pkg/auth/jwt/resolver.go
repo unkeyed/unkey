@@ -29,7 +29,7 @@ func NewResolver(secret []byte) *Resolver {
 // the chain with a Malformed-credential fault.
 func (r *Resolver) Try(ctx context.Context, sess *zen.Session) (*auth.Principal, auth.Emit, error) {
 	bearer, err := zen.Bearer(sess)
-	if err != nil || strings.HasPrefix(bearer, "unkey_") {
+	if err != nil || len(strings.Split(bearer, ".")) != 3 {
 		return nil, nil, nil
 	}
 	p, verr := Verify(bearer, r.secret)

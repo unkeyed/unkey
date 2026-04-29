@@ -68,7 +68,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Extract projectID from deployment
 	projectID := deployment.ProjectID
 
-	err = rbac.Check(rbac.Or(
+	err = auth.Authorize(ctx, rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Project,
 			ResourceID:   "*",
@@ -79,7 +79,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   projectID,
 			Action:       rbac.ReadDeployment,
 		}),
-	), auth.Permissions)
+	))
 	if err != nil {
 		return err
 	}

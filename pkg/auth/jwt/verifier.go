@@ -74,5 +74,6 @@ func Verify(tokenString string, secret []byte) (*auth.Principal, error) {
 		DisplayName: claims.Name,
 		WorkspaceID: claims.WorkspaceID,
 		Permissions: claims.Permissions,
+		Authorizer:  auth.GrantedPermissions(claims.Permissions),
 	}, nil
 }

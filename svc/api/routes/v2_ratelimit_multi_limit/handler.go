@@ -88,12 +88,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Auto-create any missing namespaces
 	if len(missing) > 0 {
-		err = rbac.Check(
+		err = auth.Authorize(ctx,
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Ratelimit,
 				ResourceID:   "*",
 				Action:       rbac.CreateNamespace,
-			}), auth.Permissions)
+			}))
 		if err != nil {
 			return err
 		}
@@ -125,7 +125,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Action:       rbac.Limit,
 	})
 
-	err = rbac.Check(rbac.Or(wildcardPermission, rbac.And(requiredPerms...)), auth.Permissions)
+	err = auth.Authorize(ctx, rbac.Or(wildcardPermission, rbac.And(requiredPerms...)))
 	if err != nil {
 		return err
 	}

@@ -55,13 +55,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	cursor := ptr.SafeDeref(req.Cursor, "")
 	limit := ptr.SafeDeref(req.Limit, 100)
 
-	err = rbac.Check(rbac.Or(
+	err = auth.Authorize(ctx, rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",
 			Action:       rbac.ReadRole,
 		}),
-	), auth.Permissions)
+	))
 	if err != nil {
 		return err
 	}

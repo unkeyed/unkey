@@ -58,7 +58,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// If not, return a proper permissions error immediately without looking up the key.
 	// This prevents returning NOT_FOUND for every request when the root key simply lacks verify permissions entirely.
 	if !rbac.HasAnyPermission(auth.Permissions, rbac.Api, rbac.VerifyKey) {
-		return rbac.Check(rbac.Or(
+		return auth.Authorize(ctx, rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,
 				ResourceID:   "*",
@@ -69,7 +69,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   "<API_ID>",
 				Action:       rbac.VerifyKey,
 			}),
-		), auth.Permissions)
+		))
 	}
 
 	// Request validation
@@ -118,7 +118,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	err = rbac.Check(rbac.Or(
+	err = auth.Authorize(ctx, rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -129,7 +129,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   key.Key.ApiID,
 			Action:       rbac.VerifyKey,
 		}),
-	), auth.Permissions)
+	))
 	if err != nil {
 		// We are just respond with a 200 OK with a not found since the user doesn't have permission to verify the key
 		// this would otherwise leak the keys existence otherwise

@@ -90,7 +90,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}),
 		)
 
-		err = rbac.Check(permissionCheck, auth.Permissions)
+		err = auth.Authorize(ctx, permissionCheck)
 		if err != nil {
 			return err
 		}

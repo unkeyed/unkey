@@ -53,7 +53,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = rbac.Check(
+	err = auth.Authorize(ctx,
 		rbac.Or(
 			rbac.T(
 				rbac.Tuple{
@@ -62,7 +62,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Action:       rbac.DeleteIdentity,
 				},
 			),
-		), auth.Permissions)
+		))
 	if err != nil {
 		return err
 	}

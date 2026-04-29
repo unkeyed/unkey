@@ -43,5 +43,6 @@ func (r *RootKeyResolver) Try(ctx context.Context, sess *zen.Session) (*auth.Pri
 		DisplayName: kv.Key.Name.String,
 		WorkspaceID: kv.AuthorizedWorkspaceID(),
 		Permissions: kv.Permissions(),
+		Authorizer:  kv,
 	}, emit, nil
 }

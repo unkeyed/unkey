@@ -77,7 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Check permissions using either wildcard or the specific identity ID
-	err = rbac.Check(rbac.Or(
+	err = auth.Authorize(ctx, rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Identity,
 			ResourceID:   "*",
@@ -88,7 +88,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   identity.ID,
 			Action:       rbac.ReadIdentity,
 		}),
-	), auth.Permissions)
+	))
 	if err != nil {
 		return err
 	}

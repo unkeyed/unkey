@@ -66,7 +66,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 3. Permission check
-	err = rbac.Check(rbac.Or(
+	err = auth.Authorize(ctx, rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   req.ApiId,
@@ -77,7 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   "*",
 			Action:       rbac.CreateKey,
 		}),
-	), auth.Permissions)
+	))
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = rbac.Check(rbac.Or(
+		err = auth.Authorize(ctx, rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,
 				ResourceID:   "*",
@@ -150,7 +150,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   api.ID,
 				Action:       rbac.EncryptKey,
 			}),
-		), auth.Permissions)
+		))
 		if err != nil {
 			return err
 		}

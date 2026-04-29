@@ -99,6 +99,23 @@ func (k *KeyVerifier) withPermissions(ctx context.Context, query rbac.Permission
 	return nil
 }
 
+// Authorize satisfies auth.Authorizer for handler-side authorization
+// checks on a root-key Principal. It runs withPermissions (which flips
+// k.Status to StatusInsufficientPermissions on denial so the deferred
+// ClickHouse emit records the right outcome) and surfaces the
+// InsufficientPermissions fault back to the caller. The verify_key
+// pipeline keeps using withPermissions directly because it inspects
+// k.Status itself rather than a returned error.
+func (k *KeyVerifier) Authorize(ctx context.Context, query rbac.PermissionQuery) error {
+	if err := k.withPermissions(ctx, query); err != nil {
+		return err
+	}
+	if k.Status == StatusInsufficientPermissions {
+		return k.ToFault()
+	}
+	return nil
+}
+
 // withRateLimits validates the key against both auto-applied and specified rate limits.
 // Auto-applied limits come from the key or identity configuration, while specified limits
 // are provided at verification time. All limits must pass for the key to be valid.

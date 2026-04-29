@@ -86,7 +86,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		txErr = rbac.Check(rbac.Or(
+		txErr = auth.Authorize(ctx, rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Ratelimit,
 				ResourceID:   nsRow.ID,
@@ -97,7 +97,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   "*",
 				Action:       rbac.SetOverride,
 			}),
-		), auth.Permissions)
+		))
 		if txErr != nil {
 			return zero, txErr
 		}

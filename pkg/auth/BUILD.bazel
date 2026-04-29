@@ -13,6 +13,7 @@ go_library(
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/logger",
+        "//pkg/rbac",
         "//pkg/zen",
     ],
 )

@@ -83,7 +83,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Permission check
-	err = rbac.Check(rbac.Or(
+	err = auth.Authorize(ctx, rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -94,7 +94,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   keyData.Api.ID,
 			Action:       rbac.ReadKey,
 		}),
-	), auth.Permissions)
+	))
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Data.Key.NotFound.URN()),

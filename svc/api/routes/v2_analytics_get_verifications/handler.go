@@ -123,7 +123,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Verify user has at least one of: api.*.read_analytics OR (api.<api_id1>.read_analytics AND api.<api_id2>.read_analytics)
-	err = rbac.Check(rbac.Or(permissionChecks...), auth.Permissions)
+	err = auth.Authorize(ctx, rbac.Or(permissionChecks...))
 	if err != nil {
 		return err
 	}
