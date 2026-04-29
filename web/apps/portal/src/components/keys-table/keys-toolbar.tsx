@@ -3,6 +3,7 @@ import { Button } from "~/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
@@ -43,7 +44,7 @@ export function KeysToolbar({ searchValue, onSearchChange, statusValue, onStatus
         {/* TODO @davehawkins: debounce the search field before shipping to prod — today it fires on every keystroke */}
         <Input
           type="search"
-          placeholder="Search by name, ID, or externalId"
+          placeholder="Search by name or ID"
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
           className="pl-8"
@@ -60,22 +61,24 @@ export function KeysToolbar({ searchValue, onSearchChange, statusValue, onStatus
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-44">
           <DropdownMenuLabel>Key status</DropdownMenuLabel>
-          {STATUS_FILTERS.map((value) => (
-            <DropdownMenuItem
-              key={value}
-              onSelect={(e) => {
-                e.preventDefault();
-                onStatusChange(value);
-              }}
-              className="justify-between"
-            >
-              <span className="flex items-center gap-2">
-                <StatusDot value={value} />
-                {STATUS_LABELS[value]}
-              </span>
-              {statusValue === value && <Check className="size-3.5 text-gray-11" />}
-            </DropdownMenuItem>
-          ))}
+          <DropdownMenuGroup>
+            {STATUS_FILTERS.map((value) => (
+              <DropdownMenuItem
+                key={value}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  onStatusChange(value);
+                }}
+                className="justify-between"
+              >
+                <span className="flex items-center gap-2">
+                  <StatusDot value={value} />
+                  {STATUS_LABELS[value]}
+                </span>
+                {statusValue === value && <Check className="size-3.5 text-gray-11" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Key actions — design exploration</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      body {
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-zinc-50 text-zinc-900">
+    <main class="mx-auto max-w-3xl px-6 py-12">
+      <header class="mb-10">
+        <p class="text-xs uppercase tracking-wider text-zinc-500">Portal · keys table</p>
+        <h1 class="mt-1 text-2xl font-semibold">Key actions — design exploration</h1>
+        <p class="mt-3 max-w-prose text-sm text-zinc-600">
+          Edit and Rotate are now two distinct row actions, each with its own dialog.
+          Edit handles metadata (name + expiration). Rotate is a focused destructive
+          flow with a one-time secret reveal.
+        </p>
+      </header>
+
+      <ul class="grid gap-4">
+        <li>
+          <a
+            href="./edit-key.html"
+            class="group block rounded-lg border border-zinc-200 bg-white p-5 transition hover:border-zinc-300 hover:shadow-sm"
+          >
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h2 class="text-sm font-semibold text-zinc-900">Edit key</h2>
+                <p class="mt-1 text-sm text-zinc-600">
+                  Plain form dialog: rename + change expiration. Cancel / Save changes in the footer.
+                </p>
+              </div>
+              <span class="text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-zinc-600">→</span>
+            </div>
+          </a>
+        </li>
+
+        <li>
+          <a
+            href="./rotate-key.html"
+            class="group block rounded-lg border border-zinc-200 bg-white p-5 transition hover:border-zinc-300 hover:shadow-sm"
+          >
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h2 class="text-sm font-semibold text-zinc-900">Rotate key</h2>
+                <p class="mt-1 text-sm text-zinc-600">
+                  Dedicated dialog with key identity + grace period selector. Click Rotate to
+                  swap to the one-time secret reveal.
+                </p>
+              </div>
+              <span class="text-zinc-400 transition group-hover:translate-x-0.5 group-hover:text-zinc-600">→</span>
+            </div>
+          </a>
+        </li>
+      </ul>
+
+      <footer class="mt-12 border-t border-zinc-200 pt-6 text-xs text-zinc-500">
+        Static mocks · Tailwind v4 browser CDN · no React, no shadcn primitives.
+      </footer>
+    </main>
+  </body>
+</html>

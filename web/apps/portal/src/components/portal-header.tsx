@@ -15,7 +15,7 @@ export function PortalHeader() {
   const tabs = deriveVisibleTabs(allPermissions);
 
   return (
-    <header className="border-b border-gray-6 bg-background">
+    <header className="border-gray-6 border-b bg-background">
       <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-4">
         <nav className="flex items-center gap-1" aria-label="Portal navigation">
           {tabs.map((tab) => {
@@ -25,7 +25,7 @@ export function PortalHeader() {
                 key={tab.id}
                 to={tab.href}
                 aria-current={isActive ? "page" : undefined}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-md px-3 py-1.5 font-medium text-sm transition-colors ${
                   isActive ? "text-gray-12" : "text-gray-11 hover:bg-gray-3 hover:text-gray-12"
                 }`}
                 style={

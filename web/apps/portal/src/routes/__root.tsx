@@ -1,6 +1,7 @@
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 /// <reference types="vite/client" />
 import type { ReactNode } from "react";
+import { TooltipProvider } from "~/components/ui/tooltip";
 import "~/styles/tailwind.css";
 
 export const Route = createRootRoute({
@@ -12,6 +13,8 @@ export const Route = createRootRoute({
       { name: "robots", content: "noindex, nofollow" },
     ],
     links: [
+      // TODO: wire up customer favicon here
+      { rel: "icon", href: "/favicon.svg" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
@@ -24,7 +27,9 @@ export const Route = createRootRoute({
 function RootComponent() {
   return (
     <RootDocument>
-      <Outlet />
+      <TooltipProvider delayDuration={300}>
+        <Outlet />
+      </TooltipProvider>
     </RootDocument>
   );
 }

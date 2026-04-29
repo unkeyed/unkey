@@ -75,39 +75,74 @@ function toUrl(resolved: SearchResolved): SearchInput {
 
 export const Route = createFileRoute("/dave-initial-design/")({
   validateSearch: searchSchema,
+  head: () => ({
+    meta: [{ title: `${seedBranding.appName} | Manage Keys` }],
+  }),
   component: Preview,
 });
 
 function parseSort(s: SortValue): SortingState {
-  if (s === "none") return [];
+  if (s === "none") {
+    return [];
+  }
   const [id, dir] = s.split(".");
   return [{ id, desc: dir === "desc" }];
 }
 
 function stringifySort(state: SortingState, fallback: SortValue): SortValue {
   const head = state[0];
-  if (!head) return "none";
+  if (!head) {
+    return "none";
+  }
   const candidate = `${head.id}.${head.desc ? "desc" : "asc"}`;
   return SORT_VALUES.find((v) => v === candidate) ?? fallback;
 }
+
+type KeyOverlay = { name?: string | null; expires?: number | null; start?: string };
 
 function Preview() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/dave-initial-design/" });
   const [deletedIds, setDeletedIds] = useState<Set<string>>(() => new Set());
+  // createdKeys persists across preview switches — fine for the prototype.
+  const [createdKeys, setCreatedKeys] = useState<Key[]>([]);
+  const [overlays, setOverlays] = useState<Map<string, KeyOverlay>>(() => new Map());
+  const [freshKeyId, setFreshKeyId] = useState<string | null>(null);
 
   const resolved = useMemo(() => resolve(search), [search]);
   const sorting = useMemo(() => parseSort(resolved.sort), [resolved.sort]);
-  const source = useMemo(() => resolveKeys(resolved.demo), [resolved.demo]);
-  const keys = useMemo(
-    () => source.keys.filter((k) => !deletedIds.has(k.id)),
-    [source.keys, deletedIds],
-  );
+  const sourceKeys = useMemo(() => {
+    switch (resolved.demo) {
+      case "empty":
+        return [];
+      case "p50":
+        return seedKeys.slice(0, 3);
+      case "p99":
+        return seedKeys.slice(0, 7);
+      case "max":
+        return synthesizeKeys();
+    }
+  }, [resolved.demo]);
+  const keys = useMemo(() => {
+    const visible = [...createdKeys, ...sourceKeys].filter((k) => !deletedIds.has(k.id));
+    return visible.map((k) => {
+      const overlay = overlays.get(k.id);
+      return overlay ? { ...k, ...overlay } : k;
+    });
+  }, [createdKeys, sourceKeys, deletedIds, overlays]);
 
   const update = (next: Partial<SearchResolved>) => {
     navigate({
       search: (prev) => toUrl({ ...resolve(prev), ...next }),
       replace: true,
+    });
+  };
+
+  const patchOverlay = (id: string, patch: KeyOverlay) => {
+    setOverlays((prev) => {
+      const next = new Map(prev);
+      next.set(id, { ...next.get(id), ...patch });
+      return next;
     });
   };
 
@@ -135,8 +170,16 @@ function Preview() {
             pageIndex={resolved.page}
             onPageChange={(page) => update({ page })}
             onDelete={(id) => setDeletedIds((prev) => new Set(prev).add(id))}
-            onEditExpiration={(id) => console.log("edit", id)}
-            onRotate={(id) => console.log("rotate", id)}
+            onEdit={(id, values) =>
+              patchOverlay(id, { name: values.name, expires: values.expires })
+            }
+            onRotate={(id, result) => patchOverlay(id, { start: result.start })}
+            onCreate={(k) => {
+              setCreatedKeys((prev) => [k, ...prev]);
+              setFreshKeyId(k.id);
+              window.setTimeout(() => setFreshKeyId(null), 220);
+            }}
+            freshKeyId={freshKeyId}
           />
         </div>
       </main>
@@ -147,17 +190,4 @@ function Preview() {
       />
     </div>
   );
-}
-
-function resolveKeys(demo: DemoState): { keys: Key[] } {
-  switch (demo) {
-    case "empty":
-      return { keys: [] };
-    case "p50":
-      return { keys: seedKeys.slice(0, 3) };
-    case "p99":
-      return { keys: seedKeys.slice(0, 7) };
-    case "max":
-      return { keys: synthesizeKeys() };
-  }
 }

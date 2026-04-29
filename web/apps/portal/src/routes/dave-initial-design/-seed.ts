@@ -5,7 +5,6 @@ export type Key = {
   createdAt: number;
   expires: number | null;
   enabled: boolean;
-  externalId: string;
   usage: number[];
   errors?: number[];
 };
@@ -65,8 +64,6 @@ const usagePatterns = {
 
 const patternKeys = Object.keys(usagePatterns) as (keyof typeof usagePatterns)[];
 
-const EXTERNAL_IDS = ["user_aKk2mDp9", "user_7xYp3kLq", "svc_prod_abc", "svc_staging_def"] as const;
-
 export const seedKeys: Key[] = [
   {
     id: "key_3ZsMzZ1K4eFp",
@@ -75,7 +72,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 120 * DAY,
     expires: null,
     enabled: true,
-    externalId: "user_aKk2mDp9",
     usage: usagePatterns.productionSteady,
     errors: usagePatterns.productionErrors,
   },
@@ -86,7 +82,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 60 * DAY,
     expires: now + 90 * DAY,
     enabled: true,
-    externalId: "user_aKk2mDp9",
     usage: usagePatterns.stagingModerate,
     errors: usagePatterns.stagingErrors,
   },
@@ -97,7 +92,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 14 * DAY,
     expires: now + 3 * DAY,
     enabled: true,
-    externalId: "user_aKk2mDp9",
     usage: usagePatterns.devSpiky,
   },
   {
@@ -107,7 +101,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 7 * DAY,
     expires: null,
     enabled: true,
-    externalId: "user_aKk2mDp9",
     usage: usagePatterns.unnamedLow,
   },
   {
@@ -117,7 +110,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 400 * DAY,
     expires: now - 30 * DAY,
     enabled: true,
-    externalId: "user_aKk2mDp9",
     usage: usagePatterns.expiredDead,
   },
   {
@@ -127,7 +119,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 45 * DAY,
     expires: null,
     enabled: false,
-    externalId: "user_aKk2mDp9",
     usage: usagePatterns.disabledAllZero,
   },
   {
@@ -137,7 +128,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 1 * DAY,
     expires: now + 30 * DAY,
     enabled: true,
-    externalId: "user_aKk2mDp9",
     usage: usagePatterns.scratchRecent,
   },
   {
@@ -147,7 +137,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 220 * DAY,
     expires: null,
     enabled: true,
-    externalId: "user_aKk2mDp9",
     usage: usagePatterns.edgeFlat,
   },
   {
@@ -157,7 +146,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 85 * DAY,
     expires: null,
     enabled: true,
-    externalId: "user_7xYp3kLq",
     usage: usagePatterns.productionSteady,
   },
   {
@@ -167,7 +155,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 82 * DAY,
     expires: null,
     enabled: true,
-    externalId: "user_7xYp3kLq",
     usage: usagePatterns.edgeFlat,
   },
   {
@@ -177,7 +164,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 150 * DAY,
     expires: null,
     enabled: true,
-    externalId: "svc_prod_abc",
     usage: usagePatterns.productionSteady,
     errors: usagePatterns.productionErrors,
   },
@@ -188,7 +174,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 200 * DAY,
     expires: null,
     enabled: true,
-    externalId: "svc_prod_abc",
     usage: usagePatterns.stagingModerate,
   },
   {
@@ -198,7 +183,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 95 * DAY,
     expires: null,
     enabled: true,
-    externalId: "svc_prod_abc",
     usage: usagePatterns.edgeFlat,
   },
   {
@@ -208,7 +192,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 300 * DAY,
     expires: null,
     enabled: true,
-    externalId: "svc_prod_abc",
     usage: usagePatterns.productionSteady,
   },
   {
@@ -218,7 +201,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 50 * DAY,
     expires: now - 5 * DAY,
     enabled: true,
-    externalId: "svc_staging_def",
     usage: usagePatterns.expiredDead,
   },
   {
@@ -228,7 +210,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 40 * DAY,
     expires: now + 60 * DAY,
     enabled: true,
-    externalId: "svc_staging_def",
     usage: usagePatterns.stagingModerate,
     errors: usagePatterns.stagingErrors,
   },
@@ -239,7 +220,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 180 * DAY,
     expires: null,
     enabled: true,
-    externalId: "svc_prod_abc",
     usage: usagePatterns.productionSteady,
   },
   {
@@ -249,7 +229,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 170 * DAY,
     expires: null,
     enabled: false,
-    externalId: "svc_prod_abc",
     usage: usagePatterns.disabledAllZero,
   },
   {
@@ -259,7 +238,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 30 * DAY,
     expires: now + 120 * DAY,
     enabled: true,
-    externalId: "svc_staging_def",
     usage: usagePatterns.stagingModerate,
   },
   {
@@ -269,7 +247,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 25 * DAY,
     expires: now + 90 * DAY,
     enabled: true,
-    externalId: "svc_staging_def",
     usage: usagePatterns.devSpiky,
   },
   {
@@ -279,7 +256,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 110 * DAY,
     expires: null,
     enabled: true,
-    externalId: "svc_prod_abc",
     usage: usagePatterns.edgeFlat,
   },
   {
@@ -289,7 +265,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 240 * DAY,
     expires: null,
     enabled: true,
-    externalId: "svc_prod_abc",
     usage: usagePatterns.unnamedLow,
   },
   {
@@ -299,7 +274,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 95 * DAY,
     expires: null,
     enabled: true,
-    externalId: "svc_prod_abc",
     usage: usagePatterns.productionSteady,
     errors: usagePatterns.stagingErrors,
   },
@@ -310,7 +284,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 75 * DAY,
     expires: null,
     enabled: true,
-    externalId: "svc_prod_abc",
     usage: usagePatterns.edgeFlat,
   },
   {
@@ -320,7 +293,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 160 * DAY,
     expires: null,
     enabled: false,
-    externalId: "svc_prod_abc",
     usage: usagePatterns.disabledAllZero,
   },
   {
@@ -330,7 +302,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 130 * DAY,
     expires: null,
     enabled: true,
-    externalId: "svc_prod_abc",
     usage: usagePatterns.stagingModerate,
   },
   {
@@ -340,7 +311,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 210 * DAY,
     expires: null,
     enabled: true,
-    externalId: "svc_prod_abc",
     usage: usagePatterns.unnamedLow,
   },
   {
@@ -350,7 +320,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 550 * DAY,
     expires: now - 200 * DAY,
     enabled: true,
-    externalId: "user_7xYp3kLq",
     usage: usagePatterns.expiredDead,
   },
   {
@@ -360,7 +329,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 3 * DAY,
     expires: now + 7 * DAY,
     enabled: true,
-    externalId: "user_7xYp3kLq",
     usage: usagePatterns.scratchRecent,
   },
   {
@@ -370,7 +338,6 @@ export const seedKeys: Key[] = [
     createdAt: now - 190 * DAY,
     expires: null,
     enabled: true,
-    externalId: "svc_prod_abc",
     usage: usagePatterns.productionSteady,
   },
 ];
@@ -392,7 +359,6 @@ export function synthesizeKeys({ count = 1500 }: { count?: number } = {}): Key[]
     const statusRoll = idx % 7;
     const enabled = statusRoll !== 5;
     const expired = statusRoll === 6;
-    const externalId = EXTERNAL_IDS[idx % EXTERNAL_IDS.length];
     rows.push({
       id: `key_${idx.toString(36).padStart(12, "0")}`,
       name: idx % 13 === 0 ? null : `Key #${idx.toLocaleString()}`,
@@ -400,7 +366,6 @@ export function synthesizeKeys({ count = 1500 }: { count?: number } = {}): Key[]
       createdAt: now - ((idx * 7) % 500) * DAY,
       expires: expired ? now - ((idx % 60) + 1) * DAY : idx % 3 === 0 ? now + 90 * DAY : null,
       enabled,
-      externalId,
       usage: usagePatterns[pattern],
     });
   }

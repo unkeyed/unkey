@@ -11,7 +11,9 @@ export function useHover<T extends HTMLElement>(elementRef: RefObject<T | null>)
 
   useEffect(() => {
     const element = elementRef.current;
-    if (!element) return;
+    if (!element) {
+      return;
+    }
 
     const enter = () => setValue(true);
     const leave = () => setValue(false);

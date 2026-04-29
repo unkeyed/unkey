@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rotate key</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      body {
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-zinc-100">
+    <div class="fixed inset-0 bg-zinc-900/40" aria-hidden="true"></div>
+
+    <div class="relative z-10 flex min-h-screen flex-col">
+      <nav class="px-6 py-4">
+        <a
+          href="./"
+          class="rounded px-2 py-1 text-sm text-white/90 hover:bg-white/10 hover:text-white"
+        >
+          ← All variants
+        </a>
+        <span class="ml-2 text-sm text-white/60">Rotate key</span>
+      </nav>
+
+      <div class="flex flex-1 items-center justify-center px-4 pb-10">
+        <div
+          class="w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-zinc-200"
+          role="dialog"
+          aria-labelledby="dialog-title"
+        >
+          <!-- CONFIGURE VIEW -->
+          <div id="configure-view">
+            <header class="px-6 pb-1 pt-5">
+              <h2 id="dialog-title" class="text-lg font-semibold text-zinc-900">Rotate key</h2>
+              <p class="mt-1 text-sm text-zinc-500">Generate a new secret while preserving this key's configuration.</p>
+            </header>
+
+            <div class="space-y-4 px-6 pb-5 pt-3">
+              <div>
+                <label for="grace" class="block text-sm font-medium text-zinc-900">Grace period</label>
+                <select
+                  id="grace"
+                  class="mt-2 w-full rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
+                >
+                  <option>Revoke immediately</option>
+                  <option selected>1 minute</option>
+                  <option>15 minutes</option>
+                  <option>1 hour</option>
+                  <option>6 hours</option>
+                  <option>24 hours</option>
+                </select>
+                <p class="mt-1 text-xs text-zinc-500">How long the current key stays valid after rotation.</p>
+              </div>
+            </div>
+
+            <footer class="flex items-center justify-end gap-2 border-t border-zinc-200 px-6 py-4">
+              <button
+                type="button"
+                class="rounded-md px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onclick="rotate()"
+                class="inline-flex items-center gap-1.5 rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+              >
+                <svg
+                  class="h-3.5 w-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 10a8 8 0 0114-3.5L20 10M20 14a8 8 0 01-14 3.5L4 14" />
+                </svg>
+                Rotate key
+              </button>
+            </footer>
+          </div>
+
+          <!-- SUCCESS VIEW (hidden by default) -->
+          <div id="success-view" class="hidden">
+            <header class="px-6 pb-1 pt-5">
+              <h2 class="text-lg font-semibold text-zinc-900">Key rotated</h2>
+              <p class="mt-1 text-sm text-zinc-500">
+                A new secret has been generated. Copy it now.
+              </p>
+            </header>
+
+            <div class="space-y-4 px-6 pb-5 pt-3">
+              <div class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                <strong>Copy this secret now.</strong> You won't be able to see it again after closing.
+              </div>
+
+              <div>
+                <label class="mb-1 block text-sm font-medium text-zinc-900">New secret</label>
+                <div class="flex items-center gap-2">
+                  <code class="flex-1 truncate rounded-md border border-zinc-300 bg-zinc-50 px-2.5 py-1.5 font-mono text-sm text-zinc-900">
+                    unkey_3FxK7p9MqY2nB8vR1tH4cZ6wJ0sLdE
+                  </code>
+                  <button
+                    type="button"
+                    class="shrink-0 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              <p class="text-xs text-zinc-500">
+                The previous secret remains valid for <strong>1 minute</strong> to give clients time to roll over.
+              </p>
+            </div>
+
+            <footer class="flex items-center justify-end gap-2 border-t border-zinc-200 px-6 py-4">
+              <button
+                type="button"
+                onclick="reset()"
+                class="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+              >
+                Done
+              </button>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function rotate() {
+        document.getElementById("configure-view").classList.add("hidden");
+        document.getElementById("success-view").classList.remove("hidden");
+      }
+      function reset() {
+        document.getElementById("success-view").classList.add("hidden");
+        document.getElementById("configure-view").classList.remove("hidden");
+      }
+    </script>
+  </body>
+</html>

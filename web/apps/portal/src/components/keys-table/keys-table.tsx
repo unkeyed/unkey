@@ -12,10 +12,13 @@ import {
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown, KeyRound, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
-import { CreateKeySheet } from "~/components/keys-table/create-key-sheet";
+import { CreateKeyDialog } from "~/components/keys-table/create-key-dialog";
+import { DeleteKeyDialog } from "~/components/keys-table/delete-key-dialog";
+import { EditKeyDialog, type EditKeyValues } from "~/components/keys-table/edit-key-dialog";
 import { createKeysColumns, globalSearchFn } from "~/components/keys-table/keys-columns";
 import { KeysPagination } from "~/components/keys-table/keys-pagination";
 import { KeysToolbar, type StatusFilter } from "~/components/keys-table/keys-toolbar";
+import { RotateKeyDialog, type RotateResult } from "~/components/keys-table/rotate-key-dialog";
 import { Button } from "~/components/ui/button";
 import {
   Empty,
@@ -25,7 +28,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "~/components/ui/empty";
-import { Sheet, SheetTrigger } from "~/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -57,8 +59,10 @@ type Props = {
   onPageChange: (index: number) => void;
 
   onDelete?: (id: string) => void;
-  onEditExpiration?: (id: string) => void;
-  onRotate?: (id: string) => void;
+  onEdit?: (id: string, values: EditKeyValues) => void;
+  onRotate?: (id: string, result: RotateResult) => void;
+  onCreate: (key: Key) => void;
+  freshKeyId?: string | null;
 };
 
 export function KeysTable({
@@ -73,13 +77,52 @@ export function KeysTable({
   pageIndex,
   onPageChange,
   onDelete,
-  onEditExpiration,
+  onEdit,
   onRotate,
+  onCreate,
+  freshKeyId,
 }: Props) {
-  const columns = useMemo(
-    () => createKeysColumns({ onDelete, onEditExpiration, onRotate }),
-    [onDelete, onEditExpiration, onRotate],
-  );
+  const [pendingDeleteKey, setPendingDeleteKey] = useState<Key | null>(null);
+  const [pendingEditKey, setPendingEditKey] = useState<Key | null>(null);
+  const [pendingRotateKey, setPendingRotateKey] = useState<Key | null>(null);
+  const [exitingId, setExitingId] = useState<string | null>(null);
+
+  const columns = useMemo(() => {
+    // Defer to the next frame so the DropdownMenu's body pointer-events lock is
+    // released before AlertDialog mounts; otherwise Radix captures
+    // `pointer-events: none` as the body's original style and restores it on
+    // close, leaving the page uninteractable.
+    const openWithKey = (id: string, set: (k: Key) => void) => {
+      const key = keys.find((k) => k.id === id);
+      if (key) {
+        requestAnimationFrame(() => set(key));
+      }
+    };
+    return createKeysColumns({
+      onDelete: (id) => openWithKey(id, setPendingDeleteKey),
+      onEdit: (id) => openWithKey(id, setPendingEditKey),
+      onRotate: (id) => openWithKey(id, setPendingRotateKey),
+    });
+  }, [keys]);
+
+  const handleConfirmDelete = () => {
+    if (!pendingDeleteKey) {
+      return;
+    }
+    const id = pendingDeleteKey.id;
+    setPendingDeleteKey(null);
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      onDelete?.(id);
+      return;
+    }
+
+    setExitingId(id);
+    window.setTimeout(() => {
+      onDelete?.(id);
+      setExitingId(null);
+    }, 200);
+  };
 
   const columnFilters = useMemo<ColumnFiltersState>(
     () => (statusValue === "all" ? [] : [{ id: "status", value: statusValue }]),
@@ -111,6 +154,7 @@ export function KeysTable({
       onPageChange(next.pageIndex);
     },
     globalFilterFn: globalSearchFn,
+    getRowId: (row) => row.id,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -138,16 +182,13 @@ export function KeysTable({
             Manage the API keys you use to authenticate with {appName}.
           </p>
         </div>
-        <Sheet open={createOpen} onOpenChange={setCreateOpen}>
-          <SheetTrigger asChild>
-            <Button>
-              <Plus />
-              Create key
-            </Button>
-          </SheetTrigger>
-          <CreateKeySheet appName={appName} />
-        </Sheet>
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus />
+          Create key
+        </Button>
       </header>
+
+      <CreateKeyDialog open={createOpen} onOpenChange={setCreateOpen} onCreate={onCreate} />
 
       {!showNoKeys && (
         <div className="mt-6 flex items-center justify-between gap-2">
@@ -190,7 +231,7 @@ export function KeysTable({
             }
           />
         ) : (
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="bg-gray-2 hover:bg-gray-2">
@@ -204,9 +245,14 @@ export function KeysTable({
             </TableHeader>
             <TableBody>
               {visibleRows.map((row) => (
-                <TableRow key={row.id} className="h-14">
+                <TableRow
+                  key={row.id}
+                  data-exiting={row.id === exitingId ? "true" : undefined}
+                  data-fresh={row.id === freshKeyId ? "true" : undefined}
+                  className="h-14 data-[exiting=true]:pointer-events-none motion-safe:transition-[opacity,filter,background-color] motion-safe:duration-200 motion-safe:ease-out data-[exiting=true]:motion-safe:opacity-0 data-[fresh=true]:motion-safe:opacity-0 data-[exiting=true]:motion-safe:blur-[2px] data-[fresh=true]:motion-safe:blur-[2px]"
+                >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className={cell.column.columnDef.meta?.className}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -216,6 +262,44 @@ export function KeysTable({
           </Table>
         )}
       </div>
+
+      <DeleteKeyDialog
+        open={pendingDeleteKey !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingDeleteKey(null);
+          }
+        }}
+        onConfirm={handleConfirmDelete}
+      />
+
+      <EditKeyDialog
+        open={pendingEditKey !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingEditKey(null);
+          }
+        }}
+        keyToEdit={pendingEditKey}
+        onSave={(id, values) => {
+          onEdit?.(id, values);
+          setPendingEditKey(null);
+        }}
+      />
+
+      <RotateKeyDialog
+        open={pendingRotateKey !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingRotateKey(null);
+          }
+        }}
+        keyToRotate={pendingRotateKey}
+        onRotate={(id, result) => {
+          onRotate?.(id, result);
+          setPendingRotateKey(null);
+        }}
+      />
     </section>
   );
 }
@@ -245,7 +329,9 @@ function KeysEmptyState({
 
 function SortableHeader({ header }: { header: Header<Key, unknown> }) {
   const content = flexRender(header.column.columnDef.header, header.getContext());
-  if (!header.column.getCanSort()) return content;
+  if (!header.column.getCanSort()) {
+    return content;
+  }
 
   const sortDir = header.column.getIsSorted();
   return (

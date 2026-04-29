@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edit key</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      body {
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-zinc-100">
+    <div class="fixed inset-0 bg-zinc-900/40" aria-hidden="true"></div>
+
+    <div class="relative z-10 flex min-h-screen flex-col">
+      <nav class="px-6 py-4">
+        <a
+          href="./"
+          class="rounded px-2 py-1 text-sm text-white/90 hover:bg-white/10 hover:text-white"
+        >
+          ← All variants
+        </a>
+        <span class="ml-2 text-sm text-white/60">Edit key</span>
+      </nav>
+
+      <div class="flex flex-1 items-center justify-center px-4 pb-10">
+        <div
+          class="w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-zinc-200"
+          role="dialog"
+          aria-labelledby="dialog-title"
+        >
+          <header class="px-6 pb-1 pt-5">
+            <h2 id="dialog-title" class="text-lg font-semibold text-zinc-900">Edit key</h2>
+            <p class="mt-1 text-sm text-zinc-500">Update this key's name and expiration.</p>
+          </header>
+
+          <div class="space-y-4 px-6 pb-5 pt-3">
+            <div>
+              <label for="name" class="text-sm font-medium text-zinc-900">Name</label>
+              <p class="mt-0.5 text-xs text-zinc-500">A friendly identifier shown in lists and logs.</p>
+              <input
+                id="name"
+                type="text"
+                value="production-api-key"
+                class="mt-2 w-full rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
+              />
+            </div>
+            <div>
+              <label for="expires" class="text-sm font-medium text-zinc-900">Expiration</label>
+              <p class="mt-0.5 text-xs text-zinc-500">The key auto-expires at midnight UTC on this date.</p>
+              <input
+                id="expires"
+                type="date"
+                value="2026-05-28"
+                class="mt-2 w-full rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
+              />
+            </div>
+          </div>
+
+          <footer class="flex items-center justify-end gap-2 border-t border-zinc-200 px-6 py-4">
+            <button
+              type="button"
+              class="rounded-md px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-800"
+            >
+              Save changes
+            </button>
+          </footer>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

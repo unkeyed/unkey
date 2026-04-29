@@ -3,6 +3,7 @@ import { Button } from "~/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -39,25 +40,27 @@ export function PreviewSwitcher({ value, onSelect }: Props) {
         <DropdownMenuContent align="end" side="top" className="min-w-48">
           <DropdownMenuLabel>Preview state</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {STATE_ORDER.map((state) => {
-            const { label, description } = STATES[state];
-            return (
-              <DropdownMenuItem
-                key={state}
-                onSelect={(e) => {
-                  e.preventDefault();
-                  onSelect(state);
-                }}
-                className="justify-between gap-4"
-              >
-                <div className="flex flex-col">
-                  <span>{label}</span>
-                  <span className="text-gray-10 text-xs">{description}</span>
-                </div>
-                {value === state && <Check className="size-3.5 text-gray-11" />}
-              </DropdownMenuItem>
-            );
-          })}
+          <DropdownMenuGroup>
+            {STATE_ORDER.map((state) => {
+              const { label, description } = STATES[state];
+              return (
+                <DropdownMenuItem
+                  key={state}
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    onSelect(state);
+                  }}
+                  className="justify-between gap-4"
+                >
+                  <div className="flex flex-col">
+                    <span>{label}</span>
+                    <span className="text-gray-10 text-xs">{description}</span>
+                  </div>
+                  {value === state && <Check className="size-3.5 text-gray-11" />}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
