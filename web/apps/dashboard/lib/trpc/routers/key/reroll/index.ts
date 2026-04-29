@@ -119,26 +119,7 @@ async function rerollKeyCore({
     });
   }
 
-  if (source.encrypted && !source.keyAuth.storeEncryptedKeys) {
-    throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message: "This API does not support key encryption.",
-    });
-  }
-
   const now = Date.now();
-
-  // Refuse to rotate an already-expired key. The new key inherits the
-  // source's expiry, so rotating an expired key would mint a replacement
-  // that is born already expired — almost certainly not what the caller
-  // intended. This outer check is a fast-fail; the in-transaction re-read
-  // below is authoritative against concurrent expiry updates.
-  if (source.expires && source.expires.getTime() <= now) {
-    throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message: "This key has already expired and cannot be rotated.",
-    });
-  }
 
   // Preserve the source key's prefix exactly. Falling back to the current
   // keyAuth default would silently add a prefix when the default has been
@@ -199,12 +180,10 @@ async function rerollKeyCore({
         });
       }
 
-      // Re-check the keyAuth's `storeEncryptedKeys` flag inside the tx.
-      // The outer guard used the joined snapshot from before the tx; if
-      // an admin flipped encryption off in the gap, committing a new
-      // encryptedKeys row here would bypass that policy. The source key
-      // itself is already encrypted — rotation has no safe fallback, so
-      // refuse and let the caller resolve the policy change.
+      // The source key is encrypted, so the rotated key must be too —
+      // there's no safe fallback. If an admin flipped `storeEncryptedKeys`
+      // off between the snapshot read and now, refuse rather than commit
+      // a new encryptedKeys row that bypasses the current policy.
       if (source.encrypted) {
         const currentKeyAuth = await tx.query.keyAuth.findFirst({
           where: (table, { eq }) => eq(table.id, source.keyAuthId),
