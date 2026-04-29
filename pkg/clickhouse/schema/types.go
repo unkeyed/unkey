@@ -33,6 +33,10 @@ type Ratelimit struct {
 	Limit       uint64  `ch:"limit" json:"limit"`
 	Remaining   uint64  `ch:"remaining" json:"remaining"`
 	ResetAt     int64   `ch:"reset_at" json:"reset_at"`
+	// Cost is the value the caller billed against the limit on this
+	// decision. We record it for both passed and rejected requests so
+	// dashboards can break spend down by outcome.
+	Cost uint64 `ch:"cost" json:"cost"`
 }
 
 // ApiRequest represents the v2 API request raw table structure.
@@ -81,6 +85,8 @@ type RatelimitAggregated struct {
 	Identifier  string `ch:"identifier" json:"identifier"`
 	Passed      int64  `ch:"passed" json:"passed"`
 	Total       int64  `ch:"total" json:"total"`
+	PassedCost  int64  `ch:"passed_cost" json:"passed_cost"`
+	TotalCost   int64  `ch:"total_cost" json:"total_cost"`
 }
 
 // ApiRequestAggregated represents aggregated API request data

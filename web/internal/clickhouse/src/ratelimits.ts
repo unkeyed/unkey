@@ -36,6 +36,11 @@ export const ratelimitLogsTimeseriesDataPoint = z.object({
   y: z.object({
     passed: z.int().prefault(0),
     total: z.int().prefault(0),
+    // total_cost = sum of cost across all decisions in the bucket.
+    // passed_cost = sum of cost for decisions where passed=true.
+    // blocked cost is derived in the UI as total_cost - passed_cost.
+    passed_cost: z.int().prefault(0),
+    total_cost: z.int().prefault(0),
   }),
 });
 
@@ -142,7 +147,9 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
       toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL ${interval.stepSize} ${interval.step}) AS DateTime64(3))) as x,
       map(
         'passed', sum(passed),
-        'total', sum(total)
+        'total', sum(total),
+        'passed_cost', sum(passed_cost),
+        'total_cost', sum(total_cost)
       ) as y
     FROM ${interval.table}
     ${whereClause}
