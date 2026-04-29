@@ -80,9 +80,7 @@ export function DeploymentRow({
             {deployment.gitCommitSha ? (
               <span className="font-mono text-xs shrink-0 leading-4 -ml-1">
                 <span className="text-gray-9">·</span>
-                <span className="text-accent-12 ml-0.5">
-                  {deployment.gitCommitSha.slice(0, 7)}
-                </span>
+                <span className="text-accent-12 ml-0.5">{deployment.gitCommitSha.slice(0, 7)}</span>
               </span>
             ) : null}
           </div>
