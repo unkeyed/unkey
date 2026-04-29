@@ -85,11 +85,29 @@ export const customDomains = createCollection<CustomDomain, string>(
         success: (data) => ({
           message: "Domain added",
           description: `Add a DNS record pointing to ${data.targetCname}`,
+          duration: 10_000,
         }),
-        error: (err) => ({
-          message: "Failed to add domain",
-          description: err.message,
-        }),
+        error: (err) => {
+          const data = (err as { data?: { code?: string } }).data;
+          const message = err instanceof Error ? err.message : "";
+
+          if (data?.code === "CONFLICT") {
+            return {
+              message: "Domain already in use",
+              description: "This domain is already registered.",
+              ...(message && {
+                action: {
+                  label: "View",
+                  onClick: () => window.open(message, "_blank"),
+                },
+              }),
+            };
+          }
+          return {
+            message: "Failed to add domain",
+            description: message,
+          };
+        },
       });
 
       await mutation;

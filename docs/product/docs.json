@@ -211,6 +211,8 @@
               "build-and-deploy/overview",
               "build-and-deploy/deployments",
               "build-and-deploy/github",
+              "build-and-deploy/cli",
+              "build-and-deploy/cli-vs-github",
               "builds/overview",
               "builds/dockerfile-prompt",
               "environments/overview",

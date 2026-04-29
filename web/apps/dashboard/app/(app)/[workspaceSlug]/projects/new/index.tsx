@@ -1,8 +1,9 @@
 "use client";
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { StepWizard } from "@unkey/ui";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { OnboardingStepContainer } from "./onboarding-step-container";
 import { OnboardingStepHeader } from "./onboarding-step-header";
@@ -19,6 +20,8 @@ export const Onboarding = () => {
   const isFirstTimeOnboarding = contextLoading || (context?.isFirstProject ?? true);
   const hasGithubInstallation = context?.hasGithubInstallation === true;
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const workspace = useWorkspaceNavigation();
 
   // Step id to start the wizard at (e.g. "select-repo"). When the GitHub
   // callback redirects here, earlier steps are already complete so we skip ahead.
@@ -31,6 +34,14 @@ export const Onboarding = () => {
   const [deploymentId, setDeploymentId] = useState<string | null>(null);
 
   const { bypass } = usePreventLeave(!deploymentId);
+
+  const handleSkipGithubSetup = () => {
+    if (!projectId) {
+      return;
+    }
+    bypass();
+    router.replace(`/${workspace.slug}/projects/${projectId}`);
+  };
 
   return (
     <StepWizard.Root defaultStepId={initialStep}>
@@ -70,7 +81,7 @@ export const Onboarding = () => {
           ) : null}
         </StepWizard.Step>
       )}
-      <StepWizard.Step id="select-repo" label="Select repository">
+      <StepWizard.Step id="select-repo" label="Select repository" kind="optional">
         {projectId ? (
           <OnboardingStepContainer>
             <OnboardingStepHeader
@@ -87,6 +98,7 @@ export const Onboarding = () => {
               projectId={projectId}
               onBeforeNavigate={bypass}
               hasGithubInstallation={context?.hasGithubInstallation ?? false}
+              onSkip={handleSkipGithubSetup}
             />
           </OnboardingStepContainer>
         ) : null}

@@ -191,6 +191,7 @@ linters:
       - third_party$
       - builtin$
       - examples$
+      - \.claude/
 issues:
   max-same-issues: 50
 formatters:
@@ -200,3 +201,4 @@ formatters:
       - third_party$
       - builtin$
       - examples$
+      - \.claude/

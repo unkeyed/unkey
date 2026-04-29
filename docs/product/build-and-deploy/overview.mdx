@@ -56,10 +56,10 @@ Unkey builds your image, deploys it to your configured regions, and assigns doma
 ## Three ways to deploy
 
 <CardGroup cols={3}>
-  <Card title="GitHub push" icon="github">
+  <Card title="GitHub push" icon="github" href="/build-and-deploy/github">
     Connect a repository and deploy automatically on every push. Default branch goes to production, other branches go to preview.
   </Card>
-  <Card title="CLI" icon="terminal">
+  <Card title="CLI" icon="terminal" href="/build-and-deploy/cli">
     Deploy a pre-built Docker image with `unkey deploy`. Useful for CI/CD pipelines and custom build systems.
   </Card>
   <Card title="Dashboard" icon="browser">
@@ -81,6 +81,20 @@ Unkey builds your image, deploys it to your configured regions, and assigns doma
     href="/build-and-deploy/github"
   >
     Full setup walkthrough with screenshots
+  </Card>
+  <Card
+    title="Deploy with the CLI"
+    icon="terminal"
+    href="/build-and-deploy/cli"
+  >
+    Ship pre-built Docker images from CI or your machine
+  </Card>
+  <Card
+    title="CLI vs GitHub integration"
+    icon="code-compare"
+    href="/build-and-deploy/cli-vs-github"
+  >
+    Pick the right path for your team
   </Card>
   <Card
     title="Deployment lifecycle"
