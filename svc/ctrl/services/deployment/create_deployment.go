@@ -433,6 +433,7 @@ func buildDockerSource(
 			AuthorHandle:    currentDeployment.GitCommitAuthorHandle.String,
 			AuthorAvatarURL: currentDeployment.GitCommitAuthorAvatarUrl.String,
 			Timestamp:       currentDeployment.GitCommitTimestamp.Int64,
+			ForkRepository:  currentDeployment.ForkRepositoryFullName.String,
 		},
 	}, nil
 }
