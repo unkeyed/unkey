@@ -1,5 +1,6 @@
 "use client";
 
+import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
@@ -20,15 +21,9 @@ type DeleteIdentityFormValues = z.infer<typeof deleteIdentityFormSchema>;
 
 type DeleteIdentityDialogProps = {
   identity: z.infer<typeof IdentityResponseSchema>;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-};
+} & ActionComponentProps;
 
-export const DeleteIdentityDialog = ({
-  identity,
-  open,
-  onOpenChange,
-}: DeleteIdentityDialogProps) => {
+export const DeleteIdentityDialog = ({ identity, isOpen, onClose }: DeleteIdentityDialogProps) => {
   const formId = useId();
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,9 +47,7 @@ export const DeleteIdentityDialog = ({
 
   const confirmDeletion = watch("confirmDeletion");
 
-  const deleteIdentity = useDeleteIdentity(() => {
-    onOpenChange(false);
-  });
+  const deleteIdentity = useDeleteIdentity(onClose);
 
   const handleDialogOpenChange = (open: boolean) => {
     if (isConfirmPopoverOpen) {
@@ -62,10 +55,8 @@ export const DeleteIdentityDialog = ({
       if (!open) {
         return;
       }
-    } else {
-      if (!open) {
-        onOpenChange(false);
-      }
+    } else if (!open) {
+      onClose();
     }
   };
 
@@ -92,7 +83,7 @@ export const DeleteIdentityDialog = ({
       <FormProvider {...methods}>
         <form id={formId}>
           <DialogContainer
-            isOpen={open}
+            isOpen={isOpen}
             subTitle="Permanently remove this identity and its data"
             onOpenChange={handleDialogOpenChange}
             title="Delete identity"

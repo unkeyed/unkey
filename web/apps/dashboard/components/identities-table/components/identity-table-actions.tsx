@@ -6,34 +6,26 @@ import { type MenuItem, TableActionPopover } from "@/components/logs/table-actio
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { Clone, Code, Gauge, Trash } from "@unkey/icons";
 import { toast } from "@unkey/ui";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { z } from "zod";
 import { EditMetadataDialog } from "./edit-metadata-dialog";
 
 type Identity = z.infer<typeof IdentityResponseSchema>;
 
 export const IdentityTableActions = ({ identity }: { identity: Identity }) => {
-  const [isEditMetadataOpen, setIsEditMetadataOpen] = useState(false);
-  const [isEditRatelimitOpen, setIsEditRatelimitOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
   const menuItems: MenuItem[] = useMemo(
     () => [
       {
         id: "edit-ratelimit",
         label: "Edit ratelimit...",
         icon: <Gauge iconSize="md-medium" />,
-        onClick: () => {
-          setIsEditRatelimitOpen(true);
-        },
+        ActionComponent: (props) => <EditRatelimitDialog {...props} identity={identity} />,
       },
       {
         id: "edit-metadata",
         label: "Edit metadata...",
         icon: <Code iconSize="md-medium" />,
-        onClick: () => {
-          setIsEditMetadataOpen(true);
-        },
+        ActionComponent: (props) => <EditMetadataDialog {...props} identity={identity} />,
         divider: true,
       },
       {
@@ -73,33 +65,11 @@ export const IdentityTableActions = ({ identity }: { identity: Identity }) => {
         id: "delete-identity",
         label: "Delete identity",
         icon: <Trash iconSize="md-medium" />,
-        onClick: () => {
-          setIsDeleteDialogOpen(true);
-        },
-        variant: "danger" as const,
+        ActionComponent: (props) => <DeleteIdentityDialog {...props} identity={identity} />,
       },
     ],
-    [identity.id, identity.externalId],
+    [identity],
   );
 
-  return (
-    <>
-      <TableActionPopover items={menuItems} />
-      <EditRatelimitDialog
-        identity={identity}
-        open={isEditRatelimitOpen}
-        onOpenChange={setIsEditRatelimitOpen}
-      />
-      <EditMetadataDialog
-        identity={identity}
-        open={isEditMetadataOpen}
-        onOpenChange={setIsEditMetadataOpen}
-      />
-      <DeleteIdentityDialog
-        identity={identity}
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-      />
-    </>
-  );
+  return <TableActionPopover items={menuItems} />;
 };
