@@ -25,20 +25,20 @@ const getIdentityRatelimitsDefaults = (identity: Identity): RatelimitFormValues 
   const hasRatelimits = identity.ratelimits && identity.ratelimits.length > 0;
   const defaultRatelimits = hasRatelimits
     ? identity.ratelimits.map((rl) => ({
-      id: rl.id,
-      name: rl.name,
-      limit: rl.limit,
-      refillInterval: rl.duration,
-      autoApply: rl.autoApply,
-    }))
+        id: rl.id,
+        name: rl.name,
+        limit: rl.limit,
+        refillInterval: rl.duration,
+        autoApply: rl.autoApply,
+      }))
     : [
-      {
-        name: "Default",
-        limit: 10,
-        refillInterval: 1000,
-        autoApply: false,
-      },
-    ];
+        {
+          name: "Default",
+          limit: 10,
+          refillInterval: 1000,
+          autoApply: false,
+        },
+      ];
 
   return {
     ratelimit: {
