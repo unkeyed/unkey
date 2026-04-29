@@ -42,6 +42,7 @@ type commitFields struct {
 	AuthorHandle    string
 	AuthorAvatarURL string
 	Timestamp       int64
+	ForkRepository  string
 }
 
 // dockerSourceInfo holds the Docker image and inherited git metadata from a
@@ -180,6 +181,7 @@ func (s *Service) CreateDeployment(
 		commit.AuthorHandle = trimLength(strings.TrimSpace(gc.GetAuthorHandle()), maxCommitAuthorHandleLength)
 		commit.AuthorAvatarURL = trimLength(strings.TrimSpace(gc.GetAuthorAvatarUrl()), maxCommitAuthorAvatarLength)
 		commit.Timestamp = gc.GetTimestamp()
+		commit.ForkRepository = gc.GetForkRepository()
 	}
 
 	// Look up the GitHub repo connection once. Used both to decide source type
@@ -249,6 +251,7 @@ func (s *Service) CreateDeployment(
 					ContextPath:    appBuildSettings.DockerContext,
 					DockerfilePath: appBuildSettings.Dockerfile,
 					Branch:         commit.Branch,
+					ForkRepository: commit.ForkRepository,
 					PrNumber:       0,
 				},
 			},
@@ -303,7 +306,7 @@ func (s *Service) CreateDeployment(
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocol(appRuntimeSettings.UpstreamProtocol),
 		Healthcheck:                   appRuntimeSettings.Healthcheck,
 		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
-		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
+		ForkRepositoryFullName:        sql.NullString{String: commit.ForkRepository, Valid: commit.ForkRepository != ""},
 	})
 	if err != nil {
 		logger.Error("failed to insert deployment", "error", err.Error())
@@ -430,6 +433,7 @@ func buildDockerSource(
 			AuthorHandle:    currentDeployment.GitCommitAuthorHandle.String,
 			AuthorAvatarURL: currentDeployment.GitCommitAuthorAvatarUrl.String,
 			Timestamp:       currentDeployment.GitCommitTimestamp.Int64,
+			ForkRepository:  currentDeployment.ForkRepositoryFullName.String,
 		},
 	}, nil
 }
@@ -458,6 +462,11 @@ func (cf *commitFields) fillFromGitHub(
 	// enabled and we have no installation to auth with.
 	hasAuth := !allowUnauth || installationID != noInstallationID
 
+	resolveRepo := repo
+	if cf.ForkRepository != "" {
+		resolveRepo = cf.ForkRepository
+	}
+
 	var info githubclient.CommitInfo
 	var err error
 
@@ -467,12 +476,12 @@ func (cf *commitFields) fillFromGitHub(
 			return nil
 		}
 		if hasAuth {
-			info, err = gh.GetBranchHeadCommit(installationID, repo, cf.Branch)
+			info, err = gh.GetBranchHeadCommit(installationID, resolveRepo, cf.Branch)
 		} else {
-			info, err = gh.GetBranchHeadCommitPublic(repo, cf.Branch)
+			info, err = gh.GetBranchHeadCommitPublic(resolveRepo, cf.Branch)
 		}
 	case cf.Message == "" && hasAuth:
-		info, err = gh.GetCommitBySHA(installationID, repo, cf.SHA)
+		info, err = gh.GetCommitBySHA(installationID, resolveRepo, cf.SHA)
 	default:
 		return nil
 	}
