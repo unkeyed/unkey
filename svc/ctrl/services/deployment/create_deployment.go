@@ -481,7 +481,7 @@ func (cf *commitFields) fillFromGitHub(
 			info, err = gh.GetBranchHeadCommitPublic(resolveRepo, cf.Branch)
 		}
 	case cf.Message == "" && hasAuth:
-		info, err = gh.GetCommitBySHA(installationID, repo, cf.SHA)
+		info, err = gh.GetCommitBySHA(installationID, resolveRepo, cf.SHA)
 	default:
 		return nil
 	}
