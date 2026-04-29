@@ -157,7 +157,7 @@ Permissions control which portal tabs are visible:
 | Any `analytics:*` (e.g. `analytics:read`) | Analytics |
 | `docs:read` | Documentation |
 
-An empty permissions array means no tabs are visible.
+The API requires at least one permission. An empty permissions array is rejected with HTTP 400.
 
 ## Session lifecycle
 
