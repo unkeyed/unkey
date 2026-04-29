@@ -191,7 +191,7 @@ export function KeysTable({
       <CreateKeyDialog open={createOpen} onOpenChange={setCreateOpen} onCreate={onCreate} />
 
       {!showNoKeys && (
-        <div className="mt-6 flex items-center justify-between gap-2">
+        <div className="mt-3 flex items-center justify-between gap-2">
           <KeysToolbar
             searchValue={searchValue}
             onSearchChange={(v) => {
