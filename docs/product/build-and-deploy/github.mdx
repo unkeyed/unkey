@@ -50,6 +50,17 @@ Pull requests from forked repositories are not deployed automatically. A forked 
 
 When a PR comes from a fork, Unkey requires an authorized team member to approve the deployment before it runs. This is similar to how Vercel handles fork deployments.
 
+### Approve a fork deployment
+
+Fork deployments appear in your project's deployment list with an `awaiting_approval` status. Click the row to open the approval dialog, which shows:
+
+- The commit SHA being deployed (links to the commit on GitHub)
+- The source branch (links to the branch on the contributor's fork)
+- The target environment (for example, `preview`)
+- A link to review the pull request
+
+Review the changes on GitHub before approving. Once you click **Approve Deployment**, the build and deploy pipeline starts. To reject the deployment, close the dialog without approving — no build runs and no resources are provisioned.
+
 {/* TODO: screenshot of fork approval flow */}
 
 ## Watch paths
