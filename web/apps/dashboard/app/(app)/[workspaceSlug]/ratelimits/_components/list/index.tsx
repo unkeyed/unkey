@@ -70,7 +70,7 @@ export const NamespaceList = () => {
           </div>
           <Empty.Actions className="mt-4 justify-start">
             <a
-              href="https://www.unkey.com/docs/ratelimiting/introduction"
+              href="https://www.unkey.com/docs/platform/ratelimiting/introduction"
               target="_blank"
               rel="noopener noreferrer"
             >

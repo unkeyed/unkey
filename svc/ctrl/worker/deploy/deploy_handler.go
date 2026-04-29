@@ -397,6 +397,8 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		dockerImage = source.DockerImage.GetImage()
 	case *hydrav1.DeployRequest_Git:
 		commitSHA := source.Git.GetCommitSha()
+		forkRepo := source.Git.GetForkRepository()
+
 		if commitSHA == "" {
 			return fault.Wrap(
 				restate.TerminalError(fmt.Errorf("git source missing commit SHA for deployment %q", deployment.ID)),
@@ -407,6 +409,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		build, err := w.buildDockerImageFromGit(ctx, gitBuildParams{
 			InstallationID:                source.Git.GetInstallationId(),
 			Repository:                    source.Git.GetRepository(),
+			ForkRepository:                forkRepo,
 			CommitSHA:                     commitSHA,
 			ContextPath:                   source.Git.GetContextPath(),
 			DockerfilePath:                source.Git.GetDockerfilePath(),
