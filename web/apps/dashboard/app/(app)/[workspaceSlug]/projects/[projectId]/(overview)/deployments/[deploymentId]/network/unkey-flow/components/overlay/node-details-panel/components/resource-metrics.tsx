@@ -33,6 +33,12 @@ import {
 // per open panel, well within budget.
 const REFETCH_INTERVAL_MS = 3_000;
 
+// Heimdall isn't shipped yet, so cpu/memory/disk/network charts would
+// render as empty timeseries. Hide them until the metering pipeline lands.
+// Queries still fire — the tables exist and return empty, so there's
+// nothing to gate at the network layer.
+const RUNTIME_METRICS_ENABLED = false;
+
 const WINDOW_LABELS: Record<TimeWindow, string> = {
   "15m": "Past 15 minutes",
   "1h": "Past hour",
@@ -187,6 +193,13 @@ export function ResourceMetrics({
     }
   }, [isWindowTransition, anyFetching]);
 
+  // Instance-scoped panel hides the instances chart, so with the runtime
+  // metrics flag off there's nothing left to render — skip the empty
+  // "Runtime metrics" header + window selector entirely.
+  if (!RUNTIME_METRICS_ENABLED && isInstanceScoped) {
+    return null;
+  }
+
   return (
     <div>
       <div className="flex flex-col px-4 w-full gap-2">
@@ -228,46 +241,50 @@ export function ResourceMetrics({
         />
       )}
 
-      <CpuSection
-        points={cpu.data}
-        usedMilli={cpuUsedMilli}
-        allocatedMilli={cpuAllocatedMilli}
-        isLoading={cpu.isLoading || isWindowTransition}
-        isError={cpu.isError}
-        showDateInTooltip={showDateInTooltip}
-        xAxisDomain={xAxisDomain}
-      />
+      {RUNTIME_METRICS_ENABLED && (
+        <>
+          <CpuSection
+            points={cpu.data}
+            usedMilli={cpuUsedMilli}
+            allocatedMilli={cpuAllocatedMilli}
+            isLoading={cpu.isLoading || isWindowTransition}
+            isError={cpu.isError}
+            showDateInTooltip={showDateInTooltip}
+            xAxisDomain={xAxisDomain}
+          />
 
-      <MemorySection
-        points={memory.data}
-        usedBytes={memUsedBytes}
-        allocatedBytes={memAllocatedBytes}
-        isLoading={memory.isLoading || isWindowTransition}
-        isError={memory.isError}
-        showDateInTooltip={showDateInTooltip}
-        xAxisDomain={xAxisDomain}
-      />
+          <MemorySection
+            points={memory.data}
+            usedBytes={memUsedBytes}
+            allocatedBytes={memAllocatedBytes}
+            isLoading={memory.isLoading || isWindowTransition}
+            isError={memory.isError}
+            showDateInTooltip={showDateInTooltip}
+            xAxisDomain={xAxisDomain}
+          />
 
-      {diskEnabled && (
-        <DiskSection
-          points={disk.data}
-          usedBytes={diskUsedBytes}
-          allocatedBytes={diskAllocatedBytes}
-          isLoading={disk.isLoading || isWindowTransition}
-          isError={disk.isError}
-          showDateInTooltip={showDateInTooltip}
-          xAxisDomain={xAxisDomain}
-        />
+          {diskEnabled && (
+            <DiskSection
+              points={disk.data}
+              usedBytes={diskUsedBytes}
+              allocatedBytes={diskAllocatedBytes}
+              isLoading={disk.isLoading || isWindowTransition}
+              isError={disk.isError}
+              showDateInTooltip={showDateInTooltip}
+              xAxisDomain={xAxisDomain}
+            />
+          )}
+
+          <NetworkSection
+            egressPoints={networkEgress.data}
+            ingressPoints={networkIngress.data}
+            isLoading={networkEgress.isLoading || networkIngress.isLoading || isWindowTransition}
+            isError={networkEgress.isError || networkIngress.isError}
+            showDateInTooltip={showDateInTooltip}
+            xAxisDomain={xAxisDomain}
+          />
+        </>
       )}
-
-      <NetworkSection
-        egressPoints={networkEgress.data}
-        ingressPoints={networkIngress.data}
-        isLoading={networkEgress.isLoading || networkIngress.isLoading || isWindowTransition}
-        isError={networkEgress.isError || networkIngress.isError}
-        showDateInTooltip={showDateInTooltip}
-        xAxisDomain={xAxisDomain}
-      />
     </div>
   );
 }
