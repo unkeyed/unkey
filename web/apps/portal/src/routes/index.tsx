@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { exchangeSession } from "~/lib/session";
+import { getDefaultTabHref } from "~/lib/permissions";
+import { exchangeSession, getSessionWithConfig } from "~/lib/session";
 
 const searchSchema = z.object({
   session: z.string().optional(),
@@ -29,14 +30,17 @@ function PortalEntry() {
     }
 
     exchangeSession({ data: sessionId })
-      .then((result) => {
+      .then(async (result) => {
         if (!result.success) {
           setState({ status: "error", message: result.error });
           return;
         }
-        // Session exchanged — redirect to keys tab. The layout's beforeLoad
-        // reads the session from the DB and resolves permissions + config.
-        navigate({ to: "/keys" });
+        // Session exchanged — resolve permissions to pick the correct landing tab.
+        const sessionData = await getSessionWithConfig();
+        const defaultTab = sessionData
+          ? getDefaultTabHref(sessionData.session.permissions)
+          : "/keys";
+        navigate({ to: defaultTab ?? "/keys" });
       })
       .catch(() => {
         setState({
