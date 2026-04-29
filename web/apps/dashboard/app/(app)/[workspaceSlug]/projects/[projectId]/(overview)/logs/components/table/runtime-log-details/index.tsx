@@ -1,5 +1,6 @@
 "use client";
 
+import { DeploymentIdLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/deployment-id-link";
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
 import { LogDetails as SharedLogDetails } from "@/components/logs/details/log-details";
 import { LogSection } from "@/components/logs/details/log-details/components/log-section";
@@ -67,9 +68,9 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
                 <span className="text-grayA-11">Instance ID:</span>{" "}
                 <span className="font-mono">{log.instance_id}</span>
               </div>
-              <div>
+              <div className="flex items-center gap-1.5">
                 <span className="text-grayA-11">Deployment ID:</span>{" "}
-                <span className="font-mono">{log.deployment_id}</span>
+                <DeploymentIdLink deploymentId={log.deployment_id} />
               </div>
             </div>
           }

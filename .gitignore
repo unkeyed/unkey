@@ -42,4 +42,9 @@ dist/
 
 .talos
 
-bazel-*
+bazel-bin
+bazel-out
+bazel-testlogs
+bazel-unkey
+
+.claude/worktrees/

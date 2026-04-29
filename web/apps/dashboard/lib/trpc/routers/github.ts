@@ -10,6 +10,7 @@ import {
   getRepositoryBranches,
   getRepositoryById,
   getRepositoryTree,
+  searchBranchesByPrefix,
 } from "@/lib/github";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -378,12 +379,12 @@ export const githubRouter = t.router({
 
       // Fetch repo metadata first to get the actual GitHub default branch for tree lookups.
       // input.defaultBranch is the user-configured production branch which may not exist yet.
-      const [repoData, activeBranches] = await Promise.all([
+      const [repoData, activeBranches, alphabeticalBranches] = await Promise.all([
         getRepository(input.installationId, input.owner, input.repo),
-        // If the events API fails, fall back to an empty list so the branch fallback logic kicks in
         getMostActiveBranches(input.installationId, input.owner, input.repo).catch(
           (): BranchActivity[] => [],
         ),
+        getRepositoryBranches(input.installationId, input.owner, input.repo, MAX_BRANCHES),
       ]);
 
       const treeBranch = repoData.default_branch || input.defaultBranch;
@@ -396,8 +397,6 @@ export const githubRouter = t.router({
 
       let hasDockerfile: boolean;
       if (treeResult.truncated) {
-        // Tree was truncated by GitHub — scanning the partial tree may miss files.
-        // Fall back to a targeted existence check for the root Dockerfile.
         hasDockerfile = await checkFileExists(
           input.installationId,
           input.owner,
@@ -411,26 +410,26 @@ export const githubRouter = t.router({
         );
       }
 
-      let branches: Array<{ name: string; lastPushDate: string | null }>;
+      const activityMap = new Map(activeBranches.map((b) => [b.name, b.lastPushDate]));
+      const seen = new Set<string>();
+      const branches: Array<{ name: string; lastPushDate: string | null }> = [];
 
-      if (activeBranches.length > 0) {
-        branches = activeBranches.map((b) => ({ name: b.name, lastPushDate: b.lastPushDate }));
-        // Ensure the default branch is always included
-        if (!branches.some((b) => b.name === input.defaultBranch)) {
-          branches.unshift({
-            name: input.defaultBranch,
-            lastPushDate: null,
-          });
+      for (const b of activeBranches) {
+        if (!seen.has(b.name)) {
+          seen.add(b.name);
+          branches.push({ name: b.name, lastPushDate: b.lastPushDate });
         }
-      } else {
-        // Fallback: no recent events, use alphabetical branches
-        const fallbackBranches = await getRepositoryBranches(
-          input.installationId,
-          input.owner,
-          input.repo,
-          MAX_BRANCHES,
-        );
-        branches = fallbackBranches.map((b) => ({ name: b.name, lastPushDate: null }));
+      }
+
+      for (const b of alphabeticalBranches) {
+        if (!seen.has(b.name) && branches.length < MAX_BRANCHES) {
+          seen.add(b.name);
+          branches.push({ name: b.name, lastPushDate: activityMap.get(b.name) ?? null });
+        }
+      }
+
+      if (!seen.has(input.defaultBranch)) {
+        branches.unshift({ name: input.defaultBranch, lastPushDate: null });
       }
 
       return {
@@ -438,6 +437,39 @@ export const githubRouter = t.router({
         branches,
         pushedAt: repoData.pushed_at,
       };
+    }),
+
+  searchBranches: workspaceProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        installationId: z.number().int(),
+        owner: z.string(),
+        repo: z.string(),
+        query: z.string().min(1).max(200),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
+      if (!githubContext) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+      }
+      const hasInstallation = githubContext.installations.some(
+        (i) => i.installationId === input.installationId,
+      );
+      if (!hasInstallation) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Installation not found for this workspace",
+        });
+      }
+      const branches = await searchBranchesByPrefix(
+        input.installationId,
+        input.owner,
+        input.repo,
+        input.query,
+      );
+      return { branches };
     }),
 
   selectRepository: workspaceProcedure

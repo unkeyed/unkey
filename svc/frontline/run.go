@@ -291,7 +291,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Start HTTPS frontline server (main proxy server)
-	if cfg.HttpPort > 0 {
+	if cfg.HttpsPort > 0 {
 		httpsSrv, httpsErr := zen.New(zen.Config{
 			TLS:                tlsConfig,
 			ReadTimeout:        -1,
@@ -309,7 +309,7 @@ func Run(ctx context.Context, cfg Config) error {
 		// Register all frontline routes on HTTPS server
 		routes.Register(httpsSrv, svcs)
 
-		httpsListener, httpsListenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
+		httpsListener, httpsListenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpsPort))
 		if httpsListenErr != nil {
 			return fmt.Errorf("unable to create HTTPS listener: %w", httpsListenErr)
 		}
@@ -326,11 +326,12 @@ func Run(ctx context.Context, cfg Config) error {
 			return nil
 		})
 	} else {
-		logger.Warn("HTTPS server not configured, skipping", "httpsPort", cfg.HttpPort)
+		logger.Warn("HTTPS server not configured, skipping", "httpsPort", cfg.HttpsPort)
 	}
 
-	// Start HTTP challenge server (ACME only for Let's Encrypt)
-	if cfg.ChallengePort > 0 {
+	// Start plain-HTTP server. Serves ACME HTTP-01 challenges and 308-redirects
+	// dynamic customer traffic to https://. See routes.RegisterHTTPServer.
+	if cfg.HttpPort > 0 {
 		httpSrv, httpErr := zen.New(zen.Config{
 			TLS:                nil,
 			Flags:              nil,
@@ -345,16 +346,15 @@ func Run(ctx context.Context, cfg Config) error {
 		r.RegisterHealth(httpSrv.Mux(), "/_unkey/internal/health")
 		r.DeferCtx(httpSrv.Shutdown)
 
-		// Register only ACME challenge routes on HTTP server
-		routes.RegisterChallengeServer(httpSrv, svcs)
+		routes.RegisterHTTPServer(httpSrv, svcs)
 
-		httpListener, httpListenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.ChallengePort))
+		httpListener, httpListenErr := net.Listen("tcp", fmt.Sprintf(":%d", cfg.HttpPort))
 		if httpListenErr != nil {
 			return fmt.Errorf("unable to create HTTP listener: %w", httpListenErr)
 		}
 
 		r.Go(func(ctx context.Context) error {
-			logger.Info("HTTP challenge server started", "addr", httpListener.Addr().String())
+			logger.Info("HTTP server started", "addr", httpListener.Addr().String())
 			serveErr := httpSrv.Serve(ctx, httpListener)
 			if serveErr != nil && !errors.Is(serveErr, context.Canceled) {
 				return fmt.Errorf("http server error: %w", serveErr)
@@ -362,7 +362,7 @@ func Run(ctx context.Context, cfg Config) error {
 			return nil
 		})
 	} else {
-		logger.Warn("HTTP challenge server not configured, ACME HTTP-01 challenges will not work", "challengePort", cfg.ChallengePort)
+		logger.Warn("HTTP server not configured, ACME HTTP-01 challenges and HTTP→HTTPS redirects will not work", "httpPort", cfg.HttpPort)
 	}
 
 	logger.Info("Frontline server initialized", "region", cfg.Region, "apexDomain", cfg.ApexDomain)
