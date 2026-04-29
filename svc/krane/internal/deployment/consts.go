@@ -35,6 +35,16 @@ const (
 	// scaleDownStabilizationSeconds is how long the HPA waits after load drops
 	// before removing pods. Prevents flapping when traffic is spiky.
 	scaleDownStabilizationSeconds int32 = 60
+
+	// frontlineNamespace is the Kubernetes namespace where frontline pods
+	// run. The per-deployment CiliumNetworkPolicy uses this in fromEndpoints
+	// so only pods inside the frontline namespace can reach the customer
+	// pods. We trust the namespace boundary instead of additionally
+	// matching an "app" label because the prod helm chart and the dev
+	// manifest disagree on label conventions; matching by namespace alone
+	// is also the approach the cluster-wide allow-frontline-to-sentinel
+	// policy in infra/eks-cluster/helm-chart/networking already uses.
+	frontlineNamespace = "frontline"
 )
 
 // untrustedToleration allows deployment pods to be scheduled on nodes tainted
