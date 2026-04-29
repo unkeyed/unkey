@@ -2,7 +2,13 @@
 
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { LastUpdatedCell, RowActionSkeleton, SortableHeader, TimestampInfo } from "@unkey/ui";
+import {
+  LastUpdatedCell,
+  MonoTextCell,
+  RowActionSkeleton,
+  SortableHeader,
+  TimestampInfo,
+} from "@unkey/ui";
 import dynamic from "next/dynamic";
 import type { z } from "zod";
 import { IdentityExternalIdCell } from "../components/cells/identity-external-id-cell";
@@ -54,7 +60,7 @@ export const createIdentitiesColumns = ({
     meta: {
       width: "10%",
     },
-    cell: ({ row }) => <span className="text-xs text-accent-11">{row.original.keys.length}</span>,
+    cell: ({ row }) => <MonoTextCell value={row.original.keys.length.toString()} />,
   },
   {
     id: IDENTITY_COLUMN_IDS.RATELIMITS,
@@ -64,11 +70,7 @@ export const createIdentitiesColumns = ({
     meta: {
       width: "10%",
     },
-    cell: ({ row }) => (
-      <div className="flex items-center px-3 py-1">
-        <span className="text-xs text-accent-11">{row.original.ratelimits.length}</span>
-      </div>
-    ),
+    cell: ({ row }) => <MonoTextCell value={row.original.ratelimits.length.toString()} />,
   },
   {
     id: IDENTITY_COLUMN_IDS.CREATED,
