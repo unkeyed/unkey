@@ -6,8 +6,10 @@ import { CodeBranch, CodeCommit } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useState } from "react";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
 import { Avatar } from "../../../components/git-avatar";
+import { DeploymentApproval } from "../[deploymentId]/(deployment-progress)/deployment-approval";
 import { EnvStatusBadge } from "./table/components/env-status-badge";
 import { ActionColumnSkeleton } from "./table/components/skeletons";
 
@@ -37,13 +39,32 @@ export function DeploymentRow({
   isRolledBack,
   href,
 }: DeploymentRowProps) {
+  const [approvalOpen, setApprovalOpen] = useState(false);
+  const needsApproval = deployment.status === "awaiting_approval";
+
   return (
     <div className="relative flex flex-col md:flex-row md:items-center px-4 py-3 gap-3 md:gap-0 transition-colors hover:bg-grayA-2">
-      <Link
-        href={href}
-        className="absolute inset-0 z-10"
-        aria-label={`Deployment ${shortenId(deployment.id)} ${deployment.status}`}
-      />
+      {needsApproval ? (
+        <button
+          type="button"
+          onClick={() => setApprovalOpen(true)}
+          className="absolute inset-0 z-10 cursor-pointer"
+          aria-label={`Authorize deployment ${shortenId(deployment.id)}`}
+        />
+      ) : (
+        <Link
+          href={href}
+          className="absolute inset-0 z-10"
+          aria-label={`Deployment ${shortenId(deployment.id)} ${deployment.status}`}
+        />
+      )}
+      {needsApproval && (
+        <DeploymentApproval
+          isOpen={approvalOpen}
+          onClose={() => setApprovalOpen(false)}
+          deployment={deployment}
+        />
+      )}
       {/* Identity + Status */}
       <div className="flex items-center justify-between md:contents">
         <div className="md:w-[20%] md:shrink-0 flex flex-col gap-1 min-w-0">
