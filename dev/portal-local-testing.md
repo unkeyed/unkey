@@ -244,7 +244,7 @@ drives all generated IDs.
 
 ### Output (`dev/.env.seed`)
 
-```
+```bash
 UNKEY_WORKSPACE_ID=ws_<slug>
 UNKEY_PROJECT_ID=<generated>
 UNKEY_API_ID=api_<slug>

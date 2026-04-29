@@ -34,24 +34,15 @@ Your Backend                    Unkey API                     Portal
 
 ## 1. Configure a portal
 
-Create a portal configuration for your workspace. For now this is done via direct database insert (dashboard UI coming soon):
+Enable the Customer Portal for your workspace in the Unkey dashboard.
 
-```sql
--- Create portal config linked to your keyspace
-INSERT INTO portal_configurations (id, workspace_id, key_auth_id, enabled, created_at)
-VALUES ('portal_xxx', 'ws_xxx', 'ks_xxx', TRUE, UNIX_TIMESTAMP() * 1000);
+<Note>
+Dashboard configuration UI is coming soon. During early access, reach out to the Unkey team to get your portal configured.
+</Note>
 
--- Set up routing
-INSERT INTO frontline_routes (fully_qualified_domain_name, route_type, portal_config_id, path_prefix, created_at_m)
-VALUES ('your-slug.unkey.com', 'portal', 'portal_xxx', '/portal', UNIX_TIMESTAMP() * 1000);
-```
+Once configured, you'll receive a portal ID (e.g. `portal_xxx`) to use when creating sessions.
 
-Optionally add branding:
-
-```sql
-INSERT INTO portal_branding (portal_config_id, primary_color, secondary_color, logo_url, created_at)
-VALUES ('portal_xxx', '#6366f1', '#f8fafc', 'https://example.com/logo.png', UNIX_TIMESTAMP() * 1000);
-```
+Optionally, you can customize branding with your logo and brand colors.
 
 ## 2. Create a session
 
@@ -64,8 +55,9 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
   -H "Authorization: Bearer YOUR_ROOT_KEY" \
   -H "Content-Type: application/json" \
   -d '{
+    "portalId": "portal_xxx",
     "externalId": "user_123",
-    "permissions": ["keys:read", "keys:create", "keys:revoke", "analytics:read", "docs:read"]
+    "permissions": ["keys:read", "keys:create", "analytics:read", "docs:read"]
   }'
 ```
 
@@ -77,8 +69,9 @@ const response = await fetch("https://api.unkey.com/v2/portal.createSession", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
+    portalId: "portal_xxx",
     externalId: "user_123",
-    permissions: ["keys:read", "keys:create", "keys:revoke", "analytics:read", "docs:read"],
+    permissions: ["keys:read", "keys:create", "analytics:read", "docs:read"],
   }),
 });
 
@@ -91,8 +84,9 @@ const { data } = await response.json();
 ```go Go
 // Use your preferred HTTP client
 body := map[string]any{
+    "portalId":    "portal_xxx",
     "externalId":  "user_123",
-    "permissions": []string{"keys:read", "keys:create", "keys:revoke", "analytics:read", "docs:read"},
+    "permissions": []string{"keys:read", "keys:create", "analytics:read", "docs:read"},
 }
 ```
 
@@ -104,11 +98,39 @@ The response:
 {
   "meta": { "requestId": "req_..." },
   "data": {
-    "sessionId": "sess_xxx",
-    "url": "https://portal.unkey.com/?session=sess_xxx",
+    "sessionId": "pst_xxx",
+    "url": "https://portal.unkey.com/?session=pst_xxx",
     "expiresAt": 1742000000000
   }
 }
+```
+
+### Required parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `portalId` | `string` | Your portal configuration ID |
+| `externalId` | `string` | Your user's identifier in your system |
+| `permissions` | `string[]` | Controls which portal tabs are visible |
+
+### Optional parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `metadata` | `object` | Custom fields (name, email, etc.) stored with the session |
+| `preview` | `boolean` | Shows a "Preview mode" banner — useful for testing as a specific user |
+
+```bash
+curl -X POST https://api.unkey.com/v2/portal.createSession \
+  -H "Authorization: Bearer YOUR_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "portalId": "portal_xxx",
+    "externalId": "user_123",
+    "permissions": ["keys:read", "analytics:read"],
+    "metadata": { "name": "Jane Doe", "email": "jane@example.com" },
+    "preview": true
+  }'
 ```
 
 ## 3. Redirect your user
@@ -131,36 +153,17 @@ Permissions control which portal tabs are visible:
 
 | Permission | Tab |
 |-----------|-----|
-| Any `keys:*` (e.g. `keys:read`, `keys:create`, `keys:revoke`) | API Keys |
+| Any `keys:*` (e.g. `keys:read`, `keys:create`) | API Keys |
 | Any `analytics:*` (e.g. `analytics:read`) | Analytics |
 | `docs:read` | Documentation |
 
 An empty permissions array means no tabs are visible.
 
-## Optional parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `metadata` | `object` | Custom fields (name, email, etc.) stored with the session |
-| `preview` | `boolean` | Shows a "Preview mode" banner — useful for testing as a specific user |
-
-```bash
-curl -X POST https://api.unkey.com/v2/portal.createSession \
-  -H "Authorization: Bearer YOUR_ROOT_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "externalId": "user_123",
-    "permissions": ["keys:read", "analytics:read"],
-    "metadata": { "name": "Jane Doe", "email": "jane@example.com" },
-    "preview": true
-  }'
-```
-
 ## Session lifecycle
 
 | Token | Lifetime | Usage |
 |-------|----------|-------|
-| Session ID (`sess_xxx`) | 15 minutes | Single-use, exchanged for browser session |
+| Session ID (`pst_xxx`) | 15 minutes | Single-use, exchanged for browser session |
 | Browser session | 24 hours | Stored as httpOnly cookie, used for API calls |
 
 When the browser session expires:
@@ -169,59 +172,22 @@ When the browser session expires:
 
 ## Branding
 
-The portal supports basic white-labeling via CSS custom properties:
+The portal supports basic white-labeling:
 
-| Setting | CSS Variable | Default |
-|---------|-------------|---------|
-| Primary color | `--portal-primary` | `#6366f1` |
-| Secondary color | `--portal-secondary` | `#f8fafc` |
-| Logo | Rendered as `<img>` in header | None |
+| Setting | Default |
+|---------|---------|
+| Primary color | `#2563eb` |
+| Secondary color | `#f0f9ff` |
+| Logo | None |
 
 Logo URLs must be HTTPS.
-
-## Local development
-
-To test the portal locally:
-
-```bash
-# 1. Start infrastructure
-make up
-
-# 2. Seed portal data (adjust IDs to match your local workspace)
-mysql -h 127.0.0.1 -u unkey -ppassword unkey -e "
-  INSERT INTO portal_configurations (id, workspace_id, key_auth_id, enabled, created_at)
-  VALUES ('portal_local_test', 'ws_local_root', 'ks_local_root_keys', TRUE, UNIX_TIMESTAMP() * 1000)
-  ON DUPLICATE KEY UPDATE enabled = TRUE;
-
-  INSERT INTO frontline_routes (fully_qualified_domain_name, route_type, portal_config_id, path_prefix, created_at_m)
-  VALUES ('localhost', 'portal', 'portal_local_test', '/portal', UNIX_TIMESTAMP() * 1000)
-  ON DUPLICATE KEY UPDATE route_type = 'portal';
-"
-
-# 3. Create a session (replace YOUR_ROOT_KEY)
-curl -s -X POST http://localhost:2112/v2/portal.createSession \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_ROOT_KEY" \
-  -d '{"externalId":"user_123","permissions":["keys:read","analytics:read","docs:read"]}' | jq
-
-# 4. Start the portal app
-cd web/apps/portal
-cat > .env << 'EOF'
-UNKEY_API_URL=http://localhost:2112
-EOF
-pnpm install && pnpm dev
-
-# 5. Open the portal with the session ID from step 3
-# http://localhost:3100/?session=sess_xxx
-```
 
 ## Error responses
 
 | Scenario | Status | Message |
 |----------|--------|---------|
-| Missing `externalId` | 400 | `externalId is required` |
-| Missing `permissions` | 400 | `permissions array is required` |
+| Missing or invalid JSON body | 400 | `Bad Request` |
 | Invalid root key | 401 | `Unauthorized` |
-| Portal disabled | 403 | `Portal is disabled` |
-| Invalid/expired/used session on exchange | 401 | `Session is invalid, expired, or has already been used` |
-| No portal config for workspace | 412 | `No portal is configured for this workspace` |
+| Portal disabled | 403 | `Portal is disabled.` |
+| Portal config not found | 404 | `Portal configuration not found.` |
+| Invalid/expired/used session on exchange | 401 | `Session is invalid, expired, or has already been used.` |
