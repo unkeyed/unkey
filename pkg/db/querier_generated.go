@@ -490,47 +490,6 @@ type Querier interface {
 	//  WHERE dt.deployment_id = ? AND dt.region_id = ?
 	//  LIMIT 1
 	FindDeploymentTopologyByDeploymentAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByDeploymentAndRegionParams) (FindDeploymentTopologyByDeploymentAndRegionRow, error)
-	//FindDeploymentTopologyByIDAndRegion
-	//
-	//  SELECT
-	//      d.id,
-	//      d.k8s_name,
-	//      w.k8s_namespace,
-	//      d.workspace_id,
-	//      d.project_id,
-	//      d.environment_id,
-	//      d.app_id,
-	//      d.build_id,
-	//      d.image,
-	//      r.name AS region,
-	//      d.cpu_millicores,
-	//      d.memory_mib,
-	//      d.storage_mib,
-	//      dt.autoscaling_replicas_min,
-	//      dt.autoscaling_replicas_max,
-	//      dt.autoscaling_threshold_cpu,
-	//      dt.autoscaling_threshold_memory,
-	//      dt.desired_status,
-	//      d.encrypted_environment_variables,
-	//      d.command,
-	//      d.port,
-	//      d.shutdown_signal,
-	//      d.healthcheck,
-	//      d.git_commit_sha,
-	//      d.git_branch,
-	//      d.git_commit_message,
-	//      e.slug AS environment_slug,
-	//      grc.repository_full_name AS git_repo
-	//  FROM `deployment_topology` dt
-	//  INNER JOIN `deployments` d ON dt.deployment_id = d.id
-	//  INNER JOIN `workspaces` w ON d.workspace_id = w.id
-	//  INNER JOIN `regions` r ON dt.region_id = r.id
-	//  INNER JOIN `environments` e ON d.environment_id = e.id
-	//  LEFT JOIN `github_repo_connections` grc ON d.app_id = grc.app_id
-	//  WHERE  r.name = ?
-	//      AND dt.deployment_id = ?
-	//  LIMIT 1
-	FindDeploymentTopologyByIDAndRegion(ctx context.Context, db DBTX, arg FindDeploymentTopologyByIDAndRegionParams) (FindDeploymentTopologyByIDAndRegionRow, error)
 	// Returns the per-region minimum replica requirement for a deployment.
 	// Used by ReportDeploymentStatus to compute whether enough regions are
 	// healthy to call DeployService.NotifyInstancesReady.
@@ -745,7 +704,7 @@ type Querier interface {
 	//FindKeyCredits
 	//
 	//  SELECT remaining_requests FROM `keys` k WHERE k.id = ?
-	FindKeyCredits(ctx context.Context, db DBTX, id string) (sql.NullInt32, error)
+	FindKeyCredits(ctx context.Context, db DBTX, id string) (sql.NullInt64, error)
 	//FindKeyEncryptionByKeyID
 	//
 	//  SELECT pk, workspace_id, key_id, created_at, updated_at, encrypted, encryption_key_id FROM encrypted_keys WHERE key_id = ?
@@ -1098,6 +1057,13 @@ type Querier interface {
 	//  FROM projects
 	//  WHERE id = ?
 	FindProjectById(ctx context.Context, db DBTX, id string) (Project, error)
+	//FindProjectBySlug
+	//
+	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
+	//  FROM projects
+	//  WHERE slug = ?
+	//  LIMIT 1
+	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
 	//FindProjectByWorkspaceSlug
 	//
 	//  SELECT
@@ -1170,10 +1136,6 @@ type Querier interface {
 	//  FROM regions
 	//  WHERE id = ? LIMIT 1
 	FindRegionById(ctx context.Context, db DBTX, regionID string) (Region, error)
-	//FindRegionByNameAndPlatform
-	//
-	//  SELECT pk, id, name, platform, can_schedule FROM regions WHERE name = ? AND platform = ?
-	FindRegionByNameAndPlatform(ctx context.Context, db DBTX, arg FindRegionByNameAndPlatformParams) (Region, error)
 	//FindRegionByPlatformAndName
 	//
 	//  SELECT
@@ -1237,17 +1199,16 @@ type Querier interface {
 	//  SELECT pk, id, workspace_id, project_id, environment_id, k8s_name, k8s_address, region_id, image, running_image, desired_state, health, desired_replicas, available_replicas, deploy_status, cpu_millicores, memory_mib, created_at, updated_at FROM sentinels s
 	//  WHERE id = ? LIMIT 1
 	FindSentinelByID(ctx context.Context, db DBTX, id string) (Sentinel, error)
-	// FindSentinelDeployContextByK8sName returns the sentinel's deploy status
-	// along with its desired and observed running image. Used by
-	// ReportSentinelStatus to determine whether to trigger NotifyReady — the
-	// awakeable should only be resolved when the desired image is actually
-	// running.
+	// Returns the sentinel fields ReportSentinelStatus needs to decide whether
+	// a rollout has converged: deploy_status (gates), image comparison, and
+	// desired replica count.
 	//
 	//  SELECT
 	//      id,
 	//      deploy_status,
 	//      image AS desired_image,
-	//      running_image
+	//      running_image,
+	//      desired_replicas
 	//  FROM sentinels
 	//  WHERE k8s_name = ? LIMIT 1
 	FindSentinelDeployContextByK8sName(ctx context.Context, db DBTX, k8sName string) (FindSentinelDeployContextByK8sNameRow, error)
@@ -1268,6 +1229,19 @@ type Querier interface {
 	//  SELECT pk, id, org_id, name, slug, k8s_namespace, tier, stripe_customer_id, stripe_subscription_id, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
 	//  WHERE id = ?
 	FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error)
+	// FlipSentinelDeployStatusIfProgressing flips deploy_status from progressing
+	// to the target status, guarding against concurrent writers (e.g. the Deploy
+	// worker marking failed on timeout) by only updating rows whose current
+	// status is still 'progressing'. Returns the number of rows affected; the
+	// caller should treat 0 as "someone else already moved this sentinel out of
+	// progressing" and skip follow-up side effects (NotifyReady, etc.).
+	//
+	//  UPDATE sentinels SET
+	//    deploy_status = ?,
+	//    updated_at = ?
+	//  WHERE id = ?
+	//    AND deploy_status = 'progressing'
+	FlipSentinelDeployStatusIfProgressing(ctx context.Context, db DBTX, arg FlipSentinelDeployStatusIfProgressingParams) (int64, error)
 	// GetDeploymentChangesMaxVersion returns the current maximum version (pk) for a region.
 	// Used during full sync to establish the starting version for incremental polling.
 	//

@@ -3,33 +3,40 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { UseFormGetValues, UseFormReset, UseFormTrigger } from "react-hook-form";
 import type { EnvVarsFormValues } from "../components/add/schema";
 
-export const parseEnvText = (text: string): Array<{ key: string; value: string }> => {
+type ParseEnvResult = {
+  entries: Array<{ key: string; value: string }>;
+  hasMultilineValues: boolean;
+};
+
+export const parseEnvText = (text: string): ParseEnvResult => {
   const lines = text.trim().split("\n");
-  return lines
-    .map((line) => {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) {
-        return null;
-      }
+  const entries: Array<{ key: string; value: string }> = [];
 
-      const eqIndex = trimmed.indexOf("=");
-      if (eqIndex === -1) {
-        return null;
-      }
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
 
-      const key = trimmed.slice(0, eqIndex).trim();
-      let value = trimmed.slice(eqIndex + 1).trim();
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex === -1) {
+      return { entries: [], hasMultilineValues: true };
+    }
 
-      if (
-        (value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))
-      ) {
-        value = value.slice(1, -1);
-      }
+    const key = trimmed.slice(0, eqIndex).trim();
+    let value = trimmed.slice(eqIndex + 1).trim();
 
-      return { key, value };
-    })
-    .filter((v): v is NonNullable<typeof v> => v !== null);
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    entries.push({ key, value });
+  }
+
+  return { entries, hasMultilineValues: false };
 };
 
 const isEnvFile = (file: File) =>
@@ -85,9 +92,15 @@ export function useDropZone(
 
   const importText = useCallback(
     (text: string) => {
-      const parsed = parseEnvText(text);
-      if (parsed.length > 0) {
-        importParsed(parsed);
+      const { entries, hasMultilineValues } = parseEnvText(text);
+      if (hasMultilineValues) {
+        toast.error(
+          "Import failed: multiline values are not supported. Please ensure each variable is on a single line.",
+        );
+        return;
+      }
+      if (entries.length > 0) {
+        importParsed(entries);
       } else {
         toast.error("No valid environment variables found");
       }

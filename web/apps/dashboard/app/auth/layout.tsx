@@ -19,10 +19,10 @@ export default async function AuthenticatedLayout({
   }
 
   return (
-    <div className="bg-black">
+    <div className="min-h-screen overflow-x-hidden bg-black">
       <nav className="container flex items-center justify-between h-16">
         <Link href="/">
-          <Logo className="min-w-sm text-white" />
+          <Logo className="md:min-w-sm text-white" />
         </Link>
         <Link
           className="flex items-center h-8 gap-2 px-4 text-sm text-white duration-500 border rounded-lg bg-white/5 hover:bg-white hover:text-black border-white/10"

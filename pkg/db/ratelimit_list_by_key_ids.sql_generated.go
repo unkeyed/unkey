@@ -28,8 +28,8 @@ type ListRatelimitsByKeyIDsRow struct {
 	ID        string         `db:"id"`
 	KeyID     sql.NullString `db:"key_id"`
 	Name      string         `db:"name"`
-	Limit     int32          `db:"limit"`
-	Duration  int64          `db:"duration"`
+	Limit     uint64         `db:"limit"`
+	Duration  uint64         `db:"duration"`
 	AutoApply bool           `db:"auto_apply"`
 }
 

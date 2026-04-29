@@ -43,19 +43,20 @@ See [App settings](/platform/apps/settings#build-settings) for the full referenc
 
 Some builds need access to environment variables during the build step, for example to install private packages or generate code. All [variables](/platform/variables/overview) configured for the environment are available as Docker build secrets.
 
-Unkey mounts all your variables as a `.env` file at `/run/secrets/.env` inside the build container. To use them, add a `--mount=type=secret` flag to the `RUN` step that needs them. Copy the mount flag exactly as shown, the `id` and `target` values are set by Unkey.
+Unkey mounts all your variables as a `.env` file at `/run/secrets/.env` inside the build container. To use them, add a `--mount=type=secret` flag to the `RUN` step that needs them. Unkey exposes a build argument called `UNKEY_SECRETS_ID` that you reference as the mount's `id` (see [Variable changes and the build cache](#variable-changes-and-the-build-cache)).
 
 Here's a complete example for a Node.js app that needs environment variables during the build step:
 
 ```dockerfile Dockerfile
 FROM node:lts-alpine AS builder
+ARG UNKEY_SECRETS_ID
 
 WORKDIR /app
 COPY . .
 RUN npm install
 
 # Mount the secrets file and load variables into the shell
-RUN --mount=type=secret,id=env,target=/run/secrets/.env \
+RUN --mount=type=secret,id=${UNKEY_SECRETS_ID},target=/run/secrets/.env \
     set -a && . /run/secrets/.env && set +a && \
     pnpm build
 
@@ -64,6 +65,8 @@ WORKDIR /app
 COPY --from=builder /app .
 CMD ["node", "dist/index.js"]
 ```
+
+Declare `ARG UNKEY_SECRETS_ID` inside every stage that mounts the secret. ARG values aren't inherited across stages, so each `FROM ... AS <stage>` that consumes variables needs its own declaration.
 
 The secrets file uses standard `.env` syntax, one variable per line:
 
@@ -83,6 +86,10 @@ How you consume the file depends on your toolchain:
 ### Why secret mounts instead of ARG or ENV?
 
 Docker's `ARG` and `ENV` instructions are stored in the image layer history. Anyone with access to the image can extract them with `docker history` or `docker inspect`. Secret mounts avoid this problem: the file is available only during the `RUN` step and is never written to a layer.
+
+### Variable changes and the build cache
+
+`UNKEY_SECRETS_ID` is a hash of your project's variables. When you write `id=${UNKEY_SECRETS_ID}` on the mount line, BuildKit's cache key for that `RUN` includes the id, so any variable change produces a new id and a fresh execution of that step and everything after it in the same stage. Steps before the secret mount (base image pulls, dependency installs) keep caching normally.
 
 ## Build infrastructure
 

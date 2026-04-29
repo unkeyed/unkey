@@ -52,7 +52,7 @@ var setupCmd = &cli.Command{
 	Usage: "Create a GitHub App via manifest flow and write local dev credentials",
 	Flags: []cli.Flag{
 		cli.String("app-name", "GitHub App name (must be globally unique)", cli.Default("unkey-dev")),
-		cli.String("webhook-url", "Webhook URL (update later in GitHub App settings once you have a tunnel URL)", cli.Default("https://example.com/webhooks/github")),
+		cli.String("webhook-url", "Initial webhook URL; Tilt's github-tunnel resource overwrites this on boot", cli.Default("https://example.com/webhooks/github")),
 		cli.String("port", "Local callback server port", cli.Default("9999")),
 		cli.String("out-dir", "Directory to write .env.github and .github-private-key.pem", cli.Default("dev")),
 	},

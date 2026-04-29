@@ -349,17 +349,26 @@ func (w *Workflow) buildSolverOptions(
 	if err != nil {
 		return client.SolveOpt{}, fmt.Errorf("invalid environment variables: %w", err)
 	}
-	if envFile != nil {
-		sessionAttachables = append(sessionAttachables, secretsprovider.FromMap(map[string][]byte{"env": envFile}))
-	}
 
 	frontendAttrs := map[string]string{
 		"platform": platform,
 		"context":  contextURL,
 		"filename": dockerfilePath,
 	}
-	if h := hashEnvVars(envVars); h != "" {
+	if envFile != nil {
+		// Publish the same content under the stable "env" id (legacy) and the
+		// env-hash as a second id. Dockerfiles that reference
+		// id=${UNKEY_SECRETS_ID} see the mount declaration change when env
+		// content changes, which is what invalidates BuildKit's RUN cache
+		// key. id=env stays available so unmigrated Dockerfiles keep building
+		// during the rollout.
+		h := hashEnvVars(envVars)
+		sessionAttachables = append(sessionAttachables, secretsprovider.FromMap(map[string][]byte{
+			"env": envFile,
+			h:     envFile,
+		}))
 		frontendAttrs["label:org.unkey.env-hash"] = h
+		frontendAttrs["build-arg:UNKEY_SECRETS_ID"] = h
 	}
 
 	return client.SolveOpt{
@@ -393,17 +402,22 @@ func (w *Workflow) buildGitSolverOptions(
 	if err != nil {
 		return client.SolveOpt{}, fmt.Errorf("invalid environment variables: %w", err)
 	}
-	if envFile != nil {
-		secrets["env"] = envFile
-	}
 
 	frontendAttrs := map[string]string{
 		"platform": platform,
 		"context":  gitContextURL,
 		"filename": dockerfilePath,
 	}
-	if h := hashEnvVars(envVars); h != "" {
+	if envFile != nil {
+		// See buildSolverOptions for the dual-id rationale: legacy "env" keeps
+		// unmigrated Dockerfiles working, the hash-id lets the mount
+		// declaration vary with env content so BuildKit invalidates the
+		// secret-consuming RUN when a variable changes.
+		h := hashEnvVars(envVars)
+		secrets["env"] = envFile
+		secrets[h] = envFile
 		frontendAttrs["label:org.unkey.env-hash"] = h
+		frontendAttrs["build-arg:UNKEY_SECRETS_ID"] = h
 	}
 
 	return client.SolveOpt{

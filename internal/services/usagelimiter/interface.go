@@ -7,10 +7,10 @@ import (
 // FindKeyCreditsFunc looks up the remaining credits for a key.
 // Returns the remaining credits and whether a limit is configured.
 // When hasLimit is false, the key exists but has no credit limit (unlimited).
-type FindKeyCreditsFunc func(ctx context.Context, keyID string) (remaining int32, hasLimit bool, err error)
+type FindKeyCreditsFunc func(ctx context.Context, keyID string) (remaining int64, hasLimit bool, err error)
 
 // DecrementKeyCreditsFunc atomically decrements the credits for a key by the given cost.
-type DecrementKeyCreditsFunc func(ctx context.Context, keyID string, cost int32) error
+type DecrementKeyCreditsFunc func(ctx context.Context, keyID string, cost int64) error
 
 // Service defines the interface for usage limiting operations. It enforces
 // credit-based rate limits on API keys by tracking and decrementing available
@@ -37,7 +37,7 @@ type Service interface {
 // should consume.
 type UsageRequest struct {
 	KeyID string
-	Cost  int32
+	Cost  int64
 }
 
 // UsageResponse represents the result of a usage limit check. Valid indicates
@@ -46,5 +46,5 @@ type UsageRequest struct {
 // if the key has no limit configured.
 type UsageResponse struct {
 	Valid     bool
-	Remaining int32 // Remaining usage for the keyID -1 indicates no limit
+	Remaining int64 // Remaining usage for the keyID -1 indicates no limit
 }

@@ -30,6 +30,7 @@ go_library(
 go_test(
     name = "proxy_test",
     srcs = [
+        "abort_test.go",
         "handler_test.go",
         "transport_test.go",
     ],

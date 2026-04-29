@@ -73,9 +73,17 @@ export const addCustomDomain = workspaceProcedure
       console.error("Add custom domain failed:", error);
 
       if (error instanceof ConnectError && error.code === Code.AlreadyExists) {
+        const existing = await db.query.customDomains.findFirst({
+          where: (table, { eq, and }) =>
+            and(eq(table.workspaceId, ctx.workspace.id), eq(table.domain, input.domain)),
+          columns: { projectId: true },
+        });
+
         throw new TRPCError({
           code: "CONFLICT",
-          message: "Domain already registered",
+          message: existing
+            ? `/${ctx.workspace.slug}/projects/${existing.projectId}/settings`
+            : "Domain already registered",
         });
       }
 

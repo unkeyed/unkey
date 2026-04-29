@@ -33,6 +33,7 @@ svc/kitchensink/
 ├── main.go       — wires method+path → handler
 ├── hello/        — GET /hello, smoke test
 ├── env/          — GET /env, process environment
+├── buildinfo/    — GET /buildinfo, value injected via -ldflags -X
 ├── principal/    — GET /principal, decodes X-Unkey-Principal
 ├── headers/      — GET /headers, echoes request headers
 ├── echo/         — POST /echo, echoes body verbatim

@@ -29,7 +29,7 @@ export const Healthcheck = () => {
   const defaultValues: HealthcheckFormValues = {
     method: healthcheck?.method ?? "GET",
     path: healthcheck?.path ?? "",
-    interval: healthcheck ? secondsToInterval(healthcheck.intervalSeconds) : "",
+    interval: healthcheck ? secondsToInterval(healthcheck.intervalSeconds) : "30s",
   };
 
   const {
@@ -69,7 +69,7 @@ export const Healthcheck = () => {
     updateAllEnvironments((draft) => {
       draft.healthcheck = null;
     });
-    reset({ method: "GET", path: "", interval: "" });
+    reset({ method: "GET", path: "", interval: "30s" });
   };
 
   const saveState = resolveSaveState([
@@ -102,7 +102,7 @@ export const Healthcheck = () => {
           <span className="flex-1 text-[13px] text-gray-11">Path</span>
           <span className="flex-1 text-[13px] text-gray-11">Interval</span>
         </div>
-        <div className="relative flex items-start gap-3">
+        <div className="flex items-start gap-2">
           <Controller
             control={control}
             name="method"
@@ -144,9 +144,7 @@ export const Healthcheck = () => {
             error={errors.interval?.message}
             {...register("interval")}
           />
-          {healthcheck && (
-            <RemoveButton onClick={handleRemove} className="absolute -right-11 top-0" />
-          )}
+          {healthcheck && <RemoveButton onClick={handleRemove} className="shrink-0" />}
         </div>
       </SettingField>
     </FormSettingCard>

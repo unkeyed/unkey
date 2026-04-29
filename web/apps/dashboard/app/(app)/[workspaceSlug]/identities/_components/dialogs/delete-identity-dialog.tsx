@@ -4,7 +4,7 @@ import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleWarning2 } from "@unkey/icons";
 import { Button, ConfirmPopover, DialogContainer, FormCheckbox } from "@unkey/ui";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useDeleteIdentity } from "./hooks/use-delete-identity";
@@ -31,6 +31,7 @@ export const DeleteIdentityDialog = ({
   onOpenChange,
   onDeleted,
 }: DeleteIdentityDialogProps) => {
+  const formId = useId();
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
@@ -92,7 +93,7 @@ export const DeleteIdentityDialog = ({
   return (
     <>
       <FormProvider {...methods}>
-        <form id="delete-identity-form">
+        <form id={formId}>
           <DialogContainer
             isOpen={open}
             subTitle="Permanently remove this identity and its data"
@@ -102,7 +103,7 @@ export const DeleteIdentityDialog = ({
               <div className="w-full flex flex-col gap-2 items-center justify-center">
                 <Button
                   type="button"
-                  form="delete-identity-form"
+                  form={formId}
                   variant="primary"
                   color="danger"
                   size="xlg"

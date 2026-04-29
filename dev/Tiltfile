@@ -259,6 +259,17 @@ k8s_resource(
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
+# GitHub webhook tunnel - ngrok -> ctrl-api, auto-updates the GitHub App webhook URL
+if has_github_credentials:
+    local_resource(
+        'github-tunnel',
+        serve_cmd='cd .. && go run . dev github tunnel',
+        resource_deps=['ctrl-api'],
+        labels=['unkey'],
+        auto_init=True,
+        links=['http://localhost:4040'],
+    )
+
 # Frontline service (TLS termination proxy for *.unkey.local)
 k8s_yaml('k8s/manifests/frontline.yaml')
 k8s_resource(
