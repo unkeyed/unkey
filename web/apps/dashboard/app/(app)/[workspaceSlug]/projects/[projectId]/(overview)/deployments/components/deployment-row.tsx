@@ -7,6 +7,7 @@ import { TimestampInfo } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
+import { LastExitBadge } from "../../../components/active-deployment-card";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
 import { Avatar } from "../../../components/git-avatar";
 import { DeploymentApproval } from "../[deploymentId]/(deployment-progress)/deployment-approval";
@@ -83,13 +84,25 @@ export function DeploymentRow({
           <span className="text-xs text-gray-9 capitalize">{environment?.slug}</span>
         </div>
 
-        <div className="md:w-[20%] md:shrink-0 flex flex-col gap-1 items-start">
+        {/* relative z-20 so the LastExitBadge tooltip surface sits above
+            the full-row Link overlay (z-10). Without this the absolute
+            link swallows hover/focus events and the exit-reason tooltip
+            never opens. */}
+        <div className="relative z-20 md:w-[20%] md:shrink-0 flex flex-col gap-1 items-start">
           <DeploymentStatusBadge status={deployment.status} />
           <DeploymentDuration
             status={deployment.status}
             createdAt={deployment.createdAt}
             updatedAt={deployment.updatedAt}
           />
+          {/* Same hide rule as the deployment-detail header — once a deploy
+              has stabilized into ready/superseded the prior crash isn't
+              relevant context for the row. Pre-ready failures (deploying
+              that crashed pre-promote, failed deploys) keep the badge so
+              users can spot why at a glance. */}
+          {deployment.lastExit &&
+            deployment.status !== "ready" &&
+            deployment.status !== "superseded" && <LastExitBadge lastExit={deployment.lastExit} />}
         </div>
       </div>
 
