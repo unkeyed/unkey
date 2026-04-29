@@ -33,8 +33,10 @@ export function UsageSparkline({ buckets, errors, maxBars = 30, ariaLabel }: Pro
   const triggerRef = useRef<HTMLButtonElement>(null);
   const isHovered = useHover(triggerRef);
 
+  const recent = useMemo(() => buckets.slice(-maxBars), [buckets, maxBars]);
+  const isEmpty = recent.every((n) => n === 0);
+
   const bars = useMemo((): Bar[] => {
-    const recent = buckets.slice(-maxBars);
     const recentErrors = errors?.slice(-maxBars) ?? [];
     const maxTotal = Math.max(...recent, 1) * MAX_HEIGHT_BUFFER_FACTOR;
 
@@ -51,7 +53,17 @@ export function UsageSparkline({ buckets, errors, maxBars = 30, ariaLabel }: Pro
       filled.unshift({ key: `pad${filled.length}`, top: 0, bottom: 0 });
     }
     return filled;
-  }, [buckets, errors, maxBars]);
+  }, [recent, errors, maxBars]);
+
+  const baseClass = cn(
+    "h-[28px] w-[158px] cursor-pointer overflow-hidden rounded-sm bg-gray-2 px-1 py-0",
+    "transition-colors hover:bg-gray-3",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-12 focus-visible:ring-offset-1",
+  );
+
+  const defaultAriaLabel = isEmpty
+    ? `No usage in the last ${maxBars} days`
+    : `Usage for the last ${maxBars} days`;
 
   return (
     <Popover open={isHovered}>
@@ -59,23 +71,22 @@ export function UsageSparkline({ buckets, errors, maxBars = 30, ariaLabel }: Pro
         <button
           ref={triggerRef}
           type="button"
-          aria-label={ariaLabel ?? `Usage for the last ${maxBars} hours`}
-          className={cn(
-            "grid h-[28px] w-[158px] cursor-pointer items-end overflow-hidden rounded-sm bg-gray-2 px-1 py-0",
-            "transition-colors hover:bg-gray-3",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-12 focus-visible:ring-offset-1",
-          )}
-          style={{
-            gridTemplateColumns: `repeat(${maxBars}, 3px)`,
-            gap: "2px",
-          }}
+          aria-label={ariaLabel ?? defaultAriaLabel}
+          className={cn(baseClass, isEmpty ? "flex items-center justify-center" : "grid items-end")}
+          style={
+            isEmpty ? undefined : { gridTemplateColumns: `repeat(${maxBars}, 3px)`, gap: "2px" }
+          }
         >
-          {bars.map((bar) => (
-            <div key={bar.key} className="flex flex-col">
-              <div className="w-[3px] bg-error-9" style={{ height: `${bar.top}px` }} />
-              <div className="w-[3px] bg-gray-7" style={{ height: `${bar.bottom}px` }} />
-            </div>
-          ))}
+          {isEmpty ? (
+            <span className="text-[11px] text-gray-10">No usage</span>
+          ) : (
+            bars.map((bar) => (
+              <div key={bar.key} className="flex flex-col">
+                <div className="w-[3px] bg-error-9" style={{ height: `${bar.top}px` }} />
+                <div className="w-[3px] bg-gray-7" style={{ height: `${bar.bottom}px` }} />
+              </div>
+            ))
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent

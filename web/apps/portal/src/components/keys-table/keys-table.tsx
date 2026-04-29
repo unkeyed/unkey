@@ -175,14 +175,14 @@ export function KeysTable({
 
   return (
     <section className="flex flex-col gap-3">
-      <header className="flex items-center justify-between gap-4">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="font-semibold text-gray-12 text-xl">{appName} API</h1>
           <p className="text-gray-11 text-sm">
             Manage the API keys you use to authenticate with {appName}.
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button onClick={() => setCreateOpen(true)} className="self-start sm:self-auto">
           <Plus />
           Create key
         </Button>
@@ -191,7 +191,7 @@ export function KeysTable({
       <CreateKeyDialog open={createOpen} onOpenChange={setCreateOpen} onCreate={onCreate} />
 
       {!showNoKeys && (
-        <div className="mt-3 flex items-center justify-between gap-2">
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <KeysToolbar
             searchValue={searchValue}
             onSearchChange={(v) => {
@@ -231,7 +231,7 @@ export function KeysTable({
             }
           />
         ) : (
-          <Table className="table-fixed">
+          <Table className="min-w-[800px] table-fixed">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="bg-gray-2 hover:bg-gray-2">

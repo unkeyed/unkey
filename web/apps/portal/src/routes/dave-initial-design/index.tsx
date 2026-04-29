@@ -162,7 +162,7 @@ function Preview() {
       <div style={rootStyle} className="flex min-h-screen flex-col bg-background">
         <PortalLogoHeader branding={seedBranding} />
         <main className="flex-1">
-          <div className="mx-auto max-w-5xl px-8 pt-8 pb-12">
+          <div className="mx-auto max-w-5xl px-4 pt-8 pb-12 sm:px-8">
             <KeysTable
               appName={seedBranding.appName}
               keys={keys}

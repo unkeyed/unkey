@@ -8,11 +8,20 @@ export function UsagePopover({ buckets, errors }: Props) {
   const total = buckets.reduce((acc, n) => acc + n, 0);
   const validTotal = Math.max(total - errorTotal, 0);
 
+  if (total === 0) {
+    return (
+      <div className="flex flex-col">
+        <span className="font-medium text-gray-12 text-sm">API Key Activity</span>
+        <span className="text-gray-11 text-xs">No usage in the last 30 days</span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col">
         <span className="font-medium text-gray-12 text-sm">API Key Activity</span>
-        <span className="text-gray-11 text-xs">Last 30 hours</span>
+        <span className="text-gray-11 text-xs">Last 30 days</span>
       </div>
       <div className="flex flex-col gap-1 text-xs">
         <Row label="Valid" count={validTotal} swatch="bg-gray-7" />

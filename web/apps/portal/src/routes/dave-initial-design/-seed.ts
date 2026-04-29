@@ -19,7 +19,7 @@ const DAY = 1000 * 60 * 60 * 24;
 const now = Date.UTC(2026, 3, 23);
 
 /**
- * 30 hourly buckets, oldest → newest. Distinct shapes per key so the sparkline
+ * 30 daily buckets, oldest → newest. Distinct shapes per key so the sparkline
  * reads differently row-to-row during design iteration.
  */
 const usagePatterns = {

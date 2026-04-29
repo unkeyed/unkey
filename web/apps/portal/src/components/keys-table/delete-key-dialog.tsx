@@ -35,7 +35,7 @@ export function DeleteKeyDialog({ open, onOpenChange, onConfirm }: DeleteKeyDial
         <AlertDialogHeader>
           <AlertDialogTitle>Delete this key?</AlertDialogTitle>
           <AlertDialogDescription>
-            Anything using this key will stop working immediately.
+            Anything using this key will stop working.
           </AlertDialogDescription>
         </AlertDialogHeader>
 

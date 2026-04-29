@@ -1,6 +1,5 @@
 import type { ColumnDef, FilterFn, RowData, SortingFn } from "@tanstack/react-table";
-import { Check, Copy, MoreHorizontal, Pencil, RefreshCw, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { MoreHorizontal, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { UsageSparkline } from "~/components/keys-table/usage-sparkline";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -78,12 +77,13 @@ export function createKeysColumns({
       header: "ID",
       cell: ({ row }) => <KeyIdCell id={row.original.id} name={row.original.name} />,
       sortingFn: nameSortingFn,
+      meta: { className: "w-40" },
     },
     {
       id: "start",
       accessorKey: "start",
       header: "Key",
-      cell: ({ row }) => <CopyableStart value={row.original.start} />,
+      cell: ({ row }) => <StartPreview value={row.original.start} />,
       enableSorting: false,
       meta: { className: "w-44" },
     },
@@ -94,7 +94,7 @@ export function createKeysColumns({
         <UsageSparkline
           buckets={row.original.usage}
           errors={row.original.errors}
-          ariaLabel={`${row.original.name ?? "Unnamed key"} usage, last 30 hours`}
+          ariaLabel={`${row.original.name ?? "Unnamed key"} usage, last 30 days`}
         />
       ),
       enableSorting: false,
@@ -212,31 +212,8 @@ function KeyIdCell({ id, name }: { id: string; name: string | null }) {
   );
 }
 
-function CopyableStart({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
-  const display = value.padEnd(16, "•");
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={handleCopy}
-      title="Click to copy"
-      className="group inline-flex items-center gap-2 rounded px-1.5 py-0.5 font-mono text-gray-11 text-xs transition-colors hover:bg-gray-2 hover:text-gray-12"
-    >
-      <span>{display}</span>
-      {copied ? (
-        <Check className="size-3.5 text-successA-11" />
-      ) : (
-        <Copy className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
-      )}
-    </button>
-  );
+function StartPreview({ value }: { value: string }) {
+  return <span className="font-mono text-gray-11 text-xs">{value.padEnd(16, "•")}</span>;
 }
 
 function StatusBadge({ status }: { status: Status }) {
