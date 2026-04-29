@@ -193,7 +193,7 @@ An endpoint Unkey uses to verify your instances are healthy. When configured, Un
 | ----------------- | ------------------------------------------------------------ | ------- |
 | Method            | `GET` or `POST`                                               | `GET`   |
 | Path              | The endpoint path (must start with `/`)                       | -       |
-| Interval          | How often to check (for example, `30s`, `2m`, `1h`)           | -       |
+| Interval          | How often to check (for example, `30s`, `2m`, `1h`)           | `30s`   |
 | Timeout           | How long to wait for a response before marking the check failed | 5s      |
 | Failure threshold | Consecutive failures before marking the instance unhealthy    | 3       |
 | Initial delay     | Time to wait after instance start before the first check      | 0s      |

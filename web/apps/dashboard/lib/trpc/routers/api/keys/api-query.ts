@@ -85,9 +85,11 @@ export interface QueryApiKeysResult {
 // Drizzle parameterizes LIKE patterns (no SQL injection risk), but MySQL still
 // interprets % and _ as wildcards at query time. A user searching for a key
 // named "100%_test" would otherwise match "100xyz_test" etc. Escape the three
-// LIKE metacharacters and use ESCAPE '\\' so they match literally.
+// LIKE metacharacters with a non-special character so we can pass ESCAPE '!'
+// inline — backslash would need to be doubled in the SQL string literal and is
+// fragile across sql_mode settings (e.g. NO_BACKSLASH_ESCAPES).
 function escapeLikePattern(value: string): string {
-  return value.replace(/[%_\\]/g, "\\$&");
+  return value.replace(/[%_!]/g, "!$&");
 }
 
 // Cap the rows we ever scan from a single keyspace. The dashboard only renders
@@ -137,11 +139,11 @@ export async function queryApiKeys({
       }
       const escaped = escapeLikePattern(value);
       if (f.operator === "contains") {
-        conditions.push(sql`${keys.name} LIKE ${`%${escaped}%`} ESCAPE '\\'`);
+        conditions.push(sql`${keys.name} LIKE ${`%${escaped}%`} ESCAPE '!'`);
       } else if (f.operator === "startsWith") {
-        conditions.push(sql`${keys.name} LIKE ${`${escaped}%`} ESCAPE '\\'`);
+        conditions.push(sql`${keys.name} LIKE ${`${escaped}%`} ESCAPE '!'`);
       } else if (f.operator === "endsWith") {
-        conditions.push(sql`${keys.name} LIKE ${`%${escaped}`} ESCAPE '\\'`);
+        conditions.push(sql`${keys.name} LIKE ${`%${escaped}`} ESCAPE '!'`);
       }
     }
   }
@@ -159,7 +161,7 @@ export async function queryApiKeys({
         continue;
       }
       if (f.operator === "contains") {
-        conditions.push(sql`${keys.id} LIKE ${`%${escapeLikePattern(value)}%`} ESCAPE '\\'`);
+        conditions.push(sql`${keys.id} LIKE ${`%${escapeLikePattern(value)}%`} ESCAPE '!'`);
       }
     }
   }
@@ -177,16 +179,16 @@ export async function queryApiKeys({
       const escaped = escapeLikePattern(value);
       switch (filter.operator) {
         case "contains":
-          externalMatch = sql`${identities.externalId} LIKE ${`%${escaped}%`} ESCAPE '\\'`;
-          ownerMatch = sql`${keys.ownerId} LIKE ${`%${escaped}%`} ESCAPE '\\'`;
+          externalMatch = sql`${identities.externalId} LIKE ${`%${escaped}%`} ESCAPE '!'`;
+          ownerMatch = sql`${keys.ownerId} LIKE ${`%${escaped}%`} ESCAPE '!'`;
           break;
         case "startsWith":
-          externalMatch = sql`${identities.externalId} LIKE ${`${escaped}%`} ESCAPE '\\'`;
-          ownerMatch = sql`${keys.ownerId} LIKE ${`${escaped}%`} ESCAPE '\\'`;
+          externalMatch = sql`${identities.externalId} LIKE ${`${escaped}%`} ESCAPE '!'`;
+          ownerMatch = sql`${keys.ownerId} LIKE ${`${escaped}%`} ESCAPE '!'`;
           break;
         case "endsWith":
-          externalMatch = sql`${identities.externalId} LIKE ${`%${escaped}`} ESCAPE '\\'`;
-          ownerMatch = sql`${keys.ownerId} LIKE ${`%${escaped}`} ESCAPE '\\'`;
+          externalMatch = sql`${identities.externalId} LIKE ${`%${escaped}`} ESCAPE '!'`;
+          ownerMatch = sql`${keys.ownerId} LIKE ${`%${escaped}`} ESCAPE '!'`;
           break;
         default:
           externalMatch = sql`${identities.externalId} = ${value}`;

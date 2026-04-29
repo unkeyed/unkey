@@ -1,7 +1,6 @@
 "use client";
 
-import { VirtualTable } from "@/components/virtual-table/index";
-import { cn } from "@/lib/utils";
+import { StreamingTable } from "@/components/streaming-table";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { type ContainerLogRow, containerLogColumns } from "./columns";
@@ -20,59 +19,48 @@ type Props = {
 
 export const DeploymentContainerLogsTable = ({ logs, isLoading }: Props) => {
   return (
-    <VirtualTable
+    <StreamingTable
       data={logs}
-      isLoading={isLoading}
       columns={containerLogColumns}
-      renderSkeletonRow={({ columns, rowHeight }) =>
-        columns.map((column, idx) => (
-          <td
-            key={column.key}
-            className={cn(
-              "text-xs align-middle whitespace-nowrap",
-              idx === 0 ? "pl-4.5" : "",
-              column.cellClassName,
-            )}
-            style={{ height: `${rowHeight}px` }}
-          >
-            {column.key === "log" && <TimeColumnSkeleton />}
-            {column.key === "severity" && <SeverityColumnSkeleton />}
-            {column.key === "region" && <RegionColumnSkeleton />}
-            {column.key === "message" && <MessageColumnSkeleton />}
-          </td>
-        ))
-      }
-      keyExtractor={(log) => log.time}
-      rowClassName={(log) => getContainerLogRowClass(log)}
-      fixedHeight={500}
-      autoScrollToBottom
-      config={{
-        containerPadding: "px-0 py-0",
-        className: "bg-transparent",
+      keyExtractor={(log) => `${log.time}-${log.instance_id}-${log.region}-${log.severity}`}
+      rowClassName={getContainerLogRowClass}
+      renderSkeletonCell={(col) => {
+        switch (col.key) {
+          case "log":
+            return <TimeColumnSkeleton />;
+          case "severity":
+            return <SeverityColumnSkeleton />;
+          case "region":
+            return <RegionColumnSkeleton />;
+          case "message":
+            return <MessageColumnSkeleton />;
+          default:
+            return null;
+        }
       }}
+      isLoading={isLoading}
+      fixedHeight={500}
       emptyState={
-        <div className="w-full flex justify-center items-center h-full">
-          <Empty className="w-100 flex items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>Container Logs</Empty.Title>
-            <Empty.Description className="text-left">
-              No runtime logs found for this deployment. Container logs will appear here once the
-              deployment starts running.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <a
-                href="https://www.unkey.com/docs/introduction"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button size="md">
-                  <BookBookmark />
-                  Documentation
-                </Button>
-              </a>
-            </Empty.Actions>
-          </Empty>
-        </div>
+        <Empty className="w-100 flex items-start">
+          <Empty.Icon className="w-auto" />
+          <Empty.Title>Container Logs</Empty.Title>
+          <Empty.Description className="text-left">
+            No runtime logs found for this deployment. Container logs will appear here once the
+            deployment starts running.
+          </Empty.Description>
+          <Empty.Actions className="mt-4 justify-start">
+            <a
+              href="https://www.unkey.com/docs/introduction"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button size="md">
+                <BookBookmark />
+                Documentation
+              </Button>
+            </a>
+          </Empty.Actions>
+        </Empty>
       }
     />
   );
