@@ -1,7 +1,8 @@
 "use client";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
-import { useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { DeploymentDomainsCard } from "../../../components/deployment-domains-card";
 import { ProjectContentWrapper } from "../../../components/project-content-wrapper";
@@ -21,6 +22,9 @@ export default function DeploymentOverview() {
   const build = searchParams.get("build");
   const { deployment } = useDeployment();
   const { refetchDomains } = useProjectData();
+  const router = useRouter();
+  const workspace = useWorkspaceNavigation();
+  const params = useParams<{ projectId: string }>();
 
   const ready = deployment.status === "ready";
   const skipped = deployment.status === "skipped";
@@ -64,7 +68,7 @@ export default function DeploymentOverview() {
     )
     .with("awaiting_approval", () => (
       <div key="approval" className="animate-fade-slide-in">
-        <DeploymentApproval deployment={deployment} />
+        <DeploymentProgress stepsData={stepsQuery.data} />
       </div>
     ))
     .with("skipped", () => (
@@ -106,6 +110,11 @@ export default function DeploymentOverview() {
     <ProjectContentWrapper centered>
       <DeploymentInfo statusOverride={derivedStatus} />
       {view}
+      <DeploymentApproval
+        isOpen={awaitingApproval}
+        onClose={() => router.push(`/${workspace.slug}/projects/${params.projectId}/deployments`)}
+        deployment={deployment}
+      />
     </ProjectContentWrapper>
   );
 }

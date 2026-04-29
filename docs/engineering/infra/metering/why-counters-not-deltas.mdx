@@ -1,0 +1,102 @@
+---
+title: Why monotonic counters, not deltas
+description: The defence for storing raw cumulative counters and computing aggregates with max minus min at query time. Citations and prior art for pushing back on the "just write deltas" proposal.
+---
+
+<Note>
+  This doc is specifically about *why* we chose the cumulative counter pattern over writing deltas. The mechanism itself (how counters become chart values) lives in [metrics-architecture](./metrics-architecture). Read that first if you haven't.
+</Note>
+
+## The question this doc answers
+
+People look at the pipeline and reasonably ask:
+
+> Why don't we just subtract consecutive readings in the agent and write the result? One row per bucket saying "container X used 234 microseconds of CPU between 100s and 115s". Less math at query time. Simpler schema.
+
+The short version: **cumulative counter rows are idempotent under duplicate writes. Delta rows are not.** In any pipeline with retries, rolling updates, or backfills, duplicate rows will happen. With cumulative counters they don't change the aggregate. With deltas they inflate it.
+
+The rest of this doc is why that difference shapes the entire architecture.
+
+## The invariant we protect
+
+> Never produce an inflated reading. Undercount is acceptable.
+
+An undercount is a silent revenue leak (if anyone ever invoices from this data) or a minor chart gap (if they don't). An overcount can become a wrong invoice, a refund request, an audit trail problem, or a lawsuit. The asymmetry forces an asymmetric design: the pipeline must be *structurally* incapable of double-counting, even when individual components misbehave.
+
+Every realistic metering pipeline contains at least the following unreliable steps:
+
+- The agent crashes and its replacement starts up.
+- A rolling update puts two agents on the same node for 30 seconds.
+- ClickHouse rejects a batch and the agent retries.
+- An `async_insert` buffer is flushed twice because of a network blip.
+- A backfill job re-runs a day's ingestion after a schema fix.
+- An engineer re-runs heimdall against a test pod to reproduce a bug.
+
+In all six scenarios, the same rows land in ClickHouse more than once. The question is whether that inflates the aggregate.
+
+## Delta model: duplicates inflate the aggregate
+
+Agent reads the counter, subtracts the previous reading, writes the delta:
+
+```
+bucket_1: counter_was 1000 -> 1500, delta = 500
+bucket_2: counter_was 1500 -> 2100, delta = 600
+```
+
+Bill for the two-bucket window: `sum(delta) = 1100`. Correct.
+
+Now the agent retries the `bucket_2` write after a network blip:
+
+```
+bucket_1: delta = 500
+bucket_2: delta = 600
+bucket_2: delta = 600   (duplicate)
+```
+
+`sum(delta) = 1700`. **The customer was billed 55% more than they actually used.**
+
+There's no aggregation function over `(500, 600, 600)` that gives the right answer without also knowing "this row is the duplicate". Deduplication by `(pod, ts)` only works if timestamps are guaranteed identical, and under concurrent agents they rarely are.
+
+The exactly-once requirement propagates all the way to the wire: every single write must be delivered exactly once, or the bill is wrong. That's unachievable in any realistic distributed system.
+
+## Cumulative counter model: duplicates don't matter
+
+Agent reads the counter, writes the raw value:
+
+```
+bucket_1: counter = 1500
+bucket_2: counter = 2100
+bucket_2: counter = 2100   (duplicate)
+```
+
+`max(counter) - min(counter) = 2100 - 1500 = 600`. **The duplicate row has zero effect on the aggregate.** `max` and `min` over the same set of values are identical whether you include a value once or a hundred times.
+
+This is the load-bearing property. Every other design choice in the metering pipeline exists to preserve it.
+
+## This is the standard pattern, not a local invention
+
+Every serious monitoring system that cares about metering-grade correctness converges on cumulative counters:
+
+- **Prometheus** defines `Counter` as monotonically non-decreasing; rates are always computed at query time via `rate()` / `increase()`, never sent over the wire. [Metric types](https://prometheus.io/docs/concepts/metric_types/#counter), [rate() semantics](https://prometheus.io/docs/prometheus/latest/querying/functions/#rate).
+- **Prometheus remote_write** is explicitly designed around cumulative counters so that retries and duplicates are idempotent. [Remote write spec](https://prometheus.io/docs/concepts/remote_write_spec/).
+- **OpenMetrics** (the CNCF spec that grew out of Prometheus) mandates a `_total` suffix and monotonic-non-decreasing values for counters. [OpenMetrics spec](https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md).
+- **OpenTelemetry** distinguishes Cumulative and Delta "temporality" in its spec, and is explicit that delta temporality requires exactly-once delivery to be correct while cumulative does not. [Data model temporality](https://opentelemetry.io/docs/specs/otel/metrics/data-model/#temporality).
+- **GCP Cloud Monitoring** marks per-instance network counters (`instance/network/received_bytes_count` and friends) as `CUMULATIVE`. [GCP metrics](https://cloud.google.com/monitoring/api/metrics_gcp).
+- **RRDtool** (the 1999 ancestor of all of this) has a `COUNTER` data source type that stores raw cumulative values and computes rates at read time. [rrdcreate(1)](https://oss.oetiker.ch/rrdtool/doc/rrdcreate.en.html).
+- **The Linux kernel** itself exposes every per-cgroup and per-device resource counter as cumulative (`cpu.stat:usage_usec`, `memory.current`, `/proc/net/dev`). We're matching the grain of the source, not fighting it.
+
+The one visible counter-example is AWS CloudWatch's EC2 `NetworkIn` / `NetworkOut`, which publish per-period byte sums (delta-like) from the hypervisor. That works because AWS owns the entire pipeline end-to-end: their ingestion is effectively exactly-once because they wrote both the publisher and the consumer. We don't have that guarantee between heimdall and ClickHouse, so we can't make the same bet.
+
+## When I'd reconsider
+
+The cumulative-counter design is strictly safer today. I'd re-evaluate only if *both* of these became true:
+
+1. We moved metering behind a single-writer log-structured pipeline with guaranteed exactly-once delivery to ClickHouse (Kafka with transactional writes, a reliable stream processor holding offsets). That would eliminate duplicate-write risk at the source.
+2. We had a separate, independent audit path that re-reads raw counters and cross-checks the aggregated number, so a delta-pipeline bug would be caught before any downstream consumer (dashboard, export, billing) acted on it.
+
+Without both, cumulative counters win.
+
+## Further reading
+
+- [Google SRE Book, Ch. 6 "Monitoring Distributed Systems"](https://sre.google/sre-book/monitoring-distributed-systems/). Grounding on counter-based monitoring and the "four golden signals".
+- [Prometheus: Counter vs Gauge](https://prometheus.io/docs/practices/instrumentation/#counter-vs-gauge-summary-vs-histogram). The standard writeup for why counters work the way they do.
