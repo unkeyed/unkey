@@ -5,6 +5,7 @@ import { XMark } from "@unkey/icons";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
+import { Button } from "../buttons/button";
 
 const Dialog = DialogPrimitive.Root;
 
@@ -62,7 +63,7 @@ const DialogContent = React.forwardRef<
 
     // Common class names for both button types
     const buttonClassNames =
-      "absolute right-4 top-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent text-muted-foreground z-51";
+      "absolute right-4 top-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:rounded-lg disabled:pointer-events-none data-[state=open]:bg-accent text-muted-foreground z-51 [&_svg]:size-[14px] hover:rounded-lg";
 
     return (
       <DialogPortal>
@@ -138,9 +139,15 @@ const DialogContent = React.forwardRef<
           ) : (
             // Use DialogPrimitive.Close for standard behavior
             <DialogPrimitive.Close asChild>
-              <button type="button" className={buttonClassNames} aria-label="Close dialog">
+              <Button
+                size="icon"
+                variant="ghost"
+                type="button"
+                className={buttonClassNames}
+                aria-label="Close dialog"
+              >
                 <XMark iconSize="md-medium" />
-              </button>
+              </Button>
             </DialogPrimitive.Close>
           )}
         </DialogPrimitive.Content>

@@ -1,6 +1,7 @@
 "use client";
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { Switch } from "@/components/ui/switch";
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { cn } from "@/lib/utils";
 import { Dots, GripDotsVertical, PenWriting3, Trash } from "@unkey/icons";
@@ -172,15 +173,15 @@ export function SentinelPolicyRow({
           </div>
 
           {/* Env badges */}
-          <div className="flex-2 min-w-0 py-5 flex items-center gap-1.5 pr-3">
-            <EnvBadge
+          <div className="flex-3 min-w-0 py-5 flex items-center gap-3 pr-3">
+            <EnvSwitch
               id={policy.id}
               slug={envASlug}
               envPolicy={policy.envA}
               onToggle={onToggleEnvA}
               onAdd={onAddToEnvA}
             />
-            <EnvBadge
+            <EnvSwitch
               id={policy.id}
               slug={envBSlug}
               envPolicy={policy.envB}
@@ -220,7 +221,7 @@ export function SentinelPolicyRow({
   );
 }
 
-function EnvBadge({
+function EnvSwitch({
   id,
   slug,
   envPolicy,
@@ -235,29 +236,19 @@ function EnvBadge({
 }) {
   if (envPolicy !== null) {
     return (
-      <button
-        type="button"
-        aria-pressed={envPolicy.enabled}
-        className={cn(
-          "flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full border transition-all cursor-pointer w-full",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-          envPolicy.enabled
-            ? "bg-info-3 border-info-7 text-info-11 focus-visible:ring-info-7"
-            : "bg-transparent border-grayA-5 text-gray-10 focus-visible:ring-grayA-7",
-        )}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle(id);
-        }}
+      <span
+        className="flex items-center gap-2 shrink-0"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
       >
-        <span
-          className={cn(
-            "w-1.5 h-1.5 rounded-full flex-shrink-0",
-            envPolicy.enabled ? "bg-info-11" : "bg-gray-9",
-          )}
+        <span className="text-[13px] text-gray-11 capitalize whitespace-nowrap">{slug}</span>
+        <Switch
+          checked={envPolicy.enabled}
+          onCheckedChange={() => onToggle(id)}
+          className="h-5 w-10 data-[state=checked]:bg-info-9 data-[state=checked]:ring-2 data-[state=checked]:ring-infoA-5 data-[state=unchecked]:bg-grayA-6 data-[state=unchecked]:ring-2 data-[state=unchecked]:ring-grayA-5"
+          thumbClassName="h-4 w-4 data-[state=checked]:translate-x-5"
         />
-        <span className="truncate capitalize">{slug}</span>
-      </button>
+      </span>
     );
   }
 
