@@ -29,7 +29,7 @@ export const Healthcheck = () => {
   const defaultValues: HealthcheckFormValues = {
     method: healthcheck?.method ?? "GET",
     path: healthcheck?.path ?? "",
-    interval: healthcheck ? secondsToInterval(healthcheck.intervalSeconds) : "",
+    interval: healthcheck ? secondsToInterval(healthcheck.intervalSeconds) : "30s",
   };
 
   const {
@@ -69,7 +69,7 @@ export const Healthcheck = () => {
     updateAllEnvironments((draft) => {
       draft.healthcheck = null;
     });
-    reset({ method: "GET", path: "", interval: "" });
+    reset({ method: "GET", path: "", interval: "30s" });
   };
 
   const saveState = resolveSaveState([

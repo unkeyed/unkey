@@ -1,7 +1,7 @@
 import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Check, Github, Magnifier, XMark } from "@unkey/icons";
+import { Check, Clock, Github, Magnifier, XMark } from "@unkey/icons";
 import { Button, Input, toast, useStepWizard } from "@unkey/ui";
 import { useMemo, useRef, useState } from "react";
 import { OnboardingLinks } from "../../onboarding-links";
@@ -13,10 +13,12 @@ export const SelectRepo = ({
   projectId,
   onBeforeNavigate,
   hasGithubInstallation,
+  onSkip,
 }: {
   projectId: string;
   onBeforeNavigate?: () => void;
   hasGithubInstallation: boolean;
+  onSkip?: () => void;
 }) => {
   const { next } = useStepWizard();
   const trpcUtils = trpc.useUtils();
@@ -228,24 +230,40 @@ export const SelectRepo = ({
           </div>
         ))}
 
-      {hasGithubInstallation && (
-        <>
-          <a
-            href={installUrl}
-            rel="noopener noreferrer"
-            onClick={onBeforeNavigate}
-            className="group"
-          >
-            <OnboardingStepHint>
-              Can't find your repo? Add more from{" "}
-              <OnboardingStepHintHighlight>GitHub</OnboardingStepHintHighlight>.
-            </OnboardingStepHint>
-          </a>
-          <div className="mt-8 min-w-[var(--repo-list-w)] items-center justify-center flex">
-            <OnboardingLinks />
+      {onSkip && (
+        <div className="mt-3 border border-grayA-5 rounded-[14px] flex justify-start items-center gap-4 py-[18px] px-4 min-w-[var(--repo-list-w)]">
+          <div className="size-8 rounded-[10px] grid place-items-center ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none">
+            <Clock className="size-[18px] text-gray-12" iconSize="md-medium" />
           </div>
-        </>
+          <div className="flex flex-col gap-3">
+            <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
+              Skip GitHub setup
+            </span>
+            <span className="text-gray-10 text-[13px] leading-[9px]">
+              Continue without a repository. You can connect GitHub later from project settings.
+            </span>
+          </div>
+          <Button
+            variant="outline"
+            onClick={onSkip}
+            className="ml-auto rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
+          >
+            <span className="text-[13px] text-gray-12 font-medium">Skip for now</span>
+          </Button>
+        </div>
       )}
+
+      {hasGithubInstallation && (
+        <a href={installUrl} rel="noopener noreferrer" onClick={onBeforeNavigate} className="group">
+          <OnboardingStepHint>
+            Can't find your repo? Add more from{" "}
+            <OnboardingStepHintHighlight>GitHub</OnboardingStepHintHighlight>.
+          </OnboardingStepHint>
+        </a>
+      )}
+      <div className="mt-8 min-w-[var(--repo-list-w)] items-center justify-center flex">
+        <OnboardingLinks />
+      </div>
     </div>
   );
 };

@@ -3,13 +3,17 @@ import type { Querier } from "./client/interface";
 
 const TABLE = "default.runtime_logs_raw_v1";
 
+// Hard cap on rows per request. Bounds response payload size and ClickHouse
+// scan cost regardless of what an upstream caller sends.
+const MAX_PAGE_SIZE = 1_000;
+
 export const runtimeLogsRequestSchema = z.object({
   workspaceId: z.string(),
   projectId: z.string(),
   deploymentId: z.string().nullable(),
   environmentId: z.array(z.string()),
   appId: z.string(),
-  limit: z.int(),
+  limit: z.int().min(1).max(MAX_PAGE_SIZE),
   startTime: z.int(),
   endTime: z.int(),
   severity: z.array(z.string()).nullable(),
@@ -20,6 +24,15 @@ export const runtimeLogsRequestSchema = z.object({
 });
 
 export type RuntimeLogsRequest = z.infer<typeof runtimeLogsRequestSchema>;
+
+// Internal schema: same shape as the public request, but `limit` is bumped by
+// one to fit the n+1 hasMore probe.
+const runtimeLogsQueryParamsSchema = runtimeLogsRequestSchema.extend({
+  limit: z
+    .int()
+    .min(2)
+    .max(MAX_PAGE_SIZE + 1),
+});
 
 export const runtimeLog = z.object({
   time: z.int(),
@@ -35,62 +48,43 @@ export type RuntimeLog = z.infer<typeof runtimeLog>;
 
 export function getRuntimeLogs(ch: Querier) {
   return async (args: RuntimeLogsRequest) => {
-    const filterConditions = `
-      workspace_id = {workspaceId: String}
-      AND project_id = {projectId: String}
-      AND (
-        {deploymentId: Nullable(String)} IS NULL
-        OR deployment_id = assumeNotNull({deploymentId: Nullable(String)})
-      )
-      AND (
-        CASE
-          WHEN length({environmentId: Array(String)}) > 0 THEN
-            environment_id IN {environmentId: Array(String)}
-          ELSE TRUE
-        END
-      )
-      AND app_id = {appId: String}
-      AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+    const wheres: string[] = [
+      "workspace_id = {workspaceId: String}",
+      "project_id = {projectId: String}",
+      "app_id = {appId: String}",
+      "time BETWEEN {startTime: UInt64} AND {endTime: UInt64}",
+    ];
 
-      AND (
-        CASE
-          WHEN length({severity: Array(String)}) > 0 THEN
-            severity IN {severity: Array(String)}
-          ELSE TRUE
-        END
-      )
+    if (args.environmentId.length > 0) {
+      wheres.push("environment_id IN {environmentId: Array(String)}");
+    }
+    if (args.deploymentId !== null) {
+      wheres.push("deployment_id = {deploymentId: String}");
+    }
+    if (args.severity !== null && args.severity.length > 0) {
+      wheres.push("severity IN {severity: Array(String)}");
+    }
+    if (args.region !== null && args.region.length > 0) {
+      wheres.push("region IN {region: Array(String)}");
+    }
+    if (args.message !== null && args.message !== "") {
+      // lower() on both sides so the ngrambf_v1(3, ...) skip index on
+      // lower(message) can be used by the optimizer.
+      wheres.push("positionCaseInsensitive(lower(message), lower({message: String})) > 0");
+    }
+    if (args.k8sPodNames.length > 0) {
+      wheres.push("k8s_pod_name IN {k8sPodNames: Array(String)}");
+    }
+    if (args.cursorTime !== null) {
+      wheres.push("time < {cursorTime: UInt64}");
+    }
 
-    AND (
-      CASE
-        WHEN length({region: Array(String)}) > 0 THEN
-          region IN {region: Array(String)}
-        ELSE TRUE
-      END
-    )
+    const filterConditions = wheres.join("\n          AND ");
 
-    AND (
-      {message: Nullable(String)} IS NULL
-      OR {message: Nullable(String)} = ''
-      OR positionCaseInsensitive(message, assumeNotNull({message: Nullable(String)})) > 0
-    )
-
-    AND (
-      CASE
-        WHEN length({k8sPodNames: Array(String)}) > 0 THEN
-          k8s_pod_name IN {k8sPodNames: Array(String)}
-        ELSE TRUE
-      END
-    )
-    `;
-
-    const totalQuery = ch.query({
-      query: `
-        SELECT count(*) as total_count
-        FROM ${TABLE}
-        WHERE ${filterConditions}`,
-      params: runtimeLogsRequestSchema,
-      schema: z.object({ total_count: z.int() }),
-    });
+    // Defensive clamp in case a caller bypasses the schema validator.
+    const pageSize = Math.min(Math.max(args.limit, 1), MAX_PAGE_SIZE);
+    // Fetch pageSize+1 so we can compute hasMore without a separate count(*).
+    const fetchLimit = pageSize + 1;
 
     const logsQuery = ch.query({
       query: `
@@ -99,16 +93,14 @@ export function getRuntimeLogs(ch: Querier) {
           region, k8s_pod_name, attributes
         FROM ${TABLE}
         WHERE ${filterConditions}
-          AND ({cursorTime: Nullable(UInt64)} IS NULL OR time < {cursorTime: Nullable(UInt64)})
         ORDER BY time DESC
         LIMIT {limit: Int}`,
-      params: runtimeLogsRequestSchema,
+      params: runtimeLogsQueryParamsSchema,
       schema: runtimeLog,
     });
 
     return {
-      logsQuery: logsQuery(args),
-      totalQuery: totalQuery(args),
+      logsQuery: logsQuery({ ...args, limit: fetchLimit }),
     };
   };
 }
