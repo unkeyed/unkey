@@ -6,13 +6,13 @@ import type { ActionComponentProps } from "@/components/logs/table-action.popove
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { type MetadataFormValues, metadataSchema } from "@/lib/schemas/metadata";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
-import { trpc } from "@/lib/trpc/client";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer, toast } from "@unkey/ui";
+import { Button, DialogContainer } from "@unkey/ui";
 import { type FC, useEffect, useId } from "react";
 import { FormProvider } from "react-hook-form";
 import type { z } from "zod";
+import { useEditIdentityMetadata } from "../hooks/use-edit-identity-metadata";
 
 type Identity = z.infer<typeof IdentityResponseSchema>;
 
@@ -31,7 +31,6 @@ const getIdentityMetadataDefaults = (identity: Identity) => ({
 
 export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOpen, onClose }) => {
   const formId = useId();
-  const utils = trpc.useUtils();
 
   const methods = usePersistedForm<MetadataFormValues>(
     `${EDIT_METADATA_FORM_STORAGE_KEY}_${identity.id}`,
@@ -60,18 +59,10 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOp
     }
   }, [isOpen, loadSavedValues]);
 
-  const updateMetadata = trpc.identity.update.metadata.useMutation({
-    onSuccess: () => {
-      toast.success("Metadata updated successfully");
-      utils.identity.query.invalidate();
-      utils.identity.getById.invalidate();
-      reset(getIdentityMetadataDefaults(identity));
-      clearPersistedData();
-      onClose();
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to update metadata");
-    },
+  const updateMetadata = useEditIdentityMetadata(() => {
+    reset(getIdentityMetadataDefaults(identity));
+    clearPersistedData();
+    onClose();
   });
 
   const onSubmit = async (data: MetadataFormValues) => {
@@ -81,7 +72,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOp
         metadata: data.metadata,
       });
     } catch {
-      // updateMetadata.onError already shows a toast.
+      // useEditIdentityMetadata already shows a toast.
     }
   };
 

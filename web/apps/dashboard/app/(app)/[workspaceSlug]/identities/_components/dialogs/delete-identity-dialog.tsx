@@ -26,7 +26,6 @@ type DeleteIdentityDialogProps = {
 export const DeleteIdentityDialog = ({ identity, isOpen, onClose }: DeleteIdentityDialogProps) => {
   const formId = useId();
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
   const methods = useForm<DeleteIdentityFormValues>({
@@ -66,15 +65,12 @@ export const DeleteIdentityDialog = ({ identity, isOpen, onClose }: DeleteIdenti
 
   const performIdentityDeletion = async () => {
     try {
-      setIsLoading(true);
       await deleteIdentity.mutateAsync({
         identityId: identity.id,
       });
     } catch {
       // `useDeleteIdentity` already shows a toast, but we still need to
       // prevent unhandled‐rejection noise in the console.
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -96,8 +92,8 @@ export const DeleteIdentityDialog = ({ identity, isOpen, onClose }: DeleteIdenti
                   color="danger"
                   size="xlg"
                   className="w-full rounded-lg"
-                  disabled={!confirmDeletion || isLoading}
-                  loading={isLoading}
+                  disabled={!confirmDeletion || deleteIdentity.isLoading}
+                  loading={deleteIdentity.isLoading}
                   onClick={handleDeleteButtonClick}
                   ref={deleteButtonRef}
                 >
