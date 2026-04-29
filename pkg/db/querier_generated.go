@@ -1067,10 +1067,6 @@ type Querier interface {
 	//
 	//  SELECT pk, id, workspace_id, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations WHERE id = ?
 	FindPortalConfigByID(ctx context.Context, db DBTX, id string) (PortalConfiguration, error)
-	//FindPortalConfigByWorkspaceID
-	//
-	//  SELECT pk, id, workspace_id, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations WHERE workspace_id = ? LIMIT 1
-	FindPortalConfigByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (PortalConfiguration, error)
 	//FindProjectById
 	//
 	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
