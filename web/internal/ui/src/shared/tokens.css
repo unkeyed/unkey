@@ -304,6 +304,14 @@
   --border: oklch(0.8691 0.0045 56.36);
   --ring: oklch(0.8691 0.0045 56.36);
 
+  /* Sidebar palette — mirrors semantic tokens; resolves per theme via var() */
+  --sidebar: var(--background);
+  --sidebar-foreground: var(--content);
+  --sidebar-accent: var(--grayA-3);
+  --sidebar-accent-foreground: var(--content);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
   /* Sonner-specific toast variables */
   --toast-bg: oklch(1 0 0);
   --toast-border: oklch(0.8691 0.0045 56.36);

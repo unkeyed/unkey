@@ -35,6 +35,14 @@ In Tailwind v4, this file should be @import'd from your main Tailwind CSS file.
 
   --color-border: var(--border);
   --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
   --color-black: black;
   --color-white: white;
   --color-transparent: transparent;
