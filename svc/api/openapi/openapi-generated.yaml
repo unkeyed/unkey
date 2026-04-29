@@ -1916,7 +1916,6 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 1000
                     default: 1
                     description: |
                         Sets how much of the rate limit quota this request consumes, enabling weighted rate limiting.
@@ -1950,7 +1949,6 @@ components:
                     type: integer
                     format: int64
                     minimum: 1
-                    maximum: 1000000
                     description: |
                         Sets the maximum operations allowed within the duration window before requests are rejected.
                         When this limit is reached, subsequent requests fail with `RATE_LIMITED` until the window resets.
@@ -3152,9 +3150,9 @@ components:
             properties:
                 cost:
                     type: integer
-                    format: int32
+                    format: int64
                     minimum: 0
-                    maximum: 1000000000
+                    maximum: 1000000000000
                     description: |
                         Sets how many credits to deduct for this verification request.
                         Use 0 for read-only operations or free tier access, higher values for premium features.
@@ -3259,7 +3257,7 @@ components:
                     x-go-type-skip-optional-pointer-with-omitzero: true
                 credits:
                     type: integer
-                    format: int32
+                    format: int64
                     description: |
                         The number of requests/credits remaining for this key. If omitted,
                         the key has unlimited usage. This value decreases with

@@ -11,13 +11,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/svc/api/integration"
-	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/integration"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 )
 
 // Constants for database consistency polling
@@ -38,9 +37,9 @@ const (
 // waitForDatabaseConsistency polls the database until the remaining credits match exactly
 // the expected value or the timeout is reached using require.Eventually.
 func waitForDatabaseConsistency(t *testing.T, ctx context.Context, dbConn db.DBTX,
-	keyID string, expectedRemaining int64, timeout time.Duration, pollInterval time.Duration) (int32, error) {
+	keyID string, expectedRemaining int64, timeout time.Duration, pollInterval time.Duration) (int64, error) {
 
-	var finalRemaining int32
+	var finalRemaining int64
 	var lastErr error
 
 	require.Eventually(t, func() bool {
@@ -51,7 +50,7 @@ func waitForDatabaseConsistency(t *testing.T, ctx context.Context, dbConn db.DBT
 		}
 
 		if finalKey.RemainingRequests.Valid {
-			finalRemaining = finalKey.RemainingRequests.Int32
+			finalRemaining = finalKey.RemainingRequests.Int64
 			return int64(finalRemaining) == expectedRemaining
 		}
 
@@ -63,7 +62,6 @@ func waitForDatabaseConsistency(t *testing.T, ctx context.Context, dbConn db.DBT
 
 // TestUsageLimitAccuracy tests the accuracy of credit counting under high concurrency
 func TestUsageLimitAccuracy(t *testing.T) {
-
 
 	testCases := []struct {
 		name         string
@@ -131,8 +129,8 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
-		KeySpaceID:   api.KeyAuthID.String,
-		Remaining:   ptr.P(int32(totalCredits)),
+		KeySpaceID:  api.KeyAuthID.String,
+		Remaining:   ptr.P(int64(totalCredits)),
 	})
 
 	keyStart := keyResponse.Key
@@ -146,7 +144,7 @@ func runAccuracyTest(t *testing.T, nodeCount int, totalCredits, cost int64, conc
 	req := handler.Request{
 		Key: keyStart,
 		Credits: &openapi.KeysVerifyKeyCredits{
-			Cost: int32(cost),
+			Cost: cost,
 		},
 	}
 

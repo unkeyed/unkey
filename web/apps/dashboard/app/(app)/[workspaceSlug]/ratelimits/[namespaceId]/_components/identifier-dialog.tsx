@@ -23,7 +23,7 @@ const overrideValidationSchema = z.object({
     .number()
     .int()
     .min(1_000, "Duration must be at least 1 second (1000ms)")
-    .max(24 * 60 * 60 * 1000, "Duration cannot exceed 24 hours"),
+    .max(30 * 24 * 60 * 60 * 1000, "Duration cannot exceed 30 days"),
 });
 
 type FormValues = z.infer<typeof overrideValidationSchema>;

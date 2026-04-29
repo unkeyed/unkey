@@ -12,6 +12,7 @@ import { Card } from "../../(overview)/components/card";
 import { useProjectData } from "../../(overview)/data-provider";
 import { Avatar } from "../../components/git-avatar";
 import { RegionFlag } from "../../components/region-flag";
+import { DottedLink } from "../dotted-link";
 import { ActiveDeploymentCardEmpty } from "./components/active-deployment-card-empty";
 import { MetadataCell } from "./components/metadata-cell";
 import { ActiveDeploymentCardSkeleton } from "./components/skeleton";
@@ -21,9 +22,9 @@ function GitHubLink({ href, children }: { href: string | undefined; children: Re
     return children;
   }
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="hover:opacity-80">
+    <DottedLink href={href} external>
       {children}
-    </a>
+    </DottedLink>
   );
 }
 
@@ -140,7 +141,7 @@ export function ActiveDeploymentCard({
               )}
               {deployment.gitCommitSha && (
                 <>
-                  <span className="text-gray-9 text-xs">·</span>
+                  {deployment.gitBranch && <span className="text-gray-9 text-xs">·</span>}
                   <GitHubLink
                     href={
                       sourceRepo
@@ -148,8 +149,13 @@ export function ActiveDeploymentCard({
                         : undefined
                     }
                   >
-                    <span className="font-mono text-xs text-accent-12">
-                      {deployment.gitCommitSha.slice(0, 7)}
+                    <span className="flex items-center gap-1">
+                      {!deployment.gitBranch && (
+                        <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+                      )}
+                      <span className="font-mono text-xs text-accent-12">
+                        {deployment.gitCommitSha.slice(0, 7)}
+                      </span>
                     </span>
                   </GitHubLink>
                 </>

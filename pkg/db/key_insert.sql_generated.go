@@ -63,9 +63,9 @@ type InsertKeyParams struct {
 	Expires            sql.NullTime   `db:"expires"`
 	CreatedAtM         int64          `db:"created_at_m"`
 	Enabled            bool           `db:"enabled"`
-	RemainingRequests  sql.NullInt32  `db:"remaining_requests"`
+	RemainingRequests  sql.NullInt64  `db:"remaining_requests"`
 	RefillDay          sql.NullInt16  `db:"refill_day"`
-	RefillAmount       sql.NullInt32  `db:"refill_amount"`
+	RefillAmount       sql.NullInt64  `db:"refill_amount"`
 	PendingMigrationID sql.NullString `db:"pending_migration_id"`
 }
 

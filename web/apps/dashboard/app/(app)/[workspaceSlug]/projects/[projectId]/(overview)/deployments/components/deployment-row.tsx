@@ -68,21 +68,32 @@ export function DeploymentRow({
 
       {/* Source */}
       <div className="md:w-[30%] md:shrink-0 flex flex-col gap-1 min-w-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
-          <span
-            className="font-mono text-xs text-accent-12 truncate leading-4"
-            title={deployment.gitBranch}
-          >
-            {deployment.gitBranch}
-          </span>
-          {deployment.gitCommitSha ? (
-            <span className="font-mono text-xs shrink-0 leading-4 -ml-1">
-              <span className="text-gray-9">·</span>
-              <span className="text-accent-12 ml-0.5">{deployment.gitCommitSha.slice(0, 7)}</span>
+        {deployment.gitBranch ? (
+          <div className="flex items-center gap-2 min-w-0">
+            <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <span
+              className="font-mono text-xs text-accent-12 truncate leading-4"
+              title={deployment.gitBranch}
+            >
+              {deployment.gitBranch}
             </span>
-          ) : null}
-        </div>
+            {deployment.gitCommitSha ? (
+              <span className="font-mono text-xs shrink-0 leading-4 -ml-1">
+                <span className="text-gray-9">·</span>
+                <span className="text-accent-12 ml-0.5">
+                  {deployment.gitCommitSha.slice(0, 7)}
+                </span>
+              </span>
+            ) : null}
+          </div>
+        ) : deployment.gitCommitSha ? (
+          <div className="flex items-center gap-2 min-w-0">
+            <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <span className="font-mono text-xs text-accent-12 truncate leading-4">
+              {deployment.gitCommitSha.slice(0, 7)}
+            </span>
+          </div>
+        ) : null}
         {deployment.gitCommitMessage ? (
           <div className="flex items-center gap-2 min-w-0">
             <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />

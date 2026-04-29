@@ -15,10 +15,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
 	"github.com/unkeyed/unkey/pkg/uid"
-	githubclient "github.com/unkeyed/unkey/svc/ctrl/worker/github"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -411,7 +411,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		// a GitTarget that specifies only a branch)
 		if commitSHA == "" && resolveBranch != "" {
 			info, resolveErr := restate.Run(ctx, func(runCtx restate.RunContext) (githubclient.CommitInfo, error) {
-				if forkRepo != "" || (w.allowUnauthenticatedDeployments && source.Git.GetInstallationId() == noInstallationID) {
+				if w.allowUnauthenticatedDeployments && source.Git.GetInstallationId() == noInstallationID {
 					return w.github.GetBranchHeadCommitPublic(
 						resolveRepo,
 						resolveBranch,

@@ -33,7 +33,7 @@ Krane is built around these core responsibilities.
 
 ## Control plane interface
 
-Krane connects upstream with a Connect RPC client that keeps long-running streams open. It injects `Authorization: Bearer <token>` and `X-Krane-Region` headers on every request, and supports h2c for non-TLS URLs.
+Krane connects upstream with a Connect RPC client that keeps long-running streams open. It injects the `Authorization: Bearer <token>` header on every request and stamps a `RegionKey` (platform, name) on every request proto message. h2c is supported for non-TLS URLs.
 
 ## Reconciliation model
 

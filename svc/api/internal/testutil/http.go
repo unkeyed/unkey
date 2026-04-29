@@ -157,19 +157,19 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
-		FindKeyCredits: func(ctx context.Context, keyID string) (int32, bool, error) {
-			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt32, error) {
+		FindKeyCredits: func(ctx context.Context, keyID string) (int64, bool, error) {
+			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt64, error) {
 				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
 			})
 			if err != nil {
 				return 0, false, err
 			}
-			return limit.Int32, limit.Valid, nil
+			return limit.Int64, limit.Valid, nil
 		},
-		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int32) error {
+		DecrementKeyCredits: func(ctx context.Context, keyID string, cost int64) error {
 			return db.Query.UpdateKeyCreditsDecrement(ctx, database.RW(), db.UpdateKeyCreditsDecrementParams{
 				ID:      keyID,
-				Credits: sql.NullInt32{Int32: cost, Valid: true},
+				Credits: sql.NullInt64{Int64: cost, Valid: true},
 			})
 		},
 		Counter: ctr,

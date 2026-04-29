@@ -26,6 +26,19 @@ var (
 		},
 		[]string{"status_class"},
 	)
+
+	// proxyAbortedTotal counts client-disconnect aborts during streaming responses.
+	// httputil.ReverseProxy panics with http.ErrAbortHandler when the response body
+	// copy fails after headers have been flushed (typically the client went away).
+	// We swallow that sentinel locally; this counter preserves visibility.
+	proxyAbortedTotal = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "sentinel",
+			Name:      "aborted_total",
+			Help:      "Client-disconnect aborts during streaming.",
+		},
+	)
 )
 
 func upstreamStatusClass(code int) string {

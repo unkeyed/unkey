@@ -80,7 +80,7 @@ func TestKeyDeleteNotFound(t *testing.T) {
 		CreatedAtM:        time.Now().UnixMilli(),
 		Enabled:           true,
 		IdentityID:        sql.NullString{Valid: false, String: ""},
-		RemainingRequests: sql.NullInt32{Int32: 100, Valid: true},
+		RemainingRequests: sql.NullInt64{Int64: 100, Valid: true},
 	}
 
 	err = db.Query.InsertKey(ctx, h.DB.RW(), insertParams)
