@@ -54,6 +54,7 @@ import { redeploy } from "./deploy/deployment/redeploy";
 import { rollback } from "./deploy/deployment/rollback";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
+import { createBulkEnvVars } from "./deploy/env-vars/create-bulk";
 import { createEnvVars } from "./deploy/env-vars/create";
 import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
@@ -475,6 +476,7 @@ export const router = t.router({
     envVar: t.router({
       list: listEnvVars,
       create: createEnvVars,
+      createBulk: createBulkEnvVars,
       update: updateEnvVar,
       decrypt: decryptEnvVar,
       delete: deleteEnvVar,
