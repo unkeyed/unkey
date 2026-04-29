@@ -20,7 +20,8 @@ import (
 func TestForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		DB: h.DB,
+		Auth: h.Auth,
+		DB:   h.DB,
 	}
 
 	// Create a rootKey without any permissions

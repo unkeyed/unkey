@@ -11,6 +11,7 @@ import (
 
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
@@ -27,7 +28,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 
 	err := assert.NotEmpty(rawKey)
 	if err != nil {
-		return nil, emptyLog, fault.Wrap(err, fault.Internal("rawKey is empty"))
+		return nil, auth.EmptyEmit, fault.Wrap(err, fault.Internal("rawKey is empty"))
 	}
 
 	migration, err := keysdb.Query.FindKeyMigrationByID(ctx, s.db.RO(), keysdb.FindKeyMigrationByIDParams{
@@ -40,10 +41,10 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 			return &KeyVerifier{
 				Status:  StatusNotFound,
 				message: "migration does not exist",
-			}, emptyLog, nil
+			}, auth.EmptyEmit, nil
 		}
 
-		return nil, emptyLog, fault.Wrap(
+		return nil, auth.EmptyEmit, fault.Wrap(
 			err,
 			fault.Internal("unable to load migration"),
 			fault.Public("We could not load the requested migration."),
@@ -63,7 +64,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 			// but prefix can (e.g., "my_company_shortToken_longToken")
 			parts := strings.Split(rawKey, "_")
 			if len(parts) < 3 {
-				return nil, emptyLog, fault.Wrap(
+				return nil, auth.EmptyEmit, fault.Wrap(
 					fmt.Errorf("expected at least 3 segments, got %d", len(parts)),
 					fault.Code(codes.Auth.Authentication.Malformed.URN()),
 					fault.Public("Invalid key format"),
@@ -97,9 +98,9 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 		return &KeyVerifier{
 			Status:  StatusNotFound,
 			message: "key does not exist",
-		}, emptyLog, nil
+		}, auth.EmptyEmit, nil
 	default:
-		return nil, emptyLog, fault.New(
+		return nil, auth.EmptyEmit, fault.New(
 			fmt.Sprintf("unsupported migration algorithm %s", migration.Algorithm),
 			fault.Public(fmt.Sprintf("We could not load the requested migration for algorithm %s.", migration.Algorithm)),
 		)

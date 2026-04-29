@@ -22,6 +22,7 @@ func TestKeyDeleteSuccess(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Auditlogs: h.Auditlogs,
 		KeyCache:  h.Caches.VerificationKeyByHash,

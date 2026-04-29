@@ -87,7 +87,7 @@ func (k *KeyVerifier) withPermissions(ctx context.Context, query rbac.Permission
 		return nil
 	}
 
-	allowed, err := k.rBAC.EvaluatePermissions(query, k.permissions)
+	allowed, err := k.rBAC.EvaluatePermissions(query, k.Permissions)
 	if err != nil {
 		return err
 	}

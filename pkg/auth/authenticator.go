@@ -46,7 +46,7 @@ type chain []Resolver
 
 func (c chain) Authenticate(ctx context.Context, sess *zen.Session) (*Principal, Emit, error) {
 	for _, r := range c {
-		p, emit, err := r.Try(ctx, sess)
+		p, emit, err := r.Resolve(ctx, sess)
 		if err != nil {
 			return nil, EmptyEmit, err
 		}
@@ -67,6 +67,15 @@ func (c chain) Authenticate(ctx context.Context, sess *zen.Session) (*Principal,
 			emit = EmptyEmit
 		}
 		return p, emit, nil
+	}
+	// No resolver claimed the request. If zen.Bearer can't parse the
+	// Authorization header at all (missing entirely, missing "Bearer "
+	// prefix, empty value), surface that error directly so the client
+	// gets a precise diagnosis (Missing → 400, Malformed → 400). The
+	// root-key resolver is the catch-all otherwise, so reaching this
+	// fallback means the header was malformed at the parser level.
+	if _, bearerErr := zen.Bearer(sess); bearerErr != nil {
+		return nil, EmptyEmit, bearerErr
 	}
 	return nil, EmptyEmit, fault.New("no credentials",
 		fault.Code(codes.Auth.Authentication.Missing.URN()),

@@ -11,15 +11,15 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// fakeResolver returns canned values from Try. Tracks invocation count so
-// tests can assert chain ordering and short-circuiting.
+// fakeResolver returns canned values from Resolve. Tracks invocation count
+// so tests can assert chain ordering and short-circuiting.
 type fakeResolver struct {
 	principal *Principal
 	err       error
 	calls     int
 }
 
-func (f *fakeResolver) Try(ctx context.Context, sess *zen.Session) (*Principal, Emit, error) {
+func (f *fakeResolver) Resolve(ctx context.Context, sess *zen.Session) (*Principal, Emit, error) {
 	f.calls++
 	if f.err != nil {
 		return nil, EmptyEmit, f.err
@@ -106,7 +106,7 @@ func TestAuthenticate_MatchedWithError_StopsChainAndReturnsError(t *testing.T) {
 // Authenticator contract that handlers can defer emit() unconditionally.
 type nilEmitResolver struct{ p *Principal }
 
-func (r *nilEmitResolver) Try(ctx context.Context, sess *zen.Session) (*Principal, Emit, error) {
+func (r *nilEmitResolver) Resolve(ctx context.Context, sess *zen.Session) (*Principal, Emit, error) {
 	return r.p, nil, nil
 }
 

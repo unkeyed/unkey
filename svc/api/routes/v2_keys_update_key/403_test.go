@@ -36,6 +36,7 @@ func TestUpdateKeyCorrectPermissions(t *testing.T) {
 			h := testutil.NewHarness(t)
 
 			route := &handler.Handler{
+				Auth:         h.Auth,
 				DB:           h.DB,
 				Auditlogs:    h.Auditlogs,
 				KeyCache:     h.Caches.VerificationKeyByHash,
@@ -87,6 +88,7 @@ func TestUpdateKeyInsufficientPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
+		Auth:         h.Auth,
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
@@ -131,6 +133,7 @@ func TestUpdateKeyCrossWorkspaceIsolation(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
+		Auth:         h.Auth,
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,

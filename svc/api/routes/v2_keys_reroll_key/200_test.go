@@ -21,6 +21,7 @@ func TestRerollKeySuccess(t *testing.T) {
 	ctx := t.Context()
 
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,

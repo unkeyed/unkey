@@ -21,6 +21,7 @@ func TestMigrateKeysNotFound(t *testing.T) {
 	ctx := t.Context()
 
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Auditlogs: h.Auditlogs,
 		ApiCache:  h.Caches.LiveApiByID,

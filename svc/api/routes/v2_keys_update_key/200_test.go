@@ -29,6 +29,7 @@ func TestUpdateKeySuccess(t *testing.T) {
 	ctx := t.Context()
 
 	route := &handler.Handler{
+		Auth:         h.Auth,
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
@@ -131,6 +132,7 @@ func TestUpdateKeyUpdateAllFields(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
+		Auth:         h.Auth,
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
@@ -206,6 +208,7 @@ func TestKeyUpdateCreditsInvalidatesCache(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
+		Auth:         h.Auth,
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
@@ -285,6 +288,7 @@ func TestUpdateKeyConcurrentWithSameExternalId(t *testing.T) {
 	ctx := t.Context()
 
 	route := &handler.Handler{
+		Auth:         h.Auth,
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
@@ -370,6 +374,7 @@ func TestUpdateKeyConcurrentRatelimits(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
+		Auth:         h.Auth,
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,

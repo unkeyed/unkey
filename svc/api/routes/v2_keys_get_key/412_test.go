@@ -17,6 +17,7 @@ func TestPreconditionError(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
+		Auth:  h.Auth,
 		DB:    h.DB,
 		Vault: h.Vault,
 	}
@@ -85,6 +86,7 @@ func TestPreconditionError(t *testing.T) {
 		})
 
 		route := &handler.Handler{
+			Auth:      h.Auth,
 			DB:        h.DB,
 			Auditlogs: h.Auditlogs,
 			Vault:     h.Vault,
@@ -134,6 +136,7 @@ func TestPreconditionError(t *testing.T) {
 
 		// Create route with nil vault
 		routeNoVault := &handler.Handler{
+			Auth:      h.Auth,
 			DB:        h.DB,
 			Auditlogs: h.Auditlogs,
 			Vault:     nil, // No vault

@@ -185,8 +185,8 @@ func KeyPrincipalFromVerifier(verifier *keys.KeyVerifier) (*Principal, error) {
 	}
 
 	var permissions []string
-	if len(verifier.Permissions()) > 0 {
-		permissions = verifier.Permissions()
+	if len(verifier.Permissions) > 0 {
+		permissions = verifier.Permissions
 	}
 
 	return &Principal{

@@ -30,6 +30,7 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 	require.NoError(t, err)
 
 	route := &handler.Handler{
+		Auth:           h.Auth,
 		DB:             h.DB,
 		Auditlogs:      h.Auditlogs,
 		NamespaceCache: h.Caches.RatelimitNamespace,

@@ -31,7 +31,7 @@ func NewResolver() (*Resolver, error) {
 	return nil, ErrNotImplemented
 }
 
-// Try always returns (nil, nil, nil) today, leaving the dispatcher to fall
+// Resolve always returns (nil, nil, nil) today, leaving the chain to fall
 // through to whatever comes next or to emit the standard "no credentials"
 // error. When implemented this should:
 //   - return (nil, nil, nil) when no portal session cookie is present
@@ -41,6 +41,6 @@ func NewResolver() (*Resolver, error) {
 //   - return (nil, _, err) on a present-but-invalid cookie (mirroring the
 //     JWT resolver's contract) so a bad session doesn't silently fall
 //     through to a misleading downstream error.
-func (r *Resolver) Try(ctx context.Context, sess *zen.Session) (*auth.Principal, auth.Emit, error) {
+func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*auth.Principal, auth.Emit, error) {
 	return nil, nil, nil
 }

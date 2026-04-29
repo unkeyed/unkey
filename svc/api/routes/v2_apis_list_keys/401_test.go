@@ -14,6 +14,7 @@ func TestAuthenticationErrors(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
+		Auth:     h.Auth,
 		DB:       h.DB,
 		Vault:    h.Vault,
 		ApiCache: h.Caches.LiveApiByID,

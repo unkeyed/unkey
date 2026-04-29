@@ -14,6 +14,7 @@ func TestGetApiInvalidRequest(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
+		Auth:   h.Auth,
 		DB:     h.DB,
 		Caches: h.Caches,
 	}

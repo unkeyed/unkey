@@ -2,37 +2,33 @@ package keys
 
 import (
 	"context"
-	"strings"
 
 	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// RootKeyResolver matches bearers carrying the "unkey_" prefix, the format
-// every minted root key uses. It delegates the lookup to the keys service
-// (so caching, status handling, and audit emit are preserved) and converts
-// the resulting *KeyVerifier into the auth.Principal handlers consume.
-// Construct via NewRootKeyResolver and pass to auth.NewDispatcher.
+// RootKeyResolver is the catch-all in the auth chain: place it after the
+// JWT resolver so JWTs are claimed first and anything else (root keys,
+// garbage, malformed credentials) lands here. The keys service produces
+// the established "valid root key" error messages on every failure mode
+// (missing bearer, malformed header, key-not-found, disabled, etc.) so
+// the public error stays consistent with what callers have always seen.
 type RootKeyResolver struct {
 	keys KeyService
 }
 
-// NewRootKeyResolver builds an auth.Resolver that hands "unkey_"-prefixed
-// bearers to the keys service for lookup and validation.
+// NewRootKeyResolver builds an auth.Resolver that hands any bearer to the
+// keys service for lookup and validation.
 func NewRootKeyResolver(keys KeyService) *RootKeyResolver {
 	return &RootKeyResolver{keys: keys}
 }
 
-// Try returns (nil, _, nil) when the bearer is missing or not
-// "unkey_"-prefixed, so the dispatcher can fall through to the next
-// resolver. When the prefix matches, it surfaces the lookup result or
-// error so the dispatcher stops and reports it rather than silently
-// moving on.
-func (r *RootKeyResolver) Try(ctx context.Context, sess *zen.Session) (*auth.Principal, auth.Emit, error) {
-	bearer, err := zen.Bearer(sess)
-	if err != nil || !strings.HasPrefix(bearer, "unkey_") {
-		return nil, nil, nil
-	}
+// Resolve always delegates to the keys service so every failure mode
+// (missing/malformed Authorization header, unknown key, disabled key) is
+// reported with the same root-key-flavored error message clients rely on.
+// As the catch-all resolver this never returns (nil, nil, nil); it either
+// produces a Principal or surfaces an error that terminates the chain.
+func (r *RootKeyResolver) Resolve(ctx context.Context, sess *zen.Session) (*auth.Principal, auth.Emit, error) {
 	kv, emit, err := r.keys.GetRootKey(ctx, sess)
 	if err != nil {
 		return nil, emit, err
@@ -41,8 +37,8 @@ func (r *RootKeyResolver) Try(ctx context.Context, sess *zen.Session) (*auth.Pri
 		Scheme:      auth.SchemeRootKey,
 		ID:          kv.Key.ID,
 		DisplayName: kv.Key.Name.String,
-		WorkspaceID: kv.AuthorizedWorkspaceID(),
-		Permissions: kv.Permissions(),
+		WorkspaceID: kv.AuthorizedWorkspaceID,
+		Permissions: kv.Permissions,
 		Authorizer:  kv,
 	}, emit, nil
 }

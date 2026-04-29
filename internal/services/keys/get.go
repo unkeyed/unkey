@@ -31,7 +31,7 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 
 	rootKey, err := zen.Bearer(sess)
 	if err != nil {
-		return nil, emptyLog, fault.Wrap(err,
+		return nil, auth.EmptyEmit, fault.Wrap(err,
 			fault.Internal("no bearer"),
 			fault.Public("You must provide a valid root key in the Authorization header in the format 'Bearer ROOT_KEY'."),
 		)
@@ -62,26 +62,20 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 		)
 	}
 
-	key.authorizedWorkspaceID = key.Key.ForWorkspaceID.String
-	sess.WorkspaceID = key.AuthorizedWorkspaceID()
+	key.AuthorizedWorkspaceID = key.Key.ForWorkspaceID.String
+	sess.WorkspaceID = key.AuthorizedWorkspaceID
 
 	if err := s.checkWorkspaceRateLimit(ctx, sess); err != nil {
 		return nil, log, err
 	}
 
 	logger.Set(ctx, slog.Group("auth",
-		slog.String("workspace_id", key.AuthorizedWorkspaceID()),
+		slog.String("workspace_id", key.AuthorizedWorkspaceID),
 		slog.String("root_key_id", key.Key.ID),
 	))
 
 	return key, log, nil
 }
-
-// emptyLog is the no-op telemetry callback returned alongside a KeyVerifier
-// when there is nothing to flush (key not found, workspace disabled). It
-// aliases auth.EmptyEmit so handler-side defer emit() calls work uniformly
-// regardless of whether the bearer was a root key, JWT, or anything else.
-var emptyLog = auth.EmptyEmit
 
 // Get retrieves a key from the database and performs basic validation checks.
 // It returns a KeyVerifier that can be used for further validation with specific options.
@@ -94,7 +88,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 
 	err := assert.NotEmpty(sha256Hash)
 	if err != nil {
-		return nil, emptyLog, fault.Wrap(err, fault.Internal("sha256Hash is empty"))
+		return nil, auth.EmptyEmit, fault.Wrap(err, fault.Internal("sha256Hash is empty"))
 	}
 
 	key, hit, err := s.keyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (keysdb.CachedKeyData, error) {
@@ -170,10 +164,10 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			return &KeyVerifier{
 				Status:  StatusNotFound,
 				message: "key does not exist",
-			}, emptyLog, nil
+			}, auth.EmptyEmit, nil
 		}
 
-		return nil, emptyLog, fault.Wrap(
+		return nil, auth.EmptyEmit, fault.Wrap(
 			err,
 			fault.Internal("unable to load key"),
 			fault.Public("We could not load the requested key."),
@@ -185,7 +179,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		return &KeyVerifier{
 			Status:  StatusNotFound,
 			message: "key does not exist",
-		}, emptyLog, nil
+		}, auth.EmptyEmit, nil
 	}
 
 	// ForWorkspace set but that doesn't exist
@@ -194,7 +188,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		return &KeyVerifier{
 			Status:  StatusWorkspaceNotFound,
 			message: "workspace not found",
-		}, emptyLog, nil
+		}, auth.EmptyEmit, nil
 	}
 
 	// Workspace is disabled or the key is not allowed to be used for workspace operations
@@ -209,7 +203,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			keyVerifications:      s.keyVerifications,
 			rateLimiter:           s.rateLimiter,
 			usageLimiter:          s.usageLimiter,
-			authorizedWorkspaceID: key.WorkspaceID,
+			AuthorizedWorkspaceID: key.WorkspaceID,
 			isRootKey:             key.ForWorkspaceID.Valid,
 			Key:                   key.FindKeyForVerificationRow,
 			startTime:             startTime,
@@ -225,7 +219,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		keyVerifications:      s.keyVerifications,
 		rateLimiter:           s.rateLimiter,
 		usageLimiter:          s.usageLimiter,
-		authorizedWorkspaceID: key.WorkspaceID,
+		AuthorizedWorkspaceID: key.WorkspaceID,
 		rBAC:                  s.rbac,
 		session:               sess,
 		region:                s.region,
@@ -239,7 +233,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		ratelimitConfigs:  key.RatelimitConfigs,
 		parsedIPWhitelist: key.ParsedIPWhitelist, // Use pre-parsed IPs from cache
 		Roles:             key.Roles,
-		permissions:       key.Permissions,
+		Permissions:       key.Permissions,
 		RatelimitResults:  nil,
 	}
 

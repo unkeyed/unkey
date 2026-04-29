@@ -28,10 +28,16 @@ func newSession(t *testing.T, authHeader string) *zen.Session {
 
 func validToken(t *testing.T) string {
 	t.Helper()
+	now := time.Now()
+	// nolint:exhaustruct
 	return mintHS256(t, []byte(resolverSecret), Claims{
 		RegisteredClaims: gojwt.RegisteredClaims{
 			Subject:   "user_x",
-			ExpiresAt: gojwt.NewNumericDate(time.Now().Add(time.Minute)),
+			Issuer:    Issuer,
+			Audience:  gojwt.ClaimStrings{Audience},
+			IssuedAt:  gojwt.NewNumericDate(now),
+			NotBefore: gojwt.NewNumericDate(now),
+			ExpiresAt: gojwt.NewNumericDate(now.Add(time.Minute)),
 		},
 		WorkspaceID: "ws_x",
 	})
@@ -40,7 +46,7 @@ func validToken(t *testing.T) string {
 func TestResolver_SkipsRootKeyPrefix(t *testing.T) {
 	r := NewResolver([]byte(resolverSecret))
 
-	p, _, err := r.Try(context.Background(), newSession(t, "Bearer unkey_abc123"))
+	p, _, err := r.Resolve(context.Background(), newSession(t, "Bearer unkey_abc123"))
 
 	require.Nil(t, p, "must leave unkey_-prefixed bearers for the root-key resolver")
 	require.NoError(t, err)
@@ -49,7 +55,7 @@ func TestResolver_SkipsRootKeyPrefix(t *testing.T) {
 func TestResolver_SkipsMissingBearer(t *testing.T) {
 	r := NewResolver([]byte(resolverSecret))
 
-	p, _, err := r.Try(context.Background(), newSession(t, ""))
+	p, _, err := r.Resolve(context.Background(), newSession(t, ""))
 
 	require.Nil(t, p)
 	require.NoError(t, err)
@@ -59,7 +65,7 @@ func TestResolver_VerifiesValidToken(t *testing.T) {
 	r := NewResolver([]byte(resolverSecret))
 	tok := validToken(t)
 
-	p, emit, err := r.Try(context.Background(), newSession(t, "Bearer "+tok))
+	p, emit, err := r.Resolve(context.Background(), newSession(t, "Bearer "+tok))
 
 	require.NoError(t, err)
 	require.NotNil(t, p)
@@ -74,7 +80,7 @@ func TestResolver_VerifiesValidToken(t *testing.T) {
 func TestResolver_RejectsInvalidToken(t *testing.T) {
 	r := NewResolver([]byte(resolverSecret))
 
-	p, _, err := r.Try(context.Background(), newSession(t, "Bearer not.a.jwt"))
+	p, _, err := r.Resolve(context.Background(), newSession(t, "Bearer not.a.jwt"))
 
 	require.Error(t, err, "claimed bearers must terminate the chain even on failure")
 	require.Nil(t, p)

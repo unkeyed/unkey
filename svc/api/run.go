@@ -340,16 +340,18 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create key service: %w", err)
 	}
 
-	// Build the Authenticator. Order matters: root-key resolver matches
-	// "unkey_"-prefixed bearers, JWT resolver matches everything else when
-	// a secret is configured.
+	// Build the Authenticator. Order matters: try JWT first because its
+	// format (3 dot-separated segments) is unambiguous, then fall through
+	// to the root-key resolver which claims anything else and produces the
+	// established root-key error messages on failure.
 	// TODO: workspace rate limiting currently lives inside GetRootKey, so
 	// JWT-authenticated requests skip it. Move it to a wrapper Authenticator
 	// (or zen middleware) once we decide where workspace rate limiting belongs.
-	resolvers := []auth.Resolver{keys.NewRootKeyResolver(keySvc)}
+	resolvers := []auth.Resolver{}
 	if cfg.JWTSecret != "" {
 		resolvers = append(resolvers, jwt.NewResolver([]byte(cfg.JWTSecret)))
 	}
+	resolvers = append(resolvers, keys.NewRootKeyResolver(keySvc))
 	authImpl := auth.New(resolvers...)
 
 	r.Defer(keySvc.Close)

@@ -22,5 +22,5 @@ import (
 // Returning (nil, _, nil) on a malformed credential of your scheme is a
 // bug: it lets the next resolver run and produce a misleading error.
 type Resolver interface {
-	Try(ctx context.Context, sess *zen.Session) (*Principal, Emit, error)
+	Resolve(ctx context.Context, sess *zen.Session) (*Principal, Emit, error)
 }

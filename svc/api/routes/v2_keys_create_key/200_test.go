@@ -26,6 +26,7 @@ func TestCreateKeySuccess(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
@@ -76,6 +77,7 @@ func TestCreateKeyWithOptionalFields(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
@@ -138,6 +140,7 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
@@ -203,6 +206,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	ctx := t.Context()
 
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
@@ -282,6 +286,7 @@ func TestCreateKeyWithCreditsRemainingNull(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
@@ -330,6 +335,7 @@ func TestCreateKeyAppliesKeySpaceDefaults(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,

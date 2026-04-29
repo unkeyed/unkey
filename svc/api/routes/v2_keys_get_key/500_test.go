@@ -16,6 +16,7 @@ import (
 func TestInternalError(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,

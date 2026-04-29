@@ -12,6 +12,7 @@ func Test401_NoAuthHeader(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &Handler{
+		Auth:                       h.Auth,
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
@@ -34,6 +35,7 @@ func Test401_InvalidRootKey(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &Handler{
+		Auth:                       h.Auth,
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,

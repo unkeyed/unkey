@@ -32,15 +32,11 @@ type RatelimitConfigAndResult struct {
 // The auth.Principal handlers consume is constructed from a KeyVerifier by
 // keys.RootKeyResolver; KeyVerifier itself is a keys-service-internal type.
 type KeyVerifier struct {
-	Key    keysdb.FindKeyForVerificationRow // The key data from the database
-	Roles  []string                         // RBAC roles assigned to this key
-	Status KeyStatus                        // The current validation status
-
-	// authorizedWorkspaceID and permissions are read through their accessor
-	// methods (AuthorizedWorkspaceID, Permissions) so the keys package can
-	// evolve the underlying storage without breaking external callers.
-	authorizedWorkspaceID string
-	permissions           []string
+	Key                   keysdb.FindKeyForVerificationRow // The key data from the database
+	Roles                 []string                         // RBAC roles assigned to this key
+	Status                KeyStatus                        // The current validation status
+	AuthorizedWorkspaceID string                           // Workspace ID this key is scoped to act on (ForWorkspaceID for root keys, the key's own workspace otherwise)
+	Permissions           []string                         // Flat list of granted permission strings
 
 	ratelimitConfigs map[string]keysdb.KeyFindForVerificationRatelimit // Rate limits configured for this key (name -> config)
 	RatelimitResults map[string]RatelimitConfigAndResult               // Combined config and results for rate limits (name -> config+result)

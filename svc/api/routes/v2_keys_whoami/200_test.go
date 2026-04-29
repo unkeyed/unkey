@@ -25,6 +25,7 @@ func TestGetKeyByKey(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
@@ -107,6 +108,7 @@ func TestGetKeyByKey(t *testing.T) {
 func TestGetKey_AdditionalScenarios(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,

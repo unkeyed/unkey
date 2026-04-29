@@ -23,6 +23,7 @@ func Test403_NoAnalyticsPermission(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_api")
 
 	route := &Handler{
+		Auth:                       h.Auth,
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
@@ -58,6 +59,7 @@ func Test403_WrongApiPermission(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api."+api1.ID+".read_analytics")
 
 	route := &Handler{
+		Auth:                       h.Auth,
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,

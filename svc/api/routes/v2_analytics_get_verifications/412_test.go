@@ -22,6 +22,7 @@ func Test412_AnalyticsNotConfigured(t *testing.T) {
 	// This will cause GetConnection to fail
 
 	route := &Handler{
+		Auth:                       h.Auth,
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,

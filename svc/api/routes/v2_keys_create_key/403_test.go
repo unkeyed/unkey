@@ -23,6 +23,7 @@ func TestCreateKeyForbidden(t *testing.T) {
 	ctx := context.Background()
 
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,

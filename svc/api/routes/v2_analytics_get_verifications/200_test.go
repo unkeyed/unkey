@@ -41,6 +41,7 @@ func Test200_Success(t *testing.T) {
 	}
 
 	route := &Handler{
+		Auth:                       h.Auth,
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
@@ -115,6 +116,7 @@ func Test200_PermissionFiltersByApiId(t *testing.T) {
 	}
 
 	route := &Handler{
+		Auth:                       h.Auth,
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
@@ -193,6 +195,7 @@ func Test200_PermissionFiltersByKeySpaceId(t *testing.T) {
 	}
 
 	route := &Handler{
+		Auth:                       h.Auth,
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
@@ -256,6 +259,7 @@ func Test200_QueryWithin30DaysRetention(t *testing.T) {
 	})
 
 	route := &Handler{
+		Auth:                       h.Auth,
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
@@ -287,6 +291,7 @@ func Test200_QueryAtExact30DayRetentionLimit(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
 	route := &Handler{
+		Auth:                       h.Auth,
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
@@ -316,6 +321,7 @@ func Test200_QueryWithCustomRetention90Days(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
 	route := &Handler{
+		Auth:                       h.Auth,
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
@@ -391,6 +397,7 @@ func Test200_RLSWorkspaceIsolation(t *testing.T) {
 	}
 
 	route := &Handler{
+		Auth:                       h.Auth,
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,
@@ -428,6 +435,7 @@ func Test200_QueryWithoutTimeFilter_AutoAddsFilter(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_analytics")
 
 	route := &Handler{
+		Auth:                       h.Auth,
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,

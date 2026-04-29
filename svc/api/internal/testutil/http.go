@@ -216,8 +216,10 @@ func NewHarness(t *testing.T) *Harness {
 	require.NoError(t, err)
 
 	authImpl := auth.New(
-		keys.NewRootKeyResolver(keyService),
+		// JWT first because its format (3 dot-separated segments) is
+		// unambiguous; the root-key resolver then claims anything else.
 		jwt.NewResolver([]byte("test-jwt-secret-min-32-bytes-for-hs256-please")),
+		keys.NewRootKeyResolver(keyService),
 	)
 
 	h := Harness{

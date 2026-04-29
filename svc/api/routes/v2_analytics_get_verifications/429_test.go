@@ -42,6 +42,7 @@ func Test429_QueryQuotaExceeded(t *testing.T) {
 	}
 
 	route := &Handler{
+		Auth:                       h.Auth,
 		DB:                         h.DB,
 		AnalyticsConnectionManager: h.AnalyticsConnectionManager,
 		Caches:                     h.Caches,

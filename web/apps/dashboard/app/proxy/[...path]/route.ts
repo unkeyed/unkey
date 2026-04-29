@@ -6,10 +6,20 @@ import { getAuth } from "@/lib/auth/get-auth";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { mintProxyJWT } from "@/lib/proxy/mint-jwt";
+import { cacheLife, cacheTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 
 const ALLOWED_PERMISSIONS = ["api.*.read_key"];
 const UPSTREAM_TIMEOUT_MS = 10_000;
+
+async function getWorkspaceByOrgId(orgId: string) {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`workspace:org:${orgId}`);
+  return db.query.workspaces.findFirst({
+    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+  });
+}
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   if (req.headers.get("authorization")) {
@@ -26,12 +36,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
   }
 
-  // This is kind of bugging me. Ideally this proxy route would be stateless,
-  // but for that to work we'd need the workspace id to be available in the
-  // workos user.
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-  });
+  const workspace = await getWorkspaceByOrgId(orgId);
   if (!workspace) {
     return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
   }

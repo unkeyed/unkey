@@ -11,9 +11,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// Resolver matches any bearer that does NOT carry the "unkey_" root-key
-// prefix and verifies it as an HS256 JWT against secret. Construct it only
-// when a secret is configured; without one, JWTs must not be accepted.
+// Resolver matches any bearer shaped like a JWT (three dot-separated
+// segments) and verifies it as an HS256 token against secret. Construct
+// it only when a secret is configured; without one, JWTs must not be
+// accepted.
 type Resolver struct {
 	secret []byte
 }
@@ -23,11 +24,11 @@ func NewResolver(secret []byte) *Resolver {
 	return &Resolver{secret: secret}
 }
 
-// Try returns (nil, _, nil) when the bearer is missing or carries the
-// "unkey_" root-key prefix, leaving those for the root-key resolver.
-// Anything else is claimed and verified; verification failure terminates
-// the chain with a Malformed-credential fault.
-func (r *Resolver) Try(ctx context.Context, sess *zen.Session) (*auth.Principal, auth.Emit, error) {
+// Resolve returns (nil, _, nil) when the bearer is missing or doesn't
+// look like a JWT, leaving it for other resolvers. Anything else is
+// claimed and verified; verification failure terminates the chain with
+// a Malformed-credential fault.
+func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*auth.Principal, auth.Emit, error) {
 	bearer, err := zen.Bearer(sess)
 	if err != nil || len(strings.Split(bearer, ".")) != 3 {
 		return nil, nil, nil

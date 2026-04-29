@@ -20,6 +20,7 @@ func TestSuccess(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Auditlogs: h.Auditlogs,
 		KeyCache:  h.Caches.VerificationKeyByHash,
@@ -309,6 +310,7 @@ func TestAddPermissionsConcurrent(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
+		Auth:      h.Auth,
 		DB:        h.DB,
 		Auditlogs: h.Auditlogs,
 		KeyCache:  h.Caches.VerificationKeyByHash,

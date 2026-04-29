@@ -30,7 +30,8 @@ func TestGetDeploymentSuccessfully(t *testing.T) {
 		})
 
 		route := &handler.Handler{
-			DB: h.DB,
+			Auth: h.Auth,
+			DB:   h.DB,
 		}
 		h.Register(route)
 
@@ -76,7 +77,8 @@ func TestGetDeploymentWithWildcardPermission(t *testing.T) {
 	})
 
 	route := &handler.Handler{
-		DB: h.DB,
+		Auth: h.Auth,
+		DB:   h.DB,
 	}
 	h.Register(route)
 
@@ -114,7 +116,8 @@ func TestGetDeploymentWithSpecificProjectPermission(t *testing.T) {
 	})
 
 	route := &handler.Handler{
-		DB: h.DB,
+		Auth: h.Auth,
+		DB:   h.DB,
 	}
 	h.Register(route)
 

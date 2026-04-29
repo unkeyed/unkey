@@ -18,7 +18,8 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB: h.DB,
+		Auth: h.Auth,
+		DB:   h.DB,
 		CtrlClient: &testutil.MockDeploymentClient{
 			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
 				return &ctrlv1.CreateDeploymentResponse{DeploymentId: "test-deployment-id"}, nil
@@ -101,7 +102,8 @@ func TestCreateDeploymentWithWildcardPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB: h.DB,
+		Auth: h.Auth,
+		DB:   h.DB,
 		CtrlClient: &testutil.MockDeploymentClient{
 			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
 				return &ctrlv1.CreateDeploymentResponse{DeploymentId: "test-deployment-id"}, nil
@@ -137,7 +139,8 @@ func TestCreateDeploymentWithSpecificProjectPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		DB: h.DB,
+		Auth: h.Auth,
+		DB:   h.DB,
 		CtrlClient: &testutil.MockDeploymentClient{
 			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
 				return &ctrlv1.CreateDeploymentResponse{DeploymentId: "test-deployment-id"}, nil

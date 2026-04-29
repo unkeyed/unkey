@@ -4,18 +4,6 @@ import (
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 )
 
-// AuthorizedWorkspaceID returns the workspace ID this key is scoped to act on.
-// For root keys this is ForWorkspaceID; for workspace-internal keys this is
-// the key's own workspace.
-func (k *KeyVerifier) AuthorizedWorkspaceID() string {
-	return k.authorizedWorkspaceID
-}
-
-// Permissions returns the flat list of granted permission strings.
-func (k *KeyVerifier) Permissions() []string {
-	return k.permissions
-}
-
 // VerifierArgs configures NewVerifier.
 type VerifierArgs struct {
 	Key                   keysdb.FindKeyForVerificationRow
@@ -35,8 +23,8 @@ func NewVerifier(args VerifierArgs) *KeyVerifier {
 	return &KeyVerifier{
 		Key:                   args.Key,
 		Roles:                 args.Roles,
-		permissions:           args.Permissions,
-		authorizedWorkspaceID: args.AuthorizedWorkspaceID,
+		Permissions:           args.Permissions,
+		AuthorizedWorkspaceID: args.AuthorizedWorkspaceID,
 		Status:                args.Status,
 	}
 }

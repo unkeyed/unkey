@@ -188,7 +188,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Enabled:     ptr.P(key.Key.Enabled),
 		Name:        key.Key.Name.String,
 		KeyId:       key.Key.ID,
-		Permissions: key.Permissions(),
+		Permissions: key.Permissions,
 		Roles:       key.Roles,
 		Credits:     nil,
 		Expires:     0,
