@@ -45,3 +45,8 @@ Makefile
 /demo_api
 /k8s
 /.git
+
+# Environment / secret files
+**/.env
+**/.env.*
+**/.envrc
