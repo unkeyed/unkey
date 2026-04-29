@@ -40,7 +40,7 @@ Enable the Customer Portal for your workspace in the Unkey dashboard.
 Dashboard configuration UI is coming soon. During early access, reach out to the Unkey team to get your portal configured.
 </Note>
 
-Once configured, you'll receive a portal ID (e.g. `portal_xxx`) to use when creating sessions.
+Once configured, you'll receive a portal configuration ID (e.g. `pc_xxx`) to use when creating sessions.
 
 Optionally, you can customize branding with your logo and brand colors.
 
@@ -55,7 +55,7 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
   -H "Authorization: Bearer YOUR_ROOT_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "portalId": "portal_xxx",
+    "portalId": "pc_xxx",
     "externalId": "user_123",
     "permissions": ["keys:read", "keys:create", "analytics:read", "docs:read"]
   }'
@@ -69,7 +69,7 @@ const response = await fetch("https://api.unkey.com/v2/portal.createSession", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    portalId: "portal_xxx",
+    portalId: "pc_xxx",
     externalId: "user_123",
     permissions: ["keys:read", "keys:create", "analytics:read", "docs:read"],
   }),
@@ -84,7 +84,7 @@ const { data } = await response.json();
 ```go Go
 // Use your preferred HTTP client
 body := map[string]any{
-    "portalId":    "portal_xxx",
+    "portalId":    "pc_xxx",
     "externalId":  "user_123",
     "permissions": []string{"keys:read", "keys:create", "analytics:read", "docs:read"},
 }
@@ -125,7 +125,7 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
   -H "Authorization: Bearer YOUR_ROOT_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "portalId": "portal_xxx",
+    "portalId": "pc_xxx",
     "externalId": "user_123",
     "permissions": ["keys:read", "analytics:read"],
     "metadata": { "name": "Jane Doe", "email": "jane@example.com" },
