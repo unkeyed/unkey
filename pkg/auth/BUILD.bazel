@@ -23,6 +23,8 @@ go_test(
     srcs = ["authenticate_test.go"],
     embed = [":auth"],
     deps = [
+        "//pkg/codes",
+        "//pkg/fault",
         "//pkg/zen",
         "@com_github_stretchr_testify//require",
     ],

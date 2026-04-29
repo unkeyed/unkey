@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -31,10 +33,14 @@ func (f *fakeResolver) Resolve(ctx context.Context, sess *zen.Session) (*Princip
 }
 
 // newSession builds a zen.Session ready for tests. Authenticate reads/writes
-// WorkspaceID and reads RequestID; both work after Init.
-func newSession(t *testing.T) *zen.Session {
+// WorkspaceID and reads RequestID; both work after Init. Pass an optional
+// Authorization header value to exercise the bearer-parsing path.
+func newSession(t *testing.T, authHeader ...string) *zen.Session {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	if len(authHeader) > 0 && authHeader[0] != "" {
+		req.Header.Set("Authorization", authHeader[0])
+	}
 	w := httptest.NewRecorder()
 	sess := &zen.Session{}
 	require.NoError(t, sess.Init(w, req, 0))
@@ -118,4 +124,21 @@ func TestAuthenticate_NormalizesNilEmit(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, emit, "Authenticate must never return a nil Emit so handlers can defer it unconditionally")
 	emit() // calling it must not panic
+}
+
+// TestAuthenticate_AllUnmatched_PropagatesBearerError ensures that when no
+// resolver claims a request the chain surfaces zen.Bearer's parse error
+// directly, so a "Bearer "-less header gets a Malformed code (→ 400) and
+// not a misleading "missing credential" message. Reachable when callers
+// configure an Authenticator without a catch-all resolver.
+func TestAuthenticate_AllUnmatched_PropagatesBearerError(t *testing.T) {
+	_, _, err := New(&fakeResolver{}).Authenticate(
+		context.Background(),
+		newSession(t, "MalformedHeader xyz"),
+	)
+
+	require.Error(t, err)
+	code, ok := fault.GetCode(err)
+	require.True(t, ok, "bearer error must carry a fault code")
+	require.Equal(t, codes.Auth.Authentication.Malformed.URN(), code)
 }

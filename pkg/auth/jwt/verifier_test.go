@@ -90,9 +90,9 @@ func TestVerify_Rejects_EmptySecret(t *testing.T) {
 	require.Error(t, err)
 }
 
-// missingClaim covers every claim the verifier requires beyond the
-// signature itself. A token missing any of these is rejected even when
-// the signature is valid.
+// TestVerify_Rejects_MissingClaims covers every claim the verifier
+// requires beyond the signature itself. A token missing any of these
+// is rejected even when the signature is valid.
 func TestVerify_Rejects_MissingClaims(t *testing.T) {
 	tests := []struct {
 		name   string

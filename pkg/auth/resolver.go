@@ -6,11 +6,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// Resolver tries to derive a Principal from the request. Each authentication
-// scheme (root key, JWT, cookie session) is one Resolver, lives in its own
-// file with its own tests, and the dispatcher stays a dumb chain walker
-// that runs cross-cutting checks (rate limiting, observability) in exactly
-// one place.
+// Resolver derives a Principal from the request for a single authentication
+// scheme (root key, JWT, cookie session). Each scheme lives in its own
+// file with its own tests so the Authenticator stays a dumb chain walker.
 //
 // The three return states:
 //
