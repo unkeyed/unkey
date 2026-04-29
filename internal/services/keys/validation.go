@@ -116,6 +116,22 @@ func (k *KeyVerifier) Authorize(ctx context.Context, query rbac.PermissionQuery)
 	return nil
 }
 
+// HasAnyPermission satisfies auth.Authorizer for the verify_key fast path.
+// On a false result it flips k.Status to StatusInsufficientPermissions so
+// the deferred ClickHouse emit records the denial even if the caller does
+// not follow up with Authorize. The mutation is gated on StatusValid so a
+// later, more specific error (e.g. KeyNotFound from the customer-key
+// lookup) can still override the outcome.
+func (k *KeyVerifier) HasAnyPermission(_ context.Context, resourceType rbac.ResourceType, action rbac.ActionType) bool {
+	if rbac.HasAnyPermission(k.Permissions, resourceType, action) {
+		return true
+	}
+	if k.Status == StatusValid {
+		k.setInvalid(StatusInsufficientPermissions, "no matching permissions")
+	}
+	return false
+}
+
 // withRateLimits validates the key against both auto-applied and specified rate limits.
 // Auto-applied limits come from the key or identity configuration, while specified limits
 // are provided at verification time. All limits must pass for the key to be valid.

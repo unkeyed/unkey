@@ -23,15 +23,26 @@ const (
 )
 
 // Authorizer is the per-scheme behavior plugged into a Principal so
-// Authorize can run scheme-aware side effects. The root-key scheme uses
-// this to flip the KeyVerifier's status to StatusInsufficientPermissions
-// on a denied check, so the deferred ClickHouse emit records the right
-// outcome instead of "VALID".
+// authorization checks can run scheme-aware side effects. The root-key
+// scheme uses this to flip the KeyVerifier's status to
+// StatusInsufficientPermissions on a denied check, so the deferred
+// ClickHouse emit records the right outcome instead of "VALID".
 //
 // Stateless schemes (JWT, future portal sessions) wrap their granted
-// slice in GrantedPermissions, which just delegates to rbac.Check.
+// slice in GrantedPermissions, which just delegates to the rbac package.
 type Authorizer interface {
+	// Authorize evaluates q against the granted permissions and returns
+	// an InsufficientPermissions fault on denial. Implementations that
+	// track outcome state (root-key) update it here.
 	Authorize(ctx context.Context, q rbac.PermissionQuery) error
+
+	// HasAnyPermission reports whether the principal holds at least one
+	// permission for resourceType+action, regardless of resource ID.
+	// Used by the verify_key fast path to short-circuit before an
+	// expensive lookup. Implementations that track outcome state update
+	// it on a false result so the deferred emit reflects the denial
+	// even when the caller skips the follow-up Authorize call.
+	HasAnyPermission(ctx context.Context, resourceType rbac.ResourceType, action rbac.ActionType) bool
 }
 
 // Principal is the resolved authenticated state for one request. After
@@ -79,6 +90,14 @@ func (p *Principal) Authorize(ctx context.Context, q rbac.PermissionQuery) error
 	return p.Authorizer.Authorize(ctx, q)
 }
 
+// HasAnyPermission reports whether the principal holds at least one
+// permission of the given shape, routed through the scheme's Authorizer
+// so outcome tracking stays consistent. Use this in handlers instead
+// of calling rbac.HasAnyPermission with the granted slice directly.
+func (p *Principal) HasAnyPermission(ctx context.Context, resourceType rbac.ResourceType, action rbac.ActionType) bool {
+	return p.Authorizer.HasAnyPermission(ctx, resourceType, action)
+}
+
 // GrantedPermissions is the default Authorizer for stateless schemes
 // (JWT, portal session). It carries the granted slice and delegates to
 // rbac.Check, which produces the standard InsufficientPermissions fault
@@ -89,4 +108,10 @@ type GrantedPermissions []string
 // Authorize implements Authorizer for stateless schemes.
 func (g GrantedPermissions) Authorize(_ context.Context, q rbac.PermissionQuery) error {
 	return rbac.Check(q, g)
+}
+
+// HasAnyPermission implements Authorizer for stateless schemes. No outcome
+// tracking is needed since these schemes have no per-request emit.
+func (g GrantedPermissions) HasAnyPermission(_ context.Context, resourceType rbac.ResourceType, action rbac.ActionType) bool {
+	return rbac.HasAnyPermission(g, resourceType, action)
 }

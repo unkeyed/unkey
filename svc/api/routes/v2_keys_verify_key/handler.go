@@ -54,10 +54,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Check if the root key has ANY verify permissions at all.
-	// If not, return a proper permissions error immediately without looking up the key.
-	// This prevents returning NOT_FOUND for every request when the root key simply lacks verify permissions entirely.
-	if !rbac.HasAnyPermission(auth.Permissions, rbac.Api, rbac.VerifyKey) {
+	// Check if the root key has ANY verify permissions at all. If not,
+	// return a proper permissions error immediately without looking up
+	// the customer key. This prevents NOT_FOUND for every request when
+	// the root key simply lacks verify permissions entirely.
+	if !auth.HasAnyPermission(ctx, rbac.Api, rbac.VerifyKey) {
 		return auth.Authorize(ctx, rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,
