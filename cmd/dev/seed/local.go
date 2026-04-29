@@ -93,6 +93,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	previewEnvID := uid.New(uid.EnvironmentPrefix)
 	productionEnvID := uid.New(uid.EnvironmentPrefix)
 	regionID := uid.New(uid.RegionPrefix)
+	portalConfigID := fmt.Sprintf("portal_%s", slug)
 
 	err = db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
@@ -494,12 +495,10 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 
 		// Optionally seed portal configuration and branding.
 		if cmd.Bool("portal") {
-			portalConfigID := fmt.Sprintf("portal_%s", slug)
-
 			err = db.Query.InsertPortalConfig(ctx, tx, db.InsertPortalConfigParams{
 				ID:          portalConfigID,
 				WorkspaceID: workspaceID,
-				AppID:       sql.NullString{},
+				AppID:       sql.NullString{Valid: true, String: appID},
 				KeyAuthID:   sql.NullString{Valid: true, String: userKeySpaceID},
 				Enabled:     true,
 				ReturnUrl:   sql.NullString{Valid: true, String: "http://localhost:3000/portal-return"},
@@ -551,6 +550,10 @@ UNKEY_ROOT_KEY=%s
 			userKeySpaceID,
 			keyResult.Key,
 		)
+
+		if cmd.Bool("portal") {
+			envContent += fmt.Sprintf("UNKEY_PORTAL_CONFIG_ID=%s\n", portalConfigID)
+		}
 
 		// Ensure directory exists
 		if dir := filepath.Dir(outputFile); dir != "" && dir != "." {
