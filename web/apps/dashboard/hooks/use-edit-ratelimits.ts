@@ -106,14 +106,19 @@ const formatInterval = (milliseconds: number): string => {
 
   const duration = intervalToDuration({ start: 0, end: milliseconds });
 
+  // Customize the format for different time ranges
   if (milliseconds < 60000) {
+    // Less than a minute
     return formatDuration(duration, { format: ["seconds"] });
   }
   if (milliseconds < 3600000) {
+    // Less than an hour
     return formatDuration(duration, { format: ["minutes", "seconds"] });
   }
   if (milliseconds < 86400000) {
+    // Less than a day
     return formatDuration(duration, { format: ["hours", "minutes"] });
   }
+  // Days or more
   return formatDuration(duration, { format: ["days", "hours"] });
 };
