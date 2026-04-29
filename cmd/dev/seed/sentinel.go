@@ -2,7 +2,6 @@ package seed
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"math"
@@ -131,7 +130,7 @@ func (s *SentinelSeeder) getDeploymentDetails(ctx context.Context) (db.Deploymen
 		deployment.WorkspaceID, deployment.ProjectID, deployment.EnvironmentID)
 
 	// Get domain from frontline routes
-	routes, err := db.Query.FindFrontlineRoutesByDeploymentID(ctx, s.db.RO(), sql.NullString{Valid: true, String: s.deploymentID})
+	routes, err := db.Query.FindFrontlineRoutesByDeploymentID(ctx, s.db.RO(), s.deploymentID)
 	if err != nil {
 		return db.Deployment{}, "", fmt.Errorf("failed to get routes: %w", err)
 	}

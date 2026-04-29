@@ -1,7 +1,6 @@
 package environment
 
 import (
-	"database/sql"
 	"fmt"
 
 	restate "github.com/restatedev/sdk-go"
@@ -40,7 +39,7 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Query.DeleteFrontlineRoutesByEnvironmentId(runCtx, s.db.RW(), sql.NullString{Valid: true, String: envID})
+		return db.Query.DeleteFrontlineRoutesByEnvironmentId(runCtx, s.db.RW(), envID)
 	}, restate.WithName("delete frontline routes")); err != nil {
 		return nil, fmt.Errorf("delete frontline routes: %w", err)
 	}
