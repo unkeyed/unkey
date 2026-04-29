@@ -3,6 +3,7 @@ web
 # we need to figure out how to do the proto generation in bazel
 proto
 svc/ctrl/proto
+svc/frontline/proto
 svc/krane/proto
 svc/sentinel/proto
 svc/vault/proto
