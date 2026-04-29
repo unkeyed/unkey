@@ -1,9 +1,9 @@
 "use client";
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { Switch } from "@/components/ui/switch";
 import type { SentinelPolicy } from "@/lib/collections/deploy/sentinel-policies.schema";
 import { cn } from "@/lib/utils";
-import { Switch } from "@/components/ui/switch";
 import { Dots, GripDotsVertical, PenWriting3, Trash } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
 import { useRef, useState } from "react";
@@ -239,6 +239,7 @@ function EnvSwitch({
       <span
         className="flex items-center gap-2 shrink-0"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
       >
         <span className="text-[13px] text-gray-11 capitalize whitespace-nowrap">{slug}</span>
         <Switch
