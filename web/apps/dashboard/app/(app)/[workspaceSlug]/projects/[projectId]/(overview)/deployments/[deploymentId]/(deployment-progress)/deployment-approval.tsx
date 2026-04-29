@@ -101,7 +101,7 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
               loading={authorize.isLoading}
               onClick={() => authorize.mutate({ deploymentId: deployment.id })}
             >
-              Authorize Deployment
+              Approve Deployment
             </Button>
             {prUrl ? (
               <a href={prUrl} target="_blank" rel="noopener noreferrer">
