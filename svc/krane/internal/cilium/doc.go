@@ -7,15 +7,11 @@
 //
 // # Architecture
 //
-// The [Controller] runs a resync loop that periodically reconciles all existing
-// policies against the control plane to handle missed events or drift. Desired
-// state is received from the unified WatchDeploymentChanges stream via the
-// watcher package, which calls [Controller.ApplyCiliumNetworkPolicy] and
+// Desired state is received from the unified WatchDeploymentChanges stream via
+// the watcher package, which calls [Controller.ApplyCiliumNetworkPolicy] and
 // [Controller.DeleteCiliumNetworkPolicy] directly.
 //
 // # Usage
-//
-// Create a controller with [New] and start it with [Controller.Start]:
 //
 //	controller := cilium.New(cilium.Config{
 //	    ClientSet:     clientSet,
@@ -23,10 +19,6 @@
 //	    Cluster:       clusterClient,
 //	    Region:        "us-east-1",
 //	})
-//	if err := controller.Start(ctx); err != nil {
-//	    return err
-//	}
-//	defer controller.Stop()
 //
 // The controller uses server-side apply for CiliumNetworkPolicy resources, allowing
 // concurrent modifications from different sources without conflicts.

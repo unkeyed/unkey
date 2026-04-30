@@ -1,27 +1,20 @@
 package cilium
 
 import (
-	"context"
-
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
-// Controller manages CiliumNetworkPolicy resources in a Kubernetes cluster by maintaining
-// bidirectional state synchronization with the control plane.
+// Controller manages CiliumNetworkPolicy resources in a Kubernetes cluster.
 //
 // The controller receives desired state from the unified WatchDeploymentChanges stream
 // (dispatched by the watcher) and applies Cilium network policies to Kubernetes.
-//
-// Create a Controller with [New] and start it with [Controller.Start]. The controller
-// runs until the context is cancelled or [Controller.Stop] is called.
 type Controller struct {
 	clientSet     kubernetes.Interface
 	dynamicClient dynamic.Interface
 	cluster       ctrl.ClusterServiceClient
-	done          chan struct{}
 	region        string
 	platform      string
 }
@@ -49,17 +42,12 @@ type Config struct {
 	Platform string
 }
 
-// New creates a [Controller] ready to be started with [Controller.Start].
-//
-// The controller initializes with versionLastSeen=0, meaning it will receive all
-// pending policies on first connection. The circuit breaker starts in a closed
-// (healthy) state.
+// New creates a [Controller].
 func New(cfg Config) *Controller {
 	return &Controller{
 		clientSet:     cfg.ClientSet,
 		dynamicClient: cfg.DynamicClient,
 		cluster:       cfg.Cluster,
-		done:          make(chan struct{}),
 		region:        cfg.Region,
 		platform:      cfg.Platform,
 	}
@@ -67,21 +55,4 @@ func New(cfg Config) *Controller {
 
 func (c *Controller) regionKey() *ctrlv1.RegionKey {
 	return &ctrlv1.RegionKey{Platform: c.platform, Name: c.region}
-}
-
-// Start launches the resync loop as a background goroutine.
-// Desired state is received externally via the watcher package.
-//
-// The loop continues until the context is cancelled or [Controller.Stop] is called.
-func (c *Controller) Start(ctx context.Context) error {
-	go c.runResyncLoop(ctx)
-
-	return nil
-}
-
-// Stop signals all background goroutines to terminate by closing the done channel.
-// Returns nil; the error return exists for interface compatibility.
-func (c *Controller) Stop() error {
-	close(c.done)
-	return nil
 }
