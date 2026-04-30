@@ -63,8 +63,8 @@
             "group": "Getting Started",
             "pages": [
               "introduction",
-              "quickstart/quickstart",
               "quickstart/deploy",
+              "quickstart/quickstart",
               "glossary"
             ]
           },
