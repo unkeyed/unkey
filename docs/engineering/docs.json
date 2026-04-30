@@ -122,6 +122,15 @@
                 ]
               },
               {
+                "group": "Logdrain",
+                "pages": [
+                  "architecture/services/logdrain/overview",
+                  "architecture/services/logdrain/schema",
+                  "architecture/services/logdrain/sinks",
+                  "architecture/services/logdrain/failure-modes"
+                ]
+              },
+              {
                 "group": "Sentinel",
                 "pages": [
                   "architecture/services/sentinel/overview",

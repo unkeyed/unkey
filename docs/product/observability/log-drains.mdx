@@ -1,0 +1,52 @@
+---
+title: Log Drains
+description: "Forward runtime and request logs from your Unkey deployments to Axiom, Datadog, OTLP collectors, and other providers."
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+Log Drains forward logs from your Unkey deployments to a third-party provider. Set up a drain once and every matching deployment streams its runtime output and HTTP requests to Axiom, Datadog, or any OTLP-compatible collector.
+
+This page is a placeholder. The full guide will land alongside the v1 release.
+
+## What you can configure
+
+A drain belongs to a project (or to your entire workspace) and has:
+
+- **Provider.** Axiom, Datadog, or OTLP/HTTP.
+- **Sources.** Runtime logs (stdout and stderr) and HTTP request logs. Both are on by default.
+- **Environments.** Production is on by default. Preview is off by default to avoid surprise spend on PR previews.
+- **Filters.** Minimum severity, status code matchers, path excludes, and an opt-in toggle to include request and response bodies.
+
+You can create as many drains per project as you want. Common shapes:
+
+- Production runtime + request logs to Datadog, plus production runtime to Axiom for long-term archive
+- A workspace-wide drain to a SOC/SIEM, plus per-project drains for engineering teams
+- Two drains to the same provider with different filters: errors-only to a paging dataset, everything-else to a long-retention dataset
+
+## Connecting a provider
+
+- **Datadog.** OAuth. Click "Connect Datadog" in the wizard, authorize the workspace, and the scoped API key is stored securely. One Datadog connection can back multiple drains across projects.
+- **Axiom.** Paste an ingest token and a dataset name. OAuth coming soon.
+- **OTLP/HTTP.** Paste your collector's endpoint URL and auth header.
+
+Tokens are encrypted at rest via Unkey Vault and never re-displayed after creation. To rotate a token, edit the drain.
+
+## Delivery semantics
+
+- **Lag.** Logs typically appear at the provider within 30 to 60 seconds of being emitted by your app.
+- **At-least-once.** During a service restart, you may see up to ~30 seconds of duplicates. Where the provider supports `Idempotency-Key`, Unkey sends a per-record key so the provider can dedup automatically.
+- **Backpressure.** If the provider is unreachable or rate-limiting, Unkey retries with exponential backoff. After repeated failures a drain auto-pauses and surfaces the provider's actual error in the dashboard.
+- **Privacy.** Request and response bodies are stripped by default. Enable `Include request and response bodies` only after confirming your provider's data-handling policy.
+
+## Retention
+
+Drains forward logs as they arrive. Unkey's built-in 90-day runtime log retention and 30-day request log retention are unaffected.
+
+## Coming soon
+
+- Generic HTTP webhook sink for non-OTLP custom endpoints
+- Trace drains (OTLP traces) once tracing lands in the platform
+- Replay UI for re-sending the last N hours after a misconfiguration

@@ -1,0 +1,221 @@
+---
+title: 0015 Log Drains
+description: A per-tenant forwarder that ships runtime and request logs from ClickHouse to third-party observability backends.
+date: 2026-05-03
+authors:
+  - Flo
+---
+
+## Summary
+
+Log Drains let a workspace forward its runtime logs (pod stdout/stderr) and request logs (frontline access logs) to a third-party observability backend without operating a sidecar. v1 ships Axiom, Datadog, and OTLP/HTTP.
+
+This RFC argues for a dedicated batch forwarder that **tails ClickHouse on a polling cycle** rather than pushing from the producers, and walks through the design choices that fall out of that decision: how cursors work, why drains in the same scope share a single read, how failures are isolated, and which trade-offs we explicitly accepted.
+
+## Motivation
+
+The product requirement is a managed, hosted integration: pick a destination, point it at a workspace or project, opt into preview environments by exception, accept a few minutes of latency in exchange for a "set it and forget it" experience. Customers do not want another DaemonSet, another Vector config, or another piece of infrastructure to operate.
+
+We already have the data. Vector pipes deployment stdout/stderr into ClickHouse for runtime; the frontline middleware writes request logs to ClickHouse on every request. The missing piece is the per-tenant forwarder and the management surface around it.
+
+The design space has two natural shapes:
+
+1. **Push from the producer.** Vector or the frontline middleware writes directly to the customer destination, in addition to ClickHouse.
+2. **Pull from storage.** A dedicated service tails ClickHouse and fans out per drain.
+
+We picked (2). The reasons are below; they're the load-bearing rationale for everything else in this document.
+
+## Why pull from ClickHouse instead of pushing from the producer
+
+**Credential blast radius.** Pushing from Vector means every node in the data plane needs every customer's destination credentials. Vector's config is plaintext TOML; the only way to keep tokens out of it is to add a secret-fetch sidecar, at which point we've reinvented the forwarder service inside a different process. With a dedicated puller, plaintext credentials only ever exist in one process's memory.
+
+**Failure isolation.** A customer destination going down should not back-pressure into the request path. Pushing from frontline middleware couples the customer's outage to our request latency unless we add an internal queue, at which point we've also reinvented the forwarder.
+
+**Replay for free.** ClickHouse already retains 90 days of runtime logs and 30 days of request logs. If the forwarder falls over for an hour, every drain resumes from its last committed cursor and backfills. We do not have to operate Kafka or per-tenant queues to get this property; it falls out of "ClickHouse is the source of truth, the forwarder is stateless except for cursors."
+
+**Cost of repeated reads.** This is the real trade-off. Tailing ClickHouse on every poll is repeated work: we pay a query per scope per tick whether or not new rows arrived. The remaining design choices in this RFC exist to keep that cost low enough that the trade above is worth it.
+
+## Architecture
+
+```diagram
+                                       ╭───────────────────────────────╮
+  deploy stdout/stderr ─▶ Vector ────▶ │  ClickHouse                   │
+                       (existing)      │   runtime_logs_raw_v2         │
+                                       │   sentinel_requests_raw_v1    │
+  frontline middleware ────────────────▶                               │
+                                       ╰─────────────┬─────────────────╯
+                                                     │ tail by (time_ms, last_id)
+                                                     │ — one query per scope
+                                                     ▼
+                                       ╭───────────────────────────────╮
+                                       │  svc/logdrain                 │
+                                       │   • coordinator (poll)        │
+                                       │   • per-drain cursors (MySQL) │
+                                       │   • Vault-decrypted creds     │
+                                       │   • axiom / datadog / otlp    │
+                                       ╰─────────────┬─────────────────╯
+                                                     │ HTTPS batch
+                                                     ▼
+                                          customer destination
+```
+
+ClickHouse is the source of truth. The forwarder is stateless except for cursors persisted in MySQL. If the forwarder dies, it resumes from each drain's last committed cursor. If a destination is down, rows stay in ClickHouse and we backfill on recovery.
+
+## How cursors work
+
+Every drain has an independent cursor: a `(time_ms, last_id)` tuple stored in MySQL. The forwarder reads forward from the cursor, advances it after a successful send, and never deletes ClickHouse data — retention is the storage layer's job.
+
+Two design choices are interesting enough to motivate.
+
+### One cursor per drain, not one per scope
+
+The naive design has one cursor per scope (a "scope" is `(workspace, project, environment, source)`) shared by every drain attached to that scope. It is simpler to write and avoids per-drain MySQL writes. We rejected it.
+
+The problem is head-of-line blocking: one slow or failing drain pins the scope's cursor at its position, and every sibling drain stops draining until the slow one catches up or is paused. In a workspace with five drains and one misconfigured token, four healthy drains stall waiting for the bad one. Auto-pause would eventually unstick the group, but only after the threshold is crossed — minutes of unnecessary lag for the healthy drains.
+
+Per-drain cursors let each drain advance independently. A failing drain pins only itself; siblings continue at the rate of the underlying ClickHouse stream. The cost is N MySQL writes per batch instead of one, which is cheap because the writes are keyed on `(drain_id, group_key)` and never contend.
+
+A `blocked` flag on the cursor row lets a paused drain be skipped immediately, without waiting for the in-process drain-list cache (5s TTL) to expire and notice the pause.
+
+### One ClickHouse query per scope, not per drain
+
+This is the symmetric choice on the read side. Drains in the same scope share **one** ClickHouse query per tick and fan out in memory. The query reads from the **MIN cursor across non-blocked drains in the scope**, so the result covers every drain's outstanding window; each drain then trims the batch to the suffix past its own cursor before sending.
+
+The alternative — one query per drain — would multiply ClickHouse load by the number of drains a workspace attaches, which is unbounded by design. A workspace with 100 drains attached to the same scope would generate 100 queries per tick instead of one. The shared-query design trades a small over-read (drains that are ahead of the MIN read more rows than they need and discard the prefix) for an unbounded reduction in query count.
+
+This is the single biggest performance choice in the system. Everything else assumes ClickHouse cost scales with **scopes**, not drains.
+
+### The cursor predicate is an OR-form, not a tuple compare
+
+The obvious way to write a cursor predicate is a tuple compare:
+
+```sql
+WHERE (inserted_at, log_id) > ({prev_t}, {prev_id})
+```
+
+It's correct, and ClickHouse will execute it. But it doesn't prune granules: ClickHouse's sort-key prefix optimisation kicks in for `column > value` on a sort-key prefix, not for tuple compares against a composite. Every cursor scan reads every granule whose `inserted_at` range overlaps the watermark, even granules that contain nothing past the cursor.
+
+The OR-form is equivalent and prunes:
+
+```sql
+WHERE inserted_at > {prev_t}
+   OR (inserted_at = {prev_t} AND log_id > {prev_id})
+```
+
+The first clause is a plain `inserted_at > T` — sort-key-prefix prunable, so ClickHouse skips every granule whose `max(inserted_at) ≤ T` without reading it. The second clause only fires inside the (typically single) granule that contains rows at exactly `inserted_at = T`, where `log_id` is the in-block tiebreaker.
+
+This shape was the reason for the `runtime_logs_raw_v2` sort-key reorder. v1 had `app_id` between the workspace triple and `inserted_at`, which forced an in-block re-sort on every cursor scan. v2 puts `inserted_at` immediately after the workspace/project/env triple so the scan is a contiguous suffix. This is documented separately in the schema migration notes; the RFC-level point is that the cursor predicate's shape and the table's sort key co-evolved.
+
+### The tiebreaker is a stored String, not a hash
+
+An earlier design used `cityHash64(deployment_id, time, message)` as the cursor tiebreaker because we did not yet have a per-row id. It worked but had two problems:
+
+1. **Collision risk.** A 64-bit hash on a high-volume tenant has a non-zero probability of cursor-equal rows colliding, which would silently drop one row at the boundary on every scan.
+2. **Optimizer cost.** `cityHash64(...)` is a computed expression, not a stored column. ClickHouse's optimizer cannot push the comparison into granule pruning; the hash is inlined per row. Every cursor scan paid the hash cost for every row it read, even rows it would discard.
+
+v2 uses stored String columns: `log_id` (a UUID-v7-shaped id Vector mints at ingest) for runtime, `request_id` (frontline mints per request) for sentinel. Both are strictly per-row unique with no collision risk. Both are stored, so the comparison is a stored-column compare — no expression inlining, no hash work.
+
+### Cursor advance is optimistic-locked
+
+The forwarder is meant to scale horizontally. Two coordinator processes touching the same drain on adjacent ticks must not corrupt the cursor. We use an optimistic UPDATE keyed on the previous cursor value:
+
+```sql
+UPDATE log_drain_cursors
+SET    time_ms = {new_t}, last_id = {new_id}
+WHERE  drain_id = {id} AND time_ms = {prev_t} AND last_id = {prev_id}
+```
+
+A 0-row result means another process advanced the cursor first; the loser adopts the winner's position in memory and continues. This avoids the SELECT-FOR-UPDATE round-trip, the deadlock cases, and the connection-hold time of explicit locking, at the cost of a metric (`cursor_update_deadlocks`) we expect to be near zero in steady state.
+
+## How fetches and sends overlap
+
+Per-tick latency for a single group decomposes into ClickHouse round-trip + per-drain HTTP round-trip. Both are network-bound and both run in the hundreds of milliseconds. Without overlap, each iteration of the per-group loop pays both serially, and a group with a real backlog idles half its wall-clock budget on round-trips it could have been doing in parallel.
+
+We pipeline: while the current batch fans out to N HTTP sinks, the next ClickHouse fetch is in flight in the background. The interesting choice is **what cursor to fetch from**.
+
+The next iteration's MIN cursor depends on whether every drain's send succeeded. In the steady state — every drain healthy — it equals the predicted post-fan-out cursor exactly. If a drain fails or is blocked, its cursor stays behind, and the actual next-tick MIN is lower than the prediction.
+
+We pre-fetch using the **predicted** post-fan-out cursor. In the steady state this is a free 2× throughput win. In the failure path, the pre-fetched batch misses the `(stuck_cursor, predicted]` window for the stuck drain — but the stuck drain isn't going to consume anything this tick anyway, and the **next** tick's initial (synchronous) fetch runs at the real post-failure MIN and recovers the gap. We trade a small per-tick correctness window in the failure path for a doubling of steady-state throughput.
+
+A budget guard (`maxBatchesPerTick = 10`) bounds how much work one group can monopolise before yielding. With `MaxBatchRecords = 5000`, the worst case for a single group is 50,000 records per tick before it yields and the next tick picks up the rest.
+
+## Sinks and the retry policy
+
+Each provider lives behind a `Sink` interface. The choice that matters is where the retry decision lives.
+
+It lives **in the sinks package**, not in the coordinator and not in a generic `pkg/retry`. The retry decision is a pure function of `(Sink, SendError)`:
+
+- Transport failures and HTTP 5xx, 408, 429 are retryable.
+- Everything else (auth, bad request, unknown 4xx) is fatal and returns immediately so a misconfigured drain fails loudly instead of looping until auto-pause.
+- `Retry-After`, when the provider supplies it, is honoured verbatim up to a 60s cap. The cap defends against `Retry-After: 86400` parking a worker for a day; per-drain cursors mean the long sleep on one drain only delays its own next batch.
+
+A generic retry helper does not fit because the backoff function needs to see the error to honour `Retry-After`. The schedule between attempts is `250ms → 500ms → 1s` with **full jitter** rather than equal jitter, on the strength of the AWS architecture-blog measurements showing full jitter has the lowest total latency when many clients retry against a shared bottleneck — which is exactly the shape of many concurrent senders hitting the same provider during a regional incident.
+
+The total per-attempt budget (≈1.75s + send latency × 3) stays under the 10s poll interval even when every retry burns the maximum, so a retry storm does not spill into the next tick.
+
+### Test push before save
+
+Every create/update mutation runs one synthetic record through the chosen sink before the database row is committed. The provider's verbatim error is shown in the wizard. This is a small piece of UX with an outsized correctness payoff: misconfigured tokens, wrong regions, and bad endpoints fail at setup time, not silently at runtime an hour later when the customer wonders why the dashboard says "delivered" but their backend is empty. We picked it over server-side validation because the providers' acceptance contracts (auth shape, dataset existence, region selection) are best validated by the provider itself.
+
+## Failure handling
+
+The interesting question is what counts as a "persistent" failure and what we do about it.
+
+**Auto-pause threshold is in code, not SQL.** After `PauseAfterFailures` consecutive failures the drain auto-pauses, the cursor is flagged `blocked`, and the drain stays put until the operator clears `paused_reason`. The threshold lives in `Config.PauseAfterFailures`, not in a SQL `IF` or trigger, because we want operators to change it without a migration. The trade-off is that the SQL is dumber: `RecordLogDrainFailure` is a plain `consecutive_failures += 1`, and the auto-pause decision is a follow-up read — two queries per failure instead of one. At v1's failure rates this is unmeasurable.
+
+**Mid-batch crash semantics.** Cursor advance happens after `Send` returns. If the process dies mid-batch, the next process to take over re-sends the in-flight batch. The duplicate window is bounded by one batch (≤ 5000 records). At-least-once is the contract; idempotency on the customer side is recommended via the per-record `LastID`.
+
+**On resume, no automatic replay.** Earlier drafts replayed the last 30s on un-pause. We dropped it: the pause boundary is exactly where the cursor was, and the in-flight batch when the drain failed is at most one batch's worth of duplicates. A "skip to now" button is an open question, but automatic replay is a footgun for customers paying per-event for ingest.
+
+**Source-agnostic cursor table.** The cursor table doesn't know whether `time_ms` is `inserted_at` (runtime) or `time` (sentinel). Each per-source SQL query knows which ClickHouse column to compare against. This kept the cursor table to a single shape for both sources at the cost of a small amount of per-source SQL duplication — the alternative (a discriminated cursor with two columns) made every cross-source query awkward for no real win.
+
+## Sharding
+
+`TotalShards = 64` is fixed at compile time. Workspace IDs hash via FNV-1a into one of 64 buckets. Each coordinator process owns a contiguous half-open range `[ShardStart, ShardEnd)` of bucket ids.
+
+The shard cardinality is **fixed**, not derived from how many processes happen to be running, deliberately. Scaling out only redraws the range boundaries; every workspace's hash bucket is permanent. A dynamic shard count would create a rollout race where a workspace briefly has no owner (or two) during a scale event. Fixed cardinality eliminates that race at the cost of a hard ceiling: the number of coordinator processes cannot exceed 64. Far above any plausible workload for this service.
+
+When a single process owns the full range, the shard arithmetic short-circuits to skip per-row hashing.
+
+## Configuration knobs
+
+Defaults documented here because the rationale matters more than the values.
+
+| Knob | Default | Rationale |
+| --- | --- | --- |
+| `PollInterval` | 10s | Caps end-to-end latency floor; below this CH read amplification gets uncomfortable on the v2 sort key. |
+| `BatchWindow` | 60s | Bootstrap look-back when a brand-new drain has no cursor. Short enough that a fresh drain doesn't replay an hour, long enough to absorb startup races. |
+| `MaxBatchRecords` | 5000 | Sized to fit Datadog's 5 MiB per-payload cap with comfortable headroom on typical record sizes. Also the unit of duplicate-window damage on a mid-batch crash. |
+| `PauseAfterFailures` | 50 | Conservative; gives a flapping provider time to recover. Recommended follow-up: lower to 10 once we have dashboard signal for the difference. |
+| `MaxGroupsPerShard` | 500 | Caps fan-out per tick so a tenant with thousands of scopes can't monopolise a shard. Over-capacity shards rotate through groups across ticks. |
+| `MaxDrainsPerWorkspace` | 100 | Enforced at create time. Prevents a single workspace from saturating in-process fan-out. |
+| `CredentialCacheTTL` | 1h | SWR window on decrypted creds; rotation invalidates explicitly so the long TTL is safe. |
+
+## Credentials
+
+Two paths: paste tokens (encrypted by `svc/vault`, workspace-scoped keyring, never re-displayed in the dashboard) and OAuth grants (a separate table that backs N drains via a foreign key). The Vault boundary is the **single decryption point**; plaintext never crosses any other process. Rotation is "edit the drain"; revealing the stored secret is not an option, by design — operators who lose a token mint a new one.
+
+The OAuth path's wire is built (table, callback, Datadog connector) but the coordinator returns a known sentinel error for OAuth-backed drains until the resolver lands. Drains using OAuth are silently skipped, not errored: we never want to send to a provider with a placeholder token while we're still building the refresh path.
+
+## Drawbacks
+
+- **We own the drivers.** Each new provider is a small but real maintenance commitment. Customers will ask for the long tail (Better Stack, Loki, S3 archive, generic webhook).
+- **Latency floor.** Vector ingest lag plus the 10s poll plus retry budget puts a hard floor of ~30–60s on end-to-end latency. Customers expecting `tail -f` semantics need the in-app log viewer instead.
+- **Repeated reads.** Tailing ClickHouse on every poll is work we pay even when nothing arrived. The v2 sort key makes the scan cheap, and per-scope grouping keeps the query count tiny, but the per-tenant cost is non-zero and worth tracking as workspaces grow.
+
+## Alternatives considered
+
+**Vector dynamic sinks.** Vector itself supports dynamic sink config. We could have written a control loop that reloads Vector's config when drains change. Rejected on credential blast radius (Vector's config is plaintext on every node), failure isolation (Vector's pipeline back-pressures into ingest), and operational cost (config reload on every drain edit propagated through the data plane). The forwarder service is the right boundary because it co-locates the credential boundary with the failure boundary.
+
+**Kafka in front of fan-out.** Buffer ClickHouse → Kafka → forwarder so the forwarder reads from a queue with explicit offsets. Rejected because ClickHouse already gives 30–90 days of replay and our SLO ("p95 < 2 min") doesn't justify the broker. We revisit if we either outgrow ClickHouse-as-tail-source or add streaming producers that actually need a buffer.
+
+**Push from the producer.** Frontline middleware writes to ClickHouse and the customer destination in parallel. Rejected on every dimension above: credential blast radius (every producer needs every customer's tokens), failure coupling (customer outages back-pressure into the request path), and configuration distribution (every producer needs every drain's config). It is the worst of all worlds for this shape of feature.
+
+**Per-group cursor with a "lagging drain" sidecar.** Keep the simpler shared cursor and run a separate process for drains that fall behind. Rejected as a complexity tax we'd have to pay forever to dodge a per-drain MySQL row.
+
+## Unresolved questions
+
+- **Per-drain outbound rate limit for OTLP/HTTP.** Axiom and Datadog signal back-pressure via 429 + Retry-After, which we honour. Customer-supplied OTLP collectors don't, and a backlogged drain can fire ten back-to-back batches at one collector URL inside a single tick. Is a fixed default (e.g. 10 req/s) plus a per-drain override the right shape, or should we size off the customer's collector capabilities? Leaning toward fixed default + override, off by default for Axiom/Datadog.
+- **Workspace-level body-forwarding kill switch** in addition to the per-drain `IncludeBodies` opt-in. Compliance teams may want a workspace-wide "no body" guarantee regardless of who creates drains.
+- **Backfill on resume.** An un-paused drain resumes from where it stopped — fine when the pause was minutes, awkward when it was days. Do we offer a "skip to now" affordance? Defaulting to skip is wrong (silent data loss); defaulting to replay is wrong (huge bills). The right answer is probably an explicit operator choice on un-pause.
+- **When does the streaming arm become worth building?** `delivery_mode = 'stream'` is in the schema with no implementation. The trigger is probably either a customer SLA below ~30s end-to-end or a workload that needs back-pressure semantics the batch arm can't provide. Neither is on the roadmap; we kept the column so the eventual schema change is zero.

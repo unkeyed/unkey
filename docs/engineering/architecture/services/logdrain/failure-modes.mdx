@@ -1,0 +1,55 @@
+---
+title: "Failure modes"
+description: "What can go wrong with logdrain and how to diagnose it."
+---
+
+## Provider rejects the batch
+
+Most provider errors fall into a few categories: expired credentials, rate limits, invalid payload, and transient 5xx.
+
+The worker classifies errors into `auth | rate_limit | timeout | 5xx | 4xx | network` and increments `logdrain_provider_errors_total{provider, kind}`. After `consecutive_failures` reaches the configured threshold (default 50), the drain auto-pauses with `paused_reason` set on the state row. `LogDrainPausedSpike` may fire if many drains pause at once.
+
+The dashboard surfaces `last_error` verbatim. Customers can resume a paused drain after fixing the underlying problem (token rotation, regional endpoint correction, payload-size reduction).
+
+## Provider is slow but accepting
+
+Symptom: `logdrain_lag_seconds` climbs without errors. The `LogDrainLagHigh` alert fires at 120 seconds p95 sustained over 10 minutes.
+
+Diagnosis: check `logdrain_batch_duration_seconds{provider}` and `logdrain_bytes_total{provider}`. If a single provider is the culprit, notify the customer to check their provider's status page. If lag is broad, the service may need a sharding bump.
+
+## Cursor stuck
+
+Symptom: `logdrain_lag_seconds` for one drain climbs while every other drain in the same group keeps making progress.
+
+Causes:
+
+- The drain has auto-paused and its cursor row is flagged `blocked`. Healthy siblings in the same group keep advancing because the group's MIN cursor (computed across non-blocked drains) skips the paused one — there is no shared cursor to hold up. The paused drain itself stays put until the operator clears `paused_reason` from the dashboard, at which point its cursor resumes from where it stopped (replaying the last 30s, deduped via `Idempotency-Key` where the provider supports it).
+- The group's CH query is hitting an index limit and returning fewer rows than the throughput requires. Inspect `logdrain_clickhouse_query_duration_seconds` and consider widening `MaxBatchRecords`.
+
+Symptom: `logdrain_lag_seconds` climbs across **every** drain in a group simultaneously. That's a CH-side problem, not a paused-drain problem — the group's MIN cursor only moves when at least one non-blocked drain advances. Check ClickHouse health, Vector ingestion lag, and the CH query duration histogram before assuming a per-drain failure.
+
+## Vault unreachable
+
+Symptom: `logdrain_credential_decrypts_total{result="error"}` is non-zero. `LogDrainVaultUnhealthy` pages immediately.
+
+Logdrain caches decrypted credentials in memory after first use, so a brief vault outage doesn't stop in-flight delivery. New drain creation and credential rotation block until vault is back. The cache is purged on pod restart and on credential change.
+
+## OAuth grant revoked at the provider
+
+Symptom: every drain backed by the same `oauth_grants.id` flips to `paused_reason = "oauth grant revoked"` within minutes.
+
+Detection: `logdrain_oauth_grant_revoked_total` increments on the first 401 from the provider. The grant row is marked `revoked_at`, and every drain referencing it auto-pauses.
+
+Recovery: the customer reconnects the provider in the dashboard. The new grant gets a fresh `id`, and customers either rebind the affected drains to the new grant, or the dashboard offers a one-click rebind for grants of the same provider and region.
+
+## Replica restart mid-batch
+
+Logdrain advances each drain's own cursor under an optimistic-lock `UPDATE` once that drain's `sink.Send` has succeeded. A restart in the middle of a fan-out causes the next pod to replay the window for every drain whose cursor wasn't advanced before the kill — drains whose advance had already committed simply pick up from their new position. Providers see at most ~30 seconds of duplicates per affected drain, deduped via `Idempotency-Key` where supported, with at-least-once semantics where not.
+
+This is the same guarantee the `pkg/dockertest` integration test verifies: kill the pod mid-batch, expect duplicates within the documented window, and expect zero gaps.
+
+## Coordinator stalled
+
+Symptom: `LogDrainCoordinatorStalled` fires when `rate(logdrain_records_total[5m]) == 0` and `logdrain_active_groups > 0`.
+
+Causes are usually upstream: ClickHouse cluster unavailable, MySQL primary failover in progress, or a deadlock on the cursor table. Check the corresponding health metrics and the runbook in the infra repo.

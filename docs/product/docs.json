@@ -243,7 +243,8 @@
               "observability/overview",
               "observability/logs",
               "observability/requests",
-              "observability/metrics"
+              "observability/metrics",
+              "observability/log-drains"
             ]
           },
           {

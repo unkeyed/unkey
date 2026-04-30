@@ -1,0 +1,96 @@
+---
+title: "Overview"
+description: "Per-tenant log forwarding from ClickHouse to third-party providers like Axiom, Datadog, and OTLP collectors."
+mode: "wide"
+---
+
+Logdrain forwards customer logs out of ClickHouse to third-party observability providers. Customers configure a drain in the dashboard (project Settings, Log Drains tab) and pick a provider, source, and environment filter. Logdrain reads from ClickHouse, transforms each record, and pushes it to the provider with retry and backoff.
+
+The service is a long-running Go binary that follows the same shape as `heimdall` and `ctrl/worker`. It's decoupled from the data-ingest path: drain CRUD only writes to MySQL, never to Krane, Vector, or ClickHouse.
+
+## Architecture position
+
+```
+pods --> Vector DaemonSet --> runtime_logs_raw_v2 -----+
+                                                       |
+sentinel ---------------------> sentinel_requests_v1 --+--> logdrain --> Axiom / OTLP / Datadog
+                                                       |
+                                                       MySQL: log_drains, _credentials, _state, _cursors
+```
+
+Two ClickHouse tables drive the service:
+
+- `runtime_logs_raw_v2` holds stdout and stderr from Krane-managed deployment pods, written by the Vector DaemonSet. v2 supersedes v1: the sort key was reordered to `(workspace_id, project_id, environment_id, inserted_at, time)` so the logdrain cursor scan reads a contiguous suffix instead of forcing a per-batch in-block re-sort. See `pkg/clickhouse/migrations/20260502160000.sql` for the rationale.
+- `sentinel_requests_raw_v1` holds HTTP request logs (method, path, status, latency, headers, and optionally bodies).
+
+Both tables already carry `workspace_id`, `project_id`, `environment_id`, `app_id`, and `deployment_id` columns, so logdrain can scope reads to a single tenant without any joins.
+
+## Responsibilities
+
+- Read pending log records from ClickHouse on a polling cycle, scoped per drain.
+- Apply per-drain filters (severity, status code, path excludes, body redaction) in-process.
+- Transform records into the provider's expected shape (NDJSON, OTLP/HTTP, Datadog `_input`).
+- Push batches to the provider with retry, exponential backoff, and auto-pause on repeated failure.
+- Persist a per-group cursor in MySQL so restarts don't lose progress.
+- Expose Prometheus metrics for throughput, lag, and provider error rates.
+- Honor OAuth credential revocation by auto-pausing affected drains.
+
+## Why ClickHouse-tail and not Vector dynamic sinks
+
+The team considered two paths for the v1 forwarder:
+
+1. Vector dynamic sinks: extend the existing DaemonSet with per-drain sinks rendered from MySQL.
+2. ClickHouse-tail (chosen): a separate service polls ClickHouse, fans out to providers in-process, and persists progress in MySQL. Lag is intentionally 30 to 60 seconds. Drain CRUD is dashboard-local and never touches the data plane.
+
+The customer requirement explicitly accepts a few minutes of lag in exchange for "platform-level smoothness", so paying for sub-second delivery isn't worth it. The deciding factors against Vector dynamic sinks are credential isolation and operational coupling, in that order:
+
+- Credential blast radius. Vector config is plaintext TOML. Native sinks (Axiom, Datadog, HTTP bearer) need the token in the config or in a referenced env var or file. Today, Vector holds one platform-owned ClickHouse credential. Per-tenant drains would force every DaemonSet node, in every region, to hold every customer's third-party token. A single Vector pod compromise then leaks every drain credential across the fleet.
+- Vault is the decryption boundary. Tokens live in `svc/vault` and are decrypted on demand. Pushing decrypted secrets to every node breaks that boundary. Vector's `secret` providers don't speak Unkey's Vault gRPC, so a per-node sidecar would have to refresh and rewrite the config on a timer. At that point, the result is a reinvention of this service, just running per-node.
+- OAuth refresh. Datadog grants need token refresh. Vector doesn't refresh tokens. The same per-node sidecar problem applies.
+- Failure isolation. A drain config that fails to parse breaks Vector fleet-wide. With a separate service, a bad drain only breaks itself.
+- Operational coupling. Drain CRUD becomes infrastructure config: every change pushes a Vector reload across every cluster, and per-drain pause and backoff become things to coordinate across DaemonSet pods.
+
+The 90-day ClickHouse retention also gives free replay-on-recovery within the TTL window. The trade is intentional: a tens-of-seconds lag floor in exchange for a single decryption surface, application-level pause and retry, and zero data-plane churn on drain edits.
+
+## Topology
+
+Logdrain runs as a single Helm release in the `production001` cluster (us-east-1). ClickHouse Cloud is a single cluster in us-east-1, and every regional Vector DaemonSet writes into it, so a regional logdrain layout adds no benefit. A single deployment co-located with ClickHouse minimizes read latency and avoids any need to coordinate cross-region cursors.
+
+For staging, the same chart deploys to the staging cluster and points at the staging ClickHouse.
+
+## Read amplification: one query per group, not per drain
+
+A naive design polls ClickHouse once per drain. Logdrain instead groups drains by their `(workspace_id, project_id, environment_id, source)` key. One ClickHouse query per group fetches the next window of records. All drains attached to the same group consume from the in-memory batch and apply their own filters before pushing.
+
+So 100 drains attached to the same project's production runtime logs result in **one** ClickHouse query, not 100. Outbound provider throughput is the only per-drain cost.
+
+## Cursor and at-least-once delivery
+
+The cursor is a `(time_ms, last_id)` pair. `time_ms` is `inserted_at` for runtime logs and `time` for sentinel requests; `last_id` is the source's stable per-row id (`log_id` for runtime — Vector mints a UUID-v7-shaped id at ingest — and `request_id` for sentinel). Both `last_id` columns are stored `String` columns in ClickHouse, so the cursor compares them directly without an inline hash on every row.
+
+The query predicate is the prune-friendly OR-form `time_ms > T OR (time_ms = T AND last_id > L)` with `ORDER BY time_ms, last_id LIMIT ?`. The first clause is a sort-key-prefix prune (ClickHouse skips every granule whose max watermark is at or below `T`); the second clause only fires inside the granule(s) that contain rows at exactly `time_ms = T`. Cursors are stored per-`(drain, group)` in `log_drain_cursors` with PK `(drain_id, group_key)` — every drain in a group advances independently under an optimistic-lock `UPDATE`. A drain that fails repeatedly auto-pauses and its cursor row is flagged `blocked`; the group's MIN cursor (computed across non-blocked drains) advances past it on the next tick instead of stalling the whole group on the slowest member.
+
+On restart, the service resumes from each drain's last committed cursor. The duplicate window is bounded by the in-flight batch size (`MaxBatchRecords`) — drains whose advance had already committed pick up cleanly from their new position. This is at-least-once delivery; where the provider supports an `Idempotency-Key` header, `last_id` is sent as the key.
+
+## Sharding (future)
+
+The v1 release ships with `replicas: 1` and a Kubernetes lease for leader election. The schema and code are designed for sharding by `cityHash64(workspace_id) % shard_count`. Each replica runs with a `LOGDRAIN_SHARD_INDEX` and only picks up groups whose hash matches its index. The `log_drain_cursors` `UNIQUE` constraint on `group_key`, combined with optimistic-locking on `UPDATE`, prevents double-write during shard rollouts.
+
+## Realtime path (future)
+
+The CH-tail design has a 30 to 60 second lag floor: a log line has to be flushed to ClickHouse, then picked up on the next poll, before logdrain can forward it. That's fine for analytics, paging, and audit, but it's the wrong shape for use cases that need sub-second delivery (live tail in the dashboard, real-time alerting on a customer's side).
+
+If sub-second delivery becomes a requirement, logdrain can grow a second, parallel forwarding path that bypasses ClickHouse:
+
+1. Each drain row gets a `delivery_mode` column. The default stays `batch` (today's CH-tail path). New drains can opt in to `stream`.
+2. Vector already collects logs at the pod level for the existing CH ingest pipeline. It can be configured to fan out: continue writing to ClickHouse for the batch path, and additionally forward each line over the network to a new `logdrain-aggregator` Deployment.
+3. The aggregator is the same Go binary as the coordinator, but in a streaming mode: it accepts pushes from Vector instead of polling ClickHouse, looks up which streaming drains apply to each record, and forwards immediately. Because the same binary runs on both paths, the `sinks/`, `transform/`, and `creds/` packages are shared. Adding a new provider works for both modes at once.
+4. Drains in `batch` mode keep going through the existing CH-tail coordinator, untouched. The two paths don't share cursors, so there's no coordination cost between them.
+
+The trade is duplicate fan-out at the Vector layer (one record goes to two places) in exchange for sub-second delivery for drains that ask for it. No new broker, no schema migration beyond the `delivery_mode` column, and no rewrite of provider integrations.
+
+## Related pages
+
+- [Schema](/architecture/services/logdrain/schema) for the four MySQL tables.
+- [Sinks](/architecture/services/logdrain/sinks) for per-provider transform and auth details.
+- [Failure modes](/architecture/services/logdrain/failure-modes) for what can go wrong and how to diagnose it.
