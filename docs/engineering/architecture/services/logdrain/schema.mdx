@@ -1,0 +1,27 @@
+---
+title: "Schema"
+description: "MySQL tables that back log drains: config, credentials, state, and cursors."
+---
+
+Logdrain splits its state across separate MySQL tables. The split is driven by lifetime, not by normalization for its own sake:
+
+- Config rarely changes after creation.
+- Credentials rotate independently, especially OAuth grants.
+- State churns on every batch (last delivery, error, failure count).
+- Cursors advance per-`(drain, group)` so one slow drain does not hold up its siblings.
+
+Mixing these into a single row would cause hot-row write contention, bloat the binlog, and force every dashboard read to fetch state it doesn't need.
+
+The canonical column definitions live in the `pkg/mysql/schema/` directory. Schemas change often, so this page describes intent and points at the files; treat the SQL as the source of truth.
+
+## Tables
+
+- [`pkg/mysql/schema/log_drains.sql`](https://github.com/unkeyed/unkey/blob/main/pkg/mysql/schema/log_drains.sql): the configuration row. One per drain, with provider, sources, environments, filters, and the `enabled` flag. `project_id` is nullable so a single drain can apply across an entire workspace.
+- [`pkg/mysql/schema/log_drain_credentials.sql`](https://github.com/unkeyed/unkey/blob/main/pkg/mysql/schema/log_drain_credentials.sql): credentials, split out from config so token rotation doesn't touch the config row. Paste-token drains carry `encrypted_credentials` (decrypted via `svc/vault`); OAuth-backed drains carry only `oauth_grant_id`.
+- [`pkg/mysql/schema/log_drain_state.sql`](https://github.com/unkeyed/unkey/blob/main/pkg/mysql/schema/log_drain_state.sql): hot-path state. Last delivery time, last error, consecutive failure count, paused reason. Updated on every batch, so it lives on its own to keep binlog churn off the config row.
+- [`pkg/mysql/schema/log_drain_cursors.sql`](https://github.com/unkeyed/unkey/blob/main/pkg/mysql/schema/log_drain_cursors.sql): the per-`(drain, group)` cursor. PK is `(drain_id, group_key)` because a drain belongs to N groups (one per `(workspace, project, environment, source)` tuple) and each source has its own `(time_ms, last_id)` timeline. `last_id` is the source's stable per-row id (`log_id` for runtime, `request_id` for sentinel) and acts as the tiebreaker inside a single `time_ms` bucket. Each row carries a `blocked` flag — a drain that auto-pauses flips this flag so the group's MIN cursor (computed across non-blocked drains) advances past it instead of stalling on the slowest member. The coordinator advances it with an optimistic `UPDATE` keyed on the previous cursor value, so two replicas racing during a shard rollout can't both win.
+- [`pkg/mysql/schema/oauth_grants.sql`](https://github.com/unkeyed/unkey/blob/main/pkg/mysql/schema/oauth_grants.sql): provider OAuth connections. A single grant can back multiple drains so a customer connects a provider once and reuses the connection across every project.
+
+## TypeScript types
+
+The dashboard imports typed schemas from [`web/internal/db/src/schema/`](https://github.com/unkeyed/unkey/tree/main/web/internal/db/src/schema), generated from the SQL files above. Update the SQL first, regenerate, and the dashboard picks up the change.
