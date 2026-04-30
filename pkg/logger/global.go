@@ -2,6 +2,8 @@ package logger
 
 import (
 	"log/slog"
+	"os"
+	"strings"
 	"sync"
 )
 
@@ -15,8 +17,36 @@ var (
 
 func init() {
 	mu = sync.Mutex{}
-	logger = slog.Default()
+	// Minimum level from UNKEY_LOG_LEVEL (debug | info | warn | error),
+	// defaulting to info. slog.Default()'s handler silently ignores
+	// Debug regardless of env, so we wrap the stdlib TextHandler with
+	// HandlerOptions{Level: ...} and route slog.Default() through it too
+	// — that way plain `slog.Debug(...)` calls anywhere in the codebase
+	// honor the same level as `logger.Debug(...)`.
+	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{ //nolint:exhaustruct // AddSource + ReplaceAttr default
+		Level: levelFromEnv(),
+	})
+	logger = slog.New(h)
+	slog.SetDefault(logger)
 	sampler = AlwaysSample{}
+}
+
+// levelFromEnv parses UNKEY_LOG_LEVEL (case-insensitive: debug | info |
+// warn | error). Anything unrecognized falls back to info, matching
+// slog's stdlib default. Having this as an env var means flipping Debug
+// on in prod is a DaemonSet patch, not a rebuild.
+func levelFromEnv() slog.Level {
+	raw := strings.TrimSpace(strings.ToLower(os.Getenv("UNKEY_LOG_LEVEL")))
+	switch raw {
+	case "debug":
+		return slog.LevelDebug
+	case "warn", "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
 }
 
 // GetHandler returns the current [slog.Handler] used by the global logger.
@@ -40,6 +70,12 @@ func AddHandler(newHandler slog.Handler) {
 	mu.Lock()
 	defer mu.Unlock()
 	logger = slog.New(&MultiHandler{[]slog.Handler{logger.Handler(), newHandler}})
+	// slog.SetDefault captures the *Logger instance, not the package-level
+	// variable, so reassigning `logger` above doesn't update the global
+	// default. Without this, `slog.Info(...)` from anywhere in the codebase
+	// would keep hitting the pre-AddHandler instance and bypass the new
+	// handler. Re-apply.
+	slog.SetDefault(logger)
 }
 
 // AddBaseAttrs appends attributes that will be included in every log entry.
@@ -51,6 +87,10 @@ func AddBaseAttrs(attrs ...slog.Attr) {
 	mu.Lock()
 	defer mu.Unlock()
 	logger = slog.New(logger.Handler().WithAttrs(attrs))
+	// Same reason as AddHandler: slog.SetDefault holds the prior instance,
+	// so reassigning `logger` doesn't propagate the new base attrs to
+	// plain `slog.Info(...)` callers. Re-apply.
+	slog.SetDefault(logger)
 }
 
 // SetSampler configures the sampling strategy for wide events. The sampler

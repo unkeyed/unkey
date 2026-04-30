@@ -4,6 +4,7 @@ go_library(
     name = "deployment",
     srcs = [
         "apply.go",
+        "cilium.go",
         "consts.go",
         "controller.go",
         "delete.go",
@@ -45,6 +46,8 @@ go_library(
         "@io_k8s_apimachinery//pkg/api/errors",
         "@io_k8s_apimachinery//pkg/api/resource",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1/unstructured",
+        "@io_k8s_apimachinery//pkg/runtime/schema",
         "@io_k8s_apimachinery//pkg/types",
         "@io_k8s_apimachinery//pkg/util/intstr",
         "@io_k8s_apimachinery//pkg/watch",

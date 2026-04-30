@@ -141,7 +141,7 @@ export function ActiveDeploymentCard({
               )}
               {deployment.gitCommitSha && (
                 <>
-                  <span className="text-gray-9 text-xs">·</span>
+                  {deployment.gitBranch && <span className="text-gray-9 text-xs">·</span>}
                   <GitHubLink
                     href={
                       sourceRepo
@@ -149,8 +149,13 @@ export function ActiveDeploymentCard({
                         : undefined
                     }
                   >
-                    <span className="font-mono text-xs text-accent-12">
-                      {deployment.gitCommitSha.slice(0, 7)}
+                    <span className="flex items-center gap-1">
+                      {!deployment.gitBranch && (
+                        <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+                      )}
+                      <span className="font-mono text-xs text-accent-12">
+                        {deployment.gitCommitSha.slice(0, 7)}
+                      </span>
                     </span>
                   </GitHubLink>
                 </>

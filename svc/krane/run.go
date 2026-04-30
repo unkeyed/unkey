@@ -136,7 +136,8 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
 	}
 
-	// Start the cilium controller (independent control loop)
+	// Cilium controller. Desired state is dispatched by the watcher; no
+	// background loops to start.
 	ciliumCtrl := cilium.New(cilium.Config{
 		ClientSet:     clientset,
 		DynamicClient: dynamicClient,
@@ -144,10 +145,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:        cfg.Region,
 		Platform:      cfg.Platform,
 	})
-	if err := ciliumCtrl.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start cilium controller: %w", err)
-	}
-	r.Defer(ciliumCtrl.Stop)
 
 	// Build registry config for pull secret creation
 	var registryCfg *deployment.RegistryConfig

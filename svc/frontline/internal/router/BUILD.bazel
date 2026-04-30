@@ -1,0 +1,28 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "router",
+    srcs = [
+        "doc.go",
+        "interface.go",
+        "lookup.go",
+        "metrics.go",
+        "routing.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/internal/router",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/frontline/v1:frontline",
+        "//internal/services/caches",
+        "//pkg/array",
+        "//pkg/cache",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/mysql",
+        "//pkg/prometheus/lazy",
+        "//svc/frontline/internal/db",
+        "//svc/frontline/internal/policies",
+        "@com_github_prometheus_client_golang//prometheus",
+    ],
+)

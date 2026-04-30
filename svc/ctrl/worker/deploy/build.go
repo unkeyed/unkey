@@ -92,6 +92,7 @@ type buildResult struct {
 type gitBuildParams struct {
 	InstallationID                int64
 	Repository                    string
+	ForkRepository                string
 	CommitSHA                     string
 	ContextPath                   string
 	DockerfilePath                string
@@ -224,9 +225,13 @@ func (w *Workflow) buildDockerImageFromGit(
 		if params.PrNumber > 0 {
 			ref = fmt.Sprintf("refs/pull/%d/head", params.PrNumber)
 		}
-		gitContextURL := fmt.Sprintf("https://github.com/%s.git#%s", params.Repository, ref)
+		buildRepo := params.Repository
+		if params.ForkRepository != "" {
+			buildRepo = params.ForkRepository
+		}
+		gitContextURL := fmt.Sprintf("https://github.com/%s.git#%s", buildRepo, ref)
 		if contextPath != "" {
-			gitContextURL = fmt.Sprintf("https://github.com/%s.git#%s:%s", params.Repository, ref, contextPath)
+			gitContextURL = fmt.Sprintf("https://github.com/%s.git#%s:%s", buildRepo, ref, contextPath)
 		}
 
 		logger.Info("Starting build execution",

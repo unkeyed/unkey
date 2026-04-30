@@ -1,46 +1,25 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { ArrowRight, Check, Key2, Plus } from "@unkey/icons";
-import {
-  Button,
-  ConfirmPopover,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  InfoTooltip,
-  toast,
-} from "@unkey/ui";
-import { useRouter } from "next/navigation";
+import { Check, Key2 } from "@unkey/icons";
+import { ConfirmPopover, Dialog, DialogContent, DialogTitle, VisuallyHidden } from "@unkey/ui";
 import { type FC, useEffect, useRef, useState } from "react";
-import { UNNAMED_KEY } from "../create-key.constants";
 import { KeySecretSection } from "./key-secret-section";
 
 interface KeyCreatedSuccessDialogProps {
   isOpen: boolean;
-  onClose: (() => void) | (() => Promise<void>);
-  keyData: { key: string; id: string; name?: string } | null;
-  apiId: string;
-  keyspaceId?: string | null;
-  onCreateAnother?: (() => void) | (() => Promise<void>);
+  onClose: () => void;
+  keyData: { key: string } | null;
 }
 
 export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
   isOpen,
   onClose,
   keyData,
-  apiId,
-  keyspaceId,
-  onCreateAnother,
 }) => {
-  const workspace = useWorkspaceNavigation();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<
-    "close" | "create-another" | "go-to-details" | null
-  >(null);
-  const dividerRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
-  // Prevent accidental tab/window close when dialog is open
+  const popoverAnchorRef = useRef<HTMLDivElement>(null);
+
+  // Prevent accidental tab/window close while the secret is visible
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -61,177 +40,84 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
     return null;
   }
 
-  const handleCloseAttempt = (action: "close" | "create-another" | "go-to-details" = "close") => {
-    setPendingAction(action);
+  const handleCloseAttempt = () => {
     setIsConfirmOpen(true);
   };
 
-  const handleConfirmClose = async () => {
-    if (!pendingAction) {
-      console.error("No pending action when confirming close");
-      return;
-    }
-
+  const handleConfirmClose = () => {
     setIsConfirmOpen(false);
-
-    try {
-      // Always close the dialog first
-      await Promise.resolve(onClose());
-
-      // Then execute the specific action
-      switch (pendingAction) {
-        case "create-another":
-          if (onCreateAnother) {
-            await Promise.resolve(onCreateAnother());
-          } else {
-            console.warn("onCreateAnother callback not provided");
-          }
-          break;
-
-        case "go-to-details":
-          if (!keyspaceId) {
-            toast.error("Failed to Navigate", {
-              description: "Keyspace ID is required to view key details.",
-              action: {
-                label: "Contact Support",
-                onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-              },
-            });
-            return;
-          }
-          router.push(`/${workspace.slug}/apis/${apiId}/keys/${keyspaceId}/${keyData.id}`);
-          break;
-
-        default:
-          // Dialog already closed, nothing more to do
-          break;
-      }
-    } catch (error) {
-      console.error("Error executing pending action:", error);
-      toast.error("Action Failed", {
-        description: "An unexpected error occurred. Please try again.",
-      });
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const handleDialogOpenChange = (open: boolean) => {
-    if (!open) {
-      handleCloseAttempt("close");
-    }
+    onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          handleCloseAttempt();
+        }
+      }}
+    >
       <DialogContent
-        className="drop-shadow-2xl transform-gpu border-gray-4 rounded-2xl! p-0 gap-0 min-w-[760px] max-h-[90vh] overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        className="drop-shadow-2xl transform-gpu border-grayA-4 overflow-hidden rounded-2xl! p-0 gap-0 w-full max-w-[760px] max-h-[90vh] overflow-y-auto"
         showCloseWarning
-        onAttemptClose={() => handleCloseAttempt("close")}
+        onAttemptClose={handleCloseAttempt}
       >
-        <>
-          <DialogTitle className="sr-only">Key Created Successfully</DialogTitle>
-          <div className="bg-grayA-2 py-6 flex flex-col items-center justify-center w-full px-[120px] overflow-auto">
-            <div className="py-4">
-              <div className="flex gap-4">
-                <div className="border border-grayA-4 rounded-[14px] size-14 opacity-35" />
-                <div className="border border-grayA-4 rounded-[14px] size-14" />
-                <div className="border border-grayA-4 rounded-[14px] size-14 flex items-center justify-center relative">
-                  <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 top-0" />
-                  <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 top-0" />
-                  <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
-                  <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 bottom-0" />
-                  <Key2 iconSize="2xl-thin" />
-                  <div className="flex items-center justify-center border border-grayA-3 rounded-full bg-success-9 text-white size-[22px] absolute right-[-10px] top-[-10px]">
-                    <Check iconSize="sm-bold" />
-                  </div>
-                </div>
-                <div className="border border-grayA-4 rounded-[14px] size-14" />
-                <div className="border border-grayA-4 rounded-[14px] size-14 opacity-35" />
-              </div>
-            </div>
-            <div className="mt-2 flex flex-col gap-2 items-center">
-              <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
-                Key Created
-              </div>
-              <div className="text-gray-10 text-[13px] leading-[24px] text-center" ref={dividerRef}>
-                You've successfully generated a new API key.
-                <br /> Use this key to authenticate requests from your application.
-              </div>
-            </div>
-            <div className="p-1 w-full my-4">
-              <div className="h-px bg-grayA-3 w-full" />
-            </div>
-            <div className="flex flex-col gap-2 items-start w-full">
-              <div className="text-gray-12 text-sm font-semibold">Key Details</div>
-              <div className="bg-white dark:bg-black border rounded-xl border-grayA-5 px-6 w-full">
-                <div className="flex gap-6 items-center">
-                  <div className="bg-grayA-5 text-gray-12 size-5 flex items-center justify-center rounded-sm ">
-                    <Key2 iconSize="sm-regular" />
-                  </div>
-                  <div className="flex flex-col gap-1 py-6">
-                    <div className="text-accent-12 text-xs font-mono">{keyData.id}</div>
-                    <InfoTooltip
-                      content={keyData.name}
-                      position={{ side: "bottom", align: "center" }}
-                      asChild
-                      disabled={!keyData.name}
-                      variant="inverted"
-                    >
-                      <div className="text-accent-9 text-xs max-w-[160px] truncate">
-                        {keyData.name ?? UNNAMED_KEY}
-                      </div>
-                    </InfoTooltip>
-                  </div>
-                  <Button
-                    variant="outline"
-                    className="ml-auto font-medium text-[13px] text-gray-12"
-                    onClick={() => handleCloseAttempt("go-to-details")}
-                  >
-                    See key details <ArrowRight iconSize="sm-regular" />
-                  </Button>
+        <VisuallyHidden asChild>
+          <DialogTitle>Key Created</DialogTitle>
+        </VisuallyHidden>
+        <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
+          <div className="py-4 mt-[30px]">
+            <div className="flex gap-4">
+              <div className="border border-grayA-4 rounded-[14px] size-14 opacity-35" />
+              <div className="border border-grayA-4 rounded-[14px] size-14" />
+              <div className="border border-grayA-4 rounded-[14px] size-14 flex items-center justify-center relative">
+                <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 top-0" />
+                <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 top-0" />
+                <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
+                <div className="border border-grayA-4 rounded-full border-dashed size-[24px] absolute left-0 bottom-0" />
+                <Key2 iconSize="2xl-thin" aria-hidden="true" focusable={false} />
+                <div className="flex items-center justify-center border border-grayA-3 rounded-full bg-success-9 text-white size-[22px] absolute right-[-10px] top-[-10px]">
+                  <Check iconSize="sm-bold" aria-hidden="true" focusable={false} />
                 </div>
               </div>
-            </div>
-            <KeySecretSection
-              keyValue={keyData.key}
-              apiId={apiId}
-              className="mt-6 w-full"
-              secretKeyClassName="bg-white dark:bg-black overflow-x-auto"
-              codeClassName="p-0"
-            />
-            <div className="mt-6">
-              <div className="flex gap-3 mt-4 items-center justify-center w-full">
-                <Button
-                  variant="outline"
-                  className="font-medium text-[13px] text-gray-12"
-                  onClick={() => handleCloseAttempt("create-another")}
-                >
-                  <Plus iconSize="sm-regular" />
-                  Create another key
-                </Button>
-              </div>
+              <div className="border border-grayA-4 rounded-[14px] size-14" />
+              <div className="border border-grayA-4 rounded-[14px] size-14 opacity-35" />
             </div>
           </div>
-          <ConfirmPopover
-            isOpen={isConfirmOpen}
-            onOpenChange={setIsConfirmOpen}
-            onConfirm={handleConfirmClose}
-            triggerRef={dividerRef}
-            title="You won't see this secret key again!"
-            description="Make sure to copy your secret key before closing. It cannot be retrieved later."
-            confirmButtonText="Close anyway"
-            cancelButtonText="Dismiss"
-            variant="warning"
-            popoverProps={{
-              side: "right",
-              align: "end",
-              sideOffset: 5,
-              alignOffset: 30,
-              onOpenAutoFocus: (e) => e.preventDefault(),
-            }}
-          />
-        </>
+          <div className="mt-5 flex flex-col gap-2 items-center">
+            <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">Key Created</div>
+            <div
+              className="text-gray-10 text-[13px] leading-[24px] text-center"
+              ref={popoverAnchorRef}
+            >
+              You've successfully generated a new API key.
+              <br /> Use this key to authenticate requests from your application.
+            </div>
+          </div>
+          <div className="p-1 w-full my-8">
+            <div className="h-px bg-grayA-3 w-full" />
+          </div>
+          <KeySecretSection keyValue={keyData.key} className="w-full" />
+        </div>
+        <ConfirmPopover
+          isOpen={isConfirmOpen}
+          onOpenChange={setIsConfirmOpen}
+          onConfirm={handleConfirmClose}
+          triggerRef={popoverAnchorRef}
+          title="You won't see this secret key again!"
+          description="Make sure to copy your secret key before closing. It cannot be retrieved later."
+          confirmButtonText="Close anyway"
+          cancelButtonText="Dismiss"
+          variant="warning"
+          popoverProps={{
+            side: "right",
+            align: "end",
+            sideOffset: 5,
+            alignOffset: 30,
+            onOpenAutoFocus: (e) => e.preventDefault(),
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
