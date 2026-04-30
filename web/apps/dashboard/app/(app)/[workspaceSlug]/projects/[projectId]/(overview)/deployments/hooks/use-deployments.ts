@@ -1,101 +1,105 @@
 import { collection } from "@/lib/collections";
+import { DEPLOYMENTS_DEFAULT_LIMIT } from "@/lib/collections/deploy/deployments";
+import type { Environment } from "@/lib/collections/deploy/environments";
 import { parseDuration } from "@/lib/duration";
-import { eq, gt, gte, lte, or, useLiveQuery } from "@tanstack/react-db";
+import { eq, gte, lte, useLiveQuery } from "@tanstack/react-db";
+import { useMemo } from "react";
 import { useProjectData } from "../../data-provider";
 import type { DeploymentListFilterField } from "../filters.schema";
 import { useFilters } from "./use-filters";
 
 export const useDeployments = () => {
-  const { projectId } = useProjectData();
+  const { projectId, environments } = useProjectData();
   const { filters } = useFilters();
 
-  const deployments = useLiveQuery(
-    (q) => {
-      // Query filtered environments
-      // further down below we use this to rightJoin with deployments to filter deployments by environment
-      let environments = q
-        .from({ environment: collection.environments })
-        .where(({ environment }) => eq(environment.projectId, projectId));
-      for (const filter of filters) {
-        if (filter.field === "environment") {
-          environments = environments.where(({ environment }) =>
-            eq(environment.slug, filter.value),
-          );
-        }
-      }
+  const environmentMap = useMemo(() => {
+    const map = new Map<string, Environment>();
+    for (const env of environments) {
+      map.set(env.id, env);
+    }
+    return map;
+  }, [environments]);
 
+  const startTime = filters.find((f) => f.field === "startTime")?.value as number | undefined;
+  const endTime = filters.find((f) => f.field === "endTime")?.value as number | undefined;
+  const since = filters.find((f) => f.field === "since")?.value as string | undefined;
+  const sinceMs = useMemo(() => (since ? Date.now() - parseDuration(since) : undefined), [since]);
+
+  const result = useLiveQuery(
+    (q) => {
       let query = q
         .from({ deployment: collection.deployments })
-
         .where(({ deployment }) => eq(deployment.projectId, projectId));
 
-      // add additional where clauses based on filters.
-      // All of these are a locical AND
-
-      const groupedFilters = filters.reduce(
-        (acc, f) => {
-          if (!acc[f.field]) {
-            acc[f.field] = [];
-          }
-          acc[f.field].push(f.value);
-          return acc;
-        },
-        {} as Record<DeploymentListFilterField, (string | number)[]>,
-      );
-      for (const [field, values] of Object.entries(groupedFilters)) {
-        // this is kind of dumb, but `or`s type doesn't allow spreaded args without
-        // specifying the first two
-        const [v1, v2, ...rest] = values;
-        const f = field as DeploymentListFilterField; // I want some typesafety
-        switch (f) {
-          case "status":
-            query = query.where(({ deployment }) =>
-              or(
-                eq(deployment.status, v1),
-                eq(deployment.status, v2),
-                ...rest.map((value) => eq(deployment.status, value)),
-              ),
-            );
-            break;
-          case "branch":
-            query = query.where(({ deployment }) =>
-              or(
-                eq(deployment.gitBranch, v1),
-                eq(deployment.gitBranch, v2),
-                ...rest.map((value) => eq(deployment.gitBranch, value)),
-              ),
-            );
-            break;
-          case "environment":
-            // We already filtered
-            break;
-          case "since":
-            query = query.where(({ deployment }) =>
-              gt(deployment.createdAt, Date.now() - parseDuration(values.at(0) as string)),
-            );
-
-            break;
-          case "startTime":
-            query = query.where(({ deployment }) => gte(deployment.createdAt, values.at(0)));
-            break;
-          case "endTime":
-            query = query.where(({ deployment }) => lte(deployment.createdAt, values.at(0)));
-            break;
-          default:
-            break;
-        }
+      if (startTime !== undefined) {
+        query = query.where(({ deployment }) => gte(deployment.createdAt, startTime));
+      }
+      if (endTime !== undefined) {
+        query = query.where(({ deployment }) => lte(deployment.createdAt, endTime));
+      }
+      if (sinceMs !== undefined) {
+        query = query.where(({ deployment }) => gte(deployment.createdAt, sinceMs));
       }
 
       return query
-        .rightJoin({ environment: environments }, ({ environment, deployment }) =>
-          eq(environment.id, deployment?.environmentId ?? ""),
-        )
-
-        .orderBy(({ deployment }) => deployment?.createdAt ?? 0, "desc")
-        .limit(100);
+        .orderBy(({ deployment }) => deployment.createdAt, "desc")
+        .limit(DEPLOYMENTS_DEFAULT_LIMIT);
     },
-    [projectId, filters],
+    [projectId, startTime, endTime, sinceMs],
   );
+
+  const deployments = useMemo(() => {
+    const withEnvironments = result.data.map((deployment) => ({
+      deployment,
+      environment: environmentMap.get(deployment.environmentId),
+    }));
+
+    const clientFilters = filters.filter(
+      (f) => f.field !== "startTime" && f.field !== "endTime" && f.field !== "since",
+    );
+
+    if (clientFilters.length === 0) {
+      return { isLoading: result.isLoading, data: withEnvironments };
+    }
+
+    const groupedFilters = clientFilters.reduce(
+      (acc, f) => {
+        if (!acc[f.field]) {
+          acc[f.field] = [];
+        }
+        acc[f.field].push(f.value);
+        return acc;
+      },
+      {} as Record<DeploymentListFilterField, (string | number)[]>,
+    );
+
+    const filtered = withEnvironments.filter(({ deployment, environment }) => {
+      for (const [field, values] of Object.entries(groupedFilters)) {
+        const f = field as DeploymentListFilterField;
+        switch (f) {
+          case "status":
+            if (!values.includes(deployment.status)) {
+              return false;
+            }
+            break;
+          case "branch":
+            if (!values.includes(deployment.gitBranch)) {
+              return false;
+            }
+            break;
+          case "environment":
+            if (!environment || !values.includes(environment.slug)) {
+              return false;
+            }
+            break;
+        }
+      }
+
+      return true;
+    });
+
+    return { isLoading: result.isLoading, data: filtered };
+  }, [result, filters, environmentMap]);
 
   return {
     deployments,

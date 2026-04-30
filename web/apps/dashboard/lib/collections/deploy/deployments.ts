@@ -1,11 +1,12 @@
 "use client";
 import { flagCodes } from "@/lib/trpc/routers/deploy/network/utils";
+import { parseLoadSubsetOptions } from "@tanstack/query-db-collection";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
 import { DEPLOYMENT_STATUSES } from "./deployment-status";
-import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
+import { validateProjectIdInQuery } from "./utils";
 
 const schema = z.object({
   id: z.string(),
@@ -19,9 +20,7 @@ const schema = z.object({
   gitCommitTimestamp: z.number().int().nullable(),
   prNumber: z.number().int().nullable(),
   forkRepositoryFullName: z.string().nullable(),
-  // OpenAPI
   hasOpenApiSpec: z.boolean(),
-  // Deployment status
   status: z.enum(DEPLOYMENT_STATUSES),
   instances: z.array(
     z.object({
@@ -37,7 +36,6 @@ const schema = z.object({
   cpuMillicores: z.number().int(),
   memoryMib: z.number().int(),
   storageMib: z.number().int(),
-  // Runtime config for this deployment (from deployments table).
   port: z.number().int(),
   upstreamProtocol: z.enum(["http1", "h2c"]),
   healthcheck: z
@@ -56,6 +54,16 @@ const schema = z.object({
 
 export type Deployment = z.infer<typeof schema>;
 
+export const DEPLOYMENTS_DEFAULT_LIMIT = 100;
+
+function extractFilter(
+  filters: Array<{ field: Array<string | number>; operator: string; value?: unknown }>,
+  fieldName: string,
+  operator: string,
+) {
+  return filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
+}
+
 /**
  * Global deployments collection.
  *
@@ -66,8 +74,13 @@ export const deployments = createCollection<Deployment, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
-      const projectId = parseProjectIdFromWhere(opts.where);
-      return projectId ? ["deployments", projectId] : ["deployments"];
+      const { filters } = parseLoadSubsetOptions(opts);
+      const projectId = extractFilter(filters, "projectId", "eq") as string | undefined;
+      const startTime = extractFilter(filters, "createdAt", "gte") as number | undefined;
+      const endTime = extractFilter(filters, "createdAt", "lte") as number | undefined;
+      return projectId
+        ? ["deployments", projectId, startTime ?? null, endTime ?? null]
+        : ["deployments"];
     },
     retry: 3,
     syncMode: "on-demand",
@@ -76,13 +89,21 @@ export const deployments = createCollection<Deployment, string>(
       const options = ctx.meta?.loadSubsetOptions;
 
       validateProjectIdInQuery(options?.where);
-      const projectId = parseProjectIdFromWhere(options?.where);
+      const { filters } = parseLoadSubsetOptions(options);
+      const projectId = extractFilter(filters, "projectId", "eq") as string | undefined;
 
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
 
-      return trpcClient.deploy.deployment.list.query({ projectId });
+      const startTime = extractFilter(filters, "createdAt", "gte") as number | undefined;
+      const endTime = extractFilter(filters, "createdAt", "lte") as number | undefined;
+
+      return trpcClient.deploy.deployment.list.query({
+        projectId,
+        ...(startTime !== undefined && { startTime }),
+        ...(endTime !== undefined && { endTime }),
+      });
     },
     getKey: (item) => item.id,
     id: "deployments",

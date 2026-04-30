@@ -2,6 +2,7 @@
 
 import { LoadingState } from "@/components/loading-state";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { trpc } from "@/lib/trpc/client";
 import { useParams } from "next/navigation";
 import { createContext, useContext } from "react";
 import { useProjectData } from "../../data-provider";
@@ -33,15 +34,18 @@ export const DeploymentLayoutProvider = ({
   const { getDeploymentById, isDeploymentsLoading } = useProjectData();
   const deployment = getDeploymentById(deploymentId);
 
-  if (!deployment) {
-    if (isDeploymentsLoading) {
+  const { data: fetchedDeployment, isLoading: isFetchingById } =
+    trpc.deploy.deployment.getById.useQuery({ deploymentId }, { enabled: !deployment });
+
+  const resolved = deployment ?? (fetchedDeployment as Deployment | undefined);
+  if (!resolved) {
+    if (isDeploymentsLoading || isFetchingById) {
       return <LoadingState message="Loading deployment..." />;
     }
     throw new Error(`Deployment not found: ${deploymentId}`);
   }
-
   return (
-    <DeploymentLayoutContext.Provider value={{ deployment }}>
+    <DeploymentLayoutContext.Provider value={{ deployment: resolved }}>
       {children}
     </DeploymentLayoutContext.Provider>
   );
