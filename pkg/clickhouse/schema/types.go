@@ -370,9 +370,9 @@ type RuntimeLog struct {
 	// UUID-v7-shaped). Doubles as the logdrain cursor tiebreaker and as
 	// the per-event Idempotency-Key for downstream sinks. Empty for the
 	// rows backfilled from v1.
-	LogID      string `ch:"log_id" json:"log_id"`
-	Severity   string `ch:"severity" json:"severity"`
-	Message    string `ch:"message" json:"message"`
+	LogID    string `ch:"log_id" json:"log_id"`
+	Severity string `ch:"severity" json:"severity"`
+	Message  string `ch:"message" json:"message"`
 
 	WorkspaceID   string `ch:"workspace_id" json:"workspace_id"`
 	ProjectID     string `ch:"project_id" json:"project_id"`

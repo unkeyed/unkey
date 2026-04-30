@@ -4,8 +4,7 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 // Provider connections established via OAuth. One grant can back multiple log_drains
-// (and any future feature that needs a provider connection), so customers connect
-// e.g. Datadog once and reuse it across every project.
+// (and any future feature that needs a provider connection).
 export const oauthGrants = mysqlTable(
   "oauth_grants",
   {
@@ -13,14 +12,13 @@ export const oauthGrants = mysqlTable(
     id: varchar("id", { length: 64 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
 
-    // Lowercase provider key. e.g. 'datadog'. 'axiom' is reserved for when Axiom exposes
-    // an OAuth flow for ingest tokens.
+    // Lowercase provider key.
     provider: varchar("provider", { length: 64 }).notNull(),
 
-    // Human-readable label shown in the dashboard, e.g. "Datadog org acme.datadoghq.com".
+    // Human-readable label shown in the dashboard.
     accountLabel: varchar("account_label", { length: 256 }).notNull(),
 
-    // Provider-specific region, e.g. Datadog 'us', 'eu', 'us3', 'us5', 'ap1'.
+    // Provider-specific region identifier.
     region: varchar("region", { length: 32 }),
 
     scopes: json("scopes").$type<string[]>().notNull().default(sql`('[]')`),

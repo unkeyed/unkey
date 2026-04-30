@@ -886,9 +886,7 @@ func (ns NullLogDrainsDeliveryMode) Value() (driver.Value, error) {
 type LogDrainsProvider string
 
 const (
-	LogDrainsProviderAxiom    LogDrainsProvider = "axiom"
-	LogDrainsProviderOtlpHttp LogDrainsProvider = "otlp_http"
-	LogDrainsProviderDatadog  LogDrainsProvider = "datadog"
+	LogDrainsProviderAxiom LogDrainsProvider = "axiom"
 )
 
 func (e *LogDrainsProvider) Scan(src interface{}) error {
@@ -1617,8 +1615,6 @@ type LogDrain struct {
 	Apps         json.RawMessage       `db:"apps"`
 	Filters      json.RawMessage       `db:"filters"`
 	DeliveryMode LogDrainsDeliveryMode `db:"delivery_mode"`
-	RateLimitRps int32                 `db:"rate_limit_rps"`
-	MaxBatchSize int32                 `db:"max_batch_size"`
 	Enabled      bool                  `db:"enabled"`
 	CreatedAt    int64                 `db:"created_at"`
 	UpdatedAt    sql.NullInt64         `db:"updated_at"`
@@ -1638,7 +1634,7 @@ type LogDrainCursor struct {
 	DrainID       string         `db:"drain_id"`
 	GroupKey      string         `db:"group_key"`
 	TimeMs        int64          `db:"time_ms"`
-	RowID         int64          `db:"row_id"`
+	LastID        string         `db:"last_id"`
 	Blocked       bool           `db:"blocked"`
 	BlockedReason sql.NullString `db:"blocked_reason"`
 	UpdatedAt     int64          `db:"updated_at"`

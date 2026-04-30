@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "logdrain",
+    srcs = [
+        "config.go",
+        "doc.go",
+        "run.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/logdrain",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/buildinfo",
+        "//pkg/clickhouse",
+        "//pkg/config",
+        "//pkg/logger",
+        "//pkg/prometheus/lazy",
+        "//pkg/runner",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/collectors",
+        "@com_github_prometheus_client_golang//prometheus/promhttp",
+    ],
+)
+
+go_test(
+    name = "logdrain_test",
+    srcs = ["config_test.go"],
+    embed = [":logdrain"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

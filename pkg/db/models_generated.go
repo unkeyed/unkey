@@ -886,9 +886,7 @@ func (ns NullLogDrainsDeliveryMode) Value() (driver.Value, error) {
 type LogDrainsProvider string
 
 const (
-	LogDrainsProviderAxiom    LogDrainsProvider = "axiom"
-	LogDrainsProviderOtlpHttp LogDrainsProvider = "otlp_http"
-	LogDrainsProviderDatadog  LogDrainsProvider = "datadog"
+	LogDrainsProviderAxiom LogDrainsProvider = "axiom"
 )
 
 func (e *LogDrainsProvider) Scan(src interface{}) error {

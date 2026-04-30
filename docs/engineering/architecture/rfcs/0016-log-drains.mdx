@@ -8,7 +8,7 @@ authors:
 
 ## Summary
 
-Log Drains let a workspace forward its runtime logs (pod stdout/stderr) and request logs (frontline access logs) to a third-party observability backend without operating a sidecar. v1 ships Axiom, Datadog, and OTLP/HTTP.
+Log Drains let a workspace forward its runtime logs (deployment stdout/stderr) and request logs (frontline access logs) to a third-party observability backend without operating a sidecar. v1 ships Axiom.
 
 This RFC argues for a dedicated batch forwarder that **tails ClickHouse on a polling cycle** rather than pushing from the producers, and walks through the design choices that fall out of that decision: how cursors work, why drains in the same scope share a single read, how failures are isolated, and which trade-offs we explicitly accepted.
 
@@ -52,7 +52,7 @@ We picked (2). The reasons are below; they're the load-bearing rationale for eve
                                        │   • coordinator (poll)        │
                                        │   • per-drain cursors (MySQL) │
                                        │   • Vault-decrypted creds     │
-                                       │   • axiom / datadog / otlp    │
+                                       │   • axiom                     │
                                        ╰─────────────┬─────────────────╯
                                                      │ HTTPS batch
                                                      ▼
@@ -185,7 +185,7 @@ Defaults documented here because the rationale matters more than the values.
 | --- | --- | --- |
 | `PollInterval` | 10s | Caps end-to-end latency floor; below this CH read amplification gets uncomfortable on the v2 sort key. |
 | `BatchWindow` | 60s | Bootstrap look-back when a brand-new drain has no cursor. Short enough that a fresh drain doesn't replay an hour, long enough to absorb startup races. |
-| `MaxBatchRecords` | 5000 | Sized to fit Datadog's 5 MiB per-payload cap with comfortable headroom on typical record sizes. Also the unit of duplicate-window damage on a mid-batch crash. |
+| `MaxBatchRecords` | 5000 | Sized to fit within Axiom's 1 MiB per-payload cap with comfortable headroom on typical record sizes. Also the unit of duplicate-window damage on a mid-batch crash. |
 | `PauseAfterFailures` | 50 | Conservative; gives a flapping provider time to recover. Recommended follow-up: lower to 10 once we have dashboard signal for the difference. |
 | `MaxGroupsPerShard` | 500 | Caps fan-out per tick so a tenant with thousands of scopes can't monopolise a shard. Over-capacity shards rotate through groups across ticks. |
 | `MaxDrainsPerWorkspace` | 100 | Enforced at create time. Prevents a single workspace from saturating in-process fan-out. |
@@ -195,7 +195,7 @@ Defaults documented here because the rationale matters more than the values.
 
 Two paths: paste tokens (encrypted by `svc/vault`, workspace-scoped keyring, never re-displayed in the dashboard) and OAuth grants (a separate table that backs N drains via a foreign key). The Vault boundary is the **single decryption point**; plaintext never crosses any other process. Rotation is "edit the drain"; revealing the stored secret is not an option, by design — operators who lose a token mint a new one.
 
-The OAuth path's wire is built (table, callback, Datadog connector) but the coordinator returns a known sentinel error for OAuth-backed drains until the resolver lands. Drains using OAuth are silently skipped, not errored: we never want to send to a provider with a placeholder token while we're still building the refresh path.
+The OAuth path's wire is built but the coordinator returns a known sentinel error for OAuth-backed drains until the resolver lands. Drains using OAuth are silently skipped, not errored: we never want to send to a provider with a placeholder token while we're still building the refresh path.
 
 ## Drawbacks
 
@@ -215,7 +215,7 @@ The OAuth path's wire is built (table, callback, Datadog connector) but the coor
 
 ## Unresolved questions
 
-- **Per-drain outbound rate limit for OTLP/HTTP.** Axiom and Datadog signal back-pressure via 429 + Retry-After, which we honour. Customer-supplied OTLP collectors don't, and a backlogged drain can fire ten back-to-back batches at one collector URL inside a single tick. Is a fixed default (e.g. 10 req/s) plus a per-drain override the right shape, or should we size off the customer's collector capabilities? Leaning toward fixed default + override, off by default for Axiom/Datadog.
+- **Per-drain outbound rate limit.** Axiom signals back-pressure via 429 + Retry-After, which we honour. Is a fixed default (e.g. 10 req/s) plus a per-drain override the right shape? Leaning toward fixed default + override, off by default for Axiom.
 - **Workspace-level body-forwarding kill switch** in addition to the per-drain `IncludeBodies` opt-in. Compliance teams may want a workspace-wide "no body" guarantee regardless of who creates drains.
 - **Backfill on resume.** An un-paused drain resumes from where it stopped — fine when the pause was minutes, awkward when it was days. Do we offer a "skip to now" affordance? Defaulting to skip is wrong (silent data loss); defaulting to replay is wrong (huge bills). The right answer is probably an explicit operator choice on un-pause.
 - **When does the streaming arm become worth building?** `delivery_mode = 'stream'` is in the schema with no implementation. The trigger is probably either a customer SLA below ~30s end-to-end or a workload that needs back-pressure semantics the batch arm can't provide. Neither is on the roadmap; we kept the column so the eventual schema change is zero.
