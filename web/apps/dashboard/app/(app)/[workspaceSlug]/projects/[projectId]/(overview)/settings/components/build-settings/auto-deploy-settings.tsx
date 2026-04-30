@@ -130,7 +130,7 @@ const EnvRow = ({
 }) => (
   <div className="flex items-center gap-4 px-1 py-0.5">
     <div className="flex flex-col w-44">
-      <span className="text-[13px] font-medium text-gray-12">{label}</span>
+      <span className="text-[13px] text-gray-12">{label}</span>
       <span className="text-xs text-gray-9">{description}</span>
     </div>
     <Switch
