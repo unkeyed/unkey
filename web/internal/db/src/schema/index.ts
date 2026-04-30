@@ -45,3 +45,10 @@ export * from "./portal_configurations";
 export * from "./portal_branding";
 export * from "./portal_session_tokens";
 export * from "./portal_sessions";
+
+// Log drains and OAuth-based provider connections
+export * from "./oauth_grants";
+export * from "./log_drains";
+export * from "./log_drain_credentials";
+export * from "./log_drain_state";
+export * from "./log_drain_cursors";
