@@ -52,10 +52,15 @@ export const deleteApi = workspaceProcedure
     }
     try {
       await db.transaction(async (tx) => {
+        const now = Date.now();
         await tx
           .update(schema.apis)
-          .set({ deletedAtM: Date.now() })
+          .set({ deletedAtM: now })
           .where(eq(schema.apis.id, input.apiId));
+        await tx
+          .update(schema.keyAuth)
+          .set({ deletedAtM: now })
+          .where(eq(schema.keyAuth.id, keyAuthId));
         await insertAuditLogs(tx, {
           workspaceId: api.workspaceId,
           actor: {

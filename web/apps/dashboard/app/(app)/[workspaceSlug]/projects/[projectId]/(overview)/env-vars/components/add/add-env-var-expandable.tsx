@@ -1,6 +1,7 @@
 import { Switch } from "@/components/ui/switch";
 import { usePersistedForm } from "@/hooks/use-persisted-form";
 import { collection } from "@/lib/collections";
+import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { ChevronDown, CircleInfo, CloudUp, DoubleChevronRight, Plus } from "@unkey/icons";
@@ -70,6 +71,7 @@ export const AddEnvVarExpandable = ({
     "session",
   );
 
+  const createBulk = trpc.deploy.envVar.createBulk.useMutation();
   const { fields, append, remove } = useFieldArray({ control, name: "envVars" });
   const { ref: formRef, isDragging, importFile } = useDropZone(reset, trigger, getValues);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -138,29 +140,27 @@ export const AddEnvVarExpandable = ({
 
     const targetEnvIds =
       values.environmentId === "__all__" ? environments.map((e) => e.id) : [values.environmentId];
-    const type = values.secret ? "writeonly" : "recoverable";
-    const flatRecords = nonEmpty.flatMap((entry) =>
+    const type = values.secret ? ("writeonly" as const) : ("recoverable" as const);
+    const variables = nonEmpty.flatMap((entry) =>
       targetEnvIds.map((envId) => ({
+        environmentId: envId,
         key: entry.key,
         value: entry.value,
-        description: entry.description,
-        environmentId: envId,
+        type,
+        description: entry.description || null,
       })),
     );
 
-    for (const v of flatRecords) {
-      collection.envVars.insert({
-        id: crypto.randomUUID(),
-        environmentId: v.environmentId,
-        projectId,
-        key: v.key,
-        value: v.value,
-        type,
-        description: v.description || null,
-        updatedAt: Date.now(),
+    try {
+      await createBulk.mutateAsync({ variables });
+      await collection.envVars.utils.refetch();
+      toast.success(`Added ${variables.length} variable(s)`);
+    } catch (err) {
+      toast.error("Failed to create environment variables", {
+        description: err instanceof Error ? err.message : "Unknown error",
       });
+      return;
     }
-    toast.success(`Added ${flatRecords.length} variable(s)`);
 
     clearPersistedData();
     reset({
