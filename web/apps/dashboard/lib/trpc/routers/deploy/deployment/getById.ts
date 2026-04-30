@@ -13,6 +13,7 @@ export const getById = workspaceProcedure
   .input(
     z.object({
       deploymentId: z.string(),
+      projectId: z.string(),
     }),
   )
   .query(async ({ input, ctx }) => {
@@ -24,6 +25,7 @@ export const getById = workspaceProcedure
           and(
             eq(deployments.id, input.deploymentId),
             eq(deployments.workspaceId, ctx.workspace.id),
+            eq(deployments.projectId, input.projectId),
           ),
         )
         .limit(1);

@@ -31,11 +31,11 @@ export const DeploymentLayoutProvider = ({
     throw new Error("DeploymentLayoutProvider requires a deploymentId (via prop or route params)");
   }
 
-  const { getDeploymentById, isDeploymentsLoading } = useProjectData();
+  const { getDeploymentById, isDeploymentsLoading, projectId } = useProjectData();
   const deployment = getDeploymentById(deploymentId);
 
   const { data: fetchedDeployment, isLoading: isFetchingById } =
-    trpc.deploy.deployment.getById.useQuery({ deploymentId }, { enabled: !deployment });
+    trpc.deploy.deployment.getById.useQuery({ deploymentId, projectId }, { enabled: !deployment });
 
   const parsed = fetchedDeployment ? deploymentSchema.safeParse(fetchedDeployment) : undefined;
   const resolved = deployment ?? (parsed?.success ? parsed.data : undefined);
