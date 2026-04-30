@@ -23,11 +23,12 @@ func TestRatelimit_FailsOverToLocalWhenOriginErrors(t *testing.T) {
 	t.Cleanup(func() { _ = svc.Close() })
 
 	resp, err := svc.Ratelimit(context.Background(), RatelimitRequest{
-		Name:       "ns",
-		Identifier: "id",
-		Limit:      10,
-		Duration:   time.Minute,
-		Cost:       1,
+		WorkspaceID: "ws",
+		Namespace:   "ns",
+		Identifier:  "id",
+		Limit:       10,
+		Duration:    time.Minute,
+		Cost:        1,
 	})
 	require.NoError(t, err, "Ratelimit must not propagate origin errors to callers")
 	require.True(t, resp.Success, "local state was empty, so the request should pass on local-only info")
@@ -51,11 +52,12 @@ func TestFetchFromOrigin_CircuitBreakerShortCircuitsAfterTrip(t *testing.T) {
 	const warmupRequests = 100
 	for i := range warmupRequests {
 		_, _ = svc.Ratelimit(context.Background(), RatelimitRequest{
-			Name:       "ns",
-			Identifier: fmt.Sprintf("warmup-%d", i),
-			Limit:      10,
-			Duration:   time.Minute,
-			Cost:       1,
+			WorkspaceID: "ws",
+			Namespace:   "ns",
+			Identifier:  fmt.Sprintf("warmup-%d", i),
+			Limit:       10,
+			Duration:    time.Minute,
+			Cost:        1,
 		})
 	}
 	callsAfterWarmup := origin.getCalls.Load()
@@ -67,11 +69,12 @@ func TestFetchFromOrigin_CircuitBreakerShortCircuitsAfterTrip(t *testing.T) {
 	const measuredRequests = 100
 	for i := range measuredRequests {
 		_, _ = svc.Ratelimit(context.Background(), RatelimitRequest{
-			Name:       "ns",
-			Identifier: fmt.Sprintf("measured-%d", i),
-			Limit:      10,
-			Duration:   time.Minute,
-			Cost:       1,
+			WorkspaceID: "ws",
+			Namespace:   "ns",
+			Identifier:  fmt.Sprintf("measured-%d", i),
+			Limit:       10,
+			Duration:    time.Minute,
+			Cost:        1,
 		})
 	}
 	additionalCalls := origin.getCalls.Load() - callsAfterWarmup

@@ -220,6 +220,7 @@ func Run(ctx context.Context, cfg Config) error {
 	rlSvc, err := ratelimit.New(ratelimit.Config{
 		Clock:   clk,
 		Counter: ctr,
+		DB:      database,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)

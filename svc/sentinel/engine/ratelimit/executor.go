@@ -37,6 +37,7 @@ func (e *Executor) Execute(
 	ctx context.Context,
 	sess *zen.Session,
 	req *http.Request,
+	workspaceID string,
 	policyID string,
 	cfg *sentinelv1.RateLimit,
 	principal *principal.Principal,
@@ -51,12 +52,13 @@ func (e *Executor) Execute(
 	}
 
 	resp, err := e.rateLimiter.Ratelimit(ctx, rl.RatelimitRequest{
-		Name:       policyID,
-		Identifier: identifier,
-		Limit:      cfg.GetLimit(),
-		Duration:   time.Duration(cfg.GetWindowMs()) * time.Millisecond,
-		Cost:       1,
-		Time:       time.Time{},
+		WorkspaceID: workspaceID,
+		Namespace:   policyID,
+		Identifier:  identifier,
+		Limit:       cfg.GetLimit(),
+		Duration:    time.Duration(cfg.GetWindowMs()) * time.Millisecond,
+		Cost:        1,
+		Time:        time.Time{},
 	})
 	if err != nil {
 		return fault.Wrap(err,

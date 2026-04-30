@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "db",
+    srcs = [
+        "blocklist_delete_expired.sql_generated.go",
+        "blocklist_insert.sql_generated.go",
+        "blocklist_list_active.sql_generated.go",
+        "database.go",
+        "doc.go",
+        "generate.go",
+        "models_generated.go",
+        "querier_generated.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/internal/services/ratelimit/db",
+    visibility = ["//:__subpackages__"],
+)

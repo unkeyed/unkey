@@ -61,12 +61,13 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 	}
 
 	resp, err := s.rateLimiter.Ratelimit(ctx, ratelimit.RatelimitRequest{
-		Name:       workspaceRatelimitNamespace,
-		Identifier: sess.AuthorizedWorkspaceID(),
-		Limit:      int64(limit),
-		Duration:   duration,
-		Cost:       1,
-		Time:       time.Time{}, //nolint:exhaustruct // use ratelimiter's clock
+		WorkspaceID: sess.AuthorizedWorkspaceID(),
+		Namespace:   workspaceRatelimitNamespace,
+		Identifier:  sess.AuthorizedWorkspaceID(),
+		Limit:       int64(limit),
+		Duration:    duration,
+		Cost:        1,
+		Time:        time.Time{}, //nolint:exhaustruct // use ratelimiter's clock
 	})
 	if err != nil {
 		logger.Error("workspace rate limit: ratelimiter error",

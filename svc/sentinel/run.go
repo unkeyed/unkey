@@ -312,6 +312,7 @@ func initMiddlewareEngine(cfg middlewareEngineCfg) (engine.Evaluator, error) {
 	rlSvc, err := ratelimit.New(ratelimit.Config{
 		Clock:   cfg.Clock,
 		Counter: ctr,
+		DB:      nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ratelimit service: %w", err)
