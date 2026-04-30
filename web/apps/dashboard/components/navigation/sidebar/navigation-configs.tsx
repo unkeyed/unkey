@@ -3,6 +3,7 @@ import {
   ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,
   BracketsSquareDots,
+  CloudUp,
   Cube,
   Fingerprint,
   Gauge,
@@ -210,6 +211,12 @@ export function createProjectNavigation(
       href: `${basePath}/sentinel-policies`,
       label: "Sentinel Policies",
       active: segments.includes("sentinel-policies") && segments.includes("projects"),
+    },
+    {
+      icon: CloudUp,
+      href: `${basePath}/log-drains`,
+      label: "Log Drains",
+      active: segments.includes("log-drains") && segments.includes("projects"),
     },
     {
       icon: Gear,

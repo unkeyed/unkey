@@ -85,6 +85,12 @@ export const useBreadcrumbConfig = ({
       segment: "settings",
     },
     {
+      id: "log-drains",
+      label: "Log Drains",
+      href: `${basePath}/${projectId}/log-drains`,
+      segment: "log-drains",
+    },
+    {
       id: "openapi-diff",
       label: "OpenAPI Diff",
       href: `${basePath}/${projectId}/openapi-diff`,

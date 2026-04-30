@@ -28,6 +28,11 @@ const settingsNavbar = [
     href: "billing",
     text: "Billing",
   },
+  {
+    id: "log-drains",
+    href: "log-drains",
+    text: "Log Drains",
+  },
 ];
 
 export const WorkspaceNavbar = ({
