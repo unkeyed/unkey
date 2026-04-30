@@ -1,0 +1,22 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "sinks",
+    srcs = [
+        "helpers.go",
+        "send.go",
+        "sink.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/logdrain/internal/sinks",
+    visibility = ["//svc/logdrain:__subpackages__"],
+)
+
+go_test(
+    name = "sinks_test",
+    srcs = [
+        "send_test.go",
+        "sink_test.go",
+    ],
+    embed = [":sinks"],
+    deps = ["@com_github_stretchr_testify//require"],
+)

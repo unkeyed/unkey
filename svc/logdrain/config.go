@@ -39,8 +39,7 @@ type Config struct {
 	BatchWindow time.Duration `toml:"batch_window" config:"default=60s"`
 
 	// MaxBatchRecords caps the number of rows pulled from CH per group per
-	// poll. Provider sinks chunk further to honour their own batch size
-	// limits (Axiom 1MB, Datadog 5MB/1k, OTLP 4MB).
+	// poll. Provider sinks chunk further to honour their own batch size limits.
 	MaxBatchRecords int `toml:"max_batch_records" config:"default=5000,min=100"`
 
 	// PauseAfterFailures is the consecutive-failure threshold after which a
