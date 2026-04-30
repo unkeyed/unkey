@@ -10,6 +10,19 @@ import (
 )
 
 type Querier interface {
+	// Optimistic-lock cursor advance. Only the row that observed the previous
+	// watermark wins; if a concurrent replica already moved the cursor, this
+	// returns 0 rows affected and the caller replays the same window on the
+	// next tick (idempotency keys take care of the dup at the provider).
+	//
+	//  UPDATE log_drain_cursors
+	//  SET inserted_at_ms = ?,
+	//      fingerprint = ?,
+	//      updated_at = ?
+	//  WHERE group_key = ?
+	//    AND inserted_at_ms = ?
+	//    AND fingerprint = ?
+	AdvanceLogDrainCursor(ctx context.Context, db DBTX, arg AdvanceLogDrainCursorParams) (int64, error)
 	//ClearAcmeChallengeTokens
 	//
 	//  UPDATE acme_challenges
@@ -1093,6 +1106,14 @@ type Querier interface {
 	//  FROM roles r
 	//  WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
 	FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
+	//FindOAuthGrantByID
+	//
+	//  SELECT id, workspace_id, provider, account_label, region, scopes,
+	//         encrypted_credentials, encryption_key_id, expires_at, revoked_at,
+	//         created_at, updated_at
+	//  FROM oauth_grants
+	//  WHERE id = ? AND revoked_at IS NULL
+	FindOAuthGrantByID(ctx context.Context, db DBTX, id string) (FindOAuthGrantByIDRow, error)
 	//FindOpenApiSpecByDeploymentID
 	//
 	//  SELECT pk, id, workspace_id, deployment_id, portal_config_id, content, created_at, updated_at FROM openapi_specs WHERE deployment_id = ?
@@ -1371,6 +1392,12 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND deleted_at_m IS NULL
 	GetKeyAuthByID(ctx context.Context, db DBTX, id string) (GetKeyAuthByIDRow, error)
+	//GetLogDrainCursor
+	//
+	//  SELECT group_key, inserted_at_ms, fingerprint, updated_at
+	//  FROM log_drain_cursors
+	//  WHERE group_key = ?
+	GetLogDrainCursor(ctx context.Context, db DBTX, groupKey string) (LogDrainCursor, error)
 	//GetWorkspacesForQuotaCheckByIDs
 	//
 	//  SELECT
@@ -2380,6 +2407,33 @@ type Querier interface {
 	//  WHERE kp.key_id = ?
 	//  ORDER BY p.slug
 	ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error)
+	//ListEnabledLogDrains
+	//
+	//  SELECT
+	//      d.id,
+	//      d.workspace_id,
+	//      d.project_id,
+	//      d.name,
+	//      d.provider,
+	//      d.config,
+	//      d.sources,
+	//      d.environments,
+	//      d.apps,
+	//      d.filters,
+	//      d.delivery_mode,
+	//      c.source AS credential_source,
+	//      c.encrypted_credentials,
+	//      c.encryption_key_id,
+	//      c.oauth_grant_id,
+	//      s.consecutive_failures,
+	//      s.paused_reason
+	//  FROM log_drains d
+	//  LEFT JOIN log_drain_credentials c ON c.drain_id = d.id
+	//  LEFT JOIN log_drain_state s ON s.drain_id = d.id
+	//  WHERE d.deleted_at IS NULL
+	//    AND d.enabled = true
+	//    AND (s.paused_reason IS NULL OR s.paused_reason = '')
+	ListEnabledLogDrains(ctx context.Context, db DBTX) ([]ListEnabledLogDrainsRow, error)
 	//ListEnvVarsForRepoConnections
 	//
 	//  SELECT aev.app_id, aev.`key`, aev.value
@@ -2916,6 +2970,49 @@ type Querier interface {
 	//  		)
 	//  	)
 	RecordInstanceExit(ctx context.Context, db DBTX, arg RecordInstanceExitParams) error
+	// Increments consecutive_failures and stores the verbatim provider error.
+	// The application sets paused_reason once the threshold is crossed;
+	// keeping pause logic in code (not SQL) means the threshold can change
+	// without a schema migration.
+	//
+	//  INSERT INTO log_drain_state (
+	//      drain_id,
+	//      last_delivery_at,
+	//      last_attempt_at,
+	//      last_error,
+	//      consecutive_failures,
+	//      paused_reason,
+	//      total_records_delivered,
+	//      updated_at
+	//  ) VALUES (?, NULL, ?, ?, 1, ?, 0, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      last_attempt_at = VALUES(last_attempt_at),
+	//      last_error = VALUES(last_error),
+	//      consecutive_failures = log_drain_state.consecutive_failures + 1,
+	//      paused_reason = VALUES(paused_reason),
+	//      updated_at = VALUES(updated_at)
+	RecordLogDrainFailure(ctx context.Context, db DBTX, arg RecordLogDrainFailureParams) error
+	//RecordLogDrainSuccess
+	//
+	//  INSERT INTO log_drain_state (
+	//      drain_id,
+	//      last_delivery_at,
+	//      last_attempt_at,
+	//      last_error,
+	//      consecutive_failures,
+	//      paused_reason,
+	//      total_records_delivered,
+	//      updated_at
+	//  ) VALUES (?, ?, ?, NULL, 0, NULL, ?, ?)
+	//  ON DUPLICATE KEY UPDATE
+	//      last_delivery_at = VALUES(last_delivery_at),
+	//      last_attempt_at = VALUES(last_attempt_at),
+	//      last_error = NULL,
+	//      consecutive_failures = 0,
+	//      paused_reason = NULL,
+	//      total_records_delivered = log_drain_state.total_records_delivered + VALUES(total_records_delivered),
+	//      updated_at = VALUES(updated_at)
+	RecordLogDrainSuccess(ctx context.Context, db DBTX, arg RecordLogDrainSuccessParams) error
 	// RefillKeysByIDs sets remaining_requests to refill_amount for the given keys.
 	// This is a bulk operation to minimize database round trips.
 	//
@@ -3556,6 +3653,13 @@ type Querier interface {
 	//      workspace_id = VALUES(workspace_id),
 	//      store_encrypted_keys = VALUES(store_encrypted_keys)
 	UpsertKeySpace(ctx context.Context, db DBTX, arg UpsertKeySpaceParams) error
+	// Establishes a cursor for a brand-new group. Uses INSERT IGNORE so two
+	// replicas racing to bootstrap the same group never overwrite each other;
+	// the loser silently no-ops and reads the existing cursor on the next tick.
+	//
+	//  INSERT IGNORE INTO log_drain_cursors (group_key, inserted_at_ms, fingerprint, updated_at)
+	//  VALUES (?, ?, ?, ?)
+	UpsertLogDrainCursorInitial(ctx context.Context, db DBTX, arg UpsertLogDrainCursorInitialParams) error
 	//UpsertOpenApiSpec
 	//
 	//  INSERT INTO openapi_specs (id,workspace_id, deployment_id, portal_config_id, content, created_at, updated_at)

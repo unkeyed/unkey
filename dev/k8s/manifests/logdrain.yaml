@@ -1,0 +1,128 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logdrain-config
+  namespace: unkey
+  labels:
+    app: logdrain
+data:
+  unkey.toml: |
+    region = "local"
+    clickhouse_url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+
+    # Aggressive poll interval for dev so a "create drain → see records
+    # at the provider" cycle takes seconds, not a minute. Production
+    # values are 10s / 60s / 5000 / 50.
+    poll_interval = "2s"
+    batch_window = "30s"
+    max_batch_records = 1000
+    pause_after_failures = 10
+    shard_count = 1
+    shard_index = 0
+
+    [database]
+    primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+
+    [vault]
+    url = "http://vault:8060"
+    token = "vault-test-token-123"
+
+    [observability.metrics]
+    prometheus_port = 9402
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logdrain
+  namespace: unkey
+  labels:
+    app: logdrain
+spec:
+  replicas: 1
+  # Recreate so we never have two coordinators racing the cursor advance
+  # during a rolling restart in dev. Single-replica anyway, but the
+  # default RollingUpdate strategy briefly keeps the old pod around;
+  # Recreate is cleaner for the local use case.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: logdrain
+  template:
+    metadata:
+      labels:
+        app: logdrain
+    spec:
+      serviceAccountName: unkey-serviceaccount
+      containers:
+        - name: logdrain
+          image: unkey/go:latest
+          args: ["run", "logdrain", "--config", "/etc/unkey/unkey.toml"]
+          imagePullPolicy: Never
+          env:
+            - name: UNKEY_LOG_LEVEL
+              value: debug
+          ports:
+            - name: metrics
+              containerPort: 9402
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: metrics
+            periodSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: metrics
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: metrics
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/unkey
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: logdrain-config
+      initContainers:
+        - name: wait-for-dependencies
+          image: busybox:1.36
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -z mysql 3306 && nc -z clickhouse 9000 && nc -z vault 8060; do echo waiting for dependencies; sleep 2; done;",
+            ]
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logdrain
+  namespace: unkey
+  labels:
+    app: logdrain
+spec:
+  selector:
+    app: logdrain
+  ports:
+    - name: metrics
+      port: 9402
+      targetPort: metrics
+      protocol: TCP
+  type: ClusterIP

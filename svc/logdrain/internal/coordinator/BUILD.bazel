@@ -1,0 +1,43 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "coordinator",
+    srcs = [
+        "coordinator.go",
+        "cursor.go",
+        "factory.go",
+        "fetch.go",
+        "group.go",
+        "rows.go",
+        "shard.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/logdrain/internal/coordinator",
+    visibility = ["//svc/logdrain:__subpackages__"],
+    deps = [
+        "//pkg/cache",
+        "//pkg/clickhouse",
+        "//pkg/clock",
+        "//pkg/db",
+        "//pkg/defaults",
+        "//pkg/logger",
+        "//pkg/repeat",
+        "//svc/logdrain/internal/creds",
+        "//svc/logdrain/internal/sinks",
+        "//svc/logdrain/internal/sinks/axiom",
+        "//svc/logdrain/internal/sinks/datadog",
+        "//svc/logdrain/internal/sinks/otlp",
+    ],
+)
+
+go_test(
+    name = "coordinator_test",
+    srcs = [
+        "group_test.go",
+        "shard_test.go",
+    ],
+    embed = [":coordinator"],
+    deps = [
+        "//pkg/db",
+        "@com_github_stretchr_testify//require",
+    ],
+)

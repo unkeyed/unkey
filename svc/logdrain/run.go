@@ -14,16 +14,23 @@ import (
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	vaultrpc "github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/runner"
+	"github.com/unkeyed/unkey/svc/logdrain/internal/coordinator"
+	"github.com/unkeyed/unkey/svc/logdrain/internal/creds"
 )
 
-// Run boots the logdrain service. v1 is a skeleton: it validates config,
-// dials ClickHouse, exposes /metrics + /health, and blocks on ctx. The
-// coordinator and worker loops land in a follow-up commit.
+// Run boots the logdrain service. It dials ClickHouse, MySQL, and Vault,
+// constructs the coordinator, and blocks on ctx. Sink fan-out for live
+// CH batches lands in the next stack; v1 of the loop logs the groups it
+// would process so the wiring is exercisable end-to-end without sending
+// real records to the providers.
 func Run(ctx context.Context, cfg Config) error {
 	// When the pod is part of a StatefulSet, prefer the ordinal we can
 	// derive from $HOSTNAME so the helm chart doesn't have to inject one
@@ -65,6 +72,44 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create clickhouse client: %w", err)
 	}
 
+	database, err := db.New(db.Config{
+		PrimaryDSN:  cfg.Database.Primary,
+		ReadOnlyDSN: cfg.Database.ReadonlyReplica,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create db: %w", err)
+	}
+
+	vaultClient := vaultrpc.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
+		&http.Client{Timeout: 10 * time.Second},
+		cfg.Vault.URL,
+	))
+
+	credsCache, err := creds.NewCache(vaultClient, creds.Config{
+		MaxSize: 0,
+		Fresh:   0,
+		Stale:   0,
+		Clock:   nil,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to create creds cache: %w", err)
+	}
+	factory := coordinator.NewFactory(credsCache, &http.Client{Timeout: 30 * time.Second})
+
+	coord, err := coordinator.New(coordinator.Config{
+		PollInterval:          cfg.PollInterval,
+		BatchWindow:           cfg.BatchWindow,
+		MaxBatchRecords:       cfg.MaxBatchRecords,
+		PauseAfterFailures:    cfg.PauseAfterFailures,
+		MaxGroupsPerShard:     cfg.MaxGroupsPerShard,
+		MaxDrainsPerWorkspace: cfg.MaxDrainsPerWorkspace,
+		ShardCount:            cfg.ShardCount,
+		ShardIndex:            cfg.ShardIndex,
+	}, database, ch, factory)
+	if err != nil {
+		return fmt.Errorf("unable to create coordinator: %w", err)
+	}
+
 	r := runner.New()
 
 	// Single HTTP server on metrics.port serving Prometheus metrics and
@@ -101,18 +146,16 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 	}
 
-	// Skeleton main loop: hold the ClickHouse handle, surface readiness,
-	// and block on ctx until the coordinator lands. Closing CH on exit so
-	// the binary is well-behaved on SIGTERM today.
 	r.Go(func(ctx context.Context) error {
 		defer func() {
-			if err := ch.Close(); err != nil {
-				logger.Warn("clickhouse close failed", "error", err.Error())
+			if cerr := ch.Close(); cerr != nil {
+				logger.Warn("clickhouse close failed", "error", cerr.Error())
+			}
+			if cerr := database.Close(); cerr != nil {
+				logger.Warn("database close failed", "error", cerr.Error())
 			}
 		}()
-
-		<-ctx.Done()
-		return nil
+		return coord.Run(ctx)
 	})
 
 	return r.Wait(ctx)

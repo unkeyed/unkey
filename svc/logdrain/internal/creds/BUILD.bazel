@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "creds",
+    srcs = ["creds.go"],
+    importpath = "github.com/unkeyed/unkey/svc/logdrain/internal/creds",
+    visibility = ["//svc/logdrain:__subpackages__"],
+    deps = [
+        "//gen/proto/vault/v1:vault",
+        "//gen/rpc/vault",
+        "//pkg/cache",
+        "//pkg/clock",
+        "//pkg/defaults",
+    ],
+)
+
+go_test(
+    name = "creds_test",
+    srcs = ["creds_test.go"],
+    deps = [
+        ":creds",
+        "//gen/proto/vault/v1:vault",
+        "//gen/rpc/vault",
+        "//svc/vault/testutil",
+        "@com_github_stretchr_testify//require",
+    ],
+)
