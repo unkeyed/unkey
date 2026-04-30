@@ -2,6 +2,7 @@ package schema
 
 import (
 	"encoding/json"
+	"time"
 )
 
 // KeyVerification represents the v2 key verification raw table structure.
@@ -353,4 +354,46 @@ type AuditLogV1 struct {
 	// auditlog.WithCorrelation(ctx, ...) for flows that fan out across
 	// multiple Insert calls.
 	CorrelationID string `ch:"correlation_id" json:"correlation_id"`
+}
+
+// RuntimeLog represents the runtime_logs_raw_v2 table row shape:
+// stdout/stderr captured by the Vector DaemonSet from Krane-managed
+// deployment pods, parsed for severity and optionally structured
+// attributes.
+type RuntimeLog struct {
+	// Time is the log timestamp in milliseconds since epoch (when the line
+	// was emitted by the application). Also used for cursor ordering.
+	Time int64 `ch:"time" json:"time"`
+	// InsertedAt is when the row landed in ClickHouse (already exists in table)
+	InsertedAt int64 `ch:"inserted_at" json:"inserted_at"`
+	// LogID is Vector's stable per-row id ("log_<16 hex chars>",
+	// UUID-v7-shaped). Doubles as the logdrain cursor tiebreaker and as
+	// the per-event Idempotency-Key for downstream sinks. Empty for the
+	// rows backfilled from v1.
+	LogID      string `ch:"log_id" json:"log_id"`
+	Severity   string `ch:"severity" json:"severity"`
+	Message    string `ch:"message" json:"message"`
+
+	WorkspaceID   string `ch:"workspace_id" json:"workspace_id"`
+	ProjectID     string `ch:"project_id" json:"project_id"`
+	EnvironmentID string `ch:"environment_id" json:"environment_id"`
+	AppID         string `ch:"app_id" json:"app_id"`
+	DeploymentID  string `ch:"deployment_id" json:"deployment_id"`
+
+	// K8sPodName identifies the specific replica that produced the line.
+	K8sPodName string `ch:"k8s_pod_name" json:"k8s_pod_name"`
+
+	Region   string `ch:"region" json:"region"`
+	Platform string `ch:"platform" json:"platform"`
+
+	// Attributes is the parsed JSON-or-logfmt structured payload, serialised
+	// as a marshaled JSON string. Same wire format as InstanceCheckpoint —
+	// the driver's JSON column path expects a string. Empty for plain-text
+	// logs.
+	Attributes string `ch:"attributes" json:"attributes"`
+
+	// ExpiresAt drives the per-row TTL on the table. Set this on insert; the
+	// table default (now64(3) + INTERVAL 90 DAY) only applies if the column
+	// is omitted, which the strict-mode driver doesn't allow on bulk inserts.
+	ExpiresAt time.Time `ch:"expires_at" json:"expires_at"`
 }
