@@ -7,44 +7,63 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-Log Drains forward logs from your Unkey deployments to a third-party provider. Set up a drain once and every matching deployment streams its runtime output and HTTP requests to Axiom.
+A log drain forwards logs from your Unkey deployments to a third-party provider. You set one up once and every matching deployment streams its runtime output and HTTP requests to Axiom. The built-in [Logs](/observability/logs) and [Requests](/observability/requests) views keep working unchanged. Drains run alongside, not instead.
 
-This page is a placeholder. The full guide will land alongside the v1 release.
+## Set up a drain
 
-## What you can configure
+Log drains are installed from the **Extensions** marketplace on a project. Open **Project → Extensions**, find Axiom, and click **Install**.
 
-A drain belongs to a project (or to your entire workspace) and has:
+1. Paste an Axiom ingest token and a dataset name.
+2. Pick what to forward: sources (runtime logs, request logs), environments (production, preview), and optional filters.
+3. Install. Unkey verifies the token against Axiom before persisting. If the token is expired or the dataset name is wrong, you find out here, not later.
 
-- **Provider.** Axiom.
-- **Sources.** Runtime logs (stdout and stderr) and HTTP request logs. Both are on by default.
-- **Environments.** Production is on by default. Preview is off by default to avoid surprise spend on PR previews.
-- **Filters.** Minimum severity, status code matchers, path excludes, and an opt-in toggle to include request and response bodies.
+Tokens are encrypted at rest by [Unkey Vault](/platform/vault/overview) and never re-displayed after install. To rotate a token, update the installation.
 
-You can create as many drains per project as you want. Common shapes:
+## What gets forwarded
 
-- Production runtime + request logs to Axiom for long-term archive
-- A workspace-wide drain to a SOC/SIEM, plus per-project drains for engineering teams
-- Two drains to the same provider with different filters: errors-only to a paging dataset, everything-else to a long-retention dataset
+Each drain has:
 
-## Connecting a provider
+- Provider: the destination. Axiom is the supported provider.
+- Sources: runtime logs (stdout, stderr) and request logs (HTTP access logs from Sentinel). Both are on by default.
+- Environments: `production` is on by default. `preview` is off by default to avoid surprise spend from PR previews. Toggle it on per drain when you want it.
+- Filters (advanced):
+  - Minimum runtime severity: drop everything below `info`, `warn`, or `error`.
+  - Status code matchers: `>=400`, `5xx`, `404`, and so on, for request logs.
+  - Path excludes: drop noisy paths like `/healthz`.
+  - Include request and response bodies: off by default. Bodies may contain user data and secrets, so only enable this after confirming your provider's data handling.
 
-- **Axiom.** Paste an ingest token and a dataset name.
+You can install the extension multiple times per project for different setups, for example:
 
-Tokens are encrypted at rest via Unkey Vault and never re-displayed after creation. To rotate a token, edit the drain.
+- Production runtime and request logs to Axiom for long-term archive.
+- Two installs to the same provider with different filters: errors-only to a small dataset, everything else to a long-retention dataset.
+
+## Provider notes
+
+### Axiom
+
+- Paste an [Axiom API token](https://axiom.co/docs/get-help/faq#how-do-i-create-an-api-token) and a dataset name.
+- The default endpoint is `https://api.axiom.co`. EU customers should override it to `https://api.eu.axiom.co`.
+- Records arrive with `_time` (RFC3339 nanoseconds), `level`, `message`, and tenant identifiers (`workspace_id`, `project_id`, `environment_id`, `deployment_id`) as top-level keys. Structured fields from your app's JSON output show up as nested `attributes`.
 
 ## Delivery semantics
 
-- **Lag.** Logs typically appear at the provider within 30 to 60 seconds of being emitted by your app.
-- **At-least-once.** During a service restart, you may see up to ~30 seconds of duplicates. Where the provider supports `Idempotency-Key`, Unkey sends a per-record key so the provider can dedup automatically.
-- **Backpressure.** If the provider is unreachable or rate-limiting, Unkey retries with exponential backoff. After repeated failures a drain auto-pauses and surfaces the provider's actual error in the dashboard.
-- **Privacy.** Request and response bodies are stripped by default. Enable `Include request and response bodies` only after confirming your provider's data-handling policy.
+Logs typically arrive at the provider within 30 to 60 seconds of being emitted by your app.
 
-## Retention
+Delivery is at-least-once. During a service restart, you can see up to roughly 30 seconds of duplicates. When a provider supports an `Idempotency-Key` header, Unkey sends a per-record key so the provider deduplicates automatically.
+
+If a provider is unreachable or rate-limiting, Unkey retries with exponential backoff. After repeated failures (default: 50 in a row), the drain auto-pauses and surfaces the provider's verbatim error in the dashboard.
+
+Request and response bodies are stripped by default. Enable "Include request and response bodies" only after confirming your provider's data-handling policy.
 
 Drains forward logs as they arrive. Unkey's built-in 90-day runtime log retention and 30-day request log retention are unaffected.
 
-## Coming soon
+## Operate a drain
 
-- Generic HTTP webhook sink for non-Axiom custom endpoints
-- Trace drains (OTLP traces) once tracing lands in the platform
-- Replay UI for re-sending the last N hours after a misconfiguration
+Each install has a status badge in the Extensions view:
+
+- Healthy: the last batch delivered with no recent failures.
+- N recent failures: the last batch failed, but the install hasn't crossed the auto-pause threshold yet.
+- Auto-paused: the install crossed the failure threshold (default 50). Open it, read the verbatim provider error, fix the underlying problem (for example, rotate a revoked token), then re-enable.
+- Disabled: turned off by an operator from the install's detail page.
+
+The detail page shows the last delivery timestamp, the cumulative records-delivered count, and the verbatim last error. Re-enabling clears the failure counter, last error, and pause reason, so the next tick treats the install as fresh.

@@ -119,18 +119,11 @@ Horizontal scale is `kubectl scale --replicas=N` plus a `replicas = N` bump in t
 
 The remaining sequential bottleneck is per-group rather than per-replica: a group with N drains all targeting the *same* provider host can saturate that host's connection pool (`MaxIdleConnsPerHost = 64`). Per-drain cursors (PK `(drain_id, group_key)` on `log_drain_cursors`) are already in place, so a slow or paused drain doesn't hold its siblings' cursor advance — the next throughput lever for a single noisy tenant is decomposing one source's group by `app_id` or `deployment_id`, which trades cursor-space simplicity for parallel CH fetches per sub-group.
 
-## Realtime path (future)
+## Lag floor and the streaming path
 
-The CH-tail design has a 30 to 60 second lag floor: a log line has to be flushed to ClickHouse, then picked up on the next poll, before logdrain can forward it. That's fine for analytics, paging, and audit, but it's the wrong shape for use cases that need sub-second delivery (live tail in the dashboard, real-time alerting on a customer's side).
+The CH-tail design has a 30 to 60 second lag floor: a log line has to be flushed to ClickHouse and picked up on the next poll before logdrain can forward it. That's fine for analytics, paging, and audit, but it's the wrong shape for sub-second use cases like live tail.
 
-If sub-second delivery becomes a requirement, logdrain can grow a second, parallel forwarding path that bypasses ClickHouse:
-
-1. Each drain row gets a `delivery_mode` column. The default stays `batch` (today's CH-tail path). New drains can opt in to `stream`.
-2. Vector already collects logs at the pod level for the existing CH ingest pipeline. It can be configured to fan out: continue writing to ClickHouse for the batch path, and additionally forward each line over the network to a new `logdrain-aggregator` Deployment.
-3. The aggregator is the same Go binary as the coordinator, but in a streaming mode: it accepts pushes from Vector instead of polling ClickHouse, looks up which streaming drains apply to each record, and forwards immediately. Because the same binary runs on both paths, the `sinks/`, `transform/`, and `creds/` packages are shared. Adding a new provider works for both modes at once.
-4. Drains in `batch` mode keep going through the existing CH-tail coordinator, untouched. The two paths don't share cursors, so there's no coordination cost between them.
-
-The trade is duplicate fan-out at the Vector layer (one record goes to two places) in exchange for sub-second delivery for drains that ask for it. No new broker, no schema migration beyond the `delivery_mode` column, and no rewrite of provider integrations.
+The `log_drains` table reserves a `delivery_mode` column (`batch`, `stream`) for a future streaming path. Nothing is implemented behind `stream` yet, and the design is open: a Vector fan-out into a separate aggregator, a Kafka topic in front of the workers, or something else entirely. The shortlist will get prototyped and benchmarked against real traffic before any approach is committed to.
 
 ## Related pages
 
