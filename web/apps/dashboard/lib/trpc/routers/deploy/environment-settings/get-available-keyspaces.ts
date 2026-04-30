@@ -27,7 +27,6 @@ export const getAvailableKeyspaces = workspaceProcedure.query(async ({ ctx }) =>
       });
     });
 
-
   return keyspaces.reduce(
     (acc, ks) => {
       if (ks.api && ks.api.deletedAtM === null) {
