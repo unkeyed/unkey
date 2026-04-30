@@ -93,25 +93,25 @@ const AutoDeployInner = ({
       }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-    >
-      <div className="flex flex-col gap-3 px-4 py-4">
-        <div className="flex flex-col gap-2">
-          <EnvRow
-            label="Production"
-            description="Pushes to the default branch"
-            checked={currentProd}
-            onChange={(v) => setValue("production", v, { shouldValidate: true })}
-          />
-          <EnvRow
-            label="Preview"
-            description="Pushes to non-default branches"
-            checked={currentPreview}
-            onChange={(v) => setValue("preview", v, { shouldValidate: true })}
-          />
-        </div>
+      footerLeft={
         <SettingDescription>
           When disabled, you can still deploy manually from the dashboard.
         </SettingDescription>
+      }
+    >
+      <div className="flex flex-col gap-1" data-form-wide>
+        <EnvRow
+          label="Production"
+          description="pushes to the default branch"
+          checked={currentProd}
+          onChange={(v) => setValue("production", v, { shouldValidate: true })}
+        />
+        <EnvRow
+          label="Preview"
+          description="pushes to non-default branches"
+          checked={currentPreview}
+          onChange={(v) => setValue("preview", v, { shouldValidate: true })}
+        />
       </div>
     </FormSettingCard>
   );
@@ -128,16 +128,16 @@ const EnvRow = ({
   checked: boolean;
   onChange: (value: boolean) => void;
 }) => (
-  <div className="flex items-center gap-4 px-1 py-0.5">
-    <div className="flex flex-col w-44">
-      <span className="text-[13px] text-gray-12">{label}</span>
-      <span className="text-xs text-gray-9">{description}</span>
-    </div>
+  <label className="flex items-center gap-3 py-1.5 cursor-pointer">
     <Switch
       checked={checked}
       onCheckedChange={onChange}
-      className="h-5 w-10 data-[state=checked]:bg-info-9 data-[state=checked]:ring-2 data-[state=checked]:ring-infoA-5 data-[state=unchecked]:bg-grayA-6 data-[state=unchecked]:ring-2 data-[state=unchecked]:ring-grayA-5"
+      className="h-5 w-10 shrink-0 data-[state=checked]:bg-info-9 data-[state=checked]:ring-2 data-[state=checked]:ring-infoA-5 data-[state=unchecked]:bg-grayA-6 data-[state=unchecked]:ring-2 data-[state=unchecked]:ring-grayA-5"
       thumbClassName="h-4 w-4 data-[state=checked]:translate-x-5"
     />
-  </div>
+    <span className="text-sm text-gray-12">
+      <span className="font-medium">{label}</span>
+      <span className="text-gray-9"> — {description}</span>
+    </span>
+  </label>
 );
