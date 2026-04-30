@@ -2,6 +2,7 @@ package openapi
 
 import (
 	"context"
+	"fmt"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -113,4 +114,44 @@ func TestExecute_CachesCompiledValidator(t *testing.T) {
 	count := len(e.validators)
 	e.mu.RUnlock()
 	require.Equal(t, 1, count)
+}
+
+func TestExecute_EvictsWhenCacheFull(t *testing.T) {
+	t.Parallel()
+
+	e := New()
+
+	specTemplate := func(path string) []byte {
+		return []byte(`openapi: "3.0.0"
+info:
+  title: Test
+  version: "1.0"
+paths:
+  ` + path + `:
+    get:
+      responses:
+        "200":
+          description: ok
+`)
+	}
+
+	for i := range maxValidators {
+		path := fmt.Sprintf("/path-%d", i)
+		cfg := &sentinelv1.OpenApiRequestValidation{SpecYaml: specTemplate(path)}
+		req := httptest.NewRequest("GET", path, nil)
+		require.NoError(t, e.Execute(context.Background(), nil, req, cfg))
+	}
+
+	e.mu.RLock()
+	require.Equal(t, maxValidators, len(e.validators))
+	e.mu.RUnlock()
+
+	// One more triggers eviction
+	cfg := &sentinelv1.OpenApiRequestValidation{SpecYaml: specTemplate("/overflow")}
+	req := httptest.NewRequest("GET", "/overflow", nil)
+	require.NoError(t, e.Execute(context.Background(), nil, req, cfg))
+
+	e.mu.RLock()
+	require.Equal(t, 1, len(e.validators))
+	e.mu.RUnlock()
 }

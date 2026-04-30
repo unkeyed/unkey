@@ -14,20 +14,21 @@ import (
 
 // Specs rarely change -- a service typically deploys with one and keeps it for weeks.
 // We cache compiled validators keyed by spec content and cap at maxValidators as a
-// safety net. When the cap is hit we wipe and recompile, which is cheap given how infrequently specs actually change.
+// safety net. When the cap is hit we wipe and recompile on demand, which is cheap
+// given how infrequently specs actually change. Full wipe over LRU because the
+// expected cardinality is low (one spec per deployment) and the simplicity is worth
+// the rare thundering-herd recompile if many distinct specs somehow accumulate.
 const maxValidators = 64
 
 type Executor struct {
 	mu         sync.RWMutex
 	validators map[string]*validation.Validator
-	size       int
 }
 
 func New() *Executor {
 	return &Executor{
 		mu:         sync.RWMutex{},
 		validators: make(map[string]*validation.Validator),
-		size:       0,
 	}
 }
 
@@ -84,12 +85,14 @@ func (e *Executor) getOrCompile(spec []byte) (*validation.Validator, error) {
 	}
 
 	e.mu.Lock()
-	if e.size >= maxValidators {
+	if v, ok := e.validators[key]; ok {
+		e.mu.Unlock()
+		return v, nil
+	}
+	if len(e.validators) >= maxValidators {
 		e.validators = make(map[string]*validation.Validator)
-		e.size = 0
 	}
 	e.validators[key] = compiled
-	e.size++
 	e.mu.Unlock()
 
 	return compiled, nil
