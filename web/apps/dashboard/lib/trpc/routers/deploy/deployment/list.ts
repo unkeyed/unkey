@@ -89,10 +89,7 @@ export const listDeployments = workspaceProcedure
           .innerJoin(regions, eq(regions.id, appRegionalSettings.regionId))
           .leftJoin(
             horizontalAutoscalingPolicies,
-            eq(
-              horizontalAutoscalingPolicies.id,
-              appRegionalSettings.horizontalAutoscalingPolicyId,
-            ),
+            eq(horizontalAutoscalingPolicies.id, appRegionalSettings.horizontalAutoscalingPolicyId),
           )
           .where(
             and(

@@ -23,14 +23,13 @@ export const DeploymentLiveStep = ({ projectId, deploymentId }: DeploymentLiveSt
   return (
     <ProjectDataProvider projectId={projectId}>
       <DeploymentLayoutProvider deploymentId={deploymentId}>
-        <DeploymentLiveStepContent projectId={projectId} />
+        <DeploymentLiveStepContent />
       </DeploymentLayoutProvider>
     </ProjectDataProvider>
   );
 };
 
-
-const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
+const DeploymentLiveStepContent = () => {
   const { deployment } = useDeployment();
   const ready = deployment.status === "ready";
 
@@ -43,7 +42,6 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
     () => deriveStatusFromSteps(stepsQuery.data, deployment.status),
     [stepsQuery.data, deployment.status],
   );
-
 
   return (
     <OnboardingStepContainer>
@@ -58,10 +56,7 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
             "Deploying your project"
           )
         }
-        subtitle=
-
-        "Building, provisioning infrastructure, and assigning domains..."
-
+        subtitle="Building, provisioning infrastructure, and assigning domains..."
       />
       <div className="w-[900px] space-y-6">
         <DeploymentInfo statusOverride={derivedStatus} />
