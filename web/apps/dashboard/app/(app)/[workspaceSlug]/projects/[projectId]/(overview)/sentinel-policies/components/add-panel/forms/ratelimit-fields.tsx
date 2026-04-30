@@ -31,7 +31,7 @@ const IDENTIFIER_SOURCE_LABELS: Record<RateLimitIdentifierSource, string> = {
 };
 
 const RATE_LIMIT_DOCS_URL =
-  "https://www.unkey.com/docs/platform/sentinel/policies/rate-limiting#rate-limit-subjects";
+  "https://www.unkey.com/docs/platform/gateways/policies/rate-limiting#rate-limit-subjects";
 
 const IDENTIFIER_SOURCE_DESCRIPTIONS: Record<RateLimitIdentifierSource, React.ReactNode> = {
   remoteIp: "Limit by client IP address.",
@@ -135,7 +135,7 @@ export function RateLimitFields() {
             ) : (
               <>
                 Dotted path into the principal JSON (e.g. "subject" or "source.key.meta.org_id").{" "}
-                <DocsLink href="https://www.unkey.com/docs/platform/sentinel/principal/overview" />
+                <DocsLink href="https://www.unkey.com/docs/platform/gateways/principal/overview" />
               </>
             )
           }

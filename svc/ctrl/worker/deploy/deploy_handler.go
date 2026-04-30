@@ -27,14 +27,6 @@ import (
 var errInvalidSecretsConfig = errors.New("invalid secrets config")
 
 const (
-	// sentinelNamespace isolates sentinel resources from tenant namespaces to
-	// simplify RBAC and keep routing infrastructure separate from workloads.
-	sentinelNamespace = "sentinel"
-
-	// sentinelPort is the port exposed by sentinel services for frontline traffic
-	// and must match the container port and service configuration.
-	sentinelPort = 8040
-
 	// regionReadyTimeout is how long to wait for all instances in a region to become
 	// ready before considering that region's deployment failed. This is a soft timeout:
 	// the workflow continues waiting for other regions and only fails if fewer than
@@ -68,14 +60,18 @@ const (
 // Deploy executes a full deployment workflow for a new application version.
 //
 // This is a Restate durable workflow, meaning it is idempotent and can safely
-// resume from any step after a crash. The workflow orchestrates five phases:
+// resume from any step after a crash. The workflow orchestrates four phases:
 //
 //  1. [Workflow.buildImage] — resolve or build the container image
 //  2. [Workflow.createTopologies] — provision deployment topologies across regions
-//  3. [Workflow.ensureSentinels] and [Workflow.ensureCiliumNetworkPolicy] — set up
-//     routing infrastructure and network policies
+//  3. [Workflow.waitForDeployments] — block until enough regions are healthy
 //  4. [Workflow.configureRouting] — assign domain routes to the deployment
 //  5. [Workflow.swapLiveDeployment] — promote to live (production only)
+//
+// Network policies are not provisioned by the control plane any more —
+// krane installs a per-deployment CiliumNetworkPolicy when it applies the
+// ReplicaSet, so frontline ingress is allowed without a separate workflow
+// step.
 //
 // Each phase is wrapped in deployment step tracking so the UI can show progress.
 // A compensation stack (executed in reverse on failure) cleans up partial state
@@ -274,29 +270,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 			return fault.Wrap(err, fault.Public("Regional deployment targets could not be prepared."))
 		}
 
-		// Create sentinel DB rows + outbox entries first — these are just
-		// inserts, they don't block.
-		newSentinelIDs, err := w.ensureSentinelRows(stepCtx, workspace, project, environment, topologies)
-		if err != nil {
-			return fault.Wrap(err, fault.Public("Sentinels could not be started."))
-		}
-
-		if err := w.ensureCiliumNetworkPolicy(stepCtx, workspace, project, environment, topologies, deployment); err != nil {
-			return fault.Wrap(err, fault.Public("Applying network policies failed."))
-		}
-
-		// Fire off SentinelService.Deploy for each new sentinel WITHOUT
-		// waiting, then start the pod-readiness awakeable wait. Krane can
-		// work on both in parallel; we drain the sentinel futures after
-		// waitForDeployments returns so the two waits overlap.
-		sentinelFutures := w.fanOutSentinelDeploys(stepCtx, newSentinelIDs, sentinelReplicasForEnv(environment))
-
 		if err = w.waitForDeployments(stepCtx, compensation, deployment.ID, topologies); err != nil {
 			return fault.Wrap(err, fault.Public("Instances did not become healthy in time."))
-		}
-
-		if err := w.waitForSentinels(newSentinelIDs, sentinelFutures); err != nil {
-			return fault.Wrap(err, fault.Public("Sentinels could not be started."))
 		}
 		return nil
 	})
@@ -663,155 +638,6 @@ func (w *Workflow) createTopologies(
 	}
 
 	return topologies, nil
-}
-
-// sentinelReplicasForEnv returns the desired sentinel replica count based
-// on the environment slug. Production gets extra replicas for availability.
-func sentinelReplicasForEnv(environment db.Environment) int32 {
-	if environment.Slug == "production" {
-		return 3
-	}
-	return 1
-}
-
-// ensureSentinelRows inserts a sentinel DB row (and outbox entry) for every
-// region in topologies that doesn't already have one for this environment.
-// Returns the IDs of the newly inserted sentinels.
-//
-// The insert relies on a unique index on (environment_id, region) to be
-// idempotent — if a concurrent workflow already created the sentinel, the
-// duplicate key error is silently ignored. This is the DB-mutating half of
-// what used to be ensureSentinels; the waiting half is now
-// [Workflow.fanOutSentinelDeploys] + [Workflow.waitForSentinels] so
-// that the sentinel Deploys can be fired off in parallel with the pod
-// readiness wait.
-func (w *Workflow) ensureSentinelRows(
-	ctx restate.ObjectContext,
-	workspace db.Workspace,
-	project db.Project,
-	environment db.Environment,
-	topologies []db.InsertDeploymentTopologyParams,
-) ([]string, error) {
-	existingSentinels, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.FindSentinelsByEnvironmentIDRow, error) {
-		return db.Query.FindSentinelsByEnvironmentID(runCtx, w.db.RO(), environment.ID)
-	}, restate.WithName("find existing sentinels"), restate.WithMaxRetryAttempts(runMaxAttempts))
-	if err != nil {
-		return nil, fault.Wrap(
-			fmt.Errorf("failed to find existing sentinels: %w", err),
-			fault.Public("Failed to read from database. Please try again."),
-		)
-	}
-
-	existingSentinelsByRegion := make(map[string]db.Sentinel)
-	for _, row := range existingSentinels {
-		existingSentinelsByRegion[row.Region.ID] = row.Sentinel
-	}
-
-	desiredReplicas := sentinelReplicasForEnv(environment)
-
-	// Insert a sentinel row (and outbox entry) for every region that doesn't
-	// already have one, so krane can pick them up.
-	var newSentinelIDs []string
-	for _, topology := range topologies {
-		_, ok := existingSentinelsByRegion[topology.RegionID]
-		if ok {
-			continue
-		}
-
-		sentinelID, err := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-			id := uid.New(uid.SentinelPrefix)
-			sentinelK8sName := uid.DNS1035()
-
-			err := db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-				err := db.Query.InsertSentinel(txCtx, tx, db.InsertSentinelParams{
-					ID:              id,
-					WorkspaceID:     workspace.ID,
-					EnvironmentID:   environment.ID,
-					ProjectID:       project.ID,
-					K8sAddress:      fmt.Sprintf("%s.%s.svc.cluster.local:%d", sentinelK8sName, sentinelNamespace, sentinelPort),
-					K8sName:         sentinelK8sName,
-					RegionID:        topology.RegionID,
-					Image:           w.sentinelImage,
-					DesiredReplicas: desiredReplicas,
-					CpuMillicores:   250,
-					MemoryMib:       256,
-					CreatedAt:       time.Now().UnixMilli(),
-				})
-				if err != nil {
-					if db.IsDuplicateKeyError(err) {
-						return nil
-					}
-					return err
-				}
-				return db.Query.InsertDeploymentChange(txCtx, tx, db.InsertDeploymentChangeParams{
-					ResourceType: db.DeploymentChangesResourceTypeSentinel,
-					ResourceID:   id,
-					RegionID:     topology.RegionID,
-					CreatedAt:    time.Now().UnixMilli(),
-				})
-			})
-			return id, err
-		}, restate.WithName("ensure sentinel exists in db"), restate.WithMaxRetryAttempts(runMaxAttempts))
-		if err != nil {
-			return nil, fault.Wrap(err, fault.Public("Traffic proxy could not be created for a region."))
-		}
-
-		newSentinelIDs = append(newSentinelIDs, sentinelID)
-	}
-
-	return newSentinelIDs, nil
-}
-
-// fanOutSentinelDeploys kicks off non-blocking RequestFuture calls to
-// SentinelService.Deploy for each newly created sentinel. Returns the
-// futures so the caller can drain them concurrently with other waits
-// (e.g. [Workflow.waitForDeployments]).
-//
-// Each SentinelService.Deploy invocation is awakeable-based and blocks
-// inside the sentinel VO until krane reports the desired image as running
-// or until its own 10-minute deploy timeout fires.
-func (w *Workflow) fanOutSentinelDeploys(
-	ctx restate.ObjectContext,
-	newSentinelIDs []string,
-	desiredReplicas int32,
-) []restate.ResponseFuture[*hydrav1.SentinelServiceDeployResponse] {
-	if len(newSentinelIDs) == 0 {
-		return nil
-	}
-	futures := make([]restate.ResponseFuture[*hydrav1.SentinelServiceDeployResponse], 0, len(newSentinelIDs))
-	for _, id := range newSentinelIDs {
-		fut := hydrav1.NewSentinelServiceClient(ctx, id).
-			Deploy().
-			RequestFuture(&hydrav1.SentinelServiceDeployRequest{
-				Image:           w.sentinelImage,
-				DesiredReplicas: desiredReplicas,
-				CpuMillicores:   250,
-				MemoryMib:       256,
-			})
-		futures = append(futures, fut)
-	}
-	return futures
-}
-
-// waitForSentinels blocks until every sentinel Deploy future resolves
-// or one of them fails. Called after the pod readiness wait so that both
-// sentinels and pods converge in parallel on krane's side; by the time we
-// drain, most futures should already have resolved.
-func (w *Workflow) waitForSentinels(
-	newSentinelIDs []string,
-	futures []restate.ResponseFuture[*hydrav1.SentinelServiceDeployResponse],
-) error {
-	for i, fut := range futures {
-		resp, err := fut.Response()
-		if err != nil {
-			return fault.Wrap(err, fault.Public("Traffic proxy failed to start."))
-		}
-		if resp.GetStatus() != hydrav1.SentinelDeployStatus_SENTINEL_DEPLOY_STATUS_READY {
-			return fault.New(fmt.Sprintf("sentinel %s deploy status: %s", newSentinelIDs[i], resp.GetStatus()),
-				fault.Public("Traffic proxy failed to start."))
-		}
-	}
-	return nil
 }
 
 // configureRouting sets up domain-based routing for a deployment. It generates

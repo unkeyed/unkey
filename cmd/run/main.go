@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/cmd/run/ctrl"
 	"github.com/unkeyed/unkey/cmd/run/frontline"
 	"github.com/unkeyed/unkey/cmd/run/krane"
-	"github.com/unkeyed/unkey/cmd/run/sentinel"
 	"github.com/unkeyed/unkey/cmd/run/vault"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -29,14 +28,12 @@ AVAILABLE SERVICES:
 - api: The main API server for validating and managing API keys
 - ctrl: The control plane service for managing infrastructure and deployments
 - krane: Deployment management service for Kubernetes
-- frontline: Multi-tenant frontline service for TLS termination and routing
-- sentinel: Environment tenant sentinel service for routing requests to the actual instances
+- frontline: Multi-tenant frontline service for TLS termination, routing, and policy enforcement
 - vault: Secret management service for encryption
 
 EXAMPLES:
 unkey run api                                    # Run the API server
-unkey run frontline                                # Run the frontline service
-unkey run sentinel                                # Run the tenant sentinel service
+unkey run frontline                              # Run the frontline service
 unkey run --help                                 # Show available services and their options
 unkey run api --port 8080 --env production      # Run API server with custom configuration`,
 	Commands: []*cli.Command{
@@ -44,7 +41,6 @@ unkey run api --port 8080 --env production      # Run API server with custom con
 		ctrl.Cmd,
 		krane.Cmd,
 		frontline.Cmd,
-		sentinel.Cmd,
 		vault.Cmd,
 	},
 	Action: runAction,
@@ -55,8 +51,7 @@ func runAction(ctx context.Context, cmd *cli.Command) error {
 	fmt.Println("  api             - The main API server for validating and managing API keys")
 	fmt.Println("  ctrl            - The control plane service for managing infrastructure")
 	fmt.Println("  krane           - Manage containers and deployments in docker or kubernetes")
-	fmt.Println("  frontline       - Multi-tenant ingress service for TLS termination and routing")
-	fmt.Println("  sentinel        - Environment tenant gateway service for routing requests to the actual instances")
+	fmt.Println("  frontline       - Multi-tenant ingress service for TLS termination, routing, and policy enforcement")
 	fmt.Println("  vault           - Encryption service for sensitive data")
 	fmt.Println("  worker          - Restate worker service for background jobs and workflows")
 	fmt.Println()

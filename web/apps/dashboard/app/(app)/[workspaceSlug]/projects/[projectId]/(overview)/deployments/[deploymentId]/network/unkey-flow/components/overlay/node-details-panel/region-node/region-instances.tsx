@@ -4,11 +4,11 @@ import type { DeploymentNode } from "../../../nodes";
 import { MetricPill } from "../../../nodes/components/metric-pill";
 import { StatusIndicator } from "../../../nodes/status/status-indicator";
 
-type SentinelInstancesProps = {
+type RegionInstancesProps = {
   instances: DeploymentNode[];
 };
 
-export function SentinelInstances({ instances }: SentinelInstancesProps) {
+export function RegionInstances({ instances }: RegionInstancesProps) {
   const instanceNodes = instances.filter((node) => node.metadata.type === "instance");
 
   if (instanceNodes.length === 0) {

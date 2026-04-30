@@ -193,23 +193,26 @@ export function getSentinelLogs(ch: Querier) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Sentinel / Instance RPS
+// Region / Instance RPS
 // ─────────────────────────────────────────────────────────────
 
-export const sentinelRpsRequestSchema = baseDeploymentParams.extend({
-  sentinelId: z.string(),
+export const regionRpsRequestSchema = baseDeploymentParams.extend({
+  region: z.string(),
 });
 
-export function getSentinelRps(ch: Querier) {
-  return async (args: z.infer<typeof sentinelRpsRequestSchema>) => {
+// Avg RPS for a region within a deployment over the rolling current-RPS
+// window. The table stores requests per instance, so summing over a region
+// is just COUNT() filtered by region — no sentinel join needed.
+export function getRegionRps(ch: Querier) {
+  return async (args: z.infer<typeof regionRpsRequestSchema>) => {
     const query = ch.query({
       query: `
         SELECT round(COUNT(*) * 1000.0 / {windowMs: UInt64}, 2) as avg_rps
         FROM ${TABLE}
         WHERE ${SQL.deploymentFilter}
-          AND sentinel_id = {sentinelId: String}
+          AND region = {region: String}
           AND ${SQL.recentMinutes}`,
-      params: sentinelRpsRequestSchema.extend({
+      params: regionRpsRequestSchema.extend({
         windowMinutes: z.number(),
         windowMs: z.number(),
       }),

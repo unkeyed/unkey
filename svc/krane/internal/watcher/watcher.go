@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
-	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	"golang.org/x/sync/semaphore"
 )
@@ -24,11 +23,10 @@ const (
 )
 
 // Watcher consumes the unified WatchDeploymentChanges stream and dispatches
-// events to the deployment, sentinel, and cilium controllers.
+// events to the deployment and cilium controllers.
 type Watcher struct {
 	cluster     ctrl.ClusterServiceClient
 	deployments *deployment.Controller
-	sentinels   *sentinel.Controller
 	cilium      *cilium.Controller
 	sem         *semaphore.Weighted
 	region      string
@@ -39,7 +37,6 @@ type Watcher struct {
 type Config struct {
 	Cluster     ctrl.ClusterServiceClient
 	Deployments *deployment.Controller
-	Sentinels   *sentinel.Controller
 	Cilium      *cilium.Controller
 	Region      string
 	Platform    string
@@ -50,7 +47,6 @@ func New(cfg Config) *Watcher {
 	return &Watcher{
 		cluster:     cfg.Cluster,
 		deployments: cfg.Deployments,
-		sentinels:   cfg.Sentinels,
 		cilium:      cfg.Cilium,
 		sem:         semaphore.NewWeighted(maxConcurrentDispatches),
 		region:      cfg.Region,
@@ -194,8 +190,6 @@ func eventResourceType(event *ctrlv1.DeploymentChangeEvent) string {
 	switch event.GetEvent().(type) {
 	case *ctrlv1.DeploymentChangeEvent_Deployment:
 		return "deployment"
-	case *ctrlv1.DeploymentChangeEvent_Sentinel:
-		return "sentinel"
 	case *ctrlv1.DeploymentChangeEvent_CiliumNetworkPolicy:
 		return "cilium_network_policy"
 	default:
@@ -217,19 +211,6 @@ func (s *Watcher) dispatch(ctx context.Context, event *ctrlv1.DeploymentChangeEv
 			return s.deployments.DeleteDeployment(ctx, op.Delete)
 		default:
 			return fmt.Errorf("unhandled deployment state type %T at version %d", op, event.GetVersion())
-		}
-
-	case *ctrlv1.DeploymentChangeEvent_Sentinel:
-		if e.Sentinel == nil {
-			return fmt.Errorf("received sentinel change event with nil sentinel state at version %d", event.GetVersion())
-		}
-		switch op := e.Sentinel.GetState().(type) {
-		case *ctrlv1.SentinelState_Apply:
-			return s.sentinels.ApplySentinel(ctx, op.Apply)
-		case *ctrlv1.SentinelState_Delete:
-			return s.sentinels.DeleteSentinel(ctx, op.Delete)
-		default:
-			return fmt.Errorf("unhandled sentinel state type %T at version %d", op, event.GetVersion())
 		}
 
 	case *ctrlv1.DeploymentChangeEvent_CiliumNetworkPolicy:

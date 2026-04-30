@@ -1,28 +1,28 @@
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/components/region-flag";
-import { ChartActivity, Dots, Layers3 } from "@unkey/icons";
+import { Dots, Layers3 } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import {
   type DeploymentNode,
   type InstanceNode,
   REGION_INFO,
-  type SentinelNode,
+  type RegionNode,
   isInstanceNode,
   isOriginNode,
-  isSentinelNode,
+  isRegionNode,
   isSkeletonNode,
 } from "../nodes/types";
 import { NodeDetailsPanelHeader } from "./node-details-panel/components/header";
 import { Metrics } from "./node-details-panel/components/metrics";
 import { SettingsSection } from "./node-details-panel/components/settings-row";
 import { metrics } from "./node-details-panel/constants";
-import { SentinelInstances } from "./node-details-panel/region-node/sentinel-instances";
+import { RegionInstances } from "./node-details-panel/region-node/region-instances";
 
-const SentinelNodeDetails = ({
+const RegionNodeDetails = ({
   node,
   onClose,
 }: {
-  node: SentinelNode;
+  node: RegionNode;
   onClose: () => void;
 }) => {
   const { flagCode, health } = node.metadata;
@@ -33,11 +33,11 @@ const SentinelNodeDetails = ({
       <NodeDetailsPanelHeader
         onClose={onClose}
         subSection={{
-          type: "sentinel",
+          type: "region",
           variant: "panel",
           icon: (
             <InfoTooltip
-              content={`AWS region ${node.label} (${regionInfo.location})`}
+              content={`${regionInfo.name} (${regionInfo.location})`}
               variant="primary"
               className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
               position={{ align: "center", side: "top", sideOffset: 5 }}
@@ -46,47 +46,17 @@ const SentinelNodeDetails = ({
             </InfoTooltip>
           ),
           title: node.label,
-          subtitle: "Sentinel",
+          subtitle: "Region",
           health,
         }}
       />
       <Metrics metrics={metrics} />
-      <SentinelInstances instances={node.children ?? []} />
+      <RegionInstances instances={node.children ?? []} />
       <SettingsSection
-        title="Scaling Configuration"
-        settings={[
-          {
-            label: "Scaling",
-            value: (
-              <div className="text-grayA-10">
-                <div>
-                  <span className="text-gray-12 font-medium">3</span> to{" "}
-                  <span className="text-gray-12 font-medium">6</span> instances
-                </div>
-                <div className="mt-0.5">
-                  at <span className="text-gray-12 font-medium">70%</span> CPU threshold
-                </div>
-              </div>
-            ),
-            icon: (
-              <ChartActivity className="size-[14px] text-gray-12 shrink-0" iconSize="md-regular" />
-            ),
-          },
-        ]}
-      />
-      <SettingsSection
-        title="Sentinel settings"
+        title="Region settings"
         settings={[
           { label: "Provider", value: "AWS" },
           { label: "Region code", value: node.label },
-          {
-            label: "Image",
-            value: (
-              <>
-                unkey:<span className="text-grayA-10 font-normal">latest</span>
-              </>
-            ),
-          },
         ]}
       />
     </>
@@ -148,8 +118,8 @@ export function NodeDetailsPanel({ node, onClose }: Props) {
     if (isSkeletonNode(node) || isOriginNode(node)) {
       return null;
     }
-    if (isSentinelNode(node)) {
-      return <SentinelNodeDetails node={node} onClose={onClose} />;
+    if (isRegionNode(node)) {
+      return <RegionNodeDetails node={node} onClose={onClose} />;
     }
     if (isInstanceNode(node)) {
       return <InstanceNodeDetails node={node} onClose={onClose} />;

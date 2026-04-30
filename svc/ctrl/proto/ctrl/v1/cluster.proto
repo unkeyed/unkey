@@ -2,9 +2,9 @@ syntax = "proto3";
 
 // Package ctrl.v1 provides the Cluster service for multi-cluster deployment orchestration.
 //
-// The Cluster service enables a central control plane to coordinate deployments and sentinels
+// The Cluster service enables a central control plane to coordinate deployments
 // across multiple Kubernetes clusters. Each cluster runs an agent (such as krane) that establishes
-// a long-lived watch connection to receive deployment and sentinel configuration events.
+// a long-lived watch connection to receive deployment configuration events.
 //
 // This design follows the Kubernetes watch pattern where agents (like kubelet) maintain
 // a streaming connection to receive incremental updates, enabling real-time deployment
@@ -15,7 +15,7 @@ import "ctrl/v1/deployment.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
-// Health represents the health state of a resource (sentinel, deployment instance, etc.)
+// Health represents the health state of a resource (deployment instance, etc.)
 enum Health {
   HEALTH_UNSPECIFIED = 0;
   HEALTH_HEALTHY = 1;
@@ -33,15 +33,12 @@ message RegionKey {
   string name = 2;
 }
 
-// ClusterService coordinates deployment and sentinel configurations across multiple clusters.
+// ClusterService coordinates deployment configurations across multiple clusters.
 //
 // Agents in each cluster establish watch streams to receive configuration events
-// from the control plane. The service provides separate streams for deployments and
-// sentinels, each with independent version cursors. This allows the two control loops
-// to operate independently with isolated failure domains.
-//
-// The watch connections are designed to be long-lived with automatic reconnection on failure.
-// When an agent reconnects, it should resume from its last seen version for that resource type.
+// from the control plane. The watch connections are designed to be long-lived
+// with automatic reconnection on failure. When an agent reconnects, it should
+// resume from its last seen version.
 service ClusterService {
   // WatchDeploymentChanges streams incremental resource changes from the
   // deployment_changes outbox table. When version_last_seen is 0, the server
@@ -50,18 +47,10 @@ service ClusterService {
   rpc WatchDeploymentChanges(WatchDeploymentChangesRequest) returns (stream DeploymentChangeEvent);
 
   // SyncDesiredState streams the full desired state for a region: all running
-  // deployments, active sentinels, and cilium policies. The server closes the
-  // stream after all state has been sent. Krane calls this on startup and
-  // periodically as a safety net to reconcile any drift.
+  // deployments and Cilium policies. The server closes the stream after all
+  // state has been sent. Krane calls this on startup and periodically as a
+  // safety net to reconcile any drift.
   rpc SyncDesiredState(SyncDesiredStateRequest) returns (stream DeploymentChangeEvent);
-
-  // GetDesiredSentinelState returns the current desired state for a single sentinel.
-  // Used by the resync loop to verify consistency for existing resources.
-  rpc GetDesiredSentinelState(GetDesiredSentinelStateRequest) returns (SentinelState);
-
-  // ReportSentinelStatus reports actual sentinel state from the agent to the control plane.
-  // Called when K8s watch events indicate sentinel Deployment changes.
-  rpc ReportSentinelStatus(ReportSentinelStatusRequest) returns (ReportSentinelStatusResponse);
 
   // GetDesiredDeploymentState returns the current desired state for a single deployment.
   // Used by the resync loop to verify consistency for existing resources.
@@ -98,9 +87,11 @@ message DeploymentChangeEvent {
   uint64 version = 1;
   oneof event {
     DeploymentState deployment = 2;
-    SentinelState sentinel = 3;
     CiliumNetworkPolicyState cilium_network_policy = 4;
   }
+  // Field 3 was sentinel — removed when the sentinel runtime was deleted.
+  reserved 3;
+  reserved "sentinel";
 }
 
 message ApplyCiliumNetworkPolicy {
@@ -126,11 +117,6 @@ message CiliumNetworkPolicyState {
 message GetDesiredCiliumNetworkPolicyStateRequest {
   RegionKey region = 1;
   string cilium_network_policy_id = 2;
-}
-
-message GetDesiredSentinelStateRequest {
-  RegionKey region = 1;
-  string sentinel_id = 2;
 }
 
 message GetDesiredDeploymentStateRequest {
@@ -173,53 +159,6 @@ message ReportDeploymentStatusRequest {
 
 message ReportDeploymentStatusResponse {}
 
-// ReportSentinelStatusRequest reports the actual state of a sentinel from the agent.
-// Used by runActualStateReportLoop to inform the control plane of K8s cluster state.
-message ReportSentinelStatusRequest {
-  string k8s_name = 1;
-  int32 available_replicas = 2;
-  Health health = 3;
-
-  // sentinel_id is the control-plane ID for this sentinel, extracted from
-  // the Deployment's labels. Used to address the SentinelService virtual
-  // object when triggering NotifyReady.
-  string sentinel_id = 4;
-
-  // running_image is the actual container image from the k8s Deployment spec.
-  // Used to detect when the desired image has converged with what's running.
-  string running_image = 5;
-
-  RegionKey region = 6;
-}
-
-message ReportSentinelStatusResponse {}
-
-// SentinelState represents a lifecycle event for an API sentinel configuration.
-//
-// Sentinels are frontline points for services, typically handling routing, load balancing,
-// and API management. The event follows a declarative model where the cluster agent ensures
-// the cluster state matches the desired configuration.
-message SentinelState {
-  // version is the sentinel-specific resource version for this state update.
-  // Clients should track the max version seen and use it when reconnecting to
-  // the WatchSentinels stream to resume from the correct position.
-  // When returned from GetDesiredSentinelState, this field is not set.
-  uint64 version = 3;
-
-  // state contains the specific sentinel operation to perform.
-  // Only one state type is set per message, determining the action the agent should take.
-  oneof state {
-    // apply indicates the sentinel should exist with this configuration.
-    // The agent will create the sentinel if it doesn't exist or update it if it does.
-    // This follows the same semantics as "kubectl apply" - declare desired state
-    // and let the agent determine the appropriate action.
-    ApplySentinel apply = 1;
-
-    // delete indicates the sentinel should be removed from the cluster.
-    DeleteSentinel delete = 2;
-  }
-}
-
 // DeploymentState represents a lifecycle event for an application deployment.
 //
 // Deployments are the primary workload type, representing stateless applications
@@ -244,42 +183,6 @@ message DeploymentState {
     // delete indicates the deployment should be removed from the cluster.
     DeleteDeployment delete = 2;
   }
-}
-
-// ApplySentinel contains the desired configuration for a sentinel.
-//
-// The cluster agent will ensure a sentinel exists with this exact configuration, creating it if
-// it doesn't exist or updating it if it does. All fields except namespace are required.
-// The control plane ensures that sentinel_id is unique within the namespace.
-message ApplySentinel {
-  string k8s_name = 1;
-  // workspace_id identifies the workspace that owns this sentinel.
-  string workspace_id = 2;
-
-  // project_id identifies the project within the workspace.
-  string project_id = 3;
-
-  // app_id identifies the app within the project.
-  string app_id = 4;
-
-  // environment_id in which the sentinel should exist.
-  string environment_id = 5;
-
-  // sentinel_id is the unique identifier for this sentinel globally
-  string sentinel_id = 6;
-
-  string image = 7;
-  int32 replicas = 8;
-  int64 cpu_millicores = 9;
-  int64 memory_mib = 10;
-}
-
-// DeleteSentinel identifies a sentinel to remove from the cluster.
-//
-// The sentinel and all its resources (pods, services, frontline) will be deleted.
-// In-flight requests may be disrupted unless proper connection draining is configured.
-message DeleteSentinel {
-  string k8s_name = 1;
 }
 
 // ApplyDeployment contains the desired configuration for a deployment.

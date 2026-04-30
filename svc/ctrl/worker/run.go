@@ -52,7 +52,6 @@ import (
 	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
-	workersentinel "github.com/unkeyed/unkey/svc/ctrl/worker/sentinel"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -217,7 +216,6 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:            database,
 		DefaultDomain: cfg.DefaultDomain,
 		Vault:         vaultClient,
-		SentinelImage: cfg.SentinelImage,
 
 		GitHub:                          ghClient,
 		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
@@ -325,15 +323,6 @@ func Run(ctx context.Context, cfg Config) error {
 			restate.PauseOnMaxAttempts(),
 		),
 	))
-
-	restateSrv.Bind(hydrav1.NewSentinelServiceServer(workersentinel.New(workersentinel.Config{
-		DB: database,
-	})))
-
-	restateSrv.Bind(hydrav1.NewSentinelRolloutServiceServer(workersentinel.NewRolloutService(workersentinel.RolloutConfig{
-		DB:              database,
-		SlackWebhookURL: cfg.Slack.SentinelRolloutWebhookURL,
-	})))
 
 	// Initialize domain cache for ACME providers
 	clk := cfg.Clock

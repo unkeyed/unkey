@@ -26,7 +26,6 @@ go_library(
         "//pkg/runner",
         "//svc/krane/internal/cilium",
         "//svc/krane/internal/deployment",
-        "//svc/krane/internal/sentinel",
         "//svc/krane/internal/watcher",
         "//svc/krane/pkg/controlplane",
         "@com_connectrpc_connect//:connect",

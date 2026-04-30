@@ -23,7 +23,7 @@ func New() *Executor {
 }
 
 // Execute applies the firewall action. ACTION_DENY returns a fault under
-// the Sentinel.Firewall.Denied URN, which the middleware layer translates
+// the Frontline.Firewall.Denied URN, which the middleware layer translates
 // to a 403 response with a fixed "Forbidden" body. Unspecified or unknown
 // action values are treated as a no-op for forward compatibility.
 func (e *Executor) Execute(

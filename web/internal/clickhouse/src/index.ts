@@ -93,8 +93,8 @@ import {
   getDeploymentRps,
   getDeploymentRpsTimeseries,
   getInstanceRps,
+  getRegionRps,
   getSentinelLogs,
-  getSentinelRps,
 } from "./sentinel";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
@@ -346,8 +346,8 @@ export class ClickHouse {
     return {
       logs: getSentinelLogs(this.querier),
       rps: {
-        bySentinel: getSentinelRps(this.querier),
         byInstance: getInstanceRps(this.querier),
+        byRegion: getRegionRps(this.querier),
         byDeployment: getDeploymentRps(this.querier),
         timeseries: getDeploymentRpsTimeseries(this.querier),
       },

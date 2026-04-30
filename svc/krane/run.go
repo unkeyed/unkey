@@ -27,7 +27,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
-	"github.com/unkeyed/unkey/svc/krane/internal/sentinel"
 	"github.com/unkeyed/unkey/svc/krane/internal/watcher"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
 	"k8s.io/client-go/dynamic"
@@ -38,7 +37,7 @@ import (
 // Run starts the krane agent server with the provided configuration.
 //
 // It initializes Kubernetes clients, vault for secrets decryption, controller
-// loops (cilium, deployment, sentinel), an HTTP health endpoint, and optional
+// loops (cilium and deployment), an HTTP health endpoint, and optional
 // Prometheus metrics. It blocks until the context is cancelled or a fatal error
 // occurs.
 func Run(ctx context.Context, cfg Config) error {
@@ -168,19 +167,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create fingerprint cache: %w", err)
 	}
 
-	// Cache for deduplicating sentinel status reports.
-	sentinelFingerprintCache, err := cache.New(cache.Config[string, string]{
-		Fresh:    5 * time.Minute,
-		Stale:    10 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "sentinel_fingerprints",
-		Clock:    clock.New(),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create sentinel fingerprint cache: %w", err)
-	}
-
-	// Caches for deduplicating pod watch lag samples per (pod UID,
+	// Cache for deduplicating pod watch lag samples per (pod UID,
 	// transition time). Entries auto-expire so deleted pods don't
 	// leak memory.
 	deploymentTransitionsCache, err := cache.New(cache.Config[string, time.Time]{
@@ -192,17 +179,6 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create deployment transitions cache: %w", err)
-	}
-
-	sentinelTransitionsCache, err := cache.New(cache.Config[string, time.Time]{
-		Fresh:    5 * time.Minute,
-		Stale:    15 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "sentinel_pod_transitions",
-		Clock:    clock.New(),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create sentinel transitions cache: %w", err)
 	}
 
 	// Start the deployment controller (independent control loop)
@@ -223,27 +199,11 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(deploymentCtrl.Stop)
 
-	// Start the sentinel controller (independent control loop)
-	sentinelCtrl := sentinel.New(sentinel.Config{
-		ClientSet:           clientset,
-		DynamicClient:       dynamicClient,
-		Cluster:             cluster,
-		Region:              cfg.Region,
-		Platform:            cfg.Platform,
-		Fingerprints:        sentinelFingerprintCache,
-		ObservedTransitions: sentinelTransitionsCache,
-	})
-	if err := sentinelCtrl.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start sentinel controller: %w", err)
-	}
-	r.Defer(sentinelCtrl.Stop)
-
 	// Start the unified syncer that consumes WatchDeploymentChanges and
-	// dispatches events to the deployment, sentinel, and cilium controllers.
+	// dispatches events to the deployment and cilium controllers.
 	w := watcher.New(watcher.Config{
 		Cluster:     cluster,
 		Deployments: deploymentCtrl,
-		Sentinels:   sentinelCtrl,
 		Cilium:      ciliumCtrl,
 		Region:      cfg.Region,
 		Platform:    cfg.Platform,

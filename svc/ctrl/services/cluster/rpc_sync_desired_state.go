@@ -13,8 +13,8 @@ import (
 )
 
 // SyncDesiredState streams the full desired state for a region then closes.
-// It paginates through all running deployments, active sentinels, and cilium
-// policies. Krane calls this on startup and periodically as a safety net.
+// It paginates through all running deployments and cilium policies. Krane
+// calls this on startup and periodically as a safety net.
 func (s *Service) SyncDesiredState(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.SyncDesiredStateRequest],
@@ -33,10 +33,6 @@ func (s *Service) SyncDesiredState(
 	fullSyncStart := time.Now()
 
 	if err := s.syncDeployments(ctx, stream, region.ID); err != nil {
-		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
-		return err
-	}
-	if err := s.syncSentinels(ctx, stream, region.ID); err != nil {
 		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
 		return err
 	}
@@ -91,41 +87,6 @@ func (s *Service) syncDeployments(
 				return err
 			}
 			metrics.SyncDesiredStateEventsSentTotal.WithLabelValues("deployment").Inc()
-		}
-		if len(rows) < changePageSize {
-			return nil
-		}
-	}
-}
-
-// syncSentinels paginates through all sentinels for a region.
-func (s *Service) syncSentinels(
-	ctx context.Context,
-	stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent],
-	regionID string,
-) error {
-	var afterPk uint64
-	for {
-		rows, err := db.Query.ListAllSentinelsByRegion(ctx, s.db.RO(), db.ListAllSentinelsByRegionParams{
-			RegionID: regionID,
-			AfterPk:  afterPk,
-			Limit:    changePageSize,
-		})
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, err)
-		}
-		for _, sentinel := range rows {
-			afterPk = sentinel.Pk
-			state := sentinelToState(sentinel, 0)
-			if state == nil {
-				continue
-			}
-			if err := stream.Send(&ctrlv1.DeploymentChangeEvent{
-				Event: &ctrlv1.DeploymentChangeEvent_Sentinel{Sentinel: state},
-			}); err != nil {
-				return err
-			}
-			metrics.SyncDesiredStateEventsSentTotal.WithLabelValues("sentinel").Inc()
 		}
 		if len(rows) < changePageSize {
 			return nil

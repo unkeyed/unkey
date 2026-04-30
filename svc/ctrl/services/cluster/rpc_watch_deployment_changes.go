@@ -154,18 +154,10 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 		}, nil
 
 	case db.DeploymentChangesResourceTypeSentinel:
-		sentinel, err := db.Query.FindSentinelByID(ctx, s.db.RW(), change.ResourceID)
-		if err != nil {
-			return nil, err
-		}
-		state := sentinelToState(sentinel, change.Pk)
-		if state == nil {
-			return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
-		}
-		return &ctrlv1.DeploymentChangeEvent{
-			Version: change.Pk,
-			Event:   &ctrlv1.DeploymentChangeEvent_Sentinel{Sentinel: state},
-		}, nil
+		// Sentinel resources are no longer dispatched — frontline took
+		// over the request path. The outbox row exists during the
+		// cutover so we just acknowledge it and advance the version.
+		return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
 
 	case db.DeploymentChangesResourceTypeCiliumNetworkPolicy:
 		policy, err := db.Query.FindCiliumNetworkPolicyByIDAndRegion(ctx, s.db.RW(), db.FindCiliumNetworkPolicyByIDAndRegionParams{
@@ -284,41 +276,6 @@ func deploymentRowToState(row deploymentRow, version uint64) (*ctrlv1.Deployment
 		}, nil
 	default:
 		return nil, fmt.Errorf("unknown DeploymentTopologyDesiredStatus: %v", row.dt.DesiredStatus)
-	}
-}
-
-// sentinelToState converts a sentinel DB row to a proto SentinelState message.
-func sentinelToState(sentinel db.Sentinel, version uint64) *ctrlv1.SentinelState {
-	switch sentinel.DesiredState {
-	case db.SentinelsDesiredStateArchived, db.SentinelsDesiredStateStandby:
-		return &ctrlv1.SentinelState{
-			Version: version,
-			State: &ctrlv1.SentinelState_Delete{
-				Delete: &ctrlv1.DeleteSentinel{
-					K8SName: sentinel.K8sName,
-				},
-			},
-		}
-	case db.SentinelsDesiredStateRunning:
-		return &ctrlv1.SentinelState{
-			Version: version,
-			State: &ctrlv1.SentinelState_Apply{
-				Apply: &ctrlv1.ApplySentinel{
-					SentinelId:    sentinel.ID,
-					K8SName:       sentinel.K8sName,
-					WorkspaceId:   sentinel.WorkspaceID,
-					ProjectId:     sentinel.ProjectID,
-					EnvironmentId: sentinel.EnvironmentID,
-					Replicas:      sentinel.DesiredReplicas,
-					Image:         sentinel.Image,
-					CpuMillicores: int64(sentinel.CpuMillicores),
-					MemoryMib:     int64(sentinel.MemoryMib),
-				},
-			},
-		}
-	default:
-		logger.Error("unhandled sentinel desired state", "desiredState", sentinel.DesiredState)
-		return nil
 	}
 }
 

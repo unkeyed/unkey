@@ -4,8 +4,6 @@ load('ext://secret', 'secret_create_generic')
 
 cfg = config.parse()
 
-update_settings(suppress_unused_image_warnings=["unkey/sentinel:latest"])
-
 # Check which optional credential files exist
 has_depot_credentials = os.path.exists('./.env.depot')
 has_github_credentials = os.path.exists('./.env.github') and os.path.exists('./.github-private-key.pem')
@@ -14,12 +12,6 @@ has_domain_connect_key = os.path.exists('./.domain-connect-private-key.pem')
 local_resource(
   'namespace',
   'kubectl apply -f k8s/manifests/namespace.yaml',
-  labels=['setup'],
-)
-
-local_resource(
-  'sentinel',
-  'kubectl apply -f k8s/manifests/sentinel.yaml',
   labels=['setup'],
 )
 
@@ -288,23 +280,10 @@ k8s_yaml('k8s/manifests/krane.yaml')
 k8s_resource(
   'krane',
   port_forwards='8070:8070',
-  resource_deps=['ctrl-api', 'build-unkey', 'rbac', 'namespace', 'sentinel', 'cilium-policies', 'build-sentinel-image', 'depot-credentials'],
+  resource_deps=['ctrl-api', 'build-unkey', 'rbac', 'namespace', 'cilium-policies', 'depot-credentials'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
-)
-
-
-
-
-# Sentinel image (same Go binary, used by ctrl to spawn sentinels)
-# Build locally and load into minikube
-local_resource(
-    'build-sentinel-image',
-    'docker build -t unkey/sentinel:latest -f Dockerfile.tilt .. && minikube image load unkey/sentinel:latest && kubectl rollout restart deployment -n sentinel --selector=app.kubernetes.io/component=sentinel 2>/dev/null || true',
-    deps=['../bin'],
-    resource_deps=['build-unkey'],
-    labels=['build'],
 )
 
 

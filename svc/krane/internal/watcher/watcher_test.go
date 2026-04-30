@@ -29,18 +29,6 @@ func TestDispatch_NilDeploymentState(t *testing.T) {
 	require.Contains(t, err.Error(), "nil deployment state")
 }
 
-func TestDispatch_NilSentinelState(t *testing.T) {
-	w := &Watcher{}
-	err := w.dispatch(context.Background(), &ctrlv1.DeploymentChangeEvent{
-		Version: 1,
-		Event: &ctrlv1.DeploymentChangeEvent_Sentinel{
-			Sentinel: nil,
-		},
-	})
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "nil sentinel state")
-}
-
 func TestDispatch_NilCiliumPolicyState(t *testing.T) {
 	w := &Watcher{}
 	err := w.dispatch(context.Background(), &ctrlv1.DeploymentChangeEvent{
