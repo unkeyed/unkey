@@ -402,7 +402,7 @@ export function toSentinelPolicy(
       name: v.name,
       enabled: true,
       type: "openapi" as const,
-      openapi: v.specYaml ? { specYaml: utf8ToBase64(v.specYaml) } : {},
+      openapi: v.specYaml?.trim() ? { specYaml: utf8ToBase64(v.specYaml.trim()) } : {},
       match: matchExprs,
     }))
     .exhaustive();
