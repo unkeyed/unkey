@@ -3,7 +3,7 @@ title: What is Unkey?
 description: "Unkey is an API development platform for key management, rate limiting, analytics, and authorization. Learn how it helps you ship APIs faster."
 ---
 
-Unkey is the API development platform that handles the infrastructure you'd rather not build yourself: **API key management**, **rate limiting**, and **usage tracking** — all with global performance and zero servers to manage.
+Unkey is the API development platform that handles the infrastructure you'd rather not build yourself: **secure API keys**, **rate limiting**, and **usage tracking**, all with global performance and zero servers to manage.
 
 <CardGroup cols={3}>
   <Card title="API Keys" icon="key">
@@ -11,21 +11,21 @@ Unkey is the API development platform that handles the infrastructure you'd rath
     built in.
   </Card>
   <Card title="Rate Limiting" icon="gauge-high">
-    Protect any endpoint from abuse — standalone or attached to API keys.
+    Protect any endpoint from abuse, standalone or attached to API keys.
   </Card>
   <Card title="Usage Tracking" icon="chart-line">
-    Know who's using your API, how much, and when — with analytics out of the
+    Know who's using your API, how much, and when, with analytics out of the
     box.
   </Card>
 </CardGroup>
 
 ## Why Unkey?
 
-Building API infrastructure from scratch means managing databases, Redis clusters, edge caching, and analytics pipelines. Unkey handles all of that so you can focus on your actual product.
+Building API infrastructure from scratch means managing databases, Redis clusters, caching, and analytics pipelines. Unkey handles all of that so you can focus on your actual product.
 
 | DIY Approach                          | With Unkey                |
 | ------------------------------------- | ------------------------- |
-| Set up key storage, hashing, rotation | `unkey.keys.create()`     |
+| Set up key storage, hashing, rotation | `unkey.keys.createKey()`     |
 | Deploy Redis for rate limiting        | `unkey.ratelimit.limit()` |
 | Build usage tracking & dashboards     | Built-in analytics        |
 | Manage infrastructure globally        | Globally distributed      |
@@ -42,13 +42,13 @@ Building API infrastructure from scratch means managing databases, Redis cluster
     Issue API keys to your users, verify them on every request, and automatically reject invalid or expired keys.
     
     ```ts
-    const { meta, data } = await unkey.keys.verify({ key: "sk_123..." });
+    const { meta, data } = await unkey.keys.verifyKey({ key: "sk_123..." });
     if (!data.valid) return new Response("Unauthorized", { status: 401 });
     ```
   </Accordion>
   
   <Accordion title="Rate limit anything" icon="gauge">
-    Limit requests per user, per IP, per endpoint — or any identifier you choose. No Redis required.
+    Limit requests per user, per IP, per endpoint, or any identifier you choose. No Redis required.
     
     ```ts
     const { success } = await limiter.limit(userId);
@@ -62,7 +62,7 @@ Building API infrastructure from scratch means managing databases, Redis cluster
     ```ts
     // Create a key with 1000 credits/month that refills automatically
     try {
-      const { meta, data } = await unkey.keys.create({
+      const { meta, data } = await unkey.keys.createKey({
         apiId: "api_...",
         credits: {
           remaining: 1000,
@@ -82,7 +82,7 @@ Building API infrastructure from scratch means managing databases, Redis cluster
     ```ts
     // All keys for this identity share the same rate limit pool
     try {
-      const { meta, data } = await unkey.keys.create({
+      const { meta, data } = await unkey.keys.createKey({
         apiId: "api_...",
         externalId: "org_acme",
         ratelimits: [{ name: "requests", limit: 10000, duration: 3600000 }]
@@ -124,7 +124,7 @@ Building API infrastructure from scratch means managing databases, Redis cluster
     Protect endpoints from abuse without managing Redis infrastructure.
   </Card>
   <Card title="I need both" icon="bolt" href="/quickstart/quickstart">
-    Start with API keys — rate limiting can be added per-key or standalone.
+    Start with API keys. Rate limiting can be added per-key or standalone.
   </Card>
   <Card
     title="I'm migrating from another solution"

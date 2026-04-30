@@ -46,7 +46,7 @@ curl -X POST https://api.unkey.com/v2/keys.deleteKey \
 
 ```typescript TypeScript
 try {
-  const { meta, data } = await unkey.keys.delete({
+  const { meta, data } = await unkey.keys.deleteKey({
     keyId: "key_...",
   });
 } catch (err) {
@@ -82,7 +82,7 @@ curl -X POST https://api.unkey.com/v2/keys.updateKey \
 
 ```typescript TypeScript
 try {
-  const { meta, data } = await unkey.keys.update({
+  const { meta, data } = await unkey.keys.updateKey({
     keyId: "key_...",
     enabled: false,
   });
@@ -110,7 +110,7 @@ Verification response when disabled:
 
 ```typescript
 try {
-  const { meta, data } = await unkey.keys.update({
+  const { meta, data } = await unkey.keys.updateKey({
     keyId: "key_...",
     enabled: true,
   });
@@ -140,14 +140,14 @@ To revoke all keys for a specific user, query their keys first:
 ```typescript
 try {
   // Get all keys for a user
-  const { meta, data } = await unkey.keys.list({
+  const { meta, data } = await unkey.apis.listKeys({
     apiId: "api_...",
     externalId: "user_123",
   });
 
   // Delete them all
   for (const key of data.keys) {
-    await unkey.keys.delete({ keyId: key.id });
+    await unkey.keys.deleteKey({ keyId: key.id });
   }
 } catch (err) {
   console.error(err);

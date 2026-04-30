@@ -3,7 +3,7 @@ title: Overview
 description: "Group multiple API keys under a single identity like a user, team, or organization. Manage shared configuration and rate limits in Unkey."
 ---
 
-Identities let you connect multiple API keys to a single entity — a user, an organization, a service account, or anything else in your system. Once connected, keys can share configuration, metadata, and rate limits.
+Identities let you connect multiple API keys to a single entity, a user, an organization, a service account, or anything else in your system. Once connected, keys can share configuration, metadata, and rate limits.
 
 ## Why use identities?
 
@@ -29,7 +29,7 @@ All these keys belong to the same customer. With identities:
 ```ts
 // Create an identity for the customer
 try {
-  const { meta, data, error } = await unkey.identities.create({
+  const { meta, data, error } = await unkey.identities.createIdentity({
     externalId: "customer_acme_123", // Your internal customer ID
     meta: {
       plan: "pro",
@@ -40,13 +40,13 @@ try {
   if (error) throw error;
 
   // All keys for this customer share the identity
-  await unkey.keys.create({
+  await unkey.keys.createKey({
     apiId: "api_xxx",
     identityId: data.id,
     name: "Production Key",
   });
 
-  await unkey.keys.create({
+  await unkey.keys.createKey({
     apiId: "api_xxx",
     identityId: data.id,
     name: "Test Key",
@@ -60,7 +60,7 @@ try {
 Now when you verify any of these keys, you get the identity metadata:
 
 ```ts
-const { meta, data } = await unkey.keys.verify({ key: "sk_..." });
+const { meta, data } = await unkey.keys.verifyKey({ key: "sk_..." });
 
 console.log(data.identity);
 // { id: "id_xxx", externalId: "customer_acme_123", meta: { plan: "pro", company: "Acme Corp" } }
@@ -100,13 +100,13 @@ console.log(data.identity);
 </ParamField>
 
 <ParamField body="externalId" type="string" required>
-  **Your** identifier for this entity. This links the Unkey identity to your system — typically a user ID, org ID, or customer ID.
+  **Your** identifier for this entity. This links the Unkey identity to your system, typically a user ID, org ID, or customer ID.
   
   If you use Clerk, Auth0, WorkOS, or similar: use their user/org ID as the externalId.
   
   ```ts
   // Example with Clerk
-  const identity = await unkey.identities.create({
+  const identity = await unkey.identities.createIdentity({
     externalId: clerkUserId,  // "user_2NNEqL2nrIRdJ194ndJqAHwEfxC"
   });
   ```

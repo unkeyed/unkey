@@ -37,7 +37,7 @@ Pagination cursor from a previous response. Use this to fetch subsequent pages o
 | `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
-| `--output` | string | Output format — use `json` for raw JSON |
+| `--output` | string | Output format. Use `json` for raw JSON |
 
 ## Examples
 
@@ -60,7 +60,7 @@ unkey api identities list-identities --limit=10 --output=json
 
 Default output shows the request ID with latency, followed by the list of identities:
 
-```
+```text
 req_01H9TQPP77V5E48E9SH0BG0ZQX (took 120ms)
 
 {

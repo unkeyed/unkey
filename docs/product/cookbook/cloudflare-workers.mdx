@@ -1,6 +1,6 @@
 ---
 title: "Cloudflare Workers"
-description: "Authenticate API keys at the edge with Cloudflare Workers and Unkey. Copy-paste recipe for low-latency key verification at the network edge."
+description: "Authenticate API keys with Cloudflare Workers and Unkey. Copy-paste recipe for low-latency key verification across the globe."
 ---
 
 Protect your Cloudflare Workers with Unkey's globally distributed verification.
@@ -178,8 +178,8 @@ export function authMiddleware(options: AuthOptions = {}) {
     }
 
     try {
-      const unkey = new Unkey({ apiKey: c.env.UNKEY_ROOT_KEY });
-      const { data, error } = await unkey.verifyKey({
+      const unkey = new Unkey({ rootKey: c.env.UNKEY_ROOT_KEY });
+      const { data, error } = await unkey.keys.verifyKey({
         key: apiKey,
         permissions: options.permissions,
       });
@@ -255,8 +255,8 @@ export function authMiddleware(options: AuthOptions = {}) {
     }
 
     try {
-      const unkey = new Unkey({ apiKey: c.env.UNKEY_ROOT_KEY });
-      const { meta, data, error } = await unkey.verifyKey({
+      const unkey = new Unkey({ rootKey: c.env.UNKEY_ROOT_KEY });
+      const { meta, data, error } = await unkey.keys.verifyKey({
         key: apiKey,
       });
 
@@ -363,4 +363,4 @@ compatibility_date = "2024-01-01"
 npx wrangler deploy
 ```
 
-Your API is now protected globally at the edge! 🌍
+Your API is now protected globally with Unkey! 🌍

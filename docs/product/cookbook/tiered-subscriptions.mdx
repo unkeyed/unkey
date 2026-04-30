@@ -58,7 +58,7 @@ const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 export async function createKeyForUser(userId: string, tier: Tier) {
   const config = TIERS[tier];
 
-  const { meta, data, error } = await unkey.keys.create({
+  const { meta, data, error } = await unkey.keys.createKey({
     apiId: process.env.UNKEY_API_ID!,
     prefix: `sk_${tier}`,
     externalId: userId,
@@ -66,8 +66,10 @@ export async function createKeyForUser(userId: string, tier: Tier) {
 
     // Set credits based on tier (skip for unlimited)
     ...(config.credits && {
-      remaining: config.credits,
-      refill: config.refill ?? undefined,
+      credits: {
+        remaining: config.credits,
+        refill: config.refill ?? undefined,
+      },
     }),
 
     // Set rate limits
@@ -133,7 +135,7 @@ export async function verifyAndCheckFeature(
 export async function changeUserTier(keyId: string, newTier: Tier) {
   const config = TIERS[newTier];
 
-  await unkey.keys.update({
+  await unkey.keys.updateKey({
     keyId,
 
     // Update credits

@@ -3,7 +3,7 @@ title: CLI
 description: "Install and use the Unkey CLI to manage API keys, rate limits, permissions, and identities from your terminal. Supports all core operations."
 ---
 
-The Unkey CLI gives you direct access to the Unkey API from your terminal. Create and manage API keys, configure rate limits, set permissions, and query analytics — all without leaving the command line.
+The Unkey CLI gives you direct access to the Unkey API from your terminal. Create and manage API keys, configure rate limits, set permissions, and query analytics, all without leaving the command line.
 
 <Warning>
 The CLI is early and provided on a best-effort basis. There are no breaking change guarantees for commands, flags, or output format. The underlying [API](/api-reference/v2/overview) is versioned and stable.
@@ -107,7 +107,7 @@ unkey api keys add-permissions --key-id=key_1234abcd --permissions=documents.rea
 
 By default, the CLI prints the request ID with latency, followed by the response data:
 
-```
+```text
 req_2c9a0jf23l4k567 (took 45ms)
 
 {
@@ -131,7 +131,7 @@ Every command accepts these flags:
 | `--root-key` | Override the root key (also: `UNKEY_ROOT_KEY` env var) |
 | `--api-url` | Override the API base URL (default: `https://api.unkey.com`) |
 | `--config` | Path to config file (default: `~/.unkey/config.toml`) |
-| `--output` | Output format — use `json` for raw JSON |
+| `--output` | Output format. Use `json` for raw JSON |
 
 ## Help
 

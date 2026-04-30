@@ -3,13 +3,13 @@ title: Shared Rate Limits
 description: "Share rate limits across multiple API keys using Unkey identities. Enforce a single quota for all keys belonging to the same entity."
 ---
 
-Identities let you enforce a **single rate limit** across all of a user's API keys. Without this, a user with 5 keys at 100 req/s each could make 500 req/s total — probably not what you want.
+Identities let you enforce a **single rate limit** across all of a user's API keys. Without this, a user with 5 keys at 100 req/s each could make 500 req/s total, probably not what you want.
 
 ## The problem
 
 Without shared limits, rate limits apply per-key:
 
-```
+```text
 User has 3 API keys, each with 100 req/s limit
 → User can actually make 300 req/s (100 × 3 keys)
 ```
@@ -18,7 +18,7 @@ User has 3 API keys, each with 100 req/s limit
 
 Create an identity for the user, attach a rate limit to it, then link all their keys to that identity:
 
-```
+```text
 Identity: user_123
   └── Rate limit: 100 req/s (shared pool)
       ├── Key A (production)
@@ -53,7 +53,7 @@ import { Unkey } from "@unkey/api";
 
 const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
 
-const { meta, data } = await unkey.identities.create({
+const { meta, data } = await unkey.identities.createIdentity({
   externalId: "user_123",
   ratelimits: [
     {
@@ -87,13 +87,13 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
 ```typescript TypeScript
 // All keys with the same externalId share the identity's rate limits
 try {
-  const { meta, data } = await unkey.keys.create({
+  const { meta, data } = await unkey.keys.createKey({
     apiId: "api_...",
     externalId: "user_123", // Links to the identity
     name: "Production Key",
   });
 
-  await unkey.keys.create({
+  await unkey.keys.createKey({
     apiId: "api_...",
     externalId: "user_123", // Same identity
     name: "Staging Key",
@@ -106,7 +106,7 @@ try {
 
 </CodeGroup>
 
-## Step 3: Verify — limits are shared automatically
+## Step 3: Verify, limits are shared automatically
 
 When you verify any key linked to the identity, the shared rate limit is enforced:
 
@@ -123,11 +123,11 @@ if (!data.valid && data.code === "RATE_LIMITED") {
 
 ## Multiple rate limits
 
-You can set multiple limits on an identity — useful for different resource types:
+You can set multiple limits on an identity, useful for different resource types:
 
 ```typescript
 try {
-  const { meta, data } = await unkey.identities.create({
+  const { meta, data } = await unkey.identities.createIdentity({
     externalId: "user_123",
     ratelimits: [
       {

@@ -24,7 +24,7 @@ Environments let you issue distinct keys for development, staging, and productio
 
 ## How it works
 
-Environments are implemented using key metadata and prefixes — there's no special "environment" field. This gives you full flexibility to model environments however you want.
+Environments are implemented using key metadata and prefixes, there's no special "environment" field. This gives you full flexibility to model environments however you want.
 
 Common pattern:
 
@@ -141,7 +141,7 @@ const ratelimits =
     : [{ name: "requests", limit: 10000, duration: 60000 }];
 
 try {
-  const { meta, data } = await unkey.keys.create({
+  const { meta, data } = await unkey.keys.createKey({
     apiId,
     prefix: environment === "test" ? "sk_test" : "sk_live",
     meta: { environment },

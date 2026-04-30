@@ -86,7 +86,7 @@ app.get("/secret", async (req, res) => {
       });
     }
 
-    // 3. Key is valid — return protected data
+    // 3. Key is valid, return protected data
     res.json({
       message: "Welcome to the secret route!",
       keyId: data.keyId,

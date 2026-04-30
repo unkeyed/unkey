@@ -9,17 +9,19 @@ Charge customers based on how much they use your API. This recipe shows how to t
 
 ```typescript
 // Create a key with monthly credits
-const key = await unkey.keys.create({
+const key = await unkey.keys.createKey({
   apiId: "api_xxx",
-  remaining: 10000, // 10,000 API calls included
-  refill: {
-    interval: "monthly",
-    amount: 10000,
+  credits: {
+    remaining: 10000, // 10,000 API calls included
+    refill: {
+      interval: "monthly",
+      amount: 10000,
+    },
   },
 });
 
 // Each verification decrements remaining
-const { meta, data } = await unkey.keys.verify({ key: userKey });
+const { meta, data } = await unkey.keys.verifyKey({ key: userKey });
 
 if (!data.valid && data.code === "USAGE_EXCEEDED") {
   // Prompt user to upgrade or pay for overage
@@ -54,14 +56,16 @@ const PLAN_CREDITS = {
 export async function createBillingKey(options: CreateBillingKeyOptions) {
   const credits = PLAN_CREDITS[options.plan];
 
-  const { meta, data, error } = await unkey.keys.create({
+  const { meta, data, error } = await unkey.keys.createKey({
     apiId: process.env.UNKEY_API_ID!,
     externalId: options.customerId, // Link to your user/org
     name: `${options.plan} plan`,
-    remaining: credits,
-    refill: {
-      interval: "monthly",
-      amount: credits,
+    credits: {
+      remaining: credits,
+      refill: {
+        interval: "monthly",
+        amount: credits,
+      },
     },
     meta: {
       plan: options.plan,
@@ -142,7 +146,7 @@ const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 // Record overage usage in Stripe
 export async function recordOverage(keyId: string, amount: number) {
   // Get the key to find the Stripe customer
-  const { data: key } = await unkey.keys.get({ keyId });
+  const { data: key } = await unkey.keys.getKey({ keyId });
 
   if (!key?.meta?.stripeCustomerId) {
     throw new Error("No Stripe customer linked to this key");
@@ -176,13 +180,15 @@ export async function recordOverage(keyId: string, amount: number) {
 
 // Webhook handler for when credits run out
 export async function handleUsageExceeded(keyId: string) {
-  const { data: key } = await unkey.keys.get({ keyId });
+  const { data: key } = await unkey.keys.getKey({ keyId });
 
   if (key?.meta?.stripeCustomerId) {
     // Option 1: Add overage credits and bill later
-    await unkey.keys.update({
+    await unkey.keys.updateKey({
       keyId,
-      remaining: 1000, // Grant overage allowance
+      credits: {
+        remaining: 1000, // Grant overage allowance
+      },
     });
 
     await recordOverage(keyId, 1000);
@@ -250,18 +256,20 @@ export async function upgradePlan(
   const newCredits = PLAN_CREDITS[newPlan];
 
   // Get current usage
-  const { data: currentKey } = await unkey.keys.get({ keyId });
+  const { data: currentKey } = await unkey.keys.getKey({ keyId });
   const currentRemaining = currentKey?.remaining ?? 0;
 
   // Option 1: Add the difference (pro-rated)
   const creditsToAdd = newCredits - (currentKey?.refill?.amount ?? 0);
 
-  await unkey.keys.update({
+  await unkey.keys.updateKey({
     keyId,
-    remaining: currentRemaining + creditsToAdd,
-    refill: {
-      interval: "monthly",
-      amount: newCredits,
+    credits: {
+      remaining: currentRemaining + creditsToAdd,
+      refill: {
+        interval: "monthly",
+        amount: newCredits,
+      },
     },
     meta: {
       ...currentKey?.meta,
@@ -271,7 +279,7 @@ export async function upgradePlan(
   });
 
   // Option 2: Reset to new plan's full credits
-  // await unkey.keys.update({
+  // await unkey.keys.updateKey({
   //   keyId,
   //   remaining: newCredits,
   //   refill: { interval: "monthly", amount: newCredits },
@@ -285,10 +293,12 @@ Track different types of usage separately:
 
 ```typescript
 // Create a key with multiple rate limits as credit pools
-const { data } = await unkey.keys.create({
+const { data } = await unkey.keys.createKey({
   apiId: process.env.UNKEY_API_ID!,
   externalId: customerId,
-  remaining: 10000, // General API calls
+  credits: {
+    remaining: 10000, // General API calls
+  },
   ratelimits: [
     { name: "ai-tokens", limit: 100000, duration: 2592000000 }, // 30 days
     { name: "storage-mb", limit: 5000, duration: 2592000000 },
@@ -298,7 +308,7 @@ const { data } = await unkey.keys.create({
 });
 
 // Check specific resource usage on verify
-const { data: verification } = await unkey.keys.verify({
+const { data: verification } = await unkey.keys.verifyKey({
   key: userKey,
   ratelimits: [{ name: "ai-tokens", cost: tokenCount }],
 });

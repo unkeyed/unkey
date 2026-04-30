@@ -80,7 +80,7 @@ const server = Bun.serve({
         );
       }
 
-      // 3. Key is valid — return your response
+      // 3. Key is valid, return your response
       return Response.json({
         message: "Hello from protected endpoint!",
         keyId: data.keyId,

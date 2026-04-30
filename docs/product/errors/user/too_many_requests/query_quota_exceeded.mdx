@@ -40,7 +40,7 @@ Instead of running the same query repeatedly, cache the results in your applicat
 ```typescript Bad - Queries on Every Request
 app.get("/dashboard", async (req, res) => {
   // This runs a query EVERY time someone loads the dashboard
-  const stats = await fetch("https://api.unkey.com/v1/analytics", {
+  const stats = await fetch("https://api.unkey.com/v2/analytics.getVerifications", {
     method: "POST",
     headers: { Authorization: "Bearer unkey_XXX" },
     body: JSON.stringify({ query: "SELECT COUNT(*) FROM key_verifications" }),
@@ -60,7 +60,7 @@ app.get("/dashboard", async (req, res) => {
 
   if (!stats) {
     // Only query if cache is empty
-    stats = await fetch("https://api.unkey.com/v1/analytics", {
+    stats = await fetch("https://api.unkey.com/v2/analytics.getVerifications", {
       method: "POST",
       headers: { Authorization: "Bearer unkey_XXX" },
       body: JSON.stringify({ query: "SELECT COUNT(*) FROM key_verifications" }),

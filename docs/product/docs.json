@@ -297,7 +297,6 @@
                   "cookbook/go-gin-middleware",
                   "cookbook/go-echo-middleware",
                   "cookbook/fastapi-auth",
-                  "cookbook/python-flask-auth",
                   "cookbook/usage-billing",
                   "cookbook/tiered-subscriptions"
                 ]
@@ -323,8 +322,7 @@
                     "group": "Cookbook",
                     "pages": [
                       "cookbook/per-user-ratelimit",
-                      "cookbook/endpoint-ratelimit",
-                      "cookbook/python-fastapi-ratelimit"
+                      "cookbook/endpoint-ratelimit"
                     ]
                   }
                 ]
