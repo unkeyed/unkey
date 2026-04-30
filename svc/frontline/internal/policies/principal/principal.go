@@ -25,7 +25,7 @@ func (p *Principal) Marshal() (string, error) {
 //
 // The struct tags on this file are the authoritative wire contract — if
 // any json tag, omitempty flag, or field type changes here, update
-// docs/product/platform/gateways/principal/*.mdx and the wire-format test
+// docs/product/platform/sentinel/principal/*.mdx and the wire-format test
 // in the same commit.
 //
 // Every Principal contains exactly one populated variant of Source matching
