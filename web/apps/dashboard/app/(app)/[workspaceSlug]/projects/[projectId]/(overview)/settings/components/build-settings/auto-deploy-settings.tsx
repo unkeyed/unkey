@@ -128,7 +128,7 @@ const EnvRow = ({
   checked: boolean;
   onChange: (value: boolean) => void;
 }) => (
-  <label className="flex items-center gap-3 py-1.5 cursor-pointer">
+  <div className="flex items-center gap-3 py-1.5 cursor-pointer">
     <Switch
       checked={checked}
       onCheckedChange={onChange}
@@ -139,5 +139,5 @@ const EnvRow = ({
       <span className="font-medium">{label}</span>
       <span className="text-gray-9"> — {description}</span>
     </span>
-  </label>
+  </div>
 );
