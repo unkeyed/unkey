@@ -59,6 +59,7 @@ import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
 import { listEnvVars } from "./deploy/env-vars/list";
 import { updateEnvVar } from "./deploy/env-vars/update";
+import { updateAutoDeploy } from "./deploy/environment-settings/build/update-auto-deploy";
 import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
 import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
 import { updateWatchPaths } from "./deploy/environment-settings/build/update-watch-paths";
@@ -471,6 +472,7 @@ export const router = t.router({
         updateUpstreamProtocol,
       }),
       build: t.router({
+        updateAutoDeploy,
         updateDockerfile,
         updateDockerContext,
         updateWatchPaths,

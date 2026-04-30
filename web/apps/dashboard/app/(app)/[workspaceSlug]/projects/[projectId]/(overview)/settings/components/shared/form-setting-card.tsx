@@ -21,6 +21,7 @@ type EditableSettingCardProps = {
   contentRef?: React.Ref<HTMLDivElement>;
   className?: string;
   autoSave?: boolean;
+  defaultExpanded?: boolean;
 };
 
 export const FormSettingCard = ({
@@ -37,6 +38,7 @@ export const FormSettingCard = ({
   contentRef,
   className,
   autoSave,
+  defaultExpanded,
 }: EditableSettingCardProps) => {
   return (
     <SettingCard
@@ -45,6 +47,7 @@ export const FormSettingCard = ({
       title={title}
       description={description}
       border={border}
+      defaultExpanded={defaultExpanded}
       contentWidth="w-full lg:w-[320px] justify-end"
       expandable={
         <form

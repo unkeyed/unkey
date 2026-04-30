@@ -114,6 +114,17 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 
 		buildSettings := row.AppBuildSetting
 
+		if !buildSettings.AutoDeploy {
+			logger.Info("skipping deployment: auto_deploy disabled",
+				"app_id", app.ID,
+				"environment", env.Slug,
+			)
+			_, _ = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+				return insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, db.DeploymentsStatusSkipped)
+			}, restate.WithName("insert skipped deployment"))
+			continue
+		}
+
 		// Watch paths: skip if configured patterns don't match changed files
 		if !match.MatchWatchPaths(buildSettings.WatchPaths, changedFiles) {
 			logger.Info("skipping deployment: watch paths don't match changed files",
