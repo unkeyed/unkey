@@ -1,36 +1,36 @@
--- Track cost per ratelimit decision so we can chart spend for both
--- accepted and rejected standalone ratelimits (ENG-2767).
+-- Track tokens spent per ratelimit decision so we can chart spend for
+-- both accepted and rejected standalone ratelimits (ENG-2767).
 --
--- The raw table gets a `cost` column. Aggregated views get both
--- `total_cost` (sum of cost across all decisions) and `passed_cost`
--- (sum of cost for passed decisions only). Existing rows default to 0,
--- which is correct: pre-rollout we have no cost data to attribute.
+-- The raw table gets a `tokens` column. Aggregated views get both
+-- `total_tokens` (sum across all decisions) and `passed_tokens`
+-- (sum for passed decisions only). Existing rows default to 0,
+-- which is correct: pre-rollout we have no token data to attribute.
 
-ALTER TABLE `default`.`ratelimits_raw_v2` ADD COLUMN `cost` UInt64 AFTER `reset_at`;
+ALTER TABLE `default`.`ratelimits_raw_v2` ADD COLUMN `tokens` UInt64 AFTER `reset_at`;
 
 ALTER TABLE `default`.`ratelimits_per_minute_v2`
-  ADD COLUMN `total_cost` SimpleAggregateFunction(sum, Int64) AFTER `total`,
-  ADD COLUMN `passed_cost` SimpleAggregateFunction(sum, Int64) AFTER `total_cost`;
+  ADD COLUMN `total_tokens` SimpleAggregateFunction(sum, Int64) AFTER `total`,
+  ADD COLUMN `passed_tokens` SimpleAggregateFunction(sum, Int64) AFTER `total_tokens`;
 
 ALTER TABLE `default`.`ratelimits_per_hour_v2`
-  ADD COLUMN `total_cost` SimpleAggregateFunction(sum, Int64) AFTER `total`,
-  ADD COLUMN `passed_cost` SimpleAggregateFunction(sum, Int64) AFTER `total_cost`;
+  ADD COLUMN `total_tokens` SimpleAggregateFunction(sum, Int64) AFTER `total`,
+  ADD COLUMN `passed_tokens` SimpleAggregateFunction(sum, Int64) AFTER `total_tokens`;
 
 ALTER TABLE `default`.`ratelimits_per_day_v2`
-  ADD COLUMN `total_cost` SimpleAggregateFunction(sum, Int64) AFTER `total`,
-  ADD COLUMN `passed_cost` SimpleAggregateFunction(sum, Int64) AFTER `total_cost`;
+  ADD COLUMN `total_tokens` SimpleAggregateFunction(sum, Int64) AFTER `total`,
+  ADD COLUMN `passed_tokens` SimpleAggregateFunction(sum, Int64) AFTER `total_tokens`;
 
 ALTER TABLE `default`.`ratelimits_per_month_v2`
-  ADD COLUMN `total_cost` SimpleAggregateFunction(sum, Int64) AFTER `total`,
-  ADD COLUMN `passed_cost` SimpleAggregateFunction(sum, Int64) AFTER `total_cost`;
+  ADD COLUMN `total_tokens` SimpleAggregateFunction(sum, Int64) AFTER `total`,
+  ADD COLUMN `passed_tokens` SimpleAggregateFunction(sum, Int64) AFTER `total_tokens`;
 
--- Replace the materialized views so they start populating cost columns.
+-- Replace the materialized views so they start populating token columns.
 -- DROP+CREATE is required: ALTER MATERIALIZED VIEW MODIFY QUERY would
 -- preserve the schema mismatch with the new target columns.
 --
 -- The brief window between DROP and CREATE is a real but tiny aggregation
 -- gap (sub-second in practice — atlas runs the statements back-to-back).
--- Raw events keep landing in `ratelimits_raw_v2` with the new `cost`
+-- Raw events keep landing in `ratelimits_raw_v2` with the new `tokens`
 -- column, so if a backfill is ever needed run, e.g.:
 --
 --   INSERT INTO `default`.`ratelimits_per_minute_v2` SELECT ...
@@ -51,8 +51,8 @@ SELECT
   r.identifier AS identifier,
   count(*) AS total,
   countIf(r.passed > 0) AS passed,
-  sum(r.cost) AS total_cost,
-  sumIf(r.cost, r.passed > 0) AS passed_cost,
+  sum(r.tokens) AS total_tokens,
+  sumIf(r.tokens, r.passed > 0) AS passed_tokens,
   avgState(r.latency) AS latency_avg,
   quantilesTDigestState(0.75)(r.latency) AS latency_p75,
   quantilesTDigestState(0.99)(r.latency) AS latency_p99,
@@ -68,8 +68,8 @@ SELECT
   identifier,
   sum(total) AS total,
   sum(passed) AS passed,
-  sum(total_cost) AS total_cost,
-  sum(passed_cost) AS passed_cost,
+  sum(total_tokens) AS total_tokens,
+  sum(passed_tokens) AS passed_tokens,
   avgMergeState(latency_avg) AS latency_avg,
   quantilesTDigestMergeState(0.75)(latency_p75) AS latency_p75,
   quantilesTDigestMergeState(0.99)(latency_p99) AS latency_p99,
@@ -85,8 +85,8 @@ SELECT
   identifier,
   sum(total) AS total,
   sum(passed) AS passed,
-  sum(total_cost) AS total_cost,
-  sum(passed_cost) AS passed_cost,
+  sum(total_tokens) AS total_tokens,
+  sum(passed_tokens) AS passed_tokens,
   avgMergeState(latency_avg) AS latency_avg,
   quantilesTDigestMergeState(0.75)(latency_p75) AS latency_p75,
   quantilesTDigestMergeState(0.99)(latency_p99) AS latency_p99,
@@ -102,8 +102,8 @@ SELECT
   identifier,
   sum(total) AS total,
   sum(passed) AS passed,
-  sum(total_cost) AS total_cost,
-  sum(passed_cost) AS passed_cost,
+  sum(total_tokens) AS total_tokens,
+  sum(passed_tokens) AS passed_tokens,
   avgMergeState(latency_avg) AS latency_avg,
   quantilesTDigestMergeState(0.75)(latency_p75) AS latency_p75,
   quantilesTDigestMergeState(0.99)(latency_p99) AS latency_p99,

@@ -15,7 +15,7 @@ export const RatelimitOverviewLogsCharts = ({
 }) => {
   const { filters, updateFilters } = useFilters();
 
-  const { isError, isLoading, timeseries, costTimeseries, granularity } =
+  const { isError, isLoading, timeseries, tokensTimeseries, granularity } =
     useFetchRatelimitOverviewTimeseries(namespaceId);
 
   // const {
@@ -126,7 +126,7 @@ export const RatelimitOverviewLogsCharts = ({
       </div>
       <div className="w-1/2">
         <OverviewBarChart
-          data={costTimeseries}
+          data={tokensTimeseries}
           isLoading={isLoading}
           isError={isError}
           enableSelection
@@ -134,7 +134,7 @@ export const RatelimitOverviewLogsCharts = ({
           granularity={granularity}
           config={sharedConfig}
           labels={{
-            title: "COST",
+            title: "TOKENS",
             primaryLabel: "PASSED",
             primaryKey: "success",
             secondaryLabel: "BLOCKED",

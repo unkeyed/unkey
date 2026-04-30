@@ -75,20 +75,20 @@ export const useFetchRatelimitOverviewTimeseries = (namespaceId: string) => {
     total: ts.y.total,
   }));
 
-  // Cost series mirrors the request series but on `passed_cost` and the
-  // implied `blocked_cost = total_cost - passed_cost`. Sharing the underlying
-  // tRPC call keeps the page to one round trip.
-  const costTimeseries = data?.timeseries.map((ts) => ({
+  // Tokens series mirrors the request series but on `passed_tokens` and
+  // the implied `blocked_tokens = total_tokens - passed_tokens`. Sharing
+  // the underlying tRPC call keeps the page to one round trip.
+  const tokensTimeseries = data?.timeseries.map((ts) => ({
     displayX: formatTimestampForChart(ts.x, data.granularity),
     originalTimestamp: ts.x,
-    success: ts.y.passed_cost,
-    error: ts.y.total_cost - ts.y.passed_cost,
-    total: ts.y.total_cost,
+    success: ts.y.passed_tokens,
+    error: ts.y.total_tokens - ts.y.passed_tokens,
+    total: ts.y.total_tokens,
   }));
 
   return {
     timeseries,
-    costTimeseries,
+    tokensTimeseries,
     isLoading,
     isError,
     granularity: data?.granularity,

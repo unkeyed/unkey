@@ -215,7 +215,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Limit:       uint64(result.Limit),
 				Remaining:   uint64(result.Remaining),
 				ResetAt:     result.Reset.UnixMilli(),
-				Cost:        uint64(meta.cost),
+				Tokens:      uint64(meta.cost),
 			})
 		}
 	}

@@ -18,9 +18,9 @@ CREATE TABLE ratelimits_raw_v2 (
   remaining UInt64,
   -- when the limit will reset at (absolute unix milliseconds time)
   reset_at Int64 CODEC (Delta, LZ4),
-  -- the cost the caller billed for this decision (>=1; 0 for events
-  -- recorded before cost tracking shipped)
-  cost UInt64,
+  -- tokens charged against the limit on this decision (>=1; 0 for events
+  -- recorded before token tracking shipped)
+  tokens UInt64,
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_identifier (identifier) TYPE bloom_filter GRANULARITY 1
 ) ENGINE = MergeTree ()
