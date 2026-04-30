@@ -94,6 +94,14 @@ func (v *Validator) Validate(r *http.Request) *Result {
 	return result
 }
 
+// filterIgnoredSecurityErrors drops OpenAPI security-scheme errors that our
+// handlers already produce richer messages for. Specifically:
+//
+//   - "scheme mismatch" (added in libopenapi-validator v0.13): the handler's
+//     bearer parser returns a more useful "missing 'Bearer ' prefix" error.
+//
+// A missing Authorization header is still surfaced by the validator so that
+// the existing 400 invalid_input contract is preserved.
 func filterIgnoredSecurityErrors(errs []*validatorErrors.ValidationError) []*validatorErrors.ValidationError {
 	filtered := make([]*validatorErrors.ValidationError, 0, len(errs))
 	for _, e := range errs {
