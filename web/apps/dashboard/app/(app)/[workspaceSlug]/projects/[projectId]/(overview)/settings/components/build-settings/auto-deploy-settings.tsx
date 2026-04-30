@@ -132,7 +132,7 @@ const EnvRow = ({
     <Switch
       checked={checked}
       onCheckedChange={onChange}
-      className="h-5 w-10 shrink-0 data-[state=checked]:bg-info-9 data-[state=checked]:ring-2 data-[state=checked]:ring-infoA-5 data-[state=unchecked]:bg-grayA-6 data-[state=unchecked]:ring-2 data-[state=unchecked]:ring-grayA-5"
+      className="h-5"
       thumbClassName="h-4 w-4 data-[state=checked]:translate-x-5"
     />
     <span className="text-sm text-gray-12">
