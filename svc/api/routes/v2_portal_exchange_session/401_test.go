@@ -20,7 +20,7 @@ func TestExchangeSessionUnauthorized(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
-	route := &handler.Handler{DB: h.DB}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
@@ -42,7 +42,7 @@ func TestExchangeSessionUnauthorized(t *testing.T) {
 	}
 
 	t.Run("invalid session_id", func(t *testing.T) {
-		req := handler.Request{SessionID: "nonexistent_session"}
+		req := handler.Request{SessionId: "nonexistent_session"}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
@@ -64,7 +64,7 @@ func TestExchangeSessionUnauthorized(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		req := handler.Request{SessionID: tokenID}
+		req := handler.Request{SessionId: tokenID}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
@@ -90,17 +90,18 @@ func TestExchangeSessionUnauthorized(t *testing.T) {
 		_, err = db.Query.ExchangePortalSessionToken(ctx, h.DB.RW(), db.ExchangePortalSessionTokenParams{
 			ExchangedAt: sql.NullInt64{Int64: now, Valid: true},
 			ID:          tokenID,
+			Now:         now,
 		})
 		require.NoError(t, err)
 
-		req := handler.Request{SessionID: tokenID}
+		req := handler.Request{SessionId: tokenID}
 		res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, headers, req)
 		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
 	t.Run("empty sessionId", func(t *testing.T) {
-		req := handler.Request{SessionID: ""}
+		req := handler.Request{SessionId: ""}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
 		require.NotNil(t, res.Body)

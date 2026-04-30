@@ -5,7 +5,7 @@
 // created via the portal.createSession endpoint and exchanged for
 // long-lived browser sessions via portal.exchangeSession.
 //
-// This service handles session lookup, caching (SWR), and permission/metadata
+// This service handles session lookup, caching (SWR), and permission
 // deserialization. It is intentionally separate from the keys service because
 // portal sessions are not API keys — they have different lifecycles, validation
 // rules, and domain semantics.

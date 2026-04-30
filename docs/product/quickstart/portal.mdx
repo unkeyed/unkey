@@ -117,7 +117,6 @@ The response:
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `metadata` | `object` | Custom fields (name, email, etc.) stored with the session |
 | `preview` | `boolean` | Shows a "Preview mode" banner — useful for testing as a specific user |
 
 ```bash
@@ -128,7 +127,6 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
     "portalId": "pc_xxx",
     "externalId": "user_123",
     "permissions": ["keys:read", "analytics:read"],
-    "metadata": { "name": "Jane Doe", "email": "jane@example.com" },
     "preview": true
   }'
 ```
@@ -177,7 +175,6 @@ The portal supports basic white-labeling:
 | Setting | Default |
 |---------|---------|
 | Primary color | `#2563eb` |
-| Secondary color | `#f0f9ff` |
 | Logo | None |
 
 Logo URLs must be HTTPS.

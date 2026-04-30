@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertPortalSessionToken is the base query for bulk insert
-const bulkInsertPortalSessionToken = `INSERT INTO portal_session_tokens ( id, workspace_id, portal_config_id, external_id, metadata, permissions, preview, expires_at, created_at ) VALUES %s`
+const bulkInsertPortalSessionToken = `INSERT INTO portal_session_tokens ( id, workspace_id, portal_config_id, external_id, permissions, preview, expires_at, created_at ) VALUES %s`
 
 // InsertPortalSessionTokens performs bulk insert in a single query
 func (q *BulkQueries) InsertPortalSessionTokens(ctx context.Context, db DBTX, args []InsertPortalSessionTokenParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertPortalSessionTokens(ctx context.Context, db DBTX, ar
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertPortalSessionToken, strings.Join(valueClauses, ", "))
@@ -33,7 +33,6 @@ func (q *BulkQueries) InsertPortalSessionTokens(ctx context.Context, db DBTX, ar
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.PortalConfigID)
 		allArgs = append(allArgs, arg.ExternalID)
-		allArgs = append(allArgs, arg.Metadata)
 		allArgs = append(allArgs, arg.Permissions)
 		allArgs = append(allArgs, arg.Preview)
 		allArgs = append(allArgs, arg.ExpiresAt)

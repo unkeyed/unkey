@@ -15,11 +15,9 @@ INSERT INTO portal_branding (
     portal_config_id,
     logo_url,
     primary_color,
-    secondary_color,
     created_at,
     updated_at
 ) VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -29,7 +27,6 @@ INSERT INTO portal_branding (
 ON DUPLICATE KEY UPDATE
     logo_url = VALUES(logo_url),
     primary_color = VALUES(primary_color),
-    secondary_color = VALUES(secondary_color),
     updated_at = VALUES(updated_at)
 `
 
@@ -37,7 +34,6 @@ type UpsertPortalBrandingParams struct {
 	PortalConfigID string         `db:"portal_config_id"`
 	LogoUrl        sql.NullString `db:"logo_url"`
 	PrimaryColor   sql.NullString `db:"primary_color"`
-	SecondaryColor sql.NullString `db:"secondary_color"`
 	CreatedAt      int64          `db:"created_at"`
 	UpdatedAt      sql.NullInt64  `db:"updated_at"`
 }
@@ -48,11 +44,9 @@ type UpsertPortalBrandingParams struct {
 //	    portal_config_id,
 //	    logo_url,
 //	    primary_color,
-//	    secondary_color,
 //	    created_at,
 //	    updated_at
 //	) VALUES (
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -62,14 +56,12 @@ type UpsertPortalBrandingParams struct {
 //	ON DUPLICATE KEY UPDATE
 //	    logo_url = VALUES(logo_url),
 //	    primary_color = VALUES(primary_color),
-//	    secondary_color = VALUES(secondary_color),
 //	    updated_at = VALUES(updated_at)
 func (q *Queries) UpsertPortalBranding(ctx context.Context, db DBTX, arg UpsertPortalBrandingParams) error {
 	_, err := db.ExecContext(ctx, upsertPortalBranding,
 		arg.PortalConfigID,
 		arg.LogoUrl,
 		arg.PrimaryColor,
-		arg.SecondaryColor,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

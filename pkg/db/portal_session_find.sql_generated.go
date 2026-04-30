@@ -10,18 +10,23 @@ import (
 )
 
 const findValidPortalSession = `-- name: FindValidPortalSession :one
-SELECT pk, id, workspace_id, portal_config_id, external_id, metadata, permissions, preview, expires_at, created_at FROM portal_sessions
+SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, expires_at, created_at FROM portal_sessions
 WHERE id = ?
-  AND expires_at > UNIX_TIMESTAMP(NOW()) * 1000
+  AND expires_at > ?
 `
+
+type FindValidPortalSessionParams struct {
+	ID  string `db:"id"`
+	Now int64  `db:"now"`
+}
 
 // FindValidPortalSession
 //
-//	SELECT pk, id, workspace_id, portal_config_id, external_id, metadata, permissions, preview, expires_at, created_at FROM portal_sessions
+//	SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, expires_at, created_at FROM portal_sessions
 //	WHERE id = ?
-//	  AND expires_at > UNIX_TIMESTAMP(NOW()) * 1000
-func (q *Queries) FindValidPortalSession(ctx context.Context, db DBTX, id string) (PortalSession, error) {
-	row := db.QueryRowContext(ctx, findValidPortalSession, id)
+//	  AND expires_at > ?
+func (q *Queries) FindValidPortalSession(ctx context.Context, db DBTX, arg FindValidPortalSessionParams) (PortalSession, error) {
+	row := db.QueryRowContext(ctx, findValidPortalSession, arg.ID, arg.Now)
 	var i PortalSession
 	err := row.Scan(
 		&i.Pk,
@@ -29,7 +34,6 @@ func (q *Queries) FindValidPortalSession(ctx context.Context, db DBTX, id string
 		&i.WorkspaceID,
 		&i.PortalConfigID,
 		&i.ExternalID,
-		&i.Metadata,
 		&i.Permissions,
 		&i.Preview,
 		&i.ExpiresAt,

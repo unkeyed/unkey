@@ -22,9 +22,6 @@ function PortalLayout() {
   if (portalConfig?.branding?.primaryColor) {
     brandingStyle["--portal-primary"] = portalConfig.branding.primaryColor;
   }
-  if (portalConfig?.branding?.secondaryColor) {
-    brandingStyle["--portal-secondary"] = portalConfig.branding.secondaryColor;
-  }
 
   return (
     <div style={brandingStyle}>

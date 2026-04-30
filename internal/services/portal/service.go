@@ -14,7 +14,6 @@ type SessionInfo struct {
 	ExternalID     string
 	PortalConfigID string
 	Permissions    []string
-	Metadata       map[string]any
 	Preview        bool
 }
 

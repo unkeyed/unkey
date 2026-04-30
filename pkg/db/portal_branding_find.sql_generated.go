@@ -10,12 +10,12 @@ import (
 )
 
 const findPortalBrandingByConfigID = `-- name: FindPortalBrandingByConfigID :one
-SELECT pk, portal_config_id, logo_url, primary_color, secondary_color, created_at, updated_at FROM portal_branding WHERE portal_config_id = ?
+SELECT pk, portal_config_id, logo_url, primary_color, created_at, updated_at FROM portal_branding WHERE portal_config_id = ?
 `
 
 // FindPortalBrandingByConfigID
 //
-//	SELECT pk, portal_config_id, logo_url, primary_color, secondary_color, created_at, updated_at FROM portal_branding WHERE portal_config_id = ?
+//	SELECT pk, portal_config_id, logo_url, primary_color, created_at, updated_at FROM portal_branding WHERE portal_config_id = ?
 func (q *Queries) FindPortalBrandingByConfigID(ctx context.Context, db DBTX, portalConfigID string) (PortalBranding, error) {
 	row := db.QueryRowContext(ctx, findPortalBrandingByConfigID, portalConfigID)
 	var i PortalBranding
@@ -24,7 +24,6 @@ func (q *Queries) FindPortalBrandingByConfigID(ctx context.Context, db DBTX, por
 		&i.PortalConfigID,
 		&i.LogoUrl,
 		&i.PrimaryColor,
-		&i.SecondaryColor,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

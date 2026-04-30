@@ -5,7 +5,6 @@ import { db, schema } from "./db";
 export type PortalBranding = {
   logoUrl: string | null;
   primaryColor: string | null;
-  secondaryColor: string | null;
 };
 
 export type PortalConfig = {
@@ -32,7 +31,6 @@ export async function loadPortalConfig(portalConfigId: string): Promise<PortalCo
         columns: {
           logoUrl: true,
           primaryColor: true,
-          secondaryColor: true,
         },
       },
     },

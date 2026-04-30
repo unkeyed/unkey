@@ -10,20 +10,25 @@ import (
 )
 
 const findValidPortalSessionToken = `-- name: FindValidPortalSessionToken :one
-SELECT pk, id, workspace_id, portal_config_id, external_id, metadata, permissions, preview, exchanged_at, expires_at, created_at FROM portal_session_tokens
+SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, exchanged_at, expires_at, created_at FROM portal_session_tokens
 WHERE id = ?
   AND exchanged_at IS NULL
-  AND expires_at > UNIX_TIMESTAMP(NOW()) * 1000
+  AND expires_at > ?
 `
+
+type FindValidPortalSessionTokenParams struct {
+	ID  string `db:"id"`
+	Now int64  `db:"now"`
+}
 
 // FindValidPortalSessionToken
 //
-//	SELECT pk, id, workspace_id, portal_config_id, external_id, metadata, permissions, preview, exchanged_at, expires_at, created_at FROM portal_session_tokens
+//	SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, exchanged_at, expires_at, created_at FROM portal_session_tokens
 //	WHERE id = ?
 //	  AND exchanged_at IS NULL
-//	  AND expires_at > UNIX_TIMESTAMP(NOW()) * 1000
-func (q *Queries) FindValidPortalSessionToken(ctx context.Context, db DBTX, id string) (PortalSessionToken, error) {
-	row := db.QueryRowContext(ctx, findValidPortalSessionToken, id)
+//	  AND expires_at > ?
+func (q *Queries) FindValidPortalSessionToken(ctx context.Context, db DBTX, arg FindValidPortalSessionTokenParams) (PortalSessionToken, error) {
+	row := db.QueryRowContext(ctx, findValidPortalSessionToken, arg.ID, arg.Now)
 	var i PortalSessionToken
 	err := row.Scan(
 		&i.Pk,
@@ -31,7 +36,6 @@ func (q *Queries) FindValidPortalSessionToken(ctx context.Context, db DBTX, id s
 		&i.WorkspaceID,
 		&i.PortalConfigID,
 		&i.ExternalID,
-		&i.Metadata,
 		&i.Permissions,
 		&i.Preview,
 		&i.ExchangedAt,

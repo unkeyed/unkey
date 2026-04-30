@@ -22,6 +22,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:            h.DB,
+Auditlogs:     h.Auditlogs,
 		Keys:          h.Keys,
 		PortalBaseURL: "https://portal.unkey.com",
 	}
@@ -49,8 +50,8 @@ func TestCreateSessionSuccess(t *testing.T) {
 
 	t.Run("basic session creation", func(t *testing.T) {
 		req := handler.Request{
-			PortalID:    portalConfigID,
-			ExternalID:  "user_123",
+			PortalId:    portalConfigID,
+			ExternalId:  "user_123",
 			Permissions: []string{"keys:read"},
 		}
 
@@ -58,23 +59,23 @@ func TestCreateSessionSuccess(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
 
-		require.NotEmpty(t, res.Body.Data.SessionID)
-		require.NotEmpty(t, res.Body.Data.URL)
+		require.NotEmpty(t, res.Body.Data.SessionId)
+		require.NotEmpty(t, res.Body.Data.Url)
 		require.NotZero(t, res.Body.Data.ExpiresAt)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 
 		// URL must contain the session ID and the portal base URL.
-		require.Contains(t, res.Body.Data.URL, "portal.unkey.com")
-		require.Contains(t, res.Body.Data.URL, res.Body.Data.SessionID)
-		require.True(t, strings.HasPrefix(res.Body.Data.URL, "https://"))
+		require.Contains(t, res.Body.Data.Url, "portal.unkey.com")
+		require.Contains(t, res.Body.Data.Url, res.Body.Data.SessionId)
+		require.True(t, strings.HasPrefix(res.Body.Data.Url, "https://"))
 	})
 
 	t.Run("session token expiry is 15 minutes", func(t *testing.T) {
 		before := time.Now()
 
 		req := handler.Request{
-			PortalID:    portalConfigID,
-			ExternalID:  "user_456",
+			PortalId:    portalConfigID,
+			ExternalId:  "user_456",
 			Permissions: []string{"keys:read", "analytics:read"},
 		}
 
@@ -90,32 +91,34 @@ func TestCreateSessionSuccess(t *testing.T) {
 		require.LessOrEqual(t, res.Body.Data.ExpiresAt, expectedHigh)
 	})
 
-	t.Run("with metadata and preview", func(t *testing.T) {
+	t.Run("with preview", func(t *testing.T) {
+		preview := true
 		req := handler.Request{
-			PortalID:    portalConfigID,
-			ExternalID:  "user_789",
+			PortalId:    portalConfigID,
+			ExternalId:  "user_789",
 			Permissions: []string{"keys:read"},
-			Metadata:    map[string]any{"name": "Test User", "email": "test@example.com"},
-			Preview:     true,
+			Preview:     &preview,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
-		require.NotEmpty(t, res.Body.Data.SessionID)
+		require.NotEmpty(t, res.Body.Data.SessionId)
 
 		// Verify the token was persisted with correct fields.
-		token, err := db.Query.FindValidPortalSessionToken(ctx, h.DB.RO(), res.Body.Data.SessionID)
+		token, err := db.Query.FindValidPortalSessionToken(ctx, h.DB.RO(), db.FindValidPortalSessionTokenParams{
+			ID:  res.Body.Data.SessionId,
+			Now: time.Now().UnixMilli(),
+		})
 		require.NoError(t, err)
 		require.Equal(t, "user_789", token.ExternalID)
 		require.True(t, token.Preview)
-		require.NotNil(t, token.Metadata)
 	})
 
 	t.Run("multiple sessions for same externalId", func(t *testing.T) {
 		req := handler.Request{
-			PortalID:    portalConfigID,
-			ExternalID:  "user_multi",
+			PortalId:    portalConfigID,
+			ExternalId:  "user_multi",
 			Permissions: []string{"keys:read"},
 		}
 
@@ -126,6 +129,6 @@ func TestCreateSessionSuccess(t *testing.T) {
 		require.Equal(t, 200, res2.Status)
 
 		// Each call must produce a unique session ID.
-		require.NotEqual(t, res1.Body.Data.SessionID, res2.Body.Data.SessionID)
+		require.NotEqual(t, res1.Body.Data.SessionId, res2.Body.Data.SessionId)
 	})
 }

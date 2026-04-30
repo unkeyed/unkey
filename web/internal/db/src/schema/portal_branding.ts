@@ -8,7 +8,6 @@ export const portalBranding = mysqlTable("portal_branding", {
   portalConfigId: varchar("portal_config_id", { length: 64 }).notNull().unique(),
   logoUrl: varchar("logo_url", { length: 500 }),
   primaryColor: varchar("primary_color", { length: 7 }),
-  secondaryColor: varchar("secondary_color", { length: 7 }),
   ...lifecycleDates,
 });
 

@@ -16,13 +16,11 @@ INSERT INTO portal_sessions (
     workspace_id,
     portal_config_id,
     external_id,
-    metadata,
     permissions,
     preview,
     expires_at,
     created_at
 ) VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -39,7 +37,6 @@ type InsertPortalSessionParams struct {
 	WorkspaceID    string          `db:"workspace_id"`
 	PortalConfigID string          `db:"portal_config_id"`
 	ExternalID     string          `db:"external_id"`
-	Metadata       []byte          `db:"metadata"`
 	Permissions    json.RawMessage `db:"permissions"`
 	Preview        bool            `db:"preview"`
 	ExpiresAt      int64           `db:"expires_at"`
@@ -53,13 +50,11 @@ type InsertPortalSessionParams struct {
 //	    workspace_id,
 //	    portal_config_id,
 //	    external_id,
-//	    metadata,
 //	    permissions,
 //	    preview,
 //	    expires_at,
 //	    created_at
 //	) VALUES (
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -75,7 +70,6 @@ func (q *Queries) InsertPortalSession(ctx context.Context, db DBTX, arg InsertPo
 		arg.WorkspaceID,
 		arg.PortalConfigID,
 		arg.ExternalID,
-		arg.Metadata,
 		arg.Permissions,
 		arg.Preview,
 		arg.ExpiresAt,

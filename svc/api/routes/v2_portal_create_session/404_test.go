@@ -21,6 +21,7 @@ func TestCreateSessionNotFoundNonExistentPortalId(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:            h.DB,
+Auditlogs:     h.Auditlogs,
 		Keys:          h.Keys,
 		PortalBaseURL: "https://portal.unkey.com",
 	}
@@ -35,8 +36,8 @@ func TestCreateSessionNotFoundNonExistentPortalId(t *testing.T) {
 	}
 
 	req := handler.Request{
-		PortalID:    uid.New(uid.PortalConfigPrefix),
-		ExternalID:  "user_123",
+		PortalId:    uid.New(uid.PortalConfigPrefix),
+		ExternalId:  "user_123",
 		Permissions: []string{"keys:read"},
 	}
 
@@ -51,6 +52,7 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:            h.DB,
+Auditlogs:     h.Auditlogs,
 		Keys:          h.Keys,
 		PortalBaseURL: "https://portal.unkey.com",
 	}
@@ -81,8 +83,8 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 
 	// Use workspace A's portal config ID while authenticated as workspace B.
 	req := handler.Request{
-		PortalID:    portalConfigID,
-		ExternalID:  "user_123",
+		PortalId:    portalConfigID,
+		ExternalId:  "user_123",
 		Permissions: []string{"keys:read"},
 	}
 

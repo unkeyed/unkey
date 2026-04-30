@@ -7,9 +7,6 @@ type portalSession struct {
 
 	// SessionNotFound indicates the portal session was not found or has expired.
 	SessionNotFound Code
-
-	// SessionAlreadyExchanged indicates the session token has already been used.
-	SessionAlreadyExchanged Code
 }
 
 // UnkeyPortalErrors defines all portal-related error codes.
@@ -21,8 +18,7 @@ type UnkeyPortalErrors struct {
 // Portal contains all predefined portal error codes.
 var Portal = UnkeyPortalErrors{
 	Session: portalSession{
-		TokenMissing:            Code{SystemUnkey, CategoryUnkeyAuthentication, "portal_token_missing"},
-		SessionNotFound:         Code{SystemUnkey, CategoryUnkeyAuthentication, "portal_session_not_found"},
-		SessionAlreadyExchanged: Code{SystemUnkey, CategoryUnkeyAuthentication, "portal_session_already_exchanged"},
+		TokenMissing:    Code{SystemUnkey, CategoryUnkeyAuthentication, "portal_token_missing"},
+		SessionNotFound: Code{SystemUnkey, CategoryUnkeyAuthentication, "portal_session_not_found"},
 	},
 }

@@ -15,14 +15,15 @@ func TestCreateSessionUnauthorized(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:            h.DB,
+Auditlogs:     h.Auditlogs,
 		Keys:          h.Keys,
 		PortalBaseURL: "https://portal.unkey.com",
 	}
 	h.Register(route)
 
 	req := handler.Request{
-		PortalID:    "ptl_doesnotmatter",
-		ExternalID:  "user_123",
+		PortalId:    "ptl_doesnotmatter",
+		ExternalId:  "user_123",
 		Permissions: []string{"keys:read"},
 	}
 

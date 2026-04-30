@@ -19,7 +19,7 @@ func TestExchangeSessionSuccess(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
-	route := &handler.Handler{DB: h.DB}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
@@ -42,14 +42,12 @@ func TestExchangeSessionSuccess(t *testing.T) {
 	t.Run("valid exchange", func(t *testing.T) {
 		tokenID := uid.New(uid.PortalSessionTokenPrefix)
 		perms, _ := json.Marshal([]string{"keys:read", "analytics:read"})
-		meta, _ := json.Marshal(map[string]any{"name": "Test User"})
 
 		err := db.Query.InsertPortalSessionToken(ctx, h.DB.RW(), db.InsertPortalSessionTokenParams{
 			ID:             tokenID,
 			WorkspaceID:    workspaceID,
 			PortalConfigID: portalConfigID,
 			ExternalID:     "user_valid",
-			Metadata:       meta,
 			Permissions:    perms,
 			ExpiresAt:      now + int64(15*time.Minute/time.Millisecond),
 			CreatedAt:      now,
@@ -58,7 +56,7 @@ func TestExchangeSessionSuccess(t *testing.T) {
 
 		before := time.Now()
 
-		req := handler.Request{SessionID: tokenID}
+		req := handler.Request{SessionId: tokenID}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status)
 		require.NotNil(t, res.Body)
@@ -75,7 +73,10 @@ func TestExchangeSessionSuccess(t *testing.T) {
 		require.LessOrEqual(t, res.Body.Data.ExpiresAt, expectedHigh)
 
 		// Verify the browser session was persisted.
-		session, err := db.Query.FindValidPortalSession(ctx, h.DB.RO(), res.Body.Data.Token)
+		session, err := db.Query.FindValidPortalSession(ctx, h.DB.RO(), db.FindValidPortalSessionParams{
+			ID:  res.Body.Data.Token,
+			Now: time.Now().UnixMilli(),
+		})
 		require.NoError(t, err)
 		require.Equal(t, workspaceID, session.WorkspaceID)
 		require.Equal(t, "user_valid", session.ExternalID)
@@ -97,7 +98,7 @@ func TestExchangeSessionSuccess(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		req := handler.Request{SessionID: tokenID}
+		req := handler.Request{SessionId: tokenID}
 
 		// First exchange succeeds.
 		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

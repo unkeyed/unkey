@@ -9,10 +9,9 @@ import (
 )
 
 // bulkUpsertPortalBranding is the base query for bulk insert
-const bulkUpsertPortalBranding = `INSERT INTO portal_branding ( portal_config_id, logo_url, primary_color, secondary_color, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertPortalBranding = `INSERT INTO portal_branding ( portal_config_id, logo_url, primary_color, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
     logo_url = VALUES(logo_url),
     primary_color = VALUES(primary_color),
-    secondary_color = VALUES(secondary_color),
     updated_at = VALUES(updated_at)`
 
 // UpsertPortalBranding performs bulk insert in a single query
@@ -25,7 +24,7 @@ func (q *BulkQueries) UpsertPortalBranding(ctx context.Context, db DBTX, args []
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertPortalBranding, strings.Join(valueClauses, ", "))
@@ -36,7 +35,6 @@ func (q *BulkQueries) UpsertPortalBranding(ctx context.Context, db DBTX, args []
 		allArgs = append(allArgs, arg.PortalConfigID)
 		allArgs = append(allArgs, arg.LogoUrl)
 		allArgs = append(allArgs, arg.PrimaryColor)
-		allArgs = append(allArgs, arg.SecondaryColor)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)
 	}

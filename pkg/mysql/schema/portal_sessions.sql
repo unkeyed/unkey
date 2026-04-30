@@ -4,7 +4,6 @@ CREATE TABLE `portal_sessions` (
 	`workspace_id` varchar(256) NOT NULL,
 	`portal_config_id` varchar(64) NOT NULL,
 	`external_id` varchar(256) NOT NULL,
-	`metadata` json,
 	`permissions` json NOT NULL,
 	`preview` boolean NOT NULL DEFAULT false,
 	`expires_at` bigint NOT NULL,

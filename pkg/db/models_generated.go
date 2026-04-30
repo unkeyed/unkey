@@ -1493,7 +1493,6 @@ type PortalBranding struct {
 	PortalConfigID string         `db:"portal_config_id"`
 	LogoUrl        sql.NullString `db:"logo_url"`
 	PrimaryColor   sql.NullString `db:"primary_color"`
-	SecondaryColor sql.NullString `db:"secondary_color"`
 	CreatedAt      int64          `db:"created_at"`
 	UpdatedAt      sql.NullInt64  `db:"updated_at"`
 }
@@ -1516,7 +1515,6 @@ type PortalSession struct {
 	WorkspaceID    string          `db:"workspace_id"`
 	PortalConfigID string          `db:"portal_config_id"`
 	ExternalID     string          `db:"external_id"`
-	Metadata       []byte          `db:"metadata"`
 	Permissions    json.RawMessage `db:"permissions"`
 	Preview        bool            `db:"preview"`
 	ExpiresAt      int64           `db:"expires_at"`
@@ -1529,7 +1527,6 @@ type PortalSessionToken struct {
 	WorkspaceID    string          `db:"workspace_id"`
 	PortalConfigID string          `db:"portal_config_id"`
 	ExternalID     string          `db:"external_id"`
-	Metadata       []byte          `db:"metadata"`
 	Permissions    json.RawMessage `db:"permissions"`
 	Preview        bool            `db:"preview"`
 	ExchangedAt    sql.NullInt64   `db:"exchanged_at"`

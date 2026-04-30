@@ -22,6 +22,7 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:            h.DB,
+Auditlogs:     h.Auditlogs,
 		Keys:          h.Keys,
 		PortalBaseURL: "https://portal.unkey.com",
 	}
@@ -49,8 +50,8 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	}
 
 	req := handler.Request{
-		PortalID:    portalConfigID,
-		ExternalID:  "user_123",
+		PortalId:    portalConfigID,
+		ExternalId:  "user_123",
 		Permissions: []string{"keys:read"},
 	}
 

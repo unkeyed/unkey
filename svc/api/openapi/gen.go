@@ -1978,9 +1978,6 @@ type V2PortalCreateSessionRequestBody struct {
 	// Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
 	ExternalId string `json:"externalId"`
 
-	// Metadata Optional information about the end user (name, email, custom fields).
-	Metadata *map[string]interface{} `json:"metadata,omitempty"`
-
 	// Permissions List of permissions defining what the end user can do in the Portal and which tabs are visible.
 	// Any `keys:*` permission shows the Keys tab, any `analytics:*` shows Analytics, `docs:read` shows Docs.
 	Permissions []string `json:"permissions"`

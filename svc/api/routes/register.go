@@ -608,6 +608,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2PortalCreateSession.Handler{
 			DB:            svc.Database,
 			Keys:          svc.Keys,
+			Auditlogs:     svc.Auditlogs,
 			PortalBaseURL: svc.PortalBaseURL,
 		},
 	)
@@ -616,7 +617,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&v2PortalExchangeSession.Handler{
-			DB: svc.Database,
+			DB:        svc.Database,
+			Auditlogs: svc.Auditlogs,
 		},
 	)
 

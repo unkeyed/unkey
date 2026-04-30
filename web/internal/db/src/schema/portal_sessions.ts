@@ -11,7 +11,6 @@ export const portalSessions = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     portalConfigId: varchar("portal_config_id", { length: 64 }).notNull(),
     externalId: varchar("external_id", { length: 256 }).notNull(),
-    metadata: json("metadata").$type<Record<string, unknown>>(),
     permissions: json("permissions").$type<string[]>().notNull(),
     preview: boolean("preview").notNull().default(false),
     expiresAt: bigint("expires_at", { mode: "number" }).notNull(),

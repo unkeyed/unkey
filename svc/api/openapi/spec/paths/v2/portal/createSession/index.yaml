@@ -30,6 +30,17 @@ post:
             "$ref": "./V2PortalCreateSessionResponseBody.yaml"
       description: |
         Session token created successfully. Redirect the end user to the returned URL.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            example: no-store
+          description: Prevents caching of the session token response.
+        Pragma:
+          schema:
+            type: string
+            example: no-cache
+          description: HTTP/1.0 backward-compatible cache prevention.
     "400":
       description: Bad request
       content:

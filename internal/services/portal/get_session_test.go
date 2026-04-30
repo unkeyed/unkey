@@ -33,7 +33,6 @@ func TestSessionInfo_FieldsExist(t *testing.T) {
 		ExternalID:     "user_456",
 		PortalConfigID: "pc_789",
 		Permissions:    []string{"keys:read", "analytics:read"},
-		Metadata:       map[string]any{"name": "Test User", "email": "test@example.com"},
 		Preview:        true,
 	}
 
@@ -41,11 +40,10 @@ func TestSessionInfo_FieldsExist(t *testing.T) {
 	require.Equal(t, "user_456", info.ExternalID)
 	require.Equal(t, "pc_789", info.PortalConfigID)
 	require.Equal(t, []string{"keys:read", "analytics:read"}, info.Permissions)
-	require.Equal(t, map[string]any{"name": "Test User", "email": "test@example.com"}, info.Metadata)
 	require.True(t, info.Preview)
 }
 
-func TestSessionInfo_NilPermissionsAndMetadata(t *testing.T) {
+func TestSessionInfo_NilPermissions(t *testing.T) {
 	t.Parallel()
 
 	info := SessionInfo{
@@ -55,6 +53,5 @@ func TestSessionInfo_NilPermissionsAndMetadata(t *testing.T) {
 	}
 
 	require.Nil(t, info.Permissions)
-	require.Nil(t, info.Metadata)
 	require.False(t, info.Preview)
 }

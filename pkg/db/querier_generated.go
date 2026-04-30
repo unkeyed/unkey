@@ -296,7 +296,7 @@ type Querier interface {
 	//  SET exchanged_at = ?
 	//  WHERE id = ?
 	//    AND exchanged_at IS NULL
-	//    AND expires_at > UNIX_TIMESTAMP(NOW()) * 1000
+	//    AND expires_at > ?
 	ExchangePortalSessionToken(ctx context.Context, db DBTX, arg ExchangePortalSessionTokenParams) (sql.Result, error)
 	//FindAcmeChallengeByToken
 	//
@@ -1061,7 +1061,7 @@ type Querier interface {
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
 	//FindPortalBrandingByConfigID
 	//
-	//  SELECT pk, portal_config_id, logo_url, primary_color, secondary_color, created_at, updated_at FROM portal_branding WHERE portal_config_id = ?
+	//  SELECT pk, portal_config_id, logo_url, primary_color, created_at, updated_at FROM portal_branding WHERE portal_config_id = ?
 	FindPortalBrandingByConfigID(ctx context.Context, db DBTX, portalConfigID string) (PortalBranding, error)
 	//FindPortalConfigByID
 	//
@@ -1234,17 +1234,17 @@ type Querier interface {
 	FindSentinelsByEnvironmentID(ctx context.Context, db DBTX, environmentID string) ([]FindSentinelsByEnvironmentIDRow, error)
 	//FindValidPortalSession
 	//
-	//  SELECT pk, id, workspace_id, portal_config_id, external_id, metadata, permissions, preview, expires_at, created_at FROM portal_sessions
+	//  SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, expires_at, created_at FROM portal_sessions
 	//  WHERE id = ?
-	//    AND expires_at > UNIX_TIMESTAMP(NOW()) * 1000
-	FindValidPortalSession(ctx context.Context, db DBTX, id string) (PortalSession, error)
+	//    AND expires_at > ?
+	FindValidPortalSession(ctx context.Context, db DBTX, arg FindValidPortalSessionParams) (PortalSession, error)
 	//FindValidPortalSessionToken
 	//
-	//  SELECT pk, id, workspace_id, portal_config_id, external_id, metadata, permissions, preview, exchanged_at, expires_at, created_at FROM portal_session_tokens
+	//  SELECT pk, id, workspace_id, portal_config_id, external_id, permissions, preview, exchanged_at, expires_at, created_at FROM portal_session_tokens
 	//  WHERE id = ?
 	//    AND exchanged_at IS NULL
-	//    AND expires_at > UNIX_TIMESTAMP(NOW()) * 1000
-	FindValidPortalSessionToken(ctx context.Context, db DBTX, id string) (PortalSessionToken, error)
+	//    AND expires_at > ?
+	FindValidPortalSessionToken(ctx context.Context, db DBTX, arg FindValidPortalSessionTokenParams) (PortalSessionToken, error)
 	//FindVerifiedCustomDomainByAppID
 	//
 	//  SELECT pk, id, workspace_id, project_id, app_id, environment_id, domain, challenge_type, verification_status, verification_token, ownership_verified, cname_verified, target_cname, last_checked_at, check_attempts, verification_error, domain_connect_provider, domain_connect_url, invocation_id, created_at, updated_at FROM custom_domains
@@ -1981,13 +1981,11 @@ type Querier interface {
 	//      workspace_id,
 	//      portal_config_id,
 	//      external_id,
-	//      metadata,
 	//      permissions,
 	//      preview,
 	//      expires_at,
 	//      created_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2005,13 +2003,11 @@ type Querier interface {
 	//      workspace_id,
 	//      portal_config_id,
 	//      external_id,
-	//      metadata,
 	//      permissions,
 	//      preview,
 	//      expires_at,
 	//      created_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -3402,11 +3398,9 @@ type Querier interface {
 	//      portal_config_id,
 	//      logo_url,
 	//      primary_color,
-	//      secondary_color,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -3416,7 +3410,6 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//      logo_url = VALUES(logo_url),
 	//      primary_color = VALUES(primary_color),
-	//      secondary_color = VALUES(secondary_color),
 	//      updated_at = VALUES(updated_at)
 	UpsertPortalBranding(ctx context.Context, db DBTX, arg UpsertPortalBrandingParams) error
 	//UpsertQuota

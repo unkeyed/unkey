@@ -196,8 +196,7 @@ func WithErrorHandling() zen.Middleware {
 
 			// Unauthorized errors
 			case codes.UnkeyAuthErrorsAuthenticationKeyNotFound,
-				codes.UnkeyPortalErrorsSessionSessionNotFound,
-				codes.UnkeyPortalErrorsSessionSessionAlreadyExchanged:
+				codes.UnkeyPortalErrorsSessionSessionNotFound:
 				return s.ProblemJSON(http.StatusUnauthorized, openapi.UnauthorizedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

@@ -15,12 +15,13 @@ UPDATE portal_session_tokens
 SET exchanged_at = ?
 WHERE id = ?
   AND exchanged_at IS NULL
-  AND expires_at > UNIX_TIMESTAMP(NOW()) * 1000
+  AND expires_at > ?
 `
 
 type ExchangePortalSessionTokenParams struct {
 	ExchangedAt sql.NullInt64 `db:"exchanged_at"`
 	ID          string        `db:"id"`
+	Now         int64         `db:"now"`
 }
 
 // ExchangePortalSessionToken
@@ -29,7 +30,7 @@ type ExchangePortalSessionTokenParams struct {
 //	SET exchanged_at = ?
 //	WHERE id = ?
 //	  AND exchanged_at IS NULL
-//	  AND expires_at > UNIX_TIMESTAMP(NOW()) * 1000
+//	  AND expires_at > ?
 func (q *Queries) ExchangePortalSessionToken(ctx context.Context, db DBTX, arg ExchangePortalSessionTokenParams) (sql.Result, error) {
-	return db.ExecContext(ctx, exchangePortalSessionToken, arg.ExchangedAt, arg.ID)
+	return db.ExecContext(ctx, exchangePortalSessionToken, arg.ExchangedAt, arg.ID, arg.Now)
 }

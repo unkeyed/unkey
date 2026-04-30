@@ -513,7 +513,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				PortalConfigID: portalConfigID,
 				LogoUrl:        sql.NullString{Valid: true, String: "https://avatars.githubusercontent.com/u/138932600"},
 				PrimaryColor:   sql.NullString{Valid: true, String: "#2563eb"},
-				SecondaryColor: sql.NullString{Valid: true, String: "#f0f9ff"},
 				CreatedAt:      now,
 				UpdatedAt:      sql.NullInt64{},
 			})

@@ -263,6 +263,4 @@ const (
 	UnkeyPortalErrorsSessionTokenMissing URN = "err:unkey:authentication:portal_token_missing"
 	// SessionNotFound indicates the portal session was not found or has expired.
 	UnkeyPortalErrorsSessionSessionNotFound URN = "err:unkey:authentication:portal_session_not_found"
-	// SessionAlreadyExchanged indicates the session token has already been used.
-	UnkeyPortalErrorsSessionSessionAlreadyExchanged URN = "err:unkey:authentication:portal_session_already_exchanged"
 )

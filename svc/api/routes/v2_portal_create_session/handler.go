@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -16,32 +18,16 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-// Request is the expected JSON body for POST /v2/portal.createSession.
-type Request struct {
-	PortalID    string         `json:"portalId"`
-	ExternalID  string         `json:"externalId"`
-	Permissions []string       `json:"permissions"`
-	Metadata    map[string]any `json:"metadata,omitempty"`
-	Preview     bool           `json:"preview,omitempty"`
-}
-
-// Response is the JSON body returned on success.
-type Response struct {
-	Meta openapi.Meta              `json:"meta"`
-	Data CreateSessionResponseData `json:"data"`
-}
-
-// CreateSessionResponseData holds the session creation result.
-type CreateSessionResponseData struct {
-	SessionID string `json:"sessionId"`
-	URL       string `json:"url"`
-	ExpiresAt int64  `json:"expiresAt"`
-}
+type (
+	Request  = openapi.V2PortalCreateSessionRequestBody
+	Response = openapi.V2PortalCreateSessionResponseBody
+)
 
 // Handler implements zen.Route for the portal session creation endpoint.
 type Handler struct {
 	DB            db.Database
 	Keys          keys.KeyService
+	Auditlogs     auditlogs.AuditLogService
 	PortalBaseURL string
 }
 
@@ -62,7 +48,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	workspaceID := auth.AuthorizedWorkspaceID
 
-	portalConfig, err := db.Query.FindPortalConfigByID(ctx, h.DB.RO(), req.PortalID)
+	portalConfig, err := db.Query.FindPortalConfigByID(ctx, h.DB.RO(), req.PortalId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("portal config not found",
@@ -112,7 +98,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	now := time.Now()
-	sessionTokenID := uid.New(uid.PortalSessionTokenPrefix)
+	sessionTokenID := string(uid.PortalSessionTokenPrefix) + "_" + uid.Secure()
 	expiresAt := now.Add(15 * time.Minute).UnixMilli()
 
 	permissionsJSON, err := json.Marshal(req.Permissions)
@@ -124,26 +110,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	var metadataBytes []byte
-	if req.Metadata != nil {
-		metadataBytes, err = json.Marshal(req.Metadata)
-		if err != nil {
-			return fault.Wrap(err,
-				fault.Code(codes.App.Internal.UnexpectedError.URN()),
-				fault.Internal("failed to marshal metadata"),
-				fault.Public("An internal error occurred."),
-			)
-		}
+	preview := false
+	if req.Preview != nil {
+		preview = *req.Preview
 	}
 
 	err = db.Query.InsertPortalSessionToken(ctx, h.DB.RW(), db.InsertPortalSessionTokenParams{
 		ID:             sessionTokenID,
 		WorkspaceID:    workspaceID,
 		PortalConfigID: portalConfig.ID,
-		ExternalID:     req.ExternalID,
-		Metadata:       metadataBytes,
+		ExternalID:     req.ExternalId,
 		Permissions:    permissionsJSON,
-		Preview:        req.Preview,
+		Preview:        preview,
 		ExpiresAt:      expiresAt,
 		CreatedAt:      now.UnixMilli(),
 	})
@@ -155,6 +133,36 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	err = h.Auditlogs.Insert(ctx, h.DB.RW(), []auditlog.AuditLog{
+		{
+			Event:       auditlog.PortalSessionCreateEvent,
+			WorkspaceID: workspaceID,
+			ActorType:   auditlog.RootKeyActor,
+			ActorID:     auth.Key.ID,
+			ActorName:   "root key",
+			ActorMeta:   map[string]any{},
+			Display:     fmt.Sprintf("Created portal session for %s", req.ExternalId),
+			RemoteIP:    s.Location(),
+			UserAgent:   s.UserAgent(),
+			Resources: []auditlog.AuditLogResource{
+				{
+					ID:          sessionTokenID,
+					DisplayName: req.ExternalId,
+					Name:        req.ExternalId,
+					Meta:        map[string]any{"portalConfigId": portalConfig.ID},
+					Type:        auditlog.PortalSessionResourceType,
+				},
+			},
+		},
+	})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to insert audit log"),
+			fault.Public("Failed to create session."),
+		)
+	}
+
 	portalURL := fmt.Sprintf("%s/?session=%s", portalBaseURL, sessionTokenID)
 
 	s.ResponseWriter().Header().Set("Cache-Control", "no-store")
@@ -162,9 +170,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
-		Data: CreateSessionResponseData{
-			SessionID: sessionTokenID,
-			URL:       portalURL,
+		Data: openapi.V2PortalCreateSessionResponseData{
+			SessionId: sessionTokenID,
+			Url:       portalURL,
 			ExpiresAt: expiresAt,
 		},
 	})

@@ -6,8 +6,7 @@ properties:
   token:
     type: string
     description: |
-      The browser session token. Use this in the Authorization header or as an httpOnly cookie
-      for subsequent API calls.
+      The browser session token. Store this as an httpOnly cookie for subsequent portal requests.
     example: ps_xyz789abc123
   expiresAt:
     type: integer
