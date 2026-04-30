@@ -72,6 +72,7 @@ EOF
 local_resource(
   'cilium-policies',
   'kubectl apply -f k8s/manifests/cilium-policies.yaml',
+  resource_deps=['namespace'],
   labels=['setup'],
 )
 
@@ -210,7 +211,7 @@ local_resource(
 # Frontline TLS certificates - generates certs with mkcert if they don't exist
 local_resource(
     'frontline-certs',
-    'if [ ! -f ./certs/unkey.local.crt ]; then echo "Generating TLS certificates..." && command -v mkcert >/dev/null || { echo "ERROR: mkcert not found. Install with: brew install mkcert"; exit 1; } && mkcert -install && mkdir -p ./certs && mkcert -cert-file ./certs/unkey.local.crt -key-file ./certs/unkey.local.key "*.unkey.local" "unkey.local" "localhost" && echo "*.crt" > ./certs/.gitignore && echo "*.key" >> ./certs/.gitignore; fi && kubectl -n unkey create configmap frontline-certs --from-file=./certs/unkey.local.crt --from-file=./certs/unkey.local.key -o yaml --dry-run=client | kubectl apply -f -',
+    'if [ ! -f ./certs/unkey.local.crt ]; then echo "Generating TLS certificates..." && command -v mkcert >/dev/null || { echo "ERROR: mkcert not found. Install with: brew install mkcert"; exit 1; } && mkcert -install && mkdir -p ./certs && mkcert -cert-file ./certs/unkey.local.crt -key-file ./certs/unkey.local.key "*.unkey.local" "unkey.local" "localhost" && echo "*.crt" > ./certs/.gitignore && echo "*.key" >> ./certs/.gitignore; fi && kubectl -n frontline create configmap frontline-certs --from-file=./certs/unkey.local.crt --from-file=./certs/unkey.local.key -o yaml --dry-run=client | kubectl apply -f -',
     resource_deps=['namespace'],
     labels=['setup'],
 )

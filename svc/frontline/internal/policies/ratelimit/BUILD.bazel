@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "ratelimit",
+    srcs = [
+        "executor.go",
+        "headers.go",
+        "keyextract.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/internal/policies/ratelimit",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/frontline/v1:frontline",
+        "//internal/services/ratelimit",
+        "//pkg/clock",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/zen",
+        "//svc/frontline/internal/policies/principal",
+    ],
+)

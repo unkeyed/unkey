@@ -1,11 +1,18 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "middleware",
-    srcs = ["observability.go"],
+    srcs = [
+        "clickhouse_logging.go",
+        "observability.go",
+        "sanitize_headers.go",
+    ],
     importpath = "github.com/unkeyed/unkey/svc/frontline/middleware",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/batch",
+        "//pkg/clickhouse/schema",
+        "//pkg/clock",
         "//pkg/codes",
         "//pkg/fault",
         "//pkg/logger",
@@ -13,7 +20,18 @@ go_library(
         "//pkg/prometheus/lazy",
         "//pkg/zen",
         "//svc/frontline/internal/errorpage",
+        "//svc/frontline/internal/proxy",
         "@com_github_prometheus_client_golang//prometheus",
         "@io_opentelemetry_go_otel//attribute",
+    ],
+)
+
+go_test(
+    name = "middleware_test",
+    srcs = ["sanitize_headers_test.go"],
+    embed = [":middleware"],
+    deps = [
+        "//pkg/zen",
+        "@com_github_stretchr_testify//require",
     ],
 )

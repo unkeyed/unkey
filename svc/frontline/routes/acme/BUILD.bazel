@@ -12,7 +12,7 @@ go_library(
         "//pkg/fault",
         "//pkg/logger",
         "//pkg/zen",
-        "//svc/frontline/services/proxy",
-        "//svc/frontline/services/router",
+        "//svc/frontline/internal/proxy",
+        "//svc/frontline/internal/router",
     ],
 )

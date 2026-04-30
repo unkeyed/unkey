@@ -33,7 +33,7 @@ apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
   name: frontline-gossip-lan
-  namespace: unkey
+  namespace: frontline
 spec:
   endpointSelector:
     matchLabels:
@@ -100,11 +100,13 @@ spec:
     - toEntities:
         - world
 ---
-# 3b. Allow unkey namespace to reach krane-managed deployment pods directly
+# 3b. Allow unkey namespace to reach krane-managed deployment pods directly.
 # LOCAL DEV ONLY: in production ctrl-worker fetches specs via the public FQDN
 # (HTTPS through frontline) and never contacts deployment pods directly.
-# Here, *.unkey.local FQDNs are not publicly routable, so ctrl-worker falls back
-# to plain HTTP directly to the pod IP, this policy permits that traffic.
+# Here, *.unkey.local FQDNs are not publicly routable, so ctrl-worker falls
+# back to plain HTTP directly to the pod IP and this policy permits that
+# traffic. Customer ingress from frontline runs on a separate per-deployment
+# CNP that krane installs in each namespace.
 apiVersion: cilium.io/v2
 kind: CiliumClusterwideNetworkPolicy
 metadata:
@@ -119,9 +121,11 @@ spec:
         - matchLabels:
             io.kubernetes.pod.namespace: unkey
 ---
-# 4. Allow traffic to reach sentinels
-# In dev: allow from unkey namespace (no frontline)
-# In prod: allow from frontline namespace
+# 4. Legacy: allow frontline (and unkey, for older code paths) to reach
+# sentinels. Customer traffic now bypasses sentinel — frontline talks
+# directly to deployment instances via the per-deployment CNP krane installs
+# in each namespace. This rule stays until sentinel is deleted entirely so
+# any straggler sentinel-bound calls don't break in dev.
 apiVersion: cilium.io/v2
 kind: CiliumClusterwideNetworkPolicy
 metadata:
@@ -136,6 +140,8 @@ spec:
     - fromEndpoints:
         - matchLabels:
             io.kubernetes.pod.namespace: unkey
+        - matchLabels:
+            io.kubernetes.pod.namespace: frontline
       toPorts:
         - ports:
             - port: "8040"

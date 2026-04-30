@@ -1,0 +1,39 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "keyauth",
+    srcs = [
+        "executor.go",
+        "headers.go",
+        "keyextract.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/frontline/v1:frontline",
+        "//internal/services/keys",
+        "//pkg/clock",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/hash",
+        "//pkg/rbac",
+        "//pkg/zen",
+        "//svc/frontline/internal/policies/principal",
+    ],
+)
+
+go_test(
+    name = "keyauth_test",
+    srcs = [
+        "headers_test.go",
+        "keyextract_test.go",
+    ],
+    embed = [":keyauth"],
+    deps = [
+        "//gen/proto/frontline/v1:frontline",
+        "//internal/services/keys",
+        "//internal/services/ratelimit",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)
