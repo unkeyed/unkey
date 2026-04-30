@@ -1,6 +1,6 @@
 ---
 title: "Sinks"
-description: "Per-provider transform, auth, and batching for Axiom, Datadog, and OTLP/HTTP."
+description: "Per-provider transform, auth, and batching for Axiom."
 ---
 
 Each provider implements the `Sink` interface in `svc/logdrain/internal/sinks`:
@@ -22,22 +22,6 @@ type Sink interface {
 - Batch limits: 1 MiB per request. Flush on size or 30 seconds, whichever comes first.
 - Idempotency: not honored by Axiom. Duplicate handling relies on dataset-level dedup if configured.
 
-## Datadog
-
-- Endpoint: `POST https://http-intake.logs.datadoghq.com/v1/input/<api_key>`, plus regional endpoints (`datadoghq.eu`, `us3`, `us5`, `ap1`, `ap2`, government variants) chosen via the OAuth grant's `region` field.
-- Auth: `DD-API-KEY: <key>`. The scoped key is obtained via OAuth grant.
-- Payload: a JSON array, up to 1000 records, up to 5 MiB per request.
-- Compression: `Content-Encoding: gzip`.
-- Idempotency: not natively supported.
-
-## OTLP/HTTP
-
-- Endpoint: customer-provided, typically `https://.../v1/logs`.
-- Auth: customer-provided header (typically `Authorization: Bearer ...` or `X-API-Key`).
-- Payload: OTLP/JSON (proto3 JSON mapping), `Content-Type: application/json`.
-- Batch limits: 4 MiB. Flush on size or 30 seconds.
-- Trace context: when the source record carries trace IDs, they're emitted as standard OTLP fields so downstream collectors correlate logs with traces automatically.
-
 ## Body redaction
 
 `sentinel_requests_raw_v1` carries `request_body` and `response_body`. The transform unconditionally strips both fields unless the drain config sets `filters.request.include_bodies = true`. The dashboard wizard surfaces this as an explicit warning checkbox and includes the redacted shape in the synthetic record used for the test push, so customers see the masked output before they opt in.
@@ -50,7 +34,6 @@ Every `create` and `update` mutation runs a single synthetic record through the 
 
 1. Implement `Sink` in `svc/logdrain/internal/sinks/<provider>.go`.
 2. Add `<provider>` to the `provider` enum in `pkg/mysql/schema/log_drains.sql` and regenerate with `make generate`.
-3. Wire the dashboard wizard to render the provider's config form (dataset name, endpoint, region, and so on).
-4. If the provider supports OAuth, add an `integrations/<provider>/callback/` route that mirrors `integrations/datadog/callback/`.
+3. Wire the dashboard wizard to render the provider's config form (dataset name, endpoint, and so on).
 
-The `transform/` package is provider-agnostic and doesn't need changes for new sinks unless the new provider requires a wire format that OTLP can't represent.
+The `transform/` package is provider-agnostic and doesn't need changes for new sinks unless the new provider requires a wire format that the shared record type can't represent.

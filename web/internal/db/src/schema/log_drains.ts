@@ -14,17 +14,14 @@ import { workspaces } from "./workspaces";
 
 export type LogDrainSource = "runtime" | "request";
 export type LogDrainEnvironment = "production" | "preview";
-export type LogDrainProvider = "axiom" | "otlp_http" | "datadog";
+export type LogDrainProvider = "axiom";
 export type LogDrainDeliveryMode = "batch" | "stream";
 
 // Per-provider config shape stored in log_drains.config. Provider lives
 // in its own column; the JSON blob holds only the provider's non-secret
-// settings. Matches the Go side under svc/logdrain/internal/sinks/{axiom,
-// datadog, otlp}.Config.
+// settings. Matches the Go side under svc/logdrain/internal/sinks/axiom.Config.
 export type LogDrainAxiomConfig = { dataset: string; endpoint?: string };
-export type LogDrainDatadogConfig = { site: string; service?: string; source?: string };
-export type LogDrainOTLPConfig = { endpoint: string; authHeader?: string };
-export type LogDrainConfig = LogDrainAxiomConfig | LogDrainDatadogConfig | LogDrainOTLPConfig;
+export type LogDrainConfig = LogDrainAxiomConfig;
 
 export type LogDrainFilters = {
   runtime?: {
@@ -49,7 +46,7 @@ export const logDrains = mysqlTable(
 
     name: varchar("name", { length: 256 }).notNull(),
 
-    provider: mysqlEnum("provider", ["axiom", "otlp_http", "datadog"]).notNull(),
+    provider: mysqlEnum("provider", ["axiom"]).notNull(),
 
     // Non-secret provider settings (dataset, endpoint, region). See LogDrainConfig.
     config: json("config").$type<LogDrainConfig>().notNull(),

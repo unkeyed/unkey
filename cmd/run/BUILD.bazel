@@ -11,6 +11,7 @@ go_library(
         "//cmd/run/frontline",
         "//cmd/run/heimdall",
         "//cmd/run/krane",
+        "//cmd/run/logdrain",
         "//cmd/run/vault",
         "//pkg/cli",
     ],

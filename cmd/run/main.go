@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/cmd/run/frontline"
 	"github.com/unkeyed/unkey/cmd/run/heimdall"
 	"github.com/unkeyed/unkey/cmd/run/krane"
+	"github.com/unkeyed/unkey/cmd/run/logdrain"
 	"github.com/unkeyed/unkey/cmd/run/vault"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -30,6 +31,7 @@ AVAILABLE SERVICES:
 - ctrl: The control plane service for managing infrastructure and deployments
 - heimdall: Per-node metering DaemonSet for cgroup + eBPF resource accounting
 - krane: Deployment management service for Kubernetes
+- logdrain: Forwards customer logs from ClickHouse to third-party providers
 - frontline: Multi-tenant frontline service for TLS termination, routing, and policy enforcement
 - vault: Secret management service for encryption
 
@@ -43,6 +45,7 @@ unkey run api --port 8080 --env production      # Run API server with custom con
 		ctrl.Cmd,
 		heimdall.Cmd,
 		krane.Cmd,
+		logdrain.Cmd,
 		frontline.Cmd,
 		vault.Cmd,
 	},
@@ -55,6 +58,7 @@ func runAction(ctx context.Context, cmd *cli.Command) error {
 	fmt.Println("  ctrl            - The control plane service for managing infrastructure")
 	fmt.Println("  heimdall        - Per-node metering DaemonSet for cgroup + eBPF resource accounting")
 	fmt.Println("  krane           - Manage containers and deployments in docker or kubernetes")
+	fmt.Println("  logdrain        - Forwards customer logs from ClickHouse to third-party providers")
 	fmt.Println("  frontline       - Multi-tenant ingress service for TLS termination, routing, and policy enforcement")
 	fmt.Println("  vault           - Encryption service for sensitive data")
 	fmt.Println()

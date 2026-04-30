@@ -797,6 +797,131 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 	return string(ns.KeyMigrationsAlgorithm), nil
 }
 
+type LogDrainCredentialsSource string
+
+const (
+	LogDrainCredentialsSourcePaste LogDrainCredentialsSource = "paste"
+	LogDrainCredentialsSourceOauth LogDrainCredentialsSource = "oauth"
+)
+
+func (e *LogDrainCredentialsSource) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = LogDrainCredentialsSource(s)
+	case string:
+		*e = LogDrainCredentialsSource(s)
+	default:
+		return fmt.Errorf("unsupported scan type for LogDrainCredentialsSource: %T", src)
+	}
+	return nil
+}
+
+type NullLogDrainCredentialsSource struct {
+	LogDrainCredentialsSource LogDrainCredentialsSource
+	Valid                     bool // Valid is true if LogDrainCredentialsSource is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullLogDrainCredentialsSource) Scan(value interface{}) error {
+	if value == nil {
+		ns.LogDrainCredentialsSource, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.LogDrainCredentialsSource.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullLogDrainCredentialsSource) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.LogDrainCredentialsSource), nil
+}
+
+type LogDrainsDeliveryMode string
+
+const (
+	LogDrainsDeliveryModeBatch  LogDrainsDeliveryMode = "batch"
+	LogDrainsDeliveryModeStream LogDrainsDeliveryMode = "stream"
+)
+
+func (e *LogDrainsDeliveryMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = LogDrainsDeliveryMode(s)
+	case string:
+		*e = LogDrainsDeliveryMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for LogDrainsDeliveryMode: %T", src)
+	}
+	return nil
+}
+
+type NullLogDrainsDeliveryMode struct {
+	LogDrainsDeliveryMode LogDrainsDeliveryMode
+	Valid                 bool // Valid is true if LogDrainsDeliveryMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullLogDrainsDeliveryMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.LogDrainsDeliveryMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.LogDrainsDeliveryMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullLogDrainsDeliveryMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.LogDrainsDeliveryMode), nil
+}
+
+type LogDrainsProvider string
+
+const (
+	LogDrainsProviderAxiom LogDrainsProvider = "axiom"
+)
+
+func (e *LogDrainsProvider) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = LogDrainsProvider(s)
+	case string:
+		*e = LogDrainsProvider(s)
+	default:
+		return fmt.Errorf("unsupported scan type for LogDrainsProvider: %T", src)
+	}
+	return nil
+}
+
+type NullLogDrainsProvider struct {
+	LogDrainsProvider LogDrainsProvider
+	Valid             bool // Valid is true if LogDrainsProvider is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullLogDrainsProvider) Scan(value interface{}) error {
+	if value == nil {
+		ns.LogDrainsProvider, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.LogDrainsProvider.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullLogDrainsProvider) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.LogDrainsProvider), nil
+}
+
 type SentinelsDeployStatus string
 
 const (
@@ -1461,6 +1586,71 @@ type KeysRole struct {
 	WorkspaceID string        `db:"workspace_id"`
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
+}
+
+type LogDrain struct {
+	Pk           uint64                `db:"pk"`
+	ID           string                `db:"id"`
+	WorkspaceID  string                `db:"workspace_id"`
+	ProjectID    sql.NullString        `db:"project_id"`
+	Name         string                `db:"name"`
+	Provider     LogDrainsProvider     `db:"provider"`
+	Config       json.RawMessage       `db:"config"`
+	Sources      json.RawMessage       `db:"sources"`
+	Environments json.RawMessage       `db:"environments"`
+	Apps         json.RawMessage       `db:"apps"`
+	Filters      json.RawMessage       `db:"filters"`
+	DeliveryMode LogDrainsDeliveryMode `db:"delivery_mode"`
+	Enabled      bool                  `db:"enabled"`
+	CreatedAt    int64                 `db:"created_at"`
+	UpdatedAt    sql.NullInt64         `db:"updated_at"`
+	DeletedAt    sql.NullInt64         `db:"deleted_at"`
+}
+
+type LogDrainCredential struct {
+	DrainID              string                    `db:"drain_id"`
+	Source               LogDrainCredentialsSource `db:"source"`
+	EncryptedCredentials sql.NullString            `db:"encrypted_credentials"`
+	EncryptionKeyID      sql.NullString            `db:"encryption_key_id"`
+	OauthGrantID         sql.NullString            `db:"oauth_grant_id"`
+	UpdatedAt            int64                     `db:"updated_at"`
+}
+
+type LogDrainCursor struct {
+	DrainID       string         `db:"drain_id"`
+	GroupKey      string         `db:"group_key"`
+	TimeMs        int64          `db:"time_ms"`
+	LastID        string         `db:"last_id"`
+	Blocked       bool           `db:"blocked"`
+	BlockedReason sql.NullString `db:"blocked_reason"`
+	UpdatedAt     int64          `db:"updated_at"`
+}
+
+type LogDrainState struct {
+	DrainID               string         `db:"drain_id"`
+	LastDeliveryAt        sql.NullInt64  `db:"last_delivery_at"`
+	LastAttemptAt         sql.NullInt64  `db:"last_attempt_at"`
+	LastError             sql.NullString `db:"last_error"`
+	ConsecutiveFailures   int32          `db:"consecutive_failures"`
+	PausedReason          sql.NullString `db:"paused_reason"`
+	TotalRecordsDelivered int64          `db:"total_records_delivered"`
+	UpdatedAt             int64          `db:"updated_at"`
+}
+
+type OauthGrant struct {
+	Pk                   uint64          `db:"pk"`
+	ID                   string          `db:"id"`
+	WorkspaceID          string          `db:"workspace_id"`
+	Provider             string          `db:"provider"`
+	AccountLabel         string          `db:"account_label"`
+	Region               sql.NullString  `db:"region"`
+	Scopes               json.RawMessage `db:"scopes"`
+	EncryptedCredentials string          `db:"encrypted_credentials"`
+	EncryptionKeyID      string          `db:"encryption_key_id"`
+	ExpiresAt            sql.NullInt64   `db:"expires_at"`
+	RevokedAt            sql.NullInt64   `db:"revoked_at"`
+	CreatedAt            int64           `db:"created_at"`
+	UpdatedAt            sql.NullInt64   `db:"updated_at"`
 }
 
 type OpenapiSpec struct {

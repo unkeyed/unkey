@@ -8,3 +8,4 @@ CREATE TABLE `log_drain_cursors` (
 	`updated_at` bigint NOT NULL,
 	CONSTRAINT `log_drain_cursors_drain_id_group_key_pk` PRIMARY KEY(`drain_id`,`group_key`)
 );
+

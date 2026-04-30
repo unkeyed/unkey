@@ -1,6 +1,6 @@
 ---
 title: "Overview"
-description: "Per-tenant log forwarding from ClickHouse to third-party providers like Axiom, Datadog, and OTLP collectors."
+description: "Per-tenant log forwarding from ClickHouse to third-party providers like Axiom."
 mode: "wide"
 ---
 
@@ -13,7 +13,7 @@ The service is a long-running Go binary that follows the same shape as `heimdall
 ```
 pods --> Vector DaemonSet --> runtime_logs_raw_v2 -----+
                                                        |
-sentinel ---------------------> sentinel_requests_v1 --+--> logdrain --> Axiom / OTLP / Datadog
+sentinel ---------------------> sentinel_requests_v1 --+--> logdrain --> Axiom
                                                        |
                                                        MySQL: log_drains, _credentials, _state, _cursors
 ```
@@ -29,7 +29,7 @@ Both tables already carry `workspace_id`, `project_id`, `environment_id`, `app_i
 
 - Read pending log records from ClickHouse on a polling cycle, scoped per drain.
 - Apply per-drain filters (severity, status code, path excludes, body redaction) in-process.
-- Transform records into the provider's expected shape (NDJSON, OTLP/HTTP, Datadog `_input`).
+- Transform records into the provider's expected shape.
 - Push batches to the provider with retry, exponential backoff, and auto-pause on repeated failure.
 - Persist a per-group cursor in MySQL so restarts don't lose progress.
 - Expose Prometheus metrics for throughput, lag, and provider error rates.
@@ -44,9 +44,8 @@ The team considered two paths for the v1 forwarder:
 
 The customer requirement explicitly accepts a few minutes of lag in exchange for "platform-level smoothness", so paying for sub-second delivery isn't worth it. The deciding factors against Vector dynamic sinks are credential isolation and operational coupling, in that order:
 
-- Credential blast radius. Vector config is plaintext TOML. Native sinks (Axiom, Datadog, HTTP bearer) need the token in the config or in a referenced env var or file. Today, Vector holds one platform-owned ClickHouse credential. Per-tenant drains would force every DaemonSet node, in every region, to hold every customer's third-party token. A single Vector pod compromise then leaks every drain credential across the fleet.
+- Credential blast radius. Vector config is plaintext TOML. Native sinks (Axiom, HTTP bearer) need the token in the config or in a referenced env var or file. Today, Vector holds one platform-owned ClickHouse credential. Per-tenant drains would force every DaemonSet node, in every region, to hold every customer's third-party token. A single Vector pod compromise then leaks every drain credential across the fleet.
 - Vault is the decryption boundary. Tokens live in `svc/vault` and are decrypted on demand. Pushing decrypted secrets to every node breaks that boundary. Vector's `secret` providers don't speak Unkey's Vault gRPC, so a per-node sidecar would have to refresh and rewrite the config on a timer. At that point, the result is a reinvention of this service, just running per-node.
-- OAuth refresh. Datadog grants need token refresh. Vector doesn't refresh tokens. The same per-node sidecar problem applies.
 - Failure isolation. A drain config that fails to parse breaks Vector fleet-wide. With a separate service, a bad drain only breaks itself.
 - Operational coupling. Drain CRUD becomes infrastructure config: every change pushes a Vector reload across every cluster, and per-drain pause and backoff become things to coordinate across DaemonSet pods.
 
