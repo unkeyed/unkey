@@ -1,48 +1,48 @@
 ---
-title: Sentinel
-description: A Sentinel is a reverse proxy that sits in front of your deployment, enforcing policies on every request before it reaches your app.
+title: Gateways
+description: A gateway is a reverse proxy that sits in front of your deployment, enforcing policies on every request before it reaches your app.
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-A Sentinel is a reverse proxy that sits in front of your deployment. If you're familiar with API gateways, a Sentinel fills the same role: it processes every inbound request, enforces [policies](/platform/sentinel/policies/overview) like authentication and rate limiting, and only forwards traffic that passes all checks to your app.
+A gateway is a reverse proxy that sits in front of your deployment. If you're familiar with API gateways, an Unkey gateway fills the same role: it processes every inbound request, enforces [policies](/platform/gateways/policies/overview) like authentication and rate limiting, and only forwards traffic that passes all checks to your app.
 
 ## Environment isolation
 
-Every environment in your project gets its own isolated Sentinel. You don't need to create, configure, or manage them. Unkey provisions them automatically when you create an environment.
+Every environment in your project gets its own isolated gateway. You don't need to create, configure, or manage it. Unkey provisions gateways automatically when you create an environment.
 
-- **Production environments** get three Sentinel replicas for high availability
-- **Preview environments** get one Sentinel replica
+- **Production environments** get three gateway replicas for high availability
+- **Preview environments** get one gateway replica
 
-Isolation between environments means a misconfigured policy or unusual traffic in a preview environment can't affect production. It also means each Sentinel only caches data for its own environment, resulting in high cache hit rates and low latency.
+Isolation between environments means a misconfigured policy or unusual traffic in a preview environment can't affect production. It also means each gateway only caches data for its own environment, resulting in high cache hit rates and low latency.
 
-The Sentinel routes requests to instances in the same region. When multiple instances of your deployment are running, the Sentinel distributes requests randomly across them. There is no session affinity.
+The gateway routes requests to instances in the same region. When multiple instances of your deployment are running, the gateway distributes requests randomly across them. There is no session affinity.
 
 ## Policy enforcement
 
-When a request arrives at your deployment's URL, the Sentinel evaluates all configured [policies](/platform/sentinel/policies/overview) in order. If every policy passes, the Sentinel selects a healthy instance and forwards the request. If any policy rejects the request, the Sentinel returns an error response and your app never sees it.
+When a request arrives at your deployment's URL, the gateway evaluates all configured [policies](/platform/gateways/policies/overview) in order. If every policy passes, the gateway selects a healthy instance and forwards the request. If any policy rejects the request, the gateway returns an error response and your app never sees it.
 
-All of the Sentinel's request processing is built on [policies](/platform/sentinel/policies/overview). The most common ones are:
+All of the gateway's request processing is built on [policies](/platform/gateways/policies/overview). The most common ones are:
 
-- [**Authentication**](/platform/sentinel/authentication): Verifies API keys before your code runs, and forwards the authenticated identity to your app via a request header
-- [**Rate limiting**](/platform/sentinel/policies/rate-limiting): Enforces rate limits on specific routes or subjects, rejecting excess traffic before it reaches your instances
-- [**Logging**](/platform/sentinel/policies/logging): Records the full HTTP request and response, including headers and body, for debugging and observability
+- [**Authentication**](/platform/gateways/authentication): Verifies API keys before your code runs, and forwards the authenticated identity to your app via a request header
+- [**Rate limiting**](/platform/gateways/policies/rate-limiting): Enforces rate limits on specific routes or subjects, rejecting excess traffic before it reaches your instances
+- [**Logging**](/platform/gateways/policies/logging): Records the full HTTP request and response, including headers and body, for debugging and observability
 
-Other policy types include the [Firewall](/platform/sentinel/policies/firewall), [OpenAPI request validation](/platform/sentinel/policies/openapi-validation), and more. See [Policies](/platform/sentinel/policies/overview) for the full list.
+Other policy types include the [Firewall](/platform/gateways/policies/firewall), [OpenAPI request validation](/platform/gateways/policies/openapi-validation), and more. See [Policies](/platform/gateways/policies/overview) for the full list.
 
 ## Configuration
 
 <Note>
-  The Sentinel dashboard is still in development. Today you can configure API key authentication, rate limiting, and firewall policies through the dashboard. For other policy types, contact [support@unkey.com](mailto:support@unkey.com).
+  The gateway dashboard is still in development. Today you can configure API key authentication, rate limiting, and firewall policies through the dashboard. For other policy types, contact [support@unkey.com](mailto:support@unkey.com).
 </Note>
 
 To configure policies:
 
-1. Navigate to your project's **Sentinel Policies** page.
+1. Navigate to your project's **Gateway Policies** page.
 2. Create a new policy and select the policy type (API key authentication, rate limiting, or firewall).
 3. Configure match conditions and policy-specific settings.
 4. Save your changes.
 
-See [Authentication](/platform/sentinel/authentication) for details on the Principal header your app receives after successful API key verification, or [Rate limiting](/platform/sentinel/policies/rate-limiting) for configuring request limits.
+See [Authentication](/platform/gateways/authentication) for details on the Principal header your app receives after successful API key verification, or [Rate limiting](/platform/gateways/policies/rate-limiting) for configuring request limits.

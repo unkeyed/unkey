@@ -41,19 +41,19 @@ Each API exposes configuration through its settings page.
 
 ## Keyspace
 
-Every API has a keyspace (internally called `key_auth`). The keyspace is the storage and validation boundary for all keys in that API. When Sentinel or the verification endpoint receives a key, it resolves the keyspace by key prefix and validates the key against that keyspace's configuration.
+Every API has a keyspace (internally called `key_auth`). The keyspace is the storage and validation boundary for all keys in that API. When the gateway or the verification endpoint receives a key, it resolves the keyspace by key prefix and validates the key against that keyspace's configuration.
 
 The keyspace stores:
 
 | Property               | Description                                                                                            |
 | ---------------------- | ------------------------------------------------------------------------------------------------------ |
-| `id`                   | Unique identifier (`ks_xxx`), used in Sentinel policies and analytics queries                          |
+| `id`                   | Unique identifier (`ks_xxx`), used in gateway policies and analytics queries                          |
 | `default_prefix`       | Prefix for new keys (for example, `sk_live`). The prefix appears before the random portion of the key. |
 | `default_bytes`        | Number of random bytes per key (default: 16, producing a 24-character base58 string)                   |
 | `store_encrypted_keys` | Whether to store a recoverable encrypted copy of each key                                              |
 | `size_approx`          | Approximate number of live keys in this keyspace                                                       |
 
-Keyspace IDs appear in analytics queries as `key_space_id` and in Sentinel configuration when connecting a keyspace to a deployment.
+Keyspace IDs appear in analytics queries as `key_space_id` and in gateway configuration when connecting a keyspace to a deployment.
 
 ### Key format
 
@@ -92,4 +92,4 @@ Deleting an API permanently removes the API, its keyspace, and all associated ke
 | [Rate limiting](/platform/apis/features/ratelimiting/overview)      | Per-key rate limits                    |
 | [Authorization](/platform/apis/features/authorization/introduction) | Roles and permissions                  |
 | [Analytics](/platform/analytics/overview)                           | Query verification data by keyspace    |
-| [Sentinel authentication](/platform/sentinel/authentication)        | Connect keyspaces to Sentinel policies |
+| [Gateway authentication](/platform/gateways/authentication)         | Connect keyspaces to gateway policies  |

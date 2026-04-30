@@ -1,6 +1,6 @@
 ---
 title: "April 17, 2026"
-description: "Cancel in-progress deployments, Sentinel firewall policy, request body streaming in logs, and dashboard performance improvements."
+description: "Cancel in-progress deployments, gateway firewall policy, request body streaming in logs, and dashboard performance improvements."
 noindex: true
 ---
 
@@ -10,21 +10,21 @@ noindex: true
 
 You can now cancel a deployment that is still building. Open the actions menu on any active deployment in the deployments list and select **Cancel build** to abort it immediately. This is useful when you've pushed the wrong commit or want to free up build capacity for a more urgent change.
 
-### Firewall policy for Sentinel
+### Firewall policy for the gateway
 
-A new [Firewall policy](/platform/sentinel/policies/firewall) replaces the previous IP rules configuration. Firewall rules let you block requests based on path, method, headers, or query parameters — not just IP address. Rules are evaluated top-to-bottom and denied requests receive a `403 Forbidden` response before reaching your application.
+A new [Firewall policy](/platform/gateways/policies/firewall) replaces the previous IP rules configuration. Firewall rules let you block requests based on path, method, headers, or query parameters — not just IP address. Rules are evaluated top-to-bottom and denied requests receive a `403 Forbidden` response before reaching your application.
 
-### Sentinel policies dashboard
+### Gateway policies dashboard
 
-Sentinel policies can now be configured directly from the dashboard. Enable, disable, and reorder policies per environment without editing configuration files. The new UI also supports AI-assisted regex generation for pattern-based rules.
+Gateway policies can now be configured directly from the dashboard. Enable, disable, and reorder policies per environment without editing configuration files. The new UI also supports AI-assisted regex generation for pattern-based rules.
 
 ### Request body streaming in logs
 
-Request logs now include response body content for requests proxied through Sentinel. This gives you deeper visibility into what your API returns without adding logging to your application code.
+Request logs now include response body content for requests proxied through the gateway. This gives you deeper visibility into what your API returns without adding logging to your application code.
 
 ### HTTP/2 cleartext (h2c) upstream support
 
-Deployments can now use HTTP/2 cleartext (h2c) to communicate with your upstream service. Configure the upstream protocol in your app's runtime settings to enable gRPC or HTTP/2 workloads that don't require TLS between Sentinel and your application.
+Deployments can now use HTTP/2 cleartext (h2c) to communicate with your upstream service. Configure the upstream protocol in your app's runtime settings to enable gRPC or HTTP/2 workloads that don't require TLS between the gateway and your application.
 
 ### Custom status code filters for request logs
 

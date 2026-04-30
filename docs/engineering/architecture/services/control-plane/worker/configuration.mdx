@@ -35,9 +35,8 @@ These fields must be set for production deployments.
 | `instance_id` | string | - | Instance identifier for logs and tracing.
 | `region` | string | - | Region label for logs and tracing.
 | `observability` | object | - | Observability config (logging, metrics, tracing).
-| `default_domain` | string | `unkey.app` | Used for sentinel bootstrapping.
+| `default_domain` | string | `unkey.app` | Apex domain used to build per-deployment URLs.
 | `build_platform` | string | `linux/amd64` | Build platform, format `linux/{arch}`.
-| `sentinel_image` | string | `ghcr.io/unkeyed/unkey:local` | Sentinel image override.
 | `acme` | object | - | ACME config for cert issuance.
 | `depot` | object | - | Depot.dev config for builds.
 | `registry` | object | - | Registry credentials for builds.
@@ -125,7 +124,6 @@ region = "${UNKEY_REGION}"
 instance_id = "${POD_NAME}"
 default_domain = "${UNKEY_DEFAULT_DOMAIN}"
 build_platform = "linux/amd64"
-sentinel_image = "ghcr.io/unkeyed/unkey:v2.0.77"
 cname_domain = "${UNKEY_CNAME_DOMAIN}"
 
 [database]

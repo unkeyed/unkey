@@ -1,6 +1,6 @@
 ---
 title: OpenAPI validation
-description: "Validate incoming HTTP requests against your OpenAPI specification using the Sentinel. Reject malformed requests before they reach your app."
+description: "Validate incoming HTTP requests against your OpenAPI specification at the gateway. Reject malformed requests before they reach your app."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
@@ -15,14 +15,14 @@ The OpenAPI validation policy checks incoming requests against an OpenAPI 3.0 or
 
 ## What gets validated
 
-The Sentinel validates the following parts of each request against your spec:
+The gateway validates the following parts of each request against your spec:
 
 - Path parameters
 - Query parameters
 - Request headers
 - Request body (content type and schema)
 
-Requests that don't match any defined operation in the spec are rejected. Response validation is not performed by the Sentinel.
+Requests that don't match any defined operation in the spec are rejected. Response validation is not performed by the gateway.
 
 ## Configuration
 

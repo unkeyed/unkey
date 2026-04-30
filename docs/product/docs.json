@@ -160,33 +160,33 @@
                 ]
               },
               {
-                "group": "Sentinel",
+                "group": "Gateways",
                 "pages": [
-                  "platform/sentinel/overview",
+                  "platform/gateways/overview",
                   {
                     "group": "Authentication",
                     "pages": [
-                      "platform/sentinel/authentication",
-                      "platform/sentinel/principal/overview",
+                      "platform/gateways/authentication",
+                      "platform/gateways/principal/overview",
                       {
                         "group": "Sources",
                         "pages": [
-                          "platform/sentinel/principal/sources/api-key"
+                          "platform/gateways/principal/sources/api-key"
                         ]
                       },
-                      "platform/sentinel/principal/examples",
-                      "platform/sentinel/principal/local-development"
+                      "platform/gateways/principal/examples",
+                      "platform/gateways/principal/local-development"
                     ]
                   },
                   {
                     "group": "Policies",
                     "pages": [
-                      "platform/sentinel/policies/overview",
-                      "platform/sentinel/policies/api-key",
-                      "platform/sentinel/policies/logging",
-                      "platform/sentinel/policies/rate-limiting",
-                      "platform/sentinel/policies/firewall",
-                      "platform/sentinel/policies/openapi-validation"
+                      "platform/gateways/policies/overview",
+                      "platform/gateways/policies/api-key",
+                      "platform/gateways/policies/logging",
+                      "platform/gateways/policies/rate-limiting",
+                      "platform/gateways/policies/firewall",
+                      "platform/gateways/policies/openapi-validation"
                     ]
                   }
                 ]

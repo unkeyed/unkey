@@ -24,7 +24,7 @@ Workspace
                           └── Instances (1+ per region)
 ```
 
-A deployment with two regions and two instances per region creates four instances total. Each instance receives traffic through the [Sentinel](/platform/sentinel/overview) gateway running in the same region.
+A deployment with two regions and two instances per region creates four instances total. Each instance receives traffic through the [gateway](/platform/gateways/overview) running in the same region.
 
 ## Configure instance count
 
@@ -61,7 +61,7 @@ See [App settings](/platform/apps/settings#cpu) for details on each option.
 
 ## Load balancing
 
-The [Sentinel](/platform/sentinel/overview) gateway in each region distributes incoming requests uniformly at random across all running instances. Each instance has an equal probability of handling any given request.
+The [gateway](/platform/gateways/overview) in each region distributes incoming requests uniformly at random across all running instances. Each instance has an equal probability of handling any given request.
 
 If no running instances exist in the local region, traffic reroutes to the nearest region that has healthy instances.
 
