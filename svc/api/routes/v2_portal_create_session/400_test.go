@@ -22,7 +22,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	route := &handler.Handler{
 		DB:            h.DB,
-Auditlogs:     h.Auditlogs,
+		Auditlogs:     h.Auditlogs,
 		Keys:          h.Keys,
 		PortalBaseURL: "https://portal.unkey.com",
 	}
