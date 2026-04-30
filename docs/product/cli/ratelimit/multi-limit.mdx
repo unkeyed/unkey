@@ -46,7 +46,7 @@ JSON array of rate limit check objects. Each object defines an independent rate 
   </ResponseField>
 
   <ResponseField name="cost" type="integer" default={1}>
-  Sets how much of the rate limit quota this request consumes, enabling weighted rate limiting. Use higher values for resource-intensive operations and 0 for tracking without limiting. Minimum: 0.
+  Sets how much of the rate limit quota this request consumes, enabling weighted rate limiting. Use higher values for resource-intensive operations and 0 for tracking without limiting. Minimum: 0. The cost is echoed back as `tokens` on the matching entry in the response.
   </ResponseField>
 </Expandable>
 </ParamField>
@@ -94,7 +94,8 @@ req_01H9TQPP77V5E48E9SH0BG0ZQX (took 38ms)
       "limit": 100,
       "remaining": 99,
       "reset": 1714582980000,
-      "passed": true
+      "passed": true,
+      "tokens": 1
     },
     {
       "namespace": "auth.login",
@@ -102,11 +103,14 @@ req_01H9TQPP77V5E48E9SH0BG0ZQX (took 38ms)
       "limit": 5,
       "remaining": 4,
       "reset": 1714582980000,
-      "passed": true
+      "passed": true,
+      "tokens": 1
     }
   ]
 }
 ```
+
+Each entry in `limits` carries its own `tokens` field — the cost charged against that specific namespace's quota. It defaults to `1` when no `cost` is supplied and is recorded for both passed and rejected entries.
 
 With `--output=json`, the full response envelope is returned:
 
@@ -124,7 +128,8 @@ With `--output=json`, the full response envelope is returned:
         "limit": 100,
         "remaining": 99,
         "reset": 1714582980000,
-        "passed": true
+        "passed": true,
+        "tokens": 1
       },
       {
         "namespace": "auth.login",
@@ -132,7 +137,8 @@ With `--output=json`, the full response envelope is returned:
         "limit": 5,
         "remaining": 4,
         "reset": 1714582980000,
-        "passed": true
+        "passed": true,
+        "tokens": 1
       }
     ]
   }

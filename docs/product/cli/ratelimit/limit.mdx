@@ -43,6 +43,8 @@ Rate limit window duration in milliseconds after which the counter resets. Short
 
 <ParamField body="--cost" type="integer">
 How much of the rate limit quota this request consumes, enabling weighted rate limiting. Defaults to `1`. Use higher values for resource-intensive operations and `0` for tracking without limiting. When accumulated cost exceeds the limit within the duration window, subsequent requests are rejected.
+
+The cost is echoed back as `tokens` in the response so you can attribute spend per request without tracking it client-side.
 </ParamField>
 
 ## Global Flags
@@ -82,7 +84,8 @@ req_01H9TQPP77V5E48E9SH0BG0ZQX (took 32ms)
   "limit": 100,
   "remaining": 99,
   "reset": 1714582980000,
-  "success": true
+  "success": true,
+  "tokens": 1
 }
 ```
 
@@ -97,10 +100,13 @@ With `--output=json`, the full response envelope is returned:
     "limit": 100,
     "remaining": 99,
     "reset": 1714582980000,
-    "success": true
+    "success": true,
+    "tokens": 1
   }
 }
 ```
+
+The `tokens` field reports how much of the quota this request consumed and matches the `--cost` flag (defaults to `1`). It is recorded for both passed and rejected requests so you can chart spend by outcome.
 
 When a rate limit override is in effect, the response includes the override ID:
 
@@ -114,6 +120,7 @@ When a rate limit override is in effect, the response includes the override ID:
     "remaining": 995,
     "reset": 1714582980000,
     "success": true,
+    "tokens": 5,
     "overrideId": "ovr_2cGKbMxRyIzhCxo1Idjz8q"
   }
 }

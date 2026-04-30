@@ -1,0 +1,31 @@
+---
+title: "May 1, 2026"
+description: "Standalone rate limits now track token spend in the API response and on the namespace overview chart."
+noindex: true
+---
+
+## New features
+
+### Tokens in standalone ratelimit responses
+
+The `POST /v2/ratelimit.limit` and `POST /v2/ratelimit.multiLimit` API endpoints now return a `tokens` field on every limit decision. The value is the cost charged against the limit on that request — this defaults to `1` when no `cost` is supplied, matches whatever you pass in `cost`, and is recorded for both passed and rejected decisions.
+
+Use it to attribute spend back to a request without having to remember the cost you sent in:
+
+```json
+{
+  "limit": 100,
+  "remaining": 96,
+  "reset": 1714582980000,
+  "success": true,
+  "tokens": 4
+}
+```
+
+For multi-limit, each entry in the `limits` array carries its own `tokens` field so per-namespace spend is preserved.
+
+### Token spend chart on the ratelimit overview
+
+The standalone ratelimit namespace overview now renders two charts side by side. The new **Tokens** chart shows passed and blocked token spend over the selected time window — the equivalent of the Requests chart, but weighted by the `cost` you charged on each call. Status filters (passed / blocked) apply to both charts in lockstep, so you can isolate the slice you're investigating without losing the cost context.
+
+This makes weighted ratelimits (for example, charging a higher cost for AI inference vs. a metadata read) observable end to end: you can see which identifiers are actually burning quota, not just which ones are sending the most calls.
