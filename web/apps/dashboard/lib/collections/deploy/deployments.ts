@@ -34,6 +34,17 @@ const schema = z.object({
       flagCode: z.enum(flagCodes),
     }),
   ),
+  desiredInstanceCount: z.number().int(),
+  desiredRegions: z.array(
+    z.object({
+      region: z.object({
+        id: z.string(),
+        name: z.string(),
+        platform: z.string(),
+      }),
+      flagCode: z.enum(flagCodes),
+    }),
+  ),
   cpuMillicores: z.number().int(),
   memoryMib: z.number().int(),
   storageMib: z.number().int(),

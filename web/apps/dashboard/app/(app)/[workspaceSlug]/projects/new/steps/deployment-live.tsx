@@ -1,11 +1,8 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { Check } from "@unkey/icons";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ProjectDataProvider } from "../../[projectId]/(overview)/data-provider";
 import { DeploymentInfo } from "../../[projectId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-info";
 import { DeploymentProgress } from "../../[projectId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-progress";
@@ -32,14 +29,10 @@ export const DeploymentLiveStep = ({ projectId, deploymentId }: DeploymentLiveSt
   );
 };
 
-const REDIRECT_DELAY_SECONDS = 15;
 
 const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
   const { deployment } = useDeployment();
-  const workspace = useWorkspaceNavigation();
-  const router = useRouter();
   const ready = deployment.status === "ready";
-  const [countdown, setCountdown] = useState(REDIRECT_DELAY_SECONDS);
 
   const stepsQuery = trpc.deploy.deployment.steps.useQuery(
     { deploymentId: deployment.id },
@@ -51,25 +44,6 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
     [stepsQuery.data, deployment.status],
   );
 
-  const deploymentUrl = `/${workspace.slug}/projects/${projectId}/deployments/${deployment.id}`;
-
-  useEffect(() => {
-    if (!ready) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [ready]);
-
-  useEffect(() => {
-    if (countdown === 0) {
-      router.replace(deploymentUrl);
-    }
-  }, [countdown, router, deploymentUrl]);
 
   return (
     <OnboardingStepContainer>
@@ -84,25 +58,10 @@ const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
             "Deploying your project"
           )
         }
-        subtitle={
-          ready ? (
-            <>
-              Redirecting to project overview in{" "}
-              <span className="font-medium text-gray-12 inline-block w-[2ch] text-right tabular-nums">
-                {countdown}
-              </span>{" "}
-              seconds …{" "}
-              <Link
-                href={deploymentUrl}
-                className="font-medium text-gray-12 border-b border-dotted"
-              >
-                Go now
-              </Link>
-            </>
-          ) : (
-            "Building, provisioning infrastructure, and assigning domains..."
-          )
-        }
+        subtitle=
+
+        "Building, provisioning infrastructure, and assigning domains..."
+
       />
       <div className="w-[900px] space-y-6">
         <DeploymentInfo statusOverride={derivedStatus} />
