@@ -119,9 +119,12 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 				"app_id", app.ID,
 				"environment", env.Slug,
 			)
-			_, _ = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-				return insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, db.DeploymentsStatusSkipped)
-			}, restate.WithName("insert skipped deployment"))
+			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, db.DeploymentsStatusSkipped)
+				return err
+			}, restate.WithName("insert skipped deployment")); err != nil {
+				logger.Error("failed to insert skipped deployment", "app_id", app.ID, "error", err)
+			}
 			continue
 		}
 
@@ -133,10 +136,12 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 				"changed_files", changedFiles,
 			)
 
-			// Create skipped deployment record for visibility
-			_, _ = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-				return insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, db.DeploymentsStatusSkipped)
-			}, restate.WithName("insert skipped deployment"))
+			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, db.DeploymentsStatusSkipped)
+				return err
+			}, restate.WithName("insert skipped deployment")); err != nil {
+				logger.Error("failed to insert skipped deployment", "app_id", app.ID, "error", err)
+			}
 			continue
 		}
 
