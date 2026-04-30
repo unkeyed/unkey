@@ -99,6 +99,11 @@ import { listExtensionInstallations } from "./deploy/extensions/list";
 import { setExtensionEnabled } from "./deploy/extensions/set-enabled";
 import { uninstallExtension } from "./deploy/extensions/uninstall";
 import { updateExtensionInstallation } from "./deploy/extensions/update";
+// Log-drain create/update/delete intentionally omitted — those flow through
+// `deploy.extension.*` so a single install record drives both rows.
+import { listLogDrains } from "./deploy/log-drains/list";
+import { pauseLogDrain, resumeLogDrain } from "./deploy/log-drains/pause";
+import { testPushLogDrain } from "./deploy/log-drains/test-push";
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
 import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
@@ -506,6 +511,15 @@ export const router = t.router({
       decrypt: decryptEnvVar,
       delete: deleteEnvVar,
       makeSensitive,
+    }),
+    // Log-drain runtime ops only. CRUD is owned by `deploy.extension.*`; the
+    // axiom-logdrain provider materializes a `log_drains` row alongside the
+    // installation. See lib/extensions/providers.ts.
+    logDrain: t.router({
+      list: listLogDrains,
+      pause: pauseLogDrain,
+      resume: resumeLogDrain,
+      testPush: testPushLogDrain,
     }),
     domain: t.router({
       list: listDomains,
