@@ -109,10 +109,8 @@ func TestExecute_CachesCompiledValidator(t *testing.T) {
 	req2.Header.Set("Content-Type", "application/json")
 	require.NoError(t, e.Execute(context.Background(), nil, req2, cfg))
 
-	count := 0
-	e.validators.Range(func(_, _ any) bool {
-		count++
-		return true
-	})
+	e.mu.RLock()
+	count := len(e.validators)
+	e.mu.RUnlock()
 	require.Equal(t, 1, count)
 }

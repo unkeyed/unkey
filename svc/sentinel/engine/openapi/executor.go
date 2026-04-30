@@ -12,14 +12,23 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
+// Specs rarely change -- a service typically deploys with one and keeps it for weeks.
+// We cache compiled validators keyed by spec content and cap at maxValidators as a
+// safety net. When the cap is hit we wipe and recompile, which is cheap given how infrequently specs actually change.
+const maxValidators = 64
+
 type Executor struct {
-	// spec content -> compiled validator, avoids re-parsing on every request
-	validators sync.Map
+	mu         sync.RWMutex
+	validators map[string]*validation.Validator
+	size       int
 }
 
 func New() *Executor {
-	//nolint:exhaustruct
-	return &Executor{}
+	return &Executor{
+		mu:         sync.RWMutex{},
+		validators: make(map[string]*validation.Validator),
+		size:       0,
+	}
 }
 
 func (e *Executor) Execute(
@@ -62,8 +71,11 @@ func (e *Executor) Execute(
 func (e *Executor) getOrCompile(spec []byte) (*validation.Validator, error) {
 	key := string(spec)
 
-	if cached, ok := e.validators.Load(key); ok {
-		return cached.(*validation.Validator), nil
+	e.mu.RLock()
+	v, ok := e.validators[key]
+	e.mu.RUnlock()
+	if ok {
+		return v, nil
 	}
 
 	compiled, err := validation.NewFromBytes(spec)
@@ -71,6 +83,14 @@ func (e *Executor) getOrCompile(spec []byte) (*validation.Validator, error) {
 		return nil, err
 	}
 
-	actual, _ := e.validators.LoadOrStore(key, compiled)
-	return actual.(*validation.Validator), nil
+	e.mu.Lock()
+	if e.size >= maxValidators {
+		e.validators = make(map[string]*validation.Validator)
+		e.size = 0
+	}
+	e.validators[key] = compiled
+	e.size++
+	e.mu.Unlock()
+
+	return compiled, nil
 }
