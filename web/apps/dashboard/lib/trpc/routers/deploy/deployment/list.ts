@@ -31,6 +31,7 @@ export const listDeployments = workspaceProcedure
           healthcheck: deployments.healthcheck,
           shutdownSignal: deployments.shutdownSignal,
           createdAt: deployments.createdAt,
+          updatedAt: deployments.updatedAt,
         })
         .from(deployments)
         .where(
