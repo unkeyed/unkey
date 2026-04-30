@@ -58,7 +58,7 @@ const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 export async function createKeyForUser(userId: string, tier: Tier) {
   const config = TIERS[tier];
 
-  const { meta, data, error } = await unkey.keys.createKey({
+  const { data } = await unkey.keys.createKey({
     apiId: process.env.UNKEY_API_ID!,
     prefix: `sk_${tier}`,
     externalId: userId,
@@ -89,7 +89,6 @@ export async function createKeyForUser(userId: string, tier: Tier) {
     },
   });
 
-  if (error) throw error;
   return data;
 }
 ```
@@ -97,18 +96,16 @@ export async function createKeyForUser(userId: string, tier: Tier) {
 ## Check Features During Verification
 
 ```typescript middleware/auth.ts
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 export async function verifyAndCheckFeature(
   apiKey: string,
   requiredFeature?: string,
 ) {
-  const { meta, data, error } = await verifyKey({
-    key: apiKey,
-    apiId: process.env.UNKEY_API_ID!,
-  });
+  const { data } = await unkey.keys.verifyKey({ key: apiKey });
 
-  if (error) throw error;
   if (!data.valid) {
     return { valid: false, code: data.code };
   }
@@ -148,9 +145,9 @@ export async function changeUserTier(keyId: string, newTier: Tier) {
         }
       : {
           // Remove credits for unlimited tier
+          // (remaining: null also clears the refill schedule)
           credits: {
             remaining: null,
-            refill: null,
           },
         }),
 
@@ -179,10 +176,11 @@ export async function changeUserTier(keyId: string, newTier: Tier) {
 
 ```typescript app.ts
 import express from "express";
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
 import { TIERS } from "./lib/tiers";
 
 const app = express();
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 // Middleware that checks tier and feature access
 function requireFeature(feature: string) {
@@ -193,13 +191,15 @@ function requireFeature(feature: string) {
       return res.status(401).json({ error: "Missing API key" });
     }
 
-    const { meta, data, error } = await verifyKey({
-      key: apiKey,
-      apiId: process.env.UNKEY_API_ID!,
-    });
+    let data;
+    try {
+      ({ data } = await unkey.keys.verifyKey({ key: apiKey }));
+    } catch {
+      return res.status(503).json({ error: "Service unavailable" });
+    }
 
-    if (error || !data.valid) {
-      return res.status(401).json({ error: data?.code ?? "Unauthorized" });
+    if (!data.valid) {
+      return res.status(401).json({ error: data.code });
     }
 
     const features = (data.meta?.features as string[]) ?? [];
@@ -246,8 +246,10 @@ app.listen(3000);
 ## Next.js Example
 
 ```typescript app/api/webhooks/route.ts
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
 import { NextRequest, NextResponse } from "next/server";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("authorization")?.slice(7);
@@ -256,12 +258,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing API key" }, { status: 401 });
   }
 
-  const { meta, data, error } = await verifyKey({
-    key: apiKey,
-    apiId: process.env.UNKEY_API_ID!,
-  });
+  const { data } = await unkey.keys.verifyKey({ key: apiKey });
 
-  if (error || !data.valid) {
+  if (!data.valid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -324,17 +323,16 @@ export async function handleSubscriptionChange(event: Stripe.Event) {
 Show users their current usage:
 
 ```typescript app/api/usage/route.ts
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 export async function GET(req: NextRequest) {
   const apiKey = req.headers.get("authorization")?.slice(7)!;
 
-  const { meta, data } = await verifyKey({
-    key: apiKey,
-    apiId: process.env.UNKEY_API_ID!,
-  });
+  const { data } = await unkey.keys.verifyKey({ key: apiKey });
 
-  if (!data?.valid) {
+  if (!data.valid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -345,9 +343,9 @@ export async function GET(req: NextRequest) {
     plan: tier.name,
     usage: {
       credits: {
-        used: tier.credits ? tier.credits - (data.remaining ?? 0) : null,
+        used: tier.credits ? tier.credits - (data.credits ?? 0) : null,
         limit: tier.credits,
-        remaining: data.remaining,
+        remaining: data.credits,
         unlimited: tier.credits === null,
       },
       rateLimit: {

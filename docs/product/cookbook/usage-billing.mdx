@@ -56,7 +56,8 @@ const PLAN_CREDITS = {
 export async function createBillingKey(options: CreateBillingKeyOptions) {
   const credits = PLAN_CREDITS[options.plan];
 
-  const { meta, data, error } = await unkey.keys.createKey({
+  // The SDK throws on failure, so any error propagates to the caller.
+  const { data } = await unkey.keys.createKey({
     apiId: process.env.UNKEY_API_ID!,
     externalId: options.customerId, // Link to your user/org
     name: `${options.plan} plan`,
@@ -74,7 +75,6 @@ export async function createBillingKey(options: CreateBillingKeyOptions) {
     },
   });
 
-  if (error) throw error;
   return data;
 }
 ```
@@ -95,11 +95,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing API key" }, { status: 401 });
   }
 
-  const { meta, data, error } = await unkey.keys.verifyKey({
-    key: apiKey,
-  });
-
-  if (error) {
+  let data;
+  try {
+    ({ data } = await unkey.keys.verifyKey({ key: apiKey }));
+  } catch {
     return NextResponse.json({ error: "Verification failed" }, { status: 500 });
   }
 
@@ -221,24 +220,23 @@ export async function GET(request: Request) {
     externalId: customerId,
   });
 
-  if (!data?.keys.length) {
+  if (!data.length) {
     return NextResponse.json({ error: "No keys found" }, { status: 404 });
   }
 
-  const key = data.keys[0];
+  const key = data[0];
+
+  const remaining = key.credits?.remaining ?? 0;
+  const limit = key.credits?.refill?.amount ?? 0;
 
   return NextResponse.json({
     plan: key.meta?.plan ?? "starter",
     usage: {
-      remaining: key.remaining ?? 0,
-      limit: key.refill?.amount ?? 0,
-      used: (key.refill?.amount ?? 0) - (key.remaining ?? 0),
-      resetsAt: key.refill?.lastRefillAt
-        ? new Date(
-            new Date(key.refill.lastRefillAt).getTime() +
-              30 * 24 * 60 * 60 * 1000,
-          )
-        : null,
+      remaining,
+      limit,
+      used: limit - remaining,
+      refillInterval: key.credits?.refill?.interval ?? null,
+      refillDay: key.credits?.refill?.refillDay ?? null,
     },
   });
 }
@@ -257,10 +255,11 @@ export async function upgradePlan(
 
   // Get current usage
   const { data: currentKey } = await unkey.keys.getKey({ keyId });
-  const currentRemaining = currentKey?.remaining ?? 0;
+  const currentRemaining = currentKey.credits?.remaining ?? 0;
+  const currentRefillAmount = currentKey.credits?.refill?.amount ?? 0;
 
   // Option 1: Add the difference (pro-rated)
-  const creditsToAdd = newCredits - (currentKey?.refill?.amount ?? 0);
+  const creditsToAdd = newCredits - currentRefillAmount;
 
   await unkey.keys.updateKey({
     keyId,
@@ -272,7 +271,7 @@ export async function upgradePlan(
       },
     },
     meta: {
-      ...currentKey?.meta,
+      ...currentKey.meta,
       plan: newPlan,
       upgradedAt: new Date().toISOString(),
     },
@@ -281,8 +280,10 @@ export async function upgradePlan(
   // Option 2: Reset to new plan's full credits
   // await unkey.keys.updateKey({
   //   keyId,
-  //   remaining: newCredits,
-  //   refill: { interval: "monthly", amount: newCredits },
+  //   credits: {
+  //     remaining: newCredits,
+  //     refill: { interval: "monthly", amount: newCredits },
+  //   },
   // });
 }
 ```

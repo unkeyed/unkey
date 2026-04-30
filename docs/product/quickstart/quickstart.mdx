@@ -129,10 +129,12 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ```
 
 ```typescript TypeScript
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 try {
-  const { meta, data } = await verifyKey({
+  const { data } = await unkey.keys.verifyKey({
     key: "THE_KEY_FROM_STEP_3",
   });
 

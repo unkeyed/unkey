@@ -111,7 +111,7 @@ try {
 When you verify any key linked to the identity, the shared rate limit is enforced:
 
 ```typescript
-const { meta, data } = await verifyKey({ key: "sk_prod_..." });
+const { data } = await unkey.keys.verifyKey({ key: "sk_prod_..." });
 
 // If the identity is rate limited, data.valid will be false
 if (!data.valid && data.code === "RATE_LIMITED") {
@@ -152,7 +152,7 @@ Then specify which limit to check during verification:
 
 ```typescript
 // Check the "tokens" limit and consume 150 tokens
-const { meta, data } = await verifyKey({
+const { data } = await unkey.keys.verifyKey({
   key: "sk_...",
   ratelimits: [{ name: "tokens", cost: 150 }],
 });

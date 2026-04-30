@@ -29,7 +29,7 @@ All these keys belong to the same customer. With identities:
 ```ts
 // Create an identity for the customer
 try {
-  const { meta, data, error } = await unkey.identities.createIdentity({
+  await unkey.identities.createIdentity({
     externalId: "customer_acme_123", // Your internal customer ID
     meta: {
       plan: "pro",
@@ -37,18 +37,16 @@ try {
     },
   });
 
-  if (error) throw error;
-
-  // All keys for this customer share the identity
+  // Keys link to the identity by reusing the same externalId
   await unkey.keys.createKey({
     apiId: "api_xxx",
-    identityId: data.id,
+    externalId: "customer_acme_123",
     name: "Production Key",
   });
 
   await unkey.keys.createKey({
     apiId: "api_xxx",
-    identityId: data.id,
+    externalId: "customer_acme_123",
     name: "Test Key",
   });
 } catch (err) {

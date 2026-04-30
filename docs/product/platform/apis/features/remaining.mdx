@@ -125,10 +125,9 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 
 ```typescript TypeScript
 try {
-  const { meta, data } = await verifyKey({
+  const { data } = await unkey.keys.verifyKey({
     key: "sk_...",
-    apiId: "api_...",
-    cost: 10, // Deduct 10 credits for this request
+    credits: { cost: 10 }, // Deduct 10 credits for this request
   });
 
   if (!data.valid) {

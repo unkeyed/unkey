@@ -57,7 +57,9 @@ UNKEY_ROOT_KEY="unkey_..."
 Replace the contents of `index.ts`:
 
 ```ts index.ts
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: Bun.env.UNKEY_ROOT_KEY! });
 
 const server = Bun.serve({
   async fetch(req) {
@@ -70,7 +72,7 @@ const server = Bun.serve({
 
     // 2. Verify with Unkey
     try {
-      const { meta, data } = await verifyKey({ key });
+      const { data } = await unkey.keys.verifyKey({ key });
 
       if (!data.valid) {
         // Key is invalid, expired, rate limited, etc.
@@ -168,7 +170,9 @@ After successful verification:
 Bun's built-in server uses a single `fetch` handler. For multiple routes, pattern match on the URL:
 
 ```ts index.ts
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: Bun.env.UNKEY_ROOT_KEY! });
 
 // Helper to verify key
 async function authenticate(req: Request) {
@@ -176,7 +180,7 @@ async function authenticate(req: Request) {
   if (!key) return { valid: false, error: "Missing API key" };
 
   try {
-    const { meta, data } = await verifyKey({ key });
+    const { data } = await unkey.keys.verifyKey({ key });
     return data;
   } catch (err) {
     console.error(err);

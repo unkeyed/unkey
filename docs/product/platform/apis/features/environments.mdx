@@ -108,7 +108,7 @@ Response:
 
 ```typescript
 try {
-  const { meta, data } = await verifyKey({ key: request.apiKey });
+  const { data } = await unkey.keys.verifyKey({ key: request.apiKey });
 
   if (!data.valid) {
     return unauthorized();

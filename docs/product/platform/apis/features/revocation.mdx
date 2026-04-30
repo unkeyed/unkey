@@ -139,16 +139,22 @@ To revoke all keys for a specific user, query their keys first:
 
 ```typescript
 try {
-  // Get all keys for a user
-  const { meta, data } = await unkey.apis.listKeys({
-    apiId: "api_...",
-    externalId: "user_123",
-  });
+  let cursor: string | undefined;
 
-  // Delete them all
-  for (const key of data.keys) {
-    await unkey.keys.deleteKey({ keyId: key.id });
-  }
+  // Page through all keys for the user
+  do {
+    const { data, pagination } = await unkey.apis.listKeys({
+      apiId: "api_...",
+      externalId: "user_123",
+      cursor,
+    });
+
+    for (const key of data) {
+      await unkey.keys.deleteKey({ keyId: key.keyId });
+    }
+
+    cursor = pagination?.hasMore ? pagination.cursor : undefined;
+  } while (cursor);
 } catch (err) {
   console.error(err);
   return Response.json({ error: "Internal error" }, { status: 500 });
