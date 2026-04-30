@@ -30,7 +30,7 @@ export function DeploymentNetworkSection() {
       />
       <div className="flex gap-2 flex-col">
         <Card className="flex justify-between flex-col overflow-hidden h-[600px] gap-2">
-          <DeploymentNetworkView />
+          <DeploymentNetworkView showNodeDetails />
         </Card>
         <div className="flex gap-2">
           <MetricCard

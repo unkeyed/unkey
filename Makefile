@@ -84,7 +84,7 @@ bazel: ## Sync BUILD.bazel
 	bazel run //:gazelle
 
 .PHONY: generate
-generate: generate-sql ## Generate code from protobuf and other sources
+generate: generate-sql ## Generate code from protobuf and other sources (NOT eBPF, see generate-bpf)
 	rm -rf ./gen || true
 	rm ./pkg/db/*_generated.go || true
 	go generate ./...
@@ -92,6 +92,12 @@ generate: generate-sql ## Generate code from protobuf and other sources
 	bazel run //:gazelle
 	go fmt ./...
 	pnpm --dir=web fmt
+
+.PHONY: generate-bpf
+generate-bpf: ## Compile the heimdall eBPF program and regenerate Go bindings (uses pinned clang/Go in docker for bytewise reproducibility across hosts)
+	@docker build --platform=linux/amd64 -q -t unkey-bpf-gen -f svc/heimdall/internal/network/bpf/Dockerfile.gen svc/heimdall/internal/network/bpf >/dev/null
+	@docker run --rm --platform=linux/amd64 -v "$$PWD:/work" -w /work unkey-bpf-gen \
+		go generate -tags bpf_generate ./svc/heimdall/internal/network/...
 
 .PHONY: test
 test: oci-load ## Run tests with bazel

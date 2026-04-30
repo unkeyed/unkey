@@ -247,6 +247,7 @@ func createRatelimits(workspaceID string, count int, timestamp time.Time, passed
 			Limit:       100,
 			Remaining:   remaining,
 			ResetAt:     timestamp.Add(time.Minute).UnixMilli(),
+			Tokens:      1,
 		}
 	}
 	return ratelimits

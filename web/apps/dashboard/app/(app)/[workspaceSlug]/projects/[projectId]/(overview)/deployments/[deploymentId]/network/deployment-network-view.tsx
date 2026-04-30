@@ -51,7 +51,11 @@ export function DeploymentNetworkView({
       overlay={
         <>
           {showNodeDetails && (
-            <NodeDetailsPanel node={selectedNode} onClose={() => setSelectedNode(null)} />
+            <NodeDetailsPanel
+              node={selectedNode}
+              deploymentId={deployment.id}
+              onClose={() => setSelectedNode(null)}
+            />
           )}
 
           {showProjectDetails && <ProjectDetails />}

@@ -55,6 +55,7 @@ import { rollback } from "./deploy/deployment/rollback";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
 import { createEnvVars } from "./deploy/env-vars/create";
+import { createBulkEnvVars } from "./deploy/env-vars/create-bulk";
 import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
 import { listEnvVars } from "./deploy/env-vars/list";
@@ -87,8 +88,15 @@ import { create as createRatelimitPolicy } from "./deploy/environment-settings/s
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
 import { reorder as reorderSentinelPolicies } from "./deploy/environment-settings/sentinel/reorder";
+import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
+import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
+import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
 import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
 import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
+import { getDeploymentMemoryTimeseries } from "./deploy/metrics/get-deployment-memory-timeseries";
+import { getDeploymentNetworkEgressTimeseries } from "./deploy/metrics/get-deployment-network-egress-timeseries";
+import { getDeploymentNetworkIngressTimeseries } from "./deploy/metrics/get-deployment-network-ingress-timeseries";
+import { getDeploymentResourceSummary } from "./deploy/metrics/get-deployment-resource-summary";
 import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
 import { getDeploymentRpsTimeseries } from "./deploy/metrics/get-deployment-rps-timeseries";
 import { generateDeploymentTree } from "./deploy/network/generate";
@@ -475,6 +483,7 @@ export const router = t.router({
     envVar: t.router({
       list: listEnvVars,
       create: createEnvVars,
+      createBulk: createBulkEnvVars,
       update: updateEnvVar,
       decrypt: decryptEnvVar,
       delete: deleteEnvVar,
@@ -517,6 +526,13 @@ export const router = t.router({
       getDeploymentRpsTimeseries,
       getDeploymentLatency,
       getDeploymentLatencyTimeseries,
+      getDeploymentCpuTimeseries,
+      getDeploymentMemoryTimeseries,
+      getDeploymentDiskTimeseries,
+      getDeploymentNetworkEgressTimeseries,
+      getDeploymentNetworkIngressTimeseries,
+      getDeploymentInstanceCountTimeseries,
+      getDeploymentResourceSummary,
     }),
   }),
 });

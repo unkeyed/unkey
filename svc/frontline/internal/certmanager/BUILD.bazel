@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "certmanager",
+    srcs = [
+        "doc.go",
+        "interface.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/internal/certmanager",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//gen/proto/vault/v1:vault",
+        "//gen/rpc/vault",
+        "//internal/services/caches",
+        "//pkg/cache",
+        "//pkg/logger",
+        "//pkg/mysql",
+        "//svc/frontline/internal/db",
+    ],
+)
