@@ -1,14 +1,13 @@
 "use client";
 import { flagCodes } from "@/lib/trpc/routers/deploy/network/utils";
-import { parseLoadSubsetOptions } from "@tanstack/query-db-collection";
-import { queryCollectionOptions } from "@tanstack/query-db-collection";
+import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
 import { DEPLOYMENT_STATUSES } from "./deployment-status";
 import { validateProjectIdInQuery } from "./utils";
 
-const schema = z.object({
+export const deploymentSchema = z.object({
   id: z.string(),
   projectId: z.string(),
   environmentId: z.string(),
@@ -52,16 +51,20 @@ const schema = z.object({
   createdAt: z.number(),
 });
 
-export type Deployment = z.infer<typeof schema>;
+export type Deployment = z.infer<typeof deploymentSchema>;
 
 export const DEPLOYMENTS_DEFAULT_LIMIT = 100;
 
-function extractFilter(
-  filters: Array<{ field: Array<string | number>; operator: string; value?: unknown }>,
-  fieldName: string,
-  operator: string,
-) {
-  return filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
+type ParsedFilter = { field: Array<string | number>; operator: string; value?: unknown };
+
+function extractStringFilter(filters: ParsedFilter[], fieldName: string, operator: string) {
+  const value = filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
+  return typeof value === "string" ? value : undefined;
+}
+
+function extractNumberFilter(filters: ParsedFilter[], fieldName: string, operator: string) {
+  const value = filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
+  return typeof value === "number" ? value : undefined;
 }
 
 /**
@@ -75,9 +78,9 @@ export const deployments = createCollection<Deployment, string>(
     queryClient,
     queryKey: (opts) => {
       const { filters } = parseLoadSubsetOptions(opts);
-      const projectId = extractFilter(filters, "projectId", "eq") as string | undefined;
-      const startTime = extractFilter(filters, "createdAt", "gte") as number | undefined;
-      const endTime = extractFilter(filters, "createdAt", "lte") as number | undefined;
+      const projectId = extractStringFilter(filters, "projectId", "eq");
+      const startTime = extractNumberFilter(filters, "createdAt", "gte");
+      const endTime = extractNumberFilter(filters, "createdAt", "lte");
       return projectId
         ? ["deployments", projectId, startTime ?? null, endTime ?? null]
         : ["deployments"];
@@ -90,14 +93,14 @@ export const deployments = createCollection<Deployment, string>(
 
       validateProjectIdInQuery(options?.where);
       const { filters } = parseLoadSubsetOptions(options);
-      const projectId = extractFilter(filters, "projectId", "eq") as string | undefined;
+      const projectId = extractStringFilter(filters, "projectId", "eq");
 
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
 
-      const startTime = extractFilter(filters, "createdAt", "gte") as number | undefined;
-      const endTime = extractFilter(filters, "createdAt", "lte") as number | undefined;
+      const startTime = extractNumberFilter(filters, "createdAt", "gte");
+      const endTime = extractNumberFilter(filters, "createdAt", "lte");
 
       return trpcClient.deploy.deployment.list.query({
         projectId,

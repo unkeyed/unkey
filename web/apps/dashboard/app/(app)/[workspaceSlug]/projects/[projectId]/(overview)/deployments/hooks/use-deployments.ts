@@ -20,9 +20,12 @@ export const useDeployments = () => {
     return map;
   }, [environments]);
 
-  const startTime = filters.find((f) => f.field === "startTime")?.value as number | undefined;
-  const endTime = filters.find((f) => f.field === "endTime")?.value as number | undefined;
-  const since = filters.find((f) => f.field === "since")?.value as string | undefined;
+  const startTimeRaw = filters.find((f) => f.field === "startTime")?.value;
+  const startTime = typeof startTimeRaw === "number" ? startTimeRaw : undefined;
+  const endTimeRaw = filters.find((f) => f.field === "endTime")?.value;
+  const endTime = typeof endTimeRaw === "number" ? endTimeRaw : undefined;
+  const sinceRaw = filters.find((f) => f.field === "since")?.value;
+  const since = typeof sinceRaw === "string" ? sinceRaw : undefined;
   const sinceMs = useMemo(() => (since ? Date.now() - parseDuration(since) : undefined), [since]);
 
   const result = useLiveQuery(
@@ -62,21 +65,19 @@ export const useDeployments = () => {
       return { isLoading: result.isLoading, data: withEnvironments };
     }
 
-    const groupedFilters = clientFilters.reduce(
-      (acc, f) => {
-        if (!acc[f.field]) {
-          acc[f.field] = [];
-        }
-        acc[f.field].push(f.value);
-        return acc;
-      },
-      {} as Record<DeploymentListFilterField, (string | number)[]>,
-    );
+    const groupedFilters = new Map<DeploymentListFilterField, (string | number)[]>();
+    for (const f of clientFilters) {
+      const existing = groupedFilters.get(f.field);
+      if (existing) {
+        existing.push(f.value);
+      } else {
+        groupedFilters.set(f.field, [f.value]);
+      }
+    }
 
     const filtered = withEnvironments.filter(({ deployment, environment }) => {
-      for (const [field, values] of Object.entries(groupedFilters)) {
-        const f = field as DeploymentListFilterField;
-        switch (f) {
+      for (const [field, values] of groupedFilters) {
+        switch (field) {
           case "status":
             if (!values.includes(deployment.status)) {
               return false;

@@ -1,7 +1,7 @@
 "use client";
 
 import { LoadingState } from "@/components/loading-state";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { type Deployment, deploymentSchema } from "@/lib/collections/deploy/deployments";
 import { trpc } from "@/lib/trpc/client";
 import { useParams } from "next/navigation";
 import { createContext, useContext } from "react";
@@ -37,7 +37,8 @@ export const DeploymentLayoutProvider = ({
   const { data: fetchedDeployment, isLoading: isFetchingById } =
     trpc.deploy.deployment.getById.useQuery({ deploymentId }, { enabled: !deployment });
 
-  const resolved = deployment ?? (fetchedDeployment as Deployment | undefined);
+  const parsed = fetchedDeployment ? deploymentSchema.safeParse(fetchedDeployment) : undefined;
+  const resolved = deployment ?? (parsed?.success ? parsed.data : undefined);
   if (!resolved) {
     if (isDeploymentsLoading || isFetchingById) {
       return <LoadingState message="Loading deployment..." />;
