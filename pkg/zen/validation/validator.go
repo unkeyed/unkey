@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/unkeyed/unkey/pkg/ctxutil"
 	core "github.com/unkeyed/unkey/pkg/openapi/validation"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -42,6 +43,9 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 
 	//nolint:exhaustruct
 	return openapi.BadRequestErrorResponse{
+		Meta: openapi.Meta{
+			RequestId: ctxutil.GetRequestID(r.Context()),
+		},
 		Error: openapi.BadRequestErrorDetails{
 			Title:  "Bad Request",
 			Detail: result.Detail,

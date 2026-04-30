@@ -95,7 +95,7 @@ func (v *Validator) Validate(r *http.Request) *Result {
 }
 
 func filterIgnoredSecurityErrors(errs []*validatorErrors.ValidationError) []*validatorErrors.ValidationError {
-	filtered := errs[:0]
+	filtered := make([]*validatorErrors.ValidationError, 0, len(errs))
 	for _, e := range errs {
 		if e.ValidationType == helpers.SecurityValidation && e.Reason == "Authorization header had incorrect scheme" {
 			continue

@@ -6,6 +6,7 @@ go_library(
     importpath = "github.com/unkeyed/unkey/pkg/zen/validation",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/ctxutil",
         "//pkg/openapi/validation",
         "//pkg/otel/tracing",
         "//svc/api/openapi",
