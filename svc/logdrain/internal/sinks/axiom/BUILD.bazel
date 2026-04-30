@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "axiom",
+    srcs = ["axiom.go"],
+    importpath = "github.com/unkeyed/unkey/svc/logdrain/internal/sinks/axiom",
+    visibility = ["//svc/logdrain:__subpackages__"],
+    deps = ["//svc/logdrain/internal/sinks"],
+)
+
+go_test(
+    name = "axiom_test",
+    srcs = ["axiom_test.go"],
+    deps = [
+        ":axiom",
+        "//svc/logdrain/internal/sinks",
+        "@com_github_stretchr_testify//require",
+    ],
+)

@@ -1,0 +1,30 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "transform",
+    srcs = [
+        "request.go",
+        "runtime.go",
+        "transform.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/logdrain/internal/transform",
+    visibility = ["//svc/logdrain:__subpackages__"],
+    deps = [
+        "//pkg/clickhouse/schema",
+        "//svc/logdrain/internal/sinks",
+    ],
+)
+
+go_test(
+    name = "transform_test",
+    srcs = [
+        "request_test.go",
+        "runtime_test.go",
+    ],
+    embed = [":transform"],
+    deps = [
+        "//pkg/clickhouse/schema",
+        "//svc/logdrain/internal/sinks",
+        "@com_github_stretchr_testify//require",
+    ],
+)

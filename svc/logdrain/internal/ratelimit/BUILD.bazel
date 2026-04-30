@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "ratelimit",
+    srcs = ["limiter.go"],
+    importpath = "github.com/unkeyed/unkey/svc/logdrain/internal/ratelimit",
+    visibility = ["//svc/logdrain:__subpackages__"],
+    deps = ["@org_golang_x_time//rate"],
+)
