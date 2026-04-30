@@ -105,8 +105,8 @@ export const RatelimitOverviewLogsCharts = ({
   };
 
   return (
-    <div className="flex w-full h-[320px]">
-      <div className="w-1/2 border-r border-gray-4">
+    <div className="flex w-full h-[320px] divide-x divide-gray-4">
+      <div className="w-1/2">
         <OverviewBarChart
           data={timeseries}
           isLoading={isLoading}
