@@ -52,7 +52,7 @@ Auditlogs:     h.Auditlogs,
 	t.Run("missing externalId", func(t *testing.T) {
 		req := handler.Request{
 			PortalId:    portalConfigID,
-			Permissions: []string{"keys:read"},
+			Permissions: []string{"api.*.read_key"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -63,7 +63,7 @@ Auditlogs:     h.Auditlogs,
 		req := handler.Request{
 			PortalId:    portalConfigID,
 			ExternalId:  "",
-			Permissions: []string{"keys:read"},
+			Permissions: []string{"api.*.read_key"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -94,7 +94,7 @@ Auditlogs:     h.Auditlogs,
 	t.Run("missing portalId", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId:  "user_123",
-			Permissions: []string{"keys:read"},
+			Permissions: []string{"api.*.read_key"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)
@@ -105,7 +105,86 @@ Auditlogs:     h.Auditlogs,
 		req := handler.Request{
 			PortalId:    "",
 			ExternalId:  "user_123",
+			Permissions: []string{"api.*.read_key"},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	// --- Permission format validation tests ---
+
+	t.Run("old format rejected", func(t *testing.T) {
+		req := handler.Request{
+			PortalId:    portalConfigID,
+			ExternalId:  "user_123",
 			Permissions: []string{"keys:read"},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("two segments rejected", func(t *testing.T) {
+		req := handler.Request{
+			PortalId:    portalConfigID,
+			ExternalId:  "user_123",
+			Permissions: []string{"api.read_key"},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("four segments rejected", func(t *testing.T) {
+		req := handler.Request{
+			PortalId:    portalConfigID,
+			ExternalId:  "user_123",
+			Permissions: []string{"api.*.read_key.extra"},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("empty middle segment rejected", func(t *testing.T) {
+		req := handler.Request{
+			PortalId:    portalConfigID,
+			ExternalId:  "user_123",
+			Permissions: []string{"api..read_key"},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("empty first segment rejected", func(t *testing.T) {
+		req := handler.Request{
+			PortalId:    portalConfigID,
+			ExternalId:  "user_123",
+			Permissions: []string{".*.read_key"},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("empty last segment rejected", func(t *testing.T) {
+		req := handler.Request{
+			PortalId:    portalConfigID,
+			ExternalId:  "user_123",
+			Permissions: []string{"api.*."},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
+	t.Run("mixed valid and invalid rejected", func(t *testing.T) {
+		req := handler.Request{
+			PortalId:    portalConfigID,
+			ExternalId:  "user_123",
+			Permissions: []string{"api.*.read_key", "keys:read"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(t, 400, res.Status)

@@ -41,7 +41,7 @@ func TestExchangeSessionSuccess(t *testing.T) {
 
 	t.Run("valid exchange", func(t *testing.T) {
 		tokenID := uid.New(uid.PortalSessionTokenPrefix)
-		perms, _ := json.Marshal([]string{"keys:read", "analytics:read"})
+		perms, _ := json.Marshal([]string{"api.*.read_key", "api.*.read_analytics"})
 
 		err := db.Query.InsertPortalSessionToken(ctx, h.DB.RW(), db.InsertPortalSessionTokenParams{
 			ID:             tokenID,
@@ -85,7 +85,7 @@ func TestExchangeSessionSuccess(t *testing.T) {
 
 	t.Run("single-use enforcement", func(t *testing.T) {
 		tokenID := uid.New(uid.PortalSessionTokenPrefix)
-		perms, _ := json.Marshal([]string{"keys:read"})
+		perms, _ := json.Marshal([]string{"api.*.read_key"})
 
 		err := db.Query.InsertPortalSessionToken(ctx, h.DB.RW(), db.InsertPortalSessionTokenParams{
 			ID:             tokenID,

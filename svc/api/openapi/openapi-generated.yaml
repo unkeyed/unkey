@@ -1839,17 +1839,18 @@ components:
                     type: array
                     items:
                         type: string
+                        pattern: "^[^.]+\\.[^.]+\\.[^.]+$"
                     minItems: 1
                     description: |
-                        List of permissions defining what the end user can do in the Portal and which tabs are visible.
-                        Any `keys:*` permission shows the Keys tab, any `analytics:*` shows Analytics, `docs:read` shows Docs.
-                    example: ["keys:read", "keys:create", "analytics:read"]
-                metadata:
-                    type: object
-                    additionalProperties: true
-                    description: |
-                        Optional information about the end user (name, email, custom fields).
-                    example: {"name": "Jane Doe", "email": "jane@example.com"}
+                        List of RBAC tuple permissions defining what the end user can do in the Portal.
+                        Each permission is a string in the format `{resourceType}.{resourceId}.{action}`.
+                        Use `*` as resourceId to grant access to all resources of that type.
+
+                        Tab visibility is derived from the action segment:
+                        - Keys tab: `read_key`, `create_key`, `update_key`, `delete_key`
+                        - Analytics tab: `read_analytics`
+                        - Docs tab: visible when any permission is present
+                    example: ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]
                 preview:
                     type: boolean
                     default: false
@@ -3539,8 +3540,7 @@ components:
                 token:
                     type: string
                     description: |
-                        The browser session token. Use this in the Authorization header or as an httpOnly cookie
-                        for subsequent API calls.
+                        The browser session token. Store this as an httpOnly cookie for subsequent portal requests.
                     example: ps_xyz789abc123
                 expiresAt:
                     type: integer
@@ -6653,6 +6653,19 @@ paths:
                                 $ref: '#/components/schemas/V2PortalCreateSessionResponseBody'
                     description: |
                         Session token created successfully. Redirect the end user to the returned URL.
+                    headers:
+                        Cache-Control:
+                            description: Prevents caching of the session token response.
+                            schema:
+                                example: no-store
+                                type: string
+                            example: no-store
+                        Pragma:
+                            description: HTTP/1.0 backward-compatible cache prevention.
+                            schema:
+                                example: no-cache
+                                type: string
+                            example: no-cache
                 "400":
                     content:
                         application/json:

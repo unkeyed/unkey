@@ -16,16 +16,37 @@ const TAB_CONFIGS: ReadonlyArray<TabConfig> = [
 ] as const;
 
 /**
- * Derive visible portal tabs from a session's permissions array.
+ * RBAC actions that grant visibility to the Keys tab.
+ */
+const KEY_ACTIONS = new Set(["read_key", "create_key", "update_key", "delete_key"]);
+
+/**
+ * RBAC actions that grant visibility to the Analytics tab.
+ */
+const ANALYTICS_ACTIONS = new Set(["read_analytics"]);
+
+/**
+ * Derive visible portal tabs from a session's RBAC tuple permissions.
  *
- * - Any permission matching `keys:*` → Keys tab visible
- * - Any permission matching `analytics:*` → Analytics tab visible
- * - `docs:read` → Docs tab visible
+ * Each permission is expected in the format `{resourceType}.{resourceId}.{action}`.
+ * The action segment (third dot-separated segment) determines tab visibility:
+ * - Keys tab: action ∈ {read_key, create_key, update_key, delete_key}
+ * - Analytics tab: action = read_analytics
+ * - Docs tab: visible when any permission is present (regardless of action)
+ *
+ * Permissions with fewer than 3 segments are silently ignored (defensive fallback).
  */
 export function deriveVisibleTabs(permissions: ReadonlyArray<string>): ReadonlyArray<TabConfig> {
-  const hasKeys = permissions.some((p) => p.startsWith("keys:"));
-  const hasAnalytics = permissions.some((p) => p.startsWith("analytics:"));
-  const hasDocs = permissions.includes("docs:read");
+  const actions = permissions
+    .map((p) => {
+      const parts = p.split(".");
+      return parts.length === 3 ? parts[2] : null;
+    })
+    .filter((a): a is string => a !== null);
+
+  const hasKeys = actions.some((a) => KEY_ACTIONS.has(a));
+  const hasAnalytics = actions.some((a) => ANALYTICS_ACTIONS.has(a));
+  const hasDocs = permissions.length > 0;
 
   return TAB_CONFIGS.filter((tab) => {
     switch (tab.id) {

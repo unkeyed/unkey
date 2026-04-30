@@ -38,7 +38,7 @@ Auditlogs:     h.Auditlogs,
 	req := handler.Request{
 		PortalId:    uid.New(uid.PortalConfigPrefix),
 		ExternalId:  "user_123",
-		Permissions: []string{"keys:read"},
+		Permissions: []string{"api.*.read_key"},
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
@@ -85,7 +85,7 @@ Auditlogs:     h.Auditlogs,
 	req := handler.Request{
 		PortalId:    portalConfigID,
 		ExternalId:  "user_123",
-		Permissions: []string{"keys:read"},
+		Permissions: []string{"api.*.read_key"},
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)

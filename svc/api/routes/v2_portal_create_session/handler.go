@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -34,6 +35,31 @@ type Handler struct {
 func (h *Handler) Method() string { return "POST" }
 func (h *Handler) Path() string   { return "/v2/portal.createSession" }
 
+// validatePermissionFormat checks that each permission string is a valid
+// RBAC tuple: exactly 3 dot-separated non-empty segments.
+func validatePermissionFormat(permissions []string) error {
+	for _, p := range permissions {
+		parts := strings.Split(p, ".")
+		if len(parts) != 3 {
+			return fault.New("invalid permission format",
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal(fmt.Sprintf("permission %q does not have 3 dot-separated segments", p)),
+				fault.Public(fmt.Sprintf("Permission %q is invalid. Expected format: {resourceType}.{resourceId}.{action}", p)),
+			)
+		}
+		for _, segment := range parts {
+			if segment == "" {
+				return fault.New("invalid permission format",
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Internal(fmt.Sprintf("permission %q contains an empty segment", p)),
+					fault.Public(fmt.Sprintf("Permission %q is invalid. Segments must not be empty.", p)),
+				)
+			}
+		}
+	}
+	return nil
+}
+
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
@@ -43,6 +69,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
+		return err
+	}
+
+	if err := validatePermissionFormat(req.Permissions); err != nil {
 		return err
 	}
 

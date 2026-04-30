@@ -1978,8 +1978,14 @@ type V2PortalCreateSessionRequestBody struct {
 	// Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
 	ExternalId string `json:"externalId"`
 
-	// Permissions List of permissions defining what the end user can do in the Portal and which tabs are visible.
-	// Any `keys:*` permission shows the Keys tab, any `analytics:*` shows Analytics, `docs:read` shows Docs.
+	// Permissions List of RBAC tuple permissions defining what the end user can do in the Portal.
+	// Each permission is a string in the format `{resourceType}.{resourceId}.{action}`.
+	// Use `*` as resourceId to grant access to all resources of that type.
+	//
+	// Tab visibility is derived from the action segment:
+	// - Keys tab: `read_key`, `create_key`, `update_key`, `delete_key`
+	// - Analytics tab: `read_analytics`
+	// - Docs tab: visible when any permission is present
 	Permissions []string `json:"permissions"`
 
 	// PortalId The ID of the portal configuration to create the session against.
@@ -2030,8 +2036,7 @@ type V2PortalExchangeSessionResponseData struct {
 	// ExpiresAt Unix timestamp in milliseconds when the browser session expires (24 hours from creation).
 	ExpiresAt int64 `json:"expiresAt"`
 
-	// Token The browser session token. Use this in the Authorization header or as an httpOnly cookie
-	// for subsequent API calls.
+	// Token The browser session token. Store this as an httpOnly cookie for subsequent portal requests.
 	Token string `json:"token"`
 }
 

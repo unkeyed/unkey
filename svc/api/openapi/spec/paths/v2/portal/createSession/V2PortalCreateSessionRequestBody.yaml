@@ -23,11 +23,18 @@ properties:
     type: array
     items:
       type: string
+      pattern: "^[^.]+\\.[^.]+\\.[^.]+$"
     minItems: 1
     description: |
-      List of permissions defining what the end user can do in the Portal and which tabs are visible.
-      Any `keys:*` permission shows the Keys tab, any `analytics:*` shows Analytics, `docs:read` shows Docs.
-    example: ["keys:read", "keys:create", "analytics:read"]
+      List of RBAC tuple permissions defining what the end user can do in the Portal.
+      Each permission is a string in the format `{resourceType}.{resourceId}.{action}`.
+      Use `*` as resourceId to grant access to all resources of that type.
+
+      Tab visibility is derived from the action segment:
+      - Keys tab: `read_key`, `create_key`, `update_key`, `delete_key`
+      - Analytics tab: `read_analytics`
+      - Docs tab: visible when any permission is present
+    example: ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]
   preview:
     type: boolean
     default: false

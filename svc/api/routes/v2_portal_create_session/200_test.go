@@ -52,7 +52,7 @@ Auditlogs:     h.Auditlogs,
 		req := handler.Request{
 			PortalId:    portalConfigID,
 			ExternalId:  "user_123",
-			Permissions: []string{"keys:read"},
+			Permissions: []string{"api.*.read_key"},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -76,7 +76,7 @@ Auditlogs:     h.Auditlogs,
 		req := handler.Request{
 			PortalId:    portalConfigID,
 			ExternalId:  "user_456",
-			Permissions: []string{"keys:read", "analytics:read"},
+			Permissions: []string{"api.*.read_key", "api.*.read_analytics"},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -96,7 +96,7 @@ Auditlogs:     h.Auditlogs,
 		req := handler.Request{
 			PortalId:    portalConfigID,
 			ExternalId:  "user_789",
-			Permissions: []string{"keys:read"},
+			Permissions: []string{"api.*.read_key"},
 			Preview:     &preview,
 		}
 
@@ -119,7 +119,7 @@ Auditlogs:     h.Auditlogs,
 		req := handler.Request{
 			PortalId:    portalConfigID,
 			ExternalId:  "user_multi",
-			Permissions: []string{"keys:read"},
+			Permissions: []string{"api.*.read_key"},
 		}
 
 		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

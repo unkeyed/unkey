@@ -24,7 +24,7 @@ Auditlogs:     h.Auditlogs,
 	req := handler.Request{
 		PortalId:    "ptl_doesnotmatter",
 		ExternalId:  "user_123",
-		Permissions: []string{"keys:read"},
+		Permissions: []string{"api.*.read_key"},
 	}
 
 	t.Run("invalid bearer token", func(t *testing.T) {
