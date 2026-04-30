@@ -93,6 +93,12 @@ import { create as createRatelimitPolicy } from "./deploy/environment-settings/s
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
 import { reorder as reorderSentinelPolicies } from "./deploy/environment-settings/sentinel/reorder";
+import { createLogDrain } from "./deploy/log-drains/create";
+import { deleteLogDrain } from "./deploy/log-drains/delete";
+import { listLogDrains } from "./deploy/log-drains/list";
+import { pauseLogDrain, resumeLogDrain } from "./deploy/log-drains/pause";
+import { testPushLogDrain } from "./deploy/log-drains/test-push";
+import { updateLogDrain } from "./deploy/log-drains/update";
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
 import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
@@ -502,6 +508,15 @@ export const router = t.router({
       decrypt: decryptEnvVar,
       delete: deleteEnvVar,
       makeSensitive,
+    }),
+    logDrain: t.router({
+      list: listLogDrains,
+      create: createLogDrain,
+      update: updateLogDrain,
+      delete: deleteLogDrain,
+      pause: pauseLogDrain,
+      resume: resumeLogDrain,
+      testPush: testPushLogDrain,
     }),
     domain: t.router({
       list: listDomains,
