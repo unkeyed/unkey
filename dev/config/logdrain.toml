@@ -1,0 +1,30 @@
+# Local-dev logdrain config. Run via:
+#   docker compose -f dev/docker-compose.yaml up logdrain
+# or
+#   bazel run //:unkey -- run logdrain --config dev/config/logdrain.toml
+#
+# The dashboard's create-drain wizard talks directly to MySQL via the
+# tRPC layer; logdrain reads the same MySQL + ClickHouse to forward.
+# Customer-supplied provider tokens are encrypted via the in-process
+# Vault we boot alongside.
+
+clickhouse_url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+
+# Aggressive poll interval for dev so a "create drain → see records at
+# the provider" cycle takes seconds, not a minute.
+poll_interval = "2s"
+batch_window = "30s"
+max_batch_records = 1000
+pause_after_failures = 10
+shard_count = 1
+shard_index = 0
+
+[database]
+primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+
+[vault]
+url = "http://vault:8060"
+token = "vault-test-token-123"
+
+[observability.metrics]
+prometheus_port = 9402

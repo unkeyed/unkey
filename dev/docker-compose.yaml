@@ -334,6 +334,37 @@ services:
       UNKEY_API_URL: "http://apiv2_lb:7070"
       NODE_ENV: "production"
 
+  # logdrain forwards customer log records from ClickHouse to third-party
+  # providers (Axiom, Datadog, OTLP). Local dev runs it in batch mode
+  # with a 2s poll interval so create-drain → see records at the
+  # provider takes seconds. Not part of the default `make up` set;
+  # bring it up explicitly with:
+  #   docker compose -f dev/docker-compose.yaml up logdrain
+  logdrain:
+    networks:
+      - default
+    image: unkey/unkey:latest
+    pull_policy: never
+    container_name: logdrain
+    command: ["run", "logdrain", "--config", "/etc/unkey/logdrain.toml"]
+    ports:
+      - "9402:9402"
+    depends_on:
+      mysql:
+        condition: service_healthy
+        required: true
+      clickhouse:
+        condition: service_healthy
+        required: true
+      vault:
+        condition: service_healthy
+        required: true
+    volumes:
+      - ./config/logdrain.toml:/etc/unkey/logdrain.toml:ro
+    environment:
+      UNKEY_LOG_LEVEL: "debug"
+
+
 volumes:
   mysql:
   clickhouse:

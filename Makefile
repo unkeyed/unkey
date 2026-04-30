@@ -66,6 +66,13 @@ pull: ## Pull latest Docker images for services
 up: pull ## Start all infrastructure services
 	@docker compose -f ./dev/docker-compose.yaml up -d mysql redis clickhouse s3 otel restate ctrl-api --wait
 
+.PHONY: logdrain
+logdrain: ## Start logdrain locally against the running infra (run `make up` first)
+	@docker compose -f ./dev/docker-compose.yaml up -d logdrain --wait
+	@echo "logdrain is up on http://localhost:9402/metrics"
+	@echo "Create a drain in the dashboard, then watch:"
+	@echo "  docker logs -f logdrain"
+
 .PHONY: clean
 clean: ## Stop and remove all services with volumes
 	@docker compose -f ./dev/docker-compose.yaml down --volumes

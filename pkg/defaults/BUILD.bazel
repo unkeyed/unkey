@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "defaults",
+    srcs = ["defaults.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/defaults",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "defaults_test",
+    srcs = ["defaults_test.go"],
+    deps = [
+        ":defaults",
+        "@com_github_stretchr_testify//require",
+    ],
+)

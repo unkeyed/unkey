@@ -48,9 +48,22 @@ type Config struct {
 	// from the dashboard after fixing the underlying problem.
 	PauseAfterFailures int `toml:"pause_after_failures" config:"default=50,min=1"`
 
+	// MaxGroupsPerShard prevents query fan-out explosion by limiting the
+	// number of ClickHouse queries this shard will execute concurrently.
+	MaxGroupsPerShard int `toml:"max_groups_per_shard" config:"default=500,min=10"`
+
+	// MaxDrainsPerWorkspace prevents customers from creating unlimited
+	// drains that would overwhelm the group limits.
+	MaxDrainsPerWorkspace int `toml:"max_drains_per_workspace" config:"default=100,min=1"`
+
+	// CredentialCacheTTL controls how long decrypted credentials stay in
+	// memory. Shorter TTL reduces credential exposure window but increases
+	// Vault load. 0 disables TTL (cache forever until restart).
+	CredentialCacheTTL time.Duration `toml:"credential_cache_ttl" config:"default=1h"`
+
 	// ShardCount is the total number of logdrain replicas claiming groups
 	// via cityHash64(workspace_id) % shard_count. v1 = 1.
-	ShardCount int `toml:"shard_count" config:"default=1,min=1"`
+	ShardCount int `toml:"shard_count" config:"default=2,min=1"`
 
 	// ShardIndex identifies this replica within ShardCount. Must be
 	// 0 <= ShardIndex < ShardCount.

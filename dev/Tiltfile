@@ -378,6 +378,20 @@ k8s_resource(
   trigger_mode=TRIGGER_MODE_AUTO
 )
 
+# Logdrain (forwards customer logs from ClickHouse to third-party
+# providers). 2s poll interval in dev so create-drain →
+# see-records-at-the-provider takes seconds. The metrics port is
+# forwarded to host 9402 so curling /metrics from a terminal works.
+k8s_yaml('k8s/manifests/logdrain.yaml')
+k8s_resource(
+  'logdrain',
+  resource_deps=['mysql', 'clickhouse', 'vault', 'build-unkey'],
+  labels=['unkey'],
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_AUTO,
+  port_forwards=['9402:9402'],
+)
+
 
 
 # Portal - standalone K8s service for local development.
@@ -403,12 +417,15 @@ k8s_resource(
 
 # Dashboard - runs locally with HMR
 # Injects GitHub App env vars from dev/.env.github and dev/.github-private-key.pem
+# and Datadog OAuth credentials from dev/.env.datadog (optional — the wizard
+# falls back to paste-token when these are unset).
 local_resource(
     'dashboard',
     serve_cmd='''
       set -a
       [ -f ./.env.github ] && source ./.env.github
       [ -f ./.github-private-key.pem ] && export UNKEY_GITHUB_PRIVATE_KEY_PEM="$(cat ./.github-private-key.pem)"
+      [ -f ./.env.datadog ] && source ./.env.datadog
       export GITHUB_APP_ID="$UNKEY_GITHUB_APP_ID"
       set +a
       cd ../web && pnpm --filter=@unkey/dashboard dev
