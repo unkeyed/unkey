@@ -1,13 +1,13 @@
 "use client";
 
+import { Switch } from "@/components/ui/switch";
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { Switch } from "@/components/ui/switch";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { HalfDottedCirclePlay } from "@unkey/icons";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useMultiEnvironmentSettings } from "../../hooks/use-multi-environment-settings";
 import { SettingDescription } from "../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
@@ -15,15 +15,15 @@ import { FormSettingCard, resolveSaveState } from "../shared/form-setting-card";
 const dualSchema = z.object({ production: z.boolean(), preview: z.boolean() });
 type DualFormValues = z.infer<typeof dualSchema>;
 
-const DualMode = () => {
+export const AutoDeploy = () => {
   const multiSettings = useMultiEnvironmentSettings();
   if (!multiSettings) {
     return null;
   }
-  return <DualInner production={multiSettings.production} preview={multiSettings.preview} />;
+  return <AutoDeployInner production={multiSettings.production} preview={multiSettings.preview} />;
 };
 
-const DualInner = ({
+const AutoDeployInner = ({
   production,
   preview,
 }: {
@@ -98,13 +98,13 @@ const DualInner = ({
         <div className="flex flex-col gap-2">
           <EnvRow
             label="Production"
-            description="Pushes to main branch"
+            description="Pushes to the default branch"
             checked={currentProd}
             onChange={(v) => setValue("production", v, { shouldValidate: true })}
           />
           <EnvRow
             label="Preview"
-            description="Pushes to other branches"
+            description="Pushes to non-default branches"
             checked={currentPreview}
             onChange={(v) => setValue("preview", v, { shouldValidate: true })}
           />
@@ -141,5 +141,3 @@ const EnvRow = ({
     />
   </div>
 );
-
-export const AutoDeploy = () => <DualMode />;
