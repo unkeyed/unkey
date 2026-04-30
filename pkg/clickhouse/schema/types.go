@@ -81,14 +81,14 @@ type KeyVerificationAggregated struct {
 // RatelimitAggregated represents aggregated ratelimit data
 // from the per-minute/hour/day/month materialized views.
 type RatelimitAggregated struct {
-	Time        int64  `ch:"time" json:"time"`
-	WorkspaceID string `ch:"workspace_id" json:"workspace_id"`
-	NamespaceID string `ch:"namespace_id" json:"namespace_id"`
-	Identifier  string `ch:"identifier" json:"identifier"`
-	Passed       int64 `ch:"passed" json:"passed"`
-	Total        int64 `ch:"total" json:"total"`
-	PassedTokens int64 `ch:"passed_tokens" json:"passed_tokens"`
-	TotalTokens  int64 `ch:"total_tokens" json:"total_tokens"`
+	Time         int64  `ch:"time" json:"time"`
+	WorkspaceID  string `ch:"workspace_id" json:"workspace_id"`
+	NamespaceID  string `ch:"namespace_id" json:"namespace_id"`
+	Identifier   string `ch:"identifier" json:"identifier"`
+	Passed       int64  `ch:"passed" json:"passed"`
+	Total        int64  `ch:"total" json:"total"`
+	PassedTokens int64  `ch:"passed_tokens" json:"passed_tokens"`
+	TotalTokens  int64  `ch:"total_tokens" json:"total_tokens"`
 }
 
 // ApiRequestAggregated represents aggregated API request data
