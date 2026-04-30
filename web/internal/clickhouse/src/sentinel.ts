@@ -52,7 +52,10 @@ const baseDeploymentParams = z.object({
 });
 
 const rpsResponseSchema = z.object({ avg_rps: z.number() });
-const latencyResponseSchema = z.object({ latency: z.number() });
+// quantile() returns NULL when the time window contains zero rows (no
+// traffic in the last N minutes). Allow null at the schema layer and let
+// callers coalesce to 0; the previous z.number() crashed the request.
+const latencyResponseSchema = z.object({ latency: z.number().nullable() });
 const timeseriesPointSchema = z.object({ x: z.number().int(), y: z.number() });
 
 // ─────────────────────────────────────────────────────────────

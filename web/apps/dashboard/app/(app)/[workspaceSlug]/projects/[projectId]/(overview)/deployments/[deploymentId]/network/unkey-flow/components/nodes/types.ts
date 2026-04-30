@@ -36,6 +36,7 @@ type InstanceNode = BaseNode & {
   metadata: {
     type: "instance";
     description: string;
+    k8sName?: string;
   } & BaseMetrics;
 };
 

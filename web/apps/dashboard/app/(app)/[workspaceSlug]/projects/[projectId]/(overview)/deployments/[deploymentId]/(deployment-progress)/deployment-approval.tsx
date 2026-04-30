@@ -2,123 +2,133 @@
 
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { trpc } from "@/lib/trpc/client";
-import {
-  CloudUp,
-  Earth,
-  Hammer2,
-  LayerFront,
-  Lock,
-  Pulse,
-  ShieldAlert,
-  Sparkle3,
-} from "@unkey/icons";
-import { Button, SettingCardGroup } from "@unkey/ui";
+import { ShieldAlert } from "@unkey/icons";
+import { Button, Dialog, DialogContent } from "@unkey/ui";
 import { useProjectData } from "../../../data-provider";
-import { DeploymentStep } from "./deployment-step";
 
-export function DeploymentApproval({ deployment }: { deployment: Deployment }) {
-  const { refetchDeployments, project } = useProjectData();
+const chipClass =
+  "font-mono text-xs bg-gray-3 px-1.5 py-0.5 rounded-[5px] text-gray-12 font-medium";
+
+const chipLinkClass =
+  "font-mono text-xs bg-gray-3 px-1.5 py-0.5 rounded-[5px] text-gray-12 font-medium decoration-dotted underline underline-offset-2 hover:bg-gray-4 transition-colors";
+
+type DeploymentApprovalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  deployment: Deployment;
+};
+
+export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentApprovalProps) {
+  const { refetchDeployments, project, environments } = useProjectData();
 
   const authorize = trpc.deploy.deployment.authorize.useMutation({
     onSuccess: () => {
       refetchDeployments();
+      onClose();
     },
   });
+
+  const sourceRepo = deployment.forkRepositoryFullName || project?.repositoryFullName;
 
   const prUrl =
     project?.repositoryFullName && deployment.prNumber
       ? `https://github.com/${project.repositoryFullName}/pull/${deployment.prNumber}`
       : null;
 
+  const commitUrl =
+    sourceRepo && deployment.gitCommitSha
+      ? `https://github.com/${sourceRepo}/commit/${deployment.gitCommitSha}`
+      : null;
+
+  const branchUrl =
+    sourceRepo && deployment.gitBranch
+      ? `https://github.com/${sourceRepo}/tree/${deployment.gitBranch}`
+      : null;
+
+  const branchName = deployment.gitBranch ?? "unknown";
+  const commitSha = deployment.gitCommitSha?.slice(0, 7) ?? "unknown";
+  const environment =
+    environments.find((e) => e.id === deployment.environmentId)?.slug ?? "Preview";
+
   return (
-    <div className="flex flex-col gap-5">
-      <SettingCardGroup>
-        <DeploymentStep
-          icon={<ShieldAlert iconSize="sm-medium" className="size-[18px]" />}
-          title="Authorization Required"
-          description="Awaiting team member authorization to proceed"
-          status="started"
-          statusIcon={<Lock iconSize="sm-medium" className="text-gray-9" />}
-        />
-        <DeploymentStep
-          icon={<LayerFront iconSize="sm-medium" className="size-[18px]" />}
-          title="Deployment Queued"
-          description="Waiting for authorization"
-          status="pending"
-        />
-        <DeploymentStep
-          icon={<Pulse iconSize="sm-medium" className="size-[18px]" />}
-          title="Deployment Starting"
-          description="Waiting for authorization"
-          status="pending"
-        />
-        <DeploymentStep
-          icon={<Hammer2 iconSize="sm-medium" className="size-[18px]" />}
-          title="Building Image"
-          description="Waiting for authorization"
-          status="pending"
-        />
-        <DeploymentStep
-          icon={<CloudUp iconSize="sm-medium" className="size-[18px]" />}
-          title="Deploying Containers"
-          description="Waiting for authorization"
-          status="pending"
-        />
-        <DeploymentStep
-          icon={<Earth iconSize="sm-medium" className="size-[18px]" />}
-          title="Assigning Domains"
-          description="Waiting for authorization"
-          status="pending"
-        />
-        <DeploymentStep
-          icon={<Sparkle3 iconSize="sm-medium" className="size-[18px]" />}
-          title="Deployment Finalizing"
-          description="Waiting for authorization"
-          status="pending"
-        />
-      </SettingCardGroup>
-
-      {/* Authorization banner */}
-      <div className="border border-warningA-4 bg-warningA-2 rounded-[14px] p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium text-gray-12">Authorization required</span>
-            <span className="text-xs text-gray-11">
-              An external contributor pushed a commit. A team member must authorize this deployment.
-              {prUrl && (
-                <>
-                  {" "}
-                  <a
-                    href={prUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-gray-12 transition-colors"
-                  >
-                    View Pull Request #{deployment.prNumber}
-                  </a>
-                </>
-              )}
-            </span>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent
+        className="max-w-[560px] border-gray-4 rounded-2xl! p-0 gap-0 overflow-hidden drop-shadow-2xl"
+        style={{
+          background:
+            "radial-gradient(circle at 5% 15%, hsl(var(--grayA-3)) 0%, transparent 20%), hsl(var(--gray-1))",
+        }}
+      >
+        <div className="flex flex-col items-center p-10">
+          <div className="size-12 rounded-[14px] bg-gray-12 dark:bg-white flex items-center justify-center mb-4 shadow-[0_0_0_6px_hsl(var(--gray-2)),0_0_0_8px_hsl(var(--gray-4))]">
+            <ShieldAlert className="text-white dark:text-black size-[22px]" iconSize="md-medium" />
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="primary"
-            size="sm"
-            loading={authorize.isLoading}
-            onClick={() => authorize.mutate({ deploymentId: deployment.id })}
-            className="px-3"
-          >
-            Authorize
-          </Button>
-        </div>
-      </div>
 
-      {authorize.error && (
-        <div className="border border-errorA-4 bg-errorA-2 rounded-[14px] p-4">
-          <p className="text-sm text-error-11">{authorize.error.message}</p>
+          <h1 className="text-[22px] font-bold tracking-tight text-gray-12 mb-2">
+            Authorize Fork Deployment
+          </h1>
+
+          <p className="text-[14px] leading-relaxed text-gray-11 text-center mb-4 max-w-100">
+            An external contributor pushed commit{" "}
+            {commitUrl ? (
+              <a
+                href={commitUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={chipLinkClass}
+              >
+                {commitSha}
+              </a>
+            ) : (
+              <code className={chipClass}>{commitSha}</code>
+            )}{" "}
+            on branch{" "}
+            {branchUrl ? (
+              <a
+                href={branchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={chipLinkClass}
+              >
+                {branchName}
+              </a>
+            ) : (
+              <code className={chipClass}>{branchName}</code>
+            )}{" "}
+            targeting the <span className="font-semibold text-gray-12">{environment}</span>{" "}
+            environment.
+          </p>
+
+          <div className="flex gap-4 mt-0">
+            <Button
+              variant="primary"
+              size="xlg"
+              className="px-8"
+              loading={authorize.isLoading}
+              onClick={() => authorize.mutate({ deploymentId: deployment.id })}
+            >
+              Approve Deployment
+            </Button>
+            {prUrl ? (
+              <a href={prUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="xlg" className="px-7">
+                  Review Pull Request
+                </Button>
+              </a>
+            ) : (
+              <Button variant="outline" size="xlg" className="px-7" disabled>
+                Review Pull Request
+              </Button>
+            )}
+          </div>
+
+          {authorize.error && (
+            <div className="mt-4 border border-errorA-4 bg-errorA-2 rounded-lg px-4 py-3">
+              <p className="text-sm text-error-11">{authorize.error.message}</p>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

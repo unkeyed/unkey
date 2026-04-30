@@ -39,6 +39,7 @@ export const getDeploymentTree = workspaceProcedure
           ),
         columns: {
           id: true,
+          k8sName: true,
           cpuMillicores: true,
           memoryMib: true,
           status: true,
@@ -85,7 +86,7 @@ export const getDeploymentTree = workspaceProcedure
               instances: regionInstances.length,
               health,
             },
-            children: regionInstances.map(({ id, status, cpuMillicores, memoryMib }) => ({
+            children: regionInstances.map(({ id, k8sName, status, cpuMillicores, memoryMib }) => ({
               id,
               label: id,
               metadata: {
@@ -95,6 +96,7 @@ export const getDeploymentTree = workspaceProcedure
                 memory: memoryMib,
                 latency: "—",
                 health: mapInstanceStatusToHealth(status),
+                k8sName,
               },
             })),
           };
