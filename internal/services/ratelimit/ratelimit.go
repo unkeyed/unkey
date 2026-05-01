@@ -113,7 +113,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 			// rate-limit window so later requests converge on the true count.
 			// Also propagates the denial cross-region on the first denial
 			// per counter entry.
-			s.activateStrictMode(req, cs.curSequence, cs.cur, cs.strictKey)
+			s.activateStrictMode(req, &cs, effectiveCount)
 			metrics.RatelimitDecision.WithLabelValues(cs.source, "denied").Inc()
 			span.SetAttributes(attribute.Bool("passed", false))
 			return RatelimitResponse{
@@ -215,7 +215,7 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 			checks[i].cur.val.Add(-req.Cost)
 			// For each individual failure, set strict mode on its tuple.
 			if effectives[i] > req.Limit {
-				s.activateStrictMode(req, checks[i].curSequence, checks[i].cur, checks[i].strictKey)
+				s.activateStrictMode(req, &checks[i], effectives[i])
 			}
 		}
 	}

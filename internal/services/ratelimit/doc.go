@@ -25,6 +25,15 @@ counter for each row's originating sequence. Receivers therefore deny the same
 identifier without seeing its abusive traffic firsthand. Sliding-window decay
 handles the bleed into the next window automatically.
 
+Two filters gate emission. Sub-minute windows (see minPropagationDuration)
+rotate before the row reaches receivers across the 1s flush + 10s sync path,
+so they're skipped — local strict mode still applies. And denials where the
+user has consumed less than half their limit before this request's cost are
+not propagated; those typically come from a single oversized request, and
+broadcasting them would globally block a user who still has plenty of
+legitimate quota left. The threshold stops at half so heavy-usage cases
+(e.g., used=8 of 10, requests cost=3) still propagate.
+
 # Known limitation: spread-evenly traffic
 
 The propagation channel is denial-driven: a region only writes to MySQL when

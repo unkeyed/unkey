@@ -291,6 +291,14 @@ func (s *service) setStrictUntil(key strictKey, untilMs int64) {
 	metrics.RatelimitStrictModeActivations.Inc()
 }
 
+// minPropagationDuration is the shortest window length for which cross-region
+// propagation is meaningful. The pipeline takes up to one batch flush (1s)
+// plus one sync interval (10s) to reach receivers; below this floor the
+// originating window has rotated by the time the row arrives, so propagation
+// is pure write/read load with no enforcement value. Local strict mode still
+// fires regardless of window length.
+const minPropagationDuration = time.Minute
+
 // activateStrictMode is the single denial-side path: raise the local
 // strict-mode deadline and, if this counter entry has not yet been blocked,
 // buffer a propagation event. The entry's blocked flag is the dedup
@@ -304,18 +312,44 @@ func (s *service) setStrictUntil(key strictKey, untilMs int64) {
 // from req.Time: the row only matters while the inflated counter still
 // affects sliding-window math, which ends at the close of the window after
 // the originating one (cur in S, prev in S+1, gone after S+1). Using
-// (sequence+2)*duration makes expires_at deterministic — every emit for the
+// (sequence+2)*duration makes expires_at deterministic; every emit for the
 // same sequence computes the same value, so receiver-driven echoes never
 // "extend" anything in MySQL.
+//
+// Two filters gate emission. Window durations below [minPropagationDuration]
+// rotate before the row reaches receivers, so we skip them. And denials
+// where the user has consumed less than half their limit before this
+// request's cost are skipped too; those typically come from a single
+// oversized request and broadcasting them would block other regions for a
+// user who still has plenty of legitimate quota left. The threshold stops at
+// half rather than at full so the (used=8, cost=3, limit=10) case still
+// propagates: the user is heavily consuming and demanding more than they
+// have; over-blocking the last 2 credits in other regions is a fair
+// trade-off against letting them spread cost>1 traffic across regions
+// undetected.
+//
+// effectiveCount is the post-cost sliding-window count the caller already
+// computed for the deny decision; we pass it in to avoid re-running the
+// math. preCost = effectiveCount - req.Cost since slidingWindowCount is
+// linear in curCount.
 //
 // Both Ratelimit (single-key CAS denial) and RatelimitMany (per-entry rollback
 // after a batch failure) call this; keeping the propagation shape in one place
 // avoids the two paths drifting on what gets written to the blocklist.
-func (s *service) activateStrictMode(req RatelimitRequest, sequence int64, cur *counterEntry, sk strictKey) {
+func (s *service) activateStrictMode(req RatelimitRequest, cs *checkState, effectiveCount int64) {
 	durationMs := req.Duration.Milliseconds()
-	s.setStrictUntil(sk, req.Time.UnixMilli()+durationMs)
+	s.setStrictUntil(cs.strictKey, req.Time.UnixMilli()+durationMs)
 
-	if !cur.blocked.CompareAndSwap(false, true) {
+	if req.Duration < minPropagationDuration {
+		return
+	}
+
+	preCost := effectiveCount - req.Cost
+	if 2*preCost < req.Limit {
+		return
+	}
+
+	if !cs.cur.blocked.CompareAndSwap(false, true) {
 		return
 	}
 	s.blocklistWriter.Buffer(db.BlocklistInsertParams{
@@ -323,8 +357,8 @@ func (s *service) activateStrictMode(req RatelimitRequest, sequence int64, cur *
 		Namespace:   req.Namespace,
 		Identifier:  req.Identifier,
 		DurationMs:  uint64(durationMs),
-		Sequence:    sequence,
+		Sequence:    cs.curSequence,
 		Limit:       uint64(req.Limit),
-		ExpiresAt:   uint64((sequence + 2) * durationMs),
+		ExpiresAt:   uint64((cs.curSequence + 2) * durationMs),
 	})
 }
