@@ -126,10 +126,11 @@ var (
 		},
 	)
 
-	// RatelimitStrictModeActivations counts how often a denial triggered strict
-	// mode for a (name, identifier, duration) tuple. Until the deadline passes,
-	// subsequent requests on that tuple force a synchronous origin fetch to
-	// converge local state. Spikes correlate with sustained denial pressure
+	// RatelimitStrictModeActivations counts how often a denial triggered
+	// strict mode for a (workspace, namespace, identifier, duration) tuple.
+	// Until the deadline passes, subsequent requests on that tuple force a
+	// synchronous origin fetch to converge local state with the region's
+	// Redis-backed truth. Spikes correlate with sustained denial pressure
 	// and an increase in origin-fetch latency on the hot path.
 	//
 	// Example usage:
@@ -205,103 +206,104 @@ var (
 	)
 )
 
-// Cross-region propagation: tracks the blocklist write/sync path used to
-// share denials across regions through MySQL. Gives observability into
-// whether the propagation channel is healthy and how much it is doing.
+// Cross-region G-Counter propagation: tracks the per-region count
+// flush/sync path that shares observed counts across regions so each
+// region can fold cross-region traffic into its sliding-window math.
 var (
-	// RatelimitBlocklistWritesTotal counts denial events successfully written
-	// to ratelimit_blocklist by the batched flush. Reflects unique strict-mode
-	// transitions across the fleet, not request volume; sustained denial
-	// streams from the same identifier are deduped to one write per window.
+	// RatelimitGlobalWritesTotal counts rows successfully upserted to
+	// ratelimit_window_counts by the cross-region flush. Reflects
+	// throughput of the count-sharing channel; combined with the active
+	// window count it characterizes write pressure on MySQL.
 	//
 	// Example usage:
-	//   metrics.RatelimitBlocklistWritesTotal.Add(float64(len(batch)))
-	RatelimitBlocklistWritesTotal = lazy.NewCounter(
+	//   metrics.RatelimitGlobalWritesTotal.Add(float64(len(batch)))
+	RatelimitGlobalWritesTotal = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
-			Name:      "blocklist_writes_total",
-			Help:      "Total number of denial events written to ratelimit_blocklist for cross-region propagation.",
+			Name:      "global_writes_total",
+			Help:      "Total number of rows written to the cross-region ratelimit_window_counts table.",
 		},
 	)
 
-	// RatelimitBlocklistWriteErrors counts batch flushes that failed (MySQL
-	// error or circuit-breaker trip). The events were dropped; they will
-	// re-emit on the next strict-mode transition. Sustained non-zero values
-	// indicate the propagation channel is impaired.
+	// RatelimitGlobalWriteErrors counts cross-region flush attempts
+	// that failed (MySQL error or circuit-breaker trip). The events were
+	// dropped; the next flush tick re-emits any entry that still
+	// satisfies the change and utilization filters. Sustained non-zero
+	// values indicate the propagation channel is impaired.
 	//
 	// Example usage:
-	//   metrics.RatelimitBlocklistWriteErrors.Inc()
-	RatelimitBlocklistWriteErrors = lazy.NewCounter(
+	//   metrics.RatelimitGlobalWriteErrors.Inc()
+	RatelimitGlobalWriteErrors = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
-			Name:      "blocklist_write_errors_total",
-			Help:      "Total number of ratelimit_blocklist batch flushes that failed.",
+			Name:      "global_write_errors_total",
+			Help:      "Total number of cross-region flushes that failed.",
 		},
 	)
 
-	// RatelimitBlocklistSyncRowsApplied counts rows pulled from
-	// ratelimit_blocklist and applied to local counter state on each sync
-	// tick. Each row may correspond to a denial in a remote region; the
-	// inflate operation is idempotent across ticks.
+	// RatelimitGlobalSyncRowsApplied counts rows pulled from
+	// ratelimit_window_counts and applied to local
+	// counterEntry.globalCount on each sync tick. Idempotent across
+	// ticks: applying the same row twice is a no-op via atomicMax on the
+	// per-key sum.
 	//
 	// Example usage:
-	//   metrics.RatelimitBlocklistSyncRowsApplied.Add(float64(len(rows)))
-	RatelimitBlocklistSyncRowsApplied = lazy.NewCounter(
+	//   metrics.RatelimitGlobalSyncRowsApplied.Add(float64(len(rows)))
+	RatelimitGlobalSyncRowsApplied = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
-			Name:      "blocklist_sync_rows_applied_total",
-			Help:      "Total number of ratelimit_blocklist rows applied to local counter state.",
+			Name:      "global_sync_rows_applied_total",
+			Help:      "Total number of cross-region rows applied to local globalCount state.",
 		},
 	)
 
-	// RatelimitBlocklistSyncErrors counts sync ticks that failed to read
-	// ratelimit_blocklist. Local state remains as it was at the previous
-	// successful sync.
+	// RatelimitGlobalSyncErrors counts sync ticks that failed to read
+	// ratelimit_window_counts. Local globalCount state remains as it
+	// was at the previous successful sync.
 	//
 	// Example usage:
-	//   metrics.RatelimitBlocklistSyncErrors.Inc()
-	RatelimitBlocklistSyncErrors = lazy.NewCounter(
+	//   metrics.RatelimitGlobalSyncErrors.Inc()
+	RatelimitGlobalSyncErrors = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
-			Name:      "blocklist_sync_errors_total",
-			Help:      "Total number of ratelimit_blocklist sync ticks that returned an error.",
+			Name:      "global_sync_errors_total",
+			Help:      "Total number of cross-region sync ticks that returned an error.",
 		},
 	)
 
-	// RatelimitBlocklistEntriesCreated counts counter entries that the sync
-	// loop inserted because no local traffic had touched that key yet. This
-	// is separate from RatelimitWindowsCreated so the traffic-driven
-	// cardinality signal is not polluted by cross-region propagation.
+	// RatelimitGlobalEntriesCreated counts counterEntry instances
+	// created by the cross-region sync loop because no local traffic had
+	// touched the matching key yet. Separate from RatelimitWindowsCreated
+	// so the traffic-driven cardinality signal stays clean.
 	//
 	// Example usage:
-	//   metrics.RatelimitBlocklistEntriesCreated.Inc()
-	RatelimitBlocklistEntriesCreated = lazy.NewCounter(
+	//   metrics.RatelimitGlobalEntriesCreated.Inc()
+	RatelimitGlobalEntriesCreated = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
-			Name:      "blocklist_entries_created_total",
-			Help:      "Total number of counter entries created by the cross-region blocklist sync loop.",
+			Name:      "global_entries_created_total",
+			Help:      "Total number of counterEntry instances created by the cross-region sync loop.",
 		},
 	)
 
-	// RatelimitBlocklistRowsLastPoll is the row count returned by the most
-	// recent BlocklistListActive query. Set on every successful sync tick.
-	// Multiplied by node count and sync frequency, this is the dominant read
-	// load the propagation channel puts on MySQL — watch it to estimate
-	// fleet-wide DB pressure as the active blocklist grows.
+	// RatelimitGlobalRowsLastPoll is the row count returned by the
+	// most recent cross-region sync query. Set on every successful sync
+	// tick. Multiplied by region count and sync frequency, this is the
+	// dominant read load the count-sharing channel puts on MySQL.
 	//
 	// Example usage:
-	//   metrics.RatelimitBlocklistRowsLastPoll.Set(float64(len(rows)))
-	RatelimitBlocklistRowsLastPoll = lazy.NewGauge(
+	//   metrics.RatelimitGlobalRowsLastPoll.Set(float64(len(rows)))
+	RatelimitGlobalRowsLastPoll = lazy.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
-			Name:      "blocklist_rows_last_poll",
-			Help:      "Number of rows returned by the most recent ratelimit_blocklist sync query.",
+			Name:      "global_rows_last_poll",
+			Help:      "Number of rows returned by the most recent cross-region sync query.",
 		},
 	)
 )

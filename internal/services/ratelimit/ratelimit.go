@@ -12,20 +12,34 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-// checkState holds the precomputed state needed for a sliding window check.
+// checkState holds the precomputed state needed for a sliding window
+// check. One instance is built per request by prepareCheck and consumed
+// by the CAS loop in Ratelimit (or the per-entry pass in RatelimitMany).
 type checkState struct {
-	cur           *counterEntry
-	prev          *counterEntry
-	strictKey     strictKey
+	cur       *counterEntry
+	prev      *counterEntry
+	strictKey strictKey
+
+	// curGlobal and prevGlobal are snapshots of
+	// counterEntry.globalCount taken at prepareCheck time so the
+	// CAS retry loop in Ratelimit does not re-load them on every retry.
+	// Cross-region counts only mutate from the cross-region sync
+	// goroutine on a 10s cadence, so they are effectively constant for
+	// the lifetime of any single request; snapshotting matches that
+	// lifetime and saves two atomic loads per CAS attempt.
+	curGlobal  int64
+	prevGlobal int64
+
 	curSequence   int64
 	windowElapsed float64
 	reset         time.Time
 	source        string
 }
 
-// prepareCheck loads both window counters for a request, fetching from Redis
-// if either window is cold or if strict-enforcement mode is active for this
-// identifier after a recent denial.
+// prepareCheck loads both window counters for a request, tracks the most
+// recent limit on cur so the cross-region flush goroutine can apply the
+// utilization filter, and fetches from Redis when strict mode is active
+// for this identifier after a recent denial.
 func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkState {
 	durationMs := req.Duration.Milliseconds()
 	curSeq := calculateSequence(req.Time, req.Duration)
@@ -37,6 +51,14 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	cur := s.loadCounter(curKey)
 	prev := s.loadCounter(prevKey)
 
+	// Track the most recent limit on cur so the cross-region flush
+	// goroutine can apply the utilization filter without taking the
+	// request path's req.Limit out of band. Stored on cur because the
+	// flush only ever considers cur — prev's count carries forward as
+	// the faded contribution but does not get re-flushed in its own
+	// right.
+	cur.limit.Store(req.Limit)
+
 	// First caller per entry runs fetchFromOrigin; concurrent callers block
 	// inside Do until it returns, then take the fast path (single atomic
 	// load of hydrated) forever. This prevents late arrivals on a cold key
@@ -44,9 +66,13 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	cur.Hydrate(ctx)
 	prev.Hydrate(ctx)
 
-	// Strict mode: a recent denial forces an additional synchronous origin
-	// fetch until the deadline passes, catching up local state to the global
-	// count regardless of whether the entry was already hydrated.
+	// Strict mode: a recent denial in this region forces an additional
+	// synchronous origin fetch until the deadline passes. This is the
+	// in-region convergence aid — instances within a region share state
+	// through Redis, so the forced fetch drains any lag between this
+	// instance's local view and the region's Redis-backed truth.
+	// Cross-region convergence is handled separately via
+	// cur.globalCount.
 	if req.Time.UnixMilli() < s.loadStrictUntil(sk) {
 		atomicMax(&cur.val, s.fetchFromOrigin(ctx, curKey))
 		atomicMax(&prev.val, s.fetchFromOrigin(ctx, prevKey))
@@ -61,6 +87,8 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 		cur:           cur,
 		prev:          prev,
 		strictKey:     sk,
+		curGlobal:     cur.globalCount.Load(),
+		prevGlobal:    prev.globalCount.Load(),
 		curSequence:   curSeq,
 		windowElapsed: windowElapsed,
 		reset:         reset,
@@ -68,10 +96,20 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	}
 }
 
-// slidingWindowCount computes the effective request count for the sliding window
-// given the current window's counter value. The previous window is loaded atomically.
+// slidingWindowCount computes the effective request count for the
+// sliding window given the current window's local counter value. Each
+// window's total count is its own region's val (passed in for cur,
+// atomically loaded for prev) plus the cross-region sum of other regions'
+// contributions from the most recent cross-region sync. The two
+// contributions are tracked separately to keep the cross-region merge
+// from feeding back into the next flush, but for the deny decision
+// they're equivalent: any source of count increases pressure on the
+// limit. Cross-region snapshots come from checkState so the CAS retry
+// loop doesn't re-pay the atomic load.
 func (cs *checkState) slidingWindowCount(curCount int64) int64 {
-	return curCount + int64(float64(cs.prev.val.Load())*(1.0-cs.windowElapsed))
+	cur := curCount + cs.curGlobal
+	prev := cs.prev.val.Load() + cs.prevGlobal
+	return cur + int64(float64(prev)*(1.0-cs.windowElapsed))
 }
 
 func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (RatelimitResponse, error) {
@@ -110,10 +148,9 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 		if effectiveCount > req.Limit {
 			// Enter strict mode: force origin fetches for the rest of the
-			// rate-limit window so later requests converge on the true count.
-			// Also propagates the denial cross-region on the first denial
-			// per counter entry.
-			s.activateStrictMode(req, &cs, effectiveCount)
+			// rate-limit window so later requests in this region converge on
+			// Redis's view of the count without waiting for the next replay.
+			s.setStrictUntil(cs.strictKey, req.Time.Add(req.Duration).UnixMilli())
 			metrics.RatelimitDecision.WithLabelValues(cs.source, "denied").Inc()
 			span.SetAttributes(attribute.Bool("passed", false))
 			return RatelimitResponse{
@@ -213,9 +250,11 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 	if !allPassed {
 		for i, req := range reqs {
 			checks[i].cur.val.Add(-req.Cost)
-			// For each individual failure, set strict mode on its tuple.
+			// For each individual failure, set strict mode on its tuple so
+			// later requests in this region force a Redis fetch and converge
+			// with other instances' views of the count.
 			if effectives[i] > req.Limit {
-				s.activateStrictMode(req, &checks[i], effectives[i])
+				s.setStrictUntil(checks[i].strictKey, req.Time.Add(req.Duration).UnixMilli())
 			}
 		}
 	}

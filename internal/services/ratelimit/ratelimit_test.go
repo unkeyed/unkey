@@ -45,7 +45,8 @@ func TestRatelimit_SlidingWindowDecision(t *testing.T) {
 			t.Parallel()
 
 			clk := clock.NewTestClock()
-			svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
+			svc, err := New(Config{
+				Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
 			require.NoError(t, err)
 			t.Cleanup(func() { _ = svc.Close() })
 
@@ -87,13 +88,14 @@ func TestRatelimit_SlidingWindowDecision(t *testing.T) {
 }
 
 // TestRatelimit_DenialSetsStrictUntil asserts a denied request sets the
-// strict-mode deadline to req.Time + req.Duration for its (name, identifier,
-// duration) tuple.
+// strict-mode deadline to req.Time + req.Duration for its (workspace,
+// namespace, identifier, duration) tuple.
 func TestRatelimit_DenialSetsStrictUntil(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
-	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
+	svc, err := New(Config{
+		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -122,16 +124,17 @@ func TestRatelimit_DenialSetsStrictUntil(t *testing.T) {
 	require.Equal(t, want, got, "strictUntil should equal req.Time + req.Duration")
 }
 
-// TestRatelimit_StrictModeForcesOriginFetch asserts that once strict mode is
-// active, prepareCheck fetches from origin even when the local windows are
-// warm. We verify the behavior by observing local state converge to a seeded
-// origin value — the only way that can happen is if origin was consulted.
+// TestRatelimit_StrictModeForcesOriginFetch asserts that once strict mode
+// is active, prepareCheck fetches from origin even when the local windows
+// are warm. We verify by observing local state converge to a seeded origin
+// value — the only way that can happen is if origin was consulted.
 func TestRatelimit_StrictModeForcesOriginFetch(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
 	origin := counter.NewMemory()
-	svc, err := New(Config{Clock: clk, Counter: origin, DB: newTestDB(t)})
+	svc, err := New(Config{
+		Clock: clk, Counter: origin, DB: newTestDB(t), Region: "test-region"})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -185,7 +188,8 @@ func TestRatelimitMany_RollsBackOnPartialFailure(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
-	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
+	svc, err := New(Config{
+		Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t), Region: "test-region"})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 

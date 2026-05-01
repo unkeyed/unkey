@@ -7,9 +7,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
+	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
+
+	rldb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 )
 
 // newTestDB returns a [mysql.MySQL] handle for the shared docker-compose
@@ -74,4 +78,60 @@ func (c *failingCounter) Get(_ context.Context, _ string) (int64, error) {
 func (c *failingCounter) Increment(_ context.Context, _ string, _ int64, _ ...time.Duration) (int64, error) {
 	c.incrCalls.Add(1)
 	return 0, c.err
+}
+
+// integrationTestEnv bundles a per-test MySQL container plus both a
+// pkg/mysql database (for handing to [ratelimit.New] under the [DB]
+// interface) and a wrapped ratelimit DB (for direct query assertions).
+// Each test gets independent service instances against the same data
+// plane; that's the multi-region scenario the integration tests assert.
+//
+// Uses dockertest.MySQL rather than containers.MySQL so each test gets
+// its own isolated table state. The integration tests assert on row
+// counts and table contents, which would race under a shared database.
+type integrationTestEnv struct {
+	t    *testing.T
+	db   DB
+	rldb *rldb.Database
+}
+
+func newIntegrationTestEnv(t *testing.T) *integrationTestEnv {
+	t.Helper()
+
+	cfg := dockertest.MySQL(t)
+	database, err := mysql.New(mysql.Config{
+		PrimaryDSN:  cfg.DSN,
+		ReadOnlyDSN: "",
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = database.Close() })
+
+	return &integrationTestEnv{
+		t:    t,
+		db:   database,
+		rldb: rldb.New(database.RW(), database.RO()),
+	}
+}
+
+// newRegion builds a ratelimit service tagged with the default test
+// region. Single-region scenarios use this.
+func (e *integrationTestEnv) newRegion(clk clock.Clock) *service {
+	return e.newRegionAs(clk, "test-region")
+}
+
+// newRegionAs builds a ratelimit service tagged with regionTag. Multi-
+// region tests use distinct tags so each region's window-counts rows live
+// in their own (workspace, ..., region) bucket and the sync loop's
+// region != self predicate makes each region see the others' contributions.
+func (e *integrationTestEnv) newRegionAs(clk clock.Clock, regionTag string) *service {
+	e.t.Helper()
+	svc, err := New(Config{
+		Clock:   clk,
+		Counter: counter.NewMemory(),
+		DB:      e.db,
+		Region:  regionTag,
+	})
+	require.NoError(e.t, err)
+	e.t.Cleanup(func() { _ = svc.Close() })
+	return svc
 }

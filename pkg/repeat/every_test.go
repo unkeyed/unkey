@@ -275,6 +275,112 @@ func TestEvery_StopBehavior(t *testing.T) {
 	})
 }
 
+func TestEvery_Jitter(t *testing.T) {
+	t.Run("zero jitter is fixed cadence", func(t *testing.T) {
+		var counter atomic.Int32
+		stop := Every(10*time.Millisecond, func() { counter.Add(1) }, 0)
+		time.Sleep(55 * time.Millisecond)
+		stop()
+		count := counter.Load()
+		assert.GreaterOrEqual(t, count, int32(3))
+		assert.LessOrEqual(t, count, int32(8))
+	})
+
+	t.Run("omitted jitter is fixed cadence", func(t *testing.T) {
+		var counter atomic.Int32
+		stop := Every(10*time.Millisecond, func() { counter.Add(1) })
+		time.Sleep(55 * time.Millisecond)
+		stop()
+		count := counter.Load()
+		assert.GreaterOrEqual(t, count, int32(3))
+		assert.LessOrEqual(t, count, int32(8))
+	})
+
+	t.Run("jitter keeps gaps within the configured range", func(t *testing.T) {
+		// With jitter=0.5 and base=20ms, ticks land in [10ms, 30ms].
+		// Slack accounts for scheduler latency on busy CI machines.
+		var (
+			mu    sync.Mutex
+			ticks []time.Time
+			base  = 20 * time.Millisecond
+			slack = 15 * time.Millisecond
+		)
+		stop := Every(base, func() {
+			mu.Lock()
+			ticks = append(ticks, time.Now())
+			mu.Unlock()
+		}, 0.5)
+		time.Sleep(200 * time.Millisecond)
+		stop()
+
+		mu.Lock()
+		defer mu.Unlock()
+		assert.GreaterOrEqual(t, len(ticks), 4, "should have ticked several times")
+		for i := 1; i < len(ticks); i++ {
+			gap := ticks[i].Sub(ticks[i-1])
+			assert.GreaterOrEqual(t, gap, 10*time.Millisecond-slack,
+				"gap %d below jitter floor", i)
+			assert.LessOrEqual(t, gap, 30*time.Millisecond+slack,
+				"gap %d above jitter ceiling", i)
+		}
+	})
+
+	t.Run("jitter clamps negative to zero", func(t *testing.T) {
+		// Negative jitter must be treated as 0, not propagate as a
+		// negative offset that would produce sub-zero durations.
+		var counter atomic.Int32
+		stop := Every(10*time.Millisecond, func() { counter.Add(1) }, -0.5)
+		time.Sleep(55 * time.Millisecond)
+		stop()
+		assert.GreaterOrEqual(t, counter.Load(), int32(3),
+			"clamped jitter should still tick at the base cadence")
+	})
+
+	t.Run("slow fn does not drift the cadence", func(t *testing.T) {
+		// fn takes ~5ms, base interval is 20ms. Cadence must stay at
+		// roughly 20ms between fn starts, not 25ms (which would be the
+		// drift if we waited for fn to return before starting the next
+		// timer). Without jitter so the assertion is tight.
+		var (
+			mu     sync.Mutex
+			starts []time.Time
+		)
+		stop := Every(20*time.Millisecond, func() {
+			mu.Lock()
+			starts = append(starts, time.Now())
+			mu.Unlock()
+			time.Sleep(5 * time.Millisecond)
+		})
+		time.Sleep(150 * time.Millisecond)
+		stop()
+
+		mu.Lock()
+		defer mu.Unlock()
+		assert.GreaterOrEqual(t, len(starts), 5,
+			"a 150ms run with 20ms cadence should start fn at least 5 times")
+		const slack = 10 * time.Millisecond
+		for i := 1; i < len(starts); i++ {
+			gap := starts[i].Sub(starts[i-1])
+			assert.GreaterOrEqual(t, gap, 20*time.Millisecond-slack,
+				"gap %d below cadence (drift toward fast)", i)
+			assert.LessOrEqual(t, gap, 20*time.Millisecond+slack,
+				"gap %d above cadence (drift from slow fn)", i)
+		}
+	})
+
+	t.Run("jitter clamps above one", func(t *testing.T) {
+		// Jitter > 1 would let the lower bound go negative, which is
+		// meaningless for a periodic timer. Clamping to 1 keeps the
+		// realized duration in [~0, 2*d] (with the package floor).
+		var counter atomic.Int32
+		stop := Every(10*time.Millisecond, func() { counter.Add(1) }, 5.0)
+		time.Sleep(55 * time.Millisecond)
+		stop()
+		// Should still tick at least the base cadence number of times.
+		assert.GreaterOrEqual(t, counter.Load(), int32(2))
+	})
+}
+
 // Benchmark tests to measure performance impact
 func BenchmarkEvery(b *testing.B) {
 

@@ -1565,6 +1565,19 @@ type RatelimitOverride struct {
 	DeletedAtM  sql.NullInt64 `db:"deleted_at_m"`
 }
 
+type RatelimitWindowCount struct {
+	Pk          uint64 `db:"pk"`
+	WorkspaceID string `db:"workspace_id"`
+	Namespace   string `db:"namespace"`
+	Identifier  string `db:"identifier"`
+	DurationMs  uint64 `db:"duration_ms"`
+	Sequence    int64  `db:"sequence"`
+	Region      string `db:"region"`
+	Count       uint64 `db:"count"`
+	ExpiresAt   uint64 `db:"expires_at"`
+	UpdatedAt   uint64 `db:"updated_at"`
+}
+
 type Region struct {
 	Pk          uint64 `db:"pk"`
 	ID          string `db:"id"`

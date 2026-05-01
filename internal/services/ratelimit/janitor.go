@@ -13,14 +13,15 @@ func (s *service) startJanitor() {
 	repeat.Every(time.Minute, s.runJanitorOnce)
 }
 
-// runJanitorOnce performs a single cleanup pass. It prevents unbounded memory
-// growth from two sources:
+// runJanitorOnce performs a single cleanup pass. It prevents unbounded
+// memory growth from two sources:
 //
-//   - Sliding-window counters whose window ended more than 3x its duration ago.
+//   - Sliding-window counters whose window ended more than 3x its duration
+//     ago.
 //   - Strict-mode deadlines that are already in the past.
 //
-// Uses sync.Map.Range + CompareAndDelete so cleanup never blocks rate limit
-// operations.
+// Uses sync.Map.Range + CompareAndDelete so cleanup never blocks rate
+// limit operations.
 func (s *service) runJanitorOnce() {
 	now := s.clock.Now()
 	activeCounters := float64(0)

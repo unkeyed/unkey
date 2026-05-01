@@ -313,6 +313,7 @@ func initMiddlewareEngine(cfg middlewareEngineCfg) (engine.Evaluator, error) {
 		Clock:   cfg.Clock,
 		Counter: ctr,
 		DB:      db.ToMySQL(cfg.Database),
+		Region:  cfg.Region,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ratelimit service: %w", err)

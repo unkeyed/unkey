@@ -154,6 +154,7 @@ func NewHarness(t *testing.T) *Harness {
 		Clock:   clk,
 		Counter: ctr,
 		DB:      db.ToMySQL(database),
+		Region:  "test-region",
 	})
 	require.NoError(t, err)
 

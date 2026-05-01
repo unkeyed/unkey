@@ -32,6 +32,34 @@ type Querier interface {
 	//  FROM ratelimit_blocklist
 	//  WHERE expires_at > ?
 	BlocklistListActive(ctx context.Context, now uint64) ([]BlocklistListActiveRow, error)
+	// WindowCountsDeleteExpired removes rows whose grace period has passed and
+	// returns the number of rows deleted so the caller can surface it for
+	// observability. Called by an external Restate cron, not the ratelimit
+	// service itself.
+	//
+	//  DELETE FROM ratelimit_window_counts
+	//  WHERE expires_at < ?
+	WindowCountsDeleteExpired(ctx context.Context, cutoff uint64) (int64, error)
+	// WindowCountsImported returns the sum of foreign-region contributions for
+	// every still-active window cell, with each region's row excluded from its
+	// own caller. Receivers fold the returned `imported` directly into
+	// counterEntry.imported via atomicMax; aggregation runs in MySQL because
+	// the application only ever uses the sum, so transferring per-region rows
+	// just to collapse them in Go wastes bandwidth and memory. The SUM is cast
+	// to SIGNED so sqlc maps it to int64, matching atomic.Int64 in the caller.
+	//
+	//  SELECT
+	//      workspace_id,
+	//      namespace,
+	//      identifier,
+	//      duration_ms,
+	//      sequence,
+	//      CAST(SUM(count) AS SIGNED) AS imported
+	//  FROM ratelimit_window_counts
+	//  WHERE expires_at > ?
+	//    AND region != ?
+	//  GROUP BY workspace_id, namespace, identifier, duration_ms, sequence
+	WindowCountsImported(ctx context.Context, arg WindowCountsImportedParams) ([]WindowCountsImportedRow, error)
 }
 
 var _ Querier = (*Queries)(nil)
