@@ -39,6 +39,14 @@ Writes are batched (100-row buckets, one-second flush interval) and circuit-brok
 
 Cleanup is a Restate cron defined in [`svc/ctrl/worker/ratelimitblocklistcleanup`](https://github.com/unkeyed/unkey/tree/main/svc/ctrl/worker/ratelimitblocklistcleanup) that runs every minute and deletes expired rows.
 
+## Propagation filters
+
+Two filters gate emission. Both are evaluated after the local denial; local strict mode applies regardless.
+
+**Window duration must be at least 1 minute.** The 1s flush plus 10s sync pipeline takes longer than shorter windows, so the row would arrive at receivers after the originating window has already rotated and offers no enforcement value. Sub-minute windows still enforce locally, just not cross-region.
+
+**Pre-cost usage must be at or above half the limit.** A denial where the user has consumed less than half their quota typically came from a single oversized request (cost approaches or exceeds the limit on a fresh user) rather than accumulated abuse. Broadcasting it would block other regions for someone who still has plenty of legitimate budget. The threshold stops at half so heavy-usage cases (e.g., consumed 8 of 10, requests cost 3) still propagate, since those users are demonstrating intent to consume well past their limit.
+
 ## Known limitation: spread-evenly traffic
 
 The propagation channel is denial-driven. A region only writes to MySQL when its own local counter trips the limit. With N regions and traffic split perfectly evenly across them, each region sees `total/N`. If the customer's limit is `L` and global traffic is `X·L`, each region locally sees `X·L/N`. For `X < N`, no region's local count crosses `L`, so no region denies, the propagation channel never fires, and the customer effectively gets up to `N·L` globally before any single region trips.

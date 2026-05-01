@@ -48,6 +48,8 @@ Rate limits are enforced consistently across all regions. A user can't bypass li
 
 When an identifier crosses its limit in any region, every other region picks up the denial within a few seconds and starts rejecting the same identifier locally, even before that region sees any of the abusive traffic firsthand. The window is honored end to end: as the offending window decays, every region releases the identifier at the same time.
 
+Cross-region enforcement applies to limits with a window of at least 1 minute. Shorter windows (for example, per-second burst limits) are enforced per region only, because the propagation roundtrip takes longer than the window itself.
+
 ## Response fields
 
 Every rate limit check returns:
