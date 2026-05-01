@@ -23,13 +23,9 @@ const blocklistSyncInterval = 10 * time.Second
 // hung MySQL never wedges the consumer goroutine.
 const blocklistFlushTimeout = 10 * time.Second
 
-// flushBlocklistBatch writes a batch of propagation events to MySQL. Wrapped
-// in the blocklist circuit breaker so a sick database fails fast instead of
-// stalling the batch processor. Each row is its own INSERT IGNORE; collapsing
-// to a multi-row INSERT would be cheaper but sqlc does not generate variadic
-// VALUES lists, and the batch is small enough (≤100) that the round-trip
-// cost is acceptable. Errors are logged and discarded — the same denial will
-// be re-emitted on the next strict-mode transition.
+// flushBlocklistBatch writes a batch of propagation events to MySQL in a
+// single bulk INSERT. Wrapped in the blocklist circuit breaker so a sick
+// database fails fast instead of stalling the batch processor.
 //
 // Buffered items are [db.BlocklistInsertParams] directly so we avoid an
 // intermediate struct just to flip int/uint widths at flush time. Callers
@@ -43,12 +39,7 @@ func (s *service) flushBlocklistBatch(ctx context.Context, events []db.Blocklist
 	defer cancel()
 
 	_, err := s.blocklistCircuitBreaker.Do(ctx, func(ctx context.Context) (any, error) {
-		for _, e := range events {
-			if err := s.db.RW().BlocklistInsert(ctx, e); err != nil {
-				return nil, err
-			}
-		}
-		return nil, nil
+		return nil, s.db.BulkInsertBlocklist(ctx, events)
 	})
 	if err != nil {
 		metrics.RatelimitBlocklistWriteErrors.Inc()

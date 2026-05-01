@@ -1,15 +1,13 @@
 -- name: BlocklistInsert :exec
 -- BlocklistInsert records a single rate-limit denial so other regions can
 -- propagate it. The unique key spans (workspace, namespace, identifier,
--- duration_ms, sequence), so cross-region concurrent emits at the same
--- sequence collide and are silently dropped — INSERT IGNORE is sufficient
--- because every emit for the same key carries identical content (limit and
--- expires_at are both deterministic at the application layer).
+-- duration_ms, sequence); duplicate inserts return ER_DUP_ENTRY (1062),
+-- which the caller may handle as appropriate.
 --
--- Sequence advancement (sustained abuse crossing window boundaries) creates
--- a new row instead of mutating an existing one. Receivers sync all active
--- rows and inflate the matching counter for each.
-INSERT IGNORE INTO ratelimit_blocklist (
+-- Production hot path uses [BulkInsertBlocklist] in database.go. This
+-- single-row form is kept for tests that need to seed individual rows
+-- directly.
+INSERT INTO ratelimit_blocklist (
     workspace_id,
     namespace,
     identifier,

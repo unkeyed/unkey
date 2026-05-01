@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "blocklist_delete_expired.sql_generated.go",
         "blocklist_insert.sql_generated.go",
+        "blocklist_insert_bulk.go",
         "blocklist_list_active.sql_generated.go",
         "database.go",
         "doc.go",
