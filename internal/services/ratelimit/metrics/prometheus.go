@@ -287,4 +287,21 @@ var (
 			Help:      "Total number of counter entries created by the cross-region blocklist sync loop.",
 		},
 	)
+
+	// RatelimitBlocklistRowsLastPoll is the row count returned by the most
+	// recent BlocklistListActive query. Set on every successful sync tick.
+	// Multiplied by node count and sync frequency, this is the dominant read
+	// load the propagation channel puts on MySQL — watch it to estimate
+	// fleet-wide DB pressure as the active blocklist grows.
+	//
+	// Example usage:
+	//   metrics.RatelimitBlocklistRowsLastPoll.Set(float64(len(rows)))
+	RatelimitBlocklistRowsLastPoll = lazy.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "blocklist_rows_last_poll",
+			Help:      "Number of rows returned by the most recent ratelimit_blocklist sync query.",
+		},
+	)
 )

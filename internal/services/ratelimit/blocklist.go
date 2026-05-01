@@ -88,6 +88,7 @@ func (s *service) runBlocklistSyncOnce() {
 		logger.Error("ratelimit blocklist sync failed", "error", err.Error())
 		return
 	}
+	metrics.RatelimitBlocklistRowsLastPoll.Set(float64(len(rows)))
 
 	for _, r := range rows {
 		curKey := counterKey{
