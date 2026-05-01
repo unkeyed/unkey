@@ -10,7 +10,8 @@ import (
 
 // startJanitor schedules runJanitorOnce to run every minute.
 func (s *service) startJanitor() {
-	repeat.Every(time.Minute, s.runJanitorOnce)
+	stop := repeat.Every(time.Minute, s.runJanitorOnce)
+	s.stopBackground = append(s.stopBackground, stop)
 }
 
 // runJanitorOnce performs a single cleanup pass. It prevents unbounded

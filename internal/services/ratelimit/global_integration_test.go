@@ -11,7 +11,7 @@ import (
 
 // rawCountRow is the per-region row shape stored in MySQL. Tests use
 // it for inspection because the production WindowCountsImported query
-// returns pre-aggregated sums, which is correct for the sync loop but
+// returns pre-aggregated sums, which is correct for the pull loop but
 // hides the per-region detail needed to assert which region wrote what.
 type rawCountRow struct {
 	WorkspaceID string
@@ -72,9 +72,9 @@ func (e *integrationTestEnv) findRow(workspaceID, namespace, identifier, region 
 }
 
 // waitForRow blocks until a row from `region` for the matching
-// window cell is visible in MySQL. Manual runGlobalFlushOnce calls
+// window cell is visible in MySQL. Manual runGlobalPushOnce calls
 // in tests are synchronous, so the row is normally visible immediately;
-// the polling loop covers the case where the periodic flush goroutine
+// the polling loop covers the case where the periodic push goroutine
 // (running on its own jittered cadence) is the writer. Polling, never
 // goroutine-ticker timing.
 func (e *integrationTestEnv) waitForRow(workspaceID, namespace, identifier, region string, durationMs int64) rawCountRow {
@@ -140,16 +140,16 @@ func TestGlobal_PropagatesCountAcrossRegions(t *testing.T) {
 	}
 
 	// Trigger flush deterministically rather than waiting for the 10s
-	// jittered ticker. The bulk upsert inside runGlobalFlushOnce is
+	// jittered ticker. The bulk upsert inside runGlobalPushOnce is
 	// synchronous, so by the time it returns the row is in MySQL.
-	regionA.runGlobalFlushOnce()
+	regionA.runGlobalPushOnce()
 	row := env.waitForRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
 	require.Equal(t, uint64(6), row.Count, "region A's row should reflect its 6 consumed tokens")
 
 	// Region B has seen no traffic. Without count sharing, B would happily
-	// allow up to its own limit. Sync from MySQL: B.globalCount should now
+	// allow up to its own limit. Pull from MySQL: B.globalCount should now
 	// reflect A's contribution.
-	regionB.runGlobalSyncOnce()
+	regionB.runGlobalPullOnce()
 
 	// One more cost-1 request to B: effective = 0 (B's val) + 6 (B's globalCount
 	// from A) + 0 (prev) + 1 (cost) = 7, still under 10, so it passes.
@@ -167,13 +167,13 @@ func TestGlobal_PropagatesCountAcrossRegions(t *testing.T) {
 	require.False(t, resp.Success, "B must deny when combined effective exceeds limit; without sharing this would have passed")
 }
 
-// TestGlobal_BelowUtilizationFloorDoesNotFlush asserts the write-side
+// TestGlobal_BelowUtilizationFloorDoesNotPush asserts the write-side
 // utilization filter that gates emission. An entry whose val/limit is below
 // the floor cannot meaningfully push another region over its limit, so
 // flushing it would be wasted MySQL load. The cursed scenario it prevents
 // is "cost > limit on a fresh window" — the user has consumed nothing in
 // this window but would otherwise be propagated to all other regions.
-func TestGlobal_BelowUtilizationFloorDoesNotFlush(t *testing.T) {
+func TestGlobal_BelowUtilizationFloorDoesNotPush(t *testing.T) {
 	t.Parallel()
 
 	env := newIntegrationTestEnv(t)
@@ -199,7 +199,7 @@ func TestGlobal_BelowUtilizationFloorDoesNotFlush(t *testing.T) {
 		require.True(t, resp.Success)
 	}
 
-	region.runGlobalFlushOnce()
+	region.runGlobalPushOnce()
 
 	// The flush filter must have skipped this entry. require.Never polls
 	// to guard against a periodic flush from the background goroutine
@@ -210,10 +210,10 @@ func TestGlobal_BelowUtilizationFloorDoesNotFlush(t *testing.T) {
 		"sub-floor utilization must not write a window-counts row")
 }
 
-// TestGlobal_AtFloorFlushes is the inverse of the previous test: at
+// TestGlobal_AtFloorPushes is the inverse of the previous test: at
 // or above the floor, the entry must flush. Tests the boundary specifically
 // to guard against an off-by-one in the comparison.
-func TestGlobal_AtFloorFlushes(t *testing.T) {
+func TestGlobal_AtFloorPushes(t *testing.T) {
 	t.Parallel()
 
 	env := newIntegrationTestEnv(t)
@@ -239,7 +239,7 @@ func TestGlobal_AtFloorFlushes(t *testing.T) {
 		require.True(t, resp.Success)
 	}
 
-	region.runGlobalFlushOnce()
+	region.runGlobalPushOnce()
 
 	row := env.waitForRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
 	require.Equal(t, uint64(5), row.Count, "row count must reflect the at-floor utilization")
@@ -274,12 +274,12 @@ func TestGlobal_SyncExcludesOwnRegion(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, resp.Success)
 	}
-	region.runGlobalFlushOnce()
+	region.runGlobalPushOnce()
 	env.waitForRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
 
 	// Sync from this same region — should NOT pull its own row, so globalCount
 	// must stay at zero.
-	region.runGlobalSyncOnce()
+	region.runGlobalPullOnce()
 
 	curKey := counterKey{
 		workspaceID: workspaceID, namespace: namespace, identifier: identifier,
@@ -332,15 +332,15 @@ func TestGlobal_SumsAcrossMultipleRegions(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	regionA.runGlobalFlushOnce()
-	regionB.runGlobalFlushOnce()
+	regionA.runGlobalPushOnce()
+	regionB.runGlobalPushOnce()
 	env.waitForRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
 	env.waitForRow(workspaceID, namespace, identifier, "region-b", duration.Milliseconds())
 
 	// Region C has seen nothing locally. After sync, its globalCount must
 	// equal the sum of A's 12 and B's 11. Max would give 12 (under-count),
 	// replace would give whichever arrived last.
-	regionC.runGlobalSyncOnce()
+	regionC.runGlobalPullOnce()
 
 	curKey := counterKey{
 		workspaceID: workspaceID, namespace: namespace, identifier: identifier,
@@ -362,7 +362,7 @@ func TestGlobal_SumsAcrossMultipleRegions(t *testing.T) {
 
 // TestGlobal_ChangeFilterAvoidsRedundantWrites asserts that a flush
 // run twice with no intervening traffic does not produce a second write.
-// The change filter (skip if val <= lastFlushed) is the dominant cost
+// The change filter (skip if val <= lastPushed) is the dominant cost
 // reduction in steady state where most active windows are quiet between
 // flushes.
 func TestGlobal_ChangeFilterAvoidsRedundantWrites(t *testing.T) {
@@ -390,7 +390,7 @@ func TestGlobal_ChangeFilterAvoidsRedundantWrites(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, resp.Success)
 	}
-	region.runGlobalFlushOnce()
+	region.runGlobalPushOnce()
 	first := env.waitForRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
 	require.Equal(t, uint64(6), first.Count)
 
@@ -402,9 +402,9 @@ func TestGlobal_ChangeFilterAvoidsRedundantWrites(t *testing.T) {
 
 	// Trigger another flush with no intervening traffic. The filter must
 	// recognize val unchanged and skip the upsert. The bulk upsert is
-	// synchronous, so by the time runGlobalFlushOnce returns the
+	// synchronous, so by the time runGlobalPushOnce returns the
 	// row is either updated or it isn't — no waiting needed.
-	region.runGlobalFlushOnce()
+	region.runGlobalPushOnce()
 
 	second, ok := env.findRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
 	require.True(t, ok)
@@ -441,7 +441,7 @@ func TestGlobal_DoesNotPropagateColdOversizedRequest(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, resp.Success, "cost > limit must deny locally")
 
-	region.runGlobalFlushOnce()
+	region.runGlobalPushOnce()
 
 	// The cold-window denial increments nothing (deny path doesn't bump
 	// val), so val stays 0 and the utilization filter skips the flush.
@@ -451,7 +451,7 @@ func TestGlobal_DoesNotPropagateColdOversizedRequest(t *testing.T) {
 		"cold oversized denial must not write a window-counts row")
 }
 
-// TestGlobal_EntriesCreatedOnSync asserts that the sync goroutine
+// TestGlobal_EntriesCreatedOnSync asserts that the pull goroutine
 // materializes a local counterEntry when it sees a row for a key the
 // region has not seen any traffic for. The new entry's globalCount
 // carries the remote sum; subsequent local requests on this identifier
@@ -480,12 +480,12 @@ func TestGlobal_EntriesCreatedOnSync(t *testing.T) {
 		})
 		require.NoError(t, err)
 	}
-	regionA.runGlobalFlushOnce()
+	regionA.runGlobalPushOnce()
 	env.waitForRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
 
 	// Region B has no local entry for this key. Sync must materialize one
 	// with globalCount=6.
-	regionB.runGlobalSyncOnce()
+	regionB.runGlobalPullOnce()
 
 	curKey := counterKey{
 		workspaceID: workspaceID, namespace: namespace, identifier: identifier,

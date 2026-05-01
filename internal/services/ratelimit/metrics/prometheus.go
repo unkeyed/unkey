@@ -210,73 +210,73 @@ var (
 // flush/sync path that shares observed counts across regions so each
 // region can fold cross-region traffic into its sliding-window math.
 var (
-	// RatelimitGlobalWritesTotal counts rows successfully upserted to
-	// ratelimit_window_counts by the cross-region flush. Reflects
+	// RatelimitGlobalPushTotal counts rows successfully upserted to
+	// ratelimit_window_counts by the cross-region push. Reflects
 	// throughput of the count-sharing channel; combined with the active
 	// window count it characterizes write pressure on MySQL.
 	//
 	// Example usage:
-	//   metrics.RatelimitGlobalWritesTotal.Add(float64(len(batch)))
-	RatelimitGlobalWritesTotal = lazy.NewCounter(
+	//   metrics.RatelimitGlobalPushTotal.Add(float64(len(batch)))
+	RatelimitGlobalPushTotal = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
-			Name:      "global_writes_total",
+			Name:      "global_push_total",
 			Help:      "Total number of rows written to the cross-region ratelimit_window_counts table.",
 		},
 	)
 
-	// RatelimitGlobalWriteErrors counts cross-region flush attempts
+	// RatelimitGlobalPushErrors counts cross-region push attempts
 	// that failed (MySQL error or circuit-breaker trip). The events were
 	// dropped; the next flush tick re-emits any entry that still
 	// satisfies the change and utilization filters. Sustained non-zero
 	// values indicate the propagation channel is impaired.
 	//
 	// Example usage:
-	//   metrics.RatelimitGlobalWriteErrors.Inc()
-	RatelimitGlobalWriteErrors = lazy.NewCounter(
+	//   metrics.RatelimitGlobalPushErrors.Inc()
+	RatelimitGlobalPushErrors = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
-			Name:      "global_write_errors_total",
-			Help:      "Total number of cross-region flushes that failed.",
+			Name:      "global_push_errors_total",
+			Help:      "Total number of cross-region pushes that failed.",
 		},
 	)
 
-	// RatelimitGlobalSyncRowsApplied counts rows pulled from
+	// RatelimitGlobalPullRowsApplied counts rows pulled from
 	// ratelimit_window_counts and applied to local
-	// counterEntry.globalCount on each sync tick. Idempotent across
+	// counterEntry.globalCount on each pull tick. Idempotent across
 	// ticks: applying the same row twice is a no-op via atomicMax on the
 	// per-key sum.
 	//
 	// Example usage:
-	//   metrics.RatelimitGlobalSyncRowsApplied.Add(float64(len(rows)))
-	RatelimitGlobalSyncRowsApplied = lazy.NewCounter(
+	//   metrics.RatelimitGlobalPullRowsApplied.Add(float64(len(rows)))
+	RatelimitGlobalPullRowsApplied = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
-			Name:      "global_sync_rows_applied_total",
+			Name:      "global_pull_rows_applied_total",
 			Help:      "Total number of cross-region rows applied to local globalCount state.",
 		},
 	)
 
-	// RatelimitGlobalSyncErrors counts sync ticks that failed to read
+	// RatelimitGlobalPullErrors counts pull ticks that failed to read
 	// ratelimit_window_counts. Local globalCount state remains as it
 	// was at the previous successful sync.
 	//
 	// Example usage:
-	//   metrics.RatelimitGlobalSyncErrors.Inc()
-	RatelimitGlobalSyncErrors = lazy.NewCounter(
+	//   metrics.RatelimitGlobalPullErrors.Inc()
+	RatelimitGlobalPullErrors = lazy.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
-			Name:      "global_sync_errors_total",
-			Help:      "Total number of cross-region sync ticks that returned an error.",
+			Name:      "global_pull_errors_total",
+			Help:      "Total number of cross-region pull ticks that returned an error.",
 		},
 	)
 
 	// RatelimitGlobalEntriesCreated counts counterEntry instances
-	// created by the cross-region sync loop because no local traffic had
+	// created by the cross-region pull loop because no local traffic had
 	// touched the matching key yet. Separate from RatelimitWindowsCreated
 	// so the traffic-driven cardinality signal stays clean.
 	//
@@ -287,23 +287,23 @@ var (
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "global_entries_created_total",
-			Help:      "Total number of counterEntry instances created by the cross-region sync loop.",
+			Help:      "Total number of counterEntry instances created by the cross-region pull loop.",
 		},
 	)
 
-	// RatelimitGlobalRowsLastPoll is the row count returned by the
-	// most recent cross-region sync query. Set on every successful sync
+	// RatelimitGlobalPullRowsLastPoll is the row count returned by the
+	// most recent cross-region pull query. Set on every successful sync
 	// tick. Multiplied by region count and sync frequency, this is the
 	// dominant read load the count-sharing channel puts on MySQL.
 	//
 	// Example usage:
-	//   metrics.RatelimitGlobalRowsLastPoll.Set(float64(len(rows)))
-	RatelimitGlobalRowsLastPoll = lazy.NewGauge(
+	//   metrics.RatelimitGlobalPullRowsLastPoll.Set(float64(len(rows)))
+	RatelimitGlobalPullRowsLastPoll = lazy.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
-			Name:      "global_rows_last_poll",
-			Help:      "Number of rows returned by the most recent cross-region sync query.",
+			Name:      "global_pull_rows_last_poll",
+			Help:      "Number of rows returned by the most recent cross-region pull query.",
 		},
 	)
 )

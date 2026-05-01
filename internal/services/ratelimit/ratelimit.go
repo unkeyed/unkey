@@ -23,7 +23,7 @@ type checkState struct {
 	// curGlobal and prevGlobal are snapshots of
 	// counterEntry.globalCount taken at prepareCheck time so the
 	// CAS retry loop in Ratelimit does not re-load them on every retry.
-	// Cross-region counts only mutate from the cross-region sync
+	// Cross-region counts only mutate from the cross-region pull
 	// goroutine on a 10s cadence, so they are effectively constant for
 	// the lifetime of any single request; snapshotting matches that
 	// lifetime and saves two atomic loads per CAS attempt.
@@ -36,10 +36,9 @@ type checkState struct {
 	source        string
 }
 
-// prepareCheck loads both window counters for a request, tracks the most
-// recent limit on cur so the cross-region flush goroutine can apply the
-// utilization filter, and fetches from Redis when strict mode is active
-// for this identifier after a recent denial.
+// prepareCheck loads both window counters for a request and fetches from
+// Redis when strict mode is active for this identifier after a recent
+// denial.
 func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkState {
 	durationMs := req.Duration.Milliseconds()
 	curSeq := calculateSequence(req.Time, req.Duration)
@@ -50,14 +49,6 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 
 	cur := s.loadCounter(curKey)
 	prev := s.loadCounter(prevKey)
-
-	// Track the most recent limit on cur so the cross-region flush
-	// goroutine can apply the utilization filter without taking the
-	// request path's req.Limit out of band. Stored on cur because the
-	// flush only ever considers cur — prev's count carries forward as
-	// the faded contribution but does not get re-flushed in its own
-	// right.
-	cur.limit.Store(req.Limit)
 
 	// First caller per entry runs fetchFromOrigin; concurrent callers block
 	// inside Do until it returns, then take the fast path (single atomic
@@ -100,7 +91,7 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 // sliding window given the current window's local counter value. Each
 // window's total count is its own region's val (passed in for cur,
 // atomically loaded for prev) plus the cross-region sum of other regions'
-// contributions from the most recent cross-region sync. The two
+// contributions from the most recent cross-region pull. The two
 // contributions are tracked separately to keep the cross-region merge
 // from feeding back into the next flush, but for the deny decision
 // they're equivalent: any source of count increases pressure on the
@@ -164,6 +155,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 		if cs.cur.val.CompareAndSwap(curCount, curCount+req.Cost) {
 			s.replayBuffer.Buffer(req)
+			cs.cur.markAboveFloor(curCount+req.Cost, req.Limit)
 			metrics.RatelimitDecision.WithLabelValues(cs.source, "passed").Inc()
 			span.SetAttributes(attribute.Bool("passed", true))
 			return RatelimitResponse{
@@ -256,6 +248,12 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 			if effectives[i] > req.Limit {
 				s.setStrictUntil(checks[i].strictKey, req.Time.Add(req.Duration).UnixMilli())
 			}
+		}
+	} else {
+		// Increments stuck. Mark any entry that crossed the utilization
+		// floor so the cross-region push goroutine picks it up.
+		for i, req := range reqs {
+			checks[i].cur.markAboveFloor(newCounts[i], req.Limit)
 		}
 	}
 

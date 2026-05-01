@@ -121,7 +121,7 @@ func (e *integrationTestEnv) newRegion(clk clock.Clock) *service {
 
 // newRegionAs builds a ratelimit service tagged with regionTag. Multi-
 // region tests use distinct tags so each region's window-counts rows live
-// in their own (workspace, ..., region) bucket and the sync loop's
+// in their own (workspace, ..., region) bucket and the pull loop's
 // region != self predicate makes each region see the others' contributions.
 func (e *integrationTestEnv) newRegionAs(clk clock.Clock, regionTag string) *service {
 	e.t.Helper()

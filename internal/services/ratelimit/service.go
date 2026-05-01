@@ -84,36 +84,61 @@ type counterEntry struct {
 	hydrated atomic.Bool
 
 	// globalCount is the sum of other regions' counts for this cell
-	// as of the most recent cross-region sync. The deny decision uses
+	// as of the most recent cross-region pull. The deny decision uses
 	// cur.val + cur.globalCount plus the prev-window analogue, so
 	// this region's local observation is augmented with the cross-region
 	// picture without inflating val itself — inflating val would feed
 	// back into our own MySQL row on the next flush and double-count
-	// other regions' contributions. Updated by the cross-region sync
+	// other regions' contributions. Updated by the cross-region pull
 	// goroutine via atomicMax; the request path only reads it.
 	globalCount atomic.Int64
 
-	// limit is the most recently observed per-request limit on this
-	// entry, written by prepareCheck on every request that touches the
-	// entry. The cross-region flush goroutine compares val/limit against
-	// the utilization floor to skip writes for entries that haven't
-	// crossed the propagation threshold. Different requests on the same
-	// identifier may carry different limits in principle; last writer
-	// wins, since the most recent request's view of the limit is the
-	// closest-to-current value the flush goroutine can act on.
-	limit atomic.Int64
+	// aboveFloor latches to true once the entry's val first reaches
+	// globalUtilizationFloor of req.Limit on a passing request. The push
+	// goroutine skips entries with aboveFloor=false. Pull-created entries
+	// (no local traffic yet) start at false and stay there until a
+	// request actually consumes against this region. Once true, stays
+	// true for the lifetime of the entry; the next sequence rotation
+	// creates a fresh entry with aboveFloor=false again.
+	aboveFloor atomic.Bool
 
-	// lastFlushed is the val written by the previous successful
-	// cross-region flush. The flush goroutine skips entries whose val
+	// lastPushed is the val written by the previous successful
+	// cross-region push. The push goroutine skips entries whose val
 	// hasn't moved since the last flush, so quiet entries don't generate
-	// redundant MySQL writes. Updated only by the flush goroutine, only
+	// redundant MySQL writes. Updated only by the push goroutine, only
 	// after the bulk upsert succeeds; a transient MySQL failure leaves
 	// entries eligible for retry on the next tick.
-	lastFlushed atomic.Int64
+	lastPushed atomic.Int64
 
 	// fetch is bound to the entry's key at creation so the hot path
 	// doesn't allocate a per-call closure to pass into Hydrate.
 	fetch func(context.Context) int64
+}
+
+// markAboveFloor latches the aboveFloor flag to true when the post-cost
+// val first reaches the utilization floor. Called from the request path
+// after a successful CAS (Ratelimit) or after the all-passed check
+// (RatelimitMany), with the request's authoritative limit. The pre-Load
+// guard avoids a redundant atomic Store on subsequent requests once the
+// flag is already set.
+func (e *counterEntry) markAboveFloor(val, limit int64) {
+	if e.aboveFloor.Load() {
+		return
+	}
+	if float64(val) >= globalUtilizationFloor*float64(limit) {
+		e.aboveFloor.Store(true)
+	}
+}
+
+// shouldPush is true when the entry has both crossed the utilization
+// floor and grown past what we last successfully pushed. The push
+// goroutine uses it to decide whether to include the entry in the next
+// bulk upsert. Both checks are necessary: aboveFloor is the latching
+// gate that excludes pull-created or low-utilization entries; the
+// lastPushed comparison is the change filter that excludes entries with
+// no new state to share.
+func (e *counterEntry) shouldPush(val int64) bool {
+	return e.aboveFloor.Load() && val > e.lastPushed.Load()
 }
 
 // Hydrate populates val from the bound fetcher exactly once. The fetched
@@ -200,7 +225,7 @@ type service struct {
 	db *db.Database
 
 	// region tags every row this service writes to ratelimit_window_counts
-	// and is the predicate the sync loop uses to filter out own-region rows
+	// and is the predicate the pull loop uses to filter out own-region rows
 	// when reading. Constant for the lifetime of the service.
 	region string
 
@@ -209,6 +234,13 @@ type service struct {
 	// logs and discards the batch so a sick database does not stall
 	// subsequent ticks or back-pressure denials on the request path.
 	globalCircuitBreaker circuitbreaker.CircuitBreaker[any]
+
+	// stopBackground holds the stop functions returned by repeat.Every for
+	// every periodic goroutine the service starts. Close invokes each one
+	// so the push, pull, and janitor loops do not outlive the database
+	// connection and start logging "database is closed" errors after
+	// teardown.
+	stopBackground []func()
 }
 
 // Config holds configuration for creating a new rate limiting service.
@@ -221,7 +253,7 @@ type Config struct {
 
 	// DB drives cross-region count sharing via ratelimit_window_counts:
 	// each region periodically flushes its own observed count for active
-	// windows, and a sync goroutine reads the rows from other regions and
+	// windows, and a pull goroutine reads the rows from other regions and
 	// folds the sum into local counterEntry.globalCount. Required;
 	// [New] returns [ErrDBRequired] if nil.
 	//
@@ -241,8 +273,8 @@ type Config struct {
 //
 // The service starts 8 background goroutines to process the replay buffer,
 // synchronizing local rate limit state with Redis. It also starts a janitor
-// to clean up expired counters, plus a flush goroutine that emits per-region
-// counts to ratelimit_window_counts and a sync goroutine that pulls and sums
+// to clean up expired counters, plus a push goroutine that emits per-region
+// counts to ratelimit_window_counts and a pull goroutine that pulls and sums
 // other regions' contributions.
 //
 // Returns [ErrDBRequired] if config.DB is nil or [ErrRegionRequired] if
@@ -258,7 +290,7 @@ func New(config Config) (*service, error) {
 		config.Clock = clock.New()
 	}
 
-	s := &service{
+	s := &service{ //nolint:exhaustruct // stopBackground is appended to as goroutines start
 		clock:        config.Clock,
 		counters:     sync.Map{}, //nolint:exhaustruct // sync.Map zero value is ready to use
 		strictUntils: sync.Map{}, //nolint:exhaustruct // sync.Map zero value is ready to use
@@ -270,11 +302,11 @@ func New(config Config) (*service, error) {
 			Drop:     true,
 		}),
 		originCircuitBreaker: circuitbreaker.New[int64]("ratelimitOrigin"),
-		globalCircuitBreaker: circuitbreaker.New[any]("ratelimit_global_writes"),
+		globalCircuitBreaker: circuitbreaker.New[any]("ratelimit_global_push"),
 		db:                   db.New(config.DB.RW(), config.DB.RO()),
 	}
-	s.startGlobalFlush()
-	s.startGlobalSync()
+	s.startGlobalPush()
+	s.startGlobalPull()
 
 	s.startJanitor()
 
@@ -285,8 +317,13 @@ func New(config Config) (*service, error) {
 	return s, nil
 }
 
-// Close stops the replay buffer and releases resources.
+// Close stops every background goroutine the service started and
+// releases the replay buffer. Stop the periodic loops first so they do
+// not race with the database tearing down underneath them.
 func (s *service) Close() error {
+	for _, stop := range s.stopBackground {
+		stop()
+	}
 	s.replayBuffer.Close()
 	return nil
 }
@@ -333,7 +370,7 @@ func (s *service) setStrictUntil(key strictKey, untilMs int64) {
 
 // findOrCreateCounter returns the entry for the given key, creating one if
 // missing. Reports whether the entry was newly inserted so callers can
-// attribute the creation to traffic vs. cross-region sync without polluting
+// attribute the creation to traffic vs. cross-region pull without polluting
 // each other's metrics. Does not touch any metric itself.
 func (s *service) findOrCreateCounter(key counterKey) (*counterEntry, bool) {
 	if v, ok := s.counters.Load(key); ok {

@@ -20,7 +20,7 @@ local increments via INCRBY and CAS-merge the global count back into the local a
 When the service is configured with a DB (see [Config.DB]), denials propagate
 across regions through MySQL. On the strict-mode transition (the first denial
 in a window), the service writes one row to ratelimit_blocklist; a periodic
-sync goroutine on every node reads the active set and inflates the local
+pull goroutine on every node reads the active set and inflates the local
 counter for each row's originating sequence. Receivers therefore deny the same
 identifier without seeing its abusive traffic firsthand. Sliding-window decay
 handles the bleed into the next window automatically.
