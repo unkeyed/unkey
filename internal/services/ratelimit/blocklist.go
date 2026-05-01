@@ -31,7 +31,7 @@ const blocklistFlushTimeout = 10 * time.Second
 // intermediate struct just to flip int/uint widths at flush time. Callers
 // at activateStrictMode construct the params at buffer time.
 func (s *service) flushBlocklistBatch(ctx context.Context, events []db.BlocklistInsertParams) {
-	if s.db == nil || len(events) == 0 {
+	if len(events) == 0 {
 		return
 	}
 
@@ -73,10 +73,6 @@ func (s *service) startBlocklistSync() {
 // the inflated S becomes prev — sliding-window decay drives the denial down
 // to zero across S+1, matching the originating region's behavior.
 func (s *service) runBlocklistSyncOnce() {
-	if s.db == nil {
-		return
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), blocklistSyncInterval)
 	defer cancel()
 

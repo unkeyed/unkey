@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // TestRatelimit_FailsOverToLocalWhenOriginErrors asserts that when the origin
@@ -18,12 +19,12 @@ func TestRatelimit_FailsOverToLocalWhenOriginErrors(t *testing.T) {
 	t.Parallel()
 
 	origin := newFailingCounter(errors.New("origin is down"))
-	svc, err := New(Config{Clock: clock.NewTestClock(), Counter: origin})
+	svc, err := New(Config{Clock: clock.NewTestClock(), Counter: origin, DB: newTestDB(t)})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
 	resp, err := svc.Ratelimit(context.Background(), RatelimitRequest{
-		WorkspaceID: "ws",
+		WorkspaceID: uid.New(uid.WorkspacePrefix),
 		Namespace:   "ns",
 		Identifier:  "id",
 		Limit:       10,
@@ -43,16 +44,18 @@ func TestFetchFromOrigin_CircuitBreakerShortCircuitsAfterTrip(t *testing.T) {
 	t.Parallel()
 
 	origin := newFailingCounter(errors.New("origin is down"))
-	svc, err := New(Config{Clock: clock.NewTestClock(), Counter: origin})
+	svc, err := New(Config{Clock: clock.NewTestClock(), Counter: origin, DB: newTestDB(t)})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
+
+	ws := uid.New(uid.WorkspacePrefix)
 
 	// Drive a burst of cold-window requests. Each unique identifier triggers
 	// origin GET for two windows (current + previous).
 	const warmupRequests = 100
 	for i := range warmupRequests {
 		_, _ = svc.Ratelimit(context.Background(), RatelimitRequest{
-			WorkspaceID: "ws",
+			WorkspaceID: ws,
 			Namespace:   "ns",
 			Identifier:  fmt.Sprintf("warmup-%d", i),
 			Limit:       10,
@@ -69,7 +72,7 @@ func TestFetchFromOrigin_CircuitBreakerShortCircuitsAfterTrip(t *testing.T) {
 	const measuredRequests = 100
 	for i := range measuredRequests {
 		_, _ = svc.Ratelimit(context.Background(), RatelimitRequest{
-			WorkspaceID: "ws",
+			WorkspaceID: ws,
 			Namespace:   "ns",
 			Identifier:  fmt.Sprintf("measured-%d", i),
 			Limit:       10,

@@ -31,7 +31,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 }
 
 // Database splits queries across primary and replica connections. Reads
-// (BlocklistListActive) go to the replica, writes (BlocklistInsert,
+// (BlocklistListActive) go to the replica, writes (BulkInsertBlocklist,
 // BlocklistDeleteExpired) go to the primary. Both [Queries] instances expose
 // the full Querier interface; the split is enforced by the caller picking
 // RW() or RO() at the call site.

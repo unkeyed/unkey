@@ -8,17 +8,21 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
-	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dockertest"
+	"github.com/unkeyed/unkey/pkg/mysql"
 
 	rldb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 )
 
-// blocklistTestEnv bundles a per-test MySQL container plus both a pkg/db
+// blocklistTestEnv bundles a per-test MySQL container plus both a pkg/mysql
 // database (for handing to [ratelimit.New] under the [DB] interface) and a
 // wrapped ratelimit DB (for direct query assertions inside the tests). Each
-// test gets independent service instances against the same data plane —
-// the multi-region scenario we are asserting.
+// test gets independent service instances against the same data plane;
+// that's the multi-region scenario we are asserting.
+//
+// Uses dockertest.MySQL rather than containers.MySQL so each test gets its
+// own isolated table state. The integration tests assert on row counts and
+// table contents, which would race under a shared database.
 type blocklistTestEnv struct {
 	t    *testing.T
 	db   DB
@@ -29,7 +33,7 @@ func newBlocklistTestEnv(t *testing.T) *blocklistTestEnv {
 	t.Helper()
 
 	cfg := dockertest.MySQL(t)
-	database, err := pkgdb.New(pkgdb.Config{
+	database, err := mysql.New(mysql.Config{
 		PrimaryDSN:  cfg.DSN,
 		ReadOnlyDSN: "",
 	})
@@ -345,7 +349,7 @@ func TestBlocklist_StoredSequenceWinsOverClock(t *testing.T) {
 	originalSequence := currentSequence - 5
 	farFutureExpiresAt := clk.Now().Add(24 * time.Hour).UnixMilli()
 
-	require.NoError(t, env.rldb.RW().BlocklistInsert(context.Background(), rldb.BlocklistInsertParams{
+	require.NoError(t, env.rldb.BulkInsertBlocklist(context.Background(), []rldb.BlocklistInsertParams{{
 		WorkspaceID: workspaceID,
 		Namespace:   namespace,
 		Identifier:  identifier,
@@ -353,7 +357,7 @@ func TestBlocklist_StoredSequenceWinsOverClock(t *testing.T) {
 		Sequence:    originalSequence,
 		Limit:       uint64(limit),
 		ExpiresAt:   uint64(farFutureExpiresAt),
-	}))
+	}}))
 
 	region.runBlocklistSyncOnce()
 

@@ -482,7 +482,7 @@ func buildEngine(
 	rlSvc, err := ratelimit.New(ratelimit.Config{
 		Clock:   clk,
 		Counter: ctr,
-		DB:      nil,
+		DB:      pkgdb.ToMySQL(database),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ratelimit service: %w", err)

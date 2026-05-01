@@ -17,33 +17,6 @@ type Querier interface {
 	//  DELETE FROM ratelimit_blocklist
 	//  WHERE expires_at < ?
 	BlocklistDeleteExpired(ctx context.Context, cutoff uint64) (int64, error)
-	// BlocklistInsert records a single rate-limit denial so other regions can
-	// propagate it. The unique key spans (workspace, namespace, identifier,
-	// duration_ms, sequence); duplicate inserts return ER_DUP_ENTRY (1062),
-	// which the caller may handle as appropriate.
-	//
-	// Production hot path uses [BulkInsertBlocklist] in database.go. This
-	// single-row form is kept for tests that need to seed individual rows
-	// directly.
-	//
-	//  INSERT INTO ratelimit_blocklist (
-	//      workspace_id,
-	//      namespace,
-	//      identifier,
-	//      duration_ms,
-	//      sequence,
-	//      `limit`,
-	//      expires_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	BlocklistInsert(ctx context.Context, arg BlocklistInsertParams) error
 	// BlocklistListActive returns every still-active denial for the sync loop to
 	// apply locally. The result set is bounded by unique violators currently in
 	// their TTL window; the expires_at index keeps the scan cheap.

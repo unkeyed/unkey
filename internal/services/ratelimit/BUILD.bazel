@@ -24,19 +24,12 @@ go_library(
         "//pkg/circuitbreaker",
         "//pkg/clock",
         "//pkg/counter",
-        "//pkg/db",
         "//pkg/logger",
+        "//pkg/mysql",
         "//pkg/otel/tracing",
         "//pkg/repeat",
         "@io_opentelemetry_go_otel//attribute",
     ],
-)
-
-go_test(
-    name = "ratelimit_benchmark_test",
-    size = "medium",
-    srcs = ["service_benchmark_test.go"],
-    embed = [":ratelimit"],
 )
 
 go_test(
@@ -56,8 +49,10 @@ go_test(
         "//internal/services/ratelimit/db",
         "//pkg/clock",
         "//pkg/counter",
-        "//pkg/db",
         "//pkg/dockertest",
+        "//pkg/mysql",
+        "//pkg/testutil/containers",
+        "//pkg/uid",
         "@com_github_stretchr_testify//require",
     ],
 )

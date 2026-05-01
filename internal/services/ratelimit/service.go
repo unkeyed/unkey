@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -11,22 +12,27 @@ import (
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
-	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql"
 
 	"github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 )
 
 // DB is the contract Config.DB must satisfy: a primary/replica pair backed
-// by [*pkgdb.Replica]. The standard pkg/db.New() result satisfies this
-// directly, so callers don't need to wrap or adapt anything — they pass the
+// by [*mysql.Replica]. The standard pkg/mysql.New() result satisfies this
+// directly, so callers don't need to wrap or adapt anything; they pass the
 // shared application database in and the ratelimit service constructs its
 // own typed query layer internally.
 type DB interface {
-	RW() *pkgdb.Replica
-	RO() *pkgdb.Replica
+	RW() *mysql.Replica
+	RO() *mysql.Replica
 }
+
+// ErrDBRequired is returned by [New] when Config.DB is nil. The service
+// requires a database connection for cross-region propagation; a nil DB is
+// always a configuration bug.
+var ErrDBRequired = errors.New("ratelimit: Config.DB is required")
 
 // maxCASRetries bounds every CAS loop in the package to prevent livelock
 // under pathological contention. Under normal load, CAS retries are rare and
@@ -122,11 +128,11 @@ func (e *counterEntry) Hydrate(ctx context.Context) {
 // push local increments to Redis and CAS-merge the global count back into the
 // local atomic counter.
 //
-// When DB is configured, denials also propagate cross-region: a strict-mode
-// transition writes one row to ratelimit_blocklist (batched, circuit-broken),
-// and a periodic sync goroutine reads the active set and inflates local
-// counters so other regions deny the same identifier without seeing its
-// traffic firsthand. See blocklist.go.
+// Denials also propagate cross-region: a strict-mode transition writes one
+// row to ratelimit_blocklist (batched, circuit-broken), and a periodic sync
+// goroutine reads the active set and inflates local counters so other regions
+// deny the same identifier without seeing its traffic firsthand. See
+// blocklist.go.
 type service struct {
 	clock clock.Clock
 
@@ -154,9 +160,7 @@ type service struct {
 	originCircuitBreaker circuitbreaker.CircuitBreaker[int64]
 
 	// db is the cross-region propagation backend for denials. Constructed
-	// inside [New] from Config.DB; nil when no DB was provided, in which
-	// case the service still enforces limits locally via counters and
-	// strictUntils.
+	// inside [New] from Config.DB. Always non-nil; Config.DB is required.
 	db *db.Database
 
 	// blocklistWriter batches propagation rows flushed on the cold→hot
@@ -180,11 +184,11 @@ type Config struct {
 	// Counter is the distributed counter backend (typically Redis).
 	Counter counter.Counter
 
-	// DB enables cross-region propagation of denials. When set, the service
-	// writes to ratelimit_blocklist on each strict-mode transition and
-	// periodically reads the active set to inflate local counters for
-	// identifiers that other regions have already denied. If nil, the
-	// service runs in single-region mode (counters + strictUntils only).
+	// DB drives cross-region propagation of denials: the service writes to
+	// ratelimit_blocklist on each strict-mode transition and periodically
+	// reads the active set to inflate local counters for identifiers that
+	// other regions have already denied. Required; [New] returns
+	// [ErrDBRequired] if nil.
 	//
 	// The standard application database from pkg/db satisfies [DB] directly;
 	// no adapter is needed.
@@ -195,15 +199,20 @@ type Config struct {
 //
 // The service starts 8 background goroutines to process the replay buffer,
 // synchronizing local rate limit state with Redis. It also starts a goroutine
-// to periodically clean up expired counters.
+// to periodically clean up expired counters, and a sync goroutine that pulls
+// the cross-region blocklist from MySQL.
 //
-// Call Close when done to release resources.
+// Returns [ErrDBRequired] if config.DB is nil. Call Close when done to
+// release resources.
 func New(config Config) (*service, error) {
+	if config.DB == nil {
+		return nil, ErrDBRequired
+	}
 	if config.Clock == nil {
 		config.Clock = clock.New()
 	}
 
-	s := &service{ //nolint:exhaustruct // blocklistWriter and db are set below based on whether DB is configured
+	s := &service{ //nolint:exhaustruct // blocklistWriter needs s.flushBlocklistBatch and is wired below
 		clock:        config.Clock,
 		counters:     sync.Map{}, //nolint:exhaustruct // sync.Map zero value is ready to use
 		strictUntils: sync.Map{}, //nolint:exhaustruct // sync.Map zero value is ready to use
@@ -215,23 +224,18 @@ func New(config Config) (*service, error) {
 		}),
 		originCircuitBreaker:    circuitbreaker.New[int64]("ratelimitOrigin"),
 		blocklistCircuitBreaker: circuitbreaker.New[any]("ratelimit_blocklist_writes"),
+		db:                      db.New(config.DB.RW(), config.DB.RO()),
 	}
-
-	if config.DB != nil {
-		s.db = db.New(config.DB.RW(), config.DB.RO())
-		s.blocklistWriter = batch.New[db.BlocklistInsertParams](batch.Config[db.BlocklistInsertParams]{
-			Name:          "ratelimit_blocklist",
-			Drop:          true,
-			BatchSize:     100,
-			BufferSize:    10_000,
-			FlushInterval: time.Second,
-			Consumers:     1,
-			Flush:         s.flushBlocklistBatch,
-		})
-		s.startBlocklistSync()
-	} else {
-		s.blocklistWriter = batch.NewNoop[db.BlocklistInsertParams]()
-	}
+	s.blocklistWriter = batch.New[db.BlocklistInsertParams](batch.Config[db.BlocklistInsertParams]{
+		Name:          "ratelimit_blocklist",
+		Drop:          true,
+		BatchSize:     100,
+		BufferSize:    10_000,
+		FlushInterval: time.Second,
+		Consumers:     1,
+		Flush:         s.flushBlocklistBatch,
+	})
+	s.startBlocklistSync()
 
 	s.startJanitor()
 
@@ -245,9 +249,7 @@ func New(config Config) (*service, error) {
 // Close stops the replay buffer and releases resources.
 func (s *service) Close() error {
 	s.replayBuffer.Close()
-	if s.blocklistWriter != nil {
-		s.blocklistWriter.Close()
-	}
+	s.blocklistWriter.Close()
 	return nil
 }
 

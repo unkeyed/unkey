@@ -15,7 +15,7 @@ func TestJanitor_EvictsExpiredCounters(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
-	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory()})
+	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -46,7 +46,7 @@ func TestJanitor_EvictsExpiredStrictUntils(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
-	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory()})
+	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 

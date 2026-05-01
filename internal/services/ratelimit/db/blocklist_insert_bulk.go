@@ -5,6 +5,17 @@ import (
 	"strings"
 )
 
+// BlocklistInsertParams is one row to insert into ratelimit_blocklist.
+type BlocklistInsertParams struct {
+	WorkspaceID string `db:"workspace_id"`
+	Namespace   string `db:"namespace"`
+	Identifier  string `db:"identifier"`
+	DurationMs  uint64 `db:"duration_ms"`
+	Sequence    int64  `db:"sequence"`
+	Limit       uint64 `db:"limit"`
+	ExpiresAt   uint64 `db:"expires_at"`
+}
+
 // BulkInsertBlocklist inserts multiple ratelimit_blocklist rows in a single
 // SQL statement. Duplicate-key conflicts (cross-region concurrent emits at
 // the same sequence) are absorbed by ON DUPLICATE KEY UPDATE assigning a
