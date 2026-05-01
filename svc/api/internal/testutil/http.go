@@ -153,6 +153,7 @@ func NewHarness(t *testing.T) *Harness {
 	ratelimitService, err := ratelimit.New(ratelimit.Config{
 		Clock:   clk,
 		Counter: ctr,
+		DB:      db.ToMySQL(database),
 	})
 	require.NoError(t, err)
 

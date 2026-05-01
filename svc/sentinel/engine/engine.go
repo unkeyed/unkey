@@ -34,7 +34,7 @@ type Config struct {
 
 // Evaluator evaluates sentinel middleware policies against incoming requests.
 type Evaluator interface {
-	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, mw []*sentinelv1.Policy) (Result, error)
+	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, workspaceID string, mw []*sentinelv1.Policy) (Result, error)
 }
 
 // Engine implements Evaluator.
@@ -106,6 +106,7 @@ func (e *Engine) Evaluate(
 	ctx context.Context,
 	sess *zen.Session,
 	req *http.Request,
+	workspaceID string,
 	policies []*sentinelv1.Policy,
 ) (Result, error) {
 	var result Result
@@ -150,7 +151,7 @@ func (e *Engine) Evaluate(
 
 		case *sentinelv1.Policy_Ratelimit:
 			t := time.Now()
-			execErr := e.rateLimiter.Execute(ctx, sess, req, policy.GetId(), cfg.Ratelimit, result.Principal)
+			execErr := e.rateLimiter.Execute(ctx, sess, req, workspaceID, policy.GetId(), cfg.Ratelimit, result.Principal)
 			sentinelEngineEvaluationDuration.WithLabelValues("ratelimit").Observe(time.Since(t).Seconds())
 
 			if execErr != nil {

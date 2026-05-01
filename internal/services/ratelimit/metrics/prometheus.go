@@ -204,3 +204,104 @@ var (
 		[]string{"op", "reason"},
 	)
 )
+
+// Cross-region propagation: tracks the blocklist write/sync path used to
+// share denials across regions through MySQL. Gives observability into
+// whether the propagation channel is healthy and how much it is doing.
+var (
+	// RatelimitBlocklistWritesTotal counts denial events successfully written
+	// to ratelimit_blocklist by the batched flush. Reflects unique strict-mode
+	// transitions across the fleet, not request volume; sustained denial
+	// streams from the same identifier are deduped to one write per window.
+	//
+	// Example usage:
+	//   metrics.RatelimitBlocklistWritesTotal.Add(float64(len(batch)))
+	RatelimitBlocklistWritesTotal = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "blocklist_writes_total",
+			Help:      "Total number of denial events written to ratelimit_blocklist for cross-region propagation.",
+		},
+	)
+
+	// RatelimitBlocklistWriteErrors counts batch flushes that failed (MySQL
+	// error or circuit-breaker trip). The events were dropped; they will
+	// re-emit on the next strict-mode transition. Sustained non-zero values
+	// indicate the propagation channel is impaired.
+	//
+	// Example usage:
+	//   metrics.RatelimitBlocklistWriteErrors.Inc()
+	RatelimitBlocklistWriteErrors = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "blocklist_write_errors_total",
+			Help:      "Total number of ratelimit_blocklist batch flushes that failed.",
+		},
+	)
+
+	// RatelimitBlocklistSyncRowsApplied counts rows pulled from
+	// ratelimit_blocklist and applied to local counter state on each sync
+	// tick. Each row may correspond to a denial in a remote region; the
+	// inflate operation is idempotent across ticks.
+	//
+	// Example usage:
+	//   metrics.RatelimitBlocklistSyncRowsApplied.Add(float64(len(rows)))
+	RatelimitBlocklistSyncRowsApplied = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "blocklist_sync_rows_applied_total",
+			Help:      "Total number of ratelimit_blocklist rows applied to local counter state.",
+		},
+	)
+
+	// RatelimitBlocklistSyncErrors counts sync ticks that failed to read
+	// ratelimit_blocklist. Local state remains as it was at the previous
+	// successful sync.
+	//
+	// Example usage:
+	//   metrics.RatelimitBlocklistSyncErrors.Inc()
+	RatelimitBlocklistSyncErrors = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "blocklist_sync_errors_total",
+			Help:      "Total number of ratelimit_blocklist sync ticks that returned an error.",
+		},
+	)
+
+	// RatelimitBlocklistEntriesCreated counts counter entries that the sync
+	// loop inserted because no local traffic had touched that key yet. This
+	// is separate from RatelimitWindowsCreated so the traffic-driven
+	// cardinality signal is not polluted by cross-region propagation.
+	//
+	// Example usage:
+	//   metrics.RatelimitBlocklistEntriesCreated.Inc()
+	RatelimitBlocklistEntriesCreated = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "blocklist_entries_created_total",
+			Help:      "Total number of counter entries created by the cross-region blocklist sync loop.",
+		},
+	)
+
+	// RatelimitBlocklistRowsLastPoll is the row count returned by the most
+	// recent BlocklistListActive query. Set on every successful sync tick.
+	// Multiplied by node count and sync frequency, this is the dominant read
+	// load the propagation channel puts on MySQL — watch it to estimate
+	// fleet-wide DB pressure as the active blocklist grows.
+	//
+	// Example usage:
+	//   metrics.RatelimitBlocklistRowsLastPoll.Set(float64(len(rows)))
+	RatelimitBlocklistRowsLastPoll = lazy.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "blocklist_rows_last_poll",
+			Help:      "Number of rows returned by the most recent ratelimit_blocklist sync query.",
+		},
+	)
+)
