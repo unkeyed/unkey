@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Querier } from "./client/interface";
 
-const TABLE = "default.runtime_logs_raw_v1";
+const TABLE = "default.runtime_logs_raw_v2";
 
 // Hard cap on rows per request. Bounds response payload size and ClickHouse
 // scan cost regardless of what an upstream caller sends.
@@ -36,6 +36,7 @@ const runtimeLogsQueryParamsSchema = runtimeLogsRequestSchema.extend({
 
 export const runtimeLog = z.object({
   time: z.int(),
+  log_id: z.string(),
   severity: z.string(),
   message: z.string(),
   deployment_id: z.string(),
@@ -89,7 +90,7 @@ export function getRuntimeLogs(ch: Querier) {
     const logsQuery = ch.query({
       query: `
         SELECT
-          time, severity, message, deployment_id,
+          time, log_id, severity, message, deployment_id,
           region, k8s_pod_name, attributes
         FROM ${TABLE}
         WHERE ${filterConditions}
