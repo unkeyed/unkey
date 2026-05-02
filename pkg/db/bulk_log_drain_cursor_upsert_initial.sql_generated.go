@@ -9,7 +9,7 @@ import (
 )
 
 // bulkUpsertLogDrainCursorInitial is the base query for bulk insert
-const bulkUpsertLogDrainCursorInitial = `INSERT IGNORE INTO log_drain_cursors (group_key, inserted_at_ms, fingerprint, updated_at) VALUES %s`
+const bulkUpsertLogDrainCursorInitial = `INSERT IGNORE INTO log_drain_cursors ( drain_id, group_key, time_ms, last_id, blocked, blocked_reason, updated_at ) VALUES %s`
 
 // UpsertLogDrainCursorInitial performs bulk insert in a single query
 func (q *BulkQueries) UpsertLogDrainCursorInitial(ctx context.Context, db DBTX, args []UpsertLogDrainCursorInitialParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) UpsertLogDrainCursorInitial(ctx context.Context, db DBTX, 
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "(?, ?, ?, ?)"
+		valueClauses[i] = "(?, ?, ?, ?, false, NULL, ?)"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertLogDrainCursorInitial, strings.Join(valueClauses, ", "))
@@ -29,9 +29,10 @@ func (q *BulkQueries) UpsertLogDrainCursorInitial(ctx context.Context, db DBTX, 
 	// Collect all arguments
 	var allArgs []any
 	for _, arg := range args {
+		allArgs = append(allArgs, arg.DrainID)
 		allArgs = append(allArgs, arg.GroupKey)
-		allArgs = append(allArgs, arg.InsertedAtMs)
-		allArgs = append(allArgs, arg.Fingerprint)
+		allArgs = append(allArgs, arg.TimeMs)
+		allArgs = append(allArgs, arg.LastID)
 		allArgs = append(allArgs, arg.UpdatedAt)
 	}
 

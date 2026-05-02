@@ -85,6 +85,9 @@ func Request(row schema.SentinelRequest, f RequestFilter) (sinks.Record, bool) {
 		K8sPodName: "",
 		Body:       body,
 		Attributes: attrs,
+		// transform/ doesn't observe the CH-level cursor; coordinator
+		// fetchRequest sets it. See runtime.go for the same note.
+		CursorTimeMs: 0,
 		// request_id doubles as the cursor tiebreaker and the
 		// per-event Idempotency-Key for providers that support it.
 		LastID: row.RequestID,

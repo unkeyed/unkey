@@ -8,6 +8,7 @@ go_library(
         "factory.go",
         "fetch.go",
         "group.go",
+        "processor.go",
         "rows.go",
         "shard.go",
     ],
@@ -22,22 +23,24 @@ go_library(
         "//pkg/logger",
         "//pkg/repeat",
         "//svc/logdrain/internal/creds",
+        "//svc/logdrain/internal/metrics",
         "//svc/logdrain/internal/sinks",
         "//svc/logdrain/internal/sinks/axiom",
-        "//svc/logdrain/internal/sinks/datadog",
-        "//svc/logdrain/internal/sinks/otlp",
+        "@org_golang_x_sync//errgroup",
     ],
 )
 
 go_test(
     name = "coordinator_test",
     srcs = [
+        "cursor_test.go",
         "group_test.go",
         "shard_test.go",
     ],
     embed = [":coordinator"],
     deps = [
         "//pkg/db",
+        "//svc/logdrain/internal/sinks",
         "@com_github_stretchr_testify//require",
     ],
 )

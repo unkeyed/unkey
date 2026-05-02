@@ -16,8 +16,7 @@ poll_interval = "2s"
 batch_window = "30s"
 max_batch_records = 1000
 pause_after_failures = 10
-shard_count = 1
-shard_index = 0
+replicas = 1
 
 [database]
 primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"

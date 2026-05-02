@@ -12,8 +12,6 @@ import (
 	"github.com/unkeyed/unkey/svc/logdrain/internal/creds"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/sinks"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/sinks/axiom"
-	"github.com/unkeyed/unkey/svc/logdrain/internal/sinks/datadog"
-	"github.com/unkeyed/unkey/svc/logdrain/internal/sinks/otlp"
 )
 
 // Factory builds a Sink from a drain row plus its decrypted credential.
@@ -45,8 +43,8 @@ var ErrOAuthNotImplemented = errors.New("coordinator: OAuth credential resolutio
 
 // providerBuilder turns a row's raw config blob plus a decrypted token
 // into a constructed Sink. Each provider implements one. Per-provider
-// config types (axiom.Config, datadog.Config, otlp.Config) own their
-// own JSON tags so the wire format and the Go type stay in one place.
+// config types (axiom.Config) own their own JSON tags so the wire format
+// and the Go type stay in one place.
 type providerBuilder func(rawConfig json.RawMessage, token string, client *http.Client) (sinks.Sink, error)
 
 var providerBuilders = map[db.LogDrainsProvider]providerBuilder{
@@ -56,22 +54,6 @@ var providerBuilders = map[db.LogDrainsProvider]providerBuilder{
 			return nil, fmt.Errorf("parse axiom config: %w", err)
 		}
 		return axiom.New(cfg, token, client), nil
-	},
-	db.LogDrainsProviderDatadog: func(raw json.RawMessage, token string, client *http.Client) (sinks.Sink, error) {
-		var cfg datadog.Config
-		if err := json.Unmarshal(raw, &cfg); err != nil {
-			return nil, fmt.Errorf("parse datadog config: %w", err)
-		}
-		return datadog.New(cfg, token, client), nil
-	},
-	db.LogDrainsProviderOtlpHttp: func(raw json.RawMessage, _ string, client *http.Client) (sinks.Sink, error) {
-		// OTLP carries auth inside cfg.AuthHeader (full header line);
-		// the per-drain Vault-decrypted token is unused on this path.
-		var cfg otlp.Config
-		if err := json.Unmarshal(raw, &cfg); err != nil {
-			return nil, fmt.Errorf("parse otlp config: %w", err)
-		}
-		return otlp.New(cfg, client), nil
 	},
 }
 

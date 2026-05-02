@@ -18,8 +18,7 @@ data:
     batch_window = "30s"
     max_batch_records = 1000
     pause_after_failures = 10
-    shard_count = 1
-    shard_index = 0
+    replicas = 1
 
     [database]
     primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
@@ -33,20 +32,24 @@ data:
 
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: logdrain
   namespace: unkey
   labels:
     app: logdrain
 spec:
+  # Sharding works by deriving the pod's ordinal from $HOSTNAME (the
+  # `<name>-<ordinal>` StatefulSet suffix) and computing a contiguous
+  # [start, end) range out of the fixed coordinator.TotalShards (= 64).
+  # Scaling 1 → N pods is `kubectl scale --replicas=N` and bumping
+  # `replicas` in the ConfigMap to match. The shard cardinality itself
+  # never changes, so no group is ever orphaned during a rollout — only
+  # the range boundaries each pod owns. No leader election, no shared
+  # state.
   replicas: 1
-  # Recreate so we never have two coordinators racing the cursor advance
-  # during a rolling restart in dev. Single-replica anyway, but the
-  # default RollingUpdate strategy briefly keeps the old pod around;
-  # Recreate is cleaner for the local use case.
-  strategy:
-    type: Recreate
+  serviceName: logdrain-headless
+  podManagementPolicy: Parallel
   selector:
     matchLabels:
       app: logdrain
@@ -126,3 +129,25 @@ spec:
       targetPort: metrics
       protocol: TCP
   type: ClusterIP
+
+---
+# Headless service required by the StatefulSet so each pod gets the
+# stable DNS name `logdrain-<ordinal>.logdrain-headless` plus a stable
+# $HOSTNAME of `logdrain-<ordinal>` — the ordinal is the input to
+# podOrdinalFromEnv() in svc/logdrain/run.go.
+apiVersion: v1
+kind: Service
+metadata:
+  name: logdrain-headless
+  namespace: unkey
+  labels:
+    app: logdrain
+spec:
+  selector:
+    app: logdrain
+  clusterIP: None
+  ports:
+    - name: metrics
+      port: 9402
+      targetPort: metrics
+      protocol: TCP

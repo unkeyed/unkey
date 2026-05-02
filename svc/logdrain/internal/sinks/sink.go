@@ -44,9 +44,26 @@ type Record struct {
 
 	Body       string
 	Attributes map[string]any
-	
-	// RowID for deduplication (from ClickHouse row_id)
-	RowID      uint64
+
+	// CursorTimeMs is the per-record cursor watermark — `inserted_at` for
+	// runtime rows, `time` for request rows. Together with LastID it
+	// forms the (cursor_time, last_id) tuple the per-drain fan-out
+	// compares against each drain's individual cursor to decide which
+	// records the drain still owes its provider. Distinct from TimeMs
+	// because runtime rows have a separate `inserted_at` column that is
+	// monotonically stable in a way `time` (the log emission time) is
+	// not.
+	CursorTimeMs int64
+
+	// LastID is the source row's stable per-row identifier and the
+	// second component of the cursor tuple — `log_id` for runtime
+	// (Vector-minted "log_<16 hex chars>" UUID-v7-shaped id), and
+	// `request_id` for sentinel requests. Stored as a string so the
+	// cursor predicate compares ClickHouse columns directly without an
+	// inline cityHash64 fingerprint that would block sort-key prune.
+	// Doubles as a stable Idempotency-Key for providers that support
+	// per-event dedup.
+	LastID string
 }
 
 // Sink is the contract every provider implementation satisfies. Send is

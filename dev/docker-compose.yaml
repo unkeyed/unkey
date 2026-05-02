@@ -335,7 +335,7 @@ services:
       NODE_ENV: "production"
 
   # logdrain forwards customer log records from ClickHouse to third-party
-  # providers (Axiom, Datadog, OTLP). Local dev runs it in batch mode
+  # providers (Axiom). Local dev runs it in batch mode
   # with a 2s poll interval so create-drain → see records at the
   # provider takes seconds. Not part of the default `make up` set;
   # bring it up explicitly with:

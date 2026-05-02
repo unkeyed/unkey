@@ -11,43 +11,48 @@ import (
 
 const advanceLogDrainCursor = `-- name: AdvanceLogDrainCursor :execrows
 UPDATE log_drain_cursors
-SET inserted_at_ms = ?,
-    fingerprint = ?,
+SET time_ms = ?,
+    last_id = ?,
     updated_at = ?
-WHERE group_key = ?
-  AND inserted_at_ms = ?
-  AND fingerprint = ?
+WHERE drain_id = ?
+  AND group_key = ?
+  AND time_ms = ?
+  AND last_id = ?
 `
 
 type AdvanceLogDrainCursorParams struct {
-	NewInsertedAtMs  int64  `db:"new_inserted_at_ms"`
-	NewFingerprint   string `db:"new_fingerprint"`
-	UpdatedAt        int64  `db:"updated_at"`
-	GroupKey         string `db:"group_key"`
-	PrevInsertedAtMs int64  `db:"prev_inserted_at_ms"`
-	PrevFingerprint  string `db:"prev_fingerprint"`
+	NewTimeMs  int64  `db:"new_time_ms"`
+	NewLastID  string `db:"new_last_id"`
+	UpdatedAt  int64  `db:"updated_at"`
+	DrainID    string `db:"drain_id"`
+	GroupKey   string `db:"group_key"`
+	PrevTimeMs int64  `db:"prev_time_ms"`
+	PrevLastID string `db:"prev_last_id"`
 }
 
-// Optimistic-lock cursor advance. Only the row that observed the previous
-// watermark wins; if a concurrent replica already moved the cursor, this
-// returns 0 rows affected and the caller replays the same window on the
-// next tick (idempotency keys take care of the dup at the provider).
+// Optimistic-lock advance on a per-drain cursor row. Only the row that
+// observed the previous (time_ms, last_id) wins; if a concurrent replica
+// already moved this drain's cursor, this returns 0 rows affected and
+// the caller treats the batch as having been delivered by the winner —
+// next tick replays from the new cursor.
 //
 //	UPDATE log_drain_cursors
-//	SET inserted_at_ms = ?,
-//	    fingerprint = ?,
+//	SET time_ms = ?,
+//	    last_id = ?,
 //	    updated_at = ?
-//	WHERE group_key = ?
-//	  AND inserted_at_ms = ?
-//	  AND fingerprint = ?
+//	WHERE drain_id = ?
+//	  AND group_key = ?
+//	  AND time_ms = ?
+//	  AND last_id = ?
 func (q *Queries) AdvanceLogDrainCursor(ctx context.Context, db DBTX, arg AdvanceLogDrainCursorParams) (int64, error) {
 	result, err := db.ExecContext(ctx, advanceLogDrainCursor,
-		arg.NewInsertedAtMs,
-		arg.NewFingerprint,
+		arg.NewTimeMs,
+		arg.NewLastID,
 		arg.UpdatedAt,
+		arg.DrainID,
 		arg.GroupKey,
-		arg.PrevInsertedAtMs,
-		arg.PrevFingerprint,
+		arg.PrevTimeMs,
+		arg.PrevLastID,
 	)
 	if err != nil {
 		return 0, err

@@ -417,15 +417,12 @@ k8s_resource(
 
 # Dashboard - runs locally with HMR
 # Injects GitHub App env vars from dev/.env.github and dev/.github-private-key.pem
-# and Datadog OAuth credentials from dev/.env.datadog (optional — the wizard
-# falls back to paste-token when these are unset).
 local_resource(
     'dashboard',
     serve_cmd='''
       set -a
       [ -f ./.env.github ] && source ./.env.github
       [ -f ./.github-private-key.pem ] && export UNKEY_GITHUB_PRIVATE_KEY_PEM="$(cat ./.github-private-key.pem)"
-      [ -f ./.env.datadog ] && source ./.env.datadog
       export GITHUB_APP_ID="$UNKEY_GITHUB_APP_ID"
       set +a
       cd ../web && pnpm --filter=@unkey/dashboard dev

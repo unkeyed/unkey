@@ -3,6 +3,8 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "sinks",
     srcs = [
+        "error.go",
+        "gzip.go",
         "helpers.go",
         "send.go",
         "sink.go",

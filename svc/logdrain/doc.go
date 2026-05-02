@@ -15,7 +15,9 @@
 // attached to the same group share one query and fan out in memory.
 //
 // v1 ships as a single replica in us-east-1 (co-located with ClickHouse
-// Cloud) with a Kubernetes lease for leader election. The schema and code
-// are designed for sharding by cityHash64(workspace_id) % shard_count when
-// throughput requires it.
+// Cloud). Horizontal scale is a StatefulSet with N pods; each pod's
+// ordinal carves out a contiguous range of the fixed
+// coordinator.TotalShards (= 64) workspace partition, so the partition
+// itself never changes at runtime — only the range boundaries each pod
+// owns.
 package logdrain

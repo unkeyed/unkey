@@ -10,28 +10,35 @@ import (
 )
 
 const upsertLogDrainCursorInitial = `-- name: UpsertLogDrainCursorInitial :exec
-INSERT IGNORE INTO log_drain_cursors (group_key, inserted_at_ms, fingerprint, updated_at)
-VALUES (?, ?, ?, ?)
+INSERT IGNORE INTO log_drain_cursors (
+    drain_id, group_key, time_ms, last_id, blocked, blocked_reason, updated_at
+) VALUES (?, ?, ?, ?, false, NULL, ?)
 `
 
 type UpsertLogDrainCursorInitialParams struct {
-	GroupKey     string `db:"group_key"`
-	InsertedAtMs int64  `db:"inserted_at_ms"`
-	Fingerprint  string `db:"fingerprint"`
-	UpdatedAt    int64  `db:"updated_at"`
+	DrainID   string `db:"drain_id"`
+	GroupKey  string `db:"group_key"`
+	TimeMs    int64  `db:"time_ms"`
+	LastID    string `db:"last_id"`
+	UpdatedAt int64  `db:"updated_at"`
 }
 
-// Establishes a cursor for a brand-new group. Uses INSERT IGNORE so two
-// replicas racing to bootstrap the same group never overwrite each other;
-// the loser silently no-ops and reads the existing cursor on the next tick.
+// Bootstraps a per-drain cursor for a brand-new drain. INSERT IGNORE so
+// two replicas racing to initialise the same drain do not stomp each
+// other; the loser silently no-ops and reads the existing cursor on the
+// next tick. The bootstrap watermark is set by the caller to (now -
+// BatchWindow, ”) so a freshly-created drain doesn't replay the
+// 90-day ClickHouse retention window on first delivery.
 //
-//	INSERT IGNORE INTO log_drain_cursors (group_key, inserted_at_ms, fingerprint, updated_at)
-//	VALUES (?, ?, ?, ?)
+//	INSERT IGNORE INTO log_drain_cursors (
+//	    drain_id, group_key, time_ms, last_id, blocked, blocked_reason, updated_at
+//	) VALUES (?, ?, ?, ?, false, NULL, ?)
 func (q *Queries) UpsertLogDrainCursorInitial(ctx context.Context, db DBTX, arg UpsertLogDrainCursorInitialParams) error {
 	_, err := db.ExecContext(ctx, upsertLogDrainCursorInitial,
+		arg.DrainID,
 		arg.GroupKey,
-		arg.InsertedAtMs,
-		arg.Fingerprint,
+		arg.TimeMs,
+		arg.LastID,
 		arg.UpdatedAt,
 	)
 	return err

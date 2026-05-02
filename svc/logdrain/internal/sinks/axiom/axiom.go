@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/unkeyed/unkey/svc/logdrain/internal/metrics"
@@ -76,14 +75,25 @@ type event struct {
 	Platform      string         `json:"platform,omitempty"`
 	PodName       string         `json:"k8s_pod_name,omitempty"`
 	Source        string         `json:"source,omitempty"`
-	RowID         string         `json:"row_id,omitempty"` // For deduplication 
 	Attributes    map[string]any `json:"attributes,omitempty"`
 }
 
-// Send marshals the batch as a JSON array and POSTs it. Axiom's documented
-// per-request ceiling is permissive (multi-MB), so we ship one HTTP call
-// per Send invocation; the worker is what bounds batch size before getting
-// here.
+// maxChunkBytes caps the *uncompressed* JSON size we ship to Axiom in a
+// single HTTP request. Axiom's per-request ceiling is documented as
+// "permissive multi-MB" without an exact number; we pick 1 MiB as a
+// conservative chunk that fits any plan tier and stays inside the 1 MB
+// figure quoted in the v1 [hardening plan]. Larger batches are split into
+// multiple sequential requests.
+//
+// [hardening plan]: /architecture/services/logdrain/hardening-plan
+const maxChunkBytes = 1 << 20
+
+// Send marshals the batch as a JSON array, gzip-encodes it, and POSTs it
+// to Axiom. Batches over maxChunkBytes (uncompressed) are split into
+// multiple sequential HTTP requests so a single oversized tick can't
+// trip Axiom's request-size ceiling. The first failing chunk short-
+// circuits the rest; the worker's retry helper re-runs Send from the
+// start and gzip determinism keeps the duplicate window bounded.
 func (s *Sink) Send(ctx context.Context, batch []sinks.Record) error {
 	start := time.Now()
 	defer func() {
@@ -93,66 +103,61 @@ func (s *Sink) Send(ctx context.Context, batch []sinks.Record) error {
 	if len(batch) == 0 {
 		return nil
 	}
-
-	events := make([]event, len(batch))
-	for i, r := range batch {
-		events[i] = toEvent(r)
-	}
-
-	body, err := json.Marshal(events)
+	encoded, err := sinks.EncodeJSON(batch, toEvent)
 	if err != nil {
 		return fmt.Errorf("marshal axiom batch: %w", err)
 	}
+	return sinks.ChunkByBytes(encoded, maxChunkBytes, 0, func(chunk [][]byte) error {
+		return s.sendChunk(ctx, chunk)
+	})
+}
+
+// sendChunk wraps a single chunk of pre-encoded events in `[…]` and
+// gzip-POSTs it. Splitting this out keeps Send focused on chunk
+// boundaries and lets the metric / error path live in one place
+// regardless of how many chunks the batch was split into.
+func (s *Sink) sendChunk(ctx context.Context, chunk [][]byte) error {
+	if len(chunk) == 0 {
+		return nil
+	}
+
+	gz, err := sinks.GzipBytes(sinks.BuildJSONArray(chunk))
+	if err != nil {
+		return fmt.Errorf("gzip axiom chunk: %w", err)
+	}
 
 	url := fmt.Sprintf("%s/v1/datasets/%s/ingest", s.cfg.Endpoint, s.cfg.Dataset)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(gz))
 	if err != nil {
 		return fmt.Errorf("build axiom request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+s.token)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "gzip")
 
 	resp, err := s.client.Do(req)
 	if err != nil {
 		metrics.ProviderErrors.WithLabelValues("axiom", classifyError(err)).Inc()
-		// High-cardinality workspace tracking for customer debugging
-		if len(batch) > 0 {
-			observability.ProviderErrorsByWorkspace.WithLabelValues("axiom", batch[0].WorkspaceID).Inc()
-		}
-		return fmt.Errorf("axiom POST: %w", err)
+		return sinks.TransportError("axiom", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		// Success - record aggregated metrics
-		observability.RecordsDelivered.WithLabelValues("axiom").Add(float64(len(batch)))
-		observability.RecordsBytesDelivered.WithLabelValues("axiom").Add(float64(len(body)))
-		
-		// Track workspace delivery success for customer support
-		if len(batch) > 0 {
-			observability.WorkspaceDeliverySuccess.WithLabelValues(batch[0].WorkspaceID).Inc()
-		}
-		
-		// Axiom returns 200 with a body summarising ingested/failed counts;
-		// we do not parse it here. A non-zero "failed" count comes back as a
-		// 200 today; a future revision can promote partial-failure into the
-		// metrics path.
+		// Aggregated metrics only — per-workspace counters dropped per
+		// the cardinality cleanup. Track gzip-shipped bytes since that's
+		// what actually leaves the pod.
+		metrics.RecordsDelivered.WithLabelValues("axiom").Add(float64(len(chunk)))
+		metrics.RecordsBytesDelivered.WithLabelValues("axiom").Add(float64(len(gz)))
+
 		_, _ = io.Copy(io.Discard, resp.Body)
 		return nil
 	}
 
-	// Error - classify and record  
 	errorType := classifyHTTPError(resp.StatusCode)
 	metrics.ProviderErrors.WithLabelValues("axiom", errorType).Inc()
-	// High-cardinality workspace tracking for customer debugging
-	if len(batch) > 0 {
-		observability.ProviderErrorsByWorkspace.WithLabelValues("axiom", batch[0].WorkspaceID).Inc()
-	}
 
-	// Surface the provider's verbatim error so the dashboard can show the
-	// actual reason (expired token, dataset not found, oversized payload).
 	msg, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-	return fmt.Errorf("axiom returned %d: %s", resp.StatusCode, string(msg))
+	return sinks.HTTPError("axiom", resp, msg)
 }
 
 // HealthCheck pushes a single synthetic record through the live ingest
@@ -176,7 +181,6 @@ func toEvent(r sinks.Record) event {
 		Platform:      r.Platform,
 		PodName:       r.K8sPodName,
 		Source:        sinks.SourceLabel(r.Kind),
-		RowID:         strconv.FormatUint(r.RowID, 10),
 		Attributes:    r.Attributes,
 	}
 }

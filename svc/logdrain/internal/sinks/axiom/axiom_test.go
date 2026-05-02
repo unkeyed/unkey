@@ -1,6 +1,8 @@
 package axiom_test
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"io"
@@ -53,9 +55,15 @@ func TestSink_Send_WireFormat(t *testing.T) {
 	// Auth header is the verbatim Bearer.
 	require.Equal(t, "Bearer secret-token", capturedHeader.Get("Authorization"))
 	require.Equal(t, "application/json", capturedHeader.Get("Content-Type"))
+	// Body is gzip-encoded; decompress before unmarshalling.
+	require.Equal(t, "gzip", capturedHeader.Get("Content-Encoding"))
+	gz, err := gzip.NewReader(bytes.NewReader(capturedBody))
+	require.NoError(t, err)
+	raw, err := io.ReadAll(gz)
+	require.NoError(t, err)
 
 	var events []map[string]any
-	require.NoError(t, json.Unmarshal(capturedBody, &events))
+	require.NoError(t, json.Unmarshal(raw, &events))
 	require.Len(t, events, 1)
 	ev := events[0]
 

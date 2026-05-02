@@ -10,18 +10,20 @@ import (
 )
 
 type Querier interface {
-	// Optimistic-lock cursor advance. Only the row that observed the previous
-	// watermark wins; if a concurrent replica already moved the cursor, this
-	// returns 0 rows affected and the caller replays the same window on the
-	// next tick (idempotency keys take care of the dup at the provider).
+	// Optimistic-lock advance on a per-drain cursor row. Only the row that
+	// observed the previous (time_ms, last_id) wins; if a concurrent replica
+	// already moved this drain's cursor, this returns 0 rows affected and
+	// the caller treats the batch as having been delivered by the winner —
+	// next tick replays from the new cursor.
 	//
 	//  UPDATE log_drain_cursors
-	//  SET inserted_at_ms = ?,
-	//      fingerprint = ?,
+	//  SET time_ms = ?,
+	//      last_id = ?,
 	//      updated_at = ?
-	//  WHERE group_key = ?
-	//    AND inserted_at_ms = ?
-	//    AND fingerprint = ?
+	//  WHERE drain_id = ?
+	//    AND group_key = ?
+	//    AND time_ms = ?
+	//    AND last_id = ?
 	AdvanceLogDrainCursor(ctx context.Context, db DBTX, arg AdvanceLogDrainCursorParams) (int64, error)
 	//ClearAcmeChallengeTokens
 	//
@@ -1320,12 +1322,31 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND deleted_at_m IS NULL
 	GetKeyAuthByID(ctx context.Context, db DBTX, id string) (GetKeyAuthByIDRow, error)
-	//GetLogDrainCursor
+	// Returns one drain's cursor row for a specific group. Cursors are keyed
+	// by (drain_id, group_key) because a single drain belongs to N groups
+	// (one per source) and each source has its own (time_ms, last_id)
+	// timeline; a drain_id-only PK would let one source's tail overshoot
+	// another's and stall the slower source's processGroup at "fetch
+	// returns 0 rows" forever. Reads go to the primary so the same tick
+	// observes its own previous write — replication lag against RO would
+	// otherwise make the optimistic-lock UPDATE ambiguous between "another
+	// replica won" and "your last write hasn't replicated yet".
 	//
-	//  SELECT group_key, inserted_at_ms, fingerprint, updated_at
+	//  SELECT drain_id, group_key, time_ms, last_id, blocked, blocked_reason, updated_at
 	//  FROM log_drain_cursors
-	//  WHERE group_key = ?
-	GetLogDrainCursor(ctx context.Context, db DBTX, groupKey string) (LogDrainCursor, error)
+	//  WHERE drain_id = ?
+	//    AND group_key = ?
+	GetLogDrainCursor(ctx context.Context, db DBTX, arg GetLogDrainCursorParams) (LogDrainCursor, error)
+	// Reads the per-drain operational state row written by
+	// RecordLogDrainFailure / RecordLogDrainSuccess. Used after a failure has
+	// landed to decide whether the consecutive_failures counter has crossed
+	// the auto-pause threshold; PauseLogDrain then sets paused_reason.
+	//
+	//  SELECT drain_id, last_delivery_at, last_attempt_at, last_error,
+	//         consecutive_failures, paused_reason, total_records_delivered, updated_at
+	//  FROM log_drain_state
+	//  WHERE drain_id = ?
+	GetLogDrainState(ctx context.Context, db DBTX, drainID string) (LogDrainState, error)
 	//GetWorkspacesForQuotaCheckByIDs
 	//
 	//  SELECT
@@ -2792,6 +2813,32 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
+	// Sets blocked=true on a drain's cursor row. The coordinator's
+	// in-memory groupMinCursor (and any future MIN query) excludes blocked
+	// drains so the group's read watermark advances past a persistently
+	// failing drain instead of stalling there indefinitely. The drain
+	// itself stays in the log_drains table; resume is a dashboard-driven
+	// UPDATE that flips blocked back to false and clears blocked_reason.
+	//
+	//  UPDATE log_drain_cursors
+	//  SET blocked = true,
+	//      blocked_reason = ?,
+	//      updated_at = ?
+	//  WHERE drain_id = ?
+	//    AND blocked = false
+	MarkLogDrainCursorBlocked(ctx context.Context, db DBTX, arg MarkLogDrainCursorBlockedParams) error
+	// Sets paused_reason on a drain after consecutive_failures crosses the
+	// coordinator's PauseAfterFailures threshold. ListEnabledLogDrains filters
+	// on `paused_reason IS NULL OR paused_reason = ''`, so this single column
+	// write is enough to take the drain out of rotation on the next tick.
+	// Resume is a dashboard action that clears paused_reason back to NULL.
+	//
+	//  UPDATE log_drain_state
+	//  SET paused_reason = ?,
+	//      updated_at = ?
+	//  WHERE drain_id = ?
+	//    AND (paused_reason IS NULL OR paused_reason = '')
+	PauseLogDrain(ctx context.Context, db DBTX, arg PauseLogDrainParams) error
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes
@@ -3483,12 +3530,16 @@ type Querier interface {
 	//      workspace_id = VALUES(workspace_id),
 	//      store_encrypted_keys = VALUES(store_encrypted_keys)
 	UpsertKeySpace(ctx context.Context, db DBTX, arg UpsertKeySpaceParams) error
-	// Establishes a cursor for a brand-new group. Uses INSERT IGNORE so two
-	// replicas racing to bootstrap the same group never overwrite each other;
-	// the loser silently no-ops and reads the existing cursor on the next tick.
+	// Bootstraps a per-drain cursor for a brand-new drain. INSERT IGNORE so
+	// two replicas racing to initialise the same drain do not stomp each
+	// other; the loser silently no-ops and reads the existing cursor on the
+	// next tick. The bootstrap watermark is set by the caller to (now -
+	// BatchWindow, '') so a freshly-created drain doesn't replay the
+	// 90-day ClickHouse retention window on first delivery.
 	//
-	//  INSERT IGNORE INTO log_drain_cursors (group_key, inserted_at_ms, fingerprint, updated_at)
-	//  VALUES (?, ?, ?, ?)
+	//  INSERT IGNORE INTO log_drain_cursors (
+	//      drain_id, group_key, time_ms, last_id, blocked, blocked_reason, updated_at
+	//  ) VALUES (?, ?, ?, ?, false, NULL, ?)
 	UpsertLogDrainCursorInitial(ctx context.Context, db DBTX, arg UpsertLogDrainCursorInitialParams) error
 	//UpsertOpenApiSpec
 	//
