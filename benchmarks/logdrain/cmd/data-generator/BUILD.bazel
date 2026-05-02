@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "data-generator_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/unkeyed/unkey/benchmarks/logdrain/cmd/data-generator",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//pkg/batch",
+        "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
+        "@com_github_go_sql_driver_mysql//:mysql",
+    ],
+)
+
+go_binary(
+    name = "data-generator",
+    embed = [":data-generator_lib"],
+    visibility = ["//visibility:public"],
+)
