@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
-import { Button, Checkbox } from "@unkey/ui";
-import { useCallback, useEffect } from "react";
+import { Button, Checkbox, Input } from "@unkey/ui";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FilterOperator, FilterValue } from "../validation/filter.types";
 import { useCheckboxState } from "./hooks";
 
@@ -50,6 +50,13 @@ interface BaseCheckboxFilterProps<
   // Optional default selection index - for single selection mode
   defaultSelectionIndex?: number;
   onDrawerClose?: () => void;
+
+  /** Optional client-side search for long option lists. */
+  getSearchText?: (option: TItem) => string;
+  searchPlaceholder?: string;
+
+  /** Optional cap to avoid rendering huge lists at once. Applied after search filtering. */
+  maxVisibleOptions?: number;
 }
 
 export const FilterCheckbox = <
@@ -75,7 +82,13 @@ export const FilterCheckbox = <
   allowDeselection = true,
   defaultSelectionIndex,
   onDrawerClose,
+
+  getSearchText,
+  searchPlaceholder,
+  maxVisibleOptions,
 }: BaseCheckboxFilterProps<TItem, TFilterValue>) => {
+  const [searchQuery, setSearchQuery] = useState("");
+
   // Use the provided useCheckboxState hook
   const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } = useCheckboxState<
     TItem,
@@ -87,6 +100,71 @@ export const FilterCheckbox = <
     checkPath,
     shouldSyncWithOptions,
   });
+
+  const { visibleIndexes } = useMemo(() => {
+    if (!getSearchText && maxVisibleOptions === undefined) {
+      const visibleIndexes: number[] = [];
+      return { visibleIndexes };
+    }
+
+    const query = searchQuery.trim().toLowerCase();
+    const cap = maxVisibleOptions ?? Number.POSITIVE_INFINITY;
+
+    const indexes: number[] = [];
+
+    for (let i = 0; i < checkboxes.length; i++) {
+      const checkbox = checkboxes[i];
+      if (query.length > 0 && getSearchText) {
+        const haystack = getSearchText(checkbox).toLowerCase();
+        if (!haystack.includes(query)) {
+          continue;
+        }
+      }
+
+      if (indexes.length < cap) {
+        indexes.push(i);
+      }
+    }
+
+    return { visibleIndexes: indexes };
+  }, [checkboxes, getSearchText, maxVisibleOptions, searchQuery]);
+
+  const selectAllContextIndexes =
+    selectionMode === "multiple" && (getSearchText || maxVisibleOptions !== undefined)
+      ? visibleIndexes
+      : null;
+
+  const areAllContextChecked =
+    selectionMode === "multiple" && selectAllContextIndexes
+      ? selectAllContextIndexes.length > 0 &&
+        selectAllContextIndexes.every((i) => checkboxes[i]?.checked)
+      : checkboxes.every((checkbox) => checkbox.checked);
+
+  const handleSelectAllClick = useCallback(() => {
+    if (selectionMode !== "multiple") {
+      return;
+    }
+
+    if (!selectAllContextIndexes) {
+      handleSelectAll();
+      return;
+    }
+
+    const allVisibleChecked =
+      selectAllContextIndexes.length > 0 &&
+      selectAllContextIndexes.every((i) => checkboxes[i]?.checked);
+
+    for (const index of selectAllContextIndexes) {
+      const checkbox = checkboxes[index];
+      if (!checkbox) {
+        continue;
+      }
+      const shouldToggle = allVisibleChecked ? checkbox.checked : !checkbox.checked;
+      if (shouldToggle) {
+        handleCheckboxChange(index);
+      }
+    }
+  }, [checkboxes, handleCheckboxChange, handleSelectAll, selectAllContextIndexes, selectionMode]);
 
   // Handle single selection mode logic
   const handleSingleSelection = useCallback(
@@ -189,6 +267,15 @@ export const FilterCheckbox = <
 
   return (
     <div className={cn("flex flex-col p-2", className)}>
+      {getSearchText && (
+        <div className="px-2 pt-2">
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={searchPlaceholder ?? "Search"}
+          />
+        </div>
+      )}
       <div
         className={cn(
           "flex flex-col gap-2 font-mono px-2 py-2",
@@ -202,46 +289,73 @@ export const FilterCheckbox = <
             <label
               // "checkbox-999 required to transfer focus from single checkboxes to this "select" all"
               htmlFor={"checkbox-999"}
-              className="flex items-center gap-[18px] cursor-pointer"
-              aria-checked={checkboxes.every((checkbox) => checkbox.checked)}
+              className="flex items-center gap-4.5 cursor-pointer"
+              aria-checked={areAllContextChecked}
               onKeyDown={(e) => handleKeyDown(e)}
             >
               <Checkbox
                 id={"checkbox-999"}
-                checked={checkboxes.every((checkbox) => checkbox.checked)}
+                checked={areAllContextChecked}
                 className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleSelectAll();
+                  handleSelectAllClick();
                 }}
               />
               <span className="text-xs text-accent-12">
-                {checkboxes.every((checkbox) => checkbox.checked) ? "Unselect All" : "Select All"}
+                {areAllContextChecked ? "Unselect All" : "Select All"}
               </span>
             </label>
           </div>
         )}
 
-        {checkboxes.map((checkbox, index) => (
-          <label
-            key={checkbox.id}
-            htmlFor={`checkbox-${checkbox.id}`}
-            className="flex gap-[18px] items-center py-1 cursor-pointer"
-            aria-checked={checkbox.checked}
-            onKeyDown={(e) => handleKeyDown(e, index)}
-          >
-            <Checkbox
-              id={`checkbox-${checkbox.id}`}
-              checked={checkbox.checked}
-              className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCheckboxClick(index);
-              }}
-            />
-            {renderOptionContent ? renderOptionContent(checkbox) : null}
-          </label>
-        ))}
+        {getSearchText || maxVisibleOptions !== undefined
+          ? visibleIndexes.map((index) => {
+              const checkbox = checkboxes[index];
+              if (!checkbox) {
+                return null;
+              }
+              return (
+                <label
+                  key={checkbox.id}
+                  htmlFor={`checkbox-${checkbox.id}`}
+                  className="flex gap-4.5 items-center py-1 cursor-pointer"
+                  aria-checked={checkbox.checked}
+                  onKeyDown={(e) => handleKeyDown(e, index)}
+                >
+                  <Checkbox
+                    id={`checkbox-${checkbox.id}`}
+                    checked={checkbox.checked}
+                    className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCheckboxClick(index);
+                    }}
+                  />
+                  {renderOptionContent ? renderOptionContent(checkbox) : null}
+                </label>
+              );
+            })
+          : checkboxes.map((checkbox, index) => (
+              <label
+                key={checkbox.id}
+                htmlFor={`checkbox-${checkbox.id}`}
+                className="flex gap-4.5 items-center py-1 cursor-pointer"
+                aria-checked={checkbox.checked}
+                onKeyDown={(e) => handleKeyDown(e, index)}
+              >
+                <Checkbox
+                  id={`checkbox-${checkbox.id}`}
+                  checked={checkbox.checked}
+                  className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCheckboxClick(index);
+                  }}
+                />
+                {renderOptionContent ? renderOptionContent(checkbox) : null}
+              </label>
+            ))}
       </div>
 
       {renderBottomGradient?.()}

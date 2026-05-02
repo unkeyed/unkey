@@ -21,6 +21,10 @@ export const SentinelDeploymentFilter = () => {
       options={options}
       filterField="deploymentId"
       checkPath="slug"
+      showScroll
+      maxVisibleOptions={50}
+      searchPlaceholder="Search deployments"
+      getSearchText={(option) => `${option.gitBranch ?? ""} ${option.slug ?? ""}`}
       selectionMode="multiple"
       renderOptionContent={(checkbox) => (
         <div className="text-accent-12 text-xs">
