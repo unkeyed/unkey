@@ -89,7 +89,7 @@ func main() {
 	//nolint:exhaustruct // Drop, OnFlushError use defaults; we want blocking sends and the package-level error logger.
 	runtimeBuf := clickhouse.NewBuffer[schema.RuntimeLog](
 		ch,
-		"default.runtime_logs_raw_v1",
+		"default.runtime_logs_raw_v2",
 		clickhouse.BufferConfig{
 			Name:          "perf-runtime-logs",
 			BatchSize:     *batchSize,

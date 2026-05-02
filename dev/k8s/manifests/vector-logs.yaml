@@ -207,6 +207,11 @@ data:
     .time, err = to_unix_timestamp(.timestamp, unit: "milliseconds")
     if err != null { .time = to_unix_timestamp(now(), unit: "milliseconds") }
 
+    # Stable per-row id. 8 random bytes → 16 hex chars; collision probability
+    # is negligible at log volume. Must be set inside extract_labels (before
+    # dedupe) so dedupe still operates on content fields, not the unique id.
+    .log_id = "log_" + encode_base16(random_bytes(8))
+
     # Clean up
     del(.kubernetes)
     del(.stream)
@@ -228,7 +233,7 @@ data:
     inputs = ["dedupe"]
     endpoint = "http://clickhouse:8123"
     database = "default"
-    table = "runtime_logs_raw_v1"
+    table = "runtime_logs_raw_v2"
     compression = "gzip"
     skip_unknown_fields = true
     healthcheck.enabled = true
