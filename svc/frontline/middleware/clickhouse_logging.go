@@ -68,6 +68,10 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.SentinelRequest], cl
 				RequestHeaders:  formatHeaders(req.Header),
 				RequestBody:     unsafe.String(unsafe.SliceData(tracking.RequestBody), len(tracking.RequestBody)),
 				ResponseStatus:  int32(s.StatusCode()),
+				// Use final response headers from the Session's ResponseWriter so headers
+				// added by middleware (for example X-RateLimit-*) are captured in
+				// ClickHouse logs. Previously only the upstream instance headers were
+				// recorded which omitted later middleware writes.
 				ResponseHeaders: formatHeaders(s.ResponseWriter().Header()),
 				ResponseBody:    unsafe.String(unsafe.SliceData(tracking.ResponseBody), len(tracking.ResponseBody)),
 				UserAgent:       req.UserAgent(),

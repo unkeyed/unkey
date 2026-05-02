@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
@@ -101,6 +102,9 @@ func (e *Executor) Execute(
 	// Write rate limit headers before checking status so they're present
 	// on both success (2xx) and rate-limited (429) responses.
 	writeRateLimitHeaders(sess.ResponseWriter(), verifier.RatelimitResults, e.clock)
+	if verifier.Key.RemainingRequests.Valid {
+		sess.ResponseWriter().Header().Set("X-Credits-Remaining", strconv.FormatInt(verifier.Key.RemainingRequests.Int64, 10))
+	}
 
 	switch verifier.Status {
 	case keys.StatusValid:
