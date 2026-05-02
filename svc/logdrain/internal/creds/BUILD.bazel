@@ -11,6 +11,7 @@ go_library(
         "//pkg/cache",
         "//pkg/clock",
         "//pkg/defaults",
+        "//svc/logdrain/internal/metrics",
     ],
 )
 

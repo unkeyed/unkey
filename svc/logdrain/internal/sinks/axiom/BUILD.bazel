@@ -5,7 +5,10 @@ go_library(
     srcs = ["axiom.go"],
     importpath = "github.com/unkeyed/unkey/svc/logdrain/internal/sinks/axiom",
     visibility = ["//svc/logdrain:__subpackages__"],
-    deps = ["//svc/logdrain/internal/sinks"],
+    deps = [
+        "//svc/logdrain/internal/metrics",
+        "//svc/logdrain/internal/sinks",
+    ],
 )
 
 go_test(

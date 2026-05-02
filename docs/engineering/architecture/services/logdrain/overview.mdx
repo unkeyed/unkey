@@ -71,9 +71,53 @@ The query predicate is the prune-friendly OR-form `time_ms > T OR (time_ms = T A
 
 On restart, the service resumes from each drain's last committed cursor. The duplicate window is bounded by the in-flight batch size (`MaxBatchRecords`) — drains whose advance had already committed pick up cleanly from their new position. This is at-least-once delivery; where the provider supports an `Idempotency-Key` header, `last_id` is sent as the key.
 
-## Sharding (future)
+## Concurrency model
 
-The v1 release ships with `replicas: 1` and a Kubernetes lease for leader election. The schema and code are designed for sharding by `cityHash64(workspace_id) % shard_count`. Each replica runs with a `LOGDRAIN_SHARD_INDEX` and only picks up groups whose hash matches its index. The `log_drain_cursors` `UNIQUE` constraint on `group_key`, combined with optimistic-locking on `UPDATE`, prevents double-write during shard rollouts.
+Each replica runs one `Coordinator` goroutine that ticks every `poll_interval`. A tick does three things in sequence: load the enabled drains, group them, and process every group. The third step is bounded-concurrent rather than serial:
+
+- **Per-tick group worker pool.** Up to 16 groups are processed in parallel via `errgroup.SetLimit(tickGroupWorkers)`. Tick duration is then bounded by `ceil(len(groups) / 16) × per-group latency` instead of `len(groups) × per-group latency`. With the `MaxGroupsPerShard` cap of 500 and a typical 100ms-per-group latency, a tick finishes in ~3s — well inside the 10s `poll_interval`, so no ticks get dropped.
+- **Per-group drain fan-out.** Inside `processGroup`, the batch is delivered to every drain in the group concurrently via `errgroup`. Each `sink.Send` is an independent HTTP round-trip to a different provider, so serialising them would multiply per-batch latency by the number of drains. Per-drain failures are still recorded into `log_drain_state` from the goroutine; we never propagate the error.
+- **Drain-list memoisation.** `ListEnabledLogDrains` is cached for 5s. The drain list is the same query on every tick; without the cache, an N-replica deployment would issue N MySQL reads every `poll_interval`. Cache TTL is short enough that a newly-created drain starts forwarding within 5–15s.
+- **HTTP keepalive tuning.** All sinks share one `http.Client` whose transport has `MaxIdleConnsPerHost=64`, `IdleConnTimeout=90s`, and `ForceAttemptHTTP2=true`. `api.axiom.co` is hit many times per tick, and Go's default `MaxIdleConnsPerHost=2` was thrashing the pool and forcing TLS handshakes on most requests.
+
+The cursor is still advanced under optimistic locking after every batch, so concurrent group processing inside one replica — and sharing groups across replicas during a rollout — both stay safe.
+
+## Sharding
+
+Logdrain runs as a `StatefulSet`. The workspace partition is fixed at compile time (`coordinator.TotalShards = 64`) and never changes at runtime; each pod claims a contiguous half-open range `[start, end)` derived from its StatefulSet ordinal and the operator-configured `replicas` count:
+
+```
+start = ordinal * TotalShards / replicas
+end   = (ordinal + 1) * TotalShards / replicas
+```
+
+Each pod's `$HOSTNAME` ends in `-<ordinal>` (e.g. `logdrain-0`, `logdrain-1`); `podOrdinalFromEnv()` parses that ordinal at startup and `coordinator.ShardRange` computes the range. Operators only set `replicas` in the ConfigMap — the per-pod ordinal is implicit. Scaling up is `kubectl scale --replicas=N` plus bumping `replicas` in the ConfigMap to match.
+
+Group ownership is `FNV1a64(workspace_id) % TotalShards ∈ [start, end)`, computed in-process via `FilterByShard`. There's no leader election: every replica claims its own range, and the `log_drain_cursors` per-drain optimistic-locking on `UPDATE` keeps the cursor safe even when two replicas race during a rollout. The losing UPDATE returns `rows = 0`, which the loser interprets as "the winner advanced this drain" and adopts the new position.
+
+The crucial property of the static cardinality is that **the partition itself never moves** during a scale event. Bumping `replicas` only redraws each pod's `[start, end)` boundary; every workspace's hash bucket is permanent. Compared to the old `shard_count` knob — where bumping the count meant some buckets briefly had no owner (or two) until the new pods came up — the only remaining coordination is the obvious one: don't scale pods past the configured `replicas` (validated at startup; an out-of-range ordinal crashloops with a clear message).
+
+The hard cap is `replicas <= TotalShards = 64`. Past that, the trailing pods would compute an empty range and silently own nothing; the validator rejects it at startup.
+
+## Throughput today and how to scale
+
+The per-replica ceiling is bounded by three things, in order:
+
+1. **Per-group ceiling**: `MaxBatchRecords × maxBatchesPerTick / poll_interval`. Production defaults give `5000 × 10 / 10s = 5,000 records/sec/group`. A group with a backlog drains at the ClickHouse fetch rate up to this cap before yielding to the next tick.
+2. **Per-replica concurrency**: `tickGroupWorkers = 16` groups run in parallel per tick. Once `len(groups) > MaxGroupsPerShard` the shard processes a rotating window of `MaxGroupsPerShard` groups per tick, so every group is touched within `ceil(len(groups) / MaxGroupsPerShard)` ticks rather than being starved.
+3. **Per-drain ceiling**: Axiom accepts ~1 MB/req. A drain pushing 50k r/s sustained will hit provider 429s well before the coordinator does. Sustained high-volume customers need either higher provider plans or app-level sampling.
+
+The current design comfortably supports **low thousands of active groups** with tens-of-seconds lag, subject to per-provider rate limits and measured ClickHouse query performance. Past that, the bottlenecks shift in roughly this order:
+
+- **provider 429s** for any tenant pushing tens of thousands of records per second to a single drain
+- **ClickHouse query overhead** once the active-group count grows past the shard cap
+- **rollout coordination** when scaling pods past the configured `replicas` (validated at startup; the operator must bump `replicas` in lockstep)
+
+None of these has been characterised against production-shaped data yet. The numbers above are sized to "comfortably handle today's customer count" — bigger jumps need measurement, not arithmetic.
+
+Horizontal scale is `kubectl scale --replicas=N` plus a `replicas = N` bump in the ConfigMap. Range boundaries rebalance on the next tick; the partition itself is fixed at `coordinator.TotalShards = 64`, so no group is ever unowned mid-rollout. The safe sequence (`replicas` first, then `kubectl scale`) is documented in the runbook.
+
+The remaining sequential bottleneck is per-group rather than per-replica: a group with N drains all targeting the *same* provider host can saturate that host's connection pool (`MaxIdleConnsPerHost = 64`). Per-drain cursors (PK `(drain_id, group_key)` on `log_drain_cursors`) are already in place, so a slow or paused drain doesn't hold its siblings' cursor advance — the next throughput lever for a single noisy tenant is decomposing one source's group by `app_id` or `deployment_id`, which trades cursor-space simplicity for parallel CH fetches per sub-group.
 
 ## Realtime path (future)
 

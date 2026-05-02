@@ -1,6 +1,10 @@
 -- name: UpsertLogDrainCursorInitial :exec
--- Establishes a cursor for a brand-new group. Uses INSERT IGNORE so two
--- replicas racing to bootstrap the same group never overwrite each other;
--- the loser silently no-ops and reads the existing cursor on the next tick.
-INSERT IGNORE INTO log_drain_cursors (group_key, inserted_at_ms, fingerprint, updated_at)
-VALUES (?, ?, ?, ?);
+-- Bootstraps a per-drain cursor for a brand-new drain. INSERT IGNORE so
+-- two replicas racing to initialise the same drain do not stomp each
+-- other; the loser silently no-ops and reads the existing cursor on the
+-- next tick. The bootstrap watermark is set by the caller to (now -
+-- BatchWindow, '') so a freshly-created drain doesn't replay the
+-- 90-day ClickHouse retention window on first delivery.
+INSERT IGNORE INTO log_drain_cursors (
+    drain_id, group_key, time_ms, last_id, blocked, blocked_reason, updated_at
+) VALUES (?, ?, ?, ?, false, NULL, ?);

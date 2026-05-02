@@ -10,23 +10,41 @@ import (
 )
 
 const getLogDrainCursor = `-- name: GetLogDrainCursor :one
-SELECT group_key, inserted_at_ms, fingerprint, updated_at
+SELECT drain_id, group_key, time_ms, last_id, blocked, blocked_reason, updated_at
 FROM log_drain_cursors
-WHERE group_key = ?
+WHERE drain_id = ?
+  AND group_key = ?
 `
 
-// GetLogDrainCursor
+type GetLogDrainCursorParams struct {
+	DrainID  string `db:"drain_id"`
+	GroupKey string `db:"group_key"`
+}
+
+// Returns one drain's cursor row for a specific group. Cursors are keyed
+// by (drain_id, group_key) because a single drain belongs to N groups
+// (one per source) and each source has its own (time_ms, last_id)
+// timeline; a drain_id-only PK would let one source's tail overshoot
+// another's and stall the slower source's processGroup at "fetch
+// returns 0 rows" forever. Reads go to the primary so the same tick
+// observes its own previous write — replication lag against RO would
+// otherwise make the optimistic-lock UPDATE ambiguous between "another
+// replica won" and "your last write hasn't replicated yet".
 //
-//	SELECT group_key, inserted_at_ms, fingerprint, updated_at
+//	SELECT drain_id, group_key, time_ms, last_id, blocked, blocked_reason, updated_at
 //	FROM log_drain_cursors
-//	WHERE group_key = ?
-func (q *Queries) GetLogDrainCursor(ctx context.Context, db DBTX, groupKey string) (LogDrainCursor, error) {
-	row := db.QueryRowContext(ctx, getLogDrainCursor, groupKey)
+//	WHERE drain_id = ?
+//	  AND group_key = ?
+func (q *Queries) GetLogDrainCursor(ctx context.Context, db DBTX, arg GetLogDrainCursorParams) (LogDrainCursor, error) {
+	row := db.QueryRowContext(ctx, getLogDrainCursor, arg.DrainID, arg.GroupKey)
 	var i LogDrainCursor
 	err := row.Scan(
+		&i.DrainID,
 		&i.GroupKey,
-		&i.InsertedAtMs,
-		&i.Fingerprint,
+		&i.TimeMs,
+		&i.LastID,
+		&i.Blocked,
+		&i.BlockedReason,
 		&i.UpdatedAt,
 	)
 	return i, err

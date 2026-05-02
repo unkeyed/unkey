@@ -43,6 +43,10 @@ func HealthCheckRecord() Record {
 		Attributes: map[string]any{
 			"unkey.healthcheck": true,
 		},
+		// Synthetic record with no source-level cursor; the value is
+		// unused because the worker doesn't run health-check sends
+		// through the per-drain cursor advance path.
+		CursorTimeMs: 0,
 		// Health-check pushes have no row to dedup against; an empty
 		// LastID surfaces as an empty Idempotency-Key downstream.
 		LastID: "",

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -21,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/coordinator"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/creds"
@@ -32,27 +34,30 @@ import (
 // would process so the wiring is exercisable end-to-end without sending
 // real records to the providers.
 func Run(ctx context.Context, cfg Config) error {
-	// When the pod is part of a StatefulSet, prefer the ordinal we can
-	// derive from $HOSTNAME so the helm chart doesn't have to inject one
-	// shard_index per replica. The cfg value still wins when no ordinal
-	// is detected (single-replica Deployment, local dev, tests).
-	if ordinal, ok := podOrdinalFromEnv(); ok {
-		if ordinal != cfg.ShardIndex {
-			logger.Info("overriding shard_index from pod ordinal",
-				"config_shard_index", cfg.ShardIndex,
-				"pod_ordinal", ordinal,
-			)
-		}
-		cfg.ShardIndex = ordinal
-	}
+	// The pod's ordinal comes from $HOSTNAME (StatefulSet pattern
+	// `<name>-<ordinal>`) so the helm chart doesn't have to inject a
+	// per-pod value. Local dev and tests run as a single replica with
+	// ordinal=0.
+	ordinal, _ := podOrdinalFromEnv()
 
 	if err := cfg.Validate(); err != nil {
 		return fmt.Errorf("bad config: %w", err)
 	}
+	if ordinal >= cfg.Replicas {
+		return fmt.Errorf(
+			"pod ordinal (%d) must be < replicas (%d) — set replicas in the ConfigMap before scaling pods up",
+			ordinal, cfg.Replicas,
+		)
+	}
+
+	shardStart, shardEnd := coordinator.ShardRange(ordinal, cfg.Replicas)
 
 	logger.Info("starting logdrain",
-		"shard_index", cfg.ShardIndex,
-		"shard_count", cfg.ShardCount,
+		"ordinal", ordinal,
+		"replicas", cfg.Replicas,
+		"shard_start", shardStart,
+		"shard_end", shardEnd,
+		"total_shards", coordinator.TotalShards,
 		"poll_interval", cfg.PollInterval.String(),
 	)
 
@@ -83,18 +88,35 @@ func Run(ctx context.Context, cfg Config) error {
 	vaultClient := vaultrpc.NewConnectVaultServiceClient(vaultv1connect.NewVaultServiceClient(
 		&http.Client{Timeout: 10 * time.Second},
 		cfg.Vault.URL,
+		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
+			"Authorization": fmt.Sprintf("Bearer %s", cfg.Vault.Token),
+		})),
 	))
 
+	// Honor the operator-configured TTL. Stale defaults to 2× Fresh so
+	// SWR (serve-while-revalidate) gives one free refresh window per TTL
+	// without an extra knob — matches the pattern in pkg/cache.
 	credsCache, err := creds.NewCache(vaultClient, creds.Config{
 		MaxSize: 0,
-		Fresh:   0,
-		Stale:   0,
+		Fresh:   cfg.CredentialCacheTTL,
+		Stale:   2 * cfg.CredentialCacheTTL,
 		Clock:   nil,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create creds cache: %w", err)
 	}
-	factory := coordinator.NewFactory(credsCache, &http.Client{Timeout: 30 * time.Second})
+	// A drain typically hits the same provider host (api.axiom.co, ...)
+	// many times per tick. Go's
+	// default Transport caps idle conns per host at 2, which thrashes
+	// the connection pool and forces a TLS handshake on most requests.
+	// Bumping MaxIdleConnsPerHost plus an explicit IdleConnTimeout
+	// keeps the pool warm for the typical 10s poll interval and pays
+	// off most for fan-outs of 5+ drains per group.
+	httpClient := &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: newSinkTransport(),
+	}
+	factory := coordinator.NewFactory(credsCache, httpClient)
 
 	coord, err := coordinator.New(coordinator.Config{
 		PollInterval:          cfg.PollInterval,
@@ -103,8 +125,9 @@ func Run(ctx context.Context, cfg Config) error {
 		PauseAfterFailures:    cfg.PauseAfterFailures,
 		MaxGroupsPerShard:     cfg.MaxGroupsPerShard,
 		MaxDrainsPerWorkspace: cfg.MaxDrainsPerWorkspace,
-		ShardCount:            cfg.ShardCount,
-		ShardIndex:            cfg.ShardIndex,
+		Ordinal:               ordinal,
+		ShardStart:            shardStart,
+		ShardEnd:              shardEnd,
 	}, database, ch, factory)
 	if err != nil {
 		return fmt.Errorf("unable to create coordinator: %w", err)
@@ -159,6 +182,31 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 
 	return r.Wait(ctx)
+}
+
+// newSinkTransport returns an http.RoundTripper tuned for the logdrain
+// fan-out: a small set of provider hostnames hit many times per second.
+// The numbers are deliberate copies of http.DefaultTransport with the
+// per-host idle pool sized for the worst case (max group concurrency ×
+// drains-per-group of the same provider) and a longer idle timeout so
+// connections survive between ticks. Anything stricter than 90s burns
+// TLS handshakes during quiet periods.
+func newSinkTransport() *http.Transport {
+	//nolint:exhaustruct // matches svc/frontline/internal/proxy/transport.go
+	dialer := &net.Dialer{
+		Timeout:   10 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	return &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		DialContext:           dialer.DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          256,
+		MaxIdleConnsPerHost:   64,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
 }
 
 // podOrdinalFromEnv recovers the StatefulSet ordinal from $HOSTNAME, the

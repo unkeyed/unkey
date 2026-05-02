@@ -45,6 +45,12 @@ func Runtime(row schema.RuntimeLog, f RuntimeFilter) (sinks.Record, bool) {
 		K8sPodName:    row.K8sPodName,
 		Body:          row.Message,
 		Attributes:    attrs,
+		// transform/ is provider-agnostic conversion; the cursor
+		// position (set by the coordinator's fetchRuntime when reading
+		// from CH) is not visible here. Tests construct records
+		// directly without a real cursor, so zero is the correct
+		// sentinel.
+		CursorTimeMs: 0,
 		// LastID is the sink-side dedup key; coordinator-level cursor
 		// pagination already prevents duplicates today, so leave it
 		// empty until tests/callers that need an Idempotency-Key fill

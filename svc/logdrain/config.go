@@ -5,12 +5,16 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/config"
+	"github.com/unkeyed/unkey/svc/logdrain/internal/coordinator"
 )
 
 // Config is the runtime configuration for the logdrain service.
 //
-// shard_count and shard_index are reserved for the v2 multi-replica path.
-// v1 runs as a single replica with shard_count=1 and shard_index=0.
+// Replicas declares the total pod count of the StatefulSet so each pod
+// can compute its contiguous shard range from its $HOSTNAME ordinal.
+// The shard cardinality itself (coordinator.TotalShards = 64) is fixed
+// at compile time so partition boundaries are the only thing that
+// shifts during a scale event.
 type Config struct {
 	// ClickHouseURL is the DSN for ClickHouse Cloud. logdrain reads from
 	// runtime_logs_raw_v1 and sentinel_requests_raw_v1 in the default
@@ -61,23 +65,27 @@ type Config struct {
 	// Vault load. 0 disables TTL (cache forever until restart).
 	CredentialCacheTTL time.Duration `toml:"credential_cache_ttl" config:"default=1h"`
 
-	// ShardCount is the total number of logdrain replicas claiming groups
-	// via cityHash64(workspace_id) % shard_count. v1 = 1.
-	ShardCount int `toml:"shard_count" config:"default=2,min=1"`
-
-	// ShardIndex identifies this replica within ShardCount. Must be
-	// 0 <= ShardIndex < ShardCount.
-	ShardIndex int `toml:"shard_index" config:"default=0,min=0"`
+	// Replicas is the total pod count of the logdrain StatefulSet.
+	// Combined with the pod's ordinal (parsed from $HOSTNAME) it yields
+	// the contiguous shard range [start, end) this replica owns out of
+	// coordinator.TotalShards. Operators bump this in lockstep with
+	// `kubectl scale --replicas=N` — see the rollout runbook.
+	Replicas int `toml:"replicas" config:"default=1,min=1"`
 
 	Observability config.Observability `toml:"observability"`
 }
 
 // Validate enforces invariants the struct tag validators cannot express.
+//
+// Replicas must not exceed coordinator.TotalShards: with more pods than
+// shards, the trailing pods would compute an empty [start, end) range
+// and silently own zero work. Failing at startup makes the cap obvious
+// instead of letting half the fleet be idle.
 func (c *Config) Validate() error {
-	if c.ShardIndex >= c.ShardCount {
+	if c.Replicas > coordinator.TotalShards {
 		return fmt.Errorf(
-			"shard_index (%d) must be < shard_count (%d) — otherwise this replica would never claim a group",
-			c.ShardIndex, c.ShardCount,
+			"replicas (%d) must be <= coordinator.TotalShards (%d) — bump TotalShards if you need more pods",
+			c.Replicas, coordinator.TotalShards,
 		)
 	}
 	return nil
