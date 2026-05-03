@@ -77,7 +77,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		return err
 	}
 	if mw != nil && h.Engine != nil {
-		result, evalErr := h.Engine.Evaluate(ctx, sess, req, mw)
+		result, evalErr := h.Engine.Evaluate(ctx, sess, req, deployment.WorkspaceID, mw)
 		if evalErr != nil {
 			return evalErr
 		}

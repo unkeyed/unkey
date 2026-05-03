@@ -3,10 +3,31 @@ package ratelimit
 import (
 	"context"
 	"sync/atomic"
+	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/counter"
+	"github.com/unkeyed/unkey/pkg/mysql"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 )
+
+// newTestDB returns a [mysql.MySQL] handle for the shared docker-compose
+// MySQL (managed externally via `make up`). Connection is closed on
+// t.Cleanup. Used by unit tests that need to satisfy [Config.DB] but don't
+// exercise the blocklist itself.
+func newTestDB(t testing.TB) DB {
+	t.Helper()
+
+	cfg := containers.MySQL(t)
+	database, err := mysql.New(mysql.Config{
+		PrimaryDSN:  cfg.FormatDSN(),
+		ReadOnlyDSN: "",
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = database.Close() })
+	return database
+}
 
 // trackingCounter wraps an underlying counter.Counter and records how many
 // times Get and Increment are invoked. All other operations pass through
