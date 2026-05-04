@@ -3,7 +3,54 @@ import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import type { Transaction } from "@unkey/db";
 import { newId } from "@unkey/id";
+
+// Without these checks the caller could attach a role to keys or permissions
+// owned by another workspace, which leaks role permissions into a victim's
+// keys at verification time (the Go authoritative join chain has no
+// workspace filter).
+async function assertKeysInWorkspace(tx: Transaction, workspaceId: string, keyIds: string[]) {
+  if (keyIds.length === 0) {
+    return;
+  }
+  const found = await tx.query.keys.findMany({
+    where: (table, { and, eq, inArray }) =>
+      and(eq(table.workspaceId, workspaceId), inArray(table.id, keyIds)),
+    columns: { id: true },
+  });
+  const foundIds = new Set(found.map((k) => k.id));
+  const missing = keyIds.filter((id) => !foundIds.has(id));
+  if (missing.length > 0) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: `Key(s) not found or not in this workspace: ${missing.join(", ")}`,
+    });
+  }
+}
+
+async function assertPermissionsInWorkspace(
+  tx: Transaction,
+  workspaceId: string,
+  permissionIds: string[],
+) {
+  if (permissionIds.length === 0) {
+    return;
+  }
+  const found = await tx.query.permissions.findMany({
+    where: (table, { and, eq, inArray }) =>
+      and(eq(table.workspaceId, workspaceId), inArray(table.id, permissionIds)),
+    columns: { id: true },
+  });
+  const foundIds = new Set(found.map((p) => p.id));
+  const missing = permissionIds.filter((id) => !foundIds.has(id));
+  if (missing.length > 0) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: `Permission(s) not found or not in this workspace: ${missing.join(", ")}`,
+    });
+  }
+}
 
 export const upsertRole = workspaceProcedure
   .input(rbacRoleSchema)
@@ -43,6 +90,13 @@ export const upsertRole = workspaceProcedure
             code: "NOT_FOUND",
             message: "Role not found or access denied",
           });
+        }
+
+        if (input.permissionIds && input.permissionIds.length > 0) {
+          await assertPermissionsInWorkspace(tx, ctx.workspace.id, input.permissionIds);
+        }
+        if (input.keyIds && input.keyIds.length > 0) {
+          await assertKeysInWorkspace(tx, ctx.workspace.id, input.keyIds);
         }
 
         // Only check for name conflicts if the name is actually changing
@@ -217,6 +271,13 @@ export const upsertRole = workspaceProcedure
             code: "CONFLICT",
             message: `Role with name '${input.roleName}' already exists`,
           });
+        }
+
+        if (input.permissionIds && input.permissionIds.length > 0) {
+          await assertPermissionsInWorkspace(tx, ctx.workspace.id, input.permissionIds);
+        }
+        if (input.keyIds && input.keyIds.length > 0) {
+          await assertKeysInWorkspace(tx, ctx.workspace.id, input.keyIds);
         }
 
         // Create new role

@@ -72,7 +72,8 @@ export const CancelPlan: React.FC = () => {
           <div className="text-error-12 text-[13px] leading-6">
             <span className="font-medium">Warning:</span> cancelling your subscription will
             downgrade your workspace to the free tier at the end of the current billing period. You
-            will lose access to paid features and usage limits will be reduced.
+            will lose access to paid features, usage limits will be reduced, and all team members
+            other than you will be deactivated.
           </div>
         </div>
       </DialogContainer>
