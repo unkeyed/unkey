@@ -6,6 +6,7 @@ INSERT INTO app_build_settings (
     dockerfile,
     docker_context,
     watch_paths,
+    auto_deploy,
     created_at,
     updated_at
 ) VALUES (
@@ -15,6 +16,7 @@ INSERT INTO app_build_settings (
     sqlc.arg(dockerfile),
     sqlc.arg(docker_context),
     sqlc.arg(watch_paths),
+    sqlc.arg(auto_deploy),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)
 )
@@ -22,4 +24,5 @@ ON DUPLICATE KEY UPDATE
     dockerfile = VALUES(dockerfile),
     docker_context = VALUES(docker_context),
     watch_paths = VALUES(watch_paths),
+    auto_deploy = VALUES(auto_deploy),
     updated_at = VALUES(updated_at);
