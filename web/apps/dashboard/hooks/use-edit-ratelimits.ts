@@ -1,6 +1,6 @@
+import { formatMs } from "@/lib/ms";
 import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
-import { formatDuration, intervalToDuration } from "date-fns";
 
 export function useEditKeyRatelimits(onSuccess?: () => void) {
   const trpcUtils = trpc.useUtils();
@@ -15,7 +15,7 @@ export function useEditKeyRatelimits(onSuccess?: () => void) {
         if (rulesCount === 1) {
           const rule = variables.ratelimit.data[0];
           const refillInterval = typeof rule.refillInterval === "number" ? rule.refillInterval : 0;
-          description = `Your key ${data.keyId} has been updated with a limit of ${rule.limit} requests per ${formatInterval(refillInterval)}`;
+          description = `Your key ${data.keyId} has been updated with a limit of ${rule.limit} requests per ${formatMs(refillInterval, { long: true })}`;
         } else {
           description = `Your key ${data.keyId} has been updated with ${rulesCount} rate limit rules`;
         }
@@ -50,7 +50,7 @@ export function useEditIdentityRatelimits(onSuccess?: () => void) {
         if (rulesCount === 1) {
           const rule = variables.ratelimit.data[0];
           const refillInterval = typeof rule.refillInterval === "number" ? rule.refillInterval : 0;
-          description = `Identity ${data.identityId} has been updated with a limit of ${rule.limit} requests per ${formatInterval(refillInterval)}`;
+          description = `Identity ${data.identityId} has been updated with a limit of ${rule.limit} requests per ${formatMs(refillInterval, { long: true })}`;
         } else {
           description = `Identity ${data.identityId} has been updated with ${rulesCount} rate limit rules`;
         }
@@ -98,27 +98,3 @@ function handleError(
     });
   }
 }
-
-const formatInterval = (milliseconds: number): string => {
-  if (milliseconds < 1000) {
-    return `${milliseconds}ms`;
-  }
-
-  const duration = intervalToDuration({ start: 0, end: milliseconds });
-
-  // Customize the format for different time ranges
-  if (milliseconds < 60000) {
-    // Less than a minute
-    return formatDuration(duration, { format: ["seconds"] });
-  }
-  if (milliseconds < 3600000) {
-    // Less than an hour
-    return formatDuration(duration, { format: ["minutes", "seconds"] });
-  }
-  if (milliseconds < 86400000) {
-    // Less than a day
-    return formatDuration(duration, { format: ["hours", "minutes"] });
-  }
-  // Days or more
-  return formatDuration(duration, { format: ["days", "hours"] });
-};

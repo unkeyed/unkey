@@ -304,6 +304,25 @@ export const requireOrgAdmin = t.middleware(async ({ next, ctx, rawInput }) => {
   }
 });
 
+/**
+ * Middleware: Requires the caller to be an admin of the workspace's tenant.
+ *
+ * Unlike `requireOrgAdmin`, this does not require the caller to pass an
+ * `orgId` field in the input — the workspaceProcedure has already verified
+ * the workspace belongs to `ctx.tenant`, so the role check on `ctx.tenant`
+ * is sufficient. Use this for billing and other workspace-scoped admin-only
+ * mutations where adding `orgId` to the input shape would be awkward.
+ */
+export const requireWorkspaceAdmin = t.middleware(({ next, ctx }) => {
+  if (ctx.tenant?.role !== "admin") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "This action requires admin privileges.",
+    });
+  }
+  return next();
+});
+
 // =============================================================================
 // RATE LIMITING
 // =============================================================================

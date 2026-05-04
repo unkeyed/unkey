@@ -1,0 +1,61 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "policies",
+    srcs = [
+        "engine.go",
+        "match.go",
+        "metrics.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/svc/frontline/internal/policies",
+    visibility = ["//svc/frontline:__subpackages__"],
+    deps = [
+        "//gen/proto/frontline/v1:frontline",
+        "//internal/services/keys",
+        "//internal/services/ratelimit",
+        "//pkg/assert",
+        "//pkg/clock",
+        "//pkg/codes",
+        "//pkg/fault",
+        "//pkg/prometheus/lazy",
+        "//pkg/zen",
+        "//svc/frontline/internal/policies/firewall",
+        "//svc/frontline/internal/policies/keyauth",
+        "//svc/frontline/internal/policies/principal",
+        "//svc/frontline/internal/policies/ratelimit",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)
+
+go_test(
+    name = "policies_test",
+    srcs = [
+        "engine_test.go",
+        "integration_test.go",
+        "match_test.go",
+    ],
+    embed = [":policies"],
+    deps = [
+        "//gen/proto/frontline/v1:frontline",
+        "//internal/services/keys",
+        "//internal/services/keys/db",
+        "//internal/services/ratelimit",
+        "//internal/services/usagelimiter",
+        "//pkg/cache",
+        "//pkg/clock",
+        "//pkg/codes",
+        "//pkg/counter",
+        "//pkg/db",
+        "//pkg/dockertest",
+        "//pkg/fault",
+        "//pkg/hash",
+        "//pkg/ptr",
+        "//pkg/rbac",
+        "//pkg/uid",
+        "//pkg/zen",
+        "//svc/frontline/internal/policies/principal",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//encoding/protojson",
+    ],
+)

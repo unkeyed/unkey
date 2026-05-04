@@ -17,6 +17,7 @@ type checkState struct {
 	cur           *counterEntry
 	prev          *counterEntry
 	strictKey     strictKey
+	curSequence   int64
 	windowElapsed float64
 	reset         time.Time
 	source        string
@@ -29,9 +30,9 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 	durationMs := req.Duration.Milliseconds()
 	curSeq := calculateSequence(req.Time, req.Duration)
 
-	curKey := counterKey{name: req.Name, identifier: req.Identifier, durationMs: durationMs, sequence: curSeq}
-	prevKey := counterKey{name: req.Name, identifier: req.Identifier, durationMs: durationMs, sequence: curSeq - 1}
-	sk := strictKey{name: req.Name, identifier: req.Identifier, durationMs: durationMs}
+	curKey := counterKey{workspaceID: req.WorkspaceID, namespace: req.Namespace, identifier: req.Identifier, durationMs: durationMs, sequence: curSeq}
+	prevKey := counterKey{workspaceID: req.WorkspaceID, namespace: req.Namespace, identifier: req.Identifier, durationMs: durationMs, sequence: curSeq - 1}
+	sk := strictKey{workspaceID: req.WorkspaceID, namespace: req.Namespace, identifier: req.Identifier, durationMs: durationMs}
 
 	cur := s.loadCounter(curKey)
 	prev := s.loadCounter(prevKey)
@@ -60,6 +61,7 @@ func (s *service) prepareCheck(ctx context.Context, req RatelimitRequest) checkS
 		cur:           cur,
 		prev:          prev,
 		strictKey:     sk,
+		curSequence:   curSeq,
 		windowElapsed: windowElapsed,
 		reset:         reset,
 		source:        "local",
@@ -81,8 +83,9 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 	}
 
 	err := assert.All(
+		assert.NotEmpty(req.WorkspaceID, "ratelimit workspace id must not be empty"),
+		assert.NotEmpty(req.Namespace, "ratelimit namespace must not be empty"),
 		assert.NotEmpty(req.Identifier, "ratelimit identifier must not be empty"),
-		assert.NotEmpty(req.Name, "ratelimit name must not be empty"),
 		assert.Greater(req.Limit, 0, "ratelimit limit must be greater than zero"),
 		assert.GreaterOrEqual(req.Cost, 0, "ratelimit cost must not be negative"),
 		assert.GreaterOrEqual(req.Duration.Milliseconds(), 1000, "ratelimit duration must be at least 1s"),
@@ -108,8 +111,10 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 		if effectiveCount > req.Limit {
 			// Enter strict mode: force origin fetches for the rest of the
 			// rate-limit window so later requests converge on the true count.
-			s.setStrictUntil(cs.strictKey, req.Time.Add(req.Duration).UnixMilli())
-			metrics.RatelimitDecision.WithLabelValues(cs.source, "denied").Inc()
+			// Also propagates the denial cross-region on the first denial
+			// per counter entry.
+			s.activateStrictMode(req, &cs, effectiveCount)
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, cs.source, "denied").Inc()
 			span.SetAttributes(attribute.Bool("passed", false))
 			return RatelimitResponse{
 				Success:   false,
@@ -122,7 +127,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 		if cs.cur.val.CompareAndSwap(curCount, curCount+req.Cost) {
 			s.replayBuffer.Buffer(req)
-			metrics.RatelimitDecision.WithLabelValues(cs.source, "passed").Inc()
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, cs.source, "passed").Inc()
 			span.SetAttributes(attribute.Bool("passed", true))
 			return RatelimitResponse{
 				Success:   true,
@@ -136,11 +141,12 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 	// CAS retries exhausted — fail closed.
 	logger.Error("ratelimit CAS retries exhausted, denying request",
+		"workspace_id", req.WorkspaceID,
+		"namespace", req.Namespace,
 		"identifier", req.Identifier,
-		"name", req.Name,
 	)
 	metrics.RatelimitCASExhausted.Inc()
-	metrics.RatelimitDecision.WithLabelValues(cs.source, "denied").Inc()
+	metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, cs.source, "denied").Inc()
 	span.SetAttributes(attribute.Bool("passed", false))
 	return RatelimitResponse{
 		Success:   false,
@@ -162,7 +168,8 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 		}
 
 		err := assert.All(
-			assert.NotEmpty(reqs[i].Name, "ratelimit name must not be empty"),
+			assert.NotEmpty(reqs[i].WorkspaceID, "ratelimit workspace id must not be empty"),
+			assert.NotEmpty(reqs[i].Namespace, "ratelimit namespace must not be empty"),
 			assert.NotEmpty(reqs[i].Identifier, "ratelimit identifier must not be empty"),
 			assert.Greater(reqs[i].Limit, 0, "ratelimit limit must be greater than zero"),
 			assert.GreaterOrEqual(reqs[i].Cost, 0, "ratelimit cost must not be negative"),
@@ -208,7 +215,7 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 			checks[i].cur.val.Add(-req.Cost)
 			// For each individual failure, set strict mode on its tuple.
 			if effectives[i] > req.Limit {
-				s.setStrictUntil(checks[i].strictKey, req.Time.Add(req.Duration).UnixMilli())
+				s.activateStrictMode(req, &checks[i], effectives[i])
 			}
 		}
 	}
@@ -246,9 +253,9 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 		}
 
 		if individualPassed {
-			metrics.RatelimitDecision.WithLabelValues(checks[i].source, "passed").Inc()
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, checks[i].source, "passed").Inc()
 		} else {
-			metrics.RatelimitDecision.WithLabelValues(checks[i].source, "denied").Inc()
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, checks[i].source, "denied").Inc()
 		}
 	}
 

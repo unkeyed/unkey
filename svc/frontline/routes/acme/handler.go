@@ -11,8 +11,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/frontline/services/proxy"
-	"github.com/unkeyed/unkey/svc/frontline/services/router"
+	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
+	"github.com/unkeyed/unkey/svc/frontline/internal/router"
 )
 
 type Handler struct {

@@ -1,8 +1,6 @@
 package routes
 
 import (
-	"time"
-
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/middleware"
 	acme "github.com/unkeyed/unkey/svc/frontline/routes/acme"
@@ -12,24 +10,29 @@ import (
 
 // Register registers all frontline routes for the HTTPS server
 func Register(srv *zen.Server, svc *Services) {
+	withSanitizeHeaders := middleware.WithReservedHeaderStrip()
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/"))
 	withPanicRecovery := zen.WithPanicRecovery()
 	withObservability := middleware.WithObservability(svc.Region, svc.ErrorPageRenderer)
-	withTimeout := zen.WithTimeout(15 * time.Minute)
+	withClickHouseLogging := middleware.WithClickHouseLogging(svc.FrontlineRequests, svc.Clock, svc.FrontlineID, svc.Region, svc.Platform)
+	withTimeout := zen.WithTimeout(svc.RequestTimeout)
 
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
+		withSanitizeHeaders,
 		withLogging,
 		withObservability,
+		withClickHouseLogging,
 		withTimeout,
 	}
 
-	// Catches all requests and routes them to the sentinel or some other region.
+	// Catches all requests and routes them to the local instance or to a peer frontline.
 	srv.RegisterRoute(
 		defaultMiddlewares,
 		&proxy.Handler{
 			RouterService: svc.RouterService,
 			ProxyService:  svc.ProxyService,
+			Engine:        svc.Engine,
 			Clock:         svc.Clock,
 		},
 	)
@@ -46,6 +49,7 @@ func RegisterHTTPServer(srv *zen.Server, svc *Services) {
 	srv.RegisterRoute(
 		[]zen.Middleware{
 			zen.WithPanicRecovery(),
+			middleware.WithReservedHeaderStrip(),
 			zen.WithLogging(zen.SkipPaths("/_unkey/internal/")),
 			middleware.WithObservability(svc.Region, svc.ErrorPageRenderer),
 		},

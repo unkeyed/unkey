@@ -473,6 +473,18 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
+  async deactivateMembership(membershipId: string): Promise<void> {
+    if (!membershipId) {
+      throw new Error("Membership Id is required");
+    }
+
+    try {
+      await this.provider.userManagement.deactivateOrganizationMembership(membershipId);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // Invitation Management
   async inviteMember(params: OrgInviteParams): Promise<Invitation> {
     const { orgId, email, role = "basic_member" } = params;

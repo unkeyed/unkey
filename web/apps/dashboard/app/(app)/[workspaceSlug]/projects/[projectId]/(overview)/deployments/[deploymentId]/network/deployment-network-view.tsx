@@ -11,14 +11,14 @@ import {
   NodeDetailsPanel,
   OriginNode,
   ProjectDetails,
+  RegionNode,
   SKELETON_TREE,
-  SentinelNode,
   SkeletonNode,
   TreeConnectionLine,
   TreeLayout,
   isInstanceNode,
   isOriginNode,
-  isSentinelNode,
+  isRegionNode,
   isSkeletonNode,
 } from "./unkey-flow";
 
@@ -97,13 +97,13 @@ function renderDeploymentNode(
     return <OriginNode node={node} />;
   }
 
-  if (isSentinelNode(node)) {
-    return <SentinelNode node={node} deploymentId={deploymentId} />;
+  if (isRegionNode(node)) {
+    return <RegionNode node={node} deploymentId={deploymentId} />;
   }
 
   if (isInstanceNode(node)) {
-    if (!parent || !isSentinelNode(parent)) {
-      throw new Error("Instance node requires parent sentinel");
+    if (!parent || !isRegionNode(parent)) {
+      throw new Error("Instance node requires parent region");
     }
     return (
       <InstanceNode node={node} flagCode={parent.metadata.flagCode} deploymentId={deploymentId} />

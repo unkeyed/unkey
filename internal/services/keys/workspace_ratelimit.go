@@ -25,7 +25,7 @@ const workspaceRatelimitNamespace = "workspace.ratelimit"
 // On any internal error (cache miss, rate limiter failure) the check fails
 // open to avoid blocking legitimate traffic.
 func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session) error {
-	// When quotaCache is nil, workspace rate limiting is disabled (e.g. sentinel).
+	// When quotaCache is nil, workspace rate limiting is disabled.
 	if s.quotaCache == nil {
 		return nil
 	}
@@ -61,12 +61,13 @@ func (s *service) checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session
 	}
 
 	resp, err := s.rateLimiter.Ratelimit(ctx, ratelimit.RatelimitRequest{
-		Name:       workspaceRatelimitNamespace,
-		Identifier: sess.AuthorizedWorkspaceID(),
-		Limit:      int64(limit),
-		Duration:   duration,
-		Cost:       1,
-		Time:       time.Time{}, //nolint:exhaustruct // use ratelimiter's clock
+		WorkspaceID: sess.AuthorizedWorkspaceID(),
+		Namespace:   workspaceRatelimitNamespace,
+		Identifier:  sess.AuthorizedWorkspaceID(),
+		Limit:       int64(limit),
+		Duration:    duration,
+		Cost:        1,
+		Time:        time.Time{}, //nolint:exhaustruct // use ratelimiter's clock
 	})
 	if err != nil {
 		logger.Error("workspace rate limit: ratelimiter error",

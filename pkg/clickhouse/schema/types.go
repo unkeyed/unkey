@@ -35,6 +35,10 @@ type Ratelimit struct {
 	Limit       uint64  `ch:"limit" json:"limit"`
 	Remaining   uint64  `ch:"remaining" json:"remaining"`
 	ResetAt     int64   `ch:"reset_at" json:"reset_at"`
+	// Tokens is the number of tokens the caller charged against the
+	// limit on this decision. Recorded for both passed and rejected
+	// requests so dashboards can break spend down by outcome.
+	Tokens uint64 `ch:"tokens" json:"tokens"`
 }
 
 // ApiRequest represents the v2 API request raw table structure.
@@ -77,12 +81,14 @@ type KeyVerificationAggregated struct {
 // RatelimitAggregated represents aggregated ratelimit data
 // from the per-minute/hour/day/month materialized views.
 type RatelimitAggregated struct {
-	Time        int64  `ch:"time" json:"time"`
-	WorkspaceID string `ch:"workspace_id" json:"workspace_id"`
-	NamespaceID string `ch:"namespace_id" json:"namespace_id"`
-	Identifier  string `ch:"identifier" json:"identifier"`
-	Passed      int64  `ch:"passed" json:"passed"`
-	Total       int64  `ch:"total" json:"total"`
+	Time         int64  `ch:"time" json:"time"`
+	WorkspaceID  string `ch:"workspace_id" json:"workspace_id"`
+	NamespaceID  string `ch:"namespace_id" json:"namespace_id"`
+	Identifier   string `ch:"identifier" json:"identifier"`
+	Passed       int64  `ch:"passed" json:"passed"`
+	Total        int64  `ch:"total" json:"total"`
+	PassedTokens int64  `ch:"passed_tokens" json:"passed_tokens"`
+	TotalTokens  int64  `ch:"total_tokens" json:"total_tokens"`
 }
 
 // ApiRequestAggregated represents aggregated API request data
