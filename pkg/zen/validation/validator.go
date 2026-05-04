@@ -10,10 +10,13 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
+// Validator wraps the core OpenAPI validator with tracing and
+// API-specific error formatting.
 type Validator struct {
 	core *core.Validator
 }
 
+// New creates a Validator backed by the compiled API OpenAPI spec.
 func New() (*Validator, error) {
 	v, err := core.NewFromBytes(openapi.Spec)
 	if err != nil {
@@ -22,6 +25,9 @@ func New() (*Validator, error) {
 	return &Validator{core: v}, nil
 }
 
+// Validate checks r against the OpenAPI spec.
+// Returns (_, true) when valid. On failure returns a ready-to-marshal
+// BadRequestErrorResponse and false.
 func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadRequestErrorResponse, bool) {
 	_, span := tracing.Start(ctx, "openapi.Validate")
 	defer span.End()

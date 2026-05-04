@@ -12,21 +12,28 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
+// ValidationError represents a single field-level validation failure.
+// Fix is non-nil when the validator can suggest a concrete correction.
 type ValidationError struct {
 	Message  string
 	Location string
 	Fix      *string
 }
 
+// Result holds the validation outcome when a request is invalid.
+// A nil *Result means the request passed validation.
 type Result struct {
 	Detail string
 	Errors []ValidationError
 }
 
+// Validator validates HTTP requests against an OpenAPI specification.
 type Validator struct {
 	validator validator.Validator
 }
 
+// NewFromBytes creates a Validator from a raw OpenAPI spec.
+// Returns an error if the spec cannot be parsed or is itself invalid.
 func NewFromBytes(spec []byte) (*Validator, error) {
 	document, err := libopenapi.NewDocument(spec)
 	if err != nil {
@@ -54,6 +61,9 @@ func NewFromBytes(spec []byte) (*Validator, error) {
 	return &Validator{validator: v}, nil
 }
 
+// Validate checks r against the OpenAPI spec.
+// Returns nil when the request is valid; returns a *Result describing
+// the failures otherwise.
 func (v *Validator) Validate(r *http.Request) *Result {
 	valid, errors := v.validator.ValidateHttpRequestSync(r)
 
