@@ -6,8 +6,18 @@ import { env } from "@/lib/env";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 export const runtime = "nodejs";
+
+const githubLeakedKeySchema = z.array(
+  z.object({
+    token: z.string().min(1).max(256),
+    source: z.string().max(64),
+    url: z.string().url().max(2048),
+    type: z.string().max(64),
+  }),
+);
 
 type Key = {
   key_identifier: string;
@@ -56,11 +66,22 @@ export async function POST(request: Request) {
   const signature = request.headers.get("github-public-key-signature");
   const keyId = request.headers.get("github-public-key-identifier");
   const rawBody = await request.text();
-  const data = JSON.parse(rawBody);
 
-  if (!signature || !keyId || !data) {
+  if (!signature || !keyId) {
     return NextResponse.json({ Error: "Invalid webhook request" }, { status: 400 });
   }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  const validated = githubLeakedKeySchema.safeParse(parsed);
+  if (!validated.success) {
+    return NextResponse.json({ error: "Invalid webhook payload" }, { status: 400 });
+  }
+  const data = validated.data;
 
   const isGithubVerified = await verifyGitSignature(rawBody, signature, keyId, GITHUB_KEYS_URI);
   if (!isGithubVerified) {
@@ -75,7 +96,7 @@ export async function POST(request: Request) {
   };
   const foundKeys: FoundKeys[] = [];
   for (const item of data) {
-    const token = item.token.toString();
+    const token = item.token;
     const hashedToken = await sha256(token);
     const keyFound = await db.query.keys.findFirst({
       columns: { id: true, forWorkspaceId: true },
