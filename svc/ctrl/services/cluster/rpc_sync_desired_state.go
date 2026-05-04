@@ -36,10 +36,6 @@ func (s *Service) SyncDesiredState(
 		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
 		return err
 	}
-	if err := s.syncCiliumPolicies(ctx, stream, region.ID); err != nil {
-		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
-		return err
-	}
 
 	fullSyncDuration := time.Since(fullSyncStart).Seconds()
 	metrics.FullSyncDurationSeconds.Observe(fullSyncDuration)
@@ -87,39 +83,6 @@ func (s *Service) syncDeployments(
 				return err
 			}
 			metrics.SyncDesiredStateEventsSentTotal.WithLabelValues("deployment").Inc()
-		}
-		if len(rows) < changePageSize {
-			return nil
-		}
-	}
-}
-
-// syncCiliumPolicies paginates through all cilium network policies for a region.
-func (s *Service) syncCiliumPolicies(
-	ctx context.Context,
-	stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent],
-	regionID string,
-) error {
-	var afterPk uint64
-	for {
-		rows, err := db.Query.ListAllCiliumNetworkPoliciesByRegion(ctx, s.db.RO(), db.ListAllCiliumNetworkPoliciesByRegionParams{
-			RegionID: regionID,
-			AfterPk:  afterPk,
-			Limit:    changePageSize,
-		})
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, err)
-		}
-		for _, policy := range rows {
-			if err := stream.Send(&ctrlv1.DeploymentChangeEvent{
-				Event: &ctrlv1.DeploymentChangeEvent_CiliumNetworkPolicy{
-					CiliumNetworkPolicy: ciliumPolicyToState(policy, 0),
-				},
-			}); err != nil {
-				return err
-			}
-			metrics.SyncDesiredStateEventsSentTotal.WithLabelValues("cilium_network_policy").Inc()
-			afterPk = policy.Pk
 		}
 		if len(rows) < changePageSize {
 			return nil

@@ -7,7 +7,6 @@ go_library(
         "expiring_set.go",
         "region_key.go",
         "region_lookup.go",
-        "rpc_get_desired_cilium_network_policy_state.go",
         "rpc_get_desired_deployment_state.go",
         "rpc_heartbeat.go",
         "rpc_report_deployment_status.go",

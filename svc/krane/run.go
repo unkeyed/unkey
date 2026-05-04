@@ -25,7 +25,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
-	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/watcher"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
@@ -135,16 +134,6 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("Vault client initialized", "url", cfg.Vault.URL)
 	}
 
-	// Cilium controller. Desired state is dispatched by the watcher; no
-	// background loops to start.
-	ciliumCtrl := cilium.New(cilium.Config{
-		ClientSet:     clientset,
-		DynamicClient: dynamicClient,
-		Cluster:       cluster,
-		Region:        cfg.Region,
-		Platform:      cfg.Platform,
-	})
-
 	// Build registry config for pull secret creation
 	var registryCfg *deployment.RegistryConfig
 	if cfg.Registry != nil {
@@ -201,7 +190,6 @@ func Run(ctx context.Context, cfg Config) error {
 	w := watcher.New(watcher.Config{
 		Cluster:     cluster,
 		Deployments: deploymentCtrl,
-		Cilium:      ciliumCtrl,
 		Region:      cfg.Region,
 		Platform:    cfg.Platform,
 	})

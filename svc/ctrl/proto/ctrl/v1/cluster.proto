@@ -60,10 +60,6 @@ service ClusterService {
   // Called when K8s watch events indicate ReplicaSet changes.
   rpc ReportDeploymentStatus(ReportDeploymentStatusRequest) returns (ReportDeploymentStatusResponse);
 
-  // GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
-  // Used by the resync loop to verify consistency for existing resources.
-  rpc GetDesiredCiliumNetworkPolicyState(GetDesiredCiliumNetworkPolicyStateRequest) returns (CiliumNetworkPolicyState);
-
   // Heartbeat is called periodically by krane agents to register their cluster
   // and region with the control plane. This populates the regions and
   // clusters tables, making regions dynamically discoverable.
@@ -87,36 +83,7 @@ message DeploymentChangeEvent {
   uint64 version = 1;
   oneof event {
     DeploymentState deployment = 2;
-    CiliumNetworkPolicyState cilium_network_policy = 4;
   }
-  // Field 3 was sentinel — removed when the sentinel runtime was deleted.
-  reserved 3;
-  reserved "sentinel";
-}
-
-message ApplyCiliumNetworkPolicy {
-  string k8s_namespace = 1;
-  string k8s_name = 2;
-  string cilium_network_policy_id = 3;
-  bytes policy = 4;
-}
-
-message DeleteCiliumNetworkPolicy {
-  string k8s_namespace = 1;
-  string k8s_name = 2;
-}
-message CiliumNetworkPolicyState {
-  uint64 version = 3;
-
-  oneof state {
-    ApplyCiliumNetworkPolicy apply = 1;
-
-    DeleteCiliumNetworkPolicy delete = 2;
-  }
-}
-message GetDesiredCiliumNetworkPolicyStateRequest {
-  RegionKey region = 1;
-  string cilium_network_policy_id = 2;
 }
 
 message GetDesiredDeploymentStateRequest {

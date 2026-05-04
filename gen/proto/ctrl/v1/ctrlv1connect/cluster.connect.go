@@ -54,9 +54,6 @@ const (
 	// ClusterServiceReportDeploymentStatusProcedure is the fully-qualified name of the ClusterService's
 	// ReportDeploymentStatus RPC.
 	ClusterServiceReportDeploymentStatusProcedure = "/ctrl.v1.ClusterService/ReportDeploymentStatus"
-	// ClusterServiceGetDesiredCiliumNetworkPolicyStateProcedure is the fully-qualified name of the
-	// ClusterService's GetDesiredCiliumNetworkPolicyState RPC.
-	ClusterServiceGetDesiredCiliumNetworkPolicyStateProcedure = "/ctrl.v1.ClusterService/GetDesiredCiliumNetworkPolicyState"
 	// ClusterServiceHeartbeatProcedure is the fully-qualified name of the ClusterService's Heartbeat
 	// RPC.
 	ClusterServiceHeartbeatProcedure = "/ctrl.v1.ClusterService/Heartbeat"
@@ -80,9 +77,6 @@ type ClusterServiceClient interface {
 	// ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
 	// Called when K8s watch events indicate ReplicaSet changes.
 	ReportDeploymentStatus(context.Context, *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error)
-	// GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
-	// Used by the resync loop to verify consistency for existing resources.
-	GetDesiredCiliumNetworkPolicyState(context.Context, *connect.Request[v1.GetDesiredCiliumNetworkPolicyStateRequest]) (*connect.Response[v1.CiliumNetworkPolicyState], error)
 	// Heartbeat is called periodically by krane agents to register their cluster
 	// and region with the control plane. This populates the regions and
 	// clusters tables, making regions dynamically discoverable.
@@ -124,12 +118,6 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(clusterServiceMethods.ByName("ReportDeploymentStatus")),
 			connect.WithClientOptions(opts...),
 		),
-		getDesiredCiliumNetworkPolicyState: connect.NewClient[v1.GetDesiredCiliumNetworkPolicyStateRequest, v1.CiliumNetworkPolicyState](
-			httpClient,
-			baseURL+ClusterServiceGetDesiredCiliumNetworkPolicyStateProcedure,
-			connect.WithSchema(clusterServiceMethods.ByName("GetDesiredCiliumNetworkPolicyState")),
-			connect.WithClientOptions(opts...),
-		),
 		heartbeat: connect.NewClient[v1.HeartbeatRequest, v1.HeartbeatResponse](
 			httpClient,
 			baseURL+ClusterServiceHeartbeatProcedure,
@@ -141,12 +129,11 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // clusterServiceClient implements ClusterServiceClient.
 type clusterServiceClient struct {
-	watchDeploymentChanges             *connect.Client[v1.WatchDeploymentChangesRequest, v1.DeploymentChangeEvent]
-	syncDesiredState                   *connect.Client[v1.SyncDesiredStateRequest, v1.DeploymentChangeEvent]
-	getDesiredDeploymentState          *connect.Client[v1.GetDesiredDeploymentStateRequest, v1.DeploymentState]
-	reportDeploymentStatus             *connect.Client[v1.ReportDeploymentStatusRequest, v1.ReportDeploymentStatusResponse]
-	getDesiredCiliumNetworkPolicyState *connect.Client[v1.GetDesiredCiliumNetworkPolicyStateRequest, v1.CiliumNetworkPolicyState]
-	heartbeat                          *connect.Client[v1.HeartbeatRequest, v1.HeartbeatResponse]
+	watchDeploymentChanges    *connect.Client[v1.WatchDeploymentChangesRequest, v1.DeploymentChangeEvent]
+	syncDesiredState          *connect.Client[v1.SyncDesiredStateRequest, v1.DeploymentChangeEvent]
+	getDesiredDeploymentState *connect.Client[v1.GetDesiredDeploymentStateRequest, v1.DeploymentState]
+	reportDeploymentStatus    *connect.Client[v1.ReportDeploymentStatusRequest, v1.ReportDeploymentStatusResponse]
+	heartbeat                 *connect.Client[v1.HeartbeatRequest, v1.HeartbeatResponse]
 }
 
 // WatchDeploymentChanges calls ctrl.v1.ClusterService.WatchDeploymentChanges.
@@ -167,12 +154,6 @@ func (c *clusterServiceClient) GetDesiredDeploymentState(ctx context.Context, re
 // ReportDeploymentStatus calls ctrl.v1.ClusterService.ReportDeploymentStatus.
 func (c *clusterServiceClient) ReportDeploymentStatus(ctx context.Context, req *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error) {
 	return c.reportDeploymentStatus.CallUnary(ctx, req)
-}
-
-// GetDesiredCiliumNetworkPolicyState calls
-// ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState.
-func (c *clusterServiceClient) GetDesiredCiliumNetworkPolicyState(ctx context.Context, req *connect.Request[v1.GetDesiredCiliumNetworkPolicyStateRequest]) (*connect.Response[v1.CiliumNetworkPolicyState], error) {
-	return c.getDesiredCiliumNetworkPolicyState.CallUnary(ctx, req)
 }
 
 // Heartbeat calls ctrl.v1.ClusterService.Heartbeat.
@@ -198,9 +179,6 @@ type ClusterServiceHandler interface {
 	// ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
 	// Called when K8s watch events indicate ReplicaSet changes.
 	ReportDeploymentStatus(context.Context, *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error)
-	// GetDesiredCiliumNetworkPolicyState returns the current desired state for a single Cilium policy.
-	// Used by the resync loop to verify consistency for existing resources.
-	GetDesiredCiliumNetworkPolicyState(context.Context, *connect.Request[v1.GetDesiredCiliumNetworkPolicyStateRequest]) (*connect.Response[v1.CiliumNetworkPolicyState], error)
 	// Heartbeat is called periodically by krane agents to register their cluster
 	// and region with the control plane. This populates the regions and
 	// clusters tables, making regions dynamically discoverable.
@@ -238,12 +216,6 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 		connect.WithSchema(clusterServiceMethods.ByName("ReportDeploymentStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
-	clusterServiceGetDesiredCiliumNetworkPolicyStateHandler := connect.NewUnaryHandler(
-		ClusterServiceGetDesiredCiliumNetworkPolicyStateProcedure,
-		svc.GetDesiredCiliumNetworkPolicyState,
-		connect.WithSchema(clusterServiceMethods.ByName("GetDesiredCiliumNetworkPolicyState")),
-		connect.WithHandlerOptions(opts...),
-	)
 	clusterServiceHeartbeatHandler := connect.NewUnaryHandler(
 		ClusterServiceHeartbeatProcedure,
 		svc.Heartbeat,
@@ -260,8 +232,6 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 			clusterServiceGetDesiredDeploymentStateHandler.ServeHTTP(w, r)
 		case ClusterServiceReportDeploymentStatusProcedure:
 			clusterServiceReportDeploymentStatusHandler.ServeHTTP(w, r)
-		case ClusterServiceGetDesiredCiliumNetworkPolicyStateProcedure:
-			clusterServiceGetDesiredCiliumNetworkPolicyStateHandler.ServeHTTP(w, r)
 		case ClusterServiceHeartbeatProcedure:
 			clusterServiceHeartbeatHandler.ServeHTTP(w, r)
 		default:
@@ -287,10 +257,6 @@ func (UnimplementedClusterServiceHandler) GetDesiredDeploymentState(context.Cont
 
 func (UnimplementedClusterServiceHandler) ReportDeploymentStatus(context.Context, *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.ReportDeploymentStatus is not implemented"))
-}
-
-func (UnimplementedClusterServiceHandler) GetDesiredCiliumNetworkPolicyState(context.Context, *connect.Request[v1.GetDesiredCiliumNetworkPolicyStateRequest]) (*connect.Response[v1.CiliumNetworkPolicyState], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.GetDesiredCiliumNetworkPolicyState is not implemented"))
 }
 
 func (UnimplementedClusterServiceHandler) Heartbeat(context.Context, *connect.Request[v1.HeartbeatRequest]) (*connect.Response[v1.HeartbeatResponse], error) {

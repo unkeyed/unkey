@@ -71,22 +71,3 @@ func TestDeploymentRowToState_Stopped(t *testing.T) {
 	require.Equal(t, "my-app", del.GetK8SName())
 	require.Equal(t, "ws-namespace", del.GetK8SNamespace())
 }
-
-func TestCiliumPolicyToState(t *testing.T) {
-	policy := db.CiliumNetworkPolicy{
-		ID:           "cnp_123",
-		K8sName:      "frontline-ingress-to-my-app",
-		K8sNamespace: "ws-namespace",
-		Policy:       []byte(`{"spec": {}}`),
-	}
-
-	state := ciliumPolicyToState(policy, 99)
-	require.Equal(t, uint64(99), state.GetVersion())
-
-	apply := state.GetApply()
-	require.NotNil(t, apply)
-	require.Equal(t, "cnp_123", apply.GetCiliumNetworkPolicyId())
-	require.Equal(t, "frontline-ingress-to-my-app", apply.GetK8SName())
-	require.Equal(t, "ws-namespace", apply.GetK8SNamespace())
-	require.Equal(t, []byte(`{"spec": {}}`), apply.GetPolicy())
-}

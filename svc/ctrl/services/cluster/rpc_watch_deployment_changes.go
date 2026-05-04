@@ -153,26 +153,17 @@ func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChang
 			Event:   &ctrlv1.DeploymentChangeEvent_Deployment{Deployment: state},
 		}, nil
 
+	case db.DeploymentChangesResourceTypeCiliumNetworkPolicy:
+		// Cilium resources are no longer dispatched — frontline took
+		// over the request path. The outbox row exists during the
+		// cutover so we just acknowledge it and advance the version.
+		return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
+
 	case db.DeploymentChangesResourceTypeSentinel:
 		// Sentinel resources are no longer dispatched — frontline took
 		// over the request path. The outbox row exists during the
 		// cutover so we just acknowledge it and advance the version.
 		return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
-
-	case db.DeploymentChangesResourceTypeCiliumNetworkPolicy:
-		policy, err := db.Query.FindCiliumNetworkPolicyByIDAndRegion(ctx, s.db.RW(), db.FindCiliumNetworkPolicyByIDAndRegionParams{
-			RegionID:              change.RegionID,
-			CiliumNetworkPolicyID: change.ResourceID,
-		})
-		if err != nil {
-			return nil, err
-		}
-		return &ctrlv1.DeploymentChangeEvent{
-			Version: change.Pk,
-			Event: &ctrlv1.DeploymentChangeEvent_CiliumNetworkPolicy{
-				CiliumNetworkPolicy: ciliumPolicyToState(policy, change.Pk),
-			},
-		}, nil
 
 	default:
 		logger.Error("unknown resource type in deployment_changes", "resource_type", change.ResourceType)
@@ -276,20 +267,5 @@ func deploymentRowToState(row deploymentRow, version uint64) (*ctrlv1.Deployment
 		}, nil
 	default:
 		return nil, fmt.Errorf("unknown DeploymentTopologyDesiredStatus: %v", row.dt.DesiredStatus)
-	}
-}
-
-// ciliumPolicyToState converts a cilium network policy DB row to a proto state message.
-func ciliumPolicyToState(policy db.CiliumNetworkPolicy, version uint64) *ctrlv1.CiliumNetworkPolicyState {
-	return &ctrlv1.CiliumNetworkPolicyState{
-		Version: version,
-		State: &ctrlv1.CiliumNetworkPolicyState_Apply{
-			Apply: &ctrlv1.ApplyCiliumNetworkPolicy{
-				CiliumNetworkPolicyId: policy.ID,
-				K8SNamespace:          policy.K8sNamespace,
-				K8SName:               policy.K8sName,
-				Policy:                policy.Policy,
-			},
-		},
 	}
 }
