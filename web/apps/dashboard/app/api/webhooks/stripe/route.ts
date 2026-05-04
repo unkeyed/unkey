@@ -44,21 +44,19 @@ async function deactivateNonCreatorMemberships(orgId: string): Promise<void> {
   const [, ...nonCreators] = sorted;
 
   await Promise.all(
-    nonCreators.map(async (member) => {
-      try {
-        await auth.deactivateMembership(member.id);
-      } catch (err) {
+    nonCreators.map((member) =>
+      auth.deactivateMembership(member.id).catch((err) => {
         console.error("Failed to deactivate membership:", {
           orgId,
           membershipId: member.id,
           error: err,
         });
-      }
-    }),
+      }),
+    ),
   );
 }
 
-export const runtime = "nodejs";
+
 
 export const POST = async (req: Request): Promise<Response> => {
   const signature = req.headers.get("stripe-signature");
