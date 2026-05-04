@@ -17,10 +17,15 @@ if (process.env.NODE_ENV !== "development" && !isSentryDisabled) {
     // Add optional integrations for additional features
     integrations: [
       Sentry.replayIntegration({
-        // Unmask all text content by default
-        maskAllText: false,
-        // Unblock all media elements by default
-        blockAllMedia: false,
+        // Mask all text and block all media by default. The dashboard renders
+        // multi-tenant content (workspace and project names, audit log entries
+        // surfacing key prefixes and identity metadata, role assignments,
+        // ratelimit overrides, root-key creation flows) and the per-selector
+        // mask list below is incomplete coverage for those surfaces. Default
+        // to mask-everything so a Sentry replay leak cannot expose tenant
+        // text. The selector list is retained as defense in depth.
+        maskAllText: true,
+        blockAllMedia: true,
         // Mask sensitive data selectors
         mask: [
           // Email addresses

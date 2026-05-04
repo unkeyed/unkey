@@ -22,7 +22,7 @@ import {
   type VerificationResult,
   errorMessages,
 } from "@/lib/auth/types";
-import { requireEmailMatch } from "@/lib/auth/utils";
+import { requireEmailMatch } from "@/lib/auth/invitation";
 import { env } from "@/lib/env";
 import { Ratelimit } from "@unkey/ratelimit";
 import { cookies, headers } from "next/headers";
