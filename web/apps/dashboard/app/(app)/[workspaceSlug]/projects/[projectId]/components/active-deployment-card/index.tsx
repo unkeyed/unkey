@@ -1,6 +1,7 @@
 "use client";
 
 import { EnvStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/deployments/components/table/components/env-status-badge";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
 import {
   formatCpuParts,
   formatMemoryParts,
@@ -30,6 +31,7 @@ function GitHubLink({ href, children }: { href: string | undefined; children: Re
 
 type ActiveDeploymentCardProps = {
   deploymentId: string | null;
+  deployment?: Deployment;
   statusBadge?: React.ReactNode;
   expandableContent?: React.ReactNode;
   isCurrent?: boolean;
@@ -39,6 +41,7 @@ type ActiveDeploymentCardProps = {
 
 export function ActiveDeploymentCard({
   deploymentId,
+  deployment: directDeployment,
   statusBadge,
   expandableContent,
   isCurrent,
@@ -46,7 +49,8 @@ export function ActiveDeploymentCard({
   environmentSlug,
 }: ActiveDeploymentCardProps) {
   const { getDeploymentById, isDeploymentsLoading, project } = useProjectData();
-  const deployment = deploymentId ? getDeploymentById(deploymentId) : undefined;
+  const deployment =
+    directDeployment ?? (deploymentId ? getDeploymentById(deploymentId) : undefined);
   const repoFullName = project?.repositoryFullName;
   const sourceRepo = deployment?.forkRepositoryFullName || repoFullName;
 

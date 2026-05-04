@@ -95,6 +95,7 @@ function useInitializeSettings(
 
     const d = ENVIRONMENT_SETTINGS_DEFAULTS;
     const defaults = {
+      autoDeploy: d.autoDeploy,
       dockerfile: d.dockerfile,
       dockerContext: d.dockerContext,
       watchPaths: [] as string[],
@@ -112,6 +113,7 @@ function useInitializeSettings(
 
     const empty: EnvironmentSettings = {
       environmentId: "",
+      autoDeploy: true,
       dockerfile: "",
       dockerContext: "",
       watchPaths: [],

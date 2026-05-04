@@ -1073,6 +1073,7 @@ type AppBuildSetting struct {
 	Dockerfile    string          `db:"dockerfile"`
 	DockerContext string          `db:"docker_context"`
 	WatchPaths    json.RawMessage `db:"watch_paths"`
+	AutoDeploy    bool            `db:"auto_deploy"`
 	CreatedAt     int64           `db:"created_at"`
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
