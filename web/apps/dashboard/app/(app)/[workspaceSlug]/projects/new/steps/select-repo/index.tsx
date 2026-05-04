@@ -25,8 +25,7 @@ export const SelectRepo = ({
   // Server-signed install state — minted on click via prepareInstallation so
   // the GitHub callback can verify this user/workspace started the install.
   const prepareInstallation = trpc.github.prepareInstallation.useMutation();
-  const handleInstallClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
+  const handleInstallClick = async () => {
     try {
       const { state } = await prepareInstallation.mutateAsync({ projectId });
       onBeforeNavigate?.();
@@ -266,12 +265,12 @@ export const SelectRepo = ({
       )}
 
       {hasGithubInstallation && (
-        <a href="#" rel="noopener noreferrer" onClick={handleInstallClick} className="group">
+        <button type="button" onClick={handleInstallClick} className="group w-full">
           <OnboardingStepHint>
             Can't find your repo? Add more from{" "}
             <OnboardingStepHintHighlight>GitHub</OnboardingStepHintHighlight>.
           </OnboardingStepHint>
-        </a>
+        </button>
       )}
       <div className="mt-8 min-w-[var(--repo-list-w)] items-center justify-center flex">
         <OnboardingLinks />

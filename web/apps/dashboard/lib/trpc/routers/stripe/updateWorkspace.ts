@@ -35,9 +35,7 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
     }
 
     const stripeCustomerId =
-      typeof session.customer === "string"
-        ? session.customer
-        : (session.customer?.id ?? null);
+      typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null);
     if (!stripeCustomerId) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",

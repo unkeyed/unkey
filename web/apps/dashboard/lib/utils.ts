@@ -178,10 +178,7 @@ export function getBaseUrl() {
   // VERCEL_URL is always the auto-generated *.vercel.app deployment URL —
   // never the custom domain, even in production. The production custom
   // domain lives in VERCEL_PROJECT_PRODUCTION_URL.
-  if (
-    process.env.VERCEL_ENV === "production" &&
-    process.env.VERCEL_PROJECT_PRODUCTION_URL
-  ) {
+  if (process.env.VERCEL_ENV === "production" && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
     return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
   }
 

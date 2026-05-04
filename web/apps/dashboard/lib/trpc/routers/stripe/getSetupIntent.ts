@@ -45,9 +45,7 @@ export const getSetupIntent = workspaceProcedure
         });
       }
       allowedCustomerId =
-        typeof session.customer === "string"
-          ? session.customer
-          : (session.customer?.id ?? null);
+        typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null);
     } else if (ctx.workspace.stripeCustomerId) {
       allowedCustomerId = ctx.workspace.stripeCustomerId;
     }
