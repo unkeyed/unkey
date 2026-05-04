@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -446,10 +447,19 @@ func main() {
 		})
 	})
 
+	// Demo only. The expected bearer token is read from DEMO_PROTECTED_TOKEN.
+	// If unset, the endpoint fails closed with 503 so a copy-paste of this
+	// file cannot ship with a hardcoded credential.
+	protectedToken := os.Getenv("DEMO_PROTECTED_TOKEN")
+	expectedAuth := []byte("Bearer " + protectedToken)
 	mux.HandleFunc("/v1/protected", func(w http.ResponseWriter, r *http.Request) {
-		auth := r.Header.Get("Authorization")
+		if protectedToken == "" {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
 
-		if auth == "" || auth != "Bearer 123" {
+		auth := r.Header.Get("Authorization")
+		if subtle.ConstantTimeCompare([]byte(auth), expectedAuth) != 1 {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
