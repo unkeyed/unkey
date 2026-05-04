@@ -6,12 +6,16 @@ import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { workspaceProcedure } from "../../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../../trpc";
 
 const vault = new Vault({
   baseUrl: env().VAULT_URL,
   token: env().VAULT_TOKEN,
 });
+
+// Cap per-request fanout into Vault encrypt + DB inserts to stop authenticated
+// users from amplifying one tRPC call into thousands of internal requests.
+const MAX_ENV_VARS_PER_REQUEST = 100;
 
 const envVarInputSchema = z.object({
   key: envVarKeySchema,
@@ -21,10 +25,11 @@ const envVarInputSchema = z.object({
 });
 
 export const createEnvVars = workspaceProcedure
+  .use(withRatelimit(ratelimit.create))
   .input(
     z.object({
       environmentId: z.string(),
-      variables: z.array(envVarInputSchema).min(1),
+      variables: z.array(envVarInputSchema).min(1).max(MAX_ENV_VARS_PER_REQUEST),
     }),
   )
   .mutation(async ({ ctx, input }) => {
