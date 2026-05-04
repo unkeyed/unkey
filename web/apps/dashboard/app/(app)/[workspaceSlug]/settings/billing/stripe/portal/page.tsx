@@ -8,10 +8,24 @@ import type Stripe from "stripe";
 export const dynamic = "force-dynamic";
 
 export default async function StripeRedirect() {
-  const { orgId } = await getAuth();
+  const { orgId, role } = await getAuth();
 
   if (!orgId) {
     return redirect("/sign-in");
+  }
+
+  // Mirror the client-side admin gate. Even though the dashboard now hides
+  // the portal button for non-admins, this page is reachable directly via
+  // URL — refuse to mint a Stripe billing-portal session for non-admins.
+  if (role !== "admin") {
+    return (
+      <Empty>
+        <Empty.Title>Admin access required</Empty.Title>
+        <Empty.Description>
+          Only workspace admins can manage billing. Ask an admin to make changes.
+        </Empty.Description>
+      </Empty>
+    );
   }
 
   const ws = await db.query.workspaces.findFirst({
