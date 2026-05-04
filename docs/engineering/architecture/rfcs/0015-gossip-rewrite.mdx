@@ -37,7 +37,7 @@ Adopt [`hashicorp/serf`](https://github.com/hashicorp/serf) as the cluster layer
 | Queries | Request/response over gossip with an aggregated reply channel and a deadline. Useful for "who owns tenant X" or "drain status of all peers". |
 | Coalesced membership events | One event per join/leave/update batch, not per-node. Removes the hot-path churn we currently get on rolling deploys. |
 
-A single Serf cluster spans every region. Each pod joins the same logical cluster; seeds are the per-region headless service plus a small cross-region seed list (one stable hostname per region, resolved on join). VPC peering makes pod IPs routable, so memberlist's preferred IP-based addressing works without an NLB.
+A single Serf cluster spans every region. Each pod joins the same logical cluster. VPC peering makes pod IPs routable, so once a pod is in the mesh, all subsequent gossip traffic is pod-to-pod by IP. The only thing we still need an external rendezvous for is the very first peer a new pod talks to (see [Seed discovery](#seed-discovery) below).
 
 LAN vs WAN tuning is handled by Serf's profile selection (`WAN`, `LAN`, `Local`). Pick `WAN` for any cluster that includes cross-region peers; the higher timeouts cover trans-Atlantic RTT without false-positive failures. We accept ~5–15 s convergence on cross-region failures in exchange for deleting the bridge.
 
@@ -72,17 +72,17 @@ type Bus interface {
 
 `Query` fans out a Serf query to all members (or a tag-filtered subset) and returns a channel that receives replies as they arrive. The channel is closed when the context deadline fires or when Serf signals that all expected responses have arrived (`serf.QueryResponse.Finished()`), whichever comes first. Callers must not assume a particular number of responses: a partitioned member or one with no handler for the topic will not reply. The caller owns draining the channel before the context expires.
 
-Cache invalidation is one subscriber:
+Each subsystem owns its own proto type and registers its own handler at startup. Adding a new event type requires no changes to `pkg/bus`. For example, a feature flag subscriber:
 
 ```go
-bus.Subscribe("cache.invalidate", func(e Event) {
-    var inv cachev1.CacheInvalidationEvent
-    if err := proto.Unmarshal(e.Payload, &inv); err != nil { ... }
-    cache.Invalidate(inv)
+bus.Subscribe("feature_flag.update", func(e Event) {
+    var update flagsv1.FeatureFlagUpdate
+    if err := proto.Unmarshal(e.Payload, &update); err != nil { ... }
+    flags.Apply(update)
 })
 ```
 
-The bus does not know about cache, sentinel, ctrl, or anything else. Each subsystem owns its own proto type and registers its own handler at startup. Adding a new event type requires no changes to `pkg/cluster`.
+How cache invalidation specifically uses the bus is covered in the [Cache clustering](#cache-clustering) section below.
 
 The envelope's `topic` is the dispatch key; `id` enables idempotent delivery; `payload` is opaque bytes so that two subsystems can evolve their schemas independently without recompiling the cluster package.
 
@@ -98,17 +98,17 @@ Mechanism, in order of escalation:
 2. **Per-topic replay log on the publisher.** Each pod keeps the last 60 s of events it published in a local ring (RAM, bounded). On `NotifyJoin`, the new peer sends a Serf query (`bus.replay`) carrying the highest event id it has seen per source node. Publishers reply with anything missing. This closes the gap for partitions longer than the retention buffer when at least one publisher is reachable.
 3. **Receiver-side dedup.** Each subscriber tracks recently seen `(source_node, id)` pairs (bounded LRU) and drops duplicates before invoking the handler.
 
-This gives at-least-once for any event whose publisher (or any peer that received it) is still alive somewhere in the mesh within the recovery window. We do **not** offer durable, cross-restart at-least-once in v1 — if every replica of a publisher dies before its event propagates, the event is lost. For invalidation that is acceptable because the database write that triggered it is the source of truth and the next mutation will re-trigger eventually; for stronger guarantees we would need to write to an external durable log, which is out of scope here.
+This gives at-least-once for any event whose publisher (or any peer that received it) is still alive somewhere in the mesh within the recovery window. We do **not** offer durable, cross-restart at-least-once in v1. If every replica of a publisher dies before its event propagates, the event is lost. For invalidation that is acceptable because the database write that triggered it is the source of truth and the next mutation will re-trigger eventually; for stronger guarantees we would need to write to an external durable log, which is out of scope here.
 
 ### Why not Raft / etcd
 
-Raft (via [`hashicorp/raft`](https://github.com/hashicorp/raft)) and etcd both solve a different problem: linearizable replicated state with a quorum write path. We do not need linearizable cache invalidation — invalidation is already best-effort and the source of truth is the database. Forcing every invalidation through a Raft log adds:
+Raft (via [`hashicorp/raft`](https://github.com/hashicorp/raft)) and etcd both solve a different problem: linearizable replicated state with a quorum write path. We do not need linearizable cache invalidation: invalidation is already best-effort and the source of truth is the database. Forcing every invalidation through a Raft log adds:
 
 - A quorum write on the hot path of every key mutation.
 - A leader, which must be in one region; cross-region writes pay the RTT.
 - Operational weight (snapshot management, log compaction, leader leases) for a workload where missing one event is recoverable.
 
-Serf gives us eventually-consistent fan-out, which is the right consistency model for cache invalidation, feature flag pushes, and operational notifications. If we later need leader-elected coordination (singleton crons, schema migrations), we can run a small Raft group as a *separate* package on top of the same Serf membership — Raft for state, Serf for transport and discovery. We do not need it in v1.
+Serf gives us eventually-consistent fan-out, which is the right consistency model for cache invalidation, feature flag pushes, and operational notifications. If we later need leader-elected coordination (singleton crons, schema migrations), we can run a small Raft group as a *separate* package on top of the same Serf membership: Raft for state, Serf for transport and discovery. We do not need it in v1.
 
 ### Topology: one flat cluster over VPC peering
 
@@ -127,14 +127,31 @@ Serf gives us eventually-consistent fan-out, which is the right consistency mode
                 ╰──────────────╯
 ```
 
-Seeds:
-
-- **Intra-region**: the existing headless service [`unkey-api-gossip-lan`](https://github.com/unkeyed/unkey/blob/main/k8s/api/base/service-gossip-lan.yaml) keeps working; pods discover same-region peers via DNS A records.
-- **Cross-region**: a small list of stable per-region hostnames resolved at join time. Three regions × two seed pods is enough; Serf only needs one reachable peer to converge.
-
 The WAN NLB ([`service-gossip-wan.yaml`](https://github.com/unkeyed/unkey/blob/main/k8s/api/base/service-gossip-wan.yaml)) is deleted. So is port 7947 in the deployment. The pod exposes a single gossip port (7946 TCP+UDP) that is reachable from every peered VPC.
 
 Security posture stays the same: all traffic is encrypted with `UNKEY_GOSSIP_SECRET_KEY`, and the security group rule for 7946 is restricted to the peered VPC CIDR ranges instead of being public.
+
+### Seed discovery
+
+A pod needs at least one reachable peer at startup to bootstrap into the cluster. We use two mechanisms in order:
+
+1. **Intra-region headless service.** The existing [`unkey-api-gossip-lan`](https://github.com/unkeyed/unkey/blob/main/k8s/api/base/service-gossip-lan.yaml) headless service resolves to the IPs of every same-region pod. This is tried first and covers the common case: a rolling-deployed pod almost always finds a healthy same-region neighbour immediately. No external dependency, no cross-region RTT on the join path.
+
+2. **Cross-region NLBs with well-known names.** Each region runs an internal NLB that fronts its own gossip pods on port 7946 (TCP+UDP). The NLBs have stable, preshared DNS names baked into pod config:
+
+   ```
+   gossip.use1.unkey.internal
+   gossip.euc1.unkey.internal
+   gossip.usw2.unkey.internal
+   ```
+
+   Each pod is configured with the full list, minus its own region. It tries them in addition to the local A record. The NLB does plain L4 round-robin to any healthy gossip pod in that region; there is no magic health-check, no special-purpose pod, and no election dependency. AWS NLBs support UDP listeners, so a single NLB carries both Serf protocols.
+
+   In practice, only the first pod in a freshly bootstrapped region needs the cross-region NLBs, because once one pod has joined the global mesh, every subsequent same-region pod discovers the rest of the world through that local neighbour. The NLBs are a cold-start backstop, not a hot path.
+
+We rejected a single bootstrap app in one region (e.g. a "rendezvous" deployment in `us-east-1` whose only job is to seed new joiners). On paper it is cheaper than three NLBs, but it concentrates the discovery dependency in one region: a regional outage there blocks new-pod joins everywhere. Per-region NLBs make every region's discovery self-contained, which matches the rest of our regional-failure model.
+
+The NLBs reuse the existing peered VPC CIDRs for their security groups; they are not internet-facing. Failure of one region's NLB only prevents *new* pods in *other* regions from discovering *that* region until either (a) the NLB recovers or (b) any pod in that region reaches out and joins via its local seeds — both common.
 
 ### Membership of the cluster
 
@@ -143,7 +160,7 @@ The first cluster includes the API frontline pods. Once stable, the same binary-
 This is the "one big fat cluster" the design calls for. It is safe because:
 
 - Serf scales to thousands of members with `WAN` timings.
-- Topics namespace events, and **subscription is per-process**. A pod only runs handlers for the topics it explicitly subscribes to; it pays the cost of receiving and decoding the envelope, but nothing more. Cross-role subscriptions are intentional and supported — an api pod can subscribe to `ctrl.deployment.changed` to pre-warm a route table, for example.
+- Topics namespace events, and **subscription is per-process**. A pod only runs handlers for the topics it explicitly subscribes to; it pays the cost of receiving and decoding the envelope, but nothing more. Cross-role subscriptions are intentional and supported. An api pod can subscribe to `ctrl.deployment.changed` to pre-warm a route table, for example.
 - All traffic is encrypted with the same shared key.
 
 ### Member metadata (tags)
@@ -161,13 +178,68 @@ Serf lets each member advertise a small key=value map that every peer can read. 
 
 Adding a new tag key is cheap, but every subscriber that filters on it must tolerate its absence on older nodes during rollout.
 
+### Cache clustering
+
+The bus rewrite collapses `pkg/cache/clustering` from five source files and two layers of indirection into a single thin wrapper.
+
+**Current shape:**
+
+- `broadcaster.go`: Broadcaster interface
+- `broadcaster_gossip.go`: GossipBroadcaster translating cache events into the `ClusterMessage` oneof
+- `broadcaster_noop.go`: NoopBroadcaster
+- `dispatcher.go`: InvalidationDispatcher routing inbound events to registered caches by name
+- `cluster_cache.go`: ClusterCache with a BatchProcessor (100 ms / 100-event flush) and registration with the dispatcher
+
+**New shape:** `cluster_cache.go` (~80 lines). Everything else is deleted.
+
+The new `ClusterCache[K, V]` takes a `bus.Bus` directly:
+
+```go
+type Config[K comparable, V any] struct {
+    LocalCache  cache.Cache[K, V]
+    Bus         bus.Bus
+    NodeID      string
+    KeyToString func(K) string
+    StringToKey func(string) (K, error)
+}
+```
+
+The constructor subscribes to `"cache.invalidate." + localCache.Name()`. One topic per cache name replaces the InvalidationDispatcher: each `ClusterCache` only receives events for its own topic, so no name-filter is needed inside the handler.
+
+**What publishes vs what does not:**
+
+| Method | Publishes |
+|---|---|
+| `SetNull`, `SetNullMany`, `Remove` | yes, one `bus.Publish` per key |
+| `Clear` | yes, one `bus.Publish` with a clear-all payload |
+| `Set`, `SetMany` | no, local only |
+| `Get`, `GetMany`, `SWR*` | no, read path only |
+
+Self-skip uses `e.SenderNode == nodeID` from the bus envelope. `source_instance` no longer needs to be in the proto payload.
+
+**Proto simplification:** `CacheInvalidationEvent` shrinks to just the action. `cache_name` is now the bus topic; `source_instance` and `timestamp` are carried by the bus envelope.
+
+```protobuf
+message CacheInvalidationEvent {
+  oneof action {
+    string cache_key = 2;
+    bool   clear_all = 5;
+  }
+}
+```
+
+**Noop:** `bus.NewNoop()` (Publish discards silently, Subscribe returns a no-op unsubscribe) replaces `NoopBroadcaster`. Service callers default to a noop bus and switch to `bus.New(...)` only when gossip is configured. The `if broadcaster == nil { return localCache }` guard in each service's cache factory is deleted.
+
+**Service callers** (`svc/api`, `svc/frontline`, `svc/sentinel`) drop the `GossipBroadcaster` and `InvalidationDispatcher` construction. They create a `bus.Bus` and pass it to the cache config. The external API of `pkg/cache/clustering` shrinks to a single constructor.
+
 ### Rollout
 
-The current gossip cluster is not wired into any production code path, so there is no dual-publish phase and nothing to migrate at runtime.
+The current gossip cluster exists in the codebase but is not used in production. There is no traffic to migrate, no dual-publish phase, and no runtime cutover.
 
 1. Add `pkg/bus` implementing the `Bus` interface on top of Serf. Wire the cache invalidation subscriber.
 2. Delete `pkg/cluster`, [`service-gossip-wan.yaml`](https://github.com/unkeyed/unkey/blob/main/k8s/api/base/service-gossip-wan.yaml), the WAN port (7947) from the deployment, and the bridge metrics in the same change.
-3. Update the deployment to expose only the single gossip port and the per-region seed config; deploy region-by-region and watch membership convergence in Grafana.
+3. Stand up a per-region internal NLB (`gossip.<region>.unkey.internal`) targeting gossip pods on 7946 TCP+UDP. Bake the full preshared list into the pod config alongside the existing local headless service.
+4. Update the deployment to expose only the single gossip port and the per-region seed config; deploy region-by-region and watch membership convergence in Grafana.
 
 ### Observability
 
@@ -179,6 +251,7 @@ Carry over the existing metrics (`cluster_members_count`, `cluster_messages_rece
 - **Serf is another dependency.** We already ship `memberlist`, so the marginal binary size is small, but it is one more upstream to track for CVEs.
 - **Cross-region traffic costs.** A flat cluster gossips small heartbeats across regions continuously. With three regions and `WAN` timings this is on the order of KB/s per pod; trivial compared to API traffic but worth measuring.
 - **Loss of the explicit bridge means no obvious "one place" to attach inspection tooling.** We trade a single chokepoint for uniform observability per-pod.
+- **One internal NLB per region.** Slightly more infra than a single bootstrap app, but the cost is low and the failure isolation is the explicit goal. The NLBs are off the data path: they only carry the few packets needed to discover one peer at pod startup.
 
 ## Alternatives
 
@@ -189,5 +262,5 @@ Carry over the existing metrics (`cluster_members_count`, `cluster_messages_rece
 
 ## Unresolved questions
 
-- Cross-region seed hostnames: do we use the existing headless services exposed via a peered ALB, or stand up a tiny dedicated `unkey-gossip-seed` service per region?
 - Replay log size cap: 60 s of retention is fine for time, but we also need a per-pod byte cap so a hot publisher cannot OOM the ring buffer. Pick a default (suggest 16 MiB) and surface an overflow metric.
+- NLB target group membership: easiest is "all gossip pods in the region" via a `Service type=LoadBalancer` with `internal` annotation, but we may want to restrict to a stable subset (e.g. one DaemonSet pod per node, or a separate small Deployment) to avoid flapping target health during rolling deploys. Decide before standing up the NLBs.
