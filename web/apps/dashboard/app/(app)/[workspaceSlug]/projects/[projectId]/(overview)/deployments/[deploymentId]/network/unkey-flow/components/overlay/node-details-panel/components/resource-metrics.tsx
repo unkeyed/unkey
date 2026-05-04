@@ -376,8 +376,8 @@ type NetworkSectionProps = {
   xAxisDomain: [number, number];
 };
 
-const EGRESS_COLOR = "hsl(var(--error-8))";
-const INGRESS_COLOR = "hsl(var(--success-8))";
+const EGRESS_COLOR = "var(--error-8)";
+const INGRESS_COLOR = "var(--success-8)";
 
 function NetworkSection({
   egressPoints,
@@ -419,10 +419,10 @@ function NetworkSection({
   );
 }
 
-const INSTANCES_COLOR = "hsl(var(--error-8))";
-const CPU_COLOR = "hsl(var(--feature-8))";
-const MEMORY_COLOR = "hsl(var(--info-8))";
-const DISK_COLOR = "hsl(var(--warning-8))";
+const INSTANCES_COLOR = "var(--error-8)";
+const CPU_COLOR = "var(--brand-8)";
+const MEMORY_COLOR = "var(--info-8)";
+const DISK_COLOR = "var(--warning-8)";
 
 type InstancesSectionProps = {
   points: Array<{ x: number; y: number }> | undefined;
