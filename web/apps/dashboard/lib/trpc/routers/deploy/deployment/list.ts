@@ -4,7 +4,6 @@ import { TRPCError } from "@trpc/server";
 import {
   appRegionalSettings,
   deployments,
-  horizontalAutoscalingPolicies,
   instances,
   openapiSpecs,
   regions,
@@ -65,6 +64,7 @@ export const listDeployments = workspaceProcedure
             regionId: regions.id,
             regionName: regions.name,
             regionPlatform: regions.platform,
+            status: instances.status,
           })
           .from(instances)
           .innerJoin(regions, eq(regions.id, instances.regionId))
@@ -77,14 +77,9 @@ export const listDeployments = workspaceProcedure
             regionName: regions.name,
             regionPlatform: regions.platform,
             replicas: appRegionalSettings.replicas,
-            replicasMin: horizontalAutoscalingPolicies.replicasMin,
           })
           .from(appRegionalSettings)
           .innerJoin(regions, eq(regions.id, appRegionalSettings.regionId))
-          .leftJoin(
-            horizontalAutoscalingPolicies,
-            eq(horizontalAutoscalingPolicies.id, appRegionalSettings.horizontalAutoscalingPolicyId),
-          )
           .where(
             and(
               eq(appRegionalSettings.workspaceId, ctx.workspace.id),
@@ -122,7 +117,7 @@ export const listDeployments = workspaceProcedure
           region: { id: row.regionId, name: row.regionName, platform: row.regionPlatform },
           flagCode: mapRegionToFlag(row.regionName),
         };
-        const replicaCount = row.replicasMin ?? row.replicas;
+        const replicaCount = row.replicas;
         const existing = desiredStateByAppEnv.get(key);
         if (existing) {
           existing.desiredInstanceCount += replicaCount;

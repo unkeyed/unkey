@@ -66,10 +66,8 @@ export function ActiveDeploymentCard({
   const storage = deployment.storageMib > 0 ? formatStorageParts(deployment.storageMib) : null;
   const actualInstances = deployment.instances ?? [];
   const hasActualInstances = actualInstances.length > 0;
-
-  const instanceCount = hasActualInstances
-    ? actualInstances.length
-    : deployment.desiredInstanceCount;
+  const runningCount = actualInstances.filter((i) => i.status === "running").length;
+  const targetCount = deployment.desiredInstanceCount;
 
   const uniqueRegions = hasActualInstances
     ? [...new Map(actualInstances.map((i) => [i.region.id, i])).values()]
@@ -223,7 +221,9 @@ export function ActiveDeploymentCard({
           </MetadataCell>
 
           <MetadataCell label="Instances">
-            <span className="font-medium text-gray-12 text-xs">{instanceCount}</span>
+            <span className="font-medium text-gray-12 text-xs">
+              {`${runningCount} of ${targetCount}`}
+            </span>
           </MetadataCell>
 
           <MetadataCell label="Regions">

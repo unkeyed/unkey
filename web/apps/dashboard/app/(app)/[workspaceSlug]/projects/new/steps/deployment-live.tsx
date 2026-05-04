@@ -1,8 +1,10 @@
 "use client";
 
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
 import { Check } from "@unkey/icons";
-import { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
 import { ProjectDataProvider } from "../../[projectId]/(overview)/data-provider";
 import { DeploymentInfo } from "../../[projectId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-info";
 import { DeploymentProgress } from "../../[projectId]/(overview)/deployments/[deploymentId]/(deployment-progress)/deployment-progress";
@@ -23,14 +25,16 @@ export const DeploymentLiveStep = ({ projectId, deploymentId }: DeploymentLiveSt
   return (
     <ProjectDataProvider projectId={projectId}>
       <DeploymentLayoutProvider deploymentId={deploymentId}>
-        <DeploymentLiveStepContent />
+        <DeploymentLiveStepContent projectId={projectId} />
       </DeploymentLayoutProvider>
     </ProjectDataProvider>
   );
 };
 
-const DeploymentLiveStepContent = () => {
+const DeploymentLiveStepContent = ({ projectId }: { projectId: string }) => {
   const { deployment } = useDeployment();
+  const workspace = useWorkspaceNavigation();
+  const router = useRouter();
   const ready = deployment.status === "ready";
 
   const stepsQuery = trpc.deploy.deployment.steps.useQuery(
@@ -42,6 +46,14 @@ const DeploymentLiveStepContent = () => {
     () => deriveStatusFromSteps(stepsQuery.data, deployment.status),
     [stepsQuery.data, deployment.status],
   );
+
+  const deploymentUrl = `/${workspace.slug}/projects/${projectId}/deployments/${deployment.id}`;
+
+  useEffect(() => {
+    if (ready) {
+      router.replace(deploymentUrl);
+    }
+  }, [ready, router, deploymentUrl]);
 
   return (
     <OnboardingStepContainer>
