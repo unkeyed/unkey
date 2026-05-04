@@ -49,11 +49,7 @@ export function DeploymentsCardList() {
 
   return (
     <div className="border border-grayA-4 rounded-[14px] overflow-hidden divide-y divide-grayA-4">
-      {deployments.data.map((item) => {
-        const { deployment, environment } = item;
-        if (!deployment) {
-          return null;
-        }
+      {deployments.data.map(({ deployment, environment }) => {
         const isCurrent = currentDeploymentId === deployment.id;
         return (
           <DeploymentRow

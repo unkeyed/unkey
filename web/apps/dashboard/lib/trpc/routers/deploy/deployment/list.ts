@@ -1,42 +1,33 @@
-import { and, db, desc, eq, inArray } from "@/lib/db";
+import { and, db, desc, eq, gte, inArray, lte } from "@/lib/db";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { deployments, instances, openapiSpecs, regions } from "@unkey/db/src/schema";
 import { z } from "zod";
-import { mapRegionToFlag } from "../network/utils";
+import {
+  deploymentSelectFields,
+  mapInstanceRow,
+  normalizeDeploymentRow,
+} from "./deployment-query-helpers";
 
 export const listDeployments = workspaceProcedure
-  .input(z.object({ projectId: z.string() }))
+  .input(
+    z.object({
+      projectId: z.string(),
+      startTime: z.number().int().optional(),
+      endTime: z.number().int().optional(),
+    }),
+  )
   .query(async ({ ctx, input }) => {
     try {
       const deploymentRows = await db
-        .select({
-          id: deployments.id,
-          projectId: deployments.projectId,
-          environmentId: deployments.environmentId,
-          gitCommitSha: deployments.gitCommitSha,
-          gitBranch: deployments.gitBranch,
-          gitCommitMessage: deployments.gitCommitMessage,
-          gitCommitAuthorHandle: deployments.gitCommitAuthorHandle,
-          gitCommitAuthorAvatarUrl: deployments.gitCommitAuthorAvatarUrl,
-          gitCommitTimestamp: deployments.gitCommitTimestamp,
-          prNumber: deployments.prNumber,
-          forkRepositoryFullName: deployments.forkRepositoryFullName,
-          status: deployments.status,
-          cpuMillicores: deployments.cpuMillicores,
-          memoryMib: deployments.memoryMib,
-          storageMib: deployments.storageMib,
-          port: deployments.port,
-          upstreamProtocol: deployments.upstreamProtocol,
-          healthcheck: deployments.healthcheck,
-          shutdownSignal: deployments.shutdownSignal,
-          createdAt: deployments.createdAt,
-        })
+        .select(deploymentSelectFields)
         .from(deployments)
         .where(
           and(
             eq(deployments.workspaceId, ctx.workspace.id),
             eq(deployments.projectId, input.projectId),
+            input.startTime ? gte(deployments.createdAt, input.startTime) : undefined,
+            input.endTime ? lte(deployments.createdAt, input.endTime) : undefined,
           ),
         )
         .orderBy(desc(deployments.createdAt), desc(deployments.id))
@@ -47,7 +38,6 @@ export const listDeployments = workspaceProcedure
       }
 
       const deploymentIds = deploymentRows.map((d) => d.id);
-
       const [specRows, instanceRows] = await Promise.all([
         db
           .select({ deploymentId: openapiSpecs.deploymentId })
@@ -67,21 +57,10 @@ export const listDeployments = workspaceProcedure
       ]);
 
       const specSet = new Set(specRows.map((s) => s.deploymentId));
-      const instancesByDeployment = new Map<
-        string,
-        {
-          id: string;
-          region: { id: string; name: string; platform: string };
-          flagCode: ReturnType<typeof mapRegionToFlag>;
-        }[]
-      >();
+      const instancesByDeployment = new Map<string, ReturnType<typeof mapInstanceRow>[]>();
       for (const row of instanceRows) {
+        const entry = mapInstanceRow(row);
         const list = instancesByDeployment.get(row.deploymentId);
-        const entry = {
-          id: row.id,
-          region: { id: row.regionId, name: row.regionName, platform: row.regionPlatform },
-          flagCode: mapRegionToFlag(row.regionName),
-        };
         if (list) {
           list.push(entry);
         } else {
@@ -91,14 +70,9 @@ export const listDeployments = workspaceProcedure
 
       return deploymentRows.map((deployment) => ({
         ...deployment,
+        ...normalizeDeploymentRow(deployment),
         instances: instancesByDeployment.get(deployment.id) ?? [],
-        gitBranch: deployment.gitBranch ?? "",
-        prNumber: deployment.prNumber ?? null,
-        forkRepositoryFullName: deployment.forkRepositoryFullName ?? null,
-        gitCommitAuthorAvatarUrl:
-          deployment.gitCommitAuthorAvatarUrl ?? "https://github.com/identicons/dummy-user.png",
         hasOpenApiSpec: specSet.has(deployment.id),
-        gitCommitTimestamp: deployment.gitCommitTimestamp,
       }));
     } catch (_error) {
       throw new TRPCError({

@@ -6,6 +6,7 @@ CREATE TABLE `app_build_settings` (
 	`dockerfile` varchar(500) NOT NULL DEFAULT 'Dockerfile',
 	`docker_context` varchar(500) NOT NULL DEFAULT '.',
 	`watch_paths` json NOT NULL DEFAULT ('[]'),
+	`auto_deploy` boolean NOT NULL DEFAULT true,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `app_build_settings_pk` PRIMARY KEY(`pk`),
