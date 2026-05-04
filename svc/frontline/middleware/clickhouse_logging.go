@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/timing"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 )
@@ -18,7 +19,7 @@ import (
 // during proxy execution; this middleware reads it back and emits the row
 // after next() returns. Cross-region requests do not populate tracking and
 // are skipped — the peer frontline writes its own row.
-func WithClickHouseLogging(buf *batch.BatchProcessor[schema.SentinelRequest], clk clock.Clock, frontlineID, region, platform string) zen.Middleware {
+func WithClickHouseLogging(buf *batch.BatchProcessor[schema.SentinelRequest], clk clock.Clock, frontlineID, region, platform string, debugHeaders bool) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
 			//nolint:exhaustruct
@@ -28,6 +29,10 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.SentinelRequest], cl
 			ctx = proxy.WithRequestTracking(ctx, tracking)
 
 			err := next(ctx, s)
+
+			if !debugHeaders {
+				s.ResponseWriter().Header().Del(timing.HeaderName)
+			}
 
 			// Tracking is only populated on the local-instance path; the
 			// handler stamps DeploymentID/InstanceID before forwarding. If

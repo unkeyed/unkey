@@ -117,6 +117,11 @@ type Config struct {
 	// Pprof configures Go pprof profiling endpoints at /_unkey/internal/pprof/*.
 	// When nil or credentials are empty, pprof is disabled.
 	Pprof *config.PprofConfig `toml:"pprof"`
+
+	// DebugHeaders keeps internal X-Unkey-Timing response headers visible to
+	// clients. Intended for local development only; production should leave
+	// this false (default). ClickHouse always receives timing data regardless.
+	DebugHeaders bool `toml:"debug_headers"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through

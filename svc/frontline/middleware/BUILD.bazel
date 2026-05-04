@@ -18,6 +18,7 @@ go_library(
         "//pkg/logger",
         "//pkg/otel/tracing",
         "//pkg/prometheus/lazy",
+        "//pkg/timing",
         "//pkg/zen",
         "//svc/frontline/internal/errorpage",
         "//svc/frontline/internal/proxy",

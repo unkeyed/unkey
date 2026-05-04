@@ -35,6 +35,8 @@ data:
     url = "http://vault.unkey.svc.cluster.local:8060"
     token = "vault-test-token-123"
 
+    debug_headers = true
+
     [pprof]
     username = "admin"
     password = "password"

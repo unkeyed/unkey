@@ -366,6 +366,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ErrorPageRenderer: errorpage.NewRenderer(),
 		RequestTimeout:    cfg.RequestTimeout,
 		FrontlineRequests: frontlineRequests,
+		DebugHeaders:      cfg.DebugHeaders,
 	}
 
 	if cfg.HttpsPort > 0 {
