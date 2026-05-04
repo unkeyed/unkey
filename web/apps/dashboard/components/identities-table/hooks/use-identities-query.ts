@@ -1,9 +1,10 @@
+import { useFilters } from "@/app/(app)/[workspaceSlug]/identities/hooks/use-filters";
 import { parseAsSortArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { trpc } from "@/lib/trpc/client";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { IdentitiesSortField } from "../schema/identities.schema";
+import type { IdentitiesFilterOperator, IdentitiesSortField } from "../schema/identities.schema";
 
 const PREFETCH_PAGES_AHEAD = 2;
 const DEFAULT_PAGE_SIZE = 50;
@@ -48,6 +49,8 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
     parseAsSortArray<IdentitiesSortField>(),
   );
 
+  const { filters } = useFilters();
+
   // Convert URL sort params → TanStack SortingState
   const sorting: SortingState = useMemo(() => {
     if (!sortParams || sortParams.length === 0) {
@@ -91,15 +94,52 @@ export function useIdentitiesQuery(pageSize = DEFAULT_PAGE_SIZE) {
     }
   }, [search, setPage]);
 
+  // Reset to page 1 when filters change (not on initial mount).
+  const filtersKey = useMemo(
+    () => filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|"),
+    [filters],
+  );
+  const prevFiltersKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevFiltersKeyRef.current === null) {
+      prevFiltersKeyRef.current = filtersKey;
+      return;
+    }
+    if (filtersKey !== prevFiltersKeyRef.current) {
+      prevFiltersKeyRef.current = filtersKey;
+      setPage(1);
+    }
+  }, [filtersKey, setPage]);
+
+  const filterParams = useMemo(() => {
+    const externalId = filters
+      .filter((f) => f.field === "externalId")
+      .map((f) => ({ operator: f.operator as IdentitiesFilterOperator, value: f.value as string }));
+    const lastUsedSince = filters.find((f) => f.field === "lastUsedSince")?.value as
+      | string
+      | undefined;
+    const lastUsedStart = filters.find((f) => f.field === "lastUsedStart")?.value as
+      | number
+      | undefined;
+    const lastUsedEnd = filters.find((f) => f.field === "lastUsedEnd")?.value as number | undefined;
+    return {
+      externalId: externalId.length > 0 ? externalId : undefined,
+      lastUsedSince,
+      lastUsedStart,
+      lastUsedEnd,
+    };
+  }, [filters]);
+
   const queryParams = useMemo(
     () => ({
+      ...filterParams,
       page: normalizedPage,
       limit: normalizedPageSize,
       search: search || undefined,
       sortBy: sortParams?.[0]?.column ?? "createdAt",
       sortOrder: sortParams?.[0]?.direction ?? "desc",
     }),
-    [normalizedPage, normalizedPageSize, search, sortParams],
+    [filterParams, normalizedPage, normalizedPageSize, search, sortParams],
   );
 
   const utils = trpc.useUtils();

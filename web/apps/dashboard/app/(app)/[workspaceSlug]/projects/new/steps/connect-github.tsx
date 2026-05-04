@@ -44,12 +44,7 @@ export const ConnectGithubStep = ({ projectId, onBeforeNavigate }: ConnectGithub
             Add a repo from your GitHub account
           </span>
         </div>
-        <a
-          href="#"
-          rel="noopener noreferrer"
-          className="ml-auto"
-          onClick={handleClick}
-        >
+        <a href="#" rel="noopener noreferrer" className="ml-auto" onClick={handleClick}>
           <Button
             variant="outline"
             className="rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"

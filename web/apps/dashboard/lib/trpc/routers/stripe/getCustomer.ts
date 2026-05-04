@@ -43,9 +43,7 @@ export const getCustomer = workspaceProcedure
         });
       }
       resolvedCustomerId =
-        typeof session.customer === "string"
-          ? session.customer
-          : (session.customer?.id ?? null);
+        typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null);
     } else if (input.customerId && ctx.workspace.stripeCustomerId) {
       if (input.customerId !== ctx.workspace.stripeCustomerId) {
         throw new TRPCError({

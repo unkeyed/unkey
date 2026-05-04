@@ -1,6 +1,7 @@
 import { identitiesQueryPayload } from "@/components/identities-table/schema/identities.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { and, asc, count, db, desc, eq, inArray, like, notInArray, or, schema } from "@/lib/db";
+import { getTimestampFromRelative } from "@/lib/utils";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
@@ -51,6 +52,16 @@ async function getLastUsedSortedIds(params: {
 }): Promise<string[]> {
   const { workspaceId, baseConditions, sortOrder, limit: pageLimit, offset } = params;
 
+  // Fetch only the window of ClickHouse IDs needed for this page instead of
+  // all verified IDs for the workspace. The IN/NOT IN lists stay bounded to
+  // this window, keeping each request O(page depth) rather than O(total
+  // identities). Correctness guarantee: accurate when DB-side filter attrition
+  // within the window (deleted identities that still have ClickHouse records,
+  // search mismatches) is low — the typical case. Pages near the
+  // verified/never-used boundary may show minor inconsistencies when attrition
+  // is significant.
+  const chWindow = offset + pageLimit;
+
   const lastUsedQuery = clickhouse.querier.query({
     query: `
       SELECT identity_id
@@ -58,16 +69,18 @@ async function getLastUsedSortedIds(params: {
       WHERE workspace_id = {workspaceId: String}
       GROUP BY identity_id
       ORDER BY max(time) ${sortOrder === "asc" ? "ASC" : "DESC"}
+      LIMIT {chWindow: UInt32}
     `,
     params: z.object({
       workspaceId: z.string(),
+      chWindow: z.number(),
     }),
     schema: z.object({
       identity_id: z.string(),
     }),
   });
 
-  const chResult = await lastUsedQuery({ workspaceId });
+  const chResult = await lastUsedQuery({ workspaceId, chWindow });
 
   if (chResult.err) {
     throw new TRPCError({
@@ -78,39 +91,77 @@ async function getLastUsedSortedIds(params: {
 
   const verifiedIds = chResult.val.map((r) => r.identity_id);
 
-  // Get identity IDs that have never been verified (not in ClickHouse).
-  const neverUsedResults = await db
-    .select({ id: schema.identities.id })
-    .from(schema.identities)
-    .where(
-      and(
-        ...baseConditions,
-        ...(verifiedIds.length > 0 ? [notInArray(schema.identities.id, verifiedIds)] : []),
-      ),
-    )
-    .orderBy(desc(schema.identities.createdAt));
-
-  const neverUsedIds = neverUsedResults.map((r) => r.id);
-
-  // Filter verified IDs to only those matching base conditions.
-  // ClickHouse may return IDs for deleted identities or ones not matching search.
-  let filteredVerifiedIds = verifiedIds;
+  // Filter verified IDs against DB base conditions (deleted flag, search).
+  // The inArray list is bounded by chWindow.
+  let filteredVerifiedIds: string[] = [];
   if (verifiedIds.length > 0) {
     const matchingVerified = await db
       .select({ id: schema.identities.id })
       .from(schema.identities)
       .where(and(...baseConditions, inArray(schema.identities.id, verifiedIds)));
     const matchingSet = new Set(matchingVerified.map((r) => r.id));
+    // Preserve ClickHouse sort order.
     filteredVerifiedIds = verifiedIds.filter((id) => matchingSet.has(id));
   }
 
-  // Ascending = never-used first, descending = verified first.
-  const allSortedIds =
-    sortOrder === "asc"
-      ? [...neverUsedIds, ...filteredVerifiedIds]
-      : [...filteredVerifiedIds, ...neverUsedIds];
+  const neverUsedWhere = and(
+    ...baseConditions,
+    ...(verifiedIds.length > 0 ? [notInArray(schema.identities.id, verifiedIds)] : []),
+  );
 
-  return allSortedIds.slice(offset, offset + pageLimit);
+  if (sortOrder === "desc") {
+    // Most-recently-used verified items first, never-used (newest created) after.
+    const verifiedOnPage = filteredVerifiedIds.slice(offset, offset + pageLimit);
+    if (verifiedOnPage.length === pageLimit) {
+      return verifiedOnPage;
+    }
+
+    // Spilled into never-used territory — fetch only the remaining slots.
+    const neverUsedNeeded = pageLimit - verifiedOnPage.length;
+    const neverUsedOffset = Math.max(0, offset - filteredVerifiedIds.length);
+
+    const neverUsedRows = await db
+      .select({ id: schema.identities.id })
+      .from(schema.identities)
+      .where(neverUsedWhere)
+      .orderBy(desc(schema.identities.createdAt))
+      .limit(neverUsedNeeded)
+      .offset(neverUsedOffset);
+
+    return [...verifiedOnPage, ...neverUsedRows.map((r) => r.id)];
+  }
+
+  // Ascending: never-used (newest created) first, verified (oldest last-used) after.
+  // Count never-used to locate the page boundary before fetching rows.
+  const [neverUsedCountRow] = await db
+    .select({ count: count() })
+    .from(schema.identities)
+    .where(neverUsedWhere);
+  const neverUsedCount = neverUsedCountRow.count;
+
+  if (offset >= neverUsedCount) {
+    // Page falls entirely within verified IDs.
+    const verifiedOffset = offset - neverUsedCount;
+    return filteredVerifiedIds.slice(verifiedOffset, verifiedOffset + pageLimit);
+  }
+
+  // Page starts within never-used IDs.
+  const neverUsedOnPage = Math.min(pageLimit, neverUsedCount - offset);
+  const neverUsedRows = await db
+    .select({ id: schema.identities.id })
+    .from(schema.identities)
+    .where(neverUsedWhere)
+    .orderBy(desc(schema.identities.createdAt))
+    .limit(neverUsedOnPage)
+    .offset(offset);
+
+  if (neverUsedOnPage === pageLimit) {
+    return neverUsedRows.map((r) => r.id);
+  }
+
+  // Fill remaining slots from the start of the verified list.
+  const verifiedNeeded = pageLimit - neverUsedOnPage;
+  return [...neverUsedRows.map((r) => r.id), ...filteredVerifiedIds.slice(0, verifiedNeeded)];
 }
 
 export const queryIdentities = workspaceProcedure
@@ -119,7 +170,17 @@ export const queryIdentities = workspaceProcedure
   .output(IdentitiesResponse)
   .query(async ({ ctx, input }) => {
     try {
-      const { limit = 50, page = 1, search, sortBy = "createdAt", sortOrder = "desc" } = input;
+      const {
+        limit = 50,
+        page = 1,
+        search,
+        externalId: externalIdFilter,
+        lastUsedStart,
+        lastUsedEnd,
+        lastUsedSince,
+        sortBy = "createdAt",
+        sortOrder = "desc",
+      } = input;
       const workspaceId = ctx.workspace.id;
       const offset = (page - 1) * limit;
 
@@ -138,6 +199,76 @@ export const queryIdentities = workspaceProcedure
         if (searchCondition) {
           baseConditions.push(searchCondition);
         }
+      }
+
+      if (externalIdFilter && externalIdFilter.length > 0) {
+        const externalIdConditions = externalIdFilter.map((f) => {
+          const escaped = escapeLike(f.value);
+          switch (f.operator) {
+            case "is":
+              return eq(schema.identities.externalId, f.value);
+            case "startsWith":
+              return like(schema.identities.externalId, `${escaped}%`);
+            case "endsWith":
+              return like(schema.identities.externalId, `%${escaped}`);
+            default:
+              return like(schema.identities.externalId, `%${escaped}%`);
+          }
+        });
+        const combined =
+          externalIdConditions.length === 1 ? externalIdConditions[0] : or(...externalIdConditions);
+        if (combined) {
+          baseConditions.push(combined);
+        }
+      }
+
+      // Filter by lastUsed time range: query ClickHouse for matching identity IDs,
+      // then restrict baseConditions to only those IDs.
+      let lastUsedMatchingIds: string[] | null = null;
+      const hasLastUsedFilter = lastUsedSince || lastUsedStart !== undefined;
+      if (hasLastUsedFilter) {
+        const resolvedStart = lastUsedSince
+          ? getTimestampFromRelative(lastUsedSince)
+          : (lastUsedStart ?? 0);
+        const resolvedEnd = lastUsedSince ? Date.now() : (lastUsedEnd ?? Date.now());
+
+        const lastUsedRangeQuery = clickhouse.querier.query({
+          query: `
+            SELECT identity_id
+            FROM default.key_verifications_per_minute_v3
+            WHERE workspace_id = {workspaceId: String}
+            GROUP BY identity_id
+            HAVING max(toUnixTimestamp(time) * 1000) >= {startMs: UInt64}
+               AND max(toUnixTimestamp(time) * 1000) <= {endMs: UInt64}
+          `,
+          params: z.object({
+            workspaceId: z.string(),
+            startMs: z.number(),
+            endMs: z.number(),
+          }),
+          schema: z.object({ identity_id: z.string() }),
+        });
+
+        const rangeResult = await lastUsedRangeQuery({
+          workspaceId,
+          startMs: resolvedStart,
+          endMs: resolvedEnd,
+        });
+
+        if (rangeResult.err) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Something went wrong when fetching data from ClickHouse.",
+          });
+        }
+
+        lastUsedMatchingIds = rangeResult.val.map((r) => r.identity_id);
+        // No identities match → short-circuit before any DB queries
+        if (lastUsedMatchingIds.length === 0) {
+          const totalPages = Math.max(1, Math.ceil(0 / limit));
+          return { identities: [], total: 0, page, pageSize: limit, totalPages };
+        }
+        baseConditions.push(inArray(schema.identities.id, lastUsedMatchingIds));
       }
 
       // Get total count of identities matching the filters (without pagination)
@@ -227,10 +358,37 @@ export const queryIdentities = workspaceProcedure
             }
           }
 
-          // When pre-sorted, restrict to the pre-sorted IDs so relational hydration
-          // matches the sort window.
           if (sortedIds !== null && sortedIds.length > 0) {
+            // Pre-sorted: sortedIds already incorporates all baseConditions (externalId, lastUsed, etc.)
             conditions.push(helpers.inArray(identity.id, sortedIds));
+          } else {
+            // Non-pre-sorted: apply column-level filters explicitly since baseConditions
+            // is not wired into this relational query path.
+            if (externalIdFilter && externalIdFilter.length > 0) {
+              const externalIdConditions = externalIdFilter.map((f) => {
+                const escaped = escapeLike(f.value);
+                switch (f.operator) {
+                  case "is":
+                    return helpers.eq(identity.externalId, f.value);
+                  case "startsWith":
+                    return helpers.like(identity.externalId, `${escaped}%`);
+                  case "endsWith":
+                    return helpers.like(identity.externalId, `%${escaped}`);
+                  default:
+                    return helpers.like(identity.externalId, `%${escaped}%`);
+                }
+              });
+              const combined =
+                externalIdConditions.length === 1
+                  ? externalIdConditions[0]
+                  : helpers.or(...externalIdConditions);
+              if (combined) {
+                conditions.push(combined);
+              }
+            }
+            if (lastUsedMatchingIds !== null && lastUsedMatchingIds.length > 0) {
+              conditions.push(helpers.inArray(identity.id, lastUsedMatchingIds));
+            }
           }
 
           return helpers.and(...conditions);
