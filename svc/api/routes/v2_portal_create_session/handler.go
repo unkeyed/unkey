@@ -145,52 +145,57 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		preview = *req.Preview
 	}
 
-	err = db.Query.InsertPortalSessionToken(ctx, h.DB.RW(), db.InsertPortalSessionTokenParams{
-		ID:             sessionTokenID,
-		WorkspaceID:    workspaceID,
-		PortalConfigID: portalConfig.ID,
-		ExternalID:     req.ExternalId,
-		Permissions:    permissionsJSON,
-		Preview:        preview,
-		ExpiresAt:      expiresAt,
-		CreatedAt:      now.UnixMilli(),
-	})
-	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("failed to insert session token"),
-			fault.Public("Failed to create session."),
-		)
-	}
+	err = db.Tx(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		if txErr := db.Query.InsertPortalSessionToken(txCtx, tx, db.InsertPortalSessionTokenParams{
+			ID:             sessionTokenID,
+			WorkspaceID:    workspaceID,
+			PortalConfigID: portalConfig.ID,
+			ExternalID:     req.ExternalId,
+			Permissions:    permissionsJSON,
+			Preview:        preview,
+			ExpiresAt:      expiresAt,
+			CreatedAt:      now.UnixMilli(),
+		}); txErr != nil {
+			return fault.Wrap(txErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("failed to insert session token"),
+				fault.Public("Failed to create session."),
+			)
+		}
 
-	err = h.Auditlogs.Insert(ctx, h.DB.RW(), []auditlog.AuditLog{
-		{
-			Event:       auditlog.PortalSessionCreateEvent,
-			WorkspaceID: workspaceID,
-			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.Key.ID,
-			ActorName:   "root key",
-			ActorMeta:   map[string]any{},
-			Display:     fmt.Sprintf("Created portal session for %s", req.ExternalId),
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
-			Resources: []auditlog.AuditLogResource{
-				{
-					ID:          sessionTokenID,
-					DisplayName: req.ExternalId,
-					Name:        req.ExternalId,
-					Meta:        map[string]any{"portalConfigId": portalConfig.ID},
-					Type:        auditlog.PortalSessionResourceType,
+		if txErr := h.Auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
+			{
+				Event:       auditlog.PortalSessionCreateEvent,
+				WorkspaceID: workspaceID,
+				ActorType:   auditlog.RootKeyActor,
+				ActorID:     auth.Key.ID,
+				ActorName:   "root key",
+				ActorMeta:   map[string]any{},
+				Display:     fmt.Sprintf("Created portal session for %s", req.ExternalId),
+				RemoteIP:    s.Location(),
+				UserAgent:   s.UserAgent(),
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          sessionTokenID,
+						DisplayName: req.ExternalId,
+						Name:        req.ExternalId,
+						Meta:        map[string]any{"portalConfigId": portalConfig.ID},
+						Type:        auditlog.PortalSessionResourceType,
+					},
 				},
 			},
-		},
+		}); txErr != nil {
+			return fault.Wrap(txErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("failed to insert audit log"),
+				fault.Public("Failed to create session."),
+			)
+		}
+
+		return nil
 	})
 	if err != nil {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("failed to insert audit log"),
-			fault.Public("Failed to create session."),
-		)
+		return err
 	}
 
 	portalURL := fmt.Sprintf("%s/?session=%s", portalBaseURL, sessionTokenID)
