@@ -93,21 +93,22 @@ var (
 	// RatelimitDecision counts rate-limit decisions.
 	//
 	// Labels:
+	//   - workspace_id: the workspace the request was attributed to.
 	//   - source: "local" when the decision used only in-memory counters;
 	//     "origin" when a cold-window or strict-mode Redis fetch was required.
 	//   - outcome: "passed" (request allowed) or "denied" (limit exceeded).
 	//
 	// Example usage:
-	//   metrics.RatelimitDecision.WithLabelValues("local", "passed").Inc()
-	//   metrics.RatelimitDecision.WithLabelValues("origin", "denied").Inc()
+	//   metrics.RatelimitDecision.WithLabelValues(workspaceID, "local", "passed").Inc()
+	//   metrics.RatelimitDecision.WithLabelValues(workspaceID, "origin", "denied").Inc()
 	RatelimitDecision = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "decisions_total",
-			Help:      "Total number of rate-limit decisions, labeled by source (local|origin) and outcome (passed|denied).",
+			Help:      "Total number of rate-limit decisions, labeled by workspace_id, source (local|origin) and outcome (passed|denied).",
 		},
-		[]string{"source", "outcome"},
+		[]string{"workspace_id", "source", "outcome"},
 	)
 
 	// RatelimitCASExhausted counts Ratelimit() calls that exhausted the CAS
@@ -127,20 +128,24 @@ var (
 	)
 
 	// RatelimitStrictModeActivations counts how often a denial triggered strict
-	// mode for a (name, identifier, duration) tuple. Until the deadline passes,
-	// subsequent requests on that tuple force a synchronous origin fetch to
-	// converge local state. Spikes correlate with sustained denial pressure
-	// and an increase in origin-fetch latency on the hot path.
+	// mode for a (workspace, namespace, identifier, duration) tuple. Until the
+	// deadline passes, subsequent requests on that tuple force a synchronous
+	// origin fetch to converge local state. Spikes correlate with sustained
+	// denial pressure and an increase in origin-fetch latency on the hot path.
+	//
+	// Labels:
+	//   - workspace_id: the workspace whose tuple entered strict mode.
 	//
 	// Example usage:
-	//   metrics.RatelimitStrictModeActivations.Inc()
-	RatelimitStrictModeActivations = lazy.NewCounter(
+	//   metrics.RatelimitStrictModeActivations.WithLabelValues(workspaceID).Inc()
+	RatelimitStrictModeActivations = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "strict_mode_activations_total",
-			Help:      "Total number of denials that raised the strict-mode deadline for a rate-limit tuple.",
+			Help:      "Total number of denials that raised the strict-mode deadline for a rate-limit tuple, labeled by workspace_id.",
 		},
+		[]string{"workspace_id"},
 	)
 )
 
