@@ -1,0 +1,289 @@
+---
+title: 0016 Gossip Rewrite
+description: Switch gossip to Serf. One flat cluster across all regions over VPC peering. Generic event bus replaces the transport-specific message envelope.
+date: 2026-05-03
+authors:
+    - Flo
+---
+
+## Summary
+
+Introduce a Serf-backed bus in `pkg/bus`. One flat cluster across all regions over VPC peering. A generic event envelope replaces the transport-specific message type, so subsystems can publish their own proto types without modifying the bus.
+
+The old gossip implementation is removed in a separate PR; this RFC describes the replacement.
+
+## Motivation
+
+The previous gossip layer never fully made it into production: cross-region connectivity over the WAN bridge didn't work, so its better to replace it with a new implementation rather than keep iterating on a design we can replace by using vpc peering.
+
+We do still need a cross-region bus, so this RFC is what replaces it.
+
+For now we will focus on cache invalidation as the primary use case: a write in one region currently serves stale data from every other region until the entry's TTL expires.
+
+The transport shape is the other thing we want to get right this time. Adding a new event type should be a typed `Topic` declaration in the owning package, not a hand-maintained oneof in a shared proto.
+
+## Detailed design
+
+### Transport: Serf over the peered mesh
+
+The transport is [`hashicorp/serf`](https://github.com/hashicorp/serf) on top of the existing `memberlist`.
+
+Serf adds buffered user events, query/reply, and batched membership updates.
+
+The cluster is single-tier: one Serf cluster per environment, WAN profile, spanning every region. WAN profile raises cross-region failure detection to ~5–15 s, and all traffic is encrypted with a single `SecretKey` per environment.
+
+### Event bus
+
+The transport carries a single envelope shape regardless of subsystem:
+
+```
+Event {
+    topic: string         // "cache.invalidate.<name>", "something.else", ...
+    id: string            // pkg/uid (prefix "evt"), used for dedup
+    source_region: string
+    sender_node: string
+    sent_at_ms: int64
+    payload: bytes        // opaque; sender and receiver agree on the schema
+}
+```
+
+`pkg/bus` exposes one untyped transport interface and a generic `Topic[T]` handle. There is exactly one `Bus` per process, wrapping one Serf connection; topic handles are stateless compile-time bindings and open nothing.
+
+It could look something like these lines, this is just a rough sketch not the final implementation.
+
+```go
+// One per process. Holds the Serf connection, replay log, and dedup LRU.
+type Bus interface {
+    Publish(ctx context.Context, topic string, payload []byte) error
+    Subscribe(topic string, handler func(Event)) (unsubscribe func(), err error)
+    Query(ctx context.Context, topic string, payload []byte, filter map[string]string) (<-chan Event, error)
+    Members() []Member
+    Close() error
+}
+
+// Member is a re-export of serf.Member so callers don't import hashicorp/serf directly.
+type Member = serf.Member
+
+// Typed binding of topic name + payload type. Declared in the owning package.
+type Topic[T proto.Message] struct{ name string }
+func NewTopic[T proto.Message](name string) Topic[T]
+
+func (t Topic[T]) Publish(ctx context.Context, b Bus, msg T) error
+func (t Topic[T]) Subscribe(b Bus, h func(ctx context.Context, msg T, meta Event)) (unsubscribe func(), err error)
+
+// Request/reply binds both message types. The filter is forwarded to Serf's
+// query tag-matching; pass nil for no filter.
+type QueryTopic[Req, Resp proto.Message] struct{ name string }
+func NewQueryTopic[Req, Resp proto.Message](name string) QueryTopic[Req, Resp]
+
+func (q QueryTopic[Req, Resp]) Call(ctx context.Context, b Bus, req Req, filter map[string]string) (<-chan Resp, error)
+func (q QueryTopic[Req, Resp]) Handle(b Bus, h func(ctx context.Context, req Req) (Resp, error)) (unsubscribe func(), err error)
+```
+
+Topics with a fixed name are declared at package scope:
+
+```go
+var FeatureFlagUpdate = bus.NewTopic[*flagv1.FeatureFlagUpdate]("feature_flag.update")
+
+FeatureFlagUpdate.Publish(ctx, b, &flagv1.FeatureFlagUpdate{...})
+FeatureFlagUpdate.Subscribe(b, func(ctx context.Context, ev *flagv1.FeatureFlagUpdate, meta bus.Event) { ... })
+```
+
+Topics with a dynamic name (e.g. one per cache instance) are constructed at use time. The type is still bound at compile time:
+
+```go
+topic := bus.NewTopic[*cachev1.CacheInvalidationEvent]("cache.invalidate." + name)
+topic.Publish(ctx, b, &cachev1.CacheInvalidationEvent{...})
+topic.Subscribe(b, func(ctx context.Context, ev *cachev1.CacheInvalidationEvent, meta bus.Event) { ... })
+```
+
+`Publish` is fire-and-forget fan-out. `Call` fans out a Serf query (optionally tag-filtered) and returns a channel that closes when the context deadline fires or Serf signals all expected responses are in.
+Callers must not assume a reply count; a partitioned member, or one with no handler for the topic, will not reply.
+
+#### End-to-end wiring
+
+The `Bus` is constructed once at process startup and passed down explicitly to anything that publishes or subscribes. There is no global, so tests can inject a fake `Bus` per subsystem.
+
+```go
+// cmd/api/main.go
+func main() {
+    b, err := bus.New(bus.Config{
+        SecretKey: env.Get("UNKEY_GOSSIP_SECRET_KEY"),
+        Seeds:     seedsForRegion(env.Region()),
+        Tags: map[string]string{
+            "role":     "api",
+            "region":   env.Region(),
+            "version":  build.Version,
+            "instance": env.PodName(),
+        },
+    })
+    if err != nil { /* fail startup */ }
+    defer b.Close()
+
+    keyCache := cache.New[string, *KeyData](...)
+    keyCache = cacheinvalidation.Wrap(keyCache, b) // see "Cache invalidation"
+
+    flagSvc := flag.NewService(b)
+    srv := api.NewServer(keyCache, flagSvc)
+    srv.ListenAndServe()
+}
+
+// pkg/flag/service.go
+var FeatureFlagUpdate = bus.NewTopic[*flagv1.FeatureFlagUpdate]("feature_flag.update")
+
+type Service struct{ b bus.Bus }
+
+func NewService(b bus.Bus) *Service {
+    s := &Service{b: b}
+    _, err := FeatureFlagUpdate.Subscribe(b, s.onFlagUpdate)
+    if err != nil { /* fail startup */ }
+    return s
+}
+
+func (s *Service) Publish(ctx context.Context, ev *flagv1.FeatureFlagUpdate) error {
+    return FeatureFlagUpdate.Publish(ctx, s.b, ev)
+}
+
+func (s *Service) onFlagUpdate(ctx context.Context, ev *flagv1.FeatureFlagUpdate, meta bus.Event) {
+    // handler must be idempotent on meta.ID
+}
+```
+
+Topic values are declared at package scope (cheap, no I/O); the `Bus` is held by whatever owns the subscription lifecycle. In tests, `NewService(fakeBus)` is the seam.
+
+`pkg/bus` does not import any subsystem proto. Topic name and payload type are declared together in the owning package, so publisher and subscriber cannot drift and mistyped topics are a compile error.
+
+### Delivery: at-least-once
+
+The bus is at-least-once; handlers must be idempotent on `id`. Publishers send Serf user events with the 60 s retention buffer, keep the same 60 s of sent events in a bounded RAM ring, and answer `bus.replay` on join with anything a peer missed after its last-seen id. Subscribers keep a bounded LRU of `(source_node, id)` and drop duplicates before invoking the handler.
+
+This covers packet loss, late joiners, and long partitions as long as some peer that saw the event is still alive. If every replica that saw an event dies before propagation completes, the event is lost. That is acceptable for cache invalidation because the database is the source of truth. Stronger guarantees would need a durable log, out of scope.
+
+### Topology
+
+Members are `unkey-api` and `unkey-frontline` pods across every `deploy-<region>` cluster in the same environment.
+legacy `automode` clusters and our `global-observability` cluster do not join.
+Each environment (`production001`, `canary`, `sandbox`) runs its own mesh, isolated by `UNKEY_GOSSIP_SECRET_KEY`. No cross-env membership.
+
+```diagram
+              ╭───────────────────────╮
+              │  deploy-us-east-1     │──┐
+              │  (api + frontline)    │  │
+              ╰───────────┬───────────╯  │
+                          │               │  one Serf cluster per
+              ╭───────────┴───────────╮  │  environment, full mesh
+              │  deploy-eu-central-1  │──┤  over peered VPC IPs,
+              │  (api + frontline)    │  │  encrypted, profile=WAN
+              ╰───────────┬───────────╯  │
+                          │               │
+              ╭───────────┴───────────╮  │
+              │  deploy-<other 4>     │──┘
+              ╰───────────────────────╯
+```
+
+Each pod exposes a single gossip port (7946 TCP+UDP) reachable from every peered VPC. The security group rule for 7946 is restricted to the peered VPC CIDRs.
+
+### Seed discovery
+
+On startup a pod tries the intra-region headless service first. If no local peer answers, it falls back to one seed NLB per region:
+
+```
+gossip.us-east-1.aws.unkey.cloud
+gossip.eu-central-1.aws.unkey.cloud
+gossip.<other regions>.aws.unkey.cloud
+```
+
+Each region runs one internal NLB whose selector matches any pod with `gossip/peer: "true"` (`unkey-api` and `unkey-frontline` both carry the label).
+Hostnames are published by the per-cluster externaldns.
+
+Each pod's seed list is the set of all regions in its environment minus its own. The NLBs matter on cold starts and after partitions: once any pod in a region is in the mesh, every subsequent same-region pod discovers the rest through it.
+
+To recover from a healed network partition without waiting for a deploy, each pod runs a background re-join loop every 60 s. If the local member count for any peer region is zero, it retries that region's seed NLB. Successful joins are a no-op when the mesh is already converged, so the loop is cheap in steady state.
+
+`automode` clusters run `unkey-api` but also do not join: their VPCs are not in the production peering mesh and memberlist needs flat L3 reachability between every member.
+New `deploy-*` clusters get added to the VPC peering mesh as part of standing them up and join the gossip mesh natively.
+
+Automode pods miss cross-region cache invalidation (stale reads up to TTL) for as long as the cluster exists.
+We should accept this for now: as we scale down the automode clusters, our deploy cluster grows, and we don't need to touch the VPC peering mesh to include automode VPCs and remove them later, as the mesh grows naturally.
+
+### Member tags
+
+Each member advertises a small key=value map every peer can read. The schema is fixed up front so subscribers can filter and target queries deterministically:
+
+| Tag        | Example             | Set by             |
+| ---------- | ------------------- | ------------------ |
+| `role`     | `api`, `frontline`  | Process at startup |
+| `region`   | `us-east-1`         | Env / overlay      |
+| `version`  | `v2.0.129`          | Build info         |
+| `instance` | pod name / hostname | Downward API       |
+
+Subscribers that filter on a tag must tolerate its absence on nodes running an older build.
+
+### Cache Invalidation
+
+Cross-region invalidation lives in a middleware on `cache.Cache[K, V]` that takes a `bus.Bus`. When wired, the middleware constructs one topic per cache instance, keyed by `cache.Name()`, and wraps the mutating methods to publish after the local write.
+
+`Remove`, `SetNull`, `SetNullMany`, and `Clear` publish; `Set`, `SetMany`, and all `Get*`/`SWR*` paths are local-only. The cache is invalidation-coherent across the cluster, not state-coherent.
+
+The on-wire payload is just the action along these lines:
+
+```protobuf
+message CacheInvalidationEvent {
+  oneof action {
+    string cache_key = 1;
+    bool   clear_all = 2;
+  }
+}
+```
+
+### Rollout
+
+The old gossip layer is removed in a separate PR before this one lands, so the rollout here is additive:
+
+1. Add `pkg/bus` on top of Serf and wire the cache invalidation subscriber.
+2. Stand up the per-region NLBs (`gossip.<region>.aws.unkey.cloud`).
+3. Deploy region by region and watch membership convergence in a then added Grafana dashboard.
+
+### Observability
+
+The bus exposes the following metrics. None of them page the on-call out of the box; routing them to a pager is a follow-up once we know what the steady-state values look like.
+
+- `bus_members_count` — mesh size as seen by this pod. In a healthy environment every pod reports the same number, equal to the total pod count. Divergence across pods indicates a partition; a pod reporting `1` is only seeing itself (network policy, bad secret key, or unreachable seeds).
+- `bus_membership_events_total{event_type}` — join/leave/fail counts. Used for debugging deploy-time behaviour, not alerted on.
+- `bus_events_published_total{topic}` / `bus_events_received_total{topic}` — for a topic with N subscribers (excluding the publisher), `received` should track `published × N`. Persistent skew points at a partition or a lost subscriber.
+- `bus_events_dropped_total{reason}` (`reason ∈ {queue_overflow, unknown_topic, decode_failure, replay_log_overflow}`) — non-zero means the cache is losing invalidations and serving stale reads. The most useful candidate for a page once thresholds are established.
+- `bus_message_latency_seconds{topic, source_region, dest_region}` — histogram of envelope `sent_at_ms` to receive time. Intra-region expected sub-second; cross-region bounded by WAN RTT. Concrete SLO numbers wait for a week of production data.
+- `bus_join_attempts_total{result}` — sustained `result=failure` flags broken seed discovery.
+- `bus_replay_requests_total{role}` — shows whether the replay log is being exercised on joins.
+
+Dashboards are keyed on `topic` and `source_region` rather than per-direction edges.
+
+## Drawbacks
+
+A bad secret rotation can partition every region at once. Every gossip packet is encrypted with a shared key; two pods that disagree on the key can't talk to each other and each falls back to thinking it's alone. Because the whole environment is one flat cluster, a rollout that hands out the wrong key to every pod silently splits the mesh into N isolated pods.
+
+This is unlikely in practice (the key lives in one Kubernetes secret per environment and rotations are rare), but worth calling out because the failure mode is silent: pods report healthy, only `bus_members_count` shows the split.
+
+When we do rotate, use Serf's keyring. Each pod holds a list of keys it accepts and one "active" key it uses to encrypt outgoing packets. Rotation has three steps:
+
+1. Add the new key to every pod's accepted list. Pods still encrypt with the old key, but they can now decrypt either.
+2. Switch the active key from old to new, region by region. As each region flips, its outgoing traffic encrypts with the new key, and the rest of the mesh decrypts it because they already accept it.
+3. Remove the old key from every pod's accepted list.
+
+If something looks wrong at any step (`bus_members_count` drops, latency spikes), stop and roll back: the previous step is always still a valid configuration. Recovering from a bad rollout uses the same shape: add the known-good key as accepted everywhere first, then flip it to active.
+
+Serf is one more upstream to patch for CVEs.
+
+## Alternatives
+
+Keep iterating on the previous two-tier gossip design (regional clusters bridged by an elected relay over the WAN NLB). Rejected: we couldn't get cross-region connectivity stable enough to put it in production, and the parts that would need to work (election, WAN NLB, relay) are coupled enough that fixing them in isolation didn't look productive. A flat WAN cluster removes those moving parts instead of debugging them.
+
+A single shared bootstrap deployment instead of per-region NLBs. Rejected because an outage in its region would block new-pod joins everywhere. Per-region NLBs keep discovery self-contained.
+
+A durable broker (NATS, Kafka). Rejected: cache invalidation tolerates occasional loss, and the operational cost of another cross-region system is not justified by this workload.
+
+[`superfly/corrosion`](https://github.com/superfly/corrosion). Same SWIM/memberlist foundation as Serf, but built around a CRDT-replicated SQLite per node. That's the right tool when you want eventually-consistent shared _state_ across a fleet (Fly use it for distributed service discovery and config). Our cross-region need is event broadcast for cache invalidation: there's no state to converge on, and a replicated SQLite per pod is a much bigger operational footprint than a 60s in-memory replay buffer. Worth revisiting if a future consumer actually needs shared mutable state across regions; not justified for the current one.
+
+## Unresolved questions
+
+The replay log needs a per-pod byte cap so a hot publisher cannot OOM the ring. 60 s bounds the time axis but not the size. Suggested default is 16 MiB with an overflow metric; the real number should come from observed event rate after rollout.
