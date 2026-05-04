@@ -68,7 +68,7 @@ export function DeploymentRow({
       {/* Identity + Status */}
       <div className="flex items-center justify-between md:contents">
         <div className="md:w-[20%] md:shrink-0 flex flex-col gap-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 h-5">
             <span className="font-mono text-[13px] text-accent-12 truncate font-semibold">
               {shortenId(deployment.id)}
             </span>
