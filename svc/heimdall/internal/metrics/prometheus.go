@@ -187,6 +187,20 @@ var (
 		[]string{"op"}, // "stat_root", "stat_mount", "statfs"
 	)
 
+	// NetworkReconcileEvictions counts attached entries closed by the
+	// periodic reconcile pass because their pod UID was no longer in the
+	// informer cache. Non-zero means the CRI exit event and informer
+	// status update were both missed for that pod; the reconciler cleaned
+	// up the leaked BPF program FDs.
+	NetworkReconcileEvictions = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "heimdall",
+			Name:      "network_reconcile_evictions_total",
+			Help:      "Stale attached-pod entries closed by the reconcile pass (CRI+informer exit event both missed).",
+		},
+	)
+
 	// NetworkReadErrors counts per-pod BPF map lookup failures. Read
 	// errors currently degrade silently to zeroCounters in the collector;
 	// a rising counter means the map or its attachments are in a bad

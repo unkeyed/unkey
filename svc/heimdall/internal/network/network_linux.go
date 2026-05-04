@@ -451,6 +451,38 @@ func (r *linuxReader) MapEntries() int {
 	return len(r.attached)
 }
 
+// Reconcile evicts entries from attached and terminated whose pod UID is
+// absent from active (the current informer pod set). Must be called once
+// per collection tick. It is the backstop for pods whose CRI exit event
+// and informer status update were both missed: without it those entries
+// accumulate across the process lifetime, leaking BPF program FDs (from
+// attached) and map memory (from terminated).
+//
+// Reconcile does NOT touch pending — those entries self-clear when the
+// worker finishes attachSync.
+func (r *linuxReader) Reconcile(active map[types.UID]struct{}) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for uid, p := range r.attached {
+		if _, ok := active[uid]; ok {
+			continue
+		}
+		_ = p.ingress.Close()
+		_ = p.egress.Close()
+		p.coll.Close()
+		_ = r.podCounters.Delete(p.cookie)
+		delete(r.attached, uid)
+		metrics.NetworkReconcileEvictions.Inc()
+	}
+
+	for uid := range r.terminated {
+		if _, ok := active[uid]; !ok {
+			delete(r.terminated, uid)
+		}
+	}
+}
+
 func (r *linuxReader) Close() error {
 	// Signal Attach callers and workers (both select on r.closed). Workers
 	// exit their for-select; any UIDs still in the queue are dropped (we

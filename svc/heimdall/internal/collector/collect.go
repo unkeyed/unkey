@@ -55,6 +55,14 @@ func (c *Collector) collect(_ context.Context) error {
 	now := c.clk.Now().UnixMilli()
 	pods := c.buildKranePodLookup()
 
+	if c.network != nil {
+		active := make(map[types.UID]struct{}, len(pods))
+		for uid := range pods {
+			active[types.UID(uid)] = struct{}{}
+		}
+		c.network.Reconcile(active)
+	}
+
 	var written int
 	for _, info := range pods {
 		// If Status.ContainerStatuses hasn't caught up with the primary
