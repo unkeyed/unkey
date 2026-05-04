@@ -14,12 +14,19 @@ export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) =>
       return "";
     }
 
-    if (process.env.VERCEL_URL) {
-      // reference for vercel.com
+    // Production: VERCEL_URL is the custom domain (app.unkey.com).
+    // Preview: prefer VERCEL_BRANCH_URL (stable across deploys of the same
+    // branch) so links and redirects remain valid between deployments.
+    // Otherwise fall back to VERCEL_URL or localhost.
+    if (process.env.VERCEL_ENV === "production" && process.env.VERCEL_URL) {
       return `https://${process.env.VERCEL_URL}`;
     }
-
-    // assume localhost
+    if (process.env.VERCEL_BRANCH_URL) {
+      return `https://${process.env.VERCEL_BRANCH_URL}`;
+    }
+    if (process.env.VERCEL_URL) {
+      return `https://${process.env.VERCEL_URL}`;
+    }
     return `http://localhost:${process.env.PORT ?? 3000}`;
   }
 

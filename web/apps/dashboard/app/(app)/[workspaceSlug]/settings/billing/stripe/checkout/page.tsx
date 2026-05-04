@@ -1,6 +1,7 @@
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
+import { getBaseUrl } from "@/lib/utils";
 import { Code, Empty } from "@unkey/ui";
 import { redirect } from "next/navigation";
 import type Stripe from "stripe";
@@ -48,11 +49,9 @@ export default async function StripeRedirect() {
     );
   }
 
-  const baseUrl = process.env.VERCEL
-    ? process.env.VERCEL_TARGET_ENV === "production"
-      ? "https://app.unkey.com"
-      : `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
+  // Use the shared `getBaseUrl()` helper so previews resolve to the stable
+  // VERCEL_BRANCH_URL rather than a deployment-specific VERCEL_URL.
+  const baseUrl = getBaseUrl();
 
   const session = await stripe.checkout.sessions.create({
     client_reference_id: ws.id,
