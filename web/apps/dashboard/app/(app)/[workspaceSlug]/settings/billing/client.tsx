@@ -194,7 +194,11 @@ export const Client: React.FC = () => {
           </div>
         )}
 
-        <CancelAlert cancelAt={subscription?.cancelAt} />
+        <CancelAlert
+          cancelAt={subscription?.cancelAt}
+          disabled={!isAdmin}
+          disabledReason={ADMIN_ONLY_TOOLTIP}
+        />
 
         {allowCancel ? (
           <SettingsDangerZone>
