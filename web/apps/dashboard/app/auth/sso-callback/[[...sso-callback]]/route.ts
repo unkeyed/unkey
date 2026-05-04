@@ -60,7 +60,11 @@ export async function GET(request: NextRequest) {
 
   // Get base URL from request because Next.js wants it
   const baseUrl = new URL(request.url).origin;
-  const response = NextResponse.redirect(new URL(authResult.redirectTo, baseUrl));
+  // Re-validate even though completeOAuthSignIn already filters: an
+  // absolute URL passed to `new URL(input, base)` ignores the base and
+  // would yield an open redirect to an attacker-controlled origin.
+  const safeRedirect = isSafeRedirectPath(authResult.redirectTo) ? authResult.redirectTo : "/apis";
+  const response = NextResponse.redirect(new URL(safeRedirect, baseUrl));
 
   return await setCookiesOnResponse(response, authResult.cookies);
 }

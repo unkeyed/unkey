@@ -1,5 +1,6 @@
 "use server";
 
+import { isSafeRedirectPath } from "@/app/auth/sign-in/redirect-utils";
 import {
   deleteCookie,
   getCookie,
@@ -320,7 +321,16 @@ export async function signIntoWorkspace(orgId: string): Promise<VerificationResu
 
 // OAuth
 export async function signInViaOAuth(options: SignInViaOAuthOptions): Promise<string> {
-  return await auth.signInViaOAuth(options);
+  // Server Actions are publicly callable, so a client-side allow-list
+  // check is insufficient. Reject anything that is not a same-origin
+  // relative path before it is embedded in the OAuth state.
+  const safeOptions: SignInViaOAuthOptions = {
+    ...options,
+    redirectUrlComplete: isSafeRedirectPath(options.redirectUrlComplete)
+      ? options.redirectUrlComplete
+      : "/apis",
+  };
+  return await auth.signInViaOAuth(safeOptions);
 }
 
 export async function completeOAuthSignIn(request: Request): Promise<OAuthResult> {
@@ -329,7 +339,11 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
 
     if (result.success) {
       await setCookies(result.cookies);
-      redirect(result.redirectTo);
+      // Defense in depth: completeOAuthSignIn already filters, but the
+      // value originates from the OAuth state query parameter which is
+      // attacker-controllable on the callback URL.
+      const safeRedirect = isSafeRedirectPath(result.redirectTo) ? result.redirectTo : "/apis";
+      redirect(safeRedirect);
     }
 
     return result;

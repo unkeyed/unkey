@@ -1,3 +1,4 @@
+import { isSafeRedirectPath } from "@/app/auth/sign-in/redirect-utils";
 import { env } from "@/lib/env";
 import {
   WorkOS,
@@ -67,6 +68,30 @@ type Decision = {
   action: "allow" | "block" | "challenge";
   reason?: string;
 };
+
+const DEFAULT_OAUTH_REDIRECT = "/apis";
+
+// Returns a same-origin relative path parsed from the OAuth state query
+// parameter. Falls back to DEFAULT_OAUTH_REDIRECT for missing, malformed,
+// or absolute/protocol-relative values so the callback handler cannot be
+// tricked into redirecting to an attacker-controlled origin.
+function parseRedirectFromState(state: string | null): string {
+  if (!state) {
+    return DEFAULT_OAUTH_REDIRECT;
+  }
+  try {
+    const parsed: unknown = JSON.parse(decodeURIComponent(state));
+    if (parsed !== null && typeof parsed === "object" && "redirectUrlComplete" in parsed) {
+      const candidate: unknown = parsed.redirectUrlComplete;
+      if (typeof candidate === "string" && isSafeRedirectPath(candidate)) {
+        return candidate;
+      }
+    }
+  } catch {
+    // Fall through to the default redirect when state is malformed.
+  }
+  return DEFAULT_OAUTH_REDIRECT;
+}
 
 export class WorkOSAuthProvider extends BaseAuthProvider {
   //INFO: Best to leave this alone, some other class might be accessing `instance` implicitly
@@ -930,7 +955,14 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   // OAuth Methods
   signInViaOAuth(options: SignInViaOAuthOptions): string {
     const { provider, redirectUrlComplete } = options;
-    const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete }));
+    // Reject absolute URLs and protocol-relative paths so a caller cannot
+    // embed an attacker-controlled origin into the OAuth state. The same
+    // value is read back in completeOAuthSignIn and used as a redirect
+    // target after the session cookie is set.
+    const safeRedirect = isSafeRedirectPath(redirectUrlComplete)
+      ? redirectUrlComplete
+      : DEFAULT_OAUTH_REDIRECT;
+    const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete: safeRedirect }));
     const baseUrl = getBaseUrl();
     const redirect = `${baseUrl}/auth/sso-callback`;
     return this.provider.userManagement.getAuthorizationUrl({
@@ -964,9 +996,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         throw new Error("No sealed session returned");
       }
 
-      const redirectUrlComplete = state
-        ? JSON.parse(decodeURIComponent(state)).redirectUrlComplete
-        : "/apis";
+      // Re-validate after parsing because the state query parameter
+      // is attacker-controllable on the callback URL even when our own
+      // signInViaOAuth filtered the value at creation time.
+      const redirectUrlComplete = parseRedirectFromState(state);
 
       return {
         success: true,
