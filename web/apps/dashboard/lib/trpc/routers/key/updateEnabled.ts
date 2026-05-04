@@ -2,9 +2,10 @@ import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 export const updateKeysEnabled = workspaceProcedure
+  .use(withRatelimit(ratelimit.update))
   .input(
     z.object({
       keyIds: z

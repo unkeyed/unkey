@@ -6,12 +6,13 @@ import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { upsertPermissions } from "../rbac";
 
 export const createRootKey = workspaceProcedure
+  .use(withRatelimit(ratelimit.create))
   .input(
     z.object({
       name: z.string().optional(),

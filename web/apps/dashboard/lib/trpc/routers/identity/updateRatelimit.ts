@@ -4,7 +4,7 @@ import { ratelimitSchema } from "@/lib/schemas/ratelimit";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 const baseRatelimitInputSchema = z.object({
   identityId: z.string(),
@@ -15,6 +15,7 @@ export const ratelimitInputSchema = ratelimitSchema.and(baseRatelimitInputSchema
 type RatelimitInputSchema = z.infer<typeof ratelimitInputSchema>;
 
 export const updateIdentityRatelimit = workspaceProcedure
+  .use(withRatelimit(ratelimit.update))
   .input(ratelimitInputSchema)
   .mutation(async ({ input, ctx }) => {
     const identity = await db.query.identities

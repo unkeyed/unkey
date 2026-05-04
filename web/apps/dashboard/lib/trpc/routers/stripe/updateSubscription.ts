@@ -4,9 +4,10 @@ import { getStripeClient } from "@/lib/stripe";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 export const updateSubscription = workspaceProcedure
+  .use(withRatelimit(ratelimit.update))
   .input(
     z.object({
       oldProductId: z.string(),

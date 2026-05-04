@@ -2,9 +2,10 @@ import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 export const deleteKeys = workspaceProcedure
+  .use(withRatelimit(ratelimit.delete))
   .input(
     z.object({
       keyIds: z.array(z.string()).min(1, "At least one key ID must be provided"),

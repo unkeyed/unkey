@@ -5,10 +5,11 @@ import { getStripeClient } from "@/lib/stripe";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 import { clearWorkspaceCache } from "../workspace/getCurrent";
 
 export const createSubscription = workspaceProcedure
+  .use(withRatelimit(ratelimit.create))
   .input(
     z.object({
       productId: z.string(),

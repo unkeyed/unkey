@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { workspaceProcedure } from "../../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../../trpc";
 
 const vault = new Vault({
   baseUrl: env().VAULT_URL,
@@ -21,6 +21,7 @@ const envVarInputSchema = z.object({
 });
 
 export const createEnvVars = workspaceProcedure
+  .use(withRatelimit(ratelimit.create))
   .input(
     z.object({
       environmentId: z.string(),

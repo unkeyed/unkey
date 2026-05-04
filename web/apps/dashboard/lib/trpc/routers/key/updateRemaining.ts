@@ -3,9 +3,10 @@ import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 export const updateKeyRemaining = workspaceProcedure
+  .use(withRatelimit(ratelimit.update))
   .input(
     creditsSchema.extend({
       keyId: z.string(),

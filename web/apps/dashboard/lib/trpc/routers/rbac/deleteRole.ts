@@ -2,9 +2,10 @@ import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 export const deleteRole = workspaceProcedure
+  .use(withRatelimit(ratelimit.delete))
   .input(
     z.object({
       roleId: z.string(),

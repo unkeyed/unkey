@@ -2,7 +2,7 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 const nameSchema = z
   .string()
   .min(3)
@@ -12,6 +12,7 @@ const nameSchema = z
   });
 
 export const updatePermission = workspaceProcedure
+  .use(withRatelimit(ratelimit.update))
   .input(
     z.object({
       id: z.string(),

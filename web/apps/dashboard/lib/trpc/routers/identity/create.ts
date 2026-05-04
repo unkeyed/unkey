@@ -4,7 +4,7 @@ import { ratelimitItemSchema } from "@/lib/schemas/ratelimit";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 export const createIdentityInputSchema = z.object({
   externalId: z
@@ -18,6 +18,7 @@ export const createIdentityInputSchema = z.object({
 });
 
 export const createIdentity = workspaceProcedure
+  .use(withRatelimit(ratelimit.create))
   .input(createIdentityInputSchema)
   .mutation(async ({ input, ctx }) => {
     const identityId = newId("identity");

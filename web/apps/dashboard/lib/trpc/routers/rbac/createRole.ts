@@ -3,7 +3,7 @@ import { db, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 const nameSchema = z
   .string()
   .min(3)
@@ -13,6 +13,7 @@ const nameSchema = z
   });
 
 export const createRole = workspaceProcedure
+  .use(withRatelimit(ratelimit.create))
   .input(
     z.object({
       name: nameSchema,

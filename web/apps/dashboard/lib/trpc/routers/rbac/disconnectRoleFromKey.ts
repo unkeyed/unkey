@@ -2,9 +2,10 @@ import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 export const disconnectRoleFromKey = workspaceProcedure
+  .use(withRatelimit(ratelimit.update))
   .input(
     z.object({
       roleId: z.string(),

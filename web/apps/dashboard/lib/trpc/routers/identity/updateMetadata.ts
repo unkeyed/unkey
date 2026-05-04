@@ -3,9 +3,10 @@ import { db, eq, schema } from "@/lib/db";
 import { metadataSchema } from "@/lib/schemas/metadata";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
 export const updateIdentityMetadata = workspaceProcedure
+  .use(withRatelimit(ratelimit.update))
   .input(
     metadataSchema.extend({
       identityId: z.string(),
