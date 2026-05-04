@@ -12,6 +12,7 @@ data:
     https_port = 7443
     apex_domain = "unkey.local"
     ctrl_addr = "http://ctrl-api.unkey.svc.cluster.local:7091"
+    debug_headers = false
 
     [database]
     primary = "unkey:password@tcp(mysql.unkey.svc.cluster.local:3306)/unkey?parseTime=true&interpolateParams=true"
@@ -34,8 +35,6 @@ data:
     [vault]
     url = "http://vault.unkey.svc.cluster.local:8060"
     token = "vault-test-token-123"
-
-    debug_headers = true
 
     [pprof]
     username = "admin"

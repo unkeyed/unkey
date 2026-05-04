@@ -120,7 +120,7 @@ type Config struct {
 
 	// DebugHeaders keeps internal X-Unkey-Timing response headers visible to
 	// clients. Intended for local development only; production should leave
-	// this false (default). ClickHouse always receives timing data regardless.
+	// this false (default).
 	DebugHeaders bool `toml:"debug_headers"`
 }
 

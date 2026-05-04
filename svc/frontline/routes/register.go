@@ -14,7 +14,7 @@ func Register(srv *zen.Server, svc *Services) {
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/"))
 	withPanicRecovery := zen.WithPanicRecovery()
 	withObservability := middleware.WithObservability(svc.Region, svc.ErrorPageRenderer)
-	withClickHouseLogging := middleware.WithClickHouseLogging(svc.FrontlineRequests, svc.Clock, svc.FrontlineID, svc.Region, svc.Platform, svc.DebugHeaders)
+	withClickHouseLogging := middleware.WithClickHouseLogging(svc.FrontlineRequests, svc.Clock, svc.FrontlineID, svc.Region, svc.Platform)
 	withTimeout := zen.WithTimeout(svc.RequestTimeout)
 
 	// Order matters: clickhouseLogging must wrap observability so it reads
@@ -26,6 +26,12 @@ func Register(srv *zen.Server, svc *Services) {
 		withClickHouseLogging,
 		withObservability,
 		withTimeout,
+	}
+
+	if !svc.DebugHeaders {
+		defaultMiddlewares = append([]zen.Middleware{
+			middleware.WithTimingDisabled(),
+		}, defaultMiddlewares...)
 	}
 
 	// Catches all requests and routes them to the local instance or to a peer frontline.

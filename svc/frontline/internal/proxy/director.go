@@ -23,7 +23,7 @@ func (s *service) makeInstanceDirector(sess *zen.Session, startTime time.Time) f
 		req.Header.Set(HeaderRequestID, sess.RequestID())
 
 		frontlineRoutingTime := s.clock.Now().Sub(startTime)
-		timing.Write(sess.ResponseWriter(), timing.Entry{
+		timing.Record(req.Context(), timing.Entry{
 			Name:     "frontline_routing",
 			Duration: frontlineRoutingTime,
 			Attributes: map[string]string{
@@ -52,7 +52,7 @@ func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time) fun
 		req.Header.Set(HeaderRequestID, sess.RequestID())
 
 		frontlineRoutingTime := s.clock.Now().Sub(startTime)
-		timing.Write(sess.ResponseWriter(), timing.Entry{
+		timing.Record(req.Context(), timing.Entry{
 			Name:     "frontline_routing",
 			Duration: frontlineRoutingTime,
 			Attributes: map[string]string{

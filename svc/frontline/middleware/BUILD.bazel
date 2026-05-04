@@ -6,6 +6,7 @@ go_library(
         "clickhouse_logging.go",
         "observability.go",
         "sanitize_headers.go",
+        "strip_timing.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/frontline/middleware",
     visibility = ["//visibility:public"],

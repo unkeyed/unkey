@@ -17,6 +17,17 @@ import (
 // format optimized for debugging Unkey's distributed systems.
 const HeaderName = "X-Unkey-Timing"
 
+type disabledKey struct{}
+
+func WithDisabled(ctx context.Context) context.Context {
+	return context.WithValue(ctx, disabledKey{}, true)
+}
+
+func isDisabled(ctx context.Context) bool {
+	v, _ := ctx.Value(disabledKey{}).(bool)
+	return v
+}
+
 // Entry represents a single timing measurement that can be serialized to the
 // [HeaderName] header.
 //
@@ -151,6 +162,10 @@ func formatDurationUnit(duration time.Duration, unit time.Duration, suffix strin
 // Use [Write] when you have direct access to an [http.ResponseWriter] instead
 // of a context with a session.
 func Record(ctx context.Context, entry Entry) {
+	if isDisabled(ctx) {
+		return
+	}
+
 	if err := entry.Validate(); err != nil {
 		return
 	}

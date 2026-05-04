@@ -38,7 +38,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	defer func() {
 		totalTime := s.clock.Now().Sub(cfg.startTime)
 		if !proxyStartTime.IsZero() {
-			timing.Write(sess.ResponseWriter(), timing.Entry{
+			timing.Record(ctx, timing.Entry{
 				Name:     "frontline",
 				Duration: proxyStartTime.Sub(cfg.startTime),
 				Attributes: map[string]string{
@@ -46,7 +46,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 				},
 			})
 		}
-		timing.Write(sess.ResponseWriter(), timing.Entry{
+		timing.Record(ctx, timing.Entry{
 			Name:     "total",
 			Duration: totalTime,
 			Attributes: map[string]string{
@@ -96,7 +96,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 
 			totalTime := s.clock.Now().Sub(cfg.startTime)
 			if !proxyStartTime.IsZero() {
-				timing.Write(sess.ResponseWriter(), timing.Entry{
+				timing.Record(ctx, timing.Entry{
 					Name:     "frontline",
 					Duration: proxyStartTime.Sub(cfg.startTime),
 					Attributes: map[string]string{
@@ -104,7 +104,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 					},
 				})
 			}
-			timing.Write(sess.ResponseWriter(), timing.Entry{
+			timing.Record(ctx, timing.Entry{
 				Name:     "total",
 				Duration: totalTime,
 				Attributes: map[string]string{
