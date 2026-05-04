@@ -46,27 +46,24 @@ export const RepoNameLabel = ({ fullName }: { fullName: string }) => {
 };
 
 export const ManageGitHubAppLink = ({
-  installUrl,
+  onInstall,
   variant = "primary",
   className = "px-3 py-2 rounded-md",
   text = "Manage Github App",
-  onBeforeNavigate,
 }: {
-  installUrl: string;
+  onInstall: () => Promise<void> | void;
   variant?: "outline" | "ghost" | "primary";
   className?: string;
   text?: React.ReactNode;
-  onBeforeNavigate?: () => void;
 }) => (
-  <Button variant={variant} className={className}>
-    <a
-      href={installUrl}
-      className="text-sm"
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={onBeforeNavigate}
-    >
-      {text}
-    </a>
+  <Button
+    variant={variant}
+    className={className}
+    onClick={(e) => {
+      e.preventDefault();
+      void onInstall();
+    }}
+  >
+    <span className="text-sm">{text}</span>
   </Button>
 );

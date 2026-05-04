@@ -12,6 +12,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dns"
+	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -31,7 +32,9 @@ var errNotVerified = errors.New("domain not verified yet")
 //     (e.g. <random>.unkey-dns.com). This works for subdomains. No TXT record needed.
 //   - TXT path: for apex domains using CNAME flattening, ALIAS/ANAME records, or
 //     Cloudflare proxy, the CNAME is not visible via DNS lookup. In this case, a TXT
-//     record at _unkey.<domain> proves ownership.
+//     record at _unkey.<domain> proves ownership, and the apex must additionally
+//     resolve to at least one A/AAAA address (sanity check that the alias record is
+//     actually configured — TXT alone proves ownership but not routing).
 //
 // TXT is also always required when another workspace already has the same domain
 // verified (contention), regardless of whether CNAME is visible.
@@ -123,6 +126,25 @@ func (s *Service) VerifyDomain(
 		}
 	}
 
+	// Apex domains can't expose a verifiable CNAME (ALIAS/ANAME, CNAME flattening,
+	// or CF proxy hide it from the resolver), so they fall through to the TXT path.
+	// TXT alone proves ownership but not that the user actually configured the
+	// alias record needed for routing — require the apex to resolve to at least
+	// one A/AAAA address as a sanity check.
+	isApex := domainconnect.IsApexDomain(dom.Domain)
+	apexHasRecords := true
+	if isApex {
+		var recordsErr error
+		apexHasRecords, recordsErr = s.hasAddressRecords(dom.Domain)
+		if recordsErr != nil {
+			logger.Warn("apex DNS lookup error",
+				"domain", dom.Domain,
+				"error", recordsErr,
+				"elapsed", elapsed,
+			)
+		}
+	}
+
 	// Update attempt count and verification flags - NOT journaled so we get fresh updates
 	err = db.Query.UpdateCustomDomainCheckAttempt(ctx, s.db.RW(), db.UpdateCustomDomainCheckAttemptParams{
 		ID:            dom.ID,
@@ -147,19 +169,25 @@ func (s *Service) VerifyDomain(
 	// Log current status
 	logger.Info("DNS verification check complete",
 		"domain", dom.Domain,
+		"is_apex", isApex,
 		"contested", contested,
 		"requires_txt", requiresTxt,
 		"txt_verified", txtVerified,
 		"cname_verified", cnameVerified,
+		"apex_has_records", apexHasRecords,
 		"attempts", dom.CheckAttempts+1,
 		"elapsed", elapsed,
 	)
 
 	// Verified when: CNAME matches OR TXT proves ownership (for apex/flattened/proxied)
 	// If contested, both CNAME (or TXT) AND TXT ownership must pass
+	// For apex: also require the apex to resolve to A/AAAA records
 	verified := cnameVerified || txtVerified
 	if contested {
 		verified = txtVerified // TXT is the gate for contention
+	}
+	if isApex {
+		verified = verified && apexHasRecords
 	}
 	if verified {
 		return s.onVerificationSuccess(ctx, dom)
@@ -228,7 +256,8 @@ func (s *Service) checkTXTRecord(domain, expectedToken string) (bool, error) {
 //
 // Note: This only works for subdomains with a real CNAME record. Apex domains using
 // CNAME flattening, ALIAS/ANAME records, or Cloudflare proxy will not have a visible
-// CNAME — those domains fall back to TXT-based ownership verification.
+// CNAME — those domains fall back to TXT-based ownership verification combined with
+// hasAddressRecords to prove DNS is configured.
 func (s *Service) checkCNAME(domain, expectedCname string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dns.DefaultTimeout)
 	defer cancel()
@@ -251,6 +280,25 @@ func (s *Service) checkCNAME(domain, expectedCname string) (bool, error) {
 	}
 
 	return cname == expectedCname, nil
+}
+
+// hasAddressRecords returns true if the domain resolves to at least one A or
+// AAAA address. Used as an apex-domain sanity check: TXT alone proves ownership
+// but not that the user configured the actual ALIAS/ANAME/A record needed for
+// routing. We don't compare addresses to a target — proxies (Cloudflare) and
+// shared CDN IPs make that unreliable — we only confirm DNS is set up.
+func (s *Service) hasAddressRecords(domain string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), dns.DefaultTimeout)
+	defer cancel()
+
+	addrs, err := dns.LookupHost(ctx, domain)
+	if err != nil {
+		if dns.IsNotFoundError(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return len(addrs) > 0, nil
 }
 
 // onVerificationSuccess handles successful domain verification by updating status,

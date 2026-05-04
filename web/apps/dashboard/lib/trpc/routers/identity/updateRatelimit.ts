@@ -1,5 +1,5 @@
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
-import { type Identity, db, eq, schema } from "@/lib/db";
+import { type Identity, and, db, eq, schema } from "@/lib/db";
 import { ratelimitSchema } from "@/lib/schemas/ratelimit";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -59,11 +59,20 @@ const updateRatelimitV2 = async (
   try {
     await db.transaction(async (tx) => {
       if (input.ratelimit.enabled && input.ratelimit.data.length > 0) {
-        // First, fetch existing ratelimits for this identity
+        // Scope the lookup by the verified identity AND workspace, so any
+        // subsequent UPDATE/DELETE that re-uses these ids cannot escape the
+        // caller's tenant boundary even if a future code change passes an
+        // unverified id through.
         const existingRatelimits = await tx
           .select()
           .from(schema.ratelimits)
-          .where(eq(schema.ratelimits.identityId, input.identityId));
+          .where(
+            and(
+              eq(schema.ratelimits.identityId, input.identityId),
+              eq(schema.ratelimits.workspaceId, ctx.workspaceId),
+            ),
+          );
+        const existingRatelimitIds = new Set(existingRatelimits.map((r) => r.id));
 
         const inputRatelimitIds = new Set(
           input.ratelimit.data.filter((r) => r.id).map((r) => r.id),
@@ -72,14 +81,30 @@ const updateRatelimitV2 = async (
         // Delete ratelimits that exist in DB but are not in the input (they were removed)
         for (const existing of existingRatelimits) {
           if (!inputRatelimitIds.has(existing.id)) {
-            await tx.delete(schema.ratelimits).where(eq(schema.ratelimits.id, existing.id));
+            await tx
+              .delete(schema.ratelimits)
+              .where(
+                and(
+                  eq(schema.ratelimits.id, existing.id),
+                  eq(schema.ratelimits.identityId, input.identityId),
+                  eq(schema.ratelimits.workspaceId, ctx.workspaceId),
+                ),
+              );
           }
         }
 
         // Update or insert each ratelimit sequentially
         for (const ratelimit of input.ratelimit.data) {
           if (ratelimit.id) {
-            // Update existing
+            // Reject any client-supplied id that isn't already bound to this
+            // identity. Without this, an attacker could pass another tenant's
+            // ratelimit id and rewrite its limit/duration/autoApply fields.
+            if (!existingRatelimitIds.has(ratelimit.id)) {
+              throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Ratelimit not found",
+              });
+            }
             await tx
               .update(schema.ratelimits)
               .set({
@@ -89,7 +114,13 @@ const updateRatelimitV2 = async (
                 updatedAt: Date.now(),
                 autoApply: ratelimit.autoApply,
               })
-              .where(eq(schema.ratelimits.id, ratelimit.id));
+              .where(
+                and(
+                  eq(schema.ratelimits.id, ratelimit.id),
+                  eq(schema.ratelimits.identityId, input.identityId),
+                  eq(schema.ratelimits.workspaceId, ctx.workspaceId),
+                ),
+              );
           } else {
             // Create new
             await tx.insert(schema.ratelimits).values({
@@ -112,7 +143,12 @@ const updateRatelimitV2 = async (
         // If rate limiting is disabled, remove all rate limit rules for this identity
         await tx
           .delete(schema.ratelimits)
-          .where(eq(schema.ratelimits.identityId, input.identityId));
+          .where(
+            and(
+              eq(schema.ratelimits.identityId, input.identityId),
+              eq(schema.ratelimits.workspaceId, ctx.workspaceId),
+            ),
+          );
       }
       const description = input.ratelimit.enabled
         ? `Updated rate limits for identity ${identity.id} (${input.ratelimit.data.length} rules)`
