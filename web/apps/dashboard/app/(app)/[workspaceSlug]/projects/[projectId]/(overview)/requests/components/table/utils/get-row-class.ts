@@ -56,7 +56,7 @@ const STATUS_STYLES = {
 };
 
 export const getStatusStyle = (status: number): StatusStyle => {
-  if (status >= 500) {
+  if (!Number.isInteger(status) || status < 100 || status >= 500) {
     return STATUS_STYLES.error;
   }
   if (status >= 400) {
@@ -88,19 +88,8 @@ export const getRowClassName = (
   isLive?: boolean,
   realtimeLogs?: SentinelLogsResponse[],
 ): string => {
-  // Early validation
   if (!log?.request_id) {
     throw new Error("Log must have a valid request_id");
-  }
-
-  if (
-    !Number.isInteger(log.response_status) ||
-    log.response_status < 100 ||
-    log.response_status > 599
-  ) {
-    throw new Error(
-      `Invalid response_status: ${log.response_status}. Must be a valid HTTP status code.`,
-    );
   }
 
   const style = getStatusStyle(log.response_status);

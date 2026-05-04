@@ -87,7 +87,7 @@ func newBenchService(b *testing.B, latency time.Duration) *service {
 
 	ctr := &mockCounter{latency: latency}
 
-	svc, err := New(Config{Counter: ctr})
+	svc, err := New(Config{Counter: ctr, DB: newTestDB(b)})
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -105,11 +105,12 @@ func BenchmarkRatelimit_SingleKey(b *testing.B) {
 
 			ctx := context.Background()
 			req := RatelimitRequest{
-				Name:       "benchmark",
-				Identifier: "user-1",
-				Limit:      1_000_000,
-				Duration:   time.Minute,
-				Cost:       1,
+				WorkspaceID: "ws",
+				Namespace:   "benchmark",
+				Identifier:  "user-1",
+				Limit:       1_000_000,
+				Duration:    time.Minute,
+				Cost:        1,
 			}
 
 			b.ResetTimer()
@@ -142,11 +143,12 @@ func BenchmarkRatelimit_MultiKey(b *testing.B) {
 				for pb.Next() {
 					id := keyIdx.Add(1)
 					req := RatelimitRequest{
-						Name:       "benchmark",
-						Identifier: fmt.Sprintf("user-%d", id%1000),
-						Limit:      1_000_000,
-						Duration:   time.Minute,
-						Cost:       1,
+						WorkspaceID: "ws",
+						Namespace:   "benchmark",
+						Identifier:  fmt.Sprintf("user-%d", id%1000),
+						Limit:       1_000_000,
+						Duration:    time.Minute,
+						Cost:        1,
 					}
 					_, err := svc.Ratelimit(ctx, req)
 					if err != nil {
@@ -172,11 +174,12 @@ func BenchmarkRatelimit_LatencyDistribution(b *testing.B) {
 
 				ctx := context.Background()
 				req := RatelimitRequest{
-					Name:       "benchmark",
-					Identifier: "hot-key",
-					Limit:      1_000_000,
-					Duration:   time.Minute,
-					Cost:       1,
+					WorkspaceID: "ws",
+					Namespace:   "benchmark",
+					Identifier:  "hot-key",
+					Limit:       1_000_000,
+					Duration:    time.Minute,
+					Cost:        1,
 				}
 
 				var mu sync.Mutex

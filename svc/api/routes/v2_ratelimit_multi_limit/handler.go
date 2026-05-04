@@ -167,13 +167,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
+		cost := ptr.SafeDeref(check.Cost, 1)
 		ratelimitReqs[i] = ratelimit.RatelimitRequest{
-			Name:       ns.ID,
-			Identifier: check.Identifier,
-			Duration:   time.Duration(duration) * time.Millisecond,
-			Limit:      limit,
-			Cost:       ptr.SafeDeref(check.Cost, 1),
-			Time:       reqTime,
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Namespace:   ns.ID,
+			Identifier:  check.Identifier,
+			Duration:    time.Duration(duration) * time.Millisecond,
+			Limit:       limit,
+			Cost:        cost,
+			Time:        reqTime,
 		}
 
 		checkMetadata[i] = checkMeta{
@@ -182,6 +184,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			identifier:    check.Identifier,
 			overrideID:    overrideID,
 			limit:         limit,
+			cost:          cost,
 		}
 	}
 
@@ -213,6 +216,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Limit:       uint64(result.Limit),
 				Remaining:   uint64(result.Remaining),
 				ResetAt:     result.Reset.UnixMilli(),
+				Tokens:      uint64(meta.cost),
 			})
 		}
 	}
@@ -422,6 +426,7 @@ type checkMeta struct {
 	identifier    string
 	overrideID    string
 	limit         int64
+	cost          int64
 }
 
 func getLimitAndDuration(check openapi.V2RatelimitLimitRequestBody, namespace db.FindRatelimitNamespace) (int64, int64, string, error) {

@@ -209,12 +209,13 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 	for name, config := range ratelimitsToCheck {
 		names = append(names, name)
 		ratelimitRequests = append(ratelimitRequests, ratelimit.RatelimitRequest{
-			Name:       config.Name,
-			Identifier: config.Identifier, // Use the pre-determined identifier
-			Limit:      config.Limit,
-			Duration:   config.Duration,
-			Cost:       config.Cost,
-			Time:       time.Time{}, // intentionally zero, so the ratelimiter will use its own clock
+			WorkspaceID: k.Key.WorkspaceID,
+			Namespace:   config.Name,
+			Identifier:  config.Identifier, // Use the pre-determined identifier
+			Limit:       config.Limit,
+			Duration:    config.Duration,
+			Cost:        config.Cost,
+			Time:        time.Time{}, // intentionally zero, so the ratelimiter will use its own clock
 		})
 	}
 
