@@ -254,6 +254,7 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 		Dockerfile:    "Dockerfile",
 		DockerContext: ".",
 		WatchPaths:    nil,
+		AutoDeploy:    true,
 		CreatedAt:     now,
 		UpdatedAt:     sql.NullInt64{Valid: false},
 	})

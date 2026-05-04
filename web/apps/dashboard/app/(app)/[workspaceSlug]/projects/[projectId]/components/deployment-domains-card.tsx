@@ -44,6 +44,8 @@ export function DeploymentDomainsCard({
     domains: filtered,
     customDomains,
     environmentId: deployment.environmentId,
+    deploymentId: deployment.id,
+    currentDeploymentId: project?.currentDeploymentId ?? null,
   });
 
   const isLoading = isDomainsLoading || isCustomDomainsLoading;

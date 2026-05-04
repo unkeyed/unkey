@@ -88,6 +88,7 @@ func (s *Service) CreateApp(
 				Dockerfile:    "",
 				DockerContext: "",
 				WatchPaths:    nil,
+				AutoDeploy:    true,
 				CreatedAt:     now,
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			}); txErr != nil {
