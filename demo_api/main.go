@@ -307,10 +307,6 @@ func main() {
 		_, _ = fmt.Fprint(w, os.Environ())
 	})
 
-	mux.HandleFunc("/panic", func(w http.ResponseWriter, r *http.Request) {
-		panic("Panic triggered")
-	})
-
 	mux.HandleFunc("/error", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -318,30 +314,39 @@ func main() {
 
 	shutdownChan := make(chan struct{})
 
-	mux.HandleFunc("/clean-shutdown", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(map[string]string{
-			"message": "Server shutting down gracefully",
-			"status":  "ok",
+	// /panic, /clean-shutdown, and /abrupt-shutdown let any unauthenticated
+	// caller crash or terminate the process. They are only registered when
+	// DEMO_TEST_MODE=1 so production images do not expose a remote-kill switch.
+	if os.Getenv("DEMO_TEST_MODE") == "1" {
+		mux.HandleFunc("/panic", func(w http.ResponseWriter, r *http.Request) {
+			panic("Panic triggered")
 		})
 
-		go func() {
-			time.Sleep(100 * time.Millisecond)
-			close(shutdownChan)
-		}()
-	})
+		mux.HandleFunc("/clean-shutdown", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"message": "Server shutting down gracefully",
+				"status":  "ok",
+			})
 
-	mux.HandleFunc("/abrupt-shutdown", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				close(shutdownChan)
+			}()
+		})
 
-		// Start writing response but don't finish
-		_, _ = w.Write([]byte(`{"message": "Server is shutting down`))
+		mux.HandleFunc("/abrupt-shutdown", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
 
-		// Die mid-request
-		os.Exit(1)
-	})
+			// Start writing response but don't finish
+			_, _ = w.Write([]byte(`{"message": "Server is shutting down`))
+
+			// Die mid-request
+			os.Exit(1)
+		})
+	}
 
 	// Debug endpoint - dumps request headers and body
 	mux.HandleFunc("/v1/debug", func(w http.ResponseWriter, r *http.Request) {

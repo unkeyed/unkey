@@ -17,7 +17,7 @@ export const createRole = workspaceProcedure
     z.object({
       name: nameSchema,
       description: z.string().optional(),
-      permissionIds: z.array(z.string()).optional(),
+      permissionIds: z.array(z.string()).max(100).optional(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
