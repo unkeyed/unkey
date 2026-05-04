@@ -101,6 +101,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 			Limit:       limit,
 			Remaining:   remaining,
 			ResetAt:     reset.UnixMilli(),
+			Tokens:      1,
 		}
 	})
 	t.Logf("Generated %d ratelimits in %s", len(ratelimits), time.Since(t0))

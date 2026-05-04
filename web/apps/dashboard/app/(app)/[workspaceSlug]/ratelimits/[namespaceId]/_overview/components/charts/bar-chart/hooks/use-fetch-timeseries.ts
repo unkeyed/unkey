@@ -67,13 +67,49 @@ export const useFetchRatelimitOverviewTimeseries = (namespaceId: string) => {
     },
   );
 
-  const timeseries = data?.timeseries.map((ts) => ({
-    displayX: formatTimestampForChart(ts.x, data.granularity),
-    originalTimestamp: ts.x,
-    success: ts.y.passed,
-    error: ts.y.total - ts.y.passed,
-    total: ts.y.total,
-  }));
+  // Status filter is applied client-side: the timeseries query returns
+  // both passed and total counts in the same row, so masking out the
+  // un-selected series here keeps the charts in sync with the table
+  // without re-querying ClickHouse.
+  const statusValues = filters
+    .filter((f) => f.field === "status")
+    .map((f) => f.value)
+    .filter((v): v is "passed" | "blocked" => v === "passed" || v === "blocked");
+  const showPassed = statusValues.length === 0 || statusValues.includes("passed");
+  const showBlocked = statusValues.length === 0 || statusValues.includes("blocked");
 
-  return { timeseries, isLoading, isError, granularity: data?.granularity };
+  const timeseries = data?.timeseries.map((ts) => {
+    const success = showPassed ? ts.y.passed : 0;
+    const error = showBlocked ? ts.y.total - ts.y.passed : 0;
+    return {
+      displayX: formatTimestampForChart(ts.x, data.granularity),
+      originalTimestamp: ts.x,
+      success,
+      error,
+      total: success + error,
+    };
+  });
+
+  // Tokens series mirrors the request series but on `passed_tokens` and
+  // the implied `blocked_tokens = total_tokens - passed_tokens`. Sharing
+  // the underlying tRPC call keeps the page to one round trip.
+  const tokensTimeseries = data?.timeseries.map((ts) => {
+    const success = showPassed ? ts.y.passed_tokens : 0;
+    const error = showBlocked ? ts.y.total_tokens - ts.y.passed_tokens : 0;
+    return {
+      displayX: formatTimestampForChart(ts.x, data.granularity),
+      originalTimestamp: ts.x,
+      success,
+      error,
+      total: success + error,
+    };
+  });
+
+  return {
+    timeseries,
+    tokensTimeseries,
+    isLoading,
+    isError,
+    granularity: data?.granularity,
+  };
 };

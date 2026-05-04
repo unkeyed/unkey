@@ -85,6 +85,7 @@ func (s *ClickHouseSeeder) InsertRatelimits(ctx context.Context, workspaceID str
 				Limit:       100,
 				Remaining:   remaining,
 				ResetAt:     timestamp.Add(time.Minute).UnixMilli(),
+				Tokens:      1,
 			}
 		}
 

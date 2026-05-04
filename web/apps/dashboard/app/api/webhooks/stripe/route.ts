@@ -1,4 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
+import { auth } from "@/lib/auth/server";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/fmt";
@@ -19,6 +20,43 @@ import {
   alertSubscriptionUpdate,
 } from "@/lib/utils/slackAlerts";
 import Stripe from "stripe";
+
+/**
+ * Deactivates every active membership in `orgId` except the earliest one (the original
+ * creator). Determining the creator from membership createdAt avoids storing extra DB
+ * state. Errors per-membership are logged but don't fail the webhook — partial revocation
+ * is preferable to leaving the workspace stuck in an inconsistent paid state.
+ */
+async function deactivateNonCreatorMemberships(orgId: string): Promise<void> {
+  let memberships: Awaited<ReturnType<typeof auth.getOrganizationMemberList>>;
+  try {
+    memberships = await auth.getOrganizationMemberList(orgId);
+  } catch (err) {
+    console.error("Failed to list memberships for deactivation:", { orgId, error: err });
+    return;
+  }
+
+  if (memberships.data.length <= 1) {
+    return;
+  }
+
+  const sorted = [...memberships.data].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const [, ...nonCreators] = sorted;
+
+  await Promise.all(
+    nonCreators.map(async (member) => {
+      try {
+        await auth.deactivateMembership(member.id);
+      } catch (err) {
+        console.error("Failed to deactivate membership:", {
+          orgId,
+          membershipId: member.id,
+          error: err,
+        });
+      }
+    }),
+  );
+}
 
 export const runtime = "nodejs";
 
@@ -319,6 +357,10 @@ export const POST = async (req: Request): Promise<Response> => {
           },
         });
 
+        // Free tier doesn't include team access — deactivate all members except the
+        // original creator so lapsed subscriptions don't leave shared access enabled.
+        await deactivateNonCreatorMemberships(ws.orgId);
+
         // Send notification for subscription cancellation
         if (sub.customer) {
           try {
@@ -356,6 +398,11 @@ export const POST = async (req: Request): Promise<Response> => {
       break;
     }
     case "customer.subscription.created": {
+      /**
+       * Subscription create + tier/quota writes happen inline in the createSubscription
+       * tRPC mutation now. This webhook only sends the operational Slack alert so the
+       * team is notified out-of-band; it deliberately does no DB writes.
+       */
       try {
         const sub = event.data.object as Stripe.Subscription;
 
@@ -381,73 +428,6 @@ export const POST = async (req: Request): Promise<Response> => {
         if (customer.deleted || !customer.email) {
           return new Response("OK");
         }
-
-        // Find workspace by stripe customer ID
-        const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
-        const ws = await db.query.workspaces.findFirst({
-          where: (table, { and, eq, isNull }) =>
-            and(eq(table.stripeCustomerId, customerId), isNull(table.deletedAtM)),
-        });
-
-        if (!ws) {
-          console.error("Workspace not found for customer:", {
-            customerId,
-            eventId: event.id,
-          });
-          return new Response("OK", { status: 200 });
-        }
-
-        // Validate and parse quotas
-        const quotas = validateAndParseQuotas(product);
-        if (!quotas.valid) {
-          return new Response("OK", { status: 200 });
-        }
-
-        const { requestsPerMonth, logsRetentionDays, auditLogsRetentionDays } = quotas;
-
-        // Update workspace, quotas, and audit log in a transaction
-        await db.transaction(async (tx) => {
-          await tx
-            .update(schema.workspaces)
-            .set({
-              stripeSubscriptionId: sub.id,
-              tier: product.name,
-            })
-            .where(eq(schema.workspaces.id, ws.id));
-
-          await tx
-            .insert(schema.quotas)
-            .values({
-              workspaceId: ws.id,
-              requestsPerMonth,
-              logsRetentionDays,
-              auditLogsRetentionDays,
-              team: true,
-            })
-            .onDuplicateKeyUpdate({
-              set: {
-                requestsPerMonth,
-                logsRetentionDays,
-                auditLogsRetentionDays,
-                team: true,
-              },
-            });
-
-          await insertAuditLogs(tx, {
-            workspaceId: ws.id,
-            actor: {
-              type: "system",
-              id: "stripe",
-            },
-            event: "workspace.update",
-            description: `Subscription created for ${product.name} plan.`,
-            resources: [],
-            context: {
-              location: "",
-              userAgent: undefined,
-            },
-          });
-        });
 
         const formattedPrice = formatPrice(price.unit_amount);
 
