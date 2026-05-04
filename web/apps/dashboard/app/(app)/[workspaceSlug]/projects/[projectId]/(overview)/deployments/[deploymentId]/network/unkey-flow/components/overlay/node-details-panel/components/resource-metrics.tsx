@@ -33,8 +33,6 @@ import {
 // per open panel, well within budget.
 const REFETCH_INTERVAL_MS = 3_000;
 
-const RUNTIME_METRICS_ENABLED = true;
-
 const WINDOW_LABELS: Record<TimeWindow, string> = {
   "15m": "Past 15 minutes",
   "1h": "Past hour",
@@ -224,50 +222,46 @@ export function ResourceMetrics({ resourceId, storageMib, instanceName }: Resour
         />
       )}
 
-      {RUNTIME_METRICS_ENABLED && (
-        <>
-          <CpuSection
-            points={cpu.data}
-            usedMilli={cpuUsedMilli}
-            allocatedMilli={cpuAllocatedMilli}
-            isLoading={cpu.isLoading || isWindowTransition}
-            isError={cpu.isError}
-            showDateInTooltip={showDateInTooltip}
-            xAxisDomain={xAxisDomain}
-          />
+      <CpuSection
+        points={cpu.data}
+        usedMilli={cpuUsedMilli}
+        allocatedMilli={cpuAllocatedMilli}
+        isLoading={cpu.isLoading || isWindowTransition}
+        isError={cpu.isError}
+        showDateInTooltip={showDateInTooltip}
+        xAxisDomain={xAxisDomain}
+      />
 
-          <MemorySection
-            points={memory.data}
-            usedBytes={memUsedBytes}
-            allocatedBytes={memAllocatedBytes}
-            isLoading={memory.isLoading || isWindowTransition}
-            isError={memory.isError}
-            showDateInTooltip={showDateInTooltip}
-            xAxisDomain={xAxisDomain}
-          />
+      <MemorySection
+        points={memory.data}
+        usedBytes={memUsedBytes}
+        allocatedBytes={memAllocatedBytes}
+        isLoading={memory.isLoading || isWindowTransition}
+        isError={memory.isError}
+        showDateInTooltip={showDateInTooltip}
+        xAxisDomain={xAxisDomain}
+      />
 
-          {diskEnabled && (
-            <DiskSection
-              points={disk.data}
-              usedBytes={diskUsedBytes}
-              allocatedBytes={diskAllocatedBytes}
-              isLoading={disk.isLoading || isWindowTransition}
-              isError={disk.isError}
-              showDateInTooltip={showDateInTooltip}
-              xAxisDomain={xAxisDomain}
-            />
-          )}
-
-          <NetworkSection
-            egressPoints={networkEgress.data}
-            ingressPoints={networkIngress.data}
-            isLoading={networkEgress.isLoading || networkIngress.isLoading || isWindowTransition}
-            isError={networkEgress.isError || networkIngress.isError}
-            showDateInTooltip={showDateInTooltip}
-            xAxisDomain={xAxisDomain}
-          />
-        </>
+      {diskEnabled && (
+        <DiskSection
+          points={disk.data}
+          usedBytes={diskUsedBytes}
+          allocatedBytes={diskAllocatedBytes}
+          isLoading={disk.isLoading || isWindowTransition}
+          isError={disk.isError}
+          showDateInTooltip={showDateInTooltip}
+          xAxisDomain={xAxisDomain}
+        />
       )}
+
+      <NetworkSection
+        egressPoints={networkEgress.data}
+        ingressPoints={networkIngress.data}
+        isLoading={networkEgress.isLoading || networkIngress.isLoading || isWindowTransition}
+        isError={networkEgress.isError || networkIngress.isError}
+        showDateInTooltip={showDateInTooltip}
+        xAxisDomain={xAxisDomain}
+      />
     </div>
   );
 }
