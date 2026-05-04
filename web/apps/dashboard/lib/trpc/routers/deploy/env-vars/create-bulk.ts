@@ -57,17 +57,17 @@ export const createBulkEnvVars = workspaceProcedure
             });
           }
 
-          const ids = vars.map(() => newId("environmentVariable"));
-          const items = Object.fromEntries(ids.map((id, i) => [id, vars[i].value]));
+          const tagged = vars.map((v) => [newId("environmentVariable"), v] as const);
+          const items = Object.fromEntries(tagged.map(([id, v]) => [id, v.value]));
           const result = await vault.encryptBulk({ keyring: environmentId, items });
 
-          return vars.map((v, i) => ({
-            id: ids[i],
+          return tagged.map(([id, v]) => ({
+            id,
             workspaceId: ctx.workspace.id,
             appId: environment.appId,
             environmentId,
             key: v.key,
-            value: result.items[ids[i]].encrypted,
+            value: result.items[id].encrypted,
             type: v.type,
             description: v.description ?? null,
           }));
