@@ -62,6 +62,13 @@ export type UnkeyAuditLog = {
     userAgent?: string;
     location: string;
   };
+  // correlationId groups this event with other audit logs emitted by the
+  // same logical user action. Leave undefined to let insertAuditLogs
+  // decide: it auto-mints one when the batch contains >1 events.
+  // Multi-call procedures (createRole + N permission binds across
+  // separate insertAuditLogs calls) should mint via newId("correlation")
+  // at the top of the procedure and pass the same value to each call.
+  correlationId?: string;
 };
 
 // outboxEventEnvelope mirrors pkg/auditlog.Event exactly. The Go drainer
@@ -91,6 +98,7 @@ type OutboxEventEnvelope = {
     name?: string;
     meta?: Record<string, unknown>;
   }>;
+  correlation_id?: string;
 };
 
 export async function insertAuditLogs(
@@ -112,6 +120,14 @@ export async function insertAuditLogs(
   // The Go API writer dual-writes the same way; this keeps the dashboard
   // and API consistent producers of audit_log.v1 envelopes.
   const outboxRows: (typeof clickhouseOutbox.$inferInsert)[] = [];
+
+  // Auto-mint a shared correlation ID when the batch carries >1 events
+  // and the caller didn't set one explicitly on any event. Mirrors the
+  // Go-side auto-mint logic in internal/services/auditlogs/insert.go.
+  // Per-event correlationId set on the struct still wins; this only
+  // fills in when the caller didn't bother.
+  const sharedCorrelationId =
+    logs.length > 1 && logs.every((l) => !l.correlationId) ? newId("correlation") : undefined;
 
   for (const log of logs) {
     const auditLogId = newId("auditLog");
@@ -149,6 +165,8 @@ export async function insertAuditLogs(
       );
     }
 
+    const correlationId = log.correlationId ?? sharedCorrelationId;
+
     const envelope: OutboxEventEnvelope = {
       event_id: auditLogId,
       time: now,
@@ -175,6 +193,7 @@ export async function insertAuditLogs(
             })),
           }
         : {}),
+      ...(correlationId !== undefined ? { correlation_id: correlationId } : {}),
     };
 
     outboxRows.push({
