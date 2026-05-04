@@ -85,7 +85,7 @@ func StartAllServices(t *testing.T) {
 //	db, err := sql.Open("mysql", cfg.FormatDSN())
 //	require.NoError(t, err)
 //	defer db.Close()
-func MySQL(t *testing.T) *mysql.Config {
+func MySQL(t testing.TB) *mysql.Config {
 	cfg := mysql.NewConfig()
 	cfg.User = "unkey"
 	cfg.Passwd = "password"

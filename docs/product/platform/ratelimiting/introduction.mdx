@@ -117,7 +117,11 @@ Unkey offers two ways to rate limit:
 
 <Accordion title="Globally distributed" icon="globe">
   Requests are processed across our globally distributed infrastructure. Your
-  rate limits are checked close to your users, not in a single region.
+  rate limits are checked close to your users, not in a single region. When an
+  identifier exceeds its limit in one region, every other region starts denying
+  it within seconds — so abuse can't be amplified by hitting multiple
+  geographies. See [cross-region denial
+  propagation](/platform/ratelimiting/modes#cross-region-denial-propagation).
 </Accordion>
 
 <Accordion title="Performance at scale" icon="gauge-high">

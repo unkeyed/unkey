@@ -1,5 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
+import { getStripeClient } from "@/lib/stripe";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -9,16 +10,47 @@ import { clearWorkspaceCache } from "../workspace/getCurrent";
 export const updateWorkspaceStripeCustomer = workspaceProcedure
   .input(
     z.object({
-      stripeCustomerId: z.string().min(1, "Stripe customer ID is required"),
+      sessionId: z.string().min(1, "Stripe checkout session ID is required"),
     }),
   )
   .mutation(async ({ ctx, input }) => {
+    const stripe = getStripeClient();
+
+    // Resolve customer id server-side from the checkout session, and verify
+    // the session was created for this workspace. This prevents an attacker
+    // from tricking a logged-in user into binding the attacker's Stripe
+    // customer to the victim's workspace via a /success?session_id=... link.
+    const session = await stripe.checkout.sessions.retrieve(input.sessionId);
+    if (!session) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Checkout session not found",
+      });
+    }
+    if (session.client_reference_id !== ctx.workspace.id) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Checkout session does not belong to this workspace",
+      });
+    }
+
+    const stripeCustomerId =
+      typeof session.customer === "string"
+        ? session.customer
+        : (session.customer?.id ?? null);
+    if (!stripeCustomerId) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "Checkout session does not have a customer",
+      });
+    }
+
     await db
       .transaction(async (tx) => {
         await tx
           .update(schema.workspaces)
           .set({
-            stripeCustomerId: input.stripeCustomerId,
+            stripeCustomerId,
           })
           .where(eq(schema.workspaces.id, ctx.workspace.id));
 

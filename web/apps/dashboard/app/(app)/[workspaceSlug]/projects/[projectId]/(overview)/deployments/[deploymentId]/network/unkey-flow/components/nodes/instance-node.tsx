@@ -3,11 +3,11 @@ import { Layers3 } from "@unkey/icons";
 import { CardFooter } from "./components/card-footer";
 import { CardHeader } from "./components/card-header";
 import { NodeWrapper } from "./node-wrapper/node-wrapper";
-import type { InstanceNode as InstanceNodeType, SentinelNode as SentinelNodeType } from "./types";
+import type { InstanceNode as InstanceNodeType, RegionNode as RegionNodeType } from "./types";
 
 type InstanceNodeProps = {
   node: InstanceNodeType;
-  flagCode: SentinelNodeType["metadata"]["flagCode"];
+  flagCode: RegionNodeType["metadata"]["flagCode"];
   deploymentId?: string;
 };
 

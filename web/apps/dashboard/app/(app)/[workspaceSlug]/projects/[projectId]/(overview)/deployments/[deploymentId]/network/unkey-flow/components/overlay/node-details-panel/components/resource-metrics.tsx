@@ -33,12 +33,6 @@ import {
 // per open panel, well within budget.
 const REFETCH_INTERVAL_MS = 3_000;
 
-// Heimdall isn't shipped yet, so cpu/memory/disk/network charts would
-// render as empty timeseries. Hide them until the metering pipeline lands.
-// Queries still fire — the tables exist and return empty, so there's
-// nothing to gate at the network layer.
-const RUNTIME_METRICS_ENABLED = false;
-
 const WINDOW_LABELS: Record<TimeWindow, string> = {
   "15m": "Past 15 minutes",
   "1h": "Past hour",
@@ -91,11 +85,10 @@ const WINDOW_MS: Record<TimeWindow, number> = {
 // ─── main ─────────────────────────────────────────────────────────────
 
 type ResourceMetricsProps = {
-  resourceType: "deployment" | "sentinel";
   resourceId: string;
   // When > 0 the deployment has ephemeral storage provisioned, so the disk
-  // chart is worth showing. For sentinel nodes and disk-less deployments
-  // we skip it entirely, avoiding a flat-line chart with no data to read.
+  // chart is worth showing. For disk-less deployments we skip it entirely,
+  // avoiding a flat-line chart with no data to read.
   storageMib?: number;
   // K8s pod name. Set when the panel is scoped to a single instance; all
   // queries filter `instance_id = instanceName` so the charts show that
@@ -103,13 +96,8 @@ type ResourceMetricsProps = {
   instanceName?: string;
 };
 
-export function ResourceMetrics({
-  resourceType,
-  resourceId,
-  storageMib,
-  instanceName,
-}: ResourceMetricsProps) {
-  const params = { resourceType, resourceId, instanceName };
+export function ResourceMetrics({ resourceId, storageMib, instanceName }: ResourceMetricsProps) {
+  const params = { resourceId, instanceName };
   const [window, setWindow] = useState<TimeWindow>("1h");
   const showDateInTooltip = WINDOWS_NEEDING_DATE.includes(window);
   const diskEnabled = (storageMib ?? 0) > 0;
@@ -193,13 +181,6 @@ export function ResourceMetrics({
     }
   }, [isWindowTransition, anyFetching]);
 
-  // Instance-scoped panel hides the instances chart, so with the runtime
-  // metrics flag off there's nothing left to render — skip the empty
-  // "Runtime metrics" header + window selector entirely.
-  if (!RUNTIME_METRICS_ENABLED && isInstanceScoped) {
-    return null;
-  }
-
   return (
     <div>
       <div className="flex flex-col px-4 w-full gap-2">
@@ -241,50 +222,46 @@ export function ResourceMetrics({
         />
       )}
 
-      {RUNTIME_METRICS_ENABLED && (
-        <>
-          <CpuSection
-            points={cpu.data}
-            usedMilli={cpuUsedMilli}
-            allocatedMilli={cpuAllocatedMilli}
-            isLoading={cpu.isLoading || isWindowTransition}
-            isError={cpu.isError}
-            showDateInTooltip={showDateInTooltip}
-            xAxisDomain={xAxisDomain}
-          />
+      <CpuSection
+        points={cpu.data}
+        usedMilli={cpuUsedMilli}
+        allocatedMilli={cpuAllocatedMilli}
+        isLoading={cpu.isLoading || isWindowTransition}
+        isError={cpu.isError}
+        showDateInTooltip={showDateInTooltip}
+        xAxisDomain={xAxisDomain}
+      />
 
-          <MemorySection
-            points={memory.data}
-            usedBytes={memUsedBytes}
-            allocatedBytes={memAllocatedBytes}
-            isLoading={memory.isLoading || isWindowTransition}
-            isError={memory.isError}
-            showDateInTooltip={showDateInTooltip}
-            xAxisDomain={xAxisDomain}
-          />
+      <MemorySection
+        points={memory.data}
+        usedBytes={memUsedBytes}
+        allocatedBytes={memAllocatedBytes}
+        isLoading={memory.isLoading || isWindowTransition}
+        isError={memory.isError}
+        showDateInTooltip={showDateInTooltip}
+        xAxisDomain={xAxisDomain}
+      />
 
-          {diskEnabled && (
-            <DiskSection
-              points={disk.data}
-              usedBytes={diskUsedBytes}
-              allocatedBytes={diskAllocatedBytes}
-              isLoading={disk.isLoading || isWindowTransition}
-              isError={disk.isError}
-              showDateInTooltip={showDateInTooltip}
-              xAxisDomain={xAxisDomain}
-            />
-          )}
-
-          <NetworkSection
-            egressPoints={networkEgress.data}
-            ingressPoints={networkIngress.data}
-            isLoading={networkEgress.isLoading || networkIngress.isLoading || isWindowTransition}
-            isError={networkEgress.isError || networkIngress.isError}
-            showDateInTooltip={showDateInTooltip}
-            xAxisDomain={xAxisDomain}
-          />
-        </>
+      {diskEnabled && (
+        <DiskSection
+          points={disk.data}
+          usedBytes={diskUsedBytes}
+          allocatedBytes={diskAllocatedBytes}
+          isLoading={disk.isLoading || isWindowTransition}
+          isError={disk.isError}
+          showDateInTooltip={showDateInTooltip}
+          xAxisDomain={xAxisDomain}
+        />
       )}
+
+      <NetworkSection
+        egressPoints={networkEgress.data}
+        ingressPoints={networkIngress.data}
+        isLoading={networkEgress.isLoading || networkIngress.isLoading || isWindowTransition}
+        isError={networkEgress.isError || networkIngress.isError}
+        showDateInTooltip={showDateInTooltip}
+        xAxisDomain={xAxisDomain}
+      />
     </div>
   );
 }

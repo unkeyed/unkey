@@ -7,8 +7,9 @@ export const env = () =>
         .enum(["development", "preview", "production"])
         .optional()
         .prefault("development"),
-      VERCEL_URL: z.string().optional(),
+      VERCEL_URL: z.string().optional(), // Always *.vercel.app — not the custom domain
       VERCEL_BRANCH_URL: z.string().optional(), // Only set in preview deployments
+      VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(), // Custom production domain (e.g. app.unkey.com)
 
       UNKEY_WORKSPACE_ID: z.string(),
       UNKEY_API_ID: z.string(),

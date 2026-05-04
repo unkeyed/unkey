@@ -87,7 +87,7 @@ type containerConfig struct {
 //
 // The client is lazily initialized on first call and reused across all tests
 // in the same process. Fails the test immediately if Docker is not accessible.
-func getClient(t *testing.T) *client.Client {
+func getClient(t testing.TB) *client.Client {
 	t.Helper()
 
 	dockerClientOnce.Do(func() {
@@ -113,7 +113,7 @@ func getClient(t *testing.T) *client.Client {
 
 // pullImage pulls a Docker image if it's not already present locally.
 // This is a no-op if the image already exists in the local Docker cache.
-func pullImage(t *testing.T, cli *client.Client, imageName string) {
+func pullImage(t testing.TB, cli *client.Client, imageName string) {
 	t.Helper()
 
 	ctx := context.Background()
@@ -149,7 +149,7 @@ func pullImage(t *testing.T, cli *client.Client, imageName string) {
 // If WaitStrategy is provided, this function blocks until the container is
 // ready or the WaitTimeout is exceeded. If WaitTimeout is zero, defaults to
 // 30 seconds.
-func startContainer(t *testing.T, cfg containerConfig) *Container {
+func startContainer(t testing.TB, cfg containerConfig) *Container {
 	t.Helper()
 
 	cli := getClient(t)

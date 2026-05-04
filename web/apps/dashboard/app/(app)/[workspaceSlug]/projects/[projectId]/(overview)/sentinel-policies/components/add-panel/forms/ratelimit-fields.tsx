@@ -1,7 +1,10 @@
 "use client";
 
+import { parseDuration } from "@/lib/duration";
+import { formatMs } from "@/lib/ms";
 import { FormInput, FormSelect } from "@unkey/ui";
 import type React from "react";
+import { useState } from "react";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 import { DocsLink, Sep, Strong } from "./summary-helpers";
 
@@ -71,6 +74,9 @@ export function RateLimitFields() {
     fieldState: { error: windowError },
   } = useController({ control, name: "windowMs" });
 
+  const [windowDisplay, setWindowDisplay] = useState(() => formatMs(windowMs));
+  const [windowParseError, setWindowParseError] = useState<string>();
+
   const {
     field: { value: identifierSource, onChange: onIdentifierSourceChange },
   } = useController({ control, name: "identifierSource" });
@@ -96,18 +102,44 @@ export function RateLimitFields() {
           error={limitError?.message}
         />
         <FormInput
-          label="Window (ms)"
-          type="number"
-          value={windowMs}
-          onChange={(e) => onWindowChange(Number.parseInt(e.target.value) || 0)}
+          label="Window"
+          type="text"
+          value={windowDisplay}
+          placeholder="e.g. 5s, 2m, 1h, 500ms"
+          onChange={(e) => {
+            const raw = e.target.value;
+            setWindowDisplay(raw);
+
+            const trimmed = raw.trim();
+            if (trimmed === "") {
+              setWindowParseError(undefined);
+              onWindowChange(0);
+              return;
+            }
+
+            const asNumber = Number(trimmed);
+            if (Number.isFinite(asNumber) && asNumber > 0) {
+              setWindowParseError(undefined);
+              onWindowChange(Math.floor(asNumber));
+              return;
+            }
+
+            const parsed = parseDuration(trimmed);
+            if (parsed > 0) {
+              setWindowParseError(undefined);
+              onWindowChange(parsed);
+            } else {
+              setWindowParseError('Use a duration like "5s", "2m", "1h" or milliseconds');
+            }
+          }}
           className="flex-1"
           descriptionPosition="label"
           description={
             windowMs > 0
-              ? `${(windowMs / 1000).toFixed(1)}s. Time window before the counter resets.`
-              : "Time window before the counter resets."
+              ? `Resets every ${formatMs(windowMs, { long: true })}.`
+              : "How long before the counter resets."
           }
-          error={windowError?.message}
+          error={windowParseError ?? windowError?.message}
         />
       </div>
 
@@ -155,7 +187,7 @@ export function RatelimitPolicySummary() {
   return (
     <div className="max-w-75 truncate">
       <span className="text-gray-11">
-        <Strong>{limit}</Strong> / {windowMs >= 1000 ? `${windowMs / 1000}s` : `${windowMs}ms`}
+        <Strong>{limit}</Strong> / {formatMs(windowMs)}
         <Sep />
         per <Strong>{IDENTIFIER_SOURCE_LABELS[identifierSource]}</Strong>
         {identifierValue && (

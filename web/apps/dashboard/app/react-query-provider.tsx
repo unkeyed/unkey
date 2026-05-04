@@ -14,12 +14,22 @@ export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) =>
       return "";
     }
 
+    // VERCEL_URL is always the auto-generated *.vercel.app deployment URL.
+    // The production custom domain lives in VERCEL_PROJECT_PRODUCTION_URL.
+    // For previews, prefer VERCEL_BRANCH_URL (stable across deploys of the
+    // same branch) so links and redirects remain valid between deployments.
+    if (
+      process.env.VERCEL_ENV === "production" &&
+      process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ) {
+      return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+    }
+    if (process.env.VERCEL_BRANCH_URL) {
+      return `https://${process.env.VERCEL_BRANCH_URL}`;
+    }
     if (process.env.VERCEL_URL) {
-      // reference for vercel.com
       return `https://${process.env.VERCEL_URL}`;
     }
-
-    // assume localhost
     return `http://localhost:${process.env.PORT ?? 3000}`;
   }
 
