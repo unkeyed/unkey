@@ -34,11 +34,26 @@ export const exchangeSession = createServerFn({ method: "POST" })
   .handler(async ({ data: sessionId }: { data: string }): Promise<ExchangeResult> => {
     const apiUrl = env().UNKEY_API_URL;
 
-    const response = await fetch(`${apiUrl}/v2/portal.exchangeSession`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+    let response: Response;
+    try {
+      response = await fetch(`${apiUrl}/v2/portal.exchangeSession`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      const message =
+        err instanceof DOMException && err.name === "AbortError"
+          ? "Request timed out. Please try again."
+          : "Network error. Please check your connection and try again.";
+      return { success: false, error: message };
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       return {
