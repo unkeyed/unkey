@@ -15,7 +15,7 @@ func TestJanitor_EvictsExpiredCounters(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
-	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory()})
+	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
@@ -24,12 +24,12 @@ func TestJanitor_EvictsExpiredCounters(t *testing.T) {
 
 	// Counter for a window that ended 10 minutes ago (far past 3× duration).
 	oldSeq := calculateSequence(clk.Now().Add(-10*time.Minute), duration)
-	oldKey := counterKey{name: "ns", identifier: "expired", durationMs: durationMs, sequence: oldSeq}
+	oldKey := counterKey{workspaceID: "ws", namespace: "ns", identifier: "expired", durationMs: durationMs, sequence: oldSeq}
 	svc.counters.Store(oldKey, &counterEntry{}) //nolint:exhaustruct
 
 	// Counter for the current window — should survive.
 	freshSeq := calculateSequence(clk.Now(), duration)
-	freshKey := counterKey{name: "ns", identifier: "fresh", durationMs: durationMs, sequence: freshSeq}
+	freshKey := counterKey{workspaceID: "ws", namespace: "ns", identifier: "fresh", durationMs: durationMs, sequence: freshSeq}
 	svc.counters.Store(freshKey, &counterEntry{}) //nolint:exhaustruct
 
 	svc.runJanitorOnce()
@@ -46,16 +46,16 @@ func TestJanitor_EvictsExpiredStrictUntils(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
-	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory()})
+	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
 	durationMs := time.Minute.Milliseconds()
 
-	pastKey := strictKey{name: "ns", identifier: "past", durationMs: durationMs}
+	pastKey := strictKey{workspaceID: "ws", namespace: "ns", identifier: "past", durationMs: durationMs}
 	svc.setStrictUntil(pastKey, clk.Now().Add(-time.Minute).UnixMilli())
 
-	futureKey := strictKey{name: "ns", identifier: "future", durationMs: durationMs}
+	futureKey := strictKey{workspaceID: "ws", namespace: "ns", identifier: "future", durationMs: durationMs}
 	svc.setStrictUntil(futureKey, clk.Now().Add(time.Minute).UnixMilli())
 
 	svc.runJanitorOnce()

@@ -60,6 +60,7 @@ import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
 import { listEnvVars } from "./deploy/env-vars/list";
 import { updateEnvVar } from "./deploy/env-vars/update";
+import { updateAutoDeploy } from "./deploy/environment-settings/build/update-auto-deploy";
 import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
 import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
 import { updateWatchPaths } from "./deploy/environment-settings/build/update-watch-paths";
@@ -102,7 +103,7 @@ import { getDeploymentRpsTimeseries } from "./deploy/metrics/get-deployment-rps-
 import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
-import { getSentinelRps } from "./deploy/network/get-sentinel-rps";
+import { getRegionRps } from "./deploy/network/get-region-rps";
 import { createProject } from "./deploy/project/create";
 import { creationContext } from "./deploy/project/creation-context";
 import { deleteProject } from "./deploy/project/delete";
@@ -426,8 +427,8 @@ export const router = t.router({
     network: t.router({
       generate: generateDeploymentTree,
       get: getDeploymentTree,
-      getSentinelRps,
       getInstanceRps,
+      getRegionRps,
     }),
     project: t.router({
       list: listProjects,
@@ -472,6 +473,7 @@ export const router = t.router({
         updateUpstreamProtocol,
       }),
       build: t.router({
+        updateAutoDeploy,
         updateDockerfile,
         updateDockerContext,
         updateWatchPaths,

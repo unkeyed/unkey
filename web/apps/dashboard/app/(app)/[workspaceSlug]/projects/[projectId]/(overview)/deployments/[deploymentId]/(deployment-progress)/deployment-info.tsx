@@ -52,6 +52,7 @@ export function DeploymentInfo({ title = "Deployment", statusOverride }: Deploym
       />
       <ActiveDeploymentCard
         deploymentId={deployment.id}
+        deployment={deployment}
         isCurrent={isCurrent}
         isRolledBack={isRolledBack}
         environmentSlug={environment?.slug}

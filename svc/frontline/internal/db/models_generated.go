@@ -1073,6 +1073,7 @@ type AppBuildSetting struct {
 	Dockerfile    string          `db:"dockerfile"`
 	DockerContext string          `db:"docker_context"`
 	WatchPaths    json.RawMessage `db:"watch_paths"`
+	AutoDeploy    bool            `db:"auto_deploy"`
 	CreatedAt     int64           `db:"created_at"`
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
@@ -1527,6 +1528,17 @@ type Ratelimit struct {
 	Limit       uint64         `db:"limit"`
 	Duration    uint64         `db:"duration"`
 	AutoApply   bool           `db:"auto_apply"`
+}
+
+type RatelimitBlocklist struct {
+	Pk          uint64 `db:"pk"`
+	WorkspaceID string `db:"workspace_id"`
+	Namespace   string `db:"namespace"`
+	Identifier  string `db:"identifier"`
+	DurationMs  uint64 `db:"duration_ms"`
+	Sequence    int64  `db:"sequence"`
+	Limit       uint64 `db:"limit"`
+	ExpiresAt   uint64 `db:"expires_at"`
 }
 
 type RatelimitNamespace struct {

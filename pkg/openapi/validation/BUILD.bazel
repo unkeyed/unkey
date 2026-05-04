@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "validation",
+    srcs = ["validator.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/openapi/validation",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/fault",
+        "@com_github_pb33f_libopenapi//:libopenapi",
+        "@com_github_pb33f_libopenapi_validator//:libopenapi-validator",
+        "@com_github_pb33f_libopenapi_validator//config",
+        "@com_github_pb33f_libopenapi_validator//errors",
+        "@com_github_pb33f_libopenapi_validator//helpers",
+    ],
+)

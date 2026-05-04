@@ -15,3 +15,8 @@ jobs:
     schedule: "0 15 * * *"
     urlPath: "hydra.v1.QuotaCheckService/$(date -u +%Y-%m)/RunCheck/send"
     idempotencyKey: "quota-check-$(date -u +%Y-%m-%d)"
+
+  ratelimit-blocklist-cleanup:
+    schedule: "* * * * *"
+    urlPath: "hydra.v1.RatelimitBlocklistCleanupService/RunCleanup/send"
+    idempotencyKey: "ratelimit-blocklist-cleanup-$(date -u +%Y-%m-%dT%H:%M)"

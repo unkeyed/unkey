@@ -54,8 +54,21 @@ type Service interface {
 //
 // Thread Safety: This type is immutable and safe for concurrent use.
 type RatelimitRequest struct {
-	// Name is an arbitrary string that identifies the rate limit topic.
-	Name string
+	// WorkspaceID scopes every other field of this request. Two workspaces
+	// using the same Namespace + Identifier are kept fully isolated; this
+	// matters both for correctness (no cross-tenant counter pollution) and
+	// for cross-region propagation, which is keyed on WorkspaceID.
+	//
+	// Must be non-empty.
+	WorkspaceID string
+
+	// Namespace identifies the rate limit topic within a workspace. It is an
+	// opaque string scoped to WorkspaceID, not necessarily a row ID in
+	// ratelimit_namespaces. The standalone ratelimit API uses the namespace
+	// row ID; key-bound limits use the user-defined ratelimit config name
+	// (e.g. "tokens"); workspace-level ratelimits use a constant. Two
+	// namespaces with the same string in different workspaces are isolated.
+	Namespace string
 
 	// Identifier uniquely identifies the rate limit subject.
 	// This could be:

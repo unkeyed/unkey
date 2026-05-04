@@ -55,3 +55,8 @@ func LookupCNAME(ctx context.Context, domain string) (string, error) {
 
 	return strings.ToLower(strings.TrimSuffix(cname, ".")), nil
 }
+
+// LookupHost resolves the domain to a list of A/AAAA addresses.
+func LookupHost(ctx context.Context, domain string) ([]string, error) {
+	return resolver.LookupHost(ctx, domain)
+}
