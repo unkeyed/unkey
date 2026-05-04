@@ -99,18 +99,24 @@ function SuccessContent() {
           return;
         }
 
-        // Get customer details
+        // Get customer details. We pass sessionId so the server can verify
+        // that the session (and therefore the customer) belongs to this
+        // workspace via session.client_reference_id, rather than trusting a
+        // client-supplied customer id.
         const customer = await trpcUtils.stripe.getCustomer.fetch({
-          customerId: sessionResponse.customer,
+          sessionId,
         });
 
         if (!isMounted) {
           return;
         }
 
-        // Get setup intent details
+        // Get setup intent details. Pass sessionId so the server can verify
+        // the setup intent belongs to a session bound to this workspace,
+        // before the workspace has a stripeCustomerId of its own.
         const setupIntent = await trpcUtils.stripe.getSetupIntent.fetch({
           setupIntentId: sessionResponse.setup_intent,
+          sessionId,
         });
 
         if (!isMounted) {
@@ -152,10 +158,13 @@ function SuccessContent() {
           return;
         }
 
-        // Update workspace with stripe customer ID
+        // Update workspace with stripe customer ID. The mutation resolves the
+        // customer id from the checkout session server-side and verifies the
+        // session belongs to this workspace, so we pass sessionId instead of
+        // a client-supplied stripeCustomerId.
         try {
           await updateWorkspaceFn({
-            stripeCustomerId: customer.id,
+            sessionId,
           });
 
           if (!isMounted) {

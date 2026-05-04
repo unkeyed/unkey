@@ -80,6 +80,30 @@ export async function createKeyCore(
   ctx: CreateKeyContext,
   tx: DatabaseTransaction,
 ) {
+  // The keys.identity_id column has no FK or workspace predicate. If we
+  // accept a client-supplied identityId without verifying it belongs to this
+  // workspace, an attacker can later call /v2/keys.verifyKey on the key and
+  // exfiltrate the foreign identity's external_id and meta via the LEFT
+  // JOIN in key_find_for_verification.sql.
+  const requestedIdentityId = input.identityId;
+  if (requestedIdentityId) {
+    const identity = await tx.query.identities.findFirst({
+      where: (table, { and, eq }) =>
+        and(
+          eq(table.id, requestedIdentityId),
+          eq(table.workspaceId, ctx.workspace.id),
+          eq(table.deleted, false),
+        ),
+      columns: { id: true },
+    });
+    if (!identity) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Identity not found",
+      });
+    }
+  }
+
   const keyId = newId("key");
   const { key, hash, start } = await newKey({
     prefix: input.prefix,

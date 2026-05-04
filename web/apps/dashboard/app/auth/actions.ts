@@ -296,6 +296,12 @@ export async function signIntoWorkspace(orgId: string): Promise<VerificationResu
     };
   }
 
+  // `redirect()` works by throwing a NEXT_REDIRECT error that the framework
+  // catches at the boundary. Keep it OUTSIDE the try/catch — otherwise our
+  // catch swallows the redirect, leaves the user on the previous page with
+  // their session cookie set, and surfaces the framework's internal
+  // "NEXT_REDIRECT;..." digest as an error message.
+  let redirectTo: string | null = null;
   try {
     const result = await auth.completeOrgSelection({
       orgId,
@@ -305,10 +311,10 @@ export async function signIntoWorkspace(orgId: string): Promise<VerificationResu
     if (result.success) {
       await setCookies(result.cookies);
       await deleteCookie(PENDING_SESSION_COOKIE);
-      redirect(result.redirectTo);
+      redirectTo = result.redirectTo;
+    } else {
+      return result;
     }
-
-    return result;
   } catch (error) {
     return {
       success: false,
@@ -316,6 +322,7 @@ export async function signIntoWorkspace(orgId: string): Promise<VerificationResu
       message: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
+  redirect(redirectTo);
 }
 
 // OAuth
@@ -324,15 +331,18 @@ export async function signInViaOAuth(options: SignInViaOAuthOptions): Promise<st
 }
 
 export async function completeOAuthSignIn(request: Request): Promise<OAuthResult> {
+  // See note in signIntoWorkspace — keep redirect() outside the try/catch so
+  // the NEXT_REDIRECT error is not swallowed.
+  let redirectTo: string | null = null;
   try {
     const result = await auth.completeOAuthSignIn(request);
 
     if (result.success) {
       await setCookies(result.cookies);
-      redirect(result.redirectTo);
+      redirectTo = result.redirectTo;
+    } else {
+      return result;
     }
-
-    return result;
   } catch (error) {
     return {
       success: false,
@@ -340,6 +350,7 @@ export async function completeOAuthSignIn(request: Request): Promise<OAuthResult
       message: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
+  redirect(redirectTo);
 }
 
 // Organization Selection
