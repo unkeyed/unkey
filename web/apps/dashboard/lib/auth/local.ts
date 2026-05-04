@@ -472,7 +472,7 @@ export class LocalAuthProvider extends BaseAuthProvider {
   }
 
   // OAuth Methods
-  signInViaOAuth(options: SignInViaOAuthOptions): string {
+  async signInViaOAuth(options: SignInViaOAuthOptions): Promise<string> {
     return options.redirectUrlComplete;
   }
 

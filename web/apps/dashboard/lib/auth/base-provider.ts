@@ -134,10 +134,13 @@ export abstract class BaseAuthProvider {
   /**
    * Initiates OAuth-based authentication with the specified provider.
    *
+   * Implementations may set HttpOnly state cookies (e.g. a CSRF nonce bound to
+   * the OAuth `state` parameter), which is why this returns a Promise.
+   *
    * @param options - OAuth configuration including provider type and redirect URL
    * @returns The URL to redirect the user to for OAuth authentication
    */
-  abstract signInViaOAuth(options: SignInViaOAuthOptions): string;
+  abstract signInViaOAuth(options: SignInViaOAuthOptions): Promise<string>;
 
   /**
    * Completes the OAuth sign-in process after the user is redirected back.

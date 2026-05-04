@@ -4,6 +4,11 @@ import type { Cookie } from "./cookies";
 export const UNKEY_SESSION_COOKIE = "unkey-session";
 export const UNKEY_LAST_ORG_COOKIE = "unkey_last_org_used";
 export const PENDING_SESSION_COOKIE = "sess-temp";
+// HttpOnly cookie carrying the OAuth state nonce. signInViaOAuth writes it
+// before redirecting the browser to the IdP; completeOAuthSignIn verifies the
+// nonce in the callback URL's `state` parameter against this cookie value to
+// block login CSRF / session fixation via a stolen authorization code.
+export const OAUTH_STATE_COOKIE = "unkey-oauth-state";
 export const SIGN_IN_URL = "/auth/sign-in";
 export const SIGN_UP_URL = "/auth/sign-up";
 

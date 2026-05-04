@@ -54,8 +54,14 @@ export async function GET(request: NextRequest) {
       return await setCookiesOnResponse(response, authResult.cookies);
     }
 
-    // Handle other errors
-    return NextResponse.redirect(new URL(SIGN_IN_URL, request.url));
+    // Handle other errors. Pass through any cookies the provider returned
+    // (notably the OAuth state cookie clear) so a failed callback does not
+    // leave a stale CSRF nonce in the browser.
+    const errorResponse = NextResponse.redirect(new URL(SIGN_IN_URL, request.url));
+    if (authResult.cookies && authResult.cookies.length > 0) {
+      return await setCookiesOnResponse(errorResponse, authResult.cookies);
+    }
+    return errorResponse;
   }
 
   // Get base URL from request because Next.js wants it

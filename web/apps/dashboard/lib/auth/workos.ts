@@ -1,13 +1,15 @@
+import { isSafeRedirectPath } from "@/app/auth/sign-in/redirect-utils";
 import { env } from "@/lib/env";
 import {
   WorkOS,
   type Invitation as WorkOSInvitation,
   type Organization as WorkOSOrganization,
 } from "@workos-inc/node";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 import { getBaseUrl } from "../utils";
 import { BaseAuthProvider } from "./base-provider";
 import { getAuthCookieOptions } from "./cookie-security";
-import { getCookie } from "./cookies";
+import { getCookie, setCookie } from "./cookies";
 import { getAuth } from "./get-auth";
 import {
   AuthErrorCode,
@@ -16,6 +18,7 @@ import {
   type InvitationListResponse,
   type Membership,
   type MembershipListResponse,
+  OAUTH_STATE_COOKIE,
   type OAuthResult,
   type OrgInviteParams,
   type Organization,
@@ -32,6 +35,63 @@ import {
   WORKOS_RADAR_API_URL,
   errorMessages,
 } from "./types";
+
+const DEFAULT_OAUTH_REDIRECT = "/apis";
+// 32 bytes of entropy encoded as base64url. Long enough that an attacker
+// cannot guess or brute-force the nonce within the cookie's lifetime.
+const OAUTH_STATE_NONCE_BYTES = 32;
+// 10 minutes. Matches the typical user-facing OAuth round trip; long enough
+// for slow networks/MFA, short enough that abandoned flows clean themselves up.
+const OAUTH_STATE_COOKIE_MAX_AGE_SECONDS = 600;
+
+type ParsedState = {
+  redirectUrlComplete: string;
+  nonce: string | null;
+};
+
+// Returns the redirect path and CSRF nonce parsed from the OAuth state query
+// parameter. Falls back to DEFAULT_OAUTH_REDIRECT for missing/malformed values
+// and to a null nonce when no value is present, which forces
+// completeOAuthSignIn to reject the callback as CSRF.
+function parseState(state: string | null): ParsedState {
+  if (!state) {
+    return { redirectUrlComplete: DEFAULT_OAUTH_REDIRECT, nonce: null };
+  }
+  try {
+    const parsed: unknown = JSON.parse(decodeURIComponent(state));
+    if (parsed !== null && typeof parsed === "object") {
+      let redirectUrlComplete = DEFAULT_OAUTH_REDIRECT;
+      if ("redirectUrlComplete" in parsed) {
+        const candidate: unknown = parsed.redirectUrlComplete;
+        if (typeof candidate === "string" && isSafeRedirectPath(candidate)) {
+          redirectUrlComplete = candidate;
+        }
+      }
+      let nonce: string | null = null;
+      if ("nonce" in parsed) {
+        const candidate: unknown = parsed.nonce;
+        if (typeof candidate === "string" && candidate.length > 0) {
+          nonce = candidate;
+        }
+      }
+      return { redirectUrlComplete, nonce };
+    }
+  } catch {
+    // Fall through to the default values when state is malformed.
+  }
+  return { redirectUrlComplete: DEFAULT_OAUTH_REDIRECT, nonce: null };
+}
+
+// Constant-time string comparison to avoid leaking the nonce one byte at a
+// time through response-timing differences.
+function constantTimeStringEqual(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a, "utf8");
+  const bBuf = Buffer.from(b, "utf8");
+  if (aBuf.length !== bBuf.length) {
+    return false;
+  }
+  return timingSafeEqual(aBuf, bBuf);
+}
 
 type WorkOSErrorCode =
   | "organization_selection_required"
@@ -928,9 +988,33 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   }
 
   // OAuth Methods
-  signInViaOAuth(options: SignInViaOAuthOptions): string {
+  async signInViaOAuth(options: SignInViaOAuthOptions): Promise<string> {
     const { provider, redirectUrlComplete } = options;
-    const state = encodeURIComponent(JSON.stringify({ redirectUrlComplete }));
+    // Reject anything that is not a same-origin relative path. The same
+    // value is read back in completeOAuthSignIn and used as a redirect
+    // target after the session cookie is set, so an absolute URL here
+    // would escape the dashboard origin.
+    const safeRedirect = isSafeRedirectPath(redirectUrlComplete)
+      ? redirectUrlComplete
+      : DEFAULT_OAUTH_REDIRECT;
+    // CSRF nonce bound to this browser via an HttpOnly cookie. The same
+    // value is embedded in the OAuth state and verified on callback, so
+    // an attacker who phishes a victim with a stolen ?code&state pair
+    // cannot complete sign-in in the victim's browser: the victim's
+    // cookie either is missing or holds a different nonce than the
+    // attacker's state, so the callback rejects before redeeming the code.
+    const nonce = randomBytes(OAUTH_STATE_NONCE_BYTES).toString("base64url");
+    await setCookie({
+      name: OAUTH_STATE_COOKIE,
+      value: nonce,
+      options: {
+        ...getAuthCookieOptions(),
+        maxAge: OAUTH_STATE_COOKIE_MAX_AGE_SECONDS,
+      },
+    });
+    const state = encodeURIComponent(
+      JSON.stringify({ redirectUrlComplete: safeRedirect, nonce }),
+    );
     const baseUrl = getBaseUrl();
     const redirect = `${baseUrl}/auth/sso-callback`;
     return this.provider.userManagement.getAuthorizationUrl({
@@ -950,6 +1034,29 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       return this.handleError(new Error(AuthErrorCode.MISSING_REQUIRED_FIELDS));
     }
 
+    // Verify the CSRF nonce before redeeming the authorization code so an
+    // attacker cannot trick a victim's browser into binding the attacker's
+    // sealed session to the victim's cookie jar.
+    const { redirectUrlComplete, nonce } = parseState(state);
+    const expectedNonce = await getCookie(OAUTH_STATE_COOKIE);
+    // Always clear the cookie after a single use so a leaked nonce cannot be
+    // replayed and a successful sign-in does not leave the value behind.
+    const clearStateCookie = {
+      name: OAUTH_STATE_COOKIE,
+      value: "",
+      options: { ...getAuthCookieOptions(), maxAge: 0 },
+    };
+    if (
+      !nonce ||
+      !expectedNonce ||
+      !constantTimeStringEqual(nonce, expectedNonce)
+    ) {
+      return {
+        ...this.handleError(new Error(AuthErrorCode.MISSING_REQUIRED_FIELDS)),
+        cookies: [clearStateCookie],
+      };
+    }
+
     try {
       const { sealedSession } = await this.provider.userManagement.authenticateWithCode({
         clientId: this.clientId,
@@ -964,10 +1071,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         throw new Error("No sealed session returned");
       }
 
-      const redirectUrlComplete = state
-        ? JSON.parse(decodeURIComponent(state)).redirectUrlComplete
-        : "/apis";
-
       return {
         success: true,
         redirectTo: redirectUrlComplete,
@@ -977,6 +1080,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             value: sealedSession,
             options: { ...getAuthCookieOptions() },
           },
+          clearStateCookie,
         ],
       };
     } catch (error: unknown) {
@@ -995,6 +1099,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
               value: authError.rawData.pending_authentication_token,
               options: { ...getAuthCookieOptions(), maxAge: 60 },
             },
+            clearStateCookie,
           ],
         };
       }
@@ -1017,11 +1122,15 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
               value: authError.rawData.pending_authentication_token,
               options: { ...getAuthCookieOptions(), maxAge: 60 * 10 },
             },
+            clearStateCookie,
           ],
         };
       }
 
-      return this.handleError(error as Error);
+      return {
+        ...this.handleError(error as Error),
+        cookies: [clearStateCookie],
+      };
     }
   }
 
