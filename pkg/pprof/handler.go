@@ -14,7 +14,17 @@ import (
 // New creates a standalone zen server for pprof endpoints, intended to be
 // served on an internal-only (loopback) listener. This mirrors the pattern
 // used by the prometheus package.
+//
+// Reject partial credential configuration. A previous version skipped
+// BasicAuth entirely when only one of Username/Password was set, which
+// turned a typo in ops config into an unauthenticated pprof endpoint
+// exposing heap, goroutine, and cmdline profiles.
 func New(cfg *config.PprofConfig, prefix string) (*zen.Server, error) {
+	if (cfg.Username == "") != (cfg.Password == "") {
+		return nil, fault.New("pprof requires both username and password or neither",
+			fault.Internal("pprof basic auth credentials are partially configured"))
+	}
+
 	srv, err := zen.New(zen.Config{
 		TLS:                nil,
 		Flags:              nil,
@@ -61,8 +71,10 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request and delegates to pprof handlers
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	// Only require authentication if username and password are configured
-	if h.Username != "" && h.Password != "" {
+	// Skip BasicAuth only when both credentials are empty (intentional dev mode).
+	// If either field is set, require auth so a partial config cannot bypass
+	// the credential check and expose heap/goroutine/cmdline profiles.
+	if h.Username != "" || h.Password != "" {
 		username, password, ok := s.Request().BasicAuth()
 		if !ok {
 			s.ResponseWriter().Header().Set("WWW-Authenticate", `Basic realm="pprof"`)
