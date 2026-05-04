@@ -99,6 +99,14 @@ You see this in the dashboard as **Superseded** — the deployment shows how far
 
 This is the default behaviour. Rapid pushes don't burn build minutes on commits you're never going to ship.
 
+## Deployment duration
+
+Each deployment card in the dashboard shows a duration timer underneath the status badge. While a deployment is in progress (building, deploying, finalizing), the timer ticks live so you can see how long it has been running. Once the deployment reaches a terminal state (ready, failed, cancelled, superseded), the timer freezes and shows the total time from start to finish.
+
+The duration is hidden for deployments that haven't started yet (pending or awaiting approval), since there is nothing to measure until the build kicks off.
+
+Use the duration to spot deployments that are running unusually long — a build that normally completes in two minutes but has been ticking for ten is a good signal to open the deployment and check the logs.
+
 ## Cancel a deployment
 
 You can manually abort an in-progress deployment from its detail page — click the small **Cancel deployment** button next to the page title. The cancellation stops the active build or deploy step immediately, marks the deployment as cancelled, and frees the build slot so the next queued deployment can start.
