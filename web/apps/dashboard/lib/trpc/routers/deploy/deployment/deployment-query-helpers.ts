@@ -22,6 +22,7 @@ export const deploymentSelectFields = {
   healthcheck: deployments.healthcheck,
   shutdownSignal: deployments.shutdownSignal,
   createdAt: deployments.createdAt,
+  updatedAt: deployments.updatedAt,
 } as const;
 
 export function mapInstanceRow(row: {
