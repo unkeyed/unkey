@@ -16,8 +16,7 @@ export const ConnectGithubStep = ({ projectId, onBeforeNavigate }: ConnectGithub
   // it lazily when the user clicks Import.
   const prepare = trpc.github.prepareInstallation.useMutation();
   const [isPreparing, setIsPreparing] = useState(false);
-  const handleClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
+  const handleClick = async () => {
     if (isPreparing) {
       return;
     }
