@@ -15,5 +15,6 @@ go_library(
         "//pkg/db",
         "//pkg/jwt",
         "//pkg/runner",
+        "//pkg/uid",
     ],
 )

@@ -16,6 +16,7 @@ package github
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -28,6 +29,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 type githubAppManifest struct {
@@ -89,7 +91,14 @@ func setupGitHubApp(_ context.Context, cmd *cli.Command) error {
 	outDir := cmd.String("out-dir")
 
 	callbackURL := fmt.Sprintf("http://localhost:%s/callback", port)
-	listenAddr := fmt.Sprintf(":%s", port)
+	// Bind to loopback only so other hosts on the network cannot reach the
+	// callback handler and inject an attacker-controlled manifest code.
+	listenAddr := fmt.Sprintf("127.0.0.1:%s", port)
+
+	// Per-invocation random state. GitHub echoes it back on the callback;
+	// the handler rejects mismatches so a CSRF / cross-origin GET cannot
+	// race a forged code into codeCh.
+	state := uid.Secure(32)
 
 	manifest := githubAppManifest{
 		Name:   appName,
@@ -126,7 +135,7 @@ func setupGitHubApp(_ context.Context, cmd *cli.Command) error {
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		if err := htmlPage.Execute(w, map[string]string{
-			"State":    "unkey-dev-setup",
+			"State":    state,
 			"Manifest": string(manifestJSON),
 		}); err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -134,6 +143,11 @@ func setupGitHubApp(_ context.Context, cmd *cli.Command) error {
 	})
 
 	mux.HandleFunc("GET /callback", func(w http.ResponseWriter, r *http.Request) {
+		gotState := r.URL.Query().Get("state")
+		if subtle.ConstantTimeCompare([]byte(gotState), []byte(state)) != 1 {
+			http.Error(w, "invalid state", http.StatusBadRequest)
+			return
+		}
 		code := r.URL.Query().Get("code")
 		if code == "" {
 			http.Error(w, "missing code", http.StatusBadRequest)
