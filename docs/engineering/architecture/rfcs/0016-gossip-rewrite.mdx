@@ -282,8 +282,6 @@ A single shared bootstrap deployment instead of per-region NLBs. Rejected becaus
 
 A durable broker (NATS, Kafka). Rejected: cache invalidation tolerates occasional loss, and the operational cost of another cross-region system is not justified by this workload.
 
-[`superfly/corrosion`](https://github.com/superfly/corrosion). Same SWIM/memberlist foundation as Serf, but built around a CRDT-replicated SQLite per node. That's the right tool when you want eventually-consistent shared _state_ across a fleet (Fly use it for distributed service discovery and config). Our cross-region need is event broadcast for cache invalidation: there's no state to converge on, and a replicated SQLite per pod is a much bigger operational footprint than a 60s in-memory replay buffer. Worth revisiting if a future consumer actually needs shared mutable state across regions; not justified for the current one.
-
 ## Unresolved questions
 
 The replay log needs a per-pod byte cap so a hot publisher cannot OOM the ring. 60 s bounds the time axis but not the size. Suggested default is 16 MiB with an overflow metric; the real number should come from observed event rate after rollout.
