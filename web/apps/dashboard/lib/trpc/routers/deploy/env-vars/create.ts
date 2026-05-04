@@ -47,25 +47,31 @@ export const createEnvVars = workspaceProcedure
         });
       }
 
-      const encryptedVars = await Promise.all(
-        input.variables.map(async (v) => {
-          const { encrypted } = await vault.encrypt({
-            keyring: input.environmentId,
-            data: v.value,
-          });
+      const variablesWithIds = input.variables.map((v) => ({
+        ...v,
+        id: newId("environmentVariable"),
+      }));
 
-          return {
-            id: newId("environmentVariable"),
-            workspaceId: ctx.workspace.id,
-            appId: environment.appId,
-            environmentId: input.environmentId,
-            key: v.key,
-            value: encrypted,
-            type: v.type,
-            description: v.description ?? null,
-          };
-        }),
-      );
+      const items: Record<string, string> = {};
+      for (const v of variablesWithIds) {
+        items[v.id] = v.value;
+      }
+
+      const bulkResult = await vault.encryptBulk({
+        keyring: input.environmentId,
+        items,
+      });
+
+      const encryptedVars = variablesWithIds.map((v) => ({
+        id: v.id,
+        workspaceId: ctx.workspace.id,
+        appId: environment.appId,
+        environmentId: input.environmentId,
+        key: v.key,
+        value: bulkResult.items[v.id].encrypted,
+        type: v.type,
+        description: v.description ?? null,
+      }));
 
       await db.insert(schema.appEnvironmentVariables).values(encryptedVars);
     } catch (error) {

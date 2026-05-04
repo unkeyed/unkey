@@ -8,6 +8,20 @@ type EncryptResponse = {
   keyId: string;
 };
 
+type EncryptBulkRequest = {
+  keyring: string;
+  items: Record<string, string>;
+};
+
+type EncryptBulkResponseItem = {
+  encrypted: string;
+  keyId: string;
+};
+
+type EncryptBulkResponse = {
+  items: Record<string, EncryptBulkResponseItem>;
+};
+
 type DecryptRequest = {
   keyring: string;
   encrypted: string;
@@ -26,15 +40,6 @@ export class Vault {
     this.token = config.token;
   }
 
-  private getHeaders(): HeadersInit {
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${this.token}`,
-    };
-
-    return headers;
-  }
-
   public async encrypt(req: EncryptRequest): Promise<EncryptResponse> {
     const url = `${this.baseUrl}/vault.v1.VaultService/Encrypt`;
     const res = await fetch(url, {
@@ -48,11 +53,28 @@ export class Vault {
       throw new Error(`unable to encrypt, fetch error: ${errorText}`);
     }
 
-    const body = (await res.json()) as EncryptResponse;
+    const body: EncryptResponse = await res.json();
     return {
       encrypted: body.encrypted,
       keyId: body.keyId,
     };
+  }
+
+  public async encryptBulk(req: EncryptBulkRequest): Promise<EncryptBulkResponse> {
+    const url = `${this.baseUrl}/vault.v1.VaultService/EncryptBulk`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify(req),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`unable to encrypt bulk, fetch error: ${errorText}`);
+    }
+
+    const body: EncryptBulkResponse = await res.json();
+    return { items: body.items };
   }
 
   public async decrypt(req: DecryptRequest): Promise<DecryptResponse> {
@@ -68,9 +90,16 @@ export class Vault {
       throw new Error(`unable to decrypt, fetch error: ${errorText}`);
     }
 
-    const body = (await res.json()) as DecryptResponse;
+    const body: DecryptResponse = await res.json();
     return {
       plaintext: body.plaintext,
+    };
+  }
+
+  private getHeaders(): HeadersInit {
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.token}`,
     };
   }
 }
