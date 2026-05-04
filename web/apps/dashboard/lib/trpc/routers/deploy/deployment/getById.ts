@@ -1,24 +1,34 @@
-import { db } from "@/lib/db";
+import { and, db, eq } from "@/lib/db";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { deployments, instances, openapiSpecs, regions } from "@unkey/db/src/schema";
 import { z } from "zod";
+import {
+  deploymentSelectFields,
+  mapInstanceRow,
+  normalizeDeploymentRow,
+} from "./deployment-query-helpers";
 
 export const getById = workspaceProcedure
   .input(
     z.object({
       deploymentId: z.string(),
+      projectId: z.string(),
     }),
   )
   .query(async ({ input, ctx }) => {
     try {
-      // Get deployment information
-      const deployment = await db.query.deployments.findFirst({
-        with: {
-          environment: { columns: { slug: true } },
-        },
-        where: (table, { eq, and }) =>
-          and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
-      });
+      const [deployment] = await db
+        .select(deploymentSelectFields)
+        .from(deployments)
+        .where(
+          and(
+            eq(deployments.id, input.deploymentId),
+            eq(deployments.workspaceId, ctx.workspace.id),
+            eq(deployments.projectId, input.projectId),
+          ),
+        )
+        .limit(1);
 
       if (!deployment) {
         throw new TRPCError({
@@ -27,18 +37,29 @@ export const getById = workspaceProcedure
         });
       }
 
+      const [specRows, instanceRows] = await Promise.all([
+        db
+          .select({ deploymentId: openapiSpecs.deploymentId })
+          .from(openapiSpecs)
+          .where(eq(openapiSpecs.deploymentId, deployment.id)),
+        db
+          .select({
+            id: instances.id,
+            deploymentId: instances.deploymentId,
+            regionId: regions.id,
+            regionName: regions.name,
+            regionPlatform: regions.platform,
+          })
+          .from(instances)
+          .innerJoin(regions, eq(regions.id, instances.regionId))
+          .where(eq(instances.deploymentId, deployment.id)),
+      ]);
+
       return {
-        id: deployment.id,
-        status: deployment.status,
-        gitCommitSha: deployment.gitCommitSha,
-        gitBranch: deployment.gitBranch,
-        gitCommitMessage: deployment.gitCommitMessage,
-        gitCommitAuthorHandle: deployment.gitCommitAuthorHandle,
-        gitCommitAuthorAvatarUrl: deployment.gitCommitAuthorAvatarUrl,
-        projectId: deployment.projectId,
-        environment: deployment.environment?.slug ?? "",
-        createdAt: deployment.createdAt,
-        updatedAt: deployment.updatedAt,
+        ...deployment,
+        ...normalizeDeploymentRow(deployment),
+        instances: instanceRows.map(mapInstanceRow),
+        hasOpenApiSpec: specRows.length > 0,
       };
     } catch (error) {
       if (error instanceof TRPCError) {

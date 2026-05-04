@@ -18,10 +18,7 @@ export const ReactQueryProvider: React.FC<PropsWithChildren> = ({ children }) =>
     // The production custom domain lives in VERCEL_PROJECT_PRODUCTION_URL.
     // For previews, prefer VERCEL_BRANCH_URL (stable across deploys of the
     // same branch) so links and redirects remain valid between deployments.
-    if (
-      process.env.VERCEL_ENV === "production" &&
-      process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ) {
+    if (process.env.VERCEL_ENV === "production" && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
       return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
     }
     if (process.env.VERCEL_BRANCH_URL) {

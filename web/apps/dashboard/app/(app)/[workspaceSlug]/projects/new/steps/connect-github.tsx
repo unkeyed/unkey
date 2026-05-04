@@ -16,8 +16,7 @@ export const ConnectGithubStep = ({ projectId, onBeforeNavigate }: ConnectGithub
   // it lazily when the user clicks Import.
   const prepare = trpc.github.prepareInstallation.useMutation();
   const [isPreparing, setIsPreparing] = useState(false);
-  const handleClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
+  const handleClick = async () => {
     if (isPreparing) {
       return;
     }
@@ -44,20 +43,14 @@ export const ConnectGithubStep = ({ projectId, onBeforeNavigate }: ConnectGithub
             Add a repo from your GitHub account
           </span>
         </div>
-        <a
-          href="#"
-          rel="noopener noreferrer"
-          className="ml-auto"
+        <Button
+          variant="outline"
+          className="ml-auto rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
           onClick={handleClick}
         >
-          <Button
-            variant="outline"
-            className="rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
-          >
-            <Github className="size-[18px]! text-gray-12 shrink-0" />
-            <span className="text-[13px] text-gray-12 font-medium">Import from GitHub</span>
-          </Button>
-        </a>
+          <Github className="size-[18px]! text-gray-12 shrink-0" />
+          <span className="text-[13px] text-gray-12 font-medium">Import from GitHub</span>
+        </Button>
       </div>
       <div className="mb-7" />
       <OnboardingLinks />
