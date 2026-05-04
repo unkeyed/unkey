@@ -18,7 +18,7 @@ import (
 type WaitStrategy interface {
 	// Wait blocks until the container is ready or the timeout expires.
 	// Fails the test if the container does not become ready in time.
-	Wait(t *testing.T, c *Container, timeout time.Duration)
+	Wait(t testing.TB, c *Container, timeout time.Duration)
 }
 
 // TCPWait waits for a TCP port to accept connections.
@@ -36,7 +36,7 @@ type TCPWait struct {
 
 // Wait polls the TCP port until it accepts connections or the timeout expires.
 // Fails the test if the port is not mapped or does not become ready in time.
-func (w *TCPWait) Wait(t *testing.T, c *Container, timeout time.Duration) {
+func (w *TCPWait) Wait(t testing.TB, c *Container, timeout time.Duration) {
 	t.Helper()
 
 	hostPort := c.Port(w.Port)
@@ -94,7 +94,7 @@ type HTTPWait struct {
 
 // Wait polls the HTTP endpoint until it returns the expected status code or
 // the timeout expires. Fails the test if the endpoint does not become ready.
-func (w *HTTPWait) Wait(t *testing.T, c *Container, timeout time.Duration) {
+func (w *HTTPWait) Wait(t testing.TB, c *Container, timeout time.Duration) {
 	t.Helper()
 
 	hostPort := c.Port(w.Port)

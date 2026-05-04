@@ -15,7 +15,7 @@ export const file_frontline_config_v1_config: GenFile = /*@__PURE__*/
   fileDesc("CiBmcm9udGxpbmUvY29uZmlnL3YxL2NvbmZpZy5wcm90bxIMZnJvbnRsaW5lLnYxIjAKBkNvbmZpZxImCghwb2xpY2llcxgBIAMoCzIULmZyb250bGluZS52MS5Qb2xpY3lCrQEKEGNvbS5mcm9udGxpbmUudjFCC0NvbmZpZ1Byb3RvUAFaO2dpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vZnJvbnRsaW5lL3YxO2Zyb250bGluZXYxogIDRlhYqgIMRnJvbnRsaW5lLlYxygIMRnJvbnRsaW5lXFYx4gIYRnJvbnRsaW5lXFYxXEdQQk1ldGFkYXRh6gINRnJvbnRsaW5lOjpWMWIGcHJvdG8z", [file_frontline_policies_v1_policy]);
 
 /**
- * Config defines the middleware pipeline for a sentinel deployment. Each
+ * Config defines the middleware pipeline for a frontline deployment. Each
  * policy in the list is evaluated in order, forming a chain of request
  * processing stages like authentication, rate limiting, and request validation.
  *

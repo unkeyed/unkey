@@ -1,17 +1,13 @@
 ---
 title: Metrics
-description: "Track requests per second, latency percentiles, and error rates for each Unkey deployment. Monitor performance with built-in metric charts."
+description: "Track requests per second, latency percentiles, and runtime resource usage for each Unkey deployment. Monitor performance with built-in metric charts."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-<Warning>
-  The metrics page is a work in progress. RPS and latency charts are available, with additional metrics coming soon.
-</Warning>
-
-Each deployment's overview page includes real-time charts for throughput and latency. Navigate to a deployment from your project's **Deployments** tab to view them.
+Each deployment's overview page includes real-time charts for throughput and latency. Per-instance runtime metrics (CPU, memory, disk, and network) are available from the deployment's network view. Navigate to a deployment from your project's **Deployments** tab to view them.
 
 ## Requests per second
 
@@ -21,11 +17,13 @@ The RPS chart shows the number of requests your deployment handles over time. Us
 
 The latency chart displays response time distributions over time. You can switch between p50, p75, p90, p95, and p99 percentiles. Check the [Requests](/observability/requests) tab to find individual slow requests and inspect their latency breakdown.
 
-## Planned metrics
+## Runtime metrics
 
-Unkey is adding per-deployment metrics for:
+Open the **Network** tab on a deployment and click an instance node to open the details panel. The panel shows live charts for the selected instance, refreshing every few seconds:
 
-- CPU utilization
-- Memory usage
-- Instance count
-- Disk usage
+- **CPU.** Used vs. allocated CPU in millicores.
+- **Memory.** Used vs. allocated memory in bytes.
+- **Disk.** Used vs. allocated disk in bytes. Only shown when the instance has provisioned disk storage.
+- **Network.** Egress and ingress traffic over time.
+
+Use the time window selector at the top of the panel to switch between the past 15 minutes, 1 hour, 6 hours, or 24 hours. When you select a deployment node instead of a single instance, the charts aggregate across all instances in the deployment.

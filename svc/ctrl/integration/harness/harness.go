@@ -203,7 +203,6 @@ func New(t *testing.T, opts ...Option) *Harness {
 		DefaultDomain: "test.example.com",
 		DashboardURL:  "https://app.unkey.com",
 		Vault:         vaultClient,
-		SentinelImage: "test-sentinel:latest",
 
 		GitHub:                          nil,
 		DepotConfig:                     deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},

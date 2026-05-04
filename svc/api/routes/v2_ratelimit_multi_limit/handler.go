@@ -169,12 +169,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		cost := ptr.SafeDeref(check.Cost, 1)
 		ratelimitReqs[i] = ratelimit.RatelimitRequest{
-			Name:       ns.ID,
-			Identifier: check.Identifier,
-			Duration:   time.Duration(duration) * time.Millisecond,
-			Limit:      limit,
-			Cost:       cost,
-			Time:       reqTime,
+			WorkspaceID: auth.AuthorizedWorkspaceID,
+			Namespace:   ns.ID,
+			Identifier:  check.Identifier,
+			Duration:    time.Duration(duration) * time.Millisecond,
+			Limit:       limit,
+			Cost:        cost,
+			Time:        reqTime,
 		}
 
 		checkMetadata[i] = checkMeta{

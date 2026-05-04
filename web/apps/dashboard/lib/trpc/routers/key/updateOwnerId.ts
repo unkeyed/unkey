@@ -187,6 +187,30 @@ const updateOwnerV2 = async (
     });
   }
 
+  // Verify the identity belongs to this workspace before binding any key to
+  // it. Without this, an attacker can rebind a key they own to an identity
+  // in another workspace and then leak that identity's external_id and meta
+  // through /v2/keys.verifyKey (the join in key_find_for_verification.sql
+  // has no workspace filter on the identities table).
+  const requestedIdentityId = input.identity.id;
+  if (requestedIdentityId) {
+    const identity = await db.query.identities.findFirst({
+      where: (table, { and, eq }) =>
+        and(
+          eq(table.id, requestedIdentityId),
+          eq(table.workspaceId, ctx.workspaceId),
+          eq(table.deleted, false),
+        ),
+      columns: { id: true },
+    });
+    if (!identity) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Identity not found",
+      });
+    }
+  }
+
   try {
     await db.transaction(async (tx) => {
       await tx

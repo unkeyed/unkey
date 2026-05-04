@@ -52,6 +52,7 @@ const schema = z.object({
     .nullable(),
   shutdownSignal: z.enum(["SIGTERM", "SIGINT", "SIGQUIT", "SIGKILL"]),
   createdAt: z.number(),
+  updatedAt: z.number().nullable(),
 });
 
 export type Deployment = z.infer<typeof schema>;

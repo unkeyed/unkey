@@ -21,7 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Config defines the middleware pipeline for a sentinel deployment. Each
+// Config defines the middleware pipeline for a frontline deployment. Each
 // policy in the list is evaluated in order, forming a chain of request
 // processing stages like authentication, rate limiting, and request validation.
 type Config struct {

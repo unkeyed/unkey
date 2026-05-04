@@ -1530,6 +1530,17 @@ type Ratelimit struct {
 	AutoApply   bool           `db:"auto_apply"`
 }
 
+type RatelimitBlocklist struct {
+	Pk          uint64 `db:"pk"`
+	WorkspaceID string `db:"workspace_id"`
+	Namespace   string `db:"namespace"`
+	Identifier  string `db:"identifier"`
+	DurationMs  uint64 `db:"duration_ms"`
+	Sequence    int64  `db:"sequence"`
+	Limit       uint64 `db:"limit"`
+	ExpiresAt   uint64 `db:"expires_at"`
+}
+
 type RatelimitNamespace struct {
 	Pk          uint64        `db:"pk"`
 	ID          string        `db:"id"`
