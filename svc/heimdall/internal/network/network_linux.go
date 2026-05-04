@@ -30,9 +30,10 @@ type linuxReader struct {
 	podCounters *ebpf.Map            // shared pinned counter map, read by Read()
 	cd          *containerd.Client   // sandbox-container lookups for netns resolution
 
-	mu       sync.Mutex
-	attached map[types.UID]attachedPod // pod uid → per-pod links + collection + cookie
-	pending  map[types.UID]struct{}    // uids currently enqueued or being attached
+	mu         sync.Mutex
+	attached   map[types.UID]attachedPod // pod uid → per-pod links + collection + cookie
+	pending    map[types.UID]struct{}    // uids currently enqueued or being attached
+	terminated map[types.UID]struct{}    // uids whose CNI netns is confirmed gone (ENOENT); never re-enqueued
 
 	// Async attach worker pool. Attach() enqueues; workers dequeue and
 	// call attachSync. Keeps the 5s collect tick from serialising on
@@ -147,6 +148,7 @@ func NewReader(criSocket string) (Reader, error) {
 		mu:          sync.Mutex{},
 		attached:    make(map[types.UID]attachedPod),
 		pending:     make(map[types.UID]struct{}),
+		terminated:  make(map[types.UID]struct{}),
 		attachQ:     make(chan types.UID, attachQueueSize),
 		closed:      make(chan struct{}),
 		workerWG:    sync.WaitGroup{},
@@ -197,6 +199,10 @@ func PinDir() string { return bpfPinDir }
 // attachQueueSize. The caller's next tick will re-request the same UID.
 func (r *linuxReader) Attach(uid types.UID) error {
 	r.mu.Lock()
+	if _, ok := r.terminated[uid]; ok {
+		r.mu.Unlock()
+		return nil
+	}
 	if _, ok := r.attached[uid]; ok {
 		r.mu.Unlock()
 		return nil
@@ -245,23 +251,39 @@ func (r *linuxReader) runAttachWorker() {
 
 			r.mu.Lock()
 			delete(r.pending, uid)
+			// ENOENT on the CNI netns path means DEL already ran and the pod
+			// is definitively gone. Mark it terminated so Attach never
+			// re-enqueues it. Set this under the same lock as delete(pending)
+			// to close the window where pending is clear but terminated isn't
+			// set yet and a concurrent Attach call could sneak in.
+			netnsGone := err != nil && errors.Is(err, ErrNetnsOpen) && errors.Is(err, os.ErrNotExist)
+			if netnsGone {
+				r.terminated[uid] = struct{}{}
+			}
 			r.mu.Unlock()
 
 			if err != nil {
-				// Fire-and-forget means the collector can't see this
-				// error; surface it through the same metric it used to
-				// observe before the move to async, plus a Warn log so
-				// the full wrap chain (the part the metric label can't
-				// capture) is visible without flipping to Debug level.
-				// Deeper per-step diagnostics live at Debug in sandbox_linux.go
-				// and veth_linux.go.
-				reason := attachFailureReason(err)
-				metrics.NetworkAttachFailures.WithLabelValues(reason).Inc()
-				logger.Warn("network attach failed",
-					"pod_uid", string(uid),
-					"reason", reason,
-					"error", err.Error(),
-				)
+				if netnsGone {
+					// Benign churn: CNI already tore down the netns. No warn,
+					// no alert. Debug log once; future Attach calls are no-ops.
+					metrics.NetworkAttachFailures.WithLabelValues("netns_gone").Inc()
+					logger.Debug("network attach: pod netns gone, suppressing retries",
+						"pod_uid", string(uid),
+					)
+				} else {
+					// Fire-and-forget means the collector can't see this
+					// error; surface it through the metric plus a Warn log so
+					// the full wrap chain is visible without flipping to Debug.
+					// Deeper per-step diagnostics live in sandbox_linux.go and
+					// veth_linux.go.
+					reason := attachFailureReason(err)
+					metrics.NetworkAttachFailures.WithLabelValues(reason).Inc()
+					logger.Warn("network attach failed",
+						"pod_uid", string(uid),
+						"reason", reason,
+						"error", err.Error(),
+					)
+				}
 			}
 		}
 	}
@@ -374,6 +396,7 @@ func (r *linuxReader) Detach(uid types.UID) {
 	defer r.mu.Unlock()
 
 	delete(r.pending, uid)
+	delete(r.terminated, uid)
 
 	p, ok := r.attached[uid]
 	if !ok {
@@ -448,6 +471,7 @@ func (r *linuxReader) Close() error {
 	}
 
 	r.pending = map[types.UID]struct{}{}
+	r.terminated = map[types.UID]struct{}{}
 	_ = r.cd.Close()
 
 	// Close the shared map handle. The pinned inode stays on disk (under

@@ -99,7 +99,7 @@ var (
 			Name:      "network_attach_failures_total",
 			Help:      "Per-pod network attach failures, labeled by reason.",
 		},
-		[]string{"reason"}, // "sandbox_not_found", "netns_open", "veth_lookup", "tcx_attach", "queue_full", "other"
+		[]string{"reason"}, // "sandbox_not_found", "netns_gone", "netns_open", "veth_lookup", "tcx_attach", "queue_full", "other"
 	)
 
 	// BPFMapEntries tracks how many per-pod counter entries are live in
