@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // TestRatelimit_SlidingWindowDecision locks in the math of the sliding window
@@ -44,10 +45,14 @@ func TestRatelimit_SlidingWindowDecision(t *testing.T) {
 			t.Parallel()
 
 			clk := clock.NewTestClock()
-			svc, err := New(Config{Clock: clk, Counter: counter.NewMemory()})
+			svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
 			require.NoError(t, err)
 			t.Cleanup(func() { _ = svc.Close() })
 
+			// Per-test workspace ID so the construction-time blocklist sync
+			// can't pollute these counters from rows another test wrote to
+			// the shared MySQL.
+			ws := uid.New(uid.WorkspacePrefix)
 			duration := time.Minute
 			durationMs := duration.Milliseconds()
 
@@ -58,20 +63,21 @@ func TestRatelimit_SlidingWindowDecision(t *testing.T) {
 			reqTime := time.UnixMilli(windowStartMs + elapsedMs)
 
 			// Seed both windows so prepareCheck takes the local fast path.
-			curKey := counterKey{name: "ns", identifier: "id", durationMs: durationMs, sequence: curSeq}
-			prevKey := counterKey{name: "ns", identifier: "id", durationMs: durationMs, sequence: curSeq - 1}
+			curKey := counterKey{workspaceID: ws, namespace: "ns", identifier: "id", durationMs: durationMs, sequence: curSeq}
+			prevKey := counterKey{workspaceID: ws, namespace: "ns", identifier: "id", durationMs: durationMs, sequence: curSeq - 1}
 			cur := svc.loadCounter(curKey)
 			cur.val.Store(tt.curCount)
 			prev := svc.loadCounter(prevKey)
 			prev.val.Store(tt.prevCount)
 
 			resp, err := svc.Ratelimit(context.Background(), RatelimitRequest{
-				Name:       "ns",
-				Identifier: "id",
-				Limit:      tt.limit,
-				Duration:   duration,
-				Cost:       tt.cost,
-				Time:       reqTime,
+				WorkspaceID: ws,
+				Namespace:   "ns",
+				Identifier:  "id",
+				Limit:       tt.limit,
+				Duration:    duration,
+				Cost:        tt.cost,
+				Time:        reqTime,
 			})
 			require.NoError(t, err)
 			require.Equal(t, tt.wantPass, resp.Success, "Success")
@@ -87,18 +93,19 @@ func TestRatelimit_DenialSetsStrictUntil(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
-	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory()})
+	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
 	duration := time.Minute
 	req := RatelimitRequest{
-		Name:       "ns",
-		Identifier: "id",
-		Limit:      1,
-		Duration:   duration,
-		Cost:       1,
-		Time:       clk.Now(),
+		WorkspaceID: uid.New(uid.WorkspacePrefix),
+		Namespace:   "ns",
+		Identifier:  "id",
+		Limit:       1,
+		Duration:    duration,
+		Cost:        1,
+		Time:        clk.Now(),
 	}
 
 	resp, err := svc.Ratelimit(context.Background(), req)
@@ -109,7 +116,7 @@ func TestRatelimit_DenialSetsStrictUntil(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, resp.Success, "second request should be denied")
 
-	sk := strictKey{name: req.Name, identifier: req.Identifier, durationMs: duration.Milliseconds()}
+	sk := strictKey{workspaceID: req.WorkspaceID, namespace: req.Namespace, identifier: req.Identifier, durationMs: duration.Milliseconds()}
 	got := svc.loadStrictUntil(sk)
 	want := req.Time.Add(duration).UnixMilli()
 	require.Equal(t, want, got, "strictUntil should equal req.Time + req.Duration")
@@ -124,29 +131,31 @@ func TestRatelimit_StrictModeForcesOriginFetch(t *testing.T) {
 
 	clk := clock.NewTestClock()
 	origin := counter.NewMemory()
-	svc, err := New(Config{Clock: clk, Counter: origin})
+	svc, err := New(Config{Clock: clk, Counter: origin, DB: newTestDB(t)})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
+	ws := uid.New(uid.WorkspacePrefix)
 	duration := time.Minute
 	durationMs := duration.Milliseconds()
 	reqTime := clk.Now()
 	curSeq := calculateSequence(reqTime, duration)
 
-	curKey := counterKey{name: "ns", identifier: "id", durationMs: durationMs, sequence: curSeq}
-	prevKey := counterKey{name: "ns", identifier: "id", durationMs: durationMs, sequence: curSeq - 1}
+	curKey := counterKey{workspaceID: ws, namespace: "ns", identifier: "id", durationMs: durationMs, sequence: curSeq}
+	prevKey := counterKey{workspaceID: ws, namespace: "ns", identifier: "id", durationMs: durationMs, sequence: curSeq - 1}
 
 	// Warm local windows so the first denial does not trigger a cold-window fetch.
 	cur := svc.loadCounter(curKey)
 	prev := svc.loadCounter(prevKey)
 
 	req := RatelimitRequest{
-		Name:       "ns",
-		Identifier: "id",
-		Limit:      1,
-		Duration:   duration,
-		Cost:       1,
-		Time:       reqTime,
+		WorkspaceID: ws,
+		Namespace:   "ns",
+		Identifier:  "id",
+		Limit:       1,
+		Duration:    duration,
+		Cost:        1,
+		Time:        reqTime,
 	}
 
 	_, err = svc.Ratelimit(context.Background(), req)
@@ -176,20 +185,21 @@ func TestRatelimitMany_RollsBackOnPartialFailure(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewTestClock()
-	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory()})
+	svc, err := New(Config{Clock: clk, Counter: counter.NewMemory(), DB: newTestDB(t)})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = svc.Close() })
 
+	ws := uid.New(uid.WorkspacePrefix)
 	duration := time.Minute
 	durationMs := duration.Milliseconds()
 	reqTime := clk.Now()
 	curSeq := calculateSequence(reqTime, duration)
 
 	// Seed warm windows so prepareCheck is local-only.
-	aCur := counterKey{name: "A", identifier: "user", durationMs: durationMs, sequence: curSeq}
-	aPrev := counterKey{name: "A", identifier: "user", durationMs: durationMs, sequence: curSeq - 1}
-	bCur := counterKey{name: "B", identifier: "user", durationMs: durationMs, sequence: curSeq}
-	bPrev := counterKey{name: "B", identifier: "user", durationMs: durationMs, sequence: curSeq - 1}
+	aCur := counterKey{workspaceID: ws, namespace: "A", identifier: "user", durationMs: durationMs, sequence: curSeq}
+	aPrev := counterKey{workspaceID: ws, namespace: "A", identifier: "user", durationMs: durationMs, sequence: curSeq - 1}
+	bCur := counterKey{workspaceID: ws, namespace: "B", identifier: "user", durationMs: durationMs, sequence: curSeq}
+	bPrev := counterKey{workspaceID: ws, namespace: "B", identifier: "user", durationMs: durationMs, sequence: curSeq - 1}
 	a := svc.loadCounter(aCur)
 	_ = svc.loadCounter(aPrev)
 	b := svc.loadCounter(bCur)
@@ -199,8 +209,8 @@ func TestRatelimitMany_RollsBackOnPartialFailure(t *testing.T) {
 	b.val.Store(9)
 
 	reqs := []RatelimitRequest{
-		{Name: "A", Identifier: "user", Limit: 10, Duration: duration, Cost: 1, Time: reqTime},
-		{Name: "B", Identifier: "user", Limit: 10, Duration: duration, Cost: 5, Time: reqTime},
+		{WorkspaceID: ws, Namespace: "A", Identifier: "user", Limit: 10, Duration: duration, Cost: 1, Time: reqTime},
+		{WorkspaceID: ws, Namespace: "B", Identifier: "user", Limit: 10, Duration: duration, Cost: 5, Time: reqTime},
 	}
 
 	resp, err := svc.RatelimitMany(context.Background(), reqs)

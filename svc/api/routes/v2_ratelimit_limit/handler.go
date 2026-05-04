@@ -133,13 +133,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Apply rate limit
+	cost := ptr.SafeDeref(req.Cost, 1)
 	limitReq := ratelimit.RatelimitRequest{
-		Name:       ns.ID,
-		Identifier: req.Identifier,
-		Duration:   time.Duration(duration) * time.Millisecond,
-		Limit:      limit,
-		Cost:       ptr.SafeDeref(req.Cost, 1),
-		Time:       time.Time{},
+		WorkspaceID: auth.AuthorizedWorkspaceID,
+		Namespace:   ns.ID,
+		Identifier:  req.Identifier,
+		Duration:    time.Duration(duration) * time.Millisecond,
+		Limit:       limit,
+		Cost:        cost,
+		Time:        time.Time{},
 	}
 
 	if h.TestMode {
@@ -178,6 +180,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limit:       uint64(result.Limit),
 			Remaining:   uint64(result.Remaining),
 			ResetAt:     result.Reset.UnixMilli(),
+			Tokens:      uint64(cost),
 		})
 	}
 

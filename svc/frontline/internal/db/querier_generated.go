@@ -35,31 +35,20 @@ type Querier interface {
 	//  ORDER BY hostname = ? DESC
 	//  LIMIT 1
 	FindBestCertificateByCandidates(ctx context.Context, arg FindBestCertificateByCandidatesParams) (FindBestCertificateByCandidatesRow, error)
-	// FindFrontlineRouteByFQDN resolves a hostname to the environment and
-	// deployment IDs frontline needs to route a request.
-	// The projection intentionally stays narrow because this lookup is on the
-	// request path and callers do not need the rest of the route row.
+	// FindFrontlineRouteByFQDN resolves a hostname to the routing data frontline
+	// needs on the request path: the deployment ID, the policy bytes the engine
+	// evaluates, and the upstream protocol used to pick a transport. Joining
+	// deployments here keeps the fast path to a single round trip.
 	//
 	//  SELECT
-	//    environment_id,
-	//    deployment_id
-	//  FROM frontline_routes
-	//  WHERE fully_qualified_domain_name = ?
-	FindFrontlineRouteByFQDN(ctx context.Context, fullyQualifiedDomainName string) (FindFrontlineRouteByFQDNRow, error)
-	// FindHealthyRoutableSentinelsByEnvironmentID returns healthy sentinels with
-	// region metadata needed for region-aware routing.
-	// INNER JOIN drops sentinels without region metadata so callers only receive
-	// fully routable rows.
-	//
-	//  SELECT
-	//    s.k8s_address,
-	//    r.name AS region_name,
-	//    r.platform AS region_platform
-	//  FROM sentinels s
-	//  INNER JOIN regions r ON s.region_id = r.id
-	//  WHERE s.environment_id = ?
-	//    AND s.health = 'healthy'
-	FindHealthyRoutableSentinelsByEnvironmentID(ctx context.Context, environmentID string) ([]FindHealthyRoutableSentinelsByEnvironmentIDRow, error)
+	//    fr.environment_id,
+	//    fr.deployment_id,
+	//    d.sentinel_config,
+	//    d.upstream_protocol
+	//  FROM frontline_routes fr
+	//  INNER JOIN deployments d ON fr.deployment_id = d.id
+	//  WHERE fr.fully_qualified_domain_name = ?
+	FindFrontlineRouteByFQDN(ctx context.Context, fqdn string) (FindFrontlineRouteByFQDNRow, error)
 	// FindInstancesByDeploymentID returns all instances for a given deployment
 	// with region metadata for instance-aware routing decisions.
 	//

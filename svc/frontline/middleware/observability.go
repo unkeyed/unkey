@@ -285,51 +285,67 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Message: "The request took too long to process. Please try again later.",
 		}
 
-	// Sentinel errors passed through from upstream — preserve the original status/message.
-	case codes.Sentinel.Routing.DeploymentNotFound.URN():
+	// Engine errors — keyauth / firewall denials produced in-process.
+	// Status comes from the code's HTTP semantics (CategoryUnauthorized → 401,
+	// CategoryForbidden → 403, CategoryRateLimited → 429), not from upstream.
+	case codes.Frontline.Auth.MissingCredentials.URN():
+		return errorPageInfo{
+			Status:  http.StatusUnauthorized,
+			Title:   http.StatusText(http.StatusUnauthorized),
+			Message: "Authentication required. Please provide a valid API key.",
+		}
+	case codes.Frontline.Auth.InvalidKey.URN():
+		return errorPageInfo{
+			Status:  http.StatusUnauthorized,
+			Title:   http.StatusText(http.StatusUnauthorized),
+			Message: "Authentication failed. The provided API key is invalid.",
+		}
+	case codes.Frontline.Auth.InsufficientPermissions.URN():
+		return errorPageInfo{
+			Status:  http.StatusForbidden,
+			Title:   http.StatusText(http.StatusForbidden),
+			Message: "Access denied. The API key does not have the required permissions.",
+		}
+	case codes.Frontline.Auth.RateLimited.URN():
+		return errorPageInfo{
+			Status:  http.StatusTooManyRequests,
+			Title:   http.StatusText(http.StatusTooManyRequests),
+			Message: "Rate limit exceeded. Please try again later.",
+		}
+	case codes.Frontline.Firewall.Denied.URN():
+		return errorPageInfo{
+			Status:  http.StatusForbidden,
+			Title:   http.StatusText(http.StatusForbidden),
+			Message: "Forbidden",
+		}
+
+	// Routing failures other than ConfigNotFound (e.g. deployment-by-id miss,
+	// no instances in any region).
+	case codes.Frontline.Routing.DeploymentNotFound.URN():
 		return errorPageInfo{
 			Status:  http.StatusNotFound,
 			Title:   http.StatusText(http.StatusNotFound),
 			Message: "The requested deployment could not be found.",
 		}
-	case codes.Sentinel.Routing.NoRunningInstances.URN():
+	case codes.Frontline.Routing.NoRunningInstances.URN():
 		return errorPageInfo{
 			Status:  http.StatusServiceUnavailable,
 			Title:   http.StatusText(http.StatusServiceUnavailable),
 			Message: "No running instances are available to handle this request.",
 		}
-	case codes.Sentinel.Routing.InstanceSelectionFailed.URN():
+	case codes.Frontline.Routing.DeploymentSelectionFailed.URN():
 		return errorPageInfo{
 			Status:  http.StatusInternalServerError,
 			Title:   http.StatusText(http.StatusInternalServerError),
 			Message: "Failed to select an instance to handle your request.",
 		}
-	case codes.Sentinel.Proxy.SentinelTimeout.URN():
-		return errorPageInfo{
-			Status:  http.StatusGatewayTimeout,
-			Title:   http.StatusText(http.StatusGatewayTimeout),
-			Message: "The request took too long to process. Please try again later.",
-		}
-	case codes.Sentinel.Proxy.BadGateway.URN(),
-		codes.Sentinel.Proxy.ProxyForwardFailed.URN():
-		return errorPageInfo{
-			Status:  http.StatusBadGateway,
-			Title:   http.StatusText(http.StatusBadGateway),
-			Message: "Unable to connect to an instance. Please try again in a few moments.",
-		}
-	case codes.Sentinel.Proxy.ServiceUnavailable.URN():
-		return errorPageInfo{
-			Status:  http.StatusServiceUnavailable,
-			Title:   http.StatusText(http.StatusServiceUnavailable),
-			Message: "The service is temporarily unavailable. Please try again later.",
-		}
-	case codes.Sentinel.Internal.InvalidConfiguration.URN():
+	case codes.Frontline.Internal.InvalidConfiguration.URN():
 		return errorPageInfo{
 			Status:  http.StatusInternalServerError,
 			Title:   http.StatusText(http.StatusInternalServerError),
-			Message: "The sentinel is misconfigured. Please contact support at support@unkey.com.",
+			Message: "The deployment configuration is invalid. Please contact support at support@unkey.com.",
 		}
-	case codes.Sentinel.Internal.InternalServerError.URN():
+	case codes.Frontline.Internal.InternalServerError.URN():
 		return errorPageInfo{
 			Status:  http.StatusInternalServerError,
 			Title:   http.StatusText(http.StatusInternalServerError),

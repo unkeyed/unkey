@@ -60,6 +60,7 @@
                 "pages": [
                   "architecture/services/api/overview",
                   "architecture/services/api/configuration",
+                  "architecture/services/api/ratelimit",
                   {
                     "group": "API design",
                     "pages": [

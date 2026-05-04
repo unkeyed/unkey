@@ -175,7 +175,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 // maybeNotifyInstancesReady checks whether enough regions are healthy for
 // the given deployment and, if so, calls DeployService.NotifyInstancesReady
 // to unblock the suspended Deploy workflow. Best-effort: errors are logged
-// but not returned, mirroring ReportSentinelStatus's thundering-herd gate.
+// but not returned, gating the thundering herd from concurrent retries.
 func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.Deployment) {
 	if !deploymentActiveStatuses[deployment.Status] {
 		metrics.NotifyInstancesReadyTotal.WithLabelValues("inactive_status").Inc()

@@ -42,12 +42,7 @@ rules:
     resources: ["statefulsets"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
-  # Sentinel CRD management
-  - apiGroups: ["kubernetes.unkey.com"]
-    resources: ["sentinel", "sentinel/status"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # Sentinel CRD management
+  # Deployment CRD management
   - apiGroups: ["kubernetes.unkey.com"]
     resources: ["deployments", "deployments/status"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
@@ -82,7 +77,7 @@ rules:
     resources: ["horizontalpodautoscalers"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
-  # PodDisruptionBudget management for sentinel workloads
+  # PodDisruptionBudget management for deployment workloads
   - apiGroups: ["policy"]
     resources: ["poddisruptionbudgets"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

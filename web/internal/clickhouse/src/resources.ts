@@ -102,13 +102,12 @@ const CHECKPOINTS_VIEW = "default.instance_checkpoints";
 // plan caches.
 const RESOURCE_FILTER = `
   workspace_id = {workspaceId: String}
-  AND resource_type = {resourceType: String}
+  AND resource_type = 'deployment'
   AND resource_id = {resourceId: String}
   AND ({instanceName: String} = '' OR instance_id = {instanceName: String})`;
 
 const baseParams = z.object({
   workspaceId: z.string(),
-  resourceType: z.enum(["deployment", "sentinel"]),
   resourceId: z.string(),
   instanceName: z.string().default(""),
   window: z.enum(TIME_WINDOWS).default("1h"),
@@ -383,7 +382,6 @@ const resourceSummarySchema = z.object({
 
 const summaryParams = z.object({
   workspaceId: z.string(),
-  resourceType: z.enum(["deployment", "sentinel"]),
   resourceId: z.string(),
   instanceName: z.string().default(""),
 });

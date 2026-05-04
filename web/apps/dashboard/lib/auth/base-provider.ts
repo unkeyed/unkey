@@ -241,6 +241,16 @@ export abstract class BaseAuthProvider {
   abstract removeMembership(membershipId: string): Promise<void>;
 
   /**
+   * Deactivates a user's membership in an organization without deleting it.
+   * Used when a workspace's subscription lapses and team access must be revoked
+   * for non-creator members. The membership can be reactivated later.
+   *
+   * @param membershipId - The ID of the membership to deactivate
+   * @returns A promise that resolves when the membership is deactivated
+   */
+  abstract deactivateMembership(membershipId: string): Promise<void>;
+
+  /**
    * Invites a new user to join an organization.
    *
    * @param params - Parameters containing the organization ID, email, and role

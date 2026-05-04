@@ -55,6 +55,7 @@ import { rollback } from "./deploy/deployment/rollback";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
 import { createEnvVars } from "./deploy/env-vars/create";
+import { createBulkEnvVars } from "./deploy/env-vars/create-bulk";
 import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
 import { listEnvVars } from "./deploy/env-vars/list";
@@ -101,7 +102,7 @@ import { getDeploymentRpsTimeseries } from "./deploy/metrics/get-deployment-rps-
 import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
-import { getSentinelRps } from "./deploy/network/get-sentinel-rps";
+import { getRegionRps } from "./deploy/network/get-region-rps";
 import { createProject } from "./deploy/project/create";
 import { creationContext } from "./deploy/project/creation-context";
 import { deleteProject } from "./deploy/project/delete";
@@ -425,8 +426,8 @@ export const router = t.router({
     network: t.router({
       generate: generateDeploymentTree,
       get: getDeploymentTree,
-      getSentinelRps,
       getInstanceRps,
+      getRegionRps,
     }),
     project: t.router({
       list: listProjects,
@@ -482,6 +483,7 @@ export const router = t.router({
     envVar: t.router({
       list: listEnvVars,
       create: createEnvVars,
+      createBulk: createBulkEnvVars,
       update: updateEnvVar,
       decrypt: decryptEnvVar,
       delete: deleteEnvVar,

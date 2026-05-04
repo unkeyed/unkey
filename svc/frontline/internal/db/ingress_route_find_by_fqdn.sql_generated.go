@@ -11,30 +11,43 @@ import (
 
 const findFrontlineRouteByFQDN = `-- name: FindFrontlineRouteByFQDN :one
 SELECT
-  environment_id,
-  deployment_id
-FROM frontline_routes
-WHERE fully_qualified_domain_name = ?
+  fr.environment_id,
+  fr.deployment_id,
+  d.sentinel_config,
+  d.upstream_protocol
+FROM frontline_routes fr
+INNER JOIN deployments d ON fr.deployment_id = d.id
+WHERE fr.fully_qualified_domain_name = ?
 `
 
 type FindFrontlineRouteByFQDNRow struct {
-	EnvironmentID string `db:"environment_id"`
-	DeploymentID  string `db:"deployment_id"`
+	EnvironmentID    string                      `db:"environment_id"`
+	DeploymentID     string                      `db:"deployment_id"`
+	SentinelConfig   []byte                      `db:"sentinel_config"`
+	UpstreamProtocol DeploymentsUpstreamProtocol `db:"upstream_protocol"`
 }
 
-// FindFrontlineRouteByFQDN resolves a hostname to the environment and
-// deployment IDs frontline needs to route a request.
-// The projection intentionally stays narrow because this lookup is on the
-// request path and callers do not need the rest of the route row.
+// FindFrontlineRouteByFQDN resolves a hostname to the routing data frontline
+// needs on the request path: the deployment ID, the policy bytes the engine
+// evaluates, and the upstream protocol used to pick a transport. Joining
+// deployments here keeps the fast path to a single round trip.
 //
 //	SELECT
-//	  environment_id,
-//	  deployment_id
-//	FROM frontline_routes
-//	WHERE fully_qualified_domain_name = ?
-func (q *Queries) FindFrontlineRouteByFQDN(ctx context.Context, fullyQualifiedDomainName string) (FindFrontlineRouteByFQDNRow, error) {
-	row := q.db.QueryRowContext(ctx, findFrontlineRouteByFQDN, fullyQualifiedDomainName)
+//	  fr.environment_id,
+//	  fr.deployment_id,
+//	  d.sentinel_config,
+//	  d.upstream_protocol
+//	FROM frontline_routes fr
+//	INNER JOIN deployments d ON fr.deployment_id = d.id
+//	WHERE fr.fully_qualified_domain_name = ?
+func (q *Queries) FindFrontlineRouteByFQDN(ctx context.Context, fqdn string) (FindFrontlineRouteByFQDNRow, error) {
+	row := q.db.QueryRowContext(ctx, findFrontlineRouteByFQDN, fqdn)
 	var i FindFrontlineRouteByFQDNRow
-	err := row.Scan(&i.EnvironmentID, &i.DeploymentID)
+	err := row.Scan(
+		&i.EnvironmentID,
+		&i.DeploymentID,
+		&i.SentinelConfig,
+		&i.UpstreamProtocol,
+	)
 	return i, err
 }

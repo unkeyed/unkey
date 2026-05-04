@@ -49,13 +49,8 @@
 // record, loads workspace/project/environment context, then either builds a
 // Docker image from a Git repository via Depot or accepts a pre-built image.
 // It creates deployment topologies for every configured region (each with its
-// own deployment_changes entry), ensures sentinel containers and Cilium
-// network policies exist per region, and polls in parallel until all instances
-// are running. New sentinels are tracked via [SentinelService.Deploy], which
-// blocks until the sentinel has converged in Kubernetes before proceeding.
-// Existing sentinels are not auto-upgraded during deploys; image rollouts
-// are a separate operation.
-// Once healthy, it generates frontline routes for per-commit,
+// own deployment_changes entry) and polls in parallel until all instances
+// are running. Once healthy, it generates frontline routes for per-commit,
 // per-branch, and per-environment domains, reassigns sticky routes through
 // RoutingService, marks the deployment ready, and — for non-rolled-back
 // production environments — updates the app's live deployment pointer.
@@ -89,12 +84,6 @@
 // deployment_id matches the one in state (protecting against late reports
 // from previous deployments on the same VO key) and then resolves the
 // awakeable.
-//
-// Sentinel convergence and pod readiness run in parallel: the Deploy
-// handler fires [Workflow.fanOutSentinelDeploys] to kick off
-// SentinelService.Deploy futures, then enters waitForDeployments. Krane
-// works on both concurrently; [Workflow.waitForSentinels] collects
-// the sentinel futures after the pod wait returns.
 //
 // # Cancellation
 //
@@ -136,10 +125,9 @@
 //
 // # Network Policy
 //
-// [Workflow.ensureCiliumNetworkPolicy] persists Cilium network policies in the
-// database for each region that lacks one. Each policy allows ingress from the
-// sentinel namespace to deployment pods on port 8080 and is applied by regional
-// reconcilers.
+// Per-deployment Cilium network policies are installed by krane during
+// ApplyDeployment so frontline can reach the customer pods on the configured
+// port. The deploy workflow does not write any network policies itself.
 //
 // # Error Handling
 //
