@@ -90,13 +90,20 @@ export interface PendingEmailVerificationResponse extends AuthErrorResponse {
   cookies: Cookie[];
 }
 
-// Special case for Turnstile challenge
+// Special case for Turnstile challenge.
+//
+// `challengeToken` is a server-signed seal binding the email, action, and
+// (for sign-up) the user's name to a single challenge. The client echoes it
+// back when submitting the Turnstile solution and the server uses the
+// sealed values, NOT the client-supplied ones, when retrying the auth call.
+// `cloudflareAction` is also bound into the Turnstile widget so a solved
+// token cannot be replayed against a different challenge.
 export interface PendingTurnstileResponse extends AuthErrorResponse {
   code: AuthErrorCode.RADAR_CHALLENGE_REQUIRED;
   email: string;
+  challengeToken: string;
+  cloudflareAction: string;
   challengeParams: {
-    ipAddress?: string;
-    userAgent?: string;
     authMethod: string;
     action: string;
   };

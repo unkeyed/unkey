@@ -40,7 +40,8 @@ function isPendingTurnstileChallenge(result: EmailAuthResult): result is Pending
     !result.success &&
     result.code === AuthErrorCode.RADAR_CHALLENGE_REQUIRED &&
     "email" in result &&
-    "challengeParams" in result
+    "challengeToken" in result &&
+    "cloudflareAction" in result
   );
 }
 
@@ -206,15 +207,12 @@ export function useSignIn() {
   const handleTurnstileVerification = async (
     turnstileToken: string,
     challengeData: PendingTurnstileResponse,
-    userData?: { firstName: string; lastName: string },
   ): Promise<void> => {
     try {
       setError(null);
       const result = await verifyTurnstileAndRetry({
         turnstileToken,
-        email: challengeData.email,
-        challengeParams: challengeData.challengeParams,
-        userData,
+        challengeToken: challengeData.challengeToken,
       });
 
       if (result.success) {

@@ -82,6 +82,7 @@ export function EmailSignIn() {
       <div className="grid gap-6">
         <TurnstileChallenge
           email={turnstileChallenge.email}
+          action={turnstileChallenge.cloudflareAction}
           onSuccess={handleTurnstileSuccess}
           onError={handleTurnstileError}
           isLoading={isTurnstileLoading}

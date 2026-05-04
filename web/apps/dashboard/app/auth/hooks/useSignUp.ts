@@ -26,7 +26,8 @@ export function useSignUp() {
       !result.success &&
       result.code === AuthErrorCode.RADAR_CHALLENGE_REQUIRED &&
       "email" in result &&
-      "challengeParams" in result
+      "challengeToken" in result &&
+      "cloudflareAction" in result
     );
   };
 
@@ -45,19 +46,9 @@ export function useSignUp() {
     turnstileToken: string,
     challengeData: PendingTurnstileResponse,
   ): Promise<EmailAuthResult> => {
-    // Validate userData exists and has required properties
-    if (!userData || !userData.firstName || !userData.lastName) {
-      throw new Error("User data is incomplete. First name and last name are required.");
-    }
-
     const result = await verifyTurnstileAndRetry({
       turnstileToken,
-      email: challengeData.email,
-      challengeParams: challengeData.challengeParams,
-      userData: {
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-      },
+      challengeToken: challengeData.challengeToken,
     });
     return result;
   };

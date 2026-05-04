@@ -8,6 +8,7 @@ import {
   setSessionCookie,
 } from "@/lib/auth/cookies";
 import { auth } from "@/lib/auth/server";
+import { verifyTurnstileChallenge } from "@/lib/auth/turnstile-challenge-token";
 import {
   AuthErrorCode,
   type AuthErrorResponse,
@@ -15,7 +16,6 @@ import {
   type NavigationResponse,
   type OAuthResult,
   PENDING_SESSION_COOKIE,
-  type PendingTurnstileResponse,
   type SignInViaOAuthOptions,
   UNKEY_LAST_ORG_COOKIE,
   type UserData,
@@ -40,8 +40,13 @@ async function getRequestMetadata() {
   return { ipAddress, userAgent };
 }
 
-// Turnstile verification helper
-async function verifyTurnstileToken(token: string): Promise<boolean> {
+// Turnstile verification helper.
+//
+// `expectedAction` is the per-challenge action we bound into the widget.
+// Cloudflare echoes the action back in the siteverify response and we
+// require it to match so a token solved for one challenge cannot be
+// replayed against another.
+async function verifyTurnstileToken(token: string, expectedAction: string): Promise<boolean> {
   const environment = env();
   const secretKey = environment.CLOUDFLARE_TURNSTILE_SECRET_KEY;
 
@@ -65,9 +70,19 @@ async function verifyTurnstileToken(token: string): Promise<boolean> {
       return false;
     }
 
-    const data = await response.json();
-
-    return data.success === true;
+    const data: unknown = await response.json();
+    if (typeof data !== "object" || data === null) {
+      return false;
+    }
+    if (!("success" in data) || data.success !== true) {
+      return false;
+    }
+    // Cloudflare returns the widget's `action` value. Reject any token
+    // whose action does not match the expected per-challenge action.
+    if (!("action" in data) || typeof data.action !== "string" || data.action !== expectedAction) {
+      return false;
+    }
+    return true;
   } catch (_error) {
     return false;
   }
@@ -460,18 +475,31 @@ export async function acceptInvitationAndJoin(
 }
 
 /**
- * Verify Turnstile token and retry original auth operation
+ * Verify Turnstile token and retry original auth operation.
+ *
+ * Takes only the Turnstile token plus the server-issued `challengeToken`
+ * sealed in `signUp/signInViaEmail`. The sealed token carries the original
+ * email, action, and (for sign-up) the user's name. We trust ONLY those
+ * sealed values when retrying so a single solved Turnstile token cannot be
+ * used to flood arbitrary emails or change the action / user data.
  */
 export async function verifyTurnstileAndRetry(params: {
   turnstileToken: string;
-  email: string;
-  challengeParams: PendingTurnstileResponse["challengeParams"];
-  userData?: { firstName: string; lastName: string }; // Only for sign-up
+  challengeToken: string;
 }): Promise<EmailAuthResult> {
-  const { turnstileToken, email, challengeParams, userData } = params;
+  const { turnstileToken, challengeToken } = params;
 
-  // Verify Turnstile token
-  const isValidToken = await verifyTurnstileToken(turnstileToken);
+  const challenge = verifyTurnstileChallenge(challengeToken);
+  if (!challenge) {
+    return {
+      success: false,
+      code: AuthErrorCode.UNKNOWN_ERROR,
+      message: "Verification failed. Please try again.",
+    };
+  }
+
+  // Verify Turnstile token, requiring the action we bound into the widget.
+  const isValidToken = await verifyTurnstileToken(turnstileToken, challenge.cloudflareAction);
 
   if (!isValidToken) {
     return {
@@ -481,22 +509,30 @@ export async function verifyTurnstileAndRetry(params: {
     };
   }
 
-  // Retry original auth operation based on action
+  // Retry original auth operation using ONLY the sealed values. We pull
+  // metadata fresh from the current request so the downstream call uses
+  // today's IP/UA, not whatever was captured when the challenge was issued.
   const metadata = await getRequestMetadata();
 
-  if (challengeParams.action === "sign-up" && userData) {
-    // For sign-up, we need the user data
+  if (challenge.action === "sign-up") {
+    if (!challenge.userData) {
+      return {
+        success: false,
+        code: AuthErrorCode.UNKNOWN_ERROR,
+        message: "Invalid challenge.",
+      };
+    }
     return await auth.signUpViaEmail({
-      ...userData,
-      email,
+      firstName: challenge.userData.firstName,
+      lastName: challenge.userData.lastName,
+      email: challenge.email,
       ...metadata,
       bypassRadar: true,
     });
   }
-  if (challengeParams.action === "sign-in") {
-    // For sign-in, we just need the email
+  if (challenge.action === "sign-in") {
     return await auth.signInViaEmail({
-      email,
+      email: challenge.email,
       ...metadata,
       bypassRadar: true,
     });

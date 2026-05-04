@@ -5,12 +5,15 @@ import { useState } from "react";
 
 interface TurnstileChallengeProps {
   email: string;
+  // Server-issued, per-challenge action string. Bound to the widget so the
+  // resulting Turnstile token cannot be replayed against another challenge.
+  action: string;
   onSuccess: (token: string) => void;
   onError: (error?: Error | string) => void;
   isLoading?: boolean;
 }
 
-export function TurnstileChallenge({ email, onSuccess, onError }: TurnstileChallengeProps) {
+export function TurnstileChallenge({ email, action, onSuccess, onError }: TurnstileChallengeProps) {
   const [isWidgetLoading, setIsWidgetLoading] = useState(true);
   const siteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY;
 
@@ -61,6 +64,7 @@ export function TurnstileChallenge({ email, onSuccess, onError }: TurnstileChall
               options={{
                 theme: "dark",
                 size: "normal",
+                action,
               }}
             />
           </div>

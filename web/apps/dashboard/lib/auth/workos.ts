@@ -9,6 +9,7 @@ import { BaseAuthProvider } from "./base-provider";
 import { getAuthCookieOptions } from "./cookie-security";
 import { getCookie } from "./cookies";
 import { getAuth } from "./get-auth";
+import { sealTurnstileChallenge } from "./turnstile-challenge-token";
 import {
   AuthErrorCode,
   type EmailAuthResult,
@@ -576,7 +577,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   ): Promise<EmailAuthResult> {
     const { email, firstName, lastName, ipAddress, userAgent, bypassRadar } = params;
     const auth_method = "Email_OTP"; // WorkOS value
-    const action = "sign-up"; // WorkOS value
+    const action = "sign-up" as const; // WorkOS value
     /**
      * We can bypass radar after the user has gone through the cloudflare challenge, as we already verified they are in fact human.
      */
@@ -591,14 +592,19 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       // Handle challenge decisions with Turnstile
       if (radarDecision.action === "challenge") {
+        const sealed = sealTurnstileChallenge({
+          email,
+          action,
+          userData: { firstName, lastName },
+        });
         return {
           success: false,
           code: AuthErrorCode.RADAR_CHALLENGE_REQUIRED,
           message: "Please complete the verification challenge to continue.",
           email,
+          challengeToken: sealed.token,
+          cloudflareAction: sealed.cloudflareAction,
           challengeParams: {
-            ipAddress,
-            userAgent,
             authMethod: auth_method,
             action,
           },
@@ -662,7 +668,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   }): Promise<EmailAuthResult> {
     const { email, ipAddress, userAgent, bypassRadar } = params;
     const auth_method = "Email_OTP"; // WorkOS value
-    const action = "sign-in"; // WorkOS value
+    const action = "sign-in" as const; // WorkOS value
 
     /**
      * We can bypass radar after the user has gone through the cloudflare challenge, as we already verified they are in fact human.
@@ -677,14 +683,18 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       });
 
       if (radarDecision.action === "challenge") {
+        const sealed = sealTurnstileChallenge({
+          email,
+          action,
+        });
         return {
           success: false,
           code: AuthErrorCode.RADAR_CHALLENGE_REQUIRED,
           message: "Please complete the verification challenge to continue.",
           email,
+          challengeToken: sealed.token,
+          cloudflareAction: sealed.cloudflareAction,
           challengeParams: {
-            ipAddress,
-            userAgent,
             authMethod: auth_method,
             action,
           },
