@@ -1,22 +1,45 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
+import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
 export const updateSubscription = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .input(
     z.object({
-      oldProductId: z.string(),
       newProductId: z.string(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
     const stripe = getStripeClient();
+    const e = stripeEnv();
+    if (!e) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Stripe is not set up",
+      });
+    }
+
+    // Reject any product not on the configured allow-list. Without this,
+    // an admin can switch the workspace to any product in the connected
+    // Stripe account — including test/internal products with $0 prices or
+    // permissive quota metadata.
+    const allowedProductIds = new Set<string>([
+      ...e.STRIPE_PRODUCT_IDS_PRO,
+      ...e.STRIPE_PRODUCT_IDS_ENTERPRISE,
+    ]);
+    if (!allowedProductIds.has(input.newProductId)) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: `Could not find product ${input.newProductId}.`,
+      });
+    }
 
     if (!ctx.workspace.stripeCustomerId) {
       throw new TRPCError({
@@ -31,17 +54,7 @@ export const updateSubscription = workspaceProcedure
       });
     }
 
-    const [oldProduct, newProduct] = await Promise.all([
-      stripe.products.retrieve(input.oldProductId),
-      stripe.products.retrieve(input.newProductId),
-    ]);
-
-    if (!oldProduct) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: `Could not find product ${input.oldProductId}.`,
-      });
-    }
+    const newProduct = await stripe.products.retrieve(input.newProductId);
 
     if (!newProduct) {
       throw new TRPCError({
@@ -72,15 +85,15 @@ export const updateSubscription = workspaceProcedure
       });
     }
 
-    const item = sub.items.data.find((i) => {
-      const product = i.plan.product;
-      return product && product.toString() === oldProduct.id;
-    });
+    // Derive the current subscription item from the existing subscription
+    // rather than trusting a client-supplied `oldProductId`. The client should
+    // not be able to influence which item gets repriced.
+    const item = sub.items.data[0];
 
     if (!item) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: `You're not currently subscribed to ${oldProduct.id}.`,
+        message: "Subscription has no items to update.",
       });
     }
 
