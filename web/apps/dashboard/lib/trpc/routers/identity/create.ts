@@ -43,14 +43,15 @@ export const createIdentity = workspaceProcedure
         });
       }
 
-      // Validate that meta is valid if provided
+      // Enforce 1MB size limit on metadata to match updateIdentityMetadata
+      // and prevent storage-exhaustion via the create path.
       if (input.meta) {
-        try {
-          JSON.stringify(input.meta);
-        } catch {
+        const metadataString = JSON.stringify(input.meta);
+        const sizeInBytes = new TextEncoder().encode(metadataString).length;
+        if (sizeInBytes > 1048576) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "The provided metadata is invalid. Please ensure it's valid JSON.",
+            message: `Metadata size (${Math.round(sizeInBytes / 1024)}KB) exceeds the 1MB limit.`,
           });
         }
       }
