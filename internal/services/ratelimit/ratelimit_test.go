@@ -2,6 +2,9 @@ package ratelimit
 
 import (
 	"context"
+	"fmt"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -250,6 +253,191 @@ func TestRatelimitMany_DoesNotMutateRequests(t *testing.T) {
 	_, err = svc.RatelimitMany(context.Background(), reqs)
 	require.NoError(t, err)
 	require.True(t, reqs[0].Time.IsZero(), "RatelimitMany must not write normalized timestamps into caller input")
+}
+
+// TestRatelimit_MidWindowBurstWhenLocalCurIsStale reproduces the production
+// pattern where a 60s sliding window blocks almost every request at the
+// boundary but lets bursts through near the middle of the window.
+//
+// Numbers are taken straight from the offending production tuple:
+//
+//	namespace=tpm_ratelimit_prod, limit=162000, duration=60s, cost=1500
+//
+// One replica receives a token of traffic at window start so its local cur
+// becomes warm at val=cost. Other replicas accept the bulk of the traffic and
+// replay it to the shared origin (modeled here by writing the origin directly).
+// 30s into the window, the stale replica receives a burst.
+//
+// With originFetchAgeMax == window duration, EnsureFreshFromOrigin sees
+// nowMs-originFetchLastMs = 30s < 60s and skips the refresh, so the replica
+// reads val=cost and freely allows the burst — exactly the pattern visible in
+// the ClickHouse chart.
+func TestRatelimit_MidWindowBurstWhenLocalCurIsStale(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	// Anchor request time at the start of a window so the sliding window math
+	// places us exactly at elapsed=0.5 after a 30s tick.
+	windowStart := time.Now().UTC().Truncate(time.Minute)
+	clk := clock.NewTestClock(windowStart)
+	origin := counter.NewMemory()
+
+	svc, err := New(Config{
+		Clock: clk, Counter: origin, DB: newTestDB(t), Region: "us-east-1"})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = svc.Close() })
+
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	namespace := "tpm_ratelimit_prod"
+	identifier := "alex-79b5d6:accounts/fireworks/deployments/kimi-k2p6:tokens_generated"
+	duration := time.Minute
+	durationMs := duration.Milliseconds()
+
+	const (
+		limit int64 = 162000
+		cost  int64 = 1500
+	)
+
+	curSeq := calculateSequence(clk.Now(), duration)
+	curKey := counterKey{
+		workspaceID: workspaceID, namespace: namespace, identifier: identifier,
+		durationMs: durationMs, sequence: curSeq,
+	}
+
+	req := RatelimitRequest{
+		WorkspaceID: workspaceID, Namespace: namespace, Identifier: identifier,
+		Limit: limit, Duration: duration, Cost: cost, Time: clk.Now(),
+	}
+
+	// First request at t=0 hydrates this replica's cur from origin (=0) and
+	// commits a local increment to val=cost. originFetchLastMs is now pinned to t=0.
+	resp, err := svc.Ratelimit(ctx, req)
+	require.NoError(t, err)
+	require.True(t, resp.Success, "first request at window start passes")
+
+	// Other replicas process the bulk of traffic for this window and replay
+	// it to the shared origin. Direct origin writes keep the test deterministic
+	// and decoupled from replay-worker scheduling. After this, shared origin
+	// records own (1500) + others (158000) = 159500 out of the 162000 limit,
+	// leaving room for exactly one more cost=1500 request.
+	const othersContribution int64 = 158000
+	_, err = origin.Increment(ctx, curKey.redisKey(), othersContribution, duration*3)
+	require.NoError(t, err)
+
+	// Jump to the middle of the window. nowMs - originFetchLastMs = 30s, which
+	// is < originFetchAgeMax (60s), so EnsureFreshFromOrigin will skip the
+	// refresh and reuse the stale local val=cost.
+	clk.Tick(30 * time.Second)
+	req.Time = clk.Now()
+
+	// True remaining budget given the shared origin is (limit - origin) / cost =
+	// (162000 - 159500) / 1500 = 1 request. Any more than 1 pass proves the
+	// stale local cur let the replica burst through the shared limit.
+	const wantMaxPasses = 1
+	var passed int
+	for range 20 {
+		resp, err = svc.Ratelimit(ctx, req)
+		require.NoError(t, err)
+		if resp.Success {
+			passed++
+		}
+	}
+
+	require.LessOrEqual(t, passed, wantMaxPasses,
+		"mid-window burst-through: replica saw stale local cur during the window and allowed %d cost=%d requests; shared origin only had room for %d",
+		passed, cost, wantMaxPasses)
+}
+
+// TestRatelimit_MultiReplicaMidWindowBurstExceedsLimit reproduces the
+// production observation that ~300K+ tokens passed in a single 60s window
+// against a 162K limit. Multiple in-region replicas share one Redis-backed
+// origin. Replay does push every accepted request to origin, but the push is
+// asynchronous and the local CAS loop uses the local val, not origin. When a
+// burst hits many replicas simultaneously in the middle of the window, each
+// replica admits requests against its own local view until its replays catch
+// up. originFetchAgeMax (60s) == window duration prevents the in-band refresh
+// that would otherwise correct the stale local view mid-window. Summed across
+// replicas, total admitted tokens far exceed the shared cap.
+func TestRatelimit_MultiReplicaMidWindowBurstExceedsLimit(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	windowStart := time.Now().UTC().Truncate(time.Minute)
+	clk := clock.NewTestClock(windowStart)
+	origin := counter.NewMemory()
+	db := newTestDB(t)
+
+	const (
+		replicas                   = 5
+		burstRequestsPerNode       = 200
+		limit                int64 = 162000
+		cost                 int64 = 1500
+	)
+	duration := time.Minute
+
+	services := make([]*service, replicas)
+	for i := range services {
+		svc, err := New(Config{
+			Clock: clk, Counter: origin, DB: db, Region: fmt.Sprintf("region-%d", i)})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = svc.Close() })
+		services[i] = svc
+	}
+
+	workspaceID := uid.New(uid.WorkspacePrefix)
+	namespace := "tpm_ratelimit_prod"
+	identifier := "alex-79b5d6:accounts/fireworks/deployments/kimi-k2p6:tokens_generated"
+	makeReq := func() RatelimitRequest {
+		return RatelimitRequest{
+			WorkspaceID: workspaceID, Namespace: namespace, Identifier: identifier,
+			Limit: limit, Duration: duration, Cost: cost, Time: clk.Now(),
+		}
+	}
+
+	// Warm each replica's cur entry at window start. After this, every replica
+	// has its cur hydrated against origin=0, so originFetchLastMs is pinned to
+	// windowStart and EnsureFreshFromOrigin will refuse to refresh for the next
+	// 60s — exactly the gap that swallows the burst.
+	for _, svc := range services {
+		resp, err := svc.Ratelimit(ctx, makeReq())
+		require.NoError(t, err)
+		require.True(t, resp.Success, "warmup request at window start must pass")
+	}
+
+	// Jump to the middle of the window and synchronize the burst so every
+	// replica's local CAS loop runs concurrently with every other replica's
+	// async replay. This is the production race: many replicas serving the
+	// same identifier in the same 100ms.
+	clk.Tick(30 * time.Second)
+
+	var (
+		passedRequests atomic.Int64
+		wg             sync.WaitGroup
+		start          = make(chan struct{})
+	)
+	for _, svc := range services {
+		wg.Add(1)
+		go func(svc *service) {
+			defer wg.Done()
+			<-start
+			for range burstRequestsPerNode {
+				resp, err := svc.Ratelimit(ctx, makeReq())
+				if err == nil && resp.Success {
+					passedRequests.Add(1)
+				}
+			}
+		}(svc)
+	}
+	close(start)
+	wg.Wait()
+
+	passedTokens := passedRequests.Load() * cost
+	// Allowing the same headroom every replica burned at window start: each of
+	// the 5 replicas admitted one warmup request, contributing 5 * 1500 = 7500
+	// before the burst. Cap is 162000; everything above that is leak.
+	require.LessOrEqual(t, passedTokens, limit,
+		"multi-replica mid-window burst: %d replicas admitted %d cost=%d requests = %d tokens against a %d-token limit",
+		replicas, passedRequests.Load(), cost, passedTokens, limit)
 }
 
 // TestRatelimitMany_LongWindowLowTrafficRefreshesStaleReplica models the
