@@ -53,9 +53,12 @@ type podInfo struct {
 func (c *Collector) collect(_ context.Context) error {
 	tickStart := time.Now()
 	now := c.clk.Now().UnixMilli()
-	pods := c.buildKranePodLookup()
+	pods, listed := c.buildKranePodLookup()
 
-	if c.network != nil {
+	// Only reconcile when we have an authoritative pod set. A lister error
+	// returns an empty map; reconciling against it would evict every attached
+	// BPF program on a transient cache failure.
+	if listed && c.network != nil {
 		active := make(map[types.UID]struct{}, len(pods))
 		for uid := range pods {
 			active[types.UID(uid)] = struct{}{}
@@ -176,12 +179,16 @@ func (c *Collector) collect(_ context.Context) error {
 	return nil
 }
 
-func (c *Collector) buildKranePodLookup() map[string]podInfo {
+// buildKranePodLookup returns the billable pods on this node and a flag
+// indicating whether the lister read succeeded. Callers must treat ok=false
+// as "pod set unknown" rather than "no pods", since the empty map and a
+// genuinely empty cluster are otherwise indistinguishable.
+func (c *Collector) buildKranePodLookup() (map[string]podInfo, bool) {
 	pods := make(map[string]podInfo)
 	allPods, err := c.podLister.List(labels.Everything())
 	if err != nil {
 		logger.Error("failed to list pods from cache", "error", err.Error())
-		return pods
+		return pods, false
 	}
 
 	for _, pod := range allPods {
@@ -194,7 +201,7 @@ func (c *Collector) buildKranePodLookup() map[string]podInfo {
 		pods[string(pod.UID)] = buildPodInfo(pod)
 	}
 
-	return pods
+	return pods, true
 }
 
 // isBillablePod returns true if pod is a krane-managed deployment or a sentinel.
