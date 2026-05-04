@@ -11,7 +11,6 @@ go_library(
         "instance_find_by_deployment_id.sql_generated.go",
         "models_generated.go",
         "querier_generated.go",
-        "sentinel_find_by_environment_id.sql_generated.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/frontline/internal/db",
     visibility = ["//visibility:public"],

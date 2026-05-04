@@ -91,11 +91,10 @@ const WINDOW_MS: Record<TimeWindow, number> = {
 // ─── main ─────────────────────────────────────────────────────────────
 
 type ResourceMetricsProps = {
-  resourceType: "deployment" | "sentinel";
   resourceId: string;
   // When > 0 the deployment has ephemeral storage provisioned, so the disk
-  // chart is worth showing. For sentinel nodes and disk-less deployments
-  // we skip it entirely, avoiding a flat-line chart with no data to read.
+  // chart is worth showing. For disk-less deployments we skip it entirely,
+  // avoiding a flat-line chart with no data to read.
   storageMib?: number;
   // K8s pod name. Set when the panel is scoped to a single instance; all
   // queries filter `instance_id = instanceName` so the charts show that
@@ -103,13 +102,8 @@ type ResourceMetricsProps = {
   instanceName?: string;
 };
 
-export function ResourceMetrics({
-  resourceType,
-  resourceId,
-  storageMib,
-  instanceName,
-}: ResourceMetricsProps) {
-  const params = { resourceType, resourceId, instanceName };
+export function ResourceMetrics({ resourceId, storageMib, instanceName }: ResourceMetricsProps) {
+  const params = { resourceId, instanceName };
   const [window, setWindow] = useState<TimeWindow>("1h");
   const showDateInTooltip = WINDOWS_NEEDING_DATE.includes(window);
   const diskEnabled = (storageMib ?? 0) > 0;

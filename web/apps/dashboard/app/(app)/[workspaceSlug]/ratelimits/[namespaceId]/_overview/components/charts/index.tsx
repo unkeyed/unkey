@@ -15,7 +15,7 @@ export const RatelimitOverviewLogsCharts = ({
 }) => {
   const { filters, updateFilters } = useFilters();
 
-  const { isError, isLoading, timeseries, granularity } =
+  const { isError, isLoading, timeseries, tokensTimeseries, granularity } =
     useFetchRatelimitOverviewTimeseries(namespaceId);
 
   // const {
@@ -93,9 +93,20 @@ export const RatelimitOverviewLogsCharts = ({
   //   ],
   // };
   //
+  const sharedConfig = {
+    success: {
+      label: "Passed",
+      color: "hsl(var(--accent-4))",
+    },
+    error: {
+      label: "Blocked",
+      color: "hsl(var(--orange-9))",
+    },
+  };
+
   return (
-    <div className="flex w-full h-[320px]">
-      <div className="w-full">
+    <div className="flex w-full h-[320px] divide-x divide-gray-4">
+      <div className="w-1/2">
         <OverviewBarChart
           data={timeseries}
           isLoading={isLoading}
@@ -103,16 +114,7 @@ export const RatelimitOverviewLogsCharts = ({
           enableSelection
           onSelectionChange={handleSelectionChange}
           granularity={granularity}
-          config={{
-            success: {
-              label: "Passed",
-              color: "hsl(var(--accent-4))",
-            },
-            error: {
-              label: "Blocked",
-              color: "hsl(var(--orange-9))",
-            },
-          }}
+          config={sharedConfig}
           labels={{
             title: "REQUESTS",
             primaryLabel: "PASSED",
@@ -122,17 +124,24 @@ export const RatelimitOverviewLogsCharts = ({
           }}
         />
       </div>
-      {/* <div className="w-1/2"> */}
-      {/*   <OverviewAreaChart */}
-      {/*     data={latencyTimeseries} */}
-      {/*     isLoading={latencyIsLoading} */}
-      {/*     isError={latencyIsError} */}
-      {/*     enableSelection */}
-      {/*     onSelectionChange={handleSelectionChange} */}
-      {/*     config={latencyChartConfig} */}
-      {/*     labels={latencyChartLabels} */}
-      {/*   /> */}
-      {/* </div> */}
+      <div className="w-1/2">
+        <OverviewBarChart
+          data={tokensTimeseries}
+          isLoading={isLoading}
+          isError={isError}
+          enableSelection
+          onSelectionChange={handleSelectionChange}
+          granularity={granularity}
+          config={sharedConfig}
+          labels={{
+            title: "TOKENS",
+            primaryLabel: "PASSED",
+            primaryKey: "success",
+            secondaryLabel: "BLOCKED",
+            secondaryKey: "error",
+          }}
+        />
+      </div>
     </div>
   );
 };
