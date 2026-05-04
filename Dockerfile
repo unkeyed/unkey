@@ -12,10 +12,11 @@ RUN bazelisk build //:unkey
 # Extract the binary path and copy it to a known location
 RUN cp $(bazelisk cquery //:unkey --output=files 2>/dev/null) /unkey
 
-FROM gcr.io/distroless/static-debian12
+FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=builder /unkey /unkey
 
 LABEL org.opencontainers.image.source=https://github.com/unkeyed/unkey
 LABEL org.opencontainers.image.description="Unkey API"
 
+USER nonroot:nonroot
 ENTRYPOINT  ["/unkey"]

@@ -9,14 +9,16 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -a -o main .
 
-FROM alpine:latest
+FROM alpine:3.20
 
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates \
+    && adduser -D -H -u 10001 app
 
-WORKDIR /root/
+WORKDIR /app
 
 COPY --from=builder /app/main .
 
 ENV PORT 8080
 
+USER app
 CMD ["./main"]

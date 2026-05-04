@@ -1,4 +1,5 @@
-FROM gcr.io/distroless/static-debian12
+FROM gcr.io/distroless/static-debian12:nonroot
 ARG TARGETPLATFORM
 COPY ${TARGETPLATFORM}/unkey /unkey
+USER nonroot:nonroot
 ENTRYPOINT ["/unkey"]
