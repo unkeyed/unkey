@@ -5,19 +5,17 @@ import (
 	"net/http"
 	"sync"
 
-	sentinelv1 "github.com/unkeyed/unkey/gen/proto/sentinel/v1"
+	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	validation "github.com/unkeyed/unkey/pkg/openapi/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// Specs rarely change -- a service typically deploys with one and keeps it for weeks.
+// Specs rarely change, a service typically deploys with one and keeps it for weeks.
 // We cache compiled validators keyed by spec content and cap at maxValidators as a
 // safety net. When the cap is hit we wipe and recompile on demand, which is cheap
-// given how infrequently specs actually change. Full wipe over LRU because the
-// expected cardinality is low (one spec per deployment) and the simplicity is worth
-// the rare thundering-herd recompile if many distinct specs somehow accumulate.
+// given how infrequently specs actually change.
 const maxValidators = 64
 
 type Executor struct {
@@ -36,7 +34,7 @@ func (e *Executor) Execute(
 	_ context.Context,
 	_ *zen.Session,
 	req *http.Request,
-	cfg *sentinelv1.OpenApiRequestValidation,
+	cfg *frontlinev1.OpenApiRequestValidation,
 ) error {
 	spec := cfg.GetSpecYaml()
 	if len(spec) == 0 {
@@ -46,7 +44,7 @@ func (e *Executor) Execute(
 	v, err := e.getOrCompile(spec)
 	if err != nil {
 		return fault.Wrap(err,
-			fault.Code(codes.Sentinel.Internal.InvalidConfiguration.URN()),
+			fault.Code(codes.Frontline.Internal.InvalidConfiguration.URN()),
 			fault.Internal("failed to compile OpenAPI spec"),
 			fault.Public("Service configuration error"),
 		)
@@ -63,7 +61,7 @@ func (e *Executor) Execute(
 	}
 
 	return fault.New("request validation failed",
-		fault.Code(codes.Sentinel.OpenApi.InvalidRequest.URN()),
+		fault.Code(codes.Frontline.OpenApi.InvalidRequest.URN()),
 		fault.Internal(publicMsg),
 		fault.Public(publicMsg),
 	)
