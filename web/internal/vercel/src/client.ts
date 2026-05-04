@@ -33,7 +33,10 @@ export class Vercel {
     opts?: { cache?: RequestCache; revalidate?: number };
     body?: unknown;
   }): Promise<Result<TResult, FetchError>> {
-    const url = new URL(req.path.join("/"), this.baseUrl);
+    // Encode each segment so that values like "../v1/leak" cannot collapse
+    // dot-segments via WHATWG URL parsing (RFC 3986 5.2.4) and reach
+    // unintended endpoints on api.vercel.com using the workspace token.
+    const url = new URL(req.path.map(encodeURIComponent).join("/"), this.baseUrl);
     try {
       if (req.parameters) {
         for (const [key, value] of Object.entries(req.parameters)) {
