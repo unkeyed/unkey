@@ -288,7 +288,7 @@ func (s *service) loadStrictUntil(key strictKey) int64 {
 func (s *service) setStrictUntil(key strictKey, untilMs int64) {
 	val, _ := s.strictUntils.LoadOrStore(key, &atomic.Int64{})
 	atomicMax(val.(*atomic.Int64), untilMs)
-	metrics.RatelimitStrictModeActivations.Inc()
+	metrics.RatelimitStrictModeActivations.WithLabelValues(key.workspaceID).Inc()
 }
 
 // minPropagationDuration is the shortest window length for which cross-region
