@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -208,6 +209,26 @@ func respondWithValidationError(w http.ResponseWriter, message string, details [
 	})
 }
 
+// requireAccountsAuth enforces a bearer token on the /v2/accounts CRUD surface
+// when DEMO_API_TOKEN is set. The store holds PII (email, full name, phone),
+// so this defense-in-depth check prevents enumeration and tampering when the
+// demo is deployed without the unkey gateway in front. If DEMO_API_TOKEN is
+// empty, the check is a no-op and the endpoints remain open as before. The
+// startup warning in main() makes the open state explicit.
+func requireAccountsAuth(token string, w http.ResponseWriter, r *http.Request) bool {
+	if token == "" {
+		return true
+	}
+	header := r.Header.Get("Authorization")
+	expected := "Bearer " + token
+	// constant-time comparison to avoid timing oracles on the token
+	if len(header) != len(expected) || subtle.ConstantTimeCompare([]byte(header), []byte(expected)) != 1 {
+		respondWithError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Missing or invalid Authorization header")
+		return false
+	}
+	return true
+}
+
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
@@ -215,6 +236,14 @@ func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
+	}
+
+	// DEMO_API_TOKEN locks the /v2/accounts CRUD endpoints behind a bearer token.
+	// The store holds PII; without this token any caller can enumerate or modify
+	// accounts when the demo runs outside the unkey gateway.
+	accountsAuthToken := os.Getenv("DEMO_API_TOKEN")
+	if accountsAuthToken == "" {
+		logger.Warn("DEMO_API_TOKEN is unset; /v2/accounts endpoints are open and any caller can read or modify the in-memory PII store. Set DEMO_API_TOKEN to require Authorization: Bearer <token>.")
 	}
 
 	mux := http.NewServeMux()
@@ -503,6 +532,9 @@ func main() {
 
 	// Accounts endpoints
 	mux.HandleFunc("/v2/accounts", func(w http.ResponseWriter, r *http.Request) {
+		if !requireAccountsAuth(accountsAuthToken, w, r) {
+			return
+		}
 		switch r.Method {
 		case http.MethodGet:
 			// Get all accounts
@@ -653,6 +685,9 @@ func main() {
 
 	// Account by ID endpoints
 	mux.HandleFunc("/v2/accounts/", func(w http.ResponseWriter, r *http.Request) {
+		if !requireAccountsAuth(accountsAuthToken, w, r) {
+			return
+		}
 		path := strings.TrimPrefix(r.URL.Path, "/v2/accounts/")
 		parts := strings.Split(path, "/")
 
