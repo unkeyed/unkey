@@ -162,29 +162,31 @@ export const queryIdentities = workspaceProcedure
         // would count as 1 — ranking them identically to identities with one match.
         const countColumn = sortBy === "keyCount" ? schema.keys.id : schema.ratelimits.id;
         const countExpr = count(countColumn);
-
-        const countQuery = db.select({ id: schema.identities.id }).from(schema.identities);
+        const orderDir = sortOrder === "asc" ? asc(countExpr) : desc(countExpr);
 
         if (sortBy === "keyCount") {
-          countQuery.leftJoin(schema.keys, eq(schema.keys.identityId, schema.identities.id));
+          const results = await db
+            .select({ id: schema.identities.id })
+            .from(schema.identities)
+            .leftJoin(schema.keys, eq(schema.keys.identityId, schema.identities.id))
+            .where(and(...baseConditions))
+            .groupBy(schema.identities.id)
+            .orderBy(orderDir, desc(schema.identities.createdAt))
+            .limit(limit)
+            .offset(offset);
+          sortedIds = results.map((r) => r.id);
         } else {
-          countQuery.leftJoin(
-            schema.ratelimits,
-            eq(schema.ratelimits.identityId, schema.identities.id),
-          );
+          const results = await db
+            .select({ id: schema.identities.id })
+            .from(schema.identities)
+            .leftJoin(schema.ratelimits, eq(schema.ratelimits.identityId, schema.identities.id))
+            .where(and(...baseConditions))
+            .groupBy(schema.identities.id)
+            .orderBy(orderDir, desc(schema.identities.createdAt))
+            .limit(limit)
+            .offset(offset);
+          sortedIds = results.map((r) => r.id);
         }
-
-        const countResults = await countQuery
-          .where(and(...baseConditions))
-          .groupBy(schema.identities.id)
-          .orderBy(
-            sortOrder === "asc" ? asc(countExpr) : desc(countExpr),
-            desc(schema.identities.createdAt),
-          )
-          .limit(limit)
-          .offset(offset);
-
-        sortedIds = countResults.map((r) => r.id);
       } else if (sortBy === "lastUsed") {
         sortedIds = await getLastUsedSortedIds({
           workspaceId,
@@ -260,7 +262,7 @@ export const queryIdentities = workspaceProcedure
           const direction = sortOrder === "asc" ? a : d;
           switch (sortBy) {
             case "externalId": {
-              return direction(identities.externalId);
+              return [direction(identities.externalId), direction(identities.id)];
             }
             case "keyCount":
             case "ratelimitCount":
@@ -269,7 +271,7 @@ export const queryIdentities = workspaceProcedure
               return d(identities.createdAt);
             }
             default: {
-              return direction(identities.createdAt);
+              return [direction(identities.createdAt), direction(identities.id)];
             }
           }
         },

@@ -37,11 +37,15 @@ type RenderIdentitiesSkeletonRowProps = {
   rowHeight: number;
 };
 
-export const renderIdentitiesSkeletonRow = ({ columns }: RenderIdentitiesSkeletonRowProps) =>
+export const renderIdentitiesSkeletonRow = ({
+  columns,
+  rowHeight,
+}: RenderIdentitiesSkeletonRowProps) =>
   columns.map((column) => (
     <td
       key={column.id}
       className={cn("text-xs align-middle whitespace-nowrap", column.meta?.cellClassName)}
+      style={{ height: `${rowHeight}px` }}
     >
       {column.id === IDENTITY_COLUMN_IDS.EXTERNAL_ID && <IdentityExternalIdSkeleton />}
       {column.id === IDENTITY_COLUMN_IDS.KEYS && <CountSkeleton />}
