@@ -69,9 +69,14 @@ export default async function StripeRedirect() {
     );
   }
 
+  // Return the user back to the workspace's billing page. /success is the
+  // post-checkout landing page and isn't the right destination for the
+  // billing-portal round-trip — it has no `session_id` here, so it shows an
+  // empty state, and (depending on auth state after the Stripe round-trip)
+  // can bounce the user to sign-in.
   const { url } = await stripe.billingPortal.sessions.create({
     customer: ws.stripeCustomerId,
-    return_url: `${baseUrl}/success`,
+    return_url: `${baseUrl}/${ws.slug}/settings/billing`,
   });
   return redirect(url);
 }
