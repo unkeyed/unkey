@@ -318,6 +318,12 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Title:   http.StatusText(http.StatusForbidden),
 			Message: "Forbidden",
 		}
+	case codes.Frontline.OpenApi.InvalidRequest.URN():
+		return errorPageInfo{
+			Status:  http.StatusBadRequest,
+			Title:   http.StatusText(http.StatusBadRequest),
+			Message: "",
+		}
 
 	// Routing failures other than ConfigNotFound (e.g. deployment-by-id miss,
 	// no instances in any region).
