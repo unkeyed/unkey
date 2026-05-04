@@ -81,6 +81,12 @@ Certificates renew before expiration without any action from you.
   If Let's Encrypt rate limits are reached, certificate issuance retries automatically with backoff. This can add up to two hours of delay in rare cases.
 </Note>
 
+## Where custom domains appear
+
+A custom domain always routes traffic to the current deployment in its environment. In the dashboard, custom domains are only listed on the deployment detail view of the current deployment for that environment. When viewing a previous deployment, only the platform domains (`*.unkey.app`) that were assigned to that specific deployment are shown.
+
+This reflects how requests are routed: promoting a new deployment shifts the custom domain to that deployment, so previous deployments no longer serve traffic on the custom hostname.
+
 ## DNS provider examples
 
 If your provider supports [automatic setup](#configure-dns-records), you can skip these steps and use the one-click **Connect** button instead.
