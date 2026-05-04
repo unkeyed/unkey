@@ -102,7 +102,7 @@ import { getDeploymentRpsTimeseries } from "./deploy/metrics/get-deployment-rps-
 import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
-import { getSentinelRps } from "./deploy/network/get-sentinel-rps";
+import { getRegionRps } from "./deploy/network/get-region-rps";
 import { createProject } from "./deploy/project/create";
 import { creationContext } from "./deploy/project/creation-context";
 import { deleteProject } from "./deploy/project/delete";
@@ -426,8 +426,8 @@ export const router = t.router({
     network: t.router({
       generate: generateDeploymentTree,
       get: getDeploymentTree,
-      getSentinelRps,
       getInstanceRps,
+      getRegionRps,
     }),
     project: t.router({
       list: listProjects,

@@ -4,39 +4,43 @@ import { InfoTooltip } from "@unkey/ui";
 import { CardFooter } from "./components/card-footer";
 import { CardHeader } from "./components/card-header";
 import { NodeWrapper } from "./node-wrapper/node-wrapper";
-import { REGION_INFO, type SentinelNode as SentinelNodeType } from "./types";
+import { REGION_INFO, type RegionNode as RegionNodeType } from "./types";
 
-type SentinelNodeProps = {
-  node: SentinelNodeType;
+type RegionNodeProps = {
+  node: RegionNodeType;
   deploymentId?: string;
 };
 
-export function SentinelNode({ node, deploymentId }: SentinelNodeProps) {
-  const { flagCode, cpu, memory, health, replicas } = node.metadata;
+export function RegionNode({ node, deploymentId }: RegionNodeProps) {
+  const { flagCode, health, instances } = node.metadata;
+  const regionInfo = REGION_INFO[flagCode];
 
-  const { data: rps } = trpc.deploy.network.getSentinelRps.useQuery(
+  // node.label is the region's name as it appears on
+  // sentinel_requests_raw_v1.region, so we can filter ClickHouse by it
+  // directly without an extra DB lookup.
+  const { data: rps } = trpc.deploy.network.getRegionRps.useQuery(
     {
-      sentinelId: node.id,
+      deploymentId: deploymentId ?? "",
+      region: node.label,
     },
     {
       enabled: Boolean(deploymentId),
       refetchInterval: 5000,
     },
   );
-  const regionInfo = REGION_INFO[flagCode];
 
-  const replicaText =
-    replicas === 0
-      ? "No available replicas"
-      : `${replicas} available ${replicas === 1 ? "replica" : "replicas"}`;
+  const instanceText =
+    instances === 0
+      ? "No running instances"
+      : `${instances} ${instances === 1 ? "instance" : "instances"}`;
 
   return (
     <NodeWrapper health={health}>
       <CardHeader
-        type="sentinel"
+        type="region"
         icon={
           <InfoTooltip
-            content={`AWS region ${node.label} (${regionInfo.location})`}
+            content={`${regionInfo.name} (${regionInfo.location})`}
             variant="primary"
             className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
             position={{ align: "center", side: "top", sideOffset: 5 }}
@@ -45,10 +49,10 @@ export function SentinelNode({ node, deploymentId }: SentinelNodeProps) {
           </InfoTooltip>
         }
         title={node.label}
-        subtitle={replicaText}
+        subtitle={instanceText}
         health={health}
       />
-      <CardFooter type="sentinel" rps={rps} cpu={cpu} memory={memory} />
+      <CardFooter type="region" rps={rps} />
     </NodeWrapper>
   );
 }
