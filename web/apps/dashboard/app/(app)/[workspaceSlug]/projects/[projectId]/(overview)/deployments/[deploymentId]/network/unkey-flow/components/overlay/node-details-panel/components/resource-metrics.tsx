@@ -33,11 +33,7 @@ import {
 // per open panel, well within budget.
 const REFETCH_INTERVAL_MS = 3_000;
 
-// Heimdall isn't shipped yet, so cpu/memory/disk/network charts would
-// render as empty timeseries. Hide them until the metering pipeline lands.
-// Queries still fire — the tables exist and return empty, so there's
-// nothing to gate at the network layer.
-const RUNTIME_METRICS_ENABLED = false;
+const RUNTIME_METRICS_ENABLED = true;
 
 const WINDOW_LABELS: Record<TimeWindow, string> = {
   "15m": "Past 15 minutes",
@@ -186,13 +182,6 @@ export function ResourceMetrics({ resourceId, storageMib, instanceName }: Resour
       setIsWindowTransition(false);
     }
   }, [isWindowTransition, anyFetching]);
-
-  // Instance-scoped panel hides the instances chart, so with the runtime
-  // metrics flag off there's nothing left to render — skip the empty
-  // "Runtime metrics" header + window selector entirely.
-  if (!RUNTIME_METRICS_ENABLED && isInstanceScoped) {
-    return null;
-  }
 
   return (
     <div>
