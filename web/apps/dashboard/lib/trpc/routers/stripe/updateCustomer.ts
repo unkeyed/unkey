@@ -18,8 +18,21 @@ export const updateCustomer = workspaceProcedure
   .use(withRatelimit(ratelimit.update))
   .input(updateCustomerInputSchema)
   .output(customerSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ ctx, input }) => {
     const stripe = getStripeClient();
+
+    // Only allow updating the customer recorded on the caller's own workspace.
+    // Without this check a tenant could chain getCheckoutSession leaks into
+    // changing another workspace's default payment method.
+    if (
+      !ctx.workspace.stripeCustomerId ||
+      ctx.workspace.stripeCustomerId !== input.customerId
+    ) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Customer not found",
+      });
+    }
 
     try {
       const customer = await stripe.customers.update(input.customerId, {

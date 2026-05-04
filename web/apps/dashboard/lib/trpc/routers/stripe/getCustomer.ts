@@ -24,8 +24,21 @@ export const getCustomer = workspaceProcedure
     }),
   )
   .output(customerSchema)
-  .query(async ({ input }) => {
+  .query(async ({ ctx, input }) => {
     const stripe = getStripeClient();
+
+    // Only the caller's own stripe customer may be retrieved. Without this
+    // check any authenticated workspace user could read another workspace's
+    // customer (email, default payment method) by passing its cus_* id.
+    if (
+      !ctx.workspace.stripeCustomerId ||
+      ctx.workspace.stripeCustomerId !== input.customerId
+    ) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Customer not found",
+      });
+    }
 
     try {
       const customer = await stripe.customers.retrieve(input.customerId);

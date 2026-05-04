@@ -74,6 +74,24 @@ export const createRole = workspaceProcedure
         });
 
         if (input.permissionIds && input.permissionIds.length > 0) {
+          // Re-derive ownership: ensure every supplied permissionId belongs to
+          // the caller's workspace before linking. Without this check a tenant
+          // could attach foreign permissions to a local role; the verification
+          // path joins roles_permissions -> permissions on id alone, so the
+          // foreign permission slug would propagate into key checks.
+          const permissionIds = input.permissionIds;
+          const ownedPermissions = await tx.query.permissions.findMany({
+            where: (table, { and, eq, inArray }) =>
+              and(eq(table.workspaceId, ctx.workspace.id), inArray(table.id, permissionIds)),
+            columns: { id: true },
+          });
+          if (ownedPermissions.length !== permissionIds.length) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "One or more permissions were not found in this workspace.",
+            });
+          }
+
           await tx.insert(schema.rolesPermissions).values(
             input.permissionIds.map((permissionId) => ({
               permissionId,

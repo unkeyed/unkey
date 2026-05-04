@@ -21,13 +21,24 @@ export const getCheckoutSession = workspaceProcedure
     }),
   )
   .output(checkoutSessionSchema)
-  .query(async ({ input }) => {
+  .query(async ({ ctx, input }) => {
     const stripe = getStripeClient();
 
     try {
       const session = await stripe.checkout.sessions.retrieve(input.sessionId);
 
       if (!session) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Checkout session not found",
+        });
+      }
+
+      // The dashboard sets client_reference_id to the workspace id when
+      // creating the checkout session. Reject any session that does not
+      // belong to the caller's workspace; cs_* ids leak through success_url
+      // query params, browser history, referer headers, etc.
+      if (session.client_reference_id !== ctx.workspace.id) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Checkout session not found",

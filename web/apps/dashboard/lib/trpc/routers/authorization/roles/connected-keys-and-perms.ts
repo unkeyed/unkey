@@ -63,6 +63,10 @@ export const getConnectedKeysAndPerms = workspaceProcedure
       }
 
       const role = roleResult[0];
+      // Defense in depth: filter the joined keys/permissions on workspaceId too,
+      // not just the link rows. Cross-workspace link rows could exist (the
+      // schema has no FK enforcing workspace consistency), and joining on id
+      // alone would surface foreign key/permission names through this endpoint.
       const [keyResults, permissionResults] = await Promise.all([
         db
           .selectDistinct({
@@ -70,7 +74,7 @@ export const getConnectedKeysAndPerms = workspaceProcedure
             name: keys.name,
           })
           .from(keysRoles)
-          .innerJoin(keys, eq(keysRoles.keyId, keys.id))
+          .innerJoin(keys, and(eq(keysRoles.keyId, keys.id), eq(keys.workspaceId, workspaceId)))
           .where(and(eq(keysRoles.roleId, roleId), eq(keysRoles.workspaceId, workspaceId)))
           .orderBy(keys.name),
 
@@ -82,7 +86,13 @@ export const getConnectedKeysAndPerms = workspaceProcedure
             description: permissions.description,
           })
           .from(rolesPermissions)
-          .innerJoin(permissions, eq(rolesPermissions.permissionId, permissions.id))
+          .innerJoin(
+            permissions,
+            and(
+              eq(rolesPermissions.permissionId, permissions.id),
+              eq(permissions.workspaceId, workspaceId),
+            ),
+          )
           .where(
             and(eq(rolesPermissions.roleId, roleId), eq(rolesPermissions.workspaceId, workspaceId)),
           )

@@ -21,11 +21,32 @@ export const getSetupIntent = workspaceProcedure
     }),
   )
   .output(setupIntentSchema)
-  .query(async ({ input }) => {
+  .query(async ({ ctx, input }) => {
     const stripe = getStripeClient();
+
+    if (!ctx.workspace.stripeCustomerId) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Setup intent not found",
+      });
+    }
 
     try {
       const setupIntent = await stripe.setupIntents.retrieve(input.setupIntentId);
+
+      // Cross-check the SetupIntent's customer against the caller's workspace.
+      // Returning the client_secret to a foreign workspace would let an
+      // attacker attach their own payment method to the victim's customer.
+      const intentCustomer =
+        typeof setupIntent.customer === "string"
+          ? setupIntent.customer
+          : (setupIntent.customer?.id ?? null);
+      if (intentCustomer !== ctx.workspace.stripeCustomerId) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Setup intent not found",
+        });
+      }
 
       // Extract payment method ID, handling both string and expanded object
       let paymentMethodId: string | null = null;
