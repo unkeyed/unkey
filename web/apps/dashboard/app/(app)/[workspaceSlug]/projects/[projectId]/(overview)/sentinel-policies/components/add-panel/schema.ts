@@ -169,46 +169,10 @@ const firewallFormSchema = z.object({
   action: firewallActionSchema,
 });
 
-const openapiFormSchema = z
-  .object({
-    ...basePolicyFields,
-    type: z.literal("openapi"),
-    specYaml: z.string().optional(),
-  })
-  .superRefine((v, ctx) => {
-    const raw = (v.specYaml ?? "").trim();
-    if (raw.length === 0) {
-      return;
-    }
-
-    if (raw.startsWith("{")) {
-      try {
-        const parsed = JSON.parse(raw);
-        if (typeof parsed !== "object" || !("openapi" in parsed)) {
-          ctx.addIssue({
-            code: "custom",
-            message: 'JSON must contain an "openapi" key',
-            path: ["specYaml"],
-          });
-        }
-      } catch {
-        ctx.addIssue({
-          code: "custom",
-          message: "Invalid JSON",
-          path: ["specYaml"],
-        });
-      }
-      return;
-    }
-
-    if (!/^openapi\s*:/m.test(raw)) {
-      ctx.addIssue({
-        code: "custom",
-        message: 'Spec must be valid OpenAPI YAML (starting with "openapi:") or JSON',
-        path: ["specYaml"],
-      });
-    }
-  });
+const openapiFormSchema = z.object({
+  ...basePolicyFields,
+  type: z.literal("openapi"),
+});
 
 export const policyFormSchema = z.discriminatedUnion("type", [
   keyauthFormSchema,
@@ -274,7 +238,6 @@ export function getDefaultValues(type: PolicyType): PolicyFormValues {
     .with("openapi", () => ({
       ...base,
       type: "openapi" as const,
-      specYaml: "",
     }))
     .exhaustive();
 }
@@ -402,7 +365,7 @@ export function toSentinelPolicy(
       name: v.name,
       enabled: true,
       type: "openapi" as const,
-      openapi: v.specYaml?.trim() ? { specYaml: utf8ToBase64(v.specYaml.trim()) } : {},
+      openapi: {},
       match: matchExprs,
     }))
     .exhaustive();
@@ -548,19 +511,7 @@ export function fromSentinelPolicy(
       name: p.name,
       environmentId,
       matchConditions,
-      specYaml: p.openapi.specYaml ? base64ToUtf8(p.openapi.specYaml) : "",
     }))
     .exhaustive();
 }
 
-// Proto field `spec_yaml` is `bytes`, so protojson expects base64.
-// Native btoa/atob only handle Latin-1; OpenAPI specs can contain UTF-8.
-function utf8ToBase64(str: string): string {
-  return btoa(Array.from(new TextEncoder().encode(str), (b) => String.fromCharCode(b)).join(""));
-}
-
-function base64ToUtf8(b64: string): string {
-  const binary = atob(b64);
-  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
-}

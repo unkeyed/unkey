@@ -178,7 +178,7 @@ export const openapiPolicySchema = z
   .object({
     ...policyBase,
     type: z.literal("openapi"),
-    openapi: z.object({ specYaml: z.string().optional() }).strict(),
+    openapi: z.object({}).strict(),
   })
   .strict();
 export type OpenapiPolicy = z.infer<typeof openapiPolicySchema>;
