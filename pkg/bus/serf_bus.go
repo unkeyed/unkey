@@ -45,6 +45,12 @@ type serfBus struct {
 	mu   sync.RWMutex
 	subs map[string][]*subscription
 
+	// maxSeenAtMs tracks the highest BusEnvelope.SentAtMs observed per
+	// sender node. Used as the cursor for replay-on-join queries: when
+	// a peer (re)joins, we ask it for events newer than this. Protected
+	// by mu.
+	maxSeenAtMs map[string]int64
+
 	paused    atomic.Bool
 	closing   atomic.Bool
 	rejoining atomic.Bool
@@ -101,18 +107,19 @@ func New(cfg Config) (Bus, error) {
 	}
 
 	b := &serfBus{
-		cfg:       cfg,
-		serf:      s,
-		eventCh:   eventCh,
-		mu:        sync.RWMutex{},
-		subs:      make(map[string][]*subscription),
-		paused:    atomic.Bool{},
-		closing:   atomic.Bool{},
-		rejoining: atomic.Bool{},
-		done:      make(chan struct{}),
-		wg:        sync.WaitGroup{},
-		dedup:     newDedupCache(cfg.DedupCacheSize),
-		replay:    nil, // set below
+		cfg:         cfg,
+		serf:        s,
+		eventCh:     eventCh,
+		mu:          sync.RWMutex{},
+		subs:        make(map[string][]*subscription),
+		maxSeenAtMs: make(map[string]int64),
+		paused:      atomic.Bool{},
+		closing:     atomic.Bool{},
+		rejoining:   atomic.Bool{},
+		done:        make(chan struct{}),
+		wg:          sync.WaitGroup{},
+		dedup:       newDedupCache(cfg.DedupCacheSize),
+		replay:      nil, // set below
 	}
 	b.replay = newReplayLog(cfg.ReplayLogBytesPerTopic, cfg.ReplayLogBytesTotal, replayHooks{
 		onTopicEviction: func(topic string) {
@@ -354,13 +361,16 @@ func (b *serfBus) eventLoop() {
 func (b *serfBus) handleEvent(ev serf.Event) {
 	switch e := ev.(type) {
 	case serf.UserEvent:
-		b.handleUserEvent(e)
+		b.dispatchEnvelope(e.Name, e.Payload)
 	case serf.MemberEvent:
 		metrics.MembershipEventsTotal.WithLabelValues(e.Type.String()).Add(float64(len(e.Members)))
 		// The current member count is authoritative; reset the gauge from
 		// it on every coalesced batch so the metric stays accurate without
 		// a separate polling loop.
 		metrics.MembersCount.WithLabelValues(b.cfg.Region).Set(float64(b.serf.NumNodes()))
+		if e.Type == serf.EventMemberJoin {
+			b.onMembersJoined(e.Members)
+		}
 		// On leave/failed events that drop us back to a single-node cluster,
 		// kick a one-shot rejoin against the seeds. This replaces the
 		// 30-second polling check that used to live in joinLoop.
@@ -369,16 +379,21 @@ func (b *serfBus) handleEvent(ev serf.Event) {
 			b.triggerRejoin()
 		}
 	case *serf.Query:
-		// PR 3 will register the replay query handler. Until then, ignore
-		// inbound queries silently; the initiator's deadline will fire.
+		if e.Name == replayQueryName {
+			b.handleReplayQuery(e)
+		}
+		// Other inbound queries are ignored until a public handler-
+		// registration API exists; the initiator's deadline will fire.
 	}
 }
 
-func (b *serfBus) handleUserEvent(e serf.UserEvent) {
-	topic := e.Name
-
+// dispatchEnvelope is the single inbound dispatch path. It is called both
+// from the Serf event loop for live user events and from the replay-on-join
+// re-feed in replay.go, so the dedup, pause gate, and metrics behave
+// identically for both sources.
+func (b *serfBus) dispatchEnvelope(topic string, envelopeBytes []byte) {
 	envelope := &busv1.BusEnvelope{}
-	if err := proto.Unmarshal(e.Payload, envelope); err != nil {
+	if err := proto.Unmarshal(envelopeBytes, envelope); err != nil {
 		metrics.EventsReceivedTotal.WithLabelValues(topic, "decode_error").Inc()
 		logger.Warn("Bus: failed to unmarshal envelope", "topic", topic, "error", err)
 		return
@@ -395,6 +410,8 @@ func (b *serfBus) handleUserEvent(e serf.UserEvent) {
 		metrics.EventsReceivedTotal.WithLabelValues(topic, "deduped").Inc()
 		return
 	}
+
+	b.recordSeen(envelope.SenderNode, envelope.SentAtMs)
 
 	if b.paused.Load() {
 		metrics.EventsDroppedTotal.WithLabelValues("paused").Inc()
@@ -429,6 +446,20 @@ func (b *serfBus) handleUserEvent(e serf.UserEvent) {
 		sub.handler(evt)
 	}
 	metrics.EventsReceivedTotal.WithLabelValues(topic, "handled").Inc()
+}
+
+// recordSeen advances the per-sender high-water mark of observed publish
+// timestamps. It feeds the cursor passed in replay-on-join queries so we
+// only ask for events newer than what we already have.
+func (b *serfBus) recordSeen(sender string, sentAtMs int64) {
+	if sender == "" || sentAtMs <= 0 {
+		return
+	}
+	b.mu.Lock()
+	if existing := b.maxSeenAtMs[sender]; sentAtMs > existing {
+		b.maxSeenAtMs[sender] = sentAtMs
+	}
+	b.mu.Unlock()
 }
 
 // initialJoin runs once at startup, retrying with exponential backoff until

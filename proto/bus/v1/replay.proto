@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package bus.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/bus/v1;busv1";
+
+// BusReplayRequest is sent as the payload of a Serf query named "bus.replay"
+// from a joiner targeted at one specific peer. The query is filtered to a
+// single peer (FilterNodes) so the response set stays bounded.
+//
+// since_ms is the highest BusEnvelope.sent_at_ms the requester has previously
+// observed from the targeted peer. The peer responds with any envelope it
+// published whose sent_at_ms exceeds this cursor and is still resident in
+// its replay ring. A new joiner that has never heard from the peer sends
+// since_ms=0, which asks for everything in the ring.
+message BusReplayRequest {
+  int64 since_ms = 1;
+}
+
+// BusReplayResponse carries previously-published BusEnvelope bytes verbatim.
+// The requester re-dispatches each envelope through its normal user-event
+// path; the receiver-side dedup cache drops overlaps with events the
+// requester has since received via gossip.
+message BusReplayResponse {
+  repeated bytes envelopes = 1;
+}

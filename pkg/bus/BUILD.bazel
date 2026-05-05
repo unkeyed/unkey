@@ -10,6 +10,7 @@ go_library(
         "doc.go",
         "log_writer.go",
         "noop.go",
+        "replay.go",
         "replay_log.go",
         "serf_bus.go",
     ],
@@ -30,11 +31,13 @@ go_test(
     name = "bus_test",
     srcs = [
         "bus_test.go",
+        "replay_test.go",
         "serf_bus_test.go",
     ],
     embed = [":bus"],
     deps = [
         "//gen/proto/cache/v1:cache",
         "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//proto",
     ],
 )

@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "bus",
-    srcs = ["envelope.pb.go"],
+    srcs = [
+        "envelope.pb.go",
+        "replay.pb.go",
+    ],
     importpath = "github.com/unkeyed/unkey/gen/proto/bus/v1",
     visibility = ["//visibility:public"],
     deps = [

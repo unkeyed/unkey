@@ -103,6 +103,18 @@ var (
 		[]string{"topic", "reason"},
 	)
 
+	// ReplayRequestsTotal counts replay-on-join queries by terminal state.
+	// result is one of: applied, empty, query_error, decode_error.
+	ReplayRequestsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "bus",
+			Name:      "replay_requests_total",
+			Help:      "Total replay-on-join queries issued, by result.",
+		},
+		[]string{"result"},
+	)
+
 	// SeedJoinAttemptsTotal tracks the join loop's attempts at startup and
 	// during reconnection.
 	SeedJoinAttemptsTotal = lazy.NewCounterVec(
