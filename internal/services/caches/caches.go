@@ -6,6 +6,7 @@ import (
 	"time"
 
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	"github.com/unkeyed/unkey/pkg/bus"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/cache/middleware"
@@ -18,31 +19,24 @@ import (
 // Each field represents a specialized cache for a specific data entity.
 type Caches struct {
 	// RatelimitNamespace caches ratelimit namespace lookups by name or ID.
-	// Keys are cache.ScopedKey and values are db.FindRatelimitNamespace.
 	RatelimitNamespace cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 
 	// VerificationKeyByHash caches verification key lookups by their hash with pre-parsed data.
-	// Keys are string (hash) and values are keysdb.CachedKeyData (includes pre-parsed IP whitelist).
 	VerificationKeyByHash cache.Cache[string, keysdb.CachedKeyData]
 
 	// LiveApiByID caches live API lookups by ID.
-	// Keys are string (ID) and values are db.FindLiveApiByIDRow.
 	LiveApiByID cache.Cache[cache.ScopedKey, db.FindLiveApiByIDRow]
 
-	// Clickhouse Configuration caches clickhouse configuration lookups by workspace ID.
-	// Keys are string (workspace ID) and values are db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow.
+	// ClickhouseSetting caches clickhouse configuration lookups by workspace ID.
 	ClickhouseSetting cache.Cache[string, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow]
 
 	// KeyAuthToApiRow caches key_auth_id to api row mappings.
-	// Keys are string (key_auth_id) and values are db.FindKeyAuthsByKeyAuthIdsRow (has both KeyAuthID and ApiID).
 	KeyAuthToApiRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByKeyAuthIdsRow]
 
 	// ApiToKeyAuthRow caches api_id to key_auth row mappings.
-	// Keys are string (api_id) and values are db.FindKeyAuthsByIdsRow (has both KeyAuthID and ApiID).
 	ApiToKeyAuthRow cache.Cache[cache.ScopedKey, db.FindKeyAuthsByIdsRow]
 
 	// WorkspaceQuota caches workspace quota lookups by workspace ID.
-	// Keys are string (workspace ID) and values are keysdb.Quotas.
 	WorkspaceQuota cache.Cache[string, keysdb.Quotas]
 
 	// PortalSession caches portal session lookups by session token.
@@ -50,76 +44,48 @@ type Caches struct {
 	// Short fresh window because sessions can expire; stale window allows
 	// serving slightly-stale data while revalidating in the background.
 	PortalSession cache.Cache[string, db.PortalSession]
-
-	// dispatcher handles routing of invalidation events to all caches in this process.
-	// This is not exported as it's an internal implementation detail.
-	dispatcher *clustering.InvalidationDispatcher
 }
 
-// Close shuts down the caches and cleans up resources.
-func (c *Caches) Close() error {
-	// Close the dispatcher to stop consuming invalidation events
-	if c.dispatcher != nil {
-		return c.dispatcher.Close()
-	}
-
-	return nil
-}
+// Close is a no-op kept for API stability. Cache subscriptions are
+// torn down by closing the bus, which is owned by the caller.
+func (c *Caches) Close() error { return nil }
 
 // Config defines the configuration options for initializing caches.
 type Config struct {
 	// Clock provides time functionality, allowing easier testing.
 	Clock clock.Clock
 
-	// Broadcaster for distributed cache invalidation via gossip.
-	// If nil, caches operate in local-only mode (no distributed invalidation).
-	Broadcaster clustering.Broadcaster
+	// Bus is the event bus used for distributed cache invalidation. Pass
+	// bus.NewNoop() in processes that have no gossip configured; the
+	// wrapper still works correctly, just without cross-pod fan-out.
+	Bus bus.Bus
 
-	// NodeID identifies this node in the cluster (defaults to hostname-uniqueid to ensure uniqueness)
+	// NodeID identifies this node in the cluster.
 	NodeID string
 }
 
-// clusterOpts bundles the dispatcher and key converter functions needed for
-// distributed cache invalidation. These are coupled because converters are only
-// meaningful when clustering is enabled (i.e., when a dispatcher exists).
-// Pass nil when clustering is disabled.
 type clusterOpts[K comparable] struct {
-	dispatcher  *clustering.InvalidationDispatcher
-	broadcaster clustering.Broadcaster
+	bus         bus.Bus
 	nodeID      string
 	keyToString func(K) string
 	stringToKey func(string) (K, error)
 }
 
-// createCache creates a cache instance with optional clustering support.
-//
-// This is a generic helper function that:
-// 1. Creates a local cache with the provided configuration
-// 2. If clustering opts are provided, wraps it with clustering for distributed invalidation
-// 3. Returns the cache (either local or clustered)
+// createCache wraps a local cache with cluster invalidation. opts.bus must
+// be non-nil; pass bus.NewNoop() to disable cross-pod fan-out without
+// changing the call shape.
 func createCache[K comparable, V any](
 	cacheConfig cache.Config[K, V],
-	opts *clusterOpts[K],
+	opts clusterOpts[K],
 ) (cache.Cache[K, V], error) {
-	// Create local cache
 	localCache, err := cache.New(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	// If no clustering is enabled, return the local cache directly.
-	// This avoids the ClusterCache wrapper overhead when clustering isn't needed,
-	// keeping cache operations (Get/Set/etc) as fast as possible on the hot path.
-	if opts == nil {
-		return localCache, nil
-	}
-
-	// Wrap with clustering for distributed invalidation
-	// The cluster cache will automatically register with the dispatcher
 	clusterCache, err := clustering.New(clustering.Config[K, V]{
 		LocalCache:  localCache,
-		Broadcaster: opts.broadcaster,
-		Dispatcher:  opts.dispatcher,
+		Bus:         opts.bus,
 		NodeID:      opts.nodeID,
 		KeyToString: opts.keyToString,
 		StringToKey: opts.stringToKey,
@@ -132,58 +98,30 @@ func createCache[K comparable, V any](
 }
 
 // New creates and initializes all cache instances with appropriate settings.
-//
-// It configures each cache with specific freshness/staleness windows, size limits,
-// resource names for tracing, and wraps them with distributed invalidation if configured.
 func New(config Config) (Caches, error) {
-	// Apply default NodeID if not provided
-	// Format: hostname-uniqueid to ensure uniqueness across nodes
+	if config.Bus == nil {
+		config.Bus = bus.NewNoop()
+	}
+
 	if config.NodeID == "" {
 		hostname, err := os.Hostname()
 		if err != nil {
 			hostname = "unknown"
 		}
-		// Add unique ID to prevent collisions when multiple nodes have same hostname
 		config.NodeID = fmt.Sprintf("%s-%s", hostname, uid.New("node"))
 	}
 
-	// Build clustering options if a broadcaster is configured.
-	// When nil, createCache returns unwrapped local caches (no clustering overhead).
-	var dispatcher *clustering.InvalidationDispatcher
-	var scopedKeyOpts *clusterOpts[cache.ScopedKey]
-	var stringKeyOpts *clusterOpts[string]
-
-	if config.Broadcaster != nil {
-		var err error
-		dispatcher, err = clustering.NewInvalidationDispatcher(config.Broadcaster)
-		if err != nil {
-			return Caches{}, err
-		}
-
-		scopedKeyOpts = &clusterOpts[cache.ScopedKey]{
-			dispatcher:  dispatcher,
-			broadcaster: config.Broadcaster,
-			nodeID:      config.NodeID,
-			keyToString: cache.ScopedKeyToString,
-			stringToKey: cache.ScopedKeyFromString,
-		}
-		stringKeyOpts = &clusterOpts[string]{
-			dispatcher:  dispatcher,
-			broadcaster: config.Broadcaster,
-			nodeID:      config.NodeID,
-			keyToString: nil, // defaults handle string keys
-			stringToKey: nil,
-		}
+	scopedKeyOpts := clusterOpts[cache.ScopedKey]{
+		bus:         config.Bus,
+		nodeID:      config.NodeID,
+		keyToString: cache.ScopedKeyToString,
+		stringToKey: cache.ScopedKeyFromString,
 	}
-
-	// Ensure the dispatcher is closed if any subsequent cache creation fails.
-	initialized := false
-	if dispatcher != nil {
-		defer func() {
-			if !initialized {
-				_ = dispatcher.Close()
-			}
-		}()
+	stringKeyOpts := clusterOpts[string]{
+		bus:         config.Bus,
+		nodeID:      config.NodeID,
+		keyToString: nil, // defaults handle string keys
+		stringToKey: nil,
 	}
 
 	ratelimitNamespace, err := createCache(
@@ -298,7 +236,6 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
-	initialized = true
 	return Caches{
 		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
 		LiveApiByID:           middleware.WithTracing(liveApiByID),
@@ -308,6 +245,5 @@ func New(config Config) (Caches, error) {
 		ApiToKeyAuthRow:       middleware.WithTracing(apiToKeyAuthRow),
 		WorkspaceQuota:        middleware.WithTracing(workspaceQuota),
 		PortalSession:         middleware.WithTracing(portalSession),
-		dispatcher:            dispatcher,
 	}, nil
 }

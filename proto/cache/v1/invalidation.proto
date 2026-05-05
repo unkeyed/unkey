@@ -4,21 +4,21 @@ package cache.v1;
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/cache/v1;cachev1";
 
-// CacheInvalidationEvent represents a cache invalidation event
+// CacheInvalidationEvent describes a single invalidation that the receiving
+// pod should apply to its local copy of the cache. The cache name is no
+// longer carried in the payload; it is the bus topic
+// ("cache.invalidate.<name>") and is therefore implicit at the dispatch
+// layer. Source-instance and timestamp move to the BusEnvelope.
 message CacheInvalidationEvent {
-  // The name/identifier of the cache to invalidate
-  string cache_name = 1;
-
-  // Unix millisecond timestamp when the invalidation was triggered
-  int64 timestamp = 3;
-
-  // Optional: The node that triggered the invalidation (to avoid self-invalidation)
-  string source_instance = 4;
+  reserved 1, 3, 4;
+  reserved "cache_name", "timestamp", "source_instance";
 
   oneof action {
-    // Invalidate a specific cache key
+    // Invalidate a specific cache key. The receiver decodes the string
+    // using the cache's stringToKey converter.
     string cache_key = 2;
-    // Clear the entire cache
+
+    // Drop every entry in the cache. Used by Clear().
     bool clear_all = 5;
   }
 }

@@ -8,12 +8,11 @@ import (
 	clusterv1 "github.com/unkeyed/unkey/gen/proto/cluster/v1"
 )
 
-func cacheInvalidationMessage(cacheName, cacheKey string) *clusterv1.ClusterMessage {
+func cacheInvalidationMessage(_, cacheKey string) *clusterv1.ClusterMessage {
 	return &clusterv1.ClusterMessage{
 		Payload: &clusterv1.ClusterMessage_CacheInvalidation{
 			CacheInvalidation: &cachev1.CacheInvalidationEvent{
-				CacheName: cacheName,
-				Action:    &cachev1.CacheInvalidationEvent_CacheKey{CacheKey: cacheKey},
+				Action: &cachev1.CacheInvalidationEvent_CacheKey{CacheKey: cacheKey},
 			},
 		},
 	}
@@ -32,7 +31,6 @@ func TestMessageMux_RoutesToSubscriber(t *testing.T) {
 		mux.OnMessage(msg)
 
 		require.NotNil(t, received)
-		require.Equal(t, "my-cache", received.GetCacheName())
 		require.Equal(t, "my-key", received.GetCacheKey())
 	})
 }

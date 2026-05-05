@@ -21,15 +21,13 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// CacheInvalidationEvent represents a cache invalidation event
+// CacheInvalidationEvent describes a single invalidation that the receiving
+// pod should apply to its local copy of the cache. The cache name is no
+// longer carried in the payload; it is the bus topic
+// ("cache.invalidate.<name>") and is therefore implicit at the dispatch
+// layer. Source-instance and timestamp move to the BusEnvelope.
 type CacheInvalidationEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The name/identifier of the cache to invalidate
-	CacheName string `protobuf:"bytes,1,opt,name=cache_name,json=cacheName,proto3" json:"cache_name,omitempty"`
-	// Unix millisecond timestamp when the invalidation was triggered
-	Timestamp int64 `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	// Optional: The node that triggered the invalidation (to avoid self-invalidation)
-	SourceInstance string `protobuf:"bytes,4,opt,name=source_instance,json=sourceInstance,proto3" json:"source_instance,omitempty"`
 	// Types that are valid to be assigned to Action:
 	//
 	//	*CacheInvalidationEvent_CacheKey
@@ -69,27 +67,6 @@ func (*CacheInvalidationEvent) Descriptor() ([]byte, []int) {
 	return file_cache_v1_invalidation_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *CacheInvalidationEvent) GetCacheName() string {
-	if x != nil {
-		return x.CacheName
-	}
-	return ""
-}
-
-func (x *CacheInvalidationEvent) GetTimestamp() int64 {
-	if x != nil {
-		return x.Timestamp
-	}
-	return 0
-}
-
-func (x *CacheInvalidationEvent) GetSourceInstance() string {
-	if x != nil {
-		return x.SourceInstance
-	}
-	return ""
-}
-
 func (x *CacheInvalidationEvent) GetAction() isCacheInvalidationEvent_Action {
 	if x != nil {
 		return x.Action
@@ -120,12 +97,13 @@ type isCacheInvalidationEvent_Action interface {
 }
 
 type CacheInvalidationEvent_CacheKey struct {
-	// Invalidate a specific cache key
+	// Invalidate a specific cache key. The receiver decodes the string
+	// using the cache's stringToKey converter.
 	CacheKey string `protobuf:"bytes,2,opt,name=cache_key,json=cacheKey,proto3,oneof"`
 }
 
 type CacheInvalidationEvent_ClearAll struct {
-	// Clear the entire cache
+	// Drop every entry in the cache. Used by Clear().
 	ClearAll bool `protobuf:"varint,5,opt,name=clear_all,json=clearAll,proto3,oneof"`
 }
 
@@ -137,15 +115,12 @@ var File_cache_v1_invalidation_proto protoreflect.FileDescriptor
 
 const file_cache_v1_invalidation_proto_rawDesc = "" +
 	"\n" +
-	"\x1bcache/v1/invalidation.proto\x12\bcache.v1\"\xc6\x01\n" +
+	"\x1bcache/v1/invalidation.proto\x12\bcache.v1\"\x9a\x01\n" +
 	"\x16CacheInvalidationEvent\x12\x1d\n" +
-	"\n" +
-	"cache_name\x18\x01 \x01(\tR\tcacheName\x12\x1c\n" +
-	"\ttimestamp\x18\x03 \x01(\x03R\ttimestamp\x12'\n" +
-	"\x0fsource_instance\x18\x04 \x01(\tR\x0esourceInstance\x12\x1d\n" +
 	"\tcache_key\x18\x02 \x01(\tH\x00R\bcacheKey\x12\x1d\n" +
 	"\tclear_all\x18\x05 \x01(\bH\x00R\bclearAllB\b\n" +
-	"\x06actionB\x97\x01\n" +
+	"\x06actionJ\x04\b\x01\x10\x02J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\n" +
+	"cache_nameR\ttimestampR\x0fsource_instanceB\x97\x01\n" +
 	"\fcom.cache.v1B\x11InvalidationProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/cache/v1;cachev1\xa2\x02\x03CXX\xaa\x02\bCache.V1\xca\x02\bCache\\V1\xe2\x02\x14Cache\\V1\\GPBMetadata\xea\x02\tCache::V1b\x06proto3"
 
 var (

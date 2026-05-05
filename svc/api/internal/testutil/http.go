@@ -22,6 +22,7 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
+	"github.com/unkeyed/unkey/pkg/bus"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -123,9 +124,9 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	require.NoError(t, err)
 
 	caches, err := caches.New(caches.Config{
-		Broadcaster: nil,
-		NodeID:      "",
-		Clock:       clk,
+		Bus:    bus.NewNoop(),
+		NodeID: "",
+		Clock:  clk,
 	})
 	require.NoError(t, err)
 

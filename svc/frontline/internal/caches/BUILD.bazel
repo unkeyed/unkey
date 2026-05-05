@@ -7,6 +7,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//gen/proto/frontline/v1:frontline",
+        "//pkg/bus",
         "//pkg/cache",
         "//pkg/cache/clustering",
         "//pkg/cache/middleware",

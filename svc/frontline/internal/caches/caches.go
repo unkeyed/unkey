@@ -7,6 +7,7 @@ import (
 	"time"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
+	"github.com/unkeyed/unkey/pkg/bus"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/cache/middleware"
@@ -29,60 +30,43 @@ type Caches struct {
 
 	// HostName -> Certificate
 	TLSCertificates cache.Cache[string, tls.Certificate]
-
-	// dispatcher handles routing of invalidation events to all caches in this process.
-	dispatcher *clustering.InvalidationDispatcher
 }
 
-// Close shuts down the caches and cleans up resources.
-func (c *Caches) Close() error {
-	if c.dispatcher != nil {
-		return c.dispatcher.Close()
-	}
-
-	return nil
-}
+// Close is a no-op kept for API stability. Cache subscriptions are torn
+// down by closing the bus, which is owned by the caller.
+func (c *Caches) Close() error { return nil }
 
 // Config defines the configuration options for initializing caches.
 type Config struct {
 	Clock clock.Clock
 
-	// Broadcaster for distributed cache invalidation via gossip.
-	// If nil, caches operate in local-only mode (no distributed invalidation).
-	Broadcaster clustering.Broadcaster
+	// Bus is the event bus used for distributed cache invalidation. Pass
+	// bus.NewNoop() in processes that have no gossip configured.
+	Bus bus.Bus
 
-	// NodeID identifies this node in the cluster (defaults to hostname-uniqueid to ensure uniqueness)
+	// NodeID identifies this node in the cluster.
 	NodeID string
 }
 
-// clusterOpts bundles the dispatcher and key converter functions needed for
-// distributed cache invalidation.
 type clusterOpts[K comparable] struct {
-	dispatcher  *clustering.InvalidationDispatcher
-	broadcaster clustering.Broadcaster
+	bus         bus.Bus
 	nodeID      string
 	keyToString func(K) string
 	stringToKey func(string) (K, error)
 }
 
-// createCache creates a cache instance with optional clustering support.
 func createCache[K comparable, V any](
 	cacheConfig cache.Config[K, V],
-	opts *clusterOpts[K],
+	opts clusterOpts[K],
 ) (cache.Cache[K, V], error) {
 	localCache, err := cache.New(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	if opts == nil {
-		return localCache, nil
-	}
-
 	clusterCache, err := clustering.New(clustering.Config[K, V]{
 		LocalCache:  localCache,
-		Broadcaster: opts.broadcaster,
-		Dispatcher:  opts.dispatcher,
+		Bus:         opts.bus,
 		NodeID:      opts.nodeID,
 		KeyToString: opts.keyToString,
 		StringToKey: opts.stringToKey,
@@ -95,6 +79,10 @@ func createCache[K comparable, V any](
 }
 
 func New(config Config) (*Caches, error) {
+	if config.Bus == nil {
+		config.Bus = bus.NewNoop()
+	}
+
 	if config.NodeID == "" {
 		hostname, err := os.Hostname()
 		if err != nil {
@@ -103,33 +91,11 @@ func New(config Config) (*Caches, error) {
 		config.NodeID = fmt.Sprintf("%s-%s", hostname, uid.New("node"))
 	}
 
-	var dispatcher *clustering.InvalidationDispatcher
-	var stringKeyOpts *clusterOpts[string]
-
-	if config.Broadcaster != nil {
-		var err error
-		dispatcher, err = clustering.NewInvalidationDispatcher(config.Broadcaster)
-		if err != nil {
-			return nil, err
-		}
-
-		stringKeyOpts = &clusterOpts[string]{
-			dispatcher:  dispatcher,
-			broadcaster: config.Broadcaster,
-			nodeID:      config.NodeID,
-			keyToString: nil,
-			stringToKey: nil,
-		}
-	}
-
-	// Ensure the dispatcher is closed if any subsequent cache creation fails.
-	initialized := false
-	if dispatcher != nil {
-		defer func() {
-			if !initialized {
-				_ = dispatcher.Close()
-			}
-		}()
+	stringKeyOpts := clusterOpts[string]{
+		bus:         config.Bus,
+		nodeID:      config.NodeID,
+		keyToString: nil,
+		stringToKey: nil,
 	}
 
 	frontlineRoute, err := createCache(
@@ -188,12 +154,10 @@ func New(config Config) (*Caches, error) {
 		return nil, fmt.Errorf("failed to create certificate cache: %w", err)
 	}
 
-	initialized = true
 	return &Caches{
 		FrontlineRoutes:       middleware.WithTracing(frontlineRoute),
 		InstancesByDeployment: middleware.WithTracing(instancesByDeployment),
 		Policies:              middleware.WithTracing(policies),
 		TLSCertificates:       middleware.WithTracing(tlsCertificate),
-		dispatcher:            dispatcher,
 	}, nil
 }

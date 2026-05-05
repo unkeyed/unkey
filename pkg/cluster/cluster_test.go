@@ -15,8 +15,7 @@ import (
 func testMessage(key string) *clusterv1.ClusterMessage_CacheInvalidation {
 	return &clusterv1.ClusterMessage_CacheInvalidation{
 		CacheInvalidation: &cachev1.CacheInvalidationEvent{
-			CacheName: "test",
-			Action:    &cachev1.CacheInvalidationEvent_CacheKey{CacheKey: key},
+			Action: &cachev1.CacheInvalidationEvent_CacheKey{CacheKey: key},
 		},
 	}
 }

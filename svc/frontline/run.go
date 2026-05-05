@@ -3,7 +3,6 @@ package frontline
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -24,12 +23,11 @@ import (
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/bus"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/cache/clustering"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/cluster"
 	"github.com/unkeyed/unkey/pkg/counter"
 	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -245,57 +243,12 @@ func Run(ctx context.Context, cfg Config) error {
 		r.Defer(chClient.Close)
 	}
 
-	var broadcaster clustering.Broadcaster
-	if cfg.Gossip != nil {
-		logger.Info("Gossip cluster configured, initializing cache invalidation",
-			"region", cfg.Region,
-			"instanceID", cfg.InstanceID,
-		)
-
-		mux := cluster.NewMessageMux()
-
-		lanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.LANSeeds, cfg.Gossip.LANPort)
-		wanSeeds := cluster.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.WANPort)
-
-		var secretKey []byte
-		if cfg.Gossip.SecretKey != "" {
-			var decodeErr error
-			secretKey, decodeErr = base64.StdEncoding.DecodeString(cfg.Gossip.SecretKey)
-			if decodeErr != nil {
-				return fmt.Errorf("unable to decode gossip secret key: %w", decodeErr)
-			}
-		}
-
-		gossipCluster, clusterErr := cluster.New(cluster.Config{
-			Region:           cfg.Region,
-			NodeID:           cfg.InstanceID,
-			BindAddr:         cfg.Gossip.BindAddr,
-			BindPort:         cfg.Gossip.LANPort,
-			WANBindPort:      cfg.Gossip.WANPort,
-			WANAdvertiseAddr: cfg.Gossip.WANAdvertiseAddr,
-			LANSeeds:         lanSeeds,
-			WANSeeds:         wanSeeds,
-			SecretKey:        secretKey,
-			OnMessage:        mux.OnMessage,
-		})
-		if clusterErr != nil {
-			logger.Error("Failed to create gossip cluster, continuing without cluster cache invalidation",
-				"error", clusterErr,
-			)
-		} else {
-			gossipBroadcaster := clustering.NewGossipBroadcaster(gossipCluster)
-			cluster.Subscribe(mux, gossipBroadcaster.HandleCacheInvalidation)
-			broadcaster = gossipBroadcaster
-			r.Defer(gossipCluster.Close)
-		}
-	} else {
-		logger.Warn("Gossip not configured, cache invalidation will be local only")
-	}
-
+	// Cache invalidation goes through bus.NewNoop() until PR 5 wires the
+	// real Serf-backed bus.
 	cacheSet, err := caches.New(caches.Config{
-		Clock:       clk,
-		Broadcaster: broadcaster,
-		NodeID:      cfg.InstanceID,
+		Clock:  clk,
+		Bus:    bus.NewNoop(),
+		NodeID: cfg.InstanceID,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
