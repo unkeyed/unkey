@@ -3,6 +3,19 @@ import React from "react";
 import { cn } from "../lib/utils";
 import { Ufo } from "@unkey/icons";
 
+/**
+ * Empty state for lists, tables, and panels with no content yet.
+ *
+ * Composition:
+ *   Empty
+ *   ├── Empty.Icon
+ *   ├── Empty.Title
+ *   ├── Empty.Description
+ *   └── Empty.Actions (variant="buttons" | "links")
+ *
+ * Pick the actions variant based on whether a primary CTA already exists
+ * elsewhere on the page — see Empty.Actions for guidance.
+ */
 interface EmptyRootProps extends React.HTMLAttributes<HTMLDivElement> {}
 function Empty({ className, children, ...props }: EmptyRootProps) {
   return (
@@ -61,11 +74,35 @@ Empty.Description = function EmptyDescription({ className, ...props }: EmptyDesc
   );
 };
 
-type EmptyActionsProps = React.HTMLAttributes<HTMLDivElement>;
+type EmptyActionsProps = React.HTMLAttributes<HTMLDivElement> & {
+  /**
+   * Visual style of the actions slot.
+   * - `"buttons"` (default): horizontal row of one or two `<Button>`s. Use when the
+   *   empty state itself owns the primary CTA on the page.
+   * - `"links"`: vertical stack of low-weight `<InlineLink>`s sized to match the
+   *   description. Use when a primary CTA already exists elsewhere (e.g. a header
+   *   action) and the empty state should only offer secondary guidance — links to
+   *   docs or related pages — so it doesn't compete with that primary action.
+   */
+  variant?: "buttons" | "links";
+};
 
-Empty.Actions = function EmptyActions({ className, children, ...props }: EmptyActionsProps) {
+Empty.Actions = function EmptyActions({
+  className,
+  children,
+  variant = "buttons",
+  ...props
+}: EmptyActionsProps) {
   return (
-    <div className={cn("w-full flex items-center justify-center gap-4 mt-2", className)} {...props}>
+    <div
+      className={cn(
+        "w-full",
+        variant === "buttons" && "flex items-center justify-center gap-4 mt-2",
+        variant === "links" && "flex flex-col items-start gap-1.5 mt-3 text-[13px] leading-6",
+        className,
+      )}
+      {...props}
+    >
       {children}
     </div>
   );

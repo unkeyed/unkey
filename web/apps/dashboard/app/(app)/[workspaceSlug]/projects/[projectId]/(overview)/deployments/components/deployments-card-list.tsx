@@ -2,7 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { BookBookmark } from "@unkey/icons";
-import { Button, Empty } from "@unkey/ui";
+import { Empty, InlineLink } from "@unkey/ui";
 import { useProjectData } from "../../data-provider";
 import { useDeployments } from "../hooks/use-deployments";
 import { DeploymentRow } from "./deployment-row";
@@ -29,17 +29,15 @@ export function DeploymentsCardList() {
               There are no deployments yet. Push to your connected repository or trigger a manual
               deployment to get started.
             </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <a
+            <Empty.Actions variant="links">
+              <InlineLink
                 href="https://www.unkey.com/docs/build-and-deploy/deployments"
                 target="_blank"
                 rel="noopener noreferrer"
-              >
-                <Button size="md">
-                  <BookBookmark />
-                  Learn about Deployments
-                </Button>
-              </a>
+                label="Learn about Deployments"
+                icon={<BookBookmark />}
+                iconPosition="left"
+              />
             </Empty.Actions>
           </Empty>
         </div>
