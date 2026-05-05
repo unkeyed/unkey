@@ -5,6 +5,7 @@ import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
 import { DEPLOYMENT_STATUSES } from "./deployment-status";
+import { INSTANCE_STATUSES } from "./instance-status";
 import { validateProjectIdInQuery } from "./utils";
 
 export const deploymentSchema = z.object({
@@ -24,6 +25,18 @@ export const deploymentSchema = z.object({
   instances: z.array(
     z.object({
       id: z.string(),
+      region: z.object({
+        id: z.string(),
+        name: z.string(),
+        platform: z.string(),
+      }),
+      flagCode: z.enum(flagCodes),
+      status: z.enum(INSTANCE_STATUSES),
+    }),
+  ),
+  desiredInstanceCount: z.number().int(),
+  desiredRegions: z.array(
+    z.object({
       region: z.object({
         id: z.string(),
         name: z.string(),
