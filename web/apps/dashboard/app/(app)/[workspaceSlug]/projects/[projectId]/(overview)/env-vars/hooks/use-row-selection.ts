@@ -1,4 +1,6 @@
 import { collection } from "@/lib/collections";
+import { trpc } from "@/lib/trpc/client";
+import { toast } from "@unkey/ui";
 import { useCallback, useRef, useState } from "react";
 import type { DisplayRow } from "../components/list/env-var-item-row";
 
@@ -84,6 +86,23 @@ export function useRowSelection(displayRows: DisplayRow[]) {
     });
   }, []);
 
+  const makeSensitiveMutation = trpc.deploy.envVar.makeSensitive.useMutation();
+
+  const handleBulkMakeSensitive = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) {
+      return;
+    }
+    try {
+      await makeSensitiveMutation.mutateAsync({ envVarIds: ids });
+      await collection.envVars.utils.refetch();
+      toast.success(`Marked ${ids.length} variable${ids.length > 1 ? "s" : ""} as sensitive`);
+    } catch {
+      toast.error("Failed to mark variables as sensitive");
+    }
+    setSelectedIds(new Set());
+  }, [selectedIds, makeSensitiveMutation]);
+
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
   return {
@@ -92,6 +111,7 @@ export function useRowSelection(displayRows: DisplayRow[]) {
     toggleItemSelection,
     isRowSelected,
     handleBulkDelete,
+    handleBulkMakeSensitive,
     clearSelection,
   };
 }

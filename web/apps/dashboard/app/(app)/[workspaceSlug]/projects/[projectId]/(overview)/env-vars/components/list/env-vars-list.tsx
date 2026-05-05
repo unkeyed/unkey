@@ -38,6 +38,18 @@ export function EnvVarsList({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const closeEdit = useCallback(() => setEditingId(null), []);
+
+  const openEdit = useCallback(
+    (id: string) => {
+      if (editingId !== null && editingId !== id) {
+        setEditingId(null);
+        requestAnimationFrame(() => setEditingId(id));
+      } else {
+        setEditingId(id);
+      }
+    },
+    [editingId],
+  );
   const deferredQuery = useDeferredValue(searchQuery);
 
   const toggleGroup = useCallback((key: string) => {
@@ -98,6 +110,7 @@ export function EnvVarsList({
     toggleItemSelection,
     isRowSelected,
     handleBulkDelete,
+    handleBulkMakeSensitive,
     clearSelection,
   } = useRowSelection(displayRows);
 
@@ -152,7 +165,7 @@ export function EnvVarsList({
                     item={row.item}
                     searchQuery={deferredQuery}
                     isEditing={editingId === row.item.id}
-                    onEdit={() => setEditingId(row.item.id)}
+                    onEdit={() => openEdit(row.item.id)}
                     onCloseEdit={closeEdit}
                     isSelected={selectedIds.has(row.item.id)}
                     onToggleSelection={(shiftKey) => toggleRowSelection(virtualRow.index, shiftKey)}
@@ -169,7 +182,7 @@ export function EnvVarsList({
                     onToggleGroup={() => toggleGroup(row.key)}
                     onToggleSelection={(shiftKey) => toggleRowSelection(virtualRow.index, shiftKey)}
                     onToggleItemSelection={toggleItemSelection}
-                    onEdit={setEditingId}
+                    onEdit={openEdit}
                     onCloseEdit={closeEdit}
                     hasSelection={selectedIds.size > 0}
                   />
@@ -182,6 +195,7 @@ export function EnvVarsList({
       <EnvVarSelectionBar
         selectedCount={selectedIds.size}
         onDelete={handleBulkDelete}
+        onMakeSensitive={handleBulkMakeSensitive}
         onClearSelection={clearSelection}
       />
     </>

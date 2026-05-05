@@ -57,6 +57,7 @@ export function EnvVarItemRow({
       checked={isSelected}
       forceCheckboxVisible={isSelected || hasSelection}
       onCheckboxClick={showCheckbox ? (shiftKey) => onToggleSelection(shiftKey) : undefined}
+      onRowClick={isEditing ? onCloseEdit : onEdit}
       nameCell={
         <EnvVarNameCell
           envVarId={item.id}
