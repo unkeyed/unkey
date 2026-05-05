@@ -43,32 +43,37 @@ export const createBulkEnvVars = workspaceProcedure
 
     const envMap = new Map(envRecords.map((e) => [e.id, e]));
 
-    const encryptedVars = await Promise.all(
-      input.variables.map(async (v) => {
-        const environment = envMap.get(v.environmentId);
-        if (!environment) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: `Environment ${v.environmentId} not found`,
-          });
-        }
-        const { encrypted } = await vault.encrypt({
-          keyring: v.environmentId,
-          data: v.value,
-        });
+    // Group by keyring (environmentId) so each encryptBulk call uses one DEK, avoids concurrent S3 PutObject on the same key
+    const grouped = Map.groupBy(input.variables, (v) => v.environmentId);
 
-        return {
-          id: newId("environmentVariable"),
-          workspaceId: ctx.workspace.id,
-          appId: environment.appId,
-          environmentId: v.environmentId,
-          key: v.key,
-          value: encrypted,
-          type: v.type,
-          description: v.description ?? null,
-        };
-      }),
-    );
+    const encryptedVars = (
+      await Promise.all(
+        grouped.entries().map(async ([environmentId, vars]) => {
+          const environment = envMap.get(environmentId);
+          if (!environment) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: `Environment ${environmentId} not found`,
+            });
+          }
+
+          const tagged = vars.map((v) => [newId("environmentVariable"), v] as const);
+          const items = Object.fromEntries(tagged.map(([id, v]) => [id, v.value]));
+          const result = await vault.encryptBulk({ keyring: environmentId, items });
+
+          return tagged.map(([id, v]) => ({
+            id,
+            workspaceId: ctx.workspace.id,
+            appId: environment.appId,
+            environmentId,
+            key: v.key,
+            value: result.items[id].encrypted,
+            type: v.type,
+            description: v.description ?? null,
+          }));
+        }),
+      )
+    ).flat();
 
     await db.insert(schema.appEnvironmentVariables).values(encryptedVars);
   });
