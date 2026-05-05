@@ -94,14 +94,18 @@ export function useRowSelection(displayRows: DisplayRow[]) {
       return;
     }
     try {
-      await makeSensitiveMutation.mutateAsync({ envVarIds: ids });
+      const { updated } = await makeSensitiveMutation.mutateAsync({ envVarIds: ids });
       await collection.envVars.utils.refetch();
-      toast.success(`Marked ${ids.length} variable${ids.length > 1 ? "s" : ""} as sensitive`);
+      if (updated === 0) {
+        toast.info("Selected variables are already sensitive");
+      } else {
+        toast.success(`Marked ${updated} variable${updated > 1 ? "s" : ""} as sensitive`);
+      }
     } catch {
       toast.error("Failed to mark variables as sensitive");
     }
     setSelectedIds(new Set());
-  }, [selectedIds, makeSensitiveMutation]);
+  }, [selectedIds]);
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 

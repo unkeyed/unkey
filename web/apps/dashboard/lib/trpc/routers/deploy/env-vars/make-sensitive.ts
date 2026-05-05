@@ -11,7 +11,7 @@ export const makeSensitive = workspaceProcedure
   )
   .mutation(async ({ ctx, input }) => {
     try {
-      await db
+      const result = await db
         .update(schema.appEnvironmentVariables)
         .set({ type: "writeonly" })
         .where(
@@ -21,6 +21,8 @@ export const makeSensitive = workspaceProcedure
             eq(schema.appEnvironmentVariables.type, "recoverable"),
           ),
         );
+
+      return { updated: result[0].affectedRows };
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;
