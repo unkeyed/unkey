@@ -167,8 +167,8 @@ export function AreaTimeseriesChart({
   // to 5:00.
   const xTicks = effectiveDomain
     ? [0, 1, 2, 3].map((i) =>
-        Math.round(effectiveDomain[0] + (i * (effectiveDomain[1] - effectiveDomain[0])) / 3),
-      )
+      Math.round(effectiveDomain[0] + (i * (effectiveDomain[1] - effectiveDomain[0])) / 3),
+    )
     : undefined;
 
   return (
@@ -316,7 +316,7 @@ export function AreaTimeseriesChart({
           <Area
             key={`${key}-glow`}
             dataKey={key}
-            type="natural"
+            type="monotone"
             stroke={config[key].color}
             strokeWidth={3.5}
             strokeOpacity={0.12}
@@ -332,7 +332,7 @@ export function AreaTimeseriesChart({
           <Area
             key={key}
             dataKey={key}
-            type="natural"
+            type="monotone"
             stroke={config[key].color}
             strokeWidth={1.5}
             fill={`url(#${chartId}-${key})`}
