@@ -233,12 +233,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
                 </div>
               </div>
             </div>
-            <KeySecretSection
-              keyValue={keyData.key}
-              className="mt-6 w-full"
-              secretKeyClassName="bg-white dark:bg-black overflow-x-auto"
-              codeClassName="p-0"
-            />
+            <KeySecretSection keyValue={keyData.key} className="mt-6 w-full" />
             {onCreateAnother ? (
               <div className="mt-6">
                 <div className="flex gap-3 mt-4 items-center justify-center w-full">

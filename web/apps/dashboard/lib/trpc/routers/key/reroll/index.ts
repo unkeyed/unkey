@@ -2,10 +2,11 @@ import {
   GRACE_PERIOD_VALUES_MS,
   type GracePeriodMs,
 } from "@/components/api-keys-table/components/actions/components/rotate-key/rotate-key.constants";
+import { VaultService } from "@/gen/proto/vault/v1/service_pb";
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { Vault } from "@/lib/vault";
+import { createVaultClient } from "@/lib/vault-client";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
@@ -13,10 +14,7 @@ import { z } from "zod";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../../trpc";
 import { capGracePeriodAtSourceExpiry } from "./cap-grace-period-at-source-expiry";
 
-const vault = new Vault({
-  baseUrl: env().VAULT_URL,
-  token: env().VAULT_TOKEN,
-});
+const vault = createVaultClient(VaultService);
 
 const allowedExpirations = new Set<number>(GRACE_PERIOD_VALUES_MS);
 
