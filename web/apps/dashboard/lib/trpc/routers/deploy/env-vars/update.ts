@@ -51,10 +51,10 @@ export const updateEnvVar = workspaceProcedure
         });
       }
 
-      if (input.type !== envVar.type) {
+      if (envVar.type === "writeonly" && input.type === "recoverable") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Cannot change environment variable type after creation",
+          message: "Cannot convert a sensitive variable back to recoverable",
         });
       }
 
