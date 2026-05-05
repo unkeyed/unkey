@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "admin",
+    srcs = ["handler.go"],
+    importpath = "github.com/unkeyed/unkey/pkg/bus/admin",
+    visibility = ["//visibility:public"],
+    deps = ["//pkg/bus"],
+)
+
+go_test(
+    name = "admin_test",
+    srcs = ["handler_test.go"],
+    embed = [":admin"],
+    deps = [
+        "//pkg/bus",
+        "@com_github_stretchr_testify//require",
+    ],
+)

@@ -320,6 +320,11 @@ func (b *serfBus) Resume() {
 	}
 }
 
+// IsPaused reports the current pause state.
+func (b *serfBus) IsPaused() bool {
+	return b.paused.Load()
+}
+
 // Close gracefully leaves the cluster and shuts down. Safe to call multiple
 // times; only the first call performs the shutdown.
 func (b *serfBus) Close() error {

@@ -110,6 +110,11 @@ type Bus interface {
 	// Resume re-enables Publish and dispatch after a Pause.
 	Resume()
 
+	// IsPaused reports whether the bus is currently paused. The same state
+	// is also surfaced as the bus_paused gauge for alerting; this method
+	// exists for the admin status endpoint and tests.
+	IsPaused() bool
+
 	// Close gracefully leaves the cluster and releases resources.
 	Close() error
 }

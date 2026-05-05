@@ -25,6 +25,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/bus"
+	busadmin "github.com/unkeyed/unkey/pkg/bus/admin"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -281,6 +282,23 @@ func Run(ctx context.Context, cfg Config) error {
 		busInst = realBus
 		r.Defer(busInst.Close)
 		logger.Info("Bus initialized", "region", cfg.Region, "instanceID", cfg.InstanceID)
+
+		// Bus admin endpoint on its own loopback listener. We use a
+		// dedicated port (not the pprof one) so the kill switch keeps
+		// working even if pprof is misconfigured or disabled.
+		adminListener, adminErr := net.Listen("tcp", "127.0.0.1:6061")
+		if adminErr != nil {
+			return fmt.Errorf("unable to listen for bus admin: %w", adminErr)
+		}
+		adminSrv := busadmin.NewServer(busInst)
+		r.DeferCtx(adminSrv.Shutdown)
+		r.Go(func(ctx context.Context) error {
+			logger.Info("Bus admin listener started", "addr", adminListener.Addr().String())
+			if serveErr := adminSrv.Serve(adminListener); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+				return fmt.Errorf("bus admin server error: %w", serveErr)
+			}
+			return nil
+		})
 	}
 
 	cacheSet, err := caches.New(caches.Config{

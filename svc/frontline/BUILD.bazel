@@ -21,6 +21,7 @@ go_library(
         "//pkg/batch",
         "//pkg/buildinfo",
         "//pkg/bus",
+        "//pkg/bus/admin",
         "//pkg/cache",
         "//pkg/clickhouse",
         "//pkg/clickhouse/schema",

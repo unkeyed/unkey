@@ -32,6 +32,7 @@ func (noopBus) Query(context.Context, string, proto.Message) (<-chan QueryRespon
 func (noopBus) Members() []Member { return nil }
 func (noopBus) Pause()            {}
 func (noopBus) Resume()           {}
+func (noopBus) IsPaused() bool    { return false }
 func (noopBus) Close() error      { return nil }
 
 // NewNoop returns a Bus that drops all writes and reports an empty cluster.
