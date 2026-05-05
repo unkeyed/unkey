@@ -498,6 +498,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			err = db.Query.InsertPortalConfig(ctx, tx, db.InsertPortalConfigParams{
 				ID:          portalConfigID,
 				WorkspaceID: workspaceID,
+				Slug:        "awesome",
 				AppID:       sql.NullString{Valid: true, String: appID},
 				KeyAuthID:   sql.NullString{Valid: true, String: userKeySpaceID},
 				Enabled:     true,

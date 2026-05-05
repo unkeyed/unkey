@@ -36,6 +36,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
 		ID:          portalConfigID,
 		WorkspaceID: workspaceID,
+		Slug:        "test-portal",
 		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
 		Enabled:     true,
 		CreatedAt:   now,
@@ -51,7 +52,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("missing externalId", func(t *testing.T) {
 		req := handler.Request{
-			PortalId:    portalConfigID,
+			Slug:        "test-portal",
 			Permissions: []string{"api.*.read_key"},
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -61,7 +62,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("empty externalId", func(t *testing.T) {
 		req := handler.Request{
-			PortalId:    portalConfigID,
+			Slug:        "test-portal",
 			ExternalId:  "",
 			Permissions: []string{"api.*.read_key"},
 		}
@@ -72,7 +73,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("missing permissions", func(t *testing.T) {
 		req := handler.Request{
-			PortalId:   portalConfigID,
+			Slug:       "test-portal",
 			ExternalId: "user_123",
 		}
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
@@ -82,7 +83,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("empty permissions array", func(t *testing.T) {
 		req := handler.Request{
-			PortalId:    portalConfigID,
+			Slug:        "test-portal",
 			ExternalId:  "user_123",
 			Permissions: []string{},
 		}
@@ -91,7 +92,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("missing portalId", func(t *testing.T) {
+	t.Run("missing slug", func(t *testing.T) {
 		req := handler.Request{
 			ExternalId:  "user_123",
 			Permissions: []string{"api.*.read_key"},
@@ -101,9 +102,9 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("empty portalId", func(t *testing.T) {
+	t.Run("empty slug", func(t *testing.T) {
 		req := handler.Request{
-			PortalId:    "",
+			Slug:        "",
 			ExternalId:  "user_123",
 			Permissions: []string{"api.*.read_key"},
 		}
@@ -116,7 +117,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("old format rejected", func(t *testing.T) {
 		req := handler.Request{
-			PortalId:    portalConfigID,
+			Slug:        "test-portal",
 			ExternalId:  "user_123",
 			Permissions: []string{"keys:read"},
 		}
@@ -127,7 +128,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("two segments rejected", func(t *testing.T) {
 		req := handler.Request{
-			PortalId:    portalConfigID,
+			Slug:        "test-portal",
 			ExternalId:  "user_123",
 			Permissions: []string{"api.read_key"},
 		}
@@ -138,7 +139,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("four segments rejected", func(t *testing.T) {
 		req := handler.Request{
-			PortalId:    portalConfigID,
+			Slug:        "test-portal",
 			ExternalId:  "user_123",
 			Permissions: []string{"api.*.read_key.extra"},
 		}
@@ -149,7 +150,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("empty middle segment rejected", func(t *testing.T) {
 		req := handler.Request{
-			PortalId:    portalConfigID,
+			Slug:        "test-portal",
 			ExternalId:  "user_123",
 			Permissions: []string{"api..read_key"},
 		}
@@ -160,7 +161,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("empty first segment rejected", func(t *testing.T) {
 		req := handler.Request{
-			PortalId:    portalConfigID,
+			Slug:        "test-portal",
 			ExternalId:  "user_123",
 			Permissions: []string{".*.read_key"},
 		}
@@ -171,7 +172,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("empty last segment rejected", func(t *testing.T) {
 		req := handler.Request{
-			PortalId:    portalConfigID,
+			Slug:        "test-portal",
 			ExternalId:  "user_123",
 			Permissions: []string{"api.*."},
 		}
@@ -182,7 +183,7 @@ func TestCreateSessionBadRequest(t *testing.T) {
 
 	t.Run("mixed valid and invalid rejected", func(t *testing.T) {
 		req := handler.Request{
-			PortalId:    portalConfigID,
+			Slug:        "test-portal",
 			ExternalId:  "user_123",
 			Permissions: []string{"api.*.read_key", "keys:read"},
 		}

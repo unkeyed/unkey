@@ -35,6 +35,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
 		ID:          portalConfigID,
 		WorkspaceID: workspaceID,
+		Slug:        "test-portal",
 		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
 		Enabled:     true,
 		CreatedAt:   now,
@@ -50,7 +51,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 
 	t.Run("basic session creation", func(t *testing.T) {
 		req := handler.Request{
-			PortalId:    portalConfigID,
+			Slug:        "test-portal",
 			ExternalId:  "user_123",
 			Permissions: []string{"api.*.read_key"},
 		}
@@ -74,7 +75,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 		before := time.Now()
 
 		req := handler.Request{
-			PortalId:    portalConfigID,
+			Slug:        "test-portal",
 			ExternalId:  "user_456",
 			Permissions: []string{"api.*.read_key", "api.*.read_analytics"},
 		}
@@ -94,7 +95,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 	t.Run("with preview", func(t *testing.T) {
 		preview := true
 		req := handler.Request{
-			PortalId:    portalConfigID,
+			Slug:        "test-portal",
 			ExternalId:  "user_789",
 			Permissions: []string{"api.*.read_key"},
 			Preview:     &preview,
@@ -117,7 +118,7 @@ func TestCreateSessionSuccess(t *testing.T) {
 
 	t.Run("multiple sessions for same externalId", func(t *testing.T) {
 		req := handler.Request{
-			PortalId:    portalConfigID,
+			Slug:        "test-portal",
 			ExternalId:  "user_multi",
 			Permissions: []string{"api.*.read_key"},
 		}

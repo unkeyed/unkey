@@ -1816,17 +1816,21 @@ components:
         V2PortalCreateSessionRequestBody:
             type: object
             required:
-                - portalId
+                - slug
                 - externalId
                 - permissions
             properties:
-                portalId:
+                slug:
                     type: string
-                    minLength: 1
+                    minLength: 3
+                    maxLength: 64
+                    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
                     description: |
-                        The ID of the portal configuration to create the session against.
+                        The human-readable slug of the portal configuration to create the session against.
                         Identifies which app's portal the end user will access.
-                    example: ptl_abc123def456
+                        Must be 3-64 characters, lowercase alphanumeric and hyphens only,
+                        must not start or end with a hyphen, and must not contain consecutive hyphens.
+                    example: my-portal
                 externalId:
                     type: string
                     minLength: 1

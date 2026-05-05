@@ -36,6 +36,7 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
 		ID:          portalConfigID,
 		WorkspaceID: workspaceID,
+		Slug:        "disabled-portal",
 		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
 		Enabled:     false,
 		CreatedAt:   now,
@@ -50,7 +51,7 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	}
 
 	req := handler.Request{
-		PortalId:    portalConfigID,
+		Slug:        "disabled-portal",
 		ExternalId:  "user_123",
 		Permissions: []string{"api.*.read_key"},
 	}

@@ -51,9 +51,9 @@ go run . dev seed local --slug awesome --portal
 
 Save the root key printed at the end (e.g. `unkey_xxx`).
 
-The portal config ID is `portal_<slug>` (e.g. `portal_awesome`). You'll
-need it for `createSession` calls — it's also written to `dev/.env.seed`
-as `UNKEY_PORTAL_CONFIG_ID`.
+The portal slug is the value you passed to `--slug` (e.g. `awesome`). Use
+it in `createSession` calls — it's also written to `dev/.env.seed` as
+`UNKEY_PORTAL_SLUG`.
 
 ---
 
@@ -92,7 +92,7 @@ The portal is port-forwarded to `http://localhost:3100`.
 curl -s -X POST http://localhost:7070/v2/portal.createSession \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <ROOT_KEY>" \
-  -d '{"portalId": "portal_awesome", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
+  -d '{"slug": "awesome", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
 ```
 
 Open `http://localhost:3100/?session=pst_xxx` in the browser.
@@ -124,7 +124,7 @@ Runs on `http://localhost:3100`. Port 3100 avoids conflict with the dashboard.
 curl -s -X POST http://localhost:7070/v2/portal.createSession \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <ROOT_KEY>" \
-  -d '{"portalId": "portal_awesome", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
+  -d '{"slug": "awesome", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
 ```
 
 Take the `sessionId` from the response and open:
@@ -180,7 +180,7 @@ like `<app-slug>-<env>.unkey.com`.
 curl -s -X POST https://api.unkey.dev/v2/portal.createSession \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <ROOT_KEY>" \
-  -d '{"portalId": "<PORTAL_CONFIG_ID>", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
+  -d '{"slug": "<YOUR_SLUG>", "externalId": "user_123", "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]}'
 ```
 
 The response URL will point to the portal's deployment URL (or custom
@@ -199,10 +199,10 @@ domain if configured). Open it in the browser.
 
 ## Troubleshooting
 
-- **Session creation fails with 400**: Make sure `portalId` is included in the request body
+- **Session creation fails with 400**: Make sure `slug` is included in the request body
 - **Session creation fails with 401**: Re-run `go run . dev seed local --slug awesome --portal`
 - **Session creation fails with 403**: Check `portal_configurations.enabled = TRUE`
-- **Session creation fails with 404**: The `portalId` doesn't exist or belongs to a different workspace. Verify the portal config was seeded and the root key matches the same workspace.
+- **Session creation fails with 404**: The `slug` doesn't exist in the authenticated workspace. Verify the portal config was seeded and the root key matches the same workspace.
 - **"Invalid access" with session param**: Session may be expired (15 min TTL) or already exchanged (single-use). Create a fresh one.
 - **Stale seed data**: `docker volume rm unkey_mysql` and restart
 
@@ -250,7 +250,7 @@ UNKEY_PROJECT_ID=<generated>
 UNKEY_API_ID=api_<slug>
 UNKEY_KEYSPACE_ID=ks_<slug>
 UNKEY_ROOT_KEY=unkey_<generated>
-UNKEY_PORTAL_CONFIG_ID=portal_<slug>   # only with --portal
+UNKEY_PORTAL_SLUG=<slug>   # only with --portal
 ```
 
 You can run the seed multiple times with different slugs to create separate

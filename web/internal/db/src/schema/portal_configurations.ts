@@ -10,6 +10,7 @@ export const portalConfigurations = mysqlTable(
     pk: bigint("pk", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
     id: varchar("id", { length: 64 }).notNull().unique(),
     workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
+    slug: varchar("slug", { length: 64 }).notNull(),
     appId: varchar("app_id", { length: 64 }),
     keyAuthId: varchar("key_auth_id", { length: 64 }),
     enabled: boolean("enabled").notNull().default(true),
@@ -18,6 +19,7 @@ export const portalConfigurations = mysqlTable(
   },
   (table) => [
     index("idx_workspace").on(table.workspaceId),
+    uniqueIndex("idx_workspace_slug").on(table.workspaceId, table.slug),
     uniqueIndex("idx_app_id").on(table.appId),
     uniqueIndex("idx_key_auth_id").on(table.keyAuthId),
   ],

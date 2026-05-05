@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertPortalConfig is the base query for bulk insert
-const bulkInsertPortalConfig = `INSERT INTO portal_configurations ( id, workspace_id, app_id, key_auth_id, enabled, return_url, created_at, updated_at ) VALUES %s`
+const bulkInsertPortalConfig = `INSERT INTO portal_configurations ( id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at ) VALUES %s`
 
 // InsertPortalConfigs performs bulk insert in a single query
 func (q *BulkQueries) InsertPortalConfigs(ctx context.Context, db DBTX, args []InsertPortalConfigParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertPortalConfigs(ctx context.Context, db DBTX, args []I
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertPortalConfig, strings.Join(valueClauses, ", "))
@@ -31,6 +31,7 @@ func (q *BulkQueries) InsertPortalConfigs(ctx context.Context, db DBTX, args []I
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
+		allArgs = append(allArgs, arg.Slug)
 		allArgs = append(allArgs, arg.AppID)
 		allArgs = append(allArgs, arg.KeyAuthID)
 		allArgs = append(allArgs, arg.Enabled)

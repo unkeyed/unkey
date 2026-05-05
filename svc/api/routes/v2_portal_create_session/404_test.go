@@ -36,7 +36,7 @@ func TestCreateSessionNotFoundNonExistentPortalId(t *testing.T) {
 	}
 
 	req := handler.Request{
-		PortalId:    uid.New(uid.PortalConfigPrefix),
+		Slug:        "nonexistent-portal",
 		ExternalId:  "user_123",
 		Permissions: []string{"api.*.read_key"},
 	}
@@ -66,6 +66,7 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 	err := db.Query.InsertPortalConfig(ctx, h.DB.RW(), db.InsertPortalConfigParams{
 		ID:          portalConfigID,
 		WorkspaceID: workspaceA,
+		Slug:        "cross-workspace-portal",
 		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
 		Enabled:     true,
 		CreatedAt:   now,
@@ -81,9 +82,9 @@ func TestCreateSessionNotFoundWrongWorkspace(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKeyB)},
 	}
 
-	// Use workspace A's portal config ID while authenticated as workspace B.
+	// Use workspace A's portal config slug while authenticated as workspace B.
 	req := handler.Request{
-		PortalId:    portalConfigID,
+		Slug:        "cross-workspace-portal",
 		ExternalId:  "user_123",
 		Permissions: []string{"api.*.read_key"},
 	}

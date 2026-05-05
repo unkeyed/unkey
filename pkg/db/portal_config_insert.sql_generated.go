@@ -14,6 +14,7 @@ const insertPortalConfig = `-- name: InsertPortalConfig :exec
 INSERT INTO portal_configurations (
     id,
     workspace_id,
+    slug,
     app_id,
     key_auth_id,
     enabled,
@@ -28,6 +29,7 @@ INSERT INTO portal_configurations (
     ?,
     ?,
     ?,
+    ?,
     ?
 )
 `
@@ -35,6 +37,7 @@ INSERT INTO portal_configurations (
 type InsertPortalConfigParams struct {
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
+	Slug        string         `db:"slug"`
 	AppID       sql.NullString `db:"app_id"`
 	KeyAuthID   sql.NullString `db:"key_auth_id"`
 	Enabled     bool           `db:"enabled"`
@@ -48,6 +51,7 @@ type InsertPortalConfigParams struct {
 //	INSERT INTO portal_configurations (
 //	    id,
 //	    workspace_id,
+//	    slug,
 //	    app_id,
 //	    key_auth_id,
 //	    enabled,
@@ -62,12 +66,14 @@ type InsertPortalConfigParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertPortalConfig(ctx context.Context, db DBTX, arg InsertPortalConfigParams) error {
 	_, err := db.ExecContext(ctx, insertPortalConfig,
 		arg.ID,
 		arg.WorkspaceID,
+		arg.Slug,
 		arg.AppID,
 		arg.KeyAuthID,
 		arg.Enabled,

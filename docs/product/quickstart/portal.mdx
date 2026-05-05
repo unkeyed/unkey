@@ -40,7 +40,9 @@ Enable the Customer Portal for your workspace in the Unkey dashboard.
 Dashboard configuration UI is coming soon. During early access, reach out to the Unkey team to get your portal configured.
 </Note>
 
-Once configured, you'll receive a portal configuration ID (e.g. `pc_xxx`) to use when creating sessions.
+When configuring your portal, you'll choose a slug — a short, human-readable identifier like `my-portal` or `billing-dashboard`. Use this slug when creating sessions.
+
+Slugs must be 3–64 characters, lowercase alphanumeric and hyphens only, and cannot start or end with a hyphen.
 
 Optionally, you can customize branding with your logo and brand colors.
 
@@ -55,7 +57,7 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
   -H "Authorization: Bearer YOUR_ROOT_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "portalId": "pc_xxx",
+    "slug": "my-portal",
     "externalId": "user_123",
     "permissions": ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]
   }'
@@ -69,7 +71,7 @@ const response = await fetch("https://api.unkey.com/v2/portal.createSession", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    portalId: "pc_xxx",
+    slug: "my-portal",
     externalId: "user_123",
     permissions: ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"],
   }),
@@ -84,7 +86,7 @@ const { data } = await response.json();
 ```go Go
 // Use your preferred HTTP client
 body := map[string]any{
-    "portalId":    "pc_xxx",
+    "slug":        "my-portal",
     "externalId":  "user_123",
     "permissions": []string{"api.*.read_key", "api.*.create_key", "api.*.read_analytics"},
 }
@@ -109,7 +111,7 @@ The response:
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `portalId` | `string` | Your portal configuration ID |
+| `slug` | `string` | Human-readable identifier for your portal configuration |
 | `externalId` | `string` | Your user's identifier in your system |
 | `permissions` | `string[]` | Controls which portal tabs are visible |
 
@@ -124,7 +126,7 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
   -H "Authorization: Bearer YOUR_ROOT_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "portalId": "pc_xxx",
+    "slug": "my-portal",
     "externalId": "user_123",
     "permissions": ["api.*.read_key", "api.*.read_analytics"],
     "preview": true

@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -78,12 +79,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	workspaceID := auth.AuthorizedWorkspaceID
 
-	portalConfig, err := db.Query.FindPortalConfigByID(ctx, h.DB.RO(), req.PortalId)
+	if !validation.ValidateSlug(req.Slug) {
+		return fault.New("invalid slug",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal(fmt.Sprintf("slug %q failed validation", req.Slug)),
+			fault.Public(validation.ErrMsgInvalidSlug),
+		)
+	}
+
+	portalConfig, err := db.Query.FindPortalConfigByWorkspaceAndSlug(ctx, h.DB.RO(), db.FindPortalConfigByWorkspaceAndSlugParams{
+		WorkspaceID: workspaceID,
+		Slug:        req.Slug,
+	})
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.New("portal config not found",
 				fault.Code(codes.Data.PortalConfig.NotFound.URN()),
-				fault.Internal("no portal config found for the given portalId"),
+				fault.Internal("no portal config found for the given slug"),
 				fault.Public("Portal configuration not found."),
 			)
 		}
@@ -91,14 +103,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error looking up portal config"),
 			fault.Public("Failed to look up portal configuration."),
-		)
-	}
-
-	if portalConfig.WorkspaceID != workspaceID {
-		return fault.New("portal config not found",
-			fault.Code(codes.Data.PortalConfig.NotFound.URN()),
-			fault.Internal("portal config belongs to different workspace"),
-			fault.Public("Portal configuration not found."),
 		)
 	}
 
@@ -179,7 +183,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						ID:          sessionTokenID,
 						DisplayName: req.ExternalId,
 						Name:        req.ExternalId,
-						Meta:        map[string]any{"portalConfigId": portalConfig.ID},
+						Meta:        map[string]any{"portalConfigId": portalConfig.ID, "slug": req.Slug},
 						Type:        auditlog.PortalSessionResourceType,
 					},
 				},

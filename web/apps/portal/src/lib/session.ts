@@ -62,7 +62,17 @@ export const exchangeSession = createServerFn({ method: "POST" })
       };
     }
 
-    const parsed = exchangeResponseSchema.safeParse(await response.json());
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      return {
+        success: false,
+        error: "Received an unexpected response. Please try again.",
+      };
+    }
+
+    const parsed = exchangeResponseSchema.safeParse(body);
     if (!parsed.success) {
       return {
         success: false,

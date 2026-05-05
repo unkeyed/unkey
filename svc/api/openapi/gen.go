@@ -1988,12 +1988,14 @@ type V2PortalCreateSessionRequestBody struct {
 	// - Docs tab: visible when any permission is present
 	Permissions []string `json:"permissions"`
 
-	// PortalId The ID of the portal configuration to create the session against.
-	// Identifies which app's portal the end user will access.
-	PortalId string `json:"portalId"`
-
 	// Preview When true, creates a preview session for testing the portal experience.
 	Preview *bool `json:"preview,omitempty"`
+
+	// Slug The human-readable slug of the portal configuration to create the session against.
+	// Identifies which app's portal the end user will access.
+	// Must be 3-64 characters, lowercase alphanumeric and hyphens only,
+	// must not start or end with a hyphen, and must not contain consecutive hyphens.
+	Slug string `json:"slug"`
 }
 
 // V2PortalCreateSessionResponseBody defines model for V2PortalCreateSessionResponseBody.

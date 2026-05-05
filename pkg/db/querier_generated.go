@@ -1063,10 +1063,11 @@ type Querier interface {
 	//
 	//  SELECT pk, portal_config_id, logo_url, primary_color, created_at, updated_at FROM portal_branding WHERE portal_config_id = ?
 	FindPortalBrandingByConfigID(ctx context.Context, db DBTX, portalConfigID string) (PortalBranding, error)
-	//FindPortalConfigByID
+	//FindPortalConfigByWorkspaceAndSlug
 	//
-	//  SELECT pk, id, workspace_id, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations WHERE id = ?
-	FindPortalConfigByID(ctx context.Context, db DBTX, id string) (PortalConfiguration, error)
+	//  SELECT pk, id, workspace_id, slug, app_id, key_auth_id, enabled, return_url, created_at, updated_at FROM portal_configurations
+	//  WHERE workspace_id = ? AND slug = ?
+	FindPortalConfigByWorkspaceAndSlug(ctx context.Context, db DBTX, arg FindPortalConfigByWorkspaceAndSlugParams) (PortalConfiguration, error)
 	//FindProjectById
 	//
 	//  SELECT pk, id, workspace_id, name, slug, depot_project_id, delete_protection, created_at, updated_at
@@ -1957,6 +1958,7 @@ type Querier interface {
 	//  INSERT INTO portal_configurations (
 	//      id,
 	//      workspace_id,
+	//      slug,
 	//      app_id,
 	//      key_auth_id,
 	//      enabled,
@@ -1964,6 +1966,7 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,

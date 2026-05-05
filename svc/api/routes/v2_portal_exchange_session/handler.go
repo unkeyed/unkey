@@ -44,7 +44,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if req.SessionId == "" {
 		return fault.New("sessionId is required",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Code(codes.UnkeyPortalErrorsSessionTokenMissing),
 			fault.Internal("missing sessionId"),
 			fault.Public("sessionId is required."),
 		)
