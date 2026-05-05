@@ -1,3 +1,4 @@
+import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
 import { deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
 
@@ -30,11 +31,13 @@ export function mapInstanceRow(row: {
   regionId: string;
   regionName: string;
   regionPlatform: string;
+  status: InstanceStatus;
 }) {
   return {
     id: row.id,
     region: { id: row.regionId, name: row.regionName, platform: row.regionPlatform },
     flagCode: mapRegionToFlag(row.regionName),
+    status: row.status,
   };
 }
 

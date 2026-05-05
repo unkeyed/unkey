@@ -1,8 +1,15 @@
 import { and, db, eq } from "@/lib/db";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { deployments, instances, openapiSpecs, regions } from "@unkey/db/src/schema";
+import {
+  appRegionalSettings,
+  deployments,
+  instances,
+  openapiSpecs,
+  regions,
+} from "@unkey/db/src/schema";
 import { z } from "zod";
+import { mapRegionToFlag } from "../network/utils";
 import {
   deploymentSelectFields,
   mapInstanceRow,
@@ -19,7 +26,10 @@ export const getById = workspaceProcedure
   .query(async ({ input, ctx }) => {
     try {
       const [deployment] = await db
-        .select(deploymentSelectFields)
+        .select({
+          ...deploymentSelectFields,
+          appId: deployments.appId,
+        })
         .from(deployments)
         .where(
           and(
@@ -37,7 +47,7 @@ export const getById = workspaceProcedure
         });
       }
 
-      const [specRows, instanceRows] = await Promise.all([
+      const [specRows, instanceRows, regionalSettingsRows] = await Promise.all([
         db
           .select({ deploymentId: openapiSpecs.deploymentId })
           .from(openapiSpecs)
@@ -49,16 +59,49 @@ export const getById = workspaceProcedure
             regionId: regions.id,
             regionName: regions.name,
             regionPlatform: regions.platform,
+            status: instances.status,
           })
           .from(instances)
           .innerJoin(regions, eq(regions.id, instances.regionId))
           .where(eq(instances.deploymentId, deployment.id)),
+        db
+          .select({
+            regionId: regions.id,
+            regionName: regions.name,
+            regionPlatform: regions.platform,
+            replicas: appRegionalSettings.replicas,
+          })
+          .from(appRegionalSettings)
+          .innerJoin(regions, eq(regions.id, appRegionalSettings.regionId))
+          .where(
+            and(
+              eq(appRegionalSettings.workspaceId, ctx.workspace.id),
+              eq(appRegionalSettings.appId, deployment.appId),
+              eq(appRegionalSettings.environmentId, deployment.environmentId),
+            ),
+          ),
       ]);
 
+      let desiredInstanceCount = 0;
+      const desiredRegions: {
+        region: { id: string; name: string; platform: string };
+        flagCode: ReturnType<typeof mapRegionToFlag>;
+      }[] = [];
+      for (const row of regionalSettingsRows) {
+        desiredInstanceCount += row.replicas;
+        desiredRegions.push({
+          region: { id: row.regionId, name: row.regionName, platform: row.regionPlatform },
+          flagCode: mapRegionToFlag(row.regionName),
+        });
+      }
+
+      const { appId: _, ...rest } = deployment;
       return {
-        ...deployment,
+        ...rest,
         ...normalizeDeploymentRow(deployment),
         instances: instanceRows.map(mapInstanceRow),
+        desiredInstanceCount,
+        desiredRegions,
         hasOpenApiSpec: specRows.length > 0,
       };
     } catch (error) {

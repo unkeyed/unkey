@@ -59,6 +59,7 @@ import { createBulkEnvVars } from "./deploy/env-vars/create-bulk";
 import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
 import { listEnvVars } from "./deploy/env-vars/list";
+import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { updateEnvVar } from "./deploy/env-vars/update";
 import { updateAutoDeploy } from "./deploy/environment-settings/build/update-auto-deploy";
 import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
@@ -85,6 +86,9 @@ import { create as createKeyauthPolicy } from "./deploy/environment-settings/sen
 import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
 import { update as updateKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/update";
 import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
+import { create as createOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/create";
+import { remove as deleteOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/delete";
+import { update as updateOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/update";
 import { create as createRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/create";
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
@@ -456,6 +460,11 @@ export const router = t.router({
           update: updateRatelimitPolicy,
           delete: deleteRatelimitPolicy,
         }),
+        openapi: t.router({
+          create: createOpenapiPolicy,
+          update: updateOpenapiPolicy,
+          delete: deleteOpenapiPolicy,
+        }),
         generateRegex,
       }),
       runtime: t.router({
@@ -487,6 +496,7 @@ export const router = t.router({
       update: updateEnvVar,
       decrypt: decryptEnvVar,
       delete: deleteEnvVar,
+      makeSensitive,
     }),
     domain: t.router({
       list: listDomains,
