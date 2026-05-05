@@ -50,7 +50,7 @@ export const RatelimitOverviewLogsTable = ({
       },
       {
         key: "passed",
-        header: "Passed",
+        header: "Passed Requests",
         width: "12%",
         sort: {
           direction: getSortDirection("passed"),
@@ -83,7 +83,7 @@ export const RatelimitOverviewLogsTable = ({
       },
       {
         key: "blocked",
-        header: "Blocked",
+        header: "Blocked Requests",
         width: "12%",
         sort: {
           direction: getSortDirection("blocked"),
@@ -156,24 +156,6 @@ export const RatelimitOverviewLogsTable = ({
             </Badge>
           );
         },
-      },
-      {
-        key: "totalTokens",
-        header: "Total Tokens",
-        width: "12%",
-        render: (log) => (
-          <Badge
-            className={cn(
-              "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-              selectedLog?.request_id === log.request_id
-                ? STATUS_STYLES.success.badge.selected
-                : STATUS_STYLES.success.badge.default,
-            )}
-            title={`${log.total_tokens.toLocaleString()} total tokens`}
-          >
-            {formatNumber(log.total_tokens)}
-          </Badge>
-        ),
       },
       // {
       //   key: "avgLatency",
