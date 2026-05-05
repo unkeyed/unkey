@@ -7,11 +7,17 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-<Note>
-  OpenAPI validation is coming soon.
-</Note>
-
 The OpenAPI validation policy checks incoming requests against an OpenAPI 3.0 or 3.1 specification. Requests that don't conform to the spec are rejected with `400` before reaching your app.
+
+## When to use it
+
+Use this policy to enforce your API contract at the edge:
+
+- Reject malformed payloads, wrong content types, or missing required fields without invoking your service
+- Block requests to undefined endpoints, methods, or parameter combinations
+- Catch breaking client integrations early, with a stable error response shape
+
+If you don't ship an OpenAPI spec, prefer the [Firewall](/platform/sentinel/policies/firewall) policy for coarse-grained rules.
 
 ## What gets validated
 
@@ -26,4 +32,31 @@ Requests that don't match any defined operation in the spec are rejected. Respon
 
 ## Configuration
 
-Provide your OpenAPI specification as a YAML document in the policy configuration. The spec is parsed once when the policy loads.
+The Sentinel hydrates this policy from the OpenAPI spec attached to your deployment. There are two sources, in order of preference:
+
+1. **Scraped spec** — Set the [OpenAPI spec path](/platform/apps/settings#openapi-spec-path) in your app's advanced configuration (for example, `/openapi.yaml`). Unkey fetches and stores the spec from each deployment automatically, so the validator always matches the running version.
+2. **Inline spec** — Provide a YAML document directly in the policy configuration if you don't want Unkey to scrape it.
+
+Compiled validators are cached per deployment. Updating the spec and redeploying refreshes the cache; in-flight requests continue against the previous version until the new spec is loaded.
+
+## Error response
+
+Rejections return HTTP `400` with a structured Problem Details body. The error type is `err:user:bad_request:openapi_validation_failed` and the `detail` field describes what failed (for example, a missing required property or an unsupported content type).
+
+```json
+{
+  "meta": { "requestId": "req_abc123" },
+  "error": {
+    "title": "Bad Request",
+    "detail": "request body has an error: doesn't match schema: Error at \"/name\": property \"name\" is missing",
+    "status": 400,
+    "type": "https://unkey.com/docs/errors/user/bad_request/openapi_validation_failed"
+  }
+}
+```
+
+## Limitations
+
+- Specs larger than a few megabytes may increase first-request latency while the validator compiles. Subsequent requests reuse the cached validator.
+- Response validation is not performed.
+- Updating an inline spec requires a policy edit and redeploy.
