@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/bus"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/cache/clustering/metrics"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"google.golang.org/protobuf/proto"
 )
@@ -203,20 +202,19 @@ func (c *ClusterCache[K, V]) publishKey(ctx context.Context, key K) {
 }
 
 func (c *ClusterCache[K, V]) publish(ctx context.Context, event *cachev1.CacheInvalidationEvent, action string) {
+	// Publish errors and successes are already counted by bus_events_*
+	// labelled with topic="cache.invalidate.<name>"; we only log here so
+	// the operator can tie an error in dashboards back to a specific
+	// cache + action.
 	if err := c.bus.Publish(ctx, c.topic, event); err != nil {
-		metrics.CacheClusteringBroadcastErrorsTotal.Inc()
 		logger.Error("Cache invalidation publish failed",
 			"cache", c.cacheName, "action", action, "error", err)
-		return
 	}
-	metrics.CacheClusteringInvalidationsSentTotal.WithLabelValues(c.cacheName, action).Inc()
 }
 
 func (c *ClusterCache[K, V]) handleInvalidation(e bus.Event) {
 	event := &cachev1.CacheInvalidationEvent{}
 	if err := proto.Unmarshal(e.Payload, event); err != nil {
-		metrics.CacheClusteringInvalidationsReceivedTotal.
-			WithLabelValues(c.cacheName, "unknown", "decode_error").Inc()
 		logger.Warn("Cache invalidation decode failed",
 			"cache", c.cacheName, "error", err)
 		return
@@ -226,27 +224,18 @@ func (c *ClusterCache[K, V]) handleInvalidation(e bus.Event) {
 	// bus already filtered out events we sent ourselves; no per-action
 	// node-id check is needed here.
 	ctx := context.Background()
-	actionLabel := metrics.ActionLabel(event)
 	switch event.Action.(type) {
 	case *cachev1.CacheInvalidationEvent_ClearAll:
 		c.localCache.Clear(ctx)
-		metrics.CacheClusteringInvalidationsReceivedTotal.
-			WithLabelValues(c.cacheName, "clear_all", "handled").Inc()
 	case *cachev1.CacheInvalidationEvent_CacheKey:
 		key, err := c.stringToKey(event.GetCacheKey())
 		if err != nil {
-			metrics.CacheClusteringInvalidationsReceivedTotal.
-				WithLabelValues(c.cacheName, "key", "error").Inc()
 			logger.Warn("Cache invalidation key conversion failed",
 				"cache", c.cacheName, "key", event.GetCacheKey(), "error", err)
 			return
 		}
 		c.localCache.Remove(ctx, key)
-		metrics.CacheClusteringInvalidationsReceivedTotal.
-			WithLabelValues(c.cacheName, "key", "handled").Inc()
 	default:
-		metrics.CacheClusteringInvalidationsReceivedTotal.
-			WithLabelValues(c.cacheName, actionLabel, "error").Inc()
 		logger.Warn("Cache invalidation has unknown action", "cache", c.cacheName)
 	}
 }

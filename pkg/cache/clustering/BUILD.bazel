@@ -10,7 +10,6 @@ go_library(
         "//pkg/assert",
         "//pkg/bus",
         "//pkg/cache",
-        "//pkg/cache/clustering/metrics",
         "//pkg/logger",
         "@org_golang_google_protobuf//proto",
     ],
