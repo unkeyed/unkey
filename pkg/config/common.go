@@ -74,33 +74,31 @@ type TLS struct {
 	KeyFile string `toml:"key_file"`
 }
 
-// GossipConfig controls memberlist-based distributed cache invalidation.
-// Typically referenced as a pointer field on the parent config struct so that
-// omitting the [gossip] TOML section leaves it nil, disabling gossip.
+// GossipConfig configures the Serf-backed event bus that distributes cache
+// invalidations and other broadcast events. Typically referenced as a
+// pointer field on the parent config so that omitting [gossip] leaves it
+// nil and the process runs with bus.NewNoop().
 type GossipConfig struct {
 	// BindAddr is the address to bind gossip listeners on.
 	BindAddr string `toml:"bind_addr" config:"default=0.0.0.0"`
 
-	// LANPort is the LAN memberlist port.
-	LANPort int `toml:"lan_port" config:"default=7946,min=1,max=65535"`
+	// Port is the gossip port (TCP+UDP). Single port; the legacy LAN/WAN
+	// split was removed when the bus collapsed onto one Serf cluster.
+	Port int `toml:"port" config:"default=7946,min=1,max=65535"`
 
-	// WANPort is the WAN memberlist port for cross-region bridges.
-	WANPort int `toml:"wan_port" config:"default=7947,min=1,max=65535"`
+	// AdvertiseAddr is the address peers should reach this node on. For
+	// pods inside a peered VPC, set this to the pod IP. Empty leaves Serf
+	// to derive it from the bind address.
+	AdvertiseAddr string `toml:"advertise_addr"`
 
-	// LANSeeds are addresses of existing LAN cluster members
-	// (e.g. k8s headless service DNS).
-	LANSeeds []string `toml:"lan_seeds"`
+	// Seeds is the list of addresses to dial at startup. Mix the local
+	// k8s headless service with the per-region NLB hostnames; the first
+	// reachable one is enough to bootstrap into the mesh.
+	Seeds []string `toml:"seeds"`
 
-	// WANSeeds are addresses of cross-region bridge nodes.
-	WANSeeds []string `toml:"wan_seeds"`
-
-	// WANAdvertiseAddr is the address advertised to remote WAN bridges.
-	// Set this to the region's NLB hostname so cross-region bridges route
-	// through the NLB instead of trying to reach pod IPs directly.
-	WANAdvertiseAddr string `toml:"wan_advertise_addr"`
-
-	// SecretKey is a base64-encoded AES-256 key for encrypting gossip traffic.
-	// All cluster nodes must share this key. Generate with: openssl rand -base64 32
+	// SecretKey is a base64-encoded AES-256 key for encrypting gossip
+	// traffic. All cluster nodes must share this key. Generate with:
+	// openssl rand -base64 32.
 	SecretKey string `toml:"secret_key" config:"required,min=32,max=128"`
 }
 

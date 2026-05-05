@@ -252,15 +252,14 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to decode gossip secret key: %w", decodeErr)
 		}
 
-		seeds := bus.ResolveDNSSeeds(cfg.Gossip.LANSeeds, cfg.Gossip.LANPort)
-		seeds = append(seeds, bus.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.LANPort)...)
+		seeds := bus.ResolveDNSSeeds(cfg.Gossip.Seeds, cfg.Gossip.Port)
 
 		realBus, busErr := bus.New(bus.Config{
 			Region:        cfg.Region,
 			NodeID:        cfg.InstanceID,
 			BindAddr:      cfg.Gossip.BindAddr,
-			BindPort:      cfg.Gossip.LANPort,
-			AdvertiseAddr: cfg.Gossip.WANAdvertiseAddr,
+			BindPort:      cfg.Gossip.Port,
+			AdvertiseAddr: cfg.Gossip.AdvertiseAddr,
 			Seeds:         seeds,
 			SecretKey:     secretKey,
 			Tags: map[string]string{

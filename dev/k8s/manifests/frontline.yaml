@@ -27,8 +27,8 @@ data:
     key_file = "/certs/unkey.local.key"
 
     [gossip]
-    lan_port = 7946
-    lan_seeds = ["frontline-gossip-lan"]
+    port = 7946
+    seeds = ["frontline-gossip-lan"]
     secret_key = "dGhpcy1pcy1hLWRldi1vbmx5LWdvc3NpcC1rZXkh"
 
     [vault]

@@ -23,8 +23,8 @@ data:
     analytics_url = "http://clickhouse:8123/default"
 
     [gossip]
-    lan_port = 7946
-    lan_seeds = ["api-gossip-lan"]
+    port = 7946
+    seeds = ["api-gossip-lan"]
     secret_key = "dGhpcy1pcy1hLWRldi1vbmx5LWdvc3NpcC1rZXkh"
 
     [vault]
