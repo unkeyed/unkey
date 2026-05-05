@@ -33,20 +33,24 @@ export const SentinelLogDetails = ({ distanceToTop }: Props) => {
     setSelectedLog(null);
   };
 
+  const deploymentId = log?.deployment_id;
   const { data } = useLiveQuery(
     (q) => {
+      if (!deploymentId) {
+        return null;
+      }
       return q
         .from({ deployment: collection.deployments })
         .where(({ deployment }) => eq(deployment.projectId, projectId))
         .join({ environment: collection.environments }, ({ deployment, environment }) =>
           eq(deployment.environmentId, environment.id),
         )
-        .where(({ deployment }) => eq(deployment.id, log?.deployment_id));
+        .where(({ deployment }) => eq(deployment.id, deploymentId));
     },
-    [projectId, log?.deployment_id],
+    [projectId, deploymentId],
   );
-  const deployment = data.at(0)?.deployment;
-  const environment = data.at(0)?.environment;
+  const deployment = data?.at(0)?.deployment;
+  const environment = data?.at(0)?.environment;
 
   if (!log) {
     // Shouldn't happen
