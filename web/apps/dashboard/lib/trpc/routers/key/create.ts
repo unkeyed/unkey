@@ -2,19 +2,16 @@ import {
   type CreateKeyInput,
   createKeyInputSchema,
 } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
+import { VaultService } from "@/gen/proto/vault/v1/service_pb";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { env } from "@/lib/env";
-import { Vault } from "@/lib/vault";
+import { createVaultClient } from "@/lib/vault-client";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
-const vault = new Vault({
-  baseUrl: env().VAULT_URL,
-  token: env().VAULT_TOKEN,
-});
+const vault = createVaultClient(VaultService);
 
 export const createKey = workspaceProcedure
   .use(withRatelimit(ratelimit.create))

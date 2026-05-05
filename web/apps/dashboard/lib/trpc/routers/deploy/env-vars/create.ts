@@ -1,17 +1,14 @@
+import { VaultService } from "@/gen/proto/vault/v1/service_pb";
 import { and, db, eq, schema } from "@/lib/db";
-import { env } from "@/lib/env";
 import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
-import { Vault } from "@/lib/vault";
+import { createVaultClient } from "@/lib/vault-client";
 import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
-const vault = new Vault({
-  baseUrl: env().VAULT_URL,
-  token: env().VAULT_TOKEN,
-});
+const vault = createVaultClient(VaultService);
 
 const envVarInputSchema = z.object({
   key: envVarKeySchema,
