@@ -592,6 +592,12 @@ export const ratelimitOverviewLogs = z.object({
   request_id: z.string(),
   passed_count: z.int(),
   blocked_count: z.int(),
+  // total_tokens = sum of tokens across all decisions for the identifier in
+  // the window. passed_tokens = sum of tokens for decisions where passed=true.
+  // Blocked tokens are derived in the UI as total_tokens - passed_tokens so
+  // the table reconciles with the bar chart's blocked-tokens series.
+  passed_tokens: z.int().prefault(0),
+  total_tokens: z.int().prefault(0),
   // avg_latency: z.number().int(),
   // p99_latency: z.number().int(),
   override: z
@@ -735,7 +741,8 @@ export function getRatelimitOverviewLogs(ch: Querier) {
         request_id,
         time,
         identifier,
-        toUInt8(passed) as status
+        toUInt8(passed) as status,
+        tokens
     FROM default.ratelimits_raw_v2
     WHERE workspace_id = {workspaceId: String}
         AND namespace_id = {namespaceId: String}
@@ -750,7 +757,9 @@ aggregated_data AS (
         max(time) as last_request_time,
         max(request_id) as last_request_id,
         countIf(status = 1) as passed_count,
-        countIf(status = 0) as blocked_count
+        countIf(status = 0) as blocked_count,
+        sumIf(tokens, status = 1) as passed_tokens,
+        sum(tokens) as total_tokens
     FROM filtered_ratelimits
     GROUP BY identifier
 )
@@ -759,7 +768,9 @@ SELECT
     last_request_time as time,
     last_request_id as request_id,
     passed_count,
-    blocked_count
+    blocked_count,
+    passed_tokens,
+    total_tokens
 FROM aggregated_data
 ORDER BY ${orderByClause}
 LIMIT {limit: Int}`,

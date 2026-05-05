@@ -39,6 +39,7 @@ const POLICY_TYPE_LABELS: Record<SentinelPolicy["type"], string> = {
   keyauth: "Key Auth",
   ratelimit: "Rate Limit",
   firewall: "Firewall",
+  openapi: "OpenAPI Validation",
 };
 
 export function SentinelPolicyRow({

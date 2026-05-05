@@ -2,6 +2,7 @@
 
 import { CircleHalfDottedClock, Gear } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
+import { AutoDeploy } from "./components/build-settings/auto-deploy-settings";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
@@ -42,6 +43,7 @@ export const DeploymentSettings = ({
         <RootDirectory />
         <Dockerfile />
         <WatchPaths />
+        <AutoDeploy />
       </SettingCardGroup>
       <SettingsGroup
         icon={<CircleHalfDottedClock iconSize="md-medium" />}

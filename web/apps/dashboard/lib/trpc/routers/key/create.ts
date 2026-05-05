@@ -2,19 +2,16 @@ import {
   type CreateKeyInput,
   createKeyInputSchema,
 } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema";
+import { VaultService } from "@/gen/proto/vault/v1/service_pb";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { env } from "@/lib/env";
-import { Vault } from "@/lib/vault";
+import { createVaultClient } from "@/lib/vault-client";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { ratelimit, withRatelimit, workspaceProcedure } from "../../trpc";
 
-const vault = new Vault({
-  baseUrl: env().VAULT_URL,
-  token: env().VAULT_TOKEN,
-});
+const vault = createVaultClient(VaultService);
 
 export const createKey = workspaceProcedure
   .use(withRatelimit(ratelimit.create))
@@ -80,6 +77,30 @@ export async function createKeyCore(
   ctx: CreateKeyContext,
   tx: DatabaseTransaction,
 ) {
+  // The keys.identity_id column has no FK or workspace predicate. If we
+  // accept a client-supplied identityId without verifying it belongs to this
+  // workspace, an attacker can later call /v2/keys.verifyKey on the key and
+  // exfiltrate the foreign identity's external_id and meta via the LEFT
+  // JOIN in key_find_for_verification.sql.
+  const requestedIdentityId = input.identityId;
+  if (requestedIdentityId) {
+    const identity = await tx.query.identities.findFirst({
+      where: (table, { and, eq }) =>
+        and(
+          eq(table.id, requestedIdentityId),
+          eq(table.workspaceId, ctx.workspace.id),
+          eq(table.deleted, false),
+        ),
+      columns: { id: true },
+    });
+    if (!identity) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Identity not found",
+      });
+    }
+  }
+
   const keyId = newId("key");
   const { key, hash, start } = await newKey({
     prefix: input.prefix,

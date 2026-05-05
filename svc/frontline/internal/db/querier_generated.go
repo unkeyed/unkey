@@ -6,6 +6,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 type Querier interface {
@@ -60,6 +61,12 @@ type Querier interface {
 	//  INNER JOIN regions r ON i.region_id = r.id
 	//  WHERE i.deployment_id = ?
 	FindInstancesByDeploymentID(ctx context.Context, deploymentID string) ([]FindInstancesByDeploymentIDRow, error)
+	// FindOpenApiSpecByDeploymentID returns the scraped OpenAPI spec for a
+	// deployment. Frontline uses this to hydrate openapi policies that don't
+	// carry an inline spec.
+	//
+	//  SELECT content FROM openapi_specs WHERE deployment_id = ?
+	FindOpenApiSpecByDeploymentID(ctx context.Context, deploymentID sql.NullString) ([]byte, error)
 }
 
 var _ Querier = (*Queries)(nil)
