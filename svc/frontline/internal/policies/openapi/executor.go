@@ -36,7 +36,6 @@ func (e *Executor) Execute(
 	ctx context.Context,
 	_ *zen.Session,
 	req *http.Request,
-	deploymentID string,
 	cfg *frontlinev1.OpenApiRequestValidation,
 ) error {
 	spec := cfg.GetSpecYaml()
@@ -44,7 +43,7 @@ func (e *Executor) Execute(
 		return nil
 	}
 
-	v, err := e.getOrCompile(ctx, deploymentID, spec)
+	v, err := e.getOrCompile(ctx, spec)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.InvalidConfiguration.URN()),
@@ -70,11 +69,10 @@ func (e *Executor) Execute(
 	)
 }
 
-// getOrCompile returns a compiled validator for the given spec, using SWR cache keyed by
-// deployment ID. The spec bytes are already cached at the router layer (policy cache);
-// this layer caches the expensive compilation result so it survives across requests.
-func (e *Executor) getOrCompile(ctx context.Context, deploymentID string, spec []byte) (*validation.Validator, error) {
-	v, _, err := e.cache.SWR(ctx, deploymentID,
+// getOrCompile returns a compiled validator, using SWR cache keyed by spec content.
+// Keying by content means deployments sharing the same spec reuse one compiled validator.
+func (e *Executor) getOrCompile(ctx context.Context, spec []byte) (*validation.Validator, error) {
+	v, _, err := e.cache.SWR(ctx, string(spec),
 		func(ctx context.Context) (*validation.Validator, error) {
 			return validation.NewFromBytes(spec)
 		},

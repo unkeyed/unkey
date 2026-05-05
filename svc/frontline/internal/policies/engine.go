@@ -35,7 +35,7 @@ type Config struct {
 
 // Evaluator evaluates policies against incoming requests.
 type Evaluator interface {
-	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, workspaceID string, deploymentID string, mw []*frontlinev1.Policy) (Result, error)
+	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, workspaceID string, mw []*frontlinev1.Policy) (Result, error)
 }
 
 // Engine implements Evaluator.
@@ -115,7 +115,6 @@ func (e *Engine) Evaluate(
 	sess *zen.Session,
 	req *http.Request,
 	workspaceID string,
-	deploymentID string,
 	policies []*frontlinev1.Policy,
 ) (Result, error) {
 	var result Result
@@ -182,7 +181,7 @@ func (e *Engine) Evaluate(
 
 		case *frontlinev1.Policy_Openapi:
 			t := time.Now()
-			execErr := e.openapi.Execute(ctx, sess, req, deploymentID, cfg.Openapi)
+			execErr := e.openapi.Execute(ctx, sess, req, cfg.Openapi)
 			engineEvaluationDuration.WithLabelValues("openapi").Observe(time.Since(t).Seconds())
 
 			if execErr != nil {

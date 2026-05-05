@@ -51,7 +51,7 @@ func TestExecute_EmptySpec(t *testing.T) {
 	req := httptest.NewRequest("GET", "/anything", nil)
 
 	//nolint:exhaustruct
-	err := e.Execute(context.Background(), nil, req, "deploy_1", &frontlinev1.OpenApiRequestValidation{})
+	err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{})
 	require.NoError(t, err)
 }
 
@@ -63,7 +63,7 @@ func TestExecute_ValidRequest(t *testing.T) {
 	req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
-	err := e.Execute(context.Background(), nil, req, "deploy_1", &frontlinev1.OpenApiRequestValidation{
+	err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
 		SpecYaml: minimalSpec,
 	})
 	require.NoError(t, err)
@@ -77,7 +77,7 @@ func TestExecute_InvalidRequest(t *testing.T) {
 	req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
-	err := e.Execute(context.Background(), nil, req, "deploy_1", &frontlinev1.OpenApiRequestValidation{
+	err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
 		SpecYaml: minimalSpec,
 	})
 	require.Error(t, err)
@@ -93,7 +93,7 @@ func TestExecute_InvalidSpec(t *testing.T) {
 	e := newTestExecutor(t)
 	req := httptest.NewRequest("GET", "/anything", nil)
 
-	err := e.Execute(context.Background(), nil, req, "deploy_1", &frontlinev1.OpenApiRequestValidation{
+	err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
 		SpecYaml: []byte("not valid yaml: [[["),
 	})
 	require.Error(t, err)
@@ -108,19 +108,16 @@ func TestExecute_CachesCompiledValidator(t *testing.T) {
 
 	e := newTestExecutor(t)
 	cfg := &frontlinev1.OpenApiRequestValidation{SpecYaml: minimalSpec}
-	deploymentID := "deploy_cache_test"
 
 	body := `{"name":"alice"}`
 	req1 := httptest.NewRequest("POST", "/users", strings.NewReader(body))
 	req1.Header.Set("Content-Type", "application/json")
-	require.NoError(t, e.Execute(context.Background(), nil, req1, deploymentID, cfg))
+	require.NoError(t, e.Execute(context.Background(), nil, req1, cfg))
 
 	req2 := httptest.NewRequest("POST", "/users", strings.NewReader(body))
 	req2.Header.Set("Content-Type", "application/json")
-	require.NoError(t, e.Execute(context.Background(), nil, req2, deploymentID, cfg))
+	require.NoError(t, e.Execute(context.Background(), nil, req2, cfg))
 
-	_, hit := e.cache.Get(context.Background(), deploymentID)
+	_, hit := e.cache.Get(context.Background(), string(minimalSpec))
 	require.Equal(t, cache.Hit, hit)
 }
-
-
