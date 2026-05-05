@@ -34,7 +34,7 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "identifier",
         header: "Identifier",
-        width: "16%",
+        width: "18%",
         headerClassName: "pl-12",
         render: (log) => {
           return (
@@ -51,7 +51,7 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "passed",
         header: "Passed Requests",
-        width: "12%",
+        width: "15%",
         sort: {
           direction: getSortDirection("passed"),
           sortable: true,
@@ -84,7 +84,7 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "blocked",
         header: "Blocked Requests",
-        width: "12%",
+        width: "15%",
         sort: {
           direction: getSortDirection("blocked"),
           sortable: true,
@@ -119,7 +119,7 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "passedTokens",
         header: "Passed Tokens",
-        width: "12%",
+        width: "15%",
         render: (log) => (
           <Badge
             className={cn(
@@ -137,7 +137,7 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "blockedTokens",
         header: "Blocked Tokens",
-        width: "12%",
+        width: "15%",
         render: (log) => {
           const blockedTokens = Math.max(log.total_tokens - log.passed_tokens, 0);
           const style = blockedTokens > 0 ? STATUS_STYLES.blocked : STATUS_STYLES.success;
@@ -208,7 +208,7 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "lastRequest",
         header: "Last Request",
-        width: "16%",
+        width: "18%",
         sort: {
           direction: getSortDirection("time"),
           sortable: true,
