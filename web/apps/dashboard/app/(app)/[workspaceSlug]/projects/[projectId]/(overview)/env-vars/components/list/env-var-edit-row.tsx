@@ -28,13 +28,7 @@ type EnvVarEditRowProps = {
   onClose: () => void;
 };
 
-export function EnvVarEditRow({
-  envVarId,
-  variableKey,
-  type,
-  note,
-  onClose,
-}: EnvVarEditRowProps) {
+export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: EnvVarEditRowProps) {
   const decryptMutation = trpc.deploy.envVar.decrypt.useMutation();
 
   const isWriteonly = type === "writeonly";
