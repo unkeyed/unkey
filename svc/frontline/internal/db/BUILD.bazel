@@ -10,6 +10,7 @@ go_library(
         "ingress_route_find_by_fqdn.sql_generated.go",
         "instance_find_by_deployment_id.sql_generated.go",
         "models_generated.go",
+        "openapi_spec_find_by_deployment_id.sql_generated.go",
         "querier_generated.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/frontline/internal/db",

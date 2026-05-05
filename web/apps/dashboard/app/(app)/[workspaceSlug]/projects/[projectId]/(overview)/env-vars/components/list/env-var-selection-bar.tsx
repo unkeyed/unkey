@@ -1,23 +1,27 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Trash, XMark } from "@unkey/icons";
+import { EyeSlash, Trash, XMark } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
 import { useRef, useState } from "react";
 
 type EnvVarSelectionBarProps = {
   selectedCount: number;
   onDelete: () => void;
+  onMakeSensitive: () => void;
   onClearSelection: () => void;
 };
 
 export function EnvVarSelectionBar({
   selectedCount,
   onDelete,
+  onMakeSensitive,
   onClearSelection,
 }: EnvVarSelectionBarProps) {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isSensitiveConfirmOpen, setIsSensitiveConfirmOpen] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
+  const sensitiveButtonRef = useRef<HTMLButtonElement>(null);
 
   if (selectedCount === 0) {
     return null;
@@ -42,6 +46,16 @@ export function EnvVarSelectionBar({
                 variant="outline"
                 size="sm"
                 className="font-medium text-[13px] [&_svg]:size-3.5"
+                onClick={() => setIsSensitiveConfirmOpen(true)}
+                ref={sensitiveButtonRef}
+              >
+                <EyeSlash iconSize="sm-medium" />
+                Make Sensitive
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="font-medium text-[13px] [&_svg]:size-3.5"
                 onClick={() => setIsDeleteConfirmOpen(true)}
                 ref={deleteButtonRef}
               >
@@ -55,6 +69,18 @@ export function EnvVarSelectionBar({
           </div>
         </div>
       </div>
+
+      <ConfirmPopover
+        isOpen={isSensitiveConfirmOpen}
+        onOpenChange={setIsSensitiveConfirmOpen}
+        onConfirm={onMakeSensitive}
+        triggerRef={sensitiveButtonRef}
+        title="Mark as sensitive"
+        description={`This will permanently hide the values of ${selectedCount} variable${selectedCount > 1 ? "s" : ""}. They cannot be revealed afterwards. This action cannot be undone.`}
+        confirmButtonText="Mark as sensitive"
+        cancelButtonText="Cancel"
+        variant="danger"
+      />
 
       <ConfirmPopover
         isOpen={isDeleteConfirmOpen}

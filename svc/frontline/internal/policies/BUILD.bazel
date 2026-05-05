@@ -21,6 +21,7 @@ go_library(
         "//pkg/zen",
         "//svc/frontline/internal/policies/firewall",
         "//svc/frontline/internal/policies/keyauth",
+        "//svc/frontline/internal/policies/openapi",
         "//svc/frontline/internal/policies/principal",
         "//svc/frontline/internal/policies/ratelimit",
         "@com_github_prometheus_client_golang//prometheus",

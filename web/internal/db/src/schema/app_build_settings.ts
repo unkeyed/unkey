@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { bigint, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, boolean, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { apps } from "./apps";
 import { environments } from "./environments";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -17,6 +17,7 @@ export const appBuildSettings = mysqlTable(
     dockerfile: varchar("dockerfile", { length: 500 }).notNull().default("Dockerfile"),
     dockerContext: varchar("docker_context", { length: 500 }).notNull().default("."),
     watchPaths: json("watch_paths").notNull().$type<string[]>().default([]),
+    autoDeploy: boolean("auto_deploy").notNull().default(true),
 
     ...lifecycleDates,
   },

@@ -18,7 +18,7 @@ export function DeploymentSkipped() {
         <DeploymentStep
           icon={<Ban iconSize="sm-medium" className="size-[18px]" />}
           title="Deployment Skipped"
-          description="No changed files matched the configured watch paths"
+          description="This deployment was skipped based on your build settings"
           status="started"
           statusIcon={<Ban className="text-gray-9" iconSize="md-regular" />}
         />
@@ -65,7 +65,7 @@ export function DeploymentSkipped() {
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium text-gray-12">Deployment skipped</span>
             <span className="text-xs text-gray-11">
-              No changed files matched the configured watch paths.
+              This deployment was skipped. Check your watch paths and auto deploy settings.
             </span>
           </div>
         </div>

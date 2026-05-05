@@ -10,6 +10,7 @@ import { useState } from "react";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
 import { Avatar } from "../../../components/git-avatar";
 import { DeploymentApproval } from "../[deploymentId]/(deployment-progress)/deployment-approval";
+import { DeploymentDuration } from "./deployment-duration";
 import { EnvStatusBadge } from "./table/components/env-status-badge";
 import { ActionColumnSkeleton } from "./table/components/skeletons";
 
@@ -68,7 +69,7 @@ export function DeploymentRow({
       {/* Identity + Status */}
       <div className="flex items-center justify-between md:contents">
         <div className="md:w-[20%] md:shrink-0 flex flex-col gap-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 h-5">
             <span className="font-mono text-[13px] text-accent-12 truncate font-semibold">
               {shortenId(deployment.id)}
             </span>
@@ -82,8 +83,13 @@ export function DeploymentRow({
           <span className="text-xs text-gray-9 capitalize">{environment?.slug}</span>
         </div>
 
-        <div className="md:w-[20%] md:shrink-0">
+        <div className="md:w-[20%] md:shrink-0 flex flex-col gap-1 items-start">
           <DeploymentStatusBadge status={deployment.status} />
+          <DeploymentDuration
+            status={deployment.status}
+            createdAt={deployment.createdAt}
+            updatedAt={deployment.updatedAt}
+          />
         </div>
       </div>
 

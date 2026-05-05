@@ -5,7 +5,12 @@ import { Button, DialogContainer, SettingsZoneRow, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export const CancelPlan: React.FC = () => {
+type CancelPlanProps = {
+  disabled?: boolean;
+  disabledReason?: string;
+};
+
+export const CancelPlan: React.FC<CancelPlanProps> = ({ disabled = false, disabledReason }) => {
   const trpcUtils = trpc.useUtils();
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -34,10 +39,15 @@ export const CancelPlan: React.FC = () => {
     <>
       <SettingsZoneRow
         title="Cancel subscription"
-        description="Cancelling your subscription will downgrade your workspace to the free tier."
+        description={
+          disabled && disabledReason
+            ? disabledReason
+            : "Cancelling your subscription will downgrade your workspace to the free tier."
+        }
         action={{
           label: "Cancel Plan",
           onClick: () => setIsDialogOpen(true),
+          disabled,
         }}
       />
 
