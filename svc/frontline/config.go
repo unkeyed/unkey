@@ -117,7 +117,6 @@ type Config struct {
 	// Pprof configures Go pprof profiling endpoints at /_unkey/internal/pprof/*.
 	// When nil or credentials are empty, pprof is disabled.
 	Pprof *config.PprofConfig `toml:"pprof"`
-
 }
 
 // Validate checks cross-field constraints that cannot be expressed through
