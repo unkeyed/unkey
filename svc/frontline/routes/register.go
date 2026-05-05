@@ -28,12 +28,6 @@ func Register(srv *zen.Server, svc *Services) {
 		withTimeout,
 	}
 
-	if !svc.DebugHeaders {
-		defaultMiddlewares = append([]zen.Middleware{
-			middleware.WithTimingDisabled(),
-		}, defaultMiddlewares...)
-	}
-
 	// Catches all requests and routes them to the local instance or to a peer frontline.
 	srv.RegisterRoute(
 		defaultMiddlewares,

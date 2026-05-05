@@ -118,10 +118,6 @@ type Config struct {
 	// When nil or credentials are empty, pprof is disabled.
 	Pprof *config.PprofConfig `toml:"pprof"`
 
-	// DebugHeaders keeps internal X-Unkey-Timing response headers visible to
-	// clients. Intended for local development only; production should leave
-	// this false (default).
-	DebugHeaders bool `toml:"debug_headers"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through

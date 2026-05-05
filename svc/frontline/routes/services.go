@@ -28,7 +28,4 @@ type Services struct {
 	// local-instance path. Carries the same schema sentinel used so existing
 	// dashboards and materialized views keep working through the cutover.
 	FrontlineRequests *batch.BatchProcessor[schema.SentinelRequest]
-	// DebugHeaders keeps internal X-Unkey-Timing response headers visible to
-	// clients when true. Intended for local development only.
-	DebugHeaders bool
 }
