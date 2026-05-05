@@ -81,7 +81,6 @@ export function EnvVarItemRow({
       expandedContent={
         isEditing ? (
           <EnvVarEditRow
-            environmentId={item.environmentId}
             envVarId={item.id}
             variableKey={item.key}
             type={item.type}

@@ -5,27 +5,15 @@ import { collection } from "@/lib/collections";
 import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, CircleInfo, Plus } from "@unkey/icons";
-import {
-  Button,
-  FormInput,
-  InfoTooltip,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  toast,
-} from "@unkey/ui";
+import { CircleInfo, Plus } from "@unkey/icons";
+import { Button, FormInput, InfoTooltip, toast } from "@unkey/ui";
 import { useCallback, useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useProjectData } from "../../../data-provider";
 
 const editEnvVarSchema = z.object({
   key: envVarKeySchema,
   value: envVarValueSchema.or(z.literal("")),
-  environmentId: z.string().min(1, "Environment is required"),
   description: z.string().optional(),
   sensitive: z.boolean(),
 });
@@ -36,21 +24,18 @@ type EnvVarEditRowProps = {
   envVarId: string;
   variableKey: string;
   type: "writeonly" | "recoverable";
-  environmentId: string;
   note: string | null;
   onClose: () => void;
 };
 
 export function EnvVarEditRow({
   envVarId,
-  environmentId,
   variableKey,
   type,
   note,
   onClose,
 }: EnvVarEditRowProps) {
   const decryptMutation = trpc.deploy.envVar.decrypt.useMutation();
-  const { environments } = useProjectData();
 
   const isWriteonly = type === "writeonly";
 
@@ -66,7 +51,6 @@ export function EnvVarEditRow({
     defaultValues: {
       key: variableKey,
       value: "",
-      environmentId,
       description: note ?? "",
       sensitive: isWriteonly,
     },
@@ -112,7 +96,6 @@ export function EnvVarEditRow({
         draft.key = values.key;
         draft.value = values.value;
         draft.description = values.description || null;
-        draft.environmentId = values.environmentId;
         draft.type = values.sensitive ? "writeonly" : "recoverable";
       });
       onClose();
@@ -178,34 +161,6 @@ export function EnvVarEditRow({
             />
           </div>
         </details>
-        <Controller
-          control={control}
-          defaultValue={environmentId}
-          name="environmentId"
-          render={({ field }) => (
-            <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-              <label htmlFor="environment-select" className="text-gray-11 text-[13px]">
-                Environment
-              </label>
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger
-                  id="environment-select"
-                  className="capitalize"
-                  rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
-                >
-                  <SelectValue placeholder="Select environment" />
-                </SelectTrigger>
-                <SelectContent className="z-[60]">
-                  {environments.map((env) => (
-                    <SelectItem key={env.id} value={env.id} className="capitalize">
-                      {env.slug}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </fieldset>
-          )}
-        />
         {!isWriteonly && (
           <div className="flex items-center gap-3">
             <Controller
