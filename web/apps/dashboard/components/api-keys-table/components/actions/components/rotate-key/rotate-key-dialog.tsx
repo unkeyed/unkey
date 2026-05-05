@@ -35,15 +35,6 @@ export type RotateKeyDialogProps = {
    * secret.
    */
   onRotated?: (rotatedKey: RotatedKeyData) => void;
-  /**
-   * Optional builder for the "See key details" URL on the success dialog. When
-   * omitted, the success dialog falls back to its default api-keys URL.
-   */
-  detailsHref?: (rotatedKey: RotatedKeyData) => string;
-  /** apiId for the api-keys details URL fallback. Omit for root keys. */
-  apiId?: string;
-  /** keyspaceId for the api-keys details URL fallback. Omit for root keys. */
-  keyspaceId?: string | null;
   /** "key" or "root key". Drives all user-facing copy. */
   resourceLabel: "key" | "root key";
   /** Unique form id; must not collide with other forms on the page. */
@@ -55,9 +46,6 @@ export const RotateKeyDialog = ({
   info,
   mutation,
   onRotated,
-  detailsHref,
-  apiId,
-  keyspaceId,
   resourceLabel,
   formId,
   isOpen,
@@ -155,14 +143,11 @@ export const RotateKeyDialog = ({
   if (rotatedKeyData) {
     return (
       <KeyCreatedSuccessDialog
-        apiId={apiId}
-        keyspaceId={keyspaceId}
         isOpen
         onClose={handleSuccessDialogClose}
-        keyData={rotatedKeyData}
+        keyData={{ key: rotatedKeyData.key }}
         variant="rotated"
         resourceLabel={resourceLabel}
-        detailsHref={detailsHref?.(rotatedKeyData)}
       />
     );
   }

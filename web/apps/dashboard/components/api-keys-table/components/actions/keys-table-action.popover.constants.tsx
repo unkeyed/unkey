@@ -40,7 +40,7 @@ export const getKeysTableActionItems = (
   trpcUtils: ReturnType<typeof trpc.useUtils>,
   context: KeyContext = {},
 ): MenuItem[] => {
-  const { apiId, keyspaceId } = context;
+  const { apiId } = context;
   const hasExternalId = Boolean(key.identity?.external_id);
   const isExpired = () => key.expires !== null && key.expires <= Date.now();
   return [
@@ -214,9 +214,7 @@ export const getKeysTableActionItems = (
             icon: <ArrowDottedRotateAnticlockwise iconSize="md-medium" />,
             disabled: isExpired,
             tooltip: () => (isExpired() ? "Expired keys cannot be rotated" : undefined),
-            ActionComponent: (props) => (
-              <RotateKey {...props} keyDetails={key} apiId={apiId} keyspaceId={keyspaceId} />
-            ),
+            ActionComponent: (props) => <RotateKey {...props} keyDetails={key} />,
           } satisfies MenuItem,
         ]
       : []),

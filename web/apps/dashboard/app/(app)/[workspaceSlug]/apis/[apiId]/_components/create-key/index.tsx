@@ -45,11 +45,7 @@ export const CreateKeyDialog = ({
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
-  const [createdKeyData, setCreatedKeyData] = useState<{
-    key: string;
-    id: string;
-    name?: string;
-  } | null>(null);
+  const [createdKeyData, setCreatedKeyData] = useState<{ key: string } | null>(null);
   const [dialogKey, setDialogKey] = useState(0);
 
   const methods = usePersistedForm<FormValues>(
@@ -91,7 +87,7 @@ export const CreateKeyDialog = ({
 
   const key = useCreateKey((data) => {
     if (data?.key) {
-      setCreatedKeyData({ key: data.key, id: data.keyId, name: data.name });
+      setCreatedKeyData({ key: data.key });
       setSuccessDialogOpen(true);
     }
 

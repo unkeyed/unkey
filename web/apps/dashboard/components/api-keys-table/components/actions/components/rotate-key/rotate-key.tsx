@@ -7,11 +7,9 @@ import { RotateKeyDialog } from "./rotate-key-dialog";
 
 type RotateKeyProps = {
   keyDetails: KeyDetails;
-  apiId: string;
-  keyspaceId?: string | null;
 } & ActionComponentProps;
 
-export const RotateKey = ({ keyDetails, apiId, keyspaceId, isOpen, onClose }: RotateKeyProps) => {
+export const RotateKey = ({ keyDetails, isOpen, onClose }: RotateKeyProps) => {
   const trpcUtils = trpc.useUtils();
   const mutation = useRotateKey();
 
@@ -20,8 +18,6 @@ export const RotateKey = ({ keyDetails, apiId, keyspaceId, isOpen, onClose }: Ro
       keyId={keyDetails.id}
       info={<KeyInfo keyDetails={keyDetails} />}
       mutation={mutation}
-      apiId={apiId}
-      keyspaceId={keyspaceId}
       resourceLabel="key"
       formId="rotate-key-form"
       isOpen={isOpen}
