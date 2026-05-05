@@ -3,6 +3,7 @@ package frontline
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -243,11 +244,48 @@ func Run(ctx context.Context, cfg Config) error {
 		r.Defer(chClient.Close)
 	}
 
-	// Cache invalidation goes through bus.NewNoop() until PR 5 wires the
-	// real Serf-backed bus.
+	busInst := bus.NewNoop()
+	if cfg.Gossip != nil {
+		secretKey, decodeErr := base64.StdEncoding.DecodeString(cfg.Gossip.SecretKey)
+		if decodeErr != nil {
+			return fmt.Errorf("unable to decode gossip secret key: %w", decodeErr)
+		}
+
+		seeds := bus.ResolveDNSSeeds(cfg.Gossip.LANSeeds, cfg.Gossip.LANPort)
+		seeds = append(seeds, bus.ResolveDNSSeeds(cfg.Gossip.WANSeeds, cfg.Gossip.LANPort)...)
+
+		realBus, busErr := bus.New(bus.Config{
+			Region:        cfg.Region,
+			NodeID:        cfg.InstanceID,
+			BindAddr:      cfg.Gossip.BindAddr,
+			BindPort:      cfg.Gossip.LANPort,
+			AdvertiseAddr: cfg.Gossip.WANAdvertiseAddr,
+			Seeds:         seeds,
+			SecretKey:     secretKey,
+			Tags: map[string]string{
+				"role":     "frontline",
+				"region":   cfg.Region,
+				"version":  buildinfo.Version,
+				"instance": cfg.InstanceID,
+			},
+			// Defaults: MaxUserEventSize 512, DedupCacheSize 16384,
+			// ReplayLogBytesPerTopic 4 MiB, ReplayLogBytesTotal 16 MiB.
+			MaxUserEventSize:       0,
+			DedupCacheSize:         0,
+			ReplayLogBytesPerTopic: 0,
+			ReplayLogBytesTotal:    0,
+		})
+		if busErr != nil {
+			return fmt.Errorf("unable to create bus: %w", busErr)
+		}
+		busInst = realBus
+		r.Defer(busInst.Close)
+		logger.Info("Bus initialized", "region", cfg.Region, "instanceID", cfg.InstanceID)
+	}
+
 	cacheSet, err := caches.New(caches.Config{
 		Clock:  clk,
-		Bus:    bus.NewNoop(),
+		Bus:    busInst,
 		NodeID: cfg.InstanceID,
 	})
 	if err != nil {
