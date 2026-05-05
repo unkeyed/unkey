@@ -95,17 +95,16 @@ func (s *service) getPolicies(ctx context.Context, route db.FindFrontlineRouteBy
 	return pols, nil
 }
 
-// hydrateOpenapiSpecs fills in SpecYaml from the scraped openapi_specs table
-// for any openapi policy that doesn't already carry an inline spec.
+// hydrateOpenapiSpecs loads the spec from openapi_specs (keyed by deployment_id)
+// and sets it on every openapi policy. Specs always come from the DB.
 func (s *service) hydrateOpenapiSpecs(ctx context.Context, deploymentID string, pols []*frontlinev1.Policy) error {
-	var needsSpec bool
+	var targets []*frontlinev1.OpenApiRequestValidation
 	for _, p := range pols {
-		if oa, ok := p.GetConfig().(*frontlinev1.Policy_Openapi); ok && len(oa.Openapi.GetSpecYaml()) == 0 {
-			needsSpec = true
-			break
+		if oa, ok := p.GetConfig().(*frontlinev1.Policy_Openapi); ok {
+			targets = append(targets, oa.Openapi)
 		}
 	}
-	if !needsSpec {
+	if len(targets) == 0 {
 		return nil
 	}
 
@@ -120,10 +119,8 @@ func (s *service) hydrateOpenapiSpecs(ctx context.Context, deploymentID string, 
 		)
 	}
 
-	for _, p := range pols {
-		if oa, ok := p.GetConfig().(*frontlinev1.Policy_Openapi); ok && len(oa.Openapi.GetSpecYaml()) == 0 {
-			oa.Openapi.SpecYaml = spec
-		}
+	for _, t := range targets {
+		t.SpecYaml = spec
 	}
 
 	return nil

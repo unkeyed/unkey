@@ -72,7 +72,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// stripped any client-supplied X-Unkey-Principal header; if KeyAuth
 	// produces a principal, we set it here for the upstream.
 	if len(decision.Policies) > 0 && h.Engine != nil {
-		result, evalErr := h.Engine.Evaluate(ctx, sess, req, decision.WorkspaceID, decision.Policies)
+		result, evalErr := h.Engine.Evaluate(ctx, sess, req, decision.WorkspaceID, decision.DeploymentID, decision.Policies)
 		if evalErr != nil {
 			return evalErr
 		}

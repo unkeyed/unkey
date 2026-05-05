@@ -35,7 +35,7 @@ type Config struct {
 
 // Evaluator evaluates policies against incoming requests.
 type Evaluator interface {
-	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, workspaceID string, mw []*frontlinev1.Policy) (Result, error)
+	Evaluate(ctx context.Context, sess *zen.Session, req *http.Request, workspaceID string, deploymentID string, mw []*frontlinev1.Policy) (Result, error)
 }
 
 // Engine implements Evaluator.
@@ -63,11 +63,16 @@ func New(cfg Config) (*Engine, error) {
 	); err != nil {
 		return nil, err
 	}
+	openapi, err := openapiExec.New(cfg.Clock)
+	if err != nil {
+		return nil, fmt.Errorf("create openapi executor: %w", err)
+	}
+
 	return &Engine{
 		keyAuth:     keyauthExec.New(cfg.KeyService, cfg.Clock),
 		rateLimiter: ratelimitExec.New(cfg.RateLimiter, cfg.Clock),
 		firewall:    firewallExec.New(),
-		openapi:     openapiExec.New(),
+		openapi:     openapi,
 		regexCache:  newRegexCache(),
 	}, nil
 }
@@ -110,6 +115,7 @@ func (e *Engine) Evaluate(
 	sess *zen.Session,
 	req *http.Request,
 	workspaceID string,
+	deploymentID string,
 	policies []*frontlinev1.Policy,
 ) (Result, error) {
 	var result Result
@@ -176,7 +182,7 @@ func (e *Engine) Evaluate(
 
 		case *frontlinev1.Policy_Openapi:
 			t := time.Now()
-			execErr := e.openapi.Execute(ctx, sess, req, cfg.Openapi)
+			execErr := e.openapi.Execute(ctx, sess, req, deploymentID, cfg.Openapi)
 			engineEvaluationDuration.WithLabelValues("openapi").Observe(time.Since(t).Seconds())
 
 			if execErr != nil {
