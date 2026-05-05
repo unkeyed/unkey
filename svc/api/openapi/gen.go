@@ -2008,9 +2008,6 @@ type V2PortalCreateSessionResponseBody struct {
 
 // V2PortalCreateSessionResponseData defines model for V2PortalCreateSessionResponseData.
 type V2PortalCreateSessionResponseData struct {
-	// ExpiresAt Unix timestamp in milliseconds when the session token expires (15 minutes from creation).
-	ExpiresAt int64 `json:"expiresAt"`
-
 	// SessionId The short-lived session token ID. Valid for 15 minutes and can be exchanged once for a browser session.
 	SessionId string `json:"sessionId"`
 

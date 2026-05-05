@@ -62,34 +62,12 @@ func TestCreateSessionSuccess(t *testing.T) {
 
 		require.NotEmpty(t, res.Body.Data.SessionId)
 		require.NotEmpty(t, res.Body.Data.Url)
-		require.NotZero(t, res.Body.Data.ExpiresAt)
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 
 		// URL must contain the session ID and the portal base URL.
 		require.Contains(t, res.Body.Data.Url, "portal.unkey.com")
 		require.Contains(t, res.Body.Data.Url, res.Body.Data.SessionId)
 		require.True(t, strings.HasPrefix(res.Body.Data.Url, "https://"))
-	})
-
-	t.Run("session token expiry is 15 minutes", func(t *testing.T) {
-		before := time.Now()
-
-		req := handler.Request{
-			Slug:        "test-portal",
-			ExternalId:  "user_456",
-			Permissions: []string{"api.*.read_key", "api.*.read_analytics"},
-		}
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
-		require.Equal(t, 200, res.Status)
-
-		after := time.Now()
-
-		expectedLow := before.Add(15 * time.Minute).UnixMilli()
-		expectedHigh := after.Add(15 * time.Minute).UnixMilli()
-
-		require.GreaterOrEqual(t, res.Body.Data.ExpiresAt, expectedLow)
-		require.LessOrEqual(t, res.Body.Data.ExpiresAt, expectedHigh)
 	})
 
 	t.Run("with preview", func(t *testing.T) {

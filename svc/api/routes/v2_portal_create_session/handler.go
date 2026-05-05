@@ -212,7 +212,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Data: openapi.V2PortalCreateSessionResponseData{
 			SessionId: sessionTokenID,
 			Url:       portalURL,
-			ExpiresAt: expiresAt,
 		},
 	})
 }
