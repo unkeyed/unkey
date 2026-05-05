@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package bus.v1;
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/bus/v1;busv1";
+
+// BusEnvelope is the wire representation of a published event.
+//
+// The transport layer (Serf user events) carries a serialized BusEnvelope as
+// its opaque payload. The envelope itself is transport-agnostic; topic owners
+// decode `payload` against their own proto schema, and the bus does not
+// inspect it.
+//
+// Dispatch key is `topic`. Idempotency key is `id`. Two subsystems can evolve
+// their payload schemas independently because the bus never opens the bytes.
+message BusEnvelope {
+  // Topic this event was published on. Subscribers register against an exact
+  // topic string; there is no wildcard match.
+  string topic = 1;
+
+  // Unique event id (ULID recommended). Used by the receiver-side dedup cache
+  // keyed on (sender_node, id) to suppress duplicates from gossip retransmits
+  // or replay.
+  string id = 2;
+
+  // Region of the publisher.
+  string source_region = 3;
+
+  // Node id of the publisher. Combined with `id` for dedup, and used by
+  // subscribers to suppress self-delivery without putting the source into the
+  // payload schema.
+  string sender_node = 4;
+
+  // Unix millisecond timestamp at publish time. Used for transport-latency
+  // metrics on the receiving end.
+  int64 sent_at_ms = 5;
+
+  // Opaque payload bytes. Decoded by the topic owner.
+  bytes payload = 6;
+}

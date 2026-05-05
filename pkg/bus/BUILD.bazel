@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "bus",
+    srcs = [
+        "bus.go",
+        "doc.go",
+        "noop.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/pkg/bus",
+    visibility = ["//visibility:public"],
+    deps = ["@org_golang_google_protobuf//proto"],
+)
+
+go_test(
+    name = "bus_test",
+    srcs = ["bus_test.go"],
+    embed = [":bus"],
+    deps = [
+        "//gen/proto/cache/v1:cache",
+        "@com_github_stretchr_testify//require",
+    ],
+)
