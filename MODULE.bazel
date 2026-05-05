@@ -60,6 +60,7 @@ use_repo(
     "com_github_go_acme_lego_v4",
     "com_github_go_sql_driver_mysql",
     "com_github_hashicorp_memberlist",
+    "com_github_hashicorp_serf",
     "com_github_maypok86_otter",
     "com_github_moby_buildkit",
     "com_github_oapi_codegen_nullable",

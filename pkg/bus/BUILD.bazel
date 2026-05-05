@@ -4,17 +4,34 @@ go_library(
     name = "bus",
     srcs = [
         "bus.go",
+        "config.go",
+        "dedup.go",
+        "discovery.go",
         "doc.go",
+        "log_writer.go",
         "noop.go",
+        "replay_log.go",
+        "serf_bus.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/bus",
     visibility = ["//visibility:public"],
-    deps = ["@org_golang_google_protobuf//proto"],
+    deps = [
+        "//gen/proto/bus/v1:bus",
+        "//pkg/bus/metrics",
+        "//pkg/logger",
+        "//pkg/uid",
+        "@com_github_hashicorp_memberlist//:memberlist",
+        "@com_github_hashicorp_serf//serf",
+        "@org_golang_google_protobuf//proto",
+    ],
 )
 
 go_test(
     name = "bus_test",
-    srcs = ["bus_test.go"],
+    srcs = [
+        "bus_test.go",
+        "serf_bus_test.go",
+    ],
     embed = [":bus"],
     deps = [
         "//gen/proto/cache/v1:cache",
