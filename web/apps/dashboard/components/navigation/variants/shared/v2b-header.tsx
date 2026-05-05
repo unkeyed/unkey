@@ -3,12 +3,14 @@
 import { Logomark } from "@/components/logomark";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useProjectItems } from "@/hooks/use-project-items";
+import { useV2bDeploymentsVariant } from "@/hooks/use-v2b-deployments-variant";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
 import { collection } from "@/lib/collections";
+import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { useLiveQuery } from "@tanstack/react-db";
-import { ChevronExpandY, Cube, Plus } from "@unkey/icons";
+import { ChevronExpandY, Cube, Layers3, Plus } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -31,10 +33,17 @@ export function V2BTopHeader() {
   const workspace = useWorkspaceNavigation();
   const pathname = usePathname() ?? "";
   const base = `/${workspace.slug}`;
+  const { variant: subVariant } = useV2bDeploymentsVariant();
 
-  const match = pathname.match(/\/projects\/([^/]+)(?:\/apps\/([^/]+))?/);
+  const match = pathname.match(
+    /\/projects\/([^/]+)(?:\/apps\/([^/]+)(?:\/deployments\/([^/]+))?)?/,
+  );
   const projectId = match?.[1];
   const appSlug = match?.[2];
+  const deploymentId = match?.[3];
+  // Sub-variant `c` promotes the deployment crumb up here; the in-page
+  // `DetailBreadcrumb` is suppressed in that mode to avoid duplication.
+  const showDeploymentCrumb = subVariant === "c" && Boolean(projectId && appSlug && deploymentId);
 
   return (
     <header
@@ -57,6 +66,16 @@ export function V2BTopHeader() {
           <>
             <Slash />
             <AppCrumb projectId={projectId} appSlug={appSlug} />
+          </>
+        ) : null}
+        {showDeploymentCrumb && projectId && appSlug && deploymentId ? (
+          <>
+            <Slash />
+            <DeploymentCrumb
+              projectId={projectId}
+              appSlug={appSlug}
+              deploymentId={deploymentId}
+            />
           </>
         ) : null}
         <div className="ml-auto flex items-center gap-1">
@@ -253,6 +272,31 @@ function AppCrumb({ projectId, appSlug }: { projectId: string; appSlug: string }
         label: "New app",
         href: `/${workspace.slug}/projects/${projectId}`,
       }}
+    />
+  );
+}
+
+function DeploymentCrumb({
+  projectId,
+  appSlug,
+  deploymentId,
+}: {
+  projectId: string;
+  appSlug: string;
+  deploymentId: string;
+}) {
+  const workspace = useWorkspaceNavigation();
+  const listHref = `/${workspace.slug}/projects/${projectId}/apps/${appSlug}/deployments`;
+  return (
+    <Crumb
+      icon={<Layers3 className="size-3.5 text-accent-11" iconSize="sm-regular" />}
+      label={shortenId(deploymentId)}
+      href={`${listHref}/${deploymentId}`}
+      items={[]}
+      currentId={deploymentId}
+      searchPlaceholder="Find deployment..."
+      emptyText="No deployments listed"
+      footer={{ icon: Plus, label: "All deployments", href: listHref }}
     />
   );
 }

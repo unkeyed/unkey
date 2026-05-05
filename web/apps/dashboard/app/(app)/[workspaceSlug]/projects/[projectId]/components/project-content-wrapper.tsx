@@ -13,7 +13,7 @@ type ProjectContentWrapperProps = PropsWithChildren<{
   centered?: boolean;
   /**
    * Max width for centered content
-   * @default "960px"
+   * @default "1200px"
    */
   maxWidth?: string;
 }>;
@@ -22,7 +22,7 @@ export function ProjectContentWrapper({
   children,
   className,
   centered = false,
-  maxWidth = "960px",
+  maxWidth = "1200px",
 }: ProjectContentWrapperProps) {
   const { isDetailsOpen } = useProjectLayout();
 
@@ -36,7 +36,7 @@ export function ProjectContentWrapper({
       )}
     >
       {centered ? (
-        <div className="flex flex-col w-full mt-6 gap-5" style={{ maxWidth }}>
+        <div className="flex flex-col w-full gap-5" style={{ maxWidth }}>
           {children}
         </div>
       ) : (
