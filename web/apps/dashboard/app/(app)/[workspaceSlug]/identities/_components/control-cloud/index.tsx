@@ -12,8 +12,15 @@ const FIELD_DISPLAY_NAMES: Record<IdentitiesFilterField, string> = {
   lastUsedSince: "Last Used",
 };
 
+const isIdentitiesFilterField = (value: string): value is IdentitiesFilterField => {
+  return Object.prototype.hasOwnProperty.call(FIELD_DISPLAY_NAMES, value);
+};
+
 const formatFieldName = (field: string): string => {
-  return FIELD_DISPLAY_NAMES[field as IdentitiesFilterField] ?? field;
+  if (isIdentitiesFilterField(field)) {
+    return FIELD_DISPLAY_NAMES[field];
+  }
+  return field;
 };
 
 const formatValue = (value: string | number, field: string): string => {
