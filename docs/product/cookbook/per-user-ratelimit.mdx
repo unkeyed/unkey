@@ -68,10 +68,12 @@ export async function POST(request: Request) {
   const tier = await getUserTier(userId);
   const config = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
 
-  // Apply tier-specific rate limit
+  // Apply tier-specific rate limit by overriding the constructor defaults
   const { success, remaining, reset } = await limiter.limit(userId, {
-    limit: config.limit,
-    duration: config.duration as any,
+    limit: {
+      limit: config.limit,
+      duration: config.duration as any,
+    },
   });
 
   if (!success) {
@@ -134,8 +136,10 @@ export function tieredRateLimit() {
     const config = TIER_LIMITS[tier] ?? TIER_LIMITS.free;
 
     const { success, remaining, reset } = await limiter.limit(userId, {
-      limit: config.limit,
-      duration: config.duration as any,
+      limit: {
+        limit: config.limit,
+        duration: config.duration as any,
+      },
     });
 
     // Always set rate limit headers
@@ -161,10 +165,10 @@ export function tieredRateLimit() {
 
 ## Using Unkey overrides (recommended)
 
-Instead of managing limits in your code, use [Unkey overrides](/platform/ratelimiting/overrides) to set per-user limits dynamically:
+Instead of managing limits in your code, use [Unkey overrides](/platform/ratelimiting/overrides) to set per-user limits dynamically. Overrides are managed via the separate `Overrides` class:
 
 ```typescript
-import { Ratelimit } from "@unkey/ratelimit";
+import { Overrides, Ratelimit } from "@unkey/ratelimit";
 
 const limiter = new Ratelimit({
   rootKey: process.env.UNKEY_ROOT_KEY!,
@@ -173,11 +177,16 @@ const limiter = new Ratelimit({
   duration: "1h",
 });
 
+const overrides = new Overrides({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+});
+
 // When a user upgrades to Pro, set an override
-await limiter.setOverride({
+await overrides.setOverride({
+  namespace: "api",
   identifier: userId,
   limit: 1000,
-  duration: "1h",
+  duration: 3600000, // 1h in ms
 });
 
 // Now this user automatically gets 1000/hour instead of 100
@@ -201,28 +210,28 @@ const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 // Create a Pro tier key with higher limits
 try {
-  const { meta, data, error } = await unkey.keys.create({
+  const { data } = await unkey.keys.createKey({
     apiId: "api_xxx",
     name: "Pro User Key",
-    ratelimit: {
-      limit: 1000,
-      duration: 3600000, // 1 hour in ms
-    },
+    ratelimits: [
+      {
+        name: "requests",
+        limit: 1000,
+        duration: 3600000, // 1 hour in ms
+        autoApply: true,
+      },
+    ],
     meta: {
       tier: "pro",
     },
   });
-
-  if (error) {
-    throw error;
-  }
 } catch (err) {
   console.error(err);
   throw err;
 }
 
 // Verification automatically enforces the key's rate limit
-const { meta, data } = await unkey.keys.verify({ key: userKey });
+const { meta, data } = await unkey.keys.verifyKey({ key: userKey });
 
 if (!data.valid) {
   if (data.code === "RATE_LIMITED") {

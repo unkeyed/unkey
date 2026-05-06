@@ -193,10 +193,12 @@ with Unkey(bearer_auth=os.environ["UNKEY_ROOT_KEY"]) as unkey:
         "external_id": "user_123",  # Link to your user
         "name": "Production key",
         "expires": int((datetime.now() + timedelta(days=30)).timestamp() * 1000),
-        "remaining": 1000,
-        "refill": {
-            "amount": 1000,
-            "interval": "monthly",
+        "credits": {
+            "remaining": 1000,
+            "refill": {
+                "amount": 1000,
+                "interval": "monthly",
+            },
         },
         "ratelimits": [{
             "name": "requests",
