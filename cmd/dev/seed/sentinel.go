@@ -22,7 +22,10 @@ var sentinelCmd = &cli.Command{
 	Description: "Generates realistic sentinel request data for testing RPS and latency charts",
 	Flags: []cli.Flag{
 		cli.String("deployment-id", "Deployment ID to seed data for (if not provided, uses first available deployment)", cli.Default("")),
-		cli.Int("num-requests", "Number of requests to generate", cli.Default(5_000_000)),
+		cli.Int("num-requests", "Number of requests to generate", cli.Default(100_000_000)),
+		cli.Int("batch-size", "Rows per ClickHouse insert", cli.Default(5_000)),
+		cli.Int("buffer-size", "In-memory buffer capacity (rows)", cli.Default(500_000)),
+		cli.Int("consumers", "Parallel insert workers", cli.Default(8)),
 		cli.String("clickhouse-url", "ClickHouse URL", cli.Default("clickhouse://default:password@127.0.0.1:9000")),
 		cli.String("database-primary", "MySQL database DSN", cli.Default("unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true"), cli.EnvVar("UNKEY_DATABASE_PRIMARY")),
 	},
@@ -30,7 +33,6 @@ var sentinelCmd = &cli.Command{
 }
 
 func seedSentinel(ctx context.Context, cmd *cli.Command) error {
-	// Connect to MySQL
 	database, err := db.New(db.Config{
 		PrimaryDSN:  cmd.RequireString("database-primary"),
 		ReadOnlyDSN: "",
@@ -39,7 +41,6 @@ func seedSentinel(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
 	}
 
-	// Connect to ClickHouse
 	ch, err := clickhouse.New(clickhouse.Config{
 		URL: cmd.String("clickhouse-url"),
 	})
@@ -47,17 +48,22 @@ func seedSentinel(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to connect to ClickHouse: %w", err)
 	}
 
+	batchSize := cmd.RequireInt("batch-size")
+	bufferSize := cmd.RequireInt("buffer-size")
+	consumers := cmd.RequireInt("consumers")
+
+	log.Printf("Buffer config: batch-size=%d, buffer-size=%d, consumers=%d", batchSize, bufferSize, consumers)
+
 	sentinelRequests := clickhouse.NewBuffer[schema.SentinelRequest](ch, "default.sentinel_requests_raw_v1", clickhouse.BufferConfig{
 		Name:          "seed-sentinel-requests",
-		BatchSize:     50_000,
-		BufferSize:    50_000,
+		BatchSize:     batchSize,
+		BufferSize:    bufferSize,
 		FlushInterval: 5 * time.Second,
-		Consumers:     2,
-		Drop:          true,
+		Consumers:     consumers,
+		Drop:          false,
 		OnFlushError:  nil,
 	})
 
-	// Get or find deployment ID
 	deploymentID := cmd.String("deployment-id")
 	if deploymentID == "" {
 		deploymentID, err = findFirstDeployment(ctx, database)
@@ -67,7 +73,6 @@ func seedSentinel(ctx context.Context, cmd *cli.Command) error {
 		log.Printf("Using deployment: %s", deploymentID)
 	}
 
-	// Create seeder and run
 	seeder := &SentinelSeeder{
 		deploymentID:     deploymentID,
 		numRequests:      cmd.RequireInt("num-requests"),
@@ -237,47 +242,42 @@ func (s *SentinelSeeder) generateRequests(
 		sentinelLatency := rand.Float64()*3 + 1
 		totalLatency := instanceLatency + sentinelLatency
 
-		// Buffer it IMMEDIATELY
 		s.sentinelRequests.Buffer(schema.SentinelRequest{
-			RequestID:       uid.New("req"),
-			Time:            timestamp.UnixMilli(),
-			WorkspaceID:     deployment.WorkspaceID,
-			ProjectID:       deployment.ProjectID,
-			DeploymentID:    deployment.ID,
-			EnvironmentID:   deployment.EnvironmentID,
-			SentinelID:      sentinelIDs[rand.IntN(len(sentinelIDs))],
-			InstanceID:      instanceIDs[rand.IntN(len(instanceIDs))],
-			InstanceAddress: generateIP(),
-			Region:          weightedSelectString(regions),
-			Platform:        "dev",
-			Method:          weightedSelectString(methods),
-			Host:            domain,
-			Path:            paths[rand.IntN(len(paths))],
-			ResponseStatus:  weightedSelectInt32(statuses),
-			UserAgent:       userAgents[rand.IntN(len(userAgents))],
-			IPAddress:       generateIP(),
-			TotalLatency:    int64(totalLatency),
-			InstanceLatency: int64(instanceLatency),
-			SentinelLatency: int64(sentinelLatency),
-			QueryString:     "",
-			QueryParams:     make(map[string][]string),
-			RequestHeaders:  []string{},
-			RequestBody:     "",
-			ResponseHeaders: []string{},
-			ResponseBody:    "",
-		})
+				RequestID:       uid.New("req"),
+				Time:            timestamp.UnixMilli(),
+				WorkspaceID:     deployment.WorkspaceID,
+				ProjectID:       deployment.ProjectID,
+				DeploymentID:    deployment.ID,
+				EnvironmentID:   deployment.EnvironmentID,
+				SentinelID:      sentinelIDs[rand.IntN(len(sentinelIDs))],
+				InstanceID:      instanceIDs[rand.IntN(len(instanceIDs))],
+				InstanceAddress: generateIP(),
+				Region:          weightedSelectString(regions),
+				Platform:        "dev",
+				Method:          weightedSelectString(methods),
+				Host:            domain,
+				Path:            paths[rand.IntN(len(paths))],
+				ResponseStatus:  weightedSelectInt32(statuses),
+				UserAgent:       userAgents[rand.IntN(len(userAgents))],
+				IPAddress:       generateIP(),
+				TotalLatency:    int64(totalLatency),
+				InstanceLatency: int64(instanceLatency),
+				SentinelLatency: int64(sentinelLatency),
+				QueryString:     "",
+				QueryParams:     make(map[string][]string),
+				RequestHeaders:  []string{},
+				RequestBody:     "",
+				ResponseHeaders: []string{},
+				ResponseBody:    "",
+			})
 
-		// Progress logging (every 10k like verifications.go line 489)
 		if (i+1)%10000 == 0 {
 			log.Printf("  Buffered %d/%d requests", i+1, s.numRequests)
 		}
 	}
 
 	log.Printf("  Buffered all %d requests, waiting for flush...", s.numRequests)
-
-	// Flush by closing the buffer
 	s.sentinelRequests.Close()
-
 	log.Printf("  All requests sent to ClickHouse")
 	return nil
 }

@@ -8,6 +8,7 @@ const CURRENT_RPS_WINDOW_MINUTES = 15;
 const CURRENT_RPS_WINDOW_MS = CURRENT_RPS_WINDOW_MINUTES * 60 * 1000;
 
 const TABLE = "default.sentinel_requests_raw_v1";
+const MV_TABLE = "default.sentinel_requests_per_15m_v1";
 
 const SQL = {
   deploymentFilter: `
@@ -16,15 +17,21 @@ const SQL = {
     AND deployment_id = {deploymentId: String}
     AND environment_id = {environmentId: String}`,
 
-  // time (ms) >= X hours ago (ms)
+  // time (ms) >= X hours ago (ms)  -- for raw table (Int64 millis)
   recentHours: "time >= toUnixTimestamp(now() - INTERVAL {windowHours: UInt8} HOUR) * 1000",
 
-  // time (ms) >= X minutes ago (ms)
+  // time (ms) >= X minutes ago (ms)  -- for raw table (Int64 millis)
   recentMinutes: "time >= toUnixTimestamp(now() - INTERVAL {windowMinutes: UInt16} MINUTE) * 1000",
+
+  // MV time (DateTime) >= X hours ago  -- for MV (DateTime seconds)
+  mvRecentHours: "time >= now() - INTERVAL {windowHours: UInt8} HOUR",
 
   // Truncate timestamp to interval bucket
   timeBucket:
     "toStartOfInterval(toDateTime(time / 1000), INTERVAL {intervalMinutes: UInt8} MINUTE)",
+
+  // Truncate MV DateTime to interval bucket
+  mvTimeBucket: "toStartOfInterval(time, INTERVAL {intervalMinutes: UInt8} MINUTE)",
 
   // Fill gaps in timeseries with zeros
   fillGaps: `
@@ -33,6 +40,24 @@ const SQL = {
       TO toStartOfInterval(now(), INTERVAL {intervalMinutes: UInt8} MINUTE)
       STEP INTERVAL {intervalMinutes: UInt8} MINUTE`,
 } as const;
+
+type PercentileKey = "p50" | "p75" | "p90" | "p95" | "p99";
+
+const LATENCY_COLUMN: Record<PercentileKey, string> = {
+  p50: "latency_p50",
+  p75: "latency_p75",
+  p90: "latency_p90",
+  p95: "latency_p95",
+  p99: "latency_p99",
+};
+
+const LATENCY_MERGE: Record<PercentileKey, string> = {
+  p50: "round(quantileTDigestMerge(0.5)(latency_p50), 2)",
+  p75: "round(quantileTDigestMerge(0.75)(latency_p75), 2)",
+  p90: "round(quantileTDigestMerge(0.9)(latency_p90), 2)",
+  p95: "round(quantileTDigestMerge(0.95)(latency_p95), 2)",
+  p99: "round(quantileTDigestMerge(0.99)(latency_p99), 2)",
+};
 
 export const percentileSchema = z.enum(["p50", "p75", "p90", "p95", "p99"]).default("p50");
 
@@ -55,7 +80,6 @@ const rpsResponseSchema = z.object({ avg_rps: z.number() });
 // quantile() returns NULL when the time window contains zero rows (no
 // traffic in the last N minutes). Allow null at the schema layer and let
 // callers coalesce to 0; the previous z.number() crashed the request.
-const latencyResponseSchema = z.object({ latency: z.number().nullable() });
 const timeseriesPointSchema = z.object({ x: z.number().int(), y: z.number() });
 
 // ─────────────────────────────────────────────────────────────
@@ -260,35 +284,6 @@ export function getInstanceRps(ch: Querier) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Deployment RPS
-// ─────────────────────────────────────────────────────────────
-
-export const deploymentRpsRequestSchema = baseDeploymentParams;
-export type DeploymentRpsRequest = z.infer<typeof deploymentRpsRequestSchema>;
-
-export function getDeploymentRps(ch: Querier) {
-  return async (args: DeploymentRpsRequest) => {
-    const windowMs = TIMESERIES_WINDOW_HOURS * 60 * 60 * 1000;
-
-    const query = ch.query({
-      query: `
-        -- count * 1000 / ms = requests per second
-        SELECT round(COUNT(*) * 1000.0 / {windowMs: UInt64}, 2) as avg_rps
-        FROM ${TABLE}
-        WHERE ${SQL.deploymentFilter}
-          AND ${SQL.recentHours}`,
-      params: baseDeploymentParams.extend({
-        windowHours: z.number(),
-        windowMs: z.number(),
-      }),
-      schema: rpsResponseSchema,
-    });
-
-    return query({ ...args, windowHours: TIMESERIES_WINDOW_HOURS, windowMs });
-  };
-}
-
-// ─────────────────────────────────────────────────────────────
 // Deployment RPS Timeseries
 // ─────────────────────────────────────────────────────────────
 
@@ -300,16 +295,13 @@ export function getDeploymentRpsTimeseries(ch: Querier) {
     const query = ch.query({
       query: `
         SELECT
-          toUnixTimestamp(bucket) * 1000 as x,
-          round(COUNT(*) / {intervalSeconds: UInt32}, 2) as y
-        FROM (
-          SELECT ${SQL.timeBucket} as bucket
-          FROM ${TABLE}
-          WHERE ${SQL.deploymentFilter}
-            AND ${SQL.recentHours}
-        )
-        GROUP BY bucket
-        ORDER BY bucket ASC
+          toUnixTimestamp(time) * 1000 as x,
+          round(sum(count) / {intervalSeconds: UInt32}, 2) as y
+        FROM ${MV_TABLE}
+        WHERE ${SQL.deploymentFilter}
+          AND ${SQL.mvRecentHours}
+        GROUP BY time
+        ORDER BY time ASC
         ${SQL.fillGaps}`,
       params: baseDeploymentParams.extend({
         windowHours: z.number(),
@@ -329,7 +321,7 @@ export function getDeploymentRpsTimeseries(ch: Querier) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Deployment Latency
+// Deployment Latency (current + timeseries in 1 query via ROLLUP)
 // ─────────────────────────────────────────────────────────────
 
 export const deploymentLatencyRequestSchema = baseDeploymentParams.extend({
@@ -338,65 +330,22 @@ export const deploymentLatencyRequestSchema = baseDeploymentParams.extend({
 
 export type DeploymentLatencyRequest = z.infer<typeof deploymentLatencyRequestSchema>;
 
-export function getDeploymentLatency(ch: Querier) {
+export function getDeploymentLatencyWithTimeseries(ch: Querier) {
   return async (args: DeploymentLatencyRequest) => {
-    const percentileValue = PERCENTILE_VALUES[args.percentile];
-
-    const query = ch.query({
-      query: `
-        SELECT round(quantile({percentileValue: Float64})(total_latency), 2) as latency
-        FROM ${TABLE}
-        WHERE ${SQL.deploymentFilter}
-          AND ${SQL.recentMinutes}`,
-      params: deploymentLatencyRequestSchema.extend({
-        windowMinutes: z.number(),
-        percentileValue: z.number(),
-      }),
-      schema: latencyResponseSchema,
-    });
-
-    return query({
-      ...args,
-      windowMinutes: TIMESERIES_WINDOW_HOURS * 60,
-      percentileValue,
-    });
-  };
-}
-
-// ─────────────────────────────────────────────────────────────
-// Deployment Latency Timeseries
-// ─────────────────────────────────────────────────────────────
-
-export const deploymentLatencyTimeseriesRequestSchema = baseDeploymentParams.extend({
-  percentile: percentileSchema,
-});
-
-export type DeploymentLatencyTimeseriesRequest = z.infer<
-  typeof deploymentLatencyTimeseriesRequestSchema
->;
-
-export function getDeploymentLatencyTimeseries(ch: Querier) {
-  return async (args: DeploymentLatencyTimeseriesRequest) => {
-    const percentileValue = PERCENTILE_VALUES[args.percentile];
+    const mergeExpr = LATENCY_MERGE[args.percentile];
 
     const query = ch.query({
       query: `
         SELECT
-          toUnixTimestamp(bucket) * 1000 as x,
-          round(quantile({percentileValue: Float64})(total_latency), 2) as y
-        FROM (
-          SELECT ${SQL.timeBucket} as bucket, total_latency
-          FROM ${TABLE}
-          WHERE ${SQL.deploymentFilter}
-            AND ${SQL.recentHours}
-        )
-        GROUP BY bucket
-        ORDER BY bucket ASC
-        ${SQL.fillGaps}`,
-      params: deploymentLatencyTimeseriesRequestSchema.extend({
+          toUnixTimestamp(time) * 1000 as x,
+          ${mergeExpr} as y
+        FROM ${MV_TABLE}
+        WHERE ${SQL.deploymentFilter}
+          AND ${SQL.mvRecentHours}
+        GROUP BY time WITH ROLLUP
+        ORDER BY time ASC`,
+      params: baseDeploymentParams.extend({
         windowHours: z.number(),
-        intervalMinutes: z.number(),
-        percentileValue: z.number(),
       }),
       schema: timeseriesPointSchema,
     });
@@ -404,8 +353,6 @@ export function getDeploymentLatencyTimeseries(ch: Querier) {
     return query({
       ...args,
       windowHours: TIMESERIES_WINDOW_HOURS,
-      intervalMinutes: TIMESERIES_INTERVAL_MINUTES,
-      percentileValue,
     });
   };
 }

@@ -96,14 +96,12 @@ import { reorder as reorderSentinelPolicies } from "./deploy/environment-setting
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
 import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
-import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
-import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
+import { getDeploymentLatencyMetrics } from "./deploy/metrics/get-deployment-latency-metrics";
 import { getDeploymentMemoryTimeseries } from "./deploy/metrics/get-deployment-memory-timeseries";
 import { getDeploymentNetworkEgressTimeseries } from "./deploy/metrics/get-deployment-network-egress-timeseries";
 import { getDeploymentNetworkIngressTimeseries } from "./deploy/metrics/get-deployment-network-ingress-timeseries";
 import { getDeploymentResourceSummary } from "./deploy/metrics/get-deployment-resource-summary";
-import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
-import { getDeploymentRpsTimeseries } from "./deploy/metrics/get-deployment-rps-timeseries";
+import { getDeploymentRpsMetrics } from "./deploy/metrics/get-deployment-rps-metrics";
 import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
@@ -534,10 +532,8 @@ export const router = t.router({
       listInstances,
     }),
     metrics: t.router({
-      getDeploymentRps,
-      getDeploymentRpsTimeseries,
-      getDeploymentLatency,
-      getDeploymentLatencyTimeseries,
+      getDeploymentRpsMetrics,
+      getDeploymentLatencyMetrics,
       getDeploymentCpuTimeseries,
       getDeploymentMemoryTimeseries,
       getDeploymentDiskTimeseries,

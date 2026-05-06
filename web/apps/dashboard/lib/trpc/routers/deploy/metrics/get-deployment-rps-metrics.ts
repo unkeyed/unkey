@@ -4,7 +4,7 @@ import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-export const getDeploymentRps = workspaceProcedure
+export const getDeploymentRpsMetrics = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(
     z.object({
@@ -30,7 +30,7 @@ export const getDeploymentRps = workspaceProcedure
       }
 
       try {
-        const result = await clickhouse.sentinel.rps.byDeployment({
+        const result = await clickhouse.sentinel.rps.timeseries({
           workspaceId: ctx.workspace.id,
           projectId: deployment.projectId,
           deploymentId: input.deploymentId,
@@ -38,14 +38,24 @@ export const getDeploymentRps = workspaceProcedure
         });
 
         if (result.err) {
-          console.warn("Failed to fetch deployment RPS from ClickHouse", result.err);
-          return { avg_rps: 0 };
+          console.warn("Failed to fetch deployment RPS metrics from ClickHouse", result.err);
+          return { current: 0, timeseries: [] };
         }
 
-        return { avg_rps: result.val[0]?.avg_rps ?? 0 };
+        // Derive current RPS from the timeseries to avoid a separate CH query.
+        // Unlike percentiles, RPS averages are composable across buckets.
+        // Zero-traffic buckets are excluded so they don't dilute the average.
+        const points = result.val;
+        const nonZero = points.filter((p) => p.y > 0);
+        const current =
+          nonZero.length > 0
+            ? Math.round((nonZero.reduce((s, p) => s + p.y, 0) / nonZero.length) * 100) / 100
+            : 0;
+
+        return { current, timeseries: points };
       } catch (chError) {
-        console.warn("Failed to fetch deployment RPS from ClickHouse", chError);
-        return { avg_rps: 0 };
+        console.warn("Failed to fetch deployment RPS metrics from ClickHouse", chError);
+        return { current: 0, timeseries: [] };
       }
     } catch (error) {
       if (error instanceof TRPCError) {
@@ -53,7 +63,7 @@ export const getDeploymentRps = workspaceProcedure
       }
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to fetch deployment RPS",
+        message: "Failed to fetch deployment RPS metrics",
       });
     }
   });
