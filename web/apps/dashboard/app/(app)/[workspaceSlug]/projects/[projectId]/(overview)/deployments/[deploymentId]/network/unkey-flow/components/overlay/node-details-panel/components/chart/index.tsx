@@ -10,7 +10,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { Bar, BarChart } from "recharts";
 import { LogsChartEmpty } from "./components/logs-chart-empty";
 import { LogsChartError } from "./components/logs-chart-error";
@@ -57,6 +57,8 @@ export function LogsTimeseriesBarChart({
     return map;
   }, [data]);
 
+  const chartId = useId().replace(/:/g, "");
+  const configKeys = Object.keys(config);
   const isEmpty = !data || data.length === 0;
 
   if (isError) {
@@ -74,61 +76,48 @@ export function LogsTimeseriesBarChart({
   return (
     <ChartContainer
       config={config}
-      // ChartContainer's default classes include `flex justify-center` which
-      // can stop the chart from stretching full-width. Force block + full
-      // width explicitly so the bars span the entire panel.
       className={cn(
-        "!flex-col aspect-auto w-full border-b border-grayA-4",
+        "!flex-col aspect-auto w-full border-b border-grayA-4 !overflow-visible [&_.recharts-responsive-container]:!overflow-visible [&_.recharts-wrapper]:!overflow-visible",
         chartContainerClassname,
       )}
       style={{ height, width: "100%" }}
     >
       <BarChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }} barCategoryGap={0.5}>
+        <defs>
+          {configKeys.map((key) => (
+            <linearGradient
+              key={`${chartId}-${key}`}
+              id={`${chartId}-bar-${key}`}
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop offset="0%" stopColor={config[key].color} stopOpacity={0.9} />
+              <stop offset="100%" stopColor={config[key].color} stopOpacity={0.3} />
+            </linearGradient>
+          ))}
+        </defs>
         <ChartTooltip
-          position={{ y: 50 }}
-          // y:true lets the tooltip render below the short (48px) chart row
-          // without vertical clipping. x stays clamped to the chart width so
-          // the tooltip can't spill off the browser viewport when the panel
-          // sits flush with the right edge.
-          allowEscapeViewBox={{ x: false, y: true }}
-          wrapperStyle={{ zIndex: 1000, pointerEvents: "none" }}
-          cursor={{
-            fill: "hsl(var(--accent-3))",
-            strokeWidth: 1,
-            strokeDasharray: "5 5",
-            strokeOpacity: 0.7,
-          }}
+          offset={15}
+          allowEscapeViewBox={{ x: true, y: true }}
+          wrapperStyle={{ zIndex: 1000, pointerEvents: "none", overflow: "visible" }}
+          cursor={{ fill: "hsl(var(--accent-3))", fillOpacity: 0.4 }}
           content={({ active, payload, label }) => {
             if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
               return null;
             }
-            // Suppress tooltip on zero-valued bars. These happen when a 15s
-            // bucket only got a single heimdall sample (CPU delta = 0) or
-            // when the live-tip bucket hasn't received any checkpoints yet.
-            // Showing "0%" on these is misleading — there's just no data.
-            // Check across every series in the payload, not just the first
-            // stack: a stacked chart can have ingress=0 with egress=non-zero
-            // (or vice versa) and we still want the tooltip in that case.
             const allZero = payload.every((p) => typeof p?.value === "number" && p.value === 0);
             if (allZero) {
               return null;
             }
-            // Custom tooltip body when a valueFormatter is provided so the
-            // caller can return non-numeric strings ("0.4%", "43 MiB (17%)").
-            // Default path falls back to the shared ChartTooltipContent which
-            // only handles numeric values.
             if (valueFormatter) {
-              // parseTimestamp normalises string/number inputs to a number
-              // the same way timestampToIndexMap does upstream — without
-              // this normalisation a string-shaped originalTimestamp falls
-              // through formatCompactInterval's `typeof === "number"` guard
-              // and the tooltip header goes blank.
               const payloadTimestamp = parseTimestamp(payload?.[0]?.payload?.originalTimestamp);
               const labelText = formatCompactInterval(payloadTimestamp, data, showDateInTooltip);
               return (
                 <div
                   role="tooltip"
-                  className="grid items-start gap-1 rounded-lg border border-gray-4 bg-gray-1 px-3 py-2 text-xs shadow-2xl select-none w-max max-w-[240px]"
+                  className="grid items-start gap-1.5 rounded-xl border border-gray-4/50 bg-gray-1/80 backdrop-blur-md px-3 py-2.5 text-xs shadow-2xl select-none w-max max-w-[240px] animate-in fade-in-0 zoom-in-95 duration-150"
                 >
                   <div className="font-medium text-[11px] text-accent-11">{labelText}</div>
                   <div className="grid gap-1">
@@ -160,6 +149,7 @@ export function LogsTimeseriesBarChart({
                 payload={payload}
                 label={label}
                 active={active}
+                color={config[configKeys[0]]?.color}
                 className="rounded-lg shadow-lg border border-gray-4"
                 labelFormatter={(_, tooltipPayload) => {
                   const payloadTimestamp = parseTimestamp(
@@ -176,8 +166,14 @@ export function LogsTimeseriesBarChart({
             );
           }}
         />
-        {Object.keys(config).map((key) => (
-          <Bar key={key} dataKey={key} stackId="a" fill={config[key].color} />
+        {configKeys.map((key) => (
+          <Bar
+            key={key}
+            dataKey={key}
+            stackId="a"
+            fill={`url(#${chartId}-bar-${key})`}
+            radius={[2, 2, 0, 0]}
+          />
         ))}
       </BarChart>
     </ChartContainer>
