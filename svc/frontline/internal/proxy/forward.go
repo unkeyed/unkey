@@ -101,8 +101,6 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			*req = *req.WithContext(httptrace.WithClientTrace(req.Context(), clientTrace))
 		},
 		ModifyResponse: func(resp *http.Response) error {
-			publishUpstream(s.clock.Now())
-
 			totalTime := s.clock.Now().Sub(cfg.startTime)
 			if !proxyStartTime.IsZero() {
 				timing.Write(sess.ResponseWriter(), timing.Entry{
@@ -156,6 +154,11 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 
 	// Proxy the request with the middleware context (carries timeout deadline).
 	serveWithAbortRecovery(proxy, wrapper, sess.Request().WithContext(ctx))
+
+	// Record upstream duration after the full response (including streaming
+	// body / WebSocket tunnel) has finished. Idempotent — if ErrorHandler
+	// already published from the pre-response failure path, this is a no-op.
+	publishUpstream(s.clock.Now())
 
 	// Mark the true end of the upstream interaction (full stream completed).
 	if hasTracking {
