@@ -70,4 +70,3 @@ var (
 		[]string{"destination", "outcome"},
 	)
 )
-
