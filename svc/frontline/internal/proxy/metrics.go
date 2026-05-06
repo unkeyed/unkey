@@ -17,15 +17,6 @@ const (
 	dialOutcomeError   = "error"
 )
 
-// Hops bucket strings. Cross-region requests should normally be 1 hop;
-// anything higher indicates routing drift between regions.
-const (
-	hops1     = "1"
-	hops2     = "2"
-	hops3     = "3"
-	hopsManyN = "4+"
-)
-
 var (
 	// upstreamSeconds is the wall-clock duration of the upstream call —
 	// from request send to response complete (or error). Customer-pod
@@ -45,17 +36,24 @@ var (
 		[]string{"destination"},
 	)
 
-	// hopsTotal counts cross-region requests bucketed by hop count. Hops=1
-	// is normal (one cross-region jump); higher values mean a peer
-	// frontline forwarded again — a routing-config bug.
-	hopsTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
+	// hopsHistogram records cross-region hop counts. Hops=1 is the only
+	// healthy value: a request arrives, we forward to one peer, that peer
+	// serves it. Higher values mean the peer received a forward and
+	// forwarded *again* — a routing-config bug between regions.
+	//
+	// Recording as a histogram (not a counter) so dashboards get average
+	// hop depth via _sum/_count and alerts can use bucket boundaries to
+	// distinguish "all good" (everything in le=1) from "drift" (any rate
+	// past le=1).
+	hopsHistogram = lazy.NewHistogramVec(
+		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
-			Name:      "hops_total",
-			Help:      "Cross-region forwards by hop count.",
+			Name:      "hops",
+			Help:      "Cross-region hop count distribution by source and destination region.",
+			Buckets:   []float64{1, 2, 3},
 		},
-		[]string{"src_region", "dst_region", "hops"},
+		[]string{"src_region", "dst_region"},
 	)
 
 	// upstreamDialsTotal counts new TCP dials issued by the upstream
@@ -73,18 +71,3 @@ var (
 	)
 )
 
-// hopsBucket maps an integer hop count to the canonical label string used
-// on hopsTotal. Keeps the label set bounded regardless of how high the hop
-// count goes.
-func hopsBucket(n int) string {
-	switch n {
-	case 1:
-		return hops1
-	case 2:
-		return hops2
-	case 3:
-		return hops3
-	default:
-		return hopsManyN
-	}
-}

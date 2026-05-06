@@ -138,7 +138,7 @@ func (s *service) forwardToRegion(ctx context.Context, sess *zen.Session, target
 			if srcRegion == "" {
 				srcRegion = fmt.Sprintf("%s::%s", s.platform, s.region)
 			}
-			hopsTotal.WithLabelValues(srcRegion, targetRegionPlatform, hopsBucket(hops)).Inc()
+			hopsHistogram.WithLabelValues(srcRegion, targetRegionPlatform).Observe(float64(hops))
 
 			if hops >= s.maxHops {
 				logger.Error("too many frontline hops - rejecting request",
