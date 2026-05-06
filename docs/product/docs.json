@@ -219,6 +219,7 @@
               "networking/domains",
               "networking/private-networking",
               "networking/public-networking",
+              "networking/websockets",
               "networking/wildcard-domains"
             ]
           },
