@@ -9,26 +9,6 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 Apps deployed on Unkey can accept WebSocket connections. Frontline detects the HTTP `Upgrade` handshake, forwards it to your app, and lets the resulting bidirectional tunnel stay open for the lifetime of the connection.
 
-## How it works
-
-When a client opens a WebSocket, it sends a regular HTTP request with two extra headers:
-
-```http
-GET /ws HTTP/1.1
-Host: myapp-api-acme.unkey.app
-Connection: Upgrade
-Upgrade: websocket
-Sec-WebSocket-Version: 13
-Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
-```
-
-Frontline recognizes the upgrade, forwards it to your app, and your app responds with `101 Switching Protocols`. After that, Frontline stops treating the connection as a request/response pair and copies bytes in both directions until either side closes it.
-
-Two behaviors are different from a normal HTTP request:
-
-- **No request timeout.** The default request timeout is bypassed for upgraded connections, so a long-lived WebSocket session won't be cut off mid-stream.
-- **No response body capture.** Frontline does not buffer or log the frames that flow over an upgraded connection.
-
 ## Using WebSockets
 
 WebSockets work out of the box. There is nothing to enable in the dashboard or the CLI. Bind your WebSocket server to the port your app exposes and deploy as usual.
