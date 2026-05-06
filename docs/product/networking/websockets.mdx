@@ -1,13 +1,11 @@
 ---
 title: WebSockets
-description: "Run WebSocket servers on Unkey. Frontline forwards protocol upgrades end-to-end and keeps long-lived connections open without request timeouts."
+description: "Run WebSocket servers on Unkey with long-lived connections and no request timeouts."
 ---
 
 import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
-
-Apps deployed on Unkey can accept WebSocket connections. Frontline detects the HTTP `Upgrade` handshake, forwards it to your app, and lets the resulting bidirectional tunnel stay open for the lifetime of the connection.
 
 ## Using WebSockets
 
@@ -27,7 +25,7 @@ wss.on("connection", (socket) => {
 });
 ```
 
-Connect from a client using either the wildcard or custom domain assigned to your deployment:
+Connect from a client using either the wildcard or custom domain assigned to your deployment. Always use `wss://` — plaintext `ws://` is not redirected.
 
 ```ts
 const ws = new WebSocket("wss://myapp-api-acme.unkey.app/ws");
@@ -35,8 +33,6 @@ const ws = new WebSocket("wss://myapp-api-acme.unkey.app/ws");
 ws.onopen = () => ws.send("hello");
 ws.onmessage = (event) => console.log(event.data);
 ```
-
-TLS is terminated at Frontline, so clients always connect over `wss://`. Plaintext `ws://` requests are redirected to HTTPS along with the rest of your traffic.
 
 ## Headers and routing
 
