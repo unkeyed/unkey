@@ -124,7 +124,7 @@ func (s *service) forwardToInstance(ctx context.Context, sess *zen.Session, deci
 		targetURL:    targetURL,
 		startTime:    startTime,
 		directorFunc: s.makeInstanceDirector(sess, startTime),
-		destination:  "instance",
+		destination:  destinationInstance,
 		transport:    transport,
 	})
 }
@@ -138,7 +138,7 @@ func (s *service) forwardToRegion(ctx context.Context, sess *zen.Session, target
 			if srcRegion == "" {
 				srcRegion = fmt.Sprintf("%s::%s", s.platform, s.region)
 			}
-			proxyHops.WithLabelValues(srcRegion, targetRegionPlatform).Observe(float64(hops))
+			hopsTotal.WithLabelValues(srcRegion, targetRegionPlatform, hopsBucket(hops)).Inc()
 
 			if hops >= s.maxHops {
 				logger.Error("too many frontline hops - rejecting request",
@@ -168,7 +168,7 @@ func (s *service) forwardToRegion(ctx context.Context, sess *zen.Session, target
 		targetURL:    targetURL,
 		startTime:    startTime,
 		directorFunc: s.makeRegionDirector(sess, startTime),
-		destination:  "region",
+		destination:  destinationFrontline,
 		transport:    s.transport,
 	})
 }

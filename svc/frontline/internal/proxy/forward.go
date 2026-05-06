@@ -3,15 +3,12 @@ package proxy
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/http/httputil"
 	"net/url"
-	"os"
-	"syscall"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -60,10 +57,27 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
 
 	var backendStart time.Time
-	observeBackendDuration := func() {
-		if !backendStart.IsZero() {
-			proxyBackendDuration.WithLabelValues(cfg.destination).Observe(s.clock.Now().Sub(backendStart).Seconds())
+
+	// publishUpstream records the upstream call duration once per request.
+	// Idempotent: subsequent calls (e.g. ErrorHandler after ModifyResponse)
+	// are no-ops because backendStart resets to zero.
+	publishUpstream := func(end time.Time) {
+		if backendStart.IsZero() {
+			return
 		}
+		upstreamSeconds.WithLabelValues(cfg.destination).Observe(end.Sub(backendStart).Seconds())
+		backendStart = time.Time{}
+	}
+
+	// nolint:exhaustruct
+	clientTrace := &httptrace.ClientTrace{
+		ConnectDone: func(network, addr string, err error) {
+			outcome := dialOutcomeSuccess
+			if err != nil {
+				outcome = dialOutcomeError
+			}
+			upstreamDialsTotal.WithLabelValues(cfg.destination, outcome).Inc()
+		},
 	}
 
 	tracking, hasTracking := RequestTrackingFromContext(ctx)
@@ -83,16 +97,11 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			req.URL.Host = cfg.targetURL.Host
 
 			cfg.directorFunc(req)
+
+			*req = *req.WithContext(httptrace.WithClientTrace(req.Context(), clientTrace))
 		},
 		ModifyResponse: func(resp *http.Response) error {
-			observeBackendDuration()
-
-			// Both destinations stream upstream responses through unchanged.
-			// "instance" hits a customer pod; "region" hits a peer frontline
-			// that already wrote its own JSON/HTML error page via its
-			// observability middleware. We just record + pass through.
-			source := "upstream"
-			proxyBackendResponseTotal.WithLabelValues(cfg.destination, source, statusClass(resp.StatusCode)).Inc()
+			publishUpstream(s.clock.Now())
 
 			totalTime := s.clock.Now().Sub(cfg.startTime)
 			if !proxyStartTime.IsZero() {
@@ -123,7 +132,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			observeBackendDuration()
+			publishUpstream(s.clock.Now())
 
 			// Capture the error for middleware to handle
 			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
@@ -139,7 +148,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	}
 
 	// Proxy the request with the middleware context (carries timeout deadline).
-	serveWithAbortRecovery(proxy, wrapper, sess.Request().WithContext(ctx), cfg.destination)
+	serveWithAbortRecovery(proxy, wrapper, sess.Request().WithContext(ctx))
 
 	// Mark the true end of the upstream interaction (full stream completed).
 	if hasTracking {
@@ -159,8 +168,6 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 		if _, hasCode := fault.GetCode(err); hasCode {
 			return err
 		}
-		proxyForwardTotal.WithLabelValues(cfg.destination, categorizeProxyErrorType(err)).Inc()
-		proxyForwardErrorsTotal.WithLabelValues(cfg.destination).Inc()
 		urn, message := categorizeProxyError(err, cfg.destination)
 		return fault.Wrap(err,
 			fault.Code(urn),
@@ -169,40 +176,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 		)
 	}
 
-	proxyForwardTotal.WithLabelValues(cfg.destination, "none").Inc()
-
 	return nil
-}
-
-// categorizeProxyErrorType returns a short label for the type of proxy error,
-// suitable for use as a prometheus label value.
-func categorizeProxyErrorType(err error) string {
-	if errors.Is(err, context.Canceled) {
-		return "client_canceled"
-	}
-	if errors.Is(err, context.DeadlineExceeded) || os.IsTimeout(err) {
-		return "timeout"
-	}
-
-	var netErr *net.OpError
-	if errors.As(err, &netErr) {
-		if netErr.Timeout() {
-			return "timeout"
-		}
-		if errors.Is(netErr.Err, syscall.ECONNREFUSED) {
-			return "conn_refused"
-		}
-		if errors.Is(netErr.Err, syscall.ECONNRESET) {
-			return "conn_reset"
-		}
-	}
-
-	var dnsErr *net.DNSError
-	if errors.As(err, &dnsErr) {
-		return "dns_failure"
-	}
-
-	return "other"
 }
 
 // serveWithAbortRecovery calls h.ServeHTTP and swallows http.ErrAbortHandler panics.
@@ -211,27 +185,18 @@ func categorizeProxyErrorType(err error) string {
 // There is no recovery path at that point — the panic is the library's signal that
 // the handler is aborting. Swallowing it keeps the global panic middleware strict
 // for real bugs; other panic values are re-raised unchanged.
-func serveWithAbortRecovery(h http.Handler, w http.ResponseWriter, r *http.Request, destination string) {
+//
+// Aborts after headers were already flushed render as ordinary 2xx successes
+// in requests_total — the response we committed to was just truncated.
+// Aborts before headers go through the proxy's ErrorHandler with a
+// User.BadRequest.ClientClosedRequest URN.
+func serveWithAbortRecovery(h http.Handler, w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if rec := recover(); rec != nil {
 			if rec != http.ErrAbortHandler {
 				panic(rec)
 			}
-			proxyAbortedTotal.WithLabelValues(destination).Inc()
 		}
 	}()
 	h.ServeHTTP(w, r)
-}
-
-func statusClass(code int) string {
-	switch {
-	case code >= 500:
-		return "5xx"
-	case code >= 400:
-		return "4xx"
-	case code >= 300:
-		return "3xx"
-	default:
-		return "2xx"
-	}
 }
