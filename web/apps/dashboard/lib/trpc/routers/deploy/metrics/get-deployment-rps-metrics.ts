@@ -42,14 +42,12 @@ export const getDeploymentRpsMetrics = workspaceProcedure
           return { current: 0, timeseries: [] };
         }
 
-        // Derive current RPS from the timeseries to avoid a separate CH query.
-        // Unlike percentiles, RPS averages are composable across buckets.
-        // Zero-traffic buckets are excluded so they don't dilute the average.
+        // Average ALL buckets (including zeros) so RPS decays naturally
+        // when traffic stops, matching total_requests / window_duration.
         const points = result.val;
-        const nonZero = points.filter((p) => p.y > 0);
         const current =
-          nonZero.length > 0
-            ? Math.round((nonZero.reduce((s, p) => s + p.y, 0) / nonZero.length) * 100) / 100
+          points.length > 0
+            ? Math.round((points.reduce((s, p) => s + p.y, 0) / points.length) * 100) / 100
             : 0;
 
         return { current, timeseries: points };
