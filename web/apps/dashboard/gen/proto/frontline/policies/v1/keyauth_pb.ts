@@ -14,8 +14,8 @@ export const file_frontline_policies_v1_keyauth: GenFile = /*@__PURE__*/
 
 /**
  * KeyAuth authenticates requests using Unkey API keys. This is the primary
- * authentication mechanism for sentinel because API key management is Unkey's
- * core product. When a request arrives, sentinel extracts the key from the
+ * authentication mechanism for frontline because API key management is Unkey's
+ * core product. When a request arrives, frontline extracts the key from the
  * configured location, verifies it against the specified Unkey key space, and
  * on success produces a [Principal] with type "key".
  *
@@ -29,7 +29,7 @@ export const file_frontline_policies_v1_keyauth: GenFile = /*@__PURE__*/
  *
  * KeyAuth pairs naturally with Unkey's key lifecycle features. Keys created
  * with expiration dates, remaining usage counts, or rate limits are enforced
- * at the gateway level without any application code. This turns sentinel
+ * at the gateway level without any application code. This turns frontline
  * into a full API management layer for Unkey customers.
  *
  * @generated from message frontline.v1.KeyAuth
@@ -45,7 +45,7 @@ export type KeyAuth = Message<"frontline.v1.KeyAuth"> & {
   keySpaceIds: string[];
 
   /**
-   * Ordered list of locations to extract the API key from. Sentinel tries
+   * Ordered list of locations to extract the API key from. Frontline tries
    * each location in order and uses the first one that yields a non-empty
    * value. This allows APIs to support multiple key delivery mechanisms
    * simultaneously (e.g., Bearer token for programmatic clients and a query
@@ -75,7 +75,7 @@ export type KeyAuth = Message<"frontline.v1.KeyAuth"> & {
    *   "billing.read OR billing.admin"
    *   "(api.keys.read OR api.keys.list) AND billing.read"
    *
-   * When set, sentinel rejects the request with 403 if the key lacks the
+   * When set, frontline rejects the request with 403 if the key lacks the
    * required permissions. When empty, no permission check is performed.
    *
    * Limits: maximum 1000 characters, maximum 100 permission terms.
@@ -95,7 +95,7 @@ export const KeyAuthSchema: GenMessage<KeyAuth> = /*@__PURE__*/
 /**
  * KeyLocation specifies where in the HTTP request to look for an API key.
  * Multiple locations can be configured on a [KeyAuth] policy to support
- * different client conventions. Sentinel tries each location in order and
+ * different client conventions. Frontline tries each location in order and
  * uses the first one that yields a non-empty value.
  *
  * @generated from message frontline.v1.KeyLocation
@@ -145,7 +145,7 @@ export const KeyLocationSchema: GenMessage<KeyLocation> = /*@__PURE__*/
 
 /**
  * BearerTokenLocation extracts the API key from the Authorization header
- * using the Bearer scheme (RFC 6750). Sentinel parses the header value,
+ * using the Bearer scheme (RFC 6750). Frontline parses the header value,
  * strips the "Bearer " prefix, and uses the remainder as the API key.
  *
  * @generated from message frontline.v1.BearerTokenLocation

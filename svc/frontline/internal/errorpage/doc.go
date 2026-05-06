@@ -1,9 +1,8 @@
 // Package errorpage renders HTML error pages for frontline.
 //
-// Frontline shows error pages for its own errors (routing failures, proxy
-// errors) and for sentinel errors (auth rejections, rate limits). The
-// [Renderer] interface allows swapping the template, e.g. for custom
-// domains with branded error pages.
+// Frontline shows error pages for routing/proxy failures and for policy
+// rejections (auth, rate limits, firewall). The [Renderer] interface allows
+// swapping the template, e.g. for custom domains with branded error pages.
 //
 // # Template
 //
@@ -13,7 +12,7 @@
 //
 // # Content Negotiation
 //
-// This package only produces HTML. The caller (frontline middleware or
-// proxy) is responsible for checking the Accept header and falling back
-// to JSON when the client prefers it.
+// This package only produces HTML. The caller (middleware or proxy) is
+// responsible for checking the Accept header and falling back to JSON
+// when the client prefers it.
 package errorpage

@@ -30,8 +30,8 @@ const (
 // never sees the excess traffic, which matters for cost-sensitive services
 // and APIs with expensive backend operations.
 //
-// Sentinel delegates rate limit state to Unkey's distributed rate limiting
-// service, which provides consistent counts across multiple sentinel
+// Frontline delegates rate limit state to Unkey's distributed rate limiting
+// service, which provides consistent counts across multiple frontline
 // instances. This is critical for horizontally scaled deployments where
 // per-instance counters would allow N times the intended rate.
 type RateLimit struct {
@@ -106,7 +106,7 @@ func (x *RateLimit) GetIdentifier() *RateLimitIdentifier {
 	return nil
 }
 
-// RateLimitIdentifier determines how sentinel identifies the entity being rate
+// RateLimitIdentifier determines how frontline identifies the entity being rate
 // limited. The choice of identifier fundamentally changes the limiting
 // behavior, so it should match the threat model and use case.
 type RateLimitIdentifier struct {
@@ -222,7 +222,7 @@ type RateLimitIdentifier_Header struct {
 	// Limit by the value of a specific request header. Useful for
 	// pre-authenticated traffic where a trusted upstream has already
 	// identified the caller via a header like X-Tenant-Id. Since clients
-	// can set arbitrary headers, this should only be used when sentinel is
+	// can set arbitrary headers, this should only be used when frontline is
 	// behind a trusted proxy that sets the header.
 	Header *HeaderKey `protobuf:"bytes,2,opt,name=header,proto3,oneof"`
 }

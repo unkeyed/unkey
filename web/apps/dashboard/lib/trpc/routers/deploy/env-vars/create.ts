@@ -1,17 +1,14 @@
+import { VaultService } from "@/gen/proto/vault/v1/service_pb";
 import { and, db, eq, schema } from "@/lib/db";
-import { env } from "@/lib/env";
 import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
-import { Vault } from "@/lib/vault";
+import { createVaultClient } from "@/lib/vault-client";
 import { TRPCError } from "@trpc/server";
 import { environments } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { workspaceProcedure } from "../../../trpc";
 
-const vault = new Vault({
-  baseUrl: env().VAULT_URL,
-  token: env().VAULT_TOKEN,
-});
+const vault = createVaultClient(VaultService);
 
 const envVarInputSchema = z.object({
   key: envVarKeySchema,
@@ -47,25 +44,31 @@ export const createEnvVars = workspaceProcedure
         });
       }
 
-      const encryptedVars = await Promise.all(
-        input.variables.map(async (v) => {
-          const { encrypted } = await vault.encrypt({
-            keyring: input.environmentId,
-            data: v.value,
-          });
+      const variablesWithIds = input.variables.map((v) => ({
+        ...v,
+        id: newId("environmentVariable"),
+      }));
 
-          return {
-            id: newId("environmentVariable"),
-            workspaceId: ctx.workspace.id,
-            appId: environment.appId,
-            environmentId: input.environmentId,
-            key: v.key,
-            value: encrypted,
-            type: v.type,
-            description: v.description ?? null,
-          };
-        }),
-      );
+      const items: Record<string, string> = {};
+      for (const v of variablesWithIds) {
+        items[v.id] = v.value;
+      }
+
+      const bulkResult = await vault.encryptBulk({
+        keyring: input.environmentId,
+        items,
+      });
+
+      const encryptedVars = variablesWithIds.map((v) => ({
+        id: v.id,
+        workspaceId: ctx.workspace.id,
+        appId: environment.appId,
+        environmentId: input.environmentId,
+        key: v.key,
+        value: bulkResult.items[v.id].encrypted,
+        type: v.type,
+        description: v.description ?? null,
+      }));
 
       await db.insert(schema.appEnvironmentVariables).values(encryptedVars);
     } catch (error) {

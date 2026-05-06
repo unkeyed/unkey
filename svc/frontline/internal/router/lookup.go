@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"database/sql"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	internalCaches "github.com/unkeyed/unkey/internal/services/caches"
@@ -61,9 +62,21 @@ func (s *service) getInstances(ctx context.Context, deploymentID string) ([]db.F
 // getPolicies parses the sentinel_config bytes carried on the route into a
 // slice of policies. The parse result is cached by deployment_id so cluster-
 // wide invalidation flushes both the route and policy caches together.
+//
+// OpenAPI policies that carry no inline spec are hydrated from the scraped
+// spec in openapi_specs, keyed by deployment_id.
 func (s *service) getPolicies(ctx context.Context, route db.FindFrontlineRouteByFQDNRow) ([]*frontlinev1.Policy, error) {
-	policies, hit, err := s.policyCache.SWR(ctx, route.DeploymentID, func(ctx context.Context) ([]*frontlinev1.Policy, error) {
-		return policies.ParseMiddleware(route.SentinelConfig)
+	pols, hit, err := s.policyCache.SWR(ctx, route.DeploymentID, func(ctx context.Context) ([]*frontlinev1.Policy, error) {
+		parsed, parseErr := policies.ParseMiddleware(route.SentinelConfig)
+		if parseErr != nil {
+			return nil, parseErr
+		}
+
+		if err := s.hydrateOpenapiSpecs(ctx, route.DeploymentID, parsed); err != nil {
+			return nil, err
+		}
+
+		return parsed, nil
 	}, func(err error) cache.Op {
 		if err != nil {
 			return cache.Noop
@@ -79,5 +92,36 @@ func (s *service) getPolicies(ctx context.Context, route db.FindFrontlineRouteBy
 		return nil, nil
 	}
 
-	return policies, nil
+	return pols, nil
+}
+
+// hydrateOpenapiSpecs loads the spec from openapi_specs (keyed by deployment_id)
+// and sets it on every openapi policy. Specs always come from the DB.
+func (s *service) hydrateOpenapiSpecs(ctx context.Context, deploymentID string, pols []*frontlinev1.Policy) error {
+	var targets []*frontlinev1.OpenApiRequestValidation
+	for _, p := range pols {
+		if oa, ok := p.GetConfig().(*frontlinev1.Policy_Openapi); ok {
+			targets = append(targets, oa.Openapi)
+		}
+	}
+	if len(targets) == 0 {
+		return nil
+	}
+
+	spec, err := s.db.FindOpenApiSpecByDeploymentID(ctx, sql.NullString{String: deploymentID, Valid: true})
+	if err != nil {
+		if mysql.IsNotFound(err) {
+			return nil
+		}
+		return fault.Wrap(err,
+			fault.Code(codes.Frontline.Internal.ConfigLoadFailed.URN()),
+			fault.Internal("error loading openapi spec for deployment "+deploymentID),
+		)
+	}
+
+	for _, t := range targets {
+		t.SpecYaml = spec
+	}
+
+	return nil
 }

@@ -7,15 +7,13 @@ import { ComboboxSkeleton, GitHubSettingCard, ManageGitHubAppLink, RepoNameLabel
 export const GitHubConnected = ({
   projectId,
   appId,
-  installUrl,
+  onInstall,
   repoFullName,
-  onBeforeNavigate,
 }: {
   projectId: string;
   appId: string;
-  installUrl: string;
+  onInstall: () => Promise<void> | void;
   repoFullName: string;
-  onBeforeNavigate?: () => void;
 }) => {
   const utils = trpc.useUtils();
 
@@ -72,10 +70,9 @@ export const GitHubConnected = ({
       </span>
       <div className="flex items-center gap-5 pt-1">
         <ManageGitHubAppLink
-          installUrl={installUrl}
+          onInstall={onInstall}
           variant="primary"
           text={<span>Manage GitHub</span>}
-          onBeforeNavigate={onBeforeNavigate}
         />
       </div>
     </div>

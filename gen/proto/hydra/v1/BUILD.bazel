@@ -38,8 +38,6 @@ go_library(
         "ratelimit_blocklist_cleanup_restate.pb.go",
         "routing.pb.go",
         "routing_restate.pb.go",
-        "sentinel.pb.go",
-        "sentinel_restate.pb.go",
     ],
     importpath = "github.com/unkeyed/unkey/gen/proto/hydra/v1",
     visibility = ["//visibility:public"],

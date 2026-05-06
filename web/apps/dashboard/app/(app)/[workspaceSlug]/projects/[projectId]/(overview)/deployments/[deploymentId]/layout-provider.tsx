@@ -1,7 +1,8 @@
 "use client";
 
 import { LoadingState } from "@/components/loading-state";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { type Deployment, deploymentSchema } from "@/lib/collections/deploy/deployments";
+import { trpc } from "@/lib/trpc/client";
 import { useParams } from "next/navigation";
 import { createContext, useContext } from "react";
 import { useProjectData } from "../../data-provider";
@@ -30,18 +31,22 @@ export const DeploymentLayoutProvider = ({
     throw new Error("DeploymentLayoutProvider requires a deploymentId (via prop or route params)");
   }
 
-  const { getDeploymentById, isDeploymentsLoading } = useProjectData();
+  const { getDeploymentById, isDeploymentsLoading, projectId } = useProjectData();
   const deployment = getDeploymentById(deploymentId);
 
-  if (!deployment) {
-    if (isDeploymentsLoading) {
+  const { data: fetchedDeployment, isLoading: isFetchingById } =
+    trpc.deploy.deployment.getById.useQuery({ deploymentId, projectId }, { enabled: !deployment });
+
+  const parsed = fetchedDeployment ? deploymentSchema.safeParse(fetchedDeployment) : undefined;
+  const resolved = deployment ?? (parsed?.success ? parsed.data : undefined);
+  if (!resolved) {
+    if (isDeploymentsLoading || isFetchingById) {
       return <LoadingState message="Loading deployment..." />;
     }
     throw new Error(`Deployment not found: ${deploymentId}`);
   }
-
   return (
-    <DeploymentLayoutContext.Provider value={{ deployment }}>
+    <DeploymentLayoutContext.Provider value={{ deployment: resolved }}>
       {children}
     </DeploymentLayoutContext.Provider>
   );

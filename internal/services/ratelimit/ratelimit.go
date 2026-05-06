@@ -114,7 +114,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 			// Also propagates the denial cross-region on the first denial
 			// per counter entry.
 			s.activateStrictMode(req, &cs, effectiveCount)
-			metrics.RatelimitDecision.WithLabelValues(cs.source, "denied").Inc()
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, cs.source, "denied").Inc()
 			span.SetAttributes(attribute.Bool("passed", false))
 			return RatelimitResponse{
 				Success:   false,
@@ -127,7 +127,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 
 		if cs.cur.val.CompareAndSwap(curCount, curCount+req.Cost) {
 			s.replayBuffer.Buffer(req)
-			metrics.RatelimitDecision.WithLabelValues(cs.source, "passed").Inc()
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, cs.source, "passed").Inc()
 			span.SetAttributes(attribute.Bool("passed", true))
 			return RatelimitResponse{
 				Success:   true,
@@ -146,7 +146,7 @@ func (s *service) Ratelimit(ctx context.Context, req RatelimitRequest) (Ratelimi
 		"identifier", req.Identifier,
 	)
 	metrics.RatelimitCASExhausted.Inc()
-	metrics.RatelimitDecision.WithLabelValues(cs.source, "denied").Inc()
+	metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, cs.source, "denied").Inc()
 	span.SetAttributes(attribute.Bool("passed", false))
 	return RatelimitResponse{
 		Success:   false,
@@ -253,9 +253,9 @@ func (s *service) RatelimitMany(ctx context.Context, reqs []RatelimitRequest) ([
 		}
 
 		if individualPassed {
-			metrics.RatelimitDecision.WithLabelValues(checks[i].source, "passed").Inc()
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, checks[i].source, "passed").Inc()
 		} else {
-			metrics.RatelimitDecision.WithLabelValues(checks[i].source, "denied").Inc()
+			metrics.RatelimitDecision.WithLabelValues(req.WorkspaceID, checks[i].source, "denied").Inc()
 		}
 	}
 

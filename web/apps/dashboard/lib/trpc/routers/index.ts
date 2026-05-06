@@ -59,7 +59,9 @@ import { createBulkEnvVars } from "./deploy/env-vars/create-bulk";
 import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
 import { listEnvVars } from "./deploy/env-vars/list";
+import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { updateEnvVar } from "./deploy/env-vars/update";
+import { updateAutoDeploy } from "./deploy/environment-settings/build/update-auto-deploy";
 import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
 import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
 import { updateWatchPaths } from "./deploy/environment-settings/build/update-watch-paths";
@@ -84,6 +86,9 @@ import { create as createKeyauthPolicy } from "./deploy/environment-settings/sen
 import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
 import { update as updateKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/update";
 import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
+import { create as createOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/create";
+import { remove as deleteOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/delete";
+import { update as updateOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/update";
 import { create as createRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/create";
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
@@ -102,7 +107,7 @@ import { getDeploymentRpsTimeseries } from "./deploy/metrics/get-deployment-rps-
 import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
-import { getSentinelRps } from "./deploy/network/get-sentinel-rps";
+import { getRegionRps } from "./deploy/network/get-region-rps";
 import { createProject } from "./deploy/project/create";
 import { creationContext } from "./deploy/project/creation-context";
 import { deleteProject } from "./deploy/project/delete";
@@ -426,8 +431,8 @@ export const router = t.router({
     network: t.router({
       generate: generateDeploymentTree,
       get: getDeploymentTree,
-      getSentinelRps,
       getInstanceRps,
+      getRegionRps,
     }),
     project: t.router({
       list: listProjects,
@@ -457,6 +462,11 @@ export const router = t.router({
           update: updateRatelimitPolicy,
           delete: deleteRatelimitPolicy,
         }),
+        openapi: t.router({
+          create: createOpenapiPolicy,
+          update: updateOpenapiPolicy,
+          delete: deleteOpenapiPolicy,
+        }),
         generateRegex,
       }),
       runtime: t.router({
@@ -472,6 +482,7 @@ export const router = t.router({
         updateUpstreamProtocol,
       }),
       build: t.router({
+        updateAutoDeploy,
         updateDockerfile,
         updateDockerContext,
         updateWatchPaths,
@@ -487,6 +498,7 @@ export const router = t.router({
       update: updateEnvVar,
       decrypt: decryptEnvVar,
       delete: deleteEnvVar,
+      makeSensitive,
     }),
     domain: t.router({
       list: listDomains,
