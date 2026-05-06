@@ -127,9 +127,9 @@ STRIPE_SECRET_KEY=<your Stripe secret key>
 
 ### Feature flags
 
-If you're touching code that imports `lib/flags.ts`, you'll need to get set up with our feature flag service - Vercel flags.
+You don't need Vercel Flags setup to run dashboard code that imports `@/lib/flags`. When `FLAGS` is missing, the dashboard uses the noop adapter and resolves each flag to its declared `defaultValue`.
 
-Ask Andreas for the dev values of `FLAGS` and `FLAGS_SECRET` and add them to `web/apps/dashboard/.env`. They're stable — you set them once and forget. See [Feature flags](/contributing/tooling/feature-flags) for the rest of the workflow.
+If you're adding flags, testing remote targeting rules, or using Vercel Toolbar overrides, ask Andreas for the dev values of `FLAGS` and `FLAGS_SECRET`. Add them to `web/apps/dashboard/.env`. They're stable, so you set them once and forget. See [Feature flags](/contributing/tooling/feature-flags) for the rest of the workflow.
 
 ## Seed local data
 
