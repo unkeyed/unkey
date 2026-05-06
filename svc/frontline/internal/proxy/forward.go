@@ -124,7 +124,14 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			// Capture response body for logging via TeeReader.
 			// Streaming: bytes flow to the client while accumulating in responseBuf.
 			// Non-streaming: the proxy buffers internally, same result.
-			if resp.Body != nil {
+			//
+			// Skip the wrap on protocol upgrades (101 Switching Protocols).
+			// httputil.ReverseProxy.handleUpgradeResponse needs resp.Body to
+			// satisfy io.ReadWriteCloser to hijack the upstream conn for
+			// bidirectional copy; io.NopCloser would erase the Write half
+			// and break WebSockets. Logging a "response body" is meaningless
+			// after an upgrade — the bytes that follow are WS frames.
+			if resp.Body != nil && resp.StatusCode != http.StatusSwitchingProtocols {
 				responseBuf.Reset()
 				resp.Body = io.NopCloser(io.TeeReader(resp.Body, &zen.LimitedWriter{W: &responseBuf, N: zen.MaxBodyCapture}))
 			}

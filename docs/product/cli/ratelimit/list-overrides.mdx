@@ -49,7 +49,7 @@ Pagination cursor from a previous response. Include this when fetching subsequen
 | `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
-| `--output` | string | Output format — use `json` for raw JSON |
+| `--output` | string | Output format. Use `json` for raw JSON |
 
 ## Examples
 
@@ -72,7 +72,7 @@ unkey api ratelimit list-overrides --namespace=api.requests --output=json
 
 Default output shows the request ID with latency, followed by the list of overrides:
 
-```
+```text
 req_2cGKbMxRyIzhCxo1Idjz8q (took 38ms)
 
 {

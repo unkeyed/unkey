@@ -235,7 +235,7 @@ export const GET = withAuth(async (_req, auth) => {
 Require specific permissions for sensitive endpoints:
 
 ```typescript app/api/admin/route.ts
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
 import { UnkeyError } from "@unkey/api/models/errors";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -252,7 +252,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = await unkey.keys.verifyKey({
       key: apiKey,
-      permissions: ["admin.delete"],
+      permissions: "admin.delete",
     });
 
     // You can reject the request because the key is invalid.
