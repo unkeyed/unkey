@@ -1,0 +1,31 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "portal",
+    srcs = [
+        "doc.go",
+        "get_session.go",
+        "service.go",
+    ],
+    importpath = "github.com/unkeyed/unkey/internal/services/portal",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/services/caches",
+        "//pkg/cache",
+        "//pkg/codes",
+        "//pkg/db",
+        "//pkg/fault",
+        "//pkg/otel/tracing",
+    ],
+)
+
+go_test(
+    name = "portal_test",
+    srcs = ["get_session_test.go"],
+    embed = [":portal"],
+    deps = [
+        "//pkg/codes",
+        "//pkg/fault",
+        "@com_github_stretchr_testify//require",
+    ],
+)

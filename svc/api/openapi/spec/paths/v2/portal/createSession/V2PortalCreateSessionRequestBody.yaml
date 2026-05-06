@@ -1,0 +1,47 @@
+type: object
+required:
+  - slug
+  - externalId
+  - permissions
+properties:
+  slug:
+    type: string
+    minLength: 3
+    maxLength: 64
+    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+    description: |
+      The human-readable slug of the portal configuration to create the session against.
+      Identifies which app's portal the end user will access.
+      Must be 3-64 characters, lowercase alphanumeric and hyphens only,
+      must not start or end with a hyphen, and must not contain consecutive hyphens.
+    example: my-portal
+  externalId:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      The end user's identifier in the customer's system.
+      Accepts arbitrary string values (user IDs, emails, UUIDs, etc.).
+    example: user_123
+  permissions:
+    type: array
+    items:
+      type: string
+      pattern: "^[^.]+\\.[^.]+\\.[^.]+$"
+    minItems: 1
+    description: |
+      List of RBAC tuple permissions defining what the end user can do in the Portal.
+      Each permission is a string in the format `{resourceType}.{resourceId}.{action}`.
+      Use `*` as resourceId to grant access to all resources of that type.
+
+      Tab visibility is derived from the action segment:
+      - Keys tab: `read_key`, `create_key`, `update_key`, `delete_key`
+      - Analytics tab: `read_analytics`
+      - Docs tab: visible when any permission is present
+    example: ["api.*.read_key", "api.*.create_key", "api.*.read_analytics"]
+  preview:
+    type: boolean
+    default: false
+    description: |
+      When true, creates a preview session for testing the portal experience.
+additionalProperties: false

@@ -9,7 +9,7 @@ Disabling a key makes it invalid for verification without permanently deleting i
 
 <CardGroup cols={2}>
   <Card title="Payment issues" icon="credit-card">
-    Customer's payment failed — disable their key until billing is resolved.
+    Customer's payment failed, disable their key until billing is resolved.
   </Card>
   <Card title="Suspicious activity" icon="shield">
     Investigate potential abuse without losing the key's configuration.
@@ -43,7 +43,7 @@ import { Unkey } from "@unkey/api";
 const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
 
 try {
-  const { meta, data } = await unkey.keys.update({
+  const { meta, data } = await unkey.keys.updateKey({
     keyId: "key_...",
     enabled: false,
   });
@@ -87,7 +87,7 @@ curl -X POST https://api.unkey.com/v2/keys.updateKey \
 
 ```typescript TypeScript
 try {
-  const { meta, data } = await unkey.keys.update({
+  const { meta, data } = await unkey.keys.updateKey({
     keyId: "key_...",
     enabled: true,
   });
