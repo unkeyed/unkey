@@ -1,0 +1,71 @@
+---
+title: WebSockets
+description: "Run WebSocket servers on Unkey. Frontline forwards protocol upgrades end-to-end and keeps long-lived connections open without request timeouts."
+---
+
+import DeployBeta from "/snippets/deploy-beta.mdx";
+
+<DeployBeta />
+
+Apps deployed on Unkey can accept WebSocket connections. Frontline detects the HTTP `Upgrade` handshake, forwards it to your app, and lets the resulting bidirectional tunnel stay open for the lifetime of the connection.
+
+## How it works
+
+When a client opens a WebSocket, it sends a regular HTTP request with two extra headers:
+
+```http
+GET /ws HTTP/1.1
+Host: myapp-api-acme.unkey.app
+Connection: Upgrade
+Upgrade: websocket
+Sec-WebSocket-Version: 13
+Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
+```
+
+Frontline recognizes the upgrade, forwards it to your app, and your app responds with `101 Switching Protocols`. After that, Frontline stops treating the connection as a request/response pair and copies bytes in both directions until either side closes it.
+
+Two behaviors are different from a normal HTTP request:
+
+- **No request timeout.** The default request timeout is bypassed for upgraded connections, so a long-lived WebSocket session won't be cut off mid-stream.
+- **No response body capture.** Frontline does not buffer or log the frames that flow over an upgraded connection.
+
+## Using WebSockets
+
+WebSockets work out of the box. There is nothing to enable in the dashboard or the CLI. Bind your WebSocket server to the port your app exposes and deploy as usual.
+
+A minimal Node.js example using [`ws`](https://github.com/websockets/ws):
+
+```ts
+import { WebSocketServer } from "ws";
+
+const wss = new WebSocketServer({ port: 8080 });
+
+wss.on("connection", (socket) => {
+  socket.on("message", (data) => {
+    socket.send(`echo: ${data}`);
+  });
+});
+```
+
+Connect from a client using either the wildcard or custom domain assigned to your deployment:
+
+```ts
+const ws = new WebSocket("wss://myapp-api-acme.unkey.app/ws");
+
+ws.onopen = () => ws.send("hello");
+ws.onmessage = (event) => console.log(event.data);
+```
+
+TLS is terminated at Frontline, so clients always connect over `wss://`. Plaintext `ws://` requests are redirected to HTTPS along with the rest of your traffic.
+
+## Headers and routing
+
+The standard proxy headers documented in [Request lifecycle](/networking/public-networking#request-headers) are added to the upgrade request, so your app can identify the original client IP, host, and deployment ID before it accepts the WebSocket.
+
+Routing rules apply to the upgrade request the same way they apply to any HTTP request: the `Host` header determines which deployment receives the connection, and Sentinel policies run before the upgrade is forwarded. A request that fails [authentication](/platform/sentinel/authentication) or [rate limiting](/platform/sentinel/policies/rate-limiting) is rejected before it ever becomes a WebSocket.
+
+## Limits
+
+- Only HTTP/1.1 upgrades are forwarded today. Clients that negotiate WebSockets over HTTP/2 fall back to HTTP/1.1 automatically.
+- If the upstream instance is unreachable, the upgrade fails with `503 Service Unavailable` instead of hanging.
+- Idle connections are still subject to your app's own keepalive and timeout configuration. Send periodic ping frames if you want to keep an otherwise-idle session alive.
