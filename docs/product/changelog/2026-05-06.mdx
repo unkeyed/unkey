@@ -1,0 +1,13 @@
+---
+title: "May 6, 2026"
+description: "Sort the ratelimits overview by passed and blocked tokens."
+noindex: true
+---
+
+## Updates
+
+### Sort ratelimits by tokens used
+
+The ratelimits overview logs table now lets you sort by **Passed Tokens** and **Blocked Tokens** in addition to the existing time, latency, passed, and blocked columns. Click either column header in your namespace's overview to surface the identifiers consuming or being denied the most tokens.
+
+This is useful when you use [cost-based limiting](/platform/ratelimiting/modes#cost-based-limiting) to weight requests differently — sorting by tokens reflects actual usage rather than raw request counts, so a single expensive call counts more than many cheap ones.
