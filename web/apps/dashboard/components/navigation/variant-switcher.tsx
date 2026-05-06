@@ -22,15 +22,18 @@ const V2B_SUB_VARIANTS: ReadonlyArray<{ id: V2bDeploymentsVariant; label: string
   { id: "d", label: "v2b · d · eyebrow" },
   { id: "e", label: "v2b · e · drawer" },
   { id: "f", label: "v2b · f · split" },
+  { id: "g", label: "v2b · g · drill-sidebar" },
 ];
 
 /**
- * Dev-only prototype switcher. Renders nothing in production.
- * Floating pill, bottom-right. Triggers router.refresh() on change
- * so the chrome fully remounts and sidebar data queries re-fire.
+ * Prototype switcher. Visible in local dev and Vercel preview deploys
+ * (so non-engineers can compare variants on shareable URLs); hidden on
+ * the production app. Floating pill, bottom-right. Triggers
+ * router.refresh() on change so the chrome fully remounts and sidebar
+ * data queries re-fire.
  */
 export function VariantSwitcher() {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NEXT_PUBLIC_VERCEL_ENV === "production") {
     return null;
   }
   return <VariantSwitcherInner />;

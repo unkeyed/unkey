@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-export type V2bDeploymentsVariant = "a" | "b" | "c" | "d" | "e" | "f";
+export type V2bDeploymentsVariant = "a" | "b" | "c" | "d" | "e" | "f" | "g";
 
 export const STORAGE_KEY = "v2b-deployments-variant";
 export const DEFAULT_VARIANT: V2bDeploymentsVariant = "a";
@@ -15,7 +15,8 @@ function isVariant(value: string | null): value is V2bDeploymentsVariant {
     value === "c" ||
     value === "d" ||
     value === "e" ||
-    value === "f"
+    value === "f" ||
+    value === "g"
   );
 }
 

@@ -11,6 +11,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useNavigationContext } from "@/hooks/use-navigation-context";
+import { useV2bDeploymentsVariant } from "@/hooks/use-v2b-deployments-variant";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Quotas, Workspace } from "@/lib/db";
 import { KEYSPACE_LABEL } from "@/lib/keyspace-label";
@@ -18,7 +19,9 @@ import { cn } from "@/lib/utils";
 import {
   ArrowOppositeDirectionY,
   BracketsSquareDots,
+  ChevronLeft,
   ChevronRight,
+  CodeBranch,
   Coins,
   Cube,
   Fingerprint,
@@ -33,7 +36,8 @@ import {
   SidebarLeftShow,
 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
-import { usePathname, useSelectedLayoutSegments } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useSearchParams, useSelectedLayoutSegments } from "next/navigation";
 import { useMemo } from "react";
 import { LeafSidebarView } from "./shared/leaf-sidebar-view";
 import { V2BTopHeader, V2B_HEADER_HEIGHT } from "./shared/v2b-header";
@@ -54,12 +58,28 @@ export function V2bVariant(props: Props) {
   const rawSegments = useSelectedLayoutSegments();
   const segments = useMemo(() => rawSegments ?? [], [rawSegments]);
   const pathname = usePathname() ?? "";
+  const { variant: subVariant } = useV2bDeploymentsVariant();
   const isOnSettings = segments.at(1) === "settings";
   const isOnAuthorization = segments.at(1) === "authorization";
 
   const content = (() => {
     if (context.type === "resource" && context.resourceType === "project") {
       const appMatch = pathname.match(/\/projects\/[^/]+\/apps\/([^/]+)/);
+      // Sub-variant `g` drills the contextual sidebar one level deeper:
+      // when on a specific deployment, swap AppLeaf for DeploymentLeaf
+      // (back link + the four detail tabs as sidebar items).
+      const deploymentMatch = pathname.match(
+        /\/projects\/[^/]+\/apps\/[^/]+\/deployments\/([^/]+)$/,
+      );
+      if (subVariant === "g" && appMatch?.[1] && deploymentMatch?.[1]) {
+        return (
+          <DeploymentLeaf
+            projectId={context.resourceId}
+            appSlug={appMatch[1]}
+            deploymentId={deploymentMatch[1]}
+          />
+        );
+      }
       if (appMatch?.[1]) {
         return <AppLeaf projectId={context.resourceId} appSlug={appMatch[1]} />;
       }
@@ -364,6 +384,62 @@ function ProjectLeaf({ projectId }: { projectId: string }) {
           }}
         />
       </SidebarMenu>
+    </div>
+  );
+}
+
+/**
+ * Sub-variant `g`: when viewing a specific deployment, the contextual
+ * sidebar drills one level deeper. Header is a back link + centered
+ * "Deployment" title; items are the four detail sections, switched via
+ * `?tab=` so refresh and direct links keep state.
+ */
+function DeploymentLeaf({
+  projectId,
+  appSlug,
+  deploymentId,
+}: {
+  projectId: string;
+  appSlug: string;
+  deploymentId: string;
+}) {
+  const workspace = useWorkspaceNavigation();
+  const searchParams = useSearchParams();
+  const tab = searchParams?.get("tab") ?? "deployment";
+  const base = `/${workspace.slug}/projects/${projectId}/apps/${appSlug}/deployments`;
+  const detailHref = `${base}/${deploymentId}`;
+
+  const items: NavItem[] = [
+    { icon: Cube, href: detailHref, label: "Deployment", active: tab === "deployment" },
+    { icon: Layers3, href: `${detailHref}?tab=logs`, label: "Logs", active: tab === "logs" },
+    { icon: Nodes, href: `${detailHref}?tab=resources`, label: "Resources", active: tab === "resources" },
+    { icon: CodeBranch, href: `${detailHref}?tab=source`, label: "Source", active: tab === "source" },
+  ];
+
+  return (
+    <div className="flex flex-col gap-1 px-0 pt-1">
+      <div className="px-2 group-data-[collapsible=icon]:px-0">
+        <Link
+          href={base}
+          aria-label="Back to deployments"
+          className={cn(
+            "relative flex h-8 items-center rounded-md px-2 text-gray-11 transition-colors hover:bg-grayA-3 hover:text-accent-12",
+            "group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
+          )}
+        >
+          <ChevronLeft className="size-3.5 shrink-0" iconSize="sm-regular" />
+          <span className="pointer-events-none absolute inset-x-0 text-center text-[12px] font-medium text-accent-12 group-data-[collapsible=icon]:hidden">
+            Deployment
+          </span>
+        </Link>
+      </div>
+      <div className="px-2 group-data-[collapsible=icon]:px-0">
+        <SidebarMenu className="gap-1">
+          {items.map((item) => (
+            <NavItems key={item.href} item={item} />
+          ))}
+        </SidebarMenu>
+      </div>
     </div>
   );
 }
