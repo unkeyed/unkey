@@ -120,6 +120,13 @@ export const RatelimitOverviewLogsTable = ({
         key: "passedTokens",
         header: "Passed Tokens",
         width: "15%",
+        sort: {
+          direction: getSortDirection("passed_tokens"),
+          sortable: true,
+          onSort() {
+            toggleSort("passed_tokens", false);
+          },
+        },
         render: (log) => (
           <Badge
             className={cn(
@@ -138,6 +145,13 @@ export const RatelimitOverviewLogsTable = ({
         key: "blockedTokens",
         header: "Blocked Tokens",
         width: "15%",
+        sort: {
+          direction: getSortDirection("blocked_tokens"),
+          sortable: true,
+          onSort() {
+            toggleSort("blocked_tokens", false);
+          },
+        },
         render: (log) => {
           const blockedTokens = Math.max(log.total_tokens - log.passed_tokens, 0);
           const style = blockedTokens > 0 ? STATUS_STYLES.blocked : STATUS_STYLES.success;

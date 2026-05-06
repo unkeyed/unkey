@@ -94,11 +94,6 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			source := "upstream"
 			proxyBackendResponseTotal.WithLabelValues(cfg.destination, source, statusClass(resp.StatusCode)).Inc()
 
-			if hasTracking {
-				tracking.ResponseStatus = int32(resp.StatusCode)
-				tracking.ResponseHeaders = resp.Header
-			}
-
 			totalTime := s.clock.Now().Sub(cfg.startTime)
 			if !proxyStartTime.IsZero() {
 				timing.Write(sess.ResponseWriter(), timing.Entry{

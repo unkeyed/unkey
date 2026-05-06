@@ -17,7 +17,7 @@ Your root key must have one of the following permissions:
 
 **Side effects:**
 
-Credit updates remove the key from cache immediately. Setting credits to unlimited automatically clears any existing refill settings. Changes take effect instantly but may take up to 30 seconds to propagate to all edge regions.
+Credit updates remove the key from cache immediately. Setting credits to unlimited automatically clears any existing refill settings. Changes take effect instantly but may take up to 30 seconds to propagate to all regions.
 
 <Note>
 See the [API reference](/api-reference/v2/keys/update-key-credits) for the full HTTP endpoint documentation.
@@ -54,7 +54,7 @@ Required when using `increment` or `decrement` operations. Optional for `set` op
 | `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
-| `--output` | string | Output format — use `json` for raw JSON |
+| `--output` | string | Output format. Use `json` for raw JSON |
 
 ## Examples
 
@@ -77,7 +77,7 @@ unkey api keys update-credits --key-id=key_1234abcd --operation=set --value=1000
 
 Default output shows the request ID with latency, followed by the updated credit data:
 
-```
+```text
 req_2c9a0jf23l4k567 (took 45ms)
 
 {

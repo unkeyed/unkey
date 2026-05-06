@@ -7,7 +7,6 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
@@ -60,7 +59,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		tracking = &proxy.RequestTracking{StartTime: startTime}
 		ctx = proxy.WithRequestTracking(ctx, tracking)
 	}
-	tracking.RequestID = uid.New("req")
+	tracking.RequestID = sess.RequestID()
 	tracking.DeploymentID = decision.DeploymentID
 	tracking.WorkspaceID = decision.WorkspaceID
 	tracking.EnvironmentID = decision.EnvironmentID

@@ -1,9 +1,18 @@
 ---
 title: "Ratelimit"
-description: "Use @unkey/ratelimit for serverless rate limiting in TypeScript. Protect API endpoints from abuse with no Redis or infrastructure required."
+description: "Use @unkey/ratelimit for fast global rate limiting in server-side TypeScript (Node.js, Deno, Bun, Cloudflare Workers, serverless functions). Protect API endpoints from abuse with no Redis or infrastructure required."
 ---
 
-`@unkey/ratelimit` is a library for fast global ratelimiting in serverless functions.
+`@unkey/ratelimit` is a library for fast global ratelimiting that runs in any **server-side** JavaScript runtime — Node.js, Deno, Bun, Cloudflare Workers, AWS Lambda, and other serverless or edge functions.
+
+<Warning>
+  **Server-side only.** This SDK requires your `UNKEY_ROOT_KEY`, which grants
+  full access to your Unkey workspace. Never import or call `@unkey/ratelimit`
+  from browser code, mobile apps, or any other client that ships to end users —
+  doing so leaks the root key. Always invoke it from a trusted server, load the
+  key from an environment variable (e.g. `process.env.UNKEY_ROOT_KEY`), and keep
+  it out of bundles that reach the client.
+</Warning>
 
 <Card
   icon="github"

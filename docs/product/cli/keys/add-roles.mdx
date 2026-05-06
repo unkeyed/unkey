@@ -7,7 +7,7 @@ Add roles to a key without affecting existing roles or permissions.
 
 Use this for privilege upgrades, enabling new feature sets, or subscription changes that grant additional role-based capabilities. Direct permissions remain unchanged.
 
-**Important:** Changes take effect immediately with up to 30-second edge propagation.
+**Important:** Changes take effect immediately with up to 30-second propagation across regions.
 
 **Required permissions:**
 - `api.*.update_key` (to update keys in any API)
@@ -26,11 +26,11 @@ unkey api keys add-roles [flags]
 ## Flags
 
 <ParamField body="--key-id" type="string" required>
-The key ID to add roles to. This is the database identifier returned from `createKey` — do not confuse it with the actual API key string that users include in requests. Added roles supplement existing roles and permissions without replacing them. Role assignments take effect immediately but may take up to 30 seconds to propagate across all regions.
+The key ID to add roles to. This is the database identifier returned from `createKey`, do not confuse it with the actual API key string that users include in requests. Added roles supplement existing roles and permissions without replacing them. Role assignments take effect immediately but may take up to 30 seconds to propagate across all regions.
 </ParamField>
 
 <ParamField body="--roles" type="string[]" required>
-Comma-separated list of role names to add. Operations are idempotent — adding existing roles has no effect and causes no errors. All roles must already exist in the workspace; roles cannot be created automatically. Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
+Comma-separated list of role names to add. Operations are idempotent, adding existing roles has no effect and causes no errors. All roles must already exist in the workspace; roles cannot be created automatically. Invalid roles cause the entire operation to fail atomically, ensuring consistent state.
 </ParamField>
 
 ## Global Flags
@@ -40,7 +40,7 @@ Comma-separated list of role names to add. Operations are idempotent — adding 
 | `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
-| `--output` | string | Output format — use `json` for raw JSON |
+| `--output` | string | Output format. Use `json` for raw JSON |
 
 ## Examples
 
@@ -61,7 +61,7 @@ unkey api keys add-roles --key-id=$KEY_ID --roles=api_admin,billing_reader
 
 Default output shows the request ID with latency, followed by the updated list of roles assigned to the key:
 
-```
+```text
 req_2c9a0jf23l4k567 (took 45ms)
 
 [
