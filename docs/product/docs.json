@@ -65,6 +65,7 @@
               "introduction",
               "quickstart/deploy",
               "quickstart/quickstart",
+              "quickstart/portal",
               "glossary"
             ]
           },
@@ -444,7 +445,9 @@
                     "pages": [
                       "errors/unkey/authentication/key_not_found",
                       "errors/unkey/authentication/malformed",
-                      "errors/unkey/authentication/missing"
+                      "errors/unkey/authentication/missing",
+                      "errors/unkey/authentication/portal_session_not_found",
+                      "errors/unkey/authentication/portal_token_missing"
                     ]
                   },
                   {
@@ -471,6 +474,7 @@
                       "errors/unkey/data/migration_not_found",
                       "errors/unkey/data/permission_already_exists",
                       "errors/unkey/data/permission_not_found",
+                      "errors/unkey/data/portal_config_not_found",
                       "errors/unkey/data/project_not_found",
                       "errors/unkey/data/ratelimit_namespace_gone",
                       "errors/unkey/data/ratelimit_namespace_not_found",
