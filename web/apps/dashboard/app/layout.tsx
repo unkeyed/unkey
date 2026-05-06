@@ -7,6 +7,7 @@ import "@unkey/ui/css";
 import "@/styles/tailwind.css";
 import * as Sentry from "@sentry/nextjs";
 import { Analytics } from "@vercel/analytics/next";
+import { VercelToolbar } from "@vercel/toolbar/next";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import type React from "react";
@@ -97,6 +98,7 @@ export default function RootLayout({
                 <Feedback />
               </Suspense>
               <Analytics />
+              {process.env.NODE_ENV === "development" && <VercelToolbar />}
             </WorkspaceProvider>
           </ThemeProvider>
         </ReactQueryProvider>

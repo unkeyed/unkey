@@ -125,6 +125,12 @@ Stripe billing:
 STRIPE_SECRET_KEY=<your Stripe secret key>
 ```
 
+### Feature flags
+
+If you're touching code that imports `lib/flags.ts`, you'll need to get set up with our feature flag service - Vercel flags.
+
+Ask Andreas for the dev values of `FLAGS` and `FLAGS_SECRET` and add them to `web/apps/dashboard/.env`. They're stable — you set them once and forget. See [Feature flags](/contributing/tooling/feature-flags) for the rest of the workflow.
+
 ## Seed local data
 
 ```bash

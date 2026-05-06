@@ -1,0 +1,48 @@
+---
+title: "Feature flags"
+description: "How feature flags work in the dashboard"
+---
+
+Flags are declared in `web/apps/dashboard/lib/flags.ts`. The `identify` helper there reads the current session and hands `userId` and `orgId` to every flag's `decide`, so targeting by user or org doesn't need any extra wiring per flag.
+
+## Adding a flag
+
+From `web/apps/dashboard`:
+
+```bash
+vercel flags create my-flag --kind boolean --description "What it gates"
+```
+
+Declare it alongside the existing ones:
+
+```ts
+export const myFlag = flag<boolean, Entities>({
+  key: "my-flag",
+  defaultValue: false,
+  identify,
+  adapter: vercelAdapter(),
+});
+```
+
+Use it from a server component:
+
+```ts
+import { myFlag } from "@/lib/flags";
+
+const enabled = await myFlag();
+```
+
+## Toggling
+
+From the Vercel dashboard, or from the CLI:
+
+```bash
+vercel flags enable my-flag development
+vercel flags disable my-flag development
+```
+
+In dev, the Vercel Toolbar appears in the bottom-right. You can override a flag locally there — but flipping the switch alone does nothing. You have to click **Apply** for the override to actually write its cookie and reload the page.
+
+## Self-hosted dashboards
+
+`vercelAdapter()` throws when the `FLAGS` env var is missing, so any route that imports `lib/flags.ts` 500s on a Docker self-host. Until we add a fallback, treat flags as Vercel-only and don't import the flag registry from any path a self-hoster depends on.
