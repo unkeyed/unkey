@@ -22,6 +22,15 @@ type (
 	Response = openapi.V2PortalExchangeSessionResponseBody
 )
 
+// exchangeResult holds the values produced by the atomic exchange transaction.
+type exchangeResult struct {
+	browserSessionID string
+	expiresAt        int64
+	workspaceID      string
+	externalID       string
+	portalConfigID   string
+}
+
 // Handler implements zen.Route for the portal session exchange endpoint.
 // This endpoint is unauthenticated — it validates the session token itself.
 type Handler struct {
@@ -51,14 +60,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	nowMs := time.Now().UnixMilli()
-
-	type exchangeResult struct {
-		browserSessionID string
-		expiresAt        int64
-		workspaceID      string
-		externalID       string
-		portalConfigID   string
-	}
 
 	result, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (exchangeResult, error) {
 		var zero exchangeResult
