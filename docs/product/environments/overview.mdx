@@ -46,7 +46,7 @@ Configuration is scoped per environment, so production and preview can differ:
 
 Each environment has a sticky domain that always points to the latest deployment in that environment:
 
-```
+```text
 <project>-<app>-<environment>-<workspace>.unkey.app
 ```
 
@@ -54,7 +54,7 @@ When a new deployment reaches the Ready state, the environment domain updates au
 
 Production environments also get a live domain without the environment name:
 
-```
+```text
 <project>-<app>-<workspace>.unkey.app
 ```
 

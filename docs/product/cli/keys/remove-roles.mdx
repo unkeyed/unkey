@@ -7,7 +7,7 @@ Remove roles from a key without affecting direct permissions or other roles.
 
 Use this for privilege downgrades, removing temporary access, or subscription changes that revoke specific role-based capabilities. Direct permissions remain unchanged.
 
-**Important:** Changes take effect immediately with up to 30-second edge propagation.
+**Important:** Changes take effect immediately with up to 30-second propagation across regions.
 
 **Required permissions:**
 - `api.*.update_key` (to update keys in any API)
@@ -28,11 +28,11 @@ unkey api keys remove-roles [flags]
 ## Flags
 
 <ParamField body="--key-id" type="string" required>
-The key ID to remove roles from. This is the database identifier returned from key creation — do not confuse it with the actual API key string that users include in requests. Removing roles only affects direct assignments, not permissions inherited from other sources. Role changes take effect immediately but may take up to 30 seconds to propagate across all regions.
+The key ID to remove roles from. This is the database identifier returned from key creation, do not confuse it with the actual API key string that users include in requests. Removing roles only affects direct assignments, not permissions inherited from other sources. Role changes take effect immediately but may take up to 30 seconds to propagate across all regions.
 </ParamField>
 
 <ParamField body="--roles" type="string[]" required>
-Comma-separated list of role names to remove. Operations are idempotent — removing non-assigned roles has no effect and causes no errors. After removal, the key loses access to permissions that were only granted through these roles. Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
+Comma-separated list of role names to remove. Operations are idempotent, removing non-assigned roles has no effect and causes no errors. After removal, the key loses access to permissions that were only granted through these roles. Invalid role references cause the entire operation to fail atomically, ensuring consistent state.
 </ParamField>
 
 ## Global Flags
@@ -42,7 +42,7 @@ Comma-separated list of role names to remove. Operations are idempotent — remo
 | `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
-| `--output` | string | Output format — use `json` for raw JSON |
+| `--output` | string | Output format. Use `json` for raw JSON |
 
 ## Examples
 
@@ -62,7 +62,7 @@ unkey api keys remove-roles --key-id=key_1234abcd --roles=temporary_access
 
 Default output shows the request ID with latency, followed by the remaining roles assigned to the key:
 
-```
+```text
 req_2c9a0jf23l4k567 (took 45ms)
 
 [
