@@ -666,21 +666,21 @@ type Querier interface {
 	//FindInstanceByPodName
 	//
 	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, storage_mib, status
+	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, storage_mib, status, container_status
 	//  FROM instances
 	//    WHERE k8s_name = ? AND region_id = ?
 	FindInstanceByPodName(ctx context.Context, db DBTX, arg FindInstanceByPodNameParams) (Instance, error)
 	//FindInstancesByDeploymentId
 	//
 	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, storage_mib, status
+	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, storage_mib, status, container_status
 	//  FROM instances
 	//  WHERE deployment_id = ?
 	FindInstancesByDeploymentId(ctx context.Context, db DBTX, deploymentid string) ([]Instance, error)
 	//FindInstancesByDeploymentIdAndRegionID
 	//
 	//  SELECT
-	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, storage_mib, status
+	//   pk, id, deployment_id, workspace_id, project_id, app_id, region_id, k8s_name, address, cpu_millicores, memory_mib, storage_mib, status, container_status
 	//  FROM instances
 	//  WHERE deployment_id = ? AND region_id = ?
 	FindInstancesByDeploymentIdAndRegionID(ctx context.Context, db DBTX, arg FindInstancesByDeploymentIdAndRegionIDParams) ([]Instance, error)
@@ -2746,6 +2746,63 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	ReassignFrontlineRoute(ctx context.Context, db DBTX, arg ReassignFrontlineRouteParams) error
+	// Records that kubelet has put a container into CrashLoopBackOff by setting
+	// container_status.waiting.reason. The lastTerminationState carries the
+	// most recent exit info and is left untouched — the dashboard renders both
+	// the underlying exit and the "currently throttling" indicator together.
+	//
+	// Called once per (pod_uid, container_name, restart_count) when krane sees
+	// the waiting container reach the BackOff state. The next terminated event
+	// (or a successful start) will remove $.waiting via RecordInstanceExit.
+	//
+	// Out-of-order events are dropped via the restartCount guard: a delayed
+	// crashloop RPC from an earlier container life cannot flip the waiting
+	// reason back after RecordInstanceExit has already advanced restartCount
+	// and removed $.waiting.
+	//
+	//  UPDATE instances
+	//  SET container_status = JSON_SET(
+	//  	container_status,
+	//  	'$.waiting', JSON_OBJECT('reason', 'CrashLoopBackOff')
+	//  )
+	//  WHERE k8s_name = ?
+	//  	AND region_id = ?
+	//  	AND CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) <= CAST(? AS UNSIGNED)
+	RecordInstanceCrashLoopBackOff(ctx context.Context, db DBTX, arg RecordInstanceCrashLoopBackOffParams) error
+	// Denormalizes the most recent container exit info onto the instances row's
+	// container_status JSON. Called by ctrl when krane reports an
+	// event_kind='terminated' event.
+	//
+	// The caller computes the full new ContainerStatus value (restartCount,
+	// lastTerminationState, no waiting) and passes it in one typed param. The
+	// WHERE clause inspects the row's *existing* container_status to drop
+	// delayed events; once the guard passes, the new value fully replaces the
+	// old (including clearing $.waiting, since a fresh exit ends any prior
+	// crashloop window).
+	//
+	// Out-of-order events from krane are dropped via a lexicographic
+	// (restartCount, finishedAt) tuple comparison: an incoming row only wins
+	// if its (restartCount, finishedAt) pair is strictly greater than the
+	// pair already on the row. The previous OR-of-clauses formulation let a
+	// delayed terminated event from restart_count-1 sneak past via the
+	// finishedAt branch and regress the row after restart_count had already
+	// advanced.
+	//
+	//  UPDATE instances
+	//  SET container_status = ?
+	//  WHERE k8s_name = ?
+	//  	AND region_id = ?
+	//  	AND (
+	//  		CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) < CAST(? AS UNSIGNED)
+	//  		OR (
+	//  			CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) = CAST(? AS UNSIGNED)
+	//  			AND (
+	//  				JSON_VALUE(container_status, '$.lastTerminationState.finishedAt') IS NULL
+	//  				OR CAST(JSON_VALUE(container_status, '$.lastTerminationState.finishedAt') AS UNSIGNED) < CAST(? AS UNSIGNED)
+	//  			)
+	//  		)
+	//  	)
+	RecordInstanceExit(ctx context.Context, db DBTX, arg RecordInstanceExitParams) error
 	// RefillKeysByIDs sets remaining_requests to refill_amount for the given keys.
 	// This is a bulk operation to minimize database round trips.
 	//

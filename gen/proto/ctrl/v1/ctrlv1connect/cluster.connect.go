@@ -54,6 +54,9 @@ const (
 	// ClusterServiceReportDeploymentStatusProcedure is the fully-qualified name of the ClusterService's
 	// ReportDeploymentStatus RPC.
 	ClusterServiceReportDeploymentStatusProcedure = "/ctrl.v1.ClusterService/ReportDeploymentStatus"
+	// ClusterServiceReportInstanceEventsProcedure is the fully-qualified name of the ClusterService's
+	// ReportInstanceEvents RPC.
+	ClusterServiceReportInstanceEventsProcedure = "/ctrl.v1.ClusterService/ReportInstanceEvents"
 	// ClusterServiceHeartbeatProcedure is the fully-qualified name of the ClusterService's Heartbeat
 	// RPC.
 	ClusterServiceHeartbeatProcedure = "/ctrl.v1.ClusterService/Heartbeat"
@@ -77,6 +80,12 @@ type ClusterServiceClient interface {
 	// ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
 	// Called when K8s watch events indicate ReplicaSet changes.
 	ReportDeploymentStatus(context.Context, *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error)
+	// ReportInstanceEvents reports container lifecycle events (starts, exits,
+	// CrashLoopBackOff transitions) from the agent. Krane batches one or more
+	// events per RPC; the control plane writes them to ClickHouse and
+	// denormalizes the latest exit info onto the matching instances row so the
+	// dashboard can render exit reasons without a CH round-trip.
+	ReportInstanceEvents(context.Context, *connect.Request[v1.ReportInstanceEventsRequest]) (*connect.Response[v1.ReportInstanceEventsResponse], error)
 	// Heartbeat is called periodically by krane agents to register their cluster
 	// and region with the control plane. This populates the regions and
 	// clusters tables, making regions dynamically discoverable.
@@ -118,6 +127,12 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(clusterServiceMethods.ByName("ReportDeploymentStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		reportInstanceEvents: connect.NewClient[v1.ReportInstanceEventsRequest, v1.ReportInstanceEventsResponse](
+			httpClient,
+			baseURL+ClusterServiceReportInstanceEventsProcedure,
+			connect.WithSchema(clusterServiceMethods.ByName("ReportInstanceEvents")),
+			connect.WithClientOptions(opts...),
+		),
 		heartbeat: connect.NewClient[v1.HeartbeatRequest, v1.HeartbeatResponse](
 			httpClient,
 			baseURL+ClusterServiceHeartbeatProcedure,
@@ -133,6 +148,7 @@ type clusterServiceClient struct {
 	syncDesiredState          *connect.Client[v1.SyncDesiredStateRequest, v1.DeploymentChangeEvent]
 	getDesiredDeploymentState *connect.Client[v1.GetDesiredDeploymentStateRequest, v1.DeploymentState]
 	reportDeploymentStatus    *connect.Client[v1.ReportDeploymentStatusRequest, v1.ReportDeploymentStatusResponse]
+	reportInstanceEvents      *connect.Client[v1.ReportInstanceEventsRequest, v1.ReportInstanceEventsResponse]
 	heartbeat                 *connect.Client[v1.HeartbeatRequest, v1.HeartbeatResponse]
 }
 
@@ -154,6 +170,11 @@ func (c *clusterServiceClient) GetDesiredDeploymentState(ctx context.Context, re
 // ReportDeploymentStatus calls ctrl.v1.ClusterService.ReportDeploymentStatus.
 func (c *clusterServiceClient) ReportDeploymentStatus(ctx context.Context, req *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error) {
 	return c.reportDeploymentStatus.CallUnary(ctx, req)
+}
+
+// ReportInstanceEvents calls ctrl.v1.ClusterService.ReportInstanceEvents.
+func (c *clusterServiceClient) ReportInstanceEvents(ctx context.Context, req *connect.Request[v1.ReportInstanceEventsRequest]) (*connect.Response[v1.ReportInstanceEventsResponse], error) {
+	return c.reportInstanceEvents.CallUnary(ctx, req)
 }
 
 // Heartbeat calls ctrl.v1.ClusterService.Heartbeat.
@@ -179,6 +200,12 @@ type ClusterServiceHandler interface {
 	// ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
 	// Called when K8s watch events indicate ReplicaSet changes.
 	ReportDeploymentStatus(context.Context, *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error)
+	// ReportInstanceEvents reports container lifecycle events (starts, exits,
+	// CrashLoopBackOff transitions) from the agent. Krane batches one or more
+	// events per RPC; the control plane writes them to ClickHouse and
+	// denormalizes the latest exit info onto the matching instances row so the
+	// dashboard can render exit reasons without a CH round-trip.
+	ReportInstanceEvents(context.Context, *connect.Request[v1.ReportInstanceEventsRequest]) (*connect.Response[v1.ReportInstanceEventsResponse], error)
 	// Heartbeat is called periodically by krane agents to register their cluster
 	// and region with the control plane. This populates the regions and
 	// clusters tables, making regions dynamically discoverable.
@@ -216,6 +243,12 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 		connect.WithSchema(clusterServiceMethods.ByName("ReportDeploymentStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	clusterServiceReportInstanceEventsHandler := connect.NewUnaryHandler(
+		ClusterServiceReportInstanceEventsProcedure,
+		svc.ReportInstanceEvents,
+		connect.WithSchema(clusterServiceMethods.ByName("ReportInstanceEvents")),
+		connect.WithHandlerOptions(opts...),
+	)
 	clusterServiceHeartbeatHandler := connect.NewUnaryHandler(
 		ClusterServiceHeartbeatProcedure,
 		svc.Heartbeat,
@@ -232,6 +265,8 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 			clusterServiceGetDesiredDeploymentStateHandler.ServeHTTP(w, r)
 		case ClusterServiceReportDeploymentStatusProcedure:
 			clusterServiceReportDeploymentStatusHandler.ServeHTTP(w, r)
+		case ClusterServiceReportInstanceEventsProcedure:
+			clusterServiceReportInstanceEventsHandler.ServeHTTP(w, r)
 		case ClusterServiceHeartbeatProcedure:
 			clusterServiceHeartbeatHandler.ServeHTTP(w, r)
 		default:
@@ -257,6 +292,10 @@ func (UnimplementedClusterServiceHandler) GetDesiredDeploymentState(context.Cont
 
 func (UnimplementedClusterServiceHandler) ReportDeploymentStatus(context.Context, *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.ReportDeploymentStatus is not implemented"))
+}
+
+func (UnimplementedClusterServiceHandler) ReportInstanceEvents(context.Context, *connect.Request[v1.ReportInstanceEventsRequest]) (*connect.Response[v1.ReportInstanceEventsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.ReportInstanceEvents is not implemented"))
 }
 
 func (UnimplementedClusterServiceHandler) Heartbeat(context.Context, *connect.Request[v1.HeartbeatRequest]) (*connect.Response[v1.HeartbeatResponse], error) {

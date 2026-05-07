@@ -8,5 +8,8 @@ type IsDeploymentChangeEvent_Event = isDeploymentChangeEvent_Event
 // IsReportDeploymentStatusRequest_Change is the exported form of the protobuf oneof interface isReportDeploymentStatusRequest_Change.
 type IsReportDeploymentStatusRequest_Change = isReportDeploymentStatusRequest_Change
 
+// IsInstanceEvent_State is the exported form of the protobuf oneof interface isInstanceEvent_State.
+type IsInstanceEvent_State = isInstanceEvent_State
+
 // IsDeploymentState_State is the exported form of the protobuf oneof interface isDeploymentState_State.
 type IsDeploymentState_State = isDeploymentState_State
