@@ -106,6 +106,7 @@
       "./internal/proto/generated/**/*.ts",
       "./apps/dashboard/gen/proto/**/*.ts",
       "./apps/docs/docs.json",
+      "**/routeTree.gen.ts",
       "**/*.css"
     ]
   },
@@ -122,7 +123,8 @@
       "./internal/auth-migrator",
       "./internal/proto/generated/**/*.ts",
       "./apps/dashboard/gen/proto/**/*.ts",
-      "./apps/docs/docs.json"
+      "./apps/docs/docs.json",
+      "**/routeTree.gen.ts"
     ]
   },
   "css": {
@@ -178,6 +180,22 @@
         "rules": {
           "style": {
             "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["./apps/portal/**"],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "useSortedClasses": {
+              "level": "warn",
+              "fix": "safe",
+              "options": {
+                "functions": ["cn", "cva", "clsx"]
+              }
+            }
           }
         }
       }
