@@ -810,6 +810,7 @@ type CreateInstanceRequest struct {
 
 func (s *Seeder) CreateInstance(ctx context.Context, req CreateInstanceRequest) db.Instance {
 	id := uid.New("inst")
+	k8sName := uid.New("k8s")
 
 	err := db.Query.UpsertInstance(ctx, s.DB.RW(), db.UpsertInstanceParams{
 		ID:            id,
@@ -818,7 +819,7 @@ func (s *Seeder) CreateInstance(ctx context.Context, req CreateInstanceRequest) 
 		ProjectID:     req.ProjectID,
 		AppID:         req.AppID,
 		RegionID:      req.RegionID,
-		K8sName:       uid.New("k8s"),
+		K8sName:       k8sName,
 		Address:       req.Address,
 		CpuMillicores: 100,
 		MemoryMib:     128,
@@ -834,11 +835,20 @@ func (s *Seeder) CreateInstance(ctx context.Context, req CreateInstanceRequest) 
 		ProjectID:     req.ProjectID,
 		AppID:         req.AppID,
 		RegionID:      req.RegionID,
-		K8sName:       "",
+		K8sName:       k8sName,
 		Address:       req.Address,
 		CpuMillicores: 100,
 		MemoryMib:     128,
 		StorageMib:    0,
 		Status:        db.InstancesStatusRunning,
+		// Mirrors the column default applied by UpsertInstance: a fresh
+		// instance has restartCount=0 and no terminations or waiting
+		// reasons. ctrl's RecordInstanceExit / RecordInstanceCrashLoopBackOff
+		// keep this in sync as events arrive.
+		ContainerStatus: dbtype.ContainerStatus{
+			RestartCount:         0,
+			LastTerminationState: nil,
+			Waiting:              nil,
+		},
 	}
 }

@@ -54,7 +54,7 @@ type Querier interface {
 	// with region metadata for instance-aware routing decisions.
 	//
 	//  SELECT
-	//    i.pk, i.id, i.deployment_id, i.workspace_id, i.project_id, i.app_id, i.region_id, i.k8s_name, i.address, i.cpu_millicores, i.memory_mib, i.storage_mib, i.status,
+	//    i.pk, i.id, i.deployment_id, i.workspace_id, i.project_id, i.app_id, i.region_id, i.k8s_name, i.address, i.cpu_millicores, i.memory_mib, i.storage_mib, i.status, i.container_status,
 	//    r.name AS region_name,
 	//    r.platform AS region_platform
 	//  FROM instances i
