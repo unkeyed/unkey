@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Button, Checkbox, Input } from "@unkey/ui";
+import { Button, Checkbox } from "@unkey/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FilterOperator, FilterValue } from "../validation/filter.types";
 import { useCheckboxState } from "./hooks";
@@ -138,7 +138,7 @@ export const FilterCheckbox = <
     selectionMode === "multiple" && selectAllContextIndexes
       ? selectAllContextIndexes.length > 0 &&
         selectAllContextIndexes.every((i) => checkboxes[i]?.checked)
-      : checkboxes.every((checkbox) => checkbox.checked);
+      : checkboxes.length > 0 && checkboxes.every((checkbox) => checkbox.checked);
 
   const handleSelectAllClick = useCallback(() => {
     if (selectionMode !== "multiple") {
@@ -269,11 +269,15 @@ export const FilterCheckbox = <
     <div className={cn("flex flex-col p-2", className)}>
       {getSearchText && (
         <div className="px-2 pt-2">
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={searchPlaceholder ?? "Search"}
-          />
+          <div className="flex h-8 items-center rounded-md bg-gray-2 px-2">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={searchPlaceholder ?? "Search"}
+              className="w-full bg-transparent border-none outline-hidden focus:outline-hidden focus:ring-0 text-xs text-accent-12 placeholder:text-xs placeholder:text-accent-8"
+            />
+          </div>
         </div>
       )}
       <div
