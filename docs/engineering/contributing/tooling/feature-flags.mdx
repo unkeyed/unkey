@@ -33,7 +33,26 @@ export const myFlag = flag<boolean, Entities>({
 
 Every flag must declare a `defaultValue`. The noop adapter uses that value in local development and self-hosted environments that don't configure Vercel Flags.
 
-Use it from a server component:
+Add the flag to `web/apps/dashboard/lib/flags/resolve.ts` so the `FlagsProvider` in the root layout exposes it to client components:
+
+```ts
+export async function resolveAll() {
+  const [helloWorld, myFlag] = await Promise.all([flags.helloWorld(), flags.myFlag()]);
+  return { helloWorld, myFlag };
+}
+```
+
+The `Flags` type is derived from `resolveAll`'s return shape, so any flag missing from this list will fail to type-check at every `useFlag(key)` call site.
+
+Use it from a client component:
+
+```tsx
+import { useFlag } from "@/lib/flags/provider";
+
+const enabled = useFlag("myFlag");
+```
+
+Or from server code by awaiting the flag directly:
 
 ```ts
 import { myFlag } from "@/lib/flags";

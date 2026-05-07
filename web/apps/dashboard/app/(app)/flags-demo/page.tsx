@@ -1,7 +1,9 @@
-import { helloWorld } from "@/lib/flags";
+"use client";
 
-export default async function FlagsDemoPage() {
-  const enabled = await helloWorld();
+import { useFlag } from "@/lib/flags/provider";
+
+export default function FlagsDemoPage() {
+  const enabled = useFlag("helloWorld");
   return (
     <div className="p-6">
       <h1 className="text-lg font-medium">Flags demo</h1>

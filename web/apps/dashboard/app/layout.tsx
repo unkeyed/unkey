@@ -1,4 +1,6 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
+import { FlagsProvider } from "@/lib/flags/provider";
+import { resolveAll } from "@/lib/flags/resolve";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
 import { Toaster } from "@unkey/ui";
 import { GeistMono } from "geist/font/mono";
@@ -71,11 +73,12 @@ const Feedback = dynamic(() =>
   import("@/components/dashboard/feedback-component").then((mod) => mod.Feedback),
 );
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const flags = await resolveAll();
   return (
     <html
       lang="en"
@@ -83,25 +86,27 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full antialiased">
-        <ReactQueryProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <WorkspaceProvider>
-              <Toaster />
-              {children}
-              <CommandMenu />
-              <Suspense fallback={null}>
-                <Feedback />
-              </Suspense>
-              <Analytics />
-              {process.env.NODE_ENV === "development" && <VercelToolbar />}
-            </WorkspaceProvider>
-          </ThemeProvider>
-        </ReactQueryProvider>
+        <FlagsProvider value={flags}>
+          <ReactQueryProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <WorkspaceProvider>
+                <Toaster />
+                {children}
+                <CommandMenu />
+                <Suspense fallback={null}>
+                  <Feedback />
+                </Suspense>
+                <Analytics />
+                {process.env.NODE_ENV === "development" && <VercelToolbar />}
+              </WorkspaceProvider>
+            </ThemeProvider>
+          </ReactQueryProvider>
+        </FlagsProvider>
       </body>
     </html>
   );
