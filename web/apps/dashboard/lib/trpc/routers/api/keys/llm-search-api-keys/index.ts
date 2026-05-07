@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
+import { withLlmAccess, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import OpenAI from "openai";
 import { z } from "zod";
@@ -13,7 +13,7 @@ const openai = env().OPENAI_API_KEY
   : null;
 
 export const apiKeysLlmSearch = workspaceProcedure
-  .use(withRatelimit(ratelimit.read))
+  .use(withLlmAccess())
   .input(
     z.object({
       query: z.string(),
@@ -46,6 +46,7 @@ export const apiKeysLlmSearch = workspaceProcedure
       });
     }
 
-    // Process the natural language query using LLM
-    return await getKeysStructuredSearchFromLLM(openai, input.query);
+    // Process the natural language query using LLM. Use ctx.validatedQuery from
+    // withLlmAccess(), which enforces 3-120 char length and the LLM rate limit.
+    return await getKeysStructuredSearchFromLLM(openai, ctx.validatedQuery);
   });
