@@ -1,5 +1,6 @@
 "use client";
 
+import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import type { TimeseriesData } from "@/components/logs/overview-charts/types";
 import { parseTimestamp } from "@/components/logs/parse-timestamp";
 import { formatTooltipInterval } from "@/components/logs/utils";
@@ -12,9 +13,8 @@ import {
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useMemo } from "react";
 import { Bar, BarChart } from "recharts";
-import { LogsChartEmpty } from "./components/logs-chart-empty";
+import { ChartWaveLoading } from "./components/chart-wave-loading";
 import { LogsChartError } from "./components/logs-chart-error";
-import { LogsChartLoading } from "./components/logs-chart-loading";
 
 type LogsTimeseriesBarChartProps = {
   data?: TimeseriesData[];
@@ -63,12 +63,15 @@ export function LogsTimeseriesBarChart({
     return <LogsChartError />;
   }
 
+  const firstKey = Object.keys(config)[0];
+  const sectionColor = config[firstKey]?.color;
+
   if (isLoading) {
-    return <LogsChartLoading />;
+    return <ChartWaveLoading height={height} color={sectionColor} />;
   }
 
   if (isEmpty) {
-    return <LogsChartEmpty config={config} height={height} />;
+    return <ChartEmpty variant="wave" color={sectionColor} height={height} message="No data" />;
   }
 
   return (

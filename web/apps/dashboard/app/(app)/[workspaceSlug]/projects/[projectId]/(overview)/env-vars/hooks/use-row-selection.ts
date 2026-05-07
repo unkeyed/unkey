@@ -88,7 +88,6 @@ export function useRowSelection(displayRows: DisplayRow[]) {
 
   const makeSensitiveMutation = trpc.deploy.envVar.makeSensitive.useMutation();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: mutateAsync is a stable reference from React Query
   const handleBulkMakeSensitive = useCallback(async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) {
@@ -106,7 +105,7 @@ export function useRowSelection(displayRows: DisplayRow[]) {
       toast.error("Failed to mark variables as sensitive");
     }
     setSelectedIds(new Set());
-  }, [selectedIds]);
+  }, [selectedIds, makeSensitiveMutation.mutateAsync]);
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
