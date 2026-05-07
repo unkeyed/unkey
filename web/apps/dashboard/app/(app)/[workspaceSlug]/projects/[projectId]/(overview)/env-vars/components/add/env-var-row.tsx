@@ -64,7 +64,7 @@ export const EnvVarRow = ({
 
   const handleValueKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
-      if ((e.key === "Enter" || e.key === "Tab") && !e.shiftKey && isLast) {
+      if (e.key === "Enter" && !e.shiftKey && isLast) {
         e.preventDefault();
         onAdvanceRow();
       }
