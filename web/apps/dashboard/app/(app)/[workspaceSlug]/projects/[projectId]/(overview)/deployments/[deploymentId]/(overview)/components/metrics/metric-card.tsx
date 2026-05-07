@@ -88,9 +88,7 @@ export function MetricCard({
           )}
         </div>
         <div className="ml-auto flex items-baseline gap-1">
-          <span className="text-gray-12 font-medium text-[13px] tabular-nums">
-            {parts.value}
-          </span>
+          <span className="text-gray-12 font-medium text-[13px] tabular-nums">{parts.value}</span>
           <span className="text-grayA-10 text-[11px]">{parts.unit}</span>
           {secondaryValue && (
             <>
