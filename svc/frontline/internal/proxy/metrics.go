@@ -5,103 +5,68 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
-var (
-	// proxyForwardTotal tracks proxy forwarding attempts by destination and outcome.
-	//
-	// Labels:
-	//   destination: "instance" (local h2c forward to deployment instance) or
-	//                "region" (cross-region HTTPS forward to peer frontline)
-	//   error: "none", "timeout", "conn_refused", "conn_reset",
-	//          "dns_failure", "client_canceled", "backend_5xx", "other"
-	proxyForwardTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "forward_total",
-			Help:      "Total proxy forward attempts by destination and error type.",
-		},
-		[]string{"destination", "error"},
-	)
+// Destination labels distinguish where the proxy sent the request.
+const (
+	destinationInstance  = "instance"  // local h2c forward to a deployment pod
+	destinationFrontline = "frontline" // cross-region HTTPS forward to peer frontline
+)
 
-	// proxyBackendDuration tracks the time from when the proxy sends the request
-	// to the backend until it gets a response (or error). This isolates backend
-	// latency from frontline's own routing overhead.
+// Outcome labels for upstreamDialsTotal.
+const (
+	dialOutcomeSuccess = "success"
+	dialOutcomeError   = "error"
+)
+
+var (
+	// upstreamSeconds is the wall-clock duration of the upstream call —
+	// from request send to response complete (or error). Customer-pod
+	// time; not a platform SLO. Surfaced for dashboard and per-tenant
+	// debugging, not for platform alerts.
 	//
-	// Labels:
-	//   destination: "instance" (local h2c forward) or "region" (cross-region HTTPS forward)
-	proxyBackendDuration = lazy.NewHistogramVec(
+	// Buckets cover the full range up to the 300s function timeout —
+	// these requests can be intentionally long.
+	upstreamSeconds = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
-			Name:      "backend_duration_seconds",
-			Help:      "Backend response time by destination type.",
-			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30},
+			Name:      "upstream_seconds",
+			Help:      "Upstream call duration.",
+			Buckets:   []float64{0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300},
 		},
 		[]string{"destination"},
 	)
 
-	// proxyHops tracks cross-region hop counts by source and destination region.
-	// Deviations from nominal hop counts per src→dst pair indicate routing shifts.
-	proxyHops = lazy.NewHistogramVec(
+	// hopsHistogram records cross-region hop counts. Hops=1 is the only
+	// healthy value: a request arrives, we forward to one peer, that peer
+	// serves it. Higher values mean the peer received a forward and
+	// forwarded *again* — a routing-config bug between regions.
+	//
+	// Recording as a histogram (not a counter) so dashboards get average
+	// hop depth via _sum/_count and alerts can use bucket boundaries to
+	// distinguish "all good" (everything in le=1) from "drift" (any rate
+	// past le=1).
+	hopsHistogram = lazy.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
 			Name:      "hops",
-			Help:      "Distribution of frontline hop counts by source and destination region.",
-			Buckets:   []float64{0, 1, 2, 3},
+			Help:      "Cross-region hop count distribution by source and destination region.",
+			Buckets:   []float64{1, 2, 3},
 		},
 		[]string{"src_region", "dst_region"},
 	)
 
-	// proxyForwardErrorsTotal is a convenience counter for forward errors.
-	proxyForwardErrorsTotal = lazy.NewCounterVec(
+	// upstreamDialsTotal counts new TCP dials issued by the upstream
+	// transport. Healthy operation reuses pooled connections; a high dial
+	// rate per destination signals pool churn — a leading indicator of
+	// upstream-saturation outages before errors fire.
+	upstreamDialsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
-			Name:      "forward_errors_total",
-			Help:      "Total proxy forward errors by destination.",
+			Name:      "upstream_dials_total",
+			Help:      "TCP dials issued for upstream connections.",
 		},
-		[]string{"destination"},
-	)
-
-	// proxyBackendErrorsTotal counts backend 5xx responses by destination and source.
-	proxyBackendErrorsTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "backend_errors_total",
-			Help:      "Total backend 5xx errors by destination and source.",
-		},
-		[]string{"destination", "source"},
-	)
-
-	// proxyAbortedTotal counts client-disconnect aborts during streaming responses.
-	// httputil.ReverseProxy panics with http.ErrAbortHandler when the response body
-	// copy fails after headers have been flushed (typically the client went away).
-	// We swallow that sentinel value locally; this counter preserves visibility.
-	proxyAbortedTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "aborted_total",
-			Help:      "Client-disconnect aborts during streaming by destination.",
-		},
-		[]string{"destination"},
-	)
-
-	// proxyBackendResponseTotal tracks HTTP status codes returned by backends.
-	//
-	// Labels:
-	//   destination: "instance" (local h2c forward) or "region" (cross-region HTTPS forward)
-	//   source: "frontline" (peer frontline returned this error) or "upstream" (customer pod response)
-	//   status_class: "2xx", "3xx", "4xx", "5xx"
-	proxyBackendResponseTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "backend_response_total",
-			Help:      "Backend HTTP response status classes by destination and error source.",
-		},
-		[]string{"destination", "source", "status_class"},
+		[]string{"destination", "outcome"},
 	)
 )
