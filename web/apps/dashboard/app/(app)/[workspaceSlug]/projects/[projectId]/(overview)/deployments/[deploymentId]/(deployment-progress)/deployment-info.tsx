@@ -1,7 +1,7 @@
 "use client";
 
 import type { DeploymentStatus } from "@/lib/collections";
-import { Ban, Cloud } from "@unkey/icons";
+import { CircleXMark, Cloud } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
 import { ActiveDeploymentCard } from "../../../../components/active-deployment-card";
@@ -39,13 +39,13 @@ export function DeploymentInfo({ title = "Deployment", statusOverride }: Deploym
         rightAction={
           canCancel ? (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
+              className="font-medium"
               onClick={() => setCancelOpen(true)}
-              className="h-7 px-2 text-gray-11 hover:text-gray-12"
             >
-              <Ban iconSize="sm-regular" />
-              Cancel deployment
+              <CircleXMark iconSize="sm-medium" />
+              Cancel
             </Button>
           ) : undefined
         }

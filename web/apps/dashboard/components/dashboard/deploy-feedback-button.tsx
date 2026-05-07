@@ -8,8 +8,8 @@ export function DeployFeedbackButton() {
   const { openFeedback } = useFeedback();
 
   return (
-    <Button variant="outline" size="md" onClick={() => openFeedback(true, "feedback")}>
-      <Chats className="size-4" />
+    <Button variant="outline" size="sm" onClick={() => openFeedback(true, "feedback")}>
+      <Chats iconSize="sm-medium" />
       Feedback
     </Button>
   );
