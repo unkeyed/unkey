@@ -59,7 +59,9 @@ import { createBulkEnvVars } from "./deploy/env-vars/create-bulk";
 import { decryptEnvVar } from "./deploy/env-vars/decrypt";
 import { deleteEnvVar } from "./deploy/env-vars/delete";
 import { listEnvVars } from "./deploy/env-vars/list";
+import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { updateEnvVar } from "./deploy/env-vars/update";
+import { updateAutoDeploy } from "./deploy/environment-settings/build/update-auto-deploy";
 import { updateDockerContext } from "./deploy/environment-settings/build/update-docker-context";
 import { updateDockerfile } from "./deploy/environment-settings/build/update-dockerfile";
 import { updateWatchPaths } from "./deploy/environment-settings/build/update-watch-paths";
@@ -84,6 +86,9 @@ import { create as createKeyauthPolicy } from "./deploy/environment-settings/sen
 import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
 import { update as updateKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/update";
 import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
+import { create as createOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/create";
+import { remove as deleteOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/delete";
+import { update as updateOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/update";
 import { create as createRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/create";
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
@@ -138,6 +143,7 @@ import { queryKeysPermissions } from "./key/rbac/permissions/query";
 import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
 import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
 import { updateKeyRbac } from "./key/rbac/update-rbac";
+import { rerollKey, rerollRootKey } from "./key/reroll";
 import { updateKeysEnabled } from "./key/updateEnabled";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
@@ -213,6 +219,7 @@ export const router = t.router({
   key: t.router({
     create: createKey,
     delete: deleteKeys,
+    reroll: rerollKey,
     fetchPermissions: fetchKeyPermissions,
     logs: t.router({
       query: queryKeyDetailsLogs,
@@ -243,6 +250,7 @@ export const router = t.router({
   }),
   rootKey: t.router({
     create: createRootKey,
+    reroll: rerollRootKey,
     update: t.router({
       name: updateRootKeyName,
       // NOTE: permissions replaces the full permission set for a root key.
@@ -457,6 +465,11 @@ export const router = t.router({
           update: updateRatelimitPolicy,
           delete: deleteRatelimitPolicy,
         }),
+        openapi: t.router({
+          create: createOpenapiPolicy,
+          update: updateOpenapiPolicy,
+          delete: deleteOpenapiPolicy,
+        }),
         generateRegex,
       }),
       runtime: t.router({
@@ -472,6 +485,7 @@ export const router = t.router({
         updateUpstreamProtocol,
       }),
       build: t.router({
+        updateAutoDeploy,
         updateDockerfile,
         updateDockerContext,
         updateWatchPaths,
@@ -487,6 +501,7 @@ export const router = t.router({
       update: updateEnvVar,
       decrypt: decryptEnvVar,
       delete: deleteEnvVar,
+      makeSensitive,
     }),
     domain: t.router({
       list: listDomains,

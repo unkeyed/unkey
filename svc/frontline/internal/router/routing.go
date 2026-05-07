@@ -48,7 +48,6 @@ func (s *service) selectDestination(
 	policies []*frontlinev1.Policy,
 ) (RouteDecision, error) {
 	if len(instances) == 0 {
-		routingErrorsTotal.WithLabelValues("no_instances").Inc()
 		return RouteDecision{}, fault.New("no instances",
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal(fmt.Sprintf("no instances for deployment %s", route.DeploymentID)),
@@ -70,7 +69,6 @@ func (s *service) selectDestination(
 	}
 
 	if len(regionsWithInstance) == 0 {
-		routingErrorsTotal.WithLabelValues("no_running_instances").Inc()
 		return RouteDecision{}, fault.New("no running instances",
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal(fmt.Sprintf("no running instances for deployment %s", route.DeploymentID)),
@@ -95,7 +93,6 @@ func (s *service) selectDestination(
 
 	nearestRegion := s.findNearestRegionPlatform(regionsWithInstance)
 	if nearestRegion == "" {
-		routingErrorsTotal.WithLabelValues("no_reachable_region").Inc()
 		return RouteDecision{}, fault.New("no reachable region from "+s.regionPlatform,
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal("running instances exist but no region is reachable"),

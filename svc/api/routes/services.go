@@ -78,4 +78,9 @@ type Services struct {
 	// AnalyticsConnectionManager manages connections to analytics backends
 	// for retrieving verification and usage data.
 	AnalyticsConnectionManager analytics.ConnectionManager
+
+	// PortalBaseURL is the default base URL for the customer portal
+	// (e.g. "https://portal.unkey.com"). Used to construct session redirect
+	// URLs when no custom domain is configured for the portal's app.
+	PortalBaseURL string
 }

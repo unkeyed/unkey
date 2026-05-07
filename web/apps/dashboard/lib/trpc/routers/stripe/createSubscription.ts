@@ -7,10 +7,11 @@ import { invalidateWorkspaceCache } from "@/lib/workspace-cache";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 import { clearWorkspaceCache } from "../workspace/getCurrent";
 
 export const createSubscription = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .input(
     z.object({
       productId: z.string(),
@@ -23,6 +24,22 @@ export const createSubscription = workspaceProcedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Stripe is not set up",
+      });
+    }
+
+    // Reject any product that is not on the configured allow-list, so a
+    // workspace admin can only subscribe to plans the operator has explicitly
+    // exposed. Without this, a known/internal Stripe product id with $0
+    // default price (or permissive quota metadata) lets an admin self-grant
+    // a higher tier.
+    const allowedProductIds = new Set<string>([
+      ...e.STRIPE_PRODUCT_IDS_PRO,
+      ...e.STRIPE_PRODUCT_IDS_ENTERPRISE,
+    ]);
+    if (!allowedProductIds.has(input.productId)) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: `Could not find product ${input.productId}.`,
       });
     }
 

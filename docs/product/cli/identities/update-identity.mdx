@@ -3,7 +3,7 @@ title: "update-identity"
 description: "Update an identity's metadata and rate limit configuration using the Unkey CLI. Modify entity properties without affecting linked API keys."
 ---
 
-Update an identity's metadata and rate limits. Only specified fields are modified — others remain unchanged.
+Update an identity's metadata and rate limits. Only specified fields are modified, others remain unchanged.
 
 Use this for subscription changes, plan upgrades, or updating user information. Changes take effect immediately.
 
@@ -61,7 +61,7 @@ JSON array of rate limit configurations. Replaces all existing identity rate lim
 | `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
-| `--output` | string | Output format — use `json` for raw JSON |
+| `--output` | string | Output format. Use `json` for raw JSON |
 
 ## Examples
 
@@ -81,7 +81,7 @@ unkey api identities update-identity --identity=user_123 --meta-json='{"plan":"e
 
 Default output shows the request ID with latency, followed by the updated identity:
 
-```
+```text
 req_2c9a0jf23l4k567 (took 52ms)
 
 {

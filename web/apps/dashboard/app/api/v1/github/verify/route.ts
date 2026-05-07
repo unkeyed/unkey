@@ -1,66 +1,12 @@
-import { Buffer } from "node:buffer";
-import crypto from "node:crypto";
 import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
 import { NextResponse } from "next/server";
-import { z } from "zod";
+import { verifyGitSignature } from "./verify-signature";
 
 export const runtime = "nodejs";
-
-// Cap GitHub secret-scanning payload size. Each item triggers SHA256 + two DB
-// queries + an org member fetch + per-member email + a Slack post. An
-// unbounded array lets a single signed request fan out into a flood of
-// emails, Slack posts, and DB load.
-const MAX_GITHUB_VERIFY_ITEMS = 50;
-
-const githubLeakedKeySchema = z
-  .array(
-    z.object({
-      token: z.string().min(1).max(256),
-      source: z.string().max(64),
-      url: z.string().url().max(2048),
-      type: z.string().max(64),
-    }),
-  )
-  .min(1)
-  .max(MAX_GITHUB_VERIFY_ITEMS);
-
-type Key = {
-  key_identifier: string;
-  key: string;
-  is_current: boolean;
-};
-type Keys = { public_keys: Key[] };
-// Needs to be tested when Github is live
-const verifyGitSignature = async (
-  payload: string,
-  signature: string,
-  keyId: string,
-  githubKeysUri: string,
-) => {
-  const gitHub = await fetch(githubKeysUri);
-  if (!gitHub.ok) {
-    console.error("Github verify error", gitHub.status, await gitHub.text());
-    return false;
-  }
-  const gitBody: Keys = await gitHub.json();
-  const publicKey =
-    gitBody.public_keys.find((k: Key) => {
-      if (k.key_identifier === keyId) {
-        return k;
-      }
-    }) ?? null;
-
-  if (!publicKey) {
-    console.error("No public key found");
-    return false;
-  }
-  const verify = crypto.createVerify("SHA256").update(payload);
-  return !verify.verify(publicKey.key, Buffer.from(signature.toString(), "base64"));
-};
 
 export async function POST(request: Request) {
   const { RESEND_API_KEY, GITHUB_KEYS_URI } = env();
@@ -120,7 +66,7 @@ export async function POST(request: Request) {
         type: item.type,
         isFound: false,
       });
-      return;
+      continue;
     }
     const ws = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>

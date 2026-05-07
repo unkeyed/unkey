@@ -32,12 +32,12 @@ Run the `auth login` command and paste your root key when prompted:
 unkey auth login
 ```
 
-```
+```text
 Enter your root key: ****
 Authentication successful. Key stored in ~/.unkey/config.toml
 ```
 
-The key is read as hidden input — it won't be displayed in your terminal.
+The key is read as hidden input, it won't be displayed in your terminal.
 
 ## How it works
 
@@ -53,9 +53,9 @@ root_key = "unkey_..."
 
 ## Best practices
 
-- **Use a dedicated root key for the CLI** — create a separate key with only the permissions your CLI workflows need. See [root key permissions](/platform/root-keys/overview#create-a-root-key) for guidance.
-- **Don't commit the config file** — add `~/.unkey/` to your global gitignore or verify it's excluded from your project repositories.
-- **Rotate periodically** — run `unkey auth login` again with a new key to replace the stored one.
+- **Use a dedicated root key for the CLI**: create a separate key with only the permissions your CLI workflows need. See [root key permissions](/platform/root-keys/overview#create-a-root-key) for guidance.
+- **Don't commit the config file**: add `~/.unkey/` to your global gitignore or verify it's excluded from your project repositories.
+- **Rotate periodically**: run `unkey auth login` again with a new key to replace the stored one.
 
 ## Next steps
 
@@ -64,6 +64,6 @@ root_key = "unkey_..."
     Learn how to create and manage root keys
   </Card>
   <Card title="Quickstart" icon="rocket" href="/quickstart/quickstart">
-    Get started with Unkey API key management
+    Get started with Unkey for API development
   </Card>
 </CardGroup>

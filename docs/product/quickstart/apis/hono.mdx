@@ -194,12 +194,12 @@ import { unkey, UnkeyContext } from "@unkey/hono";
 
 const app = new Hono<{ Variables: { unkey: UnkeyContext } }>();
 
-// Public route — no middleware
+// Public route, no middleware
 app.get("/", (c) => {
   return c.json({ message: "Welcome! This route is public." });
 });
 
-// Protected routes — apply middleware to /api/* paths only
+// Protected routes, apply middleware to /api/* paths only
 app.use("/api/*", unkey({ rootKey: process.env.UNKEY_ROOT_KEY! }));
 
 app.get("/api/secret", (c) => {

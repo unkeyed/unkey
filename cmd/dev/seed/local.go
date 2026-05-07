@@ -28,6 +28,7 @@ var localCmd = &cli.Command{
 		cli.String("ctrl-url", "Control plane API URL", cli.Default("http://localhost:7091"), cli.EnvVar("UNKEY_CTRL_URL")),
 		cli.String("api-key", "API key for control plane authentication", cli.Default("your-local-dev-key"), cli.EnvVar("UNKEY_API_KEY")),
 		cli.String("output", "Path to write generated environment variables", cli.Default("dev/.env.seed")),
+		cli.Bool("portal", "Also seed portal configuration and branding for this workspace"),
 	},
 	Action: seedLocal,
 }
@@ -92,6 +93,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	previewEnvID := uid.New(uid.EnvironmentPrefix)
 	productionEnvID := uid.New(uid.EnvironmentPrefix)
 	regionID := uid.New(uid.RegionPrefix)
+	portalConfigID := fmt.Sprintf("portal_%s", slug)
 
 	err = db.TxRetry(ctx, database.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.BulkQuery.UpsertWorkspace(ctx, tx, []db.UpsertWorkspaceParams{
@@ -261,6 +263,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Dockerfile:    "Dockerfile",
 				DockerContext: ".",
 				WatchPaths:    nil,
+				AutoDeploy:    true,
 				CreatedAt:     now,
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			},
@@ -271,6 +274,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Dockerfile:    "Dockerfile",
 				DockerContext: ".",
 				WatchPaths:    nil,
+				AutoDeploy:    true,
 				CreatedAt:     now,
 				UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
 			},
@@ -489,6 +493,37 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to insert key permissions: %w", err)
 		}
 
+		// Optionally seed portal configuration and branding.
+		if cmd.Bool("portal") {
+			err = db.Query.InsertPortalConfig(ctx, tx, db.InsertPortalConfigParams{
+				ID:          portalConfigID,
+				WorkspaceID: workspaceID,
+				Slug:        "awesome",
+				AppID:       sql.NullString{Valid: true, String: appID},
+				KeyAuthID:   sql.NullString{Valid: true, String: userKeySpaceID},
+				Enabled:     true,
+				ReturnUrl:   sql.NullString{Valid: true, String: "http://localhost:3000/portal-return"},
+				CreatedAt:   now,
+				UpdatedAt:   sql.NullInt64{},
+			})
+			if err != nil && !db.IsDuplicateKeyError(err) {
+				return fmt.Errorf("failed to create portal config: %w", err)
+			}
+
+			err = db.Query.UpsertPortalBranding(ctx, tx, db.UpsertPortalBrandingParams{
+				PortalConfigID: portalConfigID,
+				LogoUrl:        sql.NullString{Valid: true, String: "https://avatars.githubusercontent.com/u/138932600"},
+				PrimaryColor:   sql.NullString{Valid: true, String: "#2563eb"},
+				CreatedAt:      now,
+				UpdatedAt:      sql.NullInt64{},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create portal branding: %w", err)
+			}
+
+			logger.Info("portal seeded", "portalConfigId", portalConfigID)
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -515,6 +550,10 @@ UNKEY_ROOT_KEY=%s
 			userKeySpaceID,
 			keyResult.Key,
 		)
+
+		if cmd.Bool("portal") {
+			envContent += fmt.Sprintf("UNKEY_PORTAL_CONFIG_ID=%s\n", portalConfigID)
+		}
 
 		// Ensure directory exists
 		if dir := filepath.Dir(outputFile); dir != "" && dir != "." {

@@ -7,7 +7,7 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-The `unkey deploy` command ships a **pre-built Docker image** to Unkey infrastructure. Unlike the [GitHub integration](/build-and-deploy/github), the CLI does not build your image — you build it yourself (locally or in CI), push it to a registry Unkey can pull from, and `unkey deploy` creates the deployment and streams status until it is ready.
+The `unkey deploy` command ships a **pre-built Docker image** to Unkey infrastructure. Unlike the [GitHub integration](/build-and-deploy/github), the CLI does not build your image, you build it yourself (locally or in CI), push it to a registry Unkey can pull from, and `unkey deploy` creates the deployment and streams status until it is ready.
 
 Use the CLI when you want to own the build step: custom CI pipelines, monorepo build systems, pre-release images from a tag, or deploying without connecting a GitHub repository.
 
@@ -35,7 +35,7 @@ That single command:
 
 Example output:
 
-```
+```text
 Unkey Deploy Progress
 ──────────────────────────────────────────────────
 Source Information:
@@ -61,17 +61,17 @@ Domains
 unkey deploy <docker-image> [flags]
 ```
 
-The first positional argument is the fully qualified image reference — `registry/repository:tag` or `registry/repository@sha256:…`. The image must already exist in the registry before you run the command.
+The first positional argument is the fully qualified image reference, `registry/repository:tag` or `registry/repository@sha256:…`. The image must already exist in the registry before you run the command.
 
 ### Flags
 
 | Flag             | Description                                                           | Default     |
 | ---------------- | --------------------------------------------------------------------- | ----------- |
-| `--project`      | Project slug. **Required.**                                           | —           |
+| `--project`      | Project slug. **Required.**                                           |           |
 | `--app`          | App slug within the project.                                          | `default`   |
 | `--env`          | Environment slug to deploy to.                                        | `preview`   |
-| `--root-key`     | Root key for authentication. **Required.**                            | —           |
-| `--api-base-url` | API base URL override (local testing only).                           | —           |
+| `--root-key`     | Root key for authentication. **Required.**                            |           |
+| `--api-base-url` | API base URL override (local testing only).                           |           |
 
 All flags have matching environment variables so the command works cleanly in CI:
 
@@ -159,7 +159,7 @@ The CLI exits with a non-zero status if the deployment fails, so CI jobs fail lo
 | `--project is required`                          | Pass `--project` or set `UNKEY_PROJECT`.                                                              |
 | `--root-key is required`                         | Pass `--root-key` or set `UNKEY_ROOT_KEY`.                                                            |
 | Deployment fails during image pull               | The registry is private or the image tag does not exist. Verify the image is pullable publicly.       |
-| Deployment reaches **Ready** but returns 5xx     | Check runtime logs in the dashboard — usually a crash on startup or a missing environment variable.   |
+| Deployment reaches **Ready** but returns 5xx     | Check runtime logs in the dashboard, usually a crash on startup or a missing environment variable.   |
 
 ## Next steps
 

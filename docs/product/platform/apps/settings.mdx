@@ -122,11 +122,11 @@ Two writable storage locations are available to your instance:
 
 #### `/tmp`
 
-Every instance gets a writable `/tmp` directory backed by memory. Use it for small temporary files that your runtime or libraries may need (lock files, Unix sockets, etc.). Because it shares the instance's memory allocation, avoid writing large files here — use ephemeral storage instead.
+Every instance gets a writable `/tmp` directory backed by memory. Use it for small temporary files that your runtime or libraries may need (lock files, Unix sockets, etc.). Because it shares the instance's memory allocation, avoid writing large files here, use ephemeral storage instead.
 
 #### Ephemeral storage
 
-Ephemeral disk space per instance. When configured, Unkey attaches a dedicated volume to each instance mounted at `/data`. The volume is created when the instance starts and destroyed when it stops — data does not persist across restarts.
+Ephemeral disk space per instance. When configured, Unkey attaches a dedicated volume to each instance mounted at `/data`. The volume is created when the instance starts and destroyed when it stops, data does not persist across restarts.
 
 Available options:
 

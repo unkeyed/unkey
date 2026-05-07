@@ -75,6 +75,12 @@ type frontlineFirewall struct {
 	Denied Code
 }
 
+// frontlineOpenApi defines errors raised by the OpenAPI request validation policy.
+type frontlineOpenApi struct {
+	// InvalidRequest represents a 400 error - request does not conform to the OpenAPI spec
+	InvalidRequest Code
+}
+
 // UnkeyFrontlineErrors defines all frontline-related errors in the Unkey system.
 // These errors occur when the frontline service has issues serving a request —
 // from routing through policy evaluation to upstream proxying.
@@ -94,6 +100,9 @@ type UnkeyFrontlineErrors struct {
 
 	// Firewall contains errors raised by the Firewall policy.
 	Firewall frontlineFirewall
+
+	// OpenApi contains errors raised by the OpenAPI request validation policy.
+	OpenApi frontlineOpenApi
 }
 
 // Frontline contains all predefined frontline error codes.
@@ -127,5 +136,8 @@ var Frontline = UnkeyFrontlineErrors{
 	},
 	Firewall: frontlineFirewall{
 		Denied: Code{SystemUnkey, CategoryForbidden, "firewall_denied"},
+	},
+	OpenApi: frontlineOpenApi{
+		InvalidRequest: Code{SystemUnkey, CategoryUserBadRequest, "openapi_validation_failed"},
 	},
 }

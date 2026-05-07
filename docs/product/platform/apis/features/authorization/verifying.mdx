@@ -23,7 +23,7 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 
 ```typescript TypeScript
 try {
-  const { meta, data } = await verifyKey({
+  const { data } = await unkey.keys.verifyKey({
     key: "sk_...",
     permissions: "documents.read",
   });
@@ -91,7 +91,7 @@ Key must have `admin` **OR** have both `documents.read` and `documents.write`.
 // They need: admin OR (documents.delete AND owner of this document)
 
 try {
-  const { meta, data } = await verifyKey({
+  const { data } = await unkey.keys.verifyKey({
     key: request.apiKey,
     permissions: "admin OR documents.delete",
   });
@@ -146,7 +146,7 @@ Sometimes you need to check permissions after loading data from your database (e
     
     ```typescript
     try {
-      const { meta, data } = await verifyKey({
+      const { data } = await unkey.keys.verifyKey({
         key: "sk_...",
       });
 
@@ -197,7 +197,7 @@ Permissions support wildcards for broader access:
 // This grants: documents.read, documents.write, documents.delete, etc.
 
 try {
-  const { meta, data } = await verifyKey({
+  const { data } = await unkey.keys.verifyKey({
     key: "sk_...",
     permissions: "documents.read", // ✅ Passes (matched by documents.*)
   });
@@ -215,9 +215,9 @@ try {
 
 Common wildcard patterns:
 
-- `*` — All permissions (use carefully!)
-- `documents.*` — All document permissions
-- `api.v1.*` — All v1 API permissions
+- `*`, All permissions (use carefully!)
+- `documents.*`, All document permissions
+- `api.v1.*`, All v1 API permissions
 
 ## Best practices
 
@@ -228,7 +228,7 @@ Common wildcard patterns:
   </Accordion>
 
 <Accordion title="Check permissions at the API layer">
-  Don't just check in the UI — always verify permissions server-side during API
+  Don't just check in the UI, always verify permissions server-side during API
   requests.
 </Accordion>
 
