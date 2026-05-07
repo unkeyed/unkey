@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "storage",
     srcs = [
+        "disk.go",
         "interface.go",
         "memory.go",
         "s3.go",
@@ -22,6 +23,7 @@ go_library(
 go_test(
     name = "storage_test",
     srcs = [
+        "disk_test.go",
         "memory_test.go",
         "s3_test.go",
     ],
