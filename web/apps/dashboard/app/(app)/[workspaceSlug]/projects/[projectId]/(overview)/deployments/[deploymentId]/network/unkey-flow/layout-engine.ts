@@ -218,7 +218,10 @@ export class LayoutEngine<T extends TreeNode> {
         });
       } else {
         // HORIZONTAL: Children spread horizontally beside parent (left to right)
-        const subtreeWidths = node.children.map((child) => this.calculateSubtreeWidth(child as T));
+        const subtreeBounds = node.children.map((child) =>
+          this.calculateSubtreeBounds(child as T),
+        );
+        const subtreeWidths = subtreeBounds.map((b) => b.width);
 
         node.children.forEach((child, index) => {
           const childX = this.calculateChildXPosition(nodePosition.x, index, subtreeWidths);
@@ -241,33 +244,57 @@ export class LayoutEngine<T extends TreeNode> {
   }
 
   /**
-   * Calculate the horizontal width required for each node's entire subtree.
-   * Width includes the node itself plus all descendants laid out horizontally.
+   * Calculate the visual bounds of a node's subtree, accounting for horizontal indent asymmetry.
+   * Returns the total width and how far the visual center is offset from the node center.
+   * For vertical subtrees, children are indented right, making the subtree asymmetric.
    */
-  private calculateSubtreeWidth(node: T): number {
+  private calculateSubtreeBounds(node: T): { width: number; centerOffset: number } {
     const nodeDim = this.dimensions.get(node.id);
     invariant(nodeDim, `Missing dimensions for node ${node.id}`);
 
     if (!node.children || node.children.length === 0) {
-      return nodeDim.width;
+      return { width: nodeDim.width, centerOffset: 0 };
     }
 
     const parentDirection = this.getNodeDirection(node);
 
     if (parentDirection === "horizontal") {
-      // Children spread horizontally
-      const childWidths = node.children.map((child) => this.calculateSubtreeWidth(child as T));
-      const totalChildWidth = childWidths.reduce((sum, w) => sum + w, 0);
+      const childBounds = node.children.map((child) => this.calculateSubtreeBounds(child as T));
+      const totalChildWidth = childBounds.reduce((sum, b) => sum + b.width, 0);
       const spacing = (node.children.length - 1) * this.config.spacing.x;
-      return Math.max(nodeDim.width, totalChildWidth + spacing);
+      return {
+        width: Math.max(nodeDim.width, totalChildWidth + spacing),
+        centerOffset: 0,
+      };
     }
 
-    // Children spread vertically - width is node + deepest child, but allow overlap
-    const childSubtreeWidths = node.children.map((child) => this.calculateSubtreeWidth(child as T));
-    const maxChildWidth = Math.max(...childSubtreeWidths);
-    return (
-      nodeDim.width + this.config.spacing.x + maxChildWidth * this.config.layout.subtreeOverlap
-    );
+    const indent = this.config.layout.horizontalIndent;
+    const childBounds = node.children.map((child) => this.calculateSubtreeBounds(child as T));
+
+    let maxChildLeft = 0;
+    let maxChildRight = 0;
+    for (const cb of childBounds) {
+      const childLeft = cb.width / 2 - cb.centerOffset;
+      const childRight = cb.width / 2 + cb.centerOffset;
+      maxChildLeft = Math.max(maxChildLeft, childLeft);
+      maxChildRight = Math.max(maxChildRight, childRight);
+    }
+
+    const leftExtent = Math.max(nodeDim.width / 2, maxChildLeft - indent);
+    const rightExtent = Math.max(nodeDim.width / 2, indent + maxChildRight);
+
+    const width = leftExtent + rightExtent;
+    const centerOffset = (rightExtent - leftExtent) / 2;
+
+    return { width, centerOffset };
+  }
+
+  /**
+   * Calculate the horizontal width required for each node's entire subtree.
+   * Width includes the node itself plus all descendants laid out horizontally.
+   */
+  private calculateSubtreeWidth(node: T): number {
+    return this.calculateSubtreeBounds(node).width;
   }
 
   /**

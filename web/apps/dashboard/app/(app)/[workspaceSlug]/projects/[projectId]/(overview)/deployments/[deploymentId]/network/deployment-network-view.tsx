@@ -72,7 +72,8 @@ export function DeploymentNetworkView({
     >
       <TreeLayout
         data={currentTree}
-        nodeSpacing={{ x: 75, y: 100 }}
+        nodeSpacing={{ x: 20, y: 50 }}
+        layoutConfig={{ layout: { verticalOffset: -15, verticalSiblingSpacing: 0.5, horizontalIndent: 35 } }}
         onNodeClick={isShowingSkeleton ? undefined : (node) => setSelectedNode(node)}
         renderNode={(node, parent) => renderDeploymentNode(node, parent, deployment.id)}
         renderConnection={(path, parent, child) => (
