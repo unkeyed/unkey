@@ -1,8 +1,10 @@
+import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import type { TimeseriesData } from "@/components/logs/overview-charts/types";
-import { formatLatency } from "@/lib/utils/metric-formatters";
 import type { IconProps } from "@unkey/icons";
+import { cn } from "@unkey/ui/src/lib/utils";
 import type { ComponentType } from "react";
 import { LogsTimeseriesBarChart } from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart";
+import { ChartWaveLoading } from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart/components/chart-wave-loading";
 import { MetricSelect } from "./metric-select";
 
 type MetricType = "latency" | "rps";
@@ -10,6 +12,8 @@ type MetricType = "latency" | "rps";
 type MetricConfig = {
   label: string;
   color: string;
+  iconBg: string;
+  iconText: string;
   unit: string;
   percentiles?: string[];
 };
@@ -18,12 +22,16 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   latency: {
     label: "Latency",
     color: "hsl(var(--bronze-8))",
+    iconBg: "bg-bronze-3",
+    iconText: "text-bronze-11",
     unit: "ms",
     percentiles: ["p50", "p75", "p90", "p95", "p99"],
   },
   rps: {
     label: "RPS",
     color: "hsl(var(--feature-8))",
+    iconBg: "bg-feature-3",
+    iconText: "text-feature-11",
     unit: "req/s",
   },
 };
@@ -42,6 +50,8 @@ type MetricCardProps = {
   timeWindow?: {
     chart: string;
   };
+  isLoading?: boolean;
+  isError?: boolean;
 };
 
 export function MetricCard({
@@ -53,70 +63,107 @@ export function MetricCard({
   percentile,
   onPercentileChange,
   timeWindow,
+  isLoading = false,
+  isError = false,
 }: MetricCardProps) {
   const config = METRIC_CONFIGS[metricType];
+  const parts = formatMetricParts(metricType, currentValue, config.unit);
 
   return (
-    <div className="border border-gray-4 w-full rounded-[14px] flex flex-col">
-      <div className="flex items-start w-full pt-[10px] px-[14px]">
-        <div className="flex items-center w-full gap-2">
-          <div className="flex items-center justify-center rounded-md bg-grayA-3 text-gray-12 size-5">
-            <Icon iconSize="sm-regular" className="shrink-0" />
-          </div>
-          <div className="flex flex-col gap-0.5">
-            {config.percentiles && percentile ? (
-              <MetricSelect
-                label={config.label}
-                value={percentile}
-                options={config.percentiles}
-                onValueChange={onPercentileChange}
-              />
-            ) : (
-              <span className="text-gray-11 text-xs">{config.label}</span>
-            )}
-          </div>
+    <div className="border border-gray-4 bg-grayA-1 w-full rounded-[14px] flex flex-col">
+      <div className="flex items-center gap-3 w-full px-[14px] pt-[12px] pb-[8px]">
+        <div
+          className={cn(
+            "flex items-center justify-center rounded-md size-[22px]",
+            config.iconBg,
+            config.iconText,
+          )}
+        >
+          <Icon iconSize="sm-regular" className="shrink-0" />
         </div>
-        <div className="ml-auto flex flex-col">
-          <div className="flex gap-0.5 items-center">
-            {metricType === "latency" ? (
-              <span className="text-grayA-12 font-medium text-xs">
-                {formatLatency(currentValue)}
-              </span>
-            ) : (
-              <>
-                <span className="text-grayA-12 font-medium text-xs">{currentValue}</span>
-                <span className="text-grayA-9 text-xs"> {config.unit}</span>
-              </>
-            )}
-          </div>
+        <div className="flex flex-col">
+          {config.percentiles && percentile ? (
+            <MetricSelect
+              label={config.label}
+              value={percentile}
+              options={config.percentiles}
+              onValueChange={onPercentileChange}
+            />
+          ) : (
+            <span className="text-gray-12 text-[13px]">{config.label}</span>
+          )}
+        </div>
+        <div className="ml-auto flex items-baseline gap-1">
+          <span className="text-gray-12 font-medium text-[13px] tabular-nums">{parts.value}</span>
+          <span className="text-grayA-10 text-[11px]">{parts.unit}</span>
           {secondaryValue && (
             <>
-              <span className="text-grayA-12 font-medium text-xs ml-1">
+              <span className="text-grayA-9 text-[11px]">/</span>
+              <span className="text-gray-12 font-medium text-[12px] tabular-nums">
                 {secondaryValue.numeric}
               </span>
-              <span className="text-grayA-9 text-xs"> {secondaryValue.unit}</span>
+              <span className="text-grayA-10 text-[11px]">{secondaryValue.unit}</span>
             </>
           )}
         </div>
       </div>
-      <div className="mt-6 flex flex-col">
-        <LogsTimeseriesBarChart
-          chartContainerClassname="px-[14px] border-gray-4"
-          data={chartData.data}
-          config={{
-            [chartData.dataKey]: {
-              label: config.label,
-              color: config.color,
-            },
-          }}
-          height={50}
-          isLoading={false}
-          isError={false}
-        />
+      <div
+        className="flex flex-col rounded-b-[14px]"
+        style={{
+          background: `linear-gradient(to top, color-mix(in srgb, ${config.color} 6%, transparent), transparent)`,
+        }}
+      >
+        {isError ? (
+          <ChartEmpty
+            variant="wave"
+            color={config.color}
+            height={50}
+            message={`Failed to load ${config.label.toLowerCase()} metrics`}
+          />
+        ) : isLoading ? (
+          <ChartWaveLoading height={50} color={config.color} />
+        ) : (
+          <LogsTimeseriesBarChart
+            chartContainerClassname="px-[14px] border-gray-3"
+            data={chartData.data}
+            config={{
+              [chartData.dataKey]: {
+                label: config.label,
+                color: config.color,
+              },
+            }}
+            height={50}
+            isLoading={false}
+            isError={false}
+          />
+        )}
         {timeWindow?.chart && (
-          <span className="text-grayA-9 text-[10px] px-[14px] my-1">{timeWindow.chart}</span>
+          <span className="text-grayA-11 text-[10px] px-[14px] my-1">{timeWindow.chart}</span>
         )}
       </div>
     </div>
   );
+}
+
+function formatMetricParts(
+  type: MetricType,
+  value: number,
+  defaultUnit: string,
+): { value: string; unit: string } {
+  if (type === "latency") {
+    if (value < 1000) {
+      return { value: `${Math.round(value * 10) / 10}`, unit: "ms" };
+    }
+    const seconds = value / 1000;
+    if (seconds < 60) {
+      return { value: seconds.toFixed(1), unit: "s" };
+    }
+    const minutes = seconds / 60;
+    if (minutes < 60) {
+      return { value: minutes.toFixed(1), unit: "m" };
+    }
+    const hours = minutes / 60;
+    return { value: hours.toFixed(1), unit: "h" };
+  }
+  return { value: `${value}`, unit: defaultUnit };
 }

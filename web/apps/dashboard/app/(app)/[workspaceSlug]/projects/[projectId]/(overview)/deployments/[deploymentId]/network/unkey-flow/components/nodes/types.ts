@@ -88,9 +88,9 @@ type NodeSize = { width: number; height: number };
  */
 const NODE_SIZES: Record<DeploymentNode["metadata"]["type"], NodeSize> = {
   origin: { width: 70, height: 20 },
-  region: { width: DEFAULT_NODE_WIDTH, height: 70 },
-  instance: { width: DEFAULT_NODE_WIDTH, height: 70 },
-  skeleton: { width: DEFAULT_NODE_WIDTH, height: 70 },
+  region: { width: 282, height: 100 },
+  instance: { width: 282, height: 100 },
+  skeleton: { width: 282, height: 100 },
 } as const;
 
 export type {
