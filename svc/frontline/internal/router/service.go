@@ -36,6 +36,7 @@ func New(cfg Config) (*service, error) {
 
 func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, error) {
 	start := time.Now()
+	defer func() { routingDecisionSeconds.Observe(time.Since(start).Seconds()) }()
 
 	route, err := s.findRoute(ctx, hostname)
 	if err != nil {
@@ -44,28 +45,23 @@ func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, er
 
 	instances, err := s.getInstances(ctx, route.DeploymentID)
 	if err != nil {
-		routingErrorsTotal.WithLabelValues("instance_load_failed").Inc()
 		return RouteDecision{}, err
 	}
 
 	policies, err := s.getPolicies(ctx, route)
 	if err != nil {
-		routingErrorsTotal.WithLabelValues("policy_parse_failed").Inc()
 		return RouteDecision{}, err
 	}
 
 	decision, err := s.selectDestination(route, instances, policies)
-
-	routingDuration.Observe(time.Since(start).Seconds())
-
 	if err != nil {
 		return RouteDecision{}, err
 	}
 
 	if decision.Destination == DestinationLocalInstance {
-		routingDecisionsTotal.WithLabelValues("local_instance", s.regionPlatform).Inc()
+		routingDecisionsTotal.WithLabelValues(decisionLocal, s.regionPlatform).Inc()
 	} else {
-		routingDecisionsTotal.WithLabelValues("remote_region", decision.Address).Inc()
+		routingDecisionsTotal.WithLabelValues(decisionRemote, decision.Address).Inc()
 	}
 
 	return decision, nil

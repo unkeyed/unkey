@@ -5,47 +5,46 @@ import (
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
-var (
-	// routingDecisionsTotal tracks where frontline routes each request.
-	//
-	// Labels:
-	//   decision: "local_instance" or "remote_region"
-	//   target_region: the region being routed to (local region name or remote region.platform)
-	routingDecisionsTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "routing_decisions_total",
-			Help:      "Total routing decisions by type and target region.",
-		},
-		[]string{"decision", "target_region"},
-	)
+// Decision label values for routingDecisionsTotal. Match the
+// router.Destination enum semantically — local for same-region instance,
+// remote for cross-region peer.
+const (
+	decisionLocal  = "local"
+	decisionRemote = "remote"
+)
 
-	// routingErrorsTotal tracks routing failures by reason.
-	//
-	// Labels:
-	//   reason: "no_instances", "no_running_instances",
-	//           "config_not_found", "config_load_failed",
-	//           "instance_load_failed", "policy_parse_failed",
-	//           "no_reachable_region"
-	routingErrorsTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "routing_errors_total",
-			Help:      "Total routing errors by reason.",
-		},
-		[]string{"reason"},
-	)
+// routingDecisionsTotal counts where each request was routed. The
+// target_region label carries the local region.platform for local
+// decisions and the destination region.platform for remote decisions, so
+// dashboards can attribute traffic flow between regions without joining.
+//
+// Routing failures are not counted here — they show up in the unified
+// requests_total counter via the URN-coded fault that the router returns
+// to the middleware.
+var routingDecisionsTotal = lazy.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "unkey",
+		Subsystem: "frontline",
+		Name:      "routing_decisions_total",
+		Help:      "Routing decisions by type and target region.",
+	},
+	[]string{"decision", "target_region"},
+)
 
-	// routingDuration tracks how long the full Route() call takes (cache lookups + DB fallback).
-	routingDuration = lazy.NewHistogram(
-		prometheus.HistogramOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "routing_duration_seconds",
-			Help:      "Time spent making routing decisions.",
-			Buckets:   []float64{0.001, 0.002, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1},
-		},
-	)
+// routingDecisionSeconds is the time spent picking a destination — the
+// cache lookups (route, instances, policies), DB fallbacks on miss, and
+// the selection logic that produces a RouteDecision. Pairs with
+// routingDecisionsTotal: that counts the decisions, this times them.
+//
+// Distribution is bimodal: cache hits land sub-ms, DB fallbacks tens of
+// ms. The bucket set spans both regimes so quantile alerts can target
+// whichever is the operational concern.
+var routingDecisionSeconds = lazy.NewHistogram(
+	prometheus.HistogramOpts{
+		Namespace: "unkey",
+		Subsystem: "frontline",
+		Name:      "routing_decision_seconds",
+		Help:      "Time spent picking a destination for a request.",
+		Buckets:   []float64{0.0001, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1},
+	},
 )
