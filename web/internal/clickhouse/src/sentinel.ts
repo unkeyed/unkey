@@ -17,10 +17,7 @@ const SQL = {
     AND deployment_id = {deploymentId: String}
     AND environment_id = {environmentId: String}`,
 
-  // time (ms) >= X hours ago (ms)  -- for raw table (Int64 millis)
-  recentHours: "time >= toUnixTimestamp(now() - INTERVAL {windowHours: UInt8} HOUR) * 1000",
-
-  // time (ms) >= X minutes ago (ms)  -- for raw table (Int64 millis)
+  // time (ms) >= X minutes ago (ms)
   recentMinutes: "time >= toUnixTimestamp(now() - INTERVAL {windowMinutes: UInt16} MINUTE) * 1000",
 
   // MV time (DateTime) >= X hours ago  -- for MV (DateTime seconds)
