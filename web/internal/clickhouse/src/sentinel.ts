@@ -30,9 +30,6 @@ const SQL = {
   timeBucket:
     "toStartOfInterval(toDateTime(time / 1000), INTERVAL {intervalMinutes: UInt8} MINUTE)",
 
-  // Truncate MV DateTime to interval bucket
-  mvTimeBucket: "toStartOfInterval(time, INTERVAL {intervalMinutes: UInt8} MINUTE)",
-
   // Fill gaps in timeseries with zeros
   fillGaps: `
     WITH FILL

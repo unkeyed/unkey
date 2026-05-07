@@ -8,8 +8,6 @@ import { z } from "zod";
 const WINDOW_HOURS = 6;
 const INTERVAL_MS = 15 * 60 * 1000;
 
-
-
 export const getDeploymentLatencyMetrics = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(
@@ -50,9 +48,8 @@ export const getDeploymentLatencyMetrics = workspaceProcedure
           return { current: 0, timeseries: [] };
         }
 
-        // GROUP BY time WITH ROLLUP returns per-bucket rows plus one rollup
-        // row where time='1970-01-01' (x=0) containing the exact global percentile.
-        // This gives us current + timeseries in a single CH round trip.
+        // ROLLUP produces a summary row with time='1970-01-01' (x=0).
+        // Safe because the WHERE clause excludes any real data from 1970.
         let current = 0;
         const raw: { x: number; y: number }[] = [];
 
@@ -79,9 +76,6 @@ export const getDeploymentLatencyMetrics = workspaceProcedure
       });
     }
   });
-
-
-
 
 // The ROLLUP query skips WITH FILL (they conflict), so we fill empty
 // 15-min slots in JS. Matches the CH WITH FILL range: [start, now) exclusive.
