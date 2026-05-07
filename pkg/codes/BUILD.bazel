@@ -12,6 +12,7 @@ go_library(
         "unkey_auth.go",
         "unkey_data.go",
         "unkey_ingress.go",
+        "unkey_portal.go",
         "user_request.go",
     ],
     importpath = "github.com/unkeyed/unkey/pkg/codes",

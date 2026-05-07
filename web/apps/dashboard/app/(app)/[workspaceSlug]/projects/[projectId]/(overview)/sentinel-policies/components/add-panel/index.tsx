@@ -7,6 +7,7 @@ import { Button, FormInput, FormSelect } from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
 import { KeyAuthFields, KeyauthPolicySummary } from "./forms/keyauth-fields";
+import { OpenApiFields, OpenApiPolicySummary } from "./forms/openapi-fields";
 import { RateLimitFields, RatelimitPolicySummary } from "./forms/ratelimit-fields";
 import { DocsLink } from "./forms/summary-helpers";
 import {
@@ -163,6 +164,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
             .with("keyauth", () => <KeyauthPolicySummary />)
             .with("ratelimit", () => <RatelimitPolicySummary />)
             .with("firewall", () => <FirewallPolicySummary />)
+            .with("openapi", () => <OpenApiPolicySummary />)
             .exhaustive()}
           catchAll
         >
@@ -170,6 +172,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
             .with("keyauth", () => <KeyAuthFields />)
             .with("ratelimit", () => <RateLimitFields />)
             .with("firewall", () => <FirewallFields />)
+            .with("openapi", () => <OpenApiFields />)
             .exhaustive()}
         </PolicyForm.Section>
         <PolicyForm.Section

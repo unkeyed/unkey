@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"context"
-	"net/http"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -29,10 +28,8 @@ type RequestTracking struct {
 	InstanceStart time.Time
 
 	// Set by proxy ModifyResponse / ErrorHandler callbacks
-	InstanceEnd     time.Time
-	ResponseStatus  int32
-	ResponseHeaders http.Header
-	ResponseBody    []byte
+	InstanceEnd  time.Time
+	ResponseBody []byte
 }
 
 var requestTrackingKey = zen.NewContextKey[*RequestTracking]("frontline_request_tracking")

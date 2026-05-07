@@ -13,16 +13,18 @@ func Register(srv *zen.Server, svc *Services) {
 	withSanitizeHeaders := middleware.WithReservedHeaderStrip()
 	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/"))
 	withPanicRecovery := zen.WithPanicRecovery()
-	withObservability := middleware.WithObservability(svc.Region, svc.ErrorPageRenderer)
+	withObservability := middleware.WithObservability(svc.ErrorPageRenderer)
 	withClickHouseLogging := middleware.WithClickHouseLogging(svc.FrontlineRequests, svc.Clock, svc.FrontlineID, svc.Region, svc.Platform)
 	withTimeout := zen.WithTimeout(svc.RequestTimeout)
 
+	// Order matters: clickhouseLogging must wrap observability so it reads
+	// s.StatusCode() after observability has written the HTTP response.
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
 		withSanitizeHeaders,
 		withLogging,
-		withObservability,
 		withClickHouseLogging,
+		withObservability,
 		withTimeout,
 	}
 
@@ -51,7 +53,7 @@ func RegisterHTTPServer(srv *zen.Server, svc *Services) {
 			zen.WithPanicRecovery(),
 			middleware.WithReservedHeaderStrip(),
 			zen.WithLogging(zen.SkipPaths("/_unkey/internal/")),
-			middleware.WithObservability(svc.Region, svc.ErrorPageRenderer),
+			middleware.WithObservability(svc.ErrorPageRenderer),
 		},
 		&acme.Handler{
 			RouterService: svc.RouterService,

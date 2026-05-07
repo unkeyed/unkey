@@ -4,7 +4,7 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { BookBookmark, TriangleWarning2 } from "@unkey/icons";
+import { BookBookmark, CircleXMark, TriangleWarning2 } from "@unkey/icons";
 import { Badge, Button, Empty, TimestampInfo } from "@unkey/ui";
 import { useMemo } from "react";
 import { isDisplayProperty, useLogsContext } from "../../context/logs";
@@ -65,8 +65,8 @@ const getStatusStyle = (status: number): StatusStyle => {
   return STATUS_STYLES.success;
 };
 
-const WARNING_ICON_STYLES = {
-  base: "size-3",
+const STATUS_ICON_STYLES = {
+  base: "size-4",
   warning: "text-warning-11",
   error: "text-error-11",
 };
@@ -79,17 +79,22 @@ const getSelectedClassName = (log: Log, isSelected: boolean) => {
   return style.selected;
 };
 
-const WarningIcon = ({ status }: { status: number }) => (
-  <TriangleWarning2
-    iconSize="md-medium"
-    className={cn(
-      WARNING_ICON_STYLES.base,
-      status < 300 && "invisible",
-      status >= 400 && status < 500 && WARNING_ICON_STYLES.warning,
-      status >= 500 && WARNING_ICON_STYLES.error,
-    )}
-  />
-);
+const StatusIcon = ({ status }: { status: number }) => {
+  if (status < 400) {
+    return <span className={cn(STATUS_ICON_STYLES.base, "invisible")} />;
+  }
+  const isError = status >= 500;
+  const Icon = isError ? CircleXMark : TriangleWarning2;
+  return (
+    <Icon
+      iconSize="lg-medium"
+      className={cn(
+        STATUS_ICON_STYLES.base,
+        isError ? STATUS_ICON_STYLES.error : STATUS_ICON_STYLES.warning,
+      )}
+    />
+  );
+};
 
 const additionalColumns: Column<Log>[] = [
   "response_body",
@@ -230,7 +235,7 @@ export const LogsTable = () => {
         headerClassName: "pl-8",
         render: (log: Log) => (
           <div className="flex items-center gap-3 px-2">
-            <WarningIcon status={log.response_status} />
+            <StatusIcon status={log.response_status} />
             <div className="flex-1 min-w-0">{originalRender(log)}</div>
           </div>
         ),

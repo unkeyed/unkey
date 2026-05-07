@@ -1,18 +1,18 @@
 ---
-title: API Key Management
+title: API Keys
 description: "Issue, verify, and manage API keys at any scale with Unkey. Explore key creation, verification, rotation, and access control features."
 ---
 
-API keys are the most common way to authenticate requests to your API. Unkey handles the entire lifecycle — creating keys, verifying them on every request, tracking usage, and revoking them when needed — so you can focus on your actual API logic.
+API keys are the most common way to authenticate requests to your API. Unkey handles the entire lifecycle, creating keys, verifying them on every request, tracking usage, and revoking them when needed, so you can focus on your actual API logic.
 
 ## When to use API keys
 
 API keys work best when you need:
 
-- **Machine-to-machine authentication** — Backend services, scripts, or integrations calling your API
-- **Usage tracking per customer** — Know who's making requests and how many
-- **Simple integration** — A single header (`Authorization: Bearer sk_...`) that developers understand
-- **Granular control** — Per-key rate limits, expiration, and permissions
+- **Machine-to-machine authentication**: Backend services, scripts, or integrations calling your API
+- **Usage tracking per customer**: Know who's making requests and how many
+- **Simple integration**: A single header (`Authorization: Bearer sk_...`) that developers understand
+- **Granular control**: Per-key rate limits, expiration, and permissions
 
 <Note>
   For user-facing authentication (login flows, sessions), you'll typically use
@@ -94,7 +94,7 @@ def handler(request):
     if not result.valid:
         return Response("Unauthorized", status=401)
 
-    # Key is valid — continue with your API logic
+    # Key is valid, continue with your API logic
     return Response("Hello!")
 ```
 
@@ -167,7 +167,7 @@ Unkey keys support much more than basic authentication:
     icon="gauge-high"
     href="/platform/apis/features/ratelimiting/overview"
   >
-    Limit requests per key — per second, minute, hour, or any window.
+    Limit requests per key, per second, minute, hour, or any window.
   </Card>
   <Card
     title="Usage limits"

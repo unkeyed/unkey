@@ -1486,6 +1486,52 @@ type Permission struct {
 	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
 }
 
+type PortalBranding struct {
+	Pk             uint64         `db:"pk"`
+	PortalConfigID string         `db:"portal_config_id"`
+	LogoUrl        sql.NullString `db:"logo_url"`
+	PrimaryColor   sql.NullString `db:"primary_color"`
+	CreatedAt      int64          `db:"created_at"`
+	UpdatedAt      sql.NullInt64  `db:"updated_at"`
+}
+
+type PortalConfiguration struct {
+	Pk          uint64         `db:"pk"`
+	ID          string         `db:"id"`
+	WorkspaceID string         `db:"workspace_id"`
+	AppID       sql.NullString `db:"app_id"`
+	KeyAuthID   sql.NullString `db:"key_auth_id"`
+	Enabled     bool           `db:"enabled"`
+	ReturnUrl   sql.NullString `db:"return_url"`
+	CreatedAt   int64          `db:"created_at"`
+	UpdatedAt   sql.NullInt64  `db:"updated_at"`
+}
+
+type PortalSession struct {
+	Pk             uint64          `db:"pk"`
+	ID             string          `db:"id"`
+	WorkspaceID    string          `db:"workspace_id"`
+	PortalConfigID string          `db:"portal_config_id"`
+	ExternalID     string          `db:"external_id"`
+	Permissions    json.RawMessage `db:"permissions"`
+	Preview        bool            `db:"preview"`
+	ExpiresAt      int64           `db:"expires_at"`
+	CreatedAt      int64           `db:"created_at"`
+}
+
+type PortalSessionToken struct {
+	Pk             uint64          `db:"pk"`
+	ID             string          `db:"id"`
+	WorkspaceID    string          `db:"workspace_id"`
+	PortalConfigID string          `db:"portal_config_id"`
+	ExternalID     string          `db:"external_id"`
+	Permissions    json.RawMessage `db:"permissions"`
+	Preview        bool            `db:"preview"`
+	ExchangedAt    sql.NullInt64   `db:"exchanged_at"`
+	ExpiresAt      int64           `db:"expires_at"`
+	CreatedAt      int64           `db:"created_at"`
+}
+
 type Project struct {
 	Pk               uint64         `db:"pk"`
 	ID               string         `db:"id"`
