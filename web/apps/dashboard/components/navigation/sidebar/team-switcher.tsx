@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSidebar } from "@/components/ui/sidebar";
-import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
+import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies-actions";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 
