@@ -1,5 +1,6 @@
 "use client";
 
+import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import type { TimeseriesData } from "@/components/logs/overview-charts/types";
 import { parseTimestamp } from "@/components/logs/parse-timestamp";
 import { formatTooltipInterval } from "@/components/logs/utils";
@@ -12,7 +13,6 @@ import {
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useId, useMemo } from "react";
 import { Bar, BarChart } from "recharts";
-import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
 import { LogsChartError } from "./components/logs-chart-error";
 

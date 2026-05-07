@@ -22,10 +22,12 @@ export function DeploymentNetworkSection() {
     isLoading: isRpsLoading,
     isError: isRpsError,
   } = useDeploymentRps(deployment.id);
-  const { currentLatency, timeseries: latencyTimeseries, isLoading: isLatencyLoading, isError: isLatencyError } = useDeploymentLatency(
-    deployment.id,
-    latencyPercentile,
-  );
+  const {
+    currentLatency,
+    timeseries: latencyTimeseries,
+    isLoading: isLatencyLoading,
+    isError: isLatencyError,
+  } = useDeploymentLatency(deployment.id, latencyPercentile);
 
   return (
     <Section>
