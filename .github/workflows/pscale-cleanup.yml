@@ -1,0 +1,41 @@
+# Tears down the per-PR PlanetScale branch when a PR closes WITHOUT merging.
+# Merged PRs intentionally leave the branch + deploy request alive so the
+# schema change can still be promoted into staging from the PlanetScale UI.
+name: pscale-cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+env:
+  PSCALE_ORG: unkey
+  PSCALE_DB: unkey
+  BRANCH: pr-${{ github.event.pull_request.number }}
+
+jobs:
+  cleanup:
+    name: delete planetscale branch
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.merged == false
+    timeout-minutes: 5
+    env:
+      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+    steps:
+      - uses: planetscale/setup-pscale-action@v1
+
+      - name: close open deploy requests
+        # Branch deletion fails while a DR is open, so close them first.
+        run: |
+          set -euo pipefail
+          pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
+            | jq -r --arg b "$BRANCH" \
+                '.[] | select(.branch==$b and .state=="open") | .number' \
+            | while read -r num; do
+                pscale deploy-request close "$PSCALE_DB" "$num" --org "$PSCALE_ORG" || true
+              done
+
+      - name: delete branch
+        run: pscale branch delete "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" --force || true

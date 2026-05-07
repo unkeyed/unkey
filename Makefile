@@ -39,6 +39,19 @@ generate-sql:
 	@rm -rf ./web/internal/db/out
 
 
+.PHONY: pscale-branch
+pscale-branch: ## Create PlanetScale branch + run drizzle migration (BRANCH=name [FROM=staging])
+	@if [ -z "$(BRANCH)" ]; then echo "Error: BRANCH is required (e.g., make pscale-branch BRANCH=florian-scratch)"; exit 1; fi
+	@FROM="$${FROM:-staging}"; \
+	pscale branch create unkey "$(BRANCH)" --org unkey --from "$$FROM" --wait \
+		|| pscale branch show unkey "$(BRANCH)" --org unkey >/dev/null; \
+	PW=$$(pscale password create unkey "$(BRANCH)" "local-$$(date +%s)" --org unkey --format json); \
+	USER=$$(echo "$$PW" | jq -r .username); \
+	PASS=$$(echo "$$PW" | jq -r .plain_text); \
+	HOST=$$(echo "$$PW" | jq -r .access_host_url); \
+	DRIZZLE_DATABASE_URL="mysql://$$USER:$$PASS@$$HOST/unkey?ssl={}" \
+		pnpm --dir=web/internal/db run migrate
+
 .PHONY: nuke-docker
 nuke-docker: ## Stop all containers and clean up Docker system
 	docker stop $$(docker ps -aq)

@@ -1,0 +1,91 @@
+# Validates MySQL schema changes by spinning up a per-PR PlanetScale branch
+# off staging, running drizzle-kit push against it, and opening a deploy
+# request for review. The branch is left intact so reviewers can connect to it.
+#
+# Security model: this workflow uses `pull_request` (not `pull_request_target`)
+# so secrets are NEVER exposed to fork PRs. The job-level `if:` further skips
+# the run for forks; maintainers re-run by pushing the branch into
+# unkeyed/unkey.
+name: pscale-pr
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "web/internal/db/src/schema/**"
+      - ".github/workflows/pscale-pr.yml"
+
+concurrency:
+  group: pscale-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  PSCALE_ORG: unkey
+  PSCALE_DB: unkey
+  PSCALE_PARENT: staging
+  BRANCH: pr-${{ github.event.pull_request.number }}
+
+jobs:
+  validate:
+    name: validate schema on planetscale branch
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    timeout-minutes: 15
+    env:
+      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: planetscale/setup-pscale-action@v1
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: install web deps
+        run: pnpm --dir=web install --frozen-lockfile
+
+      - name: ensure planetscale branch
+        # Idempotent: re-runs on PR push reuse the existing branch. We probe
+        # with `branch show` to distinguish "already exists" from real errors.
+        run: |
+          set -euo pipefail
+          if ! pscale branch create "$PSCALE_DB" "$BRANCH" \
+              --org "$PSCALE_ORG" --from "$PSCALE_PARENT" --wait; then
+            pscale branch show "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" >/dev/null
+          fi
+
+      - name: run migration
+        run: |
+          set -euo pipefail
+          PW=$(pscale password create "$PSCALE_DB" "$BRANCH" "ci-${GITHUB_SHA::8}" \
+                 --org "$PSCALE_ORG" --format json)
+          USER=$(echo "$PW" | jq -r .username)
+          PASS=$(echo "$PW" | jq -r .plain_text)
+          HOST=$(echo "$PW" | jq -r .access_host_url)
+          export DRIZZLE_DATABASE_URL="mysql://$USER:$PASS@$HOST/$PSCALE_DB?ssl={}"
+          pnpm --dir=web/internal/db run migrate
+
+      - name: ensure deploy request
+        # Open a DR into staging so reviewers have a one-click promotion
+        # surface. Reuse existing open DR for repeat runs of the same PR.
+        run: |
+          set -euo pipefail
+          EXISTING=$(pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
+            | jq -r --arg b "$BRANCH" --arg p "$PSCALE_PARENT" \
+                '.[] | select(.branch==$b and .into_branch==$p and .state=="open") | .number' \
+            | head -n1)
+          if [ -z "$EXISTING" ]; then
+            pscale deploy-request create "$PSCALE_DB" "$BRANCH" \
+              --org "$PSCALE_ORG" --into "$PSCALE_PARENT" \
+              --notes "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+          else
+            echo "Reusing existing deploy request #$EXISTING"
+          fi
