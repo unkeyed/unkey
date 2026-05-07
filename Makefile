@@ -100,13 +100,13 @@ generate-bpf: ## Compile the heimdall eBPF program and regenerate Go bindings (u
 		go generate -tags bpf_generate ./svc/heimdall/internal/network/...
 
 .PHONY: test
-test: oci-load ## Run tests with bazel
-	docker compose -f ./dev/docker-compose.yaml up -d mysql clickhouse s3 vault --wait
+test: oci-load clean-docker-test ## Run tests with bazel
 	bazel test //...
 	make clean-docker-test
 
 .PHONY: clean-docker-test
 clean-docker-test: ## Clean up dangling test containers
+	@docker rm -vf $$(docker ps -q -f label="owner=testutil-containers") > /dev/null 2>&1 || true
 	@docker rm -vf $$(docker ps -q -f label="owner=dockertest") > /dev/null 2>&1 || true
 
 .PHONY: tunnel
