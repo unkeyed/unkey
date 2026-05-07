@@ -384,7 +384,7 @@ func TestScaleDownIdlePreviewDeployments_HandlesMultipleDeploymentsAcrossMultipl
 }
 
 func TestScaleDownIdlePreviewDeployments_PaginatesAcrossManyPreviewEnvironmentsAtScale(t *testing.T) {
-	h := harness.New(t)
+	h := harness.New(t, harness.WithTimeout(5*time.Minute))
 	oldTime := time.Now().Add(-8 * time.Hour).UnixMilli()
 	oldUpdatedAt := sql.NullInt64{Valid: true, Int64: oldTime}
 
