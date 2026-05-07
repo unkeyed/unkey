@@ -124,7 +124,7 @@ export function MetricCard({
           <ChartWaveLoading height={50} color={config.color} />
         ) : (
           <LogsTimeseriesBarChart
-            chartContainerClassname="px-[14px] border-gray-4"
+            chartContainerClassname="px-[14px] border-gray-3"
             data={chartData.data}
             config={{
               [chartData.dataKey]: {
