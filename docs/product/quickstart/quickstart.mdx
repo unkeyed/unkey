@@ -6,14 +6,14 @@ description: "Get started with Unkey in under 5 minutes. Create an API namespace
 This guide gets you from zero to a working API key verification as fast as possible. We'll create a key, then verify it using your preferred method.
 
 <Note>
-  Need an account? [Sign up free](https://app.unkey.com) — takes 30 seconds.
+  Need an account? [Sign up free](https://app.unkey.com), takes 30 seconds.
 </Note>
 
 ## 1. Create an API
 
 An API in Unkey is a container for your keys. Head to your [dashboard](https://app.unkey.com/apis) and create one, or use one you already have.
 
-Copy your **API ID** — it looks like `api_xxxx`.
+Copy your **API ID**, it looks like `api_xxxx`.
 
 ## 2. Create a root key
 
@@ -22,7 +22,7 @@ Root keys authenticate _your_ requests to the Unkey API (for creating and managi
 1. Go to Workspace Settings → Root Keys
 2. Click **Create New Root Key**
 3. Give it a name and select the permissions you need
-4. Copy the key — you won't see it again
+4. Copy the key, you won't see it again
 
 <Warning>
   Keep your root key secret. Never expose it in client-side code or commit it to
@@ -51,7 +51,7 @@ import { Unkey } from "@unkey/api";
 const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
 
 try {
-  const { meta, data } = await unkey.keys.create({
+  const { meta, data } = await unkey.keys.createKey({
     apiId: "api_xxxx",
     name: "My First Key",
   });
@@ -111,7 +111,7 @@ func stringPtr(s string) *string { return &s }
 
 </CodeGroup>
 
-Save the returned `key` value — that's what you'll verify in the next step.
+Save the returned `key` value, that's what you'll verify in the next step.
 
 ## 4. Verify the key
 
@@ -129,10 +129,12 @@ curl -X POST https://api.unkey.com/v2/keys.verifyKey \
 ```
 
 ```typescript TypeScript
-import { verifyKey } from "@unkey/api";
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY! });
 
 try {
-  const { meta, data } = await verifyKey({
+  const { data } = await unkey.keys.verifyKey({
     key: "THE_KEY_FROM_STEP_3",
   });
 
@@ -141,7 +143,7 @@ try {
     console.log("Denied:", data.code);
   }
 
-  // Key is valid — continue with your API logic
+  // Key is valid, continue with your API logic
   console.log("Key ID:", data.keyId);
 } catch (err) {
   console.error(err);
@@ -259,7 +261,7 @@ Now integrate Unkey into your actual application:
     Fast verification with Bun's native server
   </Card>
   <Card title="Hono" icon="fire" href="/quickstart/apis/hono">
-    Edge-ready API key verification
+    Globally distributed API key verification
   </Card>
 </CardGroup>
 

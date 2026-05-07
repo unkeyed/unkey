@@ -9,12 +9,7 @@
     "primary": "#666666"
   },
   "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude"
-    ]
+    "options": ["copy", "view", "chatgpt", "claude"]
   },
   "favicon": "/unkey.png",
   "fonts": {
@@ -59,6 +54,7 @@
       "type": "github"
     }
   },
+  "description": "Unkey API development platform. Deploy and secure APIs instantly, route traffic through global gateways, and understand usage in one place.",
   "navigation": {
     "tabs": [
       {
@@ -67,8 +63,9 @@
             "group": "Getting Started",
             "pages": [
               "introduction",
-              "quickstart/quickstart",
               "quickstart/deploy",
+              "quickstart/quickstart",
+              "quickstart/portal",
               "glossary"
             ]
           },
@@ -97,10 +94,7 @@
               },
               {
                 "group": "Apps",
-                "pages": [
-                  "platform/apps/overview",
-                  "platform/apps/settings"
-                ]
+                "pages": ["platform/apps/overview", "platform/apps/settings"]
               },
               {
                 "group": "Identities",
@@ -111,9 +105,7 @@
               },
               {
                 "group": "Instances",
-                "pages": [
-                  "platform/instances/overview"
-                ]
+                "pages": ["platform/instances/overview"]
               },
               {
                 "group": "Keys",
@@ -170,9 +162,7 @@
                       "platform/sentinel/principal/overview",
                       {
                         "group": "Sources",
-                        "pages": [
-                          "platform/sentinel/principal/sources/api-key"
-                        ]
+                        "pages": ["platform/sentinel/principal/sources/api-key"]
                       },
                       "platform/sentinel/principal/examples",
                       "platform/sentinel/principal/local-development"
@@ -229,6 +219,7 @@
               "networking/domains",
               "networking/private-networking",
               "networking/public-networking",
+              "networking/websockets",
               "networking/wildcard-domains"
             ]
           },
@@ -247,9 +238,7 @@
             "expanded": false,
             "group": "CLI",
             "icon": "terminal",
-            "pages": [
-              "cli/overview"
-            ]
+            "pages": ["cli/overview"]
           },
           {
             "expanded": false,
@@ -297,7 +286,6 @@
                   "cookbook/go-gin-middleware",
                   "cookbook/go-echo-middleware",
                   "cookbook/fastapi-auth",
-                  "cookbook/python-flask-auth",
                   "cookbook/usage-billing",
                   "cookbook/tiered-subscriptions"
                 ]
@@ -323,8 +311,7 @@
                     "group": "Cookbook",
                     "pages": [
                       "cookbook/per-user-ratelimit",
-                      "cookbook/endpoint-ratelimit",
-                      "cookbook/python-fastapi-ratelimit"
+                      "cookbook/endpoint-ratelimit"
                     ]
                   }
                 ]
@@ -352,10 +339,7 @@
             "expanded": false,
             "group": "Audit Logs",
             "icon": "scroll",
-            "pages": [
-              "audit-log/introduction",
-              "audit-log/types"
-            ]
+            "pages": ["audit-log/introduction", "audit-log/types"]
           },
           {
             "group": "CLI",
@@ -365,9 +349,7 @@
               "cli/authentication",
               {
                 "group": "auth",
-                "pages": [
-                  "cli/auth/login"
-                ]
+                "pages": ["cli/auth/login"]
               },
               {
                 "group": "apis",
@@ -434,9 +416,7 @@
               },
               {
                 "group": "analytics",
-                "pages": [
-                  "cli/analytics/get-verifications"
-                ]
+                "pages": ["cli/analytics/get-verifications"]
               }
             ]
           },
@@ -465,7 +445,9 @@
                     "pages": [
                       "errors/unkey/authentication/key_not_found",
                       "errors/unkey/authentication/malformed",
-                      "errors/unkey/authentication/missing"
+                      "errors/unkey/authentication/missing",
+                      "errors/unkey/authentication/portal_session_not_found",
+                      "errors/unkey/authentication/portal_token_missing"
                     ]
                   },
                   {
@@ -492,6 +474,7 @@
                       "errors/unkey/data/migration_not_found",
                       "errors/unkey/data/permission_already_exists",
                       "errors/unkey/data/permission_not_found",
+                      "errors/unkey/data/portal_config_not_found",
                       "errors/unkey/data/project_not_found",
                       "errors/unkey/data/ratelimit_namespace_gone",
                       "errors/unkey/data/ratelimit_namespace_not_found",
@@ -600,17 +583,11 @@
               },
               {
                 "group": "Go",
-                "pages": [
-                  "libraries/go/overview",
-                  "libraries/go/api"
-                ]
+                "pages": ["libraries/go/overview", "libraries/go/api"]
               },
               {
                 "group": "Python",
-                "pages": [
-                  "libraries/py/overview",
-                  "libraries/py/api"
-                ]
+                "pages": ["libraries/py/overview", "libraries/py/api"]
               }
             ]
           },
@@ -619,9 +596,7 @@
             "pages": [
               {
                 "group": "Nuxt",
-                "pages": [
-                  "libraries/nuxt/overview"
-                ]
+                "pages": ["libraries/nuxt/overview"]
               }
             ]
           }

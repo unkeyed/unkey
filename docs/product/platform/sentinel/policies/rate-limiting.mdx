@@ -20,7 +20,7 @@ You can create and manage rate limit policies from the **Sentinel Policies** pag
 - **Limit**: the maximum number of requests allowed in the window
 - **Window**: the time window in which the limit applies (for example, 60 seconds)
 - **Identifier**: how the Sentinel determines which requests share a rate limit bucket
-- **Match conditions**: which requests the policy applies to (optional — an empty match list applies to all requests)
+- **Match conditions**: which requests the policy applies to (optional, an empty match list applies to all requests)
 
 Place authentication policies before rate limit policies in your policy list if you want to use an authenticated identifier (such as the authenticated subject or a principal field).
 

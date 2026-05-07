@@ -7,7 +7,7 @@ import DeployBeta from "/snippets/deploy-beta.mdx";
 
 <DeployBeta />
 
-Unkey gives you two first-class ways to ship code: connect a [GitHub repository](/build-and-deploy/github) and let Unkey build and deploy on every push, or build the image yourself and push it with [`unkey deploy`](/build-and-deploy/cli). Both produce the same deployment artifact — an immutable version running in an [environment](/environments/overview) with a commit-scoped domain. The difference is who owns the build.
+Unkey gives you two first-class ways to ship code: connect a [GitHub repository](/build-and-deploy/github) and let Unkey build and deploy on every push, or build the image yourself and push it with [`unkey deploy`](/build-and-deploy/cli). Both produce the same deployment artifact, an immutable version running in an [environment](/environments/overview) with a commit-scoped domain. The difference is who owns the build.
 
 This page helps you pick the right path.
 
@@ -26,15 +26,15 @@ This page helps you pick the right path.
 
 | Capability                       | GitHub integration                                              | CLI (`unkey deploy`)                                        |
 | -------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------- |
-| **Who builds the image**         | Unkey, using your `Dockerfile` on every push                    | You (locally, in CI, or wherever) — Unkey pulls a tag       |
+| **Who builds the image**         | Unkey, using your `Dockerfile` on every push                    | You (locally, in CI, or wherever), Unkey pulls a tag       |
 | **Trigger**                      | `git push` (webhook)                                            | You run a command                                           |
 | **Repository required**          | Yes, connected to the Unkey GitHub App                          | No                                                          |
 | **Preview per branch**           | Automatic on every non-default branch                           | You call `--env=preview` (or any environment) explicitly    |
 | **Build logs**                   | Streamed to the dashboard in real time                          | Wherever you run the build (your CI logs, your terminal)    |
-| **Build concurrency quota**      | Counts against workspace [`max_concurrent_builds`](/build-and-deploy/deployments#build-concurrency) | Does not count — the build happens outside Unkey            |
-| **Watch paths** (skip irrelevant changes) | Supported — configure in app settings                   | Not applicable — you decide when to call the CLI            |
+| **Build concurrency quota**      | Counts against workspace [`max_concurrent_builds`](/build-and-deploy/deployments#build-concurrency) | Does not count, the build happens outside Unkey            |
+| **Watch paths** (skip irrelevant changes) | Supported, configure in app settings                   | Not applicable, you decide when to call the CLI            |
 | **Fork protection**              | Built-in: PRs from forks require approval                       | Not applicable                                              |
-| **Superseded cancellation**      | Queued builds auto-cancel when a newer commit lands             | Not applicable — you control cadence                        |
+| **Superseded cancellation**      | Queued builds auto-cancel when a newer commit lands             | Not applicable, you control cadence                        |
 | **Works without GitHub**         | No                                                              | Yes (any Git provider, or no Git at all)                    |
 | **Reproducible local deploys**   | Indirect (push, then wait)                                      | Direct (run the same command you'd run in CI)               |
 | **Ideal for**                    | Product apps, preview URLs per PR, fast iteration               | CI-driven release pipelines, monorepos, custom build graphs |
@@ -45,7 +45,7 @@ Connect a repository when you want push-to-deploy with no additional infrastruct
 
 - **Product-style apps** where every PR should get its own preview URL automatically.
 - **Small teams** that don't want to run or maintain a separate CI pipeline for builds.
-- **Fast iteration** during early development — you push, Unkey deploys, done.
+- **Fast iteration** during early development, you push, Unkey deploys, done.
 - You need [fork protection](/build-and-deploy/github#fork-protection) for open-source repositories.
 - You want [watch paths](/build-and-deploy/github#watch-paths) to skip builds for doc-only changes.
 
@@ -59,10 +59,10 @@ Reach for `unkey deploy` when you need control over the build step, or when conn
 
 If you're building images in GitHub Actions, GitLab CI, CircleCI, Buildkite, or anything else, you've likely invested in:
 
-- **Custom build steps** — code generation, compilation, asset bundling, SBOM generation, vulnerability scans.
-- **Build caching** — layer caches, dependency caches, test fixtures.
-- **Test gates** — unit, integration, and end-to-end tests that must pass before shipping.
-- **Artifact signing** — Cosign, Sigstore, or organization-internal signing.
+- **Custom build steps**: code generation, compilation, asset bundling, SBOM generation, vulnerability scans.
+- **Build caching**: layer caches, dependency caches, test fixtures.
+- **Test gates**: unit, integration, and end-to-end tests that must pass before shipping.
+- **Artifact signing**: Cosign, Sigstore, or organization-internal signing.
 
 Rebuilding the same image on Unkey's side is wasted time and compute. The CLI lets your existing pipeline produce the image once and then deploy it:
 

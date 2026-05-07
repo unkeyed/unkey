@@ -3,7 +3,7 @@ title: Temporary Keys
 description: "Create temporary API keys that automatically expire after a set duration. Use expiring keys for trials, short-lived sessions, or demos."
 ---
 
-Temporary keys automatically become invalid after a specified time. No cleanup required — Unkey handles expiration and deletion for you.
+Temporary keys automatically become invalid after a specified time. No cleanup required, Unkey handles expiration and deletion for you.
 
 ## When to use this
 
@@ -53,7 +53,7 @@ curl -X POST https://api.unkey.com/v2/keys.createKey \
 const expires = Date.now() + 24 * 60 * 60 * 1000;
 
 try {
-  const { meta, data } = await unkey.keys.create({
+  const { meta, data } = await unkey.keys.createKey({
     apiId: "api_...",
     expires,
   });
@@ -124,7 +124,7 @@ curl -X POST https://api.unkey.com/v2/keys.updateKey \
 ```typescript TypeScript
 // Extend by 7 more days from now
 try {
-  const { meta, data } = await unkey.keys.update({
+  const { meta, data } = await unkey.keys.updateKey({
     keyId: "key_...",
     expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
   });
@@ -157,7 +157,7 @@ Temporary keys work with all other key features:
 ```typescript
 // 7-day trial with 1000 requests and rate limiting
 try {
-  const { meta, data } = await unkey.keys.create({
+  const { meta, data } = await unkey.keys.createKey({
     apiId: "api_...",
     expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
     credits: {

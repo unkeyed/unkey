@@ -9,6 +9,7 @@ import { Focus, Key } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   Checkbox,
+  ExpiresCell,
   HiddenValueCell,
   InfoTooltip,
   Loading,
@@ -35,6 +36,7 @@ export const API_KEY_COLUMN_IDS = {
   VALUE: "value",
   USAGE: "usage",
   LAST_USED: "last_used",
+  EXPIRES: "expires",
   STATUS: "status",
   ACTION: "action",
 } as const;
@@ -196,7 +198,10 @@ export const createApiKeyColumns = ({
       </SortableHeader>
     ),
     meta: {
-      width: "20%",
+      width: {
+        min: 200,
+        max: 400,
+      },
       headerClassName: "pl-[18px]",
     },
     cell: ({ row }) => {
@@ -224,7 +229,10 @@ export const createApiKeyColumns = ({
       </SortableHeader>
     ),
     meta: {
-      width: "15%",
+      width: {
+        min: 200,
+        max: 400,
+      },
     },
     cell: ({ row }) => {
       const key = row.original;
@@ -238,7 +246,10 @@ export const createApiKeyColumns = ({
     header: "Usage in last 36h",
     enableSorting: false,
     meta: {
-      width: "20%",
+      width: {
+        min: 200,
+        max: 400,
+      },
     },
     cell: ({ row }) => {
       const key = row.original;
@@ -261,7 +272,10 @@ export const createApiKeyColumns = ({
       </SortableHeader>
     ),
     meta: {
-      width: "15%",
+      width: {
+        min: 140,
+        max: 400,
+      },
     },
     cell: ({ row }) => {
       const key = row.original;
@@ -269,11 +283,34 @@ export const createApiKeyColumns = ({
     },
   },
   {
+    id: API_KEY_COLUMN_IDS.EXPIRES,
+    accessorKey: "expires",
+    sortDescFirst: true,
+    header: ({ header }) => (
+      <SortableHeader key={API_KEY_COLUMN_IDS.EXPIRES} header={header}>
+        Expires
+      </SortableHeader>
+    ),
+    meta: {
+      width: {
+        min: 140,
+        max: 400,
+      },
+    },
+    cell: ({ row }) => {
+      const key = row.original;
+      return <ExpiresCell expiresAt={key.expires} isSelected={key.id === selectedKeyId} />;
+    },
+  },
+  {
     id: API_KEY_COLUMN_IDS.STATUS,
     header: "Status",
     enableSorting: false,
     meta: {
-      width: "15%",
+      width: {
+        min: 140,
+        max: 300,
+      },
     },
     cell: ({ row }) => {
       const key = row.original;
@@ -287,11 +324,14 @@ export const createApiKeyColumns = ({
     header: "",
     enableSorting: false,
     meta: {
-      width: "15%",
+      width: {
+        min: 140,
+        max: 400,
+      },
     },
     cell: ({ row }) => {
       const key = row.original;
-      return <KeysTableActionPopover keyData={key} />;
+      return <KeysTableActionPopover keyData={key} apiId={apiId} keyspaceId={keyspaceId} />;
     },
   },
 ];

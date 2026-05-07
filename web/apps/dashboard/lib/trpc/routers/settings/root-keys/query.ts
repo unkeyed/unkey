@@ -1,5 +1,5 @@
 import { rootKeysQueryPayload } from "@/components/root-keys-table/schema/query-logs.schema";
-import { and, asc, count, db, desc, eq, exists, isNull, like, or, schema } from "@/lib/db";
+import { and, asc, count, db, desc, eq, exists, gt, isNull, like, or, schema } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -14,6 +14,7 @@ const RootKeyResponse = z.object({
   start: z.string(),
   createdAt: z.number(),
   lastUpdatedAt: z.number().nullable(),
+  expires: z.number().nullable(),
   name: z.string().nullable(),
   permissionSummary: z.object({
     total: z.number(),
@@ -45,6 +46,7 @@ export const queryRootKeys = workspaceProcedure
     const baseConditions = [
       eq(schema.keys.forWorkspaceId, ctx.workspace.id),
       isNull(schema.keys.deletedAtM),
+      or(isNull(schema.keys.expires), gt(schema.keys.expires, new Date())),
     ];
 
     // Build filter conditions
@@ -163,6 +165,7 @@ export const queryRootKeys = workspaceProcedure
             start: true,
             createdAtM: true,
             updatedAtM: true,
+            expires: true,
             name: true,
           },
           with: {
@@ -200,6 +203,7 @@ export const queryRootKeys = workspaceProcedure
           start: key.start,
           createdAt: key.createdAtM,
           lastUpdatedAt: key.updatedAtM,
+          expires: key.expires ? key.expires.getTime() : null,
           name: key.name,
           permissionSummary,
           permissions,
