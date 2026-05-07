@@ -56,7 +56,7 @@ export function NodeDetailsPanel({ node, deploymentId, onClose }: Props) {
       onClose={onClose}
       side="right"
       widthClassName="w-[600px]"
-      backdrop="dim"
+      backdrop={false}
       topOffset={140}
       fitContent
     >
