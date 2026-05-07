@@ -37,6 +37,7 @@ go_test(
     srcs = [
         "billable_usage_test.go",
         "errors_test.go",
+        "instance_events_test.go",
         "key_verifications_test.go",
         "ratelimits_test.go",
         "testutil_test.go",
