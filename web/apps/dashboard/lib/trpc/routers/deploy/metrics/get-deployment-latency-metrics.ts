@@ -2,11 +2,14 @@ import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import { percentileSchema } from "@unkey/clickhouse/src/sentinel";
+import {
+  TIMESERIES_INTERVAL_MINUTES,
+  TIMESERIES_WINDOW_HOURS,
+  percentileSchema,
+} from "@unkey/clickhouse/src/sentinel";
 import { z } from "zod";
 
-const WINDOW_HOURS = 6;
-const INTERVAL_MS = 15 * 60 * 1000;
+const INTERVAL_MS = TIMESERIES_INTERVAL_MINUTES * 60 * 1000;
 
 export const getDeploymentLatencyMetrics = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -81,7 +84,7 @@ export const getDeploymentLatencyMetrics = workspaceProcedure
 // 15-min slots in JS. Matches the CH WITH FILL range: [start, now) exclusive.
 function fillGaps(points: { x: number; y: number }[]): { x: number; y: number }[] {
   const now = Date.now();
-  const start = now - WINDOW_HOURS * 60 * 60 * 1000;
+  const start = now - TIMESERIES_WINDOW_HOURS * 60 * 60 * 1000;
   const firstBucket = Math.floor(start / INTERVAL_MS) * INTERVAL_MS;
   const lastBucket = Math.floor(now / INTERVAL_MS) * INTERVAL_MS;
 

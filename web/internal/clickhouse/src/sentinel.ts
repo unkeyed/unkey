@@ -1,8 +1,8 @@
 import { z } from "zod";
 import type { Querier } from "./client";
 
-const TIMESERIES_WINDOW_HOURS = 6;
-const TIMESERIES_INTERVAL_MINUTES = 15;
+export const TIMESERIES_WINDOW_HOURS = 6;
+export const TIMESERIES_INTERVAL_MINUTES = 15;
 const TIMESERIES_INTERVAL_SECONDS = TIMESERIES_INTERVAL_MINUTES * 60;
 const CURRENT_RPS_WINDOW_MINUTES = 15;
 const CURRENT_RPS_WINDOW_MS = CURRENT_RPS_WINDOW_MINUTES * 60 * 1000;
@@ -39,14 +39,6 @@ const SQL = {
 } as const;
 
 type PercentileKey = "p50" | "p75" | "p90" | "p95" | "p99";
-
-const LATENCY_COLUMN: Record<PercentileKey, string> = {
-  p50: "latency_p50",
-  p75: "latency_p75",
-  p90: "latency_p90",
-  p95: "latency_p95",
-  p99: "latency_p99",
-};
 
 const LATENCY_MERGE: Record<PercentileKey, string> = {
   p50: "round(quantileTDigestMerge(0.5)(latency_p50), 2)",
