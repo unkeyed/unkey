@@ -1,4 +1,4 @@
-import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
+import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies-actions";
 import { slugify } from "@/lib/slugify";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
