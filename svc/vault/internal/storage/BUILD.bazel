@@ -27,7 +27,7 @@ go_test(
     ],
     embed = [":storage"],
     deps = [
-        "//pkg/dockertest",
+        "//pkg/testutil/containers",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],
@@ -39,7 +39,7 @@ go_test(
     srcs = ["s3_test.go"],
     embed = [":storage"],
     deps = [
-        "//pkg/dockertest",
+        "//pkg/testutil/containers",
         "@com_github_stretchr_testify//require",
     ],
 )
