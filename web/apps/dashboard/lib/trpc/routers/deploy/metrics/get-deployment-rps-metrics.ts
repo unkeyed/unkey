@@ -29,32 +29,30 @@ export const getDeploymentRpsMetrics = workspaceProcedure
         });
       }
 
-      try {
-        const result = await clickhouse.sentinel.rps.timeseries({
-          workspaceId: ctx.workspace.id,
-          projectId: deployment.projectId,
-          deploymentId: input.deploymentId,
-          environmentId: deployment.environmentId,
+      const result = await clickhouse.sentinel.rps.timeseries({
+        workspaceId: ctx.workspace.id,
+        projectId: deployment.projectId,
+        deploymentId: input.deploymentId,
+        environmentId: deployment.environmentId,
+      });
+
+      if (result.err) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch deployment RPS metrics",
+          cause: result.err,
         });
-
-        if (result.err) {
-          console.warn("Failed to fetch deployment RPS metrics from ClickHouse", result.err);
-          return { current: 0, timeseries: [] };
-        }
-
-        // Average ALL buckets (including zeros) so RPS decays naturally
-        // when traffic stops, matching total_requests / window_duration.
-        const points = result.val;
-        const current =
-          points.length > 0
-            ? Math.round((points.reduce((s, p) => s + p.y, 0) / points.length) * 100) / 100
-            : 0;
-
-        return { current, timeseries: points };
-      } catch (chError) {
-        console.warn("Failed to fetch deployment RPS metrics from ClickHouse", chError);
-        return { current: 0, timeseries: [] };
       }
+
+      // Average ALL buckets (including zeros) so RPS decays naturally
+      // when traffic stops, matching total_requests / window_duration.
+      const points = result.val;
+      const current =
+        points.length > 0
+          ? Math.round((points.reduce((s, p) => s + p.y, 0) / points.length) * 100) / 100
+          : 0;
+
+      return { current, timeseries: points };
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;

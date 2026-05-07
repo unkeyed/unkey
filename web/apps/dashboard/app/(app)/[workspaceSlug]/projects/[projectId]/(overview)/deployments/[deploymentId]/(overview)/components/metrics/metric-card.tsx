@@ -1,8 +1,10 @@
+import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import type { TimeseriesData } from "@/components/logs/overview-charts/types";
 import type { IconProps } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { ComponentType } from "react";
 import { LogsTimeseriesBarChart } from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart";
+import { ChartWaveLoading } from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart/components/chart-wave-loading";
 import { MetricSelect } from "./metric-select";
 
 type MetricType = "latency" | "rps";
@@ -48,6 +50,8 @@ type MetricCardProps = {
   timeWindow?: {
     chart: string;
   };
+  isLoading?: boolean;
+  isError?: boolean;
 };
 
 export function MetricCard({
@@ -59,6 +63,8 @@ export function MetricCard({
   percentile,
   onPercentileChange,
   timeWindow,
+  isLoading = false,
+  isError = false,
 }: MetricCardProps) {
   const config = METRIC_CONFIGS[metricType];
   const parts = formatMetricParts(metricType, currentValue, config.unit);
@@ -107,19 +113,30 @@ export function MetricCard({
           background: `linear-gradient(to top, color-mix(in srgb, ${config.color} 6%, transparent), transparent)`,
         }}
       >
-        <LogsTimeseriesBarChart
-          chartContainerClassname="px-[14px] border-gray-4"
-          data={chartData.data}
-          config={{
-            [chartData.dataKey]: {
-              label: config.label,
-              color: config.color,
-            },
-          }}
-          height={50}
-          isLoading={false}
-          isError={false}
-        />
+        {isError ? (
+          <ChartEmpty
+            variant="wave"
+            color={config.color}
+            height={50}
+            message={`Failed to load ${config.label.toLowerCase()} metrics`}
+          />
+        ) : isLoading ? (
+          <ChartWaveLoading height={50} color={config.color} />
+        ) : (
+          <LogsTimeseriesBarChart
+            chartContainerClassname="px-[14px] border-gray-4"
+            data={chartData.data}
+            config={{
+              [chartData.dataKey]: {
+                label: config.label,
+                color: config.color,
+              },
+            }}
+            height={50}
+            isLoading={false}
+            isError={false}
+          />
+        )}
         {timeWindow?.chart && (
           <span className="text-grayA-11 text-[10px] px-[14px] my-1">{timeWindow.chart}</span>
         )}
