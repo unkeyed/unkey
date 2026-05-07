@@ -215,6 +215,52 @@ var (
 		},
 		[]string{"component"},
 	)
+
+	// InstanceEventsEmittedTotal counts container lifecycle events
+	// successfully reported to the control plane.
+	//
+	// Labels:
+	//   - "kind": "terminated" or "crashloop_backoff"
+	//   - "reason": kubelet-supplied reason ("OOMKilled", "Error",
+	//     "ContainerCannotRun", "CrashLoopBackOff", ...)
+	InstanceEventsEmittedTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "instance_events_emitted_total",
+			Help:      "Container lifecycle events successfully reported via ReportInstanceEvents.",
+		},
+		[]string{"kind", "reason"},
+	)
+
+	// InstanceEventsDedupDroppedTotal counts events dropped by the
+	// in-memory LRU because the same (pod_uid, container_name,
+	// restart_count, event_kind) tuple was already reported. Healthy
+	// counter — every pod-watch tick after the first will hit dedup.
+	//
+	// Labels:
+	//   - "kind": "terminated" or "crashloop_backoff"
+	InstanceEventsDedupDroppedTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "instance_events_dedup_dropped_total",
+			Help:      "Container lifecycle events skipped because the LRU already saw them.",
+		},
+		[]string{"kind"},
+	)
+
+	// InstanceEventsReportFailuresTotal counts ReportInstanceEvents RPC
+	// transport failures. Should track the existing krane→ctrl RPC
+	// failure rate; a divergence means something specific to this RPC.
+	InstanceEventsReportFailuresTotal = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "instance_events_report_failures_total",
+			Help:      "ReportInstanceEvents RPC transport failures.",
+		},
+	)
 )
 
 // RecordReconcile records a reconciliation operation result. Intended for use

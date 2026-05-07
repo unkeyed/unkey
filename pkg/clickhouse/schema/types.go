@@ -235,6 +235,47 @@ func (a InstanceCheckpointAttributes) Marshal() string {
 	return string(b)
 }
 
+// InstanceEventV1 represents the v1 instance event raw table structure.
+// Captured by krane's pod watch on container running, termination, and
+// waiting (CrashLoopBackOff, ImagePullBackOff, …) transitions. Mirrors
+// corev1.ContainerState; the proto wire format uses a oneof, the CH table
+// is the flat materialized view ctrl writes from that oneof.
+type InstanceEventV1 struct {
+	Time          int64  `ch:"time" json:"time"`
+	WorkspaceID   string `ch:"workspace_id" json:"workspace_id"`
+	ProjectID     string `ch:"project_id" json:"project_id"`
+	AppID         string `ch:"app_id" json:"app_id"`
+	EnvironmentID string `ch:"environment_id" json:"environment_id"`
+	DeploymentID  string `ch:"deployment_id" json:"deployment_id"`
+
+	PodUID        string `ch:"pod_uid" json:"pod_uid"`
+	PodName       string `ch:"pod_name" json:"pod_name"`
+	NodeName      string `ch:"node_name" json:"node_name"`
+	ContainerName string `ch:"container_name" json:"container_name"`
+	ContainerID   string `ch:"container_id" json:"container_id"`
+	RestartCount  int32  `ch:"restart_count" json:"restart_count"`
+
+	EventKind string `ch:"event_kind" json:"event_kind"`
+
+	ExitCode int32  `ch:"exit_code" json:"exit_code"`
+	Signal   int32  `ch:"signal" json:"signal"`
+	Reason   string `ch:"reason" json:"reason"`
+	Message  string `ch:"message" json:"message"`
+
+	Region   string `ch:"region" json:"region"`
+	Platform string `ch:"platform" json:"platform"`
+
+	EventFingerprint string `ch:"event_fingerprint" json:"event_fingerprint"`
+
+	// Attributes carries selected k8s metadata for the event row (image,
+	// resource limits, build_id, …) as a JSON-encoded string. ctrl marshals
+	// the proto map<string,string> into JSON before queuing the row so the
+	// CH JSON column receives valid JSON (empty map → "{}"). The string
+	// shape sidesteps a clickhouse-go quirk where AppendStruct doesn't
+	// reliably auto-serialize Go maps into JSON columns.
+	Attributes string `ch:"attributes" json:"attributes"`
+}
+
 // SentinelRequest represents the v1 sentinel request raw table structure.
 // This tracks requests routed through sentinel proxy to deployment instances
 // with deployment routing, performance breakdown, and error categorization.

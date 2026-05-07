@@ -6,7 +6,9 @@ import (
 
 	"github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -62,6 +64,10 @@ type Service struct {
 	// findTopologyMinReplicas) because a missed race against the
 	// topology write must be retried, not sealed in.
 	topologyCache cache.Cache[string, []db.FindDeploymentTopologyMinReplicasRow]
+	// instanceEvents buffers container lifecycle events from krane before
+	// flushing them to ClickHouse. Always non-nil — if ClickHouse isn't
+	// configured for the api process this is a noop processor.
+	instanceEvents *batch.BatchProcessor[schema.InstanceEventV1]
 }
 
 // Config holds the configuration for creating a new cluster [Service].
@@ -82,6 +88,11 @@ type Config struct {
 	// TopologyCache backs FindDeploymentTopologyMinReplicas lookups on
 	// the notify-ready path. Required.
 	TopologyCache cache.Cache[string, []db.FindDeploymentTopologyMinReplicasRow]
+
+	// InstanceEvents is the batch processor that absorbs container
+	// lifecycle events for ClickHouse ingestion. Required — pass a noop
+	// (batch.NewNoop) when ClickHouse is unavailable.
+	InstanceEvents *batch.BatchProcessor[schema.InstanceEventV1]
 }
 
 // New creates a new cluster [Service] with the given configuration. The returned service
@@ -89,6 +100,15 @@ type Config struct {
 // started that periodically drops stale entries from notifiedReady so the
 // set doesn't grow unbounded.
 func New(cfg Config) (*Service, error) {
+	// Required dependencies are validated up-front so misconfiguration
+	// fails the boot loud instead of nil-panicking on the first event.
+	if cfg.TopologyCache == nil {
+		return nil, fmt.Errorf("cluster: TopologyCache is required")
+	}
+	if cfg.InstanceEvents == nil {
+		return nil, fmt.Errorf("cluster: InstanceEvents is required (use batch.NewNoop when ClickHouse is unavailable)")
+	}
+
 	clk := cfg.Clock
 	if clk == nil {
 		clk = clock.New()
@@ -111,6 +131,7 @@ func New(cfg Config) (*Service, error) {
 		notifiedReady:                      newExpiringSet[string](notifiedReadyTTL),
 		regionCache:                        regionCache,
 		topologyCache:                      cfg.TopologyCache,
+		instanceEvents:                     cfg.InstanceEvents,
 	}
 	repeat.Every(notifiedReadyTTL, func() {
 		if dropped := s.notifiedReady.Sweep(); dropped > 0 {
