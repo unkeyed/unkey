@@ -21,22 +21,11 @@ export async function POST(request: Request) {
   const signature = request.headers.get("github-public-key-signature");
   const keyId = request.headers.get("github-public-key-identifier");
   const rawBody = await request.text();
+  const data = JSON.parse(rawBody);
 
-  if (!signature || !keyId) {
+  if (!signature || !keyId || !data) {
     return NextResponse.json({ Error: "Invalid webhook request" }, { status: 400 });
   }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(rawBody);
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-  const validated = githubLeakedKeySchema.safeParse(parsed);
-  if (!validated.success) {
-    return NextResponse.json({ error: "Invalid webhook payload" }, { status: 400 });
-  }
-  const data = validated.data;
 
   const isGithubVerified = await verifyGitSignature(rawBody, signature, keyId, GITHUB_KEYS_URI);
   if (!isGithubVerified) {
