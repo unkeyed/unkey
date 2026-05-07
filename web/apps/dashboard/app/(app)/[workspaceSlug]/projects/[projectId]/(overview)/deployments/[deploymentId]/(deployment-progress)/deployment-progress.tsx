@@ -83,8 +83,8 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
       }
       buildStepsPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
-    // SettingCard expand animation runs ~300ms; wait for it before scrolling
-    // so the panel has real height to scroll to.
+    // Wait out the SettingCard expand animation so the panel has real
+    // height to scroll to.
     if (wasExpanded) {
       focusAndScroll();
     } else {

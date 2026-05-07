@@ -21,8 +21,6 @@ type SettingCardProps = {
   iconClassName?: string;
   expandable?: React.ReactNode;
   defaultExpanded?: boolean;
-  // Pass `expanded` + `onExpandedChange` to control the open state from
-  // outside; otherwise `defaultExpanded` initializes the internal state.
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
   chevronState?: ChevronState;

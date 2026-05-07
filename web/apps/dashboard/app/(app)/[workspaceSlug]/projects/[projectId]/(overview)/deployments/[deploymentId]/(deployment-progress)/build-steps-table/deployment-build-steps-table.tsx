@@ -18,8 +18,7 @@ type Props = {
   steps: BuildStepRow[];
   isLoading: boolean;
   fixedHeight?: number;
-  // Callers append `#<nonce>` to re-trigger on repeat clicks; the prefix
-  // (before `#`) is the step id.
+  // Callers append `#<nonce>` so repeat clicks re-trigger the effect.
   focusStepId?: string | null;
 };
 
@@ -38,8 +37,6 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({
     }
     const stepId = focusStepId.split("#")[0];
     setExpandedIds((prev) => (prev.has(stepId) ? prev : new Set(prev).add(stepId)));
-    // Two rAFs: first lets React flush state, second lets the SettingCard
-    // expand animation render the new row before we scroll to it.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         containerRef.current
