@@ -218,9 +218,7 @@ export class LayoutEngine<T extends TreeNode> {
         });
       } else {
         // HORIZONTAL: Children spread horizontally beside parent (left to right)
-        const subtreeBounds = node.children.map((child) =>
-          this.calculateSubtreeBounds(child as T),
-        );
+        const subtreeBounds = node.children.map((child) => this.calculateSubtreeBounds(child as T));
         const subtreeWidths = subtreeBounds.map((b) => b.width);
 
         node.children.forEach((child, index) => {
