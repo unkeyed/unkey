@@ -3,11 +3,11 @@ title: Unkey MCP (Model Context Protocol)
 description: "Use the Unkey MCP server to connect AI coding assistants to Unkey APIs. Manage API keys, rate limits, and permissions directly from your IDE."
 ---
 
-The Unkey Model Context Protocol (MCP) servers provide direct integration between AI tools and Unkey's APIs. This allows you to interact with your Unkey workspace directly, enabling AI-powered API key management, rate limiting configuration, and analytics queries.
+The Unkey Model Context Protocol (MCP) servers provide direct integration between AI tools and Unkey's APIs. This allows you to interact with your Unkey workspace directly, enabling AI-powered key operations, rate limiting configuration, and analytics queries.
 
 ## What is MCP?
 
-Model Context Protocol (MCP) is an open standard that allows AI applications to securely access external data and services. Unkey's MCP servers give Claude Desktop direct access to your Unkey APIs, enabling intelligent assistance with API key management and rate limiting.
+Model Context Protocol (MCP) is an open standard that allows AI applications to securely access external data and services. Unkey's MCP servers give Claude Desktop direct access to your Unkey APIs, enabling intelligent assistance with API keys and rate limiting.
 
 ## Available MCP Servers
 
@@ -160,11 +160,11 @@ Copy your root key and store it securely. You'll use this as your environment va
 
 Once configured, you can interact with your Unkey workspace directly through Claude Desktop:
 
-### API Key Management
+### Working with API keys
 
 Ask Claude to help with API key operations:
 
-```
+```text
 Can you create a new API key for my mobile app with the following settings:
 - Name: "Mobile App Production"
 - Rate limit: 1000 requests per hour
@@ -176,7 +176,7 @@ Can you create a new API key for my mobile app with the following settings:
 
 Configure rate limits through natural language:
 
-```
+```text
 I need to set up rate limiting for my API with these tiers:
 - Free tier: 100 requests per hour
 - Pro tier: 1000 requests per hour
@@ -189,7 +189,7 @@ Can you help me configure these limits?
 
 Query your API usage data:
 
-```
+```text
 Show me the API usage statistics for the last 7 days, including:
 - Total requests
 - Top 5 API keys by usage
@@ -201,7 +201,7 @@ Show me the API usage statistics for the last 7 days, including:
 
 Get help with common issues:
 
-```
+```text
 I'm seeing 401 errors for API key verification. Can you help me debug this?
 The API key is: uk_xxx
 The API ID is: api_xxx

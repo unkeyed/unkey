@@ -21,6 +21,7 @@ const healthcheckSchema = z
 const schema = z.object({
   environmentId: z.string(),
   // Build settings
+  autoDeploy: z.boolean().default(true),
   dockerfile: z.string(),
   dockerContext: z.string(),
   watchPaths: z.array(z.string()).default([]),
@@ -93,6 +94,7 @@ export type EnvironmentSettings = z.infer<typeof schema>;
 
 /** Default values for environment settings fields (excluding regions, which are runtime-dependent). */
 export const ENVIRONMENT_SETTINGS_DEFAULTS = {
+  autoDeploy: true,
   dockerfile: "Dockerfile",
   dockerContext: ".",
   port: 8080,
@@ -118,6 +120,7 @@ function flattenSettingsResponse(
   const d = ENVIRONMENT_SETTINGS_DEFAULTS;
   return {
     environmentId,
+    autoDeploy: build?.autoDeploy ?? d.autoDeploy,
     dockerfile: build?.dockerfile || d.dockerfile,
     dockerContext: build?.dockerContext || d.dockerContext,
     watchPaths: build?.watchPaths ?? [],
@@ -152,6 +155,15 @@ export function buildSettingsMutations(
   modified: EnvironmentSettings,
 ): Promise<unknown>[] {
   const mutations: Promise<unknown>[] = [];
+
+  if (modified.autoDeploy !== original.autoDeploy) {
+    mutations.push(
+      trpcClient.deploy.environmentSettings.build.updateAutoDeploy.mutate({
+        environmentId,
+        autoDeploy: modified.autoDeploy,
+      }),
+    );
+  }
 
   if (modified.dockerfile !== original.dockerfile) {
     mutations.push(

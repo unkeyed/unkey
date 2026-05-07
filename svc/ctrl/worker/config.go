@@ -185,11 +185,6 @@ type SlackConfig struct {
 	// When set, Slack notifications are sent when workspaces exceed their quota.
 	// Optional - if empty, no Slack notifications are sent.
 	QuotaCheckWebhookURL string `toml:"quota_check_webhook_url"`
-
-	// SentinelRolloutWebhookURL is the Slack webhook URL used by the
-	// SentinelRolloutService to post progress for fleet-wide image rollouts.
-	// Optional - if empty, no Slack notifications are sent.
-	SentinelRolloutWebhookURL string `toml:"sentinel_rollout_webhook_url"`
 }
 
 // Config holds the complete configuration for the Restate worker service.
@@ -227,10 +222,6 @@ type Config struct {
 	// BuildPlatformStr defines the target architecture for container builds.
 	// Format: "linux/amd64", "linux/arm64". Only "linux" OS supported.
 	BuildPlatformStr string `toml:"build_platform" config:"default=linux/amd64"`
-
-	// SentinelImage is the container image used for new sentinel deployments.
-	// Overrides default sentinel image with custom build or registry.
-	SentinelImage string `toml:"sentinel_image" config:"default=ghcr.io/unkeyed/unkey:local"`
 
 	// CnameDomain is the base domain for custom domain CNAME targets.
 	// Each custom domain gets a unique subdomain like "{random}.{CnameDomain}".

@@ -36,7 +36,7 @@ const (
 // any claim directly from the payload without parsing the token themselves.
 //
 // For common identity providers (Auth0, Clerk, Cognito, Okta), use the
-// oidc_issuer field instead of jwks_uri — sentinel auto-discovers the
+// oidc_issuer field instead of jwks_uri — frontline auto-discovers the
 // JWKS endpoint via OpenID Connect discovery.
 type JWTAuth struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -81,10 +81,10 @@ type JWTAuth struct {
 	// tolerance. In distributed systems where clock synchronization is
 	// imperfect, a small skew tolerance (e.g., 5000ms) prevents valid tokens
 	// from being rejected due to minor clock differences between the token
-	// issuer and sentinel.
+	// issuer and frontline.
 	ClockSkewMs int64 `protobuf:"varint,9,opt,name=clock_skew_ms,json=clockSkewMs,proto3" json:"clock_skew_ms,omitempty"`
 	// How long to cache JWKS responses in milliseconds. Defaults to 3600000
-	// (1 hour). Sentinel refetches the JWKS when a token references a key ID
+	// (1 hour). Frontline refetches the JWKS when a token references a key ID
 	// not found in the cache, which handles key rotation gracefully. A longer
 	// cache duration reduces load on the JWKS endpoint but increases the time
 	// before revoked keys are detected.
@@ -212,7 +212,7 @@ type isJWTAuth_JwksSource interface {
 
 type JWTAuth_JwksUri struct {
 	// URI pointing to the JWKS endpoint that serves the signing keys, e.g.
-	// "https://example.com/.well-known/jwks.json". Sentinel fetches and
+	// "https://example.com/.well-known/jwks.json". Frontline fetches and
 	// caches these keys, using them to verify token signatures.
 	//
 	// Use this when you know the JWKS endpoint directly.
@@ -220,7 +220,7 @@ type JWTAuth_JwksUri struct {
 }
 
 type JWTAuth_OidcIssuer struct {
-	// OIDC issuer URL. Sentinel appends /.well-known/openid-configuration to
+	// OIDC issuer URL. Frontline appends /.well-known/openid-configuration to
 	// discover the JWKS URI automatically. This is the preferred approach for
 	// OIDC-compliant providers because it also validates that the issuer claim
 	// matches the discovery document.

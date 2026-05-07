@@ -1,6 +1,7 @@
 "use client";
 
 import { EnvStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(overview)/deployments/components/table/components/env-status-badge";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
 import {
   formatCpuParts,
   formatMemoryParts,
@@ -30,6 +31,7 @@ function GitHubLink({ href, children }: { href: string | undefined; children: Re
 
 type ActiveDeploymentCardProps = {
   deploymentId: string | null;
+  deployment?: Deployment;
   statusBadge?: React.ReactNode;
   expandableContent?: React.ReactNode;
   isCurrent?: boolean;
@@ -39,6 +41,7 @@ type ActiveDeploymentCardProps = {
 
 export function ActiveDeploymentCard({
   deploymentId,
+  deployment: directDeployment,
   statusBadge,
   expandableContent,
   isCurrent,
@@ -46,7 +49,8 @@ export function ActiveDeploymentCard({
   environmentSlug,
 }: ActiveDeploymentCardProps) {
   const { getDeploymentById, isDeploymentsLoading, project } = useProjectData();
-  const deployment = deploymentId ? getDeploymentById(deploymentId) : undefined;
+  const deployment =
+    directDeployment ?? (deploymentId ? getDeploymentById(deploymentId) : undefined);
   const repoFullName = project?.repositoryFullName;
   const sourceRepo = deployment?.forkRepositoryFullName || repoFullName;
 
@@ -60,8 +64,14 @@ export function ActiveDeploymentCard({
   const cpu = formatCpuParts(deployment.cpuMillicores);
   const mem = formatMemoryParts(deployment.memoryMib);
   const storage = deployment.storageMib > 0 ? formatStorageParts(deployment.storageMib) : null;
-  const instances = deployment.instances ?? [];
-  const uniqueRegions = [...new Map(instances.map((i) => [i.region.id, i])).values()];
+  const actualInstances = deployment.instances ?? [];
+  const hasActualInstances = actualInstances.length > 0;
+  const runningCount = actualInstances.filter((i) => i.status === "running").length;
+  const targetCount = deployment.desiredInstanceCount;
+
+  const uniqueRegions = hasActualInstances
+    ? [...new Map(actualInstances.map((i) => [i.region.id, i])).values()]
+    : deployment.desiredRegions;
 
   return (
     <Card className="flex flex-col">
@@ -211,7 +221,9 @@ export function ActiveDeploymentCard({
           </MetadataCell>
 
           <MetadataCell label="Instances">
-            <span className="font-medium text-gray-12 text-xs">{instances.length}</span>
+            <span className="font-medium text-gray-12 text-xs">
+              {`${runningCount} of ${targetCount}`}
+            </span>
           </MetadataCell>
 
           <MetadataCell label="Regions">

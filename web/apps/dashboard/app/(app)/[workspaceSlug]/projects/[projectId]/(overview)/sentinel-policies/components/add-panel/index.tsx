@@ -7,6 +7,7 @@ import { Button, FormInput, FormSelect } from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
 import { KeyAuthFields, KeyauthPolicySummary } from "./forms/keyauth-fields";
+import { OpenApiFields, OpenApiPolicySummary } from "./forms/openapi-fields";
 import { RateLimitFields, RatelimitPolicySummary } from "./forms/ratelimit-fields";
 import { DocsLink } from "./forms/summary-helpers";
 import {
@@ -90,7 +91,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
       title={isEdit ? "Edit Policy" : "Add Policy"}
       description={
         <div className="flex gap-2 items-center">
-          {isEdit ? "Update this sentinel policy." : "Configure and add a new sentinel policy."}
+          {isEdit ? "Update this gateway policy." : "Configure and add a new gateway policy."}
           <DocsLink href="https://www.unkey.com/docs/platform/sentinel/policies/overview">
             <span className="text-[13px]">See docs for more</span>
           </DocsLink>
@@ -163,6 +164,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
             .with("keyauth", () => <KeyauthPolicySummary />)
             .with("ratelimit", () => <RatelimitPolicySummary />)
             .with("firewall", () => <FirewallPolicySummary />)
+            .with("openapi", () => <OpenApiPolicySummary />)
             .exhaustive()}
           catchAll
         >
@@ -170,6 +172,7 @@ export function SentinelPolicyPanel(props: SentinelPolicyPanelProps) {
             .with("keyauth", () => <KeyAuthFields />)
             .with("ratelimit", () => <RateLimitFields />)
             .with("firewall", () => <FirewallFields />)
+            .with("openapi", () => <OpenApiFields />)
             .exhaustive()}
         </PolicyForm.Section>
         <PolicyForm.Section

@@ -64,7 +64,7 @@ pull: ## Pull latest Docker images for services
 
 .PHONY: up
 up: pull ## Start all infrastructure services
-	@docker compose -f ./dev/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel restate ctrl-api --wait
+	@docker compose -f ./dev/docker-compose.yaml up -d mysql redis clickhouse s3 otel restate ctrl-api --wait
 
 .PHONY: clean
 clean: ## Stop and remove all services with volumes
@@ -111,7 +111,7 @@ clean-docker-test: ## Clean up dangling test containers
 
 .PHONY: tunnel
 tunnel: ## Forward ports 80/443 to frontline for *.unkey.local (run in separate terminal)
-	@sudo -v && ( while sudo -n true 2>/dev/null; do sleep 50; done & ) && while true; do sudo kubectl port-forward -n unkey svc/frontline 443:443 80:80 2>/dev/null; echo "port-forward exited, reconnecting..."; sleep 1; done
+	@sudo -v && ( while sudo -n true 2>/dev/null; do sleep 50; done & ) && while true; do sudo kubectl port-forward -n frontline svc/frontline 443:443 80:80 2>/dev/null; echo "port-forward exited, reconnecting..."; sleep 1; done
 
 .PHONY: dev
 dev: ## Start dev environment

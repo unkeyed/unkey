@@ -18,7 +18,7 @@ func TestServeWithAbortRecovery_SwallowsErrAbortHandler(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 
 	// Must not bubble up. If it does, the test process crashes.
-	serveWithAbortRecovery(h, w, r, "test")
+	serveWithAbortRecovery(h, w, r)
 }
 
 func TestServeWithAbortRecovery_RepanicsOtherValues(t *testing.T) {
@@ -42,7 +42,7 @@ func TestServeWithAbortRecovery_RepanicsOtherValues(t *testing.T) {
 		}
 	}()
 
-	serveWithAbortRecovery(h, w, r, "test")
+	serveWithAbortRecovery(h, w, r)
 }
 
 func TestServeWithAbortRecovery_NoPanicPassthrough(t *testing.T) {
@@ -57,7 +57,7 @@ func TestServeWithAbortRecovery_NoPanicPassthrough(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 
-	serveWithAbortRecovery(h, w, r, "test")
+	serveWithAbortRecovery(h, w, r)
 
 	if !called {
 		t.Fatal("handler was not invoked")

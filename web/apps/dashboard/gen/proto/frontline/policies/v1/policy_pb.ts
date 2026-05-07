@@ -58,7 +58,7 @@ export type Policy = Message<"frontline.v1.Policy"> & {
   name: string;
 
   /**
-   * When false, sentinel skips this policy entirely during evaluation.
+   * When false, frontline skips this policy entirely during evaluation.
    * This allows operators to toggle policies on and off without modifying
    * or removing the underlying configuration, which is useful during
    * incidents, gradual rollouts, and debugging.

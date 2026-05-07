@@ -35,6 +35,8 @@ data:
     url = "http://ctrl-api:7091"
     token = "your-local-dev-key"
 
+    portal_base_url = "http://localhost:3100"
+
     [observability.tracing]
     sample_rate = 1.0
 

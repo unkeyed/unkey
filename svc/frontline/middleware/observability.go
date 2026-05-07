@@ -3,62 +3,16 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"strings"
-	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/internal/metrics"
 	"go.opentelemetry.io/otel/attribute"
-)
-
-var (
-	frontlineRequestsTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "requests_total",
-			Help:      "Total number of requests processed by frontline",
-		},
-		[]string{"status_code", "error_type", "region"},
-	)
-
-	frontlineRequestDuration = lazy.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "request_duration_seconds",
-			Help:      "Request duration in seconds",
-			Buckets:   prometheus.DefBuckets,
-		},
-		[]string{"status_code", "error_type", "region"},
-	)
-
-	frontlineActiveRequests = lazy.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "active_requests",
-			Help:      "Number of requests currently being processed",
-		},
-		[]string{"region"},
-	)
-
-	frontlineRequestErrorsTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "frontline",
-			Name:      "request_errors_total",
-			Help:      "Total number of request errors by error type.",
-		},
-		[]string{"error_type"},
-	)
 )
 
 type ErrorResponse struct {
@@ -76,72 +30,35 @@ type errorPageInfo struct {
 	Message string
 }
 
-func categorizeErrorTypeFrontline(urn codes.URN, statusCode int, hasError bool) string {
-	if statusCode >= 200 && statusCode < 300 {
-		return "none"
-	}
-
-	if hasError {
-
-		//nolint:exhaustive
-		switch urn {
-		case codes.Frontline.Proxy.GatewayTimeout.URN():
-			return "customer"
-
-		case codes.Frontline.Internal.InternalServerError.URN(),
-			codes.Frontline.Internal.ConfigLoadFailed.URN(),
-			codes.Frontline.Internal.InstanceLoadFailed.URN(),
-			codes.Frontline.Routing.ConfigNotFound.URN(),
-			codes.Frontline.Routing.DeploymentSelectionFailed.URN(),
-			codes.Frontline.Proxy.ServiceUnavailable.URN(),
-			codes.Frontline.Routing.NoRunningInstances.URN():
-			return "platform"
-
-		case codes.User.BadRequest.ClientClosedRequest.URN(),
-			codes.User.BadRequest.RequestTimeout.URN():
-			return "user"
-		}
-
-		if statusCode >= 500 {
-			return "platform"
-		}
-
-		if statusCode >= 400 {
-			return "user"
-		}
-
-	} else if statusCode >= 400 {
-		return "customer"
-	}
-
-	return "unknown"
-}
-
-func WithObservability(region string, renderer errorpage.Renderer) zen.Middleware {
+// WithObservability is the request-level observability middleware. It owns:
+//
+//   - tracing span for the request
+//   - error rendering (HTML page or JSON, based on Accept header)
+//   - emission of unkey_frontline_requests_total
+//
+// Per-component latency lives on the package that owns the work: routing
+// in router, upstream timing in proxy. There is no platform-overhead
+// histogram here — alert on routing/upstream latency separately.
+func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
-			startTime := time.Now()
+			metrics.InflightRequests.Inc()
+			defer metrics.InflightRequests.Dec()
 
-			// Start trace span for the request
 			ctx, span := tracing.Start(ctx, "frontline.proxy")
 			span.SetAttributes(
 				attribute.String("request_id", s.RequestID()),
 				attribute.String("host", s.Request().Host),
 				attribute.String("method", s.Request().Method),
 				attribute.String("path", s.Request().URL.Path),
-				attribute.String("region", region),
 			)
 			defer span.End()
-
-			frontlineActiveRequests.WithLabelValues(region).Inc()
-			defer frontlineActiveRequests.WithLabelValues(region).Dec()
 
 			err := next(ctx, s)
 
 			statusCode := s.StatusCode()
-			var errorType string
-			var urn codes.URN
 			hasError := err != nil
+			var urn codes.URN
 
 			if hasError {
 				tracing.RecordError(span, err)
@@ -161,14 +78,10 @@ func WithObservability(region string, renderer errorpage.Renderer) zen.Middlewar
 				pageInfo := getErrorPageInfoFrontline(urn)
 				statusCode = pageInfo.Status
 
-				errorType = categorizeErrorTypeFrontline(urn, statusCode, hasError)
-
 				userMessage := pageInfo.Message
 				if userMessage == "" {
 					userMessage = fault.UserFacingMessage(err)
 				}
-
-				title := pageInfo.Title
 
 				if pageInfo.Status == http.StatusInternalServerError {
 					logger.Error("frontline error",
@@ -197,7 +110,7 @@ func WithObservability(region string, renderer errorpage.Renderer) zen.Middlewar
 				} else {
 					htmlBody, renderErr := renderer.Render(errorpage.Data{
 						StatusCode: pageInfo.Status,
-						Title:      title,
+						Title:      pageInfo.Title,
 						Message:    userMessage,
 						ErrorCode:  string(code.URN()),
 						DocsURL:    code.DocsURL(),
@@ -219,31 +132,19 @@ func WithObservability(region string, renderer errorpage.Renderer) zen.Middlewar
 				if writeErr != nil {
 					logger.Error("failed to write error response", "error", writeErr.Error())
 				}
-			} else {
-				errorType = categorizeErrorTypeFrontline("", statusCode, hasError)
 			}
 
-			duration := time.Since(startTime).Seconds()
-			statusStr := strconv.Itoa(statusCode)
-
-			// Add final status to span
 			span.SetAttributes(
 				attribute.Int("status_code", statusCode),
-				attribute.String("error_type", errorType),
+				attribute.String("code", string(urn)),
 			)
 
 			logger.Info("frontline request",
-				"status_code", statusStr,
-				"error_type", errorType,
-				"duration_seconds", duration,
-				"region", region,
+				"status_code", statusCode,
+				"code", string(urn),
 			)
 
-			frontlineRequestsTotal.WithLabelValues(statusStr, errorType, region).Inc()
-			frontlineRequestDuration.WithLabelValues(statusStr, errorType, region).Observe(duration)
-			if errorType != "none" {
-				frontlineRequestErrorsTotal.WithLabelValues(errorType).Inc()
-			}
+			metrics.RequestsTotal.WithLabelValues(metrics.StatusClass(statusCode), string(urn)).Inc()
 
 			return nil
 		}
@@ -317,6 +218,12 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Status:  http.StatusForbidden,
 			Title:   http.StatusText(http.StatusForbidden),
 			Message: "Forbidden",
+		}
+	case codes.Frontline.OpenApi.InvalidRequest.URN():
+		return errorPageInfo{
+			Status:  http.StatusBadRequest,
+			Title:   http.StatusText(http.StatusBadRequest),
+			Message: "",
 		}
 
 	// Routing failures other than ConfigNotFound (e.g. deployment-by-id miss,
