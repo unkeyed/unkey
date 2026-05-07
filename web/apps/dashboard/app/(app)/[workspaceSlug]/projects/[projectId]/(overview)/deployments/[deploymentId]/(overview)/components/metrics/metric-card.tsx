@@ -1,5 +1,6 @@
 import type { TimeseriesData } from "@/components/logs/overview-charts/types";
 import type { IconProps } from "@unkey/icons";
+import { cn } from "@unkey/ui/src/lib/utils";
 import type { ComponentType } from "react";
 import { LogsTimeseriesBarChart } from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart";
 import { MetricSelect } from "./metric-select";
@@ -60,12 +61,17 @@ export function MetricCard({
   timeWindow,
 }: MetricCardProps) {
   const config = METRIC_CONFIGS[metricType];
+  const parts = formatMetricParts(metricType, currentValue, config.unit);
 
   return (
     <div className="border border-gray-4 bg-grayA-1 w-full rounded-[14px] flex flex-col">
       <div className="flex items-center gap-3 w-full px-[14px] pt-[12px] pb-[8px]">
         <div
-          className={`flex items-center justify-center rounded-md size-[22px] ${config.iconBg} ${config.iconText}`}
+          className={cn(
+            "flex items-center justify-center rounded-md size-[22px]",
+            config.iconBg,
+            config.iconText,
+          )}
         >
           <Icon iconSize="sm-regular" className="shrink-0" />
         </div>
@@ -82,17 +88,10 @@ export function MetricCard({
           )}
         </div>
         <div className="ml-auto flex items-baseline gap-1">
-          {(() => {
-            const parts = formatMetricParts(metricType, currentValue, config.unit);
-            return (
-              <>
-                <span className="text-gray-12 font-medium text-[13px] tabular-nums">
-                  {parts.value}
-                </span>
-                <span className="text-grayA-10 text-[11px]">{parts.unit}</span>
-              </>
-            );
-          })()}
+          <span className="text-gray-12 font-medium text-[13px] tabular-nums">
+            {parts.value}
+          </span>
+          <span className="text-grayA-10 text-[11px]">{parts.unit}</span>
           {secondaryValue && (
             <>
               <span className="text-grayA-9 text-[11px]">/</span>
