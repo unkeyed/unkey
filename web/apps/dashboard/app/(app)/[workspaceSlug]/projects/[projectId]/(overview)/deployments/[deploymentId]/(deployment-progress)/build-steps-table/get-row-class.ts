@@ -13,6 +13,7 @@ export function getBuildStepRowClass(step: BuildStepRow): string {
     "focus:outline-hidden",
     "focus:ring-1",
     "focus:ring-opacity-40",
+    "scroll-mt-2",
   ];
 
   if (step.error) {

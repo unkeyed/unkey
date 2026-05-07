@@ -21,6 +21,10 @@ type SettingCardProps = {
   iconClassName?: string;
   expandable?: React.ReactNode;
   defaultExpanded?: boolean;
+  // Pass `expanded` + `onExpandedChange` to control the open state from
+  // outside; otherwise `defaultExpanded` initializes the internal state.
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
   chevronState?: ChevronState;
   truncateDescription?: boolean;
 };
@@ -49,10 +53,14 @@ function SettingCard({
   iconClassName,
   expandable,
   defaultExpanded = false,
+  expanded,
+  onExpandedChange,
   chevronState,
   truncateDescription = false,
 }: SettingCardProps) {
-  const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
+  const [internalExpanded, setInternalExpanded] = React.useState(defaultExpanded);
+  const isControlled = expanded !== undefined;
+  const isExpanded = isControlled ? expanded : internalExpanded;
   const contentRef = React.useRef<HTMLDivElement>(null);
   const innerRef = React.useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = React.useState(0);
@@ -116,25 +124,29 @@ function SettingCard({
     if (!isInteractive) {
       return;
     }
-    setIsExpanded((prev) => {
-      if (!prev) {
-        contentRef.current?.addEventListener(
-          "transitionend",
-          () => {
-            const inner = innerRef.current;
-            if (!inner) {
-              return;
-            }
-            const overflow = inner.getBoundingClientRect().bottom - window.innerHeight;
-            if (overflow > 0) {
-              findScrollParent(inner).scrollBy({ top: overflow + 16, behavior: "smooth" });
-            }
-          },
-          { once: true },
-        );
-      }
-      return !prev;
-    });
+    const willExpand = !isExpanded;
+    if (willExpand) {
+      contentRef.current?.addEventListener(
+        "transitionend",
+        () => {
+          const inner = innerRef.current;
+          if (!inner) {
+            return;
+          }
+          const overflow = inner.getBoundingClientRect().bottom - window.innerHeight;
+          if (overflow > 0) {
+            findScrollParent(inner).scrollBy({ top: overflow + 16, behavior: "smooth" });
+          }
+        },
+        { once: true },
+      );
+    }
+    if (isControlled) {
+      onExpandedChange?.(willExpand);
+    } else {
+      setInternalExpanded(willExpand);
+      onExpandedChange?.(willExpand);
+    }
   };
 
   return (

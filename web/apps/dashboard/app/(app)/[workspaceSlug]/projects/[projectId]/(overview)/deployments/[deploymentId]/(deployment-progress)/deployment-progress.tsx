@@ -70,6 +70,28 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   }
   const isPrebuilt = !hasFreshBuild.current && !building?.error;
 
+  const buildStepsPanelRef = useRef<HTMLDivElement>(null);
+  const [focusBuildStepId, setFocusBuildStepId] = useState<string | null>(null);
+  const [buildExpanded, setBuildExpanded] = useState(!isPrebuilt);
+  const failedBuildStep = buildSteps.data?.steps.find((s) => Boolean(s.error));
+  const handleViewBuildLogs = () => {
+    const wasExpanded = buildExpanded;
+    setBuildExpanded(true);
+    const focusAndScroll = () => {
+      if (failedBuildStep) {
+        setFocusBuildStepId(`${failedBuildStep.step_id}#${Date.now()}`);
+      }
+      buildStepsPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    // SettingCard expand animation runs ~300ms; wait for it before scrolling
+    // so the panel has real height to scroll to.
+    if (wasExpanded) {
+      focusAndScroll();
+    } else {
+      setTimeout(focusAndScroll, 320);
+    }
+  };
+
   const queuedStep = resolveDeploymentStep({
     step: queued,
     now,
@@ -144,10 +166,21 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
           key={isPrebuilt ? "prebuilt" : "building"}
           icon={<Hammer2 iconSize="sm-medium" className="size-[18px]" />}
           title="Building Image"
+          truncateDescription={!building?.error}
           description={match(building)
             .when(
+              (b) => Boolean(b?.error),
+              (b) => (
+                <BuildErrorDescription
+                  error={b?.error ?? ""}
+                  canViewLogs={Boolean(failedBuildStep)}
+                  onViewLogs={handleViewBuildLogs}
+                />
+              ),
+            )
+            .when(
               (b) => Boolean(b?.endedAt),
-              (b) => b?.error ?? (hasFreshBuild.current ? "Build Complete" : "Image was prebuilt"),
+              () => (hasFreshBuild.current ? "Build Complete" : "Image was prebuilt"),
             )
             .with(P.nonNullable, () => buildSteps.data?.steps.at(-1)?.name ?? "Building...")
             .otherwise(() =>
@@ -167,15 +200,17 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
             .otherwise(() => "pending" as const)}
           expandable={
             isPrebuilt ? null : (
-              <div className="bg-grayA-2">
+              <div ref={buildStepsPanelRef} className="bg-grayA-2 scroll-mt-40">
                 <DeploymentBuildStepsTable
                   steps={buildSteps.data?.steps ?? []}
                   isLoading={buildSteps.isLoading}
+                  focusStepId={focusBuildStepId}
                 />
               </div>
             )
           }
-          defaultExpanded={!isPrebuilt}
+          expanded={buildExpanded}
+          onExpandedChange={setBuildExpanded}
         />
         <DeploymentStep
           key={deploying ? "deploying-active" : "deploying-pending"}
@@ -218,6 +253,34 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
         <div className="animate-fade-slide-in">
           <DeploymentDomainsCard glow />
         </div>
+      )}
+    </div>
+  );
+}
+
+function BuildErrorDescription({
+  error,
+  canViewLogs,
+  onViewLogs,
+}: {
+  error: string;
+  canViewLogs: boolean;
+  onViewLogs: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 min-w-0 max-w-[600px]">
+      <span className="truncate min-w-0">{error}</span>
+      {canViewLogs && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewLogs();
+          }}
+          className="shrink-0 cursor-pointer underline hover:text-gray-12 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7 rounded"
+        >
+          View full error
+        </button>
       )}
     </div>
   );
