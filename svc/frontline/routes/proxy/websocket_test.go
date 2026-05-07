@@ -145,7 +145,7 @@ func startFrontline(t *testing.T, backendAddr string) (string, func()) {
 		zen.WithPanicRecovery(),
 		middleware.WithReservedHeaderStrip(),
 		zen.WithLogging(),
-		middleware.WithObservability("test", errorpage.NewRenderer()),
+		middleware.WithObservability(errorpage.NewRenderer()),
 	}
 	zenSrv.RegisterRoute(mws, h)
 
