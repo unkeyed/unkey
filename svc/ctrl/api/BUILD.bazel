@@ -15,8 +15,11 @@ go_library(
     deps = [
         "//gen/proto/ctrl/v1/ctrlv1connect",
         "//gen/proto/hydra/v1:hydra",
+        "//pkg/batch",
         "//pkg/buildinfo",
         "//pkg/cache",
+        "//pkg/clickhouse",
+        "//pkg/clickhouse/schema",
         "//pkg/clock",
         "//pkg/config",
         "//pkg/db",
