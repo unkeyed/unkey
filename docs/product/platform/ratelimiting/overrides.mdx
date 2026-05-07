@@ -3,7 +3,7 @@ title: Custom Overrides
 description: "Create custom rate limit overrides for specific users or identifiers in Unkey. Grant higher or lower limits without changing your code."
 ---
 
-Override default rate limits for specific identifiers directly from the dashboard. No code changes or deploys needed — changes roll out globally in seconds.
+Override default rate limits for specific identifiers directly from the dashboard. No code changes or deploys needed, changes roll out globally in seconds.
 
 ## When to use this
 
@@ -132,7 +132,7 @@ This enables workflows like:
 
 ### Tier-based limits
 
-```
+```text
 free:*        → 100/min
 pro:*         → 1000/min
 enterprise:*  → 10000/min
@@ -142,7 +142,7 @@ Use prefixed identifiers in your code: `${plan}:${userId}`
 
 ### Domain-based limits
 
-```
+```text
 *@bigcustomer.com  → 5000/min
 *@partner.io       → 2000/min
 ```
