@@ -6,6 +6,7 @@ go_library(
         "cached_clock.go",
         "doc.go",
         "interface.go",
+        "monotonic_clock.go",
         "real_clock.go",
         "test_clock.go",
     ],
@@ -19,6 +20,7 @@ go_test(
     srcs = [
         "cached_clock_test.go",
         "clock_benchmarks_test.go",
+        "monotonic_clock_test.go",
         "real_clock_test.go",
         "test_clock_test.go",
     ],

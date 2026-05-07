@@ -53,7 +53,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({}, { status: 200 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 400 });
+    // Log full error server-side. Return a generic body with a uniform status
+    // so unauthenticated callers cannot distinguish signature failures from
+    // downstream provider failures (Resend, WorkOS) and cannot harvest
+    // SDK error strings (URLs, audience IDs, rate-limit hints) for recon.
+    console.error("WorkOS webhook processing failed:", err);
+    return NextResponse.json({ error: "Webhook processing failed" }, { status: 400 });
   }
 }

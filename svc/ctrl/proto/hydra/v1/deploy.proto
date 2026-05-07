@@ -112,6 +112,10 @@ message GitSource {
   // PR number for fork PRs. When set, BuildKit fetches refs/pull/<number>/head
   // from the base repo instead of using commit_sha directly.
   int64 pr_number = 7;
+
+  // Full fork repository identifier (e.g., "contributor/repo"). When set, the
+  // deploy worker uses the public GitHub API and clones from the fork repo.
+  string fork_repository = 8;
 }
 
 message DeployRequest {

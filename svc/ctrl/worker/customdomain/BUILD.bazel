@@ -13,6 +13,7 @@ go_library(
         "//gen/proto/hydra/v1:hydra",
         "//pkg/db",
         "//pkg/dns",
+        "//pkg/dns/domainconnect",
         "//pkg/fault",
         "//pkg/logger",
         "//pkg/uid",

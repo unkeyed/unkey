@@ -22,7 +22,18 @@ export const SelectRepo = ({
 }) => {
   const { next } = useStepWizard();
   const trpcUtils = trpc.useUtils();
-  const installUrl = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(JSON.stringify({ projectId }))}`;
+  // Server-signed install state — minted on click via prepareInstallation so
+  // the GitHub callback can verify this user/workspace started the install.
+  const prepareInstallation = trpc.github.prepareInstallation.useMutation();
+  const handleInstallClick = async () => {
+    try {
+      const { state } = await prepareInstallation.mutateAsync({ projectId });
+      onBeforeNavigate?.();
+      window.location.href = `https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new?state=${encodeURIComponent(state)}`;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to start GitHub install");
+    }
+  };
 
   const [selectedOwner, setSelectedOwner] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -254,12 +265,12 @@ export const SelectRepo = ({
       )}
 
       {hasGithubInstallation && (
-        <a href={installUrl} rel="noopener noreferrer" onClick={onBeforeNavigate} className="group">
+        <button type="button" onClick={handleInstallClick} className="group w-full">
           <OnboardingStepHint>
             Can't find your repo? Add more from{" "}
             <OnboardingStepHintHighlight>GitHub</OnboardingStepHintHighlight>.
           </OnboardingStepHint>
-        </a>
+        </button>
       )}
       <div className="mt-8 min-w-[var(--repo-list-w)] items-center justify-center flex">
         <OnboardingLinks />

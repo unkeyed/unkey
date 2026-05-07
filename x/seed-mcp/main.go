@@ -486,12 +486,12 @@ func buildInsert(row map[string]any) (cols string, placeholders string, args []a
 
 func assertReadOnly(q string) error {
 	trimmed := strings.TrimSpace(strings.ToUpper(q))
-	for _, prefix := range []string{"SELECT", "SHOW", "DESCRIBE", "DESC", "EXPLAIN", "WITH"} {
+	for _, prefix := range []string{"SELECT", "SHOW", "DESCRIBE", "DESC", "EXPLAIN"} {
 		if strings.HasPrefix(trimmed, prefix+" ") || trimmed == prefix {
 			return nil
 		}
 	}
-	return fmt.Errorf("query tool only accepts SELECT/SHOW/DESCRIBE/EXPLAIN/WITH; use insert or bulk_insert for writes")
+	return fmt.Errorf("query tool only accepts SELECT/SHOW/DESCRIBE/EXPLAIN; use insert or bulk_insert for writes")
 }
 
 func assertTableExists(ctx context.Context, db *sql.DB, table string) error {

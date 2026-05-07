@@ -220,6 +220,7 @@ func Run(ctx context.Context, cfg Config) error {
 	rlSvc, err := ratelimit.New(ratelimit.Config{
 		Clock:   clk,
 		Counter: ctr,
+		DB:      db.ToMySQL(database),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create ratelimit service: %w", err)
@@ -394,6 +395,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 		UsageLimiter:               ulSvc,
 		AnalyticsConnectionManager: analyticsConnMgr,
+		PortalBaseURL:              cfg.PortalBaseURL,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,

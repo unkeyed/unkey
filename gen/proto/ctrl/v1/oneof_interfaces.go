@@ -5,14 +5,8 @@ package ctrlv1
 // IsDeploymentChangeEvent_Event is the exported form of the protobuf oneof interface isDeploymentChangeEvent_Event.
 type IsDeploymentChangeEvent_Event = isDeploymentChangeEvent_Event
 
-// IsCiliumNetworkPolicyState_State is the exported form of the protobuf oneof interface isCiliumNetworkPolicyState_State.
-type IsCiliumNetworkPolicyState_State = isCiliumNetworkPolicyState_State
-
 // IsReportDeploymentStatusRequest_Change is the exported form of the protobuf oneof interface isReportDeploymentStatusRequest_Change.
 type IsReportDeploymentStatusRequest_Change = isReportDeploymentStatusRequest_Change
-
-// IsSentinelState_State is the exported form of the protobuf oneof interface isSentinelState_State.
-type IsSentinelState_State = isSentinelState_State
 
 // IsDeploymentState_State is the exported form of the protobuf oneof interface isDeploymentState_State.
 type IsDeploymentState_State = isDeploymentState_State

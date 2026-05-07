@@ -14,6 +14,7 @@ export const getAvailableKeyspaces = workspaceProcedure.query(async ({ ctx }) =>
         api: {
           columns: {
             name: true,
+            deletedAtM: true,
           },
         },
       },
@@ -28,7 +29,9 @@ export const getAvailableKeyspaces = workspaceProcedure.query(async ({ ctx }) =>
 
   return keyspaces.reduce(
     (acc, ks) => {
-      acc[ks.id] = ks;
+      if (ks.api && ks.api.deletedAtM === null) {
+        acc[ks.id] = { id: ks.id, api: { name: ks.api.name } };
+      }
       return acc;
     },
     {} as Record<string, { id: string; api: { name: string } }>,

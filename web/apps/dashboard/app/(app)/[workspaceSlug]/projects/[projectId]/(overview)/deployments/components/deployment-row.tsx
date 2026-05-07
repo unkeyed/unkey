@@ -6,8 +6,11 @@ import { CodeBranch, CodeCommit } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useState } from "react";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
 import { Avatar } from "../../../components/git-avatar";
+import { DeploymentApproval } from "../[deploymentId]/(deployment-progress)/deployment-approval";
+import { DeploymentDuration } from "./deployment-duration";
 import { EnvStatusBadge } from "./table/components/env-status-badge";
 import { ActionColumnSkeleton } from "./table/components/skeletons";
 
@@ -37,17 +40,36 @@ export function DeploymentRow({
   isRolledBack,
   href,
 }: DeploymentRowProps) {
+  const [approvalOpen, setApprovalOpen] = useState(false);
+  const needsApproval = deployment.status === "awaiting_approval";
+
   return (
     <div className="relative flex flex-col md:flex-row md:items-center px-4 py-3 gap-3 md:gap-0 transition-colors hover:bg-grayA-2">
-      <Link
-        href={href}
-        className="absolute inset-0 z-10"
-        aria-label={`Deployment ${shortenId(deployment.id)} ${deployment.status}`}
-      />
+      {needsApproval ? (
+        <button
+          type="button"
+          onClick={() => setApprovalOpen(true)}
+          className="absolute inset-0 z-10 cursor-pointer"
+          aria-label={`Authorize deployment ${shortenId(deployment.id)}`}
+        />
+      ) : (
+        <Link
+          href={href}
+          className="absolute inset-0 z-10"
+          aria-label={`Deployment ${shortenId(deployment.id)} ${deployment.status}`}
+        />
+      )}
+      {needsApproval && (
+        <DeploymentApproval
+          isOpen={approvalOpen}
+          onClose={() => setApprovalOpen(false)}
+          deployment={deployment}
+        />
+      )}
       {/* Identity + Status */}
       <div className="flex items-center justify-between md:contents">
         <div className="md:w-[20%] md:shrink-0 flex flex-col gap-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 h-5">
             <span className="font-mono text-[13px] text-accent-12 truncate font-semibold">
               {shortenId(deployment.id)}
             </span>
@@ -61,28 +83,42 @@ export function DeploymentRow({
           <span className="text-xs text-gray-9 capitalize">{environment?.slug}</span>
         </div>
 
-        <div className="md:w-[20%] md:shrink-0">
+        <div className="md:w-[20%] md:shrink-0 flex flex-col gap-1 items-start">
           <DeploymentStatusBadge status={deployment.status} />
+          <DeploymentDuration
+            status={deployment.status}
+            createdAt={deployment.createdAt}
+            updatedAt={deployment.updatedAt}
+          />
         </div>
       </div>
 
       {/* Source */}
       <div className="md:w-[30%] md:shrink-0 flex flex-col gap-1 min-w-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
-          <span
-            className="font-mono text-xs text-accent-12 truncate leading-4"
-            title={deployment.gitBranch}
-          >
-            {deployment.gitBranch}
-          </span>
-          {deployment.gitCommitSha ? (
-            <span className="font-mono text-xs shrink-0 leading-4 -ml-1">
-              <span className="text-gray-9">·</span>
-              <span className="text-accent-12 ml-0.5">{deployment.gitCommitSha.slice(0, 7)}</span>
+        {deployment.gitBranch ? (
+          <div className="flex items-center gap-2 min-w-0">
+            <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <span
+              className="font-mono text-xs text-accent-12 truncate leading-4"
+              title={deployment.gitBranch}
+            >
+              {deployment.gitBranch}
             </span>
-          ) : null}
-        </div>
+            {deployment.gitCommitSha ? (
+              <span className="font-mono text-xs shrink-0 leading-4 -ml-1">
+                <span className="text-gray-9">·</span>
+                <span className="text-accent-12 ml-0.5">{deployment.gitCommitSha.slice(0, 7)}</span>
+              </span>
+            ) : null}
+          </div>
+        ) : deployment.gitCommitSha ? (
+          <div className="flex items-center gap-2 min-w-0">
+            <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <span className="font-mono text-xs text-accent-12 truncate leading-4">
+              {deployment.gitCommitSha.slice(0, 7)}
+            </span>
+          </div>
+        ) : null}
         {deployment.gitCommitMessage ? (
           <div className="flex items-center gap-2 min-w-0">
             <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />

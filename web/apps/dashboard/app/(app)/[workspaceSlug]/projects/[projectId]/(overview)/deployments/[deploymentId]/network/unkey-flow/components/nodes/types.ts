@@ -22,13 +22,13 @@ type OriginNode = BaseNode & {
   children?: DeploymentNode[];
 };
 
-type SentinelNode = BaseNode & {
+type RegionNode = BaseNode & {
   metadata: {
-    type: "sentinel";
+    type: "region";
     flagCode: "us" | "de" | "au" | "jp" | "in" | "br" | "local";
     instances: number;
-    replicas: number;
-  } & BaseMetrics;
+    health: HealthStatus;
+  };
   children?: InstanceNode[];
 };
 
@@ -36,7 +36,7 @@ type InstanceNode = BaseNode & {
   metadata: {
     type: "instance";
     description: string;
-    replicas: number;
+    k8sName?: string;
   } & BaseMetrics;
 };
 
@@ -47,14 +47,14 @@ type SkeletonNode = BaseNode & {
   children?: SkeletonNode[];
 };
 
-type DeploymentNode = OriginNode | SentinelNode | InstanceNode | SkeletonNode;
+type DeploymentNode = OriginNode | RegionNode | InstanceNode | SkeletonNode;
 
 function isOriginNode(node: DeploymentNode): node is OriginNode {
   return node.metadata.type === "origin";
 }
 
-function isSentinelNode(node: DeploymentNode): node is SentinelNode {
-  return node.metadata.type === "sentinel";
+function isRegionNode(node: DeploymentNode): node is RegionNode {
+  return node.metadata.type === "region";
 }
 
 function isInstanceNode(node: DeploymentNode): node is InstanceNode {
@@ -70,7 +70,7 @@ type RegionInfo = {
   location: string;
 };
 
-const REGION_INFO: Record<SentinelNode["metadata"]["flagCode"], RegionInfo> = {
+const REGION_INFO: Record<RegionNode["metadata"]["flagCode"], RegionInfo> = {
   us: { name: "US East", location: "N. Virginia" },
   de: { name: "EU Central", location: "Frankfurt" },
   au: { name: "AP Southeast", location: "Sydney" },
@@ -88,7 +88,7 @@ type NodeSize = { width: number; height: number };
  */
 const NODE_SIZES: Record<DeploymentNode["metadata"]["type"], NodeSize> = {
   origin: { width: 70, height: 20 },
-  sentinel: { width: DEFAULT_NODE_WIDTH, height: 70 },
+  region: { width: DEFAULT_NODE_WIDTH, height: 70 },
   instance: { width: DEFAULT_NODE_WIDTH, height: 70 },
   skeleton: { width: DEFAULT_NODE_WIDTH, height: 70 },
 } as const;
@@ -96,7 +96,7 @@ const NODE_SIZES: Record<DeploymentNode["metadata"]["type"], NodeSize> = {
 export type {
   DeploymentNode,
   OriginNode,
-  SentinelNode,
+  RegionNode,
   InstanceNode,
   SkeletonNode,
   HealthStatus,
@@ -106,7 +106,7 @@ export type {
 
 export {
   isOriginNode,
-  isSentinelNode,
+  isRegionNode,
   isInstanceNode,
   isSkeletonNode,
   DEFAULT_NODE_WIDTH,

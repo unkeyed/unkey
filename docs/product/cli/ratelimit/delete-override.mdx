@@ -42,7 +42,7 @@ After deletion, any identifiers previously affected by this override will immedi
 | `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
-| `--output` | string | Output format — use `json` for raw JSON |
+| `--output` | string | Output format. Use `json` for raw JSON |
 
 ## Examples
 
@@ -62,7 +62,7 @@ unkey api ratelimit delete-override --namespace=api.requests --identifier=premiu
 
 Default output shows the request ID with latency, followed by the result:
 
-```
+```text
 req_2cGKbMxRyIzhCxo1Idjz8q (took 45ms)
 
 {}

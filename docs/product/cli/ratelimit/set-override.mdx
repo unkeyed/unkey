@@ -60,7 +60,7 @@ Common values: `60000` (1 minute), `3600000` (1 hour), `86400000` (1 day). This 
 | `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
-| `--output` | string | Output format — use `json` for raw JSON |
+| `--output` | string | Output format. Use `json` for raw JSON |
 
 ## Examples
 
@@ -83,7 +83,7 @@ unkey api ratelimit set-override --namespace=api.requests --identifier=partner_a
 
 Default output shows the request ID with latency, followed by the created or updated override:
 
-```
+```text
 req_2cGKbMxRyIzhCxo1Idjz8q (took 45ms)
 
 {

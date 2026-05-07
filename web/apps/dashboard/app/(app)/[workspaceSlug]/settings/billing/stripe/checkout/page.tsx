@@ -1,6 +1,7 @@
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
+import { getBaseUrl } from "@/lib/utils";
 import { Code, Empty } from "@unkey/ui";
 import { redirect } from "next/navigation";
 import type Stripe from "stripe";
@@ -8,7 +9,24 @@ import type Stripe from "stripe";
 export const dynamic = "force-dynamic";
 
 export default async function StripeRedirect() {
-  const { orgId } = await getAuth();
+  const { orgId, role } = await getAuth();
+
+  if (!orgId) {
+    return redirect("/sign-in");
+  }
+
+  // Mirror the client-side admin gate. The Add-payment-method button is
+  // hidden for non-admins, but this page is reachable directly via URL.
+  if (role !== "admin") {
+    return (
+      <Empty>
+        <Empty.Title>Admin access required</Empty.Title>
+        <Empty.Description>
+          Only workspace admins can manage billing. Ask an admin to make changes.
+        </Empty.Description>
+      </Empty>
+    );
+  }
 
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
@@ -31,11 +49,9 @@ export default async function StripeRedirect() {
     );
   }
 
-  const baseUrl = process.env.VERCEL
-    ? process.env.VERCEL_TARGET_ENV === "production"
-      ? "https://app.unkey.com"
-      : `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
+  // Use the shared `getBaseUrl()` helper so previews resolve to the stable
+  // VERCEL_BRANCH_URL rather than a deployment-specific VERCEL_URL.
+  const baseUrl = getBaseUrl();
 
   const session = await stripe.checkout.sessions.create({
     client_reference_id: ws.id,

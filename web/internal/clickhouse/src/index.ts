@@ -86,6 +86,16 @@ import {
   insertRatelimit,
 } from "./ratelimits";
 import { insertApiRequest } from "./requests";
+import {
+  getResourceCpuTimeseries,
+  getResourceDiskTimeseries,
+  getResourceInstanceCountTimeseries,
+  getResourceMemoryTimeseries,
+  getResourceNetworkEgressTimeseries,
+  getResourceNetworkIngressTimeseries,
+  getResourceSummary,
+} from "./resources";
+export { TIME_WINDOWS, type TimeWindow } from "./resources";
 import { getRuntimeLogs } from "./runtime-logs";
 import {
   getDeploymentLatency,
@@ -93,8 +103,8 @@ import {
   getDeploymentRps,
   getDeploymentRpsTimeseries,
   getInstanceRps,
+  getRegionRps,
   getSentinelLogs,
-  getSentinelRps,
 } from "./sentinel";
 import { getActiveWorkspacesPerMonth } from "./success";
 import { insertSDKTelemetry } from "./telemetry";
@@ -342,12 +352,25 @@ export class ClickHouse {
       insert: insertSDKTelemetry(this.inserter),
     };
   }
+  public get resources() {
+    return {
+      summary: getResourceSummary(this.querier),
+      cpu: { timeseries: getResourceCpuTimeseries(this.querier) },
+      memory: { timeseries: getResourceMemoryTimeseries(this.querier) },
+      disk: { timeseries: getResourceDiskTimeseries(this.querier) },
+      instances: { timeseries: getResourceInstanceCountTimeseries(this.querier) },
+      network: {
+        egress: { timeseries: getResourceNetworkEgressTimeseries(this.querier) },
+        ingress: { timeseries: getResourceNetworkIngressTimeseries(this.querier) },
+      },
+    };
+  }
   public get sentinel() {
     return {
       logs: getSentinelLogs(this.querier),
       rps: {
-        bySentinel: getSentinelRps(this.querier),
         byInstance: getInstanceRps(this.querier),
+        byRegion: getRegionRps(this.querier),
         byDeployment: getDeploymentRps(this.querier),
         timeseries: getDeploymentRpsTimeseries(this.querier),
       },

@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: frontline-config
-  namespace: unkey
+  namespace: frontline
 data:
   unkey.toml: |
     platform = "dev"
@@ -11,13 +11,20 @@ data:
     http_port = 7070
     https_port = 7443
     apex_domain = "unkey.local"
-    ctrl_addr = "http://ctrl-api:7091"
-    database_url = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+    ctrl_addr = "http://ctrl-api.unkey.svc.cluster.local:7091"
+
+    [database]
+    primary = "unkey:password@tcp(mysql.unkey.svc.cluster.local:3306)/unkey?parseTime=true&interpolateParams=true"
+
+    [redis]
+    url = "redis://default:password@redis.unkey.svc.cluster.local:6379"
+
+    [clickhouse]
+    url = "clickhouse://default:password@clickhouse.unkey.svc.cluster.local:9000?secure=false&skip_verify=true"
 
     [tls]
     cert_file = "/certs/unkey.local.crt"
     key_file = "/certs/unkey.local.key"
-
 
     [gossip]
     lan_port = 7946
@@ -25,7 +32,7 @@ data:
     secret_key = "dGhpcy1pcy1hLWRldi1vbmx5LWdvc3NpcC1rZXkh"
 
     [vault]
-    url = "http://vault:8060"
+    url = "http://vault.unkey.svc.cluster.local:8060"
     token = "vault-test-token-123"
 
     [pprof]
@@ -36,7 +43,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontline
-  namespace: unkey
+  namespace: frontline
   labels:
     app: frontline
 spec:
@@ -98,14 +105,14 @@ spec:
             [
               "sh",
               "-c",
-              "until nc -z mysql 3306 && nc -z ctrl-api 7091 && nc -z vault 8060; do sleep 2; done",
+              "until nc -z mysql.unkey.svc.cluster.local 3306 && nc -z ctrl-api.unkey.svc.cluster.local 7091 && nc -z vault.unkey.svc.cluster.local 8060; do sleep 2; done",
             ]
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: frontline
-  namespace: unkey
+  namespace: frontline
 spec:
   selector:
     app: frontline
@@ -123,7 +130,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: frontline-gossip-lan
-  namespace: unkey
+  namespace: frontline
 spec:
   clusterIP: None
   selector:

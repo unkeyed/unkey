@@ -1,5 +1,5 @@
 "use client";
-import { Button, SettingCard } from "@unkey/ui";
+import { Button, InfoTooltip, SettingCard } from "@unkey/ui";
 import { useCallback } from "react";
 
 type CurrentPlanCardProps = {
@@ -9,9 +9,16 @@ type CurrentPlanCardProps = {
     quotas?: { requestsPerMonth: number };
   };
   onChangePlan?: () => void;
+  disabled?: boolean;
+  disabledReason?: string;
 };
 
-export const CurrentPlanCard = ({ currentProduct, onChangePlan }: CurrentPlanCardProps) => {
+export const CurrentPlanCard = ({
+  currentProduct,
+  onChangePlan,
+  disabled = false,
+  disabledReason,
+}: CurrentPlanCardProps) => {
   const handleChangePlan = useCallback(() => {
     onChangePlan?.();
   }, [onChangePlan]);
@@ -33,13 +40,18 @@ export const CurrentPlanCard = ({ currentProduct, onChangePlan }: CurrentPlanCar
       contentWidth="w-full lg:w-[320px]"
     >
       <div className="w-full flex h-full items-center justify-end gap-4">
-        <Button
-          variant="outline"
-          className="px-2.5 py-3 text-gray-12 font-medium text-sm bg-grayA-2 hover:bg-grayA-3"
-          onClick={handleChangePlan}
-        >
-          {currentProduct ? "Change Plan" : "Upgrade"}
-        </Button>
+        <InfoTooltip content={disabledReason ?? ""} disabled={!disabled || !disabledReason} asChild>
+          <span>
+            <Button
+              variant="outline"
+              className="px-2.5 py-3 text-gray-12 font-medium text-sm bg-grayA-2 hover:bg-grayA-3"
+              onClick={handleChangePlan}
+              disabled={disabled}
+            >
+              {currentProduct ? "Change Plan" : "Upgrade"}
+            </Button>
+          </span>
+        </InfoTooltip>
       </div>
     </SettingCard>
   );

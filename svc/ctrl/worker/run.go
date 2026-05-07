@@ -47,12 +47,14 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/ratelimitblocklistcleanup"
+
+	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/openapi"
 	workerproject "github.com/unkeyed/unkey/svc/ctrl/worker/project"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
-	workersentinel "github.com/unkeyed/unkey/svc/ctrl/worker/sentinel"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -219,7 +221,6 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:            database,
 		DefaultDomain: cfg.DefaultDomain,
 		Vault:         vaultClient,
-		SentinelImage: cfg.SentinelImage,
 
 		GitHub:                          ghClient,
 		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
@@ -327,15 +328,6 @@ func Run(ctx context.Context, cfg Config) error {
 			restate.PauseOnMaxAttempts(),
 		),
 	))
-
-	restateSrv.Bind(hydrav1.NewSentinelServiceServer(workersentinel.New(workersentinel.Config{
-		DB: database,
-	})))
-
-	restateSrv.Bind(hydrav1.NewSentinelRolloutServiceServer(workersentinel.NewRolloutService(workersentinel.RolloutConfig{
-		DB:              database,
-		SlackWebhookURL: cfg.Slack.SentinelRolloutWebhookURL,
-	})))
 
 	// Initialize domain cache for ACME providers
 	clk := cfg.Clock
@@ -490,6 +482,20 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, keyLastUsedRetryPolicy))
 	logger.Info("KeyLastUsedSyncService enabled")
+
+	// Ratelimit blocklist cleanup: prunes expired cross-region propagation
+	// rows. Stateless DELETE — a generous retry policy is fine because the
+	// query is idempotent and the local janitor handles in-memory state
+	// independently.
+	ratelimitBlocklistCleanupSvc, err := ratelimitblocklistcleanup.New(ratelimitblocklistcleanup.Config{
+		DB:    ratelimitdb.New(database.RW(), database.RO()),
+		Clock: clk,
+	})
+	if err != nil {
+		return fmt.Errorf("create ratelimit blocklist cleanup service: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewRatelimitBlocklistCleanupServiceServer(ratelimitBlocklistCleanupSvc, keyLastUsedRetryPolicy))
+	logger.Info("RatelimitBlocklistCleanupService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()

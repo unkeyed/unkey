@@ -1,0 +1,36 @@
+# Pinned toolchain for bytewise-reproducible eBPF object generation.
+#
+# `make generate-bpf` runs inside this image so the committed bpf_bpfel.o
+# matches across macOS dev machines, Linux dev machines, and the CI
+# drift-check runner. Without pinning, clang version drift (Apple/brew
+# vs apt) silently shifts the .o bytes and the drift check fails on
+# perfectly correct C source.
+#
+# Bumping clang, llvm, Go, or the base image will change the .o bytes;
+# regenerate and commit the result in the same change.
+
+# Ubuntu 24.04 base — matches the depot CI runner so the image is a
+# single-step pull there. linux/amd64 forced everywhere so arm64 dev
+# machines (Apple Silicon) produce the same bytes as x86_64 CI runners.
+FROM --platform=linux/amd64 ubuntu:24.04
+
+RUN apt-get update -qq \
+ && apt-get install -y -qq --no-install-recommends \
+      ca-certificates \
+      clang-18 \
+      curl \
+      llvm-18 \
+ && update-alternatives --install /usr/bin/clang   clang   /usr/bin/clang-18   100 \
+ && update-alternatives --install /usr/bin/llc     llc     /usr/bin/llc-18     100 \
+ && update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-18 100 \
+ && rm -rf /var/lib/apt/lists/*
+
+# Match go.mod's `toolchain go1.25.1` exactly. Go's reproducible-build
+# story plus a fixed bpf2go version (resolved from go.mod) makes the
+# generated bindings + .o stable across hosts.
+ARG GO_VERSION=1.25.1
+RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \
+    | tar -C /usr/local -xz
+
+ENV PATH=/usr/local/go/bin:$PATH \
+    GOTOOLCHAIN=local

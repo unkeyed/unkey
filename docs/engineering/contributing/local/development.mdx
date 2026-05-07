@@ -177,7 +177,7 @@ Start Claude Code in the repo root and ask for what you need, e.g.:
 - _"Set up a deployable app called payments in ws_local, ready to deploy to the local region."_
 - _"Seed an identity 'cust_acme' with a rate limit of 100 req/min."_
 
-The `/seed` skill auto-fires on seeding tasks; you can also invoke it explicitly with `/seed`. It encodes the rules the schema can't enforce — for example: an `apps` row needs both `production` and `preview` envs plus runtime/build/regional settings, and a `deployments` row in `ready` status needs paired `deployment_topology`, `instances`, `cilium_network_policies`, and `frontline_routes`. The live schema files at `pkg/mysql/schema/` are the source of truth for column definitions; the skill covers what they can't.
+The `/seed` skill auto-fires on seeding tasks; you can also invoke it explicitly with `/seed`. It encodes the rules the schema can't enforce — for example: an `apps` row needs both `production` and `preview` envs plus runtime/build/regional settings, and a `deployments` row in `ready` status needs to be paired with `deployment_topology`, `instances`, `cilium_network_policies`, and `frontline_routes`. The live schema files at `pkg/mysql/schema/` are the source of truth for column definitions; the skill covers what they can't.
 
 ### Tools and safety
 
