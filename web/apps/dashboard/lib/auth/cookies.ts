@@ -1,4 +1,8 @@
-"use server";
+// Server-only cookie helpers. This module is intentionally NOT a "use server"
+// module: that directive would expose every export below as a public POST
+// endpoint identified by an action ID, including the generic setCookie /
+// setCookies helpers that accept arbitrary name, value, and option fields.
+// Client components must go through the narrow wrappers in ./cookies-actions.
 
 import { cookies } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
