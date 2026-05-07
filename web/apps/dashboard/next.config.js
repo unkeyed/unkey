@@ -72,3 +72,6 @@ module.exports = withSentryConfig(module.exports, {
     },
   },
 });
+
+const withVercelToolbar = require("@vercel/toolbar/plugins/next")();
+module.exports = withVercelToolbar(module.exports);
