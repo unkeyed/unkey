@@ -23,10 +23,6 @@ const SQL = {
   // MV time (DateTime) >= X hours ago  -- for MV (DateTime seconds)
   mvRecentHours: "time >= now() - INTERVAL {windowHours: UInt8} HOUR",
 
-  // Truncate timestamp to interval bucket
-  timeBucket:
-    "toStartOfInterval(toDateTime(time / 1000), INTERVAL {intervalMinutes: UInt8} MINUTE)",
-
   // Fill gaps in timeseries with zeros
   fillGaps: `
     WITH FILL
