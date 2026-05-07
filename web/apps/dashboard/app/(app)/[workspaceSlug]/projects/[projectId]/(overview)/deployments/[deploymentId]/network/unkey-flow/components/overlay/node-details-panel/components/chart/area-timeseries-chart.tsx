@@ -167,8 +167,8 @@ export function AreaTimeseriesChart({
   // to 5:00.
   const xTicks = effectiveDomain
     ? [0, 1, 2, 3].map((i) =>
-      Math.round(effectiveDomain[0] + (i * (effectiveDomain[1] - effectiveDomain[0])) / 3),
-    )
+        Math.round(effectiveDomain[0] + (i * (effectiveDomain[1] - effectiveDomain[0])) / 3),
+      )
     : undefined;
 
   return (

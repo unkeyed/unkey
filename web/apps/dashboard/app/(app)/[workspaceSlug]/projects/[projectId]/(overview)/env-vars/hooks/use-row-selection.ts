@@ -88,7 +88,6 @@ export function useRowSelection(displayRows: DisplayRow[]) {
 
   const makeSensitiveMutation = trpc.deploy.envVar.makeSensitive.useMutation();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: mutateAsync is a stable reference from React Query
   const handleBulkMakeSensitive = useCallback(async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) {

@@ -298,9 +298,7 @@ function UtilizationBar({
       <span className="text-gray-12 font-medium">{usedLabel}</span>
       <span className="text-grayA-9">/</span>
       <span className="text-grayA-9">{allocatedLabel}</span>
-      <div
-        className="w-[80px] h-2 rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_1px_2px_rgba(255,255,255,0.08)] bg-grayA-2 dark:bg-grayA-3"
-      >
+      <div className="w-[80px] h-2 rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_1px_2px_rgba(255,255,255,0.08)] bg-grayA-2 dark:bg-grayA-3">
         <div
           className="h-full rounded-full transition-all duration-500 ease-out"
           style={{
