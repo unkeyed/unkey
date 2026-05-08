@@ -43,6 +43,12 @@ export const getDeploymentTree = workspaceProcedure
           cpuMillicores: true,
           memoryMib: true,
           status: true,
+          // Kubelet-detailed status (exit info, waiting reason). Drizzle
+          // hands us the typed JSON shape; the instance panel projects
+          // out lastTerminationState / waiting so a starting/failed pod
+          // shows "OOMKilled · exit=137" inline, not just a generic "is
+          // starting up" message.
+          containerStatus: true,
         },
         with: {
           region: {
@@ -86,17 +92,35 @@ export const getDeploymentTree = workspaceProcedure
               instances: regionInstances.length,
               health,
             },
-            children: regionInstances.map(({ id, k8sName, status, cpuMillicores, memoryMib }) => ({
-              id,
-              label: id,
+            children: regionInstances.map((instance) => ({
+              id: instance.id,
+              label: instance.id,
               metadata: {
                 type: "instance" as const,
                 description: "Instance replica",
-                cpu: cpuMillicores,
-                memory: memoryMib,
+                cpu: instance.cpuMillicores,
+                memory: instance.memoryMib,
                 latency: "—",
-                health: mapInstanceStatusToHealth(status),
-                k8sName,
+                health: mapInstanceStatusToHealth(instance.status),
+                k8sName: instance.k8sName,
+                // Forward the denormalized last-exit context so the instance
+                // details panel can render it without a follow-up query.
+                // Project the JSON's optional sub-fields into the flat
+                // shape consumers already expect; null fields stay null
+                // and the panel hides empties.
+                lastExit:
+                  instance.containerStatus.lastTerminationState !== undefined ||
+                  instance.containerStatus.waiting !== undefined
+                    ? {
+                        restartCount: instance.containerStatus.restartCount ?? 0,
+                        exitCode: instance.containerStatus.lastTerminationState?.exitCode ?? null,
+                        signal: instance.containerStatus.lastTerminationState?.signal ?? null,
+                        reason: instance.containerStatus.lastTerminationState?.reason ?? null,
+                        statusReason: instance.containerStatus.waiting?.reason ?? null,
+                        finishedAt:
+                          instance.containerStatus.lastTerminationState?.finishedAt ?? null,
+                      }
+                    : null,
               },
             })),
           };

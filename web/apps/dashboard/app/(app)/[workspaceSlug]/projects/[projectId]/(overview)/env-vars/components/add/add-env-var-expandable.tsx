@@ -52,6 +52,7 @@ export const AddEnvVarExpandable = ({
     reset,
     trigger,
     getValues,
+    setValue,
     setFocus,
     setError,
     clearPersistedData,
@@ -73,6 +74,42 @@ export const AddEnvVarExpandable = ({
 
   const createBulk = trpc.deploy.envVar.createBulk.useMutation();
   const { fields, append, remove } = useFieldArray({ control, name: "envVars" });
+
+  const handlePasteEntries = useCallback(
+    (index: number, entries: { key: string; value: string }[]) => {
+      if (entries.length === 0) {
+        return;
+      }
+      const [first, ...rest] = entries;
+      setValue(`envVars.${index}.key`, first.key);
+      setValue(`envVars.${index}.value`, first.value);
+      if (rest.length > 0) {
+        append(rest.map((e) => ({ key: e.key, value: e.value, description: "" })));
+      }
+      trigger("envVars");
+    },
+    [setValue, append, trigger],
+  );
+
+  const handleRemoveAndFocusPrevious = useCallback(
+    (index: number) => {
+      if (index === 0) {
+        return;
+      }
+      remove(index);
+      requestAnimationFrame(() => {
+        setFocus(`envVars.${index - 1}.value`);
+      });
+    },
+    [remove, setFocus],
+  );
+
+  const handleAdvanceRow = useCallback(() => {
+    append(createEmptyEntry());
+    requestAnimationFrame(() => {
+      setFocus(`envVars.${fields.length}.key`);
+    });
+  }, [append, setFocus, fields.length]);
   const { ref: formRef, isDragging, importFile } = useDropZone(reset, trigger, getValues);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -237,9 +274,13 @@ export const AddEnvVarExpandable = ({
                   key={field.id}
                   index={index}
                   isOnly={fields.length === 1}
+                  isLast={index === fields.length - 1}
                   register={register}
                   control={control}
                   onRemove={remove}
+                  onPasteEntries={handlePasteEntries}
+                  onAdvanceRow={handleAdvanceRow}
+                  onRemoveAndFocusPrevious={handleRemoveAndFocusPrevious}
                   errors={errors.envVars}
                 />
               ))}

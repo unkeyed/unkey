@@ -100,6 +100,10 @@ export const generateDeploymentTree = workspaceProcedure
                   memory: getRandomInt(128, 1024),
                   latency: "—",
                   health: getRandomHealth(),
+                  // Generated mock tree never has crashes; live tree fills
+                  // this in from the instances row when ctrl has recorded
+                  // exit info.
+                  lastExit: null,
                 },
               };
             }),

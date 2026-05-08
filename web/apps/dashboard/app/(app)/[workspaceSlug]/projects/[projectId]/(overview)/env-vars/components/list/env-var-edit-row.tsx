@@ -7,9 +7,10 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleInfo, Plus } from "@unkey/icons";
 import { Button, FormInput, InfoTooltip, toast } from "@unkey/ui";
-import { useCallback, useEffect } from "react";
+import { type ClipboardEvent, useCallback, useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
+import { parseEnvText } from "../../hooks/use-drop-zone";
 
 const editEnvVarSchema = z.object({
   key: envVarKeySchema,
@@ -97,6 +98,26 @@ export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: En
     [envVarId, isWriteonly, onClose],
   );
 
+  const handleKeyPaste = useCallback(
+    (e: ClipboardEvent<HTMLInputElement>) => {
+      if (isWriteonly) {
+        return;
+      }
+      const text = e.clipboardData.getData("text/plain");
+      if (!text.includes("=")) {
+        return;
+      }
+      const { entries } = parseEnvText(text);
+      if (entries.length === 0) {
+        return;
+      }
+      e.preventDefault();
+      setValue("key", entries[0].key);
+      setValue("value", entries[0].value);
+    },
+    [isWriteonly, setValue],
+  );
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -119,6 +140,7 @@ export function EnvVarEditRow({ envVarId, variableKey, type, note, onClose }: En
           disabled={isWriteonly}
           title={isWriteonly ? "You cannot rename sensitive environment variables" : ""}
           {...register("key")}
+          onPaste={handleKeyPaste}
         />
         <FormInput
           label={isWriteonly ? "New Value" : "Value"}
