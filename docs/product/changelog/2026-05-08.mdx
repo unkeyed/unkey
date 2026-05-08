@@ -1,0 +1,78 @@
+---
+title: "May 8, 2026"
+description: "Key rotation in the dashboard, OpenAPI validation policy, WebSocket support, container exit visibility, and a stack of Deploy improvements."
+noindex: true
+---
+
+## New features
+
+### Rotate API and root keys from the dashboard
+
+You can now rotate any API key or root key from the dashboard with an optional grace period (revoke immediately, 15 minutes, 1 hour, 6 hours, or 24 hours). The replacement key inherits the original's permissions, ratelimits, identity, metadata, and remaining lifetime. Find it under the new lifecycle group in the keys table action menu. See [Key rerolling](/platform/apis/features/rerolling-key) for details.
+
+### OpenAPI validation Sentinel policy
+
+A new [OpenAPI validation policy](/platform/sentinel/policies/openapi-validation) checks incoming requests against your OpenAPI 3.0 or 3.1 spec and rejects malformed requests with a `400 Bad Request` before they reach your app. Path parameters, query parameters, headers, and request bodies are all validated. Add it from the policies tab in your Deploy project.
+
+### WebSocket support on Deploy
+
+WebSocket servers now run on Deploy out of the box — long-lived connections, no request timeouts, no configuration needed. Bind your server to the port your app exposes and connect with `wss://`. See [WebSockets](/networking/websockets).
+
+### Customer Portal early access
+
+The white-labeled [Customer Portal](/quickstart/portal) is now available in early access. Give your end users self-service key management, usage analytics, and API docs without building any UI. Authentication uses a Stripe-style session flow your backend drives.
+
+### See why a container exited
+
+Deployments now surface container terminations and `CrashLoopBackOff` transitions in a per-deployment **Events** section, with a header badge so you can spot the failure at a glance. No more digging through logs to figure out why your pod is returning 503s.
+
+### Per-environment auto-deploy toggle
+
+You can now disable automatic deployments on a per-environment basis from app settings. Pushes to mapped branches stop triggering builds while the toggle is off — useful for freezing production during incidents or pausing preview spam on a busy branch. See [App settings](/platform/apps/settings).
+
+### Runtime metrics charts in node details
+
+The deployment **Network** view now charts CPU, memory, disk, and network for each instance. Open any node to see live runtime metrics alongside the existing throughput and latency views. See [Metrics](/observability/metrics).
+
+### Deployment duration timer
+
+Deployment cards now show a live duration indicator under the status badge — ticking for in-progress deployments, frozen at the final time for terminal ones. Pending and awaiting-approval deployments stay clean.
+
+### Cross-region denial propagation for ratelimits
+
+When a ratelimit decision denies a request in one region, the denial now propagates to other regions through a shared blocklist so the next request to a remote edge sees the same limit. This tightens enforcement for high-throughput, globally distributed traffic. See the [ratelimit modes guide](/platform/ratelimiting/modes) for the consistency model.
+
+## Updates
+
+### Sort and filter ratelimits by token usage
+
+The standalone ratelimits overview now includes **Passed tokens** and **Blocked tokens** columns alongside the existing total, and you can sort the table by any of them. Useful for spotting which limits are doing the most work and which are absorbing the most denials.
+
+### Distinct 4xx and 5xx icons in logs
+
+The logs table now uses a circle-xmark icon for `5xx` errors and a triangle-warning for `4xx` warnings, instead of using the same warning triangle for both. Easier to scan a noisy log view.
+
+### Quality-of-life polish for environment variables
+
+Editing sensitive environment variables, multi-select on sensitive values, and several inline edit interactions in the env-vars editor have been tightened up. Bulk edits route through the vault's bulk encrypt path for noticeably faster saves on large variable sets.
+
+### Faster, clearer deployment list
+
+The deployments list got a refresh: tighter network and node detail panels, cleaner latency and RPS metrics, and the **Current** badge no longer causes a layout shift when it appears. Custom domains are also only shown on the current deployment, instead of every row.
+
+## Bug fixes
+
+- Deployment filters now apply correctly across all filter types and don't drop state on tab switch.
+- The **Verify domain** action now checks DNS records on the apex domain, instead of failing silently for naked domains.
+- Frontline middleware now runs in the correct order and no longer leaks internal headers downstream.
+- Heimdall stops retrying on `netns gone` and reconciles stale network entries, fixing intermittent network errors on instance restart.
+- The WorkOS webhook endpoint no longer leaks SDK error strings (URLs, audience IDs, ratelimit hints) to unauthenticated callers; failures now return a generic 400.
+- The OpenAPI diff handler no longer follows external `$ref` URLs, closing a vector where a tenant could trigger SSRF through spec uploads.
+- Vercel redirects from the marketing site now resolve correctly.
+- Stripe billing flows are more resilient to upstream errors and no longer get stuck on transient failures.
+- Tunneling for local development now connects reliably.
+- GitHub integration setup, app installation, and repo selection issues have been resolved.
+- Existing routes are reassigned cleanly when a deployment changes its host bindings.
+- A deployment list crash on missing deployment data has been fixed.
+- Permissions ownership is now tracked correctly when keys are transferred between identities.
+- WebSocket connections through Frontline are no longer dropped by the request-tracking middleware.
