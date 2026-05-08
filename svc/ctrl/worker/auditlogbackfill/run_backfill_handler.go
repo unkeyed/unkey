@@ -227,9 +227,10 @@ func (s *Service) loadTargets(
 // envelopes. Mirrors auditlogexport.buildCHRows so backfilled rows are
 // indistinguishable from drained ones.
 //
-// expires_at is NOT set here — the CH table has it as a MATERIALIZED
-// column derived from `time + dictGet('workspace_quota_dict', ...)`,
-// so retention is computed inside CH at INSERT.
+// inserted_at is set to wall-clock now: the CH table's TTL is keyed off
+// inserted_at, so backfilled rows get a full 90 days from when CH saw
+// them rather than from the original event time (which would be born
+// expired for any row older than 90d).
 func buildCHRows(
 	parents []db.FindAuditLogsForBackfillRow,
 	targetsByLog map[string][]db.FindAuditLogTargetsForBackfillRow,

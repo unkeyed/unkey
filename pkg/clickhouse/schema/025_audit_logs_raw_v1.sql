@@ -87,11 +87,13 @@ CREATE TABLE IF NOT EXISTS default.audit_logs_raw_v1
 ENGINE = ReplacingMergeTree()
 PARTITION BY toYYYYMM(fromUnixTimestamp64Milli(inserted_at))
 ORDER BY (workspace_id, bucket, time, event_id)
--- Flat 90-day retention for ALL workspaces. Per-plan retention is
--- enforced at the dashboard read layer (audit/fetch.ts filters by
--- workspace.quotas.auditLogsRetentionDays); this TTL is the outer
--- bound — "we never keep audit logs longer than 90 days." Bump if
--- the most generous plan grows past 90d.
-TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 90 DAY DELETE
+-- Flat 90-day retention for ALL workspaces, measured from CH insert
+-- time so backfilled and late-drained rows aren't born expired.
+-- Per-plan retention is enforced at the dashboard read layer
+-- (audit/fetch.ts filters by workspace.quotas.auditLogsRetentionDays);
+-- this TTL is the outer bound: we never keep audit logs longer than
+-- 90 days after CH first saw them. Bump if the most generous plan
+-- grows past 90d.
+TTL toDateTime(fromUnixTimestamp64Milli(inserted_at)) + INTERVAL 90 DAY DELETE
 SETTINGS index_granularity = 8192,
          non_replicated_deduplication_window = 10000;
