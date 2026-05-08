@@ -13,7 +13,7 @@ Every project in Unkey Deploy includes built-in observability so you can inspect
 
 Each project provides three types of observability data:
 
-- [Logs](/observability/logs). Runtime output (stdout and stderr) from your app, with filtering by severity, deployment, environment, and message content
+- [Logs](/observability/logs). Runtime output (stdout and stderr) from your app, with filtering by severity, deployment, environment, and message content. Container lifecycle events (crashes, OOM kills, `CrashLoopBackOff`) appear inline in the timeline and on each deployment's detail page
 - [Requests](/observability/requests). Every HTTP request that passes through [Sentinel](/platform/sentinel/overview) to your app, including method, path, status code, headers, bodies, and a full latency breakdown
 - [Metrics](/observability/metrics). RPS and latency charts on each deployment's overview page
 

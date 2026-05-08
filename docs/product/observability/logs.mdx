@@ -30,6 +30,30 @@ Region and instance filters are useful when debugging multi-region deployments. 
   <img src="/observability/logs-dark.png" alt="Logs page" className="hidden dark:block" />
 </Frame>
 
+## Container events
+
+Stdout and stderr only show what your app prints. They don't tell you when the platform restarts a container, when Kubernetes kills it for using too much memory, or when an image fails to pull. Unkey surfaces those container lifecycle events alongside your logs so you don't have to correlate timestamps in your head.
+
+Events appear in three places:
+
+- **Inline in the runtime-logs timeline.** Lifecycle events render as their own rows next to your stdout, scoped to the same time range, region, and instance filters as the logs around them. When your app stops printing because the container crashed, the next row in the timeline tells you why.
+- **Crash banner at the top of the Logs page.** When one or more instances in the current scope are crashlooping, a banner appears with the failing instance count and the most recent reason (for example, `CrashLoopBackOff` or `OOMKilled`). Click through to jump to the events for that deployment.
+- **Events section on the deployment detail page.** Every deployment has a paginated **Events** list with the full lifecycle history for its containers. Use this when you want the complete picture for a single deployment instead of a time-windowed slice.
+
+### Event kinds
+
+Each event has one of three kinds:
+
+- `running` — the container started and is running. Useful as a marker for restart boundaries.
+- `terminated` — the container exited. The event includes the exit code, the signal (if any), and the kubelet reason. Common reasons: `OOMKilled` (the kernel killed your process because it exceeded its memory limit), `Error` (non-zero exit code from your app), `Completed` (clean exit).
+- `waiting` — the container is not running and Kubernetes is waiting to start it. Common reasons: `CrashLoopBackOff` (your container keeps crashing on startup, so the platform is backing off between restarts), `ImagePullBackOff` or `ErrImagePull` (the image couldn't be pulled), `ContainerCreating` (transient, the container is being set up).
+
+The exit code, signal, kubelet reason, and the kubelet-provided message are all visible on the event row so you can tell `OOMKilled` apart from a regular non-zero exit without opening anything else.
+
+### Filter events
+
+Events on the deployment detail page support the same filters as the logs viewer: time range, region, instance, kind (`running`, `terminated`, `waiting`), and a substring search across the event message. Filters compose, so you can scope to "everything that crashed in `us-east-1` in the last hour" in two clicks.
+
 ## Structured logging
 
 To get the most out of the Attributes column, emit structured JSON from your app:

@@ -113,6 +113,8 @@ When a deployment fails, check the build and runtime logs in the **Deployments**
 - Application crash on startup (check the runtime logs)
 - Health check failures if your app doesn't respond on the configured port
 
+If the build succeeded but containers won't stay up, the deployment detail page has an **Events** section with the kubelet-level reason (`OOMKilled`, `CrashLoopBackOff`, `ImagePullBackOff`, exit codes, signals). The same events also appear inline in the runtime [logs](/observability/logs#container-events) timeline so you can see the crash next to the last line your app printed.
+
 Fix the issue in your code and push again to trigger a new deployment.
 
 ## Next steps
