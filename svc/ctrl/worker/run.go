@@ -31,6 +31,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
@@ -229,7 +230,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clickhouse:                      ch,
 		BuildSteps:                      buildSteps,
 		BuildStepLogs:                   buildStepLogs,
-		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 	}),
 		// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
@@ -289,7 +290,7 @@ func Run(ctx context.Context, cfg Config) error {
 		GitHub:                          ghClient,
 		RestateAdmin:                    restateAdminClient,
 		DashboardURL:                    cfg.DashboardURL,
-		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
 
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{
