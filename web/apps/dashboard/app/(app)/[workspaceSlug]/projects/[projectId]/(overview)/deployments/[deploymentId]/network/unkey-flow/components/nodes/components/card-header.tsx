@@ -8,7 +8,11 @@ type CardHeaderVariant = "card" | "panel";
 export type CardHeaderProps = {
   icon: React.ReactNode;
   title: string;
-  subtitle: string;
+  // Accepts a ReactNode so InstanceNode can swap "Instance Replica" for a
+  // LastExitBadge when ctrl has recorded a recent crash. Keeps the visual
+  // shape (small text under the title) but makes the failure reason
+  // readable directly on the graph card.
+  subtitle: React.ReactNode;
   health: HealthStatus;
   variant?: CardHeaderVariant;
   type: "region" | "instance";

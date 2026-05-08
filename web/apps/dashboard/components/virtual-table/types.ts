@@ -104,4 +104,14 @@ export type VirtualTableProps<TTableData> = {
 
 export type SeparatorItem = {
   isSeparator: true;
+  // Optional unique key for the row when multiple distinct separators
+  // can appear in the same dataset. The "Live" separator ignores this
+  // (only one ever exists per table); event separators set it to the
+  // event's stable identity so React can keep them in order.
+  key?: string;
+  // Optional custom content for the separator row. When omitted the
+  // table falls back to the default "Live" banner (legacy behaviour).
+  // Event-stream callers pass a banner that spans `colSpan={columns.length}`
+  // and includes the failure reason inline.
+  content?: import("react").ReactNode;
 };
