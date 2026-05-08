@@ -1,4 +1,4 @@
-package dockertest
+package containers
 
 import (
 	"fmt"
@@ -43,7 +43,7 @@ type S3Config struct {
 // Example usage:
 //
 //	func TestS3Integration(t *testing.T) {
-//	    s3 := dockertest.S3(t)
+//	    s3 := containers.S3(t)
 //	    client, err := minio.New(s3.URL, &minio.Options{
 //	        Creds: credentials.NewStaticV4(s3.AccessKeyID, s3.SecretAccessKey, ""),
 //	    })

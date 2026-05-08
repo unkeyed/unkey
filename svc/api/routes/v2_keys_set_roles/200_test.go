@@ -18,8 +18,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_set_roles"
 	"golang.org/x/sync/errgroup"
 )
@@ -452,50 +454,40 @@ func TestValidationConcurrencyStress(t *testing.T) {
 
 	h := testutil.NewHarness(t)
 
-	route := &handler.Handler{
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Auditlogs: h.Auditlogs,
-		KeyCache:  h.Caches.VerificationKeyByHash,
-	}
+	// This regression test intentionally registers the keys.setRoles OpenAPI
+	// operation without the real handler. The historical failure was in request
+	// validation for this operation's schema, not in role mutation. Calling the
+	// real handler here would turn the test into a 100k-request MySQL write/load
+	// test that serializes on the same key row and can run for minutes.
+	route := zen.NewRoute("POST", "/v2/keys.setRoles", func(_ context.Context, s *zen.Session) error {
+		return s.JSON(http.StatusOK, handler.Response{
+			Meta: openapi.Meta{
+				RequestId: s.RequestID(),
+			},
+			Data: nil,
+		})
+	})
 
 	h.Register(route)
-
-	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
-
-	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: workspace.ID,
-	})
-
-	keyResponse := h.CreateKey(seed.CreateKeyRequest{
-		WorkspaceID: workspace.ID,
-		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("validation-stress-test-key"),
-	})
 
 	// Create a pool of roles so each request uses a different one,
 	// defeating any schema cache that might hide the race.
 	const numRoles = 100
 	roles := make([]string, numRoles)
 	for i := range numRoles {
-		r := h.CreateRole(seed.CreateRoleRequest{
-			WorkspaceID: workspace.ID,
-			Name:        fmt.Sprintf("stress.role.%d", i),
-			Description: ptr.P(fmt.Sprintf("Stress test role %d", i)),
-		})
-		roles[i] = r.Name
+		roles[i] = fmt.Sprintf("stress.role.%d", i)
 	}
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		"Authorization": {"Bearer test"},
 	}
+	keyID := uid.New(uid.KeyPrefix)
 
 	// Warm up the validator's schema cache with a single request so the
 	// concurrent burst doesn't race on first-time schema rendering.
 	warmupBody, err := json.Marshal(handler.Request{
-		KeyId: keyResponse.KeyID,
+		KeyId: keyID,
 		Roles: []string{roles[0]},
 	})
 	require.NoError(t, err)
@@ -516,7 +508,7 @@ func TestValidationConcurrencyStress(t *testing.T) {
 	for i := range totalRequests {
 		g.Go(func() error {
 			body, err := json.Marshal(handler.Request{
-				KeyId: keyResponse.KeyID,
+				KeyId: keyID,
 				Roles: []string{roles[i%numRoles]},
 			})
 			if err != nil {

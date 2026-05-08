@@ -1,4 +1,4 @@
-package dockertest
+package containers
 
 import (
 	"fmt"

@@ -1,0 +1,132 @@
+name: unkey-dashboard-dev
+services:
+  mysql:
+    networks:
+      - default
+    container_name: mysql
+    build:
+      context: ../../../..
+      dockerfile: dev/Dockerfile.mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: unkey
+      MYSQL_USER: unkey
+      MYSQL_PASSWORD: password
+    command: ["--max_connections=1000", "--skip-log-bin"]
+    ports:
+      - 3306:3306
+    volumes:
+      - mysql:/var/lib/mysql
+
+  clickhouse:
+    networks:
+      - default
+    build:
+      context: ../../../..
+      dockerfile: dev/Dockerfile.clickhouse
+    container_name: clickhouse
+    environment:
+      CLICKHOUSE_ADMIN_USER: default
+      CLICKHOUSE_ADMIN_PASSWORD: password
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse:/bitnami/clickhouse
+
+  redis:
+    networks:
+      - default
+    container_name: redis
+    image: redis:8.0
+    ports:
+      - 6379:6379
+
+  vault:
+    networks:
+      - default
+    container_name: vault
+    image: unkey/unkey:latest
+    pull_policy: never
+    command: ["run", "vault", "--config", "/etc/unkey/vault.toml"]
+    ports:
+      - "8060:8060"
+    volumes:
+      - ./vault.toml:/etc/unkey/vault.toml:ro
+      - vault-data:/var/lib/unkey/vault
+
+  restate:
+    networks:
+      - default
+    container_name: restate
+    image: docker.io/restatedev/restate:1.6.0
+    ports:
+      - "8081:8080"
+      - "9070:9070"
+
+  ctrl-api:
+    networks:
+      - default
+    image: unkey/unkey:latest
+    pull_policy: never
+    container_name: ctrl-api
+    command: ["run", "ctrl", "api", "--config", "/etc/unkey/ctrl-api.toml"]
+    ports:
+      - "7091:7091"
+    depends_on:
+      - mysql
+      - restate
+      - clickhouse
+    volumes:
+      - ./ctrl-api.toml:/etc/unkey/ctrl-api.toml:ro
+
+  ctrl-worker:
+    networks:
+      - default
+    image: unkey/unkey:latest
+    pull_policy: never
+    container_name: ctrl-worker
+    command: [
+      "run",
+      "ctrl",
+      "worker",
+      "--config",
+      "/etc/unkey/ctrl-worker.toml",
+    ]
+    ports:
+      - "9080:9080"
+    depends_on:
+      - mysql
+      - restate
+      - clickhouse
+      - vault
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./ctrl-worker.toml:/etc/unkey/ctrl-worker.toml:ro
+
+  api:
+    networks:
+      - default
+    container_name: api
+    image: unkey/unkey:latest
+    pull_policy: never
+    command: ["run", "api", "--config", "/etc/unkey/api.toml"]
+    ports:
+      - 7070:7070
+    depends_on:
+      - mysql
+      - redis
+      - clickhouse
+      - vault
+      - ctrl-api
+    volumes:
+      - ./api.toml:/etc/unkey/api.toml:ro
+
+volumes:
+  mysql:
+  clickhouse:
+  vault-data:
+
+networks:
+  default:

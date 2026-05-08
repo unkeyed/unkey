@@ -45,32 +45,19 @@ var excludePatterns = []string{
 
 	// Standard library
 	`^net/http\.Client$`,
-	`^net/http\.Cookie$`,
-	`^net/http\.Request$`,
-	`^net/http\.Response$`,
 	`^net/http\.Server$`,
 	`^net/http\.Transport$`,
 	`^net/url\.URL$`,
-	`^os/exec\.Cmd$`,
-	`^reflect\.StructField$`,
 	`^database/sql\.Null.*$`,
 
 	// Prometheus
 	`^github\.com/prometheus/client_golang/.+Opts$`,
-
-	// Testcontainers
-	`^github\.com/testcontainers/testcontainers-go.+Request$`,
-	`^github\.com/testcontainers/testcontainers-go\.FromDockerfile$`,
-	`^github\.com/ory/dockertest/v3.*$`,
 
 	// Go tools
 	`^golang\.org/x/tools/go/analysis\.Analyzer$`,
 
 	// Protobuf
 	`^google\.golang\.org/protobuf/.+Options$`,
-
-	// YAML
-	`^gopkg\.in/yaml\.v3\.Node$`,
 
 	// CLI frameworks
 	`^github\.com/urfave/cli/v3.*$`,
@@ -85,13 +72,6 @@ var excludePatterns = []string{
 	// Unkey internal
 	`^github\.com/unkeyed/unkey/svc/api/openapi\.Meta$`,
 	`^github\.com/unkeyed/unkey/pkg/cli\.Command$`,
-
-	// ORM
-	`^gorm\.io/gorm.*$`,
-
-	// Redis
-	`^github\.com/redis/go-redis/v9\.Options$`,
-	`^github\.com/go-redis/redis/v8\.Options$`,
 
 	// Kubernetes
 	`^k8s\.io/api/core/v1.*$`,

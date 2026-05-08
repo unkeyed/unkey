@@ -1,4 +1,4 @@
-package dockertest
+package containers
 
 import (
 	"context"
@@ -18,6 +18,7 @@ import (
 
 var (
 	dockerClient     *client.Client
+	dockerClientErr  error
 	dockerClientOnce sync.Once
 )
 
@@ -91,13 +92,12 @@ func getClient(t testing.TB) *client.Client {
 	t.Helper()
 
 	dockerClientOnce.Do(func() {
-		var err error
-		dockerClient, err = client.NewClientWithOpts(
+		dockerClient, dockerClientErr = client.NewClientWithOpts(
 			client.FromEnv,
 			client.WithAPIVersionNegotiation(),
 		)
-		require.NoError(t, err, "failed to create Docker client")
 	})
+	require.NoError(t, dockerClientErr, "failed to create Docker client")
 
 	// Verify Docker is accessible
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -192,7 +192,7 @@ func startContainer(t testing.TB, cfg containerConfig) *Container {
 			Env:          envSlice,
 			Cmd:          cfg.Cmd,
 			Labels: map[string]string{
-				"owner": "dockertest",
+				"owner": "testutil-containers",
 			},
 		},
 		&container.HostConfig{
@@ -214,7 +214,9 @@ func startContainer(t testing.TB, cfg containerConfig) *Container {
 
 	containerID := resp.ID
 
-	// Register cleanup to ensure container is removed when test completes
+	// Register cleanup before the container starts so failed readiness checks do
+	// not leak containers. Every test container is owned by the test that
+	// requested it.
 	t.Cleanup(func() {
 		require.NoError(t, cli.ContainerRemove(ctx, containerID, container.RemoveOptions{
 			Force: true,

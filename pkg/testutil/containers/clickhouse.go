@@ -1,4 +1,4 @@
-package dockertest
+package containers
 
 import (
 	"context"
@@ -30,14 +30,10 @@ type ClickHouseConfig struct {
 	DSN string
 }
 
-// ClickHouse starts a ClickHouse container and applies the schema.
+// ClickHouse starts a ClickHouse container and returns connection info.
 //
-// The container is started with a random available port and the schema
-// is loaded from pkg/clickhouse/schema/*.sql files in order.
-// This function blocks until ClickHouse is accepting connections and
-// the schema has been applied. Fails the test if Docker is unavailable
-// or the container fails to start.
-func ClickHouse(t *testing.T) ClickHouseConfig {
+// The container is owned by t and removed automatically with t.Cleanup.
+func ClickHouse(t testing.TB) ClickHouseConfig {
 	t.Helper()
 
 	ctr := startContainer(t, containerConfig{
@@ -71,7 +67,6 @@ func ClickHouse(t *testing.T) ClickHouseConfig {
 		return conn.Ping(ctx) == nil
 	}, 60*time.Second, 500*time.Millisecond)
 
-	// Apply schema files
 	applyClickHouseSchema(t, ctx, conn)
 
 	return ClickHouseConfig{
@@ -80,7 +75,7 @@ func ClickHouse(t *testing.T) ClickHouseConfig {
 }
 
 // applyClickHouseSchema loads and executes schema files from pkg/clickhouse/schema/.
-func applyClickHouseSchema(t *testing.T, ctx context.Context, conn ch.Conn) {
+func applyClickHouseSchema(t testing.TB, ctx context.Context, conn ch.Conn) {
 	t.Helper()
 
 	// Enable experimental features needed by schema (e.g., JSON type)
@@ -98,7 +93,7 @@ func applyClickHouseSchema(t *testing.T, ctx context.Context, conn ch.Conn) {
 	applySchemaFiles(t, ctx, conn, schemaDir)
 }
 
-func applySchemaFiles(t *testing.T, ctx context.Context, conn ch.Conn, dir string) {
+func applySchemaFiles(t testing.TB, ctx context.Context, conn ch.Conn, dir string) {
 	t.Helper()
 
 	entries, err := os.ReadDir(dir)
@@ -199,7 +194,11 @@ func clickhouseSchemaDir() string {
 	// Fall back to relative path from this file
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
-		return ""
+		wd, err := os.Getwd()
+		if err != nil {
+			wd = "."
+		}
+		return filepath.Join(wd, "pkg", "clickhouse", "schema")
 	}
 	root := filepath.Dir(filepath.Dir(currentFile))
 	return filepath.Join(root, "clickhouse", "schema")

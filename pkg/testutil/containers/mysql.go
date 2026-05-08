@@ -1,4 +1,4 @@
-package dockertest
+package containers
 
 import (
 	"context"
@@ -26,8 +26,6 @@ const (
 type MySQLConfig struct {
 	// DSN is the host DSN for connecting from the test runner.
 	DSN string
-	// DockerDSN is the DSN for connecting from containers on the docker network.
-	DockerDSN string
 }
 
 // MySQLOpt configures the MySQL test container.
@@ -38,20 +36,12 @@ type MySQLOpt func(*containerConfig)
 func WithDiskStorage() MySQLOpt {
 	return func(cfg *containerConfig) {
 		cfg.Tmpfs = nil
-		// Larger buffer pool for big datasets
-		for i, arg := range cfg.Cmd {
-			if arg == "--innodb-buffer-pool-size=32M" {
-				cfg.Cmd[i] = "--innodb-buffer-pool-size=512M"
-			}
-		}
 	}
 }
 
-// MySQL starts the local MySQL test container and returns DSNs.
+// MySQL starts a MySQL container and returns connection info.
 //
-// The container is based on the local dev image with preloaded schema.
-// This function blocks until the MySQL port is accepting TCP connections
-// (up to 60s). Fails the test if Docker is unavailable or the container fails to start.
+// The container is owned by t and removed automatically with t.Cleanup.
 func MySQL(t testing.TB, opts ...MySQLOpt) MySQLConfig {
 	t.Helper()
 
@@ -76,8 +66,7 @@ func MySQL(t testing.TB, opts ...MySQLOpt) MySQLConfig {
 			"--innodb-doublewrite=0",
 			"--innodb-flush-log-at-trx-commit=0",
 			"--innodb-flush-method=nosync",
-			// Reduce buffer sizes for faster startup
-			"--innodb-buffer-pool-size=32M",
+			"--innodb-buffer-pool-size=512M",
 			"--innodb-log-buffer-size=1M",
 			// Disable performance schema (overhead not needed for tests)
 			"--performance-schema=OFF",
@@ -99,27 +88,18 @@ func MySQL(t testing.TB, opts ...MySQLOpt) MySQLConfig {
 	port := ctr.Port(mysqlPort)
 	addr := fmt.Sprintf("%s:%s", ctr.Host, port)
 
-	hostCfg := mysql.NewConfig()
-	hostCfg.User = mysqlUser
-	hostCfg.Passwd = mysqlPassword
-	hostCfg.Net = "tcp"
-	hostCfg.Addr = addr
-	hostCfg.DBName = mysqlDatabase
-	hostCfg.ParseTime = true
-	hostCfg.MultiStatements = true
-	hostCfg.Logger = &mysql.NopLogger{}
-
-	dockerCfg := mysql.NewConfig()
-	dockerCfg.User = mysqlUser
-	dockerCfg.Passwd = mysqlPassword
-	dockerCfg.Net = "tcp"
-	dockerCfg.Addr = "mysql:3306"
-	dockerCfg.DBName = mysqlDatabase
-	dockerCfg.ParseTime = true
-	dockerCfg.Logger = &mysql.NopLogger{}
+	dsnCfg := mysql.NewConfig()
+	dsnCfg.User = mysqlUser
+	dsnCfg.Passwd = mysqlPassword
+	dsnCfg.Net = "tcp"
+	dsnCfg.Addr = addr
+	dsnCfg.DBName = mysqlDatabase
+	dsnCfg.ParseTime = true
+	dsnCfg.MultiStatements = true
+	dsnCfg.Logger = &mysql.NopLogger{}
 
 	pingStart := time.Now()
-	hostDB, err := sql.Open("mysql", hostCfg.FormatDSN())
+	hostDB, err := sql.Open("mysql", dsnCfg.FormatDSN())
 	require.NoError(t, err)
 	defer func() { require.NoError(t, hostDB.Close()) }()
 	require.Eventually(t, func() bool {
@@ -144,8 +124,7 @@ func MySQL(t testing.TB, opts ...MySQLOpt) MySQLConfig {
 	t.Logf("  MySQL schema loaded in %s", time.Since(schemaStart))
 
 	return MySQLConfig{
-		DSN:       hostCfg.FormatDSN(),
-		DockerDSN: dockerCfg.FormatDSN(),
+		DSN: dsnCfg.FormatDSN(),
 	}
 }
 

@@ -1,4 +1,4 @@
-package dockertest_test
+package containers_test
 
 import (
 	"net/http"
@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/dockertest"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 )
 
 func TestRestate(t *testing.T) {
-	config := dockertest.Restate(t)
+	config := containers.Restate(t)
 
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Get(config.AdminURL + "/health")
