@@ -169,15 +169,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		if txErr := h.Auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
 			{
-				Event:       auditlog.PortalSessionCreateEvent,
-				WorkspaceID: workspaceID,
-				ActorType:   auditlog.RootKeyActor,
-				ActorID:     auth.Key.ID,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				Display:     fmt.Sprintf("Created portal session for %s", req.ExternalId),
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
+				Event:         auditlog.PortalSessionCreateEvent,
+				WorkspaceID:   workspaceID,
+				ActorType:     auditlog.RootKeyActor,
+				ActorID:       auth.Key.ID,
+				ActorName:     "root key",
+				ActorMeta:     map[string]any{},
+				Display:       fmt.Sprintf("Created portal session for %s", req.ExternalId),
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:          sessionTokenID,

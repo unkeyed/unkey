@@ -322,15 +322,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		var auditLogs []auditlog.AuditLog
 		auditLogs = append(auditLogs, auditlog.AuditLog{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.KeyRerollEvent,
-			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.Key.ID,
-			ActorName:   "root key",
-			ActorMeta:   map[string]any{},
-			Display:     fmt.Sprintf("Rerolled key (%s) to (%s)", req.KeyId, keyID),
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
+			WorkspaceID:   auth.AuthorizedWorkspaceID,
+			Event:         auditlog.KeyRerollEvent,
+			ActorType:     auditlog.RootKeyActor,
+			ActorID:       auth.Key.ID,
+			ActorName:     "root key",
+			ActorMeta:     map[string]any{},
+			Display:       fmt.Sprintf("Rerolled key (%s) to (%s)", req.KeyId, keyID),
+			RemoteIP:      s.Location(),
+			UserAgent:     s.UserAgent(),
+			CorrelationID: "",
 			Resources: []auditlog.AuditLogResource{
 				{
 					Type:        auditlog.KeyResourceType,

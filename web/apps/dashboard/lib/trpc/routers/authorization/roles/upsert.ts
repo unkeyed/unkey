@@ -75,6 +75,11 @@ export const upsertRole = workspaceProcedure
       });
     }
 
+    // Mint a shared correlation so role.create/update + N permission
+    // binds + N key binds from the multiple insertAuditLogs calls below
+    // all link to one user action in the audit log drill-down.
+    const correlationId = newId("correlation");
+
     await db.transaction(async (tx) => {
       if (isUpdate && input.roleId) {
         const updateRoleId: string = input.roleId;
@@ -181,6 +186,7 @@ export const upsertRole = workspaceProcedure
                   userAgent: ctx.audit.userAgent,
                   location: ctx.audit.location,
                 },
+                correlationId,
               })),
             );
           }
@@ -234,6 +240,7 @@ export const upsertRole = workspaceProcedure
                   userAgent: ctx.audit.userAgent,
                   location: ctx.audit.location,
                 },
+                correlationId,
               })),
             );
           }
@@ -258,6 +265,7 @@ export const upsertRole = workspaceProcedure
             userAgent: ctx.audit.userAgent,
             location: ctx.audit.location,
           },
+          correlationId,
         });
       } else {
         // Create mode - always check for name conflicts
@@ -336,6 +344,7 @@ export const upsertRole = workspaceProcedure
                 userAgent: ctx.audit.userAgent,
                 location: ctx.audit.location,
               },
+              correlationId,
             })),
           );
         }
@@ -376,6 +385,7 @@ export const upsertRole = workspaceProcedure
                 userAgent: ctx.audit.userAgent,
                 location: ctx.audit.location,
               },
+              correlationId,
             })),
           );
         }
@@ -399,6 +409,7 @@ export const upsertRole = workspaceProcedure
             userAgent: ctx.audit.userAgent,
             location: ctx.audit.location,
           },
+          correlationId,
         });
       }
     });

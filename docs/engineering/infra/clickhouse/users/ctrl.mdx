@@ -13,6 +13,7 @@ CREATE USER IF NOT EXISTS ctrl IDENTIFIED WITH sha256_password BY '<password>';
 GRANT INSERT ON default.build_steps_v1          TO ctrl;  -- ctrl-worker (build pipeline)
 GRANT INSERT ON default.build_step_logs_v1      TO ctrl;  -- ctrl-worker (build pipeline)
 GRANT INSERT ON default.instance_events_raw_v1  TO ctrl;  -- ctrl-api (ReportInstanceEvents, v2.0.137+)
+GRANT INSERT ON default.audit_logs_raw_v1       TO ctrl;  -- ctrl-worker AuditLogExportService (drainer) + AuditLogBackfillService
 
 -- Reads
 GRANT SELECT ON default.billable_verifications_per_month_v2 TO ctrl;  -- ctrl-worker quotacheck

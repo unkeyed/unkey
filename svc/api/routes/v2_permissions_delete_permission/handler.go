@@ -106,15 +106,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.PermissionDeleteEvent,
-				ActorType:   auditlog.RootKeyActor,
-				ActorID:     auth.Key.ID,
-				ActorName:   "root key",
-				ActorMeta:   map[string]any{},
-				Display:     "Deleted " + permission.ID,
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
+				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				Event:         auditlog.PermissionDeleteEvent,
+				ActorType:     auditlog.RootKeyActor,
+				ActorID:       auth.Key.ID,
+				ActorName:     "root key",
+				ActorMeta:     map[string]any{},
+				Display:       "Deleted " + permission.ID,
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
 						Type:        auditlog.PermissionResourceType,

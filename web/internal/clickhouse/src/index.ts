@@ -1,3 +1,4 @@
+import { getAuditLogs } from "./audit-logs";
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { getBuildStepLogs, getBuildSteps } from "./build-steps";
 import { Client, type Inserter, Noop, type Querier } from "./client";
@@ -392,6 +393,11 @@ export class ClickHouse {
     return {
       getSteps: getBuildSteps(this.querier),
       getLogs: getBuildStepLogs(this.querier),
+    };
+  }
+  public get auditLogs() {
+    return {
+      logs: getAuditLogs(this.querier),
     };
   }
 }

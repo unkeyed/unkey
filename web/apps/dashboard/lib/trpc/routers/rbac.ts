@@ -428,6 +428,10 @@ export const rbacRouter = t.router({
         });
       }
       const roleId = newId("role");
+      // Mint a shared correlation so the role.create event and the N
+      // permission-bind events from the second insertAuditLogs call all
+      // link to one user action in the audit log drill-down.
+      const correlationId = newId("correlation");
       await db.transaction(async (tx) => {
         await tx.insert(schema.roles).values({
           id: roleId,
@@ -455,6 +459,7 @@ export const rbacRouter = t.router({
             userAgent: ctx.audit.userAgent,
             location: ctx.audit.location,
           },
+          correlationId,
         });
 
         if (input.permissionIds && input.permissionIds.length > 0) {
@@ -488,6 +493,7 @@ export const rbacRouter = t.router({
                 userAgent: ctx.audit.userAgent,
                 location: ctx.audit.location,
               },
+              correlationId,
             })),
           );
         }
