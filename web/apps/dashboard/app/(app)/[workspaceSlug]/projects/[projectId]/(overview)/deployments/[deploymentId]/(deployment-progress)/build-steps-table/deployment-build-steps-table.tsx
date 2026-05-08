@@ -18,7 +18,6 @@ type Props = {
   steps: BuildStepRow[];
   isLoading: boolean;
   fixedHeight?: number;
-  // Callers append `#<nonce>` so repeat clicks re-trigger the effect.
   focusStepId?: string | null;
 };
 
@@ -50,13 +49,15 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({
     if (!step.has_logs) {
       return;
     }
-    const next = new Set(expandedIds);
-    if (next.has(step.step_id)) {
-      next.delete(step.step_id);
-    } else {
-      next.add(step.step_id);
-    }
-    setExpandedIds(next);
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(step.step_id)) {
+        next.delete(step.step_id);
+      } else {
+        next.add(step.step_id);
+      }
+      return next;
+    });
   };
 
   const enrichedSteps = steps.map((step) => ({

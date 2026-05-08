@@ -139,12 +139,10 @@ function SettingCard({
         { once: true },
       );
     }
-    if (isControlled) {
-      onExpandedChange?.(willExpand);
-    } else {
+    if (!isControlled) {
       setInternalExpanded(willExpand);
-      onExpandedChange?.(willExpand);
     }
+    onExpandedChange?.(willExpand);
   };
 
   return (
