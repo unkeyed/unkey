@@ -52,6 +52,23 @@ pscale-branch: ## Create PlanetScale branch + run drizzle migration (BRANCH=name
 	DRIZZLE_DATABASE_URL="mysql://$$USER:$$PASS@$$HOST/unkey?ssl={}" \
 		pnpm --dir=web/internal/db run migrate
 
+.PHONY: disk-clean
+disk-clean: ## Free disk space by removing Go and Bazel caches (rename + background rm for speed)
+	@echo "Reclaiming disk space (caches will be deleted in the background)..."
+	@gomod=$$(go env GOMODCACHE 2>/dev/null); \
+	gocache=$$(go env GOCACHE 2>/dev/null); \
+	stamp=$$(date +%s); \
+	for d in "$$gomod" "$$gocache" "$$HOME/.cache/bazel" "$$HOME/.cache/bazelisk" "$$HOME/.cache/bazel-disk" "$$HOME/.cache/bazel-repo"; do \
+		if [ -n "$$d" ] && [ -d "$$d" ]; then \
+			trash="$${d}.trash.$$stamp"; \
+			mv "$$d" "$$trash" 2>/dev/null && \
+				(chmod -R u+w "$$trash" 2>/dev/null; rm -rf "$$trash") & \
+			echo "  queued: $$d"; \
+		fi; \
+	done; \
+	wait
+	@echo "Done. (background rm may still be running)"
+
 .PHONY: nuke-docker
 nuke-docker: ## Stop all containers and clean up Docker system
 	docker stop $$(docker ps -aq)
