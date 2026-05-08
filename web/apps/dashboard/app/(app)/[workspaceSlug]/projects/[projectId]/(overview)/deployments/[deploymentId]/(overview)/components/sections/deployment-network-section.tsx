@@ -70,6 +70,21 @@ export function DeploymentNetworkSection() {
         </Card>
         <div className="flex gap-2">
           <MetricCard
+            icon={ChartActivity}
+            metricType="rps"
+            currentValue={currentRps}
+            chartData={{
+              data: rpsTimeseries,
+              dataKey: "y",
+            }}
+            timeWindow={{
+              chart: "Last 6h",
+            }}
+            isLoading={isRpsLoading}
+            isError={isRpsError}
+            formatTooltipValue={(v) => ({ value: v.toFixed(1), unit: "req/s" })}
+          />
+          <MetricCard
             icon={TimeClock}
             metricType="latency"
             currentValue={currentLatency}
@@ -89,21 +104,6 @@ export function DeploymentNetworkSection() {
               const p = formatMetricParts("latency", v, "ms");
               return { value: p.value, unit: p.unit };
             }}
-          />
-          <MetricCard
-            icon={ChartActivity}
-            metricType="rps"
-            currentValue={currentRps}
-            chartData={{
-              data: rpsTimeseries,
-              dataKey: "y",
-            }}
-            timeWindow={{
-              chart: "Last 6h",
-            }}
-            isLoading={isRpsLoading}
-            isError={isRpsError}
-            formatTooltipValue={(v) => ({ value: v.toFixed(1), unit: "req/s" })}
           />
           <MetricCard
             icon={Microchip}
