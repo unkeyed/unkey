@@ -40,7 +40,7 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({
       requestAnimationFrame(() => {
         containerRef.current
           ?.querySelector<HTMLElement>(`[data-row-id="${stepId}"]`)
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
       });
     });
   }, [focusStepId]);

@@ -70,25 +70,23 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   }
   const isPrebuilt = !hasFreshBuild.current && !building?.error;
 
-  const buildStepsPanelRef = useRef<HTMLDivElement>(null);
   const [focusBuildStepId, setFocusBuildStepId] = useState<string | null>(null);
   const [buildExpanded, setBuildExpanded] = useState(!isPrebuilt);
   const failedBuildStep = buildSteps.data?.steps.find((s) => Boolean(s.error));
   const handleViewBuildLogs = () => {
     const wasExpanded = buildExpanded;
     setBuildExpanded(true);
-    const focusAndScroll = () => {
+    const focusFailedStep = () => {
       if (failedBuildStep) {
         setFocusBuildStepId(`${failedBuildStep.step_id}#${Date.now()}`);
       }
-      buildStepsPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     };
     // Wait out the SettingCard expand animation so the panel has real
     // height to scroll to.
     if (wasExpanded) {
-      focusAndScroll();
+      focusFailedStep();
     } else {
-      setTimeout(focusAndScroll, 320);
+      setTimeout(focusFailedStep, 320);
     }
   };
 
@@ -200,7 +198,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
             .otherwise(() => "pending" as const)}
           expandable={
             isPrebuilt ? null : (
-              <div ref={buildStepsPanelRef} className="bg-grayA-2 scroll-mt-40">
+              <div className="bg-grayA-2">
                 <DeploymentBuildStepsTable
                   steps={buildSteps.data?.steps ?? []}
                   isLoading={buildSteps.isLoading}
