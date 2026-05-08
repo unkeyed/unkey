@@ -111,6 +111,21 @@ With a limit of 100/minute:
 - 20 expensive requests, OR
 - Mix of both
 
+### Track token consumption in the dashboard
+
+When you use cost-based limiting, the rate limit overview in your Unkey dashboard surfaces token usage per identifier alongside request counts. Each row in the namespace logs table includes:
+
+| Column            | What it shows                                                                |
+| ----------------- | ---------------------------------------------------------------------------- |
+| `Passed Requests` | Number of requests that were allowed in the selected window                  |
+| `Blocked Requests`| Number of requests that were denied in the selected window                  |
+| `Passed Tokens`   | Sum of `cost` deducted from the limit by allowed requests                    |
+| `Blocked Tokens`  | Sum of `cost` that would have been required by denied requests              |
+
+This is useful when different operations have different costs — for example, when an LLM endpoint deducts tokens proportional to prompt size. Inspect the **Passed Tokens** and **Blocked Tokens** columns to see which identifiers are actually consuming the most capacity, not just making the most requests.
+
+If you don't pass a `cost` value, every request counts as `1` token, so the token columns mirror the request columns.
+
 ## Timeout and fallback
 
 Configure behavior when Unkey is unreachable:

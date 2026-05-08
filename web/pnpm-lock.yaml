@@ -53,7 +53,7 @@ importers:
         version: 2.1.0(@bufbuild/protobuf@2.8.0)(@connectrpc/connect@2.1.0)
       '@flags-sdk/vercel':
         specifier: 1.3.0
-        version: 1.3.0(flags@4.0.6)(next@16.1.5)
+        version: 1.3.0(flags@4.0.6)(next@16.2.6)
       '@hookform/resolvers':
         specifier: 5.2.2
         version: 5.2.2(react-hook-form@7.55.0)
@@ -116,7 +116,7 @@ importers:
         version: 1.2.8(@types/react-dom@19.2.3)(@types/react@19.2.4)(react-dom@19.2.4)(react@19.2.4)
       '@sentry/nextjs':
         specifier: ^10
-        version: 10.36.0(@opentelemetry/context-async-hooks@2.5.0)(@opentelemetry/core@2.5.0)(@opentelemetry/sdk-trace-base@2.5.0)(next@16.1.5)(react@19.2.4)(webpack@5.104.1)
+        version: 10.36.0(@opentelemetry/context-async-hooks@2.5.0)(@opentelemetry/core@2.5.0)(@opentelemetry/sdk-trace-base@2.5.0)(next@16.2.6)(react@19.2.4)(webpack@5.104.1)
       '@tailwindcss/container-queries':
         specifier: 0.1.1
         version: 0.1.1(tailwindcss@4.2.1)
@@ -209,13 +209,13 @@ importers:
         version: link:../../internal/vercel
       '@vercel/analytics':
         specifier: 2.0.1
-        version: 2.0.1(next@16.1.5)(react@19.2.4)
+        version: 2.0.1(next@16.2.6)(react@19.2.4)
       '@vercel/toolbar':
         specifier: 0.2.2
-        version: 0.2.2(@vercel/analytics@2.0.1)(next@16.1.5)(react-dom@19.2.4)(react@19.2.4)
+        version: 0.2.2(@vercel/analytics@2.0.1)(next@16.2.6)(react-dom@19.2.4)(react@19.2.4)
       '@workos-inc/node':
         specifier: 7.47.0
-        version: 7.47.0(next@16.1.5)
+        version: 7.47.0(next@16.2.6)
       boring-avatars:
         specifier: ^2.0.4
         version: 2.0.4(react-dom@19.2.4)(react@19.2.4)
@@ -233,13 +233,13 @@ importers:
         version: 3.6.0
       flags:
         specifier: 4.0.6
-        version: 4.0.6(@opentelemetry/api@1.9.0)(next@16.1.5)(react-dom@19.2.4)(react@19.2.4)
+        version: 4.0.6(@opentelemetry/api@1.9.0)(next@16.2.6)(react-dom@19.2.4)(react@19.2.4)
       framer-motion:
         specifier: 12.29.0
         version: 12.29.0(react-dom@19.2.4)(react@19.2.4)
       geist:
         specifier: 1.3.1
-        version: 1.3.1(next@16.1.5)
+        version: 1.3.1(next@16.2.6)
       input-otp:
         specifier: 1.2.4
         version: 1.2.4(react-dom@19.2.4)(react@19.2.4)
@@ -250,14 +250,14 @@ importers:
         specifier: ^5.1.6
         version: 5.1.6
       next:
-        specifier: 16.1.5
-        version: 16.1.5(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
+        specifier: 16.2.6
+        version: 16.2.6(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
       next-themes:
         specifier: 0.4.6
         version: 0.4.6(react-dom@19.2.4)(react@19.2.4)
       nuqs:
         specifier: 1.17.6
-        version: 1.17.6(next@16.1.5)
+        version: 1.17.6(next@16.2.6)
       openai:
         specifier: 6.33.0
         version: 6.33.0(zod@4.3.5)
@@ -964,7 +964,7 @@ importers:
         version: link:../../internal/resend
       '@workos-inc/node':
         specifier: 7.47.0
-        version: 7.47.0(next@16.1.5)
+        version: 7.47.0(next@16.2.6)
       base-x:
         specifier: 4.0.1
         version: 4.0.1
@@ -2761,13 +2761,13 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
-  /@flags-sdk/vercel@1.3.0(flags@4.0.6)(next@16.1.5):
+  /@flags-sdk/vercel@1.3.0(flags@4.0.6)(next@16.2.6):
     resolution: {integrity: sha512-IGwC8ye94+CnOYDxIdic1f2wZLbJQ67zXacD3J1/UWErcPdjtfp44RG23Qb9WujJ2VJbB8bzLdZ6R89nALtDeg==}
     peerDependencies:
       flags: '*'
     dependencies:
-      '@vercel/flags-core': 1.4.0(next@16.1.5)
-      flags: 4.0.6(@opentelemetry/api@1.9.0)(next@16.1.5)(react-dom@19.2.4)(react@19.2.4)
+      '@vercel/flags-core': 1.4.0(next@16.2.6)
+      flags: 4.0.6(@opentelemetry/api@1.9.0)(next@16.2.6)(react-dom@19.2.4)(react@19.2.4)
     transitivePeerDependencies:
       - '@aws-sdk/credential-provider-web-identity'
       - '@openfeature/server-sdk'
@@ -3127,12 +3127,12 @@ packages:
     resolution: {integrity: sha512-27SQhYp5QryzIT5uO8hq99C69eLQ7qkzkDPsk3N+GuS2XgOgoYEeOav7Pf8Tn4drECOVDsDg8oj+/DVy8qQL2A==}
     dev: false
 
-  /@next/env@16.1.5:
-    resolution: {integrity: sha512-CRSCPJiSZoi4Pn69RYBDI9R7YK2g59vLexPQFXY0eyw+ILevIenCywzg+DqmlBik9zszEnw2HLFOUlLAcJbL7g==}
+  /@next/env@16.2.6:
+    resolution: {integrity: sha512-gd8HoHN4ufj73WmR3JmVolrpJR47ILK6LouP5xElPglaVxir6e1a7VzvTvDWkOoPXT9rkkTzyCxBu4yeZfZwcw==}
     dev: false
 
-  /@next/swc-darwin-arm64@16.1.5:
-    resolution: {integrity: sha512-eK7Wdm3Hjy/SCL7TevlH0C9chrpeOYWx2iR7guJDaz4zEQKWcS1IMVfMb9UKBFMg1XgzcPTYPIp1Vcpukkjg6Q==}
+  /@next/swc-darwin-arm64@16.2.6:
+    resolution: {integrity: sha512-ZJGkkcNfYgrrMkqOdZ7zoLa1TOy0qpcMfk/z4Mh/FKUz40gVO+HNQWqmLxf67Z5WB64DRp0dhEbyHfel+6sJUg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
@@ -3140,8 +3140,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-darwin-x64@16.1.5:
-    resolution: {integrity: sha512-foQscSHD1dCuxBmGkbIr6ScAUF6pRoDZP6czajyvmXPAOFNnQUJu2Os1SGELODjKp/ULa4fulnBWoHV3XdPLfA==}
+  /@next/swc-darwin-x64@16.2.6:
+    resolution: {integrity: sha512-v/YLBHIY132Ced3puBJ7YJKw1lqsCrgcNo2aRJlCEyQrrCeRJlvGlnmxhPxNQI3KE3N1DN5r9TPNPvka3nq5RQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
@@ -3149,8 +3149,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-linux-arm64-gnu@16.1.5:
-    resolution: {integrity: sha512-qNIb42o3C02ccIeSeKjacF3HXotGsxh/FMk/rSRmCzOVMtoWH88odn2uZqF8RLsSUWHcAqTgYmPD3pZ03L9ZAA==}
+  /@next/swc-linux-arm64-gnu@16.2.6:
+    resolution: {integrity: sha512-RPOvqlYBbcQjkz9VQQDZ2T2bARIjXZV1KFlt+V2Mr6SW/e4I9fcKsaA0hdyf2FHoTlsV2xnBd5Y912rP/1Ce6w==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -3158,8 +3158,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-linux-arm64-musl@16.1.5:
-    resolution: {integrity: sha512-U+kBxGUY1xMAzDTXmuVMfhaWUZQAwzRaHJ/I6ihtR5SbTVUEaDRiEU9YMjy1obBWpdOBuk1bcm+tsmifYSygfw==}
+  /@next/swc-linux-arm64-musl@16.2.6:
+    resolution: {integrity: sha512-URUTu1+dMkxJsPFgm+OeEvq9wf5sujw0EvgYy80TDGHTSLTnIHeqb0Eu8A3sC95IRgjejQL+kC4mw+4yPxiAXA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -3167,8 +3167,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-linux-x64-gnu@16.1.5:
-    resolution: {integrity: sha512-gq2UtoCpN7Ke/7tKaU7i/1L7eFLfhMbXjNghSv0MVGF1dmuoaPeEVDvkDuO/9LVa44h5gqpWeJ4mRRznjDv7LA==}
+  /@next/swc-linux-x64-gnu@16.2.6:
+    resolution: {integrity: sha512-DOj182mPV8G3UkrayLoREM5YEYI+Dk5wv7Ox9xl1fFibAELEsFD0lDPfHIeILlutMMfdyhlzYPELG3peuKaurw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -3176,8 +3176,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-linux-x64-musl@16.1.5:
-    resolution: {integrity: sha512-bQWSE729PbXT6mMklWLf8dotislPle2L70E9q6iwETYEOt092GDn0c+TTNj26AjmeceSsC4ndyGsK5nKqHYXjQ==}
+  /@next/swc-linux-x64-musl@16.2.6:
+    resolution: {integrity: sha512-HKQ5SP/V/ub73UvF7n/zeJlxk2kLmtL7Wzrg4WfmkjmNos5onJ2tKu7yZOPdL18A6Svfn3max29ym+ry7NkK4g==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -3185,8 +3185,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-win32-arm64-msvc@16.1.5:
-    resolution: {integrity: sha512-LZli0anutkIllMtTAWZlDqdfvjWX/ch8AFK5WgkNTvaqwlouiD1oHM+WW8RXMiL0+vAkAJyAGEzPPjO+hnrSNQ==}
+  /@next/swc-win32-arm64-msvc@16.2.6:
+    resolution: {integrity: sha512-LZXpTlPyS5v7HhSmnvsLGP3iIYgYOBnc8r8ArlT55sGHV89bR2HlDdBjWQ+PY6SJMmk8TuVGFuxalnP3k/0Dwg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
@@ -3194,8 +3194,8 @@ packages:
     dev: false
     optional: true
 
-  /@next/swc-win32-x64-msvc@16.1.5:
-    resolution: {integrity: sha512-7is37HJTNQGhjPpQbkKjKEboHYQnCgpVt/4rBrrln0D9nderNxZ8ZWs8w1fAtzUx7wEyYjQ+/13myFgFj6K2Ng==}
+  /@next/swc-win32-x64-msvc@16.2.6:
+    resolution: {integrity: sha512-F0+4i0h9J6C4eE3EAPWsoCk7UW/dbzOjyzxY0qnDUOYFu6FFmdZ6l97/XdV3/Nz3VYyO7UWjyEJUXkGqcoXfMA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
@@ -7299,7 +7299,7 @@ packages:
     engines: {node: '>=18'}
     dev: false
 
-  /@sentry/nextjs@10.36.0(@opentelemetry/context-async-hooks@2.5.0)(@opentelemetry/core@2.5.0)(@opentelemetry/sdk-trace-base@2.5.0)(next@16.1.5)(react@19.2.4)(webpack@5.104.1):
+  /@sentry/nextjs@10.36.0(@opentelemetry/context-async-hooks@2.5.0)(@opentelemetry/core@2.5.0)(@opentelemetry/sdk-trace-base@2.5.0)(next@16.2.6)(react@19.2.4)(webpack@5.104.1):
     resolution: {integrity: sha512-Vds/cKG3SJjmdRbjXMVKXUamYCxh3oxW69ytL9Bs5sUQTUwE+9Uu8R9cZ0+eGC/c3vrUoXMn5QYGh/h8+PyeJA==}
     engines: {node: '>=18'}
     peerDependencies:
@@ -7316,7 +7316,7 @@ packages:
       '@sentry/react': 10.36.0(react@19.2.4)
       '@sentry/vercel-edge': 10.36.0
       '@sentry/webpack-plugin': 4.7.0(webpack@5.104.1)
-      next: 16.1.5(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
+      next: 16.2.6(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
       rollup: 4.56.0
       stacktrace-parser: 0.1.11
     transitivePeerDependencies:
@@ -8680,7 +8680,7 @@ packages:
       - '@modelcontextprotocol/sdk'
     dev: false
 
-  /@vercel/analytics@2.0.1(next@16.1.5)(react@19.2.4):
+  /@vercel/analytics@2.0.1(next@16.2.6)(react@19.2.4):
     resolution: {integrity: sha512-MTQG6V9qQrt1tsDeF+2Uoo5aPjqbVPys1xvnIftXSJYG2SrwXRHnqEvVoYID7BTruDz4lCd2Z7rM1BdkUehk2g==}
     peerDependencies:
       '@remix-run/react': ^2
@@ -8709,11 +8709,11 @@ packages:
       vue-router:
         optional: true
     dependencies:
-      next: 16.1.5(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
+      next: 16.2.6(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
       react: 19.2.4
     dev: false
 
-  /@vercel/flags-core@1.4.0(next@16.1.5):
+  /@vercel/flags-core@1.4.0(next@16.2.6):
     resolution: {integrity: sha512-VeWaNAMZoBmOC5B0POjYXkuP+Llt9MtMDg0DFJObBRLKQ/zTtc9lY4hVVcOIx1JjJmO3JKMZDv43WtX/1jDbmg==}
     peerDependencies:
       '@openfeature/server-sdk': 1.18.0
@@ -8727,7 +8727,7 @@ packages:
       '@vercel/functions': 3.5.0
       jose: 5.2.1
       js-xxhash: 4.0.0
-      next: 16.1.5(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
+      next: 16.2.6(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
     transitivePeerDependencies:
       - '@aws-sdk/credential-provider-web-identity'
     dev: false
@@ -8744,7 +8744,7 @@ packages:
       '@vercel/oidc': 3.4.0
     dev: false
 
-  /@vercel/microfrontends@2.0.1(@vercel/analytics@2.0.1)(next@16.1.5)(react-dom@19.2.4)(react@19.2.4):
+  /@vercel/microfrontends@2.0.1(@vercel/analytics@2.0.1)(next@16.2.6)(react-dom@19.2.4)(react@19.2.4):
     resolution: {integrity: sha512-lVo3h0qVibxFkl8/oO+F50B6CtdHZgNmjPZMqME4iCH+EmQ7MDoFDQqN2Pjwn3Pnj/5SvCZPzmI0HQJlpQmP/g==}
     hasBin: true
     peerDependencies:
@@ -8773,7 +8773,7 @@ packages:
     dependencies:
       '@next/env': 15.5.4
       '@types/md5': 2.3.6
-      '@vercel/analytics': 2.0.1(next@16.1.5)(react@19.2.4)
+      '@vercel/analytics': 2.0.1(next@16.2.6)(react@19.2.4)
       ajv: 8.17.1
       commander: 12.1.0
       cookie: 1.0.2
@@ -8782,7 +8782,7 @@ packages:
       jsonc-parser: 3.3.1
       md5: 2.3.0
       nanoid: 3.3.11
-      next: 16.1.5(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
+      next: 16.2.6(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
       path-to-regexp: 6.2.1
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
@@ -8796,7 +8796,7 @@ packages:
     engines: {node: '>= 20'}
     dev: false
 
-  /@vercel/toolbar@0.2.2(@vercel/analytics@2.0.1)(next@16.1.5)(react-dom@19.2.4)(react@19.2.4):
+  /@vercel/toolbar@0.2.2(@vercel/analytics@2.0.1)(next@16.2.6)(react-dom@19.2.4)(react@19.2.4):
     resolution: {integrity: sha512-ygI0VD1mBejSOp3pNeb3jqeO3bSzLn6CrjEnVtyjEZePx5ygWEyoQUAZWFH85njtfKt15Nbmp0cNjye+Xm6RbA==}
     peerDependencies:
       next: '>=11.0.0'
@@ -8814,14 +8814,14 @@ packages:
         optional: true
     dependencies:
       '@tinyhttp/app': 1.3.0
-      '@vercel/microfrontends': 2.0.1(@vercel/analytics@2.0.1)(next@16.1.5)(react-dom@19.2.4)(react@19.2.4)
+      '@vercel/microfrontends': 2.0.1(@vercel/analytics@2.0.1)(next@16.2.6)(react-dom@19.2.4)(react@19.2.4)
       chokidar: 3.6.0
       execa: 5.1.1
       fast-glob: 3.3.3
       find-up: 5.0.0
       get-port: 5.1.1
       jsonc-parser: 3.3.1
-      next: 16.1.5(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
+      next: 16.2.6(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
       react: 19.2.4
       strip-ansi: 6.0.1
     transitivePeerDependencies:
@@ -9072,11 +9072,11 @@ packages:
       '@xtuc/long': 4.2.2
     dev: false
 
-  /@workos-inc/node@7.47.0(next@16.1.5):
+  /@workos-inc/node@7.47.0(next@16.2.6):
     resolution: {integrity: sha512-A7K6uIIGmD5qbrLxoXah2BcOzbxyxnrhps+crZ/CFImrkq4CdVAm6BV/wvRaTeAinRF+Ea9cIFFeEAvJ++RaSw==}
     engines: {node: '>=16'}
     dependencies:
-      iron-session: 6.3.1(next@16.1.5)
+      iron-session: 6.3.1(next@16.2.6)
       jose: 5.6.3
       leb: 1.0.0
       pluralize: 8.0.0
@@ -9447,8 +9447,9 @@ packages:
     engines: {node: ^4.5.0 || >= 5.9}
     dev: false
 
-  /baseline-browser-mapping@2.9.17:
-    resolution: {integrity: sha512-agD0MgJFUP/4nvjqzIB29zRPUuCF7Ge6mEv9s8dHrtYD7QWXRcx75rOADE/d5ah1NI+0vkDl0yorDd5U852IQQ==}
+  /baseline-browser-mapping@2.10.27:
+    resolution: {integrity: sha512-zEs/ufmZoUd7WftKpKyXaT6RFxpQ5Qm9xytKRHvJfxFV9DFJkZph9RvJ1LcOUi0Z1ZVijMte65JbILeV+8QQEA==}
+    engines: {node: '>=6.0.0'}
     hasBin: true
 
   /bcrypt-pbkdf@1.0.2:
@@ -9512,7 +9513,7 @@ packages:
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
     dependencies:
-      baseline-browser-mapping: 2.9.17
+      baseline-browser-mapping: 2.10.27
       caniuse-lite: 1.0.30001766
       electron-to-chromium: 1.5.278
       node-releases: 2.0.27
@@ -10873,7 +10874,7 @@ packages:
       path-exists: 4.0.0
     dev: false
 
-  /flags@4.0.6(@opentelemetry/api@1.9.0)(next@16.1.5)(react-dom@19.2.4)(react@19.2.4):
+  /flags@4.0.6(@opentelemetry/api@1.9.0)(next@16.2.6)(react-dom@19.2.4)(react@19.2.4):
     resolution: {integrity: sha512-8Rz/5L8Gkl2+LmlV2gOXx3iJNTYDooa8eGvshFev9nrXtrcvsXa5z/DXdtElHvN15psnSHg+r51lYHge2rCASw==}
     peerDependencies:
       '@opentelemetry/api': ^1.7.0
@@ -10896,7 +10897,7 @@ packages:
       '@edge-runtime/cookies': 5.0.2
       '@opentelemetry/api': 1.9.0
       jose: 5.10.0
-      next: 16.1.5(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
+      next: 16.2.6(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
     dev: false
@@ -10977,12 +10978,12 @@ packages:
   /function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
 
-  /geist@1.3.1(next@16.1.5):
+  /geist@1.3.1(next@16.2.6):
     resolution: {integrity: sha512-Q4gC1pBVPN+D579pBaz0TRRnGA4p9UK6elDY/xizXdFk/g4EKR5g0I+4p/Kj6gM0SajDBZ/0FvDV9ey9ud7BWw==}
     peerDependencies:
       next: '>=13.2.0'
     dependencies:
-      next: 16.1.5(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
+      next: 16.2.6(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
     dev: false
 
   /generate-function@2.3.1:
@@ -11281,7 +11282,7 @@ packages:
     engines: {node: '>= 10'}
     dev: false
 
-  /iron-session@6.3.1(next@16.1.5):
+  /iron-session@6.3.1(next@16.2.6):
     resolution: {integrity: sha512-3UJ7y2vk/WomAtEySmPgM6qtYF1cZ3tXuWX5GsVX4PJXAcs5y/sV9HuSfpjKS6HkTL/OhZcTDWJNLZ7w+Erx3A==}
     engines: {node: '>=12'}
     peerDependencies:
@@ -11303,7 +11304,7 @@ packages:
       '@types/node': 17.0.45
       cookie: 0.5.0
       iron-webcrypto: 0.2.8
-      next: 16.1.5(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
+      next: 16.2.6(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
     dev: false
 
   /iron-webcrypto@0.2.8:
@@ -11995,8 +11996,8 @@ packages:
       react-dom: 19.2.4(react@19.2.4)
     dev: false
 
-  /next@16.1.5(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4):
-    resolution: {integrity: sha512-f+wE+NSbiQgh3DSAlTaw2FwY5yGdVViAtp8TotNQj4kk4Q8Bh1sC/aL9aH+Rg1YAVn18OYXsRDT7U/079jgP7w==}
+  /next@16.2.6(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4):
+    resolution: {integrity: sha512-qOVgKJg1+At15NpeUP+eJgCHvTCgXsogweq87Ri/Ix7PkqQHg4sdaXmSFqKlgaIXE4kW0g25LE68W87UANlHtw==}
     engines: {node: '>=20.9.0'}
     hasBin: true
     peerDependencies:
@@ -12016,24 +12017,24 @@ packages:
       sass:
         optional: true
     dependencies:
-      '@next/env': 16.1.5
+      '@next/env': 16.2.6
       '@opentelemetry/api': 1.9.0
       '@swc/helpers': 0.5.15
-      baseline-browser-mapping: 2.9.17
+      baseline-browser-mapping: 2.10.27
       caniuse-lite: 1.0.30001766
       postcss: 8.4.31
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
       styled-jsx: 5.1.6(@babel/core@7.28.6)(react@19.2.4)
     optionalDependencies:
-      '@next/swc-darwin-arm64': 16.1.5
-      '@next/swc-darwin-x64': 16.1.5
-      '@next/swc-linux-arm64-gnu': 16.1.5
-      '@next/swc-linux-arm64-musl': 16.1.5
-      '@next/swc-linux-x64-gnu': 16.1.5
-      '@next/swc-linux-x64-musl': 16.1.5
-      '@next/swc-win32-arm64-msvc': 16.1.5
-      '@next/swc-win32-x64-msvc': 16.1.5
+      '@next/swc-darwin-arm64': 16.2.6
+      '@next/swc-darwin-x64': 16.2.6
+      '@next/swc-linux-arm64-gnu': 16.2.6
+      '@next/swc-linux-arm64-musl': 16.2.6
+      '@next/swc-linux-x64-gnu': 16.2.6
+      '@next/swc-linux-x64-musl': 16.2.6
+      '@next/swc-win32-arm64-msvc': 16.2.6
+      '@next/swc-win32-x64-msvc': 16.2.6
       sharp: 0.34.5
     transitivePeerDependencies:
       - '@babel/core'
@@ -12078,13 +12079,13 @@ packages:
       boolbase: 1.0.0
     dev: false
 
-  /nuqs@1.17.6(next@16.1.5):
+  /nuqs@1.17.6(next@16.2.6):
     resolution: {integrity: sha512-mbQKLo+4h9ZsCg9u4WcitBqVhP2XG2PrPc0sUN0IEHL3nUKjxHT2h3tqd1Wo1gkkGxan5uVpnJ9NP51y2j7vgg==}
     peerDependencies:
       next: '>=13.4 <14.0.2 || ^14.0.3'
     dependencies:
       mitt: 3.0.1
-      next: 16.1.5(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
+      next: 16.2.6(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@19.2.4)(react@19.2.4)
     dev: false
 
   /nuqs@2.8.6(react@19.2.3):
