@@ -52,6 +52,25 @@ When a PR comes from a fork, Unkey requires an authorized team member to approve
 
 {/* TODO: screenshot of fork approval flow */}
 
+### Deploy from a fork manually
+
+Once you've reviewed the contributor's changes, you can ship them to a preview environment from the **Create deployment** dialog in the dashboard. The reference field accepts:
+
+| Reference                                                | What it deploys                                                  |
+| -------------------------------------------------------- | ---------------------------------------------------------------- |
+| `main`, `feature/login` (any branch name)                | Latest commit on that branch in the connected repo               |
+| Full 40-character commit SHA                             | The exact commit (in the connected repo or a fork)               |
+| `fork-owner:branch-name`                                 | A branch on a contributor's fork (GitHub's standard fork syntax) |
+| `https://github.com/<owner>/<repo>/tree/<branch>`        | A branch in the connected repo or a fork                         |
+| `https://github.com/<owner>/<repo>/commit/<sha>`         | A specific commit in the connected repo or a fork                |
+| `https://github.com/<owner>/<repo>/pull/<number>`        | The current head commit of a pull request, including from forks  |
+
+When you paste a fork reference or a PR URL from a fork, the dialog shows a **Deploying from fork** indicator with the source repository so you can confirm what you're shipping before submitting.
+
+Unkey enforces a guardrail on the source: the repository name (the part after the `/`) must match the connected repository. For example, if your project is connected to `acme/api`, you can deploy from `contributor/api` but not from `contributor/some-other-repo`. Pull request URLs are validated the same way.
+
+Manual fork deployments always go to a preview environment — they never deploy to production, regardless of the branch name on the fork.
+
 ## Watch paths
 
 By default, every push triggers a deployment. If your repository contains code that doesn't affect your app (for example, documentation or unrelated services in a monorepo), configure watch paths to deploy only when relevant files change.
