@@ -499,6 +499,8 @@
 
   --drop-shadow-button: 0px 0px 0px 3px hsl(var(--grayA-6));
 
+  --shadow-popover: var(--popover-shadow);
+
   --opacity-55: 55.00000000000001%;
 
   --animate-marquee: marquee 15s linear infinite;
@@ -611,6 +613,12 @@
     --toast-bg: 0 0% 100%;
     --toast-border: 24, 6%, 83%;
     --toast-fg: 240 10% 3.9%;
+
+    --popover-shadow:
+      0px 0px 0px 1px oklch(0.238 0 0 / 0.1),
+      0px 16px 16px oklch(0.238 0 0 / 0.01),
+      0px 8px 8px oklch(0.238 0 0 / 0.02),
+      0px 4px 4px oklch(0.238 0 0 / 0.06);
   }
 
   .dark {
@@ -652,6 +660,13 @@
     --toast-bg: 0 0% 0%;
     --toast-border: 12, 6%, 15%;
     --toast-fg: 240 10% 90%;
+
+    --popover-shadow:
+      0px 0px 0px 1px oklch(0 0 0 / 0.16),
+      0px 6px 6px oklch(0 0 0 / 0.1),
+      0px 16px 16px oklch(0 0 0 / 0.08),
+      0px 32px 32px oklch(0 0 0 / 0.06),
+      inset 0px 0px 0px 1px oklch(0.947 0 0 / 0.08);
   }
 }
 
