@@ -67,7 +67,6 @@ func ClickHouse(t testing.TB) ClickHouseConfig {
 		return conn.Ping(ctx) == nil
 	}, 60*time.Second, 500*time.Millisecond)
 
-	// Apply schema files
 	applyClickHouseSchema(t, ctx, conn)
 
 	return ClickHouseConfig{
