@@ -1,41 +1,24 @@
-# Validates MySQL schema changes by spinning up a per-PR PlanetScale branch
-# off staging, running drizzle-kit push against it, and opening a deploy
-# request for review. The branch is left intact so reviewers can connect to it.
-#
-# Security model: this workflow uses `pull_request` (not `pull_request_target`)
-# so secrets are NEVER exposed to fork PRs. The job-level `if:` further skips
-# the run for forks; maintainers re-run by pushing the branch into
-# unkeyed/unkey.
-name: pscale-pr
-
+name: PlanetScale PR Branch
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - "web/internal/db/src/schema/**"
-      - ".github/workflows/pscale-pr.yml"
-
-concurrency:
-  group: pscale-pr-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
+  workflow_call:
+permissions:
+  contents: read
 env:
   PSCALE_ORG: unkey
   PSCALE_DB: unkey
   PSCALE_PARENT: staging
   BRANCH: pr-${{ github.event.pull_request.number }}
-
 jobs:
   validate:
-    name: validate schema on planetscale branch
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    name: Validate schema on PlanetScale branch
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15
+    if: github.event.pull_request.head.repo.full_name == github.repository
     env:
       PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
       PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
 
       - uses: planetscale/setup-pscale-action@v1
 
@@ -53,8 +36,8 @@ jobs:
         run: pnpm --dir=web install --frozen-lockfile
 
       - name: ensure planetscale branch
-        # Idempotent: re-runs on PR push reuse the existing branch. We probe
-        # with `branch show` to distinguish "already exists" from real errors.
+        # Idempotent: re-runs on PR push reuse the existing branch. Probe with
+        # `branch show` to distinguish "already exists" from real errors.
         run: |
           set -euo pipefail
           if ! pscale branch create "$PSCALE_DB" "$BRANCH" \
@@ -63,19 +46,26 @@ jobs:
           fi
 
       - name: run migration
+        # USER/PASS/HOST are URL-encoded via jq's @uri before composing the DSN
+        # so reserved characters in any field can't break parsing.
         run: |
           set -euo pipefail
           PW=$(pscale password create "$PSCALE_DB" "$BRANCH" "ci-${GITHUB_SHA::8}" \
                  --org "$PSCALE_ORG" --format json)
-          USER=$(echo "$PW" | jq -r .username)
-          PASS=$(echo "$PW" | jq -r .plain_text)
-          HOST=$(echo "$PW" | jq -r .access_host_url)
+          USER=$(echo "$PW" | jq -r '.username | @uri')
+          PASS=$(echo "$PW" | jq -r '.plain_text | @uri')
+          HOST=$(echo "$PW" | jq -r '.access_host_url | @uri')
           export DRIZZLE_DATABASE_URL="mysql://$USER:$PASS@$HOST/$PSCALE_DB?ssl={}"
           pnpm --dir=web/internal/db run migrate
 
       - name: ensure deploy request
         # Open a DR into staging so reviewers have a one-click promotion
         # surface. Reuse existing open DR for repeat runs of the same PR.
+        # PR_NUMBER and PR_TITLE come in via env so untrusted PR title text
+        # can't be interpreted as shell.
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           set -euo pipefail
           EXISTING=$(pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
@@ -85,7 +75,7 @@ jobs:
           if [ -z "$EXISTING" ]; then
             pscale deploy-request create "$PSCALE_DB" "$BRANCH" \
               --org "$PSCALE_ORG" --into "$PSCALE_PARENT" \
-              --notes "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+              --notes "PR #${PR_NUMBER}: ${PR_TITLE}"
           else
             echo "Reusing existing deploy request #$EXISTING"
           fi
