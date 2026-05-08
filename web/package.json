@@ -1,6 +1,9 @@
 {
   "name": "unkey",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "private": true,
   "version": "1.0.0",
   "description": "",
@@ -24,22 +27,7 @@
     "typescript": "5.7.3",
     "vitest": "3.2.4"
   },
-  "pnpm": {
-    "overrides": {
-      "@radix-ui/react-dialog": "1.1.15",
-      "@radix-ui/react-popover": "1.1.15",
-      "zod": "4.3.5",
-      "@tanstack/router-generator>zod": "3.24.4",
-      "@tanstack/start-plugin-core>zod": "3.24.4",
-      "@tanstack/router-plugin>zod": "3.24.4",
-      "@tanstack/react-router>zod": "3.24.4",
-      "@tanstack/react-start-plugin>zod": "3.24.4",
-      "@tanstack/react-start-config>zod": "3.24.4",
-      "@types/react": "19.2.4",
-      "@types/react-dom": "19.2.3"
-    }
-  },
-  "packageManager": "pnpm@8.6.9+sha256.c94450b6623ecedb5e8c7045c7e67cb240bbe88e17660b3d8c57207dfd1eff90",
+  "packageManager": "pnpm@11.0.8+sha512.4c4097e1dd2d42372c4e7fa5a791ff28fc75a484c7ac192e64b1df0fdef17594ba982f9b4fed9adfb3c757846f565b799b2763fb3733d1de1bcb82cf46684912",
   "engines": {
     "node": ">=22"
   }
