@@ -3,7 +3,6 @@
   "version": "0.1.44",
   "private": true,
   "scripts": {
-    "local": "./local.bash",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

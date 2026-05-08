@@ -2,8 +2,6 @@ http_port = 7070
 region = "local"
 redis_url = "redis://redis:6379"
 
-portal_base_url = "http://localhost:3100"
-
 [database]
 primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
 
@@ -15,11 +13,6 @@ analytics_url = "http://clickhouse:8123/default"
 url = "http://vault:8060"
 token = "vault-test-token-123"
 
-
 [control]
 url = "http://ctrl-api:7091"
 token = "your-local-dev-key"
-
-[pprof]
-username = "admin"
-password = "password"
