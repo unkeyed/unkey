@@ -1,6 +1,10 @@
 "use client";
 
-import { formatMemoryParts } from "@/lib/utils/deployment-formatters";
+import {
+  bytesToMib,
+  formatMemoryParts,
+  formatTooltipPercent,
+} from "@/lib/utils/deployment-formatters";
 import type { PERCENTILE_VALUES } from "@unkey/clickhouse/src/sentinel";
 import { ChartActivity, Layers2, Microchip, Ram, TimeClock } from "@unkey/icons";
 import { useState } from "react";
@@ -75,9 +79,9 @@ export function DeploymentNetworkSection() {
             }}
             isLoading={isLatencyLoading}
             isError={isLatencyError}
-            valueFormatter={(v) => {
+            formatTooltipValue={(v) => {
               const p = formatMetricParts("latency", v, "ms");
-              return `${p.value} ${p.unit}`;
+              return { value: p.value, unit: p.unit };
             }}
           />
           <MetricCard
@@ -93,7 +97,7 @@ export function DeploymentNetworkSection() {
             }}
             isLoading={isRpsLoading}
             isError={isRpsError}
-            valueFormatter={(v) => `${v.toFixed(1)} req/s`}
+            formatTooltipValue={(v) => ({ value: v.toFixed(1), unit: "req/s" })}
           />
           <MetricCard
             icon={Microchip}
@@ -108,11 +112,13 @@ export function DeploymentNetworkSection() {
             }}
             isLoading={isCpuLoading}
             isError={isCpuError}
-            valueFormatter={(v) =>
-              allocatedMillicores > 0
-                ? `${Math.round((v / allocatedMillicores) * 100)}%`
-                : `${Math.round(v)}m`
-            }
+            formatTooltipValue={(v) => {
+              if (allocatedMillicores <= 0) {
+                return { value: `${Math.round(v)}`, unit: "m" };
+              }
+              const pct = formatTooltipPercent((v / allocatedMillicores) * 100);
+              return { value: pct, hint: `${Math.round(v)}m` };
+            }}
           />
           <MetricCard
             icon={Ram}
@@ -131,13 +137,16 @@ export function DeploymentNetworkSection() {
             }}
             isLoading={isMemoryLoading}
             isError={isMemoryError}
-            valueFormatter={(v) => {
-              const mib = Math.round(v / (1024 * 1024));
-              const parts = formatMemoryParts(mib);
-              if (allocatedBytes > 0) {
-                return `${parts.value} ${parts.unit} (${Math.round((v / allocatedBytes) * 100)}%)`;
+            formatTooltipValue={(v) => {
+              const parts = formatMemoryParts(bytesToMib(v));
+              if (allocatedBytes <= 0) {
+                return { value: parts.value, unit: parts.unit };
               }
-              return `${parts.value} ${parts.unit}`;
+              return {
+                value: parts.value,
+                unit: parts.unit,
+                hint: `(${formatTooltipPercent((v / allocatedBytes) * 100)})`,
+              };
             }}
           />
         </div>

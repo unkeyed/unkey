@@ -6,6 +6,7 @@ export type TimeseriesData = {
 
 const TARGET_BUCKETS = 24;
 
+/** 6h window at 15s buckets produces ~360 points. Reduce to ~24 using peak (max) selection so spikes stay visible. */
 export function downsample(points: TimeseriesData[]): TimeseriesData[] {
   if (points.length <= TARGET_BUCKETS) {
     return points;

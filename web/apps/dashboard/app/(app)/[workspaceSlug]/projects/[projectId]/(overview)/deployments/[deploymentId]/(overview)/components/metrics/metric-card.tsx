@@ -2,7 +2,10 @@ import type { TimeseriesData } from "@/components/logs/overview-charts/types";
 import type { IconProps } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { ComponentType } from "react";
-import { LogsTimeseriesBarChart } from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart";
+import {
+  LogsTimeseriesBarChart,
+  type TooltipValueParts,
+} from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart";
 import { MetricSelect } from "./metric-select";
 
 type MetricType = "latency" | "rps" | "cpu" | "memory";
@@ -64,7 +67,7 @@ type MetricCardProps = {
   };
   isLoading?: boolean;
   isError?: boolean;
-  valueFormatter?: (value: number) => string;
+  formatTooltipValue?: (value: number) => TooltipValueParts;
 };
 
 export function MetricCard({
@@ -78,7 +81,7 @@ export function MetricCard({
   timeWindow,
   isLoading = false,
   isError = false,
-  valueFormatter,
+  formatTooltipValue,
 }: MetricCardProps) {
   const config = METRIC_CONFIGS[metricType];
   const parts = formatMetricParts(metricType, currentValue, config.unit);
@@ -139,7 +142,7 @@ export function MetricCard({
           height={50}
           isLoading={isLoading}
           isError={isError}
-          valueFormatter={valueFormatter}
+          formatTooltipValue={formatTooltipValue}
         />
         {timeWindow?.chart && (
           <span className="text-grayA-11 text-[10px] px-[14px] my-1">{timeWindow.chart}</span>

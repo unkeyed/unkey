@@ -16,6 +16,8 @@ import { Bar, BarChart } from "recharts";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
 import { LogsChartError } from "./components/logs-chart-error";
 
+export type TooltipValueParts = { value: string; unit?: string; hint?: string };
+
 type LogsTimeseriesBarChartProps = {
   data?: TimeseriesData[];
   config: ChartConfig;
@@ -23,12 +25,8 @@ type LogsTimeseriesBarChartProps = {
   isLoading?: boolean;
   isError?: boolean;
   chartContainerClassname?: string;
-  // Optional per-value tooltip formatter. Receives the raw numeric value for
-  // the hovered bar and returns the string shown after the series name.
-  // Lets callers render "67m (27%)" instead of the raw number.
   valueFormatter?: (value: number) => string;
-  // When true, the compact-tooltip label includes the date (e.g. "Apr 17,
-  // 4:14 AM"). For multi-day ranges a bare "4:14 AM" is ambiguous.
+  formatTooltipValue?: (value: number) => TooltipValueParts;
   showDateInTooltip?: boolean;
 };
 
@@ -40,6 +38,7 @@ export function LogsTimeseriesBarChart({
   isError,
   chartContainerClassname,
   valueFormatter,
+  formatTooltipValue,
   showDateInTooltip,
 }: LogsTimeseriesBarChartProps) {
   const timestampToIndexMap = useMemo(() => {
@@ -117,7 +116,8 @@ export function LogsTimeseriesBarChart({
             if (allZero) {
               return null;
             }
-            if (valueFormatter) {
+            const tooltipFormatter = formatTooltipValue ?? valueFormatter;
+            if (tooltipFormatter) {
               const payloadTimestamp = parseTimestamp(payload?.[0]?.payload?.originalTimestamp);
               const labelText = formatCompactInterval(payloadTimestamp, data, showDateInTooltip);
               return (
@@ -132,6 +132,8 @@ export function LogsTimeseriesBarChart({
                       const itemConfig = config[dataKey];
                       const seriesLabel = itemConfig?.label ?? item?.name ?? dataKey;
                       const raw = typeof item?.value === "number" ? item.value : 0;
+                      const result = tooltipFormatter(raw);
+                      const isStructured = typeof result === "object";
                       return (
                         <div key={dataKey} className="flex items-center gap-2">
                           <div
@@ -140,7 +142,19 @@ export function LogsTimeseriesBarChart({
                           />
                           <span className="text-accent-12">{seriesLabel}</span>
                           <span className="font-mono tabular-nums text-accent-12 ml-auto">
-                            {valueFormatter(raw)}
+                            {isStructured ? (
+                              <>
+                                {result.value}
+                                {result.unit && ` ${result.unit}`}
+                                {result.hint && (
+                                  <span className="text-grayA-9 ml-1 font-normal">
+                                    {result.hint}
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              result
+                            )}
                           </span>
                         </div>
                       );

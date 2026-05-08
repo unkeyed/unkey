@@ -2,10 +2,12 @@
 
 import { trpc } from "@/lib/trpc/client";
 import {
+  bytesToMib,
   formatBytesPerSecondParts,
   formatCpuParts,
   formatMemoryParts,
   formatStorageParts,
+  formatTooltipPercent,
 } from "@/lib/utils/deployment-formatters";
 import type { TimeWindow } from "@unkey/clickhouse";
 import {
@@ -259,21 +261,6 @@ export function ResourceMetrics({ resourceId, storageMib, instanceName }: Resour
 }
 
 // ─── formatting ───────────────────────────────────────────────────────
-
-function bytesToMib(bytes: number): number {
-  if (bytes <= 0) {
-    return 0;
-  }
-  return Math.round(bytes / (1024 * 1024));
-}
-
-// Shared formatter for percent strings so tooltip + header agree.
-function formatTooltipPercent(p: number): string {
-  if (!Number.isFinite(p) || p <= 0) {
-    return "0%";
-  }
-  return p < 1 ? `${p.toFixed(2)}%` : p < 10 ? `${p.toFixed(1)}%` : `${Math.round(p)}%`;
-}
 
 // ─── display ──────────────────────────────────────────────────────────
 
