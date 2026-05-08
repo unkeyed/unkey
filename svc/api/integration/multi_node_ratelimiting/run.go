@@ -112,8 +112,14 @@ func RunRateLimitTest(
 
 	realStart := time.Now()
 
-	// Use simulated clock to speed up the test
-	clk := clock.NewTestClock()
+	// Use the harness clock when present so API nodes and their background
+	// services observe the same simulated time as the requests.
+	clk := h.Clock
+	if clk == nil {
+		clk = clock.NewTestClock()
+	}
+	windowStart := (clk.Now().UnixMilli() / duration) * duration
+	clk.Set(time.UnixMilli(windowStart))
 	simulatedStart := clk.Now()
 
 	// Track successful requests
@@ -222,7 +228,7 @@ func RunRateLimitTest(
 
 // calculateRPS determines the requests per second based on the rate limit parameters
 func calculateRPS(limit int64, duration int64, loadFactor float64) int {
-	rps := int(math.Ceil(float64(limit) * loadFactor * (1000.0 / float64(duration))))
+	rps := int(float64(limit) * loadFactor * (1000.0 / float64(duration)))
 
 	// Must have at least 1 RPS
 	if rps < 1 {

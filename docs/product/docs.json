@@ -9,8 +9,14 @@
     "primary": "#666666"
   },
   "contextual": {
-    "options": ["copy", "view", "chatgpt", "claude"]
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude"
+    ]
   },
+  "description": "Unkey API development platform. Deploy and secure APIs instantly, route traffic through global gateways, and understand usage in one place.",
   "favicon": "/unkey.png",
   "fonts": {
     "family": "Geist"
@@ -54,7 +60,6 @@
       "type": "github"
     }
   },
-  "description": "Unkey API development platform. Deploy and secure APIs instantly, route traffic through global gateways, and understand usage in one place.",
   "navigation": {
     "tabs": [
       {
@@ -94,7 +99,10 @@
               },
               {
                 "group": "Apps",
-                "pages": ["platform/apps/overview", "platform/apps/settings"]
+                "pages": [
+                  "platform/apps/overview",
+                  "platform/apps/settings"
+                ]
               },
               {
                 "group": "Identities",
@@ -105,7 +113,9 @@
               },
               {
                 "group": "Instances",
-                "pages": ["platform/instances/overview"]
+                "pages": [
+                  "platform/instances/overview"
+                ]
               },
               {
                 "group": "Keys",
@@ -162,7 +172,9 @@
                       "platform/sentinel/principal/overview",
                       {
                         "group": "Sources",
-                        "pages": ["platform/sentinel/principal/sources/api-key"]
+                        "pages": [
+                          "platform/sentinel/principal/sources/api-key"
+                        ]
                       },
                       "platform/sentinel/principal/examples",
                       "platform/sentinel/principal/local-development"
@@ -238,7 +250,9 @@
             "expanded": false,
             "group": "CLI",
             "icon": "terminal",
-            "pages": ["cli/overview"]
+            "pages": [
+              "cli/overview"
+            ]
           },
           {
             "expanded": false,
@@ -339,7 +353,10 @@
             "expanded": false,
             "group": "Audit Logs",
             "icon": "scroll",
-            "pages": ["audit-log/introduction", "audit-log/types"]
+            "pages": [
+              "audit-log/introduction",
+              "audit-log/types"
+            ]
           },
           {
             "group": "CLI",
@@ -349,7 +366,9 @@
               "cli/authentication",
               {
                 "group": "auth",
-                "pages": ["cli/auth/login"]
+                "pages": [
+                  "cli/auth/login"
+                ]
               },
               {
                 "group": "apis",
@@ -416,7 +435,9 @@
               },
               {
                 "group": "analytics",
-                "pages": ["cli/analytics/get-verifications"]
+                "pages": [
+                  "cli/analytics/get-verifications"
+                ]
               }
             ]
           },
@@ -583,11 +604,17 @@
               },
               {
                 "group": "Go",
-                "pages": ["libraries/go/overview", "libraries/go/api"]
+                "pages": [
+                  "libraries/go/overview",
+                  "libraries/go/api"
+                ]
               },
               {
                 "group": "Python",
-                "pages": ["libraries/py/overview", "libraries/py/api"]
+                "pages": [
+                  "libraries/py/overview",
+                  "libraries/py/api"
+                ]
               }
             ]
           },
@@ -596,7 +623,9 @@
             "pages": [
               {
                 "group": "Nuxt",
-                "pages": ["libraries/nuxt/overview"]
+                "pages": [
+                  "libraries/nuxt/overview"
+                ]
               }
             ]
           }

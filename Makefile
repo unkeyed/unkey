@@ -58,25 +58,12 @@ fmt: fmt-yaml ## Format code
 
 	cd web && pnpm fmt
 
-.PHONY: pull
-pull: ## Pull latest Docker images for services
-	@docker compose -f ./dev/docker-compose.yaml pull
-
-.PHONY: up
-up: pull ## Start all infrastructure services
-	@docker compose -f ./dev/docker-compose.yaml up -d mysql redis clickhouse s3 otel restate ctrl-api --wait
-
-.PHONY: clean
-clean: ## Stop and remove all services with volumes
-	@docker compose -f ./dev/docker-compose.yaml down --volumes
-
-.PHONY: build-web
-build-web: ## Build web services
-	cd web && pnpm build
 
 .PHONY: build
-build:  ## Build all artifacts
+build:  ## Build all artifacts (binaries land in ./bin)
 	bazel build //...
+	@mkdir -p bin
+	@cp -f "$$(bazel cquery --ui_event_filters=-info --noshow_progress //:unkey --output=files)" bin/unkey && chmod +w bin/unkey
 
 .PHONY: bazel
 bazel: ## Sync BUILD.bazel
@@ -125,18 +112,18 @@ dev: ## Start dev environment
 .PHONY: down
 down: ## Stop tilt (keeps cluster)
 	@tilt down -f ./dev/Tiltfile
-
-.PHONY: nuke
-nuke: ## Delete minikube cluster entirely
 	@minikube delete
 
 .PHONY: oci-load
 oci-load: build ## Build and load OCI images into Docker
 	bazel run //:oci_load_unkey
 
-.PHONY: local-dashboard
-local-dashboard: install oci-load ## Run local development setup for dashboard
-	cd web/apps/dashboard && pnpm local
+.PHONY: dashboard
+dashboard: build oci-load ## Run local development setup for dashboard
+	@test -f web/apps/dashboard/.env || cp web/apps/dashboard/dev/.env.template web/apps/dashboard/.env
+	@docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait
+	@bin/unkey dev seed local
+	@cd web/apps/dashboard && pnpm dev
 
 .PHONY: build-local-image
 build-local-image: ## Build and push image to local registry (usage: make build-local-image DOCKERFILE=./path/to/Dockerfile NAME=myapp TAG=latest)

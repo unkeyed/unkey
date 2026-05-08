@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "storage",
     srcs = [
+        "disk.go",
         "interface.go",
         "memory.go",
         "s3.go",
@@ -22,12 +23,13 @@ go_library(
 go_test(
     name = "storage_test",
     srcs = [
+        "disk_test.go",
         "memory_test.go",
         "s3_test.go",
     ],
     embed = [":storage"],
     deps = [
-        "//pkg/dockertest",
+        "//pkg/testutil/containers",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],
@@ -39,7 +41,7 @@ go_test(
     srcs = ["s3_test.go"],
     embed = [":storage"],
     deps = [
-        "//pkg/dockertest",
+        "//pkg/testutil/containers",
         "@com_github_stretchr_testify//require",
     ],
 )

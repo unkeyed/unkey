@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
-	"github.com/unkeyed/unkey/pkg/dockertest"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
@@ -29,7 +29,7 @@ func New(t *testing.T) *Harness {
 
 	ctx := context.Background()
 
-	mysqlCfg := dockertest.MySQL(t)
+	mysqlCfg := containers.MySQL(t)
 	mysqlHostDSN := mysqlCfg.DSN
 
 	database, err := db.New(db.Config{
