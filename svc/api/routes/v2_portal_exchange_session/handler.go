@@ -140,15 +140,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		txErr = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				Event:       auditlog.PortalSessionExchangeEvent,
-				WorkspaceID: sessionToken.WorkspaceID,
-				ActorType:   auditlog.SystemActor,
-				ActorID:     req.SessionId,
-				ActorName:   "portal session token",
-				ActorMeta:   map[string]any{},
-				Display:     fmt.Sprintf("Exchanged portal session for %s", sessionToken.ExternalID),
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
+				Event:         auditlog.PortalSessionExchangeEvent,
+				WorkspaceID:   sessionToken.WorkspaceID,
+				ActorType:     auditlog.SystemActor,
+				ActorID:       req.SessionId,
+				ActorName:     "portal session token",
+				ActorMeta:     map[string]any{},
+				Display:       fmt.Sprintf("Exchanged portal session for %s", sessionToken.ExternalID),
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:          browserSessionID,

@@ -383,6 +383,15 @@ type Querier interface {
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
 	//  WHERE a.id = ?
 	FindAppWithSettings(ctx context.Context, db DBTX, arg FindAppWithSettingsParams) (FindAppWithSettingsRow, error)
+	// FindAuditLogMaxPK returns MAX(pk) of the legacy audit_log table, used
+	// by the backfill VO to snapshot the cutoff on first invocation. Returns
+	// 0 when the table is empty (COALESCE + CAST keep the call from erroring
+	// on NULL aggregation and force sqlc to infer the result as uint64
+	// instead of interface{}).
+	//
+	//  SELECT CAST(COALESCE(MAX(pk), 0) AS UNSIGNED) AS max_pk
+	//  FROM audit_log
+	FindAuditLogMaxPK(ctx context.Context, db DBTX) (int64, error)
 	//FindAuditLogTargetByID
 	//
 	//  SELECT audit_log_target.pk, audit_log_target.workspace_id, audit_log_target.bucket_id, audit_log_target.bucket, audit_log_target.audit_log_id, audit_log_target.display_name, audit_log_target.type, audit_log_target.id, audit_log_target.name, audit_log_target.meta, audit_log_target.created_at, audit_log_target.updated_at, audit_log.pk, audit_log.id, audit_log.workspace_id, audit_log.bucket, audit_log.bucket_id, audit_log.event, audit_log.time, audit_log.display, audit_log.remote_ip, audit_log.user_agent, audit_log.actor_type, audit_log.actor_id, audit_log.actor_name, audit_log.actor_meta, audit_log.created_at, audit_log.updated_at
@@ -390,6 +399,44 @@ type Querier interface {
 	//  JOIN audit_log ON audit_log.id = audit_log_target.audit_log_id
 	//  WHERE audit_log_target.id = ?
 	FindAuditLogTargetByID(ctx context.Context, db DBTX, id string) ([]FindAuditLogTargetByIDRow, error)
+	// FindAuditLogTargetsForBackfill fetches every target row attached to a set
+	// of audit_log_ids in one query. Called by the backfill VO after
+	// FindAuditLogsForBackfill so we go from "page of N parents" to "page of N
+	// parents with all their targets" in two MySQL reads, never N+1.
+	//
+	// The unique index on (audit_log_id, id) covers the IN-list lookup. Order
+	// by audit_log_id, pk so the VO's grouping pass sees a deterministic
+	// per-event target sequence.
+	//
+	//  SELECT audit_log_id, type, id, name, meta
+	//  FROM audit_log_target
+	//  WHERE audit_log_id IN (/*SLICE:audit_log_ids*/?)
+	//  ORDER BY audit_log_id, pk
+	FindAuditLogTargetsForBackfill(ctx context.Context, db DBTX, auditLogIds []string) ([]FindAuditLogTargetsForBackfillRow, error)
+	// FindAuditLogsForBackfill returns one cursor page of legacy audit_log
+	// rows for the one-shot MySQL -> ClickHouse backfill VO. Ordered by pk so
+	// the cursor advances monotonically; on a crash mid-page the VO replays
+	// the same range from its persisted last_pk, and CH's
+	// non_replicated_deduplication_window collapses the duplicate insert
+	// block.
+	//
+	// The pk <= cutoff bound makes the VO terminate. Rows written after the
+	// backfill snapshotted the legacy tail are already shipped via the live
+	// drainer, so the backfill skips them. Without this bound the cursor
+	// would chase a moving target forever.
+	//
+	// The primary key on `pk` makes this a forward range scan; no extra index
+	// needed. We pull every column the auditlog.Event envelope needs in one
+	// read so the VO does not have to re-query per row.
+	//
+	//  SELECT pk, id, workspace_id, bucket, event, time, display,
+	//         remote_ip, user_agent, actor_type, actor_id, actor_name, actor_meta
+	//  FROM audit_log
+	//  WHERE pk > ?
+	//    AND pk <= ?
+	//  ORDER BY pk
+	//  LIMIT ?
+	FindAuditLogsForBackfill(ctx context.Context, db DBTX, arg FindAuditLogsForBackfillParams) ([]FindAuditLogsForBackfillRow, error)
 	//FindCertificateByHostname
 	//
 	//  SELECT pk, id, workspace_id, hostname, certificate, encrypted_private_key, created_at, updated_at FROM certificates WHERE hostname = ?
@@ -420,6 +467,31 @@ type Querier interface {
 	//  WHERE region_id = ? AND id = ?
 	//  LIMIT 1
 	FindCiliumNetworkPolicyByIDAndRegion(ctx context.Context, db DBTX, arg FindCiliumNetworkPolicyByIDAndRegionParams) (CiliumNetworkPolicy, error)
+	// FindClickhouseOutboxBatch returns the next batch of unprocessed outbox
+	// rows for a known set of payload versions. Must be called inside a
+	// transaction. FOR UPDATE SKIP LOCKED locks the batch so a second cron tick
+	// (if Restate VO serialization ever fails) silently skips them rather than
+	// re-processing the same set. The lock is released when the caller commits
+	// or rolls back. Ordered by pk so retries see a deterministic row set,
+	// which lets CH's block-level deduplication collapse re-inserts after a
+	// partial failure.
+	//
+	// The version filter means a drainer never reads a payload it can't
+	// decode. Unknown versions stay in the table until a drainer with the
+	// matching handler ships.
+	//
+	// deleted_at IS NULL skips rows the drainer already shipped. Marked rows
+	// stay in the table for re-processing (clear deleted_at to re-queue) and
+	// as an ops audit trail; there's no sweep job today.
+	//
+	//  SELECT pk, version, workspace_id, event_id, payload, created_at
+	//  FROM clickhouse_outbox
+	//  WHERE version IN (/*SLICE:versions*/?)
+	//    AND deleted_at IS NULL
+	//  ORDER BY pk
+	//  LIMIT ?
+	//  FOR UPDATE SKIP LOCKED
+	FindClickhouseOutboxBatch(ctx context.Context, db DBTX, arg FindClickhouseOutboxBatchParams) ([]FindClickhouseOutboxBatchRow, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -1513,6 +1585,29 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertCiliumNetworkPolicy(ctx context.Context, db DBTX, arg InsertCiliumNetworkPolicyParams) error
+	// InsertClickhouseOutbox enqueues one event for ClickHouse export. Called
+	// from the same MySQL transaction as the underlying mutation, so durability
+	// is exactly the durability of the mutation: if the mutation commits, the
+	// outbox row commits.
+	//
+	// version namespaces the payload schema (e.g. "audit_log.v1"). The drainer
+	// filters by versions it knows, so writing a new version without a matching
+	// drainer leaves rows queued safely.
+	//
+	//  INSERT INTO `clickhouse_outbox` (
+	//      version,
+	//      workspace_id,
+	//      event_id,
+	//      payload,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      CAST(? AS JSON),
+	//      ?
+	//  )
+	InsertClickhouseOutbox(ctx context.Context, db DBTX, arg InsertClickhouseOutboxParams) error
 	//InsertClickhouseWorkspaceSettings
 	//
 	//  INSERT INTO `clickhouse_workspace_settings` (
@@ -2738,6 +2833,24 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
+	// MarkClickhouseOutboxBatchDeleted soft-deletes a set of pks after their CH
+	// insert is confirmed. Called inside the same transaction that selected
+	// them, so the row locks held by FOR UPDATE SKIP LOCKED are released as
+	// part of commit. A crash between the CH insert and this UPDATE leaves the
+	// rows with deleted_at IS NULL; the next batch picks them up and CH's
+	// non_replicated_deduplication_window collapses the identical re-insert
+	// into a noop.
+	//
+	// We mark instead of hard-delete so ops can re-queue events (clear
+	// deleted_at) without re-reading the original payload from somewhere else,
+	// and so the table doubles as an audit trail of what was exported. There's
+	// no sweep job today; the table grows monotonically.
+	//
+	//  UPDATE clickhouse_outbox
+	//  SET deleted_at = ?
+	//  WHERE pk IN (/*SLICE:pks*/?)
+	//    AND deleted_at IS NULL
+	MarkClickhouseOutboxBatchDeleted(ctx context.Context, db DBTX, arg MarkClickhouseOutboxBatchDeletedParams) error
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes

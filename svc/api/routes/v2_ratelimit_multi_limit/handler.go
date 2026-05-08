@@ -202,12 +202,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Log to ClickHouse if enabled
 	if s.ShouldLogRequestToClickHouse() {
+		startMillis := start.UnixMilli()
 		for i, result := range results {
 			meta := checkMetadata[i]
 			h.RatelimitEvents.Buffer(schema.Ratelimit{
 				RequestID:   s.RequestID(),
 				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Time:        start.UnixMilli(),
+				Time:        startMillis,
 				NamespaceID: meta.namespaceID,
 				Identifier:  meta.identifier,
 				Passed:      result.Success,
@@ -332,15 +333,16 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, auth *ke
 			}
 
 			auditLogs[i] = auditlog.AuditLog{
-				WorkspaceID: auth.AuthorizedWorkspaceID,
-				Event:       auditlog.RatelimitNamespaceCreateEvent,
-				Display:     "Created ratelimit namespace " + name,
-				ActorID:     auth.Key.ID,
-				ActorName:   auth.Key.Name.String,
-				ActorMeta:   map[string]any{},
-				ActorType:   auditlog.RootKeyActor,
-				RemoteIP:    s.Location(),
-				UserAgent:   s.UserAgent(),
+				WorkspaceID:   auth.AuthorizedWorkspaceID,
+				Event:         auditlog.RatelimitNamespaceCreateEvent,
+				Display:       "Created ratelimit namespace " + name,
+				ActorID:       auth.Key.ID,
+				ActorName:     auth.Key.Name.String,
+				ActorMeta:     map[string]any{},
+				ActorType:     auditlog.RootKeyActor,
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
 				Resources: []auditlog.AuditLogResource{
 					{
 						ID:          id,
