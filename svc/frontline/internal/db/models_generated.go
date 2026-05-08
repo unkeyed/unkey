@@ -1187,6 +1187,16 @@ type CiliumNetworkPolicy struct {
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
 
+type ClickhouseOutbox struct {
+	Pk          uint64          `db:"pk"`
+	Version     string          `db:"version"`
+	WorkspaceID string          `db:"workspace_id"`
+	EventID     string          `db:"event_id"`
+	Payload     json.RawMessage `db:"payload"`
+	CreatedAt   int64           `db:"created_at"`
+	DeletedAt   sql.NullInt64   `db:"deleted_at"`
+}
+
 type ClickhouseWorkspaceSetting struct {
 	Pk                        uint64        `db:"pk"`
 	WorkspaceID               string        `db:"workspace_id"`
@@ -1502,6 +1512,7 @@ type PortalConfiguration struct {
 	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
+	Slug        string         `db:"slug"`
 	AppID       sql.NullString `db:"app_id"`
 	KeyAuthID   sql.NullString `db:"key_auth_id"`
 	Enabled     bool           `db:"enabled"`
