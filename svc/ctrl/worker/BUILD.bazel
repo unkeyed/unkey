@@ -34,7 +34,6 @@ go_library(
         "//pkg/runner",
         "//svc/ctrl/services/acme/providers",
         "//svc/ctrl/worker/app",
-        "//svc/ctrl/worker/auditlogbackfill",
         "//svc/ctrl/worker/auditlogexport",
         "//svc/ctrl/worker/buildslot",
         "//svc/ctrl/worker/certificate",

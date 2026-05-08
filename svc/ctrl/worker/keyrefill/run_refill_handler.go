@@ -115,17 +115,15 @@ func (s *Service) RunRefill(
 			return nil, fmt.Errorf("update keys: %w", updateErr)
 		}
 
-		// Create audit logs in bulk
-		auditLogs, auditTargets := buildAuditLogs(keysToProcess, now)
+		// Enqueue audit log envelopes into clickhouse_outbox in bulk.
+		outboxRows, buildErr := buildOutboxRows(keysToProcess, now)
+		if buildErr != nil {
+			return nil, fmt.Errorf("build outbox rows: %w", buildErr)
+		}
 		_, auditErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-			if err := db.BulkQuery.InsertAuditLogs(rc, s.db.RW(), auditLogs); err != nil {
-				return restate.Void{}, fmt.Errorf("insert audit logs: %w", err)
+			if err := db.BulkQuery.InsertClickhouseOutboxes(rc, s.db.RW(), outboxRows); err != nil {
+				return restate.Void{}, fmt.Errorf("insert clickhouse outbox rows: %w", err)
 			}
-
-			if err := db.BulkQuery.InsertAuditLogTargets(rc, s.db.RW(), auditTargets); err != nil {
-				return restate.Void{}, fmt.Errorf("insert audit log targets: %w", err)
-			}
-
 			return restate.Void{}, nil
 		}, restate.WithName(fmt.Sprintf("insert audit logs batch %d", batchNum)))
 		if auditErr != nil {
@@ -199,72 +197,60 @@ func parseDateKey(dateKey string) (day int, isLastDay bool, err error) {
 	return day, day == lastDay, nil
 }
 
-// buildAuditLogs creates audit log entries and targets for refilled keys.
-func buildAuditLogs(keys []db.ListKeysForRefillRow, now int64) ([]db.InsertAuditLogParams, []db.InsertAuditLogTargetParams) {
-	auditLogs := make([]db.InsertAuditLogParams, 0, len(keys))
-	// Each refill creates 2 targets: key target and workspace target
-	auditTargets := make([]db.InsertAuditLogTargetParams, 0, len(keys)*2)
+// buildOutboxRows creates clickhouse_outbox rows for the refilled keys.
+// Each row carries one auditlog.Event envelope (key + workspace targets)
+// and the AuditLogExportService drainer ships them into ClickHouse
+// audit_logs_raw_v1 on the next tick.
+func buildOutboxRows(keys []db.ListKeysForRefillRow, now int64) ([]db.InsertClickhouseOutboxParams, error) {
+	rows := make([]db.InsertClickhouseOutboxParams, 0, len(keys))
 
 	for _, key := range keys {
-		auditLogID := uid.New(uid.AuditLogPrefix, 24)
-		bucketID := key.WorkspaceID // Default bucket is workspace ID
-		bucket := "unkey_mutations"
-
-		// Create audit log entry
-		auditLogs = append(auditLogs, db.InsertAuditLogParams{
-			ID:          auditLogID,
-			WorkspaceID: key.WorkspaceID,
-			BucketID:    bucketID,
-			Bucket:      bucket,
-			Event:       string(auditlog.KeyUpdateEvent),
-			Time:        now,
-			Display:     fmt.Sprintf("Refilled key %s", keyDisplayName(key)),
-			RemoteIp:    sql.NullString{},
-			UserAgent:   sql.NullString{},
-			ActorType:   "system",
-			ActorID:     "keyrefill",
-			ActorName:   sql.NullString{String: "Key Refill Service", Valid: true},
-			ActorMeta:   json.RawMessage("{}"),
-			CreatedAt:   now,
-		})
-
-		// Create key target
-		keyMeta := map[string]any{
-			"refill_amount":      key.RefillAmount.Int64,
-			"previous_remaining": key.RemainingRequests.Int64,
-			"new_remaining":      key.RefillAmount.Int64,
+		envelope := auditlog.Event{
+			EventID:       uid.New(uid.AuditLogPrefix, 24),
+			Time:          now,
+			WorkspaceID:   key.WorkspaceID,
+			Bucket:        "unkey_mutations",
+			Source:        auditlog.EventSourcePlatform,
+			Event:         string(auditlog.KeyUpdateEvent),
+			Description:   fmt.Sprintf("Refilled key %s", keyDisplayName(key)),
+			RemoteIP:      "",
+			UserAgent:     "",
+			Meta:          nil,
+			CorrelationID: "",
+			Actor: auditlog.EventActor{
+				Type: "system",
+				ID:   "keyrefill",
+				Name: "Key Refill Service",
+				Meta: nil,
+			},
+			Targets: []auditlog.EventTarget{
+				{
+					Type: "key",
+					ID:   key.ID,
+					Name: keyDisplayName(key),
+					Meta: map[string]any{
+						"refill_amount":      key.RefillAmount.Int64,
+						"previous_remaining": key.RemainingRequests.Int64,
+						"new_remaining":      key.RefillAmount.Int64,
+					},
+				},
+			},
 		}
-		keyMetaJSON, _ := json.Marshal(keyMeta)
+		payload, err := json.Marshal(envelope)
+		if err != nil {
+			return nil, fmt.Errorf("marshal audit envelope for key %s: %w", key.ID, err)
+		}
 
-		auditTargets = append(auditTargets, db.InsertAuditLogTargetParams{
+		rows = append(rows, db.InsertClickhouseOutboxParams{
+			Version:     auditlog.OutboxVersionV1,
 			WorkspaceID: key.WorkspaceID,
-			BucketID:    bucketID,
-			Bucket:      bucket,
-			AuditLogID:  auditLogID,
-			DisplayName: keyDisplayName(key),
-			Type:        "key",
-			ID:          key.ID,
-			Name:        key.Name,
-			Meta:        keyMetaJSON,
-			CreatedAt:   now,
-		})
-
-		// Create workspace target
-		auditTargets = append(auditTargets, db.InsertAuditLogTargetParams{
-			WorkspaceID: key.WorkspaceID,
-			BucketID:    bucketID,
-			Bucket:      bucket,
-			AuditLogID:  auditLogID,
-			DisplayName: key.WorkspaceID,
-			Type:        "workspace",
-			ID:          key.WorkspaceID,
-			Name:        sql.NullString{},
-			Meta:        json.RawMessage("{}"),
+			EventID:     envelope.EventID,
+			Payload:     payload,
 			CreatedAt:   now,
 		})
 	}
 
-	return auditLogs, auditTargets
+	return rows, nil
 }
 
 // keyDisplayName returns a display name for the key, using the name if available.

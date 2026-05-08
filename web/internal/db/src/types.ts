@@ -46,12 +46,6 @@ export type InsertRatelimit = InferInsertModel<typeof schema.ratelimits>;
 export type Identity = InferSelectModel<typeof schema.identities>;
 export type InsertIdentity = InferInsertModel<typeof schema.identities>;
 
-export type AuditLog = InferSelectModel<typeof schema.auditLog>;
-export type InsertAuditLog = InferInsertModel<typeof schema.auditLog>;
-
-export type AuditLogTarget = InferSelectModel<typeof schema.auditLogTarget>;
-export type InsertAuditLogTarget = InferInsertModel<typeof schema.auditLogTarget>;
-
 export type Quotas = InferSelectModel<typeof schema.quotas>;
 export type InsertQuotas = InferInsertModel<typeof schema.quotas>;
 
