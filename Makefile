@@ -46,9 +46,9 @@ pscale-branch: ## Create PlanetScale branch + run drizzle migration (BRANCH=name
 	pscale branch create unkey "$(BRANCH)" --org unkey --from "$$FROM" --wait \
 		|| pscale branch show unkey "$(BRANCH)" --org unkey >/dev/null; \
 	PW=$$(pscale password create unkey "$(BRANCH)" "local-$$(date +%s)" --org unkey --format json); \
-	USER=$$(echo "$$PW" | jq -r .username); \
-	PASS=$$(echo "$$PW" | jq -r .plain_text); \
-	HOST=$$(echo "$$PW" | jq -r .access_host_url); \
+	USER=$$(echo "$$PW" | jq -r '.username | @uri'); \
+	PASS=$$(echo "$$PW" | jq -r '.plain_text | @uri'); \
+	HOST=$$(echo "$$PW" | jq -r '.access_host_url | @uri'); \
 	DRIZZLE_DATABASE_URL="mysql://$$USER:$$PASS@$$HOST/unkey?ssl={}" \
 		pnpm --dir=web/internal/db run migrate
 
