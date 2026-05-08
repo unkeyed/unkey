@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Querier } from "../client";
+import { normalizeTimeRange } from "../util";
 import { KEY_VERIFICATION_OUTCOMES } from "./keys";
 
 export const activeKeysTimeseriesParams = z.object({
@@ -248,15 +249,21 @@ function getActiveKeysTimeseriesWhereClause(
 // Create timeseries querier function for active keys
 function createActiveKeysTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: ActiveKeysTimeseriesParams) => {
-    const { whereClause, paramSchema } = getActiveKeysTimeseriesWhereClause(args, [
+    const normalizedTime = normalizeTimeRange(args.startTime, args.endTime);
+    const normalizedArgs = {
+      ...args,
+      ...normalizedTime,
+    };
+
+    const { whereClause, paramSchema } = getActiveKeysTimeseriesWhereClause(normalizedArgs, [
       "time >= fromUnixTimestamp64Milli({startTime: Int64})",
       "time <= fromUnixTimestamp64Milli({endTime: Int64})",
     ]);
 
     // Create parameters object with filter values
     const parameters = {
-      ...args,
-      ...(args.keyIds?.reduce(
+      ...normalizedArgs,
+      ...(normalizedArgs.keyIds?.reduce(
         (acc, filter, index) => ({
           // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
           ...acc,
@@ -264,7 +271,7 @@ function createActiveKeysTimeseriesQuerier(interval: TimeInterval) {
         }),
         {},
       ) ?? {}),
-      ...(args.names?.reduce(
+      ...(normalizedArgs.names?.reduce(
         (acc, filter, index) => ({
           // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
           ...acc,
@@ -272,7 +279,7 @@ function createActiveKeysTimeseriesQuerier(interval: TimeInterval) {
         }),
         {},
       ) ?? {}),
-      ...(args.outcomes?.reduce(
+      ...(normalizedArgs.outcomes?.reduce(
         (acc, filter, index) => ({
           // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
           ...acc,

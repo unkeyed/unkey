@@ -348,8 +348,8 @@ describe("getTimeseriesGranularity", () => {
       );
 
       expect(result.granularity).toBe("perMinute");
-      expect(result.startTime).toBe(FIXED_NOW + HOUR_IN_MS);
-      expect(result.endTime).toBe(FIXED_NOW);
+      expect(result.startTime).toBe(FIXED_NOW);
+      expect(result.endTime).toBe(FIXED_NOW + HOUR_IN_MS);
     });
   });
 });

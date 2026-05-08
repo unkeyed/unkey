@@ -85,7 +85,14 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
   // Set default start time if missing (defaults vary by context)
   const defaultDuration = context === "forVerifications" ? DAY_IN_MS : HOUR_IN_MS;
   const effectiveStartTime = startTime ?? effectiveEndTime - defaultDuration;
-  const timeRange = effectiveEndTime - effectiveStartTime;
+
+  // Ensure a non-negative range. Some clients can accidentally send the
+  // timestamps in the wrong order (start > end), which breaks downstream
+  // ClickHouse `WITH FILL FROM ... TO ...` queries.
+  const normalizedStartTime = Math.min(effectiveStartTime, effectiveEndTime);
+  const normalizedEndTime = Math.max(effectiveStartTime, effectiveEndTime);
+
+  const timeRange = normalizedEndTime - normalizedStartTime;
   let granularity: TimeseriesGranularity;
 
   if (timeRange >= QUARTER_IN_MS) {
@@ -108,8 +115,8 @@ export const getTimeseriesGranularity = <TContext extends TimeseriesContext>(
 
   return {
     granularity: granularity as TimeseriesGranularity,
-    startTime: effectiveStartTime,
-    endTime: effectiveEndTime,
+    startTime: normalizedStartTime,
+    endTime: normalizedEndTime,
     context,
   };
 };

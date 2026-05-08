@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Inserter, Querier } from "./client";
-import { dateTimeToUnix } from "./util";
+import { dateTimeToUnix, normalizeTimeRange } from "./util";
 
 export function insertRatelimit(ch: Inserter) {
   return ch.insert({
@@ -198,14 +198,20 @@ function getRatelimitLogsTimeseriesWhereClause(
 
 function createTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: RatelimitLogsTimeseriesParams) => {
-    const { whereClause, paramSchema } = getRatelimitLogsTimeseriesWhereClause(args, [
+    const normalizedTime = normalizeTimeRange(args.startTime, args.endTime);
+    const normalizedArgs = {
+      ...args,
+      ...normalizedTime,
+    };
+
+    const { whereClause, paramSchema } = getRatelimitLogsTimeseriesWhereClause(normalizedArgs, [
       "time >= fromUnixTimestamp64Milli({startTime: Int64})",
       "time <= fromUnixTimestamp64Milli({endTime: Int64})",
     ]);
 
     const parameters = {
-      ...args,
-      ...(args.identifiers?.reduce(
+      ...normalizedArgs,
+      ...(normalizedArgs.identifiers?.reduce(
         (acc, i, index) => ({
           // biome-ignore lint/performance/noAccumulatingSpread: it's okay here
           ...acc,
@@ -276,11 +282,17 @@ function createBatchTimeseriesQuery(interval: TimeInterval) {
 
 function createBatchTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: RatelimitBatchTimeseriesParams) => {
+    const normalizedTime = normalizeTimeRange(args.startTime, args.endTime);
+    const normalizedArgs = {
+      ...args,
+      ...normalizedTime,
+    };
+
     return ch.query({
       query: createBatchTimeseriesQuery(interval),
       params: ratelimitBatchTimeseriesParams,
       schema: ratelimitBatchTimeseriesDataPoint,
-    })(args);
+    })(normalizedArgs);
   };
 }
 
@@ -990,11 +1002,17 @@ function getRatelimitLatencyTimeseriesWhereClause(params: RatelimitLatencyTimese
 
 function createLatencyTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: RatelimitLatencyTimeseriesParams) => {
-    const { whereClause, paramSchema } = getRatelimitLatencyTimeseriesWhereClause(args);
+    const normalizedTime = normalizeTimeRange(args.startTime, args.endTime);
+    const normalizedArgs = {
+      ...args,
+      ...normalizedTime,
+    };
+
+    const { whereClause, paramSchema } = getRatelimitLatencyTimeseriesWhereClause(normalizedArgs);
 
     const parameters = {
-      ...args,
-      ...(args.identifiers?.reduce(
+      ...normalizedArgs,
+      ...(normalizedArgs.identifiers?.reduce(
         (acc, i, index) => ({
           // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
           ...acc,
