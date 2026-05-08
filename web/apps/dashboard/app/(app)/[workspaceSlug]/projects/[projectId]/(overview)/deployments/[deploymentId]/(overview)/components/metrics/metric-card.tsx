@@ -1,14 +1,17 @@
-import type { TimeseriesData } from "@/components/logs/overview-charts/types";
 import type { IconProps } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { ComponentType } from "react";
+import { LogsTimeseriesBarChart } from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart";
 import {
-  LogsTimeseriesBarChart,
-  type TooltipValueParts,
-} from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart";
+  type AreaChartPoint,
+  AreaTimeseriesChart,
+  type ValueParts,
+} from "../../../network/unkey-flow/components/overlay/node-details-panel/components/chart/area-timeseries-chart";
 import { MetricSelect } from "./metric-select";
 
 type MetricType = "latency" | "rps" | "cpu" | "memory";
+
+type ChartVariant = "bar" | "area";
 
 type MetricConfig = {
   label: string;
@@ -16,6 +19,7 @@ type MetricConfig = {
   iconBg: string;
   iconText: string;
   unit: string;
+  chartVariant: ChartVariant;
   percentiles?: string[];
 };
 
@@ -26,6 +30,7 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
     iconBg: "bg-bronze-3",
     iconText: "text-bronze-11",
     unit: "ms",
+    chartVariant: "area",
     percentiles: ["p50", "p75", "p90", "p95", "p99"],
   },
   rps: {
@@ -34,6 +39,7 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
     iconBg: "bg-accent-3",
     iconText: "text-accent-11",
     unit: "req/s",
+    chartVariant: "bar",
   },
   cpu: {
     label: "CPU",
@@ -41,6 +47,7 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
     iconBg: "bg-feature-3",
     iconText: "text-feature-11",
     unit: "%",
+    chartVariant: "area",
   },
   memory: {
     label: "Memory",
@@ -48,6 +55,7 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
     iconBg: "bg-info-3",
     iconText: "text-info-11",
     unit: "%",
+    chartVariant: "area",
   },
 };
 
@@ -59,15 +67,16 @@ type MetricCardProps = {
     numeric: number | string;
     unit: string;
   };
-  chartData: { data?: TimeseriesData[]; dataKey: string };
+  chartData: { data?: AreaChartPoint[]; dataKey: string };
   percentile?: string;
   onPercentileChange?: (value: string) => void;
   timeWindow?: {
     chart: string;
   };
+  xAxisDomain?: [number, number];
   isLoading?: boolean;
   isError?: boolean;
-  formatTooltipValue?: (value: number) => TooltipValueParts;
+  formatTooltipValue?: (value: number) => ValueParts;
 };
 
 export function MetricCard({
@@ -78,6 +87,7 @@ export function MetricCard({
   chartData,
   percentile,
   onPercentileChange,
+  xAxisDomain,
   timeWindow,
   isLoading = false,
   isError = false,
@@ -130,20 +140,40 @@ export function MetricCard({
           background: `linear-gradient(to top, color-mix(in srgb, ${config.color} 6%, transparent), transparent)`,
         }}
       >
-        <LogsTimeseriesBarChart
-          chartContainerClassname="px-[14px] border-gray-3"
-          data={chartData.data}
-          config={{
-            [chartData.dataKey]: {
-              label: config.label,
-              color: config.color,
-            },
-          }}
-          height={50}
-          isLoading={isLoading}
-          isError={isError}
-          formatTooltipValue={formatTooltipValue}
-        />
+        {config.chartVariant === "area" ? (
+          <AreaTimeseriesChart
+            chartContainerClassname="px-[14px]"
+            data={chartData.data ?? []}
+            config={{
+              [chartData.dataKey]: {
+                label: config.label,
+                color: config.color,
+              },
+            }}
+            height={50}
+            isLoading={isLoading}
+            isError={isError}
+            formatTooltipValue={formatTooltipValue}
+            axisFloor={0}
+            xAxisDomain={xAxisDomain}
+            hideAxes
+          />
+        ) : (
+          <LogsTimeseriesBarChart
+            chartContainerClassname="px-[14px] border-gray-3"
+            data={chartData.data}
+            config={{
+              [chartData.dataKey]: {
+                label: config.label,
+                color: config.color,
+              },
+            }}
+            height={50}
+            isLoading={isLoading}
+            isError={isError}
+            formatTooltipValue={formatTooltipValue}
+          />
+        )}
         {timeWindow?.chart && (
           <span className="text-grayA-11 text-[10px] px-[14px] my-1">{timeWindow.chart}</span>
         )}

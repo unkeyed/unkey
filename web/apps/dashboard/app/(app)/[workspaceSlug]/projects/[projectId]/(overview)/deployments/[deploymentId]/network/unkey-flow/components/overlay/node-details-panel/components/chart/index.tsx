@@ -13,10 +13,11 @@ import {
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useId, useMemo } from "react";
 import { Bar, BarChart } from "recharts";
+import type { ValueParts } from "./area-timeseries-chart";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
 import { LogsChartError } from "./components/logs-chart-error";
 
-export type TooltipValueParts = { value: string; unit?: string; hint?: string };
+export type TooltipValueParts = ValueParts;
 
 type LogsTimeseriesBarChartProps = {
   data?: TimeseriesData[];

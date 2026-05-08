@@ -7,7 +7,7 @@ import {
 } from "@/lib/utils/deployment-formatters";
 import type { PERCENTILE_VALUES } from "@unkey/clickhouse/src/sentinel";
 import { ChartActivity, Layers2, Microchip, Ram, TimeClock } from "@unkey/icons";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Section, SectionHeader } from "../../../../../../components/section";
 import { Card } from "../../../../../components/card";
 import { useDeployment } from "../../../layout-provider";
@@ -22,6 +22,11 @@ export function DeploymentNetworkSection() {
   const [latencyPercentile, setLatencyPercentile] = useState<keyof typeof PERCENTILE_VALUES>("p50");
 
   const { deployment } = useDeployment();
+
+  const sixHourDomain = useMemo((): [number, number] => {
+    const now = Date.now();
+    return [now - 6 * 60 * 60 * 1000, now];
+  }, []);
 
   const {
     currentRps,
@@ -74,6 +79,7 @@ export function DeploymentNetworkSection() {
               data: latencyTimeseries,
               dataKey: "y",
             }}
+            xAxisDomain={sixHourDomain}
             timeWindow={{
               chart: "Last 6h",
             }}
@@ -107,6 +113,7 @@ export function DeploymentNetworkSection() {
               data: cpuTimeseries,
               dataKey: "y",
             }}
+            xAxisDomain={sixHourDomain}
             timeWindow={{
               chart: "Last 6h",
             }}
@@ -132,6 +139,7 @@ export function DeploymentNetworkSection() {
               data: memoryTimeseries,
               dataKey: "y",
             }}
+            xAxisDomain={sixHourDomain}
             timeWindow={{
               chart: "Last 6h",
             }}
