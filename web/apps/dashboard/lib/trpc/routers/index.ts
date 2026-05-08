@@ -86,6 +86,9 @@ import { create as createKeyauthPolicy } from "./deploy/environment-settings/sen
 import { remove as deleteKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/delete";
 import { update as updateKeyauthPolicy } from "./deploy/environment-settings/sentinel/keyauth/update";
 import { list as listSentinelPolicies } from "./deploy/environment-settings/sentinel/list";
+import { create as createOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/create";
+import { remove as deleteOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/delete";
+import { update as updateOpenapiPolicy } from "./deploy/environment-settings/sentinel/openapi/update";
 import { create as createRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/create";
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
@@ -93,14 +96,12 @@ import { reorder as reorderSentinelPolicies } from "./deploy/environment-setting
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
 import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
-import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
-import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
+import { getDeploymentLatencyMetrics } from "./deploy/metrics/get-deployment-latency-metrics";
 import { getDeploymentMemoryTimeseries } from "./deploy/metrics/get-deployment-memory-timeseries";
 import { getDeploymentNetworkEgressTimeseries } from "./deploy/metrics/get-deployment-network-egress-timeseries";
 import { getDeploymentNetworkIngressTimeseries } from "./deploy/metrics/get-deployment-network-ingress-timeseries";
 import { getDeploymentResourceSummary } from "./deploy/metrics/get-deployment-resource-summary";
-import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
-import { getDeploymentRpsTimeseries } from "./deploy/metrics/get-deployment-rps-timeseries";
+import { getDeploymentRpsMetrics } from "./deploy/metrics/get-deployment-rps-metrics";
 import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
@@ -140,6 +141,7 @@ import { queryKeysPermissions } from "./key/rbac/permissions/query";
 import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
 import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
 import { updateKeyRbac } from "./key/rbac/update-rbac";
+import { rerollKey, rerollRootKey } from "./key/reroll";
 import { updateKeysEnabled } from "./key/updateEnabled";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
@@ -215,6 +217,7 @@ export const router = t.router({
   key: t.router({
     create: createKey,
     delete: deleteKeys,
+    reroll: rerollKey,
     fetchPermissions: fetchKeyPermissions,
     logs: t.router({
       query: queryKeyDetailsLogs,
@@ -245,6 +248,7 @@ export const router = t.router({
   }),
   rootKey: t.router({
     create: createRootKey,
+    reroll: rerollRootKey,
     update: t.router({
       name: updateRootKeyName,
       // NOTE: permissions replaces the full permission set for a root key.
@@ -459,6 +463,11 @@ export const router = t.router({
           update: updateRatelimitPolicy,
           delete: deleteRatelimitPolicy,
         }),
+        openapi: t.router({
+          create: createOpenapiPolicy,
+          update: updateOpenapiPolicy,
+          delete: deleteOpenapiPolicy,
+        }),
         generateRegex,
       }),
       runtime: t.router({
@@ -526,10 +535,8 @@ export const router = t.router({
       listInstances,
     }),
     metrics: t.router({
-      getDeploymentRps,
-      getDeploymentRpsTimeseries,
-      getDeploymentLatency,
-      getDeploymentLatencyTimeseries,
+      getDeploymentRpsMetrics,
+      getDeploymentLatencyMetrics,
       getDeploymentCpuTimeseries,
       getDeploymentMemoryTimeseries,
       getDeploymentDiskTimeseries,

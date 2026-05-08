@@ -64,7 +64,7 @@ Whether this rate limit should be automatically applied when verifying a key. De
 | `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
-| `--output` | string | Output format — use `json` for raw JSON |
+| `--output` | string | Output format. Use `json` for raw JSON |
 
 ## Examples
 
@@ -87,7 +87,7 @@ unkey api identities create-identity --external-id=user_123 --output=json
 
 Default output shows the request ID with latency, followed by the created identity:
 
-```
+```text
 req_01H9TQPP77V5E48E9SH0BG0ZQX (took 45ms)
 
 {

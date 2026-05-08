@@ -12,6 +12,12 @@ primary = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams
 url = "http://restate:8080"
 admin_url = "http://restate:9070"
 
+[clickhouse]
+# Used by ReportInstanceEvents to absorb container lifecycle events from
+# krane into instance_events_raw_v1. Without this URL the buffer falls
+# back to a noop and the dashboard's events panel stays empty.
+url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+
 [domain_connect]
 private_key_pem = """${UNKEY_DOMAIN_CONNECT_PRIVATE_KEY}"""
 

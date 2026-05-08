@@ -18,7 +18,7 @@ install-brew-tools: ## Install Homebrew tools if they don't exist
 
 .PHONY: install
 install: install-go ## Install all dependencies
-	pnpm --dir=web install --frozen-lockfile
+	cd web && pnpm install --frozen-lockfile
 
 
 
@@ -56,7 +56,7 @@ fmt: fmt-yaml ## Format code
 	go fmt ./...
 	go tool buf format -w
 
-	pnpm --dir=web fmt
+	cd web && pnpm fmt
 
 .PHONY: pull
 pull: ## Pull latest Docker images for services
@@ -64,7 +64,7 @@ pull: ## Pull latest Docker images for services
 
 .PHONY: up
 up: pull ## Start all infrastructure services
-	@docker compose -f ./dev/docker-compose.yaml up -d planetscale mysql redis clickhouse s3 otel restate ctrl-api --wait
+	@docker compose -f ./dev/docker-compose.yaml up -d mysql redis clickhouse s3 otel restate ctrl-api --wait
 
 .PHONY: clean
 clean: ## Stop and remove all services with volumes
@@ -72,7 +72,7 @@ clean: ## Stop and remove all services with volumes
 
 .PHONY: build-web
 build-web: ## Build web services
-	pnpm --dir=web build
+	cd web && pnpm build
 
 .PHONY: build
 build:  ## Build all artifacts
@@ -91,7 +91,7 @@ generate: generate-sql ## Generate code from protobuf and other sources (NOT eBP
 	go run ./tools/exportoneof ./gen/proto
 	bazel run //:gazelle
 	go fmt ./...
-	pnpm --dir=web fmt
+	cd web && pnpm fmt
 
 .PHONY: generate-bpf
 generate-bpf: ## Compile the heimdall eBPF program and regenerate Go bindings (uses pinned clang/Go in docker for bytewise reproducibility across hosts)
@@ -136,7 +136,7 @@ oci-load: build ## Build and load OCI images into Docker
 
 .PHONY: local-dashboard
 local-dashboard: install oci-load ## Run local development setup for dashboard
-	pnpm --dir=web/apps/dashboard local
+	cd web/apps/dashboard && pnpm local
 
 .PHONY: build-local-image
 build-local-image: ## Build and push image to local registry (usage: make build-local-image DOCKERFILE=./path/to/Dockerfile NAME=myapp TAG=latest)

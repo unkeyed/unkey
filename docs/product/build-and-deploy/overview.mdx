@@ -22,7 +22,7 @@ Unkey Deploy takes a Dockerfile and gives you a running application with automat
     Previous deployments stay running so [rollbacks](/build-and-deploy/rollbacks) are instant. No rebuild required.
   </Card>
   <Card title="Sentinel" icon="shield-halved">
-    API key authentication, rate limiting, and IP rules run at the edge before requests reach your app.
+    API key authentication, rate limiting, and IP rules run in front of your app before requests reach it.
   </Card>
   <Card title="Build logs" icon="terminal">
     Stream build and runtime logs in real time from the dashboard.
@@ -62,8 +62,8 @@ Unkey builds your image, deploys it to your configured regions, and assigns doma
   <Card title="CLI" icon="terminal" href="/build-and-deploy/cli">
     Deploy a pre-built Docker image with `unkey deploy`. Useful for CI/CD pipelines and custom build systems.
   </Card>
-  <Card title="Dashboard" icon="browser">
-    Trigger a deployment manually from a specific commit or branch.
+  <Card title="Dashboard" icon="browser" href="/build-and-deploy/github#deploy-from-a-fork-manually">
+    Trigger a deployment manually from a branch, commit, pull request URL, or [fork](/build-and-deploy/github#deploy-from-a-fork-manually).
   </Card>
 </CardGroup>
 

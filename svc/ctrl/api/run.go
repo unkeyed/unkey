@@ -14,8 +14,11 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
@@ -131,12 +134,43 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create topology cache: %w", err)
 	}
 
+	// Set up the ClickHouse buffer that absorbs container lifecycle events
+	// reported by krane. Falls back to a noop when no URL is configured so
+	// the api still serves traffic in environments without ClickHouse: the
+	// dashboard's events panel will simply be empty.
+	//
+	// When a URL *is* configured but the client fails to construct, we fail
+	// the boot — same fail-fast policy every other configured backend uses
+	// (database, topology cache, cluster service, GitHub client). Logging
+	// and continuing with the noop sink would silently drop every event for
+	// the lifetime of the process and the failure would be invisible until
+	// someone notices the dashboard is empty.
+	instanceEvents := batch.NewNoop[schema.InstanceEventV1]()
+	if cfg.ClickHouse.URL != "" {
+		chClient, chErr := clickhouse.New(clickhouse.Config{URL: cfg.ClickHouse.URL})
+		if chErr != nil {
+			return fmt.Errorf("failed to create clickhouse client: %w", chErr)
+		}
+		instanceEvents = clickhouse.NewBuffer[schema.InstanceEventV1](chClient, "default.instance_events_raw_v1", clickhouse.BufferConfig{
+			Name:          "instance_events",
+			BatchSize:     1_000,
+			BufferSize:    2_000,
+			FlushInterval: 2 * time.Second,
+			Consumers:     1,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
+		r.Defer(func() error { instanceEvents.Close(); return nil })
+		r.Defer(chClient.Close)
+	}
+
 	c, err := cluster.New(cluster.Config{
-		Database:      database,
-		Restate:       restateClient,
-		Bearer:        cfg.AuthToken,
-		Clock:         clk,
-		TopologyCache: topologyCache,
+		Database:       database,
+		Restate:        restateClient,
+		Bearer:         cfg.AuthToken,
+		Clock:          clk,
+		TopologyCache:  topologyCache,
+		InstanceEvents: instanceEvents,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create cluster service: %w", err)

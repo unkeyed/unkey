@@ -18,6 +18,7 @@ type ClusterServiceClient interface {
 	SyncDesiredState(ctx context.Context, req *v1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error)
 	GetDesiredDeploymentState(ctx context.Context, req *v1.GetDesiredDeploymentStateRequest) (*v1.DeploymentState, error)
 	ReportDeploymentStatus(ctx context.Context, req *v1.ReportDeploymentStatusRequest) (*v1.ReportDeploymentStatusResponse, error)
+	ReportInstanceEvents(ctx context.Context, req *v1.ReportInstanceEventsRequest) (*v1.ReportInstanceEventsResponse, error)
 	Heartbeat(ctx context.Context, req *v1.HeartbeatRequest) (*v1.HeartbeatResponse, error)
 }
 
@@ -58,6 +59,19 @@ func (c *ConnectClusterServiceClient) ReportDeploymentStatus(ctx context.Context
 	ctx, span := tracing.Start(ctx, "ClusterService.ReportDeploymentStatus")
 	defer span.End()
 	resp, err := c.inner.ReportDeploymentStatus(ctx, connect.NewRequest(req))
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectClusterServiceClient) ReportInstanceEvents(ctx context.Context, req *v1.ReportInstanceEventsRequest) (*v1.ReportInstanceEventsResponse, error) {
+	ctx, span := tracing.Start(ctx, "ClusterService.ReportInstanceEvents")
+	defer span.End()
+	resp, err := c.inner.ReportInstanceEvents(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)

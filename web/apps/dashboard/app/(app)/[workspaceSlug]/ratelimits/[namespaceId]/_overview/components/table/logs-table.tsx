@@ -34,7 +34,7 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "identifier",
         header: "Identifier",
-        width: "20%",
+        width: "18%",
         headerClassName: "pl-12",
         render: (log) => {
           return (
@@ -50,8 +50,8 @@ export const RatelimitOverviewLogsTable = ({
       },
       {
         key: "passed",
-        header: "Passed",
-        width: "20%",
+        header: "Passed Requests",
+        width: "15%",
         sort: {
           direction: getSortDirection("passed"),
           sortable: true,
@@ -83,8 +83,8 @@ export const RatelimitOverviewLogsTable = ({
       },
       {
         key: "blocked",
-        header: "Blocked",
-        width: "20%",
+        header: "Blocked Requests",
+        width: "15%",
         sort: {
           direction: getSortDirection("blocked"),
           sortable: true,
@@ -113,6 +113,61 @@ export const RatelimitOverviewLogsTable = ({
                 filterPair={{ identifiers: log.identifier, status: "blocked" }}
               />
             </div>
+          );
+        },
+      },
+      {
+        key: "passedTokens",
+        header: "Passed Tokens",
+        width: "15%",
+        sort: {
+          direction: getSortDirection("passed_tokens"),
+          sortable: true,
+          onSort() {
+            toggleSort("passed_tokens", false);
+          },
+        },
+        render: (log) => (
+          <Badge
+            className={cn(
+              "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
+              selectedLog?.request_id === log.request_id
+                ? STATUS_STYLES.success.badge.selected
+                : STATUS_STYLES.success.badge.default,
+            )}
+            title={`${log.passed_tokens.toLocaleString()} passed tokens`}
+          >
+            {formatNumber(log.passed_tokens)}
+          </Badge>
+        ),
+      },
+      {
+        key: "blockedTokens",
+        header: "Blocked Tokens",
+        width: "15%",
+        sort: {
+          direction: getSortDirection("blocked_tokens"),
+          sortable: true,
+          onSort() {
+            toggleSort("blocked_tokens", false);
+          },
+        },
+        render: (log) => {
+          const blockedTokens = Math.max(log.total_tokens - log.passed_tokens, 0);
+          const style = blockedTokens > 0 ? STATUS_STYLES.blocked : STATUS_STYLES.success;
+          return (
+            <Badge
+              className={cn(
+                "uppercase px-[6px] rounded-md font-mono whitespace-nowrap gap-[6px]",
+                selectedLog?.request_id === log.request_id
+                  ? style.badge.selected
+                  : style.badge.default,
+              )}
+              title={`${blockedTokens.toLocaleString()} blocked tokens`}
+            >
+              <Ban iconSize="sm-regular" />
+              {formatNumber(blockedTokens)}
+            </Badge>
           );
         },
       },
@@ -167,7 +222,7 @@ export const RatelimitOverviewLogsTable = ({
       {
         key: "lastRequest",
         header: "Last Request",
-        width: "20%",
+        width: "18%",
         sort: {
           direction: getSortDirection("time"),
           sortable: true,

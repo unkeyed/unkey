@@ -32,7 +32,7 @@ export type TimeseriesChartLabels = {
  * - "compact": With time labels and fixed height (used in logs chart)
  * - "full": Complete layout with header, metrics, and footer (used in overview charts)
  */
-export type ChartStateVariant = "simple" | "compact" | "full";
+export type ChartStateVariant = "simple" | "compact" | "full" | "wave";
 
 /**
  * Props for the ChartError component
@@ -66,4 +66,5 @@ export type ChartEmptyProps = {
   labels?: TimeseriesChartLabels;
   height?: number;
   className?: string;
+  color?: string;
 };

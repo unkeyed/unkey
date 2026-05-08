@@ -105,7 +105,7 @@ export function useRowSelection(displayRows: DisplayRow[]) {
       toast.error("Failed to mark variables as sensitive");
     }
     setSelectedIds(new Set());
-  }, [selectedIds]);
+  }, [selectedIds, makeSensitiveMutation.mutateAsync]);
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 

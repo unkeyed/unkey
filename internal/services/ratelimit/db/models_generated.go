@@ -1383,19 +1383,25 @@ type Identity struct {
 }
 
 type Instance struct {
-	Pk            uint64          `db:"pk"`
-	ID            string          `db:"id"`
-	DeploymentID  string          `db:"deployment_id"`
-	WorkspaceID   string          `db:"workspace_id"`
-	ProjectID     string          `db:"project_id"`
-	AppID         string          `db:"app_id"`
-	RegionID      string          `db:"region_id"`
-	K8sName       string          `db:"k8s_name"`
-	Address       string          `db:"address"`
-	CpuMillicores int32           `db:"cpu_millicores"`
-	MemoryMib     int32           `db:"memory_mib"`
-	StorageMib    uint32          `db:"storage_mib"`
-	Status        InstancesStatus `db:"status"`
+	Pk                 uint64          `db:"pk"`
+	ID                 string          `db:"id"`
+	DeploymentID       string          `db:"deployment_id"`
+	WorkspaceID        string          `db:"workspace_id"`
+	ProjectID          string          `db:"project_id"`
+	AppID              string          `db:"app_id"`
+	RegionID           string          `db:"region_id"`
+	K8sName            string          `db:"k8s_name"`
+	Address            string          `db:"address"`
+	CpuMillicores      int32           `db:"cpu_millicores"`
+	MemoryMib          int32           `db:"memory_mib"`
+	StorageMib         uint32          `db:"storage_mib"`
+	Status             InstancesStatus `db:"status"`
+	RestartCount       int32           `db:"restart_count"`
+	LastExitCode       sql.NullInt32   `db:"last_exit_code"`
+	LastExitSignal     sql.NullInt32   `db:"last_exit_signal"`
+	LastExitReason     sql.NullString  `db:"last_exit_reason"`
+	LastExitFinishedAt sql.NullTime    `db:"last_exit_finished_at"`
+	LastStatusReason   sql.NullString  `db:"last_status_reason"`
 }
 
 type Key struct {
@@ -1483,6 +1489,52 @@ type Permission struct {
 	Description sql.NullString `db:"description"`
 	CreatedAtM  int64          `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64  `db:"updated_at_m"`
+}
+
+type PortalBranding struct {
+	Pk             uint64         `db:"pk"`
+	PortalConfigID string         `db:"portal_config_id"`
+	LogoUrl        sql.NullString `db:"logo_url"`
+	PrimaryColor   sql.NullString `db:"primary_color"`
+	CreatedAt      int64          `db:"created_at"`
+	UpdatedAt      sql.NullInt64  `db:"updated_at"`
+}
+
+type PortalConfiguration struct {
+	Pk          uint64         `db:"pk"`
+	ID          string         `db:"id"`
+	WorkspaceID string         `db:"workspace_id"`
+	AppID       sql.NullString `db:"app_id"`
+	KeyAuthID   sql.NullString `db:"key_auth_id"`
+	Enabled     bool           `db:"enabled"`
+	ReturnUrl   sql.NullString `db:"return_url"`
+	CreatedAt   int64          `db:"created_at"`
+	UpdatedAt   sql.NullInt64  `db:"updated_at"`
+}
+
+type PortalSession struct {
+	Pk             uint64          `db:"pk"`
+	ID             string          `db:"id"`
+	WorkspaceID    string          `db:"workspace_id"`
+	PortalConfigID string          `db:"portal_config_id"`
+	ExternalID     string          `db:"external_id"`
+	Permissions    json.RawMessage `db:"permissions"`
+	Preview        bool            `db:"preview"`
+	ExpiresAt      int64           `db:"expires_at"`
+	CreatedAt      int64           `db:"created_at"`
+}
+
+type PortalSessionToken struct {
+	Pk             uint64          `db:"pk"`
+	ID             string          `db:"id"`
+	WorkspaceID    string          `db:"workspace_id"`
+	PortalConfigID string          `db:"portal_config_id"`
+	ExternalID     string          `db:"external_id"`
+	Permissions    json.RawMessage `db:"permissions"`
+	Preview        bool            `db:"preview"`
+	ExchangedAt    sql.NullInt64   `db:"exchanged_at"`
+	ExpiresAt      int64           `db:"expires_at"`
+	CreatedAt      int64           `db:"created_at"`
 }
 
 type Project struct {

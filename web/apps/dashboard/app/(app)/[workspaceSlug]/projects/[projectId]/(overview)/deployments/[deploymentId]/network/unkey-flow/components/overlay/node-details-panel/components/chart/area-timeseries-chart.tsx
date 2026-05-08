@@ -1,22 +1,13 @@
 "use client";
 
+import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { formatBytesPerSecondParts } from "@/lib/utils/deployment-formatters";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { useEffect, useId, useState } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { LogsChartEmpty } from "./components/logs-chart-empty";
+import { ChartWaveLoading } from "./components/chart-wave-loading";
 import { LogsChartError } from "./components/logs-chart-error";
-import { LogsChartLoading } from "./components/logs-chart-loading";
-
-// Generic timeseries area chart. Drives both the 2-series network chart
-// (egress + ingress, overlapping — intentionally NOT stacked; stacking
-// makes a big-ingress / tiny-egress spike read as "egress went up" since
-// egress sits on top) and the single-series disk chart.
-//
-// Zero-valued buckets stay in the data so the line renders flat along the
-// baseline during idle stretches instead of disappearing. We rely on
-// `dot={false}` / `activeDot={false}` to suppress the per-sample markers
-// that would otherwise make each zero bucket read as a distinct "point".
 
 export type AreaChartPoint = { originalTimestamp: number } & {
   [k: string]: number | undefined;
@@ -47,7 +38,7 @@ const SPARSE_COVERAGE_THRESHOLD = 0.15;
 // aligns plot-area left edges vertically down the stack — otherwise the
 // CPU row (hideYAxis) starts further left than mem/disk/network. 60
 // comfortably fits the longest byte tick ("999MB" / "9.9GB") at 10px.
-const Y_GUTTER_PX = 60;
+const Y_GUTTER_PX = 36;
 
 // Tooltip row value. `value` is the primary (bold) number, `unit` the
 // immediate suffix ("MiB"), and `hint` a muted trailing annotation used
@@ -71,10 +62,6 @@ type Props = {
   // Minimum top-of-axis when data is tiny / idle, so baselines aren't
   // compressed to nothing. Defaults to 1 KiB for the network rate chart.
   axisFloor?: number;
-  // Hide the Y-axis entirely. Used for metrics where the axis number
-  // would be more confusing than informative (e.g. CPU in millicores,
-  // where the tooltip already shows a friendlier utilization %).
-  hideYAxis?: boolean;
   // Force the X-axis to span this explicit [start, end] range (millis).
   // Used to anchor the axis to the selected window (e.g. "Past day"
   // always reads as 24h of x-axis even when the deployment is only
@@ -85,7 +72,7 @@ type Props = {
 export function AreaTimeseriesChart({
   data,
   config,
-  height = 160,
+  height = 140,
   isLoading,
   isError,
   chartContainerClassname,
@@ -93,21 +80,28 @@ export function AreaTimeseriesChart({
   formatTooltipValue = formatBytesPerSecondParts,
   formatYTick = formatYAxisCompactBytes,
   axisFloor = 1024,
-  hideYAxis = false,
   xAxisDomain,
 }: Props) {
+  const chartId = useId().replace(/:/g, "");
+  const [shouldAnimate, setShouldAnimate] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setShouldAnimate(false), 600);
+    return () => clearTimeout(timer);
+  }, []);
+
   if (isError) {
     return <LogsChartError />;
   }
-  if (isLoading) {
-    // Match the chart's own height so the loading flash doesn't collapse
-    // the enclosing panel by ~110px on every window change.
-    return <LogsChartLoading height={height} />;
-  }
   const configKeys = Object.keys(config);
+  const firstKey = configKeys[0];
+  const sectionColor = config[firstKey]?.color;
+
+  if (isLoading) {
+    return <ChartWaveLoading height={height} color={sectionColor} />;
+  }
   const isEmpty = !data.length || data.every((p) => configKeys.every((k) => !(Number(p[k]) > 0)));
   if (isEmpty) {
-    return <LogsChartEmpty config={config} height={height} />;
+    return <ChartEmpty variant="wave" color={sectionColor} height={height} message="No data" />;
   }
 
   // Evenly-spaced Y-axis ticks at 0 / ⅓ / ⅔ / top. We compute them ourselves
@@ -183,17 +177,51 @@ export function AreaTimeseriesChart({
       className={cn("!flex-col aspect-auto w-full", chartContainerClassname)}
       style={{ height, width: "100%" }}
     >
-      <AreaChart
-        data={data}
-        // Reserve the Y-axis gutter via either the YAxis (when shown) or
-        // margin.left (when hidden). Same total left offset (`Y_GUTTER_PX`)
-        // for every chart so plot-area left edges align vertically across
-        // the stack — otherwise the CPU row (hideYAxis) starts further
-        // left than memory/disk/network, which reads as different chart
-        // sizes.
-        margin={{ top: 16, right: 8, bottom: 0, left: hideYAxis ? Y_GUTTER_PX : 0 }}
-      >
-        <CartesianGrid vertical={false} stroke="hsl(var(--gray-4))" strokeDasharray="3 3" />
+      <AreaChart data={data} margin={{ top: 16, right: 8, bottom: 0, left: 0 }}>
+        <defs>
+          {configKeys.map((key) => (
+            <linearGradient
+              key={`${chartId}-${key}`}
+              id={`${chartId}-${key}`}
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop offset="0%" stopColor={config[key].color} stopOpacity={0.45}>
+                <animate
+                  attributeName="stop-opacity"
+                  values="0.45;0.3;0.45"
+                  dur="6s"
+                  repeatCount="indefinite"
+                />
+              </stop>
+              <stop offset="50%" stopColor={config[key].color} stopOpacity={0.2}>
+                <animate
+                  attributeName="stop-opacity"
+                  values="0.2;0.35;0.2"
+                  dur="6s"
+                  repeatCount="indefinite"
+                />
+              </stop>
+              <stop offset="85%" stopColor={config[key].color} stopOpacity={0.08}>
+                <animate
+                  attributeName="stop-opacity"
+                  values="0.08;0.15;0.08"
+                  dur="6s"
+                  repeatCount="indefinite"
+                />
+              </stop>
+              <stop offset="100%" stopColor={config[key].color} stopOpacity={0.03} />
+            </linearGradient>
+          ))}
+        </defs>
+        <CartesianGrid
+          vertical={false}
+          stroke="hsl(var(--gray-4))"
+          strokeDasharray="3 3"
+          strokeOpacity={0.6}
+        />
         <XAxis
           dataKey="originalTimestamp"
           type="number"
@@ -215,18 +243,12 @@ export function AreaTimeseriesChart({
           minTickGap={48}
         />
         <YAxis
-          // Compact single-letter suffix (24M / 1.2K / 600B — no "/s", the
-          // rate is implied by context) keeps the axis narrow so the chart
-          // doesn't eat the panel. Full units live in the tooltip. When
-          // `hideYAxis` is set we still mount YAxis (recharts needs one to
-          // compute data extent and range the areas correctly) but strip
-          // all visible chrome — no ticks, no labels, zero width.
-          width={hideYAxis ? 0 : Y_GUTTER_PX}
+          width={Y_GUTTER_PX}
           tickLine={false}
           axisLine={false}
           tickFormatter={formatYTick}
-          tick={hideYAxis ? false : { fill: "hsl(var(--gray-10))", fontSize: 10 }}
-          ticks={hideYAxis ? undefined : yTicks}
+          tick={{ fill: "hsl(var(--gray-10))", fontSize: 10 }}
+          ticks={yTicks}
           domain={yDomain}
         />
         <ChartTooltip
@@ -235,8 +257,8 @@ export function AreaTimeseriesChart({
           cursor={{
             stroke: "hsl(var(--accent-9))",
             strokeWidth: 1,
-            strokeDasharray: "4 4",
-            strokeOpacity: 0.7,
+            strokeDasharray: "3 3",
+            strokeOpacity: 0.5,
           }}
           content={({ active, payload }) => {
             if (!active || !payload?.length) {
@@ -261,7 +283,7 @@ export function AreaTimeseriesChart({
             return (
               <div
                 role="tooltip"
-                className="grid items-start gap-1 rounded-lg border border-gray-4 bg-gray-1 px-3 py-2 text-xs shadow-2xl select-none w-max max-w-[240px]"
+                className="grid items-start gap-1.5 rounded-xl border border-gray-4/50 bg-gray-1/80 backdrop-blur-md px-3 py-2.5 text-xs shadow-2xl select-none w-max max-w-[240px] animate-in fade-in-0 zoom-in-95 duration-150"
               >
                 <div className="font-medium text-[11px] text-accent-11">{labelText}</div>
                 <div className="grid gap-1">
@@ -292,16 +314,51 @@ export function AreaTimeseriesChart({
         />
         {configKeys.map((key) => (
           <Area
+            key={`${key}-glow`}
+            dataKey={key}
+            type="monotone"
+            stroke={config[key].color}
+            strokeWidth={3.5}
+            strokeOpacity={0.12}
+            fill="none"
+            isAnimationActive={shouldAnimate}
+            animationDuration={500}
+            animationEasing="ease-out"
+            dot={false}
+            activeDot={false}
+          />
+        ))}
+        {configKeys.map((key) => (
+          <Area
             key={key}
             dataKey={key}
             type="monotone"
             stroke={config[key].color}
             strokeWidth={1.5}
-            fill={config[key].color}
-            fillOpacity={0.25}
-            isAnimationActive={false}
+            fill={`url(#${chartId}-${key})`}
+            fillOpacity={1}
+            isAnimationActive={shouldAnimate}
+            animationDuration={500}
+            animationEasing="ease-out"
             dot={false}
-            activeDot={false}
+            activeDot={(props: { cx?: number; cy?: number }) => {
+              const x = props.cx ?? 0;
+              const y = props.cy ?? 0;
+              return (
+                <g>
+                  <circle cx={x} cy={y} r={8} fill={config[key].color} opacity={0.12} />
+                  <circle cx={x} cy={y} r={5} fill={config[key].color} opacity={0.3} />
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={3}
+                    fill={config[key].color}
+                    stroke="white"
+                    strokeWidth={1.5}
+                  />
+                </g>
+              );
+            }}
           />
         ))}
       </AreaChart>
@@ -315,21 +372,21 @@ export function AreaTimeseriesChart({
 // Full IEC units ("MiB/s") live in the tooltip.
 export function formatYAxisCompactBytes(v: number): string {
   if (!Number.isFinite(v) || v <= 0) {
-    return "0";
+    return "";
   }
   const kib = 1024;
   const mib = kib * 1024;
   const gib = mib * 1024;
   if (v >= gib) {
-    return `${trim(v / gib)}GB`;
+    return `${trim(v / gib)} GiB`;
   }
   if (v >= mib) {
-    return `${trim(v / mib)}MB`;
+    return `${trim(v / mib)} MiB`;
   }
   if (v >= kib) {
-    return `${trim(v / kib)}KB`;
+    return `${trim(v / kib)} KiB`;
   }
-  return `${Math.round(v)}B`;
+  return `${Math.round(v)} B`;
 }
 
 // Rate variant used by the Network chart. The `/s` suffix on every tick
@@ -338,9 +395,14 @@ export function formatYAxisCompactBytes(v: number): string {
 // separate "total MiB" aggregate in the header.
 export function formatYAxisCompactBytesPerSecond(v: number): string {
   if (!Number.isFinite(v) || v <= 0) {
-    return "0";
+    return "";
   }
-  return `${formatYAxisCompactBytes(v)}/s`;
+  const bytes = formatYAxisCompactBytes(v);
+  const spaceIdx = bytes.indexOf(" ");
+  if (spaceIdx > 0) {
+    return `${bytes.slice(0, spaceIdx)} ${bytes.slice(spaceIdx + 1)}/s`;
+  }
+  return `${bytes}/s`;
 }
 
 // One decimal only when it carries information: "1.5K" yes, "7.0M" no.

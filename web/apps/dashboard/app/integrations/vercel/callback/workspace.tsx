@@ -18,7 +18,7 @@ import type React from "react";
 import { type JSX, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { setSessionCookie } from "@/lib/auth/cookies";
+import { setSessionCookie } from "@/lib/auth/cookies-actions";
 import { trpc } from "@/lib/trpc/client";
 import { Loading, toast } from "@unkey/ui";
 

@@ -552,6 +552,516 @@ func (*ReportDeploymentStatusResponse) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{6}
 }
 
+// InstanceEvent describes a single container lifecycle transition observed
+// by krane's pod watch. The (pod_uid, container_name, restart_count, state)
+// tuple is the dedupe key on both the krane LRU and the ClickHouse insert.
+//
+// The `state` oneof mirrors corev1.ContainerState — krane reads exactly
+// this shape from kubelet, so the mapping is direct and future kubelet
+// reasons (PullBackOff, ImagePullBackOff, …) slot in under Waiting without
+// any wire format change.
+type InstanceEvent struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// K8s identity of the container life this event is about.
+	PodUid        string `protobuf:"bytes,1,opt,name=pod_uid,json=podUid,proto3" json:"pod_uid,omitempty"`
+	PodName       string `protobuf:"bytes,2,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"`
+	NodeName      string `protobuf:"bytes,3,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
+	ContainerName string `protobuf:"bytes,4,opt,name=container_name,json=containerName,proto3" json:"container_name,omitempty"`
+	ContainerId   string `protobuf:"bytes,5,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	RestartCount  int32  `protobuf:"varint,6,opt,name=restart_count,json=restartCount,proto3" json:"restart_count,omitempty"`
+	// Tenant identifiers extracted from pod labels by krane. Field order
+	// matches the canonical hierarchy: workspace > project > app >
+	// environment > deployment.
+	WorkspaceId   string `protobuf:"bytes,7,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	ProjectId     string `protobuf:"bytes,8,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	AppId         string `protobuf:"bytes,9,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	EnvironmentId string `protobuf:"bytes,10,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	DeploymentId  string `protobuf:"bytes,11,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	// When this event happened (unix milliseconds). For Running it's the
+	// container's StartedAt; for Terminated it's FinishedAt; for Waiting
+	// it's when kubelet last published the waiting state.
+	Time int64 `protobuf:"varint,12,opt,name=time,proto3" json:"time,omitempty"`
+	// Stable hash krane computes so the dashboard can group identical
+	// incidents without an aggregate table. Inputs differ by state:
+	//
+	//	Running    — (image_id, "running")
+	//	Terminated — (image_id, exit_code, reason, message[:200])
+	//	Waiting    — (image_id, 0, reason, message[:200])
+	EventFingerprint string `protobuf:"bytes,13,opt,name=event_fingerprint,json=eventFingerprint,proto3" json:"event_fingerprint,omitempty"`
+	// Mirrors corev1.ContainerState. Exactly one case is set per event.
+	//
+	// Types that are valid to be assigned to State:
+	//
+	//	*InstanceEvent_Running
+	//	*InstanceEvent_Terminated
+	//	*InstanceEvent_Waiting
+	State isInstanceEvent_State `protobuf_oneof:"state"`
+	// Selected k8s metadata for the event row. Stored verbatim into the
+	// ClickHouse `attributes` Map column. Known keys (krane populates):
+	//
+	//	image, image_id, cpu_limit_millicores, memory_limit_mib,
+	//	cpu_request_millicores, memory_request_mib, build_id.
+	//
+	// Numbers are stringified so the wire shape matches the column type.
+	Attributes    map[string]string `protobuf:"bytes,17,rep,name=attributes,proto3" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstanceEvent) Reset() {
+	*x = InstanceEvent{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstanceEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstanceEvent) ProtoMessage() {}
+
+func (x *InstanceEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstanceEvent.ProtoReflect.Descriptor instead.
+func (*InstanceEvent) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *InstanceEvent) GetPodUid() string {
+	if x != nil {
+		return x.PodUid
+	}
+	return ""
+}
+
+func (x *InstanceEvent) GetPodName() string {
+	if x != nil {
+		return x.PodName
+	}
+	return ""
+}
+
+func (x *InstanceEvent) GetNodeName() string {
+	if x != nil {
+		return x.NodeName
+	}
+	return ""
+}
+
+func (x *InstanceEvent) GetContainerName() string {
+	if x != nil {
+		return x.ContainerName
+	}
+	return ""
+}
+
+func (x *InstanceEvent) GetContainerId() string {
+	if x != nil {
+		return x.ContainerId
+	}
+	return ""
+}
+
+func (x *InstanceEvent) GetRestartCount() int32 {
+	if x != nil {
+		return x.RestartCount
+	}
+	return 0
+}
+
+func (x *InstanceEvent) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
+func (x *InstanceEvent) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *InstanceEvent) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *InstanceEvent) GetEnvironmentId() string {
+	if x != nil {
+		return x.EnvironmentId
+	}
+	return ""
+}
+
+func (x *InstanceEvent) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
+	}
+	return ""
+}
+
+func (x *InstanceEvent) GetTime() int64 {
+	if x != nil {
+		return x.Time
+	}
+	return 0
+}
+
+func (x *InstanceEvent) GetEventFingerprint() string {
+	if x != nil {
+		return x.EventFingerprint
+	}
+	return ""
+}
+
+func (x *InstanceEvent) GetState() isInstanceEvent_State {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
+func (x *InstanceEvent) GetRunning() *Running {
+	if x != nil {
+		if x, ok := x.State.(*InstanceEvent_Running); ok {
+			return x.Running
+		}
+	}
+	return nil
+}
+
+func (x *InstanceEvent) GetTerminated() *Terminated {
+	if x != nil {
+		if x, ok := x.State.(*InstanceEvent_Terminated); ok {
+			return x.Terminated
+		}
+	}
+	return nil
+}
+
+func (x *InstanceEvent) GetWaiting() *Waiting {
+	if x != nil {
+		if x, ok := x.State.(*InstanceEvent_Waiting); ok {
+			return x.Waiting
+		}
+	}
+	return nil
+}
+
+func (x *InstanceEvent) GetAttributes() map[string]string {
+	if x != nil {
+		return x.Attributes
+	}
+	return nil
+}
+
+type isInstanceEvent_State interface {
+	isInstanceEvent_State()
+}
+
+type InstanceEvent_Running struct {
+	Running *Running `protobuf:"bytes,14,opt,name=running,proto3,oneof"`
+}
+
+type InstanceEvent_Terminated struct {
+	Terminated *Terminated `protobuf:"bytes,15,opt,name=terminated,proto3,oneof"`
+}
+
+type InstanceEvent_Waiting struct {
+	Waiting *Waiting `protobuf:"bytes,16,opt,name=waiting,proto3,oneof"`
+}
+
+func (*InstanceEvent_Running) isInstanceEvent_State() {}
+
+func (*InstanceEvent_Terminated) isInstanceEvent_State() {}
+
+func (*InstanceEvent_Waiting) isInstanceEvent_State() {}
+
+// Running means the container is healthy and serving. The event itself
+// timestamps when this life began (InstanceEvent.time = StartedAt). No
+// per-state metadata beyond identity is needed today; this empty message
+// is reserved for future signals (process restart count within a single
+// life, etc.) without an InstanceEvent shape change.
+type Running struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Running) Reset() {
+	*x = Running{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Running) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Running) ProtoMessage() {}
+
+func (x *Running) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Running.ProtoReflect.Descriptor instead.
+func (*Running) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8}
+}
+
+// Terminated captures kubelet's ContainerStateTerminated. The container
+// exited; the metadata explains why.
+type Terminated struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Process exit code reported by the kernel.
+	ExitCode int32 `protobuf:"varint,1,opt,name=exit_code,json=exitCode,proto3" json:"exit_code,omitempty"`
+	// Signal that delivered the termination, or 0 if the process exited
+	// without a signal. SIGTERM (15) usually means k8s/user requested
+	// shutdown; SIGKILL (9) typically pairs with OOMKilled or grace period
+	// expiry.
+	Signal int32 `protobuf:"varint,2,opt,name=signal,proto3" json:"signal,omitempty"`
+	// Kubelet-supplied label: "OOMKilled", "Error", "Completed",
+	// "ContainerCannotRun", "DeadlineExceeded", …
+	Reason string `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	// Free-form kubelet message; truncated past 200 bytes when fed into
+	// event_fingerprint so retries of the same failure collapse.
+	Message       string `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Terminated) Reset() {
+	*x = Terminated{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Terminated) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Terminated) ProtoMessage() {}
+
+func (x *Terminated) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Terminated.ProtoReflect.Descriptor instead.
+func (*Terminated) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *Terminated) GetExitCode() int32 {
+	if x != nil {
+		return x.ExitCode
+	}
+	return 0
+}
+
+func (x *Terminated) GetSignal() int32 {
+	if x != nil {
+		return x.Signal
+	}
+	return 0
+}
+
+func (x *Terminated) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *Terminated) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+// Waiting captures kubelet's ContainerStateWaiting. Krane currently only
+// emits when reason == "CrashLoopBackOff", but the type is shaped to
+// accept any waiting reason kubelet publishes.
+type Waiting struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Kubelet-supplied label: "CrashLoopBackOff", "ImagePullBackOff",
+	// "ContainerCreating", "ErrImagePull", …
+	Reason        string `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
+	Message       string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Waiting) Reset() {
+	*x = Waiting{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Waiting) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Waiting) ProtoMessage() {}
+
+func (x *Waiting) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Waiting.ProtoReflect.Descriptor instead.
+func (*Waiting) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *Waiting) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *Waiting) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+// ReportInstanceEventsRequest carries one or more events from a single krane
+// pod-watch tick. Batching keeps the RPC count low when a pod has multiple
+// containers (init/main/sidecar) terminating at once.
+type ReportInstanceEventsRequest struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Events []*InstanceEvent       `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+	// region scopes the report to one cluster's krane agent. Same convention as
+	// every other ClusterService RPC (ReportDeploymentStatus, ReportSentinelStatus).
+	Region        *RegionKey `protobuf:"bytes,2,opt,name=region,proto3" json:"region,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportInstanceEventsRequest) Reset() {
+	*x = ReportInstanceEventsRequest{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportInstanceEventsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportInstanceEventsRequest) ProtoMessage() {}
+
+func (x *ReportInstanceEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportInstanceEventsRequest.ProtoReflect.Descriptor instead.
+func (*ReportInstanceEventsRequest) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ReportInstanceEventsRequest) GetEvents() []*InstanceEvent {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
+func (x *ReportInstanceEventsRequest) GetRegion() *RegionKey {
+	if x != nil {
+		return x.Region
+	}
+	return nil
+}
+
+type ReportInstanceEventsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportInstanceEventsResponse) Reset() {
+	*x = ReportInstanceEventsResponse{}
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportInstanceEventsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportInstanceEventsResponse) ProtoMessage() {}
+
+func (x *ReportInstanceEventsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportInstanceEventsResponse.ProtoReflect.Descriptor instead.
+func (*ReportInstanceEventsResponse) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{12}
+}
+
 // DeploymentState represents a lifecycle event for an application deployment.
 //
 // Deployments are the primary workload type, representing stateless applications
@@ -578,7 +1088,7 @@ type DeploymentState struct {
 
 func (x *DeploymentState) Reset() {
 	*x = DeploymentState{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -590,7 +1100,7 @@ func (x *DeploymentState) String() string {
 func (*DeploymentState) ProtoMessage() {}
 
 func (x *DeploymentState) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[7]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -603,7 +1113,7 @@ func (x *DeploymentState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeploymentState.ProtoReflect.Descriptor instead.
 func (*DeploymentState) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{7}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *DeploymentState) GetVersion() uint64 {
@@ -729,7 +1239,7 @@ type ApplyDeployment struct {
 
 func (x *ApplyDeployment) Reset() {
 	*x = ApplyDeployment{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -741,7 +1251,7 @@ func (x *ApplyDeployment) String() string {
 func (*ApplyDeployment) ProtoMessage() {}
 
 func (x *ApplyDeployment) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[8]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -754,7 +1264,7 @@ func (x *ApplyDeployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyDeployment.ProtoReflect.Descriptor instead.
 func (*ApplyDeployment) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{8}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ApplyDeployment) GetK8SNamespace() string {
@@ -945,7 +1455,7 @@ type AutoscalingPolicy struct {
 
 func (x *AutoscalingPolicy) Reset() {
 	*x = AutoscalingPolicy{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -957,7 +1467,7 @@ func (x *AutoscalingPolicy) String() string {
 func (*AutoscalingPolicy) ProtoMessage() {}
 
 func (x *AutoscalingPolicy) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[9]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -970,7 +1480,7 @@ func (x *AutoscalingPolicy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AutoscalingPolicy.ProtoReflect.Descriptor instead.
 func (*AutoscalingPolicy) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{9}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *AutoscalingPolicy) GetMinReplicas() uint32 {
@@ -1016,7 +1526,7 @@ type DeleteDeployment struct {
 
 func (x *DeleteDeployment) Reset() {
 	*x = DeleteDeployment{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1028,7 +1538,7 @@ func (x *DeleteDeployment) String() string {
 func (*DeleteDeployment) ProtoMessage() {}
 
 func (x *DeleteDeployment) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[10]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1041,7 +1551,7 @@ func (x *DeleteDeployment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDeployment.ProtoReflect.Descriptor instead.
 func (*DeleteDeployment) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{10}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *DeleteDeployment) GetK8SNamespace() string {
@@ -1070,7 +1580,7 @@ type HeartbeatRequest struct {
 
 func (x *HeartbeatRequest) Reset() {
 	*x = HeartbeatRequest{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1082,7 +1592,7 @@ func (x *HeartbeatRequest) String() string {
 func (*HeartbeatRequest) ProtoMessage() {}
 
 func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[11]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1095,7 +1605,7 @@ func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
 func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{11}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *HeartbeatRequest) GetRegion() *RegionKey {
@@ -1113,7 +1623,7 @@ type HeartbeatResponse struct {
 
 func (x *HeartbeatResponse) Reset() {
 	*x = HeartbeatResponse{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1125,7 +1635,7 @@ func (x *HeartbeatResponse) String() string {
 func (*HeartbeatResponse) ProtoMessage() {}
 
 func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[12]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1138,7 +1648,7 @@ func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
 func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{12}
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{18}
 }
 
 type ReportDeploymentStatusRequest_Update struct {
@@ -1151,7 +1661,7 @@ type ReportDeploymentStatusRequest_Update struct {
 
 func (x *ReportDeploymentStatusRequest_Update) Reset() {
 	*x = ReportDeploymentStatusRequest_Update{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1163,7 +1673,7 @@ func (x *ReportDeploymentStatusRequest_Update) String() string {
 func (*ReportDeploymentStatusRequest_Update) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusRequest_Update) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[13]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1202,7 +1712,7 @@ type ReportDeploymentStatusRequest_Delete struct {
 
 func (x *ReportDeploymentStatusRequest_Delete) Reset() {
 	*x = ReportDeploymentStatusRequest_Delete{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1214,7 +1724,7 @@ func (x *ReportDeploymentStatusRequest_Delete) String() string {
 func (*ReportDeploymentStatusRequest_Delete) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusRequest_Delete) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[14]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1250,7 +1760,7 @@ type ReportDeploymentStatusRequest_Update_Instance struct {
 
 func (x *ReportDeploymentStatusRequest_Update_Instance) Reset() {
 	*x = ReportDeploymentStatusRequest_Update_Instance{}
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1262,7 +1772,7 @@ func (x *ReportDeploymentStatusRequest_Update_Instance) String() string {
 func (*ReportDeploymentStatusRequest_Update_Instance) ProtoMessage() {}
 
 func (x *ReportDeploymentStatusRequest_Update_Instance) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_cluster_proto_msgTypes[15]
+	mi := &file_ctrl_v1_cluster_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1358,7 +1868,49 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x06Delete\x12\x19\n" +
 	"\bk8s_name\x18\x01 \x01(\tR\ak8sNameB\b\n" +
 	"\x06change\" \n" +
-	"\x1eReportDeploymentStatusResponse\"\x9b\x01\n" +
+	"\x1eReportDeploymentStatusResponse\"\xd8\x05\n" +
+	"\rInstanceEvent\x12\x17\n" +
+	"\apod_uid\x18\x01 \x01(\tR\x06podUid\x12\x19\n" +
+	"\bpod_name\x18\x02 \x01(\tR\apodName\x12\x1b\n" +
+	"\tnode_name\x18\x03 \x01(\tR\bnodeName\x12%\n" +
+	"\x0econtainer_name\x18\x04 \x01(\tR\rcontainerName\x12!\n" +
+	"\fcontainer_id\x18\x05 \x01(\tR\vcontainerId\x12#\n" +
+	"\rrestart_count\x18\x06 \x01(\x05R\frestartCount\x12!\n" +
+	"\fworkspace_id\x18\a \x01(\tR\vworkspaceId\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\b \x01(\tR\tprojectId\x12\x15\n" +
+	"\x06app_id\x18\t \x01(\tR\x05appId\x12%\n" +
+	"\x0eenvironment_id\x18\n" +
+	" \x01(\tR\renvironmentId\x12#\n" +
+	"\rdeployment_id\x18\v \x01(\tR\fdeploymentId\x12\x12\n" +
+	"\x04time\x18\f \x01(\x03R\x04time\x12+\n" +
+	"\x11event_fingerprint\x18\r \x01(\tR\x10eventFingerprint\x12,\n" +
+	"\arunning\x18\x0e \x01(\v2\x10.ctrl.v1.RunningH\x00R\arunning\x125\n" +
+	"\n" +
+	"terminated\x18\x0f \x01(\v2\x13.ctrl.v1.TerminatedH\x00R\n" +
+	"terminated\x12,\n" +
+	"\awaiting\x18\x10 \x01(\v2\x10.ctrl.v1.WaitingH\x00R\awaiting\x12F\n" +
+	"\n" +
+	"attributes\x18\x11 \x03(\v2&.ctrl.v1.InstanceEvent.AttributesEntryR\n" +
+	"attributes\x1a=\n" +
+	"\x0fAttributesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\a\n" +
+	"\x05state\"\t\n" +
+	"\aRunning\"s\n" +
+	"\n" +
+	"Terminated\x12\x1b\n" +
+	"\texit_code\x18\x01 \x01(\x05R\bexitCode\x12\x16\n" +
+	"\x06signal\x18\x02 \x01(\x05R\x06signal\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\x12\x18\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage\";\n" +
+	"\aWaiting\x12\x16\n" +
+	"\x06reason\x18\x01 \x01(\tR\x06reason\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"y\n" +
+	"\x1bReportInstanceEventsRequest\x12.\n" +
+	"\x06events\x18\x01 \x03(\v2\x16.ctrl.v1.InstanceEventR\x06events\x12*\n" +
+	"\x06region\x18\x02 \x01(\v2\x12.ctrl.v1.RegionKeyR\x06region\"\x1e\n" +
+	"\x1cReportInstanceEventsResponse\"\x9b\x01\n" +
 	"\x0fDeploymentState\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\x04R\aversion\x120\n" +
 	"\x05apply\x18\x01 \x01(\v2\x18.ctrl.v1.ApplyDeploymentH\x00R\x05apply\x123\n" +
@@ -1419,12 +1971,13 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x12HEALTH_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eHEALTH_HEALTHY\x10\x01\x12\x14\n" +
 	"\x10HEALTH_UNHEALTHY\x10\x02\x12\x11\n" +
-	"\rHEALTH_PAUSED\x10\x032\xdd\x03\n" +
+	"\rHEALTH_PAUSED\x10\x032\xc2\x04\n" +
 	"\x0eClusterService\x12b\n" +
 	"\x16WatchDeploymentChanges\x12&.ctrl.v1.WatchDeploymentChangesRequest\x1a\x1e.ctrl.v1.DeploymentChangeEvent0\x01\x12V\n" +
 	"\x10SyncDesiredState\x12 .ctrl.v1.SyncDesiredStateRequest\x1a\x1e.ctrl.v1.DeploymentChangeEvent0\x01\x12`\n" +
 	"\x19GetDesiredDeploymentState\x12).ctrl.v1.GetDesiredDeploymentStateRequest\x1a\x18.ctrl.v1.DeploymentState\x12i\n" +
-	"\x16ReportDeploymentStatus\x12&.ctrl.v1.ReportDeploymentStatusRequest\x1a'.ctrl.v1.ReportDeploymentStatusResponse\x12B\n" +
+	"\x16ReportDeploymentStatus\x12&.ctrl.v1.ReportDeploymentStatusRequest\x1a'.ctrl.v1.ReportDeploymentStatusResponse\x12c\n" +
+	"\x14ReportInstanceEvents\x12$.ctrl.v1.ReportInstanceEventsRequest\x1a%.ctrl.v1.ReportInstanceEventsResponse\x12B\n" +
 	"\tHeartbeat\x12\x19.ctrl.v1.HeartbeatRequest\x1a\x1a.ctrl.v1.HeartbeatResponseB\x8b\x01\n" +
 	"\vcom.ctrl.v1B\fClusterProtoP\x01Z1github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
@@ -1441,7 +1994,7 @@ func file_ctrl_v1_cluster_proto_rawDescGZIP() []byte {
 }
 
 var file_ctrl_v1_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(Health)(0), // 0: ctrl.v1.Health
 	(ReportDeploymentStatusRequest_Update_Instance_Status)(0), // 1: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
@@ -1452,47 +2005,62 @@ var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(*GetDesiredDeploymentStateRequest)(nil),              // 6: ctrl.v1.GetDesiredDeploymentStateRequest
 	(*ReportDeploymentStatusRequest)(nil),                 // 7: ctrl.v1.ReportDeploymentStatusRequest
 	(*ReportDeploymentStatusResponse)(nil),                // 8: ctrl.v1.ReportDeploymentStatusResponse
-	(*DeploymentState)(nil),                               // 9: ctrl.v1.DeploymentState
-	(*ApplyDeployment)(nil),                               // 10: ctrl.v1.ApplyDeployment
-	(*AutoscalingPolicy)(nil),                             // 11: ctrl.v1.AutoscalingPolicy
-	(*DeleteDeployment)(nil),                              // 12: ctrl.v1.DeleteDeployment
-	(*HeartbeatRequest)(nil),                              // 13: ctrl.v1.HeartbeatRequest
-	(*HeartbeatResponse)(nil),                             // 14: ctrl.v1.HeartbeatResponse
-	(*ReportDeploymentStatusRequest_Update)(nil),          // 15: ctrl.v1.ReportDeploymentStatusRequest.Update
-	(*ReportDeploymentStatusRequest_Delete)(nil),          // 16: ctrl.v1.ReportDeploymentStatusRequest.Delete
-	(*ReportDeploymentStatusRequest_Update_Instance)(nil), // 17: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
-	(*EphemeralStorage)(nil),                              // 18: ctrl.v1.EphemeralStorage
+	(*InstanceEvent)(nil),                                 // 9: ctrl.v1.InstanceEvent
+	(*Running)(nil),                                       // 10: ctrl.v1.Running
+	(*Terminated)(nil),                                    // 11: ctrl.v1.Terminated
+	(*Waiting)(nil),                                       // 12: ctrl.v1.Waiting
+	(*ReportInstanceEventsRequest)(nil),                   // 13: ctrl.v1.ReportInstanceEventsRequest
+	(*ReportInstanceEventsResponse)(nil),                  // 14: ctrl.v1.ReportInstanceEventsResponse
+	(*DeploymentState)(nil),                               // 15: ctrl.v1.DeploymentState
+	(*ApplyDeployment)(nil),                               // 16: ctrl.v1.ApplyDeployment
+	(*AutoscalingPolicy)(nil),                             // 17: ctrl.v1.AutoscalingPolicy
+	(*DeleteDeployment)(nil),                              // 18: ctrl.v1.DeleteDeployment
+	(*HeartbeatRequest)(nil),                              // 19: ctrl.v1.HeartbeatRequest
+	(*HeartbeatResponse)(nil),                             // 20: ctrl.v1.HeartbeatResponse
+	(*ReportDeploymentStatusRequest_Update)(nil),          // 21: ctrl.v1.ReportDeploymentStatusRequest.Update
+	(*ReportDeploymentStatusRequest_Delete)(nil),          // 22: ctrl.v1.ReportDeploymentStatusRequest.Delete
+	(*ReportDeploymentStatusRequest_Update_Instance)(nil), // 23: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
+	nil,                      // 24: ctrl.v1.InstanceEvent.AttributesEntry
+	(*EphemeralStorage)(nil), // 25: ctrl.v1.EphemeralStorage
 }
 var file_ctrl_v1_cluster_proto_depIdxs = []int32{
 	2,  // 0: ctrl.v1.WatchDeploymentChangesRequest.region:type_name -> ctrl.v1.RegionKey
 	2,  // 1: ctrl.v1.SyncDesiredStateRequest.region:type_name -> ctrl.v1.RegionKey
-	9,  // 2: ctrl.v1.DeploymentChangeEvent.deployment:type_name -> ctrl.v1.DeploymentState
+	15, // 2: ctrl.v1.DeploymentChangeEvent.deployment:type_name -> ctrl.v1.DeploymentState
 	2,  // 3: ctrl.v1.GetDesiredDeploymentStateRequest.region:type_name -> ctrl.v1.RegionKey
 	2,  // 4: ctrl.v1.ReportDeploymentStatusRequest.region:type_name -> ctrl.v1.RegionKey
-	15, // 5: ctrl.v1.ReportDeploymentStatusRequest.update:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update
-	16, // 6: ctrl.v1.ReportDeploymentStatusRequest.delete:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Delete
-	10, // 7: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
-	12, // 8: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
-	11, // 9: ctrl.v1.ApplyDeployment.autoscaling:type_name -> ctrl.v1.AutoscalingPolicy
-	18, // 10: ctrl.v1.ApplyDeployment.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
-	2,  // 11: ctrl.v1.HeartbeatRequest.region:type_name -> ctrl.v1.RegionKey
-	17, // 12: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
-	1,  // 13: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
-	3,  // 14: ctrl.v1.ClusterService.WatchDeploymentChanges:input_type -> ctrl.v1.WatchDeploymentChangesRequest
-	4,  // 15: ctrl.v1.ClusterService.SyncDesiredState:input_type -> ctrl.v1.SyncDesiredStateRequest
-	6,  // 16: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
-	7,  // 17: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
-	13, // 18: ctrl.v1.ClusterService.Heartbeat:input_type -> ctrl.v1.HeartbeatRequest
-	5,  // 19: ctrl.v1.ClusterService.WatchDeploymentChanges:output_type -> ctrl.v1.DeploymentChangeEvent
-	5,  // 20: ctrl.v1.ClusterService.SyncDesiredState:output_type -> ctrl.v1.DeploymentChangeEvent
-	9,  // 21: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
-	8,  // 22: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
-	14, // 23: ctrl.v1.ClusterService.Heartbeat:output_type -> ctrl.v1.HeartbeatResponse
-	19, // [19:24] is the sub-list for method output_type
-	14, // [14:19] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	21, // 5: ctrl.v1.ReportDeploymentStatusRequest.update:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update
+	22, // 6: ctrl.v1.ReportDeploymentStatusRequest.delete:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Delete
+	10, // 7: ctrl.v1.InstanceEvent.running:type_name -> ctrl.v1.Running
+	11, // 8: ctrl.v1.InstanceEvent.terminated:type_name -> ctrl.v1.Terminated
+	12, // 9: ctrl.v1.InstanceEvent.waiting:type_name -> ctrl.v1.Waiting
+	24, // 10: ctrl.v1.InstanceEvent.attributes:type_name -> ctrl.v1.InstanceEvent.AttributesEntry
+	9,  // 11: ctrl.v1.ReportInstanceEventsRequest.events:type_name -> ctrl.v1.InstanceEvent
+	2,  // 12: ctrl.v1.ReportInstanceEventsRequest.region:type_name -> ctrl.v1.RegionKey
+	16, // 13: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
+	18, // 14: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
+	17, // 15: ctrl.v1.ApplyDeployment.autoscaling:type_name -> ctrl.v1.AutoscalingPolicy
+	25, // 16: ctrl.v1.ApplyDeployment.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
+	2,  // 17: ctrl.v1.HeartbeatRequest.region:type_name -> ctrl.v1.RegionKey
+	23, // 18: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
+	1,  // 19: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
+	3,  // 20: ctrl.v1.ClusterService.WatchDeploymentChanges:input_type -> ctrl.v1.WatchDeploymentChangesRequest
+	4,  // 21: ctrl.v1.ClusterService.SyncDesiredState:input_type -> ctrl.v1.SyncDesiredStateRequest
+	6,  // 22: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
+	7,  // 23: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
+	13, // 24: ctrl.v1.ClusterService.ReportInstanceEvents:input_type -> ctrl.v1.ReportInstanceEventsRequest
+	19, // 25: ctrl.v1.ClusterService.Heartbeat:input_type -> ctrl.v1.HeartbeatRequest
+	5,  // 26: ctrl.v1.ClusterService.WatchDeploymentChanges:output_type -> ctrl.v1.DeploymentChangeEvent
+	5,  // 27: ctrl.v1.ClusterService.SyncDesiredState:output_type -> ctrl.v1.DeploymentChangeEvent
+	15, // 28: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
+	8,  // 29: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
+	14, // 30: ctrl.v1.ClusterService.ReportInstanceEvents:output_type -> ctrl.v1.ReportInstanceEventsResponse
+	20, // 31: ctrl.v1.ClusterService.Heartbeat:output_type -> ctrl.v1.HeartbeatResponse
+	26, // [26:32] is the sub-list for method output_type
+	20, // [20:26] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_cluster_proto_init() }
@@ -1509,18 +2077,23 @@ func file_ctrl_v1_cluster_proto_init() {
 		(*ReportDeploymentStatusRequest_Delete_)(nil),
 	}
 	file_ctrl_v1_cluster_proto_msgTypes[7].OneofWrappers = []any{
+		(*InstanceEvent_Running)(nil),
+		(*InstanceEvent_Terminated)(nil),
+		(*InstanceEvent_Waiting)(nil),
+	}
+	file_ctrl_v1_cluster_proto_msgTypes[13].OneofWrappers = []any{
 		(*DeploymentState_Apply)(nil),
 		(*DeploymentState_Delete)(nil),
 	}
-	file_ctrl_v1_cluster_proto_msgTypes[8].OneofWrappers = []any{}
-	file_ctrl_v1_cluster_proto_msgTypes[9].OneofWrappers = []any{}
+	file_ctrl_v1_cluster_proto_msgTypes[14].OneofWrappers = []any{}
+	file_ctrl_v1_cluster_proto_msgTypes[15].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_cluster_proto_rawDesc), len(file_ctrl_v1_cluster_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   16,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "proxy",
@@ -8,10 +8,25 @@ go_library(
     deps = [
         "//pkg/clock",
         "//pkg/logger",
-        "//pkg/uid",
         "//pkg/zen",
         "//svc/frontline/internal/policies",
         "//svc/frontline/internal/proxy",
         "//svc/frontline/internal/router",
+    ],
+)
+
+go_test(
+    name = "proxy_test",
+    srcs = ["websocket_test.go"],
+    deps = [
+        ":proxy",
+        "//pkg/clock",
+        "//pkg/zen",
+        "//svc/frontline/internal/db",
+        "//svc/frontline/internal/errorpage",
+        "//svc/frontline/internal/proxy",
+        "//svc/frontline/internal/router",
+        "//svc/frontline/middleware",
+        "@com_github_stretchr_testify//require",
     ],
 )

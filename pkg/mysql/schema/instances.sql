@@ -12,6 +12,7 @@ CREATE TABLE `instances` (
 	`memory_mib` int NOT NULL,
 	`storage_mib` int unsigned NOT NULL DEFAULT 0,
 	`status` enum('inactive','pending','running','failed') NOT NULL,
+	`container_status` json NOT NULL DEFAULT (JSON_OBJECT('restartCount', 0)),
 	CONSTRAINT `instances_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `instances_id_unique` UNIQUE(`id`),
 	CONSTRAINT `unique_k8s_name_per_region` UNIQUE(`k8s_name`,`region_id`)
