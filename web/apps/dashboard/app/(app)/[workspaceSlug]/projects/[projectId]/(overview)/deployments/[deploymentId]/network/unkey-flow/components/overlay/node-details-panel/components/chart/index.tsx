@@ -59,7 +59,8 @@ export function LogsTimeseriesBarChart({
 
   const chartId = useId().replace(/:/g, "");
   const configKeys = Object.keys(config);
-  const isEmpty = !data || data.length === 0;
+  const isEmpty =
+    !data || data.length === 0 || data.every((p) => configKeys.every((k) => !(Number(p[k]) > 0)));
 
   if (isError) {
     return <LogsChartError />;
@@ -73,7 +74,9 @@ export function LogsTimeseriesBarChart({
   }
 
   if (isEmpty) {
-    return <ChartEmpty variant="wave" color={sectionColor} height={height} message="No data" />;
+    return (
+      <ChartEmpty variant="wave" color={sectionColor} height={height} message="No activity yet" />
+    );
   }
 
   return (
@@ -129,12 +132,11 @@ export function LogsTimeseriesBarChart({
                       const itemConfig = config[dataKey];
                       const seriesLabel = itemConfig?.label ?? item?.name ?? dataKey;
                       const raw = typeof item?.value === "number" ? item.value : 0;
-                      const color = item?.color ?? itemConfig?.color;
                       return (
                         <div key={dataKey} className="flex items-center gap-2">
                           <div
                             className="shrink-0 rounded-[2px] h-2 w-2"
-                            style={{ backgroundColor: color }}
+                            style={{ backgroundColor: itemConfig?.color }}
                           />
                           <span className="text-accent-12">{seriesLabel}</span>
                           <span className="font-mono tabular-nums text-accent-12 ml-auto">

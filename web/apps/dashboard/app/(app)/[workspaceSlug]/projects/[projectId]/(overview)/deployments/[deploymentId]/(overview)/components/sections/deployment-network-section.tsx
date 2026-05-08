@@ -1,15 +1,18 @@
 "use client";
 
+import { formatMemoryParts } from "@/lib/utils/deployment-formatters";
 import type { PERCENTILE_VALUES } from "@unkey/clickhouse/src/sentinel";
-import { ChartActivity, Layers2, TimeClock } from "@unkey/icons";
+import { Bolt, ChartActivity, Focus, Layers2, TimeClock } from "@unkey/icons";
 import { useState } from "react";
 import { Section, SectionHeader } from "../../../../../../components/section";
 import { Card } from "../../../../../components/card";
 import { useDeployment } from "../../../layout-provider";
 import { DeploymentNetworkView } from "../../../network/deployment-network-view";
+import { useDeploymentCpu } from "../../hooks/use-deployment-cpu";
 import { useDeploymentLatency } from "../../hooks/use-deployment-latency";
+import { useDeploymentMemory } from "../../hooks/use-deployment-memory";
 import { useDeploymentRps } from "../../hooks/use-deployment-rps";
-import { MetricCard } from "../metrics/metric-card";
+import { MetricCard, formatMetricParts } from "../metrics/metric-card";
 
 export function DeploymentNetworkSection() {
   const [latencyPercentile, setLatencyPercentile] = useState<keyof typeof PERCENTILE_VALUES>("p50");
@@ -28,6 +31,23 @@ export function DeploymentNetworkSection() {
     isLoading: isLatencyLoading,
     isError: isLatencyError,
   } = useDeploymentLatency(deployment.id, latencyPercentile);
+
+  const {
+    cpuPercent,
+    allocatedMillicores,
+    timeseries: cpuTimeseries,
+    isLoading: isCpuLoading,
+    isError: isCpuError,
+  } = useDeploymentCpu(deployment.id);
+
+  const {
+    memoryPercent,
+    memoryDisplay,
+    allocatedBytes,
+    timeseries: memoryTimeseries,
+    isLoading: isMemoryLoading,
+    isError: isMemoryError,
+  } = useDeploymentMemory(deployment.id);
 
   return (
     <Section>
@@ -55,6 +75,10 @@ export function DeploymentNetworkSection() {
             }}
             isLoading={isLatencyLoading}
             isError={isLatencyError}
+            valueFormatter={(v) => {
+              const p = formatMetricParts("latency", v, "ms");
+              return `${p.value} ${p.unit}`;
+            }}
           />
           <MetricCard
             icon={ChartActivity}
@@ -69,6 +93,52 @@ export function DeploymentNetworkSection() {
             }}
             isLoading={isRpsLoading}
             isError={isRpsError}
+            valueFormatter={(v) => `${v.toFixed(1)} req/s`}
+          />
+          <MetricCard
+            icon={Bolt}
+            metricType="cpu"
+            currentValue={cpuPercent}
+            chartData={{
+              data: cpuTimeseries,
+              dataKey: "y",
+            }}
+            timeWindow={{
+              chart: "Last 6h",
+            }}
+            isLoading={isCpuLoading}
+            isError={isCpuError}
+            valueFormatter={(v) =>
+              allocatedMillicores > 0
+                ? `${Math.round((v / allocatedMillicores) * 100)}%`
+                : `${Math.round(v)}m`
+            }
+          />
+          <MetricCard
+            icon={Focus}
+            metricType="memory"
+            currentValue={memoryPercent}
+            secondaryValue={{
+              numeric: memoryDisplay.value,
+              unit: memoryDisplay.unit,
+            }}
+            chartData={{
+              data: memoryTimeseries,
+              dataKey: "y",
+            }}
+            timeWindow={{
+              chart: "Last 6h",
+            }}
+            isLoading={isMemoryLoading}
+            isError={isMemoryError}
+            valueFormatter={(v) => {
+              const mib = Math.round(v / (1024 * 1024));
+              const parts = formatMemoryParts(mib);
+              if (allocatedBytes > 0) {
+                return `${parts.value} ${parts.unit} (${Math.round((v / allocatedBytes) * 100)}%)`;
+              }
+              return `${parts.value} ${parts.unit}`;
+            }}
           />
         </div>
       </div>
