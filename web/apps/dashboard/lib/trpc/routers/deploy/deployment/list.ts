@@ -1,5 +1,6 @@
 import { and, db, desc, eq, gte, inArray, lte } from "@/lib/db";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
+import type { LastExit } from "@/lib/types/deploy";
 import { TRPCError } from "@trpc/server";
 import {
   appRegionalSettings,
@@ -65,6 +66,7 @@ export const listDeployments = workspaceProcedure
             regionName: regions.name,
             regionPlatform: regions.platform,
             status: instances.status,
+            containerStatus: instances.containerStatus,
           })
           .from(instances)
           .innerJoin(regions, eq(regions.id, instances.regionId))
@@ -91,6 +93,12 @@ export const listDeployments = workspaceProcedure
 
       const specSet = new Set(specRows.map((s) => s.deploymentId));
       const instancesByDeployment = new Map<string, ReturnType<typeof mapInstanceRow>[]>();
+      // The header badge picks the most recent exit across all instances of
+      // a deployment so that a multi-region rollout with one OOM-ing pod
+      // still surfaces the failure even when others are healthy. Tie-break
+      // by finishedAt (preferred) and fall back to the live waiting reason
+      // (CrashLoopBackOff, ImagePullBackOff, …) when there's no exit yet.
+      const lastExitByDeployment = new Map<string, LastExit>();
       for (const row of instanceRows) {
         const entry = mapInstanceRow(row);
         const list = instancesByDeployment.get(row.deploymentId);
@@ -98,6 +106,34 @@ export const listDeployments = workspaceProcedure
           list.push(entry);
         } else {
           instancesByDeployment.set(row.deploymentId, [entry]);
+        }
+
+        const status = row.containerStatus ?? {};
+        const term = status.lastTerminationState ?? null;
+        const waiting = status.waiting ?? null;
+        const candidate: LastExit = {
+          restartCount: status.restartCount ?? 0,
+          exitCode: term?.exitCode ?? null,
+          signal: term?.signal ?? null,
+          reason: term?.reason ?? null,
+          finishedAt: term?.finishedAt ?? null,
+          statusReason: waiting?.reason ?? null,
+        };
+        if (candidate.reason === null && candidate.statusReason === null) {
+          continue;
+        }
+        const prev = lastExitByDeployment.get(row.deploymentId);
+        if (!prev) {
+          lastExitByDeployment.set(row.deploymentId, candidate);
+          continue;
+        }
+        // Prefer the candidate with a more recent finishedAt; if neither
+        // has one (only statusReason populated) keep whichever has higher
+        // restartCount as a coarse recency tiebreaker.
+        const prevTs = prev.finishedAt ?? -1;
+        const candTs = candidate.finishedAt ?? -1;
+        if (candTs > prevTs || (candTs === prevTs && candidate.restartCount > prev.restartCount)) {
+          lastExitByDeployment.set(row.deploymentId, candidate);
         }
       }
 
@@ -136,6 +172,7 @@ export const listDeployments = workspaceProcedure
           ...deployment,
           ...normalizeDeploymentRow(deployment),
           instances: instancesByDeployment.get(deployment.id) ?? [],
+          lastExit: lastExitByDeployment.get(deployment.id) ?? null,
           desiredInstanceCount: desired?.desiredInstanceCount ?? 0,
           desiredRegions: desired?.desiredRegions ?? [],
           hasOpenApiSpec: specSet.has(deployment.id),
