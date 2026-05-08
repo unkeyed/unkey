@@ -34,9 +34,17 @@ You manage variables from the **Environment Variables** tab in your project dash
 
 You can add multiple variables at once:
 
-- **Paste**: paste content in `KEY=value` format (one per line) directly into the form. Unkey parses each line into a separate entry.
+- **Paste**: paste content in `KEY=value` format (one per line) directly into any **Key** field. Unkey parses each line into a separate entry, fills the current row with the first pair, and appends new rows for the remaining pairs.
 - **Drag and drop**: drag a `.env` file onto the form to import all variables from the file.
 - **File picker**: click the import button and select a `.env` file from your file system.
+
+### Keyboard shortcuts
+
+The add panel supports a few shortcuts so you can work entirely from the keyboard:
+
+- **Enter** in the **Value** field on the last row appends a new empty row and focuses its **Key** field.
+- **Backspace** in an empty **Key** field removes the current row and moves focus to the **Value** field of the previous row.
+- **Paste** `KEY=value` text into a **Key** field to auto-fill the row. The same shortcut works in the inline editor on the variables list when editing a non-sensitive variable.
 
 ### Form persistence
 
