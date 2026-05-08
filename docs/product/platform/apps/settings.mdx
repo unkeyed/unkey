@@ -44,6 +44,25 @@ Leave empty to deploy on all changes. Examples:
 
 You can add multiple patterns. A deployment triggers if any pattern matches a changed file.
 
+### Auto deploy
+
+Controls whether GitHub pushes automatically trigger deployments. Configured per environment so you can deploy production manually while letting preview branches deploy on every push (or vice versa).
+
+| Toggle     | Behavior when enabled (default)                                                |
+| ---------- | ------------------------------------------------------------------------------ |
+| Production | Pushes to the default branch deploy to production automatically                |
+| Preview    | Pushes to non-default branches deploy to a preview environment automatically   |
+
+When auto deploy is disabled for an environment, Unkey records each matching push as a **Skipped** deployment for visibility, but no build runs. You can still ship changes by triggering a manual deployment from the dashboard or by [pushing an image with the CLI](/build-and-deploy/cli).
+
+Auto deploy runs after [watch paths](#watch-paths) are evaluated. If auto deploy is off, the deployment is skipped before watch paths are checked.
+
+Common reasons to disable auto deploy:
+
+- Keep production stable and promote releases manually after reviewing a preview deployment
+- Avoid noisy preview deployments while iterating on a long-lived feature branch
+- Build images in your own CI and push them with the CLI instead
+
 ## Runtime settings
 
 Runtime settings control the resources and behavior of your running instances.

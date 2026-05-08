@@ -82,14 +82,23 @@ Add glob patterns in your app's **Settings** under **Watch paths**. Unkey skips 
   <img src="/build-and-deploy/watch-paths-dark.png" alt="Watch paths settings" className="hidden dark:block" />
 </Frame>
 
+## Auto deploy
+
+Auto deploy is on by default for both production and preview. Turn it off per environment when you want to ship manually instead of on every push.
+
+When auto deploy is disabled for an environment, Unkey records the push as a **Skipped** deployment so you can see it happened, but no build runs. You can still deploy on demand from the dashboard, or build and push your image with the [CLI](/build-and-deploy/cli).
+
+Configure auto deploy in your app's **Settings** under **Build settings → Auto deploy**. See [App settings](/platform/apps/settings#auto-deploy) for the full reference.
+
 ## Troubleshoot failed triggers
 
 If a push doesn't trigger a deployment:
 
 1. Verify the Unkey GitHub App is installed on the repository's organization or account.
 2. Check that the repository is connected in your project's **Settings** tab.
-3. If watch paths are configured, confirm that the push includes changes matching at least one pattern.
-4. Check your project's **Deployments** tab for a failed deployment with error details.
+3. Confirm [auto deploy](#auto-deploy) is enabled for the target environment. A disabled environment records the push as a skipped deployment.
+4. If watch paths are configured, confirm that the push includes changes matching at least one pattern.
+5. Check your project's **Deployments** tab for a failed deployment with error details.
 
 ## Next steps
 
