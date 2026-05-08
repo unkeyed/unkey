@@ -36,12 +36,6 @@ type MySQLOpt func(*containerConfig)
 func WithDiskStorage() MySQLOpt {
 	return func(cfg *containerConfig) {
 		cfg.Tmpfs = nil
-		// Larger buffer pool for big datasets
-		for i, arg := range cfg.Cmd {
-			if arg == "--innodb-buffer-pool-size=32M" {
-				cfg.Cmd[i] = "--innodb-buffer-pool-size=512M"
-			}
-		}
 	}
 }
 
@@ -72,8 +66,7 @@ func MySQL(t testing.TB, opts ...MySQLOpt) MySQLConfig {
 			"--innodb-doublewrite=0",
 			"--innodb-flush-log-at-trx-commit=0",
 			"--innodb-flush-method=nosync",
-			// Reduce buffer sizes for faster startup
-			"--innodb-buffer-pool-size=32M",
+			"--innodb-buffer-pool-size=512M",
 			"--innodb-log-buffer-size=1M",
 			// Disable performance schema (overhead not needed for tests)
 			"--performance-schema=OFF",
