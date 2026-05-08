@@ -10,11 +10,11 @@ import {
 import type { TimeWindow } from "@unkey/clickhouse";
 import {
   ArrowOppositeDirectionY,
-  Bolt,
   ChevronExpandY,
-  Focus,
   Grid,
   Harddrive,
+  Microchip,
+  Ram,
 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
@@ -485,7 +485,7 @@ function CpuSection({
     >
       <div className="flex items-center gap-3 flex-wrap">
         <div className="bg-feature-3 text-feature-11 rounded-md size-[22px] items-center flex justify-center">
-          <Bolt iconSize="sm-regular" className="shrink-0" />
+          <Microchip iconSize="sm-regular" className="shrink-0" />
         </div>
         <span className="text-gray-12 text-[13px]">CPU usage</span>
         <div className="ml-auto">
@@ -555,7 +555,7 @@ function MemorySection({
     <div className="flex flex-col gap-3 px-4 w-full border-t border-grayA-3 pt-6 mt-2">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="bg-info-3 text-info-11 rounded-md size-[22px] items-center flex justify-center">
-          <Focus iconSize="sm-regular" className="shrink-0" />
+          <Ram iconSize="sm-regular" className="shrink-0" />
         </div>
         <span className="text-gray-12 text-[13px]">Memory usage</span>
         <div className="ml-auto">

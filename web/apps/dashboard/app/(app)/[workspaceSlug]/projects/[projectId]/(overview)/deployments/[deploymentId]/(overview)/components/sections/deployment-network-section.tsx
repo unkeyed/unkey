@@ -2,7 +2,7 @@
 
 import { formatMemoryParts } from "@/lib/utils/deployment-formatters";
 import type { PERCENTILE_VALUES } from "@unkey/clickhouse/src/sentinel";
-import { Bolt, ChartActivity, Focus, Layers2, TimeClock } from "@unkey/icons";
+import { ChartActivity, Layers2, Microchip, Ram, TimeClock } from "@unkey/icons";
 import { useState } from "react";
 import { Section, SectionHeader } from "../../../../../../components/section";
 import { Card } from "../../../../../components/card";
@@ -96,7 +96,7 @@ export function DeploymentNetworkSection() {
             valueFormatter={(v) => `${v.toFixed(1)} req/s`}
           />
           <MetricCard
-            icon={Bolt}
+            icon={Microchip}
             metricType="cpu"
             currentValue={cpuPercent}
             chartData={{
@@ -115,7 +115,7 @@ export function DeploymentNetworkSection() {
             }
           />
           <MetricCard
-            icon={Focus}
+            icon={Ram}
             metricType="memory"
             currentValue={memoryPercent}
             secondaryValue={{
