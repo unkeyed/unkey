@@ -1073,6 +1073,7 @@ type AppBuildSetting struct {
 	Dockerfile    string          `db:"dockerfile"`
 	DockerContext string          `db:"docker_context"`
 	WatchPaths    json.RawMessage `db:"watch_paths"`
+	AutoDeploy    bool            `db:"auto_deploy"`
 	CreatedAt     int64           `db:"created_at"`
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
@@ -1383,25 +1384,20 @@ type Identity struct {
 }
 
 type Instance struct {
-	Pk                 uint64          `db:"pk"`
-	ID                 string          `db:"id"`
-	DeploymentID       string          `db:"deployment_id"`
-	WorkspaceID        string          `db:"workspace_id"`
-	ProjectID          string          `db:"project_id"`
-	AppID              string          `db:"app_id"`
-	RegionID           string          `db:"region_id"`
-	K8sName            string          `db:"k8s_name"`
-	Address            string          `db:"address"`
-	CpuMillicores      int32           `db:"cpu_millicores"`
-	MemoryMib          int32           `db:"memory_mib"`
-	StorageMib         uint32          `db:"storage_mib"`
-	Status             InstancesStatus `db:"status"`
-	RestartCount       int32           `db:"restart_count"`
-	LastExitCode       sql.NullInt32   `db:"last_exit_code"`
-	LastExitSignal     sql.NullInt32   `db:"last_exit_signal"`
-	LastExitReason     sql.NullString  `db:"last_exit_reason"`
-	LastExitFinishedAt sql.NullTime    `db:"last_exit_finished_at"`
-	LastStatusReason   sql.NullString  `db:"last_status_reason"`
+	Pk              uint64          `db:"pk"`
+	ID              string          `db:"id"`
+	DeploymentID    string          `db:"deployment_id"`
+	WorkspaceID     string          `db:"workspace_id"`
+	ProjectID       string          `db:"project_id"`
+	AppID           string          `db:"app_id"`
+	RegionID        string          `db:"region_id"`
+	K8sName         string          `db:"k8s_name"`
+	Address         string          `db:"address"`
+	CpuMillicores   int32           `db:"cpu_millicores"`
+	MemoryMib       int32           `db:"memory_mib"`
+	StorageMib      uint32          `db:"storage_mib"`
+	Status          InstancesStatus `db:"status"`
+	ContainerStatus json.RawMessage `db:"container_status"`
 }
 
 type Key struct {
@@ -1504,6 +1500,7 @@ type PortalConfiguration struct {
 	Pk          uint64         `db:"pk"`
 	ID          string         `db:"id"`
 	WorkspaceID string         `db:"workspace_id"`
+	Slug        string         `db:"slug"`
 	AppID       sql.NullString `db:"app_id"`
 	KeyAuthID   sql.NullString `db:"key_auth_id"`
 	Enabled     bool           `db:"enabled"`
