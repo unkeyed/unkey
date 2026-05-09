@@ -130,7 +130,16 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 				}
 
 				if writeErr != nil {
-					logger.Error("failed to write error response", "error", writeErr.Error())
+					if isClientGone(writeErr) {
+						// Client disconnected before we could flush the error
+						// page. Not actionable — don't alert on it.
+						logger.Debug("client gone before error response was written",
+							"error", writeErr.Error(),
+							"requestId", s.RequestID(),
+						)
+					} else {
+						logger.Error("failed to write error response", "error", writeErr.Error())
+					}
 				}
 			}
 
@@ -159,6 +168,45 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Status:  499,
 			Title:   "Client Closed Request",
 			Message: "The client closed the connection before the request completed.",
+		}
+	case codes.User.BadRequest.RequestTimeout.URN():
+		// Frontline acts as a gateway: a request-processing deadline that
+		// fires here means upstream took too long. Surface as 504, not 500,
+		// so it doesn't trigger server-error alerting.
+		return errorPageInfo{
+			Status:  http.StatusGatewayTimeout,
+			Title:   http.StatusText(http.StatusGatewayTimeout),
+			Message: "The request took too long to process. Please try again later.",
+		}
+	case codes.User.BadRequest.RequestBodyTooLarge.URN():
+		return errorPageInfo{
+			Status:  http.StatusRequestEntityTooLarge,
+			Title:   http.StatusText(http.StatusRequestEntityTooLarge),
+			Message: "The request body exceeds the maximum allowed size.",
+		}
+	case codes.User.BadRequest.RequestBodyUnreadable.URN():
+		return errorPageInfo{
+			Status:  http.StatusBadRequest,
+			Title:   http.StatusText(http.StatusBadRequest),
+			Message: "The request body could not be read.",
+		}
+	case codes.Auth.Authentication.Missing.URN():
+		return errorPageInfo{
+			Status:  http.StatusUnauthorized,
+			Title:   http.StatusText(http.StatusUnauthorized),
+			Message: "Authentication required.",
+		}
+	case codes.Auth.Authentication.Malformed.URN():
+		return errorPageInfo{
+			Status:  http.StatusUnauthorized,
+			Title:   http.StatusText(http.StatusUnauthorized),
+			Message: "The authentication credentials are malformed.",
+		}
+	case codes.App.Validation.InvalidInput.URN():
+		return errorPageInfo{
+			Status:  http.StatusBadRequest,
+			Title:   http.StatusText(http.StatusBadRequest),
+			Message: "",
 		}
 	case codes.Frontline.Routing.ConfigNotFound.URN():
 		return errorPageInfo{
