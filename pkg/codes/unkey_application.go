@@ -52,20 +52,20 @@ type UnkeyAppErrors struct {
 // for consistent error handling throughout the application.
 var App = UnkeyAppErrors{
 	Internal: appInternal{
-		UnexpectedError:    Code{SystemUnkey, CategoryUnkeyApplication, "unexpected_error"},
-		ServiceUnavailable: Code{SystemUnkey, CategoryUnkeyApplication, "service_unavailable"},
+		UnexpectedError:    Code{SystemUnkey, CategoryUnkeyApplication, "unexpected_error", KindUnknown},
+		ServiceUnavailable: Code{SystemUnkey, CategoryUnkeyApplication, "service_unavailable", KindUnknown},
 	},
 
 	Validation: appValidation{
-		InvalidInput:    Code{SystemUnkey, CategoryUnkeyApplication, "invalid_input"},
-		AssertionFailed: Code{SystemUnkey, CategoryUnkeyApplication, "assertion_failed"},
+		InvalidInput:    Code{SystemUnkey, CategoryUnkeyApplication, "invalid_input", KindInvalidInput},
+		AssertionFailed: Code{SystemUnkey, CategoryUnkeyApplication, "assertion_failed", KindUnknown},
 	},
 
 	Protection: appProtection{
-		ProtectedResource: Code{SystemUnkey, CategoryUnkeyApplication, "protected_resource"},
+		ProtectedResource: Code{SystemUnkey, CategoryUnkeyApplication, "protected_resource", KindPreconditionFailed},
 	},
 
 	Precondition: appPrecondition{
-		PreconditionFailed: Code{SystemUnkey, CategoryUnkeyApplication, "precondition_failed"},
+		PreconditionFailed: Code{SystemUnkey, CategoryUnkeyApplication, "precondition_failed", KindPreconditionFailed},
 	},
 }

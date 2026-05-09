@@ -18,7 +18,7 @@ type UnkeyPortalErrors struct {
 // Portal contains all predefined portal error codes.
 var Portal = UnkeyPortalErrors{
 	Session: portalSession{
-		TokenMissing:    Code{SystemUnkey, CategoryUnkeyAuthentication, "portal_token_missing"},
-		SessionNotFound: Code{SystemUnkey, CategoryUnkeyAuthentication, "portal_session_not_found"},
+		TokenMissing:    Code{SystemUnkey, CategoryUnkeyAuthentication, "portal_token_missing", KindUnknown},
+		SessionNotFound: Code{SystemUnkey, CategoryUnkeyAuthentication, "portal_session_not_found", KindUnknown},
 	},
 }

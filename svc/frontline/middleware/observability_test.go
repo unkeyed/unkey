@@ -8,11 +8,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 )
 
-// TestGetErrorPageInfoFrontline_StatusMapping locks in the URN → HTTP status
-// mapping. A new URN that lacks an explicit case will fall through to the
-// default branch and be reported as 500, which causes false 5xx alerts.
+// TestGetErrorPageInfoFrontline_StatusMapping locks in the URN → HTTP
+// status mapping. Most rows resolve via pkg/codes (Code.HTTPStatus +
+// Category.HTTPStatus); a few resolve via frontlineStatusOverrides.
 //
-// When you add a new URN that frontline can produce, add a case here too.
+// A new URN that ends up returning 500 unintentionally — because either
+// pkg/codes or this package forgot to map it — will fail this test.
 func TestGetErrorPageInfoFrontline_StatusMapping(t *testing.T) {
 	t.Parallel()
 
@@ -22,6 +23,8 @@ func TestGetErrorPageInfoFrontline_StatusMapping(t *testing.T) {
 	}{
 		// Client-side / user errors — must not be 5xx.
 		{codes.User.BadRequest.ClientClosedRequest.URN(), 499},
+		// RequestTimeout is overridden to 504 in frontline (gateway semantics)
+		// even though pkg/codes maps it to 408.
 		{codes.User.BadRequest.RequestTimeout.URN(), http.StatusGatewayTimeout},
 		{codes.User.BadRequest.RequestBodyTooLarge.URN(), http.StatusRequestEntityTooLarge},
 		{codes.User.BadRequest.RequestBodyUnreadable.URN(), http.StatusBadRequest},
@@ -67,4 +70,13 @@ func TestGetErrorPageInfoFrontline_UnknownURNDefaultsTo500(t *testing.T) {
 	got := getErrorPageInfoFrontline("err:made:up:nonexistent")
 	require.Equal(t, http.StatusInternalServerError, got.Status,
 		"unknown URN should default to 500 so we get alerted on it")
+}
+
+func TestGetErrorPageInfoFrontline_TitleFor499(t *testing.T) {
+	t.Parallel()
+
+	// 499 is non-stdlib; status.Text() returns "". errorTitle() must
+	// special-case it so the rendered page has a title.
+	got := getErrorPageInfoFrontline(codes.User.BadRequest.ClientClosedRequest.URN())
+	require.Equal(t, "Client Closed Request", got.Title)
 }

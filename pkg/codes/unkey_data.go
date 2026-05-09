@@ -132,67 +132,67 @@ type UnkeyDataErrors struct {
 // for consistent error handling throughout the application.
 var Data = UnkeyDataErrors{
 	Key: dataKey{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "key_not_found"},
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "key_not_found", KindNotFound},
 	},
 
 	Workspace: dataWorkspace{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "workspace_not_found"},
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "workspace_not_found", KindNotFound},
 	},
 
 	Api: dataApi{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "api_not_found"},
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "api_not_found", KindNotFound},
 	},
 
 	Migration: dataMigration{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "migration_not_found"},
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "migration_not_found", KindNotFound},
 	},
 
 	KeySpace: dataKeySpace{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "key_space_not_found"},
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "key_space_not_found", KindNotFound},
 	},
 
 	Project: dataProject{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "project_not_found"},
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "project_not_found", KindNotFound},
 	},
 
 	Permission: dataPermission{
-		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "permission_not_found"},
-		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "permission_already_exists"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "permission_not_found", KindNotFound},
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "permission_already_exists", KindDuplicate},
 	},
 
 	Role: dataRole{
-		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "role_not_found"},
-		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "role_already_exists"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "role_not_found", KindNotFound},
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "role_already_exists", KindDuplicate},
 	},
 
 	KeyAuth: dataKeyAuth{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "key_auth_not_found"},
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "key_auth_not_found", KindNotFound},
 	},
 
 	RatelimitNamespace: dataRatelimitNamespace{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_not_found"},
-		Gone:     Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_gone"},
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_not_found", KindNotFound},
+		Gone:     Code{SystemUnkey, CategoryUnkeyData, "ratelimit_namespace_gone", KindGone},
 	},
 
 	RatelimitOverride: dataRatelimitOverride{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "ratelimit_override_not_found"},
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "ratelimit_override_not_found", KindNotFound},
 	},
 
 	Identity: dataIdentity{
-		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "identity_not_found"},
-		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "identity_already_exists"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "identity_not_found", KindNotFound},
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "identity_already_exists", KindDuplicate},
 	},
 
 	AuditLog: dataAuditLog{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "audit_log_not_found"},
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "audit_log_not_found", KindNotFound},
 	},
 
 	PortalConfig: dataPortalConfig{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "portal_config_not_found"},
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "portal_config_not_found", KindNotFound},
 	},
 
 	Analytics: dataAnalytics{
-		NotConfigured:    Code{SystemUnkey, CategoryUnkeyData, "analytics_not_configured"},
-		ConnectionFailed: Code{SystemUnkey, CategoryUnkeyData, "analytics_connection_failed"},
+		NotConfigured:    Code{SystemUnkey, CategoryUnkeyData, "analytics_not_configured", KindPreconditionFailed},
+		ConnectionFailed: Code{SystemUnkey, CategoryUnkeyData, "analytics_connection_failed", KindServiceUnavailable},
 	},
 }

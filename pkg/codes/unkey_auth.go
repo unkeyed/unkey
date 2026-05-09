@@ -43,15 +43,15 @@ type UnkeyAuthErrors struct {
 // for consistent error handling throughout the application.
 var Auth = UnkeyAuthErrors{
 	Authentication: authAuthentication{
-		Missing:     Code{SystemUnkey, CategoryUnkeyAuthentication, "missing"},
-		Malformed:   Code{SystemUnkey, CategoryUnkeyAuthentication, "malformed"},
-		KeyNotFound: Code{SystemUnkey, CategoryUnkeyAuthentication, "key_not_found"},
+		Missing:     Code{SystemUnkey, CategoryUnkeyAuthentication, "missing", KindUnknown},
+		Malformed:   Code{SystemUnkey, CategoryUnkeyAuthentication, "malformed", KindUnknown},
+		KeyNotFound: Code{SystemUnkey, CategoryUnkeyAuthentication, "key_not_found", KindUnknown},
 	},
 
 	Authorization: authAuthorization{
-		InsufficientPermissions: Code{SystemUnkey, CategoryUnkeyAuthorization, "insufficient_permissions"},
-		Forbidden:               Code{SystemUnkey, CategoryUnkeyAuthorization, "forbidden"},
-		KeyDisabled:             Code{SystemUnkey, CategoryUnkeyAuthorization, "key_disabled"},
-		WorkspaceDisabled:       Code{SystemUnkey, CategoryUnkeyAuthorization, "workspace_disabled"},
+		InsufficientPermissions: Code{SystemUnkey, CategoryUnkeyAuthorization, "insufficient_permissions", KindUnknown},
+		Forbidden:               Code{SystemUnkey, CategoryUnkeyAuthorization, "forbidden", KindUnknown},
+		KeyDisabled:             Code{SystemUnkey, CategoryUnkeyAuthorization, "key_disabled", KindUnknown},
+		WorkspaceDisabled:       Code{SystemUnkey, CategoryUnkeyAuthorization, "workspace_disabled", KindUnknown},
 	},
 }

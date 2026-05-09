@@ -7,6 +7,7 @@ go_library(
         "client_gone.go",
         "observability.go",
         "sanitize_headers.go",
+        "status.go",
     ],
     importpath = "github.com/unkeyed/unkey/svc/frontline/middleware",
     visibility = ["//visibility:public"],

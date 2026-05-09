@@ -7,4 +7,5 @@ var Nil = Code{
 	System:   SystemNil,
 	Category: "unknown",
 	Specific: "unknown",
+	Kind:     KindUnknown,
 }

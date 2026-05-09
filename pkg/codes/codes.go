@@ -109,6 +109,12 @@ type Code struct {
 
 	// Specific identifies the exact error condition within the category.
 	Specific string
+
+	// Kind classifies cross-cutting HTTP semantics (e.g. KindNotFound,
+	// KindDuplicate). Leave as KindUnknown when the Category default
+	// already produces the right HTTP status. Kind takes precedence
+	// over Category but is shadowed by per-URN overrides.
+	Kind Kind
 }
 
 // URN returns the URN-style string representation of the error code in the format
@@ -137,15 +143,24 @@ func ParseURN(urn URN) (Code, error) {
 
 // ParseCode parses a URN-style error code string into a Code object. The expected
 // format is "err:system:category:specific". Returns an error if the format is invalid.
+//
+// If the URN matches a Code declared in this package, the returned Code includes
+// its registered Kind (so HTTPStatus() resolves correctly across the wire). Unknown
+// URNs round-trip with KindUnknown.
 func ParseCode(s string) (Code, error) {
 	parts := strings.Split(s, Separator)
 	if len(parts) != 4 || parts[0] != Prefix {
 		return Code{}, fmt.Errorf("invalid error code format: %s", s)
 	}
 
+	if c, ok := codeRegistry[URN(s)]; ok {
+		return c, nil
+	}
+
 	return Code{
 		System:   System(parts[1]),
 		Category: Category(parts[2]),
 		Specific: parts[3],
+		Kind:     KindUnknown,
 	}, nil
 }

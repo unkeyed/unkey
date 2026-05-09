@@ -110,34 +110,34 @@ type UnkeyFrontlineErrors struct {
 // for consistent error handling throughout the application.
 var Frontline = UnkeyFrontlineErrors{
 	Proxy: frontlineProxy{
-		BadGateway:         Code{SystemUnkey, CategoryBadGateway, "bad_gateway"},
-		ServiceUnavailable: Code{SystemUnkey, CategoryServiceUnavailable, "service_unavailable"},
-		GatewayTimeout:     Code{SystemUnkey, CategoryGatewayTimeout, "gateway_timeout"},
-		ProxyForwardFailed: Code{SystemUnkey, CategoryBadGateway, "proxy_forward_failed"},
+		BadGateway:         Code{SystemUnkey, CategoryBadGateway, "bad_gateway", KindUnknown},
+		ServiceUnavailable: Code{SystemUnkey, CategoryServiceUnavailable, "service_unavailable", KindUnknown},
+		GatewayTimeout:     Code{SystemUnkey, CategoryGatewayTimeout, "gateway_timeout", KindUnknown},
+		ProxyForwardFailed: Code{SystemUnkey, CategoryBadGateway, "proxy_forward_failed", KindUnknown},
 	},
 	Routing: frontlineRouting{
-		ConfigNotFound:            Code{SystemUnkey, CategoryNotFound, "config_not_found"},
-		DeploymentNotFound:        Code{SystemUnkey, CategoryNotFound, "deployment_not_found"},
-		DeploymentSelectionFailed: Code{SystemUnkey, CategoryInternalServerError, "deployment_selection_failed"},
-		DeploymentDisabled:        Code{SystemUnkey, CategoryServiceUnavailable, "deployment_disabled"},
-		NoRunningInstances:        Code{SystemUnkey, CategoryServiceUnavailable, "no_running_instances"},
+		ConfigNotFound:            Code{SystemUnkey, CategoryNotFound, "config_not_found", KindNotFound},
+		DeploymentNotFound:        Code{SystemUnkey, CategoryNotFound, "deployment_not_found", KindNotFound},
+		DeploymentSelectionFailed: Code{SystemUnkey, CategoryInternalServerError, "deployment_selection_failed", KindUnknown},
+		DeploymentDisabled:        Code{SystemUnkey, CategoryServiceUnavailable, "deployment_disabled", KindUnknown},
+		NoRunningInstances:        Code{SystemUnkey, CategoryServiceUnavailable, "no_running_instances", KindUnknown},
 	},
 	Internal: frontlineInternal{
-		InternalServerError:  Code{SystemUnkey, CategoryInternalServerError, "internal_server_error"},
-		ConfigLoadFailed:     Code{SystemUnkey, CategoryInternalServerError, "config_load_failed"},
-		InstanceLoadFailed:   Code{SystemUnkey, CategoryInternalServerError, "instance_load_failed"},
-		InvalidConfiguration: Code{SystemUnkey, CategoryInternalServerError, "invalid_configuration"},
+		InternalServerError:  Code{SystemUnkey, CategoryInternalServerError, "internal_server_error", KindUnknown},
+		ConfigLoadFailed:     Code{SystemUnkey, CategoryInternalServerError, "config_load_failed", KindUnknown},
+		InstanceLoadFailed:   Code{SystemUnkey, CategoryInternalServerError, "instance_load_failed", KindUnknown},
+		InvalidConfiguration: Code{SystemUnkey, CategoryInternalServerError, "invalid_configuration", KindUnknown},
 	},
 	Auth: frontlineAuth{
-		MissingCredentials:      Code{SystemUnkey, CategoryUnauthorized, "missing_credentials"},
-		InvalidKey:              Code{SystemUnkey, CategoryUnauthorized, "invalid_key"},
-		InsufficientPermissions: Code{SystemUnkey, CategoryForbidden, "insufficient_permissions"},
-		RateLimited:             Code{SystemUnkey, CategoryRateLimited, "rate_limited"},
+		MissingCredentials:      Code{SystemUnkey, CategoryUnauthorized, "missing_credentials", KindUnknown},
+		InvalidKey:              Code{SystemUnkey, CategoryUnauthorized, "invalid_key", KindUnknown},
+		InsufficientPermissions: Code{SystemUnkey, CategoryForbidden, "insufficient_permissions", KindUnknown},
+		RateLimited:             Code{SystemUnkey, CategoryRateLimited, "rate_limited", KindUnknown},
 	},
 	Firewall: frontlineFirewall{
-		Denied: Code{SystemUnkey, CategoryForbidden, "firewall_denied"},
+		Denied: Code{SystemUnkey, CategoryForbidden, "firewall_denied", KindUnknown},
 	},
 	OpenApi: frontlineOpenApi{
-		InvalidRequest: Code{SystemUnkey, CategoryUserBadRequest, "openapi_validation_failed"},
+		InvalidRequest: Code{SystemUnkey, CategoryUserBadRequest, "openapi_validation_failed", KindUnknown},
 	},
 }
