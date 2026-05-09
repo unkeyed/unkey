@@ -28,6 +28,7 @@ go_library(
         "//pkg/otel",
         "//pkg/prometheus",
         "//pkg/prometheus/lazy",
+        "//pkg/ptr",
         "//pkg/restate/admin",
         "//pkg/rpc/interceptor",
         "//pkg/runner",

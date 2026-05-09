@@ -18,6 +18,12 @@ services:
       - 3306:3306
     volumes:
       - mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
 
   clickhouse:
     networks:
@@ -34,6 +40,18 @@ services:
       - "9000:9000"
     volumes:
       - clickhouse:/bitnami/clickhouse
+    healthcheck:
+      test: [
+        "CMD",
+        "clickhouse-client",
+        "--user=default",
+        "--password=password",
+        "--query=SELECT 1",
+      ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
 
   redis:
     networks:
@@ -42,6 +60,12 @@ services:
     image: redis:8.0
     ports:
       - 6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
 
   vault:
     networks:
@@ -75,9 +99,12 @@ services:
     ports:
       - "7091:7091"
     depends_on:
-      - mysql
-      - restate
-      - clickhouse
+      mysql:
+        condition: service_healthy
+      restate:
+        condition: service_started
+      clickhouse:
+        condition: service_healthy
     volumes:
       - ./ctrl-api.toml:/etc/unkey/ctrl-api.toml:ro
 
@@ -97,10 +124,14 @@ services:
     ports:
       - "9080:9080"
     depends_on:
-      - mysql
-      - restate
-      - clickhouse
-      - vault
+      mysql:
+        condition: service_healthy
+      restate:
+        condition: service_started
+      clickhouse:
+        condition: service_healthy
+      vault:
+        condition: service_started
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./ctrl-worker.toml:/etc/unkey/ctrl-worker.toml:ro
@@ -115,11 +146,16 @@ services:
     ports:
       - 7070:7070
     depends_on:
-      - mysql
-      - redis
-      - clickhouse
-      - vault
-      - ctrl-api
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      vault:
+        condition: service_started
+      ctrl-api:
+        condition: service_started
     volumes:
       - ./api.toml:/etc/unkey/api.toml:ro
 
