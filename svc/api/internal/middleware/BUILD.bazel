@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "middleware",
@@ -11,5 +11,16 @@ go_library(
         "//pkg/logger",
         "//pkg/zen",
         "//svc/api/openapi",
+    ],
+)
+
+go_test(
+    name = "middleware_test",
+    srcs = ["errors_test.go"],
+    embed = [":middleware"],
+    deps = [
+        "//pkg/codes",
+        "//svc/api/openapi",
+        "@com_github_stretchr_testify//require",
     ],
 )
