@@ -41,7 +41,13 @@ services:
     volumes:
       - clickhouse:/bitnami/clickhouse
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--user=default", "--password=password", "--query=SELECT 1"]
+      test: [
+        "CMD",
+        "clickhouse-client",
+        "--user=default",
+        "--password=password",
+        "--query=SELECT 1",
+      ]
       interval: 2s
       timeout: 5s
       retries: 30
