@@ -6,17 +6,11 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { SidebarBody } from "./sidebar-body";
 
-// Bottom drawer surfacing SidebarBody on mobile. Built on vaul (via
-// @unkey/ui's Drawer) rather than the local Sheet primitive — vaul is
-// purpose-built for mobile bottom sheets: pinned to the bottom,
-// drag-to-dismiss, momentum, max-h baked in. Reuses shadcn's
-// SidebarProvider openMobile state so the hamburger in TopNav drives
-// this drawer.
 export function MobileNavDrawer() {
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
   const pathname = usePathname();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger; the effect body intentionally closes the drawer on route change.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger
   useEffect(() => {
     setOpenMobile(false);
   }, [pathname, setOpenMobile]);

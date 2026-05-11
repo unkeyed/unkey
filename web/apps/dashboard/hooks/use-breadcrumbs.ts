@@ -8,10 +8,6 @@ export type BreadcrumbDescriptor =
   | { type: "api"; apiId: string }
   | { type: "namespace"; namespaceId: string };
 
-// Derives the breadcrumb chain from the current route's params. The
-// TopNav renders one typed crumb component per descriptor; each crumb
-// owns its own data fetching so this hook stays a pure function of
-// the URL.
 export function useBreadcrumbs(): BreadcrumbDescriptor[] {
   const params = useParams<{
     workspaceSlug?: string;

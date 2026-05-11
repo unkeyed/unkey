@@ -4,8 +4,6 @@ type LogomarkProps = {
   className?: string;
 };
 
-// "U" glyph from the marketing favicons. `currentColor` lets the parent's
-// text color drive light/dark variants.
 export function Logomark({ className }: LogomarkProps) {
   return (
     <span

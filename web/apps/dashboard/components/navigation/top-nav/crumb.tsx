@@ -35,8 +35,6 @@ export function Crumb({
         {icon}
         <span className="truncate max-w-[120px] md:max-w-[180px]">{label}</span>
       </Link>
-      {/* Sibling switcher is desktop-only. On mobile the crumb is a
-          pure link; lateral navigation uses the section list pages. */}
       <CrumbPopover
         items={items}
         currentId={currentId}

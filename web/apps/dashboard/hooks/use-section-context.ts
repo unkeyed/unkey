@@ -2,9 +2,6 @@
 
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 
-// Drives which leaf the contextual sidebar renders. Pure function of
-// the URL — no localStorage, no product split. PR 4 deletes the legacy
-// useNavigationContext that this replaces.
 export type SectionContext =
   | { type: "workspace" }
   | { type: "settings" }
@@ -31,8 +28,6 @@ export function useSectionContext(): SectionContext {
     return { type: "namespace", namespaceId: params.namespaceId };
   }
 
-  // segments[0] is the workspace slug from [workspaceSlug]; the section name
-  // is the next segment.
   const section = segments[1];
   if (section === "settings") {
     return { type: "settings" };

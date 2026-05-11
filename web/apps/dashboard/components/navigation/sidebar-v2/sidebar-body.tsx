@@ -14,10 +14,6 @@ import {
 import { useSelectedLayoutSegments } from "next/navigation";
 import { NavLinkList } from "./nav-link-list";
 
-// Pure mapping from route context → ResolvedNavLink[]. Data fetches that
-// the builders need (e.g. keyAuthId for the API leaf) are hoisted here
-// so the builders themselves stay pure functions — testable, and
-// reusable by the future cmd-k registry.
 export function SidebarBody() {
   const context = useSectionContext();
   const segments = useSelectedLayoutSegments().slice(1);

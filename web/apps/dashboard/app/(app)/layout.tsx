@@ -22,10 +22,6 @@ interface LayoutProps {
 
 type WorkspaceLike = { id: string; enabled: boolean };
 
-// Inner content area shared by the legacy and new-navigation layout
-// shells. The new shell wraps it in TopNav + SidebarV2; the legacy
-// shell wraps it in AppSidebar + SidebarMobile. PR 4 deletes the
-// legacy shell and inlines this back into the only remaining branch.
 function WorkspaceContent({
   workspace,
   children,

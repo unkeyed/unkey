@@ -67,6 +67,9 @@ export function CrumbPopover({
       <PopoverContent align="start" className="w-64 p-0" sideOffset={8}>
         <Command
           filter={(value, search) => {
+            if (value.startsWith("__footer__")) {
+              return 1;
+            }
             if (!search) {
               return 1;
             }
@@ -105,7 +108,9 @@ export function CrumbPopover({
                 footer={footer}
                 onSelect={() => {
                   setOpen(false);
-                  if (footer.onClick) {
+                  if (footer.href) {
+                    router.push(footer.href);
+                  } else if (footer.onClick) {
                     footer.onClick();
                   }
                 }}
@@ -135,8 +140,8 @@ function FooterRow({
 
   if (footer.href) {
     return (
-      <CommandItem asChild value={`__footer__${footer.label}`}>
-        <Link href={footer.href} onClick={onSelect} className="gap-2">
+      <CommandItem asChild value={`__footer__${footer.label}`} onSelect={onSelect}>
+        <Link href={footer.href} className="gap-2">
           {body}
         </Link>
       </CommandItem>

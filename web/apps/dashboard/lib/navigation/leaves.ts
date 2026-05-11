@@ -13,14 +13,6 @@ import {
 } from "@unkey/icons";
 import type { ResolvedNavLink } from "./types";
 
-// Pure builders: take URL params + post-slug route segments, return the
-// fully-resolved ResolvedNavLink list to render. No hooks, no JSX — so the same
-// data feeds the sidebar today and a cmd-k registry tomorrow.
-//
-// `segments` is `useSelectedLayoutSegments().slice(1)` — i.e. the route
-// segments *below* the workspace slug. So for /{slug}/projects/{id}/deployments,
-// segments is ["projects", "{id}", "deployments"].
-
 export function buildWorkspaceSections(slug: string, segments: string[]): ResolvedNavLink[] {
   const top = segments[0];
   return [
@@ -66,6 +58,13 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
       icon: Fingerprint,
       isActive: top === "identities",
     },
+    {
+      key: "settings",
+      label: "Settings",
+      href: `/${slug}/settings/general`,
+      icon: Gear,
+      isActive: top === "settings",
+    },
   ];
 }
 
@@ -104,7 +103,6 @@ export function buildProjectLinks(
   projectId: string,
   segments: string[],
 ): ResolvedNavLink[] {
-  // Project sub-pages live at segments[2] under /projects/{id}/...
   const page = segments[2];
   const base = `/${slug}/projects/${projectId}`;
   return [
@@ -159,7 +157,6 @@ export function buildApiLinks(
   keyAuthId: string | undefined,
   segments: string[],
 ): ResolvedNavLink[] {
-  // API sub-pages: /apis/{apiId}/<page>?. Requests is the bare route (no page).
   const page = segments[2];
   const base = `/${slug}/apis/${apiId}`;
   return [
@@ -173,11 +170,10 @@ export function buildApiLinks(
     {
       key: "keys",
       label: "Keys",
-      // Keys deep-links the keyspace; disable until we've resolved keyAuthId.
       href: keyAuthId ? `${base}/keys/${keyAuthId}` : base,
       icon: Key,
       isActive: page === "keys",
-      disabled: !keyAuthId,
+      disabled: !keyAuthId && page !== "keys",
     },
     {
       key: "settings",
@@ -194,7 +190,6 @@ export function buildNamespaceLinks(
   namespaceId: string,
   segments: string[],
 ): ResolvedNavLink[] {
-  // Namespace sub-pages: /ratelimits/{namespaceId}/<page>?. Requests is bare.
   const page = segments[2];
   const base = `/${slug}/ratelimits/${namespaceId}`;
   return [

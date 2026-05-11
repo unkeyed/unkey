@@ -45,18 +45,20 @@ export function WorkspaceCrumb() {
     },
   });
 
+  const switchOrgMutate = switchOrg.mutate;
+  const switchOrgLoading = switchOrg.isLoading;
   const items: CrumbPopoverItem[] = useMemo(
     () =>
       orgs.map((m) => ({
         id: m.organization.id,
         label: m.organization.name,
         onClick: () => {
-          if (m.organization.id !== workspace.orgId) {
-            switchOrg.mutate(m.organization.id);
+          if (m.organization.id !== workspace.orgId && !switchOrgLoading) {
+            switchOrgMutate(m.organization.id);
           }
         },
       })),
-    [orgs, switchOrg, workspace.orgId],
+    [orgs, switchOrgMutate, switchOrgLoading, workspace.orgId],
   );
 
   return (

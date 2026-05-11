@@ -21,9 +21,6 @@ export const TOP_NAV_HEIGHT = 52;
 export function TopNav() {
   const workspace = useWorkspaceNavigation();
   const crumbs = useBreadcrumbs();
-  // The shadcn Sidebar primitive renders itself as a Sheet on mobile via
-  // useSidebar().setOpenMobile — reuse that instead of mounting a parallel
-  // drawer, otherwise the two stack on top of each other.
   const { setOpenMobile } = useSidebar();
 
   return (
@@ -34,10 +31,6 @@ export function TopNav() {
       <Link href={`/${workspace.slug}`} aria-label="Unkey" className="inline-flex items-center">
         <Logomark />
       </Link>
-      {/* Crumbs render on every viewport. min-w-0 lets the labels
-          truncate when the chain would otherwise overflow on narrow
-          screens. Chevron switchers are hidden on mobile inside the
-          Crumb primitive itself. */}
       <div className="flex min-w-0 items-center gap-1">
         <CrumbSeparator />
         {crumbs.map((descriptor, i) => (
