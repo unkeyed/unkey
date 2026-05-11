@@ -16,3 +16,19 @@ export const helloWorld = flag<boolean, Entities>({
   identify,
   adapter: adapter(),
 });
+
+// Gates whether extensions marked `mode: "live"` actually call the real
+// install backend. On by default — turn off to force every extension into
+// localStorage preview mode (useful for demos, screenshots, or to compare
+// the wired-up flow against a stubbed one without backend writes).
+export const extensionsLive = flag<boolean, Entities>({
+  key: "extensions-live",
+  description: "Enable real install backend for live extensions (e.g. log drains)",
+  defaultValue: true,
+  options: [
+    { value: true, label: "Live backend" },
+    { value: false, label: "Preview only" },
+  ],
+  identify,
+  adapter: adapter(),
+});

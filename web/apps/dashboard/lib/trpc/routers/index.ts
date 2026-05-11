@@ -94,6 +94,11 @@ import { create as createRatelimitPolicy } from "./deploy/environment-settings/s
 import { remove as deleteRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/delete";
 import { update as updateRatelimitPolicy } from "./deploy/environment-settings/sentinel/ratelimit/update";
 import { reorder as reorderSentinelPolicies } from "./deploy/environment-settings/sentinel/reorder";
+import { installExtension } from "./deploy/extensions/install";
+import { listExtensionInstallations } from "./deploy/extensions/list";
+import { setExtensionEnabled } from "./deploy/extensions/set-enabled";
+import { uninstallExtension } from "./deploy/extensions/uninstall";
+import { updateExtensionInstallation } from "./deploy/extensions/update";
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
 import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
@@ -510,6 +515,13 @@ export const router = t.router({
       list: listCustomDomains,
       delete: deleteCustomDomain,
       retry: retryVerification,
+    }),
+    extension: t.router({
+      install: installExtension,
+      list: listExtensionInstallations,
+      update: updateExtensionInstallation,
+      setEnabled: setExtensionEnabled,
+      uninstall: uninstallExtension,
     }),
     deployment: t.router({
       list: listDeployments,

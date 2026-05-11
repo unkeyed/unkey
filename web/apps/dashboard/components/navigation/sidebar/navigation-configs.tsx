@@ -7,6 +7,7 @@ import {
   Fingerprint,
   Gauge,
   Gear,
+  Grid,
   Key,
   Layers3,
   Nodes,
@@ -210,6 +211,12 @@ export function createProjectNavigation(
       href: `${basePath}/sentinel-policies`,
       label: "Sentinel Policies",
       active: segments.includes("sentinel-policies") && segments.includes("projects"),
+    },
+    {
+      icon: Grid,
+      href: `${basePath}/extensions`,
+      label: "Extensions",
+      active: segments.includes("extensions") && segments.includes("projects"),
     },
     {
       icon: Gear,

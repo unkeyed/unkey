@@ -26,6 +26,7 @@ export * from "./deployment_topology";
 export * from "./acme_users";
 
 export * from "./custom_domains";
+export * from "./extension_installations";
 export * from "./acme_challenges";
 
 export * from "./sentinels";

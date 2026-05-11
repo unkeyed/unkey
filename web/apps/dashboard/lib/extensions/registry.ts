@@ -1,0 +1,527 @@
+/**
+ * Static extension registry.
+ *
+ * P1 ships a hardcoded list so the marketplace UI can be built and reviewed
+ * end-to-end without backend dependencies. Replace with a tRPC procedure
+ * (or remote manifest) in P5.
+ */
+
+export type ExtensionCategory =
+  | "logging"
+  | "observability"
+  | "analytics"
+  | "authentication"
+  | "webhooks"
+  | "alerting"
+  | "billing"
+  | "ai"
+  | "storage"
+  | "other";
+
+export type ExtensionType = "native" | "partner" | "community";
+
+export type ExtensionScope = "project" | "workspace";
+
+export type ExtensionPermission = {
+  id: string;
+  label: string;
+  description: string;
+};
+
+export type ExtensionVerificationCheck = {
+  id: string;
+  label: string;
+};
+
+export type ExtensionConfigOption = {
+  value: string;
+  label: string;
+  description?: string;
+};
+
+/**
+ * Field types supported by the install wizard's auto-rendered form.
+ *
+ * - text/secret/url: single-line inputs (secret is password-masked)
+ * - boolean: switch toggle
+ * - select: single-choice dropdown (requires `options`)
+ * - multiselect: zero-or-more checkbox group (requires `options`)
+ * - string-list: free-form list of strings, e.g. exclude-path patterns
+ */
+export type ExtensionConfigFieldType =
+  | "text"
+  | "secret"
+  | "url"
+  | "boolean"
+  | "select"
+  | "multiselect"
+  | "string-list";
+
+export type ExtensionConfigField = {
+  id: string;
+  label: string;
+  type: ExtensionConfigFieldType;
+  placeholder?: string;
+  helpText?: string;
+  required?: boolean;
+  /**
+   * Logical group label so related fields render together
+   * (e.g. "Connection", "Routing", "Filters").
+   */
+  group?: string;
+  /** Required for "select" and "multiselect" types. */
+  options?: ExtensionConfigOption[];
+  /** Default value applied when the form initializes. */
+  defaultValue?: ExtensionConfigValue;
+  /** Hide this field unless another field has the given value. */
+  dependsOn?: { fieldId: string; equals: ExtensionConfigValue };
+};
+
+export type ExtensionConfigValue = string | boolean | string[];
+
+export type ExtensionConfigState = Record<string, ExtensionConfigValue>;
+
+export type ExtensionOAuthConfig = {
+  /** Display name used on the Connect button: "Connect with {provider}". */
+  provider: string;
+  scopes: string[];
+};
+
+export type ExtensionLink = {
+  docs?: string;
+  homepage?: string;
+  repo?: string;
+};
+
+export type ExtensionVendor = {
+  name: string;
+  url?: string;
+  supportEmail?: string;
+};
+
+export type ExtensionChangelogEntry = {
+  version: string;
+  date: string;
+  notes: string;
+};
+
+/**
+ * Backing implementation for an extension.
+ *
+ * - "live"    — install/uninstall hits real tRPC + DB. The extension actually
+ *               wires up backend resources (e.g. a `log_drains` row).
+ * - "preview" — UI-only stub. Installations live in localStorage so we can
+ *               demo the manifest, config form, and detail screens without a
+ *               backend behind it.
+ *
+ * The marketplace renders both modes the same way; only the install/uninstall
+ * paths and the "Preview" badge differ.
+ */
+export type ExtensionMode = "live" | "preview";
+
+export type Extension = {
+  slug: string;
+  name: string;
+  tagline: string;
+  description: string;
+  iconUrl: string;
+  vendor: ExtensionVendor;
+  categories: ExtensionCategory[];
+  type: ExtensionType;
+  scope: ExtensionScope;
+  /** Whether install actually provisions backend or is a UI-only preview. */
+  mode: ExtensionMode;
+  verified: boolean;
+  installs: number;
+  permissions: ExtensionPermission[];
+  configFields: ExtensionConfigField[];
+  oauth?: ExtensionOAuthConfig;
+  verification: ExtensionVerificationCheck[];
+  changelog: ExtensionChangelogEntry[];
+  links: ExtensionLink;
+  /** When true, surface in the curated "Featured" rail. */
+  featured?: boolean;
+};
+
+export const CATEGORY_LABELS: Record<ExtensionCategory, string> = {
+  logging: "Logging",
+  observability: "Observability",
+  analytics: "Analytics",
+  authentication: "Authentication",
+  webhooks: "Webhooks",
+  alerting: "Alerting",
+  billing: "Billing",
+  ai: "AI",
+  storage: "Storage",
+  other: "Other",
+};
+
+export const EXTENSION_TYPE_LABELS: Record<ExtensionType, string> = {
+  native: "Native",
+  partner: "Partner",
+  community: "Community",
+};
+
+export const EXTENSIONS: Extension[] = [
+  {
+    slug: "datadog",
+    name: "Datadog",
+    tagline: "Stream key events and rate-limit metrics to Datadog.",
+    description:
+      "Send Unkey audit logs, key verifications, and rate-limit decisions to Datadog as logs and metrics. Build dashboards, set up monitors, and correlate API behavior with the rest of your stack.",
+    iconUrl: "https://cdn.simpleicons.org/datadog/632CA6",
+    vendor: { name: "Unkey", url: "https://unkey.com" },
+    categories: ["logging", "observability"],
+    type: "native",
+    scope: "project",
+    mode: "preview",
+    verified: true,
+    installs: 1284,
+    permissions: [
+      {
+        id: "audit:read",
+        label: "Read audit logs",
+        description: "Stream the project's audit log to Datadog.",
+      },
+      {
+        id: "metrics:read",
+        label: "Read verification metrics",
+        description: "Forward key verification and rate-limit counters.",
+      },
+    ],
+    configFields: [
+      {
+        id: "apiKey",
+        label: "Datadog API key",
+        type: "secret",
+        required: true,
+        helpText: "Found under Organization Settings → API Keys.",
+        group: "Connection",
+      },
+      {
+        id: "site",
+        label: "Site",
+        type: "select",
+        required: true,
+        group: "Connection",
+        defaultValue: "datadoghq.com",
+        options: [
+          { value: "datadoghq.com", label: "US (datadoghq.com)" },
+          { value: "datadoghq.eu", label: "EU (datadoghq.eu)" },
+          { value: "us3.datadoghq.com", label: "US3 (us3.datadoghq.com)" },
+          { value: "us5.datadoghq.com", label: "US5 (us5.datadoghq.com)" },
+        ],
+      },
+      {
+        id: "forwardMetrics",
+        label: "Forward metrics",
+        type: "boolean",
+        group: "Routing",
+        defaultValue: true,
+        helpText: "Send key verification and rate-limit counters as Datadog metrics.",
+      },
+    ],
+    verification: [
+      { id: "ingest", label: "Test event reaches Datadog ingest API" },
+      { id: "tags", label: "Project tags are present on the test event" },
+    ],
+    changelog: [
+      {
+        version: "1.0.0",
+        date: "2026-04-12",
+        notes: "Initial release with audit log + metrics streaming.",
+      },
+    ],
+    links: { docs: "https://docs.unkey.com/integrations/datadog" },
+    featured: true,
+  },
+  {
+    slug: "axiom",
+    name: "Axiom",
+    tagline: "Ship every event to Axiom for fast, queryable storage.",
+    description:
+      "A native log drain that writes Unkey audit and key verification events to an Axiom dataset of your choice. Query with APL, build dashboards, and alert on anomalies.",
+    iconUrl: "",
+    vendor: { name: "Unkey", url: "https://unkey.com" },
+    categories: ["logging", "observability"],
+    type: "native",
+    scope: "project",
+    // Backed by the real `log_drains` pipeline; gated by the `extensionsLive`
+    // flag at the install hook level so preview-mode workspaces still see UI.
+    mode: "live",
+    verified: true,
+    installs: 643,
+    permissions: [
+      {
+        id: "audit:read",
+        label: "Read audit logs",
+        description: "Stream the project's audit log to Axiom.",
+      },
+    ],
+    configFields: [
+      {
+        id: "dataset",
+        label: "Dataset",
+        type: "text",
+        placeholder: "unkey-prod",
+        required: true,
+        group: "Connection",
+      },
+      {
+        id: "endpoint",
+        label: "Endpoint",
+        type: "url",
+        placeholder: "https://api.axiom.co",
+        helpText: "Use api.eu.axiom.co for EU.",
+        group: "Connection",
+      },
+      {
+        id: "token",
+        label: "API token",
+        type: "secret",
+        required: true,
+        placeholder: "xaat-...",
+        helpText: "Encrypted in Vault. Never re-displayed; rotate by editing the drain.",
+        group: "Connection",
+      },
+      {
+        id: "sources",
+        label: "Sources",
+        type: "multiselect",
+        required: true,
+        group: "What to forward",
+        defaultValue: ["runtime", "request"],
+        options: [
+          {
+            value: "runtime",
+            label: "Runtime logs",
+            description: "stdout/stderr from your deployments",
+          },
+          {
+            value: "request",
+            label: "Request logs",
+            description: "HTTP access logs from Sentinel",
+          },
+        ],
+      },
+      {
+        id: "environments",
+        label: "Environments",
+        type: "multiselect",
+        required: true,
+        group: "What to forward",
+        defaultValue: ["production"],
+        options: [
+          { value: "production", label: "Production" },
+          { value: "preview", label: "Preview" },
+        ],
+      },
+      {
+        id: "minSeverity",
+        label: "Minimum severity",
+        type: "select",
+        group: "Filters",
+        defaultValue: "all",
+        helpText: "Drop runtime logs below this level. Reduces provider cost.",
+        dependsOn: { fieldId: "sources", equals: "runtime" },
+        options: [
+          { value: "all", label: "All severities" },
+          { value: "debug", label: "Debug and above" },
+          { value: "info", label: "Info and above" },
+          { value: "warn", label: "Warn and above" },
+          { value: "error", label: "Error only" },
+        ],
+      },
+      {
+        id: "includeBodies",
+        label: "Include request bodies",
+        type: "boolean",
+        group: "Filters",
+        defaultValue: false,
+        helpText: "Off by default for privacy. Bodies may contain user data.",
+        dependsOn: { fieldId: "sources", equals: "request" },
+      },
+      {
+        id: "excludePaths",
+        label: "Exclude paths",
+        type: "string-list",
+        group: "Filters",
+        placeholder: "/health",
+        helpText: "Skip request logs whose path matches any of these patterns.",
+        dependsOn: { fieldId: "sources", equals: "request" },
+      },
+    ],
+    verification: [
+      { id: "ingest", label: "Test event accepted by Axiom ingest endpoint" },
+      { id: "dataset", label: "Configured dataset exists and is writable" },
+    ],
+    changelog: [{ version: "1.0.0", date: "2026-04-08", notes: "Initial release." }],
+    links: { docs: "https://docs.unkey.com/integrations/axiom" },
+    featured: true,
+  },
+  {
+    slug: "betterstack",
+    name: "BetterStack",
+    tagline: "Forward logs and trigger incidents from key events.",
+    description:
+      "Send audit logs to BetterStack Logs and optionally fan critical events out to BetterStack Uptime to page on-call engineers when something goes wrong.",
+    iconUrl: "https://cdn.simpleicons.org/betterstack",
+    vendor: { name: "BetterStack", url: "https://betterstack.com" },
+    categories: ["logging", "alerting"],
+    type: "partner",
+    scope: "project",
+    mode: "preview",
+    verified: true,
+    installs: 211,
+    permissions: [
+      {
+        id: "audit:read",
+        label: "Read audit logs",
+        description: "Stream audit log entries to BetterStack.",
+      },
+    ],
+    configFields: [
+      {
+        id: "sourceToken",
+        label: "Source token",
+        type: "secret",
+        required: true,
+        helpText: "Generated when you create a Logs source in BetterStack.",
+      },
+    ],
+    verification: [{ id: "ingest", label: "Test event accepted by BetterStack ingest" }],
+    changelog: [{ version: "0.9.0", date: "2026-03-21", notes: "Beta release." }],
+    links: { docs: "https://betterstack.com/docs/logs/unkey" },
+  },
+  {
+    slug: "slack",
+    name: "Slack",
+    tagline: "Post alerts and audit events to a Slack channel.",
+    description:
+      "Hook your Slack workspace into Unkey. Get notified when keys are revoked, when rate limits trip, or when an admin changes a sensitive setting.",
+    iconUrl: "",
+    vendor: { name: "Unkey", url: "https://unkey.com" },
+    categories: ["alerting", "webhooks"],
+    type: "native",
+    scope: "workspace",
+    mode: "preview",
+    verified: true,
+    installs: 932,
+    permissions: [
+      {
+        id: "audit:read",
+        label: "Read audit logs",
+        description: "Subscribe to selected audit events.",
+      },
+    ],
+    configFields: [
+      {
+        id: "channel",
+        label: "Channel",
+        type: "text",
+        placeholder: "#alerts",
+        required: true,
+        helpText: "The Slack channel to post events to.",
+      },
+    ],
+    oauth: {
+      provider: "Slack",
+      scopes: ["chat:write", "channels:read"],
+    },
+    verification: [{ id: "auth", label: "Slack OAuth token can post to selected channel" }],
+    changelog: [{ version: "1.1.0", date: "2026-04-01", notes: "Add per-event filters." }],
+    links: { docs: "https://docs.unkey.com/integrations/slack" },
+  },
+  {
+    slug: "discord",
+    name: "Discord",
+    tagline: "Send alerts to a Discord channel via webhook.",
+    description:
+      "Wire Unkey events into a Discord channel. Configure which events to forward and customize the message template per channel.",
+    iconUrl: "https://cdn.simpleicons.org/discord/5865F2",
+    vendor: { name: "Community", url: "https://github.com/unkeyed/unkey" },
+    categories: ["alerting", "webhooks"],
+    type: "community",
+    scope: "project",
+    mode: "preview",
+    verified: false,
+    installs: 87,
+    permissions: [
+      {
+        id: "audit:read",
+        label: "Read audit logs",
+        description: "Subscribe to selected audit events.",
+      },
+    ],
+    configFields: [
+      {
+        id: "webhookUrl",
+        label: "Webhook URL",
+        type: "url",
+        placeholder: "https://discord.com/api/webhooks/...",
+        required: true,
+      },
+    ],
+    verification: [{ id: "webhook", label: "Discord webhook URL accepts a test message" }],
+    changelog: [{ version: "0.2.0", date: "2026-02-14", notes: "Community release." }],
+    links: { repo: "https://github.com/unkeyed/extensions/discord" },
+  },
+  {
+    slug: "resend",
+    name: "Resend",
+    tagline: "Email key owners on revocation, expiry, or quota events.",
+    description:
+      "Configure email templates and triggers so customers get a heads up when their API key is about to expire, has been revoked, or has tripped a quota.",
+    iconUrl: "https://cdn.simpleicons.org/resend",
+    vendor: { name: "Resend", url: "https://resend.com" },
+    categories: ["webhooks", "alerting"],
+    type: "partner",
+    scope: "project",
+    mode: "preview",
+    verified: true,
+    installs: 318,
+    permissions: [
+      {
+        id: "identities:read",
+        label: "Read identities",
+        description: "Resolve the email address tied to a key owner.",
+      },
+    ],
+    configFields: [
+      {
+        id: "apiKey",
+        label: "Resend API key",
+        type: "secret",
+        required: true,
+      },
+      {
+        id: "from",
+        label: "From address",
+        type: "text",
+        placeholder: "alerts@example.com",
+        required: true,
+        helpText: "Must be a verified sender in Resend.",
+      },
+    ],
+    verification: [
+      { id: "auth", label: "Resend API key authorizes a test send" },
+      { id: "sender", label: "Sender domain is verified in Resend" },
+    ],
+    changelog: [
+      {
+        version: "1.0.0",
+        date: "2026-03-30",
+        notes: "Initial templates: revoked, expiring, over quota.",
+      },
+    ],
+    links: { docs: "https://resend.com/docs/integrations/unkey" },
+  },
+];
+
+export function getExtensionBySlug(slug: string): Extension | undefined {
+  return EXTENSIONS.find((extension) => extension.slug === slug);
+}
+
+export const ALL_CATEGORIES: ExtensionCategory[] = Object.keys(
+  CATEGORY_LABELS,
+) as ExtensionCategory[];
