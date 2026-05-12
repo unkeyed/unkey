@@ -13,6 +13,7 @@
 
 import { useFlag } from "@/lib/flags/provider";
 import { trpc } from "@/lib/trpc/client";
+import { newId } from "@unkey/id";
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import {
   EXTENSIONS,
@@ -180,7 +181,7 @@ export function useInstallations(projectId: string) {
       }
       const installation: Installation = {
         ...input,
-        id: cryptoRandomId(),
+        id: newId("extensionInstallation"),
         projectId,
         installedAt: new Date().toISOString(),
         status: "active",
@@ -253,11 +254,4 @@ export function useInstallations(projectId: string) {
 function effectiveMode(slug: string, liveFlag: boolean): ExtensionMode {
   const manifestMode = EXTENSIONS.find((e) => e.slug === slug)?.mode ?? "preview";
   return manifestMode === "live" && !liveFlag ? "preview" : manifestMode;
-}
-
-function cryptoRandomId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).slice(2);
 }
