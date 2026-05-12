@@ -52,11 +52,9 @@ interface BaseCheckboxFilterProps<
   defaultSelectionIndex?: number;
   onDrawerClose?: () => void;
 
-  /** Optional client-side search for long option lists. */
+  
   getSearchText?: (option: TItem) => string;
   searchPlaceholder?: string;
-
-  /** Optional cap to avoid rendering huge lists at once. Applied after search filtering. */
   maxVisibleOptions?: number;
 }
 
