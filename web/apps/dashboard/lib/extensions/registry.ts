@@ -166,9 +166,9 @@ export const EXTENSIONS: Extension[] = [
   {
     slug: "datadog",
     name: "Datadog",
-    tagline: "Stream key events and rate-limit metrics to Datadog.",
+    tagline: "Stream deployment runtime and request logs to Datadog.",
     description:
-      "Send Unkey audit logs, key verifications, and rate-limit decisions to Datadog as logs and metrics. Build dashboards, set up monitors, and correlate API behavior with the rest of your stack.",
+      "Forward your deployments' runtime stdout/stderr and Sentinel request logs to Datadog as logs and metrics. Build dashboards, set up monitors, and correlate request behavior with the rest of your stack — across every environment.",
     iconUrl: "https://cdn.simpleicons.org/datadog/632CA6",
     vendor: { name: "Unkey", url: "https://unkey.com" },
     categories: ["logging", "observability"],
@@ -179,14 +179,14 @@ export const EXTENSIONS: Extension[] = [
     installs: 1284,
     permissions: [
       {
-        id: "audit:read",
-        label: "Read audit logs",
-        description: "Stream the project's audit log to Datadog.",
+        id: "logs:read",
+        label: "Read runtime and request logs",
+        description: "Stream deployment runtime and Sentinel request logs to Datadog.",
       },
       {
         id: "metrics:read",
-        label: "Read verification metrics",
-        description: "Forward key verification and rate-limit counters.",
+        label: "Read deployment metrics",
+        description: "Forward request rate, latency, and error counters per environment.",
       },
     ],
     configFields: [
@@ -218,7 +218,8 @@ export const EXTENSIONS: Extension[] = [
         type: "boolean",
         group: "Routing",
         defaultValue: true,
-        helpText: "Send key verification and rate-limit counters as Datadog metrics.",
+        helpText:
+          "Send request rate, latency, and error counters as Datadog metrics per environment.",
       },
     ],
     verification: [
@@ -229,7 +230,7 @@ export const EXTENSIONS: Extension[] = [
       {
         version: "1.0.0",
         date: "2026-04-12",
-        notes: "Initial release with audit log + metrics streaming.",
+        notes: "Initial release with runtime/request log + metrics streaming.",
       },
     ],
     links: { docs: "https://docs.unkey.com/integrations/datadog" },
@@ -238,9 +239,9 @@ export const EXTENSIONS: Extension[] = [
   {
     slug: "axiom",
     name: "Axiom",
-    tagline: "Ship every event to Axiom for fast, queryable storage.",
+    tagline: "Ship runtime and request logs to Axiom for fast, queryable storage.",
     description:
-      "A native log drain that writes Unkey audit and key verification events to an Axiom dataset of your choice. Query with APL, build dashboards, and alert on anomalies.",
+      "A native log drain that writes deployment runtime stdout/stderr and Sentinel request logs to an Axiom dataset of your choice. Query with APL, build dashboards, and alert on anomalies across every environment of your project.",
     iconUrl: "",
     vendor: { name: "Unkey", url: "https://unkey.com" },
     categories: ["logging", "observability"],
@@ -253,9 +254,9 @@ export const EXTENSIONS: Extension[] = [
     installs: 643,
     permissions: [
       {
-        id: "audit:read",
-        label: "Read audit logs",
-        description: "Stream the project's audit log to Axiom.",
+        id: "logs:read",
+        label: "Read runtime and request logs",
+        description: "Stream deployment runtime and Sentinel request logs to Axiom.",
       },
     ],
     configFields: [
@@ -362,9 +363,9 @@ export const EXTENSIONS: Extension[] = [
   {
     slug: "betterstack",
     name: "BetterStack",
-    tagline: "Forward logs and trigger incidents from key events.",
+    tagline: "Forward deployment logs and page on-call when deploys fail.",
     description:
-      "Send audit logs to BetterStack Logs and optionally fan critical events out to BetterStack Uptime to page on-call engineers when something goes wrong.",
+      "Send your deployment runtime and request logs to BetterStack Logs, and optionally fan failed-deploy or 5xx-spike events out to BetterStack Uptime to page on-call engineers when something goes wrong.",
     iconUrl: "https://cdn.simpleicons.org/betterstack",
     vendor: { name: "BetterStack", url: "https://betterstack.com" },
     categories: ["logging", "alerting"],
@@ -375,9 +376,14 @@ export const EXTENSIONS: Extension[] = [
     installs: 211,
     permissions: [
       {
-        id: "audit:read",
-        label: "Read audit logs",
-        description: "Stream audit log entries to BetterStack.",
+        id: "logs:read",
+        label: "Read runtime and request logs",
+        description: "Stream deployment runtime and Sentinel request logs to BetterStack.",
+      },
+      {
+        id: "deployments:read",
+        label: "Read deployment events",
+        description: "Trigger incidents on failed deployments and rollbacks.",
       },
     ],
     configFields: [
@@ -396,9 +402,9 @@ export const EXTENSIONS: Extension[] = [
   {
     slug: "slack",
     name: "Slack",
-    tagline: "Post alerts and audit events to a Slack channel.",
+    tagline: "Post deploy, rollback, and incident events to a Slack channel.",
     description:
-      "Hook your Slack workspace into Unkey. Get notified when keys are revoked, when rate limits trip, or when an admin changes a sensitive setting.",
+      "Hook your Slack workspace into Unkey Deploy. Get notified when a deployment succeeds or fails, when a rollback happens, when a custom domain finishes verification, or when Sentinel sees an error spike.",
     iconUrl: "",
     vendor: { name: "Unkey", url: "https://unkey.com" },
     categories: ["alerting", "webhooks"],
@@ -409,9 +415,14 @@ export const EXTENSIONS: Extension[] = [
     installs: 932,
     permissions: [
       {
-        id: "audit:read",
-        label: "Read audit logs",
-        description: "Subscribe to selected audit events.",
+        id: "deployments:read",
+        label: "Read deployment events",
+        description: "Subscribe to deploy success/failure and rollback events.",
+      },
+      {
+        id: "domains:read",
+        label: "Read custom domain events",
+        description: "Notify when a custom domain finishes verification.",
       },
     ],
     configFields: [
@@ -435,9 +446,9 @@ export const EXTENSIONS: Extension[] = [
   {
     slug: "discord",
     name: "Discord",
-    tagline: "Send alerts to a Discord channel via webhook.",
+    tagline: "Pipe deploy and incident events into a Discord channel.",
     description:
-      "Wire Unkey events into a Discord channel. Configure which events to forward and customize the message template per channel.",
+      "Wire Unkey Deploy events into a Discord channel via webhook. Configure which events to forward (deploys, rollbacks, custom-domain verification, error spikes) and customize the message template per channel.",
     iconUrl: "https://cdn.simpleicons.org/discord/5865F2",
     vendor: { name: "Community", url: "https://github.com/unkeyed/unkey" },
     categories: ["alerting", "webhooks"],
@@ -448,9 +459,9 @@ export const EXTENSIONS: Extension[] = [
     installs: 87,
     permissions: [
       {
-        id: "audit:read",
-        label: "Read audit logs",
-        description: "Subscribe to selected audit events.",
+        id: "deployments:read",
+        label: "Read deployment events",
+        description: "Subscribe to deploy and rollback events.",
       },
     ],
     configFields: [
@@ -469,9 +480,9 @@ export const EXTENSIONS: Extension[] = [
   {
     slug: "resend",
     name: "Resend",
-    tagline: "Email key owners on revocation, expiry, or quota events.",
+    tagline: "Email your team on deploy success, failure, or error spikes.",
     description:
-      "Configure email templates and triggers so customers get a heads up when their API key is about to expire, has been revoked, or has tripped a quota.",
+      "Configure email templates and triggers so your team gets a heads up when a deployment fails, a rollback completes, a custom domain finishes verification, or Sentinel sees an error spike on production.",
     iconUrl: "https://cdn.simpleicons.org/resend",
     vendor: { name: "Resend", url: "https://resend.com" },
     categories: ["webhooks", "alerting"],
@@ -482,9 +493,9 @@ export const EXTENSIONS: Extension[] = [
     installs: 318,
     permissions: [
       {
-        id: "identities:read",
-        label: "Read identities",
-        description: "Resolve the email address tied to a key owner.",
+        id: "deployments:read",
+        label: "Read deployment events",
+        description: "Trigger emails on deploy and rollback events.",
       },
     ],
     configFields: [
@@ -511,7 +522,7 @@ export const EXTENSIONS: Extension[] = [
       {
         version: "1.0.0",
         date: "2026-03-30",
-        notes: "Initial templates: revoked, expiring, over quota.",
+        notes: "Initial templates: deploy failed, deploy succeeded, error spike.",
       },
     ],
     links: { docs: "https://resend.com/docs/integrations/unkey" },

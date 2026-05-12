@@ -41,10 +41,12 @@ export default function SubmitExtensionPage() {
   };
 
   return (
-    <ProjectContentWrapper centered maxWidth="900px" className="mt-8">
+    <ProjectContentWrapper centered maxWidth="1200px" className="mt-8">
       <ExtensionsHeader basePath={basePath} active="submit" installedCount={installations.length} />
 
-      <div className="flex flex-col gap-6">
+      {/* Match the marketplace tab's outer width so flipping tabs doesn't reflow
+          the header strip, but keep the form column narrow for readability. */}
+      <div className="flex flex-col gap-6 w-full max-w-[860px]">
         <Section
           title="Basics"
           description="Public-facing identity for your extension in the marketplace."
