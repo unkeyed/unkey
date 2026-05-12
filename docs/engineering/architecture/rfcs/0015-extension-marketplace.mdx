@@ -1,0 +1,172 @@
+---
+title: 0015 Extension Marketplace
+description: A single install/configure/lifecycle surface for third-party integrations, with each integration supplying its own backend hooks behind a uniform API.
+date: 2026-05-12
+authors:
+  - Flo
+---
+
+## Summary
+
+The Extension Marketplace is the install/configure/lifecycle surface for every third-party integration in Unkey: log drains, alert routers, billing webhooks, AI providers, etc. One control-plane table (`extension_installations`) holds the user-facing record; each integration registers a `LiveProvider` whose hooks own the integration-specific runtime work (open a `log_drains` row, register a Slack webhook, etc.).
+
+The first live extension is the Axiom log drain. Adding the next live extension is one provider entry plus one manifest entry — no schema migration, no new tRPC routes, no UI changes.
+
+## Motivation
+
+We were about to build a bespoke "Log Drains" CRUD page (its own list view, its own create wizard, its own routes, its own database table mutations from the UI). Then we noticed every future integration we cared about — alerting, error reporting, billing, OAuth-y "connect this provider" flows — wanted exactly the same shape: pick a destination, fill out a form, optionally OAuth, attach to a project, enable/disable, uninstall.
+
+Building the marketplace once is cheaper than building the same wizard N times. It is also strictly better for the customer: every integration lives in one place, every install flow looks the same, every "is this thing healthy" answer comes from one screen.
+
+The non-goal is generality for its own sake. The marketplace is a thin lifecycle plus a registry; it does not attempt to be a plugin runtime, a sandbox, or a DSL. Each provider is a TypeScript module that we ship and version with the dashboard.
+
+## Design
+
+### Two layers, one table
+
+```diagram
+╭────────────────────────────────╮         ╭────────────────────────────╮
+│  extension_installations       │         │  registry.ts (manifest)     │
+│   id, project_id, slug,        │ ◀─────▶ │   slug, configFields[],     │
+│   instance_name, config json,  │         │   verification[], links     │
+│   status, last_event_at,       │         ╰────────────────────────────╯
+│   oauth_connected, deleted_at  │
+╰──────────────┬─────────────────╯
+               │ slug → provider
+               ▼
+╭────────────────────────────────╮         ╭────────────────────────────╮
+│  providers.ts (registry map)   │ ──────▶ │  providers/log-drain.ts     │
+│   { axiom: logDrainProvider }  │         │   onInstall, onUpdate,      │
+╰────────────────────────────────╯         │   onUninstall, onSetEnabled,│
+                                           │   verify                    │
+                                           ╰─────────────┬───────────────╯
+                                                         │
+                                                         ▼
+                                              ╭──────────────────────╮
+                                              │  log_drains row      │
+                                              │   extension_         │
+                                              │   installation_id    │
+                                              ╰──────────────────────╯
+```
+
+The control-plane row (`extension_installations`) holds everything generic: which extension, in which project, with what configuration, in what status, owned by which workspace. The provider hook chain projects that into integration-specific runtime tables (`log_drains`, `webhook_subscriptions`, `ai_provider_credentials`, …) without the marketplace router ever importing those tables.
+
+### The provider seam
+
+`LiveProvider` is the entire integration contract:
+
+```ts
+type LiveProvider = {
+  onInstall(ctx, installation): Promise<void>;
+  onUninstall(ctx, installation): Promise<void>;
+  onUpdate?(ctx, installation, patch): Promise<void>;
+  onSetEnabled?(ctx, installation, enabled): Promise<void>;
+  verify?(ctx, config): Promise<VerifyResult>;
+};
+```
+
+Each `deploy.extension.*` procedure performs the generic DB op against `extension_installations`, then dispatches to `getProvider(slug)?.<hook>(...)`. There are no `if (slug === "axiom")` branches in the router. Adding a second live extension is:
+
+1. Drop a manifest entry into `registry.ts`.
+2. Drop a provider module under `lib/extensions/providers/<slug>.ts`.
+3. Register it in `PROVIDERS` in `providers.ts`.
+
+That is the entire delta. No new routers, no new schema migrations (unless the integration itself needs runtime tables), no new UI.
+
+### Live vs. preview mode
+
+The marketplace ships both real and stubbed extensions. Each manifest declares `mode: "live" | "preview"`:
+
+- **live** — install hits the real `deploy.extension` tRPC router, which writes to MySQL and calls the provider hook chain. Backed by actual infrastructure.
+- **preview** — install persists to localStorage. Lets us ship marketplace UI for partner integrations whose backend isn't built yet.
+
+An `extensionsLive` feature flag (default on) gates live mode. When the flag is off, every live extension degrades to preview locally — useful for demos, screenshots, and comparing the wired-up flow against a stub without backend writes. The `useEffectiveMode(extension)` hook collapses this into one mode value the UI consumes uniformly.
+
+This is intentionally heavier than a feature flag per extension. The dashboard ships a single switch; the manifest declares intent; everything else falls out of the two values.
+
+### Verification before persistence
+
+Every install wizard has a "Test connection" step. We resisted the temptation to add a per-integration `testPush` tRPC route (we had one for log drains and removed it). Instead, the provider exposes:
+
+```ts
+verify?(ctx, config): Promise<{ ok: true } | { ok: false; status?: number; error: string }>
+```
+
+`deploy.extension.verify({ slug, config })` dispatches to the provider, which runs whatever sanity check makes sense for that integration: a synthetic ingest call (Axiom), a webhook reachability ping (Slack), an API key probe (Datadog). Preview-mode extensions fall through with `{ ok: true }` so the wizard never blocks a stub install.
+
+The wire format the verify call uses **must** match the runtime path so a passing verify is genuine evidence. For Axiom, that means the synthetic event uses the same JSON shape the coordinator sends; if Axiom accepts the test event, it will accept the real one.
+
+### Lifecycle, end to end
+
+```diagram
+   user clicks Install                     user toggles "Enabled"
+          │                                       │
+          ▼                                       ▼
+  deploy.extension.install              deploy.extension.setEnabled
+          │                                       │
+          ├─▶ INSERT extension_installations     ├─▶ UPDATE status
+          │                                       │
+          ▼                                       ▼
+  provider.onInstall                    provider.onSetEnabled?
+   (e.g. INSERT log_drains)              (e.g. UPDATE log_drains.enabled)
+
+
+   user clicks Uninstall                  user edits Configuration
+          │                                       │
+          ▼                                       ▼
+  deploy.extension.uninstall            deploy.extension.update
+          │                                       │
+          ├─▶ soft-delete installation           ├─▶ UPDATE config json
+          │                                       │
+          ▼                                       ▼
+  provider.onUninstall                  provider.onUpdate?
+   (provider chooses cascade            (e.g. reproject filters,
+    semantics for its runtime table)     rotate credentials only if
+                                          a new secret was supplied)
+```
+
+Two design choices in there are load-bearing:
+
+**The router never cascades into runtime tables.** When a user uninstalls, the marketplace soft-deletes the installation row and stops. Whether to delete, soft-delete, or just disable the underlying `log_drains` row is the provider's choice, because the answer differs by integration. (Log drains soft-delete; a Slack webhook would un-subscribe but keep the OAuth grant; a billing integration might keep the row forever for audit.) Pushing this into the provider keeps the router single-purpose and prevents one integration's needs from becoming everyone's policy.
+
+**Enable/disable is a first-class action, not "uninstall + reinstall."** Customers want to pause an integration without re-pasting tokens, and we want to keep the install row around for telemetry (`last_event_at`, `status`). `setEnabled` flips `extension_installations.status` and lets the provider mirror that into its runtime table (`log_drains.enabled = false`). The coordinator filters on `enabled` in its tick query, so pause takes effect on the next poll.
+
+### Multiple instances per extension
+
+The unique key is `(project_id, extension_slug, instance_name)`. A workspace can install the Axiom extension twice — once routing production runtime logs to one dataset, once routing preview request logs to another — because the two installations carry distinct names and distinct configs. Soft-deleted rows keep the slot occupied; reusing an instance name requires a fresh name or a hard cleanup.
+
+This falls out of the table shape; it is not extra code. Most integrations will only ever have one instance per project, but the model does not assume that.
+
+## How log drains compose on top
+
+Log drains are the first live extension and the proof that the seam is right.
+
+The `log_drains` table gains a single column: `extension_installation_id varchar(128)`. The Axiom provider's `onInstall` hook inserts a `log_drains` row with that column populated, plus an encrypted `log_drain_credentials` row. From that point on:
+
+- The dashboard never touches `log_drains` directly. List, configure, enable/disable, and uninstall all flow through `deploy.extension.*` and dispatch to `logDrainProvider`.
+- The Go log-drain coordinator continues to read `log_drains` exactly as before. It is unaware of `extension_installations`. The `extension_installation_id` column is purely a back-reference for joins and audit.
+- Pre-marketplace drains (if any survived a migration) are valid: their `extension_installation_id` is `NULL`, the coordinator processes them identically, and they age out as installations replace them.
+
+The marketplace owns the customer-facing surface; the existing log-drain service owns the data plane. Neither needs to know much about the other.
+
+## Drawbacks
+
+**One JSON config column.** `extension_installations.config` is an opaque JSON blob whose shape is governed by the manifest's `configFields[]`. We get flexibility (no schema migration per integration) at the cost of typed columns and SQL-level filtering. Providers parse the blob defensively in their hooks. Acceptable because `configFields[]` and the install wizard's auto-rendered form are derived from the same registry — typos are caught at compile time, not at write time.
+
+**Provider modules ship with the dashboard.** This is not a runtime plugin system. Adding an integration means a PR to the dashboard repo. We considered remote manifests (load `registry.ts` entries from a CDN) and explicitly deferred — the moment we ship a community/partner-submitted extension, this becomes worth doing.
+
+**Provider hooks are the only seam.** A future integration that wants to inject custom marketplace UI (a non-form configure screen, a custom installed-detail tab) has nowhere to plug in today. We will cross that bridge when the first integration genuinely needs it; until then, the auto-rendered form covers every shape we have shipped.
+
+## Alternatives
+
+**Per-feature CRUD (the original plan).** Build "Log Drains" as a standalone page with its own router, its own create/update/delete tRPC procedures, its own table mutations. This is what we started with and threw away. The pattern would have been copy-pasted N times and we would have ended up with N marketplace clones, each subtly different, each maintained separately.
+
+**Generic webhook receiver.** "Just expose webhooks and let customers wire up Zapier." Works for some integrations, not for the ones that need credentials, batch delivery, replay, or per-row state. Log drains in particular cannot be a Zapier sink — the credential blast radius and replay story (see RFC 0016) require a real per-tenant forwarder.
+
+**Standalone marketplace app.** Build the integration list and submission flow in a separate web service that hands off to the dashboard via OAuth. Defensible long-term; massive overkill for the current scope. Static `registry.ts` lets us iterate on the manifest without a deploy of a separate service.
+
+## Unresolved questions
+
+- **Submission and verification of community extensions.** The manifest has a `verification[]` field and the registry has `type: "partner" | "community"`, but we do not yet have a workflow for accepting third-party submissions. P5 will define what evidence we require (verify checks pass, repo audited, vendor email reachable) before flipping `verified: true`.
+- **OAuth-source extensions.** The schema has `oauth_connected` and provider hooks can read it, but the OAuth grant flow itself is in a sibling stack (`oauth_grants`). The contract between the two is "the OAuth callback writes a grant row, the install wizard then carries the grant id into provider config." This works for log-drains (Datadog OAuth) but has not been exercised by any other integration yet.
+- **Extension telemetry.** `last_event_at` is enough for at-a-glance "is this thing alive." Deeper per-integration telemetry (axiom: `consecutive_failures`, `last_error`) currently lives on per-provider tables (`log_drain_state`). We may eventually want a generic provider telemetry seam — defer until a second integration needs it.
