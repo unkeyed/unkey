@@ -18,7 +18,7 @@ import { and, db, eq, isNull, schema } from "@/lib/db";
 import { createVaultClient } from "@/lib/vault-client";
 import type { LogDrainEnvironment, LogDrainFilters, LogDrainSource } from "@unkey/db/src/schema";
 import { newId } from "@unkey/id";
-import type { LiveProvider } from "../providers";
+import type { LiveProvider, VerifyResult } from "../providers";
 
 const vault = createVaultClient(VaultService);
 
@@ -223,6 +223,55 @@ export const logDrainProvider: LiveProvider = {
       .update(schema.logDrains)
       .set({ enabled, updatedAt: Date.now() })
       .where(eq(schema.logDrains.id, drain.id));
+  },
+
+  /**
+   * Push a synthetic event to the configured Axiom dataset. We do NOT route
+   * through the logdrain Go service: at wizard time no drain row exists yet,
+   * and a round-trip would mean either a synchronous RPC surface on logdrain
+   * (extra wire) or a throwaway drain row (extra cleanup). The wire format is
+   * identical to what the coordinator sends, so a passing verify means the
+   * coordinator will succeed.
+   */
+  async verify(ctx, raw): Promise<VerifyResult> {
+    let config: AxiomConfig;
+    try {
+      config = parseAxiomConfig(raw);
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "invalid config" };
+    }
+    if (!config.token) {
+      return { ok: false, error: "API token is required to verify the connection." };
+    }
+
+    const endpoint = config.endpoint ?? "https://api.axiom.co";
+    const url = `${endpoint}/v1/datasets/${encodeURIComponent(config.dataset)}/ingest`;
+    const event = {
+      timestamp: Date.now(),
+      workspace_id: ctx.workspaceId,
+      project_id: "proj_healthcheck",
+      source: "runtime",
+      level: "info",
+      message: "unkey extension verify",
+      attributes: { "unkey.healthcheck": true },
+    };
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.token}`,
+        },
+        body: JSON.stringify([{ _time: new Date(event.timestamp).toISOString(), ...event }]),
+      });
+      if (!res.ok) {
+        return { ok: false, status: res.status, error: await res.text() };
+      }
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "verify request failed" };
+    }
   },
 
   async onUninstall(_ctx, installation) {

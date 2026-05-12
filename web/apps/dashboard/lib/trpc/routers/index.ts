@@ -99,9 +99,7 @@ import { listExtensionInstallations } from "./deploy/extensions/list";
 import { setExtensionEnabled } from "./deploy/extensions/set-enabled";
 import { uninstallExtension } from "./deploy/extensions/uninstall";
 import { updateExtensionInstallation } from "./deploy/extensions/update";
-// Log-drain create/update/delete intentionally omitted — those flow through
-// `deploy.extension.*` so a single install record drives both rows.
-import { testPushLogDrain } from "./deploy/log-drains/test-push";
+import { verifyExtension } from "./deploy/extensions/verify";
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
 import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
@@ -510,12 +508,6 @@ export const router = t.router({
       delete: deleteEnvVar,
       makeSensitive,
     }),
-    // Pre-install verification only. List + enable/disable + soft-delete are
-    // owned by `deploy.extension.*`; the axiom provider in
-    // lib/extensions/providers.ts maps those onto the underlying log_drains row.
-    logDrain: t.router({
-      testPush: testPushLogDrain,
-    }),
     domain: t.router({
       list: listDomains,
     }),
@@ -531,6 +523,7 @@ export const router = t.router({
       update: updateExtensionInstallation,
       setEnabled: setExtensionEnabled,
       uninstall: uninstallExtension,
+      verify: verifyExtension,
     }),
     deployment: t.router({
       list: listDeployments,

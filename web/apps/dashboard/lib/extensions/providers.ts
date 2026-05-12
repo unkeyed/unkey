@@ -18,6 +18,12 @@ export type ProviderContext = {
   workspaceId: string;
 };
 
+/**
+ * Result of a pre-install (or pre-update) sanity check. `error` is shown to the
+ * user verbatim so providers should keep messages short and actionable.
+ */
+export type VerifyResult = { ok: true } | { ok: false; status?: number; error: string };
+
 export type LiveProvider = {
   /** Called after a successful insert into `extension_installations`. */
   onInstall(ctx: ProviderContext, installation: Installation): Promise<void>;
@@ -34,6 +40,13 @@ export type LiveProvider = {
    * this to pause/resume runtime work without tearing down the row.
    */
   onSetEnabled?(ctx: ProviderContext, installation: Installation, enabled: boolean): Promise<void>;
+  /**
+   * Pre-install (or pre-update) connectivity check. The wizard calls this
+   * before persisting so customers see auth/dataset/endpoint errors at setup
+   * time instead of staring at a paused integration later. Receives the raw
+   * config form state so it can run without an installation row existing yet.
+   */
+  verify?(ctx: ProviderContext, config: Installation["config"]): Promise<VerifyResult>;
 };
 
 /**
