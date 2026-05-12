@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { Button, Checkbox } from "@unkey/ui";
+import { Magnifier } from "@unkey/icons";
+import { Button, Checkbox, FormInput } from "@unkey/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FilterOperator, FilterValue } from "../validation/filter.types";
 import { useCheckboxState } from "./hooks";
@@ -268,17 +269,15 @@ export const FilterCheckbox = <
   return (
     <div className={cn("flex flex-col p-2", className)}>
       {getSearchText && (
-        <div className="px-2 pt-2">
-          <div className="flex h-8 items-center rounded-md bg-gray-2 px-2">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={searchPlaceholder ?? "Search"}
-              className="w-full bg-transparent border-none outline-hidden focus:outline-hidden focus:ring-0 text-xs text-accent-12 placeholder:text-xs placeholder:text-accent-8"
-            />
-          </div>
-        </div>
+        <FormInput
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={searchPlaceholder ?? "Search"}
+          aria-label={searchPlaceholder ?? "Search"}
+          leftIcon={<Magnifier iconSize="md-medium" className="text-gray-9" />}
+          className="mx-2 my-2 [&_input]:h-8 [&_input]:text-[13px]"
+        />
       )}
       <div
         className={cn(
@@ -293,7 +292,7 @@ export const FilterCheckbox = <
             <label
               // "checkbox-999 required to transfer focus from single checkboxes to this "select" all"
               htmlFor={"checkbox-999"}
-              className="flex items-center gap-4.5 cursor-pointer"
+              className="flex items-center gap-2 cursor-pointer"
               aria-checked={areAllContextChecked}
               onKeyDown={(e) => handleKeyDown(e)}
             >
@@ -323,7 +322,7 @@ export const FilterCheckbox = <
                 <label
                   key={checkbox.id}
                   htmlFor={`checkbox-${checkbox.id}`}
-                  className="flex gap-4.5 items-center py-1 cursor-pointer"
+                  className="flex gap-2 items-center py-1 cursor-pointer"
                   aria-checked={checkbox.checked}
                   onKeyDown={(e) => handleKeyDown(e, index)}
                 >
@@ -344,7 +343,7 @@ export const FilterCheckbox = <
               <label
                 key={checkbox.id}
                 htmlFor={`checkbox-${checkbox.id}`}
-                className="flex gap-4.5 items-center py-1 cursor-pointer"
+                className="flex gap-2 items-center py-1 cursor-pointer"
                 aria-checked={checkbox.checked}
                 onKeyDown={(e) => handleKeyDown(e, index)}
               >

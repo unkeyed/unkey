@@ -18,6 +18,7 @@ export const RuntimeLogsDeploymentFilter = () => {
 
   return (
     <FilterCheckbox
+      className="w-80"
       options={options}
       filterField="deploymentId"
       checkPath="slug"
@@ -27,9 +28,9 @@ export const RuntimeLogsDeploymentFilter = () => {
       getSearchText={(option) => `${option.gitBranch ?? ""} ${option.slug ?? ""}`}
       selectionMode="multiple"
       renderOptionContent={(checkbox) => (
-        <div className="text-accent-12 text-xs flex items-center gap-4.5">
-          <span className="text-accent-9">{checkbox.gitBranch}</span>
-          <span className="font-mono">{checkbox.slug}</span>
+        <div className="text-accent-12 text-xs flex min-w-0 flex-1 items-center gap-2">
+          <span className="font-semibold truncate">{checkbox.gitBranch}</span>
+          <span className="font-mono truncate text-accent-11">{checkbox.slug}</span>
         </div>
       )}
       createFilterValue={(option) => ({

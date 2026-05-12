@@ -18,6 +18,7 @@ export const SentinelDeploymentFilter = () => {
 
   return (
     <FilterCheckbox
+      className="w-80"
       options={options}
       filterField="deploymentId"
       checkPath="slug"
@@ -27,9 +28,9 @@ export const SentinelDeploymentFilter = () => {
       getSearchText={(option) => `${option.gitBranch ?? ""} ${option.slug ?? ""}`}
       selectionMode="multiple"
       renderOptionContent={(checkbox) => (
-        <div className="text-accent-12 text-xs">
-          <span className="font-medium">{checkbox.gitBranch}</span>
-          <span className="text-accent-9 ml-1 font-mono">{checkbox.slug.slice(0, 8)}</span>
+        <div className="text-accent-12 text-xs flex min-w-0 flex-1 items-center gap-2">
+          <span className="font-semibold truncate">{checkbox.gitBranch}</span>
+          <span className="font-mono shrink-0 text-accent-11">{checkbox.slug.slice(0, 8)}</span>
         </div>
       )}
       createFilterValue={(option) => ({
