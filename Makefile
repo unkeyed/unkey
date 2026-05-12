@@ -133,7 +133,7 @@ oci-load: build ## Build and load OCI images into Docker
 
 .PHONY: dashboard
 dashboard: build oci-load ## Run local development setup for dashboard
-	@test -f web/apps/dashboard/.env || cp web/apps/dashboard/dev/.env.template web/apps/dashboard/.env
+	@test -f web/apps/dashboard/.env || cp web/apps/dashboard/.env.example web/apps/dashboard/.env
 	@docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait
 	@bin/unkey dev seed local
 	@cd web/apps/dashboard && pnpm dev
