@@ -1,178 +1,129 @@
 ---
 name: improve-microcopy
-description: Audit UI microcopy in the current branch diff and propose concrete rewrites. Use after writing dashboard work to review button labels, error messages, empty states, dialog copy, form descriptions, tooltips, and toasts. Audit-only — does not edit files.
+description: Write or review UX microcopy for dashboard interfaces. Use when reviewing button labels, errors, empty states, dialogs, helper text, tooltips, toasts, onboarding, or any user-facing product copy.
 disable-model-invocation: true
 allowed-tools: [Read, Glob, Grep, Bash]
 ---
 
-# Improve microcopy
+# Improve Microcopy
 
-Audit user-facing strings introduced or modified in the current branch and report issues with suggested rewrites. **Do not edit files.** The user reads the report and applies what they want.
+Write or review UX copy for product UI. Be concise, suggestive, and light on theory.
 
-Microcopy is short UI text (typically under three sentences) that users actually read: button labels, error messages, empty states, form labels and descriptions, placeholders, toast notifications, dialog content, tooltips, confirmation prompts. It supports scanning and is read more often than longer copy — every word counts. Code comments, log lines, and test fixtures are not microcopy.
+Do not edit product files when this skill is invoked. Return recommendations first. The human chooses what to apply.
 
-## Scope
+## What I Need
 
-- Source: `git diff main...HEAD` — only added or modified lines.
-- Files: `.tsx` and `.ts` under `web/apps/dashboard/`.
-- Skip: `*.test.tsx`, `*.test.ts`, `__tests__/`, `*.stories.tsx`, code comments, log/console messages, anything that never renders to a user.
-- Do not flag pre-existing copy that wasn't touched in this branch.
+Ask only if missing and not discoverable:
 
-## Process
+- Context: What screen, flow, or feature?
+- User state: What is the user trying to do? Are they blocked, deciding, or confirming?
+- Tone: Neutral, reassuring, direct, celebratory?
+- Constraints: Character limits, layout, platform rules?
 
-1. `git diff main...HEAD --name-only` → filter to dashboard tsx/ts files.
-2. Read each changed file. Extract user-facing strings from added/modified lines: JSX text nodes, `placeholder=`, `title=`, `label=`, `description=`, `aria-label=`, `toast.*()`, `confirm*Text=`, error/success message literals, alert/dialog content.
-3. Run **Pass 1: hard rules**. Mechanical, high confidence.
-4. Run **Pass 2: taste pass**. Subjective, lower confidence.
-5. Emit a single grouped report.
+For branch reviews, infer context from `git diff main...HEAD` and changed files under `web/apps/dashboard/`. Skip tests, stories, logs, comments, identifiers, and copy outside the diff. Do not patch the dashboard.
 
-If no user-facing strings changed, say so and stop.
+## Principles
 
-## Voice — the house tone
+- Clear: Say exactly what you mean. No ambiguity.
+- Concise: Use the fewest words that preserve the full meaning.
+- Consistent: Use the same term for the same thing on the same surface.
+- Useful: Answer the user's next question before they get stuck.
+- Human: Use everyday words a person would say out loud.
+- Calm: No hype, jokes, emojis, melodrama, or blame.
 
-Unkey's microcopy is **Stripe/Vercel-direct**: confident, dry, specific. The reader is a developer. Plain past tense for success ("Key created"). Active voice with a named actor for failures ("We couldn't…"). No exclamation marks except on first-time success moments (account, workspace, first key). No emojis. No interjections ("Oops", "Hooray"). No apologetic "please".
+## Friction Check
 
-## Classify each string first
+Before rewriting, ask what job the copy has:
 
-Every piece of microcopy has one of three primary goals (NN/g framework). Identify which one before judging — the standard you hold a string to depends on it.
+- Before action: give the user a reason, expectation, or warning.
+- During action: explain what to enter, choose, or check.
+- After action: confirm what happened or explain how to recover.
 
-- **Inform** — communicate facts, status, or consequences. Empty states, error messages, helper text, warning boxes, async-behavior notes, system notifications, success toasts, dialog body copy. Standard: specific, scannable, accurate, names the actual thing. Most dashboard microcopy is Inform.
-- **Interact** — tell the user what an element does or capture an action. Button labels, link text, checkbox labels, tab labels, placeholders, breadcrumbs, menu items. Standard: names the action and the object; zero ambiguity about what happens on click.
-- **Influence** — drive a conversion or build emotional brand connection. Rare in a product dashboard — mostly billing/upgrade and first-run onboarding. Standard: clear value, honest, never overwrought.
+Then check:
 
-A string can serve more than one goal — pick the dominant one. A confirm-dialog title ("Confirm permission deletion") is Inform-first. A "Get started" CTA in onboarding is Influence-first. A "Delete permission" button is Interact-first even though it also Informs.
+- What might users misunderstand?
+- What might make them hesitate?
+- What would make them ask support or give up?
 
-**If you find Influence copy in product UI outside billing/upgrade/onboarding, flag it.** Developers use this dashboard daily — they don't need to be sold at every step.
+## Unkey Voice
 
-## Pass 1: hard rules
+- Lead with the user's task.
+- Use concrete nouns already in the UI: key, API, identity, namespace, permission, role, workspace.
+- Use "Unkey" only when the product is truly the actor or boundary.
+- Use active voice when ownership matters: "We couldn't create the key".
+- Use plain past tense for success: "Key created", "Changes saved".
+- Avoid "please", "simply", "just", "easily", "obviously", "successfully", and exclamation marks.
 
-Each finding here is objective. Always propose a concrete rewrite.
+## Active and Passive Voice
 
-### Sentence case everywhere
-All UI text is sentence case — buttons, dialog titles, tab labels, table headers, section headings. Proper nouns stay capitalized (Vercel, GitHub, Unkey, API, ID).
+- Use active voice for actions, errors, and next steps: "We couldn't delete the key", "Create a namespace first".
+- Use passive voice only when the actor does not matter: "Changes saved", "Key deleted", "Request blocked".
+- Name the actor when it changes responsibility: "GitHub denied access to this repo" is better than "Access denied" if the user needs to know where to fix it.
+- Avoid vague passive errors: "The key could not be created", "An error occurred", "Request failed".
 
-- Bad: `"Failed to Create Key"`, `"Delete Identity"`, `"Create New Root Key"`
-- Good: `"Failed to create key"`, `"Delete identity"`, `"Create new root key"`
+## Copy Patterns
 
-### Banned phrases
-Zero tolerance — flag every occurrence:
+### CTAs
+Start with a verb. Name the object when context is not obvious: "Create key", "Save changes", "Delete permission". Avoid "Submit", "Confirm", "Continue", and "OK".
 
-- `Oops`, `Whoops`, `Uh oh`, `Yikes`
-- `Hooray`, `Yay`, `Awesome`, `Great!`
-- `Something went wrong` with no specifics
-- `An unexpected error occurred`
-- Bare `Please try again` with no cause or next step
-- `Are you sure?` alone (must name what)
+### Errors
+Structure: blocker + cause + next step. Put the most useful information first. Use "Name already in use. Choose a different key name." Avoid "Something went wrong. Please try again."
 
-### Error structure
-Applies to **Inform** strings (errors, system messages). Every error message must include at least two of:
+### Empty States
+Structure: what this is + why it is empty + how to start. Use "No permissions yet. Add a permission to control access to this API." Avoid "No data".
 
-1. **What** action failed (specific verb + object)
-2. **Why** it failed (cause or condition, when knowable)
-3. **What next** the user should do (retry, fix something, contact support)
+Never leave a dead end unless the user truly cannot act.
 
-Use active voice with a named actor when *we* failed:
+### Confirmation Dialogs
+Make the action clear, describe consequences, and label buttons with the action: "Delete permission?" / "Requests that rely on this permission may fail. This action cannot be undone." / "Delete permission" and "Keep permission".
 
-- Bad: `"Your password couldn't be changed"` — passive, no actor, no reason
-- Good: `"We couldn't change your password — it must be at least 8 characters"`
+Do not mechanically rewrite a whole dialog. If the current warning is clear, keep it and add only the missing consequence or undo note. Avoid "gone for good", "destroyed forever", and "permanently destroys its analytics".
 
-### Contextual labels
-Applies to **Interact** strings (buttons, links, menu items). Flag bare action verbs that don't say what they act on when context is ambiguous (dialogs with multiple buttons, dense forms):
+### Helper Text
+Explain why the field matters, not what the label already says. Use "Shown in logs and the dashboard." Avoid "A name to identify this item."
 
-- `Submit`, `Confirm`, `Continue`, `Next`, `Save`, `Cancel` standing alone — usually flag
-- Prefer: `Save changes`, `Create key`, `Delete identity`, `Cancel rotation`
+### Tooltips, Loading, Onboarding
+Tooltips should clarify unfamiliar terms, icons, limits, or hidden behavior. Loading states should set expectations only when timing matters. Onboarding should reveal one concept at a time. Persuasive copy belongs mostly in onboarding, billing, and upgrade moments, not routine dashboard workflows.
 
-Exception: a single-button wizard step where the parent context makes the object obvious.
+## Output
 
-### Vague filler
-Flag and propose removal:
+For a single screen, flow, or focused review:
 
-- `please` (allow at most one apologetic use per dialog; never in errors)
-- `very`, `extremely`, `really`, `actually`, `simply`, `just`
-- `successfully` in success toasts is usually redundant: `"Member removed successfully"` → `"Member removed"`
+```md
+## UX Copy: [Context]
 
-### Destructive-action template
-Any dialog with a destructive primary action (delete, revoke, rotate, regenerate, cancel subscription) must include:
+### Recommended Copy
+**[Element]**: [Copy]
 
-- **What is lost or changed** — "Deleting this identity removes its metadata and ratelimits."
-- **Scope clarification** when applicable — "Associated keys will not be affected."
-- **Irreversibility note** when applicable — "This action cannot be undone."
-- **Typed-name confirmation** for high-impact actions (delete API, delete namespace, delete project, delete workspace).
+### Alternatives
+| Option | Copy | Tone | Best for |
+|--------|------|------|----------|
+| A | [Copy] | [Tone] | [When to use] |
+| B | [Copy] | [Tone] | [When to use] |
 
-Flag dialogs missing any element that applies.
+### Rationale
+[Short explanation: user context, clarity, action-orientation.]
 
-## Pass 2: taste pass
-
-Subjective. Mark each finding `[taste]`. Use judgment; bias toward fewer, higher-confidence flags.
-
-### Specificity
-Name the actual thing. Not "the item", "this entry", "your data".
-
-- Weaker: `"Save failed"`
-- Stronger: `"We couldn't save your changes"`
-
-### Expectations
-Set async behavior, irreversibility, and one-time disclosures **before** the click, not after:
-
-- `"You'll see this secret only once."`
-- `"Changes may take up to 60s to propagate."`
-- `"The current key remains valid for the grace period you select."`
-
-Flag dialogs and forms that perform consequential actions without these.
-
-### Empty states
-Applies to **Inform** strings. An empty state must answer two things:
-
-1. **What is this surface?** ("Verification logs show each time this key was used.")
-2. **What can the user do here?** (CTA or docs link.)
-
-Bare "No data" or "Nothing here yet" without both — flag.
-
-### Helper text and field descriptions
-Applies to **Inform** strings beside form fields. One sentence. Explain **why**, not what — the label already says what.
-
-- Weak: label `"Name"`, description `"A name to identify this rate limit rule"` — adds nothing.
-- Good: label `"Workspace name"`, description `"Not customer-facing. Choose a name that is easy to recognize."`
-
-### Brevity
-Microcopy can't rescue a confusing UI. Flag instructional copy longer than ~2 sentences that explains "how to use this" — that's a sign the interaction itself needs work, not more words.
-
-### Local terminology consistency
-If the diff itself uses two different terms for the same concept on the same surface, flag it:
-
-- `"API key"` and `"key"` interchangeably in one dialog
-- `"Identity"` and `"user"` for the same entity
-
-Do **not** validate against a global canonical glossary — out of scope.
-
-## What NOT to flag
-
-- Pre-existing strings outside the diff
-- Log messages, console output, monitoring labels, error codes
-- Strings in test files or stories
-- Code identifiers, route paths, type names
-- aria-labels that duplicate visible text for screen readers (judge whether the label is also user-visible)
-- Marketing/landing copy — this skill is for product UI only
-
-## Report format
-
-Output one markdown report. Group by file. Within each file: hard findings first, then taste findings.
-
-```
-### web/apps/dashboard/components/foo/bar.tsx
-
-**[hard] Sentence case** — line 42
-Current: "Failed to Create Key"
-Suggested: "Failed to create key"
-
-**[hard] Vague error** — line 87
-Current: "Something went wrong. Please try again."
-Suggested: "We couldn't save your changes — check your connection and retry."
-Reason: name what failed, name the next step.
-
-**[taste] Helper text adds nothing** — line 120
-Field: label "Name" + description "A name to identify this rate limit rule"
-Suggested: drop the description, or explain why naming matters ("Shown in logs and the dashboard — keep it human-readable.")
+### Localization Notes
+[Anything translators should know. Omit if not relevant.]
 ```
 
-End with one line: `N hard, M taste findings across X files.`
+For branch audits, group by file and keep only high-signal findings:
+
+```md
+## UX Copy Review
+
+### web/apps/dashboard/example.tsx
+
+#### [Element], line 42
+Current: "[Current copy]"
+Recommended: "[Best rewrite]"
+Alternative: "[Optional second choice]"
+Why: [One short sentence.]
+
+N recommendations across X files.
+```
+
+Limit alternatives to two unless the user asks for exploration. Prefer one strong recommendation over a menu of tiny variations.
+
+After giving recommendations, offer to preview them as a small self-contained HTML page if visual context would help. Use realistic UI contexts: dialogs, toasts, empty states, form rows, or buttons. Show before and after side by side with the file, line, recommendation, optional alternative, and one short rationale.
