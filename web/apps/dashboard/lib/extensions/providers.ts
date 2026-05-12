@@ -10,6 +10,7 @@
  * provider module under ./providers/<slug>.ts. No conditionals anywhere else.
  */
 import type { schema } from "@unkey/db";
+import { logDrainProvider } from "./providers/log-drain";
 
 type Installation = typeof schema.extensionInstallations.$inferSelect;
 
@@ -38,10 +39,13 @@ export type LiveProvider = {
 /**
  * Slug → provider. Populated as live extensions land.
  *
- * `axiom-logdrain` will register its provider here once the log_drains stack
- * merges; the provider opens a `log_drains` row keyed by the installation id.
+ * The "axiom" extension provisions a real `log_drains` row keyed by the
+ * installation id; the provider hooks below own that lifecycle so the
+ * extension router stays generic.
  */
-const PROVIDERS: Partial<Record<string, LiveProvider>> = {};
+const PROVIDERS: Partial<Record<string, LiveProvider>> = {
+  axiom: logDrainProvider,
+};
 
 export function getProvider(slug: string): LiveProvider | undefined {
   return PROVIDERS[slug];

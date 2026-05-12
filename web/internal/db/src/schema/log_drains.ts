@@ -72,12 +72,20 @@ export const logDrains = mysqlTable(
 
     enabled: boolean("enabled").notNull().default(true),
 
+    // Set when the row was provisioned through the marketplace
+    // (deploy.extension.install). NULL for pre-marketplace drains created
+    // directly via the legacy CRUD path. The runtime joins on this when
+    // present so an installation-level uninstall takes the drain offline
+    // without an explicit cascade write.
+    extensionInstallationId: varchar("extension_installation_id", { length: 128 }),
+
     ...lifecycleDates,
     ...softDelete,
   },
   (table) => [
     index("log_drains_project_idx").on(table.projectId, table.deletedAt),
     index("log_drains_workspace_idx").on(table.workspaceId, table.deletedAt),
+    index("log_drains_extension_installation_idx").on(table.extensionInstallationId),
   ],
 );
 

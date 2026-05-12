@@ -12,6 +12,7 @@ CREATE TABLE `log_drains` (
 	`filters` json NOT NULL DEFAULT ('{}'),
 	`delivery_mode` enum('batch','stream') NOT NULL DEFAULT 'batch',
 	`enabled` boolean NOT NULL DEFAULT true,
+	`extension_installation_id` varchar(128),
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	`deleted_at` bigint,
@@ -22,4 +23,6 @@ CREATE TABLE `log_drains` (
 CREATE INDEX `log_drains_project_idx` ON `log_drains` (`project_id`,`deleted_at`);
 
 CREATE INDEX `log_drains_workspace_idx` ON `log_drains` (`workspace_id`,`deleted_at`);
+
+CREATE INDEX `log_drains_extension_installation_idx` ON `log_drains` (`extension_installation_id`);
 
