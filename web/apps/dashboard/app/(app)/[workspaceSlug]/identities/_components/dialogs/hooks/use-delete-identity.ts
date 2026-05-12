@@ -5,7 +5,7 @@ export const useDeleteIdentity = (onSuccess: () => void) => {
   const trpcUtils = trpc.useUtils();
 
   const deleteIdentity = trpc.identity.delete.useMutation({
-    onSuccess() {
+    onSuccess(_data, variables) {
       toast.success("Identity Deleted", {
         description:
           "The identity has been permanently deleted and can no longer be used for verification.",
@@ -14,6 +14,7 @@ export const useDeleteIdentity = (onSuccess: () => void) => {
       trpcUtils.identity.query.invalidate();
       trpcUtils.identity.search.invalidate();
       trpcUtils.identity.searchWithRelations.invalidate();
+      trpcUtils.identity.getById.invalidate({ identityId: variables.identityId });
 
       onSuccess();
     },

@@ -64,6 +64,7 @@ export function useEditIdentityRatelimits(onSuccess?: () => void) {
       });
 
       trpcUtils.identity.query.invalidate();
+      trpcUtils.identity.getById.invalidate({ identityId: data.identityId });
       onSuccess?.();
     },
     onError(err) {

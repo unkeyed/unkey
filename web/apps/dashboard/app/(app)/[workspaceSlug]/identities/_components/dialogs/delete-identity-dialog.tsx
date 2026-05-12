@@ -22,12 +22,14 @@ type DeleteIdentityDialogProps = {
   identity: z.infer<typeof IdentityResponseSchema>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onDeleted?: () => void;
 };
 
 export const DeleteIdentityDialog = ({
   identity,
   open,
   onOpenChange,
+  onDeleted,
 }: DeleteIdentityDialogProps) => {
   const formId = useId();
   const [isConfirmPopoverOpen, setIsConfirmPopoverOpen] = useState(false);
@@ -54,6 +56,7 @@ export const DeleteIdentityDialog = ({
 
   const deleteIdentity = useDeleteIdentity(() => {
     onOpenChange(false);
+    onDeleted?.();
   });
 
   const handleDialogOpenChange = (open: boolean) => {
