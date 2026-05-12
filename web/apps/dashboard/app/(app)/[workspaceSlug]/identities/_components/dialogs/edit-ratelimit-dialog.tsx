@@ -8,7 +8,7 @@ import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import type { IdentityResponseSchema } from "@/lib/trpc/routers/identity/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer } from "@unkey/ui";
-import { type FC, useCallback, useEffect, useId, useState } from "react";
+import { type FC, useEffect, useId, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import type { z } from "zod";
 import { IdentityInfo } from "./identity-info";
@@ -56,21 +56,22 @@ export const EditRatelimitDialog: FC<EditRatelimitDialogProps> = ({
   const formId = useId();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const getDefaultValues = useCallback(() => {
-    return getIdentityRatelimitsDefaults(identity);
-  }, [identity]);
+  const identityRef = useRef(identity);
+  identityRef.current = identity;
 
   const methods = useForm<RatelimitFormValues>({
     resolver: zodResolver(ratelimitSchema) as DiscriminatedUnionResolver<typeof ratelimitSchema>,
-    defaultValues: getDefaultValues(),
+    defaultValues: getIdentityRatelimitsDefaults(identity),
   });
 
-  // Reset form when dialog opens
+  // Reset form only when the dialog transitions from closed to open, so
+  // refetches of the underlying identity (which can change `identity`'s
+  // reference) don't clobber in-progress edits like a newly added ratelimit.
   useEffect(() => {
     if (open) {
-      methods.reset(getDefaultValues());
+      methods.reset(getIdentityRatelimitsDefaults(identityRef.current));
     }
-  }, [open, getDefaultValues, methods]);
+  }, [open, methods]);
 
   const updateRatelimit = useEditIdentityRatelimits(() => {
     onOpenChange(false);
