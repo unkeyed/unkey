@@ -49,8 +49,8 @@ Then check:
 
 - Lead with the user's task.
 - Use concrete nouns already in the UI: key, API, identity, namespace, permission, role, workspace.
-- Use "Unkey" only when the product is truly the actor or boundary.
-- Use active voice when ownership matters: "We couldn't create the key".
+- Use "we" for service-owned failures: "We couldn't create the key".
+- Use "Unkey" for product boundaries or formal claims: "Unkey stores logs for 30 days".
 - Use plain past tense for success: "Key created", "Changes saved".
 - Avoid "please", "simply", "just", "easily", "obviously", "successfully", and exclamation marks.
 
