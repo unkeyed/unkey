@@ -141,12 +141,7 @@ export const WorkspaceSwitcher: React.FC = () => {
   );
 
   const dropdownContent = (
-    <DropdownMenuContent
-      className="w-72 lg:w-96 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg"
-      align="start"
-      side="top"
-      sideOffset={8}
-    >
+    <DropdownMenuContent className="w-64" align="start" side="top" sideOffset={8}>
       <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
       <DropdownMenuGroup>
         <div className="max-h-96 overflow-y-auto">
@@ -175,7 +170,7 @@ export const WorkspaceSwitcher: React.FC = () => {
             </DropdownMenuItem>
           ))}
         </div>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="my-2" />
         <DropdownMenuItem asChild>
           <Link href="/new" className="flex items-center">
             <Plus iconSize="md-regular" className="w-4 h-4 mr-2" />

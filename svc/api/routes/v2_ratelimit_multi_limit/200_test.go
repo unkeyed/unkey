@@ -20,7 +20,7 @@ import (
 
 func TestLimitSuccessfully(t *testing.T) {
 	ctx := context.Background()
-	h := testutil.NewHarness(t)
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	route := &handler.Handler{
 		Keys:            h.Keys,

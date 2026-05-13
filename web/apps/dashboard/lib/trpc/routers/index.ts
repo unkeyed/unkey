@@ -47,6 +47,7 @@ import { createDeploy } from "./deploy/deployment/create-deploy";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getById as getDeploymentById } from "./deploy/deployment/getById";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
+import { getDeploymentInstanceEvents } from "./deploy/deployment/instance-events";
 import { listDeployments } from "./deploy/deployment/list";
 import { searchDeployments } from "./deploy/deployment/llm-search";
 import { promote } from "./deploy/deployment/promote";
@@ -96,14 +97,12 @@ import { reorder as reorderSentinelPolicies } from "./deploy/environment-setting
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
 import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
-import { getDeploymentLatency } from "./deploy/metrics/get-deployment-latency";
-import { getDeploymentLatencyTimeseries } from "./deploy/metrics/get-deployment-latency-timeseries";
+import { getDeploymentLatencyMetrics } from "./deploy/metrics/get-deployment-latency-metrics";
 import { getDeploymentMemoryTimeseries } from "./deploy/metrics/get-deployment-memory-timeseries";
 import { getDeploymentNetworkEgressTimeseries } from "./deploy/metrics/get-deployment-network-egress-timeseries";
 import { getDeploymentNetworkIngressTimeseries } from "./deploy/metrics/get-deployment-network-ingress-timeseries";
 import { getDeploymentResourceSummary } from "./deploy/metrics/get-deployment-resource-summary";
-import { getDeploymentRps } from "./deploy/metrics/get-deployment-rps";
-import { getDeploymentRpsTimeseries } from "./deploy/metrics/get-deployment-rps-timeseries";
+import { getDeploymentRpsMetrics } from "./deploy/metrics/get-deployment-rps-metrics";
 import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
 import { getInstanceRps } from "./deploy/network/get-instance-rps";
@@ -515,6 +514,7 @@ export const router = t.router({
       getById: getDeploymentById,
       buildSteps: getDeploymentBuildSteps,
       runtimeLogs: getDeploymentRuntimeLogs,
+      instanceEvents: getDeploymentInstanceEvents,
       steps: getDeploymentSteps,
       search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,
@@ -535,10 +535,8 @@ export const router = t.router({
       listInstances,
     }),
     metrics: t.router({
-      getDeploymentRps,
-      getDeploymentRpsTimeseries,
-      getDeploymentLatency,
-      getDeploymentLatencyTimeseries,
+      getDeploymentRpsMetrics,
+      getDeploymentLatencyMetrics,
       getDeploymentCpuTimeseries,
       getDeploymentMemoryTimeseries,
       getDeploymentDiskTimeseries,

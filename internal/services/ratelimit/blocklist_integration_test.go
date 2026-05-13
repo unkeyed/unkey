@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/counter"
-	"github.com/unkeyed/unkey/pkg/dockertest"
 	"github.com/unkeyed/unkey/pkg/mysql"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 
 	rldb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 )
@@ -19,10 +19,6 @@ import (
 // wrapped ratelimit DB (for direct query assertions inside the tests). Each
 // test gets independent service instances against the same data plane;
 // that's the multi-region scenario we are asserting.
-//
-// Uses dockertest.MySQL rather than containers.MySQL so each test gets its
-// own isolated table state. The integration tests assert on row counts and
-// table contents, which would race under a shared database.
 type blocklistTestEnv struct {
 	t    *testing.T
 	db   DB
@@ -32,7 +28,7 @@ type blocklistTestEnv struct {
 func newBlocklistTestEnv(t *testing.T) *blocklistTestEnv {
 	t.Helper()
 
-	cfg := dockertest.MySQL(t)
+	cfg := containers.MySQL(t)
 	database, err := mysql.New(mysql.Config{
 		PrimaryDSN:  cfg.DSN,
 		ReadOnlyDSN: "",

@@ -202,12 +202,12 @@ func TestWithRetryContext_Integration(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Set up test database using containers
+	// Set up test database using a per-test container
 	mysqlCfg := containers.MySQL(t)
 
 	// Create database instance
 	dbInstance, err := New(Config{
-		PrimaryDSN: mysqlCfg.FormatDSN(),
+		PrimaryDSN: mysqlCfg.DSN,
 	})
 	require.NoError(t, err)
 	defer func() { require.NoError(t, dbInstance.Close()) }()

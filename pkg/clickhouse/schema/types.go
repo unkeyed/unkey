@@ -1,6 +1,8 @@
 package schema
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // KeyVerification represents the v2 key verification raw table structure.
 // This matches the key_verifications_raw_v2 table schema with additional
@@ -235,6 +237,47 @@ func (a InstanceCheckpointAttributes) Marshal() string {
 	return string(b)
 }
 
+// InstanceEventV1 represents the v1 instance event raw table structure.
+// Captured by krane's pod watch on container running, termination, and
+// waiting (CrashLoopBackOff, ImagePullBackOff, …) transitions. Mirrors
+// corev1.ContainerState; the proto wire format uses a oneof, the CH table
+// is the flat materialized view ctrl writes from that oneof.
+type InstanceEventV1 struct {
+	Time          int64  `ch:"time" json:"time"`
+	WorkspaceID   string `ch:"workspace_id" json:"workspace_id"`
+	ProjectID     string `ch:"project_id" json:"project_id"`
+	AppID         string `ch:"app_id" json:"app_id"`
+	EnvironmentID string `ch:"environment_id" json:"environment_id"`
+	DeploymentID  string `ch:"deployment_id" json:"deployment_id"`
+
+	PodUID        string `ch:"pod_uid" json:"pod_uid"`
+	PodName       string `ch:"pod_name" json:"pod_name"`
+	NodeName      string `ch:"node_name" json:"node_name"`
+	ContainerName string `ch:"container_name" json:"container_name"`
+	ContainerID   string `ch:"container_id" json:"container_id"`
+	RestartCount  int32  `ch:"restart_count" json:"restart_count"`
+
+	EventKind string `ch:"event_kind" json:"event_kind"`
+
+	ExitCode int32  `ch:"exit_code" json:"exit_code"`
+	Signal   int32  `ch:"signal" json:"signal"`
+	Reason   string `ch:"reason" json:"reason"`
+	Message  string `ch:"message" json:"message"`
+
+	Region   string `ch:"region" json:"region"`
+	Platform string `ch:"platform" json:"platform"`
+
+	EventFingerprint string `ch:"event_fingerprint" json:"event_fingerprint"`
+
+	// Attributes carries selected k8s metadata for the event row (image,
+	// resource limits, build_id, …) as a JSON-encoded string. ctrl marshals
+	// the proto map<string,string> into JSON before queuing the row so the
+	// CH JSON column receives valid JSON (empty map → "{}"). The string
+	// shape sidesteps a clickhouse-go quirk where AppendStruct doesn't
+	// reliably auto-serialize Go maps into JSON columns.
+	Attributes string `ch:"attributes" json:"attributes"`
+}
+
 // SentinelRequest represents the v1 sentinel request raw table structure.
 // This tracks requests routed through sentinel proxy to deployment instances
 // with deployment routing, performance breakdown, and error categorization.
@@ -265,4 +308,49 @@ type SentinelRequest struct {
 	TotalLatency    int64               `ch:"total_latency" json:"total_latency"`
 	InstanceLatency int64               `ch:"instance_latency" json:"instance_latency"`
 	SentinelLatency int64               `ch:"sentinel_latency" json:"sentinel_latency"`
+}
+
+// AuditLogV1 represents one logical audit event in audit_logs_raw_v1.
+// Targets are stored as parallel Nested arrays (TargetTypes[i] pairs with
+// TargetIDs[i] / TargetNames[i] / TargetMetas[i]). All four slices MUST be
+// the same length.
+//
+// Source distinguishes platform-emitted events ("platform", default) from
+// customer-emitted events ("customer", once that surface ships).
+//
+// Time fields are unix-milli (Int64), matching the rest of Unkey's CH
+// tables. Meta fields are json.RawMessage so the writer can pass already-
+// encoded JSON bytes through without re-marshaling, and so the JSON column
+// type in CH stores them natively (not as escaped strings).
+type AuditLogV1 struct {
+	EventID     string `ch:"event_id" json:"event_id"`
+	Time        int64  `ch:"time" json:"time"`
+	InsertedAt  int64  `ch:"inserted_at" json:"inserted_at"`
+	WorkspaceID string `ch:"workspace_id" json:"workspace_id"`
+	Bucket      string `ch:"bucket" json:"bucket"`
+	Source      string `ch:"source" json:"source"`
+
+	Event       string `ch:"event" json:"event"`
+	Description string `ch:"description" json:"description"`
+
+	ActorType string          `ch:"actor_type" json:"actor_type"`
+	ActorID   string          `ch:"actor_id" json:"actor_id"`
+	ActorName string          `ch:"actor_name" json:"actor_name"`
+	ActorMeta json.RawMessage `ch:"actor_meta" json:"actor_meta"`
+
+	RemoteIP  string          `ch:"remote_ip" json:"remote_ip"`
+	UserAgent string          `ch:"user_agent" json:"user_agent"`
+	Meta      json.RawMessage `ch:"meta" json:"meta"`
+
+	TargetTypes []string          `ch:"targets.type" json:"targets.type"`
+	TargetIDs   []string          `ch:"targets.id" json:"targets.id"`
+	TargetNames []string          `ch:"targets.name" json:"targets.name"`
+	TargetMetas []json.RawMessage `ch:"targets.meta" json:"targets.meta"`
+
+	// CorrelationID groups rows that came out of one logical user action.
+	// Empty for single-event flows; auto-minted by the audit log Insert
+	// service when the caller batches >1 events; settable via
+	// auditlog.WithCorrelation(ctx, ...) for flows that fan out across
+	// multiple Insert calls.
+	CorrelationID string `ch:"correlation_id" json:"correlation_id"`
 }

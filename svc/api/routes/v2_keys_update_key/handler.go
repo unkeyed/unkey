@@ -51,6 +51,11 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	// Mint a correlation ID so all audit events from this update (the
+	// key.update plus any per-permission / per-role disconnect+connect
+	// pairs) share one ID for dashboard drill-down.
+	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
+
 	auth, emit, err := h.Keys.GetRootKey(ctx, s)
 	defer emit()
 	if err != nil {
@@ -420,15 +425,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if len(permissionsToCreate) > 0 {
 				for _, toCreate := range permissionsToCreate {
 					auditLogs = append(auditLogs, auditlog.AuditLog{
-						WorkspaceID: auth.AuthorizedWorkspaceID,
-						Event:       auditlog.PermissionCreateEvent,
-						ActorType:   auditlog.RootKeyActor,
-						ActorID:     auth.Key.ID,
-						ActorName:   "root key",
-						ActorMeta:   map[string]any{},
-						Display:     fmt.Sprintf("Created %s (%s)", toCreate.Slug, toCreate.PermissionID),
-						RemoteIP:    s.Location(),
-						UserAgent:   s.UserAgent(),
+						WorkspaceID:   auth.AuthorizedWorkspaceID,
+						Event:         auditlog.PermissionCreateEvent,
+						ActorType:     auditlog.RootKeyActor,
+						ActorID:       auth.Key.ID,
+						ActorName:     "root key",
+						ActorMeta:     map[string]any{},
+						Display:       fmt.Sprintf("Created %s (%s)", toCreate.Slug, toCreate.PermissionID),
+						RemoteIP:      s.Location(),
+						UserAgent:     s.UserAgent(),
+						CorrelationID: "",
 						Resources: []auditlog.AuditLogResource{
 							{
 								Type:        auditlog.PermissionResourceType,
@@ -553,15 +559,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		auditLogs = append(auditLogs, auditlog.AuditLog{
-			WorkspaceID: auth.AuthorizedWorkspaceID,
-			Event:       auditlog.KeyUpdateEvent,
-			ActorType:   auditlog.RootKeyActor,
-			ActorID:     auth.Key.ID,
-			ActorName:   "root key",
-			ActorMeta:   map[string]any{},
-			Display:     fmt.Sprintf("Updated key %s", key.ID),
-			RemoteIP:    s.Location(),
-			UserAgent:   s.UserAgent(),
+			WorkspaceID:   auth.AuthorizedWorkspaceID,
+			Event:         auditlog.KeyUpdateEvent,
+			ActorType:     auditlog.RootKeyActor,
+			ActorID:       auth.Key.ID,
+			ActorName:     "root key",
+			ActorMeta:     map[string]any{},
+			Display:       fmt.Sprintf("Updated key %s", key.ID),
+			RemoteIP:      s.Location(),
+			UserAgent:     s.UserAgent(),
+			CorrelationID: "",
 			Resources: []auditlog.AuditLogResource{
 				{
 					Type:        auditlog.KeyResourceType,

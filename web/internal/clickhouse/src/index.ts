@@ -1,6 +1,9 @@
+import { getAuditLogs } from "./audit-logs";
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { getBuildStepLogs, getBuildSteps } from "./build-steps";
 import { Client, type Inserter, Noop, type Querier } from "./client";
+import { getInstanceEvents } from "./instance-events";
+export { instanceEventKind, type InstanceEventKind } from "./instance-events";
 import {
   getDailyActiveKeysTimeseries,
   getFifteenMinutelyActiveKeysTimeseries,
@@ -98,9 +101,7 @@ import {
 export { TIME_WINDOWS, type TimeWindow } from "./resources";
 import { getRuntimeLogs } from "./runtime-logs";
 import {
-  getDeploymentLatency,
-  getDeploymentLatencyTimeseries,
-  getDeploymentRps,
+  getDeploymentLatencyWithTimeseries,
   getDeploymentRpsTimeseries,
   getInstanceRps,
   getRegionRps,
@@ -371,12 +372,10 @@ export class ClickHouse {
       rps: {
         byInstance: getInstanceRps(this.querier),
         byRegion: getRegionRps(this.querier),
-        byDeployment: getDeploymentRps(this.querier),
         timeseries: getDeploymentRpsTimeseries(this.querier),
       },
       latency: {
-        byDeployment: getDeploymentLatency(this.querier),
-        timeseries: getDeploymentLatencyTimeseries(this.querier),
+        withTimeseries: getDeploymentLatencyWithTimeseries(this.querier),
       },
     };
   }
@@ -385,10 +384,20 @@ export class ClickHouse {
       logs: getRuntimeLogs(this.querier),
     };
   }
+  public get instanceEvents() {
+    return {
+      list: getInstanceEvents(this.querier),
+    };
+  }
   public get buildSteps() {
     return {
       getSteps: getBuildSteps(this.querier),
       getLogs: getBuildStepLogs(this.querier),
+    };
+  }
+  public get auditLogs() {
+    return {
+      logs: getAuditLogs(this.querier),
     };
   }
 }

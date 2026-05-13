@@ -63,6 +63,22 @@ export const deploymentSchema = z.object({
   shutdownSignal: z.enum(["SIGTERM", "SIGINT", "SIGQUIT", "SIGKILL"]),
   createdAt: z.number(),
   updatedAt: z.number().nullable(),
+  // Most-recent exit info across the deployment's instances. Null when
+  // no instance has reported a termination yet (healthy deployments).
+  // Powers the header "OOMKilled · exit=137" badge — see
+  // active-deployment-card/index.tsx:LastExitBadge. Sourced from
+  // instances.containerStatus on the trpc layer; the flat shape is kept
+  // here so consumers don't have to walk the JSON's optional sub-fields.
+  lastExit: z
+    .object({
+      restartCount: z.number().int(),
+      exitCode: z.number().int().nullable(),
+      signal: z.number().int().nullable(),
+      reason: z.string().nullable(),
+      finishedAt: z.number().nullable(),
+      statusReason: z.string().nullable(),
+    })
+    .nullable(),
 });
 
 export type Deployment = z.infer<typeof deploymentSchema>;

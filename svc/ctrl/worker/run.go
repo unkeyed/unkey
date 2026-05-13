@@ -31,11 +31,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/auditlogbackfill"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/auditlogexport"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
@@ -227,7 +230,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clickhouse:                      ch,
 		BuildSteps:                      buildSteps,
 		BuildStepLogs:                   buildStepLogs,
-		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 	}),
 		// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
@@ -287,7 +290,7 @@ func Run(ctx context.Context, cfg Config) error {
 		GitHub:                          ghClient,
 		RestateAdmin:                    restateAdminClient,
 		DashboardURL:                    cfg.DashboardURL,
-		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
+		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
 
 	restateSrv.Bind(hydrav1.NewProjectServiceServer(workerproject.New(workerproject.Config{
@@ -494,6 +497,53 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	restateSrv.Bind(hydrav1.NewRatelimitBlocklistCleanupServiceServer(ratelimitBlocklistCleanupSvc, keyLastUsedRetryPolicy))
 	logger.Info("RatelimitBlocklistCleanupService enabled")
+
+	// Audit log export: drains the MySQL audit_log outbox into ClickHouse.
+	// Registered as a virtual object so Restate serializes overlapping triggers.
+	var auditLogExportHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.Heartbeat.AuditLogExportURL != "" {
+		auditLogExportHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.AuditLogExportURL)
+	}
+	auditLogExportSvc, err := auditlogexport.New(auditlogexport.Config{
+		DB:         database,
+		Clickhouse: ch,
+		Heartbeat:  auditLogExportHeartbeat,
+	})
+	if err != nil {
+		return fmt.Errorf("create audit log export service: %w", err)
+	}
+	// Cron-triggered every minute and idempotent: any failure is recovered
+	// by the next tick, not by replaying journals from yesterday. 1h keeps
+	// enough debugging headroom for an oncall to inspect a recent failure
+	// without bloating the journal store with ~1440 dead invocations/day.
+	restateSrv.Bind(hydrav1.NewAuditLogExportServiceServer(auditLogExportSvc,
+		restate.WithJournalRetention(1*time.Hour),
+	))
+	logger.Info("AuditLogExportService enabled")
+
+	// Audit log backfill: chips through legacy audit_log/audit_log_target rows
+	// pre-dual-write into ClickHouse audit_logs_raw_v1. Singleton VO, cron-
+	// triggered, loops within each invocation until the legacy tail is reached.
+	var auditLogBackfillHeartbeat healthcheck.Heartbeat = healthcheck.NewNoop()
+	if cfg.Heartbeat.AuditLogBackfillURL != "" {
+		auditLogBackfillHeartbeat = healthcheck.NewChecklyHeartbeat(cfg.Heartbeat.AuditLogBackfillURL)
+	}
+	auditLogBackfillSvc, err := auditlogbackfill.New(auditlogbackfill.Config{
+		DB:         database,
+		Clickhouse: ch,
+		Heartbeat:  auditLogBackfillHeartbeat,
+	})
+	if err != nil {
+		return fmt.Errorf("create audit log backfill service: %w", err)
+	}
+	// Singleton VO, cron-triggered every 15min, ~1-2 min per invocation.
+	// Cursor lives in VO state so journal retention only matters for
+	// post-mortem on the most recent invocation. 1h covers a few ticks
+	// without holding a day of journals.
+	restateSrv.Bind(hydrav1.NewAuditLogBackfillServiceServer(auditLogBackfillSvc,
+		restate.WithJournalRetention(1*time.Hour),
+	))
+	logger.Info("AuditLogBackfillService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
 	restateHandler, err := restateSrv.Handler()

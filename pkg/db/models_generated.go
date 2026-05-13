@@ -1187,6 +1187,16 @@ type CiliumNetworkPolicy struct {
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
 
+type ClickhouseOutbox struct {
+	Pk          uint64          `db:"pk"`
+	Version     string          `db:"version"`
+	WorkspaceID string          `db:"workspace_id"`
+	EventID     string          `db:"event_id"`
+	Payload     json.RawMessage `db:"payload"`
+	CreatedAt   int64           `db:"created_at"`
+	DeletedAt   sql.NullInt64   `db:"deleted_at"`
+}
+
 type ClickhouseWorkspaceSetting struct {
 	Pk                        uint64        `db:"pk"`
 	WorkspaceID               string        `db:"workspace_id"`
@@ -1386,19 +1396,20 @@ type Identity struct {
 }
 
 type Instance struct {
-	Pk            uint64          `db:"pk"`
-	ID            string          `db:"id"`
-	DeploymentID  string          `db:"deployment_id"`
-	WorkspaceID   string          `db:"workspace_id"`
-	ProjectID     string          `db:"project_id"`
-	AppID         string          `db:"app_id"`
-	RegionID      string          `db:"region_id"`
-	K8sName       string          `db:"k8s_name"`
-	Address       string          `db:"address"`
-	CpuMillicores int32           `db:"cpu_millicores"`
-	MemoryMib     int32           `db:"memory_mib"`
-	StorageMib    uint32          `db:"storage_mib"`
-	Status        InstancesStatus `db:"status"`
+	Pk              uint64                 `db:"pk"`
+	ID              string                 `db:"id"`
+	DeploymentID    string                 `db:"deployment_id"`
+	WorkspaceID     string                 `db:"workspace_id"`
+	ProjectID       string                 `db:"project_id"`
+	AppID           string                 `db:"app_id"`
+	RegionID        string                 `db:"region_id"`
+	K8sName         string                 `db:"k8s_name"`
+	Address         string                 `db:"address"`
+	CpuMillicores   int32                  `db:"cpu_millicores"`
+	MemoryMib       int32                  `db:"memory_mib"`
+	StorageMib      uint32                 `db:"storage_mib"`
+	Status          InstancesStatus        `db:"status"`
+	ContainerStatus dbtype.ContainerStatus `db:"container_status"`
 }
 
 type Key struct {
